@@ -82,7 +82,9 @@ export { refinementRequest } from './lib/agent/refine'
 // flow's built-in prompt. The Rules pane in the Configuration dialog reads and writes them
 // through these, the way it reads every other setting — the list of flows is the board's
 // own, so a flow shipped later takes a rule with nothing else touched.
-export { readFlowRules, setFlowRule } from './lib/agent/rules'
+// They are board operations like every other write (#315), so a Cloud board reads and
+// writes its rules where the board is and both clients call the same thing.
+export { readFlowRules, setFlowRule } from './lib/view/api'
 
 // The chat (#240): the board's conversation with its agent, and each card's. A screen
 // drives it through these — `sendChatMessage` streams the reply back through `onText`, so

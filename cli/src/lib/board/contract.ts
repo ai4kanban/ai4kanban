@@ -23,7 +23,7 @@
 // This file is pure types and imports nothing that touches a filesystem, so it is copied
 // into the board UI by scripts/sync-format.mjs and both sides name one contract.
 
-import type { AgentRequest, DeliveryRecord } from '../agent/types'
+import type { AgentRequest, DeliveryRecord, FlowRuleView } from '../agent/types'
 import type {
   Board,
   BulkReleaseResult,
@@ -204,6 +204,22 @@ export interface BoardProvider {
   saveGoal(text: string, env: OpEnvelope): Promise<OpResult>
   saveProject(name: string, description: string, tracks: TrackDraft[], env: OpEnvelope): Promise<SaveProjectResult>
   finishSetupStep(name: string, env: OpEnvelope): Promise<OpResult>
+  /** One of the four memory files, written whole — the project's copy, or a module's when
+   *  `module` names one. Until #315 the only writer of a memory file was the coding agent
+   *  editing it as a file, which a board that is not on this machine has no way to do. */
+  saveMemoryFile(name: string, text: string, module: string, env: OpEnvelope): Promise<OpResult<{ file?: MemoryFile }>>
+
+  // ---- the per-flow rules (#306) -------------------------------------------
+  /** Every flow this board has, with the rule it carries. The list is the board's own, so a
+   *  flow shipped later appears without this being touched. */
+  readFlowRules(): Promise<FlowRuleView[]>
+  /** Save one flow's rule. Empty text clears it: a flow with no rule and a flow with an
+   *  empty rule are the same flow. */
+  saveFlowRule(command: string, text: string, env: OpEnvelope): Promise<OpResult>
+  /** The rules a delivery freezes when it starts, keyed by command — read once, the way it
+   *  reads the card it was approved to build. Editing a rule afterwards changes the next
+   *  delivery, never one in flight. */
+  deliveryRules(): Promise<Record<string, string>>
 
   // ---- history -------------------------------------------------------------
   /** Stamp one pass of a recurring card, which is what its cadence counts from. */

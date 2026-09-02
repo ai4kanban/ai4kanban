@@ -12,6 +12,8 @@ export type RefusalCode =
   | 'revision_conflict'
   | 'operation_reused'
   | 'node_removed'
+  | 'card_locked'
+  | 'board_not_empty'
   | 'already_acted'
   | 'server_elsewhere'
   | 'slack_unavailable'
@@ -32,6 +34,8 @@ export class Refusal extends Error {
   /** The revision the resource holds now, on a conflict. Carried in the refusal itself so a
    *  client re-reads that one card rather than the whole board (#314). */
   readonly current?: string
+  /** When the writer holding this gives it up, on a lock refusal (#315). */
+  readonly until?: string
 
   constructor(
     code: RefusalCode,
@@ -39,6 +43,7 @@ export class Refusal extends Error {
     message: string,
     retryAfterSeconds?: number,
     current?: string,
+    until?: string,
   ) {
     super(message)
     this.name = 'Refusal'
@@ -46,6 +51,7 @@ export class Refusal extends Error {
     this.status = status
     this.retryAfterSeconds = retryAfterSeconds
     this.current = current
+    this.until = until
   }
 }
 
@@ -174,6 +180,34 @@ export const operationReused = () =>
     'operation_reused',
     409,
     'That change was already recorded under this attempt. Make it again as a new one.',
+  )
+
+/**
+ * Another writer is holding the card, or the board (#315). Its own code rather than a
+ * conflict: nothing has changed under this caller and re-reading would answer the same. The
+ * database's own sentence is carried through because it names what is held, and `until` is
+ * when the lease runs out — so a client can say how long the wait is rather than "later".
+ */
+export const cardLocked = (message?: string, until?: string) =>
+  new Refusal(
+    'card_locked',
+    409,
+    message || 'Another writer is holding this. Try again once they are done.',
+    undefined,
+    undefined,
+    until,
+  )
+
+/**
+ * An import pointed at a workspace that already holds a board (#315). Its own code because
+ * the answer is to make a new workspace, not to retry: import is not synchronization, and a
+ * board written over a live one cannot be got back.
+ */
+export const boardNotEmpty = (message?: string) =>
+  new Refusal(
+    'board_not_empty',
+    409,
+    message || 'This workspace already holds a board. Import into a new one.',
   )
 
 /** The machine a call was made from is not one this workspace runs its work on any more. */

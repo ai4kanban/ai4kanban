@@ -124,8 +124,8 @@ export interface BoardRules {
   // the flow rules (#306) — one rule per flow, in the user's own words, appended to that
   // flow's built-in prompt. Optional: a project can be running rules older than the release
   // that added them, and the Rules pane says so rather than the dialog failing to draw.
-  readFlowRules?(): FlowRuleView[];
-  setFlowRule?(command: string, text: string): WriteResult;
+  readFlowRules?(): Promise<FlowRuleView[]>;
+  setFlowRule?(command: string, text: string): Promise<WriteResult>;
 
   // may the board commit? (#303) The one repository-level setting behind worktrees,
   // parallel deliveries and landing reviewed code.

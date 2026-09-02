@@ -34,6 +34,28 @@ export const NODE_LEASE_SECONDS = 15 * 60
  */
 export const MAX_CARDS_PER_WRITE = 200
 
+/**
+ * How many documents one write may carry (#315). The same bound as a card write and for the
+ * same reason — a memory file and a card are the same size of thing to a transaction.
+ */
+export const MAX_DOCUMENTS_PER_WRITE = 200
+
+/** How many of a source board's history rows one import pass carries (#315). */
+export const MAX_EVENTS_PER_IMPORT = 500
+
+/**
+ * How long one writer holds a card, or the board, without taking the lock again (#315).
+ *
+ * Half an hour, because a lock is held for as long as somebody is WORKING a card — a run
+ * building it, a person with the page open — rather than for the moment a save takes. Long
+ * enough that nothing has to renew on a timer to keep working, short enough that a machine
+ * that died frees the card inside a coffee break.
+ *
+ * Set here rather than by the client, like every other lease this service hands out: nothing
+ * a machine sends can hold a card open forever.
+ */
+export const CARD_LOCK_SECONDS = 30 * 60
+
 /** How long a fetched JWKS is reused before it is fetched again. */
 export const JWKS_TTL_MS = 10 * 60 * 1000
 

@@ -15,7 +15,7 @@ import type { FlowRuleView, WriteResult } from "./types";
  *  empty list. */
 export async function flowRules(): Promise<FlowRuleView[] | null> {
   const rules = await boardRules();
-  return rules.readFlowRules ? rules.readFlowRules() : null;
+  return rules.readFlowRules ? await rules.readFlowRules() : null;
 }
 
 /** Save one flow's rule, or clear it with empty text. Saved with the board so a team shares
@@ -25,5 +25,5 @@ export async function setFlowRule(command: string, text: string): Promise<WriteR
   if (!rules.setFlowRule) {
     return { ok: false, error: (await machineCopy()).messages.tooOld.flowRule };
   }
-  return rules.setFlowRule(command, text);
+  return await rules.setFlowRule(command, text);
 }

@@ -52,6 +52,7 @@ export const readReleases = () => board().readReleases()
 export const readGoalText = () => board().readGoalText()
 export const readMemoryFile = (name: string, module = '') => board().readMemoryFile(name, module)
 export const readMemoryModules = () => board().readMemoryModules()
+export const readFlowRules = () => board().readFlowRules()
 export const deliveryPlan = () => board().deliveryPlan()
 export const deliveryDiff = (deliveryId: string) => board().deliveryDiff(deliveryId)
 export const nextWork = () => board().nextWork()
@@ -210,6 +211,26 @@ export async function closeRelease(id: string, opts?: WriteOptions): Promise<Wri
  *  summary written. */
 export async function dropRelease(id: string, opts?: WriteOptions): Promise<WriteResult> {
   return flat(await envelopeFor({ board: true }, opts, (env) => board().dropRelease(id, env)))
+}
+
+// ---- memory and the per-flow rules -----------------------------------------
+
+/** Write one of the four memory files whole — the project's copy, or a module's when
+ *  `module` names one. The board owns which names and which modules exist, so a name that
+ *  is not one of the four comes back as a refusal rather than a new file. */
+export async function saveMemoryFile(
+  name: string,
+  text: string,
+  module = '',
+  opts?: WriteOptions,
+): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveMemoryFile(name, text, module, env)))
+}
+
+/** Save one flow's rule, in the user's own words. Empty text clears it — a flow with no
+ *  rule and a flow with an empty rule are the same flow. */
+export async function setFlowRule(command: string, text: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveFlowRule(command, text, env)))
 }
 
 // ---- the goal and setup ----------------------------------------------------

@@ -8,6 +8,7 @@
 // Every call answers rather than throwing. A publisher that threw would make a board write
 // fail over a network the board was never waiting for.
 
+import type { CardPayload, DeliveryPayload, DocumentPayload, EventPayload } from '../board/transfer'
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
 import type { CloudEvent, CloudEventAnswer, CloudEventState } from './events'
 import type { CloudRequest } from './requests'
@@ -35,6 +36,9 @@ export const TERMINAL_CODES = [
   // A board attaches exactly one server (#318). Retrying cannot change whose it is; the
   // user moves it or leaves it where it is.
   'server_elsewhere',
+  // An import pointed at a workspace that already holds a board (#315). Retrying it lands
+  // on the same board; the answer is a new workspace.
+  'board_not_empty',
 ]
 
 export const isTerminal = (code?: string): boolean => !!code && TERMINAL_CODES.includes(code)
@@ -140,6 +144,149 @@ export const claimRequest = (
 /** Hold the claim while the delivery is live on this machine. */
 export const renewClaim = (requestId: string, serverId: string): Promise<CloudCall<{ renewed: boolean }>> =>
   send('POST', `/v1/requests/${encodeURIComponent(requestId)}/renew`, { serverId })
+
+// ---- the workspace a Cloud board lives in (#315) ----------------------------
+// The board's own content, not the notifications half above: a workspace holds the cards,
+// the memory set, the board's configuration, its history and its deliveries. #316 builds the
+// provider that draws a board from these; what is here is what import and export need.
+
+/** Every workspace this account has. */
+export const listWorkspaces = (): Promise<CloudCall<{ workspaces: CloudWorkspace[] }>> =>
+  send('GET', '/v1/workspaces')
+
+/** Make one. `opId` names the attempt, so a create whose reply was lost finds the same
+ *  workspace rather than leaving a second empty one behind. */
+export const createWorkspace = (opId: string, name: string): Promise<CloudCall<{ workspace: CloudWorkspace }>> =>
+  send('POST', '/v1/workspaces', { opId, name })
+
+/** Write cards, in passes small enough that one call can be retried. */
+export const writeWorkspaceCards = (
+  workspaceId: string,
+  opId: string,
+  cards: WireCard[],
+): Promise<CloudCall<{ revision: string }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/cards`, { opId, cards })
+
+/** Write the board's files — its configuration, memory, per-flow rules, summaries and
+ *  tallies. An empty body deletes one. */
+export const writeWorkspaceDocuments = (
+  workspaceId: string,
+  opId: string,
+  documents: WireDocument[],
+): Promise<CloudCall<{ revision: string }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/documents`, { opId, documents })
+
+/** Claim a new workspace for one source board, by the fingerprint the machine derived from
+ *  it. A workspace already holding a board is refused unless it holds this one. */
+export const beginImport = (
+  workspaceId: string,
+  opId: string,
+  fingerprint: string,
+): Promise<CloudCall<ImportState>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/import/begin`, { opId, fingerprint })
+
+/** One pass of the source board's own history. Each row carries its own key, so a retried
+ *  pass finds its own work rather than appending it again. */
+export const importEvents = (
+  workspaceId: string,
+  opId: string,
+  events: EventPayload[],
+): Promise<CloudCall<{ added: number }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/import/events`, { opId, events })
+
+/** The source board's finished deliveries, arriving whole rather than through the
+ *  open-and-confirm pair a live one goes through. Idempotent on the id the source board gave
+ *  each of them. */
+export const importDeliveries = (
+  workspaceId: string,
+  opId: string,
+  deliveries: WireDelivery[],
+): Promise<CloudCall<{ added: number }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/import/deliveries`, { opId, deliveries })
+
+/** One finished delivery on the wire, under the id the source board gave it. */
+export interface WireDelivery {
+  sourceId: string
+  cardId: number
+  state: string
+  record: Record<string, unknown>
+  approved: string
+  finalBody: string
+}
+
+export const finishImport = (
+  workspaceId: string,
+  opId: string,
+  nextCardId: number,
+): Promise<CloudCall<ImportState>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/import/finish`, { opId, nextCardId })
+
+/** Everything a standalone markdown board is made of. The trail comes beside it, paged. */
+export const exportBoard = (workspaceId: string): Promise<CloudCall<WireExport>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/export`)
+
+/** The trail in the order it happened, from where the last page stopped. */
+export const exportEvents = (
+  workspaceId: string,
+  after: number,
+  limit: number,
+): Promise<CloudCall<{ events: WireEvent[] }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/export/events?after=${after}&limit=${limit}`)
+
+/** A board stored in Cloud. `revision` moves on every write, so a client holding one can
+ *  tell the board changed without reading it back. */
+export interface CloudWorkspace {
+  id: string
+  name: string
+  revision: string
+  nextCardId: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** One card on the wire: its number, the revision the caller read, and the card itself. */
+export interface WireCard {
+  id: number | null
+  expect: string
+  archived?: boolean
+  lease?: string
+  data: Pick<CardPayload, 'path' | 'meta' | 'body'>
+}
+
+/** One document on the wire: where it is written back to, and the revision the caller read.
+ *  A resumed import writes each file against what the workspace already holds. */
+export type WireDocument = DocumentPayload & { expect: string }
+
+/** Where an import stands, and what the workspace holds. */
+export interface ImportState {
+  fingerprint?: string
+  resuming?: boolean
+  workspace?: CloudWorkspace
+  held: { cards: number; documents: number; events: number; deliveries: number }
+}
+
+/** One line of the workspace's trail, as an export reads it. */
+export interface WireEvent {
+  id: number
+  handle: string
+  action: string
+  cardId: number | null
+  detail: Record<string, unknown>
+  at: string
+  importKey: string | null
+}
+
+/** A whole board, read back. `cards` carries the archive as well as the live board, and each
+ *  row carries the revision it is at — what a resumed import writes against. */
+export interface WireExport {
+  revision: string
+  workspace: CloudWorkspace
+  cards: { id: number; archived: boolean; revision: string; data: Partial<CardPayload> }[]
+  documents: (DocumentPayload & { revision?: string })[]
+  // The workspace names a delivery by its own row id; the id the machine that ran it gave it
+  // lives inside `record`, so an export has to put it back before writing the file.
+  deliveries: (Omit<DeliveryPayload, 'deliveryId'> & { id: string })[]
+}
 
 // ---- the account's Slack destination (#320) ---------------------------------
 // One connection per account, made in Configuration → Notifications. Every call here is the signed-

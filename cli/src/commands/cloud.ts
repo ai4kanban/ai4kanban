@@ -1,16 +1,20 @@
-// `akb cloud` — which account this machine acts as.
+// `akb cloud` — which account this machine acts as, and moving a board in or out.
 //
-// It reports and it signs out, and that is the whole of it. A sign-in is started from the
-// desktop app's Configuration dialog and nowhere else (#326): the consent screen opens in
-// the user's own browser and comes back to the app over its URL scheme, so a terminal has
-// no address to be answered at. What a terminal does have is the file the app wrote, which
-// is why an `akb` here acts as the same account with nothing else set up.
+// It reports and it signs out, and it carries a board into a workspace or writes one back
+// out (#315). A sign-in is started from the desktop app's Configuration dialog and nowhere
+// else (#326): the consent screen opens in the user's own browser and comes back to the app
+// over its URL scheme, so a terminal has no address to be answered at. What a terminal does
+// have is the file the app wrote, which is why an `akb` here acts as the same account with
+// nothing else set up.
 //
-// It needs no board: the sign-in belongs to the machine, not to any one project.
+// Only import needs a board: it reads one. Reporting, signing out and export do not — the
+// sign-in belongs to the machine rather than to any one project, and an export writes a board
+// into the folder it is given.
 
 import { readCloudAccount, signOutOfCloud } from '../lib/cloud/account'
 import { readCloudBoards } from '../lib/cloud/boards'
 import { listServers } from '../lib/cloud/client'
+import { exportBoard, importBoard } from '../lib/cloud/workspace-board'
 import type { CloudServer } from '../lib/cloud/servers'
 import { readLarkState } from '../lib/cloud/lark'
 import { readSlackState } from '../lib/cloud/slack'
@@ -20,16 +24,20 @@ import { say } from '../lib/io'
 import type { MoveResult } from '../lib/types'
 
 export async function cmdCloud(args: string[], program: string): Promise<MoveResult> {
-  const [sub] = args
+  const [sub, ...rest] = args
   if (sub === 'sign-out') {
     signOutOfCloud()
     say('Signed out. This machine no longer reaches Cloud; nothing on any board changed.')
     return { signedOut: true }
   }
+  if (sub === 'import') return await moveIn(rest, program)
+  if (sub === 'export') return await moveOut(rest, program)
   if (sub !== undefined) {
-    die(`unknown \`cloud\` command "${sub}". Try \`${program} cloud\` or \`${program} cloud sign-out\`.`, {
-      kind: 'unknown-move',
-    })
+    die(
+      `unknown \`cloud\` command "${sub}". Try \`${program} cloud\`, \`${program} cloud sign-out\`, ` +
+        `\`${program} cloud import <workspace>\` or \`${program} cloud export <workspace> --to <folder>\`.`,
+      { kind: 'unknown-move' },
+    )
   }
 
   const account = await readCloudAccount()
@@ -67,6 +75,52 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
     }
   }
   return { cloud: account, boards }
+}
+
+/**
+ * `akb cloud import <workspace>` — carry this board into a workspace.
+ *
+ * It only ever READS `docs/kanban/`: the board it copies is the board it leaves behind, and
+ * the files stay the record. Run it again after an interruption and it carries on rather than
+ * writing a second copy of anything.
+ */
+async function moveIn(args: string[], program: string): Promise<MoveResult> {
+  const workspace = args[0]
+  if (!workspace) die(`\`${program} cloud import\` needs the workspace to import into.`, { kind: 'bad-args' })
+  const res = await importBoard(workspace, (line) => say(`  ${line}`))
+  if (!res.ok) die(res.error, { kind: 'cloud-refused' })
+  const { cards, documents, events, deliveries, resumed } = res.moved
+  say(
+    `${resumed ? 'Carried on' : 'Imported'}: ${cards} cards, ${documents} files, ` +
+      `${events} history rows, ${deliveries} deliveries.`,
+  )
+  say('Nothing on this board changed — its files are still the record.')
+  return { imported: res.moved }
+}
+
+/**
+ * `akb cloud export <workspace> --to <folder>` — write a workspace back out as a markdown
+ * board. It refuses a folder that already holds one, because an export is a restore and a
+ * restore over a live board cannot be undone.
+ *
+ * `--to` is named every time and never defaulted: this writes a board rather than reading
+ * one, so there is no project it is "about", and the folder it lands in is the one thing
+ * nobody should have to guess at.
+ */
+async function moveOut(args: string[], program: string): Promise<MoveResult> {
+  const workspace = args[0]
+  if (!workspace) die(`\`${program} cloud export\` needs the workspace to export.`, { kind: 'bad-args' })
+  const flag = args.indexOf('--to')
+  const to = flag === -1 ? '' : (args[flag + 1] ?? '')
+  if (!to) {
+    die(`\`${program} cloud export ${workspace} --to <folder>\` — name the folder to write the board into.`, {
+      kind: 'bad-args',
+    })
+  }
+  const res = await exportBoard(workspace, to, (line) => say(`  ${line}`))
+  if (!res.ok) die(res.error, { kind: 'cloud-refused' })
+  say(`Exported to ${res.moved.dir}. \`${program} --dir ${to} board list\` reads it as a Local board.`)
+  return { exported: res.moved }
 }
 
 /** Where this account's messages go, and what Slack last said about it. Silent when there

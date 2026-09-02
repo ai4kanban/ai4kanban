@@ -9,6 +9,8 @@ import type { Env } from './env.ts'
 import {
   Refusal,
   alreadyActed,
+  boardNotEmpty,
+  cardLocked,
   dailyWriteBudgetReached,
   nodeRemoved,
   notFound,
@@ -48,6 +50,13 @@ export const PG_NODE_REMOVED = 'AKB08'
 
 /** SQLSTATE a call naming a card or a delivery the workspace does not hold raises. */
 export const PG_NOT_IN_WORKSPACE = 'AKB10'
+
+/** SQLSTATE a write to a card another writer is holding raises (#315). `details` carries the
+ *  instant that writer's lease runs out. */
+export const PG_CARD_LOCKED = 'AKB11'
+
+/** SQLSTATE an import into a workspace that already holds a board raises (#315). */
+export const PG_BOARD_NOT_EMPTY = 'AKB12'
 
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
@@ -112,6 +121,8 @@ export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_OPERATION_REUSED) return operationReused()
   if (error.code === PG_NODE_REMOVED) return nodeRemoved()
   if (error.code === PG_NOT_IN_WORKSPACE) return notFound(error.message)
+  if (error.code === PG_CARD_LOCKED) return cardLocked(error.message, error.details)
+  if (error.code === PG_BOARD_NOT_EMPTY) return boardNotEmpty(error.message)
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

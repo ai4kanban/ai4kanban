@@ -55,6 +55,28 @@ cloud/
   refused write costs the day's budget nothing.
 - **A conflict is its own refusal**: `revision_conflict` carries `current`, the revision the
   resource holds now, so a client re-reads that one card rather than the whole board.
+- **A workspace holds the board, not only its cards**: the memory set, `config.md`,
+  `modules.md`, `releases.md`, the per-flow rules, the archive, closed releases' summaries,
+  the board's own history and its delivery records all live here too (#315), each under the
+  path it is written back to — so an export is a file-for-file restore and nothing has to
+  invent a name on either side. What stays on the machine is what the board keeps out of git:
+  the API keys, the run record and its logs, the chats, the mockups, and `ui.config.json`,
+  which is that machine's own answer to which coding agent runs the board.
+- **Nothing about the code is here**: no repository, branch, worktree, commit, credential or
+  model key, on any path. A delivery's repository half is stripped by
+  `cloud.portable_delivery` in the database rather than trusted to the client that sent it,
+  which is what makes it a property of the store instead of a promise somebody forgets.
+- **One writer per card, on a lease**: the row lock above decides the order of two writes that
+  arrive together; it can decide nothing about two writes minutes apart, which is what a
+  person editing a card actually is. So a card — or the board, for what is not one card — is
+  held by one lease at a time on a 30-minute lease. Nothing sweeps: an expired lock is free
+  for the next caller. The holder is the lease id and not the account, because one account on
+  two machines is already two writers. The revision check stays behind it: a lease that runs
+  out under a long run still lets a second writer in, and the stale upload is then refused as
+  a conflict — which is what makes "never a silent overwrite" true rather than likely.
+- **A stale writer is told what changed; a current one is told who is holding it**: the
+  expected revision is checked before the lock, so a machine coming back with words written
+  against a version the board has moved past is told to re-read that card, not to wait.
 - **The trail is immutable**: an audit event is never rewritten, and the only thing that
   removes one is the workspace being deleted. A trigger on the table says so, so a later
   migration cannot quietly make it a suggestion.
@@ -183,10 +205,66 @@ workspace, deleting it, and a node registering or renewing.
 - `POST /v1/workspaces/<id>/nodes/<node>/remove` — take the machine off. Its next renewal,
   write and delivery confirmation are all refused.
 - `POST /v1/workspaces/<id>/nodes/<node>/renew` — the node saying it is still there.
+- `GET /v1/workspaces/<id>/cards/<card>` — one card. What a `revision_conflict` is re-read
+  through: the refusal names the card whose revision moved, never the whole board.
+- `GET /v1/workspaces/<id>/snapshot` — the live board under one cursor: the workspace, its
+  live cards, and the documents somebody is working on. What a screen hydrates from. It leaves
+  out what grows with the board's whole past — the archive, the trail and delivery records —
+  which are read on demand.
+- `GET /v1/workspaces/<id>/archive` — the cards that have left the board.
+- `GET|POST /v1/workspaces/<id>/documents` — every board file that is not a card, under the
+  path it is written back to: `config.md`, `modules.md`, `releases.md`, `todo/README.md`, the
+  memory set, the per-flow rules in `rules/`, closed releases' summaries and the daily tally.
+  A write is `{ "opId": "…", "lease": "…", "documents": [{ "path": "rules/revise.md", "kind":
+  "rule", "expect": "3", "body": "…" }] }`; a body of `""` deletes the document, because that
+  is what an empty per-flow rule means on a Local board. `?kind=` filters the read to one of
+  `config`, `memory`, `rule`, `summary`, `history`.
+- `GET|POST /v1/workspaces/<id>/locks` — the writer locks this workspace has out, and taking
+  one: `{ "cardId": 7, "nodeId": "…", "lease": "…" }`. No `cardId` is the board's own lock,
+  which covers what is not one card. It answers with the lease it was granted under and the
+  revision that resource reads at — what a caller who never read it writes against. Presenting
+  the lease again takes it again and moves the expiry; the length is the service's.
+- `POST /v1/workspaces/<id>/locks/release` — give one up: `{ "cardId": 7, "lease": "…" }`.
+  Silent about a lock this caller does not hold.
 - `POST /v1/workspaces/<id>/deliveries` — open a delivery attempt under an id this service
   allocates: `{ "opId": "…", "nodeId": "…", "cardId": 7 }`.
+- `GET /v1/workspaces/<id>/deliveries?card=N` — every delivery, or one card's.
 - `POST /v1/workspaces/<id>/deliveries/<delivery>/confirm` — how it ended:
   `{ "opId": "…", "nodeId": "…", "outcome": "completed" | "failed" | "cancelled" }`.
+- `POST /v1/workspaces/<id>/deliveries/<delivery>/record` — what it prepared and the bodies it
+  froze: `{ "opId": "…", "record": { … }, "approved": "…", "finalBody": "…" }`. The record's
+  repository half — the base commit, the branches, the worktree, the commit it landed as and
+  the path a review's diff was written to — is stripped **by the database**, not by whatever
+  sent it.
+
+Moving a board in, and taking it back out (#315). A board arrives through the ordinary card,
+document and delivery writers; what is here is the two things those cannot do themselves —
+refuse to write over a workspace somebody is already using, and carry a board's history
+without doubling it on a retry.
+
+- `POST /v1/workspaces/<id>/import/begin` — claim a new workspace for one source board:
+  `{ "opId": "…", "fingerprint": "…" }`. A workspace that already holds a board is refused
+  with `board_not_empty` unless it holds **this** one, in which case it answers
+  `resuming: true` and what it already holds — so an import that lost a reply or was stopped
+  halfway carries on rather than writing a second copy.
+- `POST /v1/workspaces/<id>/import/events` — the source board's own history, up to 500 rows a
+  pass: `{ "opId": "…", "events": [{ "key": "17", "at": "2026-04-02", "action":
+  "card-archived", "cardId": 3, "detail": { … } }] }`. Each row keeps its own date and carries
+  no account and no handle — nobody in this service did it. `key` is the row's own identity,
+  so a retried pass finds its own work.
+- `POST /v1/workspaces/<id>/import/deliveries` — the finished deliveries, arriving whole
+  rather than through the open-and-confirm pair a live one goes through. Idempotent on
+  `sourceId`, the id the source board gave each of them.
+- `POST /v1/workspaces/<id>/import/finish` — `{ "opId": "…", "nextCardId": 400 }`, so the first
+  card written after an import carries on where the source board left off.
+- `GET /v1/workspaces/<id>/export` — everything a standalone markdown board is made of: the
+  workspace's numbering, every card live and archived, every document and every delivery.
+- `GET /v1/workspaces/<id>/export/events?after=N&limit=N` — the trail in the order it happened.
+  The one part of a board with no natural bound, so the one part that pages.
+
+Import is not synchronization, and neither is export: neither keeps two writable boards in
+step. `akb cloud import <workspace>` and `akb cloud export <workspace> --to <folder>` are the
+two halves from a terminal.
 
 Slack (#320), all but the last two behind the same bearer token:
 
@@ -241,6 +319,8 @@ to be shown to a user as it stands. The two a client must tell apart:
 | `revision_conflict` | A write against a revision that has moved. Carries `current`, the revision the resource holds now, so the client re-reads that one card and writes again. |
 | `operation_reused` | One `opId`, two different changes. A retry carrying the same payload is answered with the first result instead; this is a client reusing an id. |
 | `node_removed` | The call came from a machine this workspace no longer runs its work on. |
+| `card_locked` | Another writer is holding that card, or the board. Not a conflict: nothing moved under the caller, and re-reading answers the same. Carries `until`, when the lease runs out. |
+| `board_not_empty` | An import pointed at a workspace that already holds a board. Retrying lands on the same board; the answer is a new workspace. |
 | `slack_unavailable` / `slack_not_connected` | This service carries no Slack app, or this account has connected none. |
 | `lark_unavailable` / `lark_not_connected` | This service carries no app for that cloud, or this account has connected no Lark destination. |
 | `no_verified_address` | GitHub attests no address for this account, so a request would leave us nowhere to answer. |
@@ -441,7 +521,16 @@ service refusing requests over a secret only the schedule needs.
   the service was today.
 - **A card write is capped at 200 cards** — `MAX_CARDS_PER_WRITE` in `src/config.ts`. The
   operation commits whole or changes nothing, so this bounds the transaction as well as the
-  request; a large import sends the board in passes of that size.
+  request; a large import sends the board in passes of that size. A document write is capped
+  the same way, and a pass of a board's history at 500 rows.
+- **A whole board fits inside one day** — this repository's board (254 cards of which 191 are
+  archived, 41 documents, 507 history rows, 52 deliveries, about 2.6 MB) imports for **1,164**
+  writes of the day's 20,000, measured by running it through the migrations against a
+  throwaway PostgreSQL. A board several times this size still lands in one day.
+- **A card is held for 30 minutes at a time** — `CARD_LOCK_SECONDS` in `src/config.ts`, set by
+  the service and never by the client. Nothing sweeps: an expired lock is free for the next
+  caller, so a machine that died frees the card inside a coffee break without anything running
+  to notice.
 - **No backups** — Supabase Free keeps none. A workspace export is the only copy anyone can
   restore from.
 
@@ -452,8 +541,8 @@ only exists once the preview has people in it. Recount it when any of the number
 moves.
 
 It covers the NOTIFICATION flow alone: a board kept on a machine, publishing what needs a
-person. What a board stored in a workspace costs is #315's to count, once there is a client
-writing one.
+person. What a board STORED in a workspace costs is above: one import of a mature board is
+about 1,164 writes, and after that a save is two writes per card plus two for the workspace.
 
 **What one card costs, from the board to a finished delivery.** Every budgeted write is a
 `cloud.count_write` in `migrations/`; the connector line is one delivery record per event

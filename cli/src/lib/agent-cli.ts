@@ -72,6 +72,11 @@ const GUIDE = 'guide'
 const CLOUD = 'cloud'
 const BOARDLESS = [GUIDE, CLOUD]
 
+// …except the one `cloud` move that IS about a project: carrying its board into a workspace
+// (#315). Export is not one of them — it WRITES a board into the folder `--to` names, and a
+// restore onto a machine that has no board is exactly when it is reached for.
+const CLOUD_NEEDS_BOARD = ['import']
+
 const NAMES = [...Object.keys(RUNS), ...Object.keys(OTHER), ...BOARDLESS]
 
 // The watcher's own door. Not a command anyone types — `akb implement 12` spawns it — and
@@ -108,7 +113,7 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
   }
 
   // Before the board lookup, on purpose — see BOARDLESS above.
-  if (raw === GUIDE || raw === CLOUD) {
+  if (raw === GUIDE || (raw === CLOUD && !CLOUD_NEEDS_BOARD.includes(args[0] ?? ''))) {
     const box = json ? startCollecting() : null
     try {
       const data = raw === GUIDE ? cmdGuide(args, program) : await cmdCloud(args, program)
@@ -123,7 +128,7 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
 
   const action = raw ? RUNS[raw] : undefined
   const other = raw ? OTHER[raw] : undefined
-  if (!action && !other && raw !== WATCH) {
+  if (!action && !other && raw !== WATCH && raw !== CLOUD) {
     const guess = nearestMove(raw, NAMES)
     const err = new BoardError(`unknown command "${raw}".${guess ? ` Did you mean \`${guess}\`?` : ''}`, {
       kind: 'unknown-move',
@@ -148,7 +153,11 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
 
   const box = json ? startCollecting() : null
   try {
-    const data = action ? await cmdStartRun(action, args, program) : await other!(args, program)
+    const data = raw === CLOUD
+      ? await cmdCloud(args, program)
+      : action
+        ? await cmdStartRun(action, args, program)
+        : await other!(args, program)
     if (json) answer({ ok: true, board: KANBAN, ...data, ...prose(box) })
     // This command is over the moment it returns, so this is the outbox's one chance to
     // reach Cloud (#319) and the board's one chance to claim an approval taken somewhere

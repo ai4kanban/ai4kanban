@@ -208,6 +208,14 @@ AI4Kanban Cloud — the account this MACHINE acts as
                                takes its work
   cloud sign-out               forget it. This machine stops reaching Cloud, and
                                nothing on any board changes
+  cloud import <workspace>     carry this board into a Cloud workspace. Reads the
+                               board and changes nothing in it; run it again to
+                               carry on after an interruption
+  cloud export <workspace> --to <folder>
+                               write a workspace back out as a markdown board, into
+                               an empty folder. Needs no board of its own, so it
+                               restores onto a machine that has none;
+                               \`${program} --dir <folder>\` then opens it as a Local one
 
   A sign-in is started in the AI4Kanban app, under Configuration → Notifications, and nowhere
   else: the consent screen opens in your own browser and comes back to the app. Once

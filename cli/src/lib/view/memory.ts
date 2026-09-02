@@ -8,8 +8,9 @@
 // module in `docs/kanban/memory/<module>/`. Both are read here, by the same call — a module
 // is named or it isn't (#130).
 //
-// Read-only. A module is offered only when `docs/kanban/modules.md` names it, so an address
-// someone typed can't reach a folder the map has never heard of.
+// A module is offered only when `docs/kanban/modules.md` names it, so an address someone
+// typed can't reach a folder the map has never heard of. That holds for the writer too: a
+// module the map does not name has no memory folder to write into.
 //
 // The list is fixed and a file that isn't there keeps its place, so the rows read the same
 // on every board — an empty `text` with `written: false` is the answer for a file nobody
@@ -21,6 +22,9 @@ import path from 'node:path'
 import { MEMORY, rel } from '../paths'
 import { readModules } from './first-run'
 import { MEMORY_FILES, type MemoryFile, type MemoryModule, type MemoryName } from './types'
+
+const memoryPath = (name: string, module: string): string =>
+  path.join(module ? path.join(MEMORY, module) : MEMORY, `${name}.md`)
 
 const known = (name: string): name is MemoryName =>
   MEMORY_FILES.some((f) => f.name === name)
@@ -42,7 +46,7 @@ export function readMemoryFile(name: string, module = ''): MemoryFile | null {
   if (!known(name)) return null
   if (module && !readModules().includes(module)) return null
   const ref = MEMORY_FILES.find((f) => f.name === name)!
-  const file = path.join(module ? path.join(MEMORY, module) : MEMORY, `${name}.md`)
+  const file = memoryPath(name, module)
   let text = ''
   try {
     text = fs.readFileSync(file, 'utf8')
@@ -59,4 +63,25 @@ export function readMemoryFile(name: string, module = ''): MemoryFile | null {
     text,
     written: text.trim() !== '',
   }
+}
+
+/**
+ * Write one memory file whole — the project's copy, or a module's when `module` names one.
+ *
+ * The only writer there has ever been is the coding agent editing the file as a file, which
+ * a board that does not live on this machine has no way to do (#315). So the board gains one,
+ * and it is the same four names and the same two levels the reader above answers for: a name
+ * that is not one of the four, and a module the map does not name, are both refused rather
+ * than written somewhere nobody would look for them.
+ *
+ * The folder is made on the way, so a module remembering its first thing does not have to be
+ * initialised first.
+ */
+export function writeMemoryFile(name: string, text: string, module = ''): MemoryFile | null {
+  if (!known(name)) return null
+  if (module && !readModules().includes(module)) return null
+  const file = memoryPath(name, module)
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, text.endsWith('\n') || text === '' ? text : `${text}\n`)
+  return readMemoryFile(name, module)
 }

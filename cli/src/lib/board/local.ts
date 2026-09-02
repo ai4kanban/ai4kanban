@@ -55,8 +55,9 @@ import { deliveryDiff } from '../view/diff'
 import { nextWork as dispatchNextWork } from '../view/dispatch'
 import { addVerifyLine, dropVerifyLine, patchCard as patchCardWrite, setCardSchedule } from '../view/edit'
 import { readModules, readSetupDraft, saveProject as saveProjectWrite } from '../view/first-run'
+import { deliveryRules, readFlowRules, setFlowRule } from '../agent/rules'
 import { readGoalText, writeGoalText } from '../view/goal'
-import { readMemoryFile, readMemoryModules } from '../view/memory'
+import { readMemoryFile, readMemoryModules, writeMemoryFile } from '../view/memory'
 import { readMetricsView } from '../view/metrics'
 import { allCards, findCard, readBoard, readSetupState } from '../view/read'
 import { readScoreView } from '../view/score'
@@ -421,6 +422,31 @@ export function localBoard(): BoardProvider {
         tickSetupStep(name)
         return {}
       }),
+
+    // A memory file is one of the four, at one of two levels, and the board owns which:
+    // a name or a module the reader would answer `null` for is refused here rather than
+    // written to a path nobody would look at.
+    saveMemoryFile: (name, text, module, env) =>
+      mutate({ board: true }, env, () => {
+        const file = writeMemoryFile(name, text, module)
+        if (!file) throw new Error(`no memory file "${name}"${module ? ` for module ${module}` : ''}`)
+        return { file }
+      }),
+
+    // ---- the per-flow rules -------------------------------------------------
+
+    readFlowRules: () => Promise.resolve(readFlowRules()),
+
+    // A rule is the board's, not one card's, so it is written under the board's own lease
+    // like the module map and the release list beside it.
+    saveFlowRule: (command, text, env) =>
+      mutate({ board: true }, env, () => {
+        const res = setFlowRule(command, text)
+        if (!res.ok) throw new Error(res.error)
+        return {}
+      }),
+
+    deliveryRules: () => Promise.resolve(deliveryRules()),
 
     // ---- history ------------------------------------------------------------
 

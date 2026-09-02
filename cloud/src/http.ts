@@ -22,6 +22,7 @@ export function refusalResponse(error: unknown): Response {
         code: refusal.code,
         message: refusal.message,
         ...(refusal.current !== undefined ? { current: refusal.current } : {}),
+        ...(refusal.until !== undefined ? { until: refusal.until } : {}),
       },
     },
     refusal.status,

@@ -1062,4 +1062,439 @@ begin
 end
 $workspaces$;
 
+-- ---------------------------------------------------------------------------
+-- The board's own content, stored in the workspace (#315)
+-- ---------------------------------------------------------------------------
+--
+-- What the block above cannot say, because it is about the board rather than the control
+-- plane: a snapshot that draws the live board and leaves its whole past out, one writer per
+-- card against a second machine, an import that can be run twice, an export that restores
+-- what went in, and a delivery whose repository half never got here.
+
+do $content$
+declare
+  A constant uuid := 'aaaaaaaa-1111-4111-8111-111111111111';
+  B constant uuid := 'bbbbbbbb-2222-4222-8222-222222222222';
+  MACHINE constant uuid := '77777777-1111-4111-8111-cccccccccccc';
+  BUDGET constant integer := 100000;
+  FINGERPRINT constant text := 'board-3f2a1b04';
+  v_ws uuid;
+  v_import uuid;
+  v_node uuid;
+  v_delivery uuid;
+  v_json json;
+  v_text text;
+  v_count integer;
+  v_lease uuid;
+  v_second uuid;
+  v_revision text;
+  v_card_revision text;
+begin
+  v_ws := (api.create_workspace(A, 'c-make', 'Content board', BUDGET) ->> 'id')::uuid;
+  v_node := (api.register_node(A, v_ws, MACHINE, 'studio', '[]'::jsonb, BUDGET) ->> 'id')::uuid;
+
+  -- -------------------------------------------------------------------------
+  -- Every board file that is not a card
+  -- -------------------------------------------------------------------------
+  -- The path is the key, so export is a file-for-file restore and nothing has to invent a
+  -- name on either side.
+
+  v_json := api.write_documents(A, v_ws, 'c-doc1', v_node, null, $j$[
+    {"path":"config.md","kind":"config","expect":"","body":"# Project\n"},
+    {"path":"modules.md","kind":"config","expect":"","body":"- cloud\n"},
+    {"path":"releases.md","kind":"config","expect":"","body":"- 0.9.0\n"},
+    {"path":"memory/readme.md","kind":"memory","expect":"","body":"what shipped\n"},
+    {"path":"memory/cloud/decisions.md","kind":"memory","expect":"","body":"settled\n"},
+    {"path":"memory/goal.md","kind":"memory","expect":"","body":"the goal\n"},
+    {"path":"rules/revise.md","kind":"rule","expect":"","body":"Say what changed.\n"},
+    {"path":".release-summaries/0.8.0.md","kind":"summary","expect":"","body":"what 0.8.0 shipped\n"},
+    {"path":"metrics.csv","kind":"history","expect":"","body":"date,completed\n"}
+  ]$j$::jsonb, BUDGET);
+  assert json_array_length(v_json -> 'documents') = 9, 'a document write did not answer with what it wrote';
+  assert (v_json -> 'documents' -> 0 ->> 'revision') = '1', 'a new document did not start at its first revision';
+
+  assert json_array_length(api.read_documents(A, v_ws, '') -> 'documents') = 9,
+    'reading every kind did not answer with every document';
+  assert json_array_length(api.read_documents(A, v_ws, 'memory') -> 'documents') = 3,
+    'reading one kind did not answer with that kind';
+  assert json_array_length(api.read_documents(A, v_ws, 'rule') -> 'documents') = 1,
+    'the per-flow rules did not read back as their own kind';
+
+  -- Written again against the revision it was read at, and refused against one that moved.
+  select d ->> 'revision' into v_revision
+  from json_array_elements(api.read_documents(A, v_ws, 'rule') -> 'documents') d;
+  v_json := api.write_documents(A, v_ws, 'c-doc2', v_node, null,
+    format('[{"path":"rules/revise.md","kind":"rule","expect":"%s","body":"Say what changed, briefly.\n"}]',
+           v_revision)::jsonb, BUDGET);
+  assert (v_json -> 'documents' -> 0 ->> 'revision') = '2', 'a rewritten document did not move its revision';
+  v_text := pg_temp.conflict_current(
+    format('select api.write_documents(%L, %L, %L, %L, null, %L, %s)', A, v_ws, 'c-doc3', v_node,
+           format('[{"path":"rules/revise.md","kind":"rule","expect":"%s","body":"stale\n"}]', v_revision), BUDGET),
+    'a document written against a revision that had moved');
+  assert v_text = '2', 'a document conflict did not carry the revision it holds now';
+
+  -- An empty body deletes it, because that is what an empty per-flow rule means on a Local
+  -- board — and a board exported with a blank file in it is not the board that went in.
+  perform api.write_documents(A, v_ws, 'c-doc4', v_node, null,
+    '[{"path":"rules/revise.md","kind":"rule","expect":"2","body":""}]'::jsonb, BUDGET);
+  assert json_array_length(api.read_documents(A, v_ws, 'rule') -> 'documents') = 0,
+    'an emptied rule was left behind as a blank file';
+
+  -- -------------------------------------------------------------------------
+  -- The archive is the board's record, not its board
+  -- -------------------------------------------------------------------------
+
+  perform api.write_cards(A, v_ws, 'c-cards', v_node, $j$[
+    {"id":1,"expect":"","data":{"title":"live one"}},
+    {"id":2,"expect":"","data":{"title":"live two"}},
+    {"id":3,"expect":"","data":{"title":"shipped"}}
+  ]$j$::jsonb, BUDGET);
+
+  select c ->> 'revision' into v_card_revision
+  from json_array_elements(api.read_cards(A, v_ws) -> 'cards') c where (c ->> 'id')::integer = 3;
+  perform api.write_cards(A, v_ws, 'c-archive', v_node,
+    format('[{"id":3,"expect":"%s","archived":true,"data":{"title":"shipped"}}]', v_card_revision)::jsonb, BUDGET);
+
+  assert json_array_length(api.read_cards(A, v_ws) -> 'cards') = 2, 'an archived card was still on the board';
+  assert json_array_length(api.read_archive(A, v_ws) -> 'cards') = 1, 'an archived card was not in the archive';
+  assert (api.read_archive(A, v_ws) -> 'cards' -> 0 ->> 'id')::integer = 3,
+    'an archived card lost its own number';
+  assert (api.read_card(A, v_ws, 3) -> 'card' ->> 'archived')::boolean,
+    'a card read by its number did not say it had been archived';
+
+  -- An ordinary save is about a card's words. Only a move that means it takes a card off the
+  -- board, so a write that says nothing about the archive leaves it where it is.
+  select c ->> 'revision' into v_card_revision from json_array_elements(api.read_archive(A, v_ws) -> 'cards') c;
+  perform api.write_cards(A, v_ws, 'c-touch', v_node,
+    format('[{"id":3,"expect":"%s","data":{"title":"shipped, reworded"}}]', v_card_revision)::jsonb, BUDGET);
+  assert json_array_length(api.read_archive(A, v_ws) -> 'cards') = 1,
+    'an ordinary save put an archived card back on the board';
+
+  -- -------------------------------------------------------------------------
+  -- One read a screen draws from
+  -- -------------------------------------------------------------------------
+  -- The live board under one cursor: live cards and the documents somebody is working on.
+  -- Not the archive, not closed releases' summaries, not the daily tally.
+
+  v_json := api.read_snapshot(A, v_ws);
+  assert json_array_length(v_json -> 'cards') = 2, 'the snapshot carried the archive';
+  assert json_array_length(v_json -> 'documents') = 6,
+    'the snapshot did not carry exactly the live board''s documents';
+  assert not exists (
+    select 1 from json_array_elements(v_json -> 'documents') d
+     where (d ->> 'kind') in ('summary', 'history')),
+    'the snapshot carried the board''s finished work';
+  assert (v_json ->> 'revision') = (v_json -> 'workspace' ->> 'revision'),
+    'the snapshot''s cursor was not the workspace''s own revision';
+
+  -- A conflict names one card, and that card is what a caller re-reads.
+  assert (api.read_card(A, v_ws, 1) -> 'card' -> 'data' ->> 'title') = 'live one',
+    'reading one card did not answer with that card';
+  perform pg_temp.refuses(format('select api.read_card(%L, %L, 999)', A, v_ws),
+                          'AKB10', 'reading a card the workspace does not hold');
+
+  -- -------------------------------------------------------------------------
+  -- One writer per card
+  -- -------------------------------------------------------------------------
+
+  v_json := api.take_lock(A, v_ws, v_node, 1, null, 1800, BUDGET);
+  v_lease := (v_json ->> 'leaseId')::uuid;
+  assert (v_json ->> 'cardId')::integer = 1, 'a lock did not say which card it is over';
+  assert (v_json ->> 'revision') = (api.read_card(A, v_ws, 1) -> 'card' ->> 'revision'),
+    'a lock did not hand its holder the revision that card reads at';
+  assert (v_json ->> 'expiresAt')::timestamptz > now(), 'a lock was granted already expired';
+
+  -- Presenting the id it was granted under takes it again and moves the expiry.
+  update cloud.workspace_locks set expires_at = now() + interval '1 minute'
+   where workspace_id = v_ws and card_id = 1;
+  v_json := api.take_lock(A, v_ws, v_node, 1, v_lease, 1800, BUDGET);
+  assert (v_json ->> 'leaseId')::uuid = v_lease, 'taking a lock again minted a second lease';
+  assert (v_json ->> 'expiresAt')::timestamptz > now() + interval '20 minutes',
+    'taking a lock again did not move its expiry';
+
+  -- A second caller is refused, and told when it frees up.
+  begin
+    perform api.take_lock(A, v_ws, v_node, 1, null, 1800, BUDGET);
+    raise exception 'a second writer took a lock somebody else was holding';
+  exception when sqlstate 'AKB11' then
+    get stacked diagnostics v_text = pg_exception_detail;
+    assert v_text::timestamptz > now(), 'a lock refusal did not say when the card frees up';
+  end;
+
+  -- And so is their write, before anything is written. Their words are current — they read
+  -- the card a moment ago — so what they meet is the lock and not a conflict.
+  perform pg_temp.refuses(
+    format('select api.write_cards(%L, %L, %L, %L, %L, %s)', A, v_ws, 'c-steal', v_node,
+           format('[{"id":1,"expect":"%s","data":{"title":"stolen"}}]',
+                  api.read_card(A, v_ws, 1) -> 'card' ->> 'revision'), BUDGET),
+    'AKB11', 'a write to a card another writer is holding');
+  assert (api.read_card(A, v_ws, 1) -> 'card' -> 'data' ->> 'title') = 'live one',
+    'a refused write changed the card anyway';
+
+  -- The holder writes under the lease it holds.
+  v_card_revision := api.read_card(A, v_ws, 1) -> 'card' ->> 'revision';
+  perform api.write_cards(A, v_ws, 'c-mine', v_node,
+    format('[{"id":1,"expect":"%s","lease":"%s","data":{"title":"held and written"}}]',
+           v_card_revision, v_lease)::jsonb, BUDGET);
+  assert (api.read_card(A, v_ws, 1) -> 'card' -> 'data' ->> 'title') = 'held and written',
+    'the lock''s own holder could not write the card it holds';
+
+  -- Released before it runs out, and only against the lease it was granted under.
+  assert not (api.release_lock(A, v_ws, 1, gen_random_uuid()) ->> 'released')::boolean,
+    'a lock was released by somebody who never held it';
+  assert (api.release_lock(A, v_ws, 1, v_lease) ->> 'released')::boolean,
+    'a lock''s holder could not give it up';
+  assert json_array_length(api.list_locks(A, v_ws)) = 0, 'a released lock was still listed';
+
+  -- The board's own lock is one lock, over what is not a card: the memory set, releases, the
+  -- module map, the per-flow rules.
+  v_json := api.take_lock(A, v_ws, v_node, null, null, 1800, BUDGET);
+  v_lease := (v_json ->> 'leaseId')::uuid;
+  assert (v_json ->> 'cardId') is null, 'the board''s own lock named a card';
+  perform pg_temp.refuses(
+    format('select api.write_documents(%L, %L, %L, %L, null, %L, %s)', A, v_ws, 'c-doc-steal', v_node,
+           '[{"path":"memory/readme.md","kind":"memory","expect":"1","body":"stolen\n"}]', BUDGET),
+    'AKB11', 'a document write while another writer holds the board');
+  perform api.write_documents(A, v_ws, 'c-doc-mine', v_node, v_lease,
+    '[{"path":"memory/readme.md","kind":"memory","expect":"1","body":"written under the lock\n"}]'::jsonb, BUDGET);
+  perform api.release_lock(A, v_ws, null, v_lease);
+
+  -- -------------------------------------------------------------------------
+  -- A second machine, once the lease runs out
+  -- -------------------------------------------------------------------------
+  -- The whole of what stops a silent overwrite: the lock keeps the second machine off while
+  -- the first is working, and the revision check catches the first machine's late upload
+  -- once the second has taken the card and moved it.
+
+  v_lease := (api.take_lock(A, v_ws, v_node, 2, null, 1800, BUDGET) ->> 'leaseId')::uuid;
+  v_card_revision := api.read_card(A, v_ws, 2) -> 'card' ->> 'revision';
+
+  perform pg_temp.refuses(
+    format('select api.take_lock(%L, %L, %L, 2, null, 1800, %s)', A, v_ws, v_node, BUDGET),
+    'AKB11', 'a second machine taking a card the first is holding');
+
+  -- The first machine dies mid-upload. Nothing sweeps; the lease simply runs out.
+  update cloud.workspace_locks set expires_at = now() - interval '1 minute'
+   where workspace_id = v_ws and card_id = 2;
+
+  v_second := (api.take_lock(A, v_ws, v_node, 2, null, 1800, BUDGET) ->> 'leaseId')::uuid;
+  assert v_second <> v_lease, 'the second machine was handed the first machine''s lease';
+  perform api.write_cards(A, v_ws, 'c-second', v_node,
+    format('[{"id":2,"expect":"%s","lease":"%s","data":{"title":"the second machine''s"}}]',
+           v_card_revision, v_second)::jsonb, BUDGET);
+
+  -- And the first machine's late upload is refused as a conflict naming the version the
+  -- board holds now — never a silent overwrite.
+  v_text := pg_temp.conflict_current(
+    format('select api.write_cards(%L, %L, %L, %L, %L, %s)', A, v_ws, 'c-late', v_node,
+           format('[{"id":2,"expect":"%s","lease":"%s","data":{"title":"the first machine''s"}}]',
+                  v_card_revision, v_lease), BUDGET),
+    'the first machine''s late upload');
+  assert v_text = (api.read_card(A, v_ws, 2) -> 'card' ->> 'revision'),
+    'the late upload''s conflict did not carry the revision the card holds now';
+  assert (api.read_card(A, v_ws, 2) -> 'card' -> 'data' ->> 'title') = 'the second machine''s',
+    'the late upload overwrote the second machine''s work';
+  perform api.release_lock(A, v_ws, 2, v_second);
+
+  -- -------------------------------------------------------------------------
+  -- What a delivery leaves here, and what it does not
+  -- -------------------------------------------------------------------------
+
+  v_delivery := (api.open_delivery(A, v_ws, 'c-open', v_node, 1, BUDGET) ->> 'id')::uuid;
+  v_json := api.record_delivery(A, v_ws, 'c-record', v_node, v_delivery, $j$
+    {
+      "deliveryId":"2yfmw37a","cardId":1,"title":"live one","status":"reviewing",
+      "sessions":["3f2a1b04"],"steps":[{"step":"implement"}],
+      "base":"9f8e7d6c5b4a","targetBranch":"main","branch":"card/1/2yfmw37a",
+      "worktree":".akb/worktrees/1/2yfmw37a",
+      "reviewed":{"mark":"abc123","diff":"/Users/me/.akb/diffs/1.diff","at":1},
+      "landing":{"status":"landed","attempts":1,"at":2,"commit":"1a2b3c4d","onto":"5e6f7a8b"}
+    }$j$::jsonb, '# the card as approved', '# the card as it ended', BUDGET);
+
+  assert (v_json -> 'record' ->> 'deliveryId') = '2yfmw37a', 'the portable half of a delivery did not arrive';
+  assert (v_json -> 'record' -> 'landing' ->> 'status') = 'landed', 'a delivery lost how it ended';
+  assert (v_json ->> 'approved') = '# the card as approved', 'a delivery lost the body it was approved to build';
+  assert (v_json ->> 'finalBody') = '# the card as it ended', 'a delivery lost the body it froze';
+
+  -- Stripped HERE and not asked of the machine that sent it: "nothing about the code reaches
+  -- Cloud" is a property of the store, or it is a promise somebody forgets to keep.
+  for v_text in select unnest(array['base', 'branch', 'targetBranch', 'worktree']) loop
+    assert not (v_json -> 'record')::jsonb ? v_text,
+      format('a delivery record carried its repository field %s into Cloud', v_text);
+  end loop;
+  assert not (v_json -> 'record' -> 'landing')::jsonb ? 'commit', 'a delivery carried the commit it landed as';
+  assert not (v_json -> 'record' -> 'landing')::jsonb ? 'onto', 'a delivery carried the tip it landed onto';
+  assert not (v_json -> 'record' -> 'reviewed')::jsonb ? 'diff', 'a delivery carried a path on the machine that ran it';
+  assert (v_json -> 'record' -> 'reviewed' ->> 'mark') = 'abc123',
+    'stripping a delivery''s repository half took the review''s own fingerprint with it';
+
+  assert json_array_length(api.read_deliveries(A, v_ws, null)) = 1, 'a recorded delivery did not read back';
+  assert json_array_length(api.read_deliveries(A, v_ws, 2)) = 0,
+    'a delivery was read against a card it was not for';
+
+  -- -------------------------------------------------------------------------
+  -- Exporting the whole board back
+  -- -------------------------------------------------------------------------
+
+  v_json := api.export_board(A, v_ws);
+  assert json_array_length(v_json -> 'cards') = 3, 'the export left the archive behind';
+  assert json_array_length(v_json -> 'documents') = 8, 'the export left documents behind';
+  assert json_array_length(v_json -> 'deliveries') = 1, 'the export left the delivery record behind';
+  assert (v_json -> 'workspace' ->> 'nextCardId')::integer >= 4,
+    'the export did not carry the board''s own numbering';
+
+  -- Nothing about the code is in any of it — the one check that covers every path this card
+  -- added, rather than the one it was written for.
+  v_text := v_json::text;
+  assert v_text not like '%9f8e7d6c5b4a%', 'a base commit reached Cloud';
+  assert v_text not like '%card/1/2yfmw37a%', 'a branch reached Cloud';
+  assert v_text not like '%.akb/worktrees%', 'a worktree reached Cloud';
+  assert v_text not like '%1a2b3c4d%', 'a landing commit reached Cloud';
+  assert v_text not like '%/Users/me/%', 'a path on somebody''s machine reached Cloud';
+
+  -- The trail is the one part of a board with no natural bound, so it is the one part that
+  -- pages — oldest first, which is the order a record is appended in.
+  v_json := api.export_events(A, v_ws, 0, 3);
+  assert json_array_length(v_json) = 3, 'the export did not page the trail';
+  assert (v_json -> 0 ->> 'action') = 'workspace.created', 'the export did not start at the beginning';
+  assert (v_json -> 0 ->> 'id')::bigint < (v_json -> 2 ->> 'id')::bigint, 'the export read the trail backwards';
+  assert (api.export_events(A, v_ws, (v_json -> 2 ->> 'id')::bigint, 3) -> 0 ->> 'id')::bigint
+         > (v_json -> 2 ->> 'id')::bigint,
+    'the next page did not start where the last one stopped';
+
+  -- -------------------------------------------------------------------------
+  -- Moving a board in
+  -- -------------------------------------------------------------------------
+
+  v_import := (api.create_workspace(A, 'c-import-ws', 'Imported board', BUDGET) ->> 'id')::uuid;
+  v_json := api.begin_import(A, v_import, 'c-begin', FINGERPRINT, BUDGET);
+  assert not (v_json ->> 'resuming')::boolean, 'a first import reported itself a retry';
+
+  -- Import runs only into a new empty workspace: the one already holding a board is refused
+  -- before it overwrites a card.
+  perform pg_temp.refuses(
+    format('select api.begin_import(%L, %L, %L, %L, %s)', A, v_ws, 'c-begin-live', FINGERPRINT, BUDGET),
+    'AKB12', 'an import into a workspace that already holds a board');
+  perform pg_temp.refuses(
+    format('select api.begin_import(%L, %L, %L, %L, %s)', A, v_import, 'c-begin-2', '', BUDGET),
+    'AKB12', 'an import naming no source board');
+
+  -- The board arrives through the ordinary writers, keeping its own numbers.
+  perform api.write_cards(A, v_import, 'c-i-cards', null,
+    '[{"id":42,"expect":"","data":{"title":"forty-two"}},{"id":7,"expect":"","archived":true,"data":{"title":"shipped"}}]'::jsonb,
+    BUDGET);
+  perform api.write_documents(A, v_import, 'c-i-docs', null, null,
+    '[{"path":"config.md","kind":"config","expect":"","body":"# Imported\n"}]'::jsonb, BUDGET);
+
+  -- Its history keeps its own dates and is attributed to nobody: it happened on a machine,
+  -- before the board was here.
+  v_json := api.import_events(A, v_import, 'c-i-events', $j$[
+    {"key":"1","at":"2026-04-02","action":"card-created","cardId":42,"detail":{"origin":"asked"}},
+    {"key":"2","at":"2026-04-09","action":"card-archived","cardId":7,"detail":{"days":"7"}}
+  ]$j$::jsonb, BUDGET);
+  assert (v_json ->> 'added')::integer = 2, 'an import pass did not carry its history rows';
+
+  select count(*) into v_count from cloud.workspace_audit
+   where workspace_id = v_import and import_key is not null
+     and (account_id is not null or actor_handle <> '');
+  assert v_count = 0, 'an imported event invented an author';
+  assert (select at::date from cloud.workspace_audit
+           where workspace_id = v_import and import_key like '%:1') = date '2026-04-02',
+    'an imported event was re-dated to the afternoon it was uploaded';
+
+  -- Retried: the same pass, under a new attempt, finds its own work rather than doubling it.
+  assert (api.import_events(A, v_import, 'c-i-events-again', $j$[
+    {"key":"1","at":"2026-04-02","action":"card-created","cardId":42,"detail":{"origin":"asked"}},
+    {"key":"2","at":"2026-04-09","action":"card-archived","cardId":7,"detail":{"days":"7"}},
+    {"key":"3","at":"2026-04-11","action":"question-closed","cardId":42,"detail":{"by":"user"}}
+  ]$j$::jsonb, BUDGET) ->> 'added')::integer = 1,
+    'a retried import pass appended rows it had already carried';
+  select count(*) into v_count from cloud.workspace_audit
+   where workspace_id = v_import and import_key is not null;
+  assert v_count = 3, 'a retried import doubled the board''s history';
+
+  -- And beginning it again is the same import carrying on, not a second one.
+  assert (api.begin_import(A, v_import, 'c-begin-retry', FINGERPRINT, BUDGET) ->> 'resuming')::boolean,
+    'a retried import did not find its own work';
+  assert ((api.begin_import(A, v_import, 'c-begin-retry-2', FINGERPRINT, BUDGET) -> 'held' ->> 'cards'))::integer = 2,
+    'a resumed import did not say what the workspace already holds';
+
+  -- Its finished deliveries arrive whole, in the state they ended in, and a retried pass
+  -- finds its own work by the id the source board gave each of them.
+  v_json := api.import_deliveries(A, v_import, 'c-i-deliveries', $j$[
+    {"sourceId":"2yfmw37a","cardId":42,"state":"completed",
+     "record":{"deliveryId":"2yfmw37a","cardId":42,"base":"deadbeef","branch":"card/42/x"},
+     "approved":"# forty-two, as approved","finalBody":"# forty-two, as it ended"}
+  ]$j$::jsonb, BUDGET);
+  assert (v_json ->> 'added')::integer = 1, 'an import did not carry the board''s deliveries';
+  assert (api.import_deliveries(A, v_import, 'c-i-deliveries-again', $j$[
+    {"sourceId":"2yfmw37a","cardId":42,"state":"completed","record":{},"approved":"","finalBody":""}
+  ]$j$::jsonb, BUDGET) ->> 'added')::integer = 0,
+    'a retried import doubled the board''s deliveries';
+
+  v_json := api.read_deliveries(A, v_import, null) -> 0;
+  assert (v_json ->> 'state') = 'completed', 'an imported delivery did not arrive in the state it ended in';
+  assert (v_json ->> 'approved') = '# forty-two, as approved', 'an imported delivery lost its approved body';
+  assert not (v_json -> 'record')::jsonb ? 'base', 'an imported delivery carried a base commit into Cloud';
+  assert not (v_json -> 'record')::jsonb ? 'branch', 'an imported delivery carried a branch into Cloud';
+
+  -- A source board's own next number, so the first card written after an import carries on
+  -- where that board left off.
+  v_json := api.finish_import(A, v_import, 'c-finish', 400, BUDGET);
+  assert (v_json -> 'workspace' ->> 'nextCardId')::integer = 400, 'an import lost the board''s next number';
+  assert (v_json -> 'held' ->> 'events')::integer = 3, 'an import did not report the history it carried';
+  assert (api.write_cards(A, v_import, 'c-after-import', null, '[{"expect":"","data":{}}]'::jsonb, BUDGET)
+          -> 'cards' -> 0 ->> 'id')::integer = 400,
+    'the first card after an import reused a number the source board had spent';
+
+  -- The two halves of the imported board read back where they belong.
+  assert json_array_length(api.read_cards(A, v_import) -> 'cards') = 2, 'the imported live board is wrong';
+  assert json_array_length(api.read_archive(A, v_import) -> 'cards') = 1, 'the imported archive is wrong';
+
+  -- Every endpoint this card adds answers the owner and nobody else — one check, the one
+  -- place #376 changes.
+  perform pg_temp.refuses(format('select api.read_snapshot(%L, %L)', B, v_ws), 'AKB02', 'read_snapshot');
+  perform pg_temp.refuses(format('select api.read_card(%L, %L, 1)', B, v_ws), 'AKB02', 'read_card');
+  perform pg_temp.refuses(format('select api.read_archive(%L, %L)', B, v_ws), 'AKB02', 'read_archive');
+  perform pg_temp.refuses(format('select api.read_documents(%L, %L, %L)', B, v_ws, ''), 'AKB02', 'read_documents');
+  perform pg_temp.refuses(format('select api.read_deliveries(%L, %L, null)', B, v_ws), 'AKB02', 'read_deliveries');
+  perform pg_temp.refuses(format('select api.export_board(%L, %L)', B, v_ws), 'AKB02', 'export_board');
+  perform pg_temp.refuses(format('select api.export_events(%L, %L, 0, 10)', B, v_ws), 'AKB02', 'export_events');
+  perform pg_temp.refuses(format('select api.list_locks(%L, %L)', B, v_ws), 'AKB02', 'list_locks');
+  perform pg_temp.refuses(
+    format('select api.take_lock(%L, %L, null, 1, null, 1800, %s)', B, v_ws, BUDGET), 'AKB02', 'take_lock');
+  perform pg_temp.refuses(
+    format('select api.release_lock(%L, %L, 1, %L)', B, v_ws, gen_random_uuid()), 'AKB02', 'release_lock');
+  perform pg_temp.refuses(
+    format('select api.write_documents(%L, %L, %L, null, null, %L, %s)', B, v_ws, 'c-b',
+           '[{"path":"a.md","kind":"config","expect":"","body":"x"}]', BUDGET),
+    'AKB02', 'write_documents');
+  perform pg_temp.refuses(
+    format('select api.record_delivery(%L, %L, %L, null, %L, %L, %L, %L, %s)', B, v_ws, 'c-b2', v_delivery,
+           '{}', '', '', BUDGET),
+    'AKB02', 'record_delivery');
+  perform pg_temp.refuses(
+    format('select api.begin_import(%L, %L, %L, %L, %s)', B, v_import, 'c-b3', FINGERPRINT, BUDGET),
+    'AKB02', 'begin_import');
+  perform pg_temp.refuses(
+    format('select api.import_events(%L, %L, %L, %L, %s)', B, v_import, 'c-b4', '[{"key":"9"}]', BUDGET),
+    'AKB02', 'import_events');
+  perform pg_temp.refuses(
+    format('select api.import_deliveries(%L, %L, %L, %L, %s)', B, v_import, 'c-b4d',
+           '[{"sourceId":"x","cardId":1}]', BUDGET),
+    'AKB02', 'import_deliveries');
+  perform pg_temp.refuses(
+    format('select api.finish_import(%L, %L, %L, 1, %s)', B, v_import, 'c-b5', BUDGET), 'AKB02', 'finish_import');
+
+  -- Everything a board holds goes with the workspace, inside the call that removes it.
+  perform api.delete_workspace(A, v_ws);
+  assert (select count(*) from cloud.workspace_documents where workspace_id = v_ws) = 0,
+    'a document outlived its workspace';
+  assert (select count(*) from cloud.workspace_locks where workspace_id = v_ws) = 0,
+    'a writer lock outlived its workspace';
+
+  raise notice 'sql checks: #315 board content checks passed';
+end
+$content$;
+
 rollback;
