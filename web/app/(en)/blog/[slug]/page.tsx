@@ -93,7 +93,7 @@ export default async function BlogPostPage({ params }: Params) {
         />
       )}
       <Header c={c} locale="en" />
-      <main className="mx-auto max-w-4xl px-6 pb-8">
+      <main className="mx-auto max-w-5xl px-6 pb-8">
         <article>
           {/* The opening. It ends on the site's rule rather than a panel: the
               post is the page, so there is no card to put it in. */}
@@ -124,7 +124,7 @@ export default async function BlogPostPage({ params }: Params) {
           </header>
 
           {/* The body, with the rail beside it once there is room for one. */}
-          <div className="mt-12 lg:grid lg:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] lg:gap-10">
+          <div className="mt-12 lg:grid lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-12">
             <TocRail items={toc} />
             <div className="min-w-0">
               <TocBlock items={toc} />

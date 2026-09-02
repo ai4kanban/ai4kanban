@@ -158,6 +158,9 @@ artwork and never carry readable content on pigment.
   is the site's other use of the warm tone.
 - **Keep artwork visually separate from UI chrome**: illustration colors do not become
   panel fills, borders, or text colors.
+- **Open a bandless section with the pixel mark**: `PixelMark.tsx` is the band's texture
+  at section scale — wash cells and one ember. Use it where a section needs a head but
+  the page has no warmth left to spend on another band.
 - **Prefer still clarity**: an illustration must communicate the same idea in its static
   state. Motion can reinforce the argument, not supply it.
 - **Use consistent visual grammar**: repeated diagrams should use the same node, line,

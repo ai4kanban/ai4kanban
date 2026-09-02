@@ -5,14 +5,13 @@ import { FiDownload } from "react-icons/fi";
 import { detectSystem, type Pick } from "./detect";
 import type { ResolvedSystem } from "./builds";
 
-// The download page's opening block: one spread split in two, the words on the
-// wash and the button on the ember. The right half is the button — the whole
-// half, not a control sitting on it — so the largest thing on the page is also
-// the thing to hit.
+// The top row of the download block (`DownloadBlock.tsx` owns the rounding and
+// the ink strip below): the words on the wash, the button on the ember. The
+// right half is the button — the whole half, not a control sitting on it — so
+// the largest thing on the page is also the thing to hit.
 //
-// It is flat: no outline, no hard shadow. The two fills are the whole of the
-// block, the way a magazine spread is two inks on one page, and the only thing
-// that lifts off it is the one square you are meant to hit.
+// It is flat: no outline, no hard shadow. The fills are the whole of it, and the
+// only thing that lifts off them is the one square you are meant to hit.
 //
 // It renders the neutral state first and swaps in the reader's system once
 // mounted. The site is a static export, so a server-side guess would hand most
@@ -58,7 +57,7 @@ export function DownloadHero({
     // Not an even split: the words get the wider half so a short title (zh's
     // "AI4Kanban 桌面版") still holds the spread, and the ember stays the
     // smaller, denser block it needs to be to read as one button.
-    <div className="grid overflow-hidden rounded-xl md:grid-cols-[7fr_5fr]">
+    <div className="grid md:grid-cols-[7fr_5fr]">
       <div className="flex flex-col bg-band px-8 py-12 sm:px-12 sm:py-16">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{title}</h1>
         <p className="mt-5 max-w-md text-[1.05rem] leading-relaxed text-muted">{lead}</p>

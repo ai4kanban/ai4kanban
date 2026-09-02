@@ -12,6 +12,8 @@ import type { IconType } from "react-icons";
 const TONE = {
   ember: "bg-accent text-elev",
   ink: "bg-ink text-elev",
+  // The ink tone inverted, for a mark sitting on an ink ground.
+  paper: "bg-elev text-ink",
 } as const;
 
 // The small size is borderless so a row of four reads as one drawing; the large

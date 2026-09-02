@@ -1,13 +1,10 @@
-import { FiDownload } from "react-icons/fi";
-import { Band } from "@/components/Band";
 import { Header } from "@/components/Header";
 import { SiteFooter } from "@/components/SiteFooter";
-import { IconChip } from "@/components/ui/IconChip";
-import { DownloadHero } from "@/components/download/DownloadHero";
+import { PixelMark } from "@/components/ui/PixelMark";
+import { DownloadBlock } from "@/components/download/DownloadBlock";
 import { PlatformGuide } from "@/components/download/PlatformGuide";
 import { releaseBuilds } from "@/components/download/builds";
-import { SYSTEM_ICON } from "@/components/download/icons";
-import { column, heroTop, panelStatic } from "@/components/styles";
+import { column, heroTop } from "@/components/styles";
 import { getCopy } from "@/i18n";
 import type { Locale } from "@/lib/i18n";
 import { RELEASES_URL, VERSION } from "@/lib/release";
@@ -60,64 +57,33 @@ export function DownloadPage({ locale }: { locale: Locale }) {
       <Header c={copy} locale={locale} />
       <main>
         <div className={column}>
+          {/* One block: the offer, the button, and every file under them. */}
           <section className={heroTop}>
-            <DownloadHero
+            <DownloadBlock
               systems={systems}
               version={VERSION}
               title={t.hero.title}
               lead={t.hero.lead}
               cta={t.hero.cta}
               ctaFor={t.hero.ctaFor}
+              buildsTitle={t.builds.title}
               fallback={RELEASES_URL}
             />
           </section>
 
-          {/* Every file the release holds, a card per system — what a reader on
-              the wrong machine or with no JavaScript uses. Raised cards, not
-              bare blocks: each one is an object holding a system's files. */}
-          <section className="mt-16">
-            <h2 className="text-2xl font-bold tracking-tight">{t.builds.title}</h2>
-            <div className="mt-8 grid gap-8 sm:grid-cols-3">
-              {systems.map((system) => (
-                <div key={system.os} className={`${panelStatic} p-6`}>
-                  <div className="flex items-center gap-3">
-                    <IconChip icon={SYSTEM_ICON[system.os]} tone="ink" size="md" />
-                    <h3 className="text-lg font-bold">{system.name}</h3>
-                  </div>
-                  <ul className="mt-5 space-y-3">
-                    {system.builds.map((build) => (
-                      <li key={build.url}>
-                        <a
-                          href={build.url}
-                          rel="noopener"
-                          className="group inline-flex items-baseline gap-2.5 font-semibold text-accent-deep no-underline"
-                        >
-                          <span className="group-hover:underline">{build.label}</span>
-                          <FiDownload
-                            aria-hidden="true"
-                            className="h-4 w-4 shrink-0 translate-y-0.5 transition-transform duration-150 group-hover:translate-y-1"
-                          />
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        {/* Show one system's first-launch help at a time. Detection makes the
-            useful answer immediate; the small switcher keeps every platform
-            reachable when the browser guesses wrong.
-            The band is the home page's: the last section warms the page on the
-            way into the ink footer. No top margin — the band owns its air. */}
-        <Band flush>
-          <section>
+          {/* Show one system's first-launch help at a time. Detection makes the
+              useful answer immediate; the small switcher keeps every platform
+              reachable when the browser guesses wrong.
+              On the open page, not a band: the block above already carries three
+              fills, and a warm ground under this one would leave the page with
+              no white left. The pixel mark is what the band was for — it opens
+              the section in the site's own texture. */}
+          <section className="mt-24">
+            <PixelMark className="mb-5" />
             <h2 className="text-2xl font-bold tracking-tight">{t.firstOpen.title}</h2>
             <PlatformGuide systems={systems} firstOpen={t.firstOpen} command={t.command} />
           </section>
-        </Band>
+        </div>
       </main>
       <SiteFooter c={copy} locale={locale} path={PATH} />
     </>
