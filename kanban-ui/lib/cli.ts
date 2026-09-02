@@ -36,6 +36,8 @@ import type { BoardNotifications, NotificationCenter } from "./notifications";
 import type { Language } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
+  ArchiveList,
+  ArchivedCardFile,
   Board,
   BulkReleaseResult,
   Card,
@@ -251,6 +253,11 @@ export interface BoardRules {
   boardStamp?(): Promise<string>;
   findCard(id: number): Promise<Card | null>;
   allCards(): Promise<Card[]>;
+  /** What `docs/kanban/.archive` holds — every finished card, newest first (#380) — and one
+   *  of them in full. Optional: a board can be running rules older than the release that
+   *  added them, and the archive then says so rather than reading as an empty archive. */
+  readArchive?(): Promise<ArchiveList>;
+  readArchivedCard?(id: number): Promise<ArchivedCardFile | null>;
   /** What an Implement click would do on this board right now (#307): the branch the change
    *  would land on, and whether it lands at all. Optional: a board can be running rules from
    *  before the one-click flow, and the dialog then says only what it always said. */

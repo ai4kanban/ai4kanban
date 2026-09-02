@@ -25,6 +25,8 @@
 
 import type { AgentRequest, DeliveryRecord, FlowRuleView } from '../agent/types'
 import type {
+  ArchiveList,
+  ArchivedCardFile,
   Board,
   BulkReleaseResult,
   Card,
@@ -159,6 +161,10 @@ export interface BoardProvider {
   boardStamp(): Promise<string>
   readCard(id: number): Promise<Card | null>
   readCards(): Promise<Card[]>
+  /** What `docs/kanban/.archive` holds — every finished card, newest first (#380). */
+  readArchive(): Promise<ArchiveList>
+  /** One archived card in full, or null when the archive holds none with that id. */
+  readArchivedCard(id: number): Promise<ArchivedCardFile | null>
   readReleases(): Promise<string[]>
   readModules(): Promise<string[]>
   readGoalText(): Promise<string>

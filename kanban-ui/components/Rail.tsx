@@ -28,7 +28,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiChevronRight, FiColumns, FiFileText, FiSearch, FiX } from "react-icons/fi";
+import { FiArchive, FiChevronRight, FiColumns, FiFileText, FiSearch, FiX } from "react-icons/fi";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
@@ -42,6 +42,7 @@ export function Rail({
   rows,
   activeId,
   activeMemory = null,
+  activeArchive = false,
   memoryModules = [],
   total,
   running,
@@ -53,6 +54,8 @@ export function Rail({
   activeId: number | null;
   /** The memory file this window is showing, as a memory key, or null (#129). */
   activeMemory?: string | null;
+  /** True while this window is showing the archive — the list, or one card in it (#380). */
+  activeArchive?: boolean;
   /** The modules the memory panel offers, in the map's order (#130). */
   memoryModules?: MemoryModule[];
   /** How many cards the board holds open — the count on All cards. */
@@ -93,7 +96,12 @@ export function Rail({
       >
         {/* A memory page is neither a card nor the board, so All cards is not where
             you are while one is open. */}
-        <RailRow href="/" label={c.allCards} active={activeId === null && !activeMemory} count={total} />
+        <RailRow
+          href="/"
+          label={c.allCards}
+          active={activeId === null && !activeMemory && !activeArchive}
+          count={total}
+        />
         {searching ? (
           <>
             {matches !== null && <RailLabel text={c.matches} count={matches.length} />}
@@ -134,6 +142,18 @@ export function Rail({
           </>
         )}
       </nav>
+      {/* The way into the archive (#380). At the foot with Memory and outside the list that
+          scrolls: what is archived is not one of the open cards, and no amount of typing
+          above should take it away. It carries no count — nothing archived is anywhere on
+          the board until it is asked for. */}
+      <div className="mt-0.5 shrink-0">
+        <RailRow
+          href="/archive"
+          label={c.archive.row}
+          icon={<FiArchive size={13} className="shrink-0" aria-hidden />}
+          active={activeArchive}
+        />
+      </div>
       <MemoryPanel active={activeMemory} modules={memoryModules} />
     </div>
   );

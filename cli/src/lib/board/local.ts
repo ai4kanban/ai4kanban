@@ -51,6 +51,7 @@ import {
   type CardRow,
 } from '../releases'
 import { tickSetupStep } from '../setup'
+import { readArchive, readArchivedCard } from '../view/archive'
 import { deliveryDiff } from '../view/diff'
 import { nextWork as dispatchNextWork } from '../view/dispatch'
 import { addVerifyLine, dropVerifyLine, patchCard as patchCardWrite, setCardSchedule } from '../view/edit'
@@ -223,6 +224,8 @@ export function localBoard(): BoardProvider {
       return findCard(id)
     },
     readCards: () => Promise.resolve(allCards()),
+    readArchive: () => Promise.resolve(readArchive()),
+    readArchivedCard: (id) => Promise.resolve(readArchivedCard(id)),
     readReleases: () => read(readReleases, []),
     readModules: () => Promise.resolve(readModules()),
     readGoalText: () => Promise.resolve(readGoalText()),

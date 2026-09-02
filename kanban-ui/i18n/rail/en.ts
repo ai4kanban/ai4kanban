@@ -27,6 +27,15 @@ const en: RailCopy = {
       rejected: "Rejected ideas",
     },
   },
+  archive: {
+    row: "Archive",
+    title: "Archive",
+    meta: (folder, count) => `${folder} · ${count === 1 ? "1 card" : `${count} cards`}`,
+    empty: "Nothing archived yet. A card is moved here when it is finished, and this is where it is read.",
+    list: "Archived cards",
+    undated: "Archived before the board kept a record",
+    card: { label: "Archive", release: "Release", archived: "Archived" },
+  },
   memoryPage: {
     unwritten:
       "Nothing has been written here yet. The agent adds a line as work is finished, decided, or turned down — this file fills in as the board is used.",

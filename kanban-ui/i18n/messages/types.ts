@@ -15,7 +15,8 @@ export type MessagesCopy = {
     tooOldForHandChecks: string;
     tooOldForScores: string;
     tooOldForMemory: string;
-    /** The line the four above end with. */
+    tooOldForArchive: string;
+    /** The line every `tooOldFor…` above ends with. */
     updateIt: string;
   };
   /** A copy of the rules that predates one thing the board asks of it. Each names

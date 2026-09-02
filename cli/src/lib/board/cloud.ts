@@ -596,10 +596,13 @@ function cloudBoard(ctx: Context): BoardProvider {
     readScoreView: () => local.readScoreView(),
     fillPlan: () => local.fillPlan(),
 
-    // Both of these count what a release would take off the board, and that means reading
-    // the archive — the one part of the board a snapshot leaves out.
+    // All four read `.archive/` — the one part of the board a snapshot leaves out — so each
+    // pulls it into the copy first. Closing and dropping a release count what leaves the
+    // board; the other two are the archive itself (#380).
     closePlan: async (id) => (await withArchive(), local.closePlan(id)),
     dropPlan: async (id) => (await withArchive(), local.dropPlan(id)),
+    readArchive: async () => (await withArchive(), local.readArchive()),
+    readArchivedCard: async (id) => (await withArchive(), local.readArchivedCard(id)),
 
     // The board timer's own write goes through THIS provider, not the Local one under it:
     // taking a mark off a scheduled card is a board write like every other.

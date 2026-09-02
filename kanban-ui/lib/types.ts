@@ -52,6 +52,9 @@ export { PROPOSE_DEFAULT, PROPOSE_MAX } from "./format/agent/types";
 
 export type {
   ArchiveGroup,
+  ArchiveList,
+  ArchivedCard,
+  ArchivedCardFile,
   Board,
   BulkReleaseResult,
   Card,

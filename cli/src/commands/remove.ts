@@ -9,6 +9,7 @@ import path from 'node:path'
 
 import { clearChat } from '../lib/agent/chat'
 import { heldByDelivery } from '../lib/agent/deliveries'
+import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
@@ -181,6 +182,30 @@ function recordLeaving(id: number, found: Found, metric: Metric): void {
   }
 }
 
+// What an archived card carries out with it: the day it left, and no stage a run was
+// holding.
+//
+// The date is the card's own, not `record.csv`'s — the read that opens an archived card
+// answers it, and it travels with a clone the way a file time does not. Nothing is
+// backfilled, so every card archived before this existed keeps an empty date.
+//
+// `implementing` is a stage a run holds, not one a card keeps. A card can leave the board
+// mid-run — the agent building it archives it at the end of its own pass — and then the
+// run's close has no card left to put the stage back on. Dropped in the same rewrite, so
+// the copy in .archive/ can't come back saying it is being implemented when nothing is
+// running.
+function stampLeaving(cards: { id: number; file: string }[]): void {
+  const day = formatDay()
+  for (const card of cards) {
+    if (!fs.existsSync(card.file)) continue
+    const { meta, body } = parseFrontmatter(fs.readFileSync(card.file, 'utf8'))
+    if (!meta) continue
+    meta.archived = day
+    if (meta.status === 'implementing') meta.status = 'todo'
+    fs.writeFileSync(card.file, serializeFrontmatter(meta) + '\n' + body)
+  }
+}
+
 export interface RemoveOptions {
   /** This removal is the board closing a group root under its last subtask (#299). The
    *  root's own enclosing group is not chased any further, and no memory note is asked
@@ -208,7 +233,7 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   // after the file is gone.
   const cardFile = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const cardText = fs.existsSync(cardFile) ? fs.readFileSync(cardFile, 'utf8') : ''
-  const { meta: cardMeta, body: cardBody } = parseFrontmatter(cardText)
+  const { meta: cardMeta } = parseFrontmatter(cardText)
   // A group takes its subtasks with it. They're listed by name rather than printed —
   // enough to see what went, without burying the receipt under a folder's worth of cards.
   const alsoRemoved =
@@ -228,14 +253,10 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
     if (markSubtask(groupRoot, id, action)) marked = action
     else warn(`#${id} isn't listed in ${rel(groupRoot)} ## Todo — nothing to ${action === 'tick' ? 'tick off' : 'strike out'}.`)
   }
-  // `implementing` is a stage a run holds, not one a card keeps. A card can leave the board
-  // mid-run — the agent building it archives it at the end of its own pass — and then the
-  // run's close has no card left to put the stage back on. Dropped here instead, so the copy
-  // in .archive/ can't come back saying it is being implemented when nothing is running.
-  if (dest && cardMeta && cardMeta.status === 'implementing') {
-    cardMeta.status = 'todo'
-    fs.writeFileSync(cardFile, serializeFrontmatter(cardMeta) + '\n' + cardBody)
-  }
+  // The last write the cards get, and it has to happen before the move: after it there is
+  // no card under `todo/` left to write. A reject gets none — the file is about to be
+  // deleted.
+  if (dest) stampLeaving(leavingCards(id, found))
   // The last moment the cards still exist: a reject deletes them outright, so what the
   // board's score is worked out from has to be written now, not after the move.
   recordLeaving(id, found, metric)

@@ -24,6 +24,22 @@ export type RailCopy = {
     /** The four memory files, keyed by the name the board's rules give each one. */
     files: { readme: string; decisions: string; redesign: string; rejected: string };
   };
+  archive: {
+    /** The row at the foot of the rail, and the heading of the page it opens. */
+    row: string;
+    title: string;
+    /** Under the heading: the folder the cards are in, and how many of them. */
+    meta: (folder: string, count: number) => string;
+    /** A board that has archived nothing yet. */
+    empty: string;
+    /** Read out loud as the name of the list. */
+    list: string;
+    /** The point where the archived dates run out — every card below it left the board
+     *  before the board stamped one. */
+    undated: string;
+    /** One archived card: the label over its title, and what its two meta chips are. */
+    card: { label: string; release: string; archived: string };
+  };
   memoryPage: {
     /** The file exists on the board but has never been written to. */
     unwritten: string;

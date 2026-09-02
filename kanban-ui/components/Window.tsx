@@ -83,6 +83,7 @@ export function Window({
   currentId = null,
   currentTitle = "",
   currentMemory = null,
+  currentArchive = false,
   memoryModules = [],
   goalWritten = false,
   running,
@@ -98,6 +99,9 @@ export function Window({
    *  which is what highlights its row in the rail's Memory panel, opens that panel on
    *  landing, and opens the module the file belongs to (#130). */
   currentMemory?: string | null;
+  /** True while this page is showing the archive — the list, or one card in it (#380). It
+   *  is what highlights the rail's Archive row and takes the highlight off All cards. */
+  currentArchive?: boolean;
   /** The modules the rail's Memory panel offers, from the board read every page already
    *  does (#130). Empty on a board whose map names none. */
   memoryModules?: MemoryModule[];
@@ -268,6 +272,7 @@ export function Window({
               rows={rows}
               activeId={currentId}
               activeMemory={currentMemory}
+              activeArchive={currentArchive}
               memoryModules={memoryModules}
               total={openIds.length}
               running={running ?? EMPTY}

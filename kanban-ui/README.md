@@ -285,6 +285,31 @@ The board never opens the file for you.
 
 The goal is not in this panel — it keeps its own button in the header.
 
+### The archive
+
+Under the Memory row, at the foot of the rail, is **Archive** — every card that has been
+finished, in `docs/kanban/.archive/`. Nothing archived shows anywhere else: not in the
+columns, not in the release picker, not in the search box. The row carries no count, so the
+board looks the same until you click it.
+
+Click it and the list opens in the body, newest first. One row per card: its number, its
+title, the release it shipped in, and the day it was archived. A card that named no release,
+or that left the board before the board stamped a date, leaves that cell empty rather than
+guessing one.
+
+The board started stamping that date with this view, so the dates fill in from here rather
+than all at once — nothing is backfilled. Where they run out, a line says so: everything
+under it was archived before the board kept a record.
+
+Click a row and the card opens whole, read the way its page read while it was open — the
+body, with the agent half folded under it. **It is read-only.** Nothing un-archives, edits,
+or starts a run: archiving is the end.
+
+Both are pages of their own, so Back, Forward and a reload keep you where you were, and the
+rail's Archive row stays highlighted while you read. The list re-reads itself when a run
+finishes and when you come back to the window, so a card an agent just archived is at the
+top of it. A board that has archived nothing says so.
+
 ### Mockups on a card
 
 A card that changes a screen can carry **mockups** of it — small files under

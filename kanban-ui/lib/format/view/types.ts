@@ -595,6 +595,41 @@ export interface MemoryFile extends MemoryRef {
   written: boolean
 }
 
+// ---- the archive -----------------------------------------------------------
+//
+// The finished cards in `docs/kanban/.archive` (#380). Archiving is a rename and the board
+// forgets the card, so these shapes are the only way back to one that isn't a file browser.
+
+/** One archived card, as the list draws it. */
+export interface ArchivedCard {
+  id: number
+  title: string
+  track: string
+  /** The version it shipped in, or empty on a card that named none. */
+  release: string
+  /** The day it was archived, `YYYY-MM-DD`. Empty on every card archived before the board
+   *  stamped one — nothing is backfilled, so the dates fill in over time rather than at
+   *  once. */
+  archived: string
+  /** The path from the repo root, forward slashes. */
+  relPath: string
+}
+
+/** One archived card, whole. */
+export interface ArchivedCardFile extends ArchivedCard {
+  /** The card body below the frontmatter (markdown). */
+  body: string
+}
+
+/** What the archive holds. */
+export interface ArchiveList {
+  /** The folder, from the repo root — what the heading names. */
+  relPath: string
+  /** Every card in it, by id, highest first: ids are allocated in order, so that is newest
+   *  first and it survives a fresh clone. Empty on a board that has archived nothing. */
+  cards: ArchivedCard[]
+}
+
 // ---- the daily numbers -----------------------------------------------------
 
 /** How many days a progress view covers, ending today. */

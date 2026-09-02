@@ -139,6 +139,10 @@ function refusing(error: string): import('./contract').BoardProvider {
     boardStamp: () => Promise.resolve(''),
     readCard: () => Promise.resolve(null),
     readCards: () => Promise.resolve([]),
+    // The archive is the whole of its screen, so an empty list would read as a board that
+    // finished no work rather than as one nothing can be read from (#380).
+    readArchive: no,
+    readArchivedCard: () => Promise.resolve(null),
     readReleases: () => Promise.resolve([]),
     readModules: () => Promise.resolve([]),
     readGoalText: () => Promise.resolve(''),

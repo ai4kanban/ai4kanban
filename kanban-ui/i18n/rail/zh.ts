@@ -27,6 +27,15 @@ const zh: RailCopy = {
       rejected: "被否决的想法",
     },
   },
+  archive: {
+    row: "归档",
+    title: "归档",
+    meta: (folder, count) => `${folder} · ${count} 张卡片`,
+    empty: "还没有归档任何卡片。卡片完成后会被移到这里，也在这里查看。",
+    list: "已归档的卡片",
+    undated: "在看板开始记录归档日期之前完成",
+    card: { label: "归档", release: "版本", archived: "归档于" },
+  },
   memoryPage: {
     unwritten:
       "这里还没有写下任何内容。每当有工作完成、有决策定下、有想法被否决，Agent 都会补上一行——这个文件会随着看板的使用逐渐充实。",

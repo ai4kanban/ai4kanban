@@ -1,6 +1,8 @@
 import { machineCopy } from "./language";
 import { boardRules, NoRulesError, type BoardState } from "./cli";
 import type {
+  ArchiveList,
+  ArchivedCardFile,
   Board,
   Card,
   CardRef,
@@ -234,6 +236,32 @@ export async function readMemory(name: string, module = ""): Promise<MemoryFile 
     throw new NoRulesError(c.tooOldForMemory, c.installIt);
   }
   return rules.readMemoryFile(name, module);
+}
+
+/** What `docs/kanban/.archive` holds — every finished card, newest first (#380).
+ *
+ *  Read on each open rather than held, so a card archived a moment ago is in the list. A
+ *  board with no rules to read it with, and one whose rules predate this read, both throw:
+ *  the archive is the whole of its page, and quietly showing nothing would read as a board
+ *  that has finished no work. */
+export async function readArchive(): Promise<ArchiveList> {
+  const rules = await boardRules();
+  if (!rules.readArchive) {
+    const c = (await machineCopy()).messages.rules;
+    throw new NoRulesError(c.tooOldForArchive, c.updateIt);
+  }
+  return rules.readArchive();
+}
+
+/** One archived card, whole. `null` when the archive holds none with that id, which is what
+ *  the page turns into "no such card". Throws for the same two reasons the list does. */
+export async function readArchivedCard(id: number): Promise<ArchivedCardFile | null> {
+  const rules = await boardRules();
+  if (!rules.readArchivedCard) {
+    const c = (await machineCopy()).messages.rules;
+    throw new NoRulesError(c.tooOldForArchive, c.updateIt);
+  }
+  return rules.readArchivedCard(id);
 }
 
 /** What the guided first run opens with — the project, its tracks, and the goal as they

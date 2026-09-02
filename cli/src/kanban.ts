@@ -259,8 +259,8 @@ export type { Language } from './lib/machine/types'
 export { readSpecAgents, setSpecAgentEnabled, setSpecAgentSetting } from './lib/spec-agents'
 export type * from './lib/agent/types'
 
-// …and the board itself: the columns, one card in full, the releases, the metrics, the
-// setup checklist, the goal, the board's memory (the project's and each module's) — plus every write a screen makes and the
+// …and the board itself: the columns, one card in full, the archive, the releases, the
+// metrics, the setup checklist, the goal, the board's memory (the project's and each module's) — plus every write a screen makes and the
 // question the board's background timer asks each tick. One door (lib/view/api.ts), the same rules the commands
 // run, so a button and a command can never disagree about what a card says.
 export {
@@ -281,6 +281,8 @@ export {
   newRelease,
   nextWork,
   patchCard,
+  readArchive,
+  readArchivedCard,
   readBoard,
   readGoalText,
   readMemoryFile,
