@@ -458,6 +458,13 @@ export interface Board {
 export interface WriteResult {
   ok: boolean
   error?: string
+  /** Which of the three a refusal was (#312). `conflict` means the resource moved under the
+   *  caller and NOTHING was written — the screen re-reads it and repeats the change on what
+   *  it says now; anything else is a refusal that re-reading would not change. Absent on a
+   *  board running rules older than the contract. */
+  kind?: string
+  /** On a conflict, the revision the board holds now — what the screen re-reads through. */
+  current?: string
 }
 
 /** The fields a direct edit may write. Everything else about a card (track, id, links,

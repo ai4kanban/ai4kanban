@@ -17,6 +17,9 @@ const zh: BoardCopy = {
     allPlanned: "所有待办卡片都已归入某个版本，没有等待规划的内容。在上方选择一个版本查看。",
     releaseEmpty: (release) => `**${release}** 没有待办卡片。`,
     showNoRelease: "查看未归入版本的卡片",
+    offline: (lastRead) =>
+      `Cloud 暂时无法连接。当前显示的是 ${lastRead} 读取的副本——可以查看看板，在 Cloud 恢复之前无法保存。`,
+    offlineNeverRead: "Cloud 暂时无法连接，而这个检出从未读取过它的工作区，因此没有可显示的看板副本。",
   },
   queue: {
     ready: "待开发",

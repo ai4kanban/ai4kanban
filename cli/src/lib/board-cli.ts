@@ -21,7 +21,8 @@ import path from 'node:path'
 
 import { die, setBoardRoot, KANBAN } from './paths'
 import { BoardError, say, startCollecting, stopCollecting, warn, type Sink } from './io'
-import { board, moveTarget, withLease } from './board'
+import { board, boardState, moveTarget, openBoard, when, withLease } from './board'
+import { readPointer } from './cloud/pointer'
 import { BOARD_MOVES, READ_ONLY_MOVES } from './board/local'
 import { flushOnExit } from './cloud/publish'
 import { catchUpOnExit } from './cloud/requests'
@@ -57,13 +58,23 @@ export function splitShared(argv: string[]): { rest: string[]; dir: string | nul
 
 // ---- finding the board -----------------------------------------------------
 
-const hasBoard = (dir: string): boolean => fs.existsSync(path.join(dir, 'docs', 'kanban'))
+// A board is a folder here, or a pointer at a workspace (#316). A fresh clone of a Cloud
+// checkout carries no `docs/kanban/` at all — the copy is git-ignored and built on the first
+// read — so the pointer is what says there is a board here to open.
+const hasBoard = (dir: string): boolean =>
+  fs.existsSync(path.join(dir, 'docs', 'kanban')) || readPointer(dir) !== null
+
+/** Whether this checkout's board lives in a workspace rather than in the folder. */
+const pointsAtCloud = (root: string): boolean => readPointer(root) !== null
 
 // A board with no `todo/` is half a board — a folder someone deleted from, or one an
 // install never finished. Every move but `init` would fall over reading it, so it is
 // turned away here with the one command that repairs it.
+//
+// A Cloud checkout is never half a board: its `docs/kanban/` is a copy, written whole by the
+// hydration that happens after this, and a fresh clone has none at all.
 function requireWholeBoard(root: string, move: string): string {
-  if (move === MAKES_A_BOARD) return root
+  if (move === MAKES_A_BOARD || pointsAtCloud(root)) return root
   if (!fs.existsSync(path.join(root, 'docs', 'kanban', 'todo'))) {
     die(`the board in ${root} has no docs/kanban/todo/ — run \`init\` to add what is missing.`, {
       kind: 'board-incomplete',
@@ -214,6 +225,12 @@ export async function runBoard(argv: string[], options: RunBoardOptions = {}): P
   try {
     const root = resolveBoard(move, { dir, cwd, installHint })
     setBoardRoot(root, dir !== null)
+    // Which board this checkout opens — the folder, or the workspace a committed pointer
+    // names (#316). A Cloud board that cannot be opened refuses here, in the words that say
+    // what to do about it: sign in from the app, or point the checkout somewhere else.
+    const opened = await openBoard(root)
+    if (!opened.ok) die(opened.error, { kind: `cloud-${opened.reason}`, dir: root })
+    sayIfOffline()
     // A read answers straight off the board. A write is one operation of the contract, under
     // a lease taken for it — whoever typed this never read the card, so the lease is what
     // hands them the revision they write against (lib/board/ops.ts).
@@ -253,6 +270,17 @@ export async function runBoard(argv: string[], options: RunBoardOptions = {}): P
   } finally {
     if (json) stopCollecting()
   }
+}
+
+/** Say the board is offline and how old the screen is, once, before the move answers. A
+ *  read still answers from the copy; a write refuses in its own words (#316). */
+export function sayIfOffline(): void {
+  const state = boardState()
+  if (!state.offline) return
+  warn(
+    `this board is offline — Cloud could not be reached. Showing the copy read ${when(state.readAt)}; ` +
+      'nothing can be saved until Cloud answers.',
+  )
 }
 
 // What a mutation answered with, as the dispatcher needs it: the move's own fields, or the

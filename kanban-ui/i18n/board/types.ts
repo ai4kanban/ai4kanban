@@ -19,6 +19,12 @@ export type BoardCopy = {
     allPlanned: string;
     releaseEmpty: (release: string) => string;
     showNoRelease: string;
+    /** Cloud is out of reach (#316). The board still reads — this is the copy — and nothing
+     *  can be saved until it answers. Names how old the copy is, because that is the whole
+     *  of what the reader has to judge. */
+    offline: (lastRead: string) => string;
+    /** A copy this machine has never read from the workspace. */
+    offlineNeverRead: string;
   };
   queue: {
     ready: string;

@@ -121,6 +121,22 @@ export function writeRootIgnoreIfMissing(): boolean {
   fs.writeFileSync(ROOT_GITIGNORE, `${text}${separator}${block}`)
   return true
 }
+/** What a Cloud checkout keeps out of git: `docs/kanban/` itself, because on that checkout
+ *  the folder is a COPY of the workspace and not the record (#316). */
+export const COPY_IGNORE_LINE = 'docs/kanban/'
+
+/** Add that line to the repository's own `.gitignore` when it isn't there, the same way
+ *  `.akb/` is added above. Called when a Cloud board hydrates, so a checkout pointed at a
+ *  workspace never commits the copy the next read would overwrite. True when it wrote one. */
+export function ignoreBoardCopyIfMissing(): boolean {
+  const text = fs.existsSync(ROOT_GITIGNORE) ? fs.readFileSync(ROOT_GITIGNORE, 'utf8') : ''
+  if (text.split('\n').some((line) => line.trim() === COPY_IGNORE_LINE)) return false
+  const separator = !text || text.endsWith('\n') ? '' : '\n'
+  const block = `# This board lives in a Cloud workspace; docs/kanban/ is a copy of it.\n${COPY_IGNORE_LINE}\n`
+  fs.writeFileSync(ROOT_GITIGNORE, `${text}${separator}${block}`)
+  return true
+}
+
 // ` --dir <path>` when this command was told which board with `--dir`, empty when it found
 // one from the working directory. Every hint the board prints for a person to paste back —
 // follow it, stop it, resume it — carries this, or the paste lands on whatever board the

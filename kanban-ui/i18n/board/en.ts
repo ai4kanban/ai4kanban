@@ -20,6 +20,10 @@ const en: BoardCopy = {
       "Every open card is in a release — nothing is waiting to be planned. Pick a version above to see it.",
     releaseEmpty: (release) => `**${release}** has no open cards.`,
     showNoRelease: "Show the cards in no release",
+    offline: (lastRead) =>
+      `Cloud is out of reach. This is the copy read ${lastRead} — you can read the board, and nothing can be saved until Cloud answers.`,
+    offlineNeverRead:
+      "Cloud is out of reach and this checkout has never read its workspace, so there is no copy of the board to show.",
   },
   queue: {
     ready: "Ready to build",

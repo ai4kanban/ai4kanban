@@ -4,9 +4,9 @@
 // provider it hands back — `akb board`, the app's screens, the run engine's own moves, and
 // the board timer — so none of them knows or cares where the board actually is.
 //
-// Today there is one provider: Local, the markdown board in `docs/kanban/` (./local.ts).
-// A board that lives elsewhere is one more implementation of `BoardProvider` and nothing
-// else changed.
+// There are two: Local, the markdown board in `docs/kanban/` (./local.ts), and Cloud, a
+// board whose authority is a workspace and whose `docs/kanban/` is a copy of it (./cloud.ts).
+// Which one a checkout gets is `./open.ts`'s answer, and nothing else in the codebase asks.
 
 import type { BoardProvider, LeaseTarget, OpEnvelope, OpResult } from './contract'
 import { localBoard } from './local'
@@ -15,6 +15,11 @@ import { leaseAnd } from './ops'
 export * from './contract'
 export { envelope, moveTarget, newOpId, opConflict, opOk, opRefused, leaseAnd } from './ops'
 export { boardRevision, cardRevision, revisionOf } from './revision'
+// Which board a checkout opens, how it stands, and the one re-read that is the user asking.
+export { boardState, openBoard, refreshBoard } from './open'
+export type { BoardState, OpenBoard, OpenRefusal } from './open'
+// When a Cloud board's copy was read, in the one spelling a terminal and a browser both use.
+export { when } from './cloud'
 
 let active: BoardProvider | null = null
 
@@ -24,8 +29,9 @@ export function board(): BoardProvider {
   return active
 }
 
-/** Point this process at a different board. What #316 calls once a project is signed in to
- *  a Cloud board; tests use it to stand a fake in front of the callers. */
+/** Point this process at a different board. `openBoard` (./open.ts) is what calls this on a
+ *  checkout that points at a workspace; tests use it to stand a fake in front of the
+ *  callers. */
 export function setBoardProvider(provider: BoardProvider | null): void {
   active = provider
 }

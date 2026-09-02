@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CardPage } from "@/components/CardPage";
 import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
-import { deliveryDiff, deliveryPlan, findCard, readBoard } from "@/lib/board";
+import { deliveryDiff, deliveryPlan, findCard, readBoard, readBoardState } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { readMockups } from "@/lib/mockup";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
@@ -47,9 +47,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // The screens this card points at, drawn here rather than fetched by the page: a mockup
   // is a file on this machine, and reading it is the same server read the card was.
   const mockups = await readMockups(card.body);
+  // Whether this board is a copy of a Cloud workspace that is out of reach (#316). The card
+  // still reads; what the page says is that this is the copy and how old it is.
+  const boardState = await readBoardState();
   return (
     <CardPage
       card={card}
+      boardState={boardState}
       openIds={board.openIds}
       releases={board.releases}
       agent={agent}

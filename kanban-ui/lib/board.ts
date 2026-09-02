@@ -1,5 +1,5 @@
 import { machineCopy } from "./language";
-import { boardRules, NoRulesError } from "./cli";
+import { boardRules, NoRulesError, type BoardState } from "./cli";
 import type {
   Board,
   Card,
@@ -31,6 +31,39 @@ import type {
  *  far setup got, whether the goal needs writing. */
 export async function readBoard(): Promise<Board> {
   return (await boardRules()).readBoard();
+}
+
+/** How the board stands (#316): a folder here, or a copy of a Cloud workspace — and if so,
+ *  whether Cloud is out of reach and when the copy was last read.
+ *
+ *  `readWhen` is that time already spelled, by the board's own rules: the strip renders on
+ *  the server for the first paint and again in the browser, so the wording has to be one
+ *  answer rather than each side's locale.
+ *
+ *  A board with no rules to ask, and one running rules older than Cloud boards, is Local:
+ *  the strip that draws from this has nothing to say about either. */
+export type BoardStanding = BoardState & { readWhen: string };
+
+export async function readBoardState(): Promise<BoardStanding> {
+  try {
+    const rules = await boardRules();
+    const state = rules.boardState?.() ?? LOCAL_BOARD;
+    return { ...state, readWhen: state.readAt ? (rules.boardCopyReadWhen?.(state.readAt) ?? state.readAt) : "" };
+  } catch {
+    return { ...LOCAL_BOARD, readWhen: "" };
+  }
+}
+
+const LOCAL_BOARD: BoardState = { kind: "local", offline: false, readAt: "", workspaceName: "" };
+
+/** Read the whole workspace again — the user asking, never a timer. A Local board answers
+ *  `ok` and does nothing, so no caller has to know which kind it is on. */
+export async function refreshBoard(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    return (await (await boardRules()).refreshBoard?.()) ?? { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // A card file is rewritten in place — by the agent editing it mid-run, and by the

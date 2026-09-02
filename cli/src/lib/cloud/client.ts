@@ -23,7 +23,20 @@ import type {
   SlackConversation,
 } from './types'
 
-export type CloudCall<T> = { ok: true; value: T } | { ok: false; error: string; code?: string }
+/**
+ * What one call answered with.
+ *
+ * A refusal carries the service's own `code` and `message`, and the two fields a workspace
+ * refusal adds: `current`, the revision the resource holds now, and `until`, when the writer
+ * holding a card gives it up (#316). A refusal with NO code never reached the service — that
+ * is what "offline" means here, and nothing probes for it separately.
+ */
+export type CloudCall<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: string; code?: string; current?: string; until?: string }
+
+/** Whether this call never reached the service, as against being refused by it. */
+export const isOffline = (call: { ok: boolean; code?: string }): boolean => !call.ok && !call.code
 
 /** Refusals a caller acts on rather than retries. Everything else is worth another go. */
 export const TERMINAL_CODES = [
@@ -39,6 +52,15 @@ export const TERMINAL_CODES = [
   // An import pointed at a workspace that already holds a board (#315). Retrying it lands
   // on the same board; the answer is a new workspace.
   'board_not_empty',
+  // The workspace's own refusals (#316). Each is an answer the caller acts on: re-read that
+  // card, wait for the writer holding it, register this machine again, mint a new attempt,
+  // or show the free-tier sentence as it stands. Retrying any of them changes nothing.
+  'revision_conflict',
+  'card_locked',
+  'node_removed',
+  'operation_reused',
+  'daily_write_budget_reached',
+  'storage_limit_reached',
 ]
 
 export const isTerminal = (code?: string): boolean => !!code && TERMINAL_CODES.includes(code)
@@ -159,13 +181,16 @@ export const listWorkspaces = (): Promise<CloudCall<{ workspaces: CloudWorkspace
 export const createWorkspace = (opId: string, name: string): Promise<CloudCall<{ workspace: CloudWorkspace }>> =>
   send('POST', '/v1/workspaces', { opId, name })
 
-/** Write cards, in passes small enough that one call can be retried. */
+/** Write cards, in passes small enough that one call can be retried. Answers with each card
+ *  as the workspace now holds it, so a caller folds the revisions it was handed back into
+ *  its own copy rather than re-reading the board (#316). */
 export const writeWorkspaceCards = (
   workspaceId: string,
   opId: string,
   cards: WireCard[],
-): Promise<CloudCall<{ revision: string }>> =>
-  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/cards`, { opId, cards })
+  nodeId = '',
+): Promise<CloudCall<{ revision: string; cards: WireWorkspaceCard[] }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/cards`, { opId, cards, nodeId })
 
 /** Write the board's files — its configuration, memory, per-flow rules, summaries and
  *  tallies. An empty body deletes one. */
@@ -173,8 +198,100 @@ export const writeWorkspaceDocuments = (
   workspaceId: string,
   opId: string,
   documents: WireDocument[],
-): Promise<CloudCall<{ revision: string }>> =>
-  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/documents`, { opId, documents })
+  nodeId = '',
+  lease = '',
+): Promise<CloudCall<{ revision: string; documents: WireWorkspaceDocument[] }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/documents`, {
+    opId,
+    documents,
+    nodeId,
+    lease,
+  })
+
+// ---- reading a workspace (#316) ---------------------------------------------
+// What a board opened from a checkout hydrates its copy from, and the pieces it re-reads
+// afterwards. The snapshot is the LIVE board; the archive and the history files are their
+// own reads, because this board holds three times as many archived cards as live ones.
+
+/** The whole live board under one cursor: the workspace, its live cards, and the documents
+ *  that are the board being worked on now. */
+export const readWorkspaceSnapshot = (
+  workspaceId: string,
+  opts?: SendOptions,
+): Promise<CloudCall<WireSnapshot>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/snapshot`, undefined, opts)
+
+/** One card, by its number — what a conflict is re-read through. */
+export const readWorkspaceCard = (
+  workspaceId: string,
+  cardId: number,
+): Promise<CloudCall<{ revision: string; card: WireWorkspaceCard }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/cards/${cardId}`)
+
+/** The cards that have left the board. Never in a snapshot; closing a release is what
+ *  fetches it. */
+export const readWorkspaceArchive = (
+  workspaceId: string,
+): Promise<CloudCall<{ revision: string; cards: WireWorkspaceCard[] }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/archive`)
+
+/** The board's files, all of them or one kind. */
+export const readWorkspaceDocuments = (
+  workspaceId: string,
+  kind = '',
+  opts?: SendOptions,
+): Promise<CloudCall<{ revision: string; documents: WireWorkspaceDocument[] }>> =>
+  send(
+    'GET',
+    `/v1/workspaces/${encodeURIComponent(workspaceId)}/documents${kind ? `?kind=${encodeURIComponent(kind)}` : ''}`,
+    undefined,
+    opts,
+  )
+
+// ---- the workspace's writer lock --------------------------------------------
+
+/** Take the lock over one card, or over the board when no card is named, and be handed the
+ *  revision it reads at. Presenting the lease it was granted under takes it again. */
+export const takeWorkspaceLock = (
+  workspaceId: string,
+  target: { cardId?: number; nodeId?: string; lease?: string },
+): Promise<CloudCall<{ lock: WireLock }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/locks`, {
+    cardId: target.cardId ?? null,
+    nodeId: target.nodeId ?? '',
+    lease: target.lease ?? '',
+  })
+
+/** Give it up before it runs out. Silent about a lock this caller does not hold. */
+export const releaseWorkspaceLock = (
+  workspaceId: string,
+  target: { cardId?: number; lease: string },
+): Promise<CloudCall<{ released: boolean }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/locks/release`, {
+    cardId: target.cardId ?? null,
+    lease: target.lease,
+  })
+
+/** Every lock the workspace is holding right now. */
+export const listWorkspaceLocks = (workspaceId: string): Promise<CloudCall<{ locks: WireLock[] }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/locks`)
+
+// ---- this machine, as one of the workspace's nodes ---------------------------
+
+/** Register this machine the first time it opens the workspace, so its writes are
+ *  attributed and #317's node controls have something to list. Idempotent on the machine
+ *  id. */
+export const registerWorkspaceNode = (
+  workspaceId: string,
+  machineId: string,
+  machineName: string,
+  runtimes: ServerRuntime[] = [],
+): Promise<CloudCall<{ node: WireNode }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/nodes`, {
+    machineId,
+    machineName,
+    runtimes,
+  })
 
 /** Claim a new workspace for one source board, by the fingerprint the machine derived from
  *  it. A workspace already holding a board is refused unless it holds this one. */
@@ -242,6 +359,52 @@ export interface CloudWorkspace {
   nextCardId: number
   createdAt: string
   updatedAt: string
+}
+
+/** One card as the workspace holds it. `data` is what the machine that wrote it sent — the
+ *  card's path, its portable frontmatter and its body. */
+export interface WireWorkspaceCard {
+  id: number
+  revision: string
+  archived: boolean
+  archivedAt: string | null
+  data: Partial<CardPayload>
+}
+
+/** One board file as the workspace holds it, under the path it is written back to. */
+export interface WireWorkspaceDocument extends DocumentPayload {
+  revision: string
+}
+
+/** The whole live board under one cursor. The archive and the history files are their own
+ *  reads — a snapshot is the board somebody is working on now. */
+export interface WireSnapshot {
+  revision: string
+  workspace: CloudWorkspace
+  cards: WireWorkspaceCard[]
+  documents: WireWorkspaceDocument[]
+}
+
+/** The lock one writer holds over a card, or over the board. `revision` is what that
+ *  resource read at when the lock was granted. */
+export interface WireLock {
+  leaseId: string
+  cardId: number | null
+  revision: string
+  grantedAt: string
+  expiresAt: string
+}
+
+/** A machine registered to run this workspace's work. */
+export interface WireNode {
+  id: string
+  workspaceId: string
+  name: string
+  machineId: string
+  machineName: string
+  runtimes: ServerRuntime[]
+  leaseExpiresAt: string | null
+  live: boolean
 }
 
 /** One card on the wire: its number, the revision the caller read, and the card itself. */
@@ -349,7 +512,24 @@ export const setLarkDestination = (
 export const disconnectLark = (): Promise<CloudCall<{ disconnected: true }>> =>
   send('POST', '/v1/lark/disconnect')
 
-async function send<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<CloudCall<T>> {
+/** How long one call may take before it counts as a service that is not answering. Named
+ *  by the caller that needs a short one: a board opening offline retries the workspace on
+ *  every read, and a service that hangs must not hang the screen (#316).
+ *
+ *  `signal` is the same deadline shared across several calls — a read made of three calls
+ *  bounds the three together, or a service that answers the first and then stops would
+ *  still hang for as long as the other two are given. */
+export interface SendOptions {
+  timeoutMs?: number
+  signal?: AbortSignal
+}
+
+async function send<T>(
+  method: 'GET' | 'POST',
+  path: string,
+  body?: unknown,
+  opts: SendOptions = {},
+): Promise<CloudCall<T>> {
   if (!cloudConfigured()) return { ok: false, error: NOT_CONFIGURED, code: 'bad_request' }
 
   const token = await accessToken()
@@ -360,6 +540,7 @@ async function send<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
   }
 
   let response: Response
+  const stop = opts.signal ?? (opts.timeoutMs ? AbortSignal.timeout(opts.timeoutMs) : undefined)
   try {
     response = await fetch(`${cloudEndpoints().api}${path}`, {
       method,
@@ -368,18 +549,24 @@ async function send<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
         ...(body ? { 'content-type': 'application/json' } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
+      ...(stop ? { signal: stop } : {}),
     })
   } catch (e) {
     return { ok: false, error: `Cloud could not be reached: ${e instanceof Error ? e.message : String(e)}` }
   }
 
   const parsed = (await response.json().catch(() => ({}))) as T & {
-    error?: { code?: string; message?: string }
+    error?: { code?: string; message?: string; current?: string; until?: string }
   }
   if (response.ok) return { ok: true, value: parsed }
   return {
     ok: false,
     code: parsed.error?.code,
     error: parsed.error?.message ?? `Cloud answered ${response.status}.`,
+    // What a workspace refusal carries beside its sentence: the revision the resource holds
+    // now, and when the writer holding a card gives it up. Dropping them would leave the
+    // caller with a message where it needs a card to re-read (#316).
+    ...(parsed.error?.current === undefined ? {} : { current: parsed.error.current }),
+    ...(parsed.error?.until === undefined ? {} : { until: parsed.error.until }),
   }
 }

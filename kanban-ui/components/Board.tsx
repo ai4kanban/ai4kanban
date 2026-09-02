@@ -14,6 +14,7 @@ import {
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { filterColumns, hasOwnCards, useReleasePick } from "@/lib/release-pick";
+import type { BoardStanding } from "@/lib/board";
 import type { AgentInfo, Board, SessionView } from "@/lib/types";
 import { BulkReleaseBar } from "./BulkReleaseBar";
 import { RunningNotice } from "./desktop";
@@ -35,6 +36,7 @@ import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus, useSess
 export function BoardView({
   initialBoard,
   initialError,
+  initialState,
   agent: initialAgent,
   projectRoot,
   setupInstruction,
@@ -43,6 +45,9 @@ export function BoardView({
 }: {
   initialBoard: Board | null;
   initialError: string | null;
+  /** How the board stands (#316): a folder here, or a copy of a Cloud workspace and whether
+   *  that workspace is out of reach. Read on the server so the first paint already says so. */
+  initialState: BoardStanding | null;
   agent: AgentInfo;
   projectRoot: string;
   /** The line a coding agent is handed to finish setup. It comes from the server
@@ -65,6 +70,10 @@ export function BoardView({
   // page-load value.
   const [agent, setAgent] = useState<AgentInfo>(initialAgent);
   const [error, setError] = useState<string | null>(initialError);
+  // Cloud out of reach is not an error: the board reads, and what the strip says is that
+  // this is the copy and how old it is. It moves with every read, so a board that came back
+  // live clears it with nothing to press (#316).
+  const [state, setState] = useState<BoardStanding | null>(initialState);
   // Has the user stepped out of the guided first run to look at the board (#172)?
   // `null` until the browser has been asked — sessionStorage doesn't exist during
   // SSR, so the server and the first client render have to agree on the board, and
@@ -165,6 +174,7 @@ export function BoardView({
       const res = await getBoard();
       if (res.board) setBoard(res.board);
       setError(res.error);
+      setState(res.state ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -488,6 +498,14 @@ export function BoardView({
               inside the app, a pointer to the app in a browser (#175). Above the
               error strip because it is about the whole session, not this action. */}
           <RunningNotice desktop={desktop} />
+
+          {/* Cloud out of reach (#316). Above the error strip and separate from it: the
+              board on screen is real, it is simply the copy — and a save is what says no. */}
+          {state?.offline && (
+            <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
+              {state.readWhen ? c.notice.offline(state.readWhen) : c.notice.offlineNeverRead}
+            </div>
+          )}
 
           {error && (
             <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-peach-soft)" }}>

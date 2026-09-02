@@ -307,6 +307,15 @@ export { board, envelope, moveTarget, newOpId, setBoardProvider, withLease } fro
 export { NO_REVISION } from './lib/board'
 export type * from './lib/board/contract'
 
+// Which board a checkout opens (#316): the folder, or the workspace `.ai4kanban.json` names.
+// A board server calls `openBoard` once for the project it serves, `boardState` wherever it
+// draws whether the board is offline and how old the copy is, and `refreshBoard` when the
+// user asks for the workspace to be read again — never on a timer.
+export { boardState, openBoard, refreshBoard, when as boardCopyReadWhen } from './lib/board'
+export type { BoardState, OpenBoard, OpenRefusal } from './lib/board'
+export { readPointer as readBoardPointer, writePointer as writeBoardPointer } from './lib/cloud/pointer'
+export type { BoardPointer } from './lib/cloud/pointer'
+
 const SELF = fileURLToPath(import.meta.url)
 
 // True when this file IS the program, rather than something another program imported.

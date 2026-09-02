@@ -1,7 +1,7 @@
 import { BoardView } from "@/components/Board";
 import { NoBoard } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT, setupInstruction } from "@/lib/agent";
-import { readBoard } from "@/lib/board";
+import { readBoard, readBoardState } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import { skillState, UNKNOWN_SKILL } from "@/lib/skill";
@@ -25,6 +25,11 @@ export default async function Page() {
   } catch (e) {
     initialError = e instanceof Error ? e.message : String(e);
   }
+  // How the board stands (#316), read AFTER it: a read taken while offline is also the
+  // attempt that brings the board back live, so asking first would paint the strip with the
+  // standing that read just changed. A board that would not read at all still has an age to
+  // say, which is why this is not inside the try.
+  const initialState = await readBoardState();
   // The agent setting and the words it is sent live in the CLI now (lib/cli.ts), so these
   // are read rather than called inline. A board with no copy of the rules to load still
   // draws: the fields fall back to what an unconfigured board would show, and the run
@@ -43,6 +48,7 @@ export default async function Page() {
     <BoardView
       initialBoard={initialBoard}
       initialError={initialError}
+      initialState={initialState}
       agent={agent}
       projectRoot={repoRoot()}
       setupInstruction={instruction}

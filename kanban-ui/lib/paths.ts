@@ -45,8 +45,17 @@ export function findRepoRoot(): string | null {
   return found;
 }
 
+// A board is a folder here, or a checkout pointed at a Cloud workspace (#316). A fresh
+// clone of a Cloud checkout carries no `docs/kanban/` at all — the copy is git-ignored and
+// written on the first read — so `.ai4kanban.json` is what says there is a board to open.
+// Whether that workspace can actually be reached is the board's answer, drawn in the error
+// strip, and not this lookup's: "no board here" and "the board would not open" are two
+// different pages.
 const boardAt = (dir: string): string | null =>
-  fs.existsSync(path.join(dir, "docs", "kanban", "todo")) ? dir : null;
+  fs.existsSync(path.join(dir, "docs", "kanban", "todo")) ||
+  fs.existsSync(path.join(dir, ".ai4kanban.json"))
+    ? dir
+    : null;
 
 function boardAtOrAbove(from: string): string | null {
   let dir = from;

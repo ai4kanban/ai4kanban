@@ -31,10 +31,15 @@ const refused = (e: unknown): WriteResult => ({
   error: e instanceof Error ? e.message : String(e),
 });
 
-/** Apply a direct edit to one card. */
-export async function patchCard(id: number, patch: CardPatch): Promise<WriteResult> {
+/** Apply a direct edit to one card.
+ *
+ *  `expect` is the revision the page read the card at (#316). A card rewritten under an
+ *  open page — by a run here, or by another machine on a Cloud board — comes back as a
+ *  conflict and NOTHING is written, so the page re-reads that one card and says what moved
+ *  rather than overwriting somebody else's words. */
+export async function patchCard(id: number, patch: CardPatch, expect = ""): Promise<WriteResult> {
   try {
-    return await (await boardRules()).patchCard(id, patch);
+    return await (await boardRules()).patchCard(id, patch, expect ? { expect } : undefined);
   } catch (e) {
     return refused(e);
   }
@@ -51,19 +56,21 @@ const OLD_RULES: WriteResult = {
   error: `${ENGLISH.tooOldForHandChecks} ${ENGLISH.updateIt}`,
 };
 
-export async function addVerify(id: number, line: string): Promise<VerifyResult> {
+export async function addVerify(id: number, line: string, expect = ""): Promise<VerifyResult> {
   try {
     const rules = await boardRules();
-    return rules.addVerify ? await rules.addVerify(id, line) : OLD_RULES;
+    const opts = expect ? { expect } : undefined;
+    return rules.addVerify ? await rules.addVerify(id, line, opts) : OLD_RULES;
   } catch (e) {
     return refused(e);
   }
 }
 
-export async function dropVerify(id: number, line: string): Promise<VerifyResult> {
+export async function dropVerify(id: number, line: string, expect = ""): Promise<VerifyResult> {
   try {
     const rules = await boardRules();
-    return rules.dropVerify ? await rules.dropVerify(id, line) : OLD_RULES;
+    const opts = expect ? { expect } : undefined;
+    return rules.dropVerify ? await rules.dropVerify(id, line, opts) : OLD_RULES;
   } catch (e) {
     return refused(e);
   }
@@ -72,18 +79,23 @@ export async function dropVerify(id: number, line: string): Promise<VerifyResult
 /** Schedule an action on a blocked card, so the board runs it by itself once the last card
  *  in its way leaves the board. A card that isn't waiting on anything, or an action that
  *  wouldn't move it, refuses with the line saying why. */
-export async function setSchedule(id: number, action: string, notes = ""): Promise<WriteResult> {
+export async function setSchedule(
+  id: number,
+  action: string,
+  notes = "",
+  expect = "",
+): Promise<WriteResult> {
   try {
-    return await (await boardRules()).setSchedule(id, action, notes);
+    return await (await boardRules()).setSchedule(id, action, notes, expect ? { expect } : undefined);
   } catch (e) {
     return refused(e);
   }
 }
 
 /** Take a card's schedule off. Nothing fires after this. */
-export async function clearSchedule(id: number): Promise<WriteResult> {
+export async function clearSchedule(id: number, expect = ""): Promise<WriteResult> {
   try {
-    return await (await boardRules()).clearSchedule(id);
+    return await (await boardRules()).clearSchedule(id, expect ? { expect } : undefined);
   } catch (e) {
     return refused(e);
   }

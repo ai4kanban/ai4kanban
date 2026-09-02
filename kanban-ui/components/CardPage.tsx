@@ -78,6 +78,7 @@ import {
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { usePhone } from "@/lib/media";
 import { cn } from "@/lib/utils";
+import type { BoardStanding } from "@/lib/board";
 import type { MockupSet } from "@/lib/mockup-tag";
 import { parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
@@ -138,10 +139,14 @@ const NOTE_MS = 7000;
 // many are left is in the heading, so a shut panel still says there is something to check.
 function HandChecks({
   cardId,
+  revision,
   verify,
   busy,
 }: {
   cardId: number;
+  /** The revision this page read the card at (#316) — what the cross-off is written
+   *  against, so a card rewritten under the page comes back as a conflict. */
+  revision: string;
   verify: string[];
   busy: boolean;
 }) {
@@ -181,7 +186,7 @@ function HandChecks({
   const crossOff = async (line: string) => {
     setConfirming(null);
     setSaving(true);
-    const res = await dropVerifyAction(cardId, line);
+    const res = await dropVerifyAction(cardId, line, revision);
     setSaving(false);
     settle(res, c.failed);
   };
@@ -1101,6 +1106,7 @@ function MetaItem({ label, children }: { label: string; children: React.ReactNod
 
 export function CardPage({
   card,
+  boardState,
   openIds,
   releases,
   agent,
@@ -1113,6 +1119,9 @@ export function CardPage({
   desktop,
 }: {
   card: Card;
+  /** How the board stands (#316). A Cloud board out of reach still draws this card — the
+   *  page says so rather than pretending the copy is current. */
+  boardState: BoardStanding;
   openIds: number[];
   releases: string[];
   agent: AgentInfo;
@@ -1340,22 +1349,28 @@ export function CardPage({
   // re-read rather than on a session to watch.
   const scheduleAgent = async (action: ScheduledAction, notes: string) => {
     setDialog(null);
-    const res = await scheduleCardAction(card.id, action, notes);
+    const res = await scheduleCardAction(card.id, action, notes, card.revision);
     setError(res.ok ? null : res.error || c.toolbar.scheduleFailed);
     if (res.ok) router.refresh();
   };
 
   const unschedule = async () => {
-    const res = await unscheduleCardAction(card.id);
+    const res = await unscheduleCardAction(card.id, card.revision);
     setError(res.ok ? null : res.error || c.toolbar.unscheduleFailed);
     if (res.ok) router.refresh();
   };
 
+  // Every save carries the revision the page read the card at (#316). A card rewritten
+  // under an open page — by a run here, or by somebody on another machine sharing this
+  // board — comes back as a CONFLICT with nothing written: the page re-reads that one card
+  // and shows what the board says now, under the line saying so, instead of quietly
+  // overwriting words the user never saw.
   const patchCard = async (id: number, patch: CardPatch) => {
     try {
-      const res = await patchCardAction(id, patch);
+      const res = await patchCardAction(id, patch, card.revision);
       if (!res.ok) {
         setError(res.error || c.toolbar.editFailed);
+        if (res.kind === "conflict") router.refresh();
         return false;
       }
     } catch (e) {
@@ -1410,6 +1425,14 @@ export function CardPage({
             {/* An alert is the one thing here louder than a section: peach at `-soft`
                 rather than at the `-wash` rung the sections sit on, so it reads as
                 something that happened and not as another band of the page. */}
+            {/* Cloud out of reach (#316). Not an alert: the card on screen is real, it is
+                simply the copy — a save is what refuses, in its own words. */}
+            {boardState.offline && (
+              <div className="nb-section bg-nb-sky-soft p-3.5 text-[13px]">
+                {boardState.readWhen ? t.board.notice.offline(boardState.readWhen) : t.board.notice.offlineNeverRead}
+              </div>
+            )}
+
             {error && (
               <div className="nb-section bg-nb-peach-soft p-3.5 text-[13px] text-nb-peach-ink">
                 {error}
@@ -1963,7 +1986,7 @@ export function CardPage({
 
               {/* Last on the page, under the body and its agent half: every line here is a
                   note on work already done, so it comes after what the card is. */}
-              <HandChecks cardId={card.id} verify={card.verify} busy={busy} />
+              <HandChecks cardId={card.id} revision={card.revision} verify={card.verify} busy={busy} />
             </div>
           </main>
 

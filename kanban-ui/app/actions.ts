@@ -22,6 +22,8 @@ import {
 import {
   cardStillThere,
   readBoard,
+  readBoardState,
+  refreshBoard,
   readGoalText,
   readMetrics,
   readModules,
@@ -120,6 +122,7 @@ import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/ski
 import { setSpecAgentEnabled, setSpecAgentSetting, specAgents } from "@/lib/spec-agents";
 import { testConnection } from "@/lib/test-connection";
 import { isLanguage } from "@/lib/types";
+import type { BoardStanding } from "@/lib/board";
 import type {
   AgentInfo,
   Board,
@@ -160,14 +163,41 @@ import type {
  *  rules is missing or too old. Returned as a value rather than thrown: a thrown error
  *  from a server action reaches the browser redacted, and "an error occurred" is exactly
  *  the empty answer this is here to avoid. */
-export type BoardResult = { board: Board; error: null } | { board: null; error: string };
+export type BoardResult = ({ board: Board; error: null } | { board: null; error: string }) & {
+  /** How the board stands (#316): a folder here, or a copy of a Cloud workspace that may be
+   *  out of reach. Read beside the board so one round trip draws both. */
+  state?: BoardStanding;
+};
 
+// The state is read AFTER the board, never before: a read taken while offline is also the
+// attempt that brings the board back live (#316), so asking first would answer with the
+// standing that read just changed — and the strip would still say offline over a board that
+// had come back, until something else happened to read it again.
 export async function getBoard(): Promise<BoardResult> {
   try {
-    return { board: await readBoard(), error: null };
+    const board = await readBoard();
+    return { board, error: null, state: await readBoardState() };
   } catch (e) {
-    return { board: null, error: e instanceof Error ? e.message : String(e) };
+    return {
+      board: null,
+      error: e instanceof Error ? e.message : String(e),
+      state: await readBoardState(),
+    };
   }
+}
+
+/**
+ * Read the whole workspace again — the user asking for the board in front of them to be
+ * brought up to date. A Local board does nothing, so no caller has to know which kind it is
+ * on (#316).
+ *
+ * Deliberately on no timer and behind no read: a live Cloud board settles for its copy, and
+ * a screen that re-read on focus or on a poll would be polling the workspace. In a terminal
+ * this is free — every `akb` is a new process and opens the board fresh — so what is left is
+ * the control the workspace screens add (#317, #374), which is what calls this.
+ */
+export async function refreshBoardAction(): Promise<WriteResult> {
+  return refreshBoard();
 }
 
 /** Whether this card is still on the board (#299). The card page asks before it re-reads
@@ -647,8 +677,16 @@ export async function setCardsReleaseAction(ids: number[], release: string): Pro
 
 // ---- a card, and the numbers -------------------------------------------------
 
-export async function patchCardAction(id: number, patch: CardPatch): Promise<WriteResult> {
-  return patchCard(id, patch);
+// `expect` is the revision the page read the card at (#316). Every card write from a screen
+// carries it, so a card rewritten under an open page — by a run here, or by another machine
+// on a Cloud board — comes back as a conflict with nothing written, and the page re-reads
+// that one card instead of overwriting words it never saw.
+export async function patchCardAction(
+  id: number,
+  patch: CardPatch,
+  expect = "",
+): Promise<WriteResult> {
+  return patchCard(id, patch, expect);
 }
 
 // One hand-check added or crossed off from the card page (#276). Both save the moment the
@@ -658,16 +696,16 @@ export async function patchCardAction(id: number, patch: CardPatch): Promise<Wri
 // A cross-off names the LINE, not its place in the list — a run can add or take away
 // hand-checks while the page sits open. The answer carries the list as the card now holds
 // it, so the panel redraws from the card either way, a refusal included.
-export async function addVerifyAction(id: number, line: string): Promise<VerifyResult> {
+export async function addVerifyAction(id: number, line: string, expect = ""): Promise<VerifyResult> {
   if (!Number.isInteger(id)) return { ok: false, error: "a hand-check is added by card number" };
   if (typeof line !== "string" || !line.trim()) return { ok: false, error: "a hand-check is one line of text" };
-  return addVerify(id, line);
+  return addVerify(id, line, expect);
 }
 
-export async function dropVerifyAction(id: number, line: string): Promise<VerifyResult> {
+export async function dropVerifyAction(id: number, line: string, expect = ""): Promise<VerifyResult> {
   if (!Number.isInteger(id)) return { ok: false, error: "a hand-check is crossed off by card number" };
   if (typeof line !== "string") return { ok: false, error: "a hand-check is named by its text" };
-  return dropVerify(id, line);
+  return dropVerify(id, line, expect);
 }
 
 // Schedule an action on a blocked card (#140) — the second way out of a card that is waiting
@@ -682,16 +720,17 @@ export async function scheduleCardAction(
   id: number,
   action: string,
   notes = "",
+  expect = "",
 ): Promise<WriteResult> {
   if (!Number.isInteger(id)) return { ok: false, error: "a card is scheduled by its number" };
   if (typeof action !== "string") return { ok: false, error: "an action is text" };
-  return setSchedule(id, action, typeof notes === "string" ? notes : "");
+  return setSchedule(id, action, typeof notes === "string" ? notes : "", expect);
 }
 
 // Take a card's schedule off — the card page's one control for it. Nothing fires after this.
-export async function unscheduleCardAction(id: number): Promise<WriteResult> {
+export async function unscheduleCardAction(id: number, expect = ""): Promise<WriteResult> {
   if (!Number.isInteger(id)) return { ok: false, error: "a card is scheduled by its number" };
-  return clearSchedule(id);
+  return clearSchedule(id, expect);
 }
 
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once

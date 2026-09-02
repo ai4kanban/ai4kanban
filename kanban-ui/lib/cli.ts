@@ -78,6 +78,32 @@ import type {
 // Nothing to read the board with at all, and every screen says so in one line that names
 // the fix rather than coming up empty.
 
+/** What a screen may hand in beside a change (#312, #316): the revision it read the card
+ *  at. A write against a revision that has moved comes back as a conflict and writes
+ *  nothing, so the page re-reads that one card and repeats the change on what it says now.
+ *
+ *  Card writes pass it; board-level ones (a release, the goal, a memory file) deliberately
+ *  do not — the board's own revision moves whenever ANY card does, so a screen writing
+ *  against the one it read would conflict with work it has nothing to do with. Those write
+ *  against the revision their writer lease hands them. */
+export interface WriteOptions {
+  expect?: string;
+}
+
+/** Which board this checkout opened, and why it wouldn't (#316). */
+export type OpenBoard =
+  | { ok: true; kind: "local" }
+  | { ok: true; kind: "cloud"; state: { workspaceId: string; workspaceName: string; offline: boolean; readAt: string } }
+  | { ok: false; kind: "cloud"; reason: string; error: string };
+
+/** How the board stands: a folder here, or a copy of a workspace and how old it is. */
+export interface BoardState {
+  kind: "local" | "cloud";
+  offline: boolean;
+  readAt: string;
+  workspaceName: string;
+}
+
 /** What the built file gives us. It is the CLI's own public surface — see the exports at
  *  the top of `cli/src/kanban.ts`.
  *
@@ -88,6 +114,22 @@ import type {
  *  value, which `await` takes just as happily — so awaiting is safe on every board. */
 export interface BoardRules {
   setBoardRoot(root: string): string;
+
+  // which board this checkout opens (#316) — the folder, or the workspace `.ai4kanban.json`
+  // names. Called before every read: a Cloud board hydrates its copy on the first one and
+  // answers the rest from what it already has, so a board that would not open is retried
+  // rather than refused for the life of this server. Optional, like every Cloud move below:
+  // a project running rules older than the release that added them has only ever had a
+  // Local board.
+  openBoard?(root: string): Promise<OpenBoard>;
+  /** How the board stands right now — whether it is offline, and when its copy was last
+   *  read from the workspace. A Local board is never offline. */
+  boardState?(): BoardState;
+  /** Re-read the whole workspace. The user asking, never a timer. */
+  refreshBoard?(): Promise<{ ok: boolean; error?: string }>;
+  /** When the copy was read, in the one spelling a terminal and a browser both use — minute
+   *  precision and always UTC, so a server render and a client render agree. */
+  boardCopyReadWhen?(iso: string): string;
 
   // the runs
   listRuns(): Promise<RunView[]>;
@@ -237,14 +279,16 @@ export interface BoardRules {
   dropPlan(id: string): Promise<DropPlan>;
 
   // the board, written
-  patchCard(id: number, patch: CardPatch): Promise<WriteResult>;
+  // Every card write takes the revision the screen read (#316). Rules older than the
+  // contract ignore the extra argument, which is what they always did with it.
+  patchCard(id: number, patch: CardPatch, opts?: WriteOptions): Promise<WriteResult>;
   // One hand-check added or crossed off from the card page (#276). Optional: a project can
   // be running rules older than the release that added them, and the panel then reads the
   // way it always did rather than the page failing to draw.
-  addVerify?(id: number, line: string): Promise<VerifyResult>;
-  dropVerify?(id: number, line: string): Promise<VerifyResult>;
-  setSchedule(id: number, action: string, notes?: string): Promise<WriteResult>;
-  clearSchedule(id: number): Promise<WriteResult>;
+  addVerify?(id: number, line: string, opts?: WriteOptions): Promise<VerifyResult>;
+  dropVerify?(id: number, line: string, opts?: WriteOptions): Promise<VerifyResult>;
+  setSchedule(id: number, action: string, notes?: string, opts?: WriteOptions): Promise<WriteResult>;
+  clearSchedule(id: number, opts?: WriteOptions): Promise<WriteResult>;
   setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult>;
   newRelease(id: string, goal?: string, fill?: boolean): Promise<WriteResult & { fill?: "none" | "fill" | "agent" }>;
   setReleaseGoal(id: string, goal: string): Promise<WriteResult>;
@@ -443,7 +487,7 @@ const REQUIRED = ["listRuns", "readBoard", "nextWork"] as const;
 /** The board's rules, loaded and pointed at this server's board. */
 export function boardRules(): Promise<BoardRules> {
   const box = cached();
-  if (box.rules) return box.rules;
+  if (box.rules) return box.rules.then(opened);
   const looked = candidates();
   const found = looked.find((file) => fs.existsSync(file));
   if (!found) {
@@ -472,7 +516,24 @@ export function boardRules(): Promise<BoardRules> {
   box.rules.catch(() => {
     box.rules = undefined;
   });
-  return box.rules;
+  return box.rules.then(opened);
+}
+
+/**
+ * Which board this checkout opens (#316) — the folder, or the workspace `.ai4kanban.json`
+ * names. A Cloud board hydrates its copy here, and every read and write after this is that
+ * copy's.
+ *
+ * On every read rather than once for the life of the server, because the answer can change
+ * under it and the remedy is always something the user does elsewhere: a board refused for
+ * want of a sign-in opens once they sign in from the Configuration dialog, and one refused
+ * because Cloud was out of reach opens when Cloud answers — with nothing to press either
+ * way. It costs one file read on a Local board and nothing at all on a Cloud board already
+ * open, and the rules themselves fold two readers arriving together into one attempt.
+ */
+async function opened(rules: BoardRules): Promise<BoardRules> {
+  await rules.openBoard?.(repoRoot());
+  return rules;
 }
 
 /** What went wrong, in one line a strip can show. */

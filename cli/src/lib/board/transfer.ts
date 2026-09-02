@@ -194,6 +194,32 @@ export function packBoard(): BoardPayload {
   }
 }
 
+/**
+ * Take the committed half of `docs/kanban/` off the machine, leaving the run state beside
+ * it untouched.
+ *
+ * Exactly what `packBoard` reads is what this removes — the cards, the archive, the
+ * documents and anything else committed under the folder — so the two cannot drift. What it
+ * never touches is `KEPT_LOCAL` and `deliveries/`: the keys, the run record, the chats and
+ * the drawings are this machine's, and a Cloud board hydrating over them (#316) would throw
+ * away work no workspace holds.
+ *
+ * Used by nothing that MOVES a board: import reads and writes nothing here, and export
+ * refuses a folder that already holds one. It is the first half of hydrating a copy.
+ */
+export function clearBoardCopy(): void {
+  let entries: fs.Dirent[]
+  try {
+    entries = fs.readdirSync(KANBAN, { withFileTypes: true })
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    if (KEPT_LOCAL.has(entry.name) || entry.name === 'deliveries') continue
+    fs.rmSync(path.join(KANBAN, entry.name), { recursive: true, force: true })
+  }
+}
+
 /** One card, or null when this path is not one. A group's `root.md` takes its number from
  *  the folder it is in, which is how the board itself finds it. */
 function cardAt(rel: string): CardPayload | null {

@@ -18,8 +18,10 @@ import {
   prose,
   report,
   resolveBoard,
+  sayIfOffline,
   splitShared,
 } from './board-cli'
+import { openBoard } from './board'
 import { flushOnExit } from './cloud/publish'
 import { catchUpOnExit } from './cloud/requests'
 import { KANBAN, setBoardRoot } from './paths'
@@ -143,6 +145,12 @@ export async function runAgent(argv: string[], options: RunAgentOptions = {}): P
   try {
     root = resolveBoard('runs', { dir, cwd, installHint })
     setBoardRoot(root, dir !== null)
+    // …and which board that checkout opens: the folder, or the workspace its committed
+    // pointer names (#316). A refusal here is the whole answer — a run against a board that
+    // could not be opened would be a run against no board at all.
+    const opened = await openBoard(root)
+    if (!opened.ok) throw new BoardError(opened.error, { kind: `cloud-${opened.reason}`, dir: root })
+    sayIfOffline()
   } catch (err) {
     return report(err, { program, json })
   }
