@@ -143,7 +143,7 @@ function listAgents(): MoveResult {
     const names = option.settings.map((s) => (s.kind === 'secret' ? `${s.key} (key)` : s.key))
     if (names.length) say(`    takes: ${names.join(', ')}`)
     // What this one can't do that another on the list can. Named rather than explained —
-    // `web/docs/connectors.mdx` is where each is spelled out, and the board app shows the
+    // `web/content/docs/connectors.mdx` is where each is spelled out, and the board app shows the
     // full line beside the picker.
     if (option.gaps.length) say(`    lacks: ${option.gaps.map((g) => g.label.toLowerCase()).join('; ')}`)
   }

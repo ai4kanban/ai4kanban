@@ -74,6 +74,9 @@ export type ButtonProps = {
   children: ReactNode;
   variant?: ButtonVariant;
   size?: ButtonSize;
+  /** A marker class, not a restyle — `mdx-action` keeps a body's link rule off
+   *  the label (`app/blog-prose.css`). */
+  className?: string;
   /** Set to render a link. Without it you get a `<button>`. */
   href?: string;
   /** Saves `href` to disk instead of navigating — the recipe card downloads. */
@@ -90,9 +93,10 @@ export function Button({
   href,
   download,
   onClick,
+  className: extra,
   ...rest
 }: ButtonProps) {
-  const className = buttonClass(variant, size);
+  const className = `${buttonClass(variant, size)}${extra ? ` ${extra}` : ""}`;
 
   if (href) {
     // Every off-site link on this page is a plain <a> — see the eslint config.

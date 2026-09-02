@@ -6,3 +6,7 @@
 # otherwise 404. Send them to the page they meant.
 /en / 301
 /en/* /:splat 301
+
+# The per-agent guides moved under `/agents/`. The old URL is linked from
+# outside the site, so it keeps working.
+/kanban-for-codex /agents/kanban-for-codex 301

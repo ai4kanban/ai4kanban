@@ -4,7 +4,7 @@ import { DOCS_PATH, docPath, getAllDocs, getDocsIndex } from "@/lib/docs";
 import { pageMetadata } from "@/lib/metadata";
 import { itemList, jsonLd, pageUrl, webPage } from "@/lib/schema";
 
-// `/docs` — the section's landing page, written as `web/docs/index.mdx` like
+// `/docs` — the section's landing page, written as `web/content/docs/index.mdx` like
 // every other page here, so the copy that routes a reader into the docs is
 // edited in the same place as the docs themselves.
 

@@ -161,6 +161,11 @@ artwork and never carry readable content on pigment.
   is the site's other use of the warm tone.
 - **Keep artwork visually separate from UI chrome**: illustration colors do not become
   panel fills, borders, or text colors.
+- **Wash a full-bleed plate down to paper**: a long-form page opens on artwork
+  (`blog/Backdrop.tsx`). The plate runs behind the header row, the headline and the
+  byline, carries a white gradient over it, and dissolves into full paper at the rule —
+  the body below it is never read on pigment. The site header drops its own fill over a
+  plate and takes it back, with the rule, as soon as the page moves.
 - **Open a bandless section with the pixel mark**: `PixelMark.tsx` is the band's texture
   at section scale — wash cells and one ember. Use it where a section needs a head but
   the page has no warmth left to spend on another band.

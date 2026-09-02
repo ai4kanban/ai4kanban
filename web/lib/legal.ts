@@ -5,7 +5,7 @@ import matter from "gray-matter";
 // The site's two legal pages: one MDX file each in `web/legal/`, read at build
 // time and rendered through the blog's MDX components and prose stylesheet.
 // They are not posts — no author line, no "on this page" rail, no `Article`
-// markup — so they live here rather than in `web/blogs/`.
+// markup — so they live here rather than in `web/content/blogs/`.
 //
 // The set is closed. A legal page is a route someone links to from a contract
 // or an app, so it is added deliberately, not by dropping a file in a folder.

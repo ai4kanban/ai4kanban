@@ -84,7 +84,7 @@ export default async function BlogPostPage({ params }: Params) {
           dangerouslySetInnerHTML={{ __html: schema }}
         />
       )}
-      <Header c={c} locale="en" />
+      <Header c={c} locale="en" overlay />
       <ArticleLayout
         body={post.body}
         header={

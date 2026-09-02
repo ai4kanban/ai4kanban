@@ -29,7 +29,18 @@ function useScrolled() {
 
 // The chrome on top of every page — the landing page, the comparison pages and
 // the recipes.
-export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
+export function Header({
+  c,
+  locale,
+  overlay = false,
+}: {
+  c: SiteCopy;
+  locale: Locale;
+  /** For a page that opens on artwork (`blog/Backdrop.tsx`): the row draws no
+   *  fill until the page moves, so the plate runs behind it, then takes the
+   *  paper it has everywhere else once anything scrolls under it. */
+  overlay?: boolean;
+}) {
   const nav = c.shared.nav;
   const scrolled = useScrolled();
 
@@ -40,10 +51,13 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
     // z-index, so without it an open dropdown went behind the hero headline no
     // matter what `z-30` asked for.
     //
-    // The fill is always paper and never animates: it is the same white as the
-    // page ground, so at the top of the page the row still reads as the first
-    // line of the hero, and the moment anything slides under it there is no
-    // frame of half-transparent header for that content to show through.
+    // The fill is paper and never animates: it is the same white as the page
+    // ground, so at the top of the page the row still reads as the first line
+    // of the hero, and the moment anything slides under it there is no frame of
+    // half-transparent header for that content to show through. `overlay` is
+    // the one exception — there the page's own ground at the top is a plate,
+    // not paper, so the row starts with no fill and fades the paper in with the
+    // rule.
     //
     // Only the rule fades in. The rule is what a header is *for* — it says the
     // row is floating over content that has gone under it — so it arrives only
@@ -51,8 +65,10 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
     // border changes a box's height, and the row must not jump 2px the moment
     // you scroll.
     <header
-      className={`sticky top-0 z-30 border-b-2 bg-elev transition-colors duration-200 ${
-        scrolled ? "border-border" : "border-transparent"
+      className={`sticky top-0 z-30 border-b-2 transition-colors duration-200 ${
+        scrolled
+          ? "border-border bg-elev"
+          : `border-transparent ${overlay ? "bg-transparent" : "bg-elev"}`
       }`}
     >
       {/* Same `py-3` at every width, so the row a phone gets and the row a

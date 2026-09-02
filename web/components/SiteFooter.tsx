@@ -3,6 +3,7 @@ import { GITHUB_URL } from "./content";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { BUILDER_PATH, FOOTER_SOCIALS } from "./social";
 import { column } from "./styles";
+import { agentPath, getAgentPages } from "@/lib/agents";
 import { localePath, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
@@ -25,9 +26,10 @@ export function SiteFooter({
   // names is what fills the row, and each is a page worth landing on. GitHub is
   // not a column: it is the mark on the base line, and one link is enough.
   //
-  // The docs, the recipes, the blog, the Cloud page, the builder page and the
-  // two legal pages are English-only, so those links keep their bare paths. The
-  // download and comparison pages exist in every language — point at this one.
+  // The docs, the recipes, the blog, the agent pages, the Cloud page, the
+  // builder page and the two legal pages are English-only, so those links keep
+  // their bare paths. The download and comparison pages exist in every
+  // language — point at this one.
   const groups = [
     {
       title: t.groups.product,
@@ -42,6 +44,12 @@ export function SiteFooter({
         { href: "/docs", label: t.docs },
         { href: "/recipes", label: t.recipes },
         { href: "/blog", label: t.blog },
+        // Agent pages name a coding agent, so the label is the page's own name
+        // rather than a translated slot — the same rule the comparisons follow.
+        ...getAgentPages().map((page) => ({
+          href: agentPath(page),
+          label: page.navLabel,
+        })),
       ],
     },
     {

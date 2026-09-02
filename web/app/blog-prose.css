@@ -93,8 +93,11 @@
 }
 
 /* A link in prose is the ember as text, so it takes accent-deep — the readable
-   cut — and never the resting ember, which is only ever a shape. */
-.blog-prose a {
+   cut — and never the resting ember, which is only ever a shape.
+   `.mdx-action` is out: a button is a block, not a phrase, and it brings its own
+   fill, outline and label colour. This rule is unlayered and Tailwind's
+   utilities are not, so it would win over them whatever they specify. */
+.blog-prose a:not(.mdx-action) {
   color: var(--color-accent-deep);
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -102,7 +105,7 @@
   text-decoration-color: color-mix(in srgb, var(--color-accent-deep) 40%, transparent);
   transition: text-decoration-color 150ms ease-out;
 }
-.blog-prose a:hover {
+.blog-prose a:not(.mdx-action):hover {
   text-decoration-color: currentColor;
 }
 

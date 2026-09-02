@@ -5,7 +5,7 @@ import { docIcon } from "./doc-icons";
 // The one thing a documentation page can write that prose has no syntax for: a
 // grid of links into other pages. `<CardGroup>` lays the grid out, `<Card>` is
 // one titled, icon'd link. Both are in scope inside any `.mdx` body under
-// `web/docs/` — `DocArticle.tsx` hands the pair to the compiler.
+// `web/content/docs/` — `DocArticle.tsx` hands the pair to the compiler.
 //
 // A card is the site's raised panel: paper, the hard ink shadow, and the lift on
 // hover. The icon tile inside it is bare wash — a raised block inside a raised

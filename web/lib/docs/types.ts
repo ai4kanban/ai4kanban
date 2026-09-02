@@ -1,11 +1,11 @@
 // What a documentation page is.
 //
-// One page is one `.mdx` file in `web/docs/`, and the filename is the slug —
-// `web/docs/daily-loop.mdx` is `/docs/daily-loop`. `index.mdx` is the section's
+// One page is one `.mdx` file in `web/content/docs/`, and the filename is the slug —
+// `web/content/docs/daily-loop.mdx` is `/docs/daily-loop`. `index.mdx` is the section's
 // landing page and is served at `/docs` itself, never at `/docs/index`.
 //
 // Where a page sits in the rail — which group it is under, and in what order —
-// is deliberately *not* frontmatter. It lives in one catalog, `web/docs/_nav.json`,
+// is deliberately *not* frontmatter. It lives in one catalog, `web/content/docs/_nav.json`,
 // so reordering the section is one edit to one list instead of renumbering a
 // field across every file.
 

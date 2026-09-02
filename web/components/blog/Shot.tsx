@@ -1,6 +1,21 @@
 import { Figure } from "./figures/kit";
 import { printFrame } from "@/components/home/Mat";
 import type { WashName } from "@/components/home/washes";
+import { CDN } from "@/lib/site";
+import board from "../../../screenshots/board.png";
+import cardQuestions from "../../../screenshots/card-questions.png";
+import taskGraph from "../../../screenshots/landing-figures/task-graph.png";
+
+const sourceOverrides: Record<string, string> = {
+  board: board.src,
+  "card-questions": cardQuestions.src,
+  "task-graph": taskGraph.src,
+};
+
+// Captures exported from `/shots/` come off that page with the mat and the
+// print already on them, so they mount bare — a mat around one of these is a
+// second mat.
+const matted = new Set(["task-graph"]);
 
 // A capture of the real app, mounted the way `SelfBoardProgress` mounts one and
 // the landing page mounts every screenshot: a print on a watercolour mat, no
@@ -14,10 +29,11 @@ import type { WashName } from "@/components/home/washes";
 // Unlike a figure, this takes props, so it is not in the closed set every post
 // can write. A page passes it through `BlogMdx`'s `extra`.
 //
-// `/shots/` is served from the site's own `public/`. Screenshots elsewhere on
-// the site come off the CDN; these are small enough (~50-110 kB webp) that a
-// second origin buys nothing, and keeping them in the repo means the page and
-// its pictures are re-shot and reviewed together.
+// Most captures live in the CDN's `shots/` prefix, so a Pages deploy never
+// carries them (lib/site.ts). The key is the versioned file name — replacing a
+// capture means uploading `-v2` and changing the caller, never overwriting.
+// Source overrides keep canonical screenshots that already belong elsewhere in
+// the repository in one place.
 
 export function Shot({
   src,
@@ -25,23 +41,30 @@ export function Shot({
   caption,
   wash = "peachEmber",
 }: {
-  /** File name under `public/shots/`, without the extension. */
+  /** Versioned screenshot key; defaults to `<CDN>/shots/<key>.webp`. */
   src: string;
   alt: string;
   caption: string;
   wash?: WashName;
 }) {
+  const imageSrc = sourceOverrides[src] ?? `${CDN}/shots/${src}.webp`;
+  const image = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={imageSrc} alt={alt} className="block w-full" loading="lazy" />
+  );
+
+  if (matted.has(src)) {
+    return (
+      <figure>
+        {image}
+        <figcaption>{caption}</figcaption>
+      </figure>
+    );
+  }
+
   return (
     <Figure single wash={wash} caption={caption}>
-      <div className={`${printFrame} bg-elev`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`/shots/${src}.webp`}
-          alt={alt}
-          className="block w-full"
-          loading="lazy"
-        />
-      </div>
+      <div className={`${printFrame} bg-elev`}>{image}</div>
     </Figure>
   );
 }

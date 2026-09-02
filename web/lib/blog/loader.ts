@@ -1,13 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { countReadMinutes } from "@/lib/read-minutes";
 import {
   isCategorySlug,
   type BlogCategorySlug,
   type BlogPost,
 } from "./types";
 
-// Reads `web/blogs/*.mdx` at build time. Server-only by construction — it
+// Reads `web/content/blogs/*.mdx` at build time. Server-only by construction — it
 // touches the filesystem, so it can only ever be imported by a server component
 // (the two blog routes) and the sitemap.
 //
@@ -41,11 +42,7 @@ import {
 // dynamic route that resolves to zero pages, so if drafts vanished at build
 // time a site with nothing published yet would not compile.
 
-const BLOGS_DIR = path.join(process.cwd(), "blogs");
-
-// 220 words a minute, the middle of the range for adult reading on a screen,
-// and never less than a minute — "0 min read" reads as a bug, not as brevity.
-const WORDS_PER_MINUTE = 220;
+const BLOGS_DIR = path.join(process.cwd(), "content", "blogs");
 
 function fail(file: string, reason: string): never {
   throw new Error(`[blog] ${file}: ${reason}`);
@@ -74,15 +71,6 @@ function asIsoDate(value: unknown): string | undefined {
   if (!raw) return undefined;
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
-}
-
-function countReadMinutes(body: string): number {
-  const words = body
-    .replace(/```[\s\S]*?```/g, " ") // a code block is not read word by word
-    .replace(/<[^>]+>/g, " ") // JSX/HTML tags
-    .split(/\s+/)
-    .filter(Boolean).length;
-  return Math.max(1, Math.round(words / WORDS_PER_MINUTE));
 }
 
 function parsePost(slug: string, file: string): BlogPost {

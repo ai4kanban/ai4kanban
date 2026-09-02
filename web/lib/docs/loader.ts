@@ -3,9 +3,9 @@ import path from "node:path";
 import matter from "gray-matter";
 import type { DocNavGroup, DocPage } from "./types";
 
-// Reads `web/docs/*.mdx` and `web/docs/_nav.json` at build time. Server-only by
-// construction — it touches the filesystem, so only a server component (the two
-// docs routes) and the sitemap can ever import it.
+// Reads `web/content/docs/*.mdx` and its `_nav.json` at build time. Server-only
+// by construction — it touches the filesystem, so only a server component (the
+// two docs routes) and the sitemap can ever import it.
 //
 // A malformed page *fails the build*, the same discipline `lib/blog/loader.ts`
 // keeps and for the same reason: a doc is a committed file someone is about to
@@ -26,7 +26,7 @@ import type { DocNavGroup, DocPage } from "./types";
 //
 // Group and order are not here — they are in `_nav.json`. See `types.ts`.
 
-const DOCS_DIR = path.join(process.cwd(), "docs");
+const DOCS_DIR = path.join(process.cwd(), "content", "docs");
 const NAV_FILE = path.join(DOCS_DIR, "_nav.json");
 
 /** The landing page, served at `/docs` rather than `/docs/index`. */

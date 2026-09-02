@@ -6,10 +6,11 @@ export const BASE_URL = "https://ai4kanban.dev";
 // rather than in `public/`, so a Pages deploy doesn't re-upload a megabyte of
 // artwork it never changed. Every name carries a version suffix and is served
 // `immutable`, so replacing an asset means uploading a new name — never
-// overwriting one. Today that is the share card and the `loop-*` drawings the
-// READMEs embed (app/(en)/shots/, scripts/capture-shots.mjs). The landing page's
-// watercolour mats used to be four JPEGs here and are now painted in the page
-// (components/home/washes.ts).
+// overwriting one. Today that is the share card, the `loop-*` drawings the
+// READMEs embed (app/(en)/shots/, scripts/capture-shots.mjs), the blog opening's
+// backdrop, and the app captures under the `shots/` prefix (blog/Shot.tsx). The
+// landing page's watercolour mats used to be four JPEGs here and are now painted
+// in the page (components/home/washes.ts).
 export const CDN = "https://cdn.ai4kanban.dev";
 
 // Social share card. The design lives at the `/og-image/` route (1200×630); the

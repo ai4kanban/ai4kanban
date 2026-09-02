@@ -36,6 +36,7 @@ export function pageMetadata({
   description,
   socialTitle,
   social,
+  socialImageAlt,
   type = "website",
   publishedTime,
   modifiedTime,
@@ -46,6 +47,8 @@ export function pageMetadata({
   /** Route path, e.g. "/vs-github-issues". Empty string for the home page. */
   path: string;
   type?: "website" | "article" | "profile";
+  /** Page-specific alt text for the shared social image. */
+  socialImageAlt?: string;
   /** ISO 8601. `article` only — the dates the page's JSON-LD already carries. */
   publishedTime?: string;
   modifiedTime?: string;
@@ -66,13 +69,16 @@ export function pageMetadata({
   const url = localePath(locale, path);
   const ogTitle = socialTitle ?? title;
   const ogDescription = social ?? description;
+  const socialImage = socialImageAlt
+    ? { ...OG_IMAGE, alt: socialImageAlt }
+    : OG_IMAGE;
 
   const openGraph = {
     url,
     siteName: "AI4Kanban",
     title: ogTitle,
     description: ogDescription,
-    images: [OG_IMAGE],
+    images: [socialImage],
     locale: OG_LOCALES[locale],
     alternateLocale: LOCALES.filter((l) => l !== locale).map(
       (l) => OG_LOCALES[l],
@@ -115,7 +121,7 @@ export function pageMetadata({
       card: "summary_large_image",
       title: ogTitle,
       description: ogDescription,
-      images: [OG_IMAGE.url],
+      images: [{ url: OG_IMAGE.url, alt: socialImage.alt }],
       creator: byTao ? X_HANDLE : undefined,
     },
   };

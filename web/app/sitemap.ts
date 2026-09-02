@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { recipes } from "@/components/recipes/recipes-content";
+import { agentPath, getAgentPages } from "@/lib/agents";
 import { getAllPosts, postPath } from "@/lib/blog";
 import { DOCS_PATH, docPath, getAllDocs } from "@/lib/docs";
 import { getLegalDocs } from "@/lib/legal";
@@ -97,14 +98,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: gitLastModified(...routeSources("/builder", "en")),
   });
 
-  // The Codex landing page, English-only.
-  entries.push({
-    url: `${BASE_URL}/kanban-for-codex`,
-    lastModified: gitLastModified(
-      ...routeSources("/kanban-for-codex", "en"),
-      "public/kanban-for-codex.md",
-    ),
-  });
+  // One page per coding agent, English-only. Each one is a Markdown file, so
+  // its `lastmod` is the newest commit that touched it.
+  for (const page of getAgentPages()) {
+    entries.push({
+      url: `${BASE_URL}${agentPath(page)}`,
+      lastModified: gitLastModified(`content/agents/${page.slug}.mdx`),
+    });
+  }
 
   // The recipes, which are English-only. A recipe page comes out of the catalog
   // and its art.
@@ -121,12 +122,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const docs = getAllDocs();
   entries.push({
     url: `${BASE_URL}${DOCS_PATH}`,
-    lastModified: gitLastModified("docs", "app/(en)/docs", "components/docs"),
+    lastModified: gitLastModified(
+      "content/docs",
+      "app/(en)/docs",
+      "components/docs",
+    ),
   });
   for (const doc of docs) {
     entries.push({
       url: `${BASE_URL}${docPath(doc)}`,
-      lastModified: gitLastModified(`docs/${doc.slug}.mdx`),
+      lastModified: gitLastModified(`content/docs/${doc.slug}.mdx`),
     });
   }
 

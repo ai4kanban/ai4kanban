@@ -1,10 +1,8 @@
 import { Children, isValidElement } from "react";
-import type { ReactNode } from "react";
-import { FaGithub } from "react-icons/fa6";
-import { FiAlertTriangle, FiDownload, FiEdit3, FiInfo, FiZap } from "react-icons/fi";
-import { GITHUB_URL } from "@/components/content";
+import type { ComponentProps, ReactNode } from "react";
+import { FiAlertTriangle, FiEdit3, FiInfo, FiZap } from "react-icons/fi";
+import { ClosingCta } from "@/components/ClosingCta";
 import { framed, panelStatic } from "@/components/styles";
-import { Button } from "@/components/ui/Button";
 
 // The blocks a post can write that aren't prose and aren't a figure: the two
 // summary panels, the callout, a sourced quote, and the FAQ. Every name here is
@@ -121,44 +119,12 @@ export function Callout({
 }
 
 /**
- * The closing block. Every article ends on the same two actions, so a post
- * writes `<Cta />` and adds children only when it has a pointer of its own —
- * the download and the repository are the block's, not the post's.
+ * The closing block — `ClosingCta.tsx`, in a body's rhythm. A post writes
+ * `<Cta />` and adds children only when it has a pointer of its own; the
+ * headline and the two actions are the block's, not the post's.
  */
-export function Cta({
-  children,
-  title,
-}: {
-  children?: ReactNode;
-  title?: string;
-}) {
-  const label = title ?? "Where to go next";
-  return (
-    <aside
-      aria-label={label}
-      className="mdx-block mdx-inset rounded-xl bg-code px-6 py-5"
-    >
-      <Label>{label}</Label>
-      <div className="mdx-body mt-3">
-        {children ?? (
-          <p>
-            AI4Kanban is a local, open-source board that plans the work before a
-            coding agent starts it.
-          </p>
-        )}
-      </div>
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Button href="/download" variant="primary" size="sm">
-          <FiDownload aria-hidden="true" className="size-4" />
-          Download
-        </Button>
-        <Button href={GITHUB_URL} size="sm">
-          <FaGithub aria-hidden="true" className="size-4" />
-          GitHub
-        </Button>
-      </div>
-    </aside>
-  );
+export function Cta(props: ComponentProps<typeof ClosingCta>) {
+  return <ClosingCta {...props} className="mdx-block mdx-inset" />;
 }
 
 /** A `>` blockquote with an attribution under it. `source` links the byline. */

@@ -1,9 +1,10 @@
 // What a post is.
 //
-// One post is one `.mdx` file in `web/blogs/`, and the filename is the slug —
-// `web/blogs/how-the-board-plans.mdx` is `/blog/how-the-board-plans`. There is
-// no database and no CMS: the post is a file in the repo, so it reviews like
-// code and ships with the deploy that built it.
+// One post is one `.mdx` file in `web/content/blogs/`, and the filename is the
+// slug — `web/content/blogs/how-the-board-plans.mdx` is
+// `/blog/how-the-board-plans`. There is no database and no CMS: the post is a
+// file in the repo, so it reviews like code and ships with the deploy that
+// built it.
 //
 // The frontmatter is the WordPress-export shape (title, excerpt, date,
 // categories, tags, featured_image, seo.description), which is what the sibling

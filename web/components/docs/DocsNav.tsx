@@ -8,7 +8,7 @@ import { docIcon } from "./doc-icons";
 import type { DocNavGroup } from "@/lib/docs";
 
 // The section's route rail: every documentation page, under the headings
-// `web/docs/_nav.json` puts them in. Rendered once by the docs layout, so it
+// `web/content/docs/_nav.json` puts them in. Rendered once by the docs layout, so it
 // keeps its scroll position as the reader moves between pages.
 //
 // From `lg` up it is a sticky column beside the body. Below that there is no
