@@ -4,6 +4,7 @@ import {
   FiBookmark,
   FiBox,
   FiCopy,
+  FiDownload,
   FiGithub,
   FiList,
 } from "react-icons/fi";
@@ -378,7 +379,7 @@ export default function DesignPage() {
         <Section
           id="buttons"
           title="Buttons"
-          note="components/ui/Button.tsx — one block, two fills, and the 2px ink outline in every state. The button is the one thing that carries the outline by default, which is what separates it from the panels around it: a panel is lifted, a button is lifted and drawn. Hover lifts it further, grows the shadow and changes the fill — the primary brightens to the ember, the paper one drops to the wash."
+          note="components/ui/Button.tsx — one block, three fills, and the 2px ink outline in every state. The button is the one thing that carries the outline by default, which is what separates it from the panels around it: a panel is lifted, a button is lifted and drawn. Hover lifts it further, grows the shadow and changes the fill — the primary brightens to the ember, the paper one drops to the wash, and the ink one, already the darkest value on the page, lifts to muted."
         >
           <div className={`${panelStatic} space-y-7 px-6 py-6`}>
             <div>
@@ -398,6 +399,18 @@ export default function DesignPage() {
                 <Button size="sm">
                   <FiGithub className="h-4 w-4" aria-hidden="true" />
                   GitHub
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label>ink + icon — the header pair, one label between them</Label>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Button variant="ink" size="sm">
+                  <FiDownload className="h-4 w-4" aria-hidden="true" />
+                  Download
+                </Button>
+                <Button size="icon" aria-label="GitHub">
+                  <FiGithub className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>

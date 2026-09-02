@@ -272,31 +272,10 @@
 .blog-prose .mdx-faq h2 {
   margin-top: 0;
 }
-.blog-prose .mdx-faq ul {
+.blog-prose .mdx-faq-list {
   margin-top: 1.5rem;
-  padding-left: 0;
-  list-style: none;
-  border-top: 2px solid var(--color-border);
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
 }
-.blog-prose .mdx-faq li {
-  border-bottom: 2px solid var(--color-border);
-}
-.blog-prose .mdx-faq li + li {
-  margin-top: 0;
-}
-.blog-prose .mdx-faq summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 0;
-  cursor: pointer;
-  font-weight: 600;
-  list-style: none;
-}
-.blog-prose .mdx-faq summary::-webkit-details-marker {
-  display: none;
-}
-.blog-prose .mdx-faq .mdx-body {
-  padding-bottom: 1.25rem;
+.blog-prose .mdx-faq-list details {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
 }

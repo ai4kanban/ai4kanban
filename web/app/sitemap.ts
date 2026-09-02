@@ -97,6 +97,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: gitLastModified(...routeSources("/builder", "en")),
   });
 
+  // The Codex landing page, English-only.
+  entries.push({
+    url: `${BASE_URL}/kanban-for-codex`,
+    lastModified: gitLastModified(
+      ...routeSources("/kanban-for-codex", "en"),
+      "public/kanban-for-codex.md",
+    ),
+  });
+
   // The recipes, which are English-only. A recipe page comes out of the catalog
   // and its art.
   for (const route of recipeRoutes()) {

@@ -29,9 +29,16 @@ const BASE =
 // filled with is the site's mood. There is no brighter ember that clears 4.5:1;
 // `accent-deep` is already at that ceiling. The label is bold, the block is
 // outlined in ink and shadowed, and it is never the only marker of an action.
+// `ink` is the secondary inverted — the same paper block with the fill and the
+// label swapped. It exists for the header, where the ember would be a third
+// colour in a row that is otherwise ink on paper; reversing the block it stands
+// next to makes it the one solid thing in the chrome without adding a hue.
+// Hover lifts the fill to `muted` rather than dropping it: ink is already the
+// darkest value on the page, so the only move left is up.
 const VARIANT = {
   primary: "bg-accent font-bold text-elev hover:bg-accent-deep",
   secondary: "bg-elev font-semibold text-ink hover:bg-code",
+  ink: "bg-ink font-bold text-elev hover:bg-muted",
 } as const;
 
 // `icon` is `sm` squared up: the same block with no label in it, for the phone

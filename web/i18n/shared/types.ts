@@ -10,7 +10,6 @@ export type SharedCopy = {
     /** The blog index. English-only, like the docs. */
     blog: string;
     compare: string;
-    github: string;
     /** Only read out loud: the label on the phone header's menu button. */
     menu: string;
   };

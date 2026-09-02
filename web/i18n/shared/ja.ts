@@ -8,7 +8,6 @@ const ja: SharedCopy = {
     docs: "ドキュメント",
     blog: "ブログ",
     compare: "比較",
-    github: "GitHub ↗",
     menu: "メニュー",
   },
   footer: {

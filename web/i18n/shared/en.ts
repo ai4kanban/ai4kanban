@@ -8,7 +8,6 @@ const en: SharedCopy = {
     docs: "Documentation",
     blog: "Blog",
     compare: "Compare",
-    github: "GitHub ↗",
     menu: "Menu",
   },
   footer: {

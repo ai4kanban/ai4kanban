@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiGithub } from "react-icons/fi";
+import { FiDownload, FiGithub } from "react-icons/fi";
 import { Button } from "./ui/Button";
 import { Logo } from "./ui/Logo";
 import { GITHUB_URL } from "./content";
@@ -90,22 +90,11 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
         </div>
 
         {/* The gap is tighter between `lg` and `xl` than above it. At 1024 the
-            row is six items and a button, and French is the longest set of
-            words in it — "Télécharger", "Documentation", "Comparatifs". Sixteen
-            pixels there buys forty back and reads the same at that width; the
-            full gap returns at `xl`, where there is room for it. */}
+            row is four items and the button pair, and French is the longest set
+            of words in it — "Télécharger", "Documentation", "Comparatifs".
+            Sixteen pixels there buys forty back and reads the same at that
+            width; the full gap returns at `xl`, where there is room for it. */}
         <nav className="hidden items-center justify-center text-[0.95rem] text-muted lg:flex lg:gap-x-4 xl:gap-x-6">
-          {/* The one way in. The landing page also hands out the setup prompt,
-              under `#install`, but the header names a single way to get the
-              product — two of them in one row is a choice a reader has to make
-              before they know what either one is. The prompt is a section on a
-              page you are already reading; this is the page you leave with. */}
-          <a
-            href={localeHref(locale, "/download")}
-            className="transition-colors hover:text-ink"
-          >
-            {nav.download}
-          </a>
           {/* The documentation and the blog are English-only, so neither link
               ever takes a locale prefix. */}
           <a href="/docs" className="transition-colors hover:text-ink">
@@ -116,10 +105,36 @@ export function Header({ c, locale }: { c: SiteCopy; locale: Locale }) {
           </a>
           <CompareMenu label={nav.compare} locale={locale} />
           <HeaderLanguage locale={locale} label={c.shared.language.label} />
-          <Button href={GITHUB_URL} size="sm">
-            <FiGithub className="h-4 w-4" aria-hidden="true" />
-            {nav.github}
-          </Button>
+          {/* The one way in, and the only filled block in the chrome. The
+              landing page also hands out the setup prompt, under `#install`,
+              but the header names a single way to get the product — two of them
+              in one row is a choice a reader has to make before they know what
+              either one is. It sits beside GitHub as its reverse: same square
+              block, fill inverted, so the pair reads as the destination and the
+              source rather than two equal links. */}
+          {/* The pair sits tighter than the nav gap — two blocks of the same
+              cut are one control group, and the nav's spacing between them
+              would read as two unrelated buttons. */}
+          <div className="flex items-center gap-2.5">
+            <Button
+              href={localeHref(locale, "/download")}
+              variant="ink"
+              size="icon"
+              aria-label={nav.download}
+            >
+              <FiDownload className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            {/* The plain "GitHub" from the footer is the accessible name — the
+                nav string carries a ↗ that a screen reader reads out as an
+                arrow. */}
+            <Button
+              href={GITHUB_URL}
+              size="icon"
+              aria-label={c.shared.footer.github}
+            >
+              <FiGithub className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
         </nav>
       </div>
     </header>

@@ -112,10 +112,11 @@ screen should contain only a handful of raised surfaces.
 Follow the same general component grammar as the board, adapted to the site's tokens
 and surface weights.
 
-- **Buttons**: primary actions use ember and secondary actions use paper. Both keep a
-  clear ink frame and hard shadow; disabled actions keep their resting shape but do not
-  lift or press. Risky actions use their semantic signal instead of competing with the
-  primary ember action.
+- **Buttons**: primary actions use ember, secondary actions use paper, and the header's
+  Download reverses the paper block to ink so the chrome gains a solid CTA without a
+  third hue. All keep a clear ink frame and hard shadow; disabled actions keep their
+  resting shape but do not lift or press. Risky actions use their semantic signal
+  instead of competing with the primary ember action.
 - **Inputs and menus**: use paper, an ink frame, comfortable padding, and an ember focus
   outline. Popovers and option lists should look like part of the same system rather
   than a platform-default control.

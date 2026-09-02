@@ -211,24 +211,39 @@ export function FAQ({
   return (
     <section className="mdx-block mdx-faq" aria-label={heading}>
       <h2>{heading}</h2>
-      <ul>
+      <div className="mdx-faq-list">
         {items.map((item) => (
-          <li key={item.question}>
-            <details className="group">
-              <summary>
-                <span>{item.question}</span>
-                <span
-                  aria-hidden="true"
-                  className="text-lg font-normal text-accent-deep transition-transform duration-150 group-open:rotate-45"
-                >
-                  +
-                </span>
-              </summary>
-              <div className="mdx-body">{item.answer}</div>
-            </details>
-          </li>
+          <details
+            key={item.question}
+            className="group [&_summary]:list-none [&_summary::-webkit-details-marker]:hidden"
+          >
+            <summary className="flex cursor-pointer items-center gap-5 py-6 sm:py-7">
+              <span
+                aria-hidden="true"
+                className="size-1.5 shrink-0 rounded-full bg-muted"
+              />
+              <span className="flex-1 text-base font-bold leading-snug tracking-tight text-ink sm:text-lg">
+                {item.question}
+              </span>
+              <span
+                aria-hidden="true"
+                className="shrink-0 font-sans text-xl font-medium leading-none text-accent-deep group-open:hidden"
+              >
+                +
+              </span>
+              <span
+                aria-hidden="true"
+                className="hidden shrink-0 font-sans text-xl font-medium leading-none text-accent-deep group-open:inline"
+              >
+                –
+              </span>
+            </summary>
+            <div className="mdx-body max-w-[60ch] pb-6 pl-[26px] pr-10 text-[0.95rem] leading-relaxed text-muted sm:pb-7">
+              {item.answer}
+            </div>
+          </details>
         ))}
-      </ul>
+      </div>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}

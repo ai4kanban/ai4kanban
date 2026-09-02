@@ -8,7 +8,6 @@ const zh: SharedCopy = {
     docs: "文档",
     blog: "博客",
     compare: "对比",
-    github: "GitHub ↗",
     menu: "菜单",
   },
   footer: {
