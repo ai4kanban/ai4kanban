@@ -56,13 +56,14 @@ const components = {
       <table {...props} />
     </div>
   ),
-  // An outbound link opens where it was clicked; `noopener` because a link that
-  // hands the new tab a handle on this one is a link that can rewrite it.
+  // A link opens in a new tab so a reader never loses the post; an in-page
+  // anchor stays put. `noopener` because a link that hands the new tab a handle
+  // on this one is a link that can rewrite it.
   a: ({ href = "", ...props }: ComponentPropsWithoutRef<"a">) =>
-    href.startsWith("http") ? (
-      <a href={href} rel="noopener" {...props} />
-    ) : (
+    href.startsWith("#") ? (
       <a href={href} {...props} />
+    ) : (
+      <a href={href} target="_blank" rel="noopener" {...props} />
     ),
 };
 
