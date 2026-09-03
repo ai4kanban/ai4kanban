@@ -530,11 +530,24 @@ card, and a dropdown that says **No release** and offers **New release**.
 A board whose setup is unfinished opens on a short guided run instead of the columns. One full
 window per step, one thing asked in each:
 
-1. **The agent** — which agent every button on this board runs, with the same picker, settings and
-   **Test** the Configuration dialog has. It comes first because everything after it is that
-   agent talking, and nothing is ever run before you have chosen one. This step can't be pressed
-   past: **Test and continue** sends one call through the agent you picked, and moves on only if
-   it comes back.
+1. **The agent** — which agent every button on this board runs. It comes first because
+   everything after it is that agent talking, and nothing is ever run before it is settled.
+   It answers itself where it can: before anything is drawn the board asks which agents this
+   machine has that could run on what is already saved — installed, and wanting no key or base
+   URL nobody has filled in — and tries them in declared order, one at a time, with the same
+   call **Test** makes. The try is one full-window view: a pixel character at work, the line
+   **Trying Claude Code…**, and one link, **Set it up myself**. There is no time limit and no
+   cap, so a machine with four signed-out CLIs works through all four. The first that answers
+   is saved as the board's harness, named on screen, and the run moves straight to the project
+   step.
+
+   The picker is what a probe nothing answered falls through to — the same picker, settings
+   and **Test** the Configuration dialog has — carrying what the last agent said, shown the way
+   a failed Test is shown. Nothing is settled until one answers: a probe that found nobody, and
+   one you left by the link, put the agent setting back the way it was, so the picker opens on
+   what the board named before it started. With nothing worth trying the picker draws first and
+   the probing view is never seen. This step still can't be pressed past: **Test and continue**
+   sends one call through the agent you picked, and moves on only if it comes back.
 2. **The project** — a conversation, not a form. The agent reads your repo — README, package
    files, folder shape, recent commits — and comes back with one sentence saying what it thinks
    this project is and what tracks its work falls into, starting from whatever `config.md` and the

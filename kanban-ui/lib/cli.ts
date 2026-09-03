@@ -235,6 +235,11 @@ export interface BoardRules {
    *  never on a page load. Optional: rules from before it answer nothing, and the picker
    *  then says only what it always said. */
   loggedOutAgents?(): Promise<LoggedOutAgent[]>;
+  /** The agents this machine could run right now (#404), in declared order: installed, and
+   *  needing no setting nobody has filled in. The first run tries them one at a time before
+   *  it draws a picker. Optional: rules from before it answer nothing, and the first run then
+   *  opens on the picker exactly as it always did. */
+  runnableAgents?(): string[];
   /** `ask` names the runtime the settings are read against (#343): the board's global one
    *  by default, or the agent that runtime runs. A copy of the rules from before runtimes
    *  ignores it and answers for the board's, which is what it always did. */

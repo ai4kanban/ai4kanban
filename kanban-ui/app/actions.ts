@@ -13,6 +13,7 @@ import {
   activeSettings,
   agentInfo,
   loggedOutAgents,
+  runnableAgents,
   type AgentRequest,
   type CommandRequest,
   buildPrompt,
@@ -884,6 +885,21 @@ export async function installedAgentsAction(): Promise<HarnessOption[]> {
 export async function loggedOutAgentsAction(): Promise<LoggedOutAgent[]> {
   try {
     return await loggedOutAgents();
+  } catch {
+    return [];
+  }
+}
+
+// The agents this machine could run right now (#404) — installed, and wanting no setting
+// nobody has filled in. The first run asks for this before it draws anything, then tests them
+// one at a time in this order and stops at the first that answers.
+//
+// It spawns nothing and it is the same fresh PATH read `installedAgentsAction` makes, so it
+// costs what that costs. Nothing to read comes back empty, which is a first run that opens on
+// the picker exactly as it did before this existed.
+export async function runnableAgentsAction(): Promise<string[]> {
+  try {
+    return await runnableAgents();
   } catch {
     return [];
   }

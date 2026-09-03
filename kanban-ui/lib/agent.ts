@@ -42,6 +42,17 @@ export async function loggedOutAgents(): Promise<LoggedOutAgent[]> {
   return (await rules.loggedOutAgents?.()) ?? [];
 }
 
+/** The agents this machine could run right now (#404), in declared order — installed, and
+ *  needing no setting that isn't filled in. The first run tries them one at a time instead of
+ *  opening on a form. It spawns nothing: it is the PATH read `agentInfo` already makes.
+ *
+ *  Empty on rules from before it existed, which is a first run that opens on the picker the
+ *  way it always did. */
+export async function runnableAgents(): Promise<string[]> {
+  const rules = await boardRules();
+  return rules.runnableAgents?.() ?? [];
+}
+
 /** What the board shows when there is no copy of the rules to load: no agent, and nothing
  *  to switch to. The board still reads and edits cards — only the runs are out of reach,
  *  and the refusal a run comes back with is what says so, in words that name the fix. */

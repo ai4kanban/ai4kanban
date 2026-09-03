@@ -693,6 +693,31 @@ export function agentInfo(): AgentInfo {
   }
 }
 
+/** The agents this machine could run right now, in the order they are declared — the CLI is
+ *  on the PATH, and the provider the saved settings resolve to wants nothing that is not
+ *  filled in. An agent still waiting on a key or a base URL is left off: trying it would ask
+ *  for the very setting the try was meant to spare the user (#404).
+ *
+ *  Spawn-free and uncached, like `installed` — it reads the PATH and the saved settings and
+ *  nothing else. Whether one of them ANSWERS is `testConnection`'s question, and this list is
+ *  what the first run asks it of, one at a time. */
+export function runnableAgents(): string[] {
+  const cfg = safeConfig()
+  const blocks = configBlock(cfg.harnessSettings)
+  const onPath = pathLookup()
+  const names: string[] = []
+  for (const harness of HARNESSES) {
+    const block = configBlock(blocks[harness.name])
+    const command = commandOf(block, harness)
+    if (!onPath(command)) continue
+    const { values, secretsSet } = readBlock(harness, block, command.split(/\s+/).filter(Boolean))
+    const filled = isFilled(harness, values, secretsSet)
+    if (missingRequired(activeProviderOf({ harness, values, secretsSet }), filled).length) continue
+    names.push(harness.name)
+  }
+  return names
+}
+
 /** What each runtime resolves to here, read once per runtime rather than once per flow —
  *  fourteen flows on two runtimes are two reads, not fourteen. */
 function harnessLookup(): (runtime: string) => string {

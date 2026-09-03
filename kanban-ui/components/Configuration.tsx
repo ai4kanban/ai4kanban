@@ -1045,7 +1045,11 @@ function ConnectionTester({
 // real error ("spawn claude ENOENT") tells a user nothing. Everything else is
 // already a real message from the thing that refused, and a guess written over
 // it would send people down the wrong path.
-function TestResult({
+//
+// Exported, because the button is not the only thing that makes this call: the first run
+// tries the agents this machine has before it draws anything (#404), and a probe where none
+// answered has to show what came back the way a failed Test shows it.
+export function TestResult({
   copy,
   running,
   result,

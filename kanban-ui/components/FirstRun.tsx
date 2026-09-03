@@ -10,8 +10,10 @@
 // transcript to scroll and no list of what the agent opened: the view IS the turn, so the
 // only thing to read is the question and the only thing to do is answer it.
 //
-//   1 · the agent   the picker, moved to the front — nothing is ever run before it is
-//                   answered, which is the whole reason it goes first
+//   1 · the agent   answered by trying, not by asking (#404): the agents this machine
+//                   already has are tried one at a time, and the picker is what a probe
+//                   nothing answered falls through to. Nothing is ever run before this step
+//                   is settled, which is the whole reason it goes first
 //   2 · the project the agent reads the repo and says what it thinks this is; the user
 //                   agrees or says what is wrong. Nothing reaches disk before the press.
 //   3 · the goal    asked on its own, always in the user's own words, never drafted
@@ -32,10 +34,11 @@ import {
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { SetupChatRead } from "@/lib/setup-chat";
-import type { AgentInfo, SetupDraft, SetupProposal, SetupStep } from "@/lib/types";
+import type { AgentInfo, ConnectionTest, SetupDraft, SetupProposal, SetupStep } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AgentProbeView, useAgentProbe } from "./AgentProbe";
 import { Button } from "./button";
-import { HarnessPicker, type RunTest } from "./Configuration";
+import { HarnessPicker, TestResult, type RunTest } from "./Configuration";
 import { DiscardNewBoard } from "./desktop";
 import { GuideDrawer } from "./Guide";
 
@@ -103,6 +106,31 @@ export function FirstRun({
   const remember = useCallback((p: SetupProposal | null) => {
     if (p) held.current = p;
   }, []);
+  // The agent step answering itself (#404). It owns the whole window while it runs, so it
+  // sits here rather than inside the turn: a view with a sprite in the middle of it and the
+  // frame's three ways out under it would be a form again.
+  const probe = useAgentProbe({
+    on: step?.name === "agent" && !step.done,
+    agent,
+    onSettled: (saved) => {
+      onAgentChanged(saved);
+      onSaved();
+    },
+  });
+
+  // Nothing is drawn while the machine is being asked what it has. It takes milliseconds and
+  // spawns nothing, and the alternative is the probing view flashing past on a machine that
+  // had nothing worth trying.
+  if (probe.state.at === "asking") return <div className="min-h-0 flex-1 bg-nb-paper" />;
+  if (probe.state.at === "trying" || probe.state.at === "found") {
+    return (
+      <AgentProbeView
+        label={probe.state.label}
+        settled={probe.state.at === "found"}
+        onPicker={probe.leave}
+      />
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-nb-paper">
@@ -119,6 +147,7 @@ export function FirstRun({
             <AgentTurn
               agent={agent}
               answered={step.done}
+              probeFailed={probe.state.at === "done" ? probe.state.failed : null}
               onDone={(saved) => {
                 if (saved) onAgentChanged(saved);
                 onSaved();
@@ -170,20 +199,23 @@ export function FirstRun({
 
 // ---- 1 · the agent ----------------------------------------------------------
 
-// The one step that can't be pressed past, and now the first thing a new user meets: the
-// conversation costs a call to an agent, so nothing may start before one is chosen. It is
-// the Configuration dialog's own Harness pane, as it was on the screen this replaces — the
-// same picker, the same settings, the same Test.
+// The one step that can't be pressed past, and what the probe above falls through to: no
+// agent on this machine answered, or the user asked for the picker. It is the Configuration
+// dialog's own Harness pane — the same picker, the same settings, the same Test.
 //
 // One button, and it is the test: pressing it runs the pane's own call and moves on only if
 // that call came back. So the step can be pressed, and still cannot be pressed past.
 function AgentTurn({
   agent,
   answered,
+  probeFailed,
   onDone,
 }: {
   agent: AgentInfo;
   answered: boolean;
+  /** What the last agent the probe tried said, when none of them answered (#404). Shown the
+   *  way a failed Test is shown, because it is one — the probe makes the same call. */
+  probeFailed: ConnectionTest | null;
   onDone: (agent?: AgentInfo) => void;
 }) {
   const t = useCopy();
@@ -192,6 +224,9 @@ function AgentTurn({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  // What the probe came back with, until the user runs a test of their own — from then on
+  // the pane's own answer is the newer one and this would be two results about one setup.
+  const [probed, setProbed] = useState(probeFailed);
   // The pane's own Test, handed up so this button can be the one that presses it.
   const runTest = useRef<RunTest["current"]>(null);
 
@@ -211,6 +246,7 @@ function AgentTurn({
 
   const go = async () => {
     setError(null);
+    setProbed(null);
     // A box already ticked, or a test that has just passed, is answered — asking for the
     // call again would spend one to learn what the pane above already says.
     if (!passed && !answered) {
@@ -243,6 +279,23 @@ function AgentTurn({
           runTest={runTest}
         />
       </div>
+      {/* What came back when the probe tried this machine's agents and none answered. The
+          agent it names is not the one on the grid — the probe put that back the way it
+          found it — so `ran` says which one said this. */}
+      {probed && (
+        <TestResult
+          copy={t.configuration.harness.test}
+          running={false}
+          result={probed}
+          ran={
+            probed.harness && probed.harness !== agent.name
+              ? t.configuration.harness.test.ran(
+                  agent.options.find((o) => o.name === probed.harness)?.label ?? probed.harness,
+                )
+              : ""
+          }
+        />
+      )}
       {error && <Failure text={error} />}
       <div className="mt-6 flex flex-wrap items-center gap-4">
         <Button disabled={saving || testing} onClick={go}>

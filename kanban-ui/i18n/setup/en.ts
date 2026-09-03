@@ -28,6 +28,9 @@ const en: SetupCopy = {
       test: "Test and continue",
       testNote: (agent) => `Send a test request to ${agent}.`,
       answered: "Connection verified",
+      trying: (agent) => `Trying ${agent}…`,
+      found: (agent) => `${agent} is ready`,
+      bySelf: "Set it up myself",
     },
     reading: {
       ask: "Reading your repository",

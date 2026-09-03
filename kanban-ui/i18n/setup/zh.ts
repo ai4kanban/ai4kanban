@@ -27,6 +27,9 @@ const zh: SetupCopy = {
       test: "测试并继续",
       testNote: (agent) => `测试 ${agent} 是否可用。`,
       answered: "测试通过",
+      trying: (agent) => `正在尝试 ${agent}…`,
+      found: (agent) => `${agent} 可用`,
+      bySelf: "自己设置",
     },
     reading: {
       ask: "正在读取仓库",

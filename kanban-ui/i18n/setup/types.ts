@@ -32,6 +32,13 @@ export type SetupCopy = {
       /** What Test and continue is about to spend, naming the agent picked. */
       testNote: (agent: string) => string;
       answered: string;
+      /** The agent the probe is trying right now (#404) — the whole of the probing view's
+       *  text, so it says which agent without a heading over it. */
+      trying: (agent: string) => string;
+      /** The agent that answered, named on the way to the project step. */
+      found: (agent: string) => string;
+      /** The probing view's one control: end it and take the picker instead. */
+      bySelf: string;
     };
     reading: { ask: string; blurb: string };
     project: {

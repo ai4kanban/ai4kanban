@@ -110,6 +110,11 @@ export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
 export { parseSetupProposal, setupOpening } from './lib/agent/setup-chat'
 export { chatAgent } from './lib/agent/resolve'
 export { agentInfo, activeSettings, setupInstruction, settingSaveError } from './lib/agent/resolve'
+
+// Which agents this machine could run right now (#404) — installed, and needing no setting
+// the user has not filled in. The first run tries them one at a time instead of opening with
+// a form; it is the same PATH read `agentInfo` already makes, so it spawns nothing.
+export { runnableAgents } from './lib/agent/resolve'
 export {
   autoCommitAllowed,
   diffApprovalRequired,

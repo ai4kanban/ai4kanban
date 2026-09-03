@@ -306,6 +306,47 @@ body {
   }
 }
 
+/* The first run's probing sprite (#404) — the character shown while the board tries
+   the agents this machine has. `steps(1, end)` is what makes it a sprite rather than a
+   glide: it rests for half the beat and sits one pixel up for the other half, the way
+   two frames of a sprite sheet play. Its shadow keeps the same beat, which is what makes
+   the ground read as ground. Both stop for a user who asked for less motion. */
+@keyframes nbSpriteHop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+@keyframes nbSpriteShadow {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.22;
+  }
+  50% {
+    transform: scaleX(0.66);
+    opacity: 0.12;
+  }
+}
+.a4k-sprite {
+  animation: nbSpriteHop 0.72s steps(1, end) infinite;
+}
+.a4k-sprite-shadow {
+  opacity: 0.22;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nbSpriteShadow 0.72s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-sprite,
+  .a4k-sprite-shadow {
+    animation: none;
+  }
+}
+
 /* The ui/select list opening — a small settle-down from just above, so the
    panel reads as dropping out of its trigger rather than blinking in. */
 @keyframes nbPopIn {
