@@ -217,3 +217,13 @@ naming no other doc is covered there.
   `docs/kanban/.archive/`: newest first, each row its id, title, release and the day it was
   archived, and each one opening whole and read-only. Nothing archived shows in the columns,
   the release picker or the search box, and the row carries no count.
+- The chat rail's message box carries the agent and the model **that conversation** runs on,
+  on its own bottom row beside Send: the agent as its mark, the model typed in beside it,
+  and one click back to the board's pair. Both start on the board's and stick to that
+  conversation until changed — Configuration is untouched and no other chat moves. Changing
+  the model carries the same conversation on and the transcript marks where it changed;
+  switching the agent starts it over behind the bin's ask-once, and is refused while a reply
+  is coming.
+- Configuration → Agents is **Spec skills** now. It lists the skills the board ships and the ones
+  the project added under `docs/kanban/skills/`, draws each one's settings from that skill's own
+  `SKILL.md`, and names any skill it found but cannot use with the reason: `kanban-ui/README.md`.

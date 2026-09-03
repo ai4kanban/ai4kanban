@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: 0.9.0
 blocked_by: []
-related: [272]
+related: []
 modules: [local-ui, skill]
 questions:
   - question: "[user] Which subtasks ship in 0.7.2, and which wait for a later version?"
@@ -95,7 +95,7 @@ Common to the coding agents' own chats — Claude Code and Codex both:
 - [x] #269 Copy, resend or reword a message without retyping it
 - [x] #270 Open up the agent's steps, and say what the reply cost
 - [ ] ~~#271 Point at a card in the chat box~~
-- [ ] #272 Pick the model for one conversation, not for the whole board
+- [x] #272 Pick the model for one conversation, not for the whole board
 
 ## Decided by the agent
 - **Does any of this have to work in `akb chat` in a terminal too?**: no. The terminal

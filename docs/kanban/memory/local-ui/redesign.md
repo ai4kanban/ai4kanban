@@ -77,6 +77,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Settings
 
+- ❌ **Block the board with a telemetry consent dialog** → ✅ keep optional reporting off
+  until enabled and offer it once in a compact inline strip while the board stays usable.
 - ❌ **A new settings section is named by adding a qualifier to one that already exists** →
   ✅ two sections get two names that stand apart. A reader shouldn't hold a qualifier in
   mind to tell two entries of the same sidebar apart.

@@ -28,7 +28,7 @@ covers it, or a plain-words note.
   `akb guide board`.
 - A card that changes something users see is planned against `akb guide ui-design`: matched
   to the screens the project already has, saying what it shows with nothing to show and when
-  it fails, with a layout choice put as drawn options `A`, `B`, `C` rather than in prose.
+  it fails, with one drawn layout `A` by default and alternatives only when explicitly asked.
 - Source-to-task extraction treats articles, research and user feedback as evidence,
   validates by module, and skips work already supported or planned: `akb guide extract-ideas`.
 - A finished build leaves what only the user can confirm on the card's `verify:` field —
@@ -178,8 +178,9 @@ covers it, or a plain-words note.
 - A spec agent can carry settings of its own — what it produces, not only whether it runs —
   chosen in the board UI and saved with the board, so every card that agent runs on gets the
   same answer: "The spec agents" in `kanban-ui/README.md`.
-- `ui-design` answers with the screen drawn, not described: two or three layouts labelled
-  `A`, `B`, `C` with one recommended, and nothing written under a drawing. Its setting picks
+- `ui-design` answers with the screen drawn, not described: one layout labelled `A` by
+  default, alternatives only when explicitly asked, and nothing written under a drawing. Its
+  setting picks
   **Rendered screen** (a `.tsx`/`.html` file per option) or **ASCII drawing** (written into
   the card, travelling through git, a much shorter run): "Picking a layout by looking at it"
   in `web/content/docs/daily-loop.mdx`.
@@ -268,3 +269,13 @@ covers it, or a plain-words note.
 - `akb board archive` stamps an `archived:` date (`YYYY-MM-DD`) into the card's frontmatter
   on its way out — on the card and, for a group, on every subtask leaving with it. Optional,
   the way `last_run` is, so nothing already archived grows one and nothing is backfilled.
+- `akb chat [<id>] --model <id>` and `akb chat [<id>] --agent <name>` set what one
+  conversation runs on; `""` puts either back on the board's. The pick lives with the
+  transcript, so a terminal and the board app read the same one, and every run still takes
+  the board's own agent and model: `web/content/docs/daily-loop.mdx`.
+- A **spec skill** is an Agent Skill directory, not board code: the board ships `ui-design` and
+  `technology-selection`, and a project adds its own under `docs/kanban/skills/<name>/SKILL.md`.
+  Its frontmatter carries `name`, `description` and an `akb:` block saying what part of a card's
+  spec it owns and which settings it offers; each setting's choice names one file inside the
+  skill, and only the chosen one reaches the run. `akb spec` lists them and says why any skill it
+  found can't be used: `web/content/docs/daily-loop.mdx`.

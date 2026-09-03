@@ -4,7 +4,7 @@ track: distribution
 priority: med
 roi: high
 status: todo
-release: ""
+release: 0.9.0
 blocked_by: [294]
 related: [292, 400]
 modules: [site, telemetry]

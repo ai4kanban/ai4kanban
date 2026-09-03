@@ -25,3 +25,6 @@ covers it, or a plain-words note.
   board's rules go to `.grok/skills/kanban/`, and why the board drives ACP rather than
   Grok's `-p` mode. The section says outright that none of it has been run:
   `web/content/docs/connectors.mdx`.
+- Writing a spec skill of your own — the directory shape, the `akb:` frontmatter block, and how a
+  setting's choice picks the one reference a run is given: "Let a specialist fill part of the spec"
+  in `web/content/docs/daily-loop.mdx`.

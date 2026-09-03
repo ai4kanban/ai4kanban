@@ -4,7 +4,7 @@ track: skill
 priority: med
 roi: med
 status: todo
-release: ""
+release: 0.9.0
 blocked_by: [295]
 related: [292]
 modules: [skill, telemetry]
@@ -25,8 +25,8 @@ people" has an answer beyond our own repo.
 - Counts only, so a bad number can never be looked into. We would see that questions went
   to the user often across all boards, not what kind of card kept causing it.
 - These are the only numbers in the group that say whether the product works rather than
-  whether it was opened, and they still cover just the boards on a machine where the app
-  asked. A board driven only from a terminal sends nothing.
+  whether it was opened, and they still cover only boards on a machine that explicitly
+  opted in. A terminal-only user may opt in with `akb telemetry on`; the command never asks.
 
 <!-- agent -->
 

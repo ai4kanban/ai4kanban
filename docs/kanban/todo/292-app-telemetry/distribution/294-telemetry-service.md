@@ -4,7 +4,7 @@ track: distribution
 priority: high
 roi: high
 status: ready
-release: ""
+release: 0.9.0
 blocked_by: []
 related: [292]
 modules: [telemetry]

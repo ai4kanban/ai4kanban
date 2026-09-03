@@ -171,7 +171,8 @@ re-ask a settled call.
 - The ASCII style writes no file because the drawing is already text the card can hold: it
   survives the pull, with no tag, folder or cleanup. It is 96 columns wide, every character
   one column, and never re-wrapped.
-- One option's mockup stays short — one screen, about as long as the card's own plan.
+- The agent draws one mockup by default and alternatives only when explicitly asked. Each stays
+  short — one screen, about as long as the card's own plan.
 - The Resolve dialog does not show the mockups a layout question is about: the options name
   the labels and the user opens the card page, one click away, to look.
 - The list of mockup formats is written in `akb guide ui-design` only — putting it in

@@ -30,7 +30,6 @@ _(none)_
 - [#365 Act on Cloud task events from Discord](features/365-discord-connector.md)
 - [#371 Start a run on the computer its runtime names](features/371-run-on-runtime-computer.md)
 - [#373 Put a board on Cloud and open it in a browser](373-cloud-board-browser/root.md)
-- [#374 Render the board without the local machine](373-cloud-board-browser/features/374-render-board-off-machine.md)
 - [#375 Hold a card against a second writer](311-team-collaboration-cloud/features/375-card-lease.md)
 - [#376 Add members and roles to a Cloud workspace](311-team-collaboration-cloud/features/376-workspace-members.md)
 - [#378 Run the board on Grok Build, xAI's coding agent](features/378-run-the-board-on-grok-build-xai-s-coding-agent.md)
@@ -39,6 +38,8 @@ _(none)_
 - [#393 Warn when a coding agent's version is one we never exercised](features/393-version-check.md)
 - [#398 Run the coding agent on a Cloud board](373-cloud-board-browser/features/398-run-the-coding-agent-on-a-cloud-board.md)
 - [#399 Draw the Runs dialog as a fleet of pixelart agents at work](features/399-draw-the-runs-dialog-as-a-fleet-of-pixelart-agents-at-work.md)
+- [#404 Skip the agent step when a coding agent already works](features/404-skip-the-agent-step-when-a-coding-agent-already-works.md)
+- [#402 Show the spec skills as a grid of pixelart characters](features/402-show-the-spec-skills-as-a-grid-of-pixelart-characters.md)
 
 ## skill
 
@@ -52,7 +53,7 @@ _(none)_
 - [#202 Test whether the board changes what a coding agent builds](202-board-vs-no-board/root.md)
 - [#292 See how the app is actually used, from download to daily work](292-app-telemetry/root.md)
 - [#362 Publish the Lark app so anyone can connect it](distribution/362-publish-the-lark-app-so-anyone-can-connect-it.md)
-- [#400 Count downloads of the app and the command from public numbers](distribution/400-count-downloads-of-the-app-and-the-command-from-public-numbe.md)
+- [#400 Count real installs, not just GitHub and npm downloads](distribution/400-count-downloads-of-the-app-and-the-command-from-public-numbe.md)
 
 ## recurring
 
@@ -78,7 +79,6 @@ _(none)_
 
 ## 266-chat-rail-full/features
 
-- [#272 Pick the model for one conversation, not for the whole board](266-chat-rail-full/features/272-per-chat-model.md)
 
 ## 209-daily-loop-buttons/features
 
@@ -95,7 +95,7 @@ _(none)_
 
 ## 292-app-telemetry/features
 
-- [#293 Ask before any usage data leaves the machine, and let it be turned off](292-app-telemetry/features/293-consent-and-switch.md)
+- [#293 Keep optional usage reporting off until the user opts in](292-app-telemetry/features/293-consent-and-switch.md)
 - [#295 Report app opens and which parts of the board get used](292-app-telemetry/features/295-app-usage-events.md)
 
 ## 292-app-telemetry/distribution

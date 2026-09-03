@@ -4,7 +4,7 @@ track: features
 priority: med
 roi: high
 status: todo
-release: ""
+release: 0.9.0
 blocked_by: [293, 294]
 related: [292]
 modules: [local-ui, skill]
@@ -17,9 +17,8 @@ Downloads say how many people took the app; nothing says how many opened it or c
 Report app opens and the handful of actions that say the product is being used.
 
 ## Worth noting
-- The counts only ever cover installs that were asked in the app, because #293 decided the
-  command never prompts. Someone who installs `akb` from npm and never opens the app is
-  absent from every number here, so terminal use is undercounted, not measured.
+- The counts only cover installs that explicitly opted in. The command never prompts, so a
+  terminal-only user is absent unless they run `akb telemetry on` themselves.
 - Cards created, archived and rejected are not sent from here, so nothing in this card
   says how much planning a board did. That number comes from #296 instead, and it arrives
   once a day rather than as it happens.

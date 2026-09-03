@@ -18,6 +18,9 @@ re-ask a settled call.
   settings and separated from them.
 - A pane of short settings is a list of rows. A pane whose items are paragraphs — flow
   rules — is a narrow picker column beside one tall box.
+- Spec skills are the exception to the rows rule: a grid with one pixelart character per
+  named skill, its switch on the tile, and what it contributes and what it is set to read
+  by selecting the tile. Its art ships as files, unlike the Runs fleet.
 - Runtimes is a list of runtimes, never a list of computers: each one names the single
   computer it runs on, the global one is open and the rest are folded, and its computer,
   harness and model are set in place. Computers get a tab of their own. A board naming no
@@ -85,6 +88,9 @@ re-ask a settled call.
   hold and nothing else comes for them.
 - The goal nudge is a nudge, not a gate — dismissible, back if the goal turns weak again,
   gone as soon as the user writes anything. One shared notice bar carries conditions like it.
+- The first run's agent step probes the agents already installed instead of asking, and
+  the probing view's one control is a Set it up myself link to the picker — nothing cuts
+  the probe short by a timer or a cap.
 
 ## The goal
 
