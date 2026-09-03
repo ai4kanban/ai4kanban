@@ -47,6 +47,10 @@ naming no other doc is covered there.
   row per module, each opening as its own page, read-only and starting no run: "The board's memory".
 - A group root's page draws a map of its subtasks in build order, one chip per subtask with
   lines from blockers, and a lock on a subtask waiting on a card outside the group.
+- Opened on a phone the board is laid out for that width: a bottom tab bar of **Board**,
+  **Find**, **Memory** and **More**, one column at a time under a band that names it, a
+  card's actions stacked full width, and Resolve, Create task and Implement as pages with
+  their buttons at the foot. A window is unchanged.
 
 ## Releases
 
@@ -104,6 +108,10 @@ naming no other doc is covered there.
   part-built: "On the card it was working on".
 - A run started in a terminal and one started from a button are the same run — one list,
   either side can watch, stop or continue it: `cli/README.md`.
+- A run whose agent has gone quiet ends by itself: **End a silent run after** in
+  Configuration → General sets the wait — 10 minutes unless you change it, **Off** leaves
+  the card held until you stop the run — and the run it ends is a failure you resume from
+  the button.
 
 ## Cards
 
@@ -147,11 +155,15 @@ naming no other doc is covered there.
   is headed with the computer it runs on, picked there and travelling with the repository;
   pointed at another computer it shows what that machine reported and offers nothing to press.
   The pick says where a runtime belongs — a run still lands on the machine it was started
-  from: `docs/guides/daily-loop.md`, "Which tool each flow runs on".
+  from: `web/content/docs/daily-loop.mdx`, "Which tool each flow runs on".
 - Run the board on Claude Code, Codex CLI, Cursor, OpenCode, DeepSeek Harness or ZCode,
   each with its own settings, live log, stop and resume; the picker dims the ones whose CLI
   isn't installed and names the install command: "What each agent needs",
-  `docs/guides/connectors.md`.
+  `web/content/docs/connectors.mdx`.
+- An installed CLI that nobody is logged in to reads **Logged out** in the picker, with the
+  command that logs it back in. Claude Code, Codex, Cursor and OpenCode are asked; the rest
+  sign with a key or have no command that answers. It warns and gates nothing — every way of
+  starting a run still starts: `web/content/docs/connectors.mdx`.
 - dsh installs in two commands, never one, and a run points the bridge at the dsh beside it.
 - Pick how hard the model thinks, and who pays for a run — subscription, API, or an
   Anthropic-compatible gateway — with the run going through that pick alone and not
@@ -192,3 +204,16 @@ naming no other doc is covered there.
 - Lark sits beside Slack and reads **Coming soon.** until the app is published in the 飞书
   and Lark directories; `LARK_COMING_SOON` turns the buttons back on, and a connection
   already made is untouched.
+- **Grok Build** is on the runtimes grid, configured with a model box and an xAI key box
+  and driven as an ACP conversation (`grok agent stdio`), so its log streams and a stopped
+  run offers Resume. It is marked untested — nobody has watched a run — and what the runs
+  panel shows for cost, tokens and model is a claim: `web/content/docs/connectors.mdx`.
+- A reply in the chat rail folds what the agent did behind one line — **Worked for 1m 5s**,
+  counting up while the reply comes, with the step it is on left in the open — and says what
+  the turn cost under it (`1,840 tokens · est. $0.03`) for an agent that reports it. Your own
+  messages sit in a block of their own, and scrolling up puts **↓ 2 new lines** on screen to
+  get back to the newest.
+- **Archive** at the foot of the rail, under Memory, opens every finished card in
+  `docs/kanban/.archive/`: newest first, each row its id, title, release and the day it was
+  archived, and each one opening whole and read-only. Nothing archived shows in the columns,
+  the release picker or the search box, and the row carries no count.

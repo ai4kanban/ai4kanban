@@ -64,6 +64,20 @@ re-ask a settled call.
 
 - Minor direct-to-target, no-commit execution is limited to interactive in-session work;
   background runs retain delivery tracking and landing semantics.
+- A run's exit code is the verdict, except where an agent contradicts it: `claude -p` exits
+  0 on a `result` that says `is_error`, so the Claude Code renderer reports that failure and
+  the run closes as an error rather than advancing its card. Every other agent we ship exits
+  non-zero for the same thing.
+- Every agent's runs reach the network, Codex included. Its `workspace-write` sandbox blocks
+  it by default and it is the only connector that fences the network at all — leaving it
+  shut meant a card needing an `npm install` passed on five agents and failed on one.
+  A hand-written sandbox in the agent's `command` chooses for itself, network and all.
+- **Codex is fenced the same on every platform**: `workspace-write` holds on Windows too —
+  measured on Windows 11 with Codex v0.152.0, reads, edits and shell commands all run under
+  it, so no platform gets an unfenced Codex run.
+- **A run that goes silent is ended by the board**: 10 minutes with no output, counted from
+  its last line or from its start when it never printed one. It closes as a failed run, never
+  as a stop, and the limit is a board setting that can be raised or switched off.
 
 ## Open questions
 
@@ -174,6 +188,9 @@ re-ask a settled call.
   what it changes stays in the working tree, and git is where the user takes it back.
 - It adds no rule of its own: the session is an ordinary kanban-skill session, so `--print`
   does a flow there and no flag starts a run.
+- A conversation carries its own agent and model, kept with the transcript, so a terminal
+  continues it on the same pair. The board's are the default, and switching the agent starts
+  the conversation over rather than moving the transcript to a CLI that never opened it.
 
 ## Card format
 

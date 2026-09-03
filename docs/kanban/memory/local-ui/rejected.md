@@ -54,6 +54,9 @@ before proposing so you don't re-suggest them.
 - **Working the board from the keyboard** — the current UI is simple enough that a
   shortcut set, its own dispatcher and a panel to list it would cost more than the mouse
   trips they save.
+- **A `#` card picker over the chat box** — pointing at a card is already just typing its
+  number, `#12`, and the agent's replies link it back. A list, its keyboard mode and the
+  Enter/Esc rules around it are UI bought for a string the user can already type.
 
 - **Serving the board to a phone from the user's own machine** — a LAN address, a tunnel or
   a QR code onto the local server, with the owner approving each device at the board. The
@@ -103,3 +106,7 @@ before proposing so you don't re-suggest them.
 - **An "I'll drive this board from my own coding agent" answer** — the board always has an
   agent to run, so "none of them" was never a state it could hold. The agent step ends on a
   passing test, and the line to paste serves the user who works from their own agent.
+- **Requiring a git repo before a folder becomes a project** — a folder with no `.git` must
+  still be able to hold a board. Builds there already fall back to manual mode and say why,
+  so refusing at the front door buys nothing and shuts AI4Kanban out of every project that
+  is not under git.

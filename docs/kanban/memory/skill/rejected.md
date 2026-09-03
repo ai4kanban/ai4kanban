@@ -9,6 +9,16 @@ before proposing so you don't re-suggest them.
   project: a container is the only fence it offers. Every agent we run stays in the repo.
 - **Asking each harness for its model list** — no harness hands one over for free, and a
   cache per provider goes stale anyway. The model stays a box you fill in.
+- **Sending the prompt over stdin instead of on the command line** — the argv limits it
+  dodges (Linux `E2BIG`, a Windows `.cmd` shim near 8 KB) bite products that pack a whole
+  transcript into the prompt. Ours is an action sentence plus the flow's rule block. Revisit
+  only if a prompt grows a transcript.
+- **Moving Codex's `--sandbox` after its `resume` subcommand** — before it, clap reads it as
+  an `exec` option and Codex honours it; verified with a read-only control on the same
+  resumed thread. Other products need `-c sandbox_mode=` only because they put it after.
+- **`--skip-git-repo-check` on Codex, and `--trust` on Cursor** — neither is needed. The
+  board is a git repo and so is a delivery's worktree; a headless `cursor-agent` run in a
+  workspace it has never seen works untrusted.
 - **Telling the user how to log in to an agent** — setting a harness up is the user's own
   business; the board only connects to what is already there, and Test answers the one
   question it can.
@@ -23,6 +33,9 @@ before proposing so you don't re-suggest them.
 - **A chat handing the run a summary of what the conversation settled** — asking chat to
   decide what a run needs to know gives it a job of its own. Anything that changes what gets
   built goes on the card, which chat already does.
+- **Keeping past conversations instead of only clearing one** — chat here is discussion
+  around one card, before or while it is planned, not a chatbot. A conversation is meant to
+  be thrown away once what it settled is on the card, so there is no history to keep.
 
 ## Goal
 

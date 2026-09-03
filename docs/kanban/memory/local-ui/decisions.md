@@ -109,6 +109,9 @@ re-ask a settled call.
   `[user]` questions, and a stopped refine is not picked up again.
 - The changes view shows uncommitted changes in a folder, never a file list claimed for one
   run, and every run gets it — a refine or resolve writes card files too.
+- **The Runs dialog's fleet**: the per-run characters replace the run list rather than
+  sitting in a band above it, and they are drawn in CSS or SVG from the board's palette —
+  no art files ship for them.
 
 ## Connectors and keys
 
@@ -130,6 +133,9 @@ re-ask a settled call.
   variable it doesn't name is left alone.
 - ZCode signs in with a Coding Plan key alone. The *the login ZCode has* pick was dropped
   rather than taught to explain itself, and comes back when a login is shown to work (#282).
+- An installed CLI that is logged out is warned about where the agent is picked, and gates
+  nothing: every way of starting a run still starts. A connector set to a provider that
+  carries its own key is never called logged out.
 
 ## Cards, questions and groups
 
@@ -158,8 +164,10 @@ re-ask a settled call.
   unplanned blocker usually blocks the version being planned.
 - The New release dialog picks the kind with two tabs, not a switch that means different
   things; on the goal tab the goal box is the whole choice, and a goal can be added later.
-- Memory is the only left-rail panel for now — Runs and Daily progress keep their header
+- Memory is the rail's only panel for now — Runs and Daily progress keep their header
   dialogs until we have seen how it reads. The rail's search reaches open cards only.
+- The archive is reached from one row in the left rail directly above Memory, and stays
+  hidden until that row is opened: archived cards appear in no column and no count.
 - Propose and add-task take one module at a time and picking one is optional; with none
   picked the agent chooses the focus itself.
 - Reading a closed version's changelog on the board is its own card, separate from the one
@@ -177,6 +185,9 @@ re-ask a settled call.
 - Nothing is ever sent on the user's behalf: a message typed while a reply is arriving
   waits with sending off, and a stopped reply leaves an empty composer with whatever was
   written kept above it.
+- A conversation picks its own agent and model in the rail's header, defaulting to the
+  board's; switching the agent starts the conversation over, behind the same confirmation
+  the bin takes.
 
 ## Notifications
 

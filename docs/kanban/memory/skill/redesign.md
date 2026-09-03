@@ -14,6 +14,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Card format
 
+- ❌ **Leave recurring state without an in-card home** → ✅ `board create --track recurring`
+  writes `Run state` and `Process`; keep next-run state on the card, and omit cadence unless
+  the user explicitly asks for a schedule.
 - ❌ **The agent half of a card carries a "worth noting" list** → ✅ it is a reviewer's aid
   and sits in the human half, which stands alone because the agent half is folded.
 - ❌ **A `## Worth noting` bullet that states a fact** → ✅ name the cost, the tradeoff, or
@@ -35,6 +38,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Answer an ask the agent already fields by adding a command and a screen** → ✅ when
   the board's existing commands already return the data, the deliverable is a flow the
   command prints and the agent applies, and nothing is built.
+
+- ❌ **Accept that a fact the board never wrote down cannot be shown** → ✅ when a view needs a
+  fact the card does not carry, stamp it on the card at the moment it becomes true — an
+  optional frontmatter field written only when set, the way `last_run` is. `record.csv` counts
+  events for the score; it is not where a card's own facts live.
 
 ## Idea intake
 
@@ -133,3 +141,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A mockup is plain HTML, styled by hand to look like the project** → ✅ write it in the
   stack the board UI already runs, so the file is the screen and not scaffolding around it.
   A plain `.html` page stays accepted for a screen that is not a component.
+
+## Connectors
+
+- ❌ **Pin the one version a connector was exercised at, and check every connector** → ✅ a
+  version-sensitive connector declares the range it was exercised across, and a mature
+  harness declares nothing and is never asked — a single pinned version warns on the next
+  ordinary bump, and a gate on a harness that manages its own compatibility is noise.

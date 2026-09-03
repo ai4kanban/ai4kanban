@@ -4,9 +4,9 @@ track: features
 priority: high
 roi: high
 status: todo
-release: ""
+release: 0.9.0
 blocked_by: []
-related: [269, 270, 271, 272, 273]
+related: [272]
 modules: [local-ui, skill]
 questions:
   - question: "[user] Which subtasks ship in 0.7.2, and which wait for a later version?"
@@ -15,11 +15,9 @@ questions:
       - "#267 Stop a reply"
       - "#268 Keep typing while a reply is coming"
       - "#269 Copy, resend, reword"
-      - "#270 What it looked at, what it cost"
-      - "#271 Point at a card"
       - "#272 The model for one conversation"
-      - "#273 Past conversations"
-    recommend: [1, 2, 3, 6]
+      - "#270 The agent's steps, and what the reply cost"
+    recommend: [1, 2, 3, 4]
 ---
 
 The chat rail can send a message and read the reply, and that is all it can do. Anyone who
@@ -32,13 +30,11 @@ the same agent gives them all of it.
 - The chat gets level with a coding agent's own chat and no further. The rail stays folded
   by default and the board stays the centre of the app; making chat the main way to work
   the board is a different project.
-- All seven subtasks sit in 0.7.2 today. #267 and #268 are the two people leave over, so
+- All five subtasks sit in 0.7.2 today. #267 and #268 are the two people leave over, so
   the rest can move to a later version without the card losing its point.
-- `akb chat` in a terminal gains only what it shares with the rail: the same current
-  conversation (#273) and the per-conversation model (#272). The rest is the rail's alone,
-  so the two are deliberately not equals.
-- Pointing at things (#271) is card ids only. A file picker and a flow picker were cut, so
-  a path still has to be typed out in full.
+- `akb chat` in a terminal gains only what it shares with the rail: the per-conversation
+  agent and model (#272). The rest is the rail's alone, so the two are deliberately not
+  equals.
 
 <!-- agent -->
 
@@ -74,21 +70,17 @@ Common to the coding agents' own chats — Claude Code and Codex both:
 | Going back to an earlier session | clear, and it is gone |
 
 ## Scope
-- Seven subtasks, each a small change to the rail. They can be built in any order; the Esc
-  rule below is the only thing two of them share.
+- Five subtasks, each a small change to the rail. They can be built in any order and share
+  nothing between them.
 - **#267 Stop a reply** — the one that keeps people here. Build it first.
 - **#268 Keep typing while a reply is coming** — the box grows, holds what is typed, and
   brings back the last message.
 - **#269 Copy, resend, reword** — get an answer out, and send one again without retyping.
-- **#270 What it looked at, what it cost** — the grey lines open, and the reply says its
+- **#270 The agent's steps, and what the reply cost** — the grey lines open, and the reply says its
   price.
-- **#271 Point at a card** — `#` in the chat box offers the open cards by id and title.
-- **#272 The model for one conversation** — the harness-agnostic one: per chat, not
-  per board.
-- **#273 Past conversations** — go back to one instead of only clearing it.
-- **Esc belongs to whatever is on top**: while #271's card list is open, Esc closes the
-  list; otherwise Esc stops the reply being written (#267). Whichever of the two ships
-  second takes the rule on.
+- **#272 The model for one conversation** — the agent as well, and harness-agnostic:
+  per chat, not per board.
+- **Esc stops the reply being written** (#267), and nothing else in the rail claims it.
 - The rail stays a rail: folded by default, the board still the centre of the app.
 
 ## Scope out
@@ -100,17 +92,16 @@ Common to the coding agents' own chats — Claude Code and Codex both:
 ## Todo
 - [x] #267 Stop a reply while it is being written
 - [x] #268 Keep typing while a reply is still coming
-- [ ] #269 Copy, resend or reword a message without retyping it
-- [ ] #270 Open up what the agent looked at, and say what the reply cost
-- [ ] #271 Point at a card in the chat box
+- [x] #269 Copy, resend or reword a message without retyping it
+- [x] #270 Open up the agent's steps, and say what the reply cost
+- [ ] ~~#271 Point at a card in the chat box~~
 - [ ] #272 Pick the model for one conversation, not for the whole board
-- [ ] #273 Keep past conversations instead of only throwing them away
 
 ## Decided by the agent
 - **Does any of this have to work in `akb chat` in a terminal too?**: no. The terminal
   already has Ctrl-C for #267 and a shell line editor for #268, and the rest is screen work
-  a terminal has no place for. Only the transcript (#273) and the model override (#272) are
-  shared, because both live in the command rather than in the window.
+  a terminal has no place for. Only the agent and model override (#272) is shared,
+  because it lives in the command rather than in the window.
 - **Could the rail instead become the main way to work the board?**: no. `local-ui`
   `decisions.md` settled that the rail is folded by default so the board and the card stay
   the centre of the app, and nothing on this card reopens that.

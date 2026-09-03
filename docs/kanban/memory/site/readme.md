@@ -74,3 +74,5 @@ covers it, or a plain-words note.
 - All three pages name Lark beside Slack: what a connection holds, what leaves Cloud for
   that chat on your own instruction, and that disconnecting either is a removal you can make
   yourself.
+- The landing page's agent strip and the Linear, Multica and Task Master comparison pages
+  name Grok Build alongside the other six agents, in all five languages.

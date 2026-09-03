@@ -5,6 +5,6 @@ If a line here disagrees with the repo you just read, fix the line.
 - **skill** — ai4kanban itself: the board format, the `akb` command, and the rules and flows it carries. `cli/` (the sources — `src/guide/` are the flows, `src/templates/` the blank config, all built into the one `cli/dist/kanban.mjs`, which is not in git), `skill/` (`SKILL.md` alone: the one file a project gets, inlined into that build; installed in this repo via the `.claude/skills/kanban` symlink; packaged as a Claude Code plugin in `.claude-plugin/`).
 - **local-ui** — the UI to drive the board from buttons: the browser app published as `ai4kanban-ui`, and the desktop app that wraps it. `kanban-ui/`, `desktop/`.
 - **site** — the marketing and landing site, deployed to Cloudflare Pages. `web/`.
-- **docs** — the user guides. `docs/guides/`.
+- **docs** — the user guides, authored as MDX and published at `/docs` on the site. `web/content/docs/` (a page per `.mdx` file, with the rail's grouping and order in `_nav.json`); the routes and components that render them are **site**.
 - **telemetry** — the service that takes in usage events from the app and the site, and where those events are stored and read. No code yet.
 - **cloud** — the hosted board control plane, shared board data, identity, and team coordination. `cloud/` (the Worker at `api.ai4kanban.dev`, its Postgres migrations, and its own deploy, rollback and migrate commands).

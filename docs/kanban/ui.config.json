@@ -4,7 +4,7 @@
     "claude-code": {
       "provider": "subscription",
       "model": "claude-opus-5",
-      "reasoning": "high"
+      "reasoning": "xhigh"
     },
     "zcode": {
       "provider": "coding-plan"

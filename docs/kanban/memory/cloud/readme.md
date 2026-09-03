@@ -66,6 +66,29 @@ covers it, or a plain-words note.
 - Hints arrive over Realtime in seconds, on the desktop and on the board's machine alike, so
   the bell fills as events are raised rather than on a restart.
 
+## A board kept in Cloud
+
+- A Cloud **workspace** holds a whole board: its cards live and archived, the memory set, the
+  goal, `config.md`, `modules.md`, `releases.md`, the per-flow rules, closed releases'
+  summaries, the board's own history and its delivery records. What stays on the machine is
+  what the board keeps out of git — API keys, the run record and its logs, chats, mockups, and
+  `ui.config.json`, which is that machine's answer to which coding agent runs the board — so a
+  second machine sees none of it.
+- Nothing about the code goes with it: no repository, branch, worktree, commit, credential or
+  model key. A delivery's repository half is stripped by the service itself, so a delivery's
+  diff and the commit it landed as can be read only on the machine that ran it.
+- `akb cloud import <workspace>` carries this board into a workspace, and changes nothing in
+  it — the files are still the record. Run it again after an interruption and it carries on
+  rather than writing a second copy of anything.
+- `akb cloud export <workspace> --to <folder>` writes a workspace back out as a markdown
+  board `akb --dir <folder>` opens as a Local one, reading the same. It is the only copy
+  anyone can restore a Cloud board from: the preview keeps no backup of its own. Neither move
+  is synchronization — neither keeps two writable boards in step.
+- One writer holds a card, or the board, at a time, for half an hour and as often as they
+  like. An expired hold is free for the next caller and nothing sweeps for it. A second
+  machine writing a card the first has moved past is refused as a conflict naming the version
+  the board holds now — never a silent overwrite.
+
 ## What Cloud says about a board's machine
 
 - Cloud reports what the computer running a board's approvals resolves each of the board's

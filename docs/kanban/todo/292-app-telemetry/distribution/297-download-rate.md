@@ -6,7 +6,7 @@ roi: high
 status: todo
 release: ""
 blocked_by: [294]
-related: [292]
+related: [292, 400]
 modules: [site, telemetry]
 questions: []
 ---
@@ -28,7 +28,8 @@ and how many press it, so we cannot say whether the page works.
 - The download buttons link straight to files on a GitHub release, so a press is not
   recorded anywhere we can read.
 - GitHub's own release download counts exist, but they mix real users with mirrors, bots
-  and repeated pulls, and they say nothing about how many people saw the page.
+  and repeated pulls, and they say nothing about how many people saw the page. #400
+  snapshots them daily; this card supplies the other half, the presses.
 
 ## Scope
 - Count a visit to each page of the site, and a press of each download button.
@@ -39,10 +40,9 @@ and how many press it, so we cannot say whether the page works.
   is visible.
 - Say which page a download came from — the hero, the landing page's getting-started
   section, or the download page.
-- Pull GitHub's release download counts on a schedule and store them beside the presses,
-  so a press and a completed download can be compared.
-- Pull the `ai4kanban` command's public npm install count on the same schedule and store it
-  beside them, as its own number and never added to the app's downloads.
+- Read the presses beside the public download counts #400 already snapshots, so a press
+  and a completed download can be compared. Pulling those counts is #400's job, not this
+  card's.
 - Set no cookie and store nothing in the browser, so no consent banner is needed.
 - The site is not slowed down and the download works if the counting fails.
 - Out of scope: any per-visitor identifier, any cross-site tracking, and tying a site
@@ -51,8 +51,7 @@ and how many press it, so we cannot say whether the page works.
 ## Todo
 - [ ] count a visit to each page, per language
 - [ ] count a download button press with system, architecture, version and which page
-- [ ] pull GitHub's release download counts on a schedule
-- [ ] pull the command's npm install count on the same schedule, kept as its own number
+- [ ] read #400's snapshot beside the presses, the npm count kept as its own number
 - [ ] work out the download rate per page and per language
 - [ ] check the download still works when counting fails or is blocked
 - [ ] check nothing is stored in the browser and no banner is required

@@ -109,20 +109,34 @@ Internal detail stays on the card.
 ## How a Cloud board would be reached
 
 - A Cloud board's repo holds one committed pointer to the workspace and the machine's own
-  ignored files — no cards, no memory, no mirrored markdown — so every clone opens the same
-  workspace and export is how anyone gets markdown back. Anything that reads the board as
-  files works on a Local board or an export.
+  ignored files — no cards and no memory in git — so every clone opens the same workspace and
+  export is how anyone gets committed markdown back. The machine keeps its own ignored copy of
+  the board for the run's coding agent to work in, so a run reads and writes files on a Cloud
+  board exactly as it does on a Local one.
 - A Cloud board is reached from the installed app only until 0.9.0, when a workspace gets a
   URL: a public read-only board for anyone, and card review and Resolve for a signed-in
   account.
-- A save finishes before the command returns, on every board: no write queue and no
-  background flush. That is the price of two teammates never overwriting each other silently.
+- A save finishes against the machine's own copy before the command returns and reaches the
+  workspace behind it, so no edit waits on a round trip and the workspace ends up holding the
+  latest card.
+- A card is locked before it is written: one holder at a time on a 30-minute lease, taken
+  again as often as its holder likes, and free for the next caller once it expires. That, not
+  a synchronous save, is what stops two writers from overwriting each other.
+- A writer that dies mid-upload loses the edits it had not sent: once its lock expires another
+  writer takes the card, and the workspace's version comes back over the abandoned copy.
+- A run whose card is taken over ends there: a lock renewal that finds another machine holding
+  the card stops the run, replaces the machine's copy of that card with the workspace's and
+  drops what the run wrote, so the user restarts on the card as it now reads.
 - Two people changing one card gets the second write refused as a conflict naming the version
   the board holds now, and the caller re-reads that card — never a silent overwrite, never a
   message the user has to interpret.
 - A Local board never meets that refusal: the app writes against the writer lease it takes,
   so passing the revision a screen read starts on Cloud, where one account on two machines
   already makes it real.
+- Cloud out of reach opens the board read-only from the machine's copy, marked offline with
+  when it was last read, and refuses every write until Cloud answers. It comes back live on the
+  next read that reaches the workspace, with nothing to press. Only a call that never reached
+  the service counts as offline; anything the workspace answered is shown as it stands.
 
 ## Cloud first, a team second
 
@@ -131,9 +145,9 @@ Internal detail stays on the card.
   their own — the board survives the machine, opens on a phone and can be published read-only
   — and members, roles, a per-card writer and question routing are a layer on top of them.
 - Deferring the team layer costs no rewrite: one owner on two machines already has two
-  writers and the expected-revision check settles that, so the writer lease is what a second
-  person needs rather than what correctness needs, and membership is a forward-only migration
-  that swaps one authorization predicate.
+  writers and the card lock settles that, so what a second person adds is the member half —
+  the holder named on the card and the draft kept while they are offline — and membership is a
+  forward-only migration that swaps one authorization predicate.
 - The store is Supabase Postgres behind the Worker, as it shipped. The one-Durable-Object-per-
   workspace proposal that stood in the team group's plan is not the runtime this program has.
 

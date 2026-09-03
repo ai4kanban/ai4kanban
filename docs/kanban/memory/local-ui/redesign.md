@@ -36,6 +36,16 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   feature is reached from the control already on screen. The app's first global key is a key
   map it then owes consistency to, and that is a card of its own, not a line in someone
   else's.
+- ❌ **Two surfaces are told apart by a wash one shade off the ground they sit on** (the
+  user's message on the rail's cream) → ✅ separate them by surface and shape — paper with a
+  hairline, inset from the column — so the hierarchy survives a glance.
+- ❌ **A control's label narrates what happened in empty words** ("looked at 6 things") → ✅
+  say the one thing the reader wants from it — how long the agent worked — in the words the
+  tools they already use say it in.
+- ❌ **A control that qualifies the next message gets a strip of its own above the
+  transcript** (the chat's agent and model on a row between the header and the conversation)
+  → ✅ it goes inside the message box, on the box's own bottom row beside Send, and the box
+  carries no rule above it. What answers the message belongs where the message is written.
 
 ## Runs and deliveries
 
