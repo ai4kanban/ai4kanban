@@ -34,11 +34,6 @@ export { runBoard } from './lib/board-cli'
 export type { RunBoardOptions } from './lib/board-cli'
 export { runAgent } from './lib/agent-cli'
 export type { RunAgentOptions } from './lib/agent-cli'
-// `akb` itself — install, skill, update. The bin script is a loader with no dependencies
-// beside it (the desktop app carries bin/ and dist/ and nothing else), so the tree that
-// declares those commands lives in here with the other two.
-export { runSetup } from './lib/setup-cli'
-export type { RunSetupOptions } from './lib/setup-cli'
 export { SKILL_VERSION } from './version'
 
 // The blank `docs/kanban/config.md`, and which of its settings a board's own config has

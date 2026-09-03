@@ -336,7 +336,7 @@ akb agent runtimes                     # the runtimes, and what each flow and ag
 akb agent runtime add cheap            # name one
 akb agent runtime for implement cheap  # point a flow — or a spec skill — at it
 akb agent bind cheap codex             # what it runs as
-akb agent bind cheap set model gpt-5.1-codex
+akb agent runtime set cheap model gpt-5.1-codex
 ```
 
 A runtime with nothing of its own runs `akb agent use`'s pick, which is the global runtime's

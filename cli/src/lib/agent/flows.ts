@@ -183,9 +183,6 @@ export const flowByAction = (action: AgentAction): Flow | undefined => {
   return FLOWS.find((flow) => flow.action === action)
 }
 
-/** How a flow is spelled in a list of them — the command and what follows it. */
-export const flowUsage = (flow: Flow): string => `${flow.command} ${flow.argument}`.trim()
-
 /** The delivery flows. Their rules are frozen with the card the delivery
  *  was approved to build, and their runs are the ones that may not be working in the
  *  project folder. */

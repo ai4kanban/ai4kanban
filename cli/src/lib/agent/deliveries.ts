@@ -312,7 +312,7 @@ export function joinDelivery(
   return delivery
 }
 
-/** Put a review or legacy correction run into the delivery already in flight on its card.
+/** Put a review run into the delivery already in flight on its card.
  *
  *  Unlike `joinDelivery` it opens nothing: there is no delivery to review when nobody has
  *  built anything, and a run that quietly started one would review an empty diff
@@ -380,8 +380,7 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   //
   // First the run's work, committed onto the delivery's branch. Review may fix plain
   // mistakes itself, so its changes are committed before its pass can land.
-  const built = run.status === 'done' &&
-    (run.action === 'implement' || run.action === 'review' || run.action === 'correct')
+  const built = run.status === 'done' && (run.action === 'implement' || run.action === 'review')
   const commit = built && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
   const uncommitted = commit.ok ? undefined : commit.why
   // And, in manual commit mode, the snapshot a passed review leaves for the user's own
@@ -459,7 +458,15 @@ export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
   // `resolve` is how the question a stopped review left gets answered, and the hold lets it
   // through for exactly that (`heldByDelivery`). It joins no delivery, so nothing here was
   // taken — the answer itself is what the review follows.
-  return run.cardId === null || run.status !== 'done' ? null : answeredReview(run.cardId)
+  //
+  // How that run ENDED is not asked, and deliberately: the card is the whole of this stop
+  // (`answeredStop`), so a run that dropped the last question answered it whether or not it
+  // went on to fail. The tick reads it that way already (`answeredWork`), and asking the run
+  // here as well made the two disagree — the watcher holds the row it claimed the card with,
+  // written before the run spawned and never written back into, so its `status` still reads
+  // `running` at the moment it asks. The delivery then carried on nothing, and the card sat
+  // at its stop until a tick happened to pick it up.
+  return run.cardId === null ? null : answeredReview(run.cardId)
 }
 
 /** The review this card's delivery is owed now that its question has been answered — or

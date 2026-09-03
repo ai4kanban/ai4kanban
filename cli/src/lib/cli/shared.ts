@@ -163,11 +163,6 @@ export function cardId(value: string): number {
   return n
 }
 
-/** A repeatable option, collected in the order it was typed. */
-export function collect(value: string, previous: string[] = []): string[] {
-  return previous.concat([value])
-}
-
 /** A repeatable, comma-separated list — `--modules a,b --modules c` is three names. */
 export function collectList(value: string, previous: string[] = []): string[] {
   return previous.concat(

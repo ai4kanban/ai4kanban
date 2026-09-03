@@ -1,47 +1,14 @@
-// ---- flags + validation (guards against hallucinated meta) -----------------
+// ---- validation (guards against hallucinated meta) -------------------------
+//
+// Reading the command line is Commander's (lib/cli/), and so is refusing an unknown option
+// or a value outside a fixed set. What is left here is the checking a command line cannot
+// do on its own: whether a track exists, whether a module is on the map, whether an id names
+// an open card. A hallucinated one is a hard error rather than a silently written field.
 
 import fs from 'node:fs'
 
 import { die, warn, rel, TODO, MODULES_MD } from './paths'
 import { locate, trackNames } from './cards'
-import type { FlagOrder, FlagValue, Flags, ParsedFlags } from './types'
-
-// Minimal flag parser. `--key value` sets a string; a repeated `--key` builds an
-// array; a `--key` with no following value (or followed by another `--`) is a
-// boolean. An unknown flag is a hard error so a mistyped/hallucinated option can't
-// be silently ignored.
-export function parseFlags(args: string[], allowed?: string[]): ParsedFlags {
-  const flags: Flags = {}
-  const positional: string[] = []
-  // Every flag in the order it was typed. Most commands read `flags`, where a
-  // repeated flag collapses into a list; the question flags need the order too,
-  // because --option/--mode/--recommended-option belong to the --question before them.
-  const order: FlagOrder = []
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]!
-    if (a.startsWith('--')) {
-      const key = a.slice(2)
-      if (allowed && !allowed.includes(key)) {
-        die(`unknown option "--${key}". allowed: ${allowed.map((f) => '--' + f).join(', ')}`)
-      }
-      const next = args[i + 1]
-      if (next === undefined || next.startsWith('--')) {
-        flags[key] = true
-        order.push([key, true])
-      } else {
-        const current = flags[key]
-        if (current === undefined) flags[key] = next
-        else if (Array.isArray(current)) current.push(next)
-        else flags[key] = [current, next]
-        order.push([key, next])
-        i++
-      }
-    } else {
-      positional.push(a)
-    }
-  }
-  return { flags, positional, order }
-}
 
 export function slugify(s: unknown): string {
   const out = String(s)
@@ -111,14 +78,6 @@ export function moduleNames(): string[] | null {
   return names
 }
 
-// Split a --modules value (repeatable and/or comma-separated) into a clean name list.
-export function parseModuleList(raw: FlagValue): string[] {
-  return (Array.isArray(raw) ? raw : [raw])
-    .flatMap((s) => String(s).split(','))
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
 // Validate tags against the module map, the same way --track checks the track folders.
 // No map yet → the field is skipped (returns []), not an error, so a pre-map install still
 // works. An unknown name is a hard error whose message lists the known names and says how
@@ -144,11 +103,8 @@ export function validModules(mods: string[]): string[] {
 
 // Card links name open cards. The ceiling catches invented future ids cheaply; locate
 // catches ids that were reserved by an older CLI, rejected, archived, or never existed.
-export function parseIdList(raw: FlagValue, name: string, ceiling: number): number[] {
-  const parts = (Array.isArray(raw) ? raw : [raw])
-    .flatMap((s) => String(s).split(','))
-    .map((s) => s.trim().replace(/^#/, ''))
-    .filter(Boolean)
+export function parseIdList(raw: string[], name: string, ceiling: number): number[] {
+  const parts = raw.map((s) => s.trim().replace(/^#/, '')).filter(Boolean)
   return parts.map((p) => {
     if (!/^\d+$/.test(p)) die(`--${name} takes task ids (numbers), got "${p}"`)
     const n = Number(p)

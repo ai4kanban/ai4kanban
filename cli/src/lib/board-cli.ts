@@ -1,18 +1,14 @@
-// The one dispatcher behind every way of running a board move.
+// The door onto `akb board <move>`, and the parts of a command that are not the command.
 //
-// `akb board <move>` and the `kanban.mjs` in an installed skill folder are two front doors
-// onto this file — the rules live here once, so a fix reaches both without a second copy to
-// keep in step.
+// The moves themselves — what each one takes, what its options mean, and the help that is
+// those two written down — are declared in lib/cli/board.ts. What lives here is what every
+// door needs and no command should have to think about:
 //
-// What it owns, and the commands below don't have to think about:
 //   - which board to work on: `--dir <path>`, or the nearest one at or above the folder the
 //     command was run in. Two boards at once never see each other's answers, because the
-//     paths are set per call (lib/paths.mjs),
-//   - handing the move to the board itself (lib/board/): what each move does, and the one
-//     writer at a time that keeps two commands from handing out the same id, belong to the
-//     board rather than to the command line in front of it,
-//   - refusing without ending the process: a move throws, this catches, says why, and
-//     returns an exit code (lib/io.mjs),
+//     paths are set per call (./paths.ts),
+//   - refusing without ending the process: a command throws, `runProgram` catches, and
+//     `report` below turns it into a line a person reads or an object a program does,
 //   - answering a program instead of a person: `--json` puts the move's own fields, its
 //     prose and its warnings in one object.
 
@@ -189,19 +185,13 @@ export function answer(object: Record<string, unknown>): void {
   process.stdout.write(JSON.stringify(object) + '\n')
 }
 
-// A refused move says why and stops there. Prose goes to stderr with the move in front of
-// it, so a terminal shows which command refused; --json puts the kind and whatever the
+// A refused command says why and stops there. Prose goes to stderr with the command in
+// front of it, so a terminal shows which one refused; --json puts the kind and whatever the
 // refusal knows (an id, a track, a folder) where a caller can read them, next to the lines
-// the move managed to print first — those are usually what explains the refusal.
+// the command managed to print first — those are usually what explains the refusal.
 export function report(
   err: unknown,
-  {
-    program,
-    json,
-    move = null,
-    box = null,
-    help = null,
-  }: { program: string; json: boolean; move?: string | null; box?: Sink | null; help?: string | null },
+  { program, json, box = null }: { program: string; json: boolean; box?: Sink | null },
 ): number {
   if (!(err instanceof BoardError)) {
     // Not a refusal — a bug. It still has to reach a caller that asked for JSON as JSON,
@@ -216,8 +206,7 @@ export function report(
   if (json) {
     answer({ ok: false, error: { kind: err.kind, message: err.message, ...err.details }, ...prose(box) })
   } else {
-    console.error(err.bare ? err.message : `${[program, move].filter(Boolean).join(' ')}: ${err.message}`)
-    if (help) console.error(`\n${help}`)
+    console.error(err.bare ? err.message : `${program}: ${err.message}`)
   }
   return 1
 }

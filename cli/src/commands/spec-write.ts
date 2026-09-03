@@ -31,9 +31,9 @@ const MARKER = /^<!--\s*agent\s*-->$/
 const HALVES = ['human', 'agent'] as const
 type Half = (typeof HALVES)[number]
 
-// Told nothing, a new section goes in the agent half and a rewrite stays where it sits — a
-// spec skill that says nothing about the reader has not asked for the card to be reshaped.
-/** `akb board spec-write`, as its command declares it (lib/cli/board.ts). */
+/** `akb board spec-write`, as its command declares it (lib/cli/board.ts). Told no `--half`,
+ *  a new section goes in the agent half and a rewrite stays where it sits — a spec skill
+ *  that says nothing about the reader has not asked for the card to be reshaped. */
 export interface SpecWriteOptions {
   file?: string
   text?: string

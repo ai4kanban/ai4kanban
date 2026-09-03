@@ -24,7 +24,6 @@ import { walkMd, idPrefix } from './cards'
 import { parseFrontmatter, serializeFrontmatter } from './frontmatter'
 import { NO_RELEASE, normalizeRelease } from './validate'
 import { recordFact } from './record'
-import type { FlagValue } from './types'
 
 // One release as the list carries it: its id, and what it is for.
 export interface ReleaseEntry {
@@ -79,8 +78,8 @@ const ID_RE = /^[A-Za-z0-9._-]+$/
 
 // The words are written for whoever is naming the release, wherever they are doing it — a
 // terminal or a box in a dialog. Neither can be told to go run the other one's command.
-function validNewId(raw: FlagValue | undefined): string {
-  const id = String(raw === true ? '' : (raw ?? '')).trim()
+function validNewId(raw: string | undefined): string {
+  const id = (raw ?? '').trim()
   if (!id) die('a release needs a version id, like v1 or 0.5.0')
   if (id === '.' || id === '..') die(`"${id}" names a folder, not a version — pick a version id, like v1.`)
   if (!ID_RE.test(id)) {
@@ -113,8 +112,8 @@ const lineId = (line: string): string | null => lineEntry(line)?.id || null
 // A goal as it goes on disk: one line, whatever the user typed. Line breaks and runs of
 // spaces fold into single spaces, so the file's shape never depends on how the goal was
 // typed into a box. Empty is a release with no goal — always allowed.
-export function foldGoal(raw: FlagValue | undefined): string {
-  return String(raw === true ? '' : (raw ?? '')).replace(/\s+/g, ' ').trim()
+export function foldGoal(raw: string | undefined): string {
+  return (raw ?? '').replace(/\s+/g, ' ').trim()
 }
 
 // The line the file carries for one release. No goal, no em dash — an older line and a
@@ -158,7 +157,7 @@ export function writeReleasesIfMissing(): boolean {
 
 // Add one release to the end of the list, with the goal it was made for (empty is fine —
 // a goal is never required). Returns the id as written.
-export function addRelease(raw: FlagValue | undefined, rawGoal: FlagValue | undefined): string {
+export function addRelease(raw: string | undefined, rawGoal: string | undefined): string {
   const id = validNewId(raw)
   const goal = foldGoal(rawGoal)
   writeReleasesIfMissing()
@@ -180,7 +179,7 @@ export function addRelease(raw: FlagValue | undefined, rawGoal: FlagValue | unde
 // Change what a release is for, after it was made. An empty goal clears it — a release
 // with no goal is a state the board supports, so unsaying it has to be possible too.
 // Rewriting the line normalizes it, so a hand-written `- v1` comes back as `- **v1**`.
-export function setReleaseGoal(id: string, rawGoal: FlagValue | undefined): { id: string; goal: string } {
+export function setReleaseGoal(id: string, rawGoal: string | undefined): { id: string; goal: string } {
   const goal = foldGoal(rawGoal)
   const known = readReleases()
   if (!known.includes(id)) {
@@ -487,8 +486,8 @@ function removeReleaseLine(id: string): void {
   fs.writeFileSync(RELEASES, kept.join('\n') + '\n')
 }
 
-export function closeRelease(raw: FlagValue | undefined) {
-  const id = String(raw === true ? '' : (raw ?? '')).trim()
+export function closeRelease(raw: string | undefined) {
+  const id = (raw ?? '').trim()
   if (!id) die('release close needs a version id, e.g. `release close v1`')
   const known = readReleases()
   if (!known.includes(id)) {
@@ -522,8 +521,8 @@ export function closeRelease(raw: FlagValue | undefined) {
 // that never shipped leaves no release record behind, and a summary left by an earlier
 // close of a reused id stays byte-for-byte unchanged.
 
-export function dropRelease(raw: FlagValue | undefined) {
-  const id = String(raw === true ? '' : (raw ?? '')).trim()
+export function dropRelease(raw: string | undefined) {
+  const id = (raw ?? '').trim()
   if (!id) die('release drop needs a version id, e.g. `release drop v1`')
   const known = readReleases()
   if (!known.includes(id)) {

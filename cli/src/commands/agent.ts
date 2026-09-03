@@ -39,7 +39,6 @@ import { die } from '../lib/paths'
 import { finishSetupStep } from '../lib/view/api'
 import { readSetupState } from '../lib/view/read'
 import type { MoveResult } from '../lib/types'
-import { parseFlags } from '../lib/validate'
 
 /** `akb agent` and its words. Split here rather than in the dispatcher so the whole of the
  *  agent setting is one file. */
@@ -176,12 +175,7 @@ function useAgent(args: string[]): MoveResult {
 // With no value the setting is cleared and the agent runs its own default. Reading a key
 // back is never offered: a user who forgot theirs makes a new one.
 function setSetting(args: string[]): MoveResult {
-  const { flags, positional } = parseFlags(args, ['dir', 'json', 'value'])
-  const key = positional[0]?.trim()
-  if (!key) {
-    const keys = activeSettings().map((s) => s.key)
-    die(`name a setting: akb agent set <${keys.join('|') || 'setting'}> <value>`, { kind: 'needs-input' })
-  }
+  const key = args[0]?.trim() ?? ''
   const setting = activeSettings().find((s) => s.key === key)
   if (!setting) {
     const keys = activeSettings().map((s) => s.key)
@@ -190,8 +184,7 @@ function setSetting(args: string[]): MoveResult {
       setting: key,
     })
   }
-  const raw = positional.slice(1).join(' ')
-  const value = (typeof flags.value === 'string' ? flags.value : raw).trim()
+  const value = args.slice(1).join(' ').trim()
 
   if (setting.kind === 'secret') {
     const res = setSecret(setting.env!, value)
@@ -359,9 +352,7 @@ function runtimeFor(args: string[]): MoveResult {
 function bindCommand(args: string[]): MoveResult {
   const runtime = args[0]?.trim() ?? ''
   if (!runtime) {
-    die('name a runtime: akb agent bind <runtime> <agent>, or akb agent bind <runtime> set <key> <value>', {
-      kind: 'needs-input',
-    })
+    die('name a runtime: akb agent bind <runtime> <agent>', { kind: 'needs-input' })
   }
   const runtimes = readRuntimes()
   if (!runtimes.names.includes(runtime)) die(unknownRuntime(runtime, runtimes), { kind: 'bad-value' })
@@ -392,7 +383,7 @@ function bindSetting(runtime: string, args: string[]): MoveResult {
   const settings = activeSettings({ runtime })
   const key = args[0]?.trim() ?? ''
   if (!key) {
-    die(`name a setting: akb agent bind ${runtime} set <${settings.map((s) => s.key).join('|')}> <value>`, {
+    die(`name a setting: akb agent runtime set ${runtime} <${settings.map((s) => s.key).join('|')}> <value>`, {
       kind: 'needs-input',
     })
   }

@@ -125,17 +125,6 @@ export interface StartResult {
   error?: string
 }
 
-// What a run leaves on disk, and none of it belongs in git: the record is this machine's
-// answer to "what is running", and the logs are one agent's output on one afternoon. The
-// two locks are transient — they exist for the milliseconds a write takes, and only ever
-// reach git if a process is killed mid-write.
-export const RUN_IGNORE_LINES = [
-  { line: '.sessions.json', comment: '# What is running on this machine, and what ran lately.' },
-  { line: '.sessions/', comment: "# One log per run — the agent's own output." },
-  { line: '.sessions.lock/', comment: '# The lock that record is written under.' },
-  { line: '.index.lock/', comment: '# Held by the one run at a time that may rewrite the board index.' },
-]
-
 /** How a run's own ending reads as one of #319's nine event states. A run the user stopped
  *  is `cancelled` rather than `failed`: only the user can cancel one, and a build that broke
  *  and a decision the user took back must never read the same. */

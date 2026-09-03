@@ -4,9 +4,9 @@
 // command line to that tree, and hand back an exit code rather than ending the process —
 // the caller may be the CLI, a board UI, or a test.
 //
-// `runAgent` and `runSetup` are the same door under two names. They were two dispatchers
-// before the commands became one tree, and both are exported so a build of the UI or the
-// desktop app that predates the merge still works.
+// It answers every word `akb` takes, `install` and `update` included: setting a project up
+// and starting runs on it used to be two dispatchers, because the bin script had no way to
+// reach the built rules' own parsing and kept a second one. One tree means one help.
 
 import { buildAkbProgram } from './cli/akb'
 import { runProgram } from './cli/shared'

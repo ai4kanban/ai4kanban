@@ -53,19 +53,6 @@ export interface Found {
   rel: string
 }
 
-// What `parseFlags` hands back. A flag is a string when given a value, `true` when it
-// stands alone, and a list when repeated.
-export type FlagValue = string | true | Array<string | true>
-export interface Flags {
-  [key: string]: FlagValue | undefined
-}
-export type FlagOrder = Array<[string, string | true]>
-export interface ParsedFlags {
-  flags: Flags
-  positional: string[]
-  order: FlagOrder
-}
-
 // What a move hands back to the dispatcher: its own fields, which `--json` puts in the
 // answer next to the prose it printed.
 export interface MoveResult {

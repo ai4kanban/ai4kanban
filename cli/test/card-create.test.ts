@@ -78,7 +78,7 @@ describe('card creation owns its id', () => {
   it('requires a complete card instead of reserving an id', async () => {
     await refuses(root, ['create'], /required option .*--title/)
     await refuses(root, ['create', '--title', 'A card'], /required option .*--track/)
-    await refuses(root, ['create', '--count', '3'], /unknown option .*--count/)
+    await refuses(root, ['create', '--title', 'A card', '--track', 'features', '--count', '3'], /unknown option .*--count/)
     unchanged()
   })
 

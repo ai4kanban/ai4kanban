@@ -6,12 +6,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
+import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RUN_IGNORE_LINES, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
 import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCK_IGNORE_LINE } from '../lib/lock'
 import { CHAT_IGNORE_LINE } from '../lib/agent/chat'
-import { RUN_IGNORE_LINES } from '../lib/agent/sessions'
 import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
 import { writeReleasesIfMissing } from '../lib/releases'

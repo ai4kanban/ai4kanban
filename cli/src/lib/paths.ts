@@ -211,3 +211,19 @@ export function readNextId(): number {
 export function writeNextId(value: number): void {
   fs.writeFileSync(NEXT_ID, `${value}\n`)
 }
+
+// What a run leaves on disk, and none of it belongs in git: the record is this machine's
+// answer to "what is running", and the logs are one agent's output on one afternoon. The two
+// locks are transient — they exist for the milliseconds a write takes, and only ever reach
+// git if a process is killed mid-write.
+//
+// It sits here, beside the paths it names, rather than with the run record that writes them:
+// `init` is what puts these lines in the board's ignore file, and the run record reaches the
+// board, which reaches `init`. A ring of imports around a plain list is a list that can be
+// read before it exists.
+export const RUN_IGNORE_LINES = [
+  { line: '.sessions.json', comment: '# What is running on this machine, and what ran lately.' },
+  { line: '.sessions/', comment: "# One log per run — the agent's own output." },
+  { line: '.sessions.lock/', comment: '# The lock that record is written under.' },
+  { line: '.index.lock/', comment: '# Held by the one run at a time that may rewrite the board index.' },
+]

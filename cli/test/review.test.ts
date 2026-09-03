@@ -8,7 +8,6 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
-import { cmdUpdateQuestions } from '../src/commands/card.ts'
 import {
   activeDelivery,
   answeredWork,
@@ -21,8 +20,11 @@ import {
 import { readStore, withStore } from '../src/lib/agent/store.ts'
 import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
+import { move } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-review-'))
+
+const ask = (argv: string[]): Promise<Record<string, unknown>> => move(root, ['update-questions', '5', ...argv])
 const todo = path.join(root, 'docs', 'kanban', 'todo')
 const file = path.join(todo, 'features', '5-a-card.md')
 const code = path.join(root, 'src.txt')
@@ -179,9 +181,7 @@ describe('stopping for the user', () => {
     const built = build()
     await close(built)
     const review = carryOn(built)
-    cmdUpdateQuestions([
-      '5',
-      '--append',
+    await ask(['--append',
       '[user] Which retry behavior should apply?',
       '--recommended-option',
       'Retry once — recovers transient failures with one delay',
@@ -216,9 +216,7 @@ describe('stopping for the user', () => {
     const built = build()
     await close(built)
     const first = carryOn(built)
-    cmdUpdateQuestions([
-      '5',
-      '--append',
+    await ask(['--append',
       '[user] Which retry behavior should apply?',
       '--recommended-option',
       'Retry once — recovers transient failures',
@@ -227,7 +225,7 @@ describe('stopping for the user', () => {
     ])
     await close(first)
     assert.ok(deliveryWaiting(5))
-    cmdUpdateQuestions(['5', '--drop', '1'])
+    await ask(['--drop', '1'])
     const again = session('review')
     withStore((store) => {
       store.runs.push(again)
@@ -242,9 +240,7 @@ describe('stopping for the user', () => {
     const built = build()
     await close(built)
     const first = carryOn(built)
-    cmdUpdateQuestions([
-      '5',
-      '--append',
+    await ask(['--append',
       '[user] Which retry behavior should apply?',
       '--recommended-option',
       'Retry once — recovers transient failures',
@@ -256,7 +252,7 @@ describe('stopping for the user', () => {
 
     // What `akb resolve` leaves behind: the answer is on the card and the question is gone.
     // It joins no delivery, so nothing but the card says the stop is over.
-    cmdUpdateQuestions(['5', '--drop', '1'])
+    await ask(['--drop', '1'])
     assert.equal(deliveryWaiting(5), undefined)
     assert.deepEqual(answeredWork(), [{ action: 'review', id: 5, title: 'A card' }])
     // A card with a run already on it is left for the next pass.
@@ -269,23 +265,61 @@ describe('stopping for the user', () => {
     assert.deepEqual(carry, { action: 'review', id: 5, title: 'A card' })
   })
 
+  // The watcher asks with the row it claimed the card with — read before the run spawned,
+  // never written back into, so its `status` still says `running` when the close has already
+  // been recorded. Asked that way, the hand-off has to give the same answer: without it the
+  // resolve carries on nothing and the card sits at `Review again` until a tick picks it up.
+  it('hands the review on even when the caller holds the run as it was before it closed', async () => {
+    const built = build()
+    await close(built)
+    const first = carryOn(built)
+    await ask(['--append', '[user] Which retry behavior should apply?', '--recommended-option', 'Retry once — recovers transient failures', '--option', 'Do not retry — fails immediately'])
+    await close(first)
+
+    const answering = session('resolve')
+    withStore((store) => void store.runs.push(answering))
+    // Exactly what `watchRun` holds: the record as it was claimed, still `running`.
+    const asClaimed: RunRecord = { ...answering }
+    await ask(['--drop', '1'])
+    await close(answering)
+
+    assert.equal(asClaimed.status, 'running')
+    assert.deepEqual(deliveryRunAfter(asClaimed), { action: 'review', id: 5, title: 'A card' })
+  })
+
+  // The other half of that rule: what decides is the card, not the run. A resolve that left
+  // the question standing hands nothing on, however it ended.
+  it('hands nothing on when the answering run left the question standing', async () => {
+    const built = build()
+    await close(built)
+    const first = carryOn(built)
+    await ask(['--append', '[user] Which retry behavior should apply?', '--recommended-option', 'Retry once — recovers transient failures', '--option', 'Do not retry — fails immediately'])
+    await close(first)
+
+    const answering = session('resolve')
+    withStore((store) => void store.runs.push(answering))
+    const asClaimed: RunRecord = { ...answering }
+    await close(answering)
+
+    assert.equal(deliveryRunAfter(asClaimed), null)
+    assert.match(deliveryWaiting(5) ?? '', /open decision/)
+  })
+
   it('goes on waiting while any question is still open', async () => {
     const built = build()
     await close(built)
     const first = carryOn(built)
-    cmdUpdateQuestions(['5', '--append', '[user] First?', '--recommended-option', 'A — the safe one', '--option', 'B — the other'])
-    cmdUpdateQuestions(['5', '--append', '[user] Second?', '--recommended-option', 'A — the safe one', '--option', 'B — the other'])
+    await ask(['--append', '[user] First?', '--recommended-option', 'A — the safe one', '--option', 'B — the other'])
+    await ask(['--append', '[user] Second?', '--recommended-option', 'A — the safe one', '--option', 'B — the other'])
     await close(first)
-    cmdUpdateQuestions(['5', '--drop', '1'])
+    await ask(['--drop', '1'])
 
     assert.match(deliveryWaiting(5) ?? '', /open decision/)
     assert.deepEqual(answeredWork(), [])
   })
 
   it('does not mistake a question that predates implementation for one raised by review', async () => {
-    cmdUpdateQuestions([
-      '5',
-      '--append',
+    await ask(['--append',
       '[user] Which shade should apply?',
       '--recommended-option',
       'Blue — matches the existing palette',

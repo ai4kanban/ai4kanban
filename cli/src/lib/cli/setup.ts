@@ -8,7 +8,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { cmdInstall, cmdSkill, cmdUpdate, GET_LINE, NEWER_LINE } from '../../commands/setup.cli'
+import { cmdInstall, cmdSkill, cmdUpdate, GET_LINE, NEWER_LINE } from '../../commands/install'
 import { BoardError, say } from '../io'
 import { rulesPath } from '../skill/install'
 import { SKILL_VERSION } from '../../version'

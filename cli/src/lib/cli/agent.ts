@@ -1,11 +1,11 @@
-// The commands a person actually types — the runs, and everything you do to one.
+// The runs, and everything you do to one — declared onto `akb` (./akb.ts).
 //
-// `akb board <move>` is the board's own bookkeeping (./board.ts). These are the other half:
+// `akb board <move>` is the board's own bookkeeping (./board.ts). This is the other half:
 // starting a run, steering it, talking to the agent, and setting up what the runs run on.
 //
 // The flow commands are not written out here. They come from the board's own list of flows
-// (../agent/flows.ts), which the dispatcher and the Rules pane read too, so a flow shipped
-// later is a command, a help entry and a rule at once.
+// (../agent/flows.ts), which the dispatcher and the Rules pane read too — so a flow shipped
+// later is a command, a help entry and a rule at once, with nothing to remember to add.
 
 import { Option } from 'commander'
 
