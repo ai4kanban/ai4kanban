@@ -35,7 +35,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
 import { repairLanding } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
-import { durationLine, KEEP_LOGS, readLogTail, splitLog } from './log'
+import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumableHarness, resumableLookup, type RunPlan } from './resolve'
 import { runtimeFor } from './runtime'
 import { logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
@@ -984,27 +984,6 @@ function dropSpec(sessionId: string): void {
     fs.unlinkSync(specPathOf(sessionId))
   } catch {
     // never written, or already gone
-  }
-}
-
-// Keep only the newest logs on disk; delete older ones. The record already drops a run
-// whose log has gone, so the two shrink together.
-function pruneLogs(): void {
-  try {
-    const files = fs
-      .readdirSync(SESSIONS_DIR)
-      .filter((f) => f.endsWith('.log'))
-      .map((f) => ({ f, t: fs.statSync(path.join(SESSIONS_DIR, f)).mtimeMs }))
-      .sort((a, b) => b.t - a.t)
-    for (const { f } of files.slice(KEEP_LOGS)) {
-      try {
-        fs.unlinkSync(path.join(SESSIONS_DIR, f))
-      } catch {
-        // ignore
-      }
-    }
-  } catch {
-    // no folder yet, nothing to prune
   }
 }
 

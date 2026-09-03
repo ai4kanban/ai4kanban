@@ -12,9 +12,8 @@
 
 </div>
 
-Turn rough ideas into shipped software — without babysitting agents. AI4Kanban plans the
-work, runs it through your coding agents, and asks you only for product decisions and
-approval.
+Ship without babysitting coding agents. AI4Kanban turns rough ideas into build-ready work,
+runs it through your agents, and asks only for product decisions.
 
 **Coding got fast. Product decisions became the bottleneck.** Agents build clear
 requirements reliably. Vague ones turn into drift, rework, and a queue of long agent

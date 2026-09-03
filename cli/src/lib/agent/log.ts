@@ -10,7 +10,9 @@
 // out. They are stripped before the log is shown, so they never read as agent output.
 
 import fs from 'node:fs'
+import path from 'node:path'
 
+import { SESSIONS_DIR } from '../paths'
 import type { TokenUsage } from './types'
 
 /** Written just before the agent's final message, so a log can be split back into events +
@@ -30,8 +32,39 @@ export const MODEL_MARKER = '<<<kanban:model>>>'
 /** What the run consumed in tokens — the TokenUsage object as JSON. */
 export const USAGE_MARKER = '<<<kanban:usage>>>'
 
-/** How many run logs to keep on disk. */
-export const KEEP_LOGS = 30
+/** How many RUNS' logs to keep on disk. */
+export const KEEP_LOGS = 100
+
+/** Keep the newest KEEP_LOGS runs on disk and delete the rest; called as each run closes.
+ *
+ *  Counted in RUNS, not files. A run leaves a `.watch.log` beside its `.log`, and sometimes
+ *  a `.plan.json` or `.asks.json` — under a file budget those sidecars eat the history
+ *  (halving it, at least), and a run could lose its log while its sidecars stayed. The
+ *  record drops a finished run whose log is gone, so what this keeps is what the run list
+ *  can still show. */
+export function pruneLogs(): void {
+  try {
+    // A run's own log dates it; its sidecars go whenever it does.
+    const runs = fs
+      .readdirSync(SESSIONS_DIR)
+      .filter((f) => f.endsWith('.log') && !f.endsWith('.watch.log'))
+      .map((f) => ({ id: f.slice(0, -'.log'.length), t: fs.statSync(path.join(SESSIONS_DIR, f)).mtimeMs }))
+      .sort((a, b) => b.t - a.t)
+    const drop = new Set(runs.slice(KEEP_LOGS).map((r) => r.id))
+    if (drop.size === 0) return
+    for (const f of fs.readdirSync(SESSIONS_DIR)) {
+      const dot = f.indexOf('.')
+      if (!drop.has(dot === -1 ? f : f.slice(0, dot))) continue
+      try {
+        fs.unlinkSync(path.join(SESSIONS_DIR, f))
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // no folder yet, nothing to prune
+  }
+}
 
 // The last few KB of a log, which is what a reader is shown by default.
 const TAIL_BYTES = 16 * 1024

@@ -1,8 +1,8 @@
 # AI4Kanban — the AI project manager for coding agents
 
-> Turn rough ideas into shipped software—without babysitting agents. AI4Kanban
-> plans the work, runs it through your coding agents, and asks you only for
-> product decisions and approval.
+> Ship without babysitting coding agents. AI4Kanban turns rough ideas into
+> build-ready work, runs it through your agents, and asks only for product
+> decisions.
 
 - Download: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban

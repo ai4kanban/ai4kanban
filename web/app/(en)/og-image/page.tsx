@@ -10,26 +10,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// The alt text is local, not copy: the card ships as a PNG, so nothing here is
-// ever read by anything. The landing hero stopped carrying these captures when
-// it became a drawn sequence (`home/HeroFlow.tsx`); the share card keeps them,
-// because a thumbnail in someone else's timeline has room for one picture and a
-// four-stage sequence is not it.
 const SHOTS = {
-  board: {
-    src: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-board-view.jpg",
-    alt: "AI4Kanban local board: Board view",
-  },
-  card: {
-    src: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-card-view.jpg",
-    alt: "AI4Kanban local board: a card and its spec",
-  },
+  board: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-board-view.jpg",
+  card: "https://cdn.ai4kanban.dev/ai4kanban-ui-v6-card-view.jpg",
 };
 
 const c = getCopy("en").home;
 
 // One browser-chromed screenshot. `dim` pushes the back card into the deck so
-// the Board view stays dominant.
+// the Board view stays dominant, matching the landing hero's default state.
 function Frame({
   src,
   alt,
@@ -91,14 +80,14 @@ export default function OgImage() {
         </div>
       </div>
 
-      {/* Right column: the board and a card as a deck, with the board in
-          front. */}
+      {/* Right column: the board and a card in the landing hero's flip-deck
+          composition, with the board in front by default. */}
       <div className="absolute left-[636px] top-1/2 -translate-y-1/2">
         <div className="absolute left-13 top-13">
-          <Frame src={SHOTS.card.src} alt={SHOTS.card.alt} dim />
+          <Frame src={SHOTS.card} alt={c.hero.shots.card.alt} dim />
         </div>
         <div className="relative">
-          <Frame src={SHOTS.board.src} alt={SHOTS.board.alt} />
+          <Frame src={SHOTS.board} alt={c.hero.shots.board.alt} />
         </div>
       </div>
     </div>

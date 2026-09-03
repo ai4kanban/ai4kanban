@@ -37,8 +37,9 @@ import type {
   RunStatus,
 } from './types'
 
-/** How many finished runs the record keeps. The logs outlive them by the same count. */
-const KEEP_RUNS = 30
+/** How many finished runs the record keeps. Match KEEP_LOGS: a run whose log is gone is
+ *  dropped here too, so the smaller of the two is what the Run dialog actually shows. */
+const KEEP_RUNS = 100
 
 // And how many ended deliveries. Far fewer are needed here than runs: this row is only
 // the live copy, and the permanent one is the file under docs/kanban/deliveries/, which is

@@ -12,66 +12,104 @@ const fr: HomeCopy = {
   },
 
   hero: {
-    eyebrow: "Chef de projet IA pour agents de code",
-    title: "Des idées floues jusqu'au logiciel livré, sans surveiller vos agents.",
-    lead: "AI4Kanban planifie le travail, le fait exécuter par vos agents de code et ne vous demande que les décisions produit et la validation.",
+    title: "Livrez sans surveiller vos agents de code.",
+    lead: "AI4Kanban transforme vos idées floues en travail prêt à réaliser, l'exécute avec vos agents et ne vous demande que les décisions produit.",
     ctaDownload: "Télécharger",
     ctaGithub: "Voir sur GitHub ↗",
-    flow: [
-      "Votre idée brute",
-      "Un plan ordonné par dépendances",
-      "L'arbitrage que vous seul pouvez rendre",
-      "Les agents qui tournent en arrière-plan",
-    ],
-    flowAlt:
-      "Une idée brute devient un plan ordonné par dépendances, une décision produit revient à une personne, et le reste du travail tourne en arrière-plan sur vos agents de code.",
+    shots: {
+      board: { label: "Board", alt: "Tableau local AI4Kanban : vue Board" },
+      card: {
+        label: "Card",
+        alt: "Tableau local AI4Kanban : une carte et sa spécification",
+      },
+      frontAria: "Vue {view} (actuelle)",
+      flipAria: "Passer à la vue {view}",
+    },
   },
 
-  why: {
-    title: "Coder est devenu rapide. Décider du produit est le goulot d'étranglement.",
-    body: "Les agents construisent fidèlement ce qui est clair. Le flou, lui, produit des dérives, des reprises et une file de longues conversations que personne n'a le temps de lire. AI4Kanban se place au-dessus de vos agents de code : il fixe ce qu'il faut construire avant que rien ne démarre, et ne renvoie que ce qu'une personne doit trancher.",
-  },
-
-  steps: {
-    title: "D'une idée brute à un changement intégré",
-    items: [
+  loop: {
+    title: "Faire avancer le travail",
+    lead: "Donnez-lui un objectif ou une idée encore floue. L’agent lit votre code et la mémoire du projet, détermine la prochaine étape, clarifie les exigences, découpe le travail, ordonne les dépendances et les priorités, puis passe à l’exécution.",
+    steps: [
       {
-        title: "Partez d'une idée brute",
-        body: "Décrivez le résultat en une phrase. AI4Kanban lit votre code, découpe l'objectif en tâches délimitées et les ordonne par dépendances, pour que le travail indépendant avance en parallèle.",
+        title: "Définir les tâches et leurs dépendances",
+        body: "L’agent découpe les grands objectifs en cartes bien délimitées et décide automatiquement lesquelles avancent en parallèle et lesquelles doivent attendre, afin que chaque tâche tienne dans son propre contexte.",
       },
       {
-        title: "Ne validez que ce qui vous revient",
-        body: "Les détails de routine sont tranchés à partir du code et de la mémoire du projet. Le goût, la direction commerciale, le risque et le coût reviennent sous forme d'une question courte assortie d'une réponse recommandée. Chaque réponse rejoint la mémoire du projet : le plan suivant vous en demande moins.",
+        title: "Clarifier les exigences",
+        body: "L’agent transforme des exigences floues en plan réalisable. Il répond à la plupart des questions à partir du code et de la mémoire du projet, et réserve au jugement humain les choix de goût, d’orientation commerciale, de risque et de coût.",
       },
       {
-        title: "Laissez tourner les agents",
-        body: "Les tâches prêtes s'exécutent en arrière-plan, chacune dans son propre worktree Git, et les conflits passent par une résolution dédiée avant toute intégration. Vous êtes prévenu quand une livraison attend votre validation.",
-      },
-    ],
-  },
-
-  trust: {
-    title: "Apprend votre projet, reste dans votre dépôt",
-    lead: "Les décisions produit, les pistes écartées et les leçons de conception survivent à la conversation qui les a produites : plus le projet avance, plus l'autonomie grandit et moins la relecture pèse.",
-    items: [
-      {
-        title: "Apache-2.0",
-        body: "Open source. Libre d'utilisation, de modification et de redistribution.",
+        title: "Exécuter",
+        body: "Vous pouvez coordonner plusieurs agents pour exécuter en parallèle les tâches prêtes. Chaque livraison utilise son propre Git worktree afin d’isoler les modifications, et les conflits déclenchent une phase de résolution dédiée avant l’intégration.",
       },
       {
-        title: "Local d'abord",
-        body: "Le tableau et sa mémoire sont du Markdown sous `docs/kanban/`, versionné dans Git.",
+        title: "Trancher les décisions clés avant l’implémentation",
+        body: "Créez vos propres Spec Skills ou utilisez celles qui sont intégrées : une skill de sélection technologique compare les options techniques, tandis qu’une skill de conception d’interface propose plusieurs maquettes fonctionnelles.",
       },
       {
-        title: "Votre agent de code",
-        body: "Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness et ZCode.",
+        title: "Ne demander une validation que lorsque nécessaire",
+        body: "AI4Kanban fait avancer le travail en arrière-plan et ne vous sollicite que pour une décision produit ou la validation d’une livraison. Comme un chef de projet, il réduit au minimum l’attention qu’il vous demande.",
       },
     ],
+  },
+
+  memory: {
+    title: "Apprend au fil du projet",
+    lead: "Les conversations se terminent. Les décisions produit restent. AI4Kanban conserve les objectifs du projet et tient, module par module, la liste des fonctionnalités livrées, des décisions produit, des raisons qui ont motivé les refus et des enseignements de conception. Il réutilise ce contexte pour planifier et clarifier les nouveaux travaux.",
+    cards: [
+      {
+        title: "Plus besoin de vous répéter",
+        body: "Les préférences et contraintes déjà établies alimentent directement la planification de la prochaine tâche.",
+      },
+      {
+        title: "Ne plus retomber dans les mêmes impasses",
+        body: "Les pistes écartées et les problèmes de conception connus ne sont plus proposés.",
+      },
+      {
+        title: "Reprendre exactement où vous en étiez",
+        body: "Avant de planifier de nouveaux travaux, il lit ce qui a déjà été livré et examine le code actuel.",
+      },
+    ],
+    tree: {
+      goal: "Objectif du projet",
+      module: "Un par module",
+      readme: "Fonctionnalités livrées",
+      decisions: "Décisions produit",
+      rejected: "Motifs de refus",
+      redesign: "Enseignements de conception",
+    },
+  },
+
+  iterate: {
+    title: "Piloter l’itération continue du produit",
+    lead: "Transformer les signaux externes en exigences qui font progresser le produit et chaque nouvelle version.",
+    inputsLabel: "Sources externes",
+    inputs: [
+      "Retours utilisateurs",
+      "Analyse de la concurrence",
+      "Études sectorielles",
+      "Discussions sur Reddit",
+    ],
+    internalLabel: "Sources internes",
+    internal: ["Feuille de route produit"],
+    board: {
+      columns: ["Prêt à démarrer", "Pas prêt"],
+      ready: "prêt",
+    },
+    storage: "Données du projet",
+    outputsLabel: "Résultats de l’itération",
+    outputs: ["Améliorations produit", "Nouvelles versions"],
   },
 
   start: {
     title: "Commencez par l'application de bureau",
     lead: "Téléchargez l'application, ouvrez un projet et répondez à trois questions. Elle lit le code, écrit l'objectif du projet et la mémoire par module, puis propose les premières tâches.",
+    notes: [
+      "Planification autonome",
+      "Local d’abord",
+      "Indépendant de l’agent",
+    ],
     cta: "Télécharger",
     firstOpen:
       "Les binaires ne sont pas signés : macOS bloque la première ouverture. Faites glisser l'application depuis le `.dmg`, puis passez l'avertissement. La page de téléchargement donne les étapes complètes pour macOS, Windows et Linux.",
