@@ -1,100 +1,54 @@
-# AI4Kanban — a project board that plans itself
+# AI4Kanban — the AI project manager for coding agents
 
-> AI4Kanban is an agent-led project board that brings project goals, code, and
-> long-term memory together to manage work from planning through completion.
-> Product direction and final approval remain human decisions.
+> Turn rough ideas into shipped software—without babysitting agents. AI4Kanban
+> plans the work, runs it through your coding agents, and asks you only for
+> product decisions and approval.
 
 - Download: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban
 
-## Keep work moving
+## Coding got fast. Product decisions became the bottleneck.
 
-Start with a goal or a rough idea. The agent reads the code and project memory,
-determines what comes next, clarifies requirements, breaks down the work, orders
-dependencies and priorities, and moves into execution.
+Agents build clear requirements reliably. Vague ones turn into drift, rework, and a
+queue of long agent conversations nobody has time to read. AI4Kanban sits above your
+coding agents: it settles what to build before anything runs, and brings back only
+what a person has to decide.
 
-- **Define tasks and dependencies** — The agent breaks large goals into bounded cards,
-  automatically deciding what can run in parallel and what must wait, so each task can
-  be completed within its own context window.
-- **Clarify requirements** — The agent turns rough requirements into an actionable plan.
-  It answers most questions from project memory and the codebase, leaving only taste,
-  business direction, risk, and cost for human judgment.
-- **Execute** — Run ready tasks in parallel across multiple agents. Each delivery uses
-  its own Git worktree to isolate changes, and conflicts trigger a dedicated resolution
-  pass before landing.
-- **Settle key decisions before implementation** — Create custom Spec Skills or use the
-  built-ins: a technology-selection skill compares technical options, while a UI-design
-  skill provides one working mockup by default and alternatives when requested.
-- **Request approval only when necessary** — AI4Kanban keeps work moving in the background
-  and reports back only for product decisions and delivery approval. Like a project manager,
-  it keeps demands on human attention to a minimum.
+## From a rough idea to a landed change
 
-## Learns as you build
+- **Start with a rough idea** — Describe the outcome in a sentence. AI4Kanban reads
+  your codebase, breaks the goal into bounded tasks, and orders them by dependency so
+  independent work can run in parallel.
+- **Approve only what needs you** — Routine details are answered from the code and
+  from project memory. Taste, business direction, risk, and cost come back as a short
+  question with a recommended answer. Every answer becomes project memory, so the next
+  plan asks less of you.
+- **Let the agents run** — Ready tasks run in the background, each in its own Git
+  worktree, and conflicts get a resolution pass before anything lands. You hear about
+  it when a delivery is waiting for approval.
 
-Chat sessions end; product decisions remain. AI4Kanban saves the project goal and
-keeps a module-by-module record of shipped features, product decisions, reasons
-behind rejected ideas, and design lessons. It brings that context back when
-planning and clarifying new work.
+## Learns your project, stays in your repository
 
-- **No need to repeat established decisions** — Preferences and constraints carry
-  into planning for the next task.
-- **Avoid the same dead ends** — Rejected directions and known design problems are
-  not proposed again.
-- **Plan from the current state** — Before planning new work, the agent reads what
-  has already shipped and checks the current code.
+Product decisions, rejected directions, and design lessons outlive the conversation
+that produced them, so autonomy grows and review shrinks as the project goes on.
 
-```
-docs/kanban/memory/
-├─ goal.md            # the project goal
-├─ local-ui/          # one folder per module
-│  ├─ readme.md       # shipped features
-│  ├─ decisions.md    # product decisions
-│  ├─ rejected.md     # reasons for rejection
-│  └─ redesign.md     # design lessons
-└─ site/
-```
-
-## Drive continuous product iteration
-
-Turn external signals into requirements that keep the product and each release
-moving forward.
-
-External inputs:
-
-- User feedback
-- Competitor research
-- Industry reports
-- Reddit discussions
-
-Internal inputs:
-
-- Product roadmap
-
-AI4Kanban works with the board and its project data: tasks that are ready to
-build, tasks that are not yet ready, and the project memory that informs both.
-Other agents can work from the same data.
-
-Iteration outcomes:
-
-- Product improvements
-- Release iterations
+- **Apache-2.0** — Open source. Free to use, modify, and redistribute.
+- **Local-first** — The board and its memory are Markdown under `docs/kanban/`,
+  versioned in Git.
+- **Your coding agent** — Claude Code, Codex, Cursor, OpenCode, Kimi Code,
+  DeepSeek Harness, and ZCode.
 
 ## Start with the desktop app
 
-Download the app, open it, and select a project. It asks three questions, one per
-screen, then reads the codebase, establishes the project goal and module memory,
-and creates the first tasks.
+Download the app, open a project, and answer three questions. It reads the codebase,
+writes the project goal and module memory, and proposes the first tasks.
 
-- Autonomous planning
-- Local-first
-- Agent-agnostic
+Builds are unsigned, so macOS blocks the first open: drag the app in from the `.dmg`,
+then click through the warning. The download page has the full steps for macOS,
+Windows, and Linux.
 
-Builds are unsigned, so macOS blocks the first open: drag the app in from the
-`.dmg`, then click through the warning. The download page has the full steps for
-macOS, Windows, and Linux.
-
-The app includes the `akb` CLI and adds the coding-agent skills when a project is
-opened. Neither is meant to be installed on its own.
+The app includes the `akb` CLI and adds the coding-agent skills when you open a
+project. Neither is meant to be installed on its own.
 
 Download the app: https://ai4kanban.dev/download
 

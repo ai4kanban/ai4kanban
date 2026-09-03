@@ -1,7 +1,6 @@
 import { SectionTitle } from "./SectionTitle";
 import { PlatformCta } from "../PlatformCta";
 import { Rich } from "../Rich";
-import { Chip } from "../ui/Chip";
 import { localeHref, type Locale } from "@/lib/i18n";
 import type { ResolvedSystem } from "../download/builds";
 import type { HomeCopy } from "@/i18n/home/types";
@@ -28,7 +27,7 @@ export function Start({
   return (
     // No top margin: this section sits in a `Band`, which owns its own air.
     <section id="install" className="scroll-mt-24">
-      <SectionTitle num="04" title={c.title} />
+      <SectionTitle num="03" title={c.title} />
       <p
         data-reveal
         data-delay="1"
@@ -37,21 +36,16 @@ export function Start({
         {c.lead}
       </p>
 
-      <div
-        data-reveal
-        data-delay="2"
-        className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-4"
-      >
+      {/* The button on its own. The chips that used to sit beside it — open
+          source, local-first, agent-agnostic — are section 02's three facts,
+          and a reader who just read them does not need them again next to the
+          thing they are about to press. */}
+      <div data-reveal data-delay="2" className="mt-7">
         <PlatformCta
           systems={systems}
           label={c.cta}
           fallback={localeHref(locale, "/download")}
         />
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          {c.notes.map((note) => (
-            <Chip key={note}>{note}</Chip>
-          ))}
-        </div>
       </div>
 
       {/* What a Mac user runs into on the very first open, beside the step it

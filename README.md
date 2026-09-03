@@ -2,54 +2,54 @@
 
 # AI4Kanban
 
-### A project board that plans autonomously and learns from every decision.
+### The AI project manager for coding agents.
 
 **English** · [简体中文](README-zh.md)
 
 [Download](https://ai4kanban.dev/download) · [Website](https://ai4kanban.dev) · [Guide](https://ai4kanban.dev/docs/daily-loop)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v6.jpg" alt="AI4Kanban — a project board that plans autonomously" width="720">
+<img src="https://cdn.ai4kanban.dev/og-image-v6.jpg" alt="AI4Kanban — the AI project manager for coding agents" width="720">
 
 </div>
 
-Coding agents can now turn well-defined requirements into working code reliably. The
-bottleneck is shifting from coding to planning and decision-making: deciding what to build
-next, turning rough ideas into actionable requirements, and coordinating priorities and
-dependencies as a product grows.
+Turn rough ideas into shipped software — without babysitting agents. AI4Kanban plans the
+work, runs it through your coding agents, and asks you only for product decisions and
+approval.
 
-AI4Kanban is a project-management agent with a Kanban interface. It combines project goals,
-the codebase, and long-term memory to propose work, clarify requirements, plan execution,
-and move tasks from idea to delivery.
+**Coding got fast. Product decisions became the bottleneck.** Agents build clear
+requirements reliably. Vague ones turn into drift, rework, and a queue of long agent
+conversations nobody has time to read. AI4Kanban sits above your coding agents: it settles
+what to build before anything runs, and brings back only what a person has to decide.
 
-The board records context that code alone cannot fully preserve: product decisions,
-rejected directions, delivered features, and design lessons. Each planning cycle draws on
-this history, keeping future decisions grounded in the project.
+Every answer you give becomes project memory — product decisions, rejected directions,
+delivered features, and design lessons — so the next plan asks less of you.
 
-## What it does
+## From a rough idea to a landed change
 
-- **Plans the next steps proactively.** The agent uses project goals, the codebase, and
-  long-term memory to determine what should happen next and propose concrete tasks.
-- **Turns rough ideas into ready-to-build tasks.** The agent identifies missing details,
-  answers most questions from the code and project memory, and leaves only taste, business
-  direction, risk, and cost for human judgment.
-- **Coordinates the task lifecycle.** It breaks large goals into bounded cards and decides
-  which tasks can run in parallel and which must wait.
-- **Supports custom Spec Skills.** Built-in skills compare technology choices and provide a
-  working UI mockup, so key decisions are settled before implementation. Add your own as an
-  Agent Skill under `docs/kanban/skills/`.
-- **Delivers each card to your branch.** Ready tasks run in parallel across isolated git
-  worktrees. Conflicts trigger a dedicated resolution pass before focused commits land on
-  your branch.
-- **Notifies you when your input is needed.** Reviews awaiting approval and questions only
-  you can answer appear in the app's notification center and in Slack. Approve the task or
-  answer the question directly from the message.
-- **Keeps product judgment with people.** Product direction, design preferences, and major
-  tradeoffs remain human decisions; routine details are handled from project context.
-- **Builds long-term project memory.** Decisions, completed work, rejected ideas, and
-  design lessons inform future planning instead of disappearing with a chat session.
-- **Keeps the board local and your choice of agent open.** The board is stored as Markdown
-  files under `docs/kanban/`. AI4Kanban supports Claude Code, Codex, Cursor, OpenCode,
-  Kimi Code, DeepSeek Harness, and ZCode.
+1. **Start with a rough idea.** Describe the outcome in a sentence. AI4Kanban reads your
+   codebase, breaks the goal into bounded tasks, and orders them by dependency so
+   independent work can run in parallel.
+2. **Approve only what needs you.** Routine details are answered from the code and from
+   project memory. Taste, business direction, risk, and cost come back as a short question
+   with a recommended answer.
+3. **Let the agents run.** Ready tasks run in the background, each in its own git worktree,
+   and conflicts get a resolution pass before anything lands. You hear about it when a
+   delivery is waiting for approval.
+
+## What else it does
+
+- **Settles key decisions before implementation.** Built-in Spec Skills compare technology
+  choices and produce a working UI mockup. Add your own as an Agent Skill under
+  `docs/kanban/skills/`.
+- **Reaches you where you are.** Reviews awaiting approval and questions only you can
+  answer appear in the app's notification center and in Slack. Approve the task or answer
+  the question directly from the message.
+- **Keeps a module-by-module record.** Delivered features, product decisions, rejected
+  directions, and design lessons live under `docs/kanban/memory/` and inform every later
+  plan instead of disappearing with a chat session.
+- **Stays local, and stays your choice of agent.** The board is Markdown under
+  `docs/kanban/`, versioned in Git. AI4Kanban supports Claude Code, Codex, Cursor,
+  OpenCode, Kimi Code, DeepSeek Harness, and ZCode.
 
 ## See it work
 

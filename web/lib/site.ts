@@ -20,5 +20,5 @@ export const OG_IMAGE = {
   url: `${CDN}/og-image-v6.jpg`,
   width: 4800,
   height: 2520,
-  alt: "AI4Kanban — a project board that plans itself.",
+  alt: "AI4Kanban — the AI project manager for coding agents.",
 };

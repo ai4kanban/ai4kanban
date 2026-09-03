@@ -535,7 +535,7 @@ export default function DesignPage() {
               wash, bare, on the page. Artwork is bare for a second reason: an
               ink box around a watercolour is a frame around a picture, and four
               down a column read as four boxes, which is why the mats in{" "}
-              <code>components/home/Loop.tsx</code> carry none.
+              <code>components/home/Steps.tsx</code> carry none.
             </p>
           </div>
         </Section>

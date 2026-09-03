@@ -1,18 +1,18 @@
 # AI4Kanban
 
-> Once coding agents can implement clear requirements reliably, project
-> management becomes the bottleneck. AI4Kanban is a project-management agent
-> built around a Kanban board. It uses project goals, code, and long-term memory
-> to decide what should happen next, clarify requirements, coordinate execution,
-> and preserve the decisions that inform future planning. The board is plain
-> Markdown in `docs/kanban/`, versioned in Git and readable by people and agents.
+> Coding got fast; product decisions became the bottleneck. AI4Kanban is an AI
+> project manager for coding agents: it turns a rough idea into dependency-ordered
+> tasks, runs them across your coding agents in the background, and asks you only
+> for the product decisions and the final approval. Every answer it gets becomes
+> project memory, so the next plan asks less. The board is plain Markdown in
+> `docs/kanban/`, versioned in Git and readable by people and agents.
 
 Each page below has a plain-Markdown mirror (the `.md` links) with the full page
 content — no navigation, styling, or scripts.
 
 ## Pages
 
-- [Home — a project board that plans itself](https://ai4kanban.dev/index.md): How AI4Kanban decomposes large goals into dependency-aware tasks, uses specialist agents to settle technical and UI choices, coordinates isolated deliveries in parallel, requests remote approval only when needed, carries decisions into long-term project memory, and turns external signals into continued product iteration.
+- [Home — the AI project manager for coding agents](https://ai4kanban.dev/index.md): Why product decisions became the bottleneck once coding got fast, and how AI4Kanban turns a rough idea into dependency-ordered tasks, brings back only the calls that need a person, runs the rest across your coding agents in the background, and keeps every answer as project memory inside your own repository.
 - [Builder — why Tao Wu is building AI4Kanban](https://ai4kanban.dev/builder.md): How the software bottleneck moved from coding to requirements, why project decisions need durable memory outside chat, and why a kanban is the planning layer above coding agents.
 - [Kanban for Claude Code](https://ai4kanban.dev/agents/kanban-for-claude-code): How AI4Kanban turns rough ideas into Claude-ready tasks, shares project memory across tasks, coordinates dependencies and isolated worktrees, and reuses an existing local Claude Code setup.
 - [Kanban for Codex](https://ai4kanban.dev/agents/kanban-for-codex): How AI4Kanban turns rough ideas into Codex-ready tasks, preserves decisions across sessions, coordinates dependencies and isolated worktrees, distinguishes reasons for human attention, and reuses an existing local Codex setup.

@@ -2,16 +2,17 @@ import type { ReactNode } from "react";
 import { Mat, printFrame } from "@/components/home/Mat";
 import type { WashName } from "@/components/home/washes";
 
-// The vocabulary a blog figure is drawn in — the landing page's grammar
-// (`home/Iterate.tsx`) narrowed to what a 648px prose column can hold.
+// The vocabulary a blog figure is drawn in — the landing page's diagram
+// grammar narrowed to what a 648px prose column can hold. (The page's own wide
+// iteration diagram is gone; this kit is where that grammar still lives.)
 //
-// Iterate is one wide SVG scaled like a photograph, which is right on a page
-// that gives it the full width. A post's body is half that on a laptop and
-// ~290px on a phone, so a single wide drawing would land its 12px labels at
-// 6px. Every figure here is therefore a **pair of panels**: two prints on one
-// mat, side by side from `sm` up and stacked below it. A panel is ~320px wide
-// at every viewport, so its 300-unit viewBox renders at roughly 1:1 whatever
-// the reader is on, and the words in it stay words.
+// A wide SVG scaled like a photograph is right on a page that gives it the full
+// width. A post's body is half that on a laptop and ~290px on a phone, so a
+// single wide drawing would land its 12px labels at 6px. Every figure here is
+// therefore a **pair of panels**: two prints on one mat, side by side from `sm`
+// up and stacked below it. A panel is ~320px wide at every viewport, so its
+// 300-unit viewBox renders at roughly 1:1 whatever the reader is on, and the
+// words in it stay words.
 //
 // The pair is also the argument's shape. Both panels draw the same object in
 // the same place at the same size, and only what the post claims changed is
@@ -103,11 +104,11 @@ export function Panel({
   );
 }
 
-// A card off the board, drawn to `kanban-ui`'s own grammar the way Iterate
-// draws it: paper, a full ink outline, a hard shadow, an ember id, and a title
-// that is the lines it takes rather than the words on them. Two figures below
-// use it, and both need it to be recognisably the same object in both of their
-// panels — so it lives here and not in either of them.
+// A card off the board, drawn to `kanban-ui`'s own grammar: paper, a full ink
+// outline, a hard shadow, an ember id, and a title that is the lines it takes
+// rather than the words on them. Two figures below use it, and both need it to
+// be recognisably the same object in both of their panels — so it lives here
+// and not in either of them.
 
 /** A card's own margin, and the air under its last row. */
 const CARD_PAD = 12;

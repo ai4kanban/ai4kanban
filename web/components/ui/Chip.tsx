@@ -3,14 +3,12 @@ import type { ReactNode } from "react";
 // The small label pill, at the two fills the theme allows a small block to
 // take. Each carries the outline it needs to be a shape and no more:
 //
-// - `neutral` — paper in an ink outline, for a plain aside (the install notes).
+// - `neutral` — paper in an ink outline, for a plain aside.
 //               Paper on paper is nothing without the line, so the line stays.
 // - `solid`   — the deep ember with a paper label, for a token that belongs to
 //               the product. Bare: a filled block is read by its fill, and
 //               framing this one only makes a pill the same weight as the panel
-//               around it. The iteration diagram draws this pill rather than
-//               importing it, because that whole picture is one SVG — so if you
-//               change this fill or this radius, change `Iterate.tsx` with it.
+//               around it.
 //
 // There is no tinted tone. The ember is either the full-strength fill or it
 // isn't there: `bg-accent/10` is an ember diluted to a grey, which is neither

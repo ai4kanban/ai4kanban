@@ -1,7 +1,7 @@
 {
   "name": "AI4Kanban",
   "short_name": "AI4Kanban",
-  "description": "A project board that plans itself.",
+  "description": "The AI project manager for coding agents.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
