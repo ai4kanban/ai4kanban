@@ -207,6 +207,14 @@ export interface BoardRules {
     },
   ): Promise<ChatReply | { error: string }>;
   clearChat?(cardId: ChatTarget): boolean;
+  /** What one conversation runs on (#272) — its own agent and model, kept with the
+   *  transcript and nowhere near the board's settings. Optional: rules from before them
+   *  draw no picker, and every conversation runs the board's pair as it always did. */
+  pickChatAgent?(
+    cardId: ChatTarget,
+    harness: string | null,
+  ): { ok: true; cleared: boolean; harness: string } | { error: string };
+  pickChatModel?(cardId: ChatTarget, model: string | null): { ok: true } | { error: string };
 
   // the board's first-run conversation (#280): the opening turn the board speaks itself,
   // and the reader that turns one reply into the two answers the project view draws. Both

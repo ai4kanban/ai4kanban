@@ -83,6 +83,8 @@ Talking to the agent — a conversation that also does the board work
   chat "<message>"             say something about the board
   chat <id> "<message>"        say something about that card
   chat [<id>] --clear          forget that conversation and start fresh
+  chat [<id>] --model <id>     run this one conversation on that model ("" for the board's)
+  chat [<id>] --agent <name>   run it on that agent — starts the conversation over
 
   Before opening a fresh conversation, chat ensures the kanban skill is installed. Its
   first prompt is only that agent's skill invocation followed by your message: /kanban
@@ -105,6 +107,11 @@ Talking to the agent — a conversation that also does the board work
 
   Only an agent whose command can take a second message into its own session can hold a
   conversation. On any other one, chat says so and names the agents that can.
+
+  The agent and the model are one conversation's own. Each starts on the board's, and a
+  pick sticks to that conversation until it is changed — the board's settings are never
+  touched and no other conversation is affected. Changing the model carries the same
+  session on; changing the agent cannot, so it starts the conversation over.
 
 Runs in flight
   runs [--card <id>] [--all]   what is running, and what ran lately

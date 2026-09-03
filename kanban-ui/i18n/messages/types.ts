@@ -43,7 +43,7 @@ export type MessagesCopy = {
     nothingTicked: string;
   };
   run: { noProcess: string };
-  chat: { busy: string; sendFailed: string; clearFailed: string };
+  chat: { busy: string; sendFailed: string; clearFailed: string; pickFailed: string };
   /** What a `<Mockup>` tag says when the file behind it can't be drawn. Each names
    *  the `src` the card gave. */
   mockup: {

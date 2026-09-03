@@ -31,7 +31,7 @@ import {
 } from './providers'
 import { runtimeOfFlow } from './runtime'
 import { configBlock, readEnvFile, readRuntimes, safeConfig, type BoardRuntimes } from './settings'
-import type { AgentInfo, ChatAgent, HarnessSetting, Provider, RuntimeView } from './types'
+import type { AgentInfo, ChatAgent, ChatPickAgent, HarnessSetting, Provider, RuntimeView } from './types'
 
 interface ResolvedHarness {
   harness: Harness
@@ -151,6 +151,10 @@ export interface HarnessAsk {
   /** The harness a run already committed to — a resume continues the conversation the agent
    *  that started it opened, and a plan being reopened spawns exactly what it planned. */
   pin?: string
+  /** Settings that win over the board's for this one spawn — a conversation's own model
+   *  (#272). Same shape and same precedence as a runtime's own overrides, and saved
+   *  nowhere: the board's settings are untouched. */
+  settings?: Record<string, string>
 }
 
 function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
@@ -176,6 +180,8 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const block: Record<string, unknown> = {
     ...configBlock(configBlock(cfg.harnessSettings)[harness.name]),
     ...(entry?.harness === harness.name ? entry.settings : {}),
+    // Last, so one conversation's own model wins over both (#272).
+    ...(ask.settings ?? {}),
   }
   const command = commandOf(block, harness)
   const { values, secretsSet, ignored } = readBlock(harness, block, command.split(/\s+/).filter(Boolean))
@@ -387,6 +393,10 @@ export interface RunPlan {
    *  a worktree of its own (#303), which works in that worktree. Written down with the
    *  plan so the spawn, the connector's own folder flag and `PWD` are one answer. */
   cwd?: string
+  /** Settings this spawn takes over the board's — a conversation's own model (#272).
+   *  Carried on the plan so reopening it resolves the same values a connector that takes
+   *  its model in the conversation needs, not only the flags argv already holds. */
+  settings?: Record<string, string>
 }
 
 /** Everything one run needs at the moment it spawns. Exactly one of `renderer` and
@@ -407,8 +417,15 @@ export interface ActiveRun extends RunPlan {
  *  the project, or a delivery's own worktree (#303) — and `runtime` is the one this run's
  *  flow goes on (agent/runtime.ts), the board's global one when nothing names another.
  *  `note` is the line the board owes the run's log when the runtime isn't what it ran as. */
-export function planRun(sessionId: string, cwd = REPO_ROOT, runtime?: string): RunPlan & { note: string | null } {
-  const resolved = resolveHarness({ runtime })
+export function planRun(
+  sessionId: string,
+  cwd = REPO_ROOT,
+  runtime?: string,
+  /** The agent and the settings this one spawn takes over the board's — a conversation's
+   *  own pick (#272). Empty for every ordinary run. */
+  own: Omit<HarnessAsk, 'runtime'> = {},
+): RunPlan & { note: string | null } {
+  const resolved = resolveHarness({ runtime, ...own })
   const { harness, command } = resolved
   const argv = command.split(/\s+/).filter(Boolean)
   return {
@@ -418,6 +435,7 @@ export function planRun(sessionId: string, cwd = REPO_ROOT, runtime?: string): R
     resumeId: harness.adoptsSessionId ? sessionId : null,
     install: harness.install,
     cwd,
+    ...(own.settings ? { settings: own.settings } : {}),
     note: runtimeNote(resolved),
   }
 }
@@ -434,8 +452,12 @@ export function planResume(
   resumeId: string,
   cwd = REPO_ROOT,
   runtime?: string,
+  /** As `planRun`: what this one spawn takes over the board's. A conversation that picked
+   *  its own agent pins it here, so the name check below passes on a board since switched
+   *  to another agent (#272). */
+  own: Omit<HarnessAsk, 'runtime'> = {},
 ): RunPlan | null {
-  const resolved = resolveHarness({ runtime })
+  const resolved = resolveHarness({ runtime, ...own })
   const { harness, command } = resolved
   // A resume stays on the agent it started on, so it is offered only while that is still
   // what its runtime resolves to here: handing a Claude Code conversation's id to another
@@ -451,6 +473,7 @@ export function planResume(
     resumeId,
     install: harness.install,
     cwd,
+    ...(own.settings ? { settings: own.settings } : {}),
   }
 }
 
@@ -458,7 +481,7 @@ export function planResume(
  *  because a plan is written to the board and an API key is not: the keys are read out of
  *  docs/kanban/.env here, into the child's environment and nowhere else. */
 export function openPlan(plan: RunPlan): ActiveRun {
-  const resolved = resolveHarness({ runtime: plan.runtime, pin: plan.harness })
+  const resolved = resolveHarness({ runtime: plan.runtime, pin: plan.harness, settings: plan.settings })
   const { harness } = resolved
   return {
     ...plan,
@@ -514,14 +537,42 @@ export function resumableLookup(): (runtime?: string) => string | null {
  *  capability rather than on a second flag beside it, which would say the same thing until
  *  the day the two drifted apart. An agent that can't is turned away by this alone, and the
  *  refusal names the ones that can. */
-export function chatAgent(): ChatAgent {
-  const { harness } = resolveHarness()
+export function chatAgent(pin?: string): ChatAgent {
+  const { harness } = resolveHarness({ pin })
   return {
     name: harness.name,
     label: harness.label,
     canChat: harness.resumes,
     able: HARNESSES.filter((h) => h.resumes).map((h) => h.label),
   }
+}
+
+/** Every agent a conversation can be pointed at (#272), and what the board already has
+ *  each one set to. The offer comes from here rather than from a list in the UI: it is the
+ *  same "can hold a conversation" a refusal already names, and the model each one starts
+ *  from is that agent's own setting read exactly as Configuration reads it. */
+export function chatPickAgents(): ChatPickAgent[] {
+  const onPath = pathLookup()
+  return HARNESSES.filter((h) => h.resumes).map((option) => {
+    const resolved = resolveHarness({ pin: option.name })
+    return {
+      name: option.name,
+      label: option.label,
+      icon: option.icon,
+      // No box where there is nothing for it to set: an agent that declares no model, and
+      // one whose own `command` already names the flag, both ignore what is typed.
+      takesModel:
+        option.settings.some((s) => s.key === 'model') && !resolved.ignored.includes('model'),
+      model: resolved.values.model ?? '',
+      installed: onPath(resolved.command),
+    }
+  })
+}
+
+/** The board's own model for one agent — where a conversation on it starts, and what one
+ *  click puts it back to. */
+export function harnessModel(name?: string): string {
+  return resolveHarness({ pin: name }).values.model ?? ''
 }
 
 /** The label an agent name reads as, for saying which agent a conversation belongs to. */
@@ -544,10 +595,11 @@ export function skillCall(runtime?: string): string {
   return resolveHarness({ runtime }).harness.skillCall
 }
 
-/** Invoke the skill with one user's words and no extra prompt. A chat's own turns stay on
- *  the global runtime until a conversation gets a pick of its own (#272). */
-export function skillPrompt(message: string): string {
-  const call = skillCall()
+/** Invoke the skill with one user's words and no extra prompt. `pin` is the agent a
+ *  conversation picked for itself (#272), whose own syntax the call then follows; with none
+ *  it is the board's. */
+export function skillPrompt(message: string, pin?: string): string {
+  const call = resolveHarness({ pin }).harness.skillCall
   return call === SKILL_SENTENCE ? `${call}: ${message}` : `${call} ${message}`
 }
 

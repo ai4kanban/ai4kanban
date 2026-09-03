@@ -30,10 +30,29 @@ import { pidAlive } from '../lock'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { ensureSkillInstalled } from '../skill/install'
 import { languageNote } from './language'
-import { chatAgent, harnessLabel, openPlan, planResume, planRun, skillPrompt, type RunPlan } from './resolve'
+import {
+  chatAgent,
+  chatPickAgents,
+  harnessLabel,
+  harnessModel,
+  openPlan,
+  planResume,
+  planRun,
+  skillPrompt,
+  type RunPlan,
+} from './resolve'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
-import type { Chat, ChatMessage, ChatReply, ChatTarget, ChatView, TokenUsage } from './types'
+import type {
+  Chat,
+  ChatMessage,
+  ChatPick,
+  ChatReply,
+  ChatTarget,
+  ChatView,
+  ModelChange,
+  TokenUsage,
+} from './types'
 
 /** A conversation's file is named by what it is about, so the board's conversation, the
  *  first run's and each card's are separate by construction and one can never be read as
@@ -82,10 +101,26 @@ export function readChat(cardId: ChatTarget): Chat | null {
     harness: raw.harness,
     resumeId: typeof raw.resumeId === 'string' && raw.resumeId ? raw.resumeId : undefined,
     model: typeof raw.model === 'string' && raw.model ? raw.model : undefined,
+    pickedHarness:
+      typeof raw.pickedHarness === 'string' && raw.pickedHarness ? raw.pickedHarness : undefined,
+    pickedModel: typeof raw.pickedModel === 'string' && raw.pickedModel ? raw.pickedModel : undefined,
+    modelChanges: changesOf(raw.modelChanges),
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
   }
+}
+
+// Where the model changed (#272), as far as the file can be believed: a mark needs a time
+// and an id, and anything else is dropped rather than drawn as a line saying nothing.
+function changesOf(value: unknown): ModelChange[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const marks: ModelChange[] = []
+  for (const entry of value as Partial<ModelChange>[]) {
+    if (!entry || typeof entry.at !== 'number' || typeof entry.model !== 'string') continue
+    marks.push({ at: entry.at, model: entry.model })
+  }
+  return marks.length ? marks : undefined
 }
 
 // A transcript is a file on disk: what it says a turn consumed is believed only when it is
@@ -124,12 +159,18 @@ export function clearChat(cardId: ChatTarget): boolean {
 // ---- what can be said right now --------------------------------------------
 
 // The one place a refusal is worked out, so the CLI and a screen say the same words.
+//
+// A conversation that picked its own agent (#272) is judged against THAT agent, not the
+// board's: it goes on running what it picked whatever Configuration is switched to. One that
+// never picked follows the board, and is still turned away when the board moves under it.
 function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
-  const agent = chatAgent()
+  const agent = chatAgent(chat?.pickedHarness)
   if (!agent.canChat) {
     return `chat is not available on ${agent.label}. The agents that can hold a conversation: ${agent.able.join(', ')}.`
   }
-  if (chat && chat.harness !== agent.name) {
+  // A transcript with nothing in it was held with nobody — a model typed into the box
+  // before the first message leaves one (#272), and it is not something to clear.
+  if (chat?.messages.length && chat.harness !== agent.name) {
     return (
       `this conversation was held with ${harnessLabel(chat.harness)}, and ${agent.label} can't pick it up — ` +
       `its session means nothing to another agent. Clear it to start fresh with ${agent.label}.`
@@ -142,7 +183,7 @@ function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
 /** One conversation and what the board can do about it right now. */
 export function readChatView(cardId: ChatTarget): ChatView {
   const chat = readChat(cardId)
-  const agent = chatAgent()
+  const agent = chatAgent(chat?.pickedHarness)
   return {
     cardId,
     chat,
@@ -154,7 +195,151 @@ export function readChatView(cardId: ChatTarget): ChatView {
     // reply is changing as it goes.
     answering: answering(cardId),
     blocked: blockedBy(cardId, chat),
+    pick: pickOf(chat),
   }
+}
+
+// ---- what one conversation runs on (#272) ----------------------------------
+//
+// The board's agent and model are where every conversation starts. A pick is this
+// conversation's alone: it is kept with the transcript, nothing of it reaches
+// ui.config.json, and another chat is unaffected.
+
+/** The agent a conversation runs, picked or inherited. */
+const harnessOf = (chat: Chat | null): string => chat?.pickedHarness ?? chatAgent().name
+
+function pickOf(chat: Chat | null): ChatPick {
+  const agents = chatPickAgents()
+  const boardHarness = chatAgent().name
+  const harness = harnessOf(chat)
+  const boardModel = agents.find((a) => a.name === harness)?.model ?? harnessModel(harness)
+  return {
+    harness,
+    ownAgent: Boolean(chat?.pickedHarness),
+    model: chat?.pickedModel ?? boardModel,
+    ownModel: Boolean(chat?.pickedModel),
+    boardHarness,
+    boardModel: agents.find((a) => a.name === boardHarness)?.model ?? harnessModel(boardHarness),
+    agents,
+    recent: recentModels(harness, boardModel),
+  }
+}
+
+/** Point one conversation at an agent. A transcript can't move to a CLI that never opened
+ *  its session, so this throws the conversation away and starts a fresh one on the agent
+ *  picked — `cleared` says whether there was anything to lose. `null` puts it back on the
+ *  board's agent, which is a switch like any other.
+ *
+ *  Refused while a reply is coming: the agent writing it is the one being taken away. */
+export function pickChatAgent(
+  cardId: ChatTarget,
+  harness: string | null,
+): { ok: true; cleared: boolean; harness: string } | { error: string } {
+  const agents = chatPickAgents()
+  const want = harness ?? chatAgent().name
+  if (!agents.some((a) => a.name === want)) {
+    return { error: `${harnessLabel(want)} can't hold a conversation. The agents that can: ${agents.map((a) => a.label).join(', ')}.` }
+  }
+  if (answering(cardId)) return { error: 'this conversation is still answering the last message.' }
+
+  const chat = readChat(cardId)
+  const own = harness === null ? undefined : want
+  // Nothing to throw away where the agent does not actually change — picking the one it is
+  // already running, or going back to the board while the board is on that same one. Only
+  // the pin moves, and the session it holds carries on.
+  if (chat && harnessOf(chat) === want) {
+    if (chat.pickedHarness !== own) {
+      chat.pickedHarness = own
+      chat.updatedAt = Date.now()
+      writeChat(chat)
+    }
+    return { ok: true, cleared: false, harness: want }
+  }
+  const had = Boolean(chat?.messages.length)
+  clearChat(cardId)
+  // Nothing of the old conversation carries over — not the model either: an id is one
+  // agent's vocabulary, and it would mean nothing to the one being switched to.
+  if (own) {
+    const now = Date.now()
+    writeChat({ cardId, harness: want, pickedHarness: own, messages: [], startedAt: now, updatedAt: now })
+  }
+  return { ok: true, cleared: had, harness: want }
+}
+
+/** Point one conversation at a model. The conversation carries on — the same session, the
+ *  same agent — and the next message runs on it. `null` puts it back on the board's setting
+ *  for the agent it is running.
+ *
+ *  Allowed while a reply is coming: it changes the next message, never the one in flight. */
+export function pickChatModel(cardId: ChatTarget, model: string | null): { ok: true } | { error: string } {
+  const want = (model ?? '').trim()
+  const chat = readChat(cardId)
+  const harness = harnessOf(chat)
+  const before = chat?.pickedModel ?? harnessModel(harness)
+  const after = model === null ? harnessModel(harness) : want
+  // Nothing to write down: a conversation that never existed, put back on the board's model
+  // it was already running.
+  if (!chat && !want) return { ok: true }
+  const now = Date.now()
+  const held: Chat = chat ?? {
+    cardId,
+    harness,
+    messages: [],
+    startedAt: now,
+    updatedAt: now,
+  }
+  held.pickedModel = model === null || !want ? undefined : want
+  // A mark only where there is a conversation to read it against, and only where the model
+  // actually moved — re-picking what is already running says nothing.
+  if (after !== before && held.messages.length) {
+    held.modelChanges = [...(held.modelChanges ?? []), { at: now, model: after }]
+  }
+  held.updatedAt = now
+  writeChat(held)
+  if (want) rememberModel(harness, want)
+  return { ok: true }
+}
+
+// ---- the ids typed lately --------------------------------------------------
+//
+// Model ids are free text, and stay free text: this is a shortcut back to one that has been
+// typed here before, never a list of what exists. It lives beside the transcripts, on this
+// machine and out of git, because what has been tried here is nobody else's business.
+
+const RECENT_FILE = (): string => path.join(CHATS_DIR, 'models.json')
+const RECENT_KEPT = 8
+
+function readRecent(): Record<string, string[]> {
+  try {
+    const data = JSON.parse(fs.readFileSync(RECENT_FILE(), 'utf8')) as Record<string, unknown>
+    const out: Record<string, string[]> = {}
+    for (const [harness, ids] of Object.entries(data)) {
+      if (Array.isArray(ids)) out[harness] = ids.filter((id): id is string => typeof id === 'string' && !!id)
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+function rememberModel(harness: string, model: string): void {
+  const all = readRecent()
+  all[harness] = [model, ...(all[harness] ?? []).filter((id) => id !== model)].slice(0, RECENT_KEPT)
+  try {
+    fs.mkdirSync(CHATS_DIR, { recursive: true })
+    fs.writeFileSync(RECENT_FILE(), JSON.stringify(all, null, 2) + '\n')
+  } catch {
+    // A shortcut that couldn't be written down is a shortcut the next pick offers one fewer
+    // of — never a reason to refuse the pick itself.
+  }
+}
+
+/** What has been typed for this agent lately, newest first, with the board's own model in
+ *  the list wherever it isn't already: it is where a conversation starts, so it is always
+ *  one of the ids worth one click. */
+function recentModels(harness: string, boardModel: string): string[] {
+  const ids = readRecent()[harness] ?? []
+  return boardModel && !ids.includes(boardModel) ? [...ids, boardModel] : ids
 }
 
 // ---- one at a time on one conversation -------------------------------------
@@ -251,7 +436,9 @@ export interface SendOptions {
 export function chatPrompt(
   cardId: ChatTarget,
   message: string,
-  opts: { resuming?: boolean; title?: string } = {},
+  /** `harness` is the agent this conversation picked for itself (#272), whose own syntax
+   *  the skill call follows; with none it is the board's. */
+  opts: { resuming?: boolean; title?: string; harness?: string } = {},
 ): string {
   const language = languageNote()
   if (opts.resuming) {
@@ -269,7 +456,7 @@ export function chatPrompt(
         : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
           `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
           `unless I name another.`
-  return skillPrompt([subject, language, message].filter(Boolean).join('\n\n'))
+  return skillPrompt([subject, language, message].filter(Boolean).join('\n\n'), opts.harness)
 }
 
 // The card's title, off its own file. Read here rather than through `titleOf` in
@@ -301,7 +488,7 @@ export async function sendChatMessage(
   const release = startAnswering(cardId)
   if (!release) return { error: 'this conversation is still answering the last message.' }
   try {
-    const agent = chatAgent()
+    const agent = chatAgent(chat?.pickedHarness)
     const now = Date.now()
     const held: Chat = chat ?? {
       cardId,
@@ -311,6 +498,10 @@ export async function sendChatMessage(
       updatedAt: now,
     }
     if (!held.resumeId) {
+      // No session yet, so nothing belongs to the agent this file last named: the one about
+      // to open one is the one it was held with. A model picked before the first message
+      // leaves such a file (#272), and it must not go stale against the board.
+      held.harness = agent.name
       const skill = ensureSkillInstalled(REPO_ROOT)
       if (!skill.ok) return { error: skill.error || 'the kanban skill could not be installed.' }
     }
@@ -321,16 +512,26 @@ export async function sendChatMessage(
     held.updatedAt = now
     writeChat(held)
 
+    // What this conversation picked for itself (#272): the agent it pins, and its model on
+    // top of that agent's own settings. Empty on a conversation that never picked, which is
+    // the board's answer and exactly what a run takes.
+    const own = {
+      ...(held.pickedHarness ? { pin: held.pickedHarness } : {}),
+      ...(held.pickedModel ? { settings: { model: held.pickedModel } } : {}),
+    }
     // A fresh session, or one more turn into the session the last message left open.
-    const plan = held.resumeId ? planResume(held.harness, held.resumeId) : planRun(randomUUID())
+    const plan = held.resumeId
+      ? planResume(held.harness, held.resumeId, REPO_ROOT, undefined, own)
+      : planRun(randomUUID(), REPO_ROOT, undefined, own)
     if (!plan) {
       return { error: `${agent.label} can't carry on a ${harnessLabel(held.harness)} conversation. Clear it to start fresh.` }
     }
-    const prompt = chatPrompt(cardId, text, { resuming: Boolean(held.resumeId), title: options.title })
+    const say = { title: options.title, harness: held.pickedHarness }
+    const prompt = chatPrompt(cardId, text, { ...say, resuming: Boolean(held.resumeId) })
     // And what to say if that session turns out to be gone (#395): the opening prompt, which
     // carries the skill and what this conversation is about. Without it the thread keeps a
     // dead id and fails every message after it until someone clears it.
-    const restart = held.resumeId ? chatPrompt(cardId, text, { title: options.title }) : undefined
+    const restart = held.resumeId ? chatPrompt(cardId, text, say) : undefined
 
     const asked = Date.now()
     const spoken = await speak({
@@ -352,14 +553,15 @@ export async function sendChatMessage(
         : 'the agent ended the turn without saying anything.'
       : spoken.error || 'the reply stopped before the agent had finished.'
 
+    const landed = Date.now()
     held.messages.push({
       role: 'agent',
       text: reply,
-      at: Date.now(),
+      at: landed,
       stoppedWhy,
       // The board's own clock for the time, and the connector's own numbers for the rest —
       // a turn that reported none carries none rather than a zero.
-      ms: Date.now() - asked,
+      ms: landed - asked,
       usage: spoken.usage,
       costUsd: spoken.costUsd,
     })
@@ -370,6 +572,20 @@ export async function sendChatMessage(
     // opened, so keeping its id is what stops the next message reseeding all over again.
     if (spoken.resumeId && (spoken.ok || reply || spoken.reseeded)) held.resumeId = spoken.resumeId
     if (spoken.model) held.model = spoken.model
+    // A model picked while this reply was coming (#272) reached the file after this turn
+    // read it, so it is taken back rather than written over — the box is not asked twice.
+    // Its mark goes AFTER the reply: what was running when the reply was asked for is what
+    // wrote it, and one mark stands for however many picks the wait held.
+    const since = readChat(cardId)
+    if (since) {
+      const kept = held.modelChanges?.length ?? 0
+      const marks = since.modelChanges ?? []
+      held.pickedModel = since.pickedModel
+      held.modelChanges =
+        marks.length > kept
+          ? [...marks.slice(0, kept), { at: landed + 1, model: marks[marks.length - 1]!.model }]
+          : since.modelChanges
+    }
     held.updatedAt = Date.now()
     writeChat(held)
     return { text: reply, stoppedWhy, model: spoken.model, chat: held }

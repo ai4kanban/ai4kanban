@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
-import { clearChatAction, readChatAction, sendChatAction, stopChatAction } from "@/app/actions";
+import {
+  clearChatAction,
+  pickChatAgentAction,
+  pickChatModelAction,
+  readChatAction,
+  sendChatAction,
+  stopChatAction,
+} from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRead } from "./chat";
 import { useMatches } from "./media";
@@ -98,6 +105,13 @@ export interface ChatRail {
    *  is already typed there and `force` was not given — what is typed is never
    *  overwritten, so the button asks once and calls again. */
   reword(text: string, force?: boolean): boolean;
+  /** Run this conversation on another agent (#272), or on the board's again with `null`.
+   *  It starts the conversation over — the caller asks first when there is something to
+   *  lose. */
+  pickAgent(harness: string | null): Promise<void>;
+  /** Run it on another model, or on the board's again with `null`. The conversation carries
+   *  on; the next message runs on it. */
+  pickModel(model: string | null): Promise<void>;
   clear(): Promise<void>;
   /** The panel the rail is drawn in, so the window can make it draggable. */
   panel: ReturnType<typeof usePanelRef>;
@@ -401,6 +415,35 @@ export function useChatRail({
     return true;
   }, []);
 
+  const pickAgent = useCallback(
+    async (harness: string | null) => {
+      setError(null);
+      const res = await pickChatAgentAction(cardId, harness);
+      if (!res.ok) setError(res.error ?? c.pickFailed);
+      // Only where the switch really threw a transcript away: what the rail was still
+      // holding of it goes too. A refused switch, and one to the agent it already runs,
+      // cost nothing — least of all what is typed in the box.
+      if (res.cleared) {
+        setHeld(null);
+        setDraft("");
+        setWalked(null);
+        seen.mark(0);
+      }
+      kickRef.current();
+    },
+    [cardId, seen, c],
+  );
+
+  const pickModel = useCallback(
+    async (model: string | null) => {
+      setError(null);
+      const res = await pickChatModelAction(cardId, model);
+      if (!res.ok) setError(res.error ?? c.pickFailed);
+      kickRef.current();
+    },
+    [cardId, c],
+  );
+
   const clear = useCallback(async () => {
     setError(null);
     const res = await clearChatAction(cardId);
@@ -432,6 +475,8 @@ export function useChatRail({
     send,
     resend,
     reword,
+    pickAgent,
+    pickModel,
     clear,
     panel,
     onLayoutChanged,

@@ -42,6 +42,7 @@ const en: MessagesCopy = {
     busy: "this conversation is still answering the last message.",
     sendFailed: "the message could not be sent.",
     clearFailed: "the conversation could not be cleared.",
+    pickFailed: "what this conversation runs on could not be changed.",
   },
   mockup: {
     notAMockup: (src) => `${src} — a mockup is a .tsx, .html or .txt file under docs/kanban/.mockups/`,

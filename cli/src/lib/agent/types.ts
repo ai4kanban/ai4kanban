@@ -538,9 +538,62 @@ export interface Chat {
   resumeId?: string
   /** The model the last reply was written by, as the agent named it. */
   model?: string
+  /** The agent this conversation was picked to run on (#272). Absent means it follows the
+   *  board's, and is refused when that changes to another agent; set means it goes on
+   *  running this one whatever the board is switched to. */
+  pickedHarness?: string
+  /** The model this conversation was picked to run on (#272), on top of that agent's own
+   *  settings. Absent means the board's setting for it. */
+  pickedModel?: string
+  /** Where the model changed mid-conversation (#272), so a reply can be read against the
+   *  model that wrote it. */
+  modelChanges?: ModelChange[]
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number
+}
+
+/** One point in a conversation where the model changed. `model` is the id in effect from
+ *  there on; empty means the agent's own default. */
+export interface ModelChange {
+  at: number
+  model: string
+}
+
+/** One agent a conversation can be pointed at (#272) — every agent that can hold one, and
+ *  what the board already has it set to. */
+export interface ChatPickAgent {
+  name: string
+  label: string
+  icon: string
+  /** It takes a model setting the board can fill in. False for an agent that declares
+   *  none, and for one whose `command` already names the flag — either way there is no
+   *  model box to draw. */
+  takesModel: boolean
+  /** The board's own model for this agent, which a conversation on it starts from. Empty
+   *  is the agent's own default. */
+  model: string
+  /** Its CLI is on this board's PATH. */
+  installed: boolean
+}
+
+/** What one conversation runs on, and what it could run on instead (#272). */
+export interface ChatPick {
+  /** The agent it runs — its own pick, or the board's. */
+  harness: string
+  /** It picked that agent itself rather than following the board. */
+  ownAgent: boolean
+  /** The model it runs on: its own pick, the board's setting for that agent, or empty for
+   *  the agent's own default. */
+  model: string
+  ownModel: boolean
+  /** The board's own pair — what one click puts a conversation back to. */
+  boardHarness: string
+  boardModel: string
+  /** Every agent that can hold a conversation, in the order the board lists them. */
+  agents: ChatPickAgent[]
+  /** Model ids typed for the agent this conversation runs, newest first. */
+  recent: string[]
 }
 
 /** Which agent holds this board's conversations, and whether it can hold one at all. */
@@ -572,6 +625,8 @@ export interface ChatView {
   /** Why a message can't be sent right now, when something is in the way: the agent can't
    *  hold a conversation, this one belongs to another agent, or a reply is still coming. */
   blocked?: string
+  /** What this conversation runs on, and what it could run on instead (#272). */
+  pick: ChatPick
 }
 
 /** What sending one message came back with. */

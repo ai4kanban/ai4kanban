@@ -96,6 +96,20 @@ the refusal names the card and what that run is doing. The chat itself is not a 
 no runs panel and holds no card. Each conversation lives on your machine under
 `docs/kanban/.chats/`, out of git — `akb chat 241 --clear` starts it fresh.
 
+The agent and the model are one conversation's own. Both start on the board's; what you pick
+sticks to that conversation until you change it, and nothing about the board or any other chat
+moves — so a cheap model can take the quick questions while the expensive one takes the
+thinking.
+
+```bash
+akb chat 241 --model claude-opus-5   # this conversation, that model. "" for the board's
+akb chat 241 --agent codex           # another agent — starts the conversation over
+```
+
+Changing the model carries the same session on, and the transcript marks where it changed.
+Changing the agent cannot: a session belongs to the CLI that opened it, so the old
+conversation goes. In the app both sit on the message box's bottom row, beside Send.
+
 ## Plan a release
 
 A release is a version you're planning — call it `v1`, `0.5.0`, or `august`; the board never
@@ -417,6 +431,8 @@ akb chat "<message>"              # talk about the board — and change it
 akb chat <id> "<message>"         # talk about one card
 akb chat [<id>]                   # the conversation so far
 akb chat [<id>] --clear           # forget it and start fresh
+akb chat [<id>] --model <id>      # run this conversation on that model
+akb chat [<id>] --agent <name>    # …and on that agent — starts it over
 akb board peek                    # next free id
 akb board metrics                 # the daily CSV
 akb board help                    # full usage

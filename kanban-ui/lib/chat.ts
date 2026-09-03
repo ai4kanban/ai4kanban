@@ -2,7 +2,7 @@ import { getCopy } from "@/i18n";
 import { cardStillThere } from "./board";
 import { boardRules, whyNoRules } from "./cli";
 import { machineCopy } from "./language";
-import { DEFAULT_LANGUAGE, type Chat, type ChatTarget } from "./types";
+import { DEFAULT_LANGUAGE, type Chat, type ChatPick, type ChatTarget } from "./types";
 
 // --- the conversation, through the CLI (#242) --------------------------------
 // The chat itself is the command's (cli/src/lib/agent/chat.ts): the transcript file, the
@@ -61,6 +61,9 @@ export interface ChatRead {
   /** The last send that never got off the ground, in the agent's own words. Cleared by the
    *  next message. */
   failed?: string;
+  /** What this conversation runs on and what it could run on instead (#272). Null on rules
+   *  too old to answer, and the rail then draws no picker. */
+  pick: ChatPick | null;
 }
 
 /** The chat a window is showing: the board's, one card's, or the first run's (#280). */
@@ -113,6 +116,7 @@ const NOTHING: ChatRead = {
   agent: "",
   able: [],
   missing: false,
+  pick: null,
 };
 
 /** One conversation as the window draws it. Never throws: a board with no rules to read is
@@ -152,7 +156,47 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
     missing: agentMissing(agent),
     blocked: stillBlocked(view, agent.options),
     failed: failed.get(keyOf(cardId)),
+    // Absent on rules older than the pick — the rail then draws the box it always drew.
+    pick: view.pick ?? null,
   };
+}
+
+/** Point this conversation at an agent (#272). It cannot be carried across, so this throws
+ *  the transcript away and opens a fresh one — the rail says so before it asks. */
+export async function pickChatAgent(
+  cardId: ChatTarget,
+  harness: string | null,
+): Promise<{ ok: boolean; cleared?: boolean; error?: string }> {
+  let rules;
+  try {
+    rules = await boardRules();
+  } catch (e) {
+    return { ok: false, error: whyNoRules(e) };
+  }
+  if (!rules.pickChatAgent) return { ok: false, error: TOO_OLD };
+  const picked = rules.pickChatAgent(cardId, harness);
+  if ("error" in picked) return { ok: false, error: picked.error };
+  flights().failed.delete(keyOf(cardId));
+  // `cleared` says whether there was a transcript to lose — a switch to the agent it
+  // already runs takes nothing away, and neither does one it refused.
+  return { ok: true, cleared: picked.cleared };
+}
+
+/** Point this conversation at a model. The same conversation carries on; the next message
+ *  runs on it. */
+export async function pickChatModel(
+  cardId: ChatTarget,
+  model: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  let rules;
+  try {
+    rules = await boardRules();
+  } catch (e) {
+    return { ok: false, error: whyNoRules(e) };
+  }
+  if (!rules.pickChatModel) return { ok: false, error: TOO_OLD };
+  const picked = rules.pickChatModel(cardId, model);
+  return "error" in picked ? { ok: false, error: picked.error } : { ok: true };
 }
 
 /** Why the box is shut whatever the conversation is doing. "Still answering" is not one of
@@ -165,12 +209,22 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
  *  runtimes is this computer's binding rather than the board's own name (#343), and it is
  *  that one the board holds a conversation against. */
 function stillBlocked(
-  view: { canChat: boolean; chat: { harness: string } | null; agent: string; blocked?: string },
+  view: {
+    canChat: boolean;
+    chat: { harness: string; pickedHarness?: string; messages: unknown[] } | null;
+    agent: string;
+    blocked?: string;
+  },
   options: { name: string; label: string }[],
 ): string | undefined {
   if (!view.canChat) return view.blocked;
-  const harness = view.chat?.harness;
-  if (harness === undefined) return undefined;
+  // A conversation that picked its own agent (#272) is already running it, whatever the
+  // board is set to — there is nothing here for the board's own agent to disagree with.
+  if (view.chat?.pickedHarness) return undefined;
+  // And a transcript with nothing in it was held with nobody — picking a model before the
+  // first message leaves one.
+  if (!view.chat?.messages.length) return undefined;
+  const harness = view.chat.harness;
   const held = options.find((o) => o.name === harness)?.label ?? harness;
   return held === view.agent ? undefined : view.blocked;
 }

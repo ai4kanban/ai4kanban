@@ -220,8 +220,29 @@ written, and where it names a card the name is a link to that card's page.
   there is something to read.
 - **It keeps.** The exchange is still there after the app is closed and reopened, and it is per
   project. The bin in the chat's own header clears it, and asks once before it does.
+- **Pick the agent and the model for this conversation alone.** On the box's own bottom row,
+  beside Send: the agent as its mark, and the model beside it. Both start on the board's, and
+  what you pick sticks to this conversation until you change it — the board's settings are
+  untouched, every run still takes them, and another chat is unaffected. The ↩ beside them is
+  there only while one of them differs, and puts the conversation back on the board's pair.
+  - **The model is typed in**, the way the Harness section takes one, because ids change
+    between agent releases and a list of ours would go stale. The caret offers what you have
+    typed for that agent lately, the board's own among them; empty runs the agent's default. A
+    wrong id fails in the conversation, in the agent's own words, and the box keeps what you
+    typed. Changing it carries the same conversation on — the next message runs on it, and the
+    transcript marks where it changed, so a reply is read against the model that wrote it. An
+    agent with no model setting shows no box.
+  - **Switching the agent starts the conversation over**, because a transcript cannot move to
+    a CLI that never opened its session. The list says so and asks once, the way the bin does;
+    a conversation with nothing said in it just switches. It waits while a reply is coming.
+    Only the agents that can hold a conversation are offered, and one whose CLI isn't here
+    still can be — it reads **not installed**, and the message is what fails.
+  - **A conversation that picked its own agent keeps it** when you change the board's, rather
+    than being refused. One that never picked still follows the board, and is still told to
+    clear itself when the board moves to another agent.
 - **It is the same conversation as `akb chat`.** What you say here and what you say in a
-  terminal land in the same place.
+  terminal land in the same place, and the pick travels with it — `akb chat --model <id>` and
+  `akb chat --agent <name>` set the same thing from a terminal.
 
 On a window too narrow to hold the board between two rails, the chat covers the board instead
 of squeezing it.
@@ -1155,7 +1176,8 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
 - **Endpoint base URL** (Claude Code, Codex and Kimi Code) — the address your gateway answers on.
   Required before the endpoint pick will save.
 - **Model** — the id that agent runs with, passed as `--model`. Leave it empty for the agent's own
-  default; the board never invents an id. Two agents write it differently: **OpenCode** takes
+  default; the board never invents an id. This is the board's: every run takes it, and it is where
+  each chat starts — a single conversation can run on another without touching it (see **Chat**). Two agents write it differently: **OpenCode** takes
   `provider/model` (`anthropic/claude-opus-5`), because it reaches every provider and the name alone
   wouldn't say which; **Cursor** carries the thinking level inside the id, `claude-opus-4-8[effort=high]`,
   so it has no reasoning box. **DeepSeek Harness** and **ZCode** choose the model as the run's

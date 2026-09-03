@@ -54,6 +54,18 @@ const zh: ChatCopy = {
   stop: "停止",
   sendingWaits: "发送需等回复结束",
   sendingWaitsEsc: "发送需等回复结束 · Esc 停止回复",
+  agentPick: "这段对话使用的智能体",
+  agentPickHint: (agent) => `正在使用 ${agent}`,
+  modelPick: "这段对话使用的模型",
+  modelDefault: "智能体的默认模型",
+  boardsOwn: "看板的",
+  notInstalled: "未安装",
+  toBoard: (agent, model) => `回到看板的 ${agent} · ${model}`,
+  usedLately: "最近用过",
+  switchCost: "切换会开启新对话，当前这段将被丢弃。",
+  switchConfirm: "重新开始",
+  switchWaits: "切换需等回复结束",
+  modelChanged: (model) => `模型 → ${model}`,
   keys: "Enter 发送 · Shift-Enter 换行",
 };
 

@@ -17,12 +17,24 @@
 // reply is written on the server (lib/chat.ts, lib/chat-rail.ts), so folding the rail or
 // walking to another card never cuts a reply off, and closing the app never loses one.
 
-import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  createContext,
+  Fragment,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   FiArrowDown,
   FiCheck,
+  FiChevronDown,
   FiChevronRight,
   FiCopy,
+  FiCornerUpLeft,
   FiEdit3,
   FiMessageSquare,
   FiRefreshCw,
@@ -34,12 +46,21 @@ import {
 import type { ChatCopy } from "@/i18n/chat/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
-import type { ChatMessage, TokenUsage } from "@/lib/types";
+import type { ChatMessage, ChatPick, ModelChange, TokenUsage } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
+import { AgentMark } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 /** How long the clear button waits for its second click before going back to being a
  *  trash can. One click never throws a conversation away. */
@@ -129,6 +150,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
       <Head rail={rail} />
       <Transcript
         messages={messages}
+        changes={read?.chat?.modelChanges}
         live={rail.live}
         liveSince={read?.liveSince ?? null}
         stopped={rail.stopped}
@@ -239,6 +261,7 @@ function IconButton({ label, onClick, children }: { label: string; onClick(): vo
  *  someone reading an older answer away from it mid-sentence. */
 function Transcript({
   messages,
+  changes,
   live,
   liveSince,
   stopped,
@@ -248,6 +271,8 @@ function Transcript({
   empty,
 }: {
   messages: ChatMessage[];
+  /** Where the model changed (#272), woven in by when it happened. */
+  changes?: ModelChange[];
   live: string | null;
   /** When the reply in flight was sent, so its fold can count the seconds up. */
   liveSince: number | null;
@@ -303,14 +328,21 @@ function Transcript({
       ) : (
         <div className="flex flex-col gap-2 pb-2">
           {messages.map((m, i) => (
-            <Said
-              key={i}
-              message={m}
-              sent={m.role === "agent" ? sentBefore(messages, i) : null}
-              canSend={canSend}
-              onResend={onResend}
-              onReword={onReword}
-            />
+            <Fragment key={i}>
+              {marksBefore(changes, messages, i).map((mark) => (
+                <Changed key={`m${mark.at}`} model={mark.model} />
+              ))}
+              <Said
+                message={m}
+                sent={m.role === "agent" ? sentBefore(messages, i) : null}
+                canSend={canSend}
+                onResend={onResend}
+                onReword={onReword}
+              />
+            </Fragment>
+          ))}
+          {marksBefore(changes, messages, messages.length).map((mark) => (
+            <Changed key={`m${mark.at}`} model={mark.model} />
           ))}
           {live !== null && <Writing text={live} since={liveSince} />}
           {/* A stopped reply reads as a finished one from the click: no pulse, no
@@ -709,6 +741,32 @@ function transcriptOf(messages: ChatMessage[], c: ChatCopy): string {
   return said.join("\n\n");
 }
 
+/** Where the model changed, drawn in the conversation so a reply is read against what
+ *  wrote it. Empty is the agent's own default — the board never invents an id, and neither
+ *  does this line. */
+function Changed({ model }: { model: string }) {
+  const c = useCopy().chat;
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="h-px flex-1" style={{ background: HAIRLINE }} />
+      <span className="shrink-0 font-mono text-[10.5px] text-nb-ink-soft">
+        {c.modelChanged(model || c.modelDefault)}
+      </span>
+      <span className="h-px flex-1" style={{ background: HAIRLINE }} />
+    </div>
+  );
+}
+
+/** The marks that belong just above message `i` — the ones made after the message before it
+ *  and no later than this one. `i` past the end takes whatever is left, which is a model
+ *  changed since the last reply and not yet sent anything. */
+function marksBefore(changes: ModelChange[] | undefined, messages: ChatMessage[], i: number): ModelChange[] {
+  if (!changes?.length) return [];
+  const after = i === 0 ? -Infinity : (messages[i - 1]?.at ?? -Infinity);
+  const upTo = i < messages.length ? (messages[i]?.at ?? Infinity) : Infinity;
+  return changes.filter((m) => m.at > after && m.at <= upTo);
+}
+
 /** A reply that stopped part way. What arrived is kept above it — this only says so. */
 function Stopped({ why }: { why: string }) {
   const c = useCopy().chat;
@@ -760,7 +818,10 @@ function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string 
  *
  *  It stays live while a reply is coming (#268), so a thought that arrives mid-reply goes
  *  into the box instead of being held in the user's head. Only sending waits — nothing
- *  leaves the box until the user presses send. */
+ *  leaves the box until the user presses send.
+ *
+ *  One surface (#272): what is typed, then the row that says what will answer it and the
+ *  button that sends it. Nothing rules it off from the conversation above. */
 function Composer({
   rail,
   disabled,
@@ -778,60 +839,309 @@ function Composer({
   const empty = !rail.draft.trim();
   const sends = !disabled && !answering && !empty;
   const box = useGrow(rail.draft);
+  const pick = rail.read?.pick ?? null;
   // On a card's page the box asks about that card, so the words in it never read as an
   // invitation to talk about the whole board.
   const ask = rail.cardId === null ? c.ask : c.askCard(rail.cardId);
   return (
-    <div className="shrink-0 px-2.5 pt-1.5" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
-      <textarea
-        ref={box}
-        // The one text box Esc is not taken in: it is where the hand is while a reply is
-        // coming, and Esc there ends the reply (lib/chat-rail.ts).
-        data-chat-box=""
-        value={rail.draft}
-        onChange={(e) => rail.setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            if (sends) void rail.send();
-            return;
-          }
-          // An empty box walks back through what this conversation has sent; a typed one
-          // leaves the arrows to the caret (lib/chat-rail.ts).
-          const arrow = e.key === "ArrowUp" || e.key === "ArrowDown";
-          if (arrow && rail.recall(e.key === "ArrowUp")) e.preventDefault();
-        }}
-        rows={MIN_ROWS}
-        disabled={disabled}
-        placeholder={ask}
-        aria-label={c.message}
-        className="w-full resize-none rounded-[8px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
-      />
-      <div className="mt-1.5 flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-[11px] text-nb-ink-soft">
-          {/* One short line: the one thing that matters right then. Esc only where it
-              reaches — a terminal's reply is ended in that terminal. */}
-          {answering ? (ours ? c.sendingWaitsEsc : c.sendingWaits) : c.keys}
-        </span>
-        {/* One button in this corner, not two: on a reply this server owns it IS Stop, and
-            on one a terminal is writing it is a Send that has to wait for it. */}
-        <Button
-          size="xs"
-          disabled={ours ? false : answering || disabled || empty}
-          onClick={() => void (ours ? rail.stop() : rail.send())}
-          aria-label={ours ? c.stop : c.send}
-        >
-          {ours ? (
-            <FiSquare className="text-[13px]" aria-hidden />
-          ) : (
-            <FiSend className="text-[13px]" aria-hidden />
-          )}
-          <span className="sr-only">{ours ? c.stop : c.send}</span>
-        </Button>
+    <div className="relative shrink-0 px-2.5 pb-0.5 pt-1.5">
+      <div className="rounded-[12px] bg-nb-paper p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus-within:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]">
+        <textarea
+          ref={box}
+          // The one text box Esc is not taken in: it is where the hand is while a reply is
+          // coming, and Esc there ends the reply (lib/chat-rail.ts).
+          data-chat-box=""
+          value={rail.draft}
+          onChange={(e) => rail.setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (sends) void rail.send();
+              return;
+            }
+            // An empty box walks back through what this conversation has sent; a typed one
+            // leaves the arrows to the caret (lib/chat-rail.ts).
+            const arrow = e.key === "ArrowUp" || e.key === "ArrowDown";
+            if (arrow && rail.recall(e.key === "ArrowUp")) e.preventDefault();
+          }}
+          rows={MIN_ROWS}
+          disabled={disabled}
+          placeholder={ask}
+          aria-label={c.message}
+          className="w-full resize-none bg-transparent px-1.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60"
+        />
+        <div className="flex items-center gap-1.5">
+          {/* What will answer it, and the way back to the board's pair — this conversation's
+              alone (#272). Nothing here while the rules are too old to answer. */}
+          {pick && <Pick rail={rail} pick={pick} answering={answering} />}
+          {/* One button in this corner, not two: on a reply this server owns it IS Stop, and
+              on one a terminal is writing it is a Send that has to wait for it. */}
+          <Button
+            className="ml-auto"
+            size="xs"
+            disabled={ours ? false : answering || disabled || empty}
+            onClick={() => void (ours ? rail.stop() : rail.send())}
+            aria-label={ours ? c.stop : c.send}
+          >
+            {ours ? (
+              <FiSquare className="text-[13px]" aria-hidden />
+            ) : (
+              <FiSend className="text-[13px]" aria-hidden />
+            )}
+            <span className="sr-only">{ours ? c.stop : c.send}</span>
+          </Button>
+        </div>
       </div>
+      <p className="mt-1 truncate px-1 text-[11px] text-nb-ink-soft">
+        {/* One short line: the one thing that matters right then. Esc only where it
+            reaches — a terminal's reply is ended in that terminal. */}
+        {answering ? (ours ? c.sendingWaitsEsc : c.sendingWaits) : c.keys}
+      </p>
     </div>
   );
 }
+
+/** What this conversation runs on (#272), on the box's own bottom row: the agent as its
+ *  mark, the model beside it, and the way back to the board's pair. It is this
+ *  conversation's alone — the board's settings are untouched and no other chat moves.
+ *
+ *  Everything offered comes from the command: the agents are the ones that can hold a
+ *  conversation, and the model box is the picked agent's own setting. */
+function Pick({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answering: boolean }) {
+  const running = pick.agents.find((a) => a.name === pick.harness);
+  // The board's agent is somewhere to go back to only while it can hold a conversation at
+  // all; where it can't, only the model can be put back.
+  const canGoBack = pick.ownModel || (pick.ownAgent && pick.agents.some((a) => a.name === pick.boardHarness));
+  return (
+    <>
+      <AgentPick rail={rail} pick={pick} label={running?.label ?? pick.harness} answering={answering} />
+      {/* No box where the agent has no model setting to fill in. */}
+      {running?.takesModel && <ModelPick rail={rail} pick={pick} agentModel={running.model} />}
+      {canGoBack && <ToBoard rail={rail} pick={pick} answering={answering} />}
+    </>
+  );
+}
+
+/** The agent: its mark and a caret, and that is the whole control. Only the open list
+ *  spells the harness out, which keeps the row short enough for the model beside it. */
+function AgentPick({
+  rail,
+  pick,
+  label,
+  answering,
+}: {
+  rail: ChatRail;
+  pick: ChatPick;
+  label: string;
+  answering: boolean;
+}) {
+  const c = useCopy().chat;
+  const [open, setOpen] = useState(false);
+  // Which row has been pressed once — the bin's ask-once, per row, because a switch throws
+  // the conversation away. Forgotten whenever the list closes.
+  const [confirming, setConfirming] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) setConfirming(null);
+  }, [open]);
+  const has = (rail.read?.chat?.messages.length ?? 0) > 0;
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={c.agentPickHint(label)}
+          aria-label={c.agentPick}
+          className={`inline-flex h-[28px] shrink-0 cursor-pointer items-center gap-1 rounded-[8px] pl-1.5 pr-1 ${CHIP}`}
+        >
+          <AgentMark src={pick.agents.find((a) => a.name === pick.harness)?.icon ?? ""} size={16} name={label} />
+          <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="start" className="min-w-[210px]">
+        {pick.agents.map((agent) => (
+          <DropdownMenuItem
+            key={agent.name}
+            className="gap-2"
+            disabled={answering && agent.name !== pick.harness}
+            onSelect={(e) => {
+              if (agent.name === pick.harness) return;
+              if (has && confirming !== agent.name) {
+                // Keep the list open for the second press.
+                e.preventDefault();
+                setConfirming(agent.name);
+                return;
+              }
+              // The board's own agent is picked by following the board again, not by
+              // pinning the same name — then a board switched later carries this chat too.
+              void rail.pickAgent(agent.name === pick.boardHarness ? null : agent.name);
+            }}
+          >
+            <AgentMark src={agent.icon} size={15} />
+            <span className="min-w-0 flex-1 truncate">{agent.label}</span>
+            {confirming === agent.name ? (
+              <span className="shrink-0 text-[10.5px] font-[700] uppercase tracking-[0.04em] text-nb-accent">
+                {c.switchConfirm}
+              </span>
+            ) : (
+              <span className="shrink-0 text-[10.5px] font-[400] text-nb-ink-soft">
+                {!agent.installed ? c.notInstalled : agent.name === pick.boardHarness ? c.boardsOwn : ""}
+              </span>
+            )}
+            <span className="w-[13px] shrink-0">
+              {agent.name === pick.harness && <FiCheck size={12} className="text-nb-accent" aria-hidden />}
+            </span>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <p className="px-2.5 py-1 text-[10.5px] leading-[1.4] text-nb-ink-soft">
+          {answering ? c.switchWaits : c.switchCost}
+        </p>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** The model beside it: free text, because ids change between agent releases and a list of
+ *  our own would go stale. The caret offers what has been typed for this agent lately —
+ *  a shortcut, never a list of what exists. */
+function ModelPick({ rail, pick, agentModel }: { rail: ChatRail; pick: ChatPick; agentModel: string }) {
+  const c = useCopy().chat;
+  const [typed, setTyped] = useState(pick.model);
+  const [editing, setEditing] = useState(false);
+  // A pick just made, and what the server was still saying when it was made. The polls in
+  // between are behind rather than an answer, so the box holds what was typed until the
+  // server says something else — and then follows it, whatever it says.
+  const asked = useRef<string | null>(null);
+  if (asked.current !== null && asked.current !== pick.model) asked.current = null;
+  // Otherwise the box follows the server: a pick made in a terminal shows up here, and what
+  // is being typed is never written over.
+  if (!editing && asked.current === null && typed !== pick.model) setTyped(pick.model);
+
+  const commit = (value: string) => {
+    const next = value.trim();
+    setTyped(next);
+    if (next === pick.model) return;
+    asked.current = pick.model;
+    void rail.pickModel(next || null);
+  };
+
+  return (
+    <span className={`inline-flex h-[28px] min-w-0 flex-1 items-center rounded-[8px] pl-2 pr-0.5 ${CHIP}`}>
+      <input
+        value={typed}
+        onChange={(e) => setTyped(e.target.value)}
+        onFocus={() => setEditing(true)}
+        onBlur={(e) => {
+          setEditing(false);
+          commit(e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        }}
+        spellCheck={false}
+        placeholder={c.modelDefault}
+        aria-label={c.modelPick}
+        title={c.modelPick}
+        className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-nb-ink placeholder:font-sans placeholder:text-nb-ink-soft/70 focus:outline-none"
+      />
+      {pick.recent.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              title={c.usedLately}
+              aria-label={c.usedLately}
+              className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[6px] hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+            >
+              <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="end" className="min-w-[210px]">
+            <DropdownMenuLabel>{c.usedLately}</DropdownMenuLabel>
+            {pick.recent.map((id) => (
+              <DropdownMenuItem
+                key={id}
+                className="gap-2"
+                onSelect={() => {
+                  setTyped(id);
+                  commit(id);
+                }}
+              >
+                <span className="w-[13px] shrink-0">
+                  {id === pick.model && <FiCheck size={12} className="text-nb-accent" aria-hidden />}
+                </span>
+                <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] font-[400]">{id}</span>
+                {id === agentModel && (
+                  <span className="shrink-0 text-[10.5px] font-[400] text-nb-ink-soft">{c.boardsOwn}</span>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </span>
+  );
+}
+
+/** The way back to the board's pair, there only while one of them differs. Free when the
+ *  model is what differs; an agent switch like any other when the agent is. */
+function ToBoard({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answering: boolean }) {
+  const c = useCopy().chat;
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => setConfirming(false), CONFIRM_MS);
+    return () => clearTimeout(timer);
+  }, [confirming]);
+  const board = pick.agents.find((a) => a.name === pick.boardHarness);
+  const label = c.toBoard(board?.label ?? pick.boardHarness, pick.boardModel || c.modelDefault);
+  const has = (rail.read?.chat?.messages.length ?? 0) > 0;
+  const switches = pick.ownAgent;
+
+  if (confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setConfirming(false);
+          void rail.pickAgent(null);
+        }}
+        title={c.switchCost}
+        className="h-[28px] shrink-0 cursor-pointer rounded-[7px] px-1.5 text-[10.5px] font-[700] uppercase tracking-[0.04em]"
+        style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+      >
+        {c.switchConfirm}
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      title={switches && answering ? c.switchWaits : label}
+      aria-label={label}
+      disabled={switches && answering}
+      onClick={() => {
+        if (!switches) {
+          void rail.pickModel(null);
+          return;
+        }
+        if (has) setConfirming(true);
+        else void rail.pickAgent(null);
+      }}
+      className="grid size-[28px] shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink opacity-55 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] hover:opacity-100 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
+    >
+      <FiCornerUpLeft size={14} aria-hidden />
+    </button>
+  );
+}
+
+/** The frame the two picks wear inside the box — a hairline ring, so they read as parts of
+ *  the box rather than buttons stuck on it. */
+const CHIP = "shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_22%,transparent)]";
 
 /** Grow the box with what is typed, and scroll past the ceiling rather than pushing the
  *  conversation off the screen. */

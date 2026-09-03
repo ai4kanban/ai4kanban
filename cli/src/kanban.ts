@@ -90,7 +90,14 @@ export { readFlowRules, setFlowRule } from './lib/view/api'
 // drives it through these — `sendChatMessage` streams the reply back through `onText`, so
 // a chat in the app and a chat in a terminal are the same conversation, held by the same
 // code, in the same file. Nothing here touches the run record: a conversation is not a run.
-export { clearChat, readChat, readChatView, sendChatMessage } from './lib/agent/chat'
+export {
+  clearChat,
+  pickChatAgent,
+  pickChatModel,
+  readChat,
+  readChatView,
+  sendChatMessage,
+} from './lib/agent/chat'
 export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
 
 // The board's first-run conversation (#280): the opening turn the board speaks itself, and

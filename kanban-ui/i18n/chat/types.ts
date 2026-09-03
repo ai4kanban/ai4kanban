@@ -67,5 +67,27 @@ export type ChatCopy = {
    *  the window can reach. */
   sendingWaits: string;
   sendingWaitsEsc: string;
+  /** What this conversation runs on (#272) — the picker on the box's own bottom row. */
+  agentPick: string;
+  agentPickHint: (agent: string) => string;
+  modelPick: string;
+  /** The model box with nothing in it: the agent runs on whatever it runs on by default. */
+  modelDefault: string;
+  /** Marks the board's own agent and model in the two lists. */
+  boardsOwn: string;
+  /** An agent whose CLI isn't on this machine. */
+  notInstalled: string;
+  /** The way back to the board's pair, shown only while one of them differs. */
+  toBoard: (agent: string, model: string) => string;
+  /** Above the ids typed for this agent lately. */
+  usedLately: string;
+  /** What switching the agent costs, under the list — and the ask-once the button becomes
+   *  when there is a conversation to lose. */
+  switchCost: string;
+  switchConfirm: string;
+  /** Refused while a reply is coming, in the words the box already uses. */
+  switchWaits: string;
+  /** Where the model changed, drawn in the conversation. */
+  modelChanged: (model: string) => string;
   keys: string;
 };

@@ -59,6 +59,18 @@ const en: ChatCopy = {
   stop: "Stop",
   sendingWaits: "Sending waits for the reply",
   sendingWaitsEsc: "Sending waits for the reply · Esc stops it",
+  agentPick: "The agent this conversation runs",
+  agentPickHint: (agent) => `Running ${agent}`,
+  modelPick: "The model this conversation runs",
+  modelDefault: "the agent's default",
+  boardsOwn: "the board's",
+  notInstalled: "not installed",
+  toBoard: (agent, model) => `Back to the board's ${agent} · ${model}`,
+  usedLately: "Used lately",
+  switchCost: "Switching starts a new conversation — this one goes.",
+  switchConfirm: "Start over",
+  switchWaits: "Switching waits for the reply",
+  modelChanged: (model) => `model → ${model}`,
   keys: "Enter sends · Shift-Enter starts a line",
 };
 

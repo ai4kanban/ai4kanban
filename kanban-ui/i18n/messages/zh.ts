@@ -40,6 +40,7 @@ const zh: MessagesCopy = {
     busy: "这段对话还在回复上一条消息。",
     sendFailed: "消息发送失败。",
     clearFailed: "对话未能清空。",
+    pickFailed: "未能更改此对话使用的智能体或模型。",
   },
   mockup: {
     notAMockup: (src) => `${src}——原型图应是 docs/kanban/.mockups/ 下的 .tsx、.html 或 .txt 文件`,

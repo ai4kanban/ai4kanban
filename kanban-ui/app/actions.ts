@@ -32,7 +32,7 @@ import {
   readSetupState,
   searchCards,
 } from "@/lib/board";
-import { type ChatRead, clearChat, readChat, sendChat, stopChat } from "@/lib/chat";
+import { type ChatRead, clearChat, pickChatAgent, pickChatModel, readChat, sendChat, stopChat } from "@/lib/chat";
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
 import {
   cloudAccount,
@@ -400,6 +400,7 @@ export async function readChatAction(cardId: number | null): Promise<ChatRead> {
       agent: "",
       able: [],
       missing: false,
+      pick: null,
       blocked: "that is not a card on this board.",
     };
   }
@@ -427,6 +428,34 @@ export async function clearChatAction(cardId: number | null): Promise<{ ok: bool
   const target = chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   return clearChat(target);
+}
+
+/** Point this conversation at an agent (#272) — `null` for the board's. It starts the
+ *  conversation over, because the session belongs to the agent that opened it. */
+export async function pickChatAgentAction(
+  cardId: number | null,
+  harness: string | null,
+): Promise<{ ok: boolean; cleared?: boolean; error?: string }> {
+  const target = chatTarget(cardId);
+  if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  if (harness !== null && typeof harness !== "string") {
+    return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  }
+  return pickChatAgent(target, harness);
+}
+
+/** Point this conversation at a model — `null` for the board's. The same conversation
+ *  carries on and the next message runs on it. */
+export async function pickChatModelAction(
+  cardId: number | null,
+  model: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const target = chatTarget(cardId);
+  if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  if (model !== null && typeof model !== "string") {
+    return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  }
+  return pickChatModel(target, model === null ? null : model.trim());
 }
 
 // ---- the first run's own conversation (#280) --------------------------------
