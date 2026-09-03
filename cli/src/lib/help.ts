@@ -296,13 +296,13 @@ export const MOVES: Move[] = [
   {
     name: 'spec-write',
     group: 'Cards',
-    brief: [['spec-write <id> <agent>', "write a spec agent's own section onto the card:\n--file <path>, or --text \"..\"; --half human|agent"]],
+    brief: [['spec-write <id> <skill>', "write a spec skill's own section onto the card:\n--file <path>, or --text \"..\"; --half human|agent"]],
     legacy: [
       [
-        'spec-write <id> <agent> --file <path>',
+        'spec-write <id> <skill> --file <path>',
         [
-          "put a spec agent's answer on the card as one section headed",
-          '`## By `<agent>` agent`, and change nothing else. --file <path>',
+          "put a spec skill's answer on the card as one section headed",
+          '`## By `<skill>` skill`, and change nothing else. --file <path>',
           'is the answer (markdown, written to a file first); --text ".."',
           'for a one-liner. Run again for the same agent and the section',
           'is REPLACED, never added twice. The section goes before',
@@ -310,7 +310,7 @@ export const MOVES: Move[] = [
           'above the <!-- agent --> boundary, where a pick the user still',
           'has to make belongs; --half agent puts it below. Told nothing,',
           'a new section goes below and a rewrite stays put. Only a name',
-          'the command ships as a spec agent is accepted — `akb spec`',
+          'this board carries as a spec skill is accepted — `akb spec`',
           'lists them.',
         ],
       ],

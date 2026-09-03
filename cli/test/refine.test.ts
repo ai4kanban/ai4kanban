@@ -208,7 +208,7 @@ describe('the QA pass', () => {
     assert.match(stalled ?? '', /QA left untagged questions/)
   })
 
-  it('waits for requested spec agents instead of starting writing', () => {
+  it('waits for requested spec skills instead of starting writing', () => {
     writeCard()
     const before = markBoard()
     const { runs, stalled } = closing(run('clarify', 1), before, true)
@@ -538,7 +538,7 @@ describe('the refine a created card gets', () => {
 })
 
 describe('specialized input', () => {
-  it('starts a fresh audit after a spec agent writes its section', () => {
+  it('starts a fresh audit after a spec skill writes its section', () => {
     writeCard()
     const before = markBoard()
     writeCard({ body: 'A plan with its specialized section.' })
@@ -548,7 +548,7 @@ describe('specialized input', () => {
     assert.match(buildPrompt(runs[0]!), /akb guide qa-loop/)
   })
 
-  it('resumes QA even when a spec agent could not write a section', () => {
+  it('resumes QA even when a spec skill could not write a section', () => {
     writeCard()
     const before = markBoard()
     const { runs, stalled } = closing({ ...run('spec', 1), refineRound: undefined }, before)
@@ -556,7 +556,7 @@ describe('specialized input', () => {
     assert.deepEqual(runs.map((r) => [r.action, r.refineRound]), [['clarify', 1]])
   })
 
-  it('resumes the same effort after a spec agent', () => {
+  it('resumes the same effort after a spec skill', () => {
     writeCard()
     const before = markBoard()
     const { runs } = closing({

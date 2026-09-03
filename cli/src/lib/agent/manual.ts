@@ -65,18 +65,21 @@ Print it, or run it — the two modes every command above has
   always prints, because a run never starts another run. Chat follows the ordinary rule
   above: --print does the work in that conversation; no flag starts another agent.
 
-Spec agents — a named agent that fills one part of a card's spec
-  spec                         the spec agents this board has, and what each one owns
-  spec <agent> <id> [note]     put one on a card
+Spec skills — a named skill that fills one part of a card's spec
+  spec                         the spec skills this board has, and what each one owns
+  spec <skill> <id> [note]     put one on a card
 
   It is a run of its own: it starts clean, with the card and your note and nothing
-  else, and it writes one section of that card — \`## By \`<agent>\` agent\` — and
+  else, and it writes one section of that card — \`## By \`<skill>\` skill\` — and
   changes nothing more. That is why it has no --print: doing it in the conversation
   that asked for it is the one thing it exists not to be.
 
+  A project adds its own under docs/kanban/skills/<name>/SKILL.md; the built-in ones
+  ship with this command.
+
   Asked for from inside a run, it is written down rather than started, and the board
   starts it the moment that run ends. So a flow asks and carries straight on — it
-  never waits for the agent, and never writes the agent's section itself.
+  never waits for the skill, and never writes the skill's section itself.
 
 Talking to the agent — a conversation that also does the board work
   chat                         the conversation about the board so far
@@ -188,7 +191,7 @@ The agent that runs them
   agent test [runtime]         one small chat, to see the setup works
 
 A runtime, so different flows run different tools
-  agent runtimes               the runtimes, and what each flow and spec agent is on
+  agent runtimes               the runtimes, and what each flow and spec skill is on
   agent runtime add <name>     name one
   agent runtime remove <name>  drop it; whatever named it runs the global one
   agent runtime rename <old> <new>
@@ -196,7 +199,7 @@ A runtime, so different flows run different tools
                                what it runs as
   agent runtime global <name>  the one a flow that names none runs on
   agent runtime for <what> <name>
-                               point one flow or spec agent at a runtime; "-" puts it
+                               point one flow or spec skill at a runtime; "-" puts it
                                back on the global one
   agent bind <name> <agent>    what that runtime runs as
   agent bind <name> set <key> <value>

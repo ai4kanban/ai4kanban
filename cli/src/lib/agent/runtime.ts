@@ -1,6 +1,6 @@
 // Which runtime one run goes on (#343).
 //
-// The board names the runtimes and points each flow and spec agent at one
+// The board names the runtimes and points each flow and spec skill at one
 // (agent/settings.ts); this is the one place that reads that pointing for a run about to
 // start. What the answer then RUNS as is agent/resolve.ts's, out of the same board file.
 //
@@ -9,7 +9,7 @@
 // review's. `setup` is always the global one — it is the run that has to work on a board
 // nobody has configured yet.
 
-import { specAgentNames } from '../spec-agent-names'
+import { specSkillNames } from '../spec-skill-names'
 import { flowByAction } from './flows'
 import { readRuntimes, specAgentEntries, type BoardRuntimes } from './settings'
 import { REFINE_ACTIONS } from './types'
@@ -69,9 +69,9 @@ export function runtimeOfFlow(command: string, runtimes: BoardRuntimes = readRun
   return named && runtimes.names.includes(named) ? named : runtimes.global
 }
 
-/** The runtime one spec agent names, under its current name or one it used to have. */
+/** The runtime one spec skill names, under its current name or one it used to have. */
 export function runtimeOfSpecAgent(name: string, entries = specAgentEntries()): string | undefined {
-  for (const candidate of specAgentNames(name)) {
+  for (const candidate of specSkillNames(name)) {
     const runtime = entries[candidate]?.runtime
     if (runtime) return runtime
   }

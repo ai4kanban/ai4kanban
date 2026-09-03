@@ -22,9 +22,9 @@ dependencies and priorities, and moves into execution.
 - **Execute** — Run ready tasks in parallel across multiple agents. Each delivery uses
   its own Git worktree to isolate changes, and conflicts trigger a dedicated resolution
   pass before landing.
-- **Settle key decisions before implementation** — Create custom Spec Agents or use the
-  built-ins: a technology-selection agent compares technical options, while a UI-design
-  agent provides one working mockup by default and alternatives when requested.
+- **Settle key decisions before implementation** — Create custom Spec Skills or use the
+  built-ins: a technology-selection skill compares technical options, while a UI-design
+  skill provides one working mockup by default and alternatives when requested.
 - **Request approval only when necessary** — AI4Kanban keeps work moving in the background
   and reports back only for product decisions and delivery approval. Like a project manager,
   it keeps demands on human attention to a minimum.

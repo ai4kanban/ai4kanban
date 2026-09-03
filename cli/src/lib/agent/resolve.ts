@@ -673,8 +673,8 @@ export function agentInfo(): AgentInfo {
       }
     }),
     // The runtimes and what runs on which, worked out here so no screen and no second
-    // command keeps a list that could say something else. The spec agents' own runtimes ride
-    // on the spec agent list instead (`readSpecAgents`), which is the list they are drawn
+    // command keeps a list that could say something else. The spec skills' own runtimes ride
+    // on the spec skill list instead (`readSpecSkills`), which is the list they are drawn
     // from.
     runtimes: runtimeViews(runtimes),
     namedRuntimes: runtimes.named,

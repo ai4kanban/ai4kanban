@@ -46,8 +46,8 @@ export type {
   RunStatus,
   SettingChoice,
   SetupProposal,
-  SpecAgentSettingView,
-  SpecAgentView,
+  SpecSkillSettingView,
+  SpecSkillView,
   TokenUsage,
 } from "./format/agent/types";
 export type { DeliveryCommitMode, DeliveryRecord, DeliveryStatus, DeliveryStep } from "./format/agent/types";

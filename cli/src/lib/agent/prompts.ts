@@ -4,7 +4,8 @@
 // button say exactly the same thing. Only the opening — how this agent is asked for the
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
-import { findSpecAgent, specAgentPrompt, specAgentRoster, specHeading } from '../spec-agents'
+import { findGuide } from '../guide'
+import { findSpecSkill, specHeading, specSkillInstructions, specSkillSelector } from '../spec-skills'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
@@ -144,20 +145,23 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
   return activeDelivery(req.id)?.rules
 }
 
-// The spec agents a pass may put on the card — the roster, not a rule about any one of
+// The spec skills a pass may put on the card — the catalog, not a rule about any one of
 // them. The passes that rewrite a plan are the ones that can tell what it still has no
-// answer for, so they are the ones that pick; they just have to know which agents the board
+// answer for, so they are the ones that pick; they just have to know which skills the board
 // has. Naming any of them in a flow instead would go stale the moment one is switched off
 // or a new one ships.
 //
+// A spec run is never given it (#403): the selector belongs to the session planning a card,
+// and a skill handed the list of skills is a skill that can ask for itself.
+//
 // It goes after everything else because it is a block and the rest is prose.
-const ROSTER_FOR = new Set(['clarify', 'resolve', 'edit'])
+const SELECTOR_FOR = new Set(['clarify', 'resolve', 'edit'])
 
 const roster = (req: AgentRequest): string =>
-  ROSTER_FOR.has(req.action) && req.id !== undefined ? specAgentRoster(req.id) : ''
+  SELECTOR_FOR.has(req.action) && req.id !== undefined ? specSkillSelector(req.id) : ''
 
 /** The words one run is given, and anything the board owes that run's log before the agent
- *  says a word. Only a spec agent has notes today: a setting whose saved value it no longer
+ *  says a word. Only a spec skill has notes today: a setting whose saved value it no longer
  *  offers falls back, and the log is where that is said. */
 export function buildRun(req: AgentRequest): { prompt: string; notes: string[] } {
   const notes: string[] = []
@@ -301,30 +305,40 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `At the tasks step, read \`${command} guide add-task\` once. Do not call any other guide or help command during setup.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions, the way the setup flow says.`,
       ].join(' ')
-    // One spec agent on one card (#187). Its own prompt is inlined rather than named: a
-    // pointer to a second command is a step an agent skips, and the whole of what this run
-    // is comes from that text.
+    // One spec skill on one card (#187, #403). The whole run is assembled here and inlined:
+    // the contract every spec run works to, the skill's own instructions, and the one
+    // reference each of its settings picked. A pointer to a second command is a step an
+    // agent skips, and a reference it had to go and find is one it could load the wrong
+    // one of — the board resolves them, so the run has nothing to locate.
     //
     // Nothing here says what the card is about. The card is on the board and the agent is
     // told to read it — a summary pasted in would be the planning flow's reading of it,
     // which is the one thing this run exists to be free of.
     case 'spec': {
-      const agent = findSpecAgent(req.specAgent ?? '')
+      const skill = findSpecSkill(req.specAgent ?? '')
       const heading = specHeading(req.specAgent ?? '')
-      // The one read of what this agent is set to, taken as the run starts. Its prompt is
-      // its own text plus the block each picked choice carries (#255).
-      const own = agent ? specAgentPrompt(agent) : null
+      // The one read of what this skill is set to, taken as the run starts and frozen for
+      // it: everything below is assembled from these values (#255).
+      const own = skill ? specSkillInstructions(skill) : null
       if (own) notes.push(...own.notes)
+      const contract = findGuide('spec-skill')?.text.trim()
       return [
-        `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
-        `Follow \`akb guide spec-agent\`: read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb board spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
-        `Change nothing else — not the rest of the card, not another card, not the code.`,
-        req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
-        `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
-        agent && own ? `\n\n——— your prompt: the \`${agent.name}\` spec agent ———\n\n${own.prompt}` : '',
+        [
+          `${kb}. You are the \`${req.specAgent}\` spec skill on task ${req.id} ${named}.`,
+          `Read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb board spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
+          `Change nothing else — not the rest of the card, not another card, not the code.`,
+          req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
+          `Everything you need is in this message: the contract below, your skill, and the references it selected. Do not go looking for more of them.`,
+          `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
+        ]
+          .filter(Boolean)
+          .join(' '),
+        contract ? `——— how a spec skill works ———\n\n${contract}` : '',
+        skill && own ? `——— your skill: \`${skill.name}\` ———\n\n${own.instructions}` : '',
+        ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
       ]
         .filter(Boolean)
-        .join(' ')
+        .join('\n\n')
     }
     // Judging a delivery's work (#302). Nothing here says what the card wants or what the
     // diff holds: both are on the board, the flow prints them, and a copy pasted in here

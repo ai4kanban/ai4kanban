@@ -137,13 +137,15 @@ const APPROVED = [
   /^##\s+Worth noting\s*$/i,
   /^##\s+Scope\s*$/i,
   /^##\s+Scope out\s*$/i,
-  /^##\s+By\s+`[^`]+`\s+agent\s*$/i,
+  // `skill` is the word a spec section carries now; `agent` is the word it carried before
+  // #403, and a card written by an older release still has to travel whole.
+  /^##\s+By\s+`[^`]+`\s+(skill|agent)\s*$/i,
 ]
 
 const isApproved = (heading: string): boolean => APPROVED.some((re) => re.test(heading))
 
 /** The card's approved requirements as one block of markdown: its title, its opening
- *  paragraph, `## Worth noting`, `## Scope`, `## Scope out`, and every spec agent's
+ *  paragraph, `## Worth noting`, `## Scope`, `## Scope out`, and every spec skill's
  *  section, in the order the card writes them.
  *
  *  Empty when there is no such card — a delivery is refused before that can happen, and a

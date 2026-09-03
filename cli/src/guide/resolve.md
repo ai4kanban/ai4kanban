@@ -17,7 +17,7 @@ another question, or change project code.
 akb board update-questions <id> --drop <n[,n...]>
 ```
 
-When an answer selects one of several options in a spec-agent section, remove the rejected
+When an answer selects one of several options in a spec-skill section, remove the rejected
 options and their spec-tmp files, then move the surviving section below the boundary.
 
 ## Curate the human half

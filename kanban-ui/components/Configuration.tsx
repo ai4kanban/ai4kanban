@@ -4,7 +4,7 @@
 // the header. A sidebar on its left names the sections — General (the coding-agent
 // setup #174, how a delivery is built #303/#308, and the language this machine
 // reads in #334), Runtimes (the coding tools the board runs work on, #68/#344, and
-// the settings each declares, #93), Agents (the spec agents that fill part of a
+// the settings each declares, #93), Agents (the spec skills that fill part of a
 // card's spec, and the switch that keeps one from running, #191), Rules (#306) and
 // Notifications (#326).
 // The sidebar is how the dialog grows: a new group of settings is one more entry
@@ -59,7 +59,7 @@ import { FlowRulesPanel } from "./FlowRules";
 import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
 import { CAPTION, CONTROL, Note, QUIET_BTN } from "./settings";
-import { SpecAgentsPanel } from "./SpecAgents";
+import { SpecSkillsPanel } from "./SpecSkills";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // Every box, list and small button in here is the settings kit's
@@ -237,11 +237,11 @@ export function Configuration({
             <div hidden={section !== "runtimes"}>
               <RuntimesPanel agent={agent} onError={onError} />
             </div>
-            {/* The spec agents (#191) — what each one fills in, and whether it may run.
+            {/* The spec skills (#191, #403) — what each one fills in, and whether it may run.
                 Mounted only while it is the section on screen: it asks the board for its
                 own list when it draws, and that list carries the switches as they read
                 right now. */}
-            {section === "agents" && <SpecAgentsPanel onError={onError} />}
+            {section === "agents" && <SpecSkillsPanel onError={onError} />}
             {/* One rule per flow, in the user's own words (#306) — appended to the end of
                 that flow's instructions. Mounted only while it is the section on screen:
                 it asks the board for its own list of flows when it draws, and that list

@@ -8,7 +8,7 @@
 //
 // The board's reader refuses a block that holds anything besides tags, so a tag with its
 // tradeoff line pushed up against it is swallowed into the paragraph and printed as text.
-// A spec agent gets that wrong often enough that the shape is repaired here rather than
+// A spec skill gets that wrong often enough that the shape is repaired here rather than
 // asked for — `spec-write` runs this over every section it takes.
 
 // A self-closing tag with no `<` or `>` inside it, the same one the reader matches.

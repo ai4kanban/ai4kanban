@@ -1,11 +1,11 @@
 // ---- spec-write ------------------------------------------------------------
 //
-// The one door a spec agent writes a card through (#187).
+// The one door a spec skill writes a card through (#187).
 //
 // It is a move rather than an instruction because "write only your own section" has to be
-// true, not asked for: this splices the agent's answer under its own heading and leaves
+// true, not asked for: this splices the skill's answer under its own heading and leaves
 // every other byte of the card as it was. Run it again and the section is REPLACED, so a
-// card that has been through the same agent twice carries one section, not two.
+// card that has been through the same skill twice carries one section, not two.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -15,11 +15,11 @@ import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter'
 import { say } from '../lib/io'
 import { fixMockupBlocks } from '../lib/mockups'
 import { die, rel, TODO, warn } from '../lib/paths'
-import { findSpecAgent, specAgentNames, specHeading, SPEC_AGENT_NAMES } from '../lib/spec-agents'
+import { findSpecSkill, notASkill, specHeading, specSkillNames } from '../lib/spec-skills'
 import type { FlagValue, MoveResult } from '../lib/types'
 import { parseFlags } from '../lib/validate'
 
-// The sections a spec agent's own goes in FRONT of. They are the card's tail — what the
+// The sections a spec skill's own goes in FRONT of. They are the card's tail — what the
 // agent decided, where the idea came from — and a spec belongs with the plan it answers,
 // not after the footnotes. A card with neither takes it at the end.
 const TAIL_HEADINGS = [/^##\s+Decided by the agent\s*$/i, /^##\s+Source\s*$/i]
@@ -33,7 +33,7 @@ const HALVES = ['human', 'agent'] as const
 type Half = (typeof HALVES)[number]
 
 // Told nothing, a new section goes in the agent half and a rewrite stays where it sits — a
-// spec agent that says nothing about the reader has not asked for the card to be reshaped.
+// spec skill that says nothing about the reader has not asked for the card to be reshaped.
 function readHalf(raw: FlagValue | undefined): Half | null {
   if (raw === undefined) return null
   if (raw === true) die(`--half needs a value: ${HALVES.join(' or ')}`)
@@ -42,23 +42,21 @@ function readHalf(raw: FlagValue | undefined): Half | null {
   return value as Half
 }
 
+// `skill` is the word a section carries now; `agent` is the word it carried before #403.
+// Both are matched so a card written by an older release is still found and rewritten in
+// place rather than gaining a second section beside it.
 const headingRe = (name: string): RegExp =>
-  new RegExp('^##\\s+By\\s+`' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '`\\s+agent\\s*$', 'i')
+  new RegExp('^##\\s+By\\s+`' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '`\\s+(skill|agent)\\s*$', 'i')
 
 export function cmdSpecWrite(args: string[]): MoveResult {
   const { flags, positional } = parseFlags(args, ['file', 'text', 'half'])
   const id = Number(positional[0])
-  if (!Number.isInteger(id)) die('need a numeric task id: spec-write <id> <agent> --file <path>')
+  if (!Number.isInteger(id)) die('need a numeric task id: spec-write <id> <skill> --file <path>')
   const askedName = String(positional[1] ?? '').trim()
-  if (!askedName) die(`name the spec agent whose section this is: spec-write ${id} <agent> --file <path>`)
-  const agent = findSpecAgent(askedName)
-  if (!agent) {
-    die(`"${askedName}" is not a spec agent on this board. It ships: ${SPEC_AGENT_NAMES.join(', ')}.`, {
-      kind: 'no-such-spec-agent',
-      specAgent: askedName,
-    })
-  }
-  const name = agent.name
+  if (!askedName) die(`name the spec skill whose section this is: spec-write ${id} <skill> --file <path>`)
+  const skill = findSpecSkill(askedName)
+  if (!skill) die(notASkill(askedName), { kind: 'no-such-spec-agent', specAgent: askedName })
+  const name = skill.name
 
   const section = readSection(flags.file, flags.text)
   const half = readHalf(flags.half)
@@ -93,12 +91,12 @@ function readSection(file: unknown, text: unknown): string {
   }
 
   const lines = raw!.trim().split('\n')
-  // A heading the agent wrote for itself is dropped rather than refused — the move owns
+  // A heading the skill wrote for itself is dropped rather than refused — the move owns
   // the heading, and two of them stacked would read as an empty section.
-  if (lines.length && /^##\s+By\s+`.*`\s+agent\s*$/i.test(lines[0]!.trim())) lines.shift()
+  if (lines.length && /^##\s+By\s+`.*`\s+(skill|agent)\s*$/i.test(lines[0]!.trim())) lines.shift()
   const section = lines.join('\n').trim()
   if (!section) {
-    die('the section is empty — an agent with nothing to say writes no section at all, and says so in its last message')
+    die('the section is empty — a skill with nothing to say writes no section at all, and says so in its last message')
   }
   // A `##` inside the answer would end the section, so the next run would replace only
   // half of it. `###` is a heading inside a section and is left alone.
@@ -125,11 +123,11 @@ function splice(
 ): { body: string; replaced: boolean } {
   const lines = body.split('\n')
   const block = [specHeading(name), '', section, '']
-  const headings = specAgentNames(name).map(headingRe)
+  const headings = specSkillNames(name).map(headingRe)
   const at = lines.findIndex((l) => headings.some((heading) => heading.test(l.trim())))
   if (at < 0) return { body: place(lines, block, half ?? 'agent'), replaced: false }
 
-  // From its heading to whatever comes next — that span is the agent's, and only that
+  // From its heading to whatever comes next — that span is the skill's, and only that
   // span. The boundary marker ends it too: it divides the card, so a section sitting
   // directly above it must not take it away on the next rewrite.
   let end = at + 1

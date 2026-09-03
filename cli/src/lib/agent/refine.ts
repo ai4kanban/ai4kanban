@@ -228,7 +228,7 @@ export function refinementAfter(
 }
 
 // Actions that follow only the cards they CREATED. Each of them just exercised its own
-// judgment on the card it names — a refine pass, a build, a revise, a resolve, a spec agent —
+// judgment on the card it names — a refine pass, a build, a revise, a resolve, a spec skill —
 // so a refine of a card one of them merely edited spends a run re-doing what has just
 // closed. A card one of them split off is another matter: it is as rough as any other
 // newborn card, and nothing else comes for it.

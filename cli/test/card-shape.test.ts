@@ -1,5 +1,5 @@
 // The two halves of a card, where they are enforced in code (#261): the boundary marker is
-// what a spec agent's section is placed against, and a refine that only moves sections has
+// what a spec skill's section is placed against, and a refine that only moves sections has
 // not replanned anything, so the loop does not spend another pass on it.
 
 import assert from 'node:assert/strict'
@@ -68,7 +68,7 @@ const SHAPED = [
   '',
 ].join('\n')
 
-describe("a spec agent's section and the boundary", () => {
+describe("a spec skill's section and the boundary", () => {
   it('lands in the agent half when nothing says otherwise', () => {
     write(SHAPED)
     cmdSpecWrite(['5', 'ui-design', '--text', 'a screen'])
@@ -77,7 +77,7 @@ describe("a spec agent's section and the boundary", () => {
       '<!-- agent -->',
       '## Scope',
       '## Todo',
-      '## By `ui-design` agent',
+      '## By `ui-design` skill',
       '## Decided by the agent',
     ])
   })
@@ -87,7 +87,7 @@ describe("a spec agent's section and the boundary", () => {
     cmdSpecWrite(['5', 'ui-design', '--text', 'a screen', '--half', 'human'])
     assert.deepEqual(headings(), [
       '## Worth noting',
-      '## By `ui-design` agent',
+      '## By `ui-design` skill',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
@@ -101,7 +101,7 @@ describe("a spec agent's section and the boundary", () => {
     cmdSpecWrite(['5', 'ui-design', '--text', 'a better screen'])
     assert.deepEqual(headings(), [
       '## Worth noting',
-      '## By `ui-design` agent',
+      '## By `ui-design` skill',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
@@ -119,7 +119,7 @@ describe("a spec agent's section and the boundary", () => {
       '<!-- agent -->',
       '## Scope',
       '## Todo',
-      '## By `ui-design` agent',
+      '## By `ui-design` skill',
       '## Decided by the agent',
     ])
   })

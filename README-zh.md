@@ -29,8 +29,8 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
   大部分问题会根据项目记忆和代码库自行回答，只把品味、商业方向、风险和成本交由你决策。
 - **管理任务生命周期。** Agent 将大目标拆成边界清晰的卡片，自动决定哪些任务可以并行、哪些
   必须等待。
-- **支持自定义 Spec Agents。** 内置 Agent 可以比较技术方案，也可以提供多套可运行的 UI 方案，
-  帮你在实施前完成关键决策。
+- **支持自定义 Spec Skills。** 内置技能可以比较技术方案，也可以提供可运行的 UI 方案，
+  帮你在实施前完成关键决策；你也可以在 `docs/kanban/skills/` 下添加自己的技能。
 - **从实现到合入。** 多个 Agent 可以在相互隔离的 git worktree 中并行执行就绪任务；合入前
   如有冲突，会触发独立的解冲突流程。
 - **需要你时及时通知。** 待确认的评审和只能由你决定的问题会集中显示在应用的通知中心，并推送
@@ -63,8 +63,8 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 <sub><b>推进执行</b> — 你可以并行调度多个 Agent 完成已就绪的任务。每项交付都在独立的 git worktree 中进行，确保变更隔离；合入前如有冲突，会触发独立的解冲突流程。</sub>
 </td>
 <td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design agent 的报告，卡片上附有两套可运行的 mockup" /></a><br/>
-<sub><b>在实施前完成关键决策</b> — 支持自定义 Spec Agents，也内置技术选型 Agent 和 UI 设计 Agent：前者帮助比较技术方案，后者默认提供一套可运行的界面方案，并仅在明确要求时提供备选方案。</sub>
+<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design 技能的报告，卡片上附有两套可运行的 mockup" /></a><br/>
+<sub><b>在实施前完成关键决策</b> — 支持自定义 Spec Skills，也内置技术选型技能和 UI 设计技能：前者帮助比较技术方案，后者默认提供一套可运行的界面方案，并仅在明确要求时提供备选方案。</sub>
 </td>
 </tr>
 <tr>

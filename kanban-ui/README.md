@@ -1127,15 +1127,15 @@ There, the agent is what can be pressed: the square agent cards, that agent's ow
 **Test** — which spawns that runtime and not the board's global one. Above them are the board's
 three moves:
 
-- **Rename** carries everything held under the old name: the flows and spec agents that named it,
+- **Rename** carries everything held under the old name: the flows and spec skills that named it,
   and the agent it runs.
 - **Make global** points the board's global runtime here — what a flow that names none runs on. The
   two runtimes swap homes and both go on running exactly what they ran.
-- **Remove** names the flows and spec agents it moves onto the global runtime first, and clears their
+- **Remove** names the flows and spec skills it moves onto the global runtime first, and clears their
   pointers so re-adding the name never puts them back. What it ran as goes with it. Removing the
   global runtime is refused.
 
-Which runtime a flow or spec agent uses is **not** set here — `akb agent runtime for <what> <name>`
+Which runtime a flow or spec skill uses is **not** set here — `akb agent runtime for <what> <name>`
 is where that lives, and a removal says so.
 
 A key is the one setting that is not held beside the runtime: it writes `docs/kanban/.env`, which git
@@ -1422,11 +1422,12 @@ with the reason in its log, and a reasoning level the agent doesn't know makes i
 its own default. A key no agent declares is left exactly where it is, and saving in the dialog writes
 the one setting you changed and touches nothing else in the file.
 
-`specAgents` holds what you have changed about a spec agent, under its name: `enabled: false`
+`specAgents` holds what you have changed about a spec skill, under its name: `enabled: false`
 when you switched it off, and one key per setting you picked something other than its default
 for. A name the file doesn't carry is on and set to its defaults, and putting either back —
-switching an agent on, or picking a setting's default — drops that key rather than writing it
-out, so the file only ever records what somebody changed.
+switching a skill on, or picking a setting's default — drops that key rather than writing it
+out, so the file only ever records what somebody changed. The key kept the older spelling on
+purpose: the word changed, and nobody's settings should change with it.
 
 `provider` is who pays for the run: `subscription`, `endpoint`, and `anthropic-api` on Claude Code or
 `openai-api` on Codex. Leave it out and the board picks for you — the API one on a board whose `.env`
@@ -1469,8 +1470,8 @@ agent runs on, and **each computer says what those names run as there**.
 - `names` — every runtime, each a short word a person recognises.
 - `global` — the one a flow that names none runs on.
 - `flows` — the runtime a flow names, keyed by the command you type: `revise`, not the `edit` the
-  board keeps that action under. A spec agent names its own the same way, as a `runtime` key inside
-  its `specAgents` entry — a reserved key, never one of that agent's settings.
+  board keeps that action under. A spec skill names its own the same way, as a `runtime` key inside
+  its `specAgents` entry — a reserved key, never one of that skill's settings.
 
 `setup` always runs the global one: it is the run that has to work on a board nobody has configured
 yet. A pass a flow spawns runs that flow's runtime — a refine's clarify, resolve and writing passes
@@ -1504,59 +1505,65 @@ A board written before runtimes existed has no `runtimes` key, and reads exactly
 one runtime, every flow on it, running whatever `harness` and `harnessSettings` already say.
 
 It is all read and written from a terminal too — `akb agent runtimes` prints the runtimes and what
-each flow and spec agent runs on, `akb agent runtime add|remove|rename|global|for` changes the names
+each flow and spec skill runs on, `akb agent runtime add|remove|rename|global|for` changes the names
 and the pointers, and `akb agent bind <runtime> <agent>` changes what one runs as. `akb agent test
 <runtime>` spawns it. Everything but `runtime for` is also in **Configuration → Runtimes** above.
 
-### The spec agents
+### The spec skills
 
-**Agents** lists the spec agents this board ships. A **spec agent** is a named agent the board puts
-on a card to fill one part of that card's spec: **UI design** draws the screen the card changes,
-and **Technology selection** picks the library it leans on. Each one runs on its own, while a card is
-being planned — never while it is being built — and writes one section of that card and nothing
-else.
+**Agents** lists the spec skills this board can use. A **spec skill** is an Agent Skill the board
+puts on a card to fill one part of that card's spec: **UI design** draws the screen the card
+changes, and **Technology selection** picks the library it leans on. Each one runs on its own, while
+a card is being planned — never while it is being built — and writes one section of that card and
+nothing else.
 
 The pane lists them in the board's own order, with one readable name and two lines each: what that
-agent fills in, and the kind of card the board calls it for. The command/file identifier is not
-repeated in the UI. Both descriptions come from the command, so this section and `akb spec` can
-never say different things. There is no way to put an agent on a card by hand: that is what the
-board does for you.
+skill fills in, and when the board calls it. The command/file identifier is not repeated in the UI.
+Both lines come out of that skill's own `SKILL.md`, so this section and `akb spec` can never say
+different things. There is no way to put a skill on a card by hand: that is what the board does for
+you.
 
-Each agent has a switch, on until you turn it off:
+The board ships two, and a project adds its own under `docs/kanban/skills/<name>/SKILL.md` — those
+appear in this pane too, with the same switch and the same settings. A skill this board found but
+cannot use — a `SKILL.md` that doesn't parse, a name already taken — is named in a note under the
+list, with the reason, rather than quietly missing.
 
-- A switched-off agent is greyed and reads **Paused** beside its switch. The switch still works — that
+Each skill has a switch, on until you turn it off:
+
+- A switched-off skill is greyed and reads **Paused** beside its switch. The switch still works — that
   is how it goes back on.
 - While it is off the board starts no new run of it, on any card. It leaves the list a planning flow
   picks from, and a flow that asks for it by name is turned away and plans that part of the card
   itself.
 - The switch is saved with the board, so everyone working on it reads the same one, and a flow run
   from a terminal reads it too.
-- An agent already running when you switch it off finishes its run, and whatever a spec agent
+- A skill already running when you switch it off finishes its run, and whatever a spec skill
   already wrote on a card stays there.
-- `akb spec`, typed in a terminal, still names a switched-off agent in a closing line, so an agent
+- `akb spec`, typed in a terminal, still names a switched-off skill in a closing line, so a skill
   that stopped appearing is never a mystery.
 
-Every agent is on until somebody switches one off, so a board set up before this shipped has all of
+Every skill is on until somebody switches one off, so a board set up before this shipped has all of
 them on with nothing to undo.
 
-An agent can also carry **settings** of its own — what it produces, not just whether it runs — and
+A skill can also carry **settings** of its own — what it produces, not just whether it runs — and
 they are set on its row, under the two lines:
 
 - One line per setting says what it is set to and what that choice costs. **Change** opens the
   choices in place, each with its own cost, and a pick saves the moment you make it.
-- The settings, their choices and the words describing each one all come from the command, the same
-  as the two lines above them. Nothing here keeps a list of its own, so a new agent's settings need
-  no change to this pane.
-- A setting is board-wide: every card that agent runs on gets the same answer. There is no per-card
-  and no per-run setting.
+- The settings, their choices and the words describing each one are declared in that skill's own
+  `SKILL.md` frontmatter, the same as the two lines above them. Nothing here keeps a list of its
+  own, so a new skill's settings need no change to this pane.
+- A setting is board-wide: every card that skill runs on gets the same answer. There is no per-card
+  and no per-run setting. Each choice names one file inside the skill, and only the chosen one's
+  instructions reach the run.
 - A save that fails puts the choice back and the reason goes across the top of the page, the way the
   switch already behaves.
-- A switched-off agent keeps its settings on screen, greyed with the rest of the row and still
+- A switched-off skill keeps its settings on screen, greyed with the rest of the row and still
   changeable, so it is ready for the day you switch it back on.
-- `akb spec`, typed in a terminal, prints what each agent is set to under its two lines. It offers no
+- `akb spec`, typed in a terminal, prints what each skill is set to under its two lines. It offers no
   way to change one: this pane is where they are picked.
 
-An agent that declares no settings draws nothing extra, and neither does a board running rules older
+A skill that declares no settings draws nothing extra, and neither does a board running rules older
 than the settings — its rows read exactly as they did.
 
 ### Flow rules
@@ -1596,7 +1603,7 @@ name nothing you can guess at.
   in a later release appears here on its own.
 
 There is no way to run a shell command from a rule, and no per-delivery approval of one: both would
-break the one-click flow. Spec agents take no rule — each keeps its own settings already — and
+break the one-click flow. Spec skills take no rule — each keeps its own settings already — and
 neither does **Chat**, which is a conversation rather than a flow the board starts.
 
 ### General → Setup: the coding agent skill

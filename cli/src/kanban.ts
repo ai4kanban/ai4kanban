@@ -126,8 +126,8 @@ export { testConnection } from './lib/agent/test'
 export { loggedOutAgents } from './lib/agent/login'
 
 // The runtimes (#343): the board names them, says what each one runs as, and points each
-// flow and spec agent at one — all of it in docs/kanban/ui.config.json. `agentInfo` already
-// carries the answer for every runtime and every flow, and `readSpecAgents` for every agent,
+// flow and spec skill at one — all of it in docs/kanban/ui.config.json. `agentInfo` already
+// carries the answer for every runtime and every flow, and `readSpecSkills` for every skill,
 // so a screen offering these keeps no list of its own — these are only the writers.
 export {
   addRuntime,
@@ -260,10 +260,11 @@ export {
 } from './lib/machine/types'
 export type { Language } from './lib/machine/types'
 
-// The spec agents (#191): the list a screen draws — each one's two lines and whether it is
-// switched on — and the switch itself. The words and the order are the board's own, so the
-// Agents section in the Configuration dialog and `akb spec` can never say different things.
-export { readSpecAgents, setSpecAgentEnabled, setSpecAgentSetting } from './lib/spec-agents'
+// The spec skills (#191, #403): the list a screen draws — each one's two lines and whether
+// it is switched on — and the switch itself. The words and the order come from each skill's
+// own SKILL.md, so the Agents section in the Configuration dialog and `akb spec` can never
+// say different things, and a skill the project added is in both.
+export { readSpecSkills, setSpecSkillEnabled, setSpecSkillSetting, specSkillProblems } from './lib/spec-skills'
 export type * from './lib/agent/types'
 
 // …and the board itself: the columns, one card in full, the archive, the releases, the

@@ -451,10 +451,10 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   archive: ['board'],
   reject: ['board', 'reject'],
   setup: ['board', 'setup', 'add-task'],
-  // A spec agent gets its own flow and NOT `board`: it writes one section, never a card,
+  // A spec skill gets its own flow and NOT `board`: it writes one section, never a card,
   // so the card format, the memory set and the tracks are a page of rules about work it is
   // not allowed to do. `akb spec` has no --print, so this is only ever read by the run.
-  spec: ['spec-agent'],
+  spec: ['spec-skill'],
 }
 
 const guidesFor = (req: AgentRequest): string[] => {
@@ -608,7 +608,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'writing': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
       close.push(
-        'improve only the card body\'s writing according to `akb guide writing` — preserve every settled requirement, checked todo, and spec-agent section, and merge decisions that repeat each other rather than dropping either',
+        'improve only the card body\'s writing according to `akb guide writing` — preserve every settled requirement, checked todo, and spec-skill section, and merge decisions that repeat each other rather than dropping either',
         `do not research, change the plan, raise or resolve questions, touch another card, or edit project code`,
         `${board} update ${req.id} --status ready — after the body is compact, clear, and internally consistent`,
       )
@@ -794,7 +794,7 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
     say('')
     say(section.head)
     say('')
-    // A line that carries its own block — the ask's spec-agent roster — is indented all
+    // A line that carries its own block — the ask's spec-skill catalog — is indented all
     // the way through, or the block falls out of the section it belongs to.
     for (const line of section.lines) say(indent(line))
   }

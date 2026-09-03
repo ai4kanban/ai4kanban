@@ -41,7 +41,7 @@ const en: HomeCopy = {
       },
       {
         title: "Settle key decisions before implementation",
-        body: "Create your own Spec Agents or use the built-ins: a technology-selection agent compares technical options, while a UI-design agent gives you multiple working mockups to choose from.",
+        body: "Create your own Spec Skills or use the built-ins: a technology-selection skill compares technical options, while a UI-design skill gives you multiple working mockups to choose from.",
       },
       {
         title: "Request approval only when necessary",

@@ -256,7 +256,7 @@ question the same way it warns about a blocker. `kanban-ui/README.md` has the wh
 ## Let a specialist fill part of the spec
 
 Some parts of a card nobody should plan by guess — the screen a feature puts in front of the
-user, the outside library it leans on. Those go to a **spec agent**: a named agent that owns one
+user, the outside library it leans on. Those go to a **spec skill**: an Agent Skill that owns one
 part of a card's spec and fills only that part. The board ships two, and `akb spec` lists them:
 
 - **`ui-design`** — draws the screen a card needs as one layout by default, with alternatives
@@ -270,7 +270,7 @@ part of a card's spec and fills only that part. The board ships two, and `akb sp
 
 It is a run like any other, with three things that make it different: it starts clean, given the
 card and a short note but never the conversation that asked for it; it writes one named section —
-``## By `ui-design` agent`` — and nothing else, rewritten rather than doubled on a second run;
+``## By `ui-design` skill`` — and nothing else, rewritten rather than doubled on a second run;
 and nothing waits for it, so a planning flow carries on and the section arrives when it is done.
 When the answer is a pick only you can make, it leaves an open question instead of choosing.
 
@@ -279,13 +279,54 @@ card is added, after a refine or revise that moved the screen or the library, an
 propose or a release plan (each card's own refine asks instead). A card that needs neither a
 screen nor a library goes through all of those without a spec run, and nothing tells you it did.
 
-When you do want one: **"put the ui-design agent on #4"**, or `akb spec ui-design 4`. Switching
+When you do want one: **"put the ui-design skill on #4"**, or `akb spec ui-design 4`. Switching
 one off and setting what it produces are both in **Configuration → Agents**; `akb spec` prints
 what each is set to.
 
+### Add one of your own
+
+A spec skill is a standard Agent Skill directory, so a project adds one by writing it:
+
+```text
+docs/kanban/skills/api-contract/SKILL.md
+docs/kanban/skills/api-contract/references/openapi.md   # optional
+```
+
+`SKILL.md` opens with frontmatter carrying the skill's `name`, the `description` a planning
+session picks it by, and an `akb:` block saying it is a spec skill and what part of a card's spec
+it owns:
+
+```yaml
+---
+name: api-contract
+description: Use when a card changes an endpoint other software calls.
+akb:
+  kind: spec
+  owns: the request and response shape a card changes
+  settings:
+    - key: style
+      label: Contract style
+      default: openapi
+      choices:
+        - value: openapi
+          label: OpenAPI
+          cost: a schema fragment per endpoint — precise, and longer to read
+          reference: references/openapi.md
+        - value: prose
+          label: Prose
+          cost: a paragraph per endpoint — quick to read, easy to argue with
+          reference: references/prose.md
+---
+```
+
+Everything under the frontmatter is the skill's instructions. A `settings` entry becomes a
+control in Configuration → Agents, and only the chosen choice's `reference` is loaded into the
+run — the instructions for the option nobody picked are never read. `akb spec` lists the skills
+this board can use and, under them, the reason any skill it found can't be used.
+
 ## Which tool each flow runs on
 
-A **runtime** is a name the board holds — `default`, `cheap` — and every flow and spec agent runs
+A **runtime** is a name the board holds — `default`, `cheap` — and every flow and spec skill runs
 on one: the global one unless it names another. What each runtime spawns is the board's answer
 too, in `docs/kanban/ui.config.json` beside the names, so every checkout of the repository runs
 the same thing with nothing to set up per machine.
@@ -293,7 +334,7 @@ the same thing with nothing to set up per machine.
 ```bash
 akb agent runtimes                     # the runtimes, and what each flow and agent is on
 akb agent runtime add cheap            # name one
-akb agent runtime for implement cheap  # point a flow — or a spec agent — at it
+akb agent runtime for implement cheap  # point a flow — or a spec skill — at it
 akb agent bind cheap codex             # what it runs as
 akb agent bind cheap set model gpt-5.1-codex
 ```
@@ -425,8 +466,8 @@ akb board update-verify <id> --append ".."
                                   # (--drop n,n / --clear take them off)
 akb board archive <id>            # finish a task
 akb board reject  <id>            # drop an idea
-akb spec                          # the spec agents, and what each one fills
-akb spec <agent> <id> [note]      # put one on a card — its own run, starting clean
+akb spec                          # the spec skills, and what each one fills
+akb spec <skill> <id> [note]      # put one on a card — its own run, starting clean
 akb chat "<message>"              # talk about the board — and change it
 akb chat <id> "<message>"         # talk about one card
 akb chat [<id>]                   # the conversation so far

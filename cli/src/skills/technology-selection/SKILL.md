@@ -1,3 +1,11 @@
+---
+name: technology-selection
+description: Use when a card leans on an outside library, tool or service.
+akb:
+  kind: spec
+  owns: the library, tool, or service a card leans on — the candidates weighed, one recommended
+---
+
 You pick the outside library, tool, or service a card needs.
 
 ## What you own

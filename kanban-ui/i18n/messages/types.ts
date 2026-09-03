@@ -30,8 +30,8 @@ export type MessagesCopy = {
     flowRule: string;
     language: string;
     skillInstall: string;
-    specAgentSwitch: string;
-    specAgentSetting: string;
+    specSkillSwitch: string;
+    specSkillSetting: string;
   };
   /** The refusals a server action gives back to the screen that called it. The rest
    *  of `app/actions.ts` guards its own arguments and stays English: nothing a person

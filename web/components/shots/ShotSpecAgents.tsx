@@ -1,6 +1,6 @@
 import { CROP, Cap, Code, HAIR, Inset, MONO, NB, Shot, Tag, em } from "./nb";
 
-// Step 05 在实施前完成关键决策 — the layouts the ui-design agent leaves on the
+// Step 05 在实施前完成关键决策 — the layouts the ui-design skill leaves on the
 // card, mirroring screenshots/card-mockups.png: each option is a real file, two
 // screens of it, and the agent's argument for it underneath. The dependency
 // research the same step does is left to the step's body text; one card section
@@ -164,7 +164,7 @@ export function ShotSpecAgents() {
     <Shot crop={CROP}>
       <div style={{ padding: em(20) }}>
         <h2 style={{ margin: 0, fontSize: em(16), fontWeight: 800 }}>
-          By <Code>ui-design</Code> agent
+          By <Code>ui-design</Code> skill
         </h2>
 
         <Option letter="A" file=".mockups/293/a.tsx">

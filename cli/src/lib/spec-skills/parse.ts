@@ -1,0 +1,153 @@
+// Reading one `SKILL.md` into a spec skill.
+//
+// A skill is an ordinary Agent Skill directory: `SKILL.md` with `name`, `description` and
+// instructions, and optional `references/` beside it. AKB's own additions live in the same
+// frontmatter, under `akb:`, so a skill is one file to write and one file to read:
+//
+//   ---
+//   name: ui-design
+//   description: Use when a card changes or adds a screen the user sees.
+//   akb:
+//     kind: spec
+//     owns: the screen a card changes
+//     settings:
+//       - key: mockupStyle
+//         label: Mockup style
+//         help: ...
+//         default: full
+//         choices:
+//           - value: full
+//             label: Rendered screen
+//             cost: ...
+//             reference: references/rendered-screen.md
+//   ---
+//
+// Everything is checked here rather than where it is used. A skill that does not parse is
+// reported by name and left out of the catalog — a half-read skill reaching a run is a run
+// given instructions nobody wrote.
+
+import type { SpecSkillChoice, SpecSkillSetting } from '../agent/types'
+import { parseYamlBlock, splitFrontmatter } from './yaml'
+import type { YamlValue } from './yaml'
+
+/** One spec skill, read. `body` is its instructions; `file` reads anything else inside its
+ *  folder, so a bundled skill and a project one are used the same way. */
+export interface SpecSkill {
+  name: string
+  description: string
+  /** The part of a card's spec it owns, in one line. A flow reads this against the card in
+   *  front of it to decide whether the card needs the skill at all. */
+  owns: string
+  settings: SpecSkillSetting[]
+  /** Its `SKILL.md` instructions, without the frontmatter. */
+  body: string
+  /** Where it was read from, for a message a person has to act on. */
+  from: string
+  /** Whether the board ships it, as opposed to the project adding it. */
+  builtIn: boolean
+  /** One of its own files, by skill-relative path. Null when it isn't there. */
+  file(relative: string): string | null
+}
+
+/** The only kind of skill AKB runs today. A skill declaring anything else is left out. */
+export const SPEC_KIND = 'spec'
+
+const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
+const RESERVED_KEYS = ['enabled', 'runtime']
+
+/** Read one `SKILL.md`. Either the skill, or the one line saying why it can't be used. */
+export function parseSpecSkill(
+  text: string,
+  from: string,
+  file: (relative: string) => string | null,
+  builtIn = false,
+): { skill: SpecSkill } | { problem: string } {
+  const bad = (why: string) => ({ problem: `${from}: ${why}` })
+  const { meta, body } = splitFrontmatter(text)
+  if (meta === null) return bad('no `---` frontmatter, so it declares no name or description')
+  const front = parseYamlBlock(meta)
+
+  const name = str(front.name)
+  if (!name) return bad('its frontmatter has no `name`')
+  if (!NAME.test(name)) return bad(`"${name}" is not a usable skill name — use lower-case words joined by "-"`)
+  const description = str(front.description)
+  if (!description) return bad(`\`${name}\` has no \`description\`, which is the line a flow picks it by`)
+
+  const akb = map(front.akb)
+  if (!akb) return bad(`\`${name}\` has no \`akb:\` block, so the board can't tell what kind of skill it is`)
+  const kind = str(akb.kind)
+  if (kind !== SPEC_KIND) {
+    return bad(`\`${name}\` declares \`akb.kind: ${kind || '(none)'}\` — this board runs \`${SPEC_KIND}\` skills`)
+  }
+  const owns = str(akb.owns)
+  if (!owns) return bad(`\`${name}\` has no \`akb.owns\`, which is the part of the spec it answers for`)
+
+  const settings: SpecSkillSetting[] = []
+  const declared = akb.settings === undefined || akb.settings === '' ? [] : akb.settings
+  if (!Array.isArray(declared)) return bad(`\`${name}\`: \`akb.settings\` has to be a list`)
+  for (const raw of declared) {
+    const setting = readSetting(raw, name, file)
+    if ('problem' in setting) return bad(setting.problem)
+    if (settings.some((s) => s.key === setting.setting.key)) {
+      return bad(`\`${name}\` declares the setting \`${setting.setting.key}\` twice`)
+    }
+    settings.push(setting.setting)
+  }
+
+  const instructions = body.trim()
+  if (!instructions) return bad(`\`${name}\` has frontmatter but no instructions under it`)
+
+  return { skill: { name, description, owns, settings, body: instructions, from, builtIn, file } }
+}
+
+function readSetting(
+  raw: YamlValue,
+  skill: string,
+  file: (relative: string) => string | null,
+): { setting: SpecSkillSetting } | { problem: string } {
+  const bad = (why: string) => ({ problem: `\`${skill}\`: ${why}` })
+  const entry = map(raw)
+  if (!entry) return bad('each entry under `akb.settings` has to be a block with a `key`')
+  const key = str(entry.key)
+  if (!key) return bad('a setting has no `key`')
+  if (RESERVED_KEYS.includes(key)) return bad(`\`${key}\` is the board's own key and cannot be a setting`)
+  const label = str(entry.label)
+  if (!label) return bad(`the \`${key}\` setting has no \`label\``)
+
+  const rawChoices = entry.choices
+  if (!Array.isArray(rawChoices) || !rawChoices.length) {
+    return bad(`the \`${key}\` setting offers no \`choices\``)
+  }
+  const choices: SpecSkillChoice[] = []
+  for (const rawChoice of rawChoices) {
+    const choice = map(rawChoice)
+    if (!choice) return bad(`a choice under \`${key}\` is not a block`)
+    const value = str(choice.value)
+    const choiceLabel = str(choice.label)
+    const cost = str(choice.cost)
+    const reference = str(choice.reference)
+    if (!value) return bad(`a choice under \`${key}\` has no \`value\``)
+    if (choices.some((c) => c.value === value)) return bad(`\`${key}\` offers the choice "${value}" twice`)
+    if (!choiceLabel) return bad(`the "${value}" choice under \`${key}\` has no \`label\``)
+    if (!cost) return bad(`the "${value}" choice under \`${key}\` has no \`cost\``)
+    if (!reference) return bad(`the "${value}" choice under \`${key}\` names no \`reference\``)
+    if (reference.startsWith('/') || reference.split('/').includes('..')) {
+      return bad(`the "${value}" choice under \`${key}\` points outside the skill: ${reference}`)
+    }
+    if (file(reference) === null) return bad(`the "${value}" choice under \`${key}\` points at a missing ${reference}`)
+    choices.push({ value, label: choiceLabel, cost, reference })
+  }
+
+  const fallback = str(entry.default)
+  if (!fallback) return bad(`the \`${key}\` setting has no \`default\``)
+  if (!choices.some((c) => c.value === fallback)) {
+    return bad(`the \`${key}\` setting defaults to "${fallback}", which is not one of its choices`)
+  }
+  const help = str(entry.help)
+  return { setting: { key, label, ...(help ? { help } : {}), choices, default: fallback } }
+}
+
+const str = (value: YamlValue | undefined): string => (typeof value === 'string' ? value.trim() : '')
+
+const map = (value: YamlValue | undefined): Record<string, YamlValue> | null =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value : null

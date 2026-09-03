@@ -44,7 +44,7 @@ const fr: HomeCopy = {
       },
       {
         title: "Trancher les décisions clés avant l’implémentation",
-        body: "Créez vos propres Spec Agents ou utilisez ceux qui sont intégrés : un agent de sélection technologique compare les options techniques, tandis qu’un agent de conception d’interface propose plusieurs maquettes fonctionnelles.",
+        body: "Créez vos propres Spec Skills ou utilisez celles qui sont intégrées : une skill de sélection technologique compare les options techniques, tandis qu’une skill de conception d’interface propose plusieurs maquettes fonctionnelles.",
       },
       {
         title: "Ne demander une validation que lorsque nécessaire",

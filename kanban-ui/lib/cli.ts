@@ -20,7 +20,7 @@ import type {
   RunRecord,
   RunView,
   SetupProposal,
-  SpecAgentView,
+  SpecSkillView,
 } from "./format/agent/types";
 import type { CloudEventAnswer } from "./format/cloud/events";
 import type {
@@ -321,15 +321,18 @@ export interface BoardRules {
   readLanguage?(): Language;
   setLanguage?(value: Language): WriteResult;
 
-  // the spec agents, and which of them may run (#191). Optional for the same reason as the
-  // skill moves below: a project can be running rules older than the release that added
-  // them, and the Agents section says so rather than the dialog failing to draw.
-  readSpecAgents?(): SpecAgentView[];
-  setSpecAgentEnabled?(name: string, on: boolean): WriteResult;
-  /** Save one of the settings an agent declares (#257). Optional on its own: a board can
-   *  be running rules that list the agents but predate their settings, and the row then
+  // the spec skills, and which of them may run (#191, #403). Optional for the same reason
+  // as the skill moves below: a project can be running rules older than the release that
+  // added them, and the Agents section says so rather than the dialog failing to draw.
+  readSpecSkills?(): SpecSkillView[];
+  setSpecSkillEnabled?(name: string, on: boolean): WriteResult;
+  /** Save one of the settings a skill declares (#257). Optional on its own: a board can
+   *  be running rules that list the skills but predate their settings, and the row then
    *  draws no control rather than offering one nothing can save. */
-  setSpecAgentSetting?(name: string, key: string, value: string): WriteResult;
+  setSpecSkillSetting?(name: string, key: string, value: string): WriteResult;
+  /** Why a skill on this board can't be used (#403) — a malformed SKILL.md, a name already
+   *  taken. Optional: rules that predate project skills report nothing. */
+  specSkillProblems?(): string[];
 
   // the coding agent skill — whether this project has one, and the move that adds it
   // (#174). Optional because a project can be running rules older than the release that

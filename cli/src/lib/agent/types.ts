@@ -54,7 +54,7 @@ export type AgentAction =
    *  checklist is the plan, and the run starts at its first unticked box, so a run started
    *  again after a failure carries on from where the last one stopped. */
   | 'setup'
-  /** One spec agent filling the part of a card's spec it owns (#187). It is named by
+  /** One spec skill filling the part of a card's spec it owns (#187). It is named by
    *  `specAgent`, it starts clean, and it writes one section of that card and nothing
    *  else. A flow asks for one; the board starts it once that flow's own run has ended. */
   | 'spec'
@@ -103,7 +103,9 @@ export interface AgentRequest {
   /** The flow this run belongs to. Absent on the run that opens one — it is given an id
    *  when it is written down, and every session it goes on to start inherits that id. */
   flowId?: string
-  /** spec: which spec agent this run is — a name from `lib/spec-agents.ts`. It decides
+  /** spec: which spec skill this run is — a name from the board's catalog
+   *  (`lib/spec-skills/`). The key keeps the older spelling: it is written into every run
+   *  record, and a rename would strand the runs already in flight. It decides
    *  the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
   /** implement: how THIS build commits (#346) — the Implement dialog's tick, and this one
@@ -199,7 +201,7 @@ export interface RunRecord {
   /** A stop has been asked for. Written so the supervisor's own end, whichever path
    *  witnesses it, records `stopped` rather than a failure. */
   stopping?: boolean
-  /** Which spec agent this run is, on a `spec` run. Kept on the record so the run list can
+  /** Which spec skill this run is, on a `spec` run. Kept on the record so the run list can
    *  say which one is working, and so a resume starts the same agent again. */
   specAgent?: string
   /** Position in a watcher-managed refinement run chain. */
@@ -207,7 +209,7 @@ export interface RunRecord {
   /** The QA guide this refinement uses across its sessions and resume. */
   refineEffort?: RefineEffort
   /** The FLOW this run is one session of — the id shared by the command a user typed and
-   *  every session it went on to start: a refinement's passes, the spec agents a create
+   *  every session it went on to start: a refinement's passes, the spec skills a create
    *  asked for, the review that follows a build. It is what lets the runs panel show one
    *  job instead of six unrelated rows. A run recorded before flows carries none and
    *  stands on its own. */
@@ -375,7 +377,7 @@ export interface DeliveryRecord {
   sessions: string[]
   /** The approved requirements, copied out of the card when the delivery started: the
    *  title, the opening paragraph, `## Worth noting`, `## Scope`, `## Scope out` and every
-   *  spec agent's section. Every run in the delivery builds from THIS, so a change to
+   *  spec skill's section. Every run in the delivery builds from THIS, so a change to
    *  the card file underneath never changes what the delivery was approved to build. */
   approved: string
   /** Questions already open when implementation began. Review waits only on a new decision
@@ -454,16 +456,16 @@ export interface FlowRuleView {
 /** How a delivery commits its work (#303). */
 export type DeliveryCommitMode = 'auto' | 'manual'
 
-/** One ask for a spec agent, as the run that wanted it wrote it down.
+/** One ask for a spec skill, as the run that wanted it wrote it down.
  *
  *  These do NOT live on the record. They are a handoff one process writes and one process
  *  reads once — the run's own watcher, at its close — so they sit beside the run's plan,
  *  in a file of the run's own. That also keeps them out of reach of an older copy of these
  *  rules polling the record: the record is rebuilt field by field on every read, so a
- *  reader that predates a field drops it, and a dropped ask is a spec agent that silently
+ *  reader that predates a field drops it, and a dropped ask is a spec skill that silently
  *  never runs. */
 export interface SpecAsk {
-  /** The agent's name — a name from `lib/spec-agents.ts`. */
+  /** The skill's name — a name from the board's catalog (`lib/spec-skills/`). */
   specAgent: string
   cardId: number
   /** What the flow wants looked at, in a line or two. Everything else the agent is given
@@ -839,7 +841,7 @@ export interface AgentInfo {
    *  this machine's, so this is only ever a label a screen shows. */
   machine: string
   /** What each flow runs on — every flow, in the order `FLOWS` lists them, so no screen
-   *  keeps a list of its own. The spec agents are on the spec agent list instead. */
+   *  keeps a list of its own. The spec skills are on the spec skill list instead. */
   flows: FlowRuntime[]
   /** The agent name the config asked for, when we don't ship it. We run the default and
    *  say so — never move the user to another agent silently. */
@@ -848,63 +850,63 @@ export interface AgentInfo {
   staleCommand?: boolean
 }
 
-/** One choice on a spec agent's setting (#255). `prompt` is the block of text appended to
- *  that agent's own prompt when this choice is the picked one — so what a setting means is
- *  written with the agent's prompt, and no board code has to know. */
-export interface SpecAgentChoice {
+/** One choice on a spec skill's setting (#255, #403). `reference` names the file inside the
+ *  skill that this choice loads — skill-relative, e.g. `references/ascii-drawing.md`. Only
+ *  the picked choice's reference reaches a run, so the instructions for a format nobody
+ *  chose are never read. */
+export interface SpecSkillChoice {
   value: string
   label: string
   /** What this choice costs, in one line: how long the run takes, how much detail it
    *  gives, or how readable the result is. Shown wherever the choice is offered. */
   cost: string
-  /** The block of prompt text this choice adds. */
-  prompt: string
+  /** The skill file this choice loads, relative to the skill's own folder. */
+  reference: string
 }
 
-/** One setting a spec agent declares (#255) — `HarnessSetting` above, for the agent that
+/** One setting a spec skill declares (#255) — `HarnessSetting` above, for the skill that
  *  fills part of a card's spec rather than the CLI a run spawns. It is always a pick from
  *  named choices: never free text, never a number.
  *
- *  A spec agent's settings ARE its configuration, so a new agent brings its own with it and
- *  no screen has to learn its name. */
-export interface SpecAgentSetting {
-  /** The key it saves under inside that agent's entry in ui.config.json. `enabled` is the
-   *  entry's own key — the switch — so no setting may take it. */
+ *  A spec skill's settings ARE its configuration, declared in its own `SKILL.md`
+ *  frontmatter, so a new skill brings its own with it and no screen has to learn its name. */
+export interface SpecSkillSetting {
+  /** The key it saves under inside that skill's entry in ui.config.json. `enabled` and
+   *  `runtime` are the entry's own keys, so no setting may take either. */
   key: string
   label: string
   help?: string
-  choices: SpecAgentChoice[]
+  choices: SpecSkillChoice[]
   /** The `value` of the choice a run uses when nothing is saved. */
   default: string
 }
 
-/** One choice as a screen reads it: everything but the prompt text, which is the run's
- *  business and nothing a dialog would draw. */
-export type SpecAgentChoiceView = Omit<SpecAgentChoice, 'prompt'>
+/** One choice as a screen reads it: everything but the reference it loads, which is the
+ *  run's business and nothing a dialog would draw. */
+export type SpecSkillChoiceView = Omit<SpecSkillChoice, 'reference'>
 
 /** One setting as a screen reads it. */
-export type SpecAgentSettingView = Omit<SpecAgentSetting, 'choices'> & { choices: SpecAgentChoiceView[] }
+export type SpecSkillSettingView = Omit<SpecSkillSetting, 'choices'> & { choices: SpecSkillChoiceView[] }
 
-/** One spec agent, as a screen reads it (#191) — the two lines it is shown by, whether it
- *  is switched on, and what it is set to (#255). The words are the board's own
- *  (`lib/spec-agents.ts`), so a screen listing them never keeps a copy that could say
- *  something else. */
-export interface SpecAgentView {
+/** One spec skill, as a screen reads it (#191) — the two lines it is shown by, whether it
+ *  is switched on, and what it is set to (#255). The words come from the skill's own
+ *  `SKILL.md`, so a screen listing them never keeps a copy that could say something else. */
+export interface SpecSkillView {
   name: string
-  /** What that agent fills in, in one line. */
+  /** What that skill fills in, in one line — its `akb.owns`. */
   owns: string
-  /** The kind of card the board calls it for, in one line. */
-  calledOn: string
+  /** When the board calls it, in one line — the skill's own `description`. */
+  description: string
   /** False only when somebody switched it off. While it is off the board starts no new run
    *  of it, on any card, from a screen or a terminal. */
   enabled: boolean
-  /** The settings this agent declares, in the order a dialog draws them. Empty for an agent
+  /** The settings this skill declares, in the order a dialog draws them. Empty for a skill
    *  that takes none. */
-  settings: SpecAgentSettingView[]
+  settings: SpecSkillSettingView[]
   /** What each of those settings is set to right now, by key. Every setting is in here — one
    *  nobody picked carries its own default, so a screen never has to work one out. */
   values: Record<string, string>
-  /** The runtime this agent runs on (#343) — the board's global one when it names none. */
+  /** The runtime this skill runs on (#343) — the board's global one when it names none. */
   runtime: string
   /** What that runtime resolves to on this computer. */
   harness: string

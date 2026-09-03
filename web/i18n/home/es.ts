@@ -47,7 +47,7 @@ const es: HomeCopy = {
       },
       {
         title: "Resolver las decisiones clave antes de implementar",
-        body: "Puedes crear tus propios Spec Agents o usar los incluidos: un agente de selección tecnológica compara las opciones técnicas y un agente de diseño de interfaz ofrece varios mockups funcionales entre los que elegir.",
+        body: "Puedes crear tus propias Spec Skills o usar las incluidas: una skill de selección tecnológica compara las opciones técnicas y una skill de diseño de interfaz ofrece varios mockups funcionales entre los que elegir.",
       },
       {
         title: "Solicitar aprobación solo cuando sea necesario",
