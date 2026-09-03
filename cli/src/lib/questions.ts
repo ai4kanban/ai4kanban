@@ -27,7 +27,8 @@
 
 import { die, warn } from './paths'
 import { unquote } from './yaml'
-import type { FlagOrder, Question, QuestionDraft } from './types'
+import type { Typed } from './cli/shared'
+import type { Question, QuestionDraft } from './types'
 
 const MODES = ['single', 'multi']
 
@@ -123,8 +124,8 @@ export function warnBadQuestionTags(questions: Question[]): void {
 // A draft is one question under construction while its flags are still being read:
 // the text plus the options collected so far. `finalizeDraft` validates the whole
 // group once the flags run out and returns the stored shape.
-function newDraft(flag: string, value: string | true): QuestionDraft {
-  const text = value === true ? '' : String(value).trim()
+function newDraft(flag: string, value: string): QuestionDraft {
+  const text = value.trim()
   if (!text) die(`--${flag} must not be empty`)
   return { question: text, options: [], recommended: [] }
 }
@@ -134,14 +135,14 @@ function newDraft(flag: string, value: string | true): QuestionDraft {
 // the same list as its siblings, and the options keep the order they were typed in.
 // (Naming an already-declared option instead would mean writing it twice and keeping the
 // two spellings in step.)
-function addToDraft(q: QuestionDraft, key: string, value: string | true): void {
+function addToDraft(q: QuestionDraft, key: string, value: string): void {
   if (key === 'mode') {
-    const m = String(value).toLowerCase()
+    const m = value.toLowerCase()
     if (!MODES.includes(m)) die(`--mode must be single | multi (got "${value}")`)
     q.mode = m
     return
   }
-  const text = value === true ? '' : String(value).trim()
+  const text = value.trim()
   if (!text) die(`--${key} must not be empty`)
   if (q.options.includes(text)) die(`"${text}" is listed twice as an option of "${q.question}"`)
   q.options.push(text)
@@ -169,7 +170,7 @@ function finalizeDraft(q: QuestionDraft): Question {
 // Build the question list from the flags as they were typed: each `--question`
 // starts a new one, and every `--option`, `--mode` and `--recommended-option`
 // after it belongs to that question. A question with no options stays plain.
-export function collectQuestions(order: FlagOrder): Question[] {
+export function collectQuestions(order: Typed[]): Question[] {
   const out: QuestionDraft[] = []
   for (const [key, value] of order) {
     if (key === 'question') {
@@ -219,39 +220,39 @@ export interface QuestionOp {
   question?: Question
 }
 
-// The ops of `update-questions`, read straight off argv — parseFlags carries one
-// value per flag, and `--update` takes two (position, then the new text). Every op
+/** What `update-questions` was asked for: its ops, in the order they were typed. */
+export interface QuestionOpsInput {
+  ops?: Typed[]
+}
+
+// The ops of `update-questions`, read from the flags in the order they were typed. Every op
 // patches the list in place; nothing rewrites it wholesale. `--option`,
-// `--recommended-option` and `--mode` attach to the `--append` or `--update` before
-// them, the same grammar as create's `--question`.
-export function parseQuestionOps(args: string[]): QuestionOp[] {
-  const OPS = ['append', 'update', 'drop', 'clear', 'to-verify', 'option', 'recommended-option', 'mode']
+// `--recommended-option` and `--mode` attach to the `--append` or `--update` before them,
+// the same grammar as create's `--question`.
+//
+// `--update` is the one that takes two values — the position, then the new text — so it is
+// declared variadic and lands here as two entries in a row.
+export function readQuestionOps(typed: Typed[]): QuestionOp[] {
   const ops: QuestionOp[] = []
-  const take = (flag: string, v: string | undefined): string => {
-    if (v === undefined || v.startsWith('--')) die(`--${flag} needs a value`)
-    return v
-  }
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]!
-    if (!a.startsWith('--')) die(`update-questions takes ops, not positional args (got "${a}")`)
-    const key = a.slice(2)
-    if (!OPS.includes(key)) die(`unknown option "--${key}". allowed: ${OPS.map((f) => '--' + f).join(', ')}`)
+  for (let i = 0; i < typed.length; i++) {
+    const [key, value] = typed[i]!
     if (key === 'clear') {
       ops.push({ kind: 'clear' })
-    } else if (key === 'drop') {
-      ops.push({ kind: 'drop', ns: take('drop', args[++i]) })
-    } else if (key === 'to-verify') {
-      ops.push({ kind: 'to-verify', ns: take('to-verify', args[++i]) })
+    } else if (key === 'drop' || key === 'to-verify') {
+      ops.push({ kind: key, ns: value })
     } else if (key === 'append') {
-      ops.push({ kind: 'append', draft: newDraft('append', take('append', args[++i])) })
+      ops.push({ kind: 'append', draft: newDraft('append', value) })
     } else if (key === 'update') {
-      const n = Number(take('update', args[++i]))
+      const n = Number(value)
       if (!Number.isInteger(n) || n < 1) die('--update takes a 1-based question number, then the new text: --update <n> ".."')
-      ops.push({ kind: 'update', n, draft: newDraft('update', take('update', args[++i])) })
+      const next = typed[i + 1]
+      if (!next || next[0] !== 'update') die('--update takes a 1-based question number, then the new text: --update <n> ".."')
+      i++
+      ops.push({ kind: 'update', n, draft: newDraft('update', next[1]) })
     } else {
       const last = ops[ops.length - 1]
       if (!last || !last.draft) die(`--${key} must come after the --append or --update it belongs to`)
-      addToDraft(last.draft, key, take(key, args[++i]))
+      addToDraft(last.draft, key, value)
     }
   }
   if (!ops.length) {

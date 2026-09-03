@@ -25,6 +25,7 @@ import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { RULES, setBoardRoot } from '../src/lib/paths.ts'
+import { run as akb } from './helpers/board.ts'
 
 let root = ''
 // This machine, for the tests that read the language off it (#337). Pinned for every test
@@ -186,7 +187,7 @@ describe('the prompt', () => {
     )
     startCollecting()
     try {
-      const flow = await cmdStartRun('refine', ['1', '--effort', 'lightweight', '--print'])
+      const flow = await cmdStartRun('refine', [1], { effort: 'lightweight', print: true })
       assert.deepEqual(flow.guides, ['writing', 'update-questions', 'qa-lightweight'])
     } finally {
       stopCollecting()
@@ -198,9 +199,10 @@ describe('the prompt', () => {
       path.join(root, 'docs', 'kanban', 'todo', 'features', '1-card.md'),
       card(1, 'card one').replace('status: ready', 'status: todo'),
     )
+    // The command declares the two it takes, so the refusal comes from the parse.
     await assert.rejects(
-      () => cmdStartRun('refine', ['1', '--effort', 'parallel', '--print']),
-      /--effort takes lightweight or standard/,
+      () => akb(root, ['refine', '1', '--effort', 'parallel', '--print']),
+      /--effort .*lightweight \| standard/,
     )
   })
 

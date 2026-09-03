@@ -10,7 +10,7 @@ import path from 'node:path'
 
 import { die, rel, TODO, MODULES_MD } from '../lib/paths'
 import { say } from '../lib/io'
-import { parseFlags, moduleNames } from '../lib/validate'
+import { moduleNames } from '../lib/validate'
 import { parseFrontmatter } from '../lib/frontmatter'
 import { walkMd, idPrefix, trackOf } from '../lib/cards'
 import type { MoveResult, Question } from '../lib/types'
@@ -83,17 +83,16 @@ function openRows(): Row[] {
   return rows.sort((a, b) => a.id - b.id)
 }
 
-export function cmdList(args: string[]): MoveResult {
-  const { flags, positional } = parseFlags(args, ['module'])
-  if (positional.length) die(`list takes options, not positional args (got "${positional.join(' ')}")`)
+/** `akb board list`, as its command declares it (lib/cli/board.ts). */
+export interface ListOptions {
+  module?: string
+}
 
+export function cmdList(opts: ListOptions): MoveResult {
   let rows = openRows()
   let scope = 'on the board'
-  // Kept as the flag parser handed it over: a repeated --module is a list, which matches
-  // no module name and is turned away below exactly as an unknown one is.
-  const mod = flags.module as string | true | undefined
+  const mod = opts.module
   if (mod !== undefined) {
-    if (mod === true) die('--module needs a module name, e.g. `list --module skill`')
     const known = moduleNames()
     if (known === null) die(`no ${rel(MODULES_MD)} yet — the board has no module map to filter by`)
     if (!known.includes(mod)) {

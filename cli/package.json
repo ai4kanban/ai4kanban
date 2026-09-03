@@ -1,7 +1,7 @@
 {
   "name": "ai4kanban",
   "version": "0.8.1",
-  "description": "AI4Kanban's `akb` command \u2014 scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
+  "description": "AI4Kanban's `akb` command — scaffold the Markdown board under docs/kanban/, put an agent on a card, and carry the flows the agent works by.",
   "keywords": [
     "kanban",
     "claude",
@@ -43,5 +43,8 @@
     "@types/node": "^22.20.1",
     "esbuild": "^0.28.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
   }
 }

@@ -833,8 +833,8 @@ function cloudBoard(ctx: Context): BoardProvider {
 
     // ---- the named `akb board` moves ----------------------------------------
 
-    runMove: (move, args, env) => through(moveTarget(move, args), env, (e) => local.runMove(move, args, e)),
-    readMove: async (move, args) => (await tryLive(), local.readMove(move, args)),
+    runMove: (move, input, env) => through(moveTarget(move, input.args), env, (e) => local.runMove(move, input, e)),
+    readMove: async (move, input) => (await tryLive(), local.readMove(move, input)),
   }
 
   return provider

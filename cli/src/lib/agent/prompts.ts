@@ -353,13 +353,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Fix plain mistakes and rerun the affected checks. If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`,
         `Don't ask me questions with human-in-the-loop — the card's validated open question is how you defer to me.`,
       ].join(' ')
-    // Kept only so a correction run already in flight during an upgrade can finish.
-    case 'correct':
-      return [
-        `${kb}. Finish the legacy correction run for task ${req.id} ${named}.`,
-        `Fix the recorded findings; a combined review follows.`,
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
-      ].join(' ')
     // Resolving the conflict a landing's rebase stopped on (#304). It is new work, not a
     // correction: the two cards were both right on their own, and what to keep is a
     // judgment neither card wrote down. Nothing here names the files — they are in the

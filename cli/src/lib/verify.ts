@@ -15,6 +15,7 @@
 // exactly as it did.
 
 import { die, warn } from './paths'
+import type { Typed } from './cli/shared'
 
 // A leading `[user]`-style token is what a question carries, and a verify line is not one.
 // It gets taken off rather than stored, so a note misfiled as a question and moved here
@@ -37,34 +38,30 @@ export function normalizeVerify(raw: unknown): string[] {
   return text && text !== '[]' ? [text] : []
 }
 
-/** One op of `update-verify`, as read off argv. */
+/** One op of `update-verify`. */
 export interface VerifyOp {
   kind: 'append' | 'drop' | 'clear'
   ns?: string
   line?: string
 }
 
-/** The ops of `update-verify`, read straight off argv — the same three edits `questions:`
- *  gets, minus the rewrite: a hand-check that changed is dropped and appended again, and
- *  there are no options to lose by re-typing it. Ops apply in the order they were typed. */
-export function parseVerifyOps(args: string[]): VerifyOp[] {
-  const OPS = ['append', 'drop', 'clear']
+/** What `update-verify` was asked for: its ops, in the order they were typed. */
+export interface VerifyOpsInput {
+  ops?: Typed[]
+}
+
+/** The ops of `update-verify` — the same three edits `questions:` gets, minus the rewrite: a
+ *  hand-check that changed is dropped and appended again, and there are no options to lose
+ *  by re-typing it. Ops apply in the order they were typed. */
+export function readVerifyOps(typed: Typed[]): VerifyOp[] {
   const ops: VerifyOp[] = []
-  const take = (flag: string, v: string | undefined): string => {
-    if (v === undefined || v.startsWith('--')) die(`--${flag} needs a value`)
-    return v
-  }
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i]!
-    if (!a.startsWith('--')) die(`update-verify takes ops, not positional args (got "${a}")`)
-    const key = a.slice(2)
-    if (!OPS.includes(key)) die(`unknown option "--${key}". allowed: ${OPS.map((f) => '--' + f).join(', ')}`)
+  for (const [key, value] of typed) {
     if (key === 'clear') {
       ops.push({ kind: 'clear' })
     } else if (key === 'drop') {
-      ops.push({ kind: 'drop', ns: take('drop', args[++i]) })
+      ops.push({ kind: 'drop', ns: value })
     } else {
-      const line = cleanLine(take('append', args[++i]))
+      const line = cleanLine(value)
       if (!line) die('--append must not be empty')
       ops.push({ kind: 'append', line })
     }

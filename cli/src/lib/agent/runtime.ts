@@ -5,9 +5,8 @@
 // start. What the answer then RUNS as is agent/resolve.ts's, out of the same board file.
 //
 // Only a flow is named, never a pass: a refine's `clarify`, `resolve` and `writing` passes
-// take refine's runtime, and a `correct` still in flight from the older review loop takes
-// review's. `setup` is always the global one — it is the run that has to work on a board
-// nobody has configured yet.
+// take refine's runtime. `setup` is always the global one — it is the run that has to work
+// on a board nobody has configured yet.
 
 import { specSkillNames } from '../spec-skill-names'
 import { flowByAction } from './flows'
@@ -53,11 +52,7 @@ function namedRuntime(
 // never to a flow of its own name: `resolve` is both a pass of a refine and a command a
 // user types, and only the round tells them apart. `clarify` and `writing` are passes
 // either way, which is what `flowByAction` already says.
-//
-// `correct` is no flow a person types — it is the older review loop's fix run, and a board
-// upgraded mid-delivery may still have one in flight. It belongs to review.
 function flowOf(ask: RuntimeAsk, action: AgentAction): string | undefined {
-  if (action === 'correct') return 'review'
   if (ask.refineRound !== undefined && REFINE_ACTIONS.has(action)) return 'refine'
   return flowByAction(action)?.command
 }

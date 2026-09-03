@@ -16,28 +16,25 @@ import type { ChatView } from '../lib/agent/types'
 import { collecting, say } from '../lib/io'
 import { die } from '../lib/paths'
 import type { MoveResult } from '../lib/types'
-import { parseFlags } from '../lib/validate'
 
-const ALLOWED = ['dir', 'json', 'clear', 'card', 'message', 'agent', 'model']
+/** `akb chat`, as its command declares it (lib/cli/agent.ts). */
+export interface ChatOptions {
+  /** The card the conversation is about; left off, it is the board's. */
+  id?: number
+  message?: string[]
+  clear?: boolean
+  agent?: string
+  model?: string
+}
 
-export async function cmdChat(args: string[], program = 'akb'): Promise<MoveResult> {
-  const { flags, positional } = parseFlags(args, ALLOWED)
-  const words = [...positional]
-  // A leading number is the card the conversation is about; anything else is the message,
-  // and with no number at all the conversation is the board's.
-  let cardId: number | null = null
-  if (words[0] && /^\d+$/.test(words[0])) cardId = Number(words.shift())
-  if (typeof flags.card === 'string') {
-    const id = Number(flags.card)
-    if (!Number.isInteger(id)) die('--card takes a card id', { kind: 'bad-option' })
-    cardId = id
-  }
-  const message = (words.join(' ') || (typeof flags.message === 'string' ? flags.message : '')).trim()
+export async function cmdChat(opts: ChatOptions, program = 'akb'): Promise<MoveResult> {
+  const cardId = opts.id ?? null
+  const message = (opts.message ?? []).join(' ').trim()
   const about = cardId === null ? 'the board' : `#${cardId}`
 
   // Clearing is the one thing that doesn't ask whether the card is still on the board:
   // it is how a conversation left behind by anything is tidied away.
-  if (flags.clear === true) {
+  if (opts.clear === true) {
     if (message) die('--clear forgets the conversation, so it takes no message', { kind: 'bad-option' })
     const had = clearChat(cardId)
     say(had ? `forgot the conversation about ${about} — the next message starts a fresh one.` : `no conversation about ${about} to forget.`)
@@ -48,9 +45,8 @@ export async function cmdChat(args: string[], program = 'akb'): Promise<MoveResu
 
   // What this one conversation runs on (#272), before anything is said on it. Both stay
   // with the transcript, so the next `akb chat` and the board app read the same pick.
-  if (flags.agent !== undefined) {
-    if (flags.agent === true) die('--agent takes an agent name, or "" for the board\'s', { kind: 'bad-option' })
-    const name = String(flags.agent).trim()
+  if (opts.agent !== undefined) {
+    const name = opts.agent.trim()
     const picked = pickChatAgent(cardId, name || null)
     if ('error' in picked) die(picked.error, { kind: 'chat-refused' })
     say(
@@ -59,9 +55,8 @@ export async function cmdChat(args: string[], program = 'akb'): Promise<MoveResu
         : `the conversation about ${about} now runs ${harnessLabel(picked.harness)}.`,
     )
   }
-  if (flags.model !== undefined) {
-    if (flags.model === true) die('--model takes a model id, or "" for the board\'s', { kind: 'bad-option' })
-    const id = String(flags.model).trim()
+  if (opts.model !== undefined) {
+    const id = opts.model.trim()
     const picked = pickChatModel(cardId, id || null)
     if ('error' in picked) die(picked.error, { kind: 'chat-refused' })
     say(

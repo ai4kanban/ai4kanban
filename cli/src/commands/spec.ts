@@ -29,24 +29,29 @@ import {
   SPEC_SWITCH_HOME,
 } from '../lib/spec-skills'
 import type { MoveResult } from '../lib/types'
-import { parseFlags } from '../lib/validate'
 import { followRun, short } from './run'
 
-const FLAGS = ['follow', 'dir', 'json', 'notes', 'print']
+/** `akb spec`, as its command declares it (lib/cli/agent.ts). */
+export interface SpecOptions {
+  skill?: string
+  id?: number
+  note?: string[]
+  notes?: string
+  follow?: boolean
+  print?: boolean
+}
 
-export async function cmdSpec(args: string[], program = 'akb'): Promise<MoveResult> {
-  const { flags, positional } = parseFlags(args, FLAGS)
-
+export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveResult> {
   // No skill named: say which ones there are. This is the list a flow reads to decide
   // whether a card needs one at all, so a switched-off skill is not in it (#191). Typed by
   // a person it is still named, in the closing line — a skill that vanished with no
   // explanation reads as a board that broke.
-  if (!positional.length) {
+  if (!opts.skill) {
     say(specSkillList(program, !insideRun()))
     return { agents: specSkillNamesOnBoard() }
   }
 
-  const askedName = String(positional[0]).trim()
+  const askedName = opts.skill.trim()
   const skill = findSpecSkill(askedName)
   if (!skill) die(notASkill(askedName), { kind: 'no-such-spec-agent', specAgent: askedName })
   const name = skill.name
@@ -62,8 +67,8 @@ export async function cmdSpec(args: string[], program = 'akb'): Promise<MoveResu
     )
   }
 
-  const id = Number(positional[1])
-  if (!Number.isInteger(id)) {
+  const id = opts.id
+  if (id === undefined) {
     die(`say which card: ${program} spec ${name} <id> [note]`, { kind: 'needs-input' })
   }
   if (!locate(id)) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
@@ -71,7 +76,7 @@ export async function cmdSpec(args: string[], program = 'akb'): Promise<MoveResu
   // The one starting command with no `--print`. A printed flow is "do it here", and here is
   // exactly where a spec skill must not be: it is worth a run precisely because it has not
   // read the conversation that wanted it.
-  if (flags.print === true) {
+  if (opts.print === true) {
     die(
       `a spec skill has no --print: it is worth asking for only because it starts clean, and printing its instructions would have you write the section in the conversation that asked for it. Run \`${program} spec ${name} ${id}\` and it starts on its own.`,
       { kind: 'bad-option' },
@@ -89,7 +94,7 @@ export async function cmdSpec(args: string[], program = 'akb'): Promise<MoveResu
     return { specAgent: name, cardId: id, queued: false, pending: true }
   }
 
-  const notes = noteOf(positional.slice(2), flags.notes)
+  const notes = noteOf(opts.note ?? [], opts.notes)
   const req: AgentRequest = { action: 'spec', id, title: titleOf(id), specAgent: name, notes }
 
   // Asked for from inside a run: written down, not started. A run never starts another, and
@@ -129,14 +134,14 @@ export async function cmdSpec(args: string[], program = 'akb'): Promise<MoveResu
   say(`spec ${name} #${id} — run ${run.sessionId}`)
   say(`  follow it: ${program} log ${short(run.sessionId)} --follow${DIR_FLAG}`)
   say(`  stop it:   ${program} stop ${short(run.sessionId)}${DIR_FLAG}`)
-  if (flags.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId, '', program)) }
+  if (opts.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId, '', program)) }
   return { sessionId: run.sessionId, action: 'spec', specAgent: name, cardId: id }
 }
 
 // What the flow wants looked at. Everything after the id is the note, so it can be typed
 // without quoting; `--notes` is the same thing spelled for a caller building a command.
-function noteOf(rest: string[], flag: unknown): string | undefined {
-  const typed = rest.join(' ').trim()
+function noteOf(words: string[], flag: string | undefined): string | undefined {
+  const typed = words.join(' ').trim()
   if (typed) return typed
-  return typeof flag === 'string' && flag.trim() ? flag.trim() : undefined
+  return flag?.trim() || undefined
 }

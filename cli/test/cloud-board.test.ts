@@ -361,7 +361,7 @@ describe('a write on a Cloud board', () => {
 
     // A create is the plainest move that is both: a new card, and the index beside it.
     const res = await withLease({ board: true }, (env) =>
-      board().runMove('create', ['--title', 'A new one', '--track', 'features'], env),
+      board().runMove('create', { args: [], opts: { title: 'A new one', track: 'features' } }, env),
     )
     assert.equal(res.ok, false)
     assert.match(res.ok === false ? res.error : '', /workspace is full/)
@@ -406,7 +406,7 @@ describe('a write on a Cloud board', () => {
     await openBoard(root)
 
     const made = await withLease({ board: true }, (env) =>
-      board().runMove('create', ['--title', 'A new one', '--track', 'features'], env),
+      board().runMove('create', { args: [], opts: { title: 'A new one', track: 'features' } }, env),
     )
     assert.equal(made.ok, true)
 

@@ -246,16 +246,28 @@ export interface BoardProvider {
 
   // ---- the named `akb board` moves -----------------------------------------
   /**
-   * One board move, by the name a person types and the arguments they typed after it.
+   * One board move, by the name a person types and what they typed after it.
    *
-   * `akb board <move>` is argv-shaped by nature, so this is the shape it travels in: a
-   * Cloud board runs the move where the board is, and answers with the same fields and the
-   * same prose. It is still a mutation like any other — envelope in, conflict out.
+   * A Cloud board runs the move where the board is, and answers with the same fields and
+   * the same prose. It is still a mutation like any other — envelope in, conflict out.
    *
    * Read-only moves take no envelope, which is what `readMove` is for.
    */
-  runMove(move: string, args: string[], env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
-  readMove(move: string, args: string[]): Promise<MoveOutput>
+  runMove(move: string, input: MoveInput, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
+  readMove(move: string, input: MoveInput): Promise<MoveOutput>
+}
+
+/**
+ * What a move was asked for, once the command line has been read.
+ *
+ * `args` is the positional arguments as typed — an id, a version, a track list. It is what
+ * a lease target is read from (`moveTarget`), so it stays a plain list of words.
+ * `opts` is the options, already validated by the command that declared them
+ * (lib/cli/board.ts): a move never re-checks that `--priority` is one of three words.
+ */
+export interface MoveInput {
+  args: string[]
+  opts: Record<string, unknown>
 }
 
 /** How a new release was filled — the plain rule, or a run somebody still has to start. */

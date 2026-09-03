@@ -9,7 +9,7 @@ import path from 'node:path'
 import { die, rel, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
-import { parseFlags, slugify, LEVELS } from '../lib/validate'
+import { slugify, LEVELS } from '../lib/validate'
 import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter'
 import { formatStamp, nextDue } from '../lib/cadence'
 import { walkMd, locate, isRecurringCard } from '../lib/cards'
@@ -55,9 +55,13 @@ function stripOldHeader(text: string): string {
   return rest.join('\n')
 }
 
-export function cmdMigrate(args: string[]): MoveResult {
-  const { flags } = parseFlags(args, ['dry-run', 'dry'])
-  const dry = !!(flags['dry-run'] || flags.dry)
+/** `akb board migrate`, as its command declares it (lib/cli/board.ts). */
+export interface MigrateOptions {
+  dryRun?: boolean
+}
+
+export function cmdMigrate(opts: MigrateOptions): MoveResult {
+  const dry = opts.dryRun === true
   const files = walkMd(TODO).filter((f) => path.basename(f) !== 'README.md')
   let changed = 0
   let skipped = 0

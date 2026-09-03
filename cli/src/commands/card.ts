@@ -10,9 +10,9 @@ import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { countsForRecord, recordFact, type Answerer, type Origin } from '../lib/record'
-import { parseFlags, slugify, validLevel, validStatus, validTrack, validModules, parseModuleList, parseIdList, normalizeRelease } from '../lib/validate'
-import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, parseQuestionOps, parseQuestionPositions } from '../lib/questions'
-import { parseVerifyOps, parseVerifyPositions } from '../lib/verify'
+import { slugify, validTrack, validModules, parseIdList, normalizeRelease } from '../lib/validate'
+import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, type QuestionOpsInput } from '../lib/questions'
+import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
 import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
 import { locate, enclosingGroupRoot, isRecurringCard, trackOf } from '../lib/cards'
@@ -24,7 +24,9 @@ import { findCard } from '../lib/view/read'
 import type { ScheduledAction } from '../lib/view/types'
 import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
-import type { FlagValue, Flags, Meta, MoveResult, Question } from '../lib/types'
+import type { Meta, MoveResult, Question } from '../lib/types'
+
+export type { QuestionOpsInput, VerifyOpsInput }
 
 // A one-shot todo item in any accepted form: `- [ ]`, `- []`, `- [x]`, `* [X]`, … — the
 // shape counts, not the literal string. Recurring cards have a Process instead.
@@ -69,28 +71,42 @@ function recurringBody() {
 // same. An empty value is "no cadence" — the card goes back to running only when a
 // human clicks Run. Anything the grammar doesn't cover is refused with the accepted
 // forms, never written half-parsed.
-function cadenceFlag(raw: FlagValue): string {
-  if (raw === true) die(`--cadence needs a value: ${CADENCE_FORMS}. Use --cadence "" to clear it.`)
-  const text = String(raw).trim()
+function cadenceFlag(raw: string): string {
+  const text = raw.trim()
   if (!text) return ''
   const parsed = parseCadence(text)
   if (!parsed) die(`--cadence "${text}" isn't a cadence. Accepted: ${CADENCE_FORMS}`)
   return formatCadence(parsed)
 }
 
-const CREATE_FLAGS = ['title', 'track', 'priority', 'roi', 'release', 'blocked-by', 'related', 'modules', 'question', 'option', 'mode', 'recommended-option', 'slug', 'no-body', 'cadence', 'proposed', 'schedule']
+/** `akb board create`, as its command declares it (lib/cli/board.ts). */
+export interface CreateOptions {
+  title: string
+  track: string
+  priority: string
+  roi: string
+  release?: string
+  blockedBy?: string[]
+  related?: string[]
+  modules?: string[]
+  slug?: string
+  /** `--no-body`: Commander stores the negation, so this is false only when it was typed. */
+  body?: boolean
+  cadence?: string
+  proposed?: boolean
+  schedule?: ScheduledAction
+  /** `--question` and the choices that qualify it, in the order they were typed. */
+  asked: [key: string, value: string][]
+}
 
 // `--schedule refine` hands the new card's first run to the board (lib/view/dispatch.ts)
 // instead of starting one here: it survives this session and every other, and the board
 // starts one scheduled run per tick rather than all of them at once. Read before the id is
 // allocated, so a bad value never leaves a card behind.
-function createSchedule(raw: FlagValue, track: string, questions: Question[]): ScheduledAction {
-  const action = asScheduledAction(raw === true ? '' : raw)
-  if (!action) {
-    die(`--schedule names the action for the board to run: ${SCHEDULED_ACTIONS.join(' | ')}`)
-  }
-  // The same refusals `scheduleRefusal` makes, on the card this create is about to write —
-  // a schedule that could never fire must not cost a card its id.
+//
+// Which words are actions is the command's own check; what is left here is the two ways a
+// perfectly-spelled one would still never fire.
+function createSchedule(action: ScheduledAction, track: string, questions: Question[]): ScheduledAction {
   if (track === RECURRING) die('--schedule is not for a recurring card: its cadence is its schedule.')
   if (
     action === 'refine' &&
@@ -105,41 +121,33 @@ function createSchedule(raw: FlagValue, track: string, questions: Question[]): S
 // Where a card came from. `--proposed` is what the flows that go looking for work pass —
 // propose, extract-ideas, plan-release; every other way of adding a card is a person
 // asking for it. Kept for the board's own score (lib/record.ts), not shown on the card.
-const originOf = (flags: Flags): Origin => (flags.proposed !== undefined ? 'proposed' : 'asked')
+const originOf = (opts: CreateOptions): Origin => (opts.proposed ? 'proposed' : 'asked')
 
 // Create allocates one id, writes one card's frontmatter + body template, and indexes it.
 // The script owns the meta; fill the body with your editor and leave the frontmatter alone.
-export function cmdCreate(args: string[]): MoveResult {
-  const { flags, positional, order } = parseFlags(args, CREATE_FLAGS)
-  if (positional.length) die(`create takes options, not positional args (got "${positional.join(' ')}")`)
-  if (flags.title === undefined) die('create writes exactly one card: pass --title <title> --track <track>')
-  const title = String(flags.title).trim()
+export function cmdCreate(opts: CreateOptions): MoveResult {
+  const title = opts.title.trim()
   if (!title) die('--title must not be empty')
-  if (flags.track === undefined) die('--track is required (e.g. --track feature)')
-  const track = String(flags.track).trim()
+  const track = opts.track.trim()
   validTrack(track)
-  const priority = flags.priority !== undefined ? String(flags.priority) : 'med'
-  validLevel(priority, 'priority')
-  const roi = flags.roi !== undefined ? String(flags.roi) : 'med'
-  validLevel(roi, 'roi')
+  const { priority, roi } = opts
   // No --release means no release: the card is wanted, not promised to a version. Any
   // other value has to name a release on the list — a typo must not invent a version.
-  const release = validRelease(normalizeRelease(flags.release))
+  const release = validRelease(normalizeRelease(opts.release))
   const start = readNextId()
-  const blocked_by = flags['blocked-by'] !== undefined ? parseIdList(flags['blocked-by'], 'blocked-by', start) : []
-  const related = flags.related !== undefined ? parseIdList(flags.related, 'related', start) : []
-  const modules = flags.modules !== undefined ? validModules(parseModuleList(flags.modules)) : []
+  const blocked_by = parseIdList(opts.blockedBy ?? [], 'blocked-by', start)
+  const related = parseIdList(opts.related ?? [], 'related', start)
+  const modules = validModules(opts.modules ?? [])
   // Only a card that repeats can have a cadence — a one-shot task is built once.
   let cadence = ''
-  if (flags.cadence !== undefined) {
+  if (opts.cadence !== undefined) {
     if (track !== RECURRING) die(`--cadence is for recurring cards only (--track ${RECURRING}); a one-shot task is built once, not repeated.`)
-    cadence = cadenceFlag(flags.cadence)
+    cadence = cadenceFlag(opts.cadence)
   }
-  const questions = collectQuestions(order)
+  const questions = collectQuestions(opts.asked ?? [])
   warnBadQuestionTags(questions)
-  const wantedSchedule =
-    flags.schedule !== undefined ? createSchedule(flags.schedule, track, questions) : null
-  const slug = slugify(flags.slug !== undefined ? flags.slug : title)
+  const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, track, questions) : null
+  const slug = slugify(opts.slug !== undefined ? opts.slug : title)
   const fileRel = path.join(track, `${start}-${slug}.md`)
   const file = path.join(TODO, fileRel)
   if (fs.existsSync(file)) die(`${rel(file)} already exists — pick a different --slug`)
@@ -148,9 +156,9 @@ export function cmdCreate(args: string[]): MoveResult {
   writeNextId(start + 1)
   bumpMetric('created')
   const meta: Partial<Meta> = { title, track, priority, roi, status: 'todo', release, blocked_by, related, modules, cadence, questions }
-  const body = flags['no-body'] ? '' : track === RECURRING ? recurringBody() : defaultBody()
+  const body = opts.body === false ? '' : track === RECURRING ? recurringBody() : defaultBody()
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
-  if (countsForRecord(file)) recordFact('card-created', start, originOf(flags))
+  if (countsForRecord(file)) recordFact('card-created', start, originOf(opts))
   const indexed = addReadmeRef(track, start, title, fileRel)
   // An asked-for schedule wins over the default one a blocked card gets — it is the same
   // field, and the user named the action.
@@ -170,15 +178,25 @@ export function cmdCreate(args: string[]): MoveResult {
   return { id: start, ids: [start], title, track, file: rel(file), indexed, schedule: scheduled }
 }
 
-const UPDATE_FLAGS = ['title', 'track', 'priority', 'roi', 'status', 'release', 'blocked-by', 'related', 'modules', 'slug', 'cadence']
+/** `akb board update`, as its command declares it (lib/cli/board.ts). */
+export interface UpdateOptions {
+  title?: string
+  track?: string
+  priority?: string
+  roi?: string
+  status?: string
+  release?: string
+  blockedBy?: string[]
+  related?: string[]
+  modules?: string[]
+  slug?: string
+  cadence?: string
+}
 
 // Rewrite a card's frontmatter fields. Also the sanctioned way to move a card between
 // tracks (--track moves the file + fixes the index) or rename it (--slug). Body is
 // untouched, and so is the question list — that's cmdUpdateQuestions' job.
-export function cmdUpdate(args: string[]): MoveResult {
-  const { flags, positional } = parseFlags(args, UPDATE_FLAGS)
-  const id = Number(positional[0])
-  if (!Number.isInteger(id)) die('need a numeric task id: update <id> [--field value ...]')
+export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
@@ -188,24 +206,21 @@ export function cmdUpdate(args: string[]): MoveResult {
 
   const changes: string[] = []
   if (flags.title !== undefined) {
-    const t = String(flags.title).trim()
+    const t = flags.title.trim()
     if (!t) die('--title must not be empty')
     meta.title = t
     changes.push('title')
   }
   if (flags.priority !== undefined) {
-    validLevel(String(flags.priority), 'priority')
-    meta.priority = String(flags.priority)
+    meta.priority = flags.priority
     changes.push('priority')
   }
   if (flags.roi !== undefined) {
-    validLevel(String(flags.roi), 'roi')
-    meta.roi = String(flags.roi)
+    meta.roi = flags.roi
     changes.push('roi')
   }
   if (flags.status !== undefined) {
-    validStatus(String(flags.status))
-    meta.status = String(flags.status)
+    meta.status = flags.status
     changes.push('status')
   }
   // `--release ""` — an empty value — takes the card back out of a version.
@@ -214,8 +229,8 @@ export function cmdUpdate(args: string[]): MoveResult {
     changes.push(`release→${meta.release || '(none)'}`)
   }
   const ceiling = readNextId()
-  if (flags['blocked-by'] !== undefined) {
-    meta.blocked_by = parseIdList(flags['blocked-by'], 'blocked-by', ceiling)
+  if (flags.blockedBy !== undefined) {
+    meta.blocked_by = parseIdList(flags.blockedBy, 'blocked-by', ceiling)
     changes.push('blocked_by')
   }
   if (flags.related !== undefined) {
@@ -223,7 +238,7 @@ export function cmdUpdate(args: string[]): MoveResult {
     changes.push('related')
   }
   if (flags.modules !== undefined) {
-    meta.modules = validModules(parseModuleList(flags.modules))
+    meta.modules = validModules(flags.modules)
     changes.push('modules')
   }
   // How often the card repeats, and so whether the local UI runs it in the
@@ -249,7 +264,7 @@ export function cmdUpdate(args: string[]): MoveResult {
   if (flags.track !== undefined) {
     if (found.kind === 'group') die('moving a group task between tracks by script is not supported — move the folder by hand')
     if (isSubtask) die('moving a group subtask between tracks by script is not supported — move the file by hand')
-    newTrack = String(flags.track).trim()
+    newTrack = flags.track.trim()
     validTrack(newTrack)
   }
   let base = path.basename(file)
@@ -293,14 +308,19 @@ export function cmdUpdate(args: string[]): MoveResult {
     stripReadmeRefs({ kind: 'file', rel: curRel })
     addReadmeRef(curTrack, id, meta.title, curRel)
   }
-  if (flags['blocked-by'] !== undefined && scheduleRefineOnBlock(id, wasBlocked)) {
+  if (flags.blockedBy !== undefined && scheduleRefineOnBlock(id, wasBlocked)) {
     changes.push('schedule→refine when unblocked')
   }
   say(`updated #${id}: ${changes.join(', ') || '(nothing changed)'}`)
   return { id, changes, file: rel(dest) }
 }
 
-const SCHEDULE_FLAGS = ['action', 'notes', 'clear']
+/** `akb board schedule`, as its command declares it (lib/cli/board.ts). */
+export interface ScheduleOptions {
+  action?: ScheduledAction
+  notes?: string
+  clear?: boolean
+}
 
 /** One line saying when the board will start what was just scheduled. */
 function scheduleReceipt(id: number, action: ScheduledAction): string {
@@ -316,14 +336,8 @@ function scheduleReceipt(id: number, action: ScheduledAction): string {
 // A card holds one schedule at a time: a second one replaces the first, and the receipt says
 // which one it replaced. Only the two actions a run can finish without anybody watching can
 // be scheduled (see lib/schedule.ts).
-export function cmdSchedule(args: string[]): MoveResult {
-  const { flags, positional } = parseFlags(args, SCHEDULE_FLAGS)
-  const id = Number(positional[0])
-  if (!Number.isInteger(id)) {
-    die(`need a numeric task id: schedule <id> --action ${SCHEDULED_ACTIONS.join('|')}`)
-  }
-
-  if (flags.clear !== undefined) {
+export function cmdSchedule(id: number, flags: ScheduleOptions): MoveResult {
+  if (flags.clear) {
     if (flags.action !== undefined || flags.notes !== undefined) {
       die('--clear takes a schedule off — it goes with nothing else')
     }
@@ -335,11 +349,8 @@ export function cmdSchedule(args: string[]): MoveResult {
   if (flags.action === undefined) {
     die(`schedule <id> needs --action ${SCHEDULED_ACTIONS.join('|')}, or --clear to take one off`)
   }
-  const action = asScheduledAction(flags.action)
-  if (!action) {
-    die(`--action must be one of ${SCHEDULED_ACTIONS.join(' | ')} (got "${String(flags.action)}")`)
-  }
-  const notes = flags.notes !== undefined && flags.notes !== true ? String(flags.notes).trim() : ''
+  const action = flags.action
+  const notes = flags.notes?.trim() ?? ''
   const was = setCardSchedule(id, { action, notes })
   say(scheduleReceipt(id, action) + (was ? ` (replacing the ${was.action} that was scheduled)` : ''))
   return { id, schedule: action, notes, was: was?.action ?? null }
@@ -350,11 +361,8 @@ export function cmdSchedule(args: string[]): MoveResult {
 // to the user never means re-passing its siblings (wholesale rewrites silently lost
 // options that weren't re-typed). Ops apply in the order they were typed, and a
 // position is read against the list as it stands when its op runs.
-export function cmdUpdateQuestions(args: string[]): MoveResult {
-  const [idRaw, ...rest] = args
-  const id = Number(idRaw)
-  if (!Number.isInteger(id)) die('need a numeric task id: update-questions <id> [ops]')
-  const ops = parseQuestionOps(rest)
+export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveResult {
+  const ops = readQuestionOps(input.ops ?? [])
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
@@ -424,11 +432,8 @@ export function cmdUpdateQuestions(args: string[]): MoveResult {
 //
 // Nothing here touches the card's status: a verify line is a note, not a question, so it
 // never takes a `ready` card back to `todo` and never stands between the card and archive.
-export function cmdUpdateVerify(args: string[]): MoveResult {
-  const [idRaw, ...rest] = args
-  const id = Number(idRaw)
-  if (!Number.isInteger(id)) die('need a numeric task id: update-verify <id> [ops]')
-  const ops = parseVerifyOps(rest)
+export function cmdUpdateVerify(id: number, input: VerifyOpsInput): MoveResult {
+  const ops = readVerifyOps(input.ops ?? [])
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
@@ -460,22 +465,16 @@ export function cmdUpdateVerify(args: string[]): MoveResult {
 // user | none (none strips any tag). Reads and rewrites the frontmatter
 // through the same path as `update`, so byte layout and group-root handling stay
 // identical.
-export function cmdTag(args: string[]): MoveResult {
-  const [idRaw, nRaw, tagRaw] = args
-  const id = Number(idRaw)
-  if (!Number.isInteger(id)) die('need a numeric task id: tag <id> <n[,n...]> <user|none>')
-  const ns = String(nRaw || '')
+export function cmdTag(id: number, positions: string, tagRaw: string): MoveResult {
+  const ns = positions
     .split(',')
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
     .map(Number)
   if (ns.length === 0 || ns.some((n) => !Number.isInteger(n) || n < 1)) {
-    die('need one or more 1-based question numbers: tag <id> <n[,n...]> <user|none>')
+    die(`<positions> is one or more 1-based question numbers, e.g. 1 or 1,2,3 (got "${positions}")`)
   }
-  const tag = String(tagRaw || '').toLowerCase()
-  if (tag !== 'none' && !QUESTION_TAGS.includes(tag)) {
-    die(`tag must be one of ${QUESTION_TAGS.join(' | ')} | none (got "${tagRaw}")`)
-  }
+  const tag = tagRaw.toLowerCase()
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target

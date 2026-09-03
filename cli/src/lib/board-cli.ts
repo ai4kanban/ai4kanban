@@ -19,42 +19,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, setBoardRoot, KANBAN } from './paths'
-import { BoardError, say, startCollecting, stopCollecting, warn, type Sink } from './io'
-import { board, boardState, moveTarget, openBoard, when, withLease } from './board'
+import { die } from './paths'
+import { BoardError, warn, type Sink } from './io'
+import { boardState, when } from './board'
 import { readPointer } from './cloud/pointer'
-import { BOARD_MOVES, READ_ONLY_MOVES } from './board/local'
-import { flushOnExit } from './cloud/publish'
-import { catchUpOnExit } from './cloud/requests'
-import { insideRun } from './agent/env'
-import { recordCreatedCards } from './agent/store'
-import { boardHelp, findMove, legacyHelp, moveHelp, MOVE_NAMES } from './help'
-import type { MoveOutput, OpResult } from './board'
 
 // `init` is the one move that may run where no board exists yet — it is what makes one.
 const MAKES_A_BOARD = 'init'
-
-// ---- the shared options ----------------------------------------------------
-
-export function splitShared(argv: string[]): { rest: string[]; dir: string | null; json: boolean } {
-  const rest: string[] = []
-  let dir: string | null = null
-  let json = false
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]!
-    if (arg === '--dir') {
-      dir = argv[++i] ?? null
-      if (dir === null) die('--dir needs a path after it', 'bad-option')
-    } else if (arg.startsWith('--dir=')) {
-      dir = arg.slice('--dir='.length)
-    } else if (arg === '--json') {
-      json = true
-    } else {
-      rest.push(arg)
-    }
-  }
-  return { rest, dir, json }
-}
 
 // ---- finding the board -----------------------------------------------------
 
@@ -162,124 +133,37 @@ export function nearestMove(input: string, names: string[]): string | null {
 // What the front door hands in — see the fields' notes below.
 export interface RunBoardOptions {
   program?: string
-  style?: 'board' | 'legacy'
   cwd?: string
   installHint?: string
   version?: string | null
-  usage?: string
+  /** The move's own fields, handed over as it finishes — for a caller running a move
+   *  in-process that wants the value rather than the text it printed. */
+  onAnswer?: (data: Record<string, unknown>) => void
 }
 
-// Run one move and return the exit code. Never exits the process itself: the caller may be
-// the CLI, a UI holding a run open, or a test, and none of them should die because one
-// answer was wrong.
-//
-// Options:
-//   program     how the command is spelled in messages ("akb board", "kanban")
-//   style       'board' — the compact help; 'legacy' — the block installed skills print
-//   cwd         where the command was run, for finding the board
-//   installHint what to tell someone who has no board yet
-//   version     what `version` prints; without it the move is not offered
-//   usage       the Usage: line of the legacy help
+/**
+ * Run one board move and return the exit code. Never exits the process itself: the caller
+ * may be the CLI, a UI holding a run open, or a test, and none of them should die because
+ * one answer was wrong.
+ *
+ * The tree, the options and the help all live in lib/cli/board.ts — this is only the door.
+ *
+ *   program     how the command is spelled in messages ("akb board", "kanban")
+ *   cwd         where the command was run, for finding the board
+ *   installHint what to tell someone who has no board yet
+ *   version     what `version` prints; without it the move refuses and names `akb version`
+ */
 export async function runBoard(argv: string[], options: RunBoardOptions = {}): Promise<number> {
   const {
     program = 'kanban',
-    style = 'legacy',
     cwd = process.cwd(),
     installHint = '`akb install`',
     version = null,
-    usage = 'node kanban.mjs <command> [args]',
+    onAnswer,
   } = options
-
-  // The move goes in front of a refusal only where the command has one ("akb board update:
-  // …"). An installed skill folder has said plain "kanban: …" since it existed, and a board
-  // installed before this landed must read exactly as it did.
-  const withMove = style === 'board'
-
-  // Seeded from a raw scan so that a refusal in the parse itself — `--dir` with nothing
-  // after it — still answers in the form the caller asked for.
-  let json = argv.includes('--json')
-  let rest: string[] = []
-  let dir: string | null = null
-  try {
-    ;({ rest, dir, json } = splitShared(argv))
-  } catch (err) {
-    return report(err, { program, json })
-  }
-  const [raw, ...args] = rest
-  const help = () => (style === 'board' ? boardHelp(program) : legacyHelp(usage))
-
-  // Help and version answer without a board — they are about the command, not a project.
-  if (raw === undefined || raw === 'help' || raw === '--help' || raw === '-h') {
-    const wanted = args[0] && findMove(args[0])
-    if (args[0] && !wanted) return report(unknownMove(args[0]), { program, json, help: help() })
-    say(wanted && style === 'board' ? moveHelp(wanted, program) : help())
-    return 0
-  }
-  if (raw === 'version' || raw === '--version' || raw === '-v') {
-    if (!version) {
-      const err = new BoardError(`\`${program}\` has no version move — \`akb version\` prints it.`, {
-        kind: 'unknown-move',
-        move: raw,
-      })
-      return report(err, { program, json })
-    }
-    say(version)
-    return 0
-  }
-
-  const found = findMove(raw)
-  const move = found && BOARD_MOVES.has(found.name) ? found.name : null
-  if (!move) return report(unknownMove(raw), { program, json, help: help() })
-
-  const box = json ? startCollecting() : null
-  try {
-    const root = resolveBoard(move, { dir, cwd, installHint })
-    setBoardRoot(root, dir !== null)
-    // Which board this checkout opens — the folder, or the workspace a committed pointer
-    // names (#316). A Cloud board that cannot be opened refuses here, in the words that say
-    // what to do about it: sign in from the app, or point the checkout somewhere else.
-    const opened = await openBoard(root)
-    if (!opened.ok) die(opened.error, { kind: `cloud-${opened.reason}`, dir: root })
-    sayIfOffline()
-    // A read answers straight off the board. A write is one operation of the contract, under
-    // a lease taken for it — whoever typed this never read the card, so the lease is what
-    // hands them the revision they write against (lib/board/ops.ts).
-    const owner = move === 'create' ? insideRun() : null
-    const data = READ_ONLY_MOVES.has(move)
-      ? await board().readMove(move, args)
-      : unwrap(
-          await withLease(moveTarget(move, args), async (env) => {
-            const result = await board().runMove(move, args, env)
-            // A cardless create run cannot hold its cards through `cardId`. Attach each new
-            // id before giving the board lease back, so another close cannot adopt it first.
-            if (result.ok && owner && Array.isArray(result.data.ids)) {
-              recordCreatedCards(
-                owner,
-                result.data.ids.filter((id): id is number => Number.isInteger(id)),
-              )
-            }
-            return result
-          }),
-        )
-    // A board that ran the move somewhere else sends its prose back rather than printing it;
-    // Local printed as it went and has none to add.
-    const { output, warnings, ...fields } = data
-    if (output) say(output)
-    for (const line of (warnings as string[] | undefined) ?? []) warn(line)
-    if (json) answer({ ok: true, board: KANBAN, ...fields, ...prose(box) })
-    // A terminal command is over the moment it returns, so this is the outbox's one chance
-    // to reach Cloud before the process ends (#319). Bounded, and silent either way: what
-    // does not get out stays queued and is retried on the next write.
-    await flushOnExit()
-    // …and its one chance to claim an approval taken somewhere else (#318). A board whose
-    // machine has no window open still runs its work the moment any command is run there.
-    await catchUpOnExit()
-    return 0
-  } catch (err) {
-    return report(err, { program, json, box, move: withMove ? move : null })
-  } finally {
-    if (json) stopCollecting()
-  }
+  const { buildBoardProgram } = await import('./cli/board')
+  const { runProgram } = await import('./cli/shared')
+  return runProgram(buildBoardProgram({ program, cwd, installHint, version, onAnswer }), argv, program)
 }
 
 /** Say the board is offline and how old the screen is, once, before the move answers. A
@@ -291,24 +175,6 @@ export function sayIfOffline(): void {
     `this board is offline — Cloud could not be reached. Showing the copy read ${when(state.readAt)}; ` +
       'nothing can be saved until Cloud answers.',
   )
-}
-
-// What a mutation answered with, as the dispatcher needs it: the move's own fields, or the
-// refusal thrown so the one reporter below turns it into a message and an exit code.
-function unwrap(res: OpResult<{ data: MoveOutput }>): MoveOutput {
-  if (res.ok) return res.data
-  // A conflict reaches a terminal only when something else wrote the same card in the
-  // milliseconds between the lease and the write. Reading it again is the whole fix, so
-  // that is what it says.
-  throw new BoardError(res.error, res.kind === 'conflict' ? { kind: 'conflict' } : { kind: 'refused' })
-}
-
-export const unknownMove = (raw: string): BoardError => {
-  const guess = nearestMove(raw, MOVE_NAMES)
-  return new BoardError(`unknown command "${raw}".${guess ? ` Did you mean \`${guess}\`?` : ''}`, {
-    kind: 'unknown-move',
-    move: raw,
-  })
 }
 
 export function prose(box: Sink | null): { output?: string; warnings?: string[] } {

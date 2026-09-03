@@ -16,7 +16,6 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { cmdRunBlocker } from '../src/commands/run-blocker.ts'
 import { activeDelivery, listDeliveries, openQuestions } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
@@ -29,6 +28,7 @@ import { watchRun } from '../src/lib/agent/watch.ts'
 import { worktreeDir } from '../src/lib/agent/worktree.ts'
 import { board } from '../src/lib/board/index.ts'
 import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { move } from './helpers/board.ts'
 import { findCard } from '../src/lib/view/read.ts'
 
 let root = ''
@@ -343,7 +343,7 @@ describe('where a delivery stands', () => {
 
     const stopped = {
       ...queued,
-      review: { rounds: [], corrections: 0, stopped: { reason: 'ask' as const, why: 'review found something', at: 1 } },
+      review: { rounds: [], stopped: { reason: 'ask' as const, why: 'review found something', at: 1 } },
     }
     assert.equal(deliveryState(stopped, 1).stage, 'stopped')
 
@@ -355,7 +355,7 @@ describe('where a delivery stands', () => {
       ...base,
       commitMode: 'manual',
       next: 'review',
-      review: { rounds: [{ sessionId: 's', verdict: 'pass', findings: [], at: 1 }], corrections: 0 },
+      review: { rounds: [{ sessionId: 's', verdict: 'pass', findings: [], at: 1 }] },
     }
     assert.equal(deliveryState(changed, 0).label, 'Code changed after review')
     assert.equal(deliveryState(changed, 0).paused, false)
@@ -450,19 +450,13 @@ describe('a run that ends before it spawns', () => {
   })
 })
 
+const blocker = (argv: string[]): Promise<Record<string, unknown>> => move(root, ['run-blocker', '1', ...argv])
+
 describe('implementation blockers', () => {
-  it('records three actionable lines on the current implementation run', () => {
+  it('records three actionable lines on the current implementation run', async () => {
     const sessionId = run('implement', 1, 'card one')
     process.env[RUN_ENV] = sessionId
-    cmdRunBlocker([
-      '1',
-      '--step',
-      'Install `@supabase/realtime-js`',
-      '--cause',
-      'Package installation is unavailable in this run',
-      '--unblock',
-      'Allow the installation, then resume',
-    ])
+    await blocker(['--step', 'Install `@supabase/realtime-js`', '--cause', 'Package installation is unavailable in this run', '--unblock', 'Allow the installation, then resume'])
 
     assert.deepEqual(peekRun(sessionId)?.blocker, {
       step: 'Install `@supabase/realtime-js`',
@@ -471,25 +465,25 @@ describe('implementation blockers', () => {
     })
   })
 
-  it('refuses a blocker outside the implementation doing that card', () => {
-    assert.throws(
-      () => cmdRunBlocker(['1', '--step', 'Do it', '--cause', 'Cannot', '--unblock', 'Allow it']),
+  it('refuses a blocker outside the implementation doing that card', async () => {
+    await assert.rejects(
+      () => blocker(['--step', 'Do it', '--cause', 'Cannot', '--unblock', 'Allow it']),
       /only for the implementation run/,
     )
 
     const sessionId = run('edit', 1, 'card one')
     process.env[RUN_ENV] = sessionId
-    assert.throws(
-      () => cmdRunBlocker(['1', '--step', 'Do it', '--cause', 'Cannot', '--unblock', 'Allow it']),
+    await assert.rejects(
+      () => blocker(['--step', 'Do it', '--cause', 'Cannot', '--unblock', 'Allow it']),
       /only an implementation run/,
     )
   })
 
-  it('keeps every field to one short line', () => {
+  it('keeps every field to one short line', async () => {
     const sessionId = run('implement', 1, 'card one')
     process.env[RUN_ENV] = sessionId
-    assert.throws(
-      () => cmdRunBlocker(['1', '--step', 'One\nTwo', '--cause', 'Cannot', '--unblock', 'Allow it']),
+    await assert.rejects(
+      () => blocker(['--step', 'One\nTwo', '--cause', 'Cannot', '--unblock', 'Allow it']),
       /--step needs one short sentence/,
     )
   })

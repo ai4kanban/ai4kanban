@@ -1,6 +1,6 @@
 // What a delivery does after implementation (#302). A fresh review run judges the work and
 // fixes plain mistakes in the same session. A successful run passes unless it appended a
-// user-owned question to the card; historical correction runs remain readable.
+// user-owned question to the card.
 //
 // This file decides; it never starts anything. `deliveries.ts` writes the decision onto
 // the delivery, and the watcher of the run that just closed starts what it says.
@@ -9,7 +9,6 @@ import { appendCardQuestion } from '../board'
 import type {
   DeliveryRecord,
   DeliveryReview,
-  ReviewFinding,
   ReviewRound,
   ReviewStopReason,
   RunRecord,
@@ -19,19 +18,13 @@ import type {
 
 /** This delivery's review state, made if it has none yet. */
 export function reviewOf(delivery: DeliveryRecord): DeliveryReview {
-  if (!delivery.review) delivery.review = { rounds: [], corrections: 0 }
+  if (!delivery.review) delivery.review = { rounds: [] }
   return delivery.review
 }
 
 /** The last review conclusion, or undefined before the first review has finished. */
 export const lastRound = (delivery: DeliveryRecord): ReviewRound | undefined =>
   delivery.review?.rounds[delivery.review.rounds.length - 1]
-
-/** Findings from the last non-pass review, including historical correction verdicts. */
-export function openFindings(delivery: DeliveryRecord): ReviewFinding[] {
-  const last = lastRound(delivery)
-  return last && last.verdict !== 'pass' ? last.findings : []
-}
 
 // ---- what happens next ------------------------------------------------------
 
@@ -50,8 +43,8 @@ const HOLD: ReviewNext = { hold: true }
 
 /** What follows the run that just closed.
  *
- *  Only runs inside a delivery reach here, and only the three actions a delivery is
- *  made of. Whatever this returns, it is the caller that writes it down.
+ *  Only runs inside a delivery reach here. Whatever this returns, it is the caller that
+ *  writes it down.
  *
  */
 export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, raisedQuestions = 0): ReviewNext {
@@ -65,9 +58,6 @@ export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, raise
     return run.status === 'done' ? { start: 'review' } : HOLD
   }
   if (run.action === 'review') return afterReview(delivery, run, raisedQuestions)
-  // An old delivery may still have a correction run in flight during an upgrade. Finish
-  // that run, then use the combined review flow.
-  if (run.action === 'correct') return afterLegacyCorrection(run)
   return HOLD
 }
 
@@ -93,16 +83,6 @@ function afterReview(delivery: DeliveryRecord, run: RunRecord, raisedQuestions: 
         why: `review left ${raisedQuestions} open decision${raisedQuestions === 1 ? '' : 's'} for you`,
       }
     : { finish: true }
-}
-
-function afterLegacyCorrection(run: RunRecord): ReviewNext {
-  if (run.status !== 'done') {
-    return {
-      stop: 'session',
-      why: `the correction run ${run.status === 'error' ? 'failed' : 'was cut off'} before it finished`,
-    }
-  }
-  return { start: 'review' }
 }
 
 /** One question a run leaves on a card: the line, and the choices under it. */

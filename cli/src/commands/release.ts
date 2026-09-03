@@ -13,7 +13,7 @@ import { boardCommand } from '../lib/agent/command'
 import { insideRun } from '../lib/agent/flow'
 import { startCardlessRun } from '../lib/agent/start'
 import { short } from './run'
-import { NO_RELEASE, parseFlags } from '../lib/validate'
+import { NO_RELEASE } from '../lib/validate'
 import {
   readReleases,
   readReleaseEntries,
@@ -30,51 +30,34 @@ import {
 } from '../lib/releases'
 import type { MoveResult } from '../lib/types'
 
-const USAGE = `usage:
-  release new <id> [--goal ".."] [--fill]
-                             add a release to the end of the list (e.g. \`release new v1\`);
-                             --goal says what the version is for; --fill puts the
-                             high-priority cards with no release in as it is made
-  release goal <id> "..."    change what a release is for ("" clears it)
-  release list               the releases in ship order, with what each one holds
-  release close <id>         the version shipped: write the summary, clear the release off the rest
-  release drop <id>          the version will not ship: take it off the list with no shipped
-                             record, clear the release off its open cards
-  release changelog <id>     put a changelog at the top of that version's newest closed
-                             section: --file <path>, or --text ".." for a one-liner`
-
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
 
-export function cmdRelease(args: string[]): MoveResult {
-  const [sub, ...rest] = args
-  if (sub === 'new') return releaseNew(rest)
-  if (sub === 'goal') return releaseGoalCmd(rest)
-  if (sub === 'list') return releaseList()
-  if (sub === 'close') return releaseClose(rest)
-  if (sub === 'drop') return releaseDrop(rest)
-  if (sub === 'changelog') return releaseChangelog(rest)
-  // The usage block is the whole message here, so it is printed as it stands — putting
-  // the command in front of a block of lines would only bury the first one.
-  if (sub === undefined) die(USAGE, { kind: 'usage', bare: true })
-  die(`unknown release command "${sub}".\n${USAGE}`, { kind: 'unknown-release-command', command: sub })
+/** `akb board release`, as its subcommands declare them (lib/cli/board.ts). Each one takes
+ *  its own few, so this is their union. */
+export interface ReleaseOptions {
+  goal?: string
+  fill?: boolean
+  file?: string
+  text?: string
 }
 
-function releaseNew(rest: string[]): MoveResult {
-  const fill = rest.includes('--fill')
-  // --goal takes the next word as the goal; everything left over is the version id.
-  let goal = ''
-  const ids: string[] = []
-  for (let i = 0; i < rest.length; i++) {
-    if (rest[i] === '--fill') continue
-    if (rest[i] === '--goal') {
-      if (i + 1 >= rest.length) die('--goal needs the goal after it, e.g. `release new v1 --goal "..."`')
-      goal = rest[++i]!
-      continue
-    }
-    ids.push(rest[i]!)
-  }
-  if (ids.length > 1) die(`release new takes one version id (got "${ids.join(' ')}") — quote it if it has spaces`)
-  const id = addRelease(ids[0], goal)
+/** Which of `release`'s words was typed, and what it was given. The subcommand is args[0] —
+ *  it is a word the command tree matched, never something to be guessed at here. */
+export function cmdRelease(args: string[], opts: ReleaseOptions): MoveResult {
+  const [sub, ...rest] = args
+  if (sub === 'new') return releaseNew(rest[0]!, opts)
+  if (sub === 'goal') return releaseGoalCmd(rest[0]!, rest[1] ?? '')
+  if (sub === 'list') return releaseList()
+  if (sub === 'close') return releaseClose(rest[0]!)
+  if (sub === 'drop') return releaseDrop(rest[0]!)
+  if (sub === 'changelog') return releaseChangelog(rest[0]!, opts)
+  die(`unknown release command "${String(sub)}".`, { kind: 'unknown-release-command', command: sub })
+}
+
+function releaseNew(version: string, opts: ReleaseOptions): MoveResult {
+  const fill = opts.fill === true
+  const goal = opts.goal ?? ''
+  const id = addRelease(version, goal)
   const known = readReleases()
   say(`added release ${id} to ${rel(RELEASES)}`)
   say(`  ship order: ${known.join(' → ')}`)
@@ -102,26 +85,16 @@ function releaseNew(rest: string[]): MoveResult {
 // Say what a release is for, or change it later (#164). The goal is one line on disk
 // whatever is typed, and an empty one clears it — a release with no goal is a state the
 // board works over, so unsaying it has to be possible too.
-function releaseGoalCmd(rest: string[]): MoveResult {
-  const [id, ...words] = rest
-  if (!id) die('release goal needs a version id and the goal, e.g. `release goal v1 "the first version worth showing someone"`')
-  if (!words.length) {
-    die(
-      `release goal needs the goal after the version id, e.g. \`release goal ${quoteId(id)} "..."\` — ` +
-        `\`release goal ${quoteId(id)} ""\` clears it.`,
-    )
-  }
-  if (words.length > 1) die(`release goal takes one goal (got ${words.length} words) — quote it: \`release goal ${quoteId(id)} "..."\``)
-  const { goal } = setReleaseGoal(id, words[0])
+function releaseGoalCmd(id: string, text: string): MoveResult {
+  const { goal } = setReleaseGoal(id, text)
   if (goal) say(`${id} is for: ${goal}`)
   else say(`${id} now says what it is for nowhere — its goal is cleared`)
   say(`  ${rel(RELEASES)}`)
   return { release: id, goal }
 }
 
-function releaseClose(rest: string[]): MoveResult {
-  if (rest.length > 1) die(`release close takes one version id (got "${rest.join(' ')}") — quote it if it has spaces`)
-  const { id, shipped, left, summary, remaining } = closeRelease(rest[0])
+function releaseClose(version: string): MoveResult {
+  const { id, shipped, left, summary, remaining } = closeRelease(version)
   say(`closed release ${id} — its line is off ${rel(RELEASES)}`)
   say(`  shipped      ${plural(shipped.length, 'card')}${shipped.length ? `: ${shipped.map((c) => `#${c.id}`).join(', ')}` : ''}`)
   say(
@@ -186,24 +159,17 @@ function startChangelog(id: string): { sessionId?: string; command?: string } {
 // Run it again and the changelog is REPLACED, so a version taken through it twice carries
 // one changelog, not two.
 
-function releaseChangelog(rest: string[]): MoveResult {
-  const { flags, positional } = parseFlags(rest, ['file', 'text'])
-  const id = String(positional[0] ?? '').trim()
-  if (!id) die('release changelog needs a version id, e.g. `release changelog v1 --file changelog.md`')
-  if (positional.length > 1) {
-    die(`release changelog takes one version id (got "${positional.join(' ')}") — quote it if it has spaces`)
-  }
-  if (flags.file !== undefined && flags.text !== undefined) die('pass --file or --text, not both')
+function releaseChangelog(id: string, opts: ReleaseOptions): MoveResult {
+  if (opts.file !== undefined && opts.text !== undefined) die('pass --file or --text, not both')
   let raw: string
-  if (flags.file !== undefined) {
-    if (flags.file === true) die('--file needs a path after it')
+  if (opts.file !== undefined) {
     try {
-      raw = fs.readFileSync(String(flags.file), 'utf8')
+      raw = fs.readFileSync(opts.file, 'utf8')
     } catch {
-      die(`can't read ${String(flags.file)} — write the changelog to a file, then pass its path`)
+      die(`can't read ${opts.file} — write the changelog to a file, then pass its path`)
     }
-  } else if (flags.text !== undefined) {
-    raw = flags.text === true ? '' : String(flags.text)
+  } else if (opts.text !== undefined) {
+    raw = opts.text
   } else {
     die('the changelog has to come from somewhere: --file <path>, or --text ".." for a one-liner')
   }
@@ -213,9 +179,8 @@ function releaseChangelog(rest: string[]): MoveResult {
   return { release: id, file, lines, replaced }
 }
 
-function releaseDrop(rest: string[]): MoveResult {
-  if (rest.length > 1) die(`release drop takes one version id (got "${rest.join(' ')}") — quote it if it has spaces`)
-  const { id, archived, left, remaining } = dropRelease(rest[0])
+function releaseDrop(version: string): MoveResult {
+  const { id, archived, left, remaining } = dropRelease(version)
   say(`dropped release ${id} — its line is off ${rel(RELEASES)}; nothing shipped`)
   say(
     `  archived under it  ${plural(archived.length, 'card')}${archived.length ? `: ${archived.map((c) => `#${c.id}`).join(', ')}` : ''}`,

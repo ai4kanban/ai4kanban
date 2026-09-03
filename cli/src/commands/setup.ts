@@ -15,9 +15,7 @@ function sayNext(): void {
   if (next) say(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
 }
 
-export function cmdSetupDone(args: string[]): MoveResult {
-  const name = args[0]
-  if (!name) die(`setup-done needs a step name — one of: ${names()}`)
+export function cmdSetupDone(name: string): MoveResult {
   const result = tickSetupStep(name)
   if (result.missing) {
     say(`no ${rel(SETUP_CHECKLIST)} — this board is already set up, nothing to tick`)

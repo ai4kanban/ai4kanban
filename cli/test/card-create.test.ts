@@ -7,14 +7,14 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, afterEach, beforeEach, describe, it } from 'node:test'
 
-import { cmdCreate } from '../src/commands/card.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { peekRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
+import { buildBoardProgram } from '../src/lib/cli/board.ts'
 import { runBoard } from '../src/lib/board-cli.ts'
-import { findMove, moveHelp } from '../src/lib/help.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { move, refuses } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-card-create-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -36,9 +36,11 @@ after(() => fs.rmSync(root, { recursive: true, force: true }))
 
 const unchanged = (): void => assert.equal(fs.readFileSync(nextId, 'utf8'), '8\n')
 
+const create = (argv: string[]): Promise<Record<string, unknown>> => move(root, ['create', ...argv])
+
 describe('card creation owns its id', () => {
-  it('scaffolds the exact decision sections', () => {
-    const made = cmdCreate(['--title', 'A card', '--track', 'features'])
+  it('scaffolds the exact decision sections', async () => {
+    const made = await create(['--title', 'A card', '--track', 'features'])
     assert.ok(typeof made.file === 'string')
     const written = fs.readFileSync(path.join(root, made.file), 'utf8')
     assert.deepEqual(
@@ -54,8 +56,8 @@ describe('card creation owns its id', () => {
     )
   })
 
-  it('scaffolds recurring state and process without an implicit cadence', () => {
-    const made = cmdCreate(['--title', 'A repeated job', '--track', 'recurring'])
+  it('scaffolds recurring state and process without an implicit cadence', async () => {
+    const made = await create(['--title', 'A repeated job', '--track', 'recurring'])
     assert.ok(typeof made.file === 'string')
     const written = fs.readFileSync(path.join(root, made.file), 'utf8')
     assert.deepEqual(
@@ -66,47 +68,44 @@ describe('card creation owns its id', () => {
     assert.doesNotMatch(written, /^## (Scope|Todo|Decided by the agent)$/m)
   })
 
-  it('writes a recurring cadence only when explicitly requested', () => {
-    const made = cmdCreate([
-      '--title',
-      'A scheduled job',
-      '--track',
-      'recurring',
-      '--cadence',
-      '1d at 09:30',
-    ])
+  it('writes a recurring cadence only when explicitly requested', async () => {
+    const made = await create(['--title', 'A scheduled job', '--track', 'recurring', '--cadence', '1d at 09:30'])
     assert.ok(typeof made.file === 'string')
     const written = fs.readFileSync(path.join(root, made.file), 'utf8')
     assert.match(written, /^cadence: 1d at 09:30$/m)
   })
 
-  it('requires a complete card instead of reserving an id', () => {
-    assert.throws(() => cmdCreate([]), /create writes exactly one card/)
-    assert.throws(() => cmdCreate(['--count', '3']), /unknown option "--count"/)
+  it('requires a complete card instead of reserving an id', async () => {
+    await refuses(root, ['create'], /required option .*--title/)
+    await refuses(root, ['create', '--title', 'A card'], /required option .*--track/)
+    await refuses(root, ['create', '--count', '3'], /unknown option .*--count/)
     unchanged()
   })
 
-  it('rejects a group folder path as the track', () => {
-    assert.throws(
-      () => cmdCreate(['--title', 'Hidden card', '--track', '7-group/features']),
+  it('rejects a group folder path as the track', async () => {
+    await refuses(
+      root,
+      ['create', '--title', 'Hidden card', '--track', '7-group/features'],
       /top-level track name, never a group folder path/,
     )
     unchanged()
   })
 
-  it('rejects an allocated number that has no open card', () => {
-    assert.throws(
-      () => cmdCreate(['--title', 'Dangling link', '--track', 'features', '--related', '7']),
+  it('rejects an allocated number that has no open card', async () => {
+    await refuses(
+      root,
+      ['create', '--title', 'Dangling link', '--track', 'features', '--related', '7'],
       /#7, which is not an open card/,
     )
     unchanged()
   })
 
   it('puts the one-card and group rules in create help', () => {
-    const move = findMove('create')
-    assert.ok(move)
-    const help = moveHelp(move, 'akb board')
-    assert.match(help, /write exactly ONE card/)
+    const program = buildBoardProgram({ program: 'akb board', cwd: root, installHint: '`akb install`', version: null })
+    const create = program.commands.find((c) => c.name() === 'create')
+    assert.ok(create)
+    const help = create.helpInformation()
+    assert.match(help, /write exactly ONE card/i)
     assert.match(help, /top-level track name/)
     assert.match(help, /existing open cards/)
     assert.match(help, /Group task/)
@@ -127,10 +126,7 @@ describe('card creation owns its id', () => {
     process.env[RUN_ENV] = owner.sessionId
 
     assert.equal(
-      await runBoard(['create', '--title', 'Owned card', '--track', 'features'], {
-        style: 'board',
-        cwd: root,
-      }),
+      await runBoard(['create', '--title', 'Owned card', '--track', 'features'], { cwd: root }),
       0,
     )
     assert.deepEqual(peekRun(owner.sessionId)?.createdCardIds, [8])

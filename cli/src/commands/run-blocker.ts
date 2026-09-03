@@ -6,16 +6,17 @@ import type { ExecutionBlocker } from '../lib/agent/types'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import type { MoveResult } from '../lib/types'
-import { parseFlags } from '../lib/validate'
 
 const MAX_FIELD = 240
 
-export function cmdRunBlocker(args: string[]): MoveResult {
-  const { flags, positional } = parseFlags(args, ['step', 'cause', 'unblock'])
-  const id = Number(positional[0])
-  if (!Number.isInteger(id)) {
-    die('need a numeric task id: run-blocker <id> --step ".." --cause ".." --unblock ".."')
-  }
+/** `akb board run-blocker`, as its command declares it (lib/cli/board.ts). */
+export interface RunBlockerOptions {
+  step: string
+  cause: string
+  unblock: string
+}
+
+export function cmdRunBlocker(id: number, flags: RunBlockerOptions): MoveResult {
   const sessionId = insideRun()
   if (!sessionId) die('run-blocker is only for the implementation run currently doing the work')
 
@@ -30,9 +31,8 @@ export function cmdRunBlocker(args: string[]): MoveResult {
   return { id, blocker }
 }
 
-function field(raw: unknown, name: string): string {
-  if (raw === undefined || raw === true || Array.isArray(raw)) die(`${name} needs one short sentence`)
-  const value = String(raw).trim()
+function field(raw: string, name: string): string {
+  const value = raw.trim()
   if (!value || value.includes('\n') || value.length > MAX_FIELD) die(`${name} needs one short sentence`)
   return value
 }

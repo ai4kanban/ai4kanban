@@ -250,9 +250,7 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       base: typeof entry.base === 'string' && entry.base ? entry.base : undefined,
       review: readReview(entry.review),
       priorStatus: typeof entry.priorStatus === 'string' && entry.priorStatus ? entry.priorStatus : undefined,
-      // An older delivery may have been waiting to start a correction. The combined flow
-      // resumes it as review, which sees and fixes that round's findings itself.
-      next: entry.next === 'review' || entry.next === 'correct' ? 'review' : undefined,
+      next: entry.next === 'review' ? 'review' : undefined,
       // A delivery written down before #303 names no mode. It ran in the user's checkout
       // with no worktree, which is exactly what manual commit mode is — so that is what it
       // reads as, rather than a worktree nothing ever made.
@@ -394,8 +392,6 @@ function readReview(raw: unknown): DeliveryReview | undefined {
           ]
         : [],
     ),
-    corrections: typeof box.corrections === 'number' && box.corrections > 0 ? Math.floor(box.corrections) : 0,
-    mark: typeof box.mark === 'string' && box.mark ? box.mark : undefined,
     stopped:
       stop && typeof stop === 'object' && typeof stop.why === 'string'
         ? { reason: asStopReason(stop.reason), why: stop.why, at: typeof stop.at === 'number' ? stop.at : 0 }
@@ -404,7 +400,7 @@ function readReview(raw: unknown): DeliveryReview | undefined {
 }
 
 const isVerdict = (value: unknown): value is ReviewVerdict =>
-  value === 'pass' || value === 'correct' || value === 'ask'
+  value === 'pass' || value === 'ask'
 
 // A stop we can't read is still a stop: `session` claims the least about why.
 function asStopReason(value: unknown): ReviewStopReason {

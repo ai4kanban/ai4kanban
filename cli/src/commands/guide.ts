@@ -11,8 +11,8 @@ import { die } from '../lib/paths'
 import type { MoveResult } from '../lib/types'
 import { nearestMove } from '../lib/board-cli'
 
-export function cmdGuide(args: string[], program = 'akb'): MoveResult {
-  const name = args.find((a) => !a.startsWith('-'))?.trim()
+export function cmdGuide(topic: string | undefined, program = 'akb'): MoveResult {
+  const name = topic?.trim()
   if (!name) {
     say(guideList(program))
     return { guides: GUIDE_NAMES }

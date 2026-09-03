@@ -6,7 +6,6 @@ const zh: RunsCopy = {
   action: {
     implement: "开发",
     review: "评审",
-    correct: "返工",
     conflict: "解冲突",
     run: "执行",
     edit: "修改",
@@ -25,7 +24,6 @@ const zh: RunsCopy = {
   verb: {
     implement: "开发",
     review: "评审",
-    correct: "返工",
     conflict: "解决冲突",
     run: "执行",
     edit: "修改",
@@ -44,7 +42,6 @@ const zh: RunsCopy = {
   step: {
     implement: "开发",
     review: "评审",
-    correct: "返工",
     conflict: "解冲突",
     run: "执行",
     edit: "修改",

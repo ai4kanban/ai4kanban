@@ -110,9 +110,6 @@ describe('a flow on its own runtime', () => {
     for (const action of ['clarify', 'resolve', 'writing'] as const) {
       assert.equal(runtimeFor({ action, refineRound: 1 }), 'cheap')
     }
-    // And a `correct` still in flight belongs to review, not to the flow that named it.
-    config({ ...board, runtimes: { ...board.runtimes, flows: { review: 'cheap' } } })
-    assert.equal(runtimeFor({ action: 'correct' }), 'cheap')
   })
 
   it('keeps an `akb resolve` of its own on the resolve flow’s runtime', () => {

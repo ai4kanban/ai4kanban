@@ -6,7 +6,6 @@ const en: RunsCopy = {
   action: {
     implement: "implement",
     review: "review",
-    correct: "correct",
     conflict: "conflict",
     run: "run",
     edit: "edit",
@@ -25,7 +24,6 @@ const en: RunsCopy = {
   verb: {
     implement: "implementing",
     review: "reviewing",
-    correct: "correcting",
     conflict: "resolving a conflict",
     run: "running",
     edit: "editing",
@@ -44,7 +42,6 @@ const en: RunsCopy = {
   step: {
     implement: "Implement",
     review: "Review",
-    correct: "Correct",
     conflict: "Conflict",
     run: "Run",
     edit: "Edit",

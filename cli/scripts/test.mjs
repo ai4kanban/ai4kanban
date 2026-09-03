@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url'
 
 import * as esbuild from 'esbuild'
 
+import { REQUIRE_SHIM } from './shim.mjs'
+
 const PKG_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const TEST_DIR = path.join(PKG_DIR, 'test')
 const OUT_DIR = path.join(PKG_DIR, '.test-build')
@@ -35,6 +37,9 @@ await esbuild.build({
   outExtension: { '.js': '.mjs' },
   loader: { '.md': 'text' },
   legalComments: 'none',
+  // Same reason as the build's: an ESM bundle holding a CommonJS dependency needs a
+  // `require` in scope (scripts/build.mjs).
+  banner: { js: REQUIRE_SHIM },
 })
 
 const bundles = tests.map((f) => path.join(OUT_DIR, f.replace(/\.ts$/, '.mjs')))

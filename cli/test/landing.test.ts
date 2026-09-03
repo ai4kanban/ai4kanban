@@ -348,7 +348,7 @@ describe('queued behind the slot', () => {
     withStore((store) => {
       const live = store.deliveries.find((d) => d.deliveryId === second.deliveryId)!
       live.landing!.why = 'main moved again after 3 rebases, so this landing is not converging'
-      live.review = { ...(live.review ?? { rounds: [], corrections: 0 }), stopped: { reason: 'landing', why: 'x', at: 1 } }
+      live.review = { ...(live.review ?? { rounds: [] }), stopped: { reason: 'landing', why: 'x', at: 1 } }
     })
 
     assert.equal(await advanceLanding(), null)

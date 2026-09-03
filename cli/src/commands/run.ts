@@ -37,7 +37,6 @@ import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
 import type { MoveResult } from '../lib/types'
 import { approveDelivery, cancelDelivery, discardDelivery } from '../lib/view/api'
-import { parseFlags } from '../lib/validate'
 
 // How long a `--follow` waits between reads of a run's log. Short enough that the log
 // reads as it happens, long enough that following a run is not a busy loop.
@@ -51,8 +50,13 @@ const FOLLOW_MS = 400
  *  Or print the flow and start nothing — `--print`. An agent inside a run the board started
  *  always prints because a run never starts another. A chat follows the same choice as any
  *  coding-agent conversation: `--print` works here, and omitting it starts a run. */
-export async function cmdStartRun(action: CommandAction, args: string[], program = 'akb'): Promise<MoveResult> {
-  const { req, follow, print } = readRequest(action, args)
+export async function cmdStartRun(
+  action: CommandAction,
+  args: unknown[],
+  opts: StartOptions,
+  program = 'akb',
+): Promise<MoveResult> {
+  const { req, follow, print } = readRequest(action, args, opts)
   const runnable = action === 'refine' ? refinementRequest(req) : (req as AgentRequest)
   if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })
   const inside = insideRun()
@@ -158,63 +162,52 @@ function sayBeforeStart(req: CommandRequest, program: string): void {
   }
 }
 
-// What each action takes, and what it means. Everything past these is the action's own; a
-// flag an action doesn't take is refused rather than ignored.
-const SHARED = ['follow', 'dir', 'json']
+/** Every flow's own options, as its command declares them (lib/agent/flows.ts). Each flow
+ *  takes a few of these; none takes them all. */
+export interface StartOptions {
+  print?: boolean
+  follow?: boolean
+  release?: string
+  module?: string
+  count?: number
+  boldness?: Boldness
+  effort?: RefineEffort
+  andImplement?: boolean
+}
 
-// `--print` is every starting command's, and only theirs: an action that can start a run can
-// instead print its steps, and there is nothing to print about stopping or reading one.
-const START_SHARED = [...SHARED, 'print']
-
+// Turn what was typed into the request the run is started from. The command line has been
+// read already: which words are actions, which values `--boldness` accepts, whether
+// `--count` is a number in range and that `--print` and `--follow` cannot both be given are
+// all its command's own checks. What is left here is the shape of the request.
 function readRequest(
   action: CommandAction,
-  args: string[],
+  args: unknown[],
+  opts: StartOptions,
 ): { req: CommandRequest; follow: boolean; print: boolean } {
-  const allowed = [...START_SHARED, ...FLAGS[action]]
-  const { flags, positional } = parseFlags(args, allowed)
-  const follow = flags.follow === true
-  const print = flags.print === true
-  // Nothing starts, so there is no log to watch. Refused rather than quietly dropped: one
-  // of the two words was meant, and guessing which is how a background run gets lost.
-  if (print && follow) die('--print starts nothing, so there is no run to --follow', { kind: 'bad-option' })
-  const text = (key: string): string | undefined => {
-    const value = flags[key]
-    return typeof value === 'string' && value.trim() ? value.trim() : undefined
+  const follow = opts.follow === true
+  const print = opts.print === true
+  const words = (at: number): string | undefined => {
+    const value = args[at]
+    const text = Array.isArray(value) ? value.join(' ') : typeof value === 'string' ? value : ''
+    return text.trim() || undefined
   }
 
   // The five actions that name no card. Three name nothing at all; planning a release and
   // writing one up each name a version.
   if (action === 'create') {
-    const description = positional.join(' ').trim() || text('notes')
-    if (!description) die('say what to create: akb create "what you want"', { kind: 'needs-input' })
-    return { req: { action, description, release: text('release') }, follow, print }
+    return { req: { action, description: words(0)!, release: opts.release }, follow, print }
   }
   if (action === 'propose') {
-    const count = flags.count === undefined ? undefined : Number(flags.count)
-    if (count !== undefined && (!Number.isInteger(count) || count < 1 || count > PROPOSE_MAX)) {
-      die(`--count takes a whole number from 1 to ${PROPOSE_MAX}`, { kind: 'bad-option' })
-    }
-    const boldness = text('boldness')
-    if (boldness && !['safe', 'normal', 'bold'].includes(boldness)) {
-      die('--boldness takes safe, normal or bold', { kind: 'bad-option' })
-    }
-    return {
-      req: { action, module: text('module'), count, boldness: boldness as Boldness | undefined },
-      follow,
-      print,
-    }
+    return { req: { action, module: opts.module, count: opts.count, boldness: opts.boldness }, follow, print }
   }
   if (action === 'plan-release') {
-    const release = positional[0]?.trim() || text('release')
-    if (!release) die('name the version to plan: akb plan-release v1', { kind: 'needs-input' })
-    return { req: { action, release }, follow, print }
+    return { req: { action, release: words(0)! }, follow, print }
   }
   // Writing one closed version's changelog (#232). Refused here rather than left to the
   // agent when the version has no closed record or shipped nothing: there is no changelog
   // to be had either way, and a run that only reads that and stops costs money for nothing.
   if (action === 'changelog') {
-    const release = positional[0]?.trim() || text('release')
-    if (!release) die('name the version to write up: akb changelog v1', { kind: 'needs-input' })
+    const release = words(0)!
     const refusal = changelogRefusal(release)
     if (refusal) die(refusal, { kind: 'no-changelog', release })
     return { req: { action, release }, follow, print }
@@ -223,68 +216,33 @@ function readRequest(
   if (action === 'setup') return { req: { action }, follow, print }
 
   // Everything else works on one card.
-  const id = Number(positional[0])
-  if (!Number.isInteger(id)) die(`${action} takes a card id, e.g. \`akb ${action} 12\``, { kind: 'needs-input' })
+  const id = args[0] as number
   const req: CommandRequest = { action, id, title: titleOf(id) }
-  if (action === 'reject') {
-    req.reason = positional.slice(1).join(' ').trim() || text('reason')
-    if (!req.reason) die('say why: akb reject 12 "the reason"', { kind: 'needs-input' })
-  } else if (action === 'edit') {
-    req.notes = positional.slice(1).join(' ').trim() || text('notes')
-    if (!req.notes) die('say what to change: akb revise 12 "what to change"', { kind: 'needs-input' })
-  } else {
-    req.notes = positional.slice(1).join(' ').trim() || text('notes')
-  }
-  if (action === 'refine') {
-    const effort = text('effort')
-    if (effort && !['lightweight', 'standard'].includes(effort)) {
-      die('--effort takes lightweight or standard', { kind: 'bad-option' })
-    }
-    req.refineEffort = effort as RefineEffort | undefined
-  }
-  if (action === 'resolve' && flags['and-implement'] === true) req.andImplement = true
+  if (action === 'reject') req.reason = words(1)
+  else req.notes = words(1)
+  if (action === 'refine') req.refineEffort = opts.effort
+  if (action === 'resolve' && opts.andImplement === true) req.andImplement = true
   return { req, follow, print }
-}
-
-const FLAGS: Record<CommandAction, string[]> = {
-  implement: ['notes'],
-  review: ['notes'],
-  conflict: ['notes'],
-  run: ['notes'],
-  reject: ['reason'],
-  archive: ['notes'],
-  edit: ['notes'],
-  create: ['notes', 'release'],
-  propose: ['module', 'count', 'boldness'],
-  'plan-release': ['release'],
-  changelog: ['release'],
-  refine: ['effort'],
-  resolve: ['notes', 'and-implement'],
-  setup: [],
 }
 
 /** Send one more turn into a run that stopped short: same agent, same conversation, same
  *  card — and the prompt is just "carry on". */
-export async function cmdResume(args: string[]): Promise<MoveResult> {
-  const { flags, positional } = parseFlags(args, SHARED)
-  const opened = await openResume(positional[0] ?? 'last')
+export async function cmdResume(id: string | undefined, opts: { follow?: boolean }): Promise<MoveResult> {
+  const opened = await openResume(id ?? 'last')
   if ('error' in opened) die(opened.error, { kind: 'run-refused' })
   const { run } = opened
   const pid = spawnWatcher(run.sessionId)
   markSpawned(run.sessionId, pid)
   if (!pid) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
   say(`continuing ${short(run.resumedFrom!)} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
-  if (flags.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId)) }
+  if (opts.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId)) }
   return { sessionId: run.sessionId, resumedFrom: run.resumedFrom }
 }
 
 /** Take a card back from the delivery in flight on it: the delivery ends as cancelled, its
  *  running run is stopped, the card unlocks, and Implement is offered again. Whatever
  *  the delivery wrote stays exactly where it is. */
-export async function cmdCancel(args: string[]): Promise<MoveResult> {
-  const { positional } = parseFlags(args, SHARED)
-  const named = positional[0]
-  if (!named) die('name the delivery or its card: akb cancel 12', { kind: 'needs-input' })
+export async function cmdCancel(named: string): Promise<MoveResult> {
   const res = await cancelDelivery(named)
   if (!res.ok) die(res.error ?? 'that delivery could not be cancelled', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} cancelled — the card is yours again.`)
@@ -298,10 +256,7 @@ export async function cmdCancel(args: string[]): Promise<MoveResult> {
  *  The approval covers the delivery's base commit and the tree built on it as they stand
  *  right now, so read the diff first — `akb log` and the card page's **Diff** tab both show
  *  it. Either one moving afterwards cancels the approval by itself. */
-export async function cmdApprove(args: string[]): Promise<MoveResult> {
-  const { positional } = parseFlags(args, SHARED)
-  const named = positional[0]
-  if (!named) die('name the delivery or its card: akb approve 12', { kind: 'needs-input' })
+export async function cmdApprove(named: string): Promise<MoveResult> {
   const res = await approveDelivery(named, 'akb approve')
   if (!res.ok) die(res.error ?? 'that delivery could not be approved', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} approved — ${res.covers}.`)
@@ -315,10 +270,7 @@ export async function cmdApprove(args: string[]): Promise<MoveResult> {
  *
  *  Cancelling a delivery deliberately leaves its worktree where it is; this is how one is
  *  reclaimed. */
-export async function cmdDiscard(args: string[]): Promise<MoveResult> {
-  const { flags, positional } = parseFlags(args, [...SHARED, 'yes'])
-  const named = positional[0]
-  if (!named) die('name the delivery or its card: akb discard 12', { kind: 'needs-input' })
+export async function cmdDiscard(named: string, opts: { yes?: boolean }): Promise<MoveResult> {
   const cost = discardCost(named)
   if (!cost) {
     // Nothing to lose, so nothing to confirm: a delivery with no worktree left is already
@@ -328,7 +280,7 @@ export async function cmdDiscard(args: string[]): Promise<MoveResult> {
     say(`delivery ${res.deliveryId} has no worktree left — nothing to discard.`)
     return { deliveryId: res.deliveryId }
   }
-  if (flags.yes !== true) {
+  if (opts.yes !== true) {
     say(`delivery ${cost.deliveryId} would lose:`)
     say(`  ${cost.worktree} — its worktree, and anything in it that is not committed`)
     if (cost.branch) say(`  ${cost.branch} — its branch, and every commit only that branch has`)
@@ -344,9 +296,8 @@ export async function cmdDiscard(args: string[]): Promise<MoveResult> {
 
 /** End a run. Its half-finished edits are left in the working tree — the board never
  *  undoes work. */
-export async function cmdStop(args: string[]): Promise<MoveResult> {
-  const { positional } = parseFlags(args, SHARED)
-  const res = await stopRun(positional[0] ?? 'last')
+export async function cmdStop(id: string | undefined): Promise<MoveResult> {
+  const res = await stopRun(id ?? 'last')
   if (!res.ok) die(res.error ?? 'that run could not be stopped', { kind: 'run-refused' })
   say(`stopping ${short(res.sessionId!)}`)
   return { sessionId: res.sessionId }
@@ -355,16 +306,12 @@ export async function cmdStop(args: string[]): Promise<MoveResult> {
 // ---- reading ---------------------------------------------------------------
 
 /** What is running, and what ran lately. */
-export async function cmdRuns(args: string[], program = 'akb'): Promise<MoveResult> {
-  const { flags } = parseFlags(args, [...SHARED, 'card', 'all'])
+export async function cmdRuns(opts: { card?: number; all?: boolean }, program = 'akb'): Promise<MoveResult> {
   let runs = await listRuns()
-  const card = flags.card === undefined ? null : Number(flags.card)
-  if (card !== null) {
-    if (!Number.isInteger(card)) die('--card takes a card id', { kind: 'bad-option' })
-    runs = runs.filter((r) => r.cardId === card)
-  }
+  const card = opts.card ?? null
+  if (card !== null) runs = runs.filter((r) => r.cardId === card)
   const live = runs.filter((r) => r.status === 'running')
-  const shown = flags.all === true ? runs : [...live, ...runs.filter((r) => r.status !== 'running').slice(-10)]
+  const shown = opts.all === true ? runs : [...live, ...runs.filter((r) => r.status !== 'running').slice(-10)]
   if (!shown.length) {
     say(card !== null ? `nothing has run on #${card}` : 'nothing is running, and nothing has lately')
     return { runs: [] }
@@ -380,12 +327,15 @@ export async function cmdRuns(args: string[], program = 'akb'): Promise<MoveResu
 }
 
 /** One run's log — what it is doing, or what it did. */
-export async function cmdLog(args: string[], program = 'akb'): Promise<MoveResult> {
-  const { flags, positional } = parseFlags(args, [...SHARED, 'full'])
-  const id = positional[0] ?? 'last'
-  const view = await getRun(id, flags.full === true ? Infinity : undefined)
+export async function cmdLog(
+  named: string | undefined,
+  opts: { full?: boolean; follow?: boolean },
+  program = 'akb',
+): Promise<MoveResult> {
+  const id = named ?? 'last'
+  const view = await getRun(id, opts.full === true ? Infinity : undefined)
   if (!view) die(`no run here answers to "${id}"`, { kind: 'no-such-run', run: id })
-  if (flags.follow === true) {
+  if (opts.follow === true) {
     say(runLine(view, program))
     return { sessionId: view.sessionId, ...(await followRun(view.sessionId, view.tail ?? '', program)) }
   }
@@ -514,9 +464,7 @@ function ago(ms: number): string {
 
 /** The watcher's own door. Not a command anyone types — it is what `spawnWatcher` starts,
  *  and it is spelled so it can never be mistaken for one. */
-export async function cmdWatch(args: string[]): Promise<number> {
-  const sessionId = args[0]
-  if (!sessionId) return 1
+export async function cmdWatch(sessionId: string): Promise<number> {
   const { watchRun } = await import('../lib/agent/watch')
   // The one process alive for the whole of a run, so it is what holds the lease on a claim
   // an approval taken elsewhere left here (#318). A delivery started from a terminal has no

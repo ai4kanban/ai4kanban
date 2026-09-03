@@ -12,7 +12,7 @@ import type { DeliveryRecord } from './types'
 
 /** Where a delivery stands. Three of these are pauses: nothing moves until the user acts. */
 export type DeliveryStage =
-  /** Building, reviewing or correcting — the board's own work is in flight. */
+  /** Building or reviewing — the board's own work is in flight. */
   | 'working'
   /** Review stopped and put a question on the card (#302), and it is still open. */
   | 'stopped'

@@ -34,6 +34,11 @@ export { runBoard } from './lib/board-cli'
 export type { RunBoardOptions } from './lib/board-cli'
 export { runAgent } from './lib/agent-cli'
 export type { RunAgentOptions } from './lib/agent-cli'
+// `akb` itself — install, skill, update. The bin script is a loader with no dependencies
+// beside it (the desktop app carries bin/ and dist/ and nothing else), so the tree that
+// declares those commands lives in here with the other two.
+export { runSetup } from './lib/setup-cli'
+export type { RunSetupOptions } from './lib/setup-cli'
 export { SKILL_VERSION } from './version'
 
 // The blank `docs/kanban/config.md`, and which of its settings a board's own config has
@@ -376,22 +381,18 @@ if (invokedDirectly()) {
     } else {
       void runBoard(argv.slice(1), {
         program: `node ${SELF} board`,
-        style: 'board',
         version: `ai4kanban ${SKILL_VERSION}`,
-        usage: `node ${SELF} board <move> [args]`,
       }).then((code) => {
         process.exitCode = code
       })
     }
   } else {
+    // Absolute, like the two doors above: what this prints is for a person to paste, and a
+    // path relative to a working directory that may be anywhere runs from that one folder
+    // and nowhere else.
     void runBoard(argv, {
-      program: 'kanban',
-      style: 'legacy',
+      program: `node ${SELF}`,
       version: `ai4kanban ${SKILL_VERSION}`,
-      // Absolute, like the two doors above: this line is printed for a person to paste, and
-      // a path relative to a working directory that may be anywhere runs from that one
-      // folder and nowhere else.
-      usage: `node ${SELF} <command> [args]`,
     }).then((code) => {
       process.exitCode = code
     })

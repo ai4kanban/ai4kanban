@@ -8,9 +8,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
-import { cmdSpecWrite } from '../src/commands/spec-write.ts'
 import { claimChanges, markBoard, refinementAfter } from '../src/lib/agent/refine.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { move } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-shape-'))
 const todo = path.join(root, 'docs', 'kanban', 'todo')
@@ -68,10 +68,13 @@ const SHAPED = [
   '',
 ].join('\n')
 
+const specWrite = (argv: string[]): Promise<Record<string, unknown>> =>
+  move(root, ['spec-write', '5', 'ui-design', ...argv])
+
 describe("a spec skill's section and the boundary", () => {
-  it('lands in the agent half when nothing says otherwise', () => {
+  it('lands in the agent half when nothing says otherwise', async () => {
     write(SHAPED)
-    cmdSpecWrite(['5', 'ui-design', '--text', 'a screen'])
+    await specWrite(['--text', 'a screen'])
     assert.deepEqual(headings(), [
       '## Worth noting',
       '<!-- agent -->',
@@ -82,9 +85,9 @@ describe("a spec skill's section and the boundary", () => {
     ])
   })
 
-  it('lands above the boundary when the pick is the user\'s', () => {
+  it('lands above the boundary when the pick is the user\'s', async () => {
     write(SHAPED)
-    cmdSpecWrite(['5', 'ui-design', '--text', 'a screen', '--half', 'human'])
+    await specWrite(['--text', 'a screen', '--half', 'human'])
     assert.deepEqual(headings(), [
       '## Worth noting',
       '## By `ui-design` skill',
@@ -95,10 +98,10 @@ describe("a spec skill's section and the boundary", () => {
     ])
   })
 
-  it('keeps the marker when a rewrite replaces the section directly above it', () => {
+  it('keeps the marker when a rewrite replaces the section directly above it', async () => {
     write(SHAPED)
-    cmdSpecWrite(['5', 'ui-design', '--text', 'a screen', '--half', 'human'])
-    cmdSpecWrite(['5', 'ui-design', '--text', 'a better screen'])
+    await specWrite(['--text', 'a screen', '--half', 'human'])
+    await specWrite(['--text', 'a better screen'])
     assert.deepEqual(headings(), [
       '## Worth noting',
       '## By `ui-design` skill',
@@ -110,10 +113,10 @@ describe("a spec skill's section and the boundary", () => {
     assert.ok(fs.readFileSync(file, 'utf8').includes('a better screen'))
   })
 
-  it('sends the section back below the boundary when asked for the agent half', () => {
+  it('sends the section back below the boundary when asked for the agent half', async () => {
     write(SHAPED)
-    cmdSpecWrite(['5', 'ui-design', '--text', 'a screen', '--half', 'human'])
-    cmdSpecWrite(['5', 'ui-design', '--text', 'a screen', '--half', 'agent'])
+    await specWrite(['--text', 'a screen', '--half', 'human'])
+    await specWrite(['--text', 'a screen', '--half', 'agent'])
     assert.deepEqual(headings(), [
       '## Worth noting',
       '<!-- agent -->',
@@ -140,14 +143,14 @@ describe('repairing a card is not a change worth another pass', () => {
     '',
   ].join('\n')
 
-  it('reads a section move and the new marker as no change', () => {
+  it('reads a section move and the new marker as no change', async () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(SHAPED.replace('## Worth noting\n- a call a reviewer could refuse\n\n', ''), 'todo')
     assert.equal(refinementAfter('resolve', 5, 1, claimChanges(before, 'resolve-5')), null)
   })
 
-  it('still catches a pass that rewords a line', () => {
+  it('still catches a pass that rewords a line', async () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(OLD.replace('- a requirement', '- a different requirement'), 'todo')
@@ -160,7 +163,7 @@ describe('repairing a card is not a change worth another pass', () => {
     })
   })
 
-  it('leaves the status a pass closed on alone', () => {
+  it('leaves the status a pass closed on alone', async () => {
     write(OLD, 'todo')
     const before = markBoard()
     write(OLD.replace('- a requirement', '- a different requirement'), 'ready')

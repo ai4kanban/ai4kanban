@@ -19,6 +19,8 @@ import { fileURLToPath } from 'node:url'
 
 import * as esbuild from 'esbuild'
 
+import { REQUIRE_SHIM } from './shim.mjs'
+
 const PKG_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const ENTRY = path.join(PKG_DIR, 'src', 'kanban.ts')
 const OUT = path.join(PKG_DIR, 'dist', 'kanban.mjs')
@@ -30,7 +32,8 @@ const VERSION = JSON.parse(fs.readFileSync(path.join(PKG_DIR, 'package.json'), '
 // coming from — so its shape is part of the contract (see BUILT_STAMP in src/lib/skill/).
 const BANNER = `#!/usr/bin/env node
 // ai4kanban ${VERSION} — built from the CLI's TypeScript sources by cli/scripts/build.mjs.
-// Do not edit: every change belongs in cli/src/, and a build overwrites this file.`
+// Do not edit: every change belongs in cli/src/, and a build overwrites this file.
+${REQUIRE_SHIM}`
 
 await esbuild.build({
   entryPoints: [ENTRY],

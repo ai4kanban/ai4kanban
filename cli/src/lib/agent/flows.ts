@@ -7,36 +7,57 @@
 // rule only when someone remembered to add it in a second place. So it is written here,
 // once, and the three read it.
 //
+// What a flow takes is written here too, in the notation the command tree declares it in
+// (lib/cli/agent.ts): `argument` and `options` ARE the flow's command line, and so are its
+// help. A flow shipped later is a command, a help entry and a rule at once.
+//
 // `command` is also the name of the flow's rule file, because the command is the one name
 // the user typed and the one a pane can show — `revise.md` for `akb revise`, whose action
 // the board keeps under the name `edit`.
 
-import type { AgentAction, CommandAction } from './types'
+import { PROPOSE_MAX, type AgentAction, type CommandAction } from './types'
+
+/** One option a flow takes, as its command declares it. `flags` is Commander's own
+ *  notation, so `--effort <level>` takes a value and `--and-implement` does not. */
+export interface FlowOption {
+  flags: string
+  description: string
+  /** The only values accepted, when there is a fixed set of them. */
+  choices?: readonly string[]
+  /** A whole number in this range, when the value is a count. */
+  range?: readonly [min: number, max: number]
+}
 
 export interface Flow {
   /** The word a person types — and the name of this flow's rule file. */
   command: string
   /** The public action the command dispatcher receives. */
   action: CommandAction
-  /** The usage line, as the runs table lists it. */
-  usage: string
+  /** What follows the command word, in Commander's notation. Empty when it takes nothing. */
+  argument: string
+  /** What the argument is, for the help. Empty when there is no argument. */
+  argumentNote?: string
   /** One clause of plain words: what the flow is. `plan-release` and `run` name
    *  nothing a user can guess at, so every flow carries one. */
   gloss: string
-  /** The rest of what the runs table says about it, already wrapped — so the layout is the
-   *  text itself rather than something a wrapper has to guess at. */
+  /** The rest of what the flow's own help says about it. */
   more?: string[]
+  /** The options this flow takes, on top of the `--print` and `--follow` every one takes. */
+  options?: FlowOption[]
   /** What this flow's rule is for, read beside that flow rather than in a warning the user
    *  meets before they know which flow they want. Most flows have nothing particular to
    *  say and carry none. */
   ruleNote?: string
 }
 
+const NOTE = 'anything the run should know, in your own words'
+
 export const FLOWS: Flow[] = [
   {
     command: 'implement',
     action: 'implement',
-    usage: 'implement <id> [note]',
+    argument: '<id> [note...]',
+    argumentNote: NOTE,
     gloss: 'build the card',
     ruleNote:
       'Each delivery builds in a fresh worktree. This rule is where you say how to prepare one — installing dependencies, seeding a local config.',
@@ -44,81 +65,109 @@ export const FLOWS: Flow[] = [
   {
     command: 'review',
     action: 'review',
-    usage: 'review <id>',
+    argument: '<id>',
     gloss: 'review and fix what the delivery built against the approved card',
-    more: [
-      'The board runs this itself after a build; type it to look',
-      'again after answering its question',
-    ],
+    more: ['The board runs this itself after a build; type it to look again after answering its question.'],
     ruleNote: 'Add repository-specific checks here. Review fixes plain failures or stops when it needs you.',
   },
   {
     command: 'conflict',
     action: 'conflict',
-    usage: 'conflict <id>',
+    argument: '<id>',
     gloss: "resolve the conflict its landing's rebase stopped on",
-    more: ['The board runs this itself; the result is reviewed from', 'scratch'],
+    more: ['The board runs this itself; the result is reviewed from scratch.'],
   },
-  { command: 'run', action: 'run', usage: 'run <id> [note]', gloss: 'one pass of a recurring card' },
+  {
+    command: 'run',
+    action: 'run',
+    argument: '<id> [note...]',
+    argumentNote: NOTE,
+    gloss: 'one pass of a recurring card',
+  },
   {
     command: 'refine',
     action: 'refine',
-    usage: 'refine <id> [--effort lightweight|standard]',
+    argument: '<id>',
     gloss: 'sharpen the card until it is ready to build',
+    options: [
+      {
+        flags: '--effort <level>',
+        description: 'how hard to look: lightweight | standard',
+        choices: ['lightweight', 'standard'],
+      },
+    ],
   },
   {
     command: 'resolve',
     action: 'resolve',
-    usage: 'resolve <id> [note]',
+    argument: '<id> [note...]',
+    argumentNote: NOTE,
     gloss: "apply the user's answers to its open questions",
-    more: ['(--and-implement carries on)'],
+    options: [{ flags: '--and-implement', description: 'carry straight on into the build' }],
   },
   {
     command: 'revise',
     action: 'edit',
-    usage: 'revise <id> "<what>"',
+    argument: '<id> <what...>',
+    argumentNote: 'what to change about the card',
     gloss: 'change the card to say something else',
   },
   {
     command: 'create',
     action: 'create',
-    usage: 'create "<what you want>"',
+    argument: '<what...>',
+    argumentNote: 'what you want, in your own words',
     gloss: 'write the card(s) for it',
-    more: ['(--release v1)'],
+    options: [{ flags: '--release <version>', description: 'the version the new cards ship in' }],
   },
   {
     command: 'propose',
     action: 'propose',
-    usage: 'propose',
+    argument: '',
     gloss: 'write the next tasks',
-    more: ['(--module m, --count n, --boldness safe|normal|bold)'],
+    options: [
+      { flags: '-m, --module <name>', description: 'only look at that part of the project' },
+      { flags: '-n, --count <n>', description: 'how many to write', range: [1, PROPOSE_MAX] },
+      {
+        flags: '--boldness <level>',
+        description: 'how far from the beaten path: safe | normal | bold',
+        choices: ['safe', 'normal', 'bold'],
+      },
+    ],
   },
   {
     command: 'plan-release',
     action: 'plan-release',
-    usage: 'plan-release <version>',
+    argument: '<version>',
+    argumentNote: 'the version to fill',
     gloss: 'fill a release from its goal',
   },
   {
     command: 'changelog',
     action: 'changelog',
-    usage: 'changelog <version>',
+    argument: '<version>',
+    argumentNote: 'the closed version to write up',
     gloss: "write a closed version's changelog into its summary file",
     more: [
-      'It is written from the goal and the cards its close wrote',
-      'down — the close starts this itself, so run it only to',
-      'rewrite one',
+      'It is written from the goal and the cards its close wrote down — the close starts this itself, so ' +
+        'run it only to rewrite one.',
     ],
   },
   {
     command: 'setup',
     action: 'setup',
-    usage: 'setup',
+    argument: '',
     gloss: 'finish setting the board up',
-    more: ['Every step still unticked on docs/kanban/setup-checklist.md,', 'in one run'],
+    more: ['Every step still unticked on docs/kanban/setup-checklist.md, in one run.'],
   },
-  { command: 'archive', action: 'archive', usage: 'archive <id>', gloss: 'finish the card' },
-  { command: 'reject', action: 'reject', usage: 'reject <id> "<why>"', gloss: 'drop the card' },
+  { command: 'archive', action: 'archive', argument: '<id>', gloss: 'finish the card' },
+  {
+    command: 'reject',
+    action: 'reject',
+    argument: '<id> <why...>',
+    argumentNote: 'why the card is being dropped',
+    gloss: 'drop the card',
+  },
 ]
 
 /** The word a person types and the public action it starts — the dispatcher's table. */
@@ -134,7 +183,10 @@ export const flowByAction = (action: AgentAction): Flow | undefined => {
   return FLOWS.find((flow) => flow.action === action)
 }
 
+/** How a flow is spelled in a list of them — the command and what follows it. */
+export const flowUsage = (flow: Flow): string => `${flow.command} ${flow.argument}`.trim()
+
 /** The delivery flows. Their rules are frozen with the card the delivery
  *  was approved to build, and their runs are the ones that may not be working in the
- *  project folder. `correct` remains only for an old run resumed after upgrade. */
-export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'review', 'correct', 'conflict'])
+ *  project folder. */
+export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'review', 'conflict'])

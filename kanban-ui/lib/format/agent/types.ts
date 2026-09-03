@@ -67,8 +67,6 @@ export type AgentAction =
   | 'changelog'
   /** Judge and fix a delivery against its approved card in a fresh run (#302). */
   | 'review'
-  /** A correction run already in flight when upgrading from the older review loop. */
-  | 'correct'
   /** Resolve the conflict a landing's rebase stopped on (#304). It may read both cards,
    *  both diffs and the checkout, it stages the resolution, and the board finishes the
    *  rebase after it. Its result is reviewed from scratch. */
@@ -120,7 +118,7 @@ export interface AgentRequest {
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<AgentAction, 'clarify' | 'writing' | 'spec' | 'correct'>
+  | Exclude<AgentAction, 'clarify' | 'writing' | 'spec'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -241,9 +239,8 @@ export interface DeliveryStep {
 
 // ---- what review said about a delivery's work (#302) -----------------------
 
-/** What one review pass concluded. `correct` is retained only to read records written by
- *  the older review/correction loop. New conclusions are derived as `pass` or `ask`. */
-export type ReviewVerdict = 'pass' | 'correct' | 'ask'
+/** What one review pass concluded. */
+export type ReviewVerdict = 'pass' | 'ask'
 
 /** One thing a review found. */
 export interface ReviewFinding {
@@ -272,13 +269,9 @@ export type ReviewStopReason =
    *  conflict stayed unresolved. */
   | 'landing'
 
-/** Review across a delivery. Correction fields remain for old records. */
+/** Review across a delivery. */
 export interface DeliveryReview {
   rounds: ReviewRound[]
-  /** Legacy correction count. */
-  corrections: number
-  /** Legacy pre-correction fingerprint. */
-  mark?: string
   stopped?: {
     reason: ReviewStopReason
     /** One plain sentence: what stopped it, in the words the card's question uses. */

@@ -87,7 +87,6 @@ const VERB: Record<AgentAction, string> = {
   spec: 'specified',
   changelog: 'written up',
   review: 'reviewed',
-  correct: 'corrected',
   conflict: 'unblocked',
 }
 
@@ -104,7 +103,6 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
 const RUN_STATUS: Partial<Record<AgentAction, string>> = {
   implement: 'implementing',
   review: 'implementing',
-  correct: 'implementing',
   conflict: 'implementing',
 }
 
@@ -181,7 +179,7 @@ function reap(runs: RunRecord[], reaped: RunRecord[] = [], restore: RunRecord[] 
     restore.push({ ...r })
     // A run cut off mid-delivery is settled outside this lock: a build that was cut
     // off leaves the delivery ACTIVE and unfinished, and a review cut off stops and asks
-    // (#302). Legacy correction runs follow the same path.
+    // (#302).
     if (r.deliveryId) reaped.push({ ...r })
     dropSpec(r.sessionId)
     changed = true
@@ -544,8 +542,8 @@ export function openRun(
     // A delivery's own runs belong to a delivery — the one already in flight on this
     // card, or, for a build, a new one opened here. Same transaction as the run it
     // belongs to, so a delivery can never be left holding a card with nothing working on
-    // it. Review and legacy correction join an existing delivery and never open one: there is
-    // nothing to review until something has been built.
+    // it. Review joins an existing delivery and never opens one: there is nothing to
+    // review until something has been built.
     if (cardId !== null && DELIVERY_FLOWS.has(req.action)) {
       if (req.action === 'implement') {
         joinDelivery(store, record, req.title ?? cardNow(cardId)?.title ?? '', 'implement', start)

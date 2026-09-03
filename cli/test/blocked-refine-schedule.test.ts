@@ -8,13 +8,13 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
-import { cmdCreate, cmdUpdate } from '../src/commands/card.ts'
 import { claimChanges, refinementRunsAfter, markBoard } from '../src/lib/agent/refine.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { parseFrontmatter, serializeFrontmatter } from '../src/lib/frontmatter.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { setCardSchedule } from '../src/lib/view/edit.ts'
 import type { Meta, Question } from '../src/lib/types.ts'
+import { move, refuses } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-blocked-refine-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -69,72 +69,69 @@ function scheduleOf(id: number): Meta['schedule'] {
   return meta.schedule
 }
 
+const blockedBy = (id: number, ids: string): Promise<Record<string, unknown>> =>
+  move(root, ['update', String(id), '--blocked-by', ids])
+
 describe('the default refine schedule', () => {
-  it('is written when a new card starts blocked', () => {
+  it('is written when a new card starts blocked', async () => {
     writeCard(1)
     fs.writeFileSync(path.join(kanban, 'next-id'), '2\n')
 
-    const made = cmdCreate([
-      '--title',
-      'Dependent',
-      '--track',
-      'features',
-      '--blocked-by',
-      '1',
-    ])
+    const made = await move(root, ['create', '--title', 'Dependent', '--track', 'features', '--blocked-by', '1'])
 
     assert.equal(made.schedule, 'refine')
     assert.equal(scheduleOf(2)?.action, 'refine')
   })
 
-  it('is written when an existing card enters a blocked episode', () => {
+  it('is written when an existing card enters a blocked episode', async () => {
     writeCard(1)
     writeCard(2)
 
-    const changed = cmdUpdate(['2', '--blocked-by', '1'])
+    const changed = await move(root, ['update', '2', '--blocked-by', '1'])
 
     assert.deepEqual(changed.changes, ['blocked_by', 'schedule→refine when unblocked'])
     assert.equal(scheduleOf(2)?.action, 'refine')
   })
 
-  it('stays cancelled while the card remains blocked', () => {
+  it('stays cancelled while the card remains blocked', async () => {
     writeCard(1)
     writeCard(2)
     writeCard(3)
-    cmdUpdate(['2', '--blocked-by', '1'])
+    await blockedBy(2, '1')
     setCardSchedule(2, null)
 
-    cmdUpdate(['2', '--blocked-by', '1,3'])
+    await blockedBy(2, '1,3')
 
     assert.equal(scheduleOf(2), null)
   })
 
-  it('returns for a new blocked episode', () => {
+  it('returns for a new blocked episode', async () => {
     writeCard(1)
     writeCard(2)
-    cmdUpdate(['2', '--blocked-by', '1'])
+    await blockedBy(2, '1')
     setCardSchedule(2, null)
-    cmdUpdate(['2', '--blocked-by', ''])
+    await blockedBy(2, '')
 
-    cmdUpdate(['2', '--blocked-by', '1'])
+    await blockedBy(2, '1')
 
     assert.equal(scheduleOf(2)?.action, 'refine')
   })
 
-  it('is what --schedule writes on a card nothing is in the way of', () => {
+  it('is what --schedule writes on a card nothing is in the way of', async () => {
     fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
 
-    const made = cmdCreate(['--title', 'Second slice', '--track', 'features', '--schedule', 'refine'])
+    const made = await move(root, ['create', '--title', 'Second slice', '--track', 'features', '--schedule', 'refine'])
 
     assert.equal(made.schedule, 'refine')
     assert.equal(scheduleOf(1)?.action, 'refine')
   })
 
-  it('gives way to the action --schedule names on a blocked card', () => {
+  it('gives way to the action --schedule names on a blocked card', async () => {
     writeCard(1)
     fs.writeFileSync(path.join(kanban, 'next-id'), '2\n')
 
-    const made = cmdCreate([
+    const made = await move(root, [
+      'create',
       '--title',
       'Dependent',
       '--track',
@@ -149,36 +146,38 @@ describe('the default refine schedule', () => {
     assert.equal(scheduleOf(2)?.action, 'implement')
   })
 
-  it('refuses an unknown --schedule action before an id is spent', () => {
+  it('refuses an unknown --schedule action before an id is spent', async () => {
     fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
 
-    assert.throws(
-      () => cmdCreate(['--title', 'Nope', '--track', 'features', '--schedule', 'review']),
-      /--schedule names the action/,
+    // The command declares the actions it takes, so the refusal comes from the parse.
+    await refuses(
+      root,
+      ['create', '--title', 'Nope', '--track', 'features', '--schedule', 'review'],
+      /--schedule .*implement \| refine/,
     )
     assert.equal(fs.readFileSync(path.join(kanban, 'next-id'), 'utf8').trim(), '1')
     assert.deepEqual(fs.readdirSync(track), [])
   })
 
-  it('is not put on a card a refine cannot move', () => {
+  it('is not put on a card a refine cannot move', async () => {
     writeCard(1)
     writeCard(2, { status: 'ready' })
     writeCard(3, {
       questions: [{ text: '[user] Pick the layout.', mode: 'single', options: ['A', 'B'], recommend: [0] }],
     })
 
-    cmdUpdate(['2', '--blocked-by', '1'])
-    cmdUpdate(['3', '--blocked-by', '1'])
+    await blockedBy(2, '1')
+    await blockedBy(3, '1')
 
     assert.equal(scheduleOf(2), null)
     assert.equal(scheduleOf(3), null)
   })
 
-  it('stops the current refinement loop when the pass adds a blocker', () => {
+  it('stops the current refinement loop when the pass adds a blocker', async () => {
     writeCard(1)
     writeCard(2)
     const before = markBoard()
-    cmdUpdate(['2', '--blocked-by', '1'])
+    await blockedBy(2, '1')
     const run: RunRecord = {
       sessionId: 'refine-2',
       cardId: 2,

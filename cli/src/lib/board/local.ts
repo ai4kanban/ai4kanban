@@ -25,15 +25,27 @@ import { approveDelivery } from '../agent/approval'
 import { deliveryPlan } from '../agent/commit-mode'
 import { activeDelivery, listDeliveries, settleManualCommit } from '../agent/deliveries'
 import { cancelDelivery, discardDelivery } from '../agent/sessions'
-import { cmdCreate, cmdSchedule, cmdTag, cmdUpdate, cmdUpdateQuestions, cmdUpdateVerify } from '../../commands/card'
+import {
+  cmdCreate,
+  cmdSchedule,
+  cmdTag,
+  cmdUpdate,
+  cmdUpdateQuestions,
+  cmdUpdateVerify,
+  type CreateOptions,
+  type QuestionOpsInput,
+  type ScheduleOptions,
+  type UpdateOptions,
+  type VerifyOpsInput,
+} from '../../commands/card'
 import { cmdInit, cmdMemoryInit } from '../../commands/init'
-import { cmdList } from '../../commands/list'
-import { cmdMigrate, cmdRun } from '../../commands/misc'
-import { cmdRelease } from '../../commands/release'
+import { cmdList, type ListOptions } from '../../commands/list'
+import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
+import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove } from '../../commands/remove'
-import { cmdRunBlocker } from '../../commands/run-blocker'
+import { cmdRunBlocker, type RunBlockerOptions } from '../../commands/run-blocker'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
-import { cmdSpecWrite } from '../../commands/spec-write'
+import { cmdSpecWrite, type SpecWriteOptions } from '../../commands/spec-write'
 import { afterBoardWrite } from '../cloud/publish'
 import { quietly, say } from '../io'
 import { withBoardLock } from '../lock'
@@ -64,12 +76,14 @@ import { allCards, findCard, readBoard, readSetupState } from '../view/read'
 import { readScoreView } from '../view/score'
 import { boardStamp } from '../view/stamp'
 import { NO_RELEASE, normalizeRelease } from '../validate'
+import type { Typed } from '../cli/shared'
 import type {
   BoardProvider,
   Lease,
   LeaseId,
   LeaseResult,
   LeaseTarget,
+  MoveInput,
   MoveOutput,
   OpConflict,
   OpEnvelope,
@@ -89,27 +103,36 @@ import type { BulkReleaseResult, CardPatch, CardSchedule, PlanCard, SaveProjectR
 // so the table of what each move does belongs to the board, not to the command line that
 // happens to be in front of it today.
 
-type RunMove = (rest: string[]) => MoveOutput | void
+type RunMove = (input: MoveInput) => MoveOutput | void
+
+// The command line has already been read by the time a move runs (lib/cli/board.ts): the
+// positional words are in `args`, and every option is in `opts`, validated against the
+// declaration that also wrote the help. A move reads its own fields off those — none of
+// them parses argv, and none re-checks a value its command already refused.
+//
+// `as` is the one place the shape crosses over. Every field it names is declared, with its
+// reader, in lib/cli/board.ts.
+const as = <T,>(opts: Record<string, unknown>): T => opts as T
 
 const MOVES: Record<string, RunMove> = {
-  init: (rest) => cmdInit(rest),
-  'memory-init': (rest) => cmdMemoryInit(rest[0]),
-  'setup-done': (rest) => cmdSetupDone(rest),
+  init: ({ args }) => cmdInit(args),
+  'memory-init': ({ args }) => cmdMemoryInit(args[0]),
+  'setup-done': ({ args }) => cmdSetupDone(args[0]),
   'setup-status': () => cmdSetupStatus(),
-  create: (rest) => cmdCreate(rest),
-  update: (rest) => cmdUpdate(rest),
-  'update-questions': (rest) => cmdUpdateQuestions(rest),
-  'update-verify': (rest) => cmdUpdateVerify(rest),
-  schedule: (rest) => cmdSchedule(rest),
-  tag: (rest) => cmdTag(rest),
-  list: (rest) => cmdList(rest),
-  release: (rest) => cmdRelease(rest),
-  migrate: (rest) => cmdMigrate(rest),
-  archive: (rest) => cmdRemove(Number(rest[0]), 'completed'),
-  reject: (rest) => cmdRemove(Number(rest[0]), 'rejected'),
-  'record-run': (rest) => cmdRun(Number(rest[0])),
-  'spec-write': (rest) => cmdSpecWrite(rest),
-  'run-blocker': (rest) => cmdRunBlocker(rest),
+  create: ({ opts }) => cmdCreate(as<CreateOptions>(opts)),
+  update: ({ args, opts }) => cmdUpdate(Number(args[0]), as<UpdateOptions>(opts)),
+  'update-questions': ({ args, opts }) => cmdUpdateQuestions(Number(args[0]), as<QuestionOpsInput>(opts)),
+  'update-verify': ({ args, opts }) => cmdUpdateVerify(Number(args[0]), as<VerifyOpsInput>(opts)),
+  schedule: ({ args, opts }) => cmdSchedule(Number(args[0]), as<ScheduleOptions>(opts)),
+  tag: ({ args }) => cmdTag(Number(args[0]), args[1] ?? '', args[2] ?? ''),
+  list: ({ opts }) => cmdList(as<ListOptions>(opts)),
+  release: ({ args, opts }) => cmdRelease(args, as<ReleaseOptions>(opts)),
+  migrate: ({ opts }) => cmdMigrate(as<MigrateOptions>(opts)),
+  archive: ({ args }) => cmdRemove(Number(args[0]), 'completed'),
+  reject: ({ args }) => cmdRemove(Number(args[0]), 'rejected'),
+  'record-run': ({ args }) => cmdRun(Number(args[0])),
+  'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
+  'run-blocker': ({ args, opts }) => cmdRunBlocker(Number(args[0]), as<RunBlockerOptions>(opts)),
   peek: () => {
     const id = readNextId()
     say(String(id))
@@ -305,7 +328,7 @@ export function localBoard(): BoardProvider {
 
     setStatus: (id, status, env) =>
       mutate({ card: id }, env, () => {
-        cmdUpdate([String(id), '--status', status])
+        cmdUpdate(id, { status })
         return { card: findCard(id) ?? undefined }
       }),
 
@@ -323,7 +346,9 @@ export function localBoard(): BoardProvider {
 
     appendQuestion: (id, question, options, env) =>
       mutate({ card: id }, env, () => {
-        cmdUpdateQuestions([String(id), '--append', question, ...options.flatMap((o) => ['--option', o])])
+        cmdUpdateQuestions(id, {
+          ops: [['append', question], ...options.map((o): Typed => ['option', o])],
+        })
         return { card: findCard(id) ?? undefined }
       }),
 
@@ -491,17 +516,17 @@ export function localBoard(): BoardProvider {
 
     // ---- the named `akb board` moves ----------------------------------------
 
-    runMove(move: string, args: string[], env: OpEnvelope) {
+    runMove(move: string, input: MoveInput, env: OpEnvelope) {
       const run = MOVES[move]
       if (!run) return Promise.resolve(opRefused(new Error(`unknown command "${move}".`)))
       // A move keeps its prose: it IS the move's answer, and the dispatcher above owns
       // where it lands — a terminal, or the `output` field of a --json answer.
-      const target = moveTarget(move, args)
+      const target = moveTarget(move, input.args)
       try {
         const result = withBoardLock(() => {
           const no = checkWrite(target, env, revisionAt(target))
           if (no) return no
-          const data = run(args) || {}
+          const data = run(input) || {}
           return opOk(revisionAt(target), { data })
         })
         if (!result.ok) return Promise.resolve(result)
@@ -511,11 +536,11 @@ export function localBoard(): BoardProvider {
       }
     },
 
-    readMove(move: string, args: string[]): Promise<MoveOutput> {
+    readMove(move: string, input: MoveInput): Promise<MoveOutput> {
       const run = MOVES[move]
       if (!run) return Promise.reject(new Error(`unknown command "${move}".`))
       try {
-        return Promise.resolve(run(args) || {})
+        return Promise.resolve(run(input) || {})
       } catch (e) {
         return Promise.reject(e)
       }

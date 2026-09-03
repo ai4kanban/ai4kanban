@@ -40,7 +40,6 @@ import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from '
 import { conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
 import { activeDelivery } from './deliveries'
-import { lastRound, openFindings } from './review'
 import { field, metaLine, numbered, trackNames } from './facts'
 import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
@@ -290,23 +289,15 @@ function workspaceField(cardId: number): string[] {
   ])
 }
 
-// Where review stands on this delivery. Historical correction verdicts are named so a
-// review resumed after upgrade can fix their findings in this run.
+// Where review stands on this delivery.
 function reviewField(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
   const review = delivery?.review
   if (!review?.rounds.length) return field('review', 'the first pass on this delivery — nothing has judged it yet')
-  const last = review.rounds[review.rounds.length - 1]
   const rounds = review.rounds.map((r, i) => `${i + 1}. ${r.verdict}${r.findings.length ? ` — ${r.findings.map((f) => f.title).join('; ')}` : ''}`)
   return field('review', [
     `${review.rounds.length} review${review.rounds.length === 1 ? '' : 's'} so far:`,
     ...rounds.map((line) => `  ${line}`),
-    ...(last?.verdict === 'correct'
-      ? [
-          'this delivery came from an older review flow — fix these findings in this run:',
-          ...last.findings.map((finding) => `  - **${finding.title}**: ${finding.detail}`),
-        ]
-      : []),
   ])
 }
 
@@ -327,18 +318,6 @@ function conflictField(cardId: number): string[] {
     ...(overlap.length
       ? [`${overlap.map((c) => `#${c}`).join(', ')} ${overlap.length === 1 ? 'is' : 'are'} being built over the same files — read ${overlap.length === 1 ? 'that card' : 'those cards'} before you decide what to keep.`]
       : []),
-  ])
-}
-
-// Findings needed only by a legacy correction run already in flight during an upgrade.
-function findingsField(cardId: number): string[] {
-  const delivery = activeDelivery(cardId)
-  const findings = delivery ? openFindings(delivery) : []
-  if (!findings.length) return field('findings', 'none recorded')
-  const verdict = delivery ? lastRound(delivery)?.verdict : undefined
-  return field('findings', [
-    `${findings.length} from the last review (${verdict ?? 'unknown'}):`,
-    ...findings.map((f) => `  - **${f.title}**: ${f.detail}`),
   ])
 }
 
@@ -428,8 +407,6 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   // Review owns post-implementation decision notes, so it receives their writing contract
   // rather than trying to reconstruct it from the review flow.
   review: ['board', 'writing', 'update-questions', 'review'],
-  // Kept only for a correction run resumed from an older delivery.
-  correct: [],
   conflict: ['conflict'],
   run: ['board', 'recurring-task'],
   // QA edits decision prose as it settles and prunes the plan.
@@ -540,22 +517,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself, settle facts, and drop unrelated discoveries after noting them in the run log',
         `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
       )
-      break
-    }
-    // Kept only for a legacy correction run already in flight during an upgrade.
-    case 'correct': {
-      facts.push(...approvedField(req.id!))
-      facts.push(...workspaceField(req.id!))
-      facts.push(...findingsField(req.id!))
-      facts.push(...candidateField(req.id!))
-      facts.push(...stepsField(card!))
-      close.push(
-        ...committingClose(req.id!),
-        'fix the recorded findings; a combined review follows',
-        'tick a ## Todo box your fix completes; never untick one',
-        'change nothing else on the card — the delivery builds the approved copy above, not the file as it reads now',
-      )
-      next.push(`${self} review ${req.id} --print — review and fix the resulting delivery`)
       break
     }
     // Resolving the conflict a landing's rebase stopped on (#304). It reads this card's

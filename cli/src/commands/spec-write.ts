@@ -16,8 +16,7 @@ import { say } from '../lib/io'
 import { fixMockupBlocks } from '../lib/mockups'
 import { die, rel, TODO, warn } from '../lib/paths'
 import { findSpecSkill, notASkill, specHeading, specSkillNames } from '../lib/spec-skills'
-import type { FlagValue, MoveResult } from '../lib/types'
-import { parseFlags } from '../lib/validate'
+import type { MoveResult } from '../lib/types'
 
 // The sections a spec skill's own goes in FRONT of. They are the card's tail — what the
 // agent decided, where the idea came from — and a spec belongs with the plan it answers,
@@ -34,12 +33,11 @@ type Half = (typeof HALVES)[number]
 
 // Told nothing, a new section goes in the agent half and a rewrite stays where it sits — a
 // spec skill that says nothing about the reader has not asked for the card to be reshaped.
-function readHalf(raw: FlagValue | undefined): Half | null {
-  if (raw === undefined) return null
-  if (raw === true) die(`--half needs a value: ${HALVES.join(' or ')}`)
-  const value = String(raw).trim().toLowerCase()
-  if (!(HALVES as readonly string[]).includes(value)) die(`--half takes ${HALVES.join(' or ')} (got "${String(raw)}")`)
-  return value as Half
+/** `akb board spec-write`, as its command declares it (lib/cli/board.ts). */
+export interface SpecWriteOptions {
+  file?: string
+  text?: string
+  half?: Half
 }
 
 // `skill` is the word a section carries now; `agent` is the word it carried before #403.
@@ -48,18 +46,13 @@ function readHalf(raw: FlagValue | undefined): Half | null {
 const headingRe = (name: string): RegExp =>
   new RegExp('^##\\s+By\\s+`' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '`\\s+(skill|agent)\\s*$', 'i')
 
-export function cmdSpecWrite(args: string[]): MoveResult {
-  const { flags, positional } = parseFlags(args, ['file', 'text', 'half'])
-  const id = Number(positional[0])
-  if (!Number.isInteger(id)) die('need a numeric task id: spec-write <id> <skill> --file <path>')
-  const askedName = String(positional[1] ?? '').trim()
-  if (!askedName) die(`name the spec skill whose section this is: spec-write ${id} <skill> --file <path>`)
+export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOptions): MoveResult {
   const skill = findSpecSkill(askedName)
   if (!skill) die(notASkill(askedName), { kind: 'no-such-spec-agent', specAgent: askedName })
   const name = skill.name
 
   const section = readSection(flags.file, flags.text)
-  const half = readHalf(flags.half)
+  const half = flags.half ?? null
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
@@ -74,18 +67,17 @@ export function cmdSpecWrite(args: string[]): MoveResult {
 
 // The agent's answer, from a file or straight off the command line. A file is what the
 // flow asks for: a section is markdown, and a shell eats markdown.
-function readSection(file: unknown, text: unknown): string {
+function readSection(file: string | undefined, text: string | undefined): string {
   if (file !== undefined && text !== undefined) die('pass --file or --text, not both')
   let raw: string
   if (file !== undefined) {
-    if (file === true) die('--file needs a path after it')
     try {
-      raw = fs.readFileSync(String(file), 'utf8')
+      raw = fs.readFileSync(file, 'utf8')
     } catch {
-      die(`can't read ${String(file)} — write your section to a file, then pass its path`)
+      die(`can't read ${file} — write your section to a file, then pass its path`)
     }
   } else if (text !== undefined) {
-    raw = text === true ? '' : String(text)
+    raw = text
   } else {
     die('the section has to come from somewhere: --file <path>, or --text "..." for a one-liner')
   }
