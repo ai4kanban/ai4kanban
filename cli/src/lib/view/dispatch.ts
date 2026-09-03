@@ -16,6 +16,7 @@
 // See `dueScheduled`.
 
 import { nextDue } from '../cadence'
+import { answeredWork } from '../agent/deliveries'
 import { advanceLanding } from '../agent/landing'
 import { refinementStep } from '../agent/refine'
 import { listRuns } from '../agent/sessions'
@@ -160,6 +161,11 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
     const card = dueRecurring(cards, runs, busy)[0]
     if (card) work.push({ action: 'run', id: card.id, title: card.title })
   }
+
+  // The deliveries whose question has been answered (#302). Not gated on the slots above
+  // for the same reason landing isn't: another look at work already built is that
+  // delivery's own next run, not new work the board went looking for.
+  for (const answered of answeredWork(busy)) work.push(answered)
 
   // And the landing queue (#304). A landing is normally moved on by the watcher of the
   // run that just passed review; this is what picks up a waiter nothing handed off to,

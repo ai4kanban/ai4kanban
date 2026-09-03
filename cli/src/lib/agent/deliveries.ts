@@ -31,7 +31,7 @@ import {
 } from './commit-mode'
 import { completeCard } from './complete'
 import { insideRun } from './env'
-import { deliveryState, type DeliveryState } from './pause'
+import { answeredStop, deliveryState, type DeliveryState } from './pause'
 import { deliveryRules } from './rules'
 import {
   lastRound,
@@ -454,7 +454,42 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
  *  `next` on the record, so the delivery still says what it was about to do and
  *  `akb review <id>` puts it back in motion. */
 export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
-  return run.deliveryId ? takeNext(run.deliveryId) : null
+  if (run.deliveryId) return takeNext(run.deliveryId)
+  // A run that is not the delivery's own can still be the thing it was waiting for:
+  // `resolve` is how the question a stopped review left gets answered, and the hold lets it
+  // through for exactly that (`heldByDelivery`). It joins no delivery, so nothing here was
+  // taken — the answer itself is what the review follows.
+  return run.cardId === null || run.status !== 'done' ? null : answeredReview(run.cardId)
+}
+
+/** The review this card's delivery is owed now that its question has been answered — or
+ *  nothing, which is every card that is not waiting at one.
+ *
+ *  Derived, never stored (`pause.ts`): the card's questions are the whole of that stop, so
+ *  a card with none left is a delivery whose next step is another look. Nothing is written
+ *  here — the run that starts clears the stop (`joinActive`), and until one does, every
+ *  read of this says the same thing. */
+export function answeredReview(cardId: number): AgentRequest | null {
+  const delivery = activeDelivery(cardId)
+  if (!delivery || delivery.next) return null
+  if (!answeredStop(delivery, openQuestions(cardId))) return null
+  return { action: 'review', id: delivery.cardId, title: delivery.title }
+}
+
+/** The same for every delivery on the board, which is what the tick asks (`view/dispatch`).
+ *
+ *  The run that answered hands its card on as it closes, so this is what picks up the one
+ *  nothing handed off: `resolve` may have run in another process, or days ago, and no
+ *  watcher was ever left holding this delivery. A card with a run already on it is left for
+ *  the next pass — a second run on it would be refused anyway. */
+export function answeredWork(busy: Set<number> = new Set()): AgentRequest[] {
+  const work: AgentRequest[] = []
+  for (const delivery of readStore().deliveries) {
+    if (delivery.status !== 'active' || busy.has(delivery.cardId)) continue
+    const request = answeredReview(delivery.cardId)
+    if (request) work.push(request)
+  }
+  return work
 }
 
 /** The same, by delivery id. */

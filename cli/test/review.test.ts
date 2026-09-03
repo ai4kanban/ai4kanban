@@ -11,6 +11,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 import { cmdUpdateQuestions } from '../src/commands/card.ts'
 import {
   activeDelivery,
+  answeredWork,
   deliveryRunAfter,
   deliveryWaiting,
   joinActive,
@@ -235,6 +236,50 @@ describe('stopping for the user', () => {
     assert.equal(deliveryWaiting(5), undefined)
     await close(again)
     assert.equal(passedOn(5), true)
+  })
+
+  it('stops waiting the moment the question is answered, and asks for the review itself', async () => {
+    const built = build()
+    await close(built)
+    const first = carryOn(built)
+    cmdUpdateQuestions([
+      '5',
+      '--append',
+      '[user] Which retry behavior should apply?',
+      '--recommended-option',
+      'Retry once — recovers transient failures',
+      '--option',
+      'Do not retry — fails immediately',
+    ])
+    await close(first)
+    assert.ok(deliveryWaiting(5))
+
+    // What `akb resolve` leaves behind: the answer is on the card and the question is gone.
+    // It joins no delivery, so nothing but the card says the stop is over.
+    cmdUpdateQuestions(['5', '--drop', '1'])
+    assert.equal(deliveryWaiting(5), undefined)
+    assert.deepEqual(answeredWork(), [{ action: 'review', id: 5, title: 'A card' }])
+    // A card with a run already on it is left for the next pass.
+    assert.deepEqual(answeredWork(new Set([5])), [])
+
+    // And the run that answered hands it on as it closes, rather than a tick later.
+    const answering = session('resolve')
+    withStore((store) => void store.runs.push(answering))
+    const carry = deliveryRunAfter(await close(answering))
+    assert.deepEqual(carry, { action: 'review', id: 5, title: 'A card' })
+  })
+
+  it('goes on waiting while any question is still open', async () => {
+    const built = build()
+    await close(built)
+    const first = carryOn(built)
+    cmdUpdateQuestions(['5', '--append', '[user] First?', '--recommended-option', 'A — the safe one', '--option', 'B — the other'])
+    cmdUpdateQuestions(['5', '--append', '[user] Second?', '--recommended-option', 'A — the safe one', '--option', 'B — the other'])
+    await close(first)
+    cmdUpdateQuestions(['5', '--drop', '1'])
+
+    assert.match(deliveryWaiting(5) ?? '', /open decision/)
+    assert.deepEqual(answeredWork(), [])
   })
 
   it('does not mistake a question that predates implementation for one raised by review', async () => {

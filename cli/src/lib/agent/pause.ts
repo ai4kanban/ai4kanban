@@ -14,7 +14,7 @@ import type { DeliveryRecord } from './types'
 export type DeliveryStage =
   /** Building, reviewing or correcting — the board's own work is in flight. */
   | 'working'
-  /** Review stopped and put a question on the card (#302). */
+  /** Review stopped and put a question on the card (#302), and it is still open. */
   | 'stopped'
   /** Built and reviewed; landing waits until the card's open questions are answered. */
   | 'held'
@@ -23,8 +23,9 @@ export type DeliveryStage =
   | 'approval'
   /** Manual commit mode: review passed, and the commit is the user's to make. */
   | 'commit'
-  /** Manual commit mode: they committed something else, so the whole candidate goes back
-   *  through review before anything else happens. */
+  /** The whole candidate goes back through review before anything else happens: its
+   *  question has been answered, or — in manual commit mode — they committed something
+   *  other than what review passed. */
   | 'rereview'
   /** Reviewed and queued, and landing refused it — a dirty checkout, a target branch that
    *  is gone. The refusal already says what clears it, and the next pass tries again. */
@@ -70,6 +71,19 @@ const end = (text: string): string => (/[.!?)]$/.test(text) ? text : `${text}.`)
 
 const isHold = (why: string): boolean => why.startsWith(HELD_ON_QUESTIONS) || why.startsWith(HELD_ON_APPROVAL)
 
+/** True when a review's stop is over: it stopped to ask, and the card has no question
+ *  left. The questions ARE that stop, so answering ends it — nothing has to be pressed.
+ *
+ *  Only `ask`. Every other reason names something outside the card — a landing that will
+ *  not converge, a tree nobody could commit — and the question each one leaves already says
+ *  what puts the delivery back in motion.
+ *
+ *  The stop itself is left standing until the review run starts and clears it
+ *  (`joinActive`), so this is derived on every read the way everything else here is. */
+export function answeredStop(delivery: DeliveryRecord, questions: number): boolean {
+  return delivery.review?.stopped?.reason === 'ask' && questions === 0
+}
+
 /** Where this delivery stands, given how many open questions its card carries.
  *
  *  The questions are passed in rather than read here: this file is asked from inside the
@@ -89,13 +103,14 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
     }
   }
   const stopped = delivery.review?.stopped
-  if (stopped) {
+  const answered = answeredStop(delivery, questions)
+  if (stopped && !answered) {
     return {
       stage: 'stopped',
       label: 'Waiting on you',
       line: questions
         ? `${upper(end(stopped.why))} Answer it on this card, then \`Review again\`.`
-        : `${upper(end(stopped.why))} Resolve it, then \`Review again\`.`,
+        : `${upper(end(stopped.why))} Fix it, then \`Review again\`.`,
       paused: true,
     }
   }
@@ -115,6 +130,18 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
         line: 'Your commit is not the tree that was reviewed, so the whole candidate goes back through review.',
         paused: false,
       }
+    }
+  }
+  // The question is answered, so what happens next is the look it asked for: the board
+  // hands that review back on the tick after the answer (`answeredWork`), and the run
+  // clears the stop as it starts. Nothing is asked of the user in between, so this is not a
+  // pause — and without it an answered delivery would read as one that is building.
+  if (answered) {
+    return {
+      stage: 'rereview',
+      label: 'Reviewing again',
+      line: 'Answered — the board is judging this work again.',
+      paused: false,
     }
   }
   // A delivery only holds at landing once it has one: review has passed it and it has
