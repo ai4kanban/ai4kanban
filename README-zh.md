@@ -64,7 +64,7 @@ AI4Kanban 是一个以看板为工作界面的项目管理 Agent。它结合项�
 </td>
 <td width="50%" valign="top">
 <a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design agent 的报告，卡片上附有两套可运行的 mockup" /></a><br/>
-<sub><b>在实施前完成关键决策</b> — 支持自定义 Spec Agents，也内置技术选型 Agent 和 UI 设计 Agent：前者帮助比较技术方案，后者提供多套可运行的界面方案供你选择。</sub>
+<sub><b>在实施前完成关键决策</b> — 支持自定义 Spec Agents，也内置技术选型 Agent 和 UI 设计 Agent：前者帮助比较技术方案，后者默认提供一套可运行的界面方案，并仅在明确要求时提供备选方案。</sub>
 </td>
 </tr>
 <tr>

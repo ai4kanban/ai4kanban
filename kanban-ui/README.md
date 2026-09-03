@@ -316,7 +316,8 @@ A card that changes a screen can carry **mockups** of it — small files under
 `docs/kanban/.mockups/<card id>/`, each drawing one layout the card could take. The card body
 points at each one with a tag on a line of its own, and the card page draws the screen that file
 holds where the tag sits, so you pick a layout by looking at it. The `ui-design` agent writes
-them; only a card page shows them, and the card file is never written to.
+one by default and alternatives only when explicitly requested; only a card page shows them,
+and the card file is never written to.
 
 A mockup is written as one of two things:
 

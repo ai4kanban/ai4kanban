@@ -10,14 +10,16 @@ Read this before planning a card that changes a screen.
   is a row with its title and a Run button", not "a CardList of CardRows".
 - **Cover empty and failure states**: say what the user sees and can do.
 
-## Ask which layout by drawing it
+## Draw the layout
 
-Draw layout options instead of describing them in a question.
+Draw one mockup, labelled `A`, by default. Draw alternatives only when the user explicitly
+asks for them; use the requested count, or two when they give no count. Never add alternatives
+just to explore.
 
 - **Format**: a rendered screen in a file, or a plain-text drawing in the card. A card uses
   one of them throughout — never a mix — and which one the `ui-design` agent draws is the
   board's Mockup style setting (`akb spec`).
-  - **A rendered screen** is one file per option in `docs/kanban/.mockups/<card id>/`, named
+  - **A rendered screen** is one file per mockup in `docs/kanban/.mockups/<card id>/`, named
     for its label: `a` for `A`, `b` for `B`. Write it as `.tsx` — one default-exported React
     component using only React, Tailwind classes, and inline icons — or as `.html`, a
     complete self-styled page, for a screen that is not a component. Draw terminals and
@@ -29,7 +31,8 @@ Draw layout options instead of describing them in a question.
     hover and click-only details in a short `[note]` line below the drawing, inside its block.
 - **Content**: draw one static screen in its normal state. Do not handle clicks, load from
   the network, or read board data.
-- **Card body**: label options `A`, `B`, `C` in order. The drawing says what the layout is,
+- **Card body**: label the default mockup `A`; label requested alternatives `B`, `C` in order.
+  The drawing says what the layout is,
   so nothing under it describes it back. A rendered screen is one tag per option, standing
   in a paragraph of its own — a blank line above it and a blank line below:
 
@@ -42,14 +45,15 @@ Draw layout options instead of describing them in a question.
   A tag sharing a line or paragraph with prose is printed as text. `src` is relative to
   `docs/kanban/`, and `label` is optional. `<Mockup>` is the only HTML tag allowed in a card
   body; inside backticks or a fenced block, it remains text.
-- **Question**: ask one short line whose options are only those labels:
+- **Question**: do not ask one just to confirm the default single mockup. When alternatives
+  were explicitly requested, ask one short line whose options are only those labels:
 
   ```
   akb board update-questions <id> --append "[user] Which layout for the run panel?" \
     --recommended-option "A" --option "B"
   ```
 
-Keep the mockups in the card body, not the question.
+Keep the mockup or mockups in the card body, not the question.
 
 ## Mockup lifetime
 

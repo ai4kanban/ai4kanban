@@ -47,10 +47,10 @@ export interface SpecAgent {
   settings: SpecAgentSetting[]
 }
 
-/** How `ui-design` draws a layout option (#256). Both styles answer the same way — two or
- *  three options, one recommended — and differ in where a drawing goes: a rendered screen is
- *  a file under `.mockups/` the card points at, while a plain-text one is a fenced block in
- *  the card itself, which needs no file and travels with the card through git.
+/** How `ui-design` draws a layout (#256). Both styles answer the same way — one mockup by
+ *  default, alternatives only when explicitly requested — and differ in where a drawing goes:
+ *  a rendered screen is a file under `.mockups/` the card points at, while a plain-text one is
+ *  a fenced block in the card itself, which needs no file and travels with the card through git.
  *
  *  It is board-wide, so a card is drawn in one style and never a mix, and it defaults to
  *  `full`: a board that never opens the setting draws what it drew before this existed. */
@@ -78,7 +78,7 @@ const MOCKUP_STYLE: SpecAgentSetting = {
 export const SPEC_AGENTS: SpecAgent[] = [
   {
     name: 'ui-design',
-    owns: 'the screen a card changes — the layout drawn as options, one of them recommended',
+    owns: 'the screen a card changes — one layout drawn by default, alternatives only when requested',
     calledOn: 'called on a card that changes or adds a screen the user sees',
     prompt: [uiDesign.trim(), uiDesignGuide.trim()].join('\n\n'),
     settings: [MOCKUP_STYLE],

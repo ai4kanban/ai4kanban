@@ -10,14 +10,16 @@ to decide.
 
 ## What to answer
 
-Give two or three options, labelled `A`, `B`, `C` in order. Where a drawing goes is the
-style's call — the section below says. Then name the option you recommend on one line.
+Give exactly one mockup, labelled `A`. Only give alternatives when the user explicitly asks
+for them; use the requested count, or two when they give no count, labelled `A`, `B`, `C` in
+order. Where a drawing goes is the style's call — the section below says. With alternatives,
+name the option you recommend on one line.
 
 Put nothing else in the section. The drawing is the answer; do not describe it.
 
 ## How much to draw
 
-Draw one screen per option in its normal state. Include only what the card's scope and todos
+Draw one screen per mockup in its normal state. Include only what the card's scope and todos
 name; every extra state, panel or page is another layout the user must judge.
 
 ## What to leave out
@@ -34,9 +36,10 @@ file leaves the folder empty.
 ## How you draw
 
 The board picks the style named below. It sets where a drawing goes and what your section
-carries; the option count and the recommendation do not change.
+carries; the mockup count and recommendation rules above do not change.
 
 ## When the pick is the user's
 
-The user always chooses which layout to build. Leave that as the one open question, in the
-shape the guide gives, pointing at your section.
+The default single mockup is the proposed layout. Do not leave an open question just to confirm
+it. When the user explicitly asks for alternatives, leave the choice as the one open question,
+in the shape the guide gives, pointing at your section.

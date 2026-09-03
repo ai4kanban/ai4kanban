@@ -34,8 +34,8 @@ this history, keeping future decisions grounded in the project.
   direction, risk, and cost for human judgment.
 - **Coordinates the task lifecycle.** It breaks large goals into bounded cards and decides
   which tasks can run in parallel and which must wait.
-- **Supports custom Spec Agents.** Built-in agents compare technology choices and provide
-  multiple working UI mockups, so key decisions are settled before implementation.
+- **Supports custom Spec Agents.** Built-in agents compare technology choices and provide a
+  working UI mockup, so key decisions are settled before implementation.
 - **Delivers each card to your branch.** Ready tasks run in parallel across isolated git
   worktrees. Conflicts trigger a dedicated resolution pass before focused commits land on
   your branch.
@@ -73,7 +73,7 @@ version.
 </td>
 <td width="50%" valign="top">
 <a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="A ui-design agent's report with two working mockups attached to the card" /></a><br/>
-<sub><b>Settle key decisions first</b> — create your own Spec Agents or use the built-ins: a technology-selection agent compares technical options, while a UI-design agent gives you multiple working mockups to choose from.</sub>
+<sub><b>Settle key decisions first</b> — create your own Spec Agents or use the built-ins: a technology-selection agent compares technical options, while a UI-design agent gives you one working mockup by default and alternatives when requested.</sub>
 </td>
 </tr>
 <tr>
