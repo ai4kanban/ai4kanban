@@ -122,7 +122,8 @@ export const MOVES: Move[] = [
           '(default med), --release v1 (default none — the card is wanted,',
           'not promised to a version; free text, kept as typed),',
           '--blocked-by 1,2, --related 3, --modules skill,site',
-          '(validated against modules.md), --question "..." (repeatable),',
+          '(validated against modules.md), --question "..." (repeatable;',
+          'follow `akb guide update-questions`),',
           '--slug my-slug, --no-body, --cadence "1d at 09:30"',
           '(--track recurring only; omitted by default so the card runs by hand),',
           '--proposed,',
@@ -134,13 +135,6 @@ export const MOVES: Move[] = [
           'The script owns the frontmatter and writes the body scaffold for',
           'the track — recurring cards get Run state + Process; fill only',
           'the body by hand.',
-          'A question the user picks from carries its choices: follow its',
-          '--question with one --option "a — why" per choice (2+), and',
-          '--mode single|multi (default single) for how many may be',
-          'ticked. The choice you recommend is declared by',
-          '--recommended-option "c — why" instead of --option — it joins',
-          "the same list and opens ticked, so it's written once. Without",
-          'any option the question stays a plain line with a text box.',
         ],
       ],
     ],
@@ -185,20 +179,11 @@ export const MOVES: Move[] = [
     legacy: [
       [
         'update-questions <id> --append <question> --recommended-option <choice> --option <choice>',
-        [
-          'append one direct decision. Write the question as `[user] Which behavior should',
-          'apply?`; write each choice as `behavior — outcome and cost`. One choice is',
-          'recommended, and at least one alternative is required. The user also gets a',
-          'free-text choice from the board, so never add one yourself. The question is',
-          'exclusive unless --mode multi says several choices may be combined.',
-        ],
+        ['append one direct decision. Follow `akb guide update-questions` for its format.'],
       ],
       [
         'update-questions <id> --update <n> <question> --recommended-option <choice> --option <choice>',
-        [
-          'rewrite one existing question whole. Positions are 1-based; choices follow the',
-          'same form and validation as --append.',
-        ],
+        ['rewrite one existing question whole. Positions are 1-based; follow `akb guide update-questions`.'],
       ],
       [
         'update-questions <id> --drop <n[,n...]>',
@@ -211,14 +196,6 @@ export const MOVES: Move[] = [
       [
         'update-questions <id> --clear',
         ['remove every open question.'],
-      ],
-    ],
-    examples: [
-      [
-        'update-questions 42 \\',
-        '  --append "[user] Which retry behavior should apply?" \\',
-        '  --recommended-option "Retry once — recovers transient failures with one delay" \\',
-        '  --option "Do not retry — fails immediately without duplicate work"',
       ],
     ],
   },

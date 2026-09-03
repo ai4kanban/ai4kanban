@@ -23,6 +23,9 @@ akb board create --title "..." --track <track> --modules <modules> \
   --priority <low|med|high> --roi <low|med|high>
 ```
 
+If the card needs an open question, create the card first, then classify and write it by
+`akb guide update-questions`.
+
 Add `--blocked-by` or `--related` when needed. Non-English titles also need
 `--slug <short-english-slug>`.
 

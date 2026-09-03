@@ -30,7 +30,7 @@ const card = (): string =>
   fs.readFileSync(path.join(todo, 'features', fs.readdirSync(path.join(todo, 'features'))[0]!), 'utf8')
 
 describe('a question handed to the user carries choices', () => {
-  it('shows the ideal append form in command help', () => {
+  it('shows the operations and points to the canonical format guide', () => {
     const move = findMove('update-questions')
     assert.ok(move)
     const help = moveHelp(move, 'akb board')
@@ -39,14 +39,29 @@ describe('a question handed to the user carries choices', () => {
     assert.match(help, /--drop <n\[,n\.\.\.\]>/)
     assert.match(help, /--to-verify <n\[,n\.\.\.\]>/)
     assert.match(help, /--clear/)
-    assert.match(help, /\[user\] Which behavior should\s+apply\?/)
-    assert.match(help, /Example:\s+akb board update-questions 42/)
-    assert.match(help, /Which retry behavior should apply\?/)
+    assert.match(help, /akb guide update-questions/)
+    assert.doesNotMatch(help, /Which retry behavior should apply\?|behavior — outcome and cost/)
     assert.equal(findMove('review-verdict'), null)
   })
 
   it('refuses a question with no options', () => {
     assert.throws(() => cmdUpdateQuestions(['1', '--append', 'which region?']), /needs choices to tick/)
+  })
+
+  it('refuses a bare user question during create', () => {
+    assert.throws(
+      () => cmdCreate(['--title', 'Another card', '--track', 'features', '--question', '[user] Which region?']),
+      /needs choices to tick/,
+    )
+  })
+
+  it('keeps a plain untagged refinement question during create', () => {
+    cmdCreate(['--title', 'Another card', '--track', 'features', '--question', 'Which region?'])
+    const written = fs.readFileSync(
+      path.join(todo, 'features', fs.readdirSync(path.join(todo, 'features')).find((name) => name.startsWith('2-'))!),
+      'utf8',
+    )
+    assert.match(written, /questions:\n  - Which region\?/)
   })
 
   it('refuses a question with only one option', () => {

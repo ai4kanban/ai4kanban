@@ -65,7 +65,7 @@ export function cmdSetupStatus(): MoveResult {
   const card = findSetupQuestionsCard()
   if (card) {
     say(
-      `  questions card: #${card.id} (${card.questions} open) — \`update-questions ${card.id} --append "[user] .." --recommended-option ".." --option ".."\` adds a call you can't settle`,
+      `  questions card: #${card.id} (${card.questions} open) — follow \`akb guide update-questions\` to add a call you can't settle`,
     )
   }
   return {

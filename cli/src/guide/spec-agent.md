@@ -31,12 +31,8 @@ wrong, say so in your section. Do not change another card or project code.
 
 ## When the pick is the user's
 
-Classify the choice with `akb guide update-questions`. If it is user-owned, leave at most one
-open question pointing to your section:
-
-    akb board update-questions <id> --append "[user] <the question> — see the \`<your-name>\` section" \
-      --recommended-option "<the one you recommend, and what it costs, in the same line>" \
-      --option "<another>"
+Classify and write the choice by `akb guide update-questions`. If it is user-owned, leave at
+most one open question, and make it point to your section.
 
 A call you can make belongs in your section, already made. Write the section itself with
 `--half human` — a pick the user has to make is their reading, so it sits above the

@@ -128,11 +128,21 @@ describe('the prompt', () => {
   it('has add-task choose standard unless the source is concrete', () => {
     const guide = findGuide('add-task')!.text
     assert.match(guide, /Repeating work[\s\S]*akb guide recurring-task/)
+    assert.match(guide, /open question[\s\S]*akb guide update-questions/)
     assert.doesNotMatch(guide, /Parallel/)
     assert.match(guide, /akb refine <id> --effort lightweight --print/)
     assert.match(guide, /Lightweight[\s\S]*source already supplies[\s\S]*build scope/)
     assert.match(guide, /Standard[\s\S]*ordinary user requests[\s\S]*separate session/)
     assert.match(guide, /Choose standard unless/)
+  })
+
+  it('keeps the question format in one guide', () => {
+    assert.match(findGuide('update-questions')!.text, /--recommended-option[\s\S]*--option/)
+    for (const name of ['add-task', 'qa-lightweight', 'qa-loop', 'recurring-task', 'reject', 'review', 'setup', 'spec-agent', 'ui-design']) {
+      const guide = findGuide(name)!.text
+      assert.match(guide, /akb guide\s+update-questions/, name)
+      assert.doesNotMatch(guide, /--recommended-option|--mode multi/, name)
+    }
   })
 
   it('keeps recurring state on the card and cadence opt-in', () => {

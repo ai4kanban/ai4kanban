@@ -46,12 +46,8 @@ just to explore.
   `docs/kanban/`, and `label` is optional. `<Mockup>` is the only HTML tag allowed in a card
   body; inside backticks or a fenced block, it remains text.
 - **Question**: do not ask one just to confirm the default single mockup. When alternatives
-  were explicitly requested, ask one short line whose options are only those labels:
-
-  ```
-  akb board update-questions <id> --append "[user] Which layout for the run panel?" \
-    --recommended-option "A" --option "B"
-  ```
+  were explicitly requested, classify and write it by `akb guide update-questions`, using
+  only the mockup labels as its options.
 
 Keep the mockup or mockups in the card body, not the question.
 

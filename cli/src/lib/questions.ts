@@ -36,7 +36,7 @@ const MODES = ['single', 'multi']
 // re-exported here for the writers below.
 export type { OptionsQuestion } from './view/types'
 export { hasOptions, QUESTION_TAGS, parseQuestion, formatQuestion } from './view/rules'
-import { QUESTION_TAGS } from './view/rules'
+import { QUESTION_TAGS, parseQuestion } from './view/rules'
 
 // Read any accepted form — a plain string, or the mapping the block above parses
 // into — as one question object. An options list shorter than one entry reads as
@@ -180,7 +180,23 @@ export function collectQuestions(order: FlagOrder): Question[] {
       addToDraft(q, key, value)
     }
   }
-  return out.map(finalizeDraft)
+  const questions = out.map(finalizeDraft)
+  requireUserQuestionChoices(questions)
+  return questions
+}
+
+function missingChoices(text: string): never {
+  die(
+    `"${text}" needs choices to tick — add 2 or more --option "a — why". ` +
+      'The user always gets a free-text choice too, so never write one yourself.',
+  )
+}
+
+// A `[user]` tag makes a question a handoff even when it is written during `create`.
+// Keep untagged plain questions for refinement, but never hand the user a text-only prompt.
+function requireUserQuestionChoices(questions: Question[]): void {
+  const plain = questions.find((q) => parseQuestion(q.text).tag === 'user' && !q.options?.length)
+  if (plain) missingChoices(plain.text)
 }
 
 // A question handed to the user always carries choices to tick, so `update-questions`
@@ -190,12 +206,7 @@ export function collectQuestions(order: FlagOrder): Question[] {
 // offered by the board itself, last in the list, so "none of these" is a pick like the
 // others and no caller has to remember to write it.
 function finalizeHandover(q: QuestionDraft): Question {
-  if (q.options.length === 0) {
-    die(
-      `"${q.question}" needs choices to tick — add 2 or more --option "a — why". ` +
-        'The user always gets a free-text choice too, so never write one yourself.',
-    )
-  }
+  if (q.options.length === 0) missingChoices(q.question)
   return finalizeDraft(q)
 }
 

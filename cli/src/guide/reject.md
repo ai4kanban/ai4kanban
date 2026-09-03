@@ -22,6 +22,6 @@ thing that doesn't work — it reads as if the card were still there.
 
 A mention in a card's frontmatter is a question. Rewrite it with
 `akb board update-questions <id> --update <n> ".."` — `akb board` owns the frontmatter.
-`--update` rewrites the question whole, so re-pass its options too (two or more).
+`--update` rewrites the question whole, so follow `akb guide update-questions` when re-passing it.
 
 Use that list. Searching for the id yourself also turns up dates and longer ids.

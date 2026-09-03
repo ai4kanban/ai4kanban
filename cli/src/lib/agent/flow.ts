@@ -536,7 +536,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...questionsField(card!.meta))
       close.push(
         `finish successfully with no new question when the work is ready — that passes review`,
-        `${board} update-questions ${req.id} --append "[user] <one direct decision question>" --recommended-option "<recommended behavior — outcome and cost>" --option "<alternative — outcome and cost>" — only when a genuine user-owned decision blocks landing; then stop`,
+        `append a question to #${req.id} by \`akb guide update-questions\` only when a genuine user-owned decision blocks landing; then stop`,
         'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself, settle facts, and drop unrelated discoveries after noting them in the run log',
         `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
       )
