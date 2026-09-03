@@ -122,7 +122,7 @@ export async function cmdSpec(args: string[], program = 'akb'): Promise<MoveResu
     return { specAgent: name, cardId: id, queued: queued === 'queued', pending: true }
   }
 
-  const started = startRun(req)
+  const started = await startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action: 'spec' })
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process to run ${run.sessionId}`, { kind: 'spawn-failed' })

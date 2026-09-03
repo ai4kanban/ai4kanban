@@ -95,6 +95,11 @@ async function attempt(root: string): Promise<OpenBoard> {
   return { ok: true, kind: 'cloud', state: got.board.state() }
 }
 
+/** The Cloud board this process has open, or null on a Local one. What a run reaches for
+ *  when it holds a card, stands the copy's refresh down, and uploads at its close (#398);
+ *  nothing else asks, because nothing else has to know which kind of board it is on. */
+export const cloudHandle = (): CloudBoardHandle | null => open?.board ?? null
+
 /** How the board this process has open stands right now. */
 export function boardState(): BoardState {
   if (!open) return LOCAL

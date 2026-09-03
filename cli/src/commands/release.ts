@@ -11,7 +11,7 @@ import { die, rel, DIR_FLAG, RELEASES } from '../lib/paths'
 import { say } from '../lib/io'
 import { boardCommand } from '../lib/agent/command'
 import { insideRun } from '../lib/agent/flow'
-import { startRun } from '../lib/agent/start'
+import { startCardlessRun } from '../lib/agent/start'
 import { short } from './run'
 import { NO_RELEASE, parseFlags } from '../lib/validate'
 import {
@@ -167,7 +167,7 @@ function startChangelog(id: string): { sessionId?: string; command?: string } {
   }
   const inside = insideRun()
   if (inside) return byHand('a run never starts another')
-  const started = startRun({ action: 'changelog', release: id })
+  const started = startCardlessRun({ action: 'changelog', release: id })
   if ('error' in started) return byHand(started.error)
   if (!started.spawned) return byHand(`couldn't start a process to run ${started.run.sessionId}`)
   const run = short(started.run.sessionId)

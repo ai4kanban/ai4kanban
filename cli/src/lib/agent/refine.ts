@@ -164,11 +164,11 @@ export function refinementRequest(req: CommandRequest): AgentRequest | { error: 
   }
 }
 
-export function startRefinement(
+export async function startRefinement(
   req: CommandRequest,
-): { run: RunRecord; spawned: boolean } | { error: string } {
+): Promise<{ run: RunRecord; spawned: boolean } | { error: string }> {
   const next = refinementRequest(req)
-  return 'error' in next ? next : startRun(next)
+  return 'error' in next ? next : await startRun(next)
 }
 
 function afterQa(

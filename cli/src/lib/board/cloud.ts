@@ -24,9 +24,13 @@
 //     live. Offline serves the copy read-only and retries the workspace on every read, under
 //     a short timeout, so the board comes back on its own with nothing to press.
 //
+// What a RUN does around all that is #398, and it is the last section of this file: the
+// card's lock held for the length of the run and presented by every process here, the
+// refresh that stands down while one is up, and the one upload at its close. `board/run.ts`
+// is what the run engine calls; this is where those reach the workspace.
+//
 // What is deliberately NOT here: creating, importing, exporting and leaving a workspace
-// (#317), who else is holding a card (#375), and what a run does around the copy — the
-// session-long lock, the refresh before it starts and the upload at its close (#398).
+// (#317), and who else is holding a card (#375).
 
 import {
   isOffline,
@@ -44,10 +48,14 @@ import {
   type WireDocument,
   type WireWorkspaceCard,
 } from '../cloud/client'
+import { locate } from '../cards'
 import { readBoardCopy, rememberBoardCopy } from '../cloud/copy'
+import { dropHold, forgetHolder, heldLease, rememberHold } from '../cloud/holds'
+import { cardsHeldElsewhere, workingRun } from '../agent/store'
 import { serializeFrontmatter } from '../frontmatter'
 import { thisMachine } from '../machine/identity'
 import fs from 'node:fs'
+import path from 'node:path'
 
 import { ignoreBoardCopyIfMissing, readNextId, TODO } from '../paths'
 import { nextWork as dispatchNextWork } from '../view/dispatch'
@@ -103,7 +111,29 @@ export interface CloudBoardHandle {
   workspaceId: string
   state(): CloudBoardState
   refresh(): Promise<{ ok: true } | { ok: false; reason: OpenRefusal; error: string }>
+  /** Take, or take again, this machine's hold on a card for the length of a run (#398). */
+  holdCard(cardId: number, sessionId: string): Promise<HoldResult>
+  /** Give this run's share of a card back, and the workspace's lock with it when nothing
+   *  else here is holding it. */
+  freeCard(sessionId: string): Promise<void>
+  /** The copy as it stands — the bracket a run takes around its own work. */
+  image(): BoardPayload
+  /** Send what a run wrote to the workspace, under the hold the machine has on each card. */
+  carry(before: BoardPayload, sessionId: string): Promise<CarryResult>
+  /** Put the machine's copy of one card back to what the workspace holds. */
+  reread(cardId: number): Promise<void>
 }
+
+/** Taking a card's hold: granted, held by another machine until `until`, or a workspace this
+ *  machine could not reach. Each is a different sentence, and a different thing to do. */
+export type HoldResult =
+  | { ok: true }
+  | { ok: false; takenOver?: true; until?: string; error: string }
+
+/** What a run's close upload did. `takenOver` is the one ending that drops what it wrote. */
+export type CarryResult =
+  | { ok: true; cards: number; documents: number }
+  | { ok: false; takenOver?: true; error: string }
 
 /** How the board in front of the user stands. The app's strip and `akb` say the same two
  *  things from it: the board is offline, and when its copy was last read. */
@@ -144,6 +174,9 @@ interface HeldLease {
   /** The Local provider's own lease over the copy. Every card write goes through the Local
    *  rules, and those refuse a card written without one. */
   local: LeaseId
+  /** True when the workspace's half is the hold a run on this machine already had — so this
+   *  write presents it and never gives it back (#398). */
+  mine?: boolean
 }
 
 // ---- opening one ------------------------------------------------------------
@@ -202,8 +235,29 @@ export async function openCloudBoard(
       provider: cloudBoard(ctx),
       workspaceId: ctx.workspaceId,
       state: () => stateOf(ctx),
-      refresh: () => hydrate(ctx),
+      // The user asking, which is the one refresh a live run refuses rather than standing
+      // down for in silence.
+      refresh: () => (workingRun() ? Promise.resolve(busyLine(ctx)) : hydrate(ctx)),
+      holdCard: (cardId, sessionId) => holdCard(ctx, cardId, sessionId),
+      freeCard: (sessionId) => freeCard(ctx, sessionId),
+      image: () => packBoard(),
+      carry: (before, sessionId) => carry(ctx, before, sessionId),
+      reread: (cardId) => reread(ctx, cardId),
     },
+  }
+}
+
+/** Why the copy was not re-read: a run on this machine is working the board, and the board
+ *  reads from the workspace again the moment it ends. */
+const busyLine = (ctx: Context): { ok: false; reason: OpenRefusal; error: string } => {
+  const run = workingRun()
+  return {
+    ok: false,
+    reason: 'refused',
+    error:
+      `run ${run ? run.sessionId.slice(0, 8) : 'here'} is working this board, so it was not read from ` +
+      `the workspace again — that would put the workspace's cards over what the agent has just ` +
+      `written. The board reads from ${ctx.workspaceName || 'the workspace'} again when the run ends.`,
   }
 }
 
@@ -224,11 +278,14 @@ const stateOf = (ctx: Context): CloudBoardState => ({
  * many archived cards as live ones, and closing a release is the only thing that reads them.
  *
  * The copy is cleared first, so a checkout that still holds committed cards opens the
- * workspace's board and not a mixture of the two.
+ * workspace's board and not a mixture of the two — unless a run on this machine is working
+ * it, when the read takes the workspace's REVISIONS and leaves `docs/kanban/` exactly as it
+ * stands (#398). Every process here shares that one folder, so writing over it mid-run would
+ * take away what the agent has typed and not yet uploaded.
  */
 async function hydrate(
   ctx: Context,
-  opts: { timeoutMs?: number } = {},
+  opts: { timeoutMs?: number; revisionsOnly?: boolean } = {},
 ): Promise<{ ok: true } | { ok: false; reason: OpenRefusal; error: string }> {
   // All three under ONE deadline, not one each: a probe that bounded them separately would
   // still hang the screen for three times as long on a service that answers the snapshot
@@ -247,32 +304,40 @@ async function hydrate(
     ...summaries.value.documents,
   ]
 
-  // The copy is not the record on this checkout, so it is kept out of git before it is
-  // written — a Cloud board that committed its `docs/kanban/` would commit a folder the
-  // next read overwrites.
-  ignoreBoardCopyIfMissing()
-  clearBoardCopy()
-  unpackBoard(
-    {
-      fingerprint: '',
-      nextCardId: snapshot.value.workspace.nextCardId,
-      cards: snapshot.value.cards.flatMap(cardOf),
-      documents: documents.map((d) => ({ path: d.path, kind: d.kind, body: d.body })),
-      events: [],
-      deliveries: [],
-      leftBehind: [],
-    },
-    ctx.root,
-  )
-  // A workspace with no live cards writes no `todo/`, and every read below expects one: a
-  // board with an empty column is not the same thing as a board that will not read.
-  fs.mkdirSync(TODO, { recursive: true })
+  // `revisionsOnly` is the close upload saying so outright rather than inferring it from the
+  // record: it is about to send what the agent wrote, and a read that cleared the copy first
+  // would take away the very thing it came for.
+  const busy = opts.revisionsOnly || !!workingRun()
+  if (!busy) {
+    // The copy is not the record on this checkout, so it is kept out of git before it is
+    // written — a Cloud board that committed its `docs/kanban/` would commit a folder the
+    // next read overwrites.
+    ignoreBoardCopyIfMissing()
+    clearBoardCopy()
+    unpackBoard(
+      {
+        fingerprint: '',
+        nextCardId: snapshot.value.workspace.nextCardId,
+        cards: snapshot.value.cards.flatMap(cardOf),
+        documents: documents.map((d) => ({ path: d.path, kind: d.kind, body: d.body })),
+        events: [],
+        deliveries: [],
+        leftBehind: [],
+      },
+      ctx.root,
+    )
+    // A workspace with no live cards writes no `todo/`, and every read below expects one: a
+    // board with an empty column is not the same thing as a board that will not read.
+    fs.mkdirSync(TODO, { recursive: true })
+  }
 
   ctx.workspaceName = snapshot.value.workspace.name
   ctx.revision = snapshot.value.revision
   ctx.readAt = new Date().toISOString()
   ctx.offline = false
-  ctx.archiveIn = false
+  // The archive is only ever ADDED to the copy, so a read that left the copy alone left it
+  // there too.
+  if (!busy) ctx.archiveIn = false
   ctx.cardAt = new Map(snapshot.value.cards.map((c) => [c.id, c.revision]))
   ctx.docAt = new Map(documents.map((d) => [d.path, d.revision]))
   remember(ctx)
@@ -384,15 +449,6 @@ function cloudBoard(ctx: Context): BoardProvider {
     if (!read.ok) ctx.offline = true
   }
 
-  /** The copy's own next number, so writing one card back does not move `next-id`. */
-  const nextIdOf = (): number => {
-    try {
-      return readNextId()
-    } catch {
-      return 1
-    }
-  }
-
   /** Pull the archive into the copy, so the moves that read `.archive/` — closing and
    *  dropping a release — see what the workspace holds. Once per hydration. */
   async function withArchive(): Promise<boolean> {
@@ -409,7 +465,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     const cards = read.value.cards.flatMap(cardOf)
     if (cards.length) {
       unpackBoard(
-        { fingerprint: '', nextCardId: nextIdOf(), cards, documents: [], events: [], deliveries: [], leftBehind: [] },
+        { fingerprint: '', nextCardId: nextId(), cards, documents: [], events: [], deliveries: [], leftBehind: [] },
         ctx.root,
       )
     }
@@ -625,9 +681,14 @@ function cloudBoard(ctx: Context): BoardProvider {
     async lease(target: LeaseTarget): Promise<LeaseResult> {
       await tryLive()
       if (ctx.offline) return { ok: false, error: offlineLine() }
+      // A card a run on this machine is holding is written under THAT lease, never a second
+      // one: `cloud.require_lock` refuses a lease that is not the holder's, so a lease of its
+      // own would have the run's own lifecycle moves refused by the run's own hold (#398).
+      const mineAlready = 'card' in target ? heldLease(ctx.workspaceId, target.card) : ''
       const got = await takeWorkspaceLock(ctx.workspaceId, {
         ...('card' in target ? { cardId: target.card } : {}),
         nodeId: ctx.nodeId,
+        ...(mineAlready ? { lease: mineAlready } : {}),
       })
       if (!got.ok) {
         if (isOffline(got)) {
@@ -635,6 +696,10 @@ function cloudBoard(ctx: Context): BoardProvider {
           remember(ctx)
           return { ok: false, error: offlineLine() }
         }
+        // A lease this machine was presenting that the workspace no longer recognises is a
+        // card another machine has taken. Forget it here, or every write after this one
+        // would present a lease that is nobody's (#398).
+        if (mineAlready && got.code === 'card_locked' && 'card' in target) dropHold(ctx.workspaceId, target.card)
         // A card another writer holds says when the hold runs out, so somebody waiting knows
         // how long rather than being told "later".
         return { ok: false, error: got.until ? `${got.error} The hold runs out at ${got.until}.` : got.error }
@@ -650,7 +715,7 @@ function cloudBoard(ctx: Context): BoardProvider {
         return mine
       }
       const lease: Lease = { id: got.value.lock.leaseId, target, revision: mine.lease.revision }
-      held.set(lease.id, { target, workspace: lease.id, local: mine.lease.id })
+      held.set(lease.id, { target, workspace: lease.id, local: mine.lease.id, mine: !!mineAlready })
       return { ok: true, lease }
     },
 
@@ -659,6 +724,9 @@ function cloudBoard(ctx: Context): BoardProvider {
       if (!lease) return
       held.delete(id)
       await local.releaseLease(lease.local)
+      // A lock the machine is holding for a run outlives this one write: giving it back here
+      // would unhold the card in the middle of the run that took it.
+      if (lease.mine) return
       await releaseWorkspaceLock(ctx.workspaceId, {
         ...('card' in lease.target ? { cardId: lease.target.card } : {}),
         lease: lease.workspace,
@@ -823,6 +891,213 @@ export const when = (iso: string): string =>
 /** One card as the workspace stores it, for telling two reads of the copy apart. */
 const textOf = (card: CardPayload): string =>
   `${card.path}\n${card.archived ? '1' : '0'}\n${serializeFrontmatter(card.meta)}\n${card.body}`
+
+// ---- what a run does around the copy (#398) ----------------------------------
+//
+// A run's coding agent works this board exactly as it works a Local one: it opens the card
+// at a path, reads `docs/kanban/memory/…`, and writes both back with its own tools. Nothing
+// intercepts those writes, so there is no write to hang an upload on — what brackets them is
+// the run itself. It takes the card's lock before the agent starts, every process here
+// presents that one lease while it goes, and the difference between the copy at the start and
+// the copy at the close is sent in one pass.
+
+/** The document halves a run's own edits travel in. The board's history and its closed
+ *  releases are the board's own bookkeeping — every board move already sends them under the
+ *  move that changed them, so a run's close has nothing to say about either. */
+const RUN_DOCUMENTS = new Set<DocumentPayload['kind']>(['config', 'memory', 'rule'])
+
+/** How long a run's close keeps trying to land its upload, and how long it waits between
+ *  attempts. Bounded on purpose: what the workspace never takes is said in the run's log,
+ *  which is more use than a close that sits there for the rest of the lease. */
+const CARRY_TRIES = 3
+const CARRY_WAIT_MS = 2_000
+
+/**
+ * Take this machine's hold on a card, or take it again.
+ *
+ * Presenting the lease the machine already has renews it and moves the expiry; presenting
+ * none mints a new one, which the workspace refuses outright while another machine is still
+ * holding the card. A renewal that finds the lease expired and the card free takes it back
+ * under the same lease id, so nothing downstream has to learn a new one.
+ */
+async function holdCard(ctx: Context, cardId: number, sessionId: string): Promise<HoldResult> {
+  const mine = heldLease(ctx.workspaceId, cardId)
+  const got = await takeWorkspaceLock(ctx.workspaceId, {
+    cardId,
+    nodeId: ctx.nodeId,
+    ...(mine ? { lease: mine } : {}),
+  })
+  if (!got.ok) {
+    if (isOffline(got)) {
+      ctx.offline = true
+      remember(ctx)
+      return { ok: false, error: got.error }
+    }
+    // The one refusal that is not a reason to wait: another machine holds the card now, so a
+    // lease this machine was renewing is gone for good.
+    if (got.code === 'card_locked') {
+      if (mine) dropHold(ctx.workspaceId, cardId)
+      return { ok: false, takenOver: true, ...(got.until ? { until: got.until } : {}), error: got.error }
+    }
+    return { ok: false, error: got.error }
+  }
+  rememberHold(ctx.workspaceId, cardId, sessionId, {
+    leaseId: got.value.lock.leaseId,
+    expiresAt: got.value.lock.expiresAt,
+  })
+  return { ok: true }
+}
+
+/** Let go of one run's share of a card, and give the workspace's lock back when nothing else
+ *  on this machine is holding it. */
+async function freeCard(ctx: Context, sessionId: string): Promise<void> {
+  const was = forgetHolder(sessionId)
+  if (!was || !was.free) return
+  await releaseWorkspaceLock(ctx.workspaceId, { cardId: was.cardId, lease: was.leaseId })
+}
+
+/**
+ * Send what a run wrote to the workspace, at its close.
+ *
+ * The revisions are read again first, and that is the whole reason this is not `through`: the
+ * run's own board moves each happened in a process of their own and moved the revision of
+ * every card and file they touched, so the ones this process read when it opened the board are
+ * stale for exactly what is about to be sent. The card's lock is what makes re-reading them
+ * safe — with the card held, a revision that moved under the run is the run's own earlier
+ * write, and a card whose lock is gone comes back as `takenOver`.
+ */
+async function carry(ctx: Context, before: BoardPayload, sessionId: string): Promise<CarryResult> {
+  const theirs = cardsHeldElsewhere(sessionId)
+  let last = 'Cloud could not be reached.'
+  for (let attempt = 0; attempt < CARRY_TRIES; attempt++) {
+    if (attempt) await wait(CARRY_WAIT_MS)
+    // Revisions only: this leaves `docs/kanban/` exactly as the agent left it, which is what
+    // is about to be sent (see `hydrate`).
+    const read = await hydrate(ctx, { revisionsOnly: true })
+    if (!read.ok) {
+      last = read.error
+      if (read.reason === 'unreachable') continue
+      return { ok: false, error: last }
+    }
+
+    const change = difference(before, packBoard())
+    // A card another live run is holding is that run's to upload, on the rule `claimChanges`
+    // already applies. The documents are shared and go up as they stand.
+    //
+    // A card OFF the board never travels here: an agent has no tool that archives one, so
+    // an archived card in the difference is either the run's own `akb archive`/`reject` —
+    // already sent under that move — or the whole archive pulled into the copy by another
+    // process. Neither is in this process's revisions, so sending either would be a
+    // conflict, and the conflict would take the run's real edits down with it.
+    const cardsOut = change.cards.filter((card) => !card.archived && !theirs.has(card.id))
+    const docsOut = change.documents.filter((doc) => RUN_DOCUMENTS.has(doc.kind))
+    if (!cardsOut.length && !docsOut.length) return { ok: true, cards: 0, documents: 0 }
+
+    const sent = await sendRunEdits(ctx, cardsOut, docsOut)
+    if (sent.ok) return { ok: true, cards: cardsOut.length, documents: docsOut.length }
+    if (sent.takenOver) return sent
+    last = sent.error
+    if (!sent.retry) return { ok: false, error: last }
+  }
+  return { ok: false, error: last }
+}
+
+async function sendRunEdits(
+  ctx: Context,
+  cards: CardPayload[],
+  documents: DocumentPayload[],
+): Promise<{ ok: true } | { ok: false; takenOver?: true; retry?: true; error: string }> {
+  const opId = `run-${ctx.revision}-${Date.now().toString(36)}`
+  if (cards.length) {
+    const wire: WireCard[] = cards.map((card) => {
+      const lease = heldLease(ctx.workspaceId, card.id)
+      return {
+        id: card.id,
+        expect: ctx.cardAt.get(card.id) ?? NO_REVISION,
+        archived: card.archived,
+        ...(lease ? { lease } : {}),
+        data: { path: card.path, meta: card.meta, body: card.body },
+      }
+    })
+    const wrote = await sendUntilAnswered(
+      (id) => writeWorkspaceCards(ctx.workspaceId, id, wire, ctx.nodeId),
+      `${opId}-cards`,
+    )
+    if (!wrote.ok) return carryFailure(wrote, 'card')
+    ctx.revision = wrote.value.revision
+    for (const card of wrote.value.cards) ctx.cardAt.set(card.id, card.revision)
+  }
+  if (documents.length) {
+    const wire: WireDocument[] = documents.map((doc) => ({ ...doc, expect: ctx.docAt.get(doc.path) ?? NO_REVISION }))
+    const wrote = await sendUntilAnswered(
+      (id) => writeWorkspaceDocuments(ctx.workspaceId, id, wire, ctx.nodeId, ''),
+      `${opId}-documents`,
+    )
+    if (!wrote.ok) return carryFailure(wrote, 'board')
+    ctx.revision = wrote.value.revision
+    for (const doc of wrote.value.documents) ctx.docAt.set(doc.path, doc.revision)
+  }
+  ctx.readAt = new Date().toISOString()
+  remember(ctx)
+  return { ok: true }
+}
+
+/**
+ * A refusal the close upload met.
+ *
+ * `card_locked` ends the run only on the CARDS half, where it means one of the run's own
+ * cards is no longer this machine's. The documents go under the BOARD's lock, which every
+ * board move here takes and gives back in one round trip — a run that met one has not lost
+ * its card, it collided with a neighbour, so it waits and sends again.
+ */
+const carryFailure = (call: { ok: false; error: string; code?: string }, lock: 'card' | 'board') =>
+  call.code === 'card_locked'
+    ? lock === 'card'
+      ? { ok: false as const, takenOver: true as const, error: call.error }
+      : { ok: false as const, retry: true as const, error: call.error }
+    : isOffline(call) || call.code === 'revision_conflict'
+      ? { ok: false as const, retry: true as const, error: call.error }
+      : { ok: false as const, error: call.error }
+
+/**
+ * Put the machine's copy of one card back to what the workspace holds.
+ *
+ * What a run whose lock was taken over ends with: that one card is replaced rather than
+ * merged, because what it wrote was never the workspace's to keep — and the rest of the copy
+ * is left alone, because the other cards are still this machine's.
+ */
+async function reread(ctx: Context, cardId: number): Promise<void> {
+  const snapshot = await readWorkspaceSnapshot(ctx.workspaceId)
+  if (!snapshot.ok) return
+  const found = snapshot.value.cards.find((c) => c.id === cardId)
+  // The card's own file and nothing else: `locate` names the FOLDER of a group root, and
+  // taking that would take the subtasks beside it — cards this machine still holds.
+  const here = locate(cardId)
+  if (here) fs.rmSync(here.kind === 'group' ? path.join(here.target, 'root.md') : here.target, { force: true })
+  const card = found ? cardOf(found) : []
+  if (card.length) {
+    unpackBoard(
+      { fingerprint: '', nextCardId: nextId(), cards: card, documents: [], events: [], deliveries: [], leftBehind: [] },
+      ctx.root,
+    )
+  }
+  if (found) ctx.cardAt.set(cardId, found.revision)
+}
+
+/** The copy's own next number, so writing one card back does not move `next-id`. */
+function nextId(): number {
+  try {
+    return readNextId()
+  } catch {
+    return 1
+  }
+}
+
+const wait = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms)
+    timer.unref?.()
+  })
 
 // ---- a write whose reply never came ------------------------------------------
 

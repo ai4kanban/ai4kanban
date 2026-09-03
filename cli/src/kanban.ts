@@ -66,6 +66,10 @@ export {
   stopRun,
   titleOf,
 } from './lib/agent/sessions'
+// The one door a run goes through, whichever surface asked for it: it takes the card's
+// workspace lock before the record is written, so a Cloud board's card held by another
+// machine refuses the run and leaves nothing behind (#398).
+export { startRun } from './lib/agent/start'
 // A delivery (#301): the whole job one Implement click starts, several runs long. The
 // board reads the live rows to hold a card still and to say what is building it; the
 // permanent record is one file per delivery under docs/kanban/deliveries/.

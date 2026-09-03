@@ -16,7 +16,7 @@ import { locate } from '../cards'
 import type { CloudEventState } from '../cloud/events'
 import { reportCloudRunEnd } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
-import { recordCardRun, setCardStatusOn } from '../board'
+import { dropRunCard, recordCardRun, setCardStatusOn, takeRunCard } from '../board'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
 import { pidAlive } from '../lock'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
@@ -482,9 +482,9 @@ export function openRun(
   req: AgentRequest,
   prompt: string,
   notes: string[] = [],
+  sessionId: string = randomUUID(),
 ): { run: RunRecord; spec: RunSpec } | { error: string } {
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
-  const sessionId = randomUUID()
   // A build with no delivery on its card opens one, and a delivery is got ready before
   // anything is written down (#303): the commit mode is decided, the checkout is checked,
   // and the worktree is made. A refusal here costs nothing, and whatever it made is undone
@@ -602,6 +602,10 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   }
 
   const sessionId = randomUUID()
+  // The same rule a fresh run passes: the card is held before the record is written, so a
+  // resume onto a card another machine has taken leaves nothing behind (#398).
+  const holds = await takeRunCard(sessionId, prev.cardId)
+  if (!holds.ok) return { error: holds.error }
   const record: RunRecord = {
     sessionId,
     cardId: prev.cardId,
@@ -645,7 +649,10 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     if (at >= 0) all.splice(at, 1)
     return { run: record }
   })
-  if ('error' in out) return out
+  if ('error' in out) {
+    await dropRunCard(sessionId)
+    return out
+  }
   if (record.deliveryId) syncAudit(record.deliveryId)
   // The asks the run being taken over collected come with it. It never got as far as
   // starting them — that is why it is being resumed — and the flow asked once.
@@ -817,6 +824,10 @@ export async function closeRun(
   // raised on Cloud once nothing is working on it (#319), and this run stops holding its
   // card here. Whatever it decides is best effort — a run never fails over Cloud.
   await reportCloudRunEnd(sessionId, closed.cardId, RUN_OUTCOME[closed.status] ?? 'failed')
+  // And the card's workspace lock, after every board write above has presented it. It stays
+  // held while anything else on this machine is holding that card; a session that never gets
+  // here leaves the 30-minute expiry as the fallback (#398).
+  await dropRunCard(sessionId)
   dropSpec(sessionId)
   pruneLogs()
 }

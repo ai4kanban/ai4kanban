@@ -61,8 +61,18 @@ export function splitShared(argv: string[]): { rest: string[]; dir: string | nul
 // A board is a folder here, or a pointer at a workspace (#316). A fresh clone of a Cloud
 // checkout carries no `docs/kanban/` at all — the copy is git-ignored and built on the first
 // read — so the pointer is what says there is a board here to open.
+//
+// …except inside a delivery's worktree. The pointer is committed, so a worktree carries one,
+// and opening the board there would hydrate a SECOND copy into a checkout that is meant to
+// hold only code (#398). The project is the folder the walk finds next.
 const hasBoard = (dir: string): boolean =>
-  fs.existsSync(path.join(dir, 'docs', 'kanban')) || readPointer(dir) !== null
+  fs.existsSync(path.join(dir, 'docs', 'kanban')) || (readPointer(dir) !== null && !isDeliveryWorktree(dir))
+
+// `.akb/worktrees/<cardId>/<deliveryId>` — where every delivery builds (agent/worktree.ts).
+const isDeliveryWorktree = (dir: string): boolean => {
+  const up = path.dirname(path.dirname(path.resolve(dir)))
+  return path.basename(up) === 'worktrees' && path.basename(path.dirname(up)) === '.akb'
+}
 
 /** Whether this checkout's board lives in a workspace rather than in the folder. */
 const pointsAtCloud = (root: string): boolean => readPointer(root) !== null

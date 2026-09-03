@@ -130,7 +130,7 @@ async function take(request: CloudRequest, serverId: string): Promise<void> {
   // that starts nothing and says nothing would sit there until its lease ran out.
   notePublication(request.taskId, request.eventId, 'accepted')
   holdClaim(claimOf(request))
-  const started = start(request)
+  const started = await start(request)
   if (!started.started) {
     recordCloudDeliveryState(request.taskId, 'failed', started.reason)
     dropClaim(request.id)
@@ -187,7 +187,7 @@ export function refuseStart(
 }
 
 /** Re-read the card and run the flow the approval asked for, or say why not. */
-function start(request: CloudRequest): Started | Refusal {
+async function start(request: CloudRequest): Promise<Started | Refusal> {
   const card = findCard(request.taskId)
   const refused = refuseStart(card ?? null, request)
   // `!card` is what `refused` already answered for; naming it again here is what leaves
@@ -195,14 +195,14 @@ function start(request: CloudRequest): Started | Refusal {
   if (refused || !card) return { started: false, reason: refused ?? `#${request.taskId} is no longer here.` }
 
   if (request.decision === 'implement') {
-    const run = startRun({ action: 'implement', id: card.id, title: card.title })
+    const run = await startRun({ action: 'implement', id: card.id, title: card.title })
     if ('error' in run) return { started: false, reason: run.error }
     if (!run.spawned) return { started: false, reason: 'This machine could not start a process for that run.' }
     return { started: true }
   }
 
   const notes = answerNotes(answeredFromEvent(request.questions, request.answers))
-  const run = startRun({ action: 'resolve', id: card.id, title: card.title, notes })
+  const run = await startRun({ action: 'resolve', id: card.id, title: card.title, notes })
   if ('error' in run) return { started: false, reason: run.error }
   if (!run.spawned) return { started: false, reason: 'This machine could not start a process for that run.' }
   // A resolve is not a delivery, so nothing else reports how it ended. The run it started is
@@ -307,7 +307,7 @@ export async function resumeCloudRequest(eventId: string, root = REPO_ROOT): Pro
   }
 
   holdClaim(claimOf(request))
-  const started = start(request)
+  const started = await start(request)
   if (started.started) return { ok: true }
   recordCloudDeliveryState(request.taskId, 'failed', started.reason)
   dropClaim(request.id)

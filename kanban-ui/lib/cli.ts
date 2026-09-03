@@ -137,6 +137,11 @@ export interface BoardRules {
   listRuns(): Promise<RunView[]>;
   getRun(id: string, bytes?: number): Promise<RunView | null>;
   openRun(req: AgentRequest, prompt: string): { run: RunRecord } | { error: string };
+  /** Write a run down and hand it to a process of its own, in one call. It takes the card's
+   *  workspace lock first on a Cloud board, so a card another machine is holding refuses the
+   *  run and leaves no record behind (#398). Optional: older rules have only `openRun`, and
+   *  a project on those has only ever had a Local board. */
+  startRun?(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | { error: string }>;
   openResume(id: string): Promise<{ run: RunRecord } | { error: string }>;
   markSpawned(sessionId: string, pid: number | undefined): void;
   spawnWatcher(sessionId: string): number | undefined;

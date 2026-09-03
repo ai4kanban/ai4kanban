@@ -14,6 +14,7 @@ import { spawn, type ChildProcessByStdio, type StdioNull, type StdioPipe } from 
 import type { Readable, Writable } from 'node:stream'
 import fs from 'node:fs'
 
+import { boardImage, carryRunEdits, holdRunCard, rereadRunCard } from '../board'
 import { REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
 import { boardCommand } from './command'
@@ -51,7 +52,7 @@ import {
 import { silenceMinutes } from './settings'
 import { startRun } from './start'
 import type { TurnEnd } from './wire'
-import type { AgentRequest, RunRecord } from './types'
+import type { AgentRequest, RunRecord, RunStatus } from './types'
 
 // How long a run gets to end on its own after a stop asks it to, before it is killed
 // outright.
@@ -73,6 +74,18 @@ const STOP_FINISH_MS = 10_000
 // before it begins, and one that never says a word is still ended.
 const silenceSaid = (minutes: number): string =>
   `the agent said nothing for ${minutes} minute${minutes === 1 ? '' : 's'}, so the run was ended.`
+
+// What a run on a Cloud board says about the board it wrote (#398). A run on a Local board
+// says neither: there is nothing to take its card away, and its edits are already the record.
+const TAKEN_OVER = (cardId: number | null): string =>
+  `the card was taken over by another machine, so the run was ended. ` +
+  `${cardId === null ? 'The board' : `#${cardId}`} now reads as the workspace holds it, and what this run ` +
+  'wrote to the board was dropped. Whatever it wrote in the project is where it left it.'
+
+const UNSENT = (why: string): string =>
+  `the workspace does not hold what this run wrote to the board — the upload did not land (${why}). ` +
+  'It is still in this checkout for now, and the next read from the workspace replaces it: ' +
+  'copy out anything worth keeping.'
 
 /** Watch one run from start to finish. Resolves when the record is closed out. */
 export async function watchRun(sessionId: string): Promise<number> {
@@ -144,6 +157,10 @@ export async function watchRun(sessionId: string): Promise<number> {
   // really is its own — and not a neighbouring run's — is settled at the close by
   // `claimChanges`, and that is what earns a card the refine that follows.
   const before = markBoard()
+  // And the board's own files as they stand, on a Cloud board: the difference between this
+  // and the same read at the close is what this run wrote with its own tools, and what its
+  // close sends to the workspace. Null on a Local board, where the files ARE the record.
+  const image = boardImage()
   // And what was already broken about it. Only what a run BREAKS is worth reporting on that
   // run: a board carrying a stale link from last month would otherwise put the same line on
   // the end of every run forever, which is how a real warning gets read as furniture.
@@ -255,10 +272,16 @@ export async function watchRun(sessionId: string): Promise<number> {
     // The silence window: whether it ran out, and the timer it runs on.
     let silent = false
     let idle: ReturnType<typeof setTimeout> | undefined
+    // Whether this run's card stopped being this machine's while it went (#398). The one
+    // ending that drops what the run wrote to the board rather than sending it.
+    let takenOver = false
+    // How the renewal that keeps the card held is stopped, once this run is over.
+    let unhold: () => void = () => {}
     const finish = async (code: number | null, asked: boolean): Promise<void> => {
       if (done) return
       done = true
       if (idle) clearTimeout(idle)
+      unhold()
       if (renderer) {
         append(renderer.flush())
         // The ids may have been in the last partial line, on a very short run.
@@ -268,6 +291,70 @@ export async function watchRun(sessionId: string): Promise<number> {
       append(errs.flush())
 
       const endedAt = Date.now()
+      // A run somebody ended exits non-zero — we killed it — but that is not a failure, so
+      // the ask, not the code it died with, names the outcome.
+      // An implementation may exit cleanly after recording that it cannot continue. The
+      // blocker, not its shell code, makes that run unfinished and keeps the delivery ready
+      // for Resume rather than sending incomplete work to review.
+      const blocker = peekRun(sessionId)?.blocker
+      // And the same for a CLI that reports a failure on its stream and still exits 0.
+      // Only Claude Code does (agent/wire/stream.ts) — read after the flush above, so the
+      // closing event is in. A run that failed this way must not close as done: its card
+      // would advance and the refinements behind it would run on work that never happened.
+      const failure = renderer?.failure?.()
+      const unfinished = blocker || failure
+      // A run the silence window ended is a failure whatever the killed command or a
+      // connector's last turn goes on to report: we ended it, so our own call stands.
+      // A run whose card was taken over is the same: our own call, over anything the agent
+      // may still have said on its way out.
+      let status: RunStatus = takenOver
+        ? 'error'
+        : asked
+          ? 'stopped'
+          : silent || unfinished
+            ? 'error'
+            : code === 0
+              ? 'done'
+              : 'error'
+      // Writing is the last refinement session. A clean exit is its verdict; lifecycle
+      // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
+      // the card at todo if questions appeared or refuses the transition for another reason.
+      if (status === 'done' && record.action === 'writing' && record.cardId !== null) {
+        try {
+          await finishWriting(record.cardId)
+        } catch {
+          // The refinement state below reports the card still at todo.
+        }
+      }
+      // What this run changed, taken now and taken once (agent/refine.ts). Every ending
+      // claims, a failure included: a half-written card is not a card to refine, but leaving
+      // its edits unclaimed would hand them to whichever run closes next.
+      const changed = claimChanges(before, sessionId)
+      // And on a Cloud board, what it wrote goes to the workspace — from EVERY ending, since
+      // a failed, silent or stopped run wrote its edits to the machine and the next read from
+      // the workspace would take them away. The one exception is the run whose card was taken
+      // over: what it wrote was never the workspace's to keep (#398).
+      let carried: string | null = null
+      if (takenOver) {
+        await rereadRunCard(record.cardId)
+      } else {
+        const sent = await carryRunEdits(image, sessionId)
+        if (sent && !sent.ok) {
+          if (sent.takenOver) {
+            takenOver = true
+            status = 'error'
+            await rereadRunCard(record.cardId)
+          } else {
+            carried = UNSENT(sent.error)
+          }
+        }
+      }
+      if (takenOver) log.write(`\n[board] ${TAKEN_OVER(record.cardId)}\n`)
+      else if (carried) log.write(`\n[board] ${carried}\n`)
+
+      // The log is closed here and not before it, so what the board had to say about the run
+      // sits with the agent's output rather than after the marker that ends it.
+      //
       // Stamp the elapsed time through the same stream (not an append after the stream is
       // closed, which would race its pending flush), and hand the same instant to the
       // record so the file and the record agree.
@@ -289,35 +376,6 @@ export async function watchRun(sessionId: string): Promise<number> {
         if (usage) r.usage = usage
         if (final) r.result = final
       })
-      // A run somebody ended exits non-zero — we killed it — but that is not a failure, so
-      // the ask, not the code it died with, names the outcome.
-      // An implementation may exit cleanly after recording that it cannot continue. The
-      // blocker, not its shell code, makes that run unfinished and keeps the delivery ready
-      // for Resume rather than sending incomplete work to review.
-      const blocker = peekRun(sessionId)?.blocker
-      // And the same for a CLI that reports a failure on its stream and still exits 0.
-      // Only Claude Code does (agent/wire/stream.ts) — read after the flush above, so the
-      // closing event is in. A run that failed this way must not close as done: its card
-      // would advance and the refinements behind it would run on work that never happened.
-      const failure = renderer?.failure?.()
-      const unfinished = blocker || failure
-      // A run the silence window ended is a failure whatever the killed command or a
-      // connector's last turn goes on to report: we ended it, so our own call stands.
-      const status = asked ? 'stopped' : silent || unfinished ? 'error' : code === 0 ? 'done' : 'error'
-      // Writing is the last refinement session. A clean exit is its verdict; lifecycle
-      // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
-      // the card at todo if questions appeared or refuses the transition for another reason.
-      if (status === 'done' && record.action === 'writing' && record.cardId !== null) {
-        try {
-          await finishWriting(record.cardId)
-        } catch {
-          // The refinement state below reports the card still at todo.
-        }
-      }
-      // What this run changed, taken now and taken once (agent/refine.ts). Every ending
-      // claims, a failure included: a half-written card is not a card to refine, but leaving
-      // its edits unclaimed would hand them to whichever run closes next.
-      const changed = claimChanges(before, sessionId)
       // The refines themselves are only for a run that finished. One that failed or was
       // ended left the board half-written, and a refine of half a card is a refine you throw
       // away — and a spec skill sent at half a plan would answer the wrong plan.
@@ -325,19 +383,23 @@ export async function watchRun(sessionId: string): Promise<number> {
       // Worked out BEFORE the record closes, so anything watching for the run to end sees
       // the note it ended with rather than catching the record a beat too early.
       const settled = status === 'done' ? settleBoard(record, changed, before) : null
-      const note = status === 'done' ? joinNotes(settled?.stalled, brokeBoard(wasBroken)) : undefined
+      const note = joinNotes(
+        status === 'done' ? joinNotes(settled?.stalled, brokeBoard(wasBroken)) : undefined,
+        carried ?? undefined,
+      )
       await closeRun(sessionId, {
         status,
         // `ok` stays unset on a stopped run, as it does on one that was cut off: it
         // neither passed nor failed, it was ended.
-        ok: asked ? undefined : !silent && !unfinished && code === 0,
+        ok: asked ? undefined : takenOver ? false : !silent && !unfinished && code === 0,
         code: asked ? null : code,
         // What went wrong, in whoever's words know: ours when the command wouldn't start or
         // when it went quiet, the agent's own when the conversation ended badly or its
         // stream said so.
-        error:
-          spawnError ??
-          (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure)),
+        error: takenOver
+          ? TAKEN_OVER(record.cardId)
+          : (spawnError ??
+            (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure))),
         note,
         endedAt,
       })
@@ -349,7 +411,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       // lands here, and what it hands back is the run that landing wants — conflict
       // resolution or review of a rebased result.
       const landing = await advanceLanding()
-      followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
+      await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
       resolve(status === 'done' ? 0 : 1)
     }
 
@@ -403,6 +465,15 @@ export async function watchRun(sessionId: string): Promise<number> {
     }
     process.on('SIGTERM', askToStop)
     process.on('SIGINT', askToStop)
+
+    // The card stays this machine's for as long as the run is up. A renewal that finds
+    // another machine holding it ends the run there — what it wrote to the board is dropped
+    // rather than uploaded, and its card is read back from the workspace (#398).
+    unhold = holdRunCard(sessionId, record.cardId, () => {
+      if (done || takenOver) return
+      takenOver = true
+      giveUp(false)
+    })
 
     // The silence window (see silenceSaid), restarted by every byte the command writes and
     // started here, a tick after the spawn — so a run that never says a word runs out too.
@@ -511,13 +582,13 @@ function settleBoard(
 // A refusal is not worth reporting: the only one that comes up is a card that already has a
 // run on it, and that run is doing more than this one would have. Nothing here can fail the
 // run that just ended — it is over.
-function followUp(
+async function followUp(
   sessionId: string,
   flowId: string | undefined,
   runs: AgentRequest[],
   carryOn: AgentRequest | null,
   landing: AgentRequest | null = null,
-): void {
+): Promise<void> {
   // A request that already names its flow keeps it — a refinement pass carries its loop's
   // id, and that loop is this flow anyway.
   const join = (req: AgentRequest): AgentRequest =>
@@ -526,11 +597,11 @@ function followUp(
     // Started first, then forgotten — so a crash between the two costs a repeated agent at
     // worst, and never a section nobody ever writes.
     const asked = [...specRunsAfter(readSpecAsks(sessionId)), ...refineRunsAfter(readRefineAsks(sessionId))]
-    for (const req of asked) startRun(join(req))
+    for (const req of asked) await startRun(join(req))
     clearAsks(sessionId)
-    if (carryOn) startRun(join(carryOn))
-    if (landing) startRun(join(landing))
-    for (const req of runs) startRun(join(req))
+    if (carryOn) await startRun(join(carryOn))
+    if (landing) await startRun(join(landing))
+    for (const req of runs) await startRun(join(req))
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
   }

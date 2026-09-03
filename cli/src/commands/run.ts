@@ -67,7 +67,7 @@ export async function cmdStartRun(action: CommandAction, args: string[], program
   }
   sayBeforeStart(req, program)
   sayIfHeld(req, program)
-  const started = action === 'refine' ? startRefinement(req) : startRun(runnable)
+  const started = action === 'refine' ? await startRefinement(req) : await startRun(runnable)
   if ('error' in started) die(started.error, { kind: 'run-refused', action })
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })

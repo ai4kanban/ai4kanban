@@ -22,6 +22,18 @@ export { boardState, openBoard, refreshBoard } from './open'
 export type { BoardState, OpenBoard, OpenRefusal } from './open'
 // When a Cloud board's copy was read, in the one spelling a terminal and a browser both use.
 export { when } from './cloud'
+export type { CarryResult } from './cloud'
+// What a run does around its board: its card's hold, the bracket it takes, and the one
+// upload at its close (#398). Every one of them is a no-op on a Local board.
+export {
+  boardImage,
+  carryRunEdits,
+  dropRunCard,
+  holdRunCard,
+  rereadRunCard,
+  runCanStart,
+  takeRunCard,
+} from './run'
 
 let active: BoardProvider | null = null
 

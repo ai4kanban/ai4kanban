@@ -164,6 +164,28 @@ export const runIsLive = (run: RunRecord): boolean =>
   run.status === 'running' &&
   (run.pid ? pidAlive(run.pid) : Date.now() - run.startedAt < PENDING_MS)
 
+/** The run working this board right now, or nothing when the machine is quiet.
+ *
+ *  A Cloud board asks it before it refreshes its copy: `docs/kanban/` is one folder shared by
+ *  every process here, so reading the workspace over it while a run is mid-edit would put the
+ *  workspace's cards over what the agent has typed and not yet uploaded (#398). */
+export const workingRun = (): RunRecord | undefined => readRuns().find(runIsLive)
+
+/** The cards live runs OTHER than this one are holding — theirs to upload when they close,
+ *  which is what keeps a run's own close from sending a neighbour's half-written card (#398).
+ *
+ *  A spec run holds nothing: it fills one section while the card's own loop carries on around
+ *  it, the rule `lockedBy` and `claimChanges` both follow. */
+export function cardsHeldElsewhere(sessionId: string): Set<number> {
+  const held = new Set<number>()
+  for (const run of readRuns()) {
+    if (run.sessionId === sessionId || run.action === 'spec' || !runIsLive(run)) continue
+    if (run.cardId !== null) held.add(run.cardId)
+    for (const id of run.createdCardIds ?? []) held.add(id)
+  }
+  return held
+}
+
 /**
  * Every card the board is working on this second.
  *

@@ -86,9 +86,23 @@ async function launch(
 }
 
 /** Start an agent and return at once with a run id (or a refusal). Nothing waits for the
- *  child — the UI polls listSessions() to see how it goes. */
+ *  child — the UI polls listSessions() to see how it goes.
+ *
+ *  Through the CLI's own one-call start where the rules have it: that is what takes the
+ *  card's workspace lock before the record is written on a Cloud board (#398), so a run
+ *  started from a button and one started in a terminal are held the same way. */
 export async function startSession(req: AgentRequest, prompt: string): Promise<StartResult> {
-  return launch((rules) => rules.openRun(req, prompt));
+  let rules;
+  try {
+    rules = await boardRules();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+  if (!rules.startRun) return launch(() => rules.openRun(req, prompt));
+  const started = await rules.startRun(req);
+  if ("error" in started) return { ok: false, error: started.error };
+  if (!started.spawned) return { ok: false, error: (await machineCopy()).messages.run.noProcess };
+  return { ok: true, sessionId: started.run.sessionId };
 }
 
 /** Continue a run that stopped short: a new run on the same card and the same action,
