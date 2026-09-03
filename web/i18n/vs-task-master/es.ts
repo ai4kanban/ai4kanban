@@ -119,7 +119,7 @@ const es: VsTaskMasterCopy = {
       reach: {
         dimension: "Dónde funciona",
         kanban:
-          "Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness y ZCode hoy. El tablero son archivos planos, así que otro entorno no necesita un formato nuevo, solo integración.",
+          "Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode y Grok Build hoy. El tablero son archivos planos, así que otro entorno no necesita un formato nuevo, solo integración.",
         taskMaster:
           "Cursor, Windsurf, VS Code, Claude Code, Codex, Kiro, Amazon Q y más, por MCP o CLI, con más de quince proveedores de modelos.",
       },

@@ -32,7 +32,7 @@ Markdown, so these need no separate mirror.
 - [Documentation overview](https://ai4kanban.dev/docs): How to run a project board that plans itself — install the board, write the goal it plans from, drive the daily loop, and pick the coding agent your work runs on.
 - [What makes a good goal](https://ai4kanban.dev/docs/what-makes-a-good-goal): The board judges every proposal it makes against your goal file. What to cover in it, an example, what doesn't help, and how the board reads it.
 - [The daily loop](https://ai4kanban.dev/docs/daily-loop): The rhythm once the board exists — pick what to work on, plan and close a release, add and refine cards, build one end to end, and the button that does the same thing.
-- [What each coding agent can do](https://ai4kanban.dev/docs/connectors): The board runs your work through one coding agent. What each of Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness and ZCode reports back, what a run may touch, and the settings each one takes.
+- [What each coding agent can do](https://ai4kanban.dev/docs/connectors): The board runs your work through one coding agent. What each of Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode and Grok Build reports back, what a run may touch, and the settings each one takes.
 
 ## Recipes
 

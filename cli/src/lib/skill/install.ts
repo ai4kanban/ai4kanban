@@ -41,10 +41,16 @@ import type { CommandState, SkillFolder, SkillInstall, SkillState, SkillWrite } 
  *  answers whichever agent the user opens tomorrow — the note names no agent's folder in
  *  its own words, so it runs from any of them. The `agent` label is what the skill pane
  *  shows beside a folder, so it names every agent that reads it: a Cursor user who sees
- *  only "Codex" there reads it as "not supported". */
+ *  only "Codex" there reads it as "not supported".
+ *
+ *  Grok Build needs no folder of its own: it scans `.agents/skills/` at every tier from
+ *  the working folder up to the repo root, proved against grok 1.0.13 (#378). */
 const TARGETS: { rel: string; agent: string }[] = [
   { rel: path.join('.claude', 'skills', 'kanban'), agent: 'Claude Code' },
-  { rel: path.join('.agents', 'skills', 'kanban'), agent: 'Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode' },
+  {
+    rel: path.join('.agents', 'skills', 'kanban'),
+    agent: 'Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode, Grok Build',
+  },
 ]
 
 /** What lands in a folder, and nothing else. Named rather than counted so the report can

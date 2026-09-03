@@ -62,7 +62,7 @@ const zh: VsLinearCopy = {
       },
       agentModel: {
         dimension: "智能体模式",
-        kanban: "由你选择的编码运行环境读写看板，目前支持 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness 和 ZCode。",
+        kanban: "由你选择的编码运行环境读写看板，目前支持 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 和 Grok Build。",
         linear: "提供 Linear Agent、任务委派、app user 与托管的 MCP server。",
       },
       execution: {
@@ -128,7 +128,7 @@ const zh: VsLinearCopy = {
       },
       anyHarness: {
         title: "自行选择编码环境",
-        body: "目前支持 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness 和 ZCode，不绑定专有运行时。",
+        body: "目前支持 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 和 Grok Build，不绑定专有运行时。",
       },
       noSaas: {
         title: "无需额外服务",

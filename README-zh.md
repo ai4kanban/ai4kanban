@@ -40,8 +40,8 @@ Agent 执行，只在需要产品决策时找你。
 - **按模块积累项目记忆。** 已完成功能、产品决策、未采纳的方向和设计经验保存在
   `docs/kanban/memory/`，持续用于后续规划，不会随聊天会话结束而丢失。
 - **本地存储，可自由选择 Agent。** 看板以 Markdown 文件存放在 `docs/kanban/`，用 Git 管理
-  版本。AI4Kanban 支持 Claude Code、Codex、Cursor、OpenCode、Kimi Code、DeepSeek Harness
-  和 ZCode。
+  版本。AI4Kanban 支持 Claude Code、Codex、Cursor、OpenCode、Kimi Code、DeepSeek Harness、
+  ZCode 和 Grok Build。
 
 ## 实际效果
 

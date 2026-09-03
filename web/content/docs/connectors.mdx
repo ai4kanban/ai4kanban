@@ -1,8 +1,8 @@
 ---
 title: "What each coding agent can do"
-title_tag: "AI4Kanban coding agents — Claude Code, Codex, Cursor, OpenCode, Kimi, DeepSeek, ZCode"
-description: "The board runs your work through one coding agent. What each of the seven reports back while it works, what a run may touch, and the settings each one takes."
-lead: "The board runs your work through one coding agent — Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness or ZCode. All seven do the work; what differs is what they report back."
+title_tag: "AI4Kanban coding agents — Claude Code, Codex, Cursor, OpenCode, Kimi, DeepSeek, ZCode, Grok"
+description: "The board runs your work through one coding agent. What each of the eight reports back while it works, what a run may touch, and the settings each one takes."
+lead: "The board runs your work through one coding agent — Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode or Grok Build. All eight do the work; what differs is what they report back."
 last_updated: "September 1, 2026"
 nav_label: "Coding agents"
 icon: "cpu"
@@ -10,7 +10,7 @@ icon: "cpu"
 
 Pick the agent in **Configuration → Runtimes**, or with `akb agent use <name>`.
 
-All seven do the work. What differs is what they report back while they do it, and that
+All eight do the work. What differs is what they report back while they do it, and that
 changes what you see. The same list appears under the agent grid in Configuration and in
 `akb agent list`.
 
@@ -18,20 +18,20 @@ An agent whose CLI is on your machine but signed out reads **Logged out** in the
 picking it puts the command that signs it back in under the grid — so a card doesn't burn a
 run finding out. It is a warning and nothing else: every way of starting a run still starts.
 Claude Code, Codex, Cursor and OpenCode are asked; Kimi Code has no command that answers the
-question, and DeepSeek Harness and ZCode sign with a key rather than a CLI login, so neither
-is asked.
+question, DeepSeek Harness and ZCode sign with a key rather than a CLI login, and Grok Build
+takes either a `grok login` or the key box, so none of those four is asked.
 
 ## Support
 
-| | Claude Code | Codex | Cursor | OpenCode | Kimi Code | DeepSeek Harness | ZCode |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Chat and resume | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Early-crash resume | ✓ | — | — | — | — | — | — |
-| Run cost | ✓ | ✓ | — | ✓ | — | ✓ | — |
-| Token counts | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ |
-| Model name | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ |
-| Rate-limit exit | ✓ | — | — | — | — | — | — |
-| Direct skill call | ✓ | ✓ | — | — | — | — | — |
+| | Claude Code | Codex | Cursor | OpenCode | Kimi Code | DeepSeek Harness | ZCode | Grok Build |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Chat and resume | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Early-crash resume | ✓ | — | — | — | — | — | — | — |
+| Run cost | ✓ | ✓ | — | ✓ | — | ✓ | — | ✓ |
+| Token counts | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Model name | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| Rate-limit exit | ✓ | — | — | — | — | — | — | — |
+| Direct skill call | ✓ | ✓ | — | — | — | — | — | — |
 
 **Chat and resume** — talk to the board or a card, and pick up a failed run instead of
 restarting it. A resume picks the coding agent's own session back up — the conversation it
@@ -41,7 +41,7 @@ forgotten no longer ends the run: the board opens a fresh one, starts the task a
 the top, and says so in the log.
 
 **Early-crash resume** — only Claude Code can resume a run that failed in its first seconds.
-On the others, restart it. Later failures resume normally on all seven.
+On the others, restart it. Later failures resume normally on all eight.
 
 **Run cost, token counts, model name** — what the runs panel shows for a finished run. A
 blank means nothing was reported and nothing could be worked out.
@@ -63,14 +63,14 @@ and 0 switches it off. It ends as a failure, so the card keeps its work and Resu
 it up.
 
 **Direct skill call** — Claude Code and Codex are told to load the board skill by name.
-Cursor, OpenCode, Kimi Code, DeepSeek Harness and ZCode are asked in the prompt instead, and
-may skip it.
+Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode and Grok Build are asked in the prompt
+instead, and may skip it.
 
 ## What a run may touch
 
-Codex, OpenCode and DeepSeek Harness run inside a fence: they write in the project and
-refuse anything outside it. All three still reach the network, so a card that needs an
-`npm install` or a `git fetch` works on any agent.
+Codex, OpenCode, DeepSeek Harness and Grok Build run inside a fence: they write in the
+project and refuse anything outside it. All four still reach the network, so a card that
+needs an `npm install` or a `git fetch` works on any agent.
 
 Cursor, Kimi Code and ZCode have none — their tools run without stopping to ask, because a run
 has nobody at the keyboard to answer, and nothing holds them to the project folder. Kimi still
@@ -99,6 +99,7 @@ run on another agent or another model without touching them — see
 | Kimi Code | Provider (Kimi sign-in, or a custom model endpoint in the Kimi, Anthropic or OpenAI format), model |
 | DeepSeek Harness | Model, DeepSeek key (optional — otherwise the one `dsh` saved) |
 | ZCode | Model, Z.AI Coding Plan key (a `zcode login` won't run the board) |
+| Grok Build | Model, xAI key (optional — otherwise the one `grok login` saved) |
 
 Claude Code, Codex and Kimi Code are the three with a provider choice for gateways, so one of
 them is the pick for OpenRouter or LiteLLM. They want the gateway in different formats: Claude
@@ -191,6 +192,32 @@ BigModel-bought Coding Plan key drives cards end to end. A Z.ai-bought key has n
 tried, and neither has GLM-4.7. `akb resume` does not work on ZCode — a resumed run is
 refused with a message about the model no longer being available — so a run that stops
 partway has to be started again.
+
+### Grok Build
+
+Grok Build is xAI's own coding agent, and the way to run this board on Grok.
+
+- **Getting the command**: `curl -fsSL https://x.ai/cli/install.sh | bash` puts `grok` on
+  your PATH.
+- **Signing in**: `grok login`, or set an xAI key in **xAI API key** on a machine with no
+  browser. Grok's own order puts a saved login first, so the key box only counts where
+  there is no login. The board drops the variables that would send a run elsewhere —
+  `GROK_CLI_CHAT_PROXY_BASE_URL`, `GROK_CODE_XAI_API_KEY`, and the three that pick who
+  issues the token (`GROK_AUTH_PROVIDER_COMMAND`, `GROK_OIDC_ISSUER`, `GROK_OIDC_CLIENT_ID`).
+- **Model**: `grok-4.6`, or whatever else your key reaches. Empty runs the model Grok is
+  already set to in `~/.grok/config.toml`.
+- **The board's rules**: an install writes them to `.agents/skills/kanban/`, which Grok
+  scans from the working folder up to the repo root.
+- **How the board drives it**: `grok agent --always-approve stdio`, Grok as an ACP agent
+  over JSON-RPC, rather than its `-p` headless mode. Headless wants the prompt next to the
+  flag (`-p, --single <PROMPT>`) and the board appends a prompt last, so ACP is the way in
+  that fits — and it is the one that streams the log and carries a session.
+- **What a run may touch**: `GROK_SANDBOX=workspace`. Grok asks before every tool call by
+  default, and a board run has nobody to answer, so approvals are turned on and the sandbox
+  is what holds the run instead: reads anywhere, writes in the project, `~/.grok/` and
+  temp. Grok ships with no sandbox at all, so naming one here is what fences the run.
+  `--sandbox` is a top-level `grok` flag that `grok agent` rejects, so the profile is set
+  in the environment; export `GROK_SANDBOX` yourself to run behind a different one.
 
 Press **Test** (or run `akb agent test`) to send one small message through the setup, so a
 bad login turns up here rather than on your next card.

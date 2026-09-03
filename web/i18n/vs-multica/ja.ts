@@ -115,7 +115,7 @@ const ja: VsMulticaCopy = {
       execution: {
         dimension: "実行管理",
         kanban:
-          "Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode でカードを実行し、提案からアーカイブまでの状態を管理。",
+          "Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode、Grok Build でカードを実行し、提案からアーカイブまでの状態を管理。",
         multica:
           "複数のエージェントを並列実行し、キュー、再試行、リプレイ、コスト集計、レビューゲート、PR・CI連携を提供。",
       },
@@ -214,7 +214,7 @@ const ja: VsMulticaCopy = {
       },
       runtimeReach: {
         title: "幅広いランタイム対応",
-        body: "ローカルdaemonから多様なエージェントCLIに接続できます。AI4Kanbanは現在、Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode に対応しています。",
+        body: "ローカルdaemonから多様なエージェントCLIに接続できます。AI4Kanbanは現在、Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode、Grok Build に対応しています。",
       },
     },
   },

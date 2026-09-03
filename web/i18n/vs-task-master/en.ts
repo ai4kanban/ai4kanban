@@ -119,7 +119,7 @@ const en: VsTaskMasterCopy = {
       reach: {
         dimension: "Where it runs",
         kanban:
-          "Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, and ZCode today. The board is plain files, so another harness needs no new format — only wiring.",
+          "Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode, and Grok Build today. The board is plain files, so another harness needs no new format — only wiring.",
         taskMaster:
           "Cursor, Windsurf, VS Code, Claude Code, Codex, Kiro, Amazon Q and more, over MCP or the CLI, with more than fifteen model providers.",
       },

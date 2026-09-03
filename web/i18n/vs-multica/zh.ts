@@ -95,7 +95,7 @@ const zh: VsMulticaCopy = {
       },
       execution: {
         dimension: "执行管理",
-        kanban: "可以启动 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness 或 ZCode 执行卡片，并管理任务从提出到归档的完整状态。",
+        kanban: "可以启动 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 或 Grok Build 执行卡片，并管理任务从提出到归档的完整状态。",
         multica: "可以并行运行多个智能体，并提供排队、重试、重放、成本统计、评审门禁，以及 PR 和 CI 关联。",
       },
       teams: {
@@ -177,7 +177,7 @@ const zh: VsMulticaCopy = {
       },
       runtimeReach: {
         title: "支持更多智能体运行环境",
-        body: "可通过本地守护进程连接多种智能体 CLI；AI4Kanban 目前支持 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness 和 ZCode。",
+        body: "可通过本地守护进程连接多种智能体 CLI；AI4Kanban 目前支持 Claude Code、Codex、Cursor、OpenCode、DeepSeek Harness、ZCode 和 Grok Build。",
       },
     },
   },

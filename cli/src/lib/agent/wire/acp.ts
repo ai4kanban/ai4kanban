@@ -6,13 +6,15 @@
 // the things only the client can answer. The turn is over when the agent says so, in the
 // reply to the prompt we sent; the command itself keeps running until the runner ends it.
 //
-// This is dsh's client, and only dsh's. What it knows is the protocol, not the agent: any
+// This is dsh's client and grok's. What it knows is the protocol, not the agent: any
 // command that speaks ACP is driven by the same file. What it deliberately does NOT know
 // is runs, cards, or logs — it is handed pipes and hands back text (wire/client.ts). The
 // JSON-line conversation itself is wire/rpc.ts, which ZCode's client is held over too.
 //
 // Proved by hand against `dsh-acp` 0.4.14 (@openma/deepseek-harness-acp) over
-// @deepseek-ai/dsh 0.1.0-rc.7, ACP protocol version 1, on 2026-08-18.
+// @deepseek-ai/dsh 0.1.0-rc.7, ACP protocol version 1, on 2026-08-18, and against
+// `grok agent stdio` 1.0.13 on 2026-09-03. The two agree on the protocol and differ on
+// where they put a model and what a turn spent; both shapes are read below.
 
 import { hint, num, obj, str, type Json } from './json'
 import { connect, RpcError, type Rpc } from './rpc'
@@ -51,11 +53,16 @@ function saidBy(update: Json): string {
   return ''
 }
 
-// The model an agent's config options say the session is on. dsh reports its live catalog
-// this way (`{id: "model", currentValue: "deepseek-v4-flash", …}`), so this is the model
-// the run is really working with — never the Model box, which most people leave empty.
-function modelOf(configOptions: unknown): string | undefined {
-  const list = Array.isArray(configOptions) ? configOptions : []
+// The model the session an agent just opened is on — the one the run is really working
+// with, never the Model box, which most people leave empty.
+//
+// Two shapes, because the agents answer differently: grok returns ACP's own model list
+// (`{models: {currentModelId: "grok-4.6", …}}`), dsh reports its live catalog as a config
+// option (`{id: "model", currentValue: "deepseek-v4-flash", …}`).
+function modelOf(answer: Json): string | undefined {
+  const current = str(obj(answer.models).currentModelId).trim()
+  if (current) return current
+  const list = Array.isArray(answer.configOptions) ? answer.configOptions : []
   for (const raw of list) {
     const option = obj(raw)
     if (option.id === 'model') return str(option.currentValue).trim() || undefined
@@ -67,13 +74,20 @@ function modelOf(configOptions: unknown): string | undefined {
 // for the session rather than for one turn, so a run that continued an earlier
 // conversation reports what that whole conversation has used — the agent's own number
 // either way, and never one the board added up itself.
-function usageOf(value: unknown): TokenUsage | undefined {
+//
+// `grossInput` is for an agent whose `inputTokens` is the whole prompt with the cache
+// already in it, as grok's is: the two cached counts come back out so `input` stays the
+// fresh input the board's four columns mean.
+function usageOf(value: unknown, grossInput = false): TokenUsage | undefined {
   const usage = obj(value)
   if (!Object.keys(usage).length) return undefined
+  const cacheCreation = num(usage.cachedWriteTokens) + num(usage.cacheCreationTokens)
+  const cacheRead = num(usage.cachedReadTokens)
+  const input = num(usage.inputTokens)
   const counts: TokenUsage = {
-    input: num(usage.inputTokens),
-    cacheCreation: num(usage.cachedWriteTokens),
-    cacheRead: num(usage.cachedReadTokens),
+    input: grossInput ? Math.max(input - cacheRead - cacheCreation, 0) : input,
+    cacheCreation,
+    cacheRead,
     output: num(usage.outputTokens),
   }
   const sum = counts.input + counts.cacheCreation + counts.cacheRead + counts.output
@@ -105,6 +119,16 @@ async function newSession(rpc: Rpc, cwd: string): Promise<{ opened: Json; sessio
   const sessionId = str(opened.sessionId)
   if (!sessionId) throw new Error('the agent opened a session without giving it an id')
   return { opened, sessionId }
+}
+
+// A price in xAI's exact integer ticks, in the dollars the board keeps everywhere else.
+// The field is absent — never zero — whenever the server's cost was partial, so nothing is
+// shown rather than a bill that is too small.
+const TICKS_PER_USD = 1e10
+
+function ticksUsd(value: unknown): number | undefined {
+  const ticks = num(value)
+  return ticks > 0 ? ticks / TICKS_PER_USD : undefined
 }
 
 // Why a turn that didn't simply end stopped, in plain words. `end_turn` is the one that
@@ -200,14 +224,16 @@ async function oneTurn(io: ClientTurn, options: AcpOptions): Promise<TurnEnd> {
     // an ACP agent carries its live catalog per session, so this is the one place a pick
     // means anything. A model it doesn't know fails the run, and says so, like every other
     // agent's Model box.
-    let model = modelOf(opened.configOptions)
+    //
+    // Two ways to ask, and the session's own answer says which: an agent that listed its
+    // models takes ACP's `session/set_model`, one that listed a config option takes that.
+    // Asking the wrong one is a "Method not found" that fails the run before it starts.
+    let model = modelOf(opened)
     if (options.model) {
-      const set = await rpc.call('session/set_config_option', {
-        sessionId,
-        configId: 'model',
-        value: options.model,
-      })
-      model = modelOf(set.configOptions) ?? options.model
+      const set = obj(opened.models).currentModelId !== undefined
+        ? await rpc.call('session/set_model', { sessionId, modelId: options.model })
+        : await rpc.call('session/set_config_option', { sessionId, configId: 'model', value: options.model })
+      model = modelOf(set) ?? options.model
     }
     if (model) io.gotModel(model)
 
@@ -218,7 +244,11 @@ async function oneTurn(io: ClientTurn, options: AcpOptions): Promise<TurnEnd> {
     })
     const result = tail.end()
     const stopReason = str(done.stopReason)
-    const usage = usageOf(done.usage)
+    // What the turn spent, wherever the agent put it: dsh answers on the reply itself,
+    // grok under ACP's `_meta`, with the price in ticks and no `usage_update` before it.
+    const spent = obj(obj(done._meta).usage)
+    const usage = usageOf(done.usage) ?? usageOf(spent, true)
+    costUsd ??= ticksUsd(spent.costUsdTicks)
     if (stopReason && stopReason !== 'end_turn') {
       const why = STOPPED[stopReason] ?? `the agent stopped: ${stopReason}`
       io.log(`[error] ${why}\n`)

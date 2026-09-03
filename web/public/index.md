@@ -36,7 +36,7 @@ that produced them, so autonomy grows and review shrinks as the project goes on.
 - **Local-first** — The board and its memory are Markdown under `docs/kanban/`,
   versioned in Git.
 - **Your coding agent** — Claude Code, Codex, Cursor, OpenCode, Kimi Code,
-  DeepSeek Harness, and ZCode.
+  DeepSeek Harness, ZCode, and Grok Build.
 
 ## Start with the desktop app
 

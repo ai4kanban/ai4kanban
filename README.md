@@ -48,7 +48,7 @@ delivered features, and design lessons — so the next plan asks less of you.
   plan instead of disappearing with a chat session.
 - **Stays local, and stays your choice of agent.** The board is Markdown under
   `docs/kanban/`, versioned in Git. AI4Kanban supports Claude Code, Codex, Cursor,
-  OpenCode, Kimi Code, DeepSeek Harness, and ZCode.
+  OpenCode, Kimi Code, DeepSeek Harness, ZCode, and Grok Build.
 
 ## See it work
 

@@ -65,7 +65,7 @@ const en: VsLinearCopy = {
       },
       agentModel: {
         dimension: "Agent model",
-        kanban: "Your coding harness reads and writes the board; Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, and ZCode are supported today.",
+        kanban: "Your coding harness reads and writes the board; Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode, and Grok Build are supported today.",
         linear: "Linear Agent, installable app users, delegated issues, agent guidance, and a hosted MCP server.",
       },
       execution: {
@@ -134,7 +134,7 @@ const en: VsLinearCopy = {
       },
       anyHarness: {
         title: "Works with your coding harness",
-        body: "The board is not tied to a proprietary agent runtime. Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, and ZCode are supported today, and the open file format can work with other harnesses.",
+        body: "The board is not tied to a proprietary agent runtime. Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode, and Grok Build are supported today, and the open file format can work with other harnesses.",
       },
       noSaas: {
         title: "Requires no project-management service",

@@ -366,6 +366,7 @@ const AGENT_LOGOS = [
   { src: "/agents/opencode.svg", alt: "OpenCode" },
   { src: "/agents/dsh.svg", alt: "DeepSeek Harness" },
   { src: "/agents/zcode.svg", alt: "ZCode" },
+  { src: "/agents/grok.svg", alt: "Grok Build" },
 ];
 
 // One washed tile per agent, on a strip that runs slowly behind a window

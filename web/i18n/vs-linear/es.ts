@@ -66,7 +66,7 @@ const es: VsLinearCopy = {
       },
       agentModel: {
         dimension: "Modelo de agentes",
-        kanban: "El entorno de programación que elijas lee y escribe el tablero; actualmente se admiten Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness y ZCode.",
+        kanban: "El entorno de programación que elijas lee y escribe el tablero; actualmente se admiten Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode y Grok Build.",
         linear: "Linear Agent, app users instalables, incidencias delegadas, instrucciones para agentes y un MCP server alojado.",
       },
       execution: {
@@ -135,7 +135,7 @@ const es: VsLinearCopy = {
       },
       anyHarness: {
         title: "Funciona con el entorno de programación que elijas",
-        body: "El tablero no está ligado a un runtime de agentes propietario. Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness y ZCode ya son compatibles, y el formato de archivo abierto permite utilizar otros entornos.",
+        body: "El tablero no está ligado a un runtime de agentes propietario. Claude Code, Codex, Cursor, OpenCode, DeepSeek Harness, ZCode y Grok Build ya son compatibles, y el formato de archivo abierto permite utilizar otros entornos.",
       },
       noSaas: {
         title: "No requiere otro servicio de gestión de proyectos",

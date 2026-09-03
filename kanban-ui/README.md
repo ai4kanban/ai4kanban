@@ -580,8 +580,8 @@ The line to paste is there either way, under the offer rather than instead of it
 ```
 
 The line follows the agent you picked, because agents trigger a skill differently: on Codex it
-reads `$kanban. Set up this board …`, and on Cursor, OpenCode, Kimi Code, DeepSeek Harness and
-ZCode it asks for the skill in a sentence. Copy it and paste it as it comes. It is on the closing
+reads `$kanban. Set up this board …`, and on Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode
+and Grok Build it asks for the skill in a sentence. Copy it and paste it as it comes. It is on the closing
 screen and on every screen behind **I'll fill it in myself**, under **Rather set this up from your coding agent?** —
 setup picks up at the first unticked box, so nothing you answered here is asked again.
 
@@ -1145,7 +1145,7 @@ the board's global agent is something else.
 
 A board whose `akb` is too old to answer draws the agent pane alone.
 
-Seven harnesses ship:
+Eight harnesses ship:
 
 | Agent | It spawns | Settings | Key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
@@ -1156,6 +1156,7 @@ Seven harnesses ship:
 | **Kimi Code** | `kimi --output-format stream-json -p "<prompt>"` | Provider, Model id, Endpoint format, Endpoint base URL, Model | `KIMI_MODEL_API_KEY` (endpoint pick only) | no | yes |
 | **DeepSeek Harness** | `dsh-acp --permission-mode workspace-write` | Model | `DEEPSEEK_API_KEY` (optional) | yes | yes |
 | **ZCode** | `zcode app-server` | Model | `ZAI_API_KEY` (required) | no | yes |
+| **Grok Build** | `grok agent --always-approve stdio` | Model | `XAI_API_KEY` (optional) | yes | yes |
 
 Same cards, same buttons, same files whichever you pick. **Cost** and **Model name** say whether a
 run's log can show them: the board prints what the run itself reported and never invents either, so
@@ -1180,9 +1181,9 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
   each chat starts — a single conversation can run on another without touching it (see **Chat**). Two agents write it differently: **OpenCode** takes
   `provider/model` (`anthropic/claude-opus-5`), because it reaches every provider and the name alone
   wouldn't say which; **Cursor** carries the thinking level inside the id, `claude-opus-4-8[effort=high]`,
-  so it has no reasoning box. **DeepSeek Harness** and **ZCode** choose the model as the run's
-  session opens rather than on the command line, because each carries its model catalog per session;
-  ZCode also takes `zai/glm-5.3` when you want to name the provider too. **Kimi Code** takes an
+  so it has no reasoning box. **DeepSeek Harness**, **ZCode** and **Grok Build** choose the model as
+  the run's session opens rather than on the command line, because each carries its model catalog per
+  session; ZCode also takes `zai/glm-5.3` when you want to name the provider too. **Kimi Code** takes an
   alias out of its own `config.toml` rather than a model id, and only on the sign-in pick — its
   endpoint pick names the id in **Model id** instead, so you never see two model boxes at once.
 - **Reasoning effort** — how hard the model thinks. Claude Code and Codex each offer the same list in
@@ -1256,6 +1257,16 @@ empties them — a Claude model id means nothing to Codex — and leaves your sa
   session in ZCode's `yolo` mode: nothing stops to ask, and nothing holds it to the project folder
   either — ZCode ships no sandbox. Sign in by pasting a Coding Plan key from Z.ai or BigModel into
   the key box; a `zcode login` does not carry a run. ZCode reads `.agents/skills/kanban/` on its own.
+- **Grok Build** — xAI's own coding agent, installed with
+  `curl -fsSL https://x.ai/cli/install.sh | bash`. The board holds a conversation with
+  `grok agent --always-approve stdio` — Grok as an ACP agent — rather than using its `-p` headless
+  mode, which wants the prompt next to the flag while the board appends one last. `--always-approve`
+  is there because Grok otherwise asks before every tool call and a board run has nobody to answer,
+  and it sits before the subcommand because `grok agent stdio` rejects every other flag. The fence
+  goes in the environment instead, `GROK_SANDBOX=workspace`, holding the run to the project,
+  `~/.grok/` and temp; export your own to run behind a different profile. Sign in with `grok login`,
+  or set an xAI key on a machine with no browser — Grok puts a saved login ahead of the key. Grok
+  reads `.agents/skills/kanban/` on its own, from the working folder up to the repo root.
 
 Every agent's rate limit but Claude Code's is waited out, holding the card while it does.
 
@@ -1309,7 +1320,7 @@ on an OpenAI account directly, pick Codex.
 "pay per token on Moonshot's key" entry between them — that is the endpoint pick with Moonshot's own
 address in the base URL.
 
-The other four agents have no provider list: each runs on whatever login its own CLI has, plus the
+The other five agents have no provider list: each runs on whatever login its own CLI has, plus the
 optional key where it takes one, and their runs inherit your shell environment. OpenCode is the one
 that reaches every provider by itself — you pick that provider in its model id.
 
@@ -1621,7 +1632,7 @@ and carry the button that fixes each:
 - **Out of date** — a folder written by an older release. The button says **Update the skill**.
 
 Under **Technical details** it names the folders it touches — `.claude/skills/kanban/` for Claude Code,
-`.agents/skills/kanban/` for the other four — and after a press it says, folder by folder, what it
+`.agents/skills/kanban/` for the other seven — and after a press it says, folder by folder, what it
 wrote. Each folder gets one file, `SKILL.md`: a short note saying the board is here and that `akb`
 owns it. The rules themselves live in the command, so this writes a few kB in your repo and never
 runs a global install.

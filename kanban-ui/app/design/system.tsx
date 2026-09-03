@@ -890,6 +890,7 @@ export function DesignSystem() {
                   <SelectItem value="kimi">Kimi Code</SelectItem>
                   <SelectItem value="dsh">DeepSeek Harness</SelectItem>
                   <SelectItem value="zcode">ZCode</SelectItem>
+                  <SelectItem value="grok">Grok Build</SelectItem>
                 </SelectContent>
               </Select>
             </div>
