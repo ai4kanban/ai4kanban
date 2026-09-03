@@ -10,16 +10,22 @@
 // in its first paint and none of them draws English and corrects itself. A component reads
 // it with `useLanguage()`; nothing threads it as a prop.
 //
+// The SAVE arrives as a prop rather than being imported (#374). `useCopy()` reads the
+// context this file provides, so every screen on the board leads back here — and a static
+// import of `@/app/actions` from this one file would put the whole of that file, the coding
+// agent and this machine's filesystem with it, in the import closure of every screen there
+// is. A caller that hands in no save switches the language for the session and writes
+// nothing.
+//
 // Both halves of this file read their words with `getCopy()` rather than `useCopy()`: a
 // component reading the context it provides would get the default, which would leave the
 // switcher's own save-failed message English on a Chinese app.
 
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { setLanguageAction } from "@/app/actions";
 import { getCopy } from "@/i18n";
 import { Rich } from "@/i18n/rich";
-import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES, type Language } from "@/lib/types";
+import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES, type Language, type WriteResult } from "@/lib/types";
 import { Group, Panel } from "./settings";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -28,7 +34,16 @@ const LanguageContext = createContext<{
   choose(next: Language): Promise<string | null>;
 }>({ language: DEFAULT_LANGUAGE, choose: async () => null });
 
-export function LanguageProvider({ initial, children }: { initial: Language; children: React.ReactNode }) {
+export function LanguageProvider({
+  initial,
+  onSave,
+  children,
+}: {
+  initial: Language;
+  /** Write the setting down. Left out, a switch holds for this session only. */
+  onSave?: (next: Language) => Promise<WriteResult>;
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const [language, hold] = useState(initial);
   const c = getCopy(language).configuration.language;
@@ -53,7 +68,8 @@ export function LanguageProvider({ initial, children }: { initial: Language; chi
       choose: async (next: Language): Promise<string | null> => {
         const was = language;
         hold(next);
-        const saved = await setLanguageAction(next);
+        if (!onSave) return null;
+        const saved = await onSave(next);
         if (!saved.ok) {
           hold(was);
           return saved.error || c.saveFailed;
@@ -69,7 +85,7 @@ export function LanguageProvider({ initial, children }: { initial: Language; chi
         return null;
       },
     }),
-    [language, c, router],
+    [language, c, onSave, router],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

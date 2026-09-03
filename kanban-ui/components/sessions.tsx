@@ -11,11 +11,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { FiActivity, FiX } from "react-icons/fi";
-import { getSessionAction, listSessionsAction, startAgentAction } from "@/app/actions";
 import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useOverRail } from "@/lib/over-rail";
+import { useActions, type ScreenActions, type StartAnswer } from "@/lib/screen";
 import { flowLabel, flowOf, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
@@ -40,6 +40,13 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
   // passes a fresh closure each render.
   const finishRef = useRef(onFinish);
   finishRef.current = onFinish;
+  // The actions this screen was handed (#374). Held in a ref for the same reason: the poll
+  // below is installed once. A screen handed none never polls — there are no runs to read
+  // where there is nothing to run them.
+  const actions = useActions();
+  const actionsRef = useRef<ScreenActions | null>(actions);
+  actionsRef.current = actions;
+  const canRun = !!actions;
   // A kick() the effect installs, so start() and tab-focus can force an immediate
   // poll and wake the loop when it's dormant. See the effect below.
   const kickRef = useRef<() => void>(() => {});
@@ -55,6 +62,7 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
   // (useOnTabFocus re-reads unconditionally), so a backgrounded board costs
   // nothing.
   useEffect(() => {
+    if (!canRun) return;
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let inFlight = false;
@@ -63,7 +71,7 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
       if (!alive || inFlight) return;
       inFlight = true;
       try {
-        const next = await listSessionsAction();
+        const next = (await actionsRef.current?.listSessions()) ?? [];
         if (!alive) return;
         // Fire onFinish for any run this tab started that just went terminal.
         for (const r of next) {
@@ -109,13 +117,16 @@ export function useAgentSessions(onFinish: (session: SessionView, started: Start
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [canRun]);
 
   // Start a session. Returns the server's answer: ok with a sessionId, or a lock
-  // message.
+  // message. A screen with no actions draws nothing that calls this, so a bare
+  // refusal is enough — the caller's own line says a run could not be started.
   const start = useCallback(
-    async (req: AgentReq, label: string, removes = false) => {
-      const res = await startAgentAction(req);
+    async (req: AgentReq, label: string, removes = false): Promise<StartAnswer> => {
+      const run = actionsRef.current;
+      if (!run) return { ok: false };
+      const res = await run.startAgent(req);
       if (res.ok && res.sessionId) {
         mine.current.set(res.sessionId, { sessionId: res.sessionId, label, removes });
         kickRef.current(); // watch it immediately instead of waiting for a tick
@@ -195,6 +206,9 @@ export function runningSessionForCard(sessions: SessionView[], cardId: number): 
 // unknown.
 export function useSessionLog(sessionId: string | null): SessionView | null {
   const [log, setLog] = useState<SessionView | null>(null);
+  const actions = useActions();
+  const actionsRef = useRef<ScreenActions | null>(actions);
+  actionsRef.current = actions;
   useEffect(() => {
     if (!sessionId) {
       setLog(null);
@@ -204,7 +218,7 @@ export function useSessionLog(sessionId: string | null): SessionView | null {
     let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
       try {
-        const r = await getSessionAction(sessionId);
+        const r = (await actionsRef.current?.getSession(sessionId)) ?? null;
         if (!alive) return;
         setLog(r);
         // Keep polling only while the run is live; a terminal tail is final.

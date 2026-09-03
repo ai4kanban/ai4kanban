@@ -28,13 +28,14 @@ import { cloudCardLinkAction } from "@/app/actions";
 import { FiAlertCircle, FiX } from "react-icons/fi";
 import { BELL_MAX, BELL_MIN, BELL_W, samePath, switchProject, useBellRail } from "@/lib/bell-rail";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
+import { BellProvider } from "@/lib/card-event";
 import { usePhone } from "@/lib/media";
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import type { MemoryModule } from "@/lib/types";
 import { ChatPane, ChatProvider } from "./Chat";
 import { raiseNotifications, useCardLinkFromApp, useOpenNotificationFromApp } from "./desktop";
-import { BellPane, BellProvider } from "./Notifications";
+import { BellPane } from "./Notifications";
 import {
   FindScreen,
   MemoryScreen,
@@ -236,7 +237,7 @@ export function Window({
       <MoreScreen projectRoot={projectRoot} goalWritten={goalWritten} />
     );
   return (
-    <BellProvider rail={bell}>
+    <BellProvider value={bell}>
     <ChatProvider rail={chat}>
     {/* `dvh`, not `vh`: a phone browser's URL bar shrinks the viewport as you scroll, and
         100vh is the tall one — the tab bar at the foot would sit under the bar until the

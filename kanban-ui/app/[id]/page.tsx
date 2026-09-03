@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
-import { CardPage } from "@/components/CardPage";
+import { CardWindow } from "@/components/CardWindow";
 import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
-import { deliveryDiff, deliveryPlan, findCard, readBoard, readBoardState } from "@/lib/board";
+import { cardScreen } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { readMockups } from "@/lib/mockup";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
-import type { Board, Card } from "@/lib/types";
+import type { ScreenMachine } from "@/lib/screen";
+import type { CardScreen } from "@/lib/types";
 
-// Read the board on the server and hand the one card to the client page. The
-// files in docs/kanban/ are the source of truth; router.refresh() re-reads them
-// after each mutation.
+// Read the card on the server and hand it to the client page. The files in docs/kanban/ are
+// the source of truth; router.refresh() re-reads them after each mutation.
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -23,47 +23,32 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const cardId = Number(id);
   if (!Number.isInteger(cardId)) notFound();
 
-  // The board is read through the CLI (#169). No copy of its rules to read it with is not
-  // a missing card — the card may be sitting right there — so it says so and names the
-  // fix, rather than showing "not on the board" for a card that is.
-  let board: Board;
-  let card: Card | null;
+  // The one read a card page makes (#374) — the card, the ids it may link to, the releases
+  // its picker offers, what an Implement would do and what the delivery changed.
+  //
+  // The board is read through the CLI (#169). No copy of its rules to read it with is not a
+  // missing card — the card may be sitting right there — so it says so and names the fix,
+  // rather than showing "not on the board" for a card that is.
+  let screen: CardScreen | null;
   try {
-    board = await readBoard();
-    card = await findCard(cardId);
+    screen = await cardScreen(cardId);
   } catch (e) {
     return <NoRules why={e instanceof Error ? e.message : String(e)} desktop={isDesktop()} />;
   }
-  if (!card) notFound();
+  if (!screen) notFound();
 
-  const agent = await agentInfo().catch(() => NO_AGENT);
-  // What an Implement click would do from here (#307) — the branch it lands on, and whether
-  // it lands at all. Read on the server, where git is, and only the card page needs it.
-  const plan = await deliveryPlan();
-  // What the delivery on this card changed (#305) — the one in flight, or the one that just
-  // landed. Read here for the same reason: git is on the server, and so is the cap that
-  // keeps a megabyte-long diff off the page.
-  const diff = await deliveryDiff(card.delivery?.id ?? card.finished?.id);
-  // The screens this card points at, drawn here rather than fetched by the page: a mockup
-  // is a file on this machine, and reading it is the same server read the card was.
-  const mockups = await readMockups(card.body);
-  // Whether this board is a copy of a Cloud workspace that is out of reach (#316). The card
-  // still reads; what the page says is that this is the copy and how old it is.
-  const boardState = await readBoardState();
-  return (
-    <CardPage
-      card={card}
-      boardState={boardState}
-      openIds={board.openIds}
-      releases={board.releases}
-      agent={agent}
-      projectRoot={repoRoot()}
-      goalWritten={board.goalWritten}
-      memoryModules={board.memoryModules}
-      mockups={mockups}
-      plan={plan}
-      diff={diff}
-      desktop={isDesktop()}
-    />
-  );
+  // …and what only this machine can answer, for the window drawn around that screen. The
+  // mockups are here for the same reason the agent is: a mockup is a file on this disk, and
+  // reading it is the same server read the card was.
+  const [agent, mockups] = await Promise.all([
+    agentInfo().catch(() => NO_AGENT),
+    readMockups(screen.card.body),
+  ]);
+  const machine: ScreenMachine = {
+    projectRoot: repoRoot(),
+    agent,
+    desktop: isDesktop(),
+    mockups,
+  };
+  return <CardWindow screen={screen} machine={machine} />;
 }

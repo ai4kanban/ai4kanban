@@ -108,6 +108,11 @@ export type {
 } from "./format/view/types";
 export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES } from "./format/view/types";
 
+// The one read each screen makes (#374) — what the board screen draws, and what a card page
+// draws. The server fills them (lib/board.ts) and the screens take them as one prop.
+export type { BoardScreen, BoardStanding, CardScreen, ScreenBoard } from "./format/board/screen";
+export { LOCAL_STANDING } from "./format/board/screen";
+
 export type {
   CommandState,
   SkillFolder,

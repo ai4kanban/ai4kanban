@@ -82,7 +82,9 @@ export function QueueView({
   onOpenLog: (sessionId: string) => void;
   /** The cards ticked for the bulk release move (#114). */
   selected: Set<number>;
-  onSelect: (id: number, next: boolean) => void;
+  /** Tick or untick one. Left out draws no ticks at all — a screen that cannot write a
+   *  card's release has nothing to tick them for (#374). */
+  onSelect?: (id: number, next: boolean) => void;
 }) {
   const c = useCopy().board.queue;
   const phone = usePhone();
@@ -379,7 +381,7 @@ function Bands({
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
   selected: Set<number>;
-  onSelect: (id: number, next: boolean) => void;
+  onSelect?: (id: number, next: boolean) => void;
 }) {
   const c = useCopy().board.queue;
   if (bands.length === 0) return <p className="text-[12px] italic text-nb-ink-soft">{c.empty}</p>;
@@ -413,7 +415,7 @@ function TrackBand({
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
   selected: Set<number>;
-  onSelect: (id: number, next: boolean) => void;
+  onSelect?: (id: number, next: boolean) => void;
 }) {
   return (
     <section className="rounded-[10px] px-2 pb-3 pt-2">

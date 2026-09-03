@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ComponentType, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   FiAlertCircle,
   FiArchive,
@@ -22,31 +22,15 @@ import {
 } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
 import {
-  approveDeliveryAction,
-  cancelCloudRequestAction,
-  cardOnBoardAction,
-  discardDeliveryAction,
-  dropVerifyAction,
-  patchCardAction,
-  resumeCloudRequestAction,
-  resumeSessionAction,
-  scheduleCardAction,
-  stopSessionAction,
-  unscheduleCardAction,
-} from "@/app/actions";
-
-import {
   NO_RELEASE,
-  type AgentInfo,
   type Card,
   type CardApproval,
   type CardDelivery,
   type CardDeliveryStage,
   type CardFinished,
   type CardPatch,
+  type CardScreen,
   type DeliveryDiff,
-  type DeliveryPlan,
-  type MemoryModule,
   type ScheduledAction,
   type SessionView,
 } from "@/lib/types";
@@ -54,9 +38,7 @@ import type { CardCopy } from "@/i18n/card/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { Button } from "./button";
-import { RunningNotice } from "./desktop";
 import { DiffPane } from "./Diff";
-import { Header } from "./Header";
 import {
   ActionDialog,
   type AgentReq,
@@ -77,12 +59,11 @@ import {
 } from "./chips";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { usePhone } from "@/lib/media";
+import { useActions, useMachine, type StripPlace } from "@/lib/screen";
 import { cn } from "@/lib/utils";
-import type { BoardStanding } from "@/lib/board";
-import type { MockupSet } from "@/lib/mockup-tag";
 import { parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
-import { useCardEvent } from "./Notifications";
+import { useCardEvent } from "@/lib/card-event";
 import type { BoardChange } from "@/lib/chat-rail";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
@@ -93,7 +74,6 @@ import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
 import { isReadyHalf } from "./Queue";
 import { SubtaskMap } from "./SubtaskMap";
-import { Window } from "./Window";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
@@ -151,6 +131,7 @@ function HandChecks({
   busy: boolean;
 }) {
   const c = useCopy().card.handChecks;
+  const actions = useActions();
   const router = useRouter();
   const [lines, setLines] = useState(verify);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -184,9 +165,10 @@ function HandChecks({
   };
 
   const crossOff = async (line: string) => {
+    if (!actions) return;
     setConfirming(null);
     setSaving(true);
-    const res = await dropVerifyAction(cardId, line, revision);
+    const res = await actions.dropVerify(cardId, line, revision);
     setSaving(false);
     settle(res, c.failed);
   };
@@ -215,6 +197,7 @@ function HandChecks({
               <span className="mt-[7px] size-[5px] shrink-0 rounded-full bg-current" aria-hidden />
               <span className="min-w-0 flex-1">{line}</span>
               {!busy &&
+                actions &&
                 (confirming === line ? (
                   <button
                     type="button"
@@ -342,6 +325,7 @@ function PanelAction({
 // play: a solid mark, and one that says the run is held rather than thrown away.
 function StopRun({ session, onError }: { session: SessionView; onError: (why: string) => void }) {
   const c = useCopy().card.delivery.stop;
+  const actions = useActions();
   const [confirming, setConfirming] = useState(false);
   const [asked, setAsked] = useState(false);
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -349,15 +333,17 @@ function StopRun({ session, onError }: { session: SessionView; onError: (why: st
   // The agent is asked to end before it is killed, so a few seconds pass before the poll
   // brings the run back as stopped. Saying so beats a button that looks like it did nothing.
   const stop = async () => {
+    if (!actions) return;
     setConfirming(false);
     setAsked(true);
-    const res = await stopSessionAction(session.sessionId);
+    const res = await actions.stopSession(session.sessionId);
     if (!res.ok) {
       setAsked(false);
       onError(res.error || c.failed);
     }
   };
 
+  if (!actions) return null;
   if (asked) return <span className="text-[11px] text-nb-ink-soft">{c.stopping}</span>;
   return (
     <span ref={anchorRef} className="relative inline-flex">
@@ -407,18 +393,20 @@ function ResumeDelivery({
   onError: (why: string) => void;
 }) {
   const c = useCopy().card.delivery.resume;
+  const actions = useActions();
   const [busy, setBusy] = useState(false);
 
   const pickUp = session && session.canResume && stoppedShort(session) ? session.sessionId : null;
   const owed = delivery.next;
 
   const resume = async () => {
+    if (!actions) return;
     if (!pickUp) {
       if (owed) onCarryOn(owed);
       return;
     }
     setBusy(true);
-    const res = await resumeSessionAction(pickUp);
+    const res = await actions.resumeSession(pickUp);
     setBusy(false);
     // A refusal is the registry's own words — the card is locked by another run, or this
     // one aged out of the kept window. Say it and leave the control alive to try again.
@@ -426,7 +414,7 @@ function ResumeDelivery({
     else onError(res.error || c.failed);
   };
 
-  if (!pickUp && !owed) return null;
+  if (!actions || (!pickUp && !owed)) return null;
   return (
     <PanelAction
       icon={<FiPlay className="text-[12px]" aria-hidden />}
@@ -474,20 +462,23 @@ function DiscardDelivery({
   onError: (why: string) => void;
 }) {
   const c = useCopy().card.delivery.discard;
+  const actions = useActions();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const anchorRef = useRef<HTMLSpanElement>(null);
 
   const lost = worktree ? `${worktree}${branch ? ` and ${branch}` : ""}` : null;
   const discardIt = async () => {
+    if (!actions) return;
     setConfirming(false);
     setBusy(true);
-    const res = await discardDeliveryAction(id);
+    const res = await actions.discardDelivery(id);
     setBusy(false);
     if (!res.ok) onError(res.error || c.failed);
     else onDiscarded();
   };
 
+  if (!actions) return null;
   return (
     <span
       ref={anchorRef}
@@ -622,16 +613,17 @@ function InterruptedRequest({
 }) {
   const card = useCopy().card;
   const c = card.interrupted;
+  const actions = useActions();
   const [busy, setBusy] = useState<"resume" | "cancel" | null>(null);
 
   const move = async (which: "resume" | "cancel") => {
-    if (busy) return;
+    if (busy || !actions) return;
     setBusy(which);
     try {
       const done =
         which === "resume"
-          ? await resumeCloudRequestAction(eventId)
-          : await cancelCloudRequestAction(taskId, eventId);
+          ? await actions.resumeCloudRequest(eventId)
+          : await actions.cancelCloudRequest(taskId, eventId);
       if (!done.ok) onError(done.error || (which === "resume" ? c.resumeFailed : c.cancelFailed));
       onDone();
     } finally {
@@ -647,10 +639,10 @@ function InterruptedRequest({
       </div>
       <p className="text-[13px] leading-[19px] text-nb-ink">{c.line}</p>
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
-        <Button size="sm" disabled={!!busy} onClick={() => void move("resume")}>
+        <Button size="sm" disabled={!!busy || !actions} onClick={() => void move("resume")}>
           {busy === "resume" ? c.resuming : c.resume}
         </Button>
-        <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => void move("cancel")}>
+        <Button size="sm" variant="ghost" disabled={!!busy || !actions} onClick={() => void move("cancel")}>
           {busy === "cancel" ? c.cancelling : c.cancel}
         </Button>
       </div>
@@ -813,11 +805,13 @@ function ApprovalPane({
   onError: (why: string) => void;
 }) {
   const c = useCopy().card.delivery.approval;
+  const actions = useActions();
   const [busy, setBusy] = useState(false);
 
   const approve = async () => {
+    if (!actions) return;
     setBusy(true);
-    const res = await approveDeliveryAction(delivery.id);
+    const res = await actions.approveDelivery(delivery.id);
     setBusy(false);
     if (!res.ok) onError(res.error || c.failed);
     else onApproved();
@@ -842,7 +836,7 @@ function ApprovalPane({
             {approval.cancelled ? `${upperFirst(approval.cancelled)}. ` : ""}
             <Rich>{c.readDiff(approval.covers)}</Rich>
           </p>
-          <Button className="mt-3" size="sm" disabled={busy} onClick={() => void approve()}>
+          <Button className="mt-3" size="sm" disabled={busy || !actions} onClick={() => void approve()}>
             <FiCheckCircle className="text-[15px]" aria-hidden />
             {c.approve}
           </Button>
@@ -1104,50 +1098,49 @@ function MetaItem({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
+/** Everything the card page knows that a frame drawn around it needs. */
+export interface CardChrome {
+  /** The one read this page draws from. */
+  screen: CardScreen;
+  /** The cards an agent is inside right now, for a rail's pulsing rows. */
+  running: Set<number>;
+  /** The board moved while this page was open — a chat wrote it as it answered (#243). */
+  onBoardChanged: (change: BoardChange) => void;
+  /** Say something across the top of the page — where a save from the frame reports. */
+  onError: (message: string | null) => void;
+}
+
+export type CardShell = ComponentType<CardChrome & { children: ReactNode }>;
+export type CardStrips = ComponentType<CardChrome & { at: StripPlace }>;
+
+/** No frame at all: the page draws itself and nothing around it. */
+const Bare: CardShell = ({ children }) => <>{children}</>;
+
+// The card page: one card, everything it says, and every control that acts on it.
+//
+// Like the board screen (components/Board.tsx) it draws from one read and acts through one
+// passed-in client, and imports neither the app's window nor `@/app/actions` (#374). What
+// the app puts around it is the `shell` component; a caller that passes none gets the page
+// on its own, and a caller that passes no actions gets the same page read-only.
 export function CardPage({
-  card,
-  boardState,
-  openIds,
-  releases,
-  agent,
-  projectRoot,
-  goalWritten,
-  memoryModules,
-  mockups,
-  plan,
-  diff,
-  desktop,
+  screen,
+  shell,
+  strips,
 }: {
-  card: Card;
-  /** How the board stands (#316). A Cloud board out of reach still draws this card — the
-   *  page says so rather than pretending the copy is current. */
-  boardState: BoardStanding;
-  openIds: number[];
-  releases: string[];
-  agent: AgentInfo;
-  projectRoot: string;
-  /** Whether the header's goal button has anything to open (#128). The header is
-   *  the same on both pages, and direction is worth rereading wherever you are. */
-  goalWritten: boolean;
-  /** The modules the rail's Memory panel offers (#130). The rail is the same on
-   *  every page, so this is too. */
-  memoryModules: MemoryModule[];
-  /** The screens this card's `<Mockup>` tags point at, already read and drawn (#239).
-   *  The card page is the only page that shows them. */
-  mockups: MockupSet;
-  /** What an Implement click would do from here (#307): the branch the change would land
-   *  on, and whether it lands at all. Read on the server, where git is. */
-  plan: DeliveryPlan;
-  /** What the delivery on this card changed (#305) — the one in flight, or the one that
-   *  landed. Read and capped on the server. Null when there is nothing to show, and then
-   *  the delivery block has no **Diff** tab. */
-  diff: DeliveryDiff | null;
-  /** Whether this board is running inside the desktop app (#175). The header and
-   *  the running notice are the same on both pages, so this is too. */
-  desktop: boolean;
+  screen: CardScreen;
+  shell?: CardShell;
+  /** The app's own bands. This page has one place for them: `head`, at the top of the
+   *  paper. */
+  strips?: CardStrips;
 }) {
   const t = useCopy();
   const c = t.card;
+  const actions = useActions();
+  // The screens this card's `<Mockup>` tags point at (#239) — a file on this machine, so it
+  // travels with the machine rather than on the card's read. A caller without one draws the
+  // tags as the plain links they are.
+  const mockups = useMachine()?.mockups ?? {};
+  const { card, openIds, releases, plan, diff, standing: boardState } = screen;
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   // The open-questions panel is answering rather than being read. Held here rather than
@@ -1192,8 +1185,9 @@ export function CardPage({
   // down at a user who did nothing. Gone means straight back to the board, which is where
   // the countdown was going anyway.
   const refresh = useCallback(() => {
-    void cardOnBoardAction(card.id).then((there) => (there ? router.refresh() : router.push("/")));
-  }, [router, card.id]);
+    if (!actions) return;
+    void actions.cardOnBoard(card.id).then((there) => (there ? router.refresh() : router.push("/")));
+  }, [actions, router, card.id]);
   const prevRunning = useRef<Set<string>>(new Set());
   useEffect(() => {
     const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));
@@ -1256,12 +1250,14 @@ export function CardPage({
   const off = busy || held;
   const offUnlessAsked = busy || (held && !answerable);
   const { total, done } = card.todos;
-  const actions = visibleActions(card);
+  const buttons = visibleActions(card);
   // The delivery has ended and its block is still on the page — the one that carries Discard.
   const finishedBlock = !delivery && !!card.finished && !!diff;
   // Whether the toolbar has anything to draw. A free card always does (Edit and Reject are
-  // unconditional); a held one only when the delivery leaves it something to click.
-  const toolbar = !delivery || !!carryOn;
+  // unconditional); a held one only when the delivery leaves it something to click. A page
+  // handed no actions has none of it: every button here writes, and a row of buttons that
+  // cannot is worse than no row (#374).
+  const toolbar = !!actions && (!delivery || !!carryOn);
   // The column this card sits in on the board (components/Queue.tsx) — the phone's way back
   // names where it goes rather than just pointing at it (#357), and carries the key so the
   // board opens on that column instead of on the first page of the swipe.
@@ -1275,7 +1271,7 @@ export function CardPage({
   // not in a copy of it. At phone width that panel is a page pushed over the card, so the
   // stack needs a button to push it. Same test the panel uses to decide it is live.
   const canResolve =
-    actions.has("resolve") &&
+    buttons.has("resolve") &&
     !offUnlessAsked &&
     card.questions.some((q) => parseQuestion(q.text).tag === "user");
   // The stack (#357): every action full width, and everything past the first three folded
@@ -1287,9 +1283,9 @@ export function CardPage({
   // so this is only false while a delivery holds it.
   const hasExtra =
     !!(card.discard && !delivery && !finishedBlock) ||
-    (actions.has("edit") && !delivery) ||
-    (actions.has("archive") && !delivery) ||
-    (actions.has("reject") && !delivery);
+    (buttons.has("edit") && !delivery) ||
+    (buttons.has("archive") && !delivery) ||
+    (buttons.has("reject") && !delivery);
 
   // This card's live Cloud event (#319). Two things read it: the title band's one mark, for
   // the four states no local mark has words for, and the Implement and Resolve clicks —
@@ -1348,14 +1344,16 @@ export function CardPage({
   // the last card in its way has gone. Nothing spawns here, so the dialog closes on a plain
   // re-read rather than on a session to watch.
   const scheduleAgent = async (action: ScheduledAction, notes: string) => {
+    if (!actions) return;
     setDialog(null);
-    const res = await scheduleCardAction(card.id, action, notes, card.revision);
+    const res = await actions.scheduleCard(card.id, action, notes, card.revision);
     setError(res.ok ? null : res.error || c.toolbar.scheduleFailed);
     if (res.ok) router.refresh();
   };
 
   const unschedule = async () => {
-    const res = await unscheduleCardAction(card.id, card.revision);
+    if (!actions) return;
+    const res = await actions.unscheduleCard(card.id, card.revision);
     setError(res.ok ? null : res.error || c.toolbar.unscheduleFailed);
     if (res.ok) router.refresh();
   };
@@ -1366,8 +1364,9 @@ export function CardPage({
   // and shows what the board says now, under the line saying so, instead of quietly
   // overwriting words the user never saw.
   const patchCard = async (id: number, patch: CardPatch) => {
+    if (!actions) return false;
     try {
-      const res = await patchCardAction(id, patch, card.revision);
+      const res = await actions.patchCard(id, patch, card.revision);
       if (!res.ok) {
         setError(res.error || c.toolbar.editFailed);
         if (res.kind === "conflict") router.refresh();
@@ -1382,41 +1381,26 @@ export function CardPage({
     return true;
   };
 
+  const Shell = shell ?? Bare;
+  const Strip = strips;
+  const chrome: CardChrome = { screen, running, onBoardChanged: boardChanged, onError: setError };
+
   return (
     <OpenIdsProvider ids={openIds}>
-      {/* Landing here is what opens the card in the window's rail — every way in
-          is this page, so a board card, a subtask, a `#12` in a body and a
-          pasted link all leave the same row behind, which is also the way back
-          out. The body is the window's paper and scrolls inside it: the rail
-          stays put beside the card it opened. */}
-      <Window
-        projectRoot={projectRoot}
-        openIds={openIds}
-        currentId={card.id}
-        currentTitle={card.title}
-        memoryModules={memoryModules}
-        goalWritten={goalWritten}
-        running={running}
-        onBoardChanged={boardChanged}
-        header={
-          <Header
-            agent={agent}
-            projectRoot={projectRoot}
-            onError={setError}
-            goalWritten={goalWritten}
-            desktop={desktop}
-          />
-        }
-      >
+      {/* Landing here is what opens the card in the frame around it — every way in is this
+          page, so a board card, a subtask, a `#12` in a body and a pasted link all leave the
+          same row behind, which is also the way back out. The body scrolls inside that
+          frame, so a rail beside it stays put with the card it opened. */}
+      <Shell {...chrome}>
         {/* The card page is white paper, and every section on it is one warm sheet lifting
             off it — the bands that annotate the card and the card's own body alike. What is
             left of colour is spent on the two sections that mean something: mint where the
             work is already done, ember where an answer is wanted. An alert is a rung louder
             than either. Depth inside a section is a step DOWN — the run log's well. */}
         <div className="h-full overflow-y-auto bg-nb-paper">
-          {/* Same line as the board's (#175) — a newer app in the app, a pointer
-              to the app in a browser. */}
-          <RunningNotice desktop={desktop} />
+          {/* The app's own line about how this board is being run (#175) — the same one the
+              board screen draws. */}
+          {Strip && <Strip {...chrome} at="head" />}
 
           {/* Every gap on this page is a `gap` — nothing on it carries a margin of its own,
               so no two blocks can drift apart. Two stacks: the title, and everything under
@@ -1568,7 +1552,7 @@ export function CardPage({
                 >
                   {/* Implement — gone while a delivery is in flight, since what ends one is
                       Discard in the block below. */}
-                  {!delivery && actions.has("implement") && (
+                  {!delivery && buttons.has("implement") && (
                     <Button
                       size="sm"
                       className={ACT}
@@ -1617,7 +1601,7 @@ export function CardPage({
                   )}
                   {/* Run (#64) — Implement's place on a recurring card. Same ember CTA:
                       it is the one thing you came to this card to do. */}
-                  {actions.has("run") && !delivery && (
+                  {buttons.has("run") && !delivery && (
                     <Button
                       size="sm"
                       className={ACT}
@@ -1634,7 +1618,7 @@ export function CardPage({
                       and its tooltip names what that run is doing, so a second refine is
                       never a click away. (The server refuses one anyway — the poll behind
                       `busy` can be a second and a half old.) */}
-                  {actions.has("refine") && !delivery && (
+                  {buttons.has("refine") && !delivery && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1668,7 +1652,7 @@ export function CardPage({
                       {moreActions ? c.toolbar.fewer : c.toolbar.more}
                     </Button>
                   )}
-                  {actions.has("edit") && !delivery && (
+                  {buttons.has("edit") && !delivery && (
                     <Button variant="ghost" size="sm" className={EXTRA} disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
                       <FiEdit2 className="text-[15px]" aria-hidden />
                       {c.toolbar.edit}
@@ -1694,13 +1678,13 @@ export function CardPage({
                       {c.toolbar.reviewAgain}
                     </Button>
                   )}
-                  {actions.has("archive") && !delivery && (
+                  {buttons.has("archive") && !delivery && (
                     <Button variant="ghost" size="sm" className={EXTRA} disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
                       <FiArchive className="text-[15px]" aria-hidden />
                       {c.toolbar.archive}
                     </Button>
                   )}
-                  {actions.has("reject") && !delivery && (
+                  {buttons.has("reject") && !delivery && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1792,18 +1776,18 @@ export function CardPage({
                   <ReleaseSelect
                     value={card.release}
                     releases={releases}
-                    disabled={busy}
+                    disabled={busy || !actions}
                     onChange={(v) => patchCard(card.id, { release: v })}
                   />
                 </MetaItem>
               )}
 
               <MetaItem label={c.meta.priority}>
-                <LevelSelect value={card.priority} disabled={busy} onChange={(v) => patchCard(card.id, { priority: v })} />
+                <LevelSelect value={card.priority} disabled={busy || !actions} onChange={(v) => patchCard(card.id, { priority: v })} />
               </MetaItem>
 
               <MetaItem label={c.meta.roi}>
-                <LevelSelect value={card.roi} disabled={busy} onChange={(v) => patchCard(card.id, { roi: v })} />
+                <LevelSelect value={card.roi} disabled={busy || !actions} onChange={(v) => patchCard(card.id, { roi: v })} />
               </MetaItem>
 
               {total > 0 && (
@@ -1835,7 +1819,7 @@ export function CardPage({
                 <MetaItem label={c.meta.cadence}>
                   <CadenceSelect
                     value={card.cadence}
-                    disabled={busy}
+                    disabled={busy || !actions}
                     onChange={(v) => patchCard(card.id, { cadence: v })}
                   />
                 </MetaItem>
@@ -1879,14 +1863,16 @@ export function CardPage({
                   >
                     {scheduleLabel(card)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={unschedule}
-                    className="cursor-pointer text-[12px] font-[700] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-ink"
-                    title={c.meta.unscheduleHint}
-                  >
-                    {c.meta.unschedule}
-                  </button>
+                  {actions && (
+                    <button
+                      type="button"
+                      onClick={unschedule}
+                      className="cursor-pointer text-[12px] font-[700] text-nb-ink-soft underline decoration-dotted underline-offset-2 hover:text-nb-ink"
+                      title={c.meta.unscheduleHint}
+                    >
+                      {c.meta.unschedule}
+                    </button>
+                  )}
                 </MetaItem>
               )}
 
@@ -1972,7 +1958,7 @@ export function CardPage({
               open={deciding}
               onOpen={() => setDeciding(true)}
               onClose={closeDeciding}
-              canDecide={actions.has("resolve") && !offUnlessAsked}
+              canDecide={!!actions && buttons.has("resolve") && !offUnlessAsked}
               disabledWhy={held ? heldWhy : busy && liveSession ? c.toolbar.alreadyRunning(t.runs.verb[liveSession.action]) : undefined}
               onRun={runAgent}
             />
@@ -2004,7 +1990,7 @@ export function CardPage({
             />
           )}
         </div>
-      </Window>
+      </Shell>
     </OpenIdsProvider>
   );
 }

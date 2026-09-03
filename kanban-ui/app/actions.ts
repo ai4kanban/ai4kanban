@@ -20,9 +20,8 @@ import {
   settingSaveError,
 } from "@/lib/agent";
 import {
+  boardScreen,
   cardStillThere,
-  readBoard,
-  readBoardState,
   refreshBoard,
   readGoalText,
   readMetrics,
@@ -122,10 +121,9 @@ import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/ski
 import { setSpecAgentEnabled, setSpecAgentSetting, specAgents } from "@/lib/spec-agents";
 import { testConnection } from "@/lib/test-connection";
 import { isLanguage } from "@/lib/types";
-import type { BoardStanding } from "@/lib/board";
 import type {
   AgentInfo,
-  Board,
+  BoardScreen,
   BulkReleaseResult,
   CardPatch,
   CardRef,
@@ -159,31 +157,13 @@ import type {
   WriteResult,
 } from "@/lib/types";
 
-/** The board, or the one line saying why it can't be read — a board whose copy of the
- *  rules is missing or too old. Returned as a value rather than thrown: a thrown error
- *  from a server action reaches the browser redacted, and "an error occurred" is exactly
- *  the empty answer this is here to avoid. */
-export type BoardResult = ({ board: Board; error: null } | { board: null; error: string }) & {
-  /** How the board stands (#316): a folder here, or a copy of a Cloud workspace that may be
-   *  out of reach. Read beside the board so one round trip draws both. */
-  state?: BoardStanding;
-};
-
-// The state is read AFTER the board, never before: a read taken while offline is also the
-// attempt that brings the board back live (#316), so asking first would answer with the
-// standing that read just changed — and the strip would still say offline over a board that
-// had come back, until something else happened to read it again.
-export async function getBoard(): Promise<BoardResult> {
-  try {
-    const board = await readBoard();
-    return { board, error: null, state: await readBoardState() };
-  } catch (e) {
-    return {
-      board: null,
-      error: e instanceof Error ? e.message : String(e),
-      state: await readBoardState(),
-    };
-  }
+/** The board screen's one read again (#374), after something wrote the board.
+ *
+ *  It carries the reason a board could not be read rather than throwing it: a thrown error
+ *  from a server action reaches the browser redacted, and "an error occurred" is exactly the
+ *  empty answer the strip is here to avoid. */
+export async function getBoard(): Promise<BoardScreen> {
+  return boardScreen();
 }
 
 /**

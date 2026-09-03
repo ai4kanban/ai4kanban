@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { setLanguageAction } from "@/app/actions";
+import { AppActions } from "@/components/app-actions";
 import { NavEdge } from "@/components/desktop";
 import { getCopy } from "@/i18n";
 import { LanguageProvider } from "@/components/language";
@@ -66,7 +68,11 @@ export default async function RootLayout({
       <body className={`font-sans antialiased${inset ? " a4k-inset" : ""}`}>
         {/* Every screen reads the language from here with `useLanguage()`, so none of them
             takes it as a prop and a change re-renders the app without a reload. */}
-        <LanguageProvider initial={language}>
+        <LanguageProvider initial={language} onSave={setLanguageAction}>
+        {/* What every screen the app serves can DO (#374). Here rather than on the two board
+            pages: the runs panel in the top row acts through it too, and that row is on the
+            memory, archive and mockup pages as well. */}
+        <AppActions>
           {/* The window has to be movable from every page, including the ones
               with no header — "there is no board here" is a whole screen with no
               top row on it. So the strip, not the header, is what makes the top
@@ -79,6 +85,7 @@ export default async function RootLayout({
               browser draws its own. */}
           {desktop && <NavEdge />}
           {children}
+        </AppActions>
         </LanguageProvider>
       </body>
     </html>

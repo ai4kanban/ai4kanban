@@ -13,6 +13,8 @@ import { localBoard } from './local'
 import { leaseAnd } from './ops'
 
 export * from './contract'
+// The one read each screen makes, over the operations above (#374).
+export * from './screen'
 export { envelope, moveTarget, newOpId, opConflict, opOk, opRefused, leaseAnd } from './ops'
 export { boardRevision, cardRevision, revisionOf } from './revision'
 // Which board a checkout opens, how it stands, and the one re-read that is the user asking.

@@ -9,13 +9,13 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiPlay, FiZap } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
-import { resumeSessionAction, stopSessionAction } from "@/app/actions";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
+import { useActions } from "@/lib/screen";
 import { parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
 import {
@@ -531,14 +531,15 @@ export function ResumeButton({
   onResumed?: (sessionId: string) => void;
 }) {
   const c = useCopy().runs.resume;
+  const actions = useActions();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const resume = async () => {
-    if (busy) return;
+    if (busy || !actions) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await resumeSessionAction(sessionId);
+      const res = await actions.resumeSession(sessionId);
       // A refusal is the registry's own words — the card is locked by another
       // run, or this one aged out of the kept-30 window. Say it and leave the
       // button alive to try again.
@@ -550,6 +551,9 @@ export function ResumeButton({
       setBusy(false);
     }
   };
+  // Nothing to resume with (#374): a screen handed no actions draws the log and no control
+  // over the run behind it.
+  if (!actions) return null;
   return (
     <span className="flex shrink-0 items-center gap-2">
       {error && <span className="text-[11px] text-nb-peach-ink">{error}</span>}
@@ -588,6 +592,7 @@ export function ResumeButton({
 function StopButton({ sessionId }: { sessionId: string }) {
   const t = useCopy();
   const c = t.runs.stop;
+  const actions = useActions();
   const [open, setOpen] = useState(false);
   const [asked, setAsked] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -616,11 +621,12 @@ function StopButton({ sessionId }: { sessionId: string }) {
   }, [open]);
 
   const stop = async () => {
+    if (!actions) return;
     setOpen(false);
     setAsked(true);
     setError(null);
     try {
-      const res = await stopSessionAction(sessionId);
+      const res = await actions.stopSession(sessionId);
       // A refusal is the registry's own words — the run aged out of the kept-30
       // window. Say it and let the button be pressed again.
       if (!res.ok) {
@@ -633,6 +639,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
     }
   };
 
+  if (!actions) return null;
   if (asked) {
     return <span className="text-[11px] text-nb-ink-soft">{c.stopping}</span>;
   }

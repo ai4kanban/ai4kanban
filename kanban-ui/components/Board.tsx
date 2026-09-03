@@ -1,113 +1,98 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  closeReleaseAction,
-  createReleaseAction,
-  dropReleaseAction,
-  getBoard,
-  planReleaseAction,
-  setCardsReleaseAction,
-  setReleaseGoalAction,
-  startSetupRunAction,
-} from "@/app/actions";
+// The board screen: the columns, and the bands above and below them.
+//
+// It draws from one read (`BoardScreen`, lib/format/board/screen.ts) and acts through one
+// passed-in client (`ScreenActions`, lib/screen.ts). Nothing here reaches a filesystem, git
+// or the coding agent, and nothing here imports the app's own window — so the same screen is
+// served by the machine holding `docs/kanban/` and by something else entirely (#374).
+//
+// What the app puts around it arrives as two components:
+//
+//   shell    drawn AROUND the screen — the app's window and top row. It may also draw
+//            something else entirely instead of the board, which is how the guided first run
+//            takes the whole screen.
+//   strips   the app's own bands, drawn INSIDE the body at the three places they belong:
+//            `head` above everything, `notice` under the error strip, `foot` under the
+//            columns. They are the app's because each one leads somewhere only this machine
+//            has — the download page, the goal editor, the setup run.
+//
+// A caller that passes neither gets the board and nothing else. A caller that passes no
+// actions gets the same board, read-only: every control that would write is gone rather
+// than dead.
+
+import { type ComponentType, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import { filterColumns, hasOwnCards, useReleasePick } from "@/lib/release-pick";
-import type { BoardStanding } from "@/lib/board";
-import type { AgentInfo, Board, SessionView } from "@/lib/types";
+import { filterColumns, hasOwnCards, useReleasePick, type ReleasePick } from "@/lib/release-pick";
+import { useActions, type ReleaseClosed, type ReleaseMade, type StartAnswer, type StripPlace } from "@/lib/screen";
+import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
 import { BulkReleaseBar } from "./BulkReleaseBar";
-import { RunningNotice } from "./desktop";
-import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
-import {
-  GoalNotice,
-  leftSetup,
-  needsFirstRun,
-  SetupFlow,
-  SetupNotice,
-  setupHasQuestionsLeft,
-} from "./Setup";
 import { QueueView } from "./Queue";
-import { Window } from "./Window";
 import { SessionLogOverlay, stoppedShort } from "./agent-shared";
 import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
-export function BoardView({
-  initialBoard,
-  initialError,
-  initialState,
-  agent: initialAgent,
-  projectRoot,
-  setupInstruction,
-  skillInstalled,
-  desktop,
+/** Everything the board screen knows that something drawn around it needs. The app's window
+ *  hands most of it to its top row; a caller with a different frame takes what it wants. */
+export interface BoardChrome {
+  /** The board as it now reads — the server's first paint until a write re-reads it. */
+  screen: BoardScreen;
+  /** Which release the columns are showing, and the way to change it (#104). */
+  release: ReleasePick;
+  onReleaseChange: (r: ReleasePick) => void;
+  onCreateRelease: (id: string, fill: boolean, goal: string) => Promise<ReleaseMade>;
+  onPlanRelease: (id: string) => Promise<StartAnswer>;
+  onDropRelease: (id: string) => Promise<WriteResult>;
+  onCloseRelease: (id: string) => Promise<ReleaseClosed>;
+  onSetReleaseGoal: (id: string, goal: string) => Promise<WriteResult>;
+  /** Say something across the top of the board — where a save from the chrome reports. */
+  onError: (message: string | null) => void;
+  /** Every run this board can see, and the cards an agent is inside right now. */
+  sessions: SessionView[];
+  running: Set<number>;
+  /** The setup run going right now, from this tab or another (#173), and the newest one
+   *  when it stopped short and none has been started since (#230). */
+  setupRunId: string | null;
+  failedSetupRunId: string | null;
+  /** Read the board again — what every write here already does for itself. */
+  refresh: () => Promise<void>;
+  /** Wake the runs poll, and take on a run this tab caused but did not start. */
+  kick: () => void;
+  watch: (sessionId: string, label: string) => void;
+}
+
+export type BoardShell = ComponentType<BoardChrome & { children: ReactNode }>;
+export type BoardStrips = ComponentType<BoardChrome & { at: StripPlace }>;
+
+/** No frame at all: the board draws itself and nothing around it. */
+const Bare: BoardShell = ({ children }) => <>{children}</>;
+
+export function Board({
+  screen: first,
+  shell,
+  strips,
 }: {
-  initialBoard: Board | null;
-  initialError: string | null;
-  /** How the board stands (#316): a folder here, or a copy of a Cloud workspace and whether
-   *  that workspace is out of reach. Read on the server so the first paint already says so. */
-  initialState: BoardStanding | null;
-  agent: AgentInfo;
-  projectRoot: string;
-  /** The line a coding agent is handed to finish setup. It comes from the server
-   *  (lib/agent.ts reads the filesystem, which a client can't import). */
-  setupInstruction: string;
-  /** Whether a coding agent can see this board at all (#174). A board no longer
-   *  arrives with the skill, so the line above only works once someone has added
-   *  it — every place that hands that line over says so when it isn't there. */
-  skillInstalled: boolean;
-  /** Whether this board is running inside the desktop app (#175). Read on the
-   *  server so the first paint is already right. */
-  desktop: boolean;
+  /** The one read this screen draws from — the server's, for the first paint. */
+  screen: BoardScreen;
+  shell?: BoardShell;
+  strips?: BoardStrips;
 }) {
   const t = useCopy();
   const c = t.board;
-  const [board, setBoard] = useState<Board | null>(initialBoard);
-  // Which agent runs this board. It starts as the server's first paint and moves
-  // when a screen here answers that question — the guided run's agent step, or the
-  // Configuration dialog. What the runs panel names turns on it, so it can't be a
-  // page-load value.
-  const [agent, setAgent] = useState<AgentInfo>(initialAgent);
-  const [error, setError] = useState<string | null>(initialError);
-  // Cloud out of reach is not an error: the board reads, and what the strip says is that
-  // this is the copy and how old it is. It moves with every read, so a board that came back
-  // live clears it with nothing to press (#316).
-  const [state, setState] = useState<BoardStanding | null>(initialState);
-  // Has the user stepped out of the guided first run to look at the board (#172)?
-  // `null` until the browser has been asked — sessionStorage doesn't exist during
-  // SSR, so the server and the first client render have to agree on the board, and
-  // the flow can only take over once that answer is in.
-  const [leftFlow, setLeftFlow] = useState<boolean | null>(null);
-  // Is the guided run on screen? It opens itself while setup still has questions,
-  // and from then on only the user closes it — the flow's own last screen comes
-  // after the last box ticks, and a board that took itself back the moment that
-  // happened would snatch it away.
-  const [inFlow, setInFlow] = useState(false);
-  useEffect(() => setLeftFlow(leftSetup.read()), []);
-  // The flow opens itself while setup has questions left and the user hasn't
-  // stepped out of it this session; from there `inFlow` holds it open.
-  const setupAsks = leftFlow === false && Boolean(board?.setup) && needsFirstRun(board?.setup ?? null);
-  useEffect(() => {
-    if (setupAsks) setInFlow(true);
-  }, [setupAsks]);
-  const resumeSetup = useCallback(() => {
-    leftSetup.set(false);
-    setLeftFlow(false);
-    setInFlow(true);
-  }, []);
-  const exitSetup = useCallback(() => {
-    leftSetup.set(true);
-    setLeftFlow(true);
-    setInFlow(false);
-  }, []);
+  const actions = useActions();
+  const [screen, setScreen] = useState<BoardScreen>(first);
+  const board = screen.board;
+  // Whatever the last read, or a control in the chrome, had to say. It starts as the read's
+  // own reason and moves with every re-read.
+  const [error, setError] = useState<string | null>(first.error);
   // The run whose log is open in the overlay, opened by clicking a card's
   // running badge. The board has no inline session log of its own.
   const [logSessionId, setLogSessionId] = useState<string | null>(null);
   const openLog = useSessionLog(logSessionId);
-  // Which release the board shows (#104). Remembered per project in the browser;
+  // Which release the board shows (#104). Remembered per board in the browser;
   // No release is the default — the cards not promised to a version yet.
-  const [release, setRelease] = useReleasePick(projectRoot, board?.releases ?? []);
+  const [release, setRelease] = useReleasePick(screen.id, board?.releases ?? []);
   // The cards the queue splits — filtered once here, so what the pick hides is
   // decided in one place and every column below draws from the same set.
   const columns = useMemo(
@@ -170,15 +155,15 @@ export function BoardView({
   // answer the strip is here to avoid. The last board that DID read stays on screen under
   // the message, so a rules folder deleted mid-session doesn't blank the page.
   const refresh = useCallback(async () => {
+    if (!actions) return;
     try {
-      const res = await getBoard();
-      if (res.board) setBoard(res.board);
-      setError(res.error);
-      setState(res.state ?? null);
+      const next = await actions.readBoard();
+      setScreen((was) => (next.board ? next : { ...next, board: was.board }));
+      setError(next.error);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, []);
+  }, [actions]);
 
   // The board starts no sessions itself (Create task lives in the header,
   // per-card actions on the card page) except the one that plans a release
@@ -218,12 +203,13 @@ export function BoardView({
   // board rather than back into a dialog that has already closed on a version
   // that does exist.
   const makeRelease = useCallback(
-    async (raw: string, fill: boolean, goal: string) => {
+    async (raw: string, fill: boolean, goal: string): Promise<ReleaseMade> => {
+      if (!actions) return { ok: false };
       // Trimmed once, here, so the version the pick moves to, the version the
       // planning note is keyed on, and the version the run records as its input
       // are all the same string — the server trims as it writes either way.
       const id = raw.trim();
-      const res = await createReleaseAction(id, fill, goal);
+      const res = await actions.createRelease(id, fill, goal);
       if (!res.ok) return res;
       await refresh();
       setRelease(id);
@@ -231,7 +217,7 @@ export function BoardView({
       if (res.planError) setError(c.notice.planNotStarted(id, res.planError));
       return res;
     },
-    [refresh, setRelease, takeOnPlan, c],
+    [actions, refresh, setRelease, takeOnPlan, c],
   );
 
   // Fill a release that already exists from its goal (#165) — the ⋯ menu's entry.
@@ -239,12 +225,13 @@ export function BoardView({
   // one place that also says the release is being planned and re-reads the board
   // when it ends.
   const planRelease = useCallback(
-    async (id: string) => {
-      const res = await planReleaseAction(id);
+    async (id: string): Promise<StartAnswer> => {
+      if (!actions) return { ok: false };
+      const res = await actions.planRelease(id);
       if (res.ok && res.sessionId) takeOnPlan(id, res.sessionId);
       return res;
     },
-    [takeOnPlan],
+    [actions, takeOnPlan],
   );
 
   // A plan run on the release on screen, from any tab — a run started in a second
@@ -269,11 +256,10 @@ export function BoardView({
     if (seen && seen.status !== "running") setPlanRun(null);
   }, [sessions, planRun]);
 
-  // Finishing setup (#173) — the run started from the guided run's closing screen
-  // and from the setup strip. It is one run at a time across the whole board, so
-  // the live one is looked up from the shared poll rather than remembered here:
-  // a run started in another tab, or from a terminal, holds the offer down in
-  // this one too.
+  // Finishing setup (#173) — the run the app's own strips start. It is one run at a time
+  // across the whole board, so the live one is looked up from the shared poll rather than
+  // remembered anywhere: a run started in another tab, or from a terminal, holds the offer
+  // down in this one too.
   const setupRun = sessions.find((r) => r.status === "running" && r.action === "setup");
   const setupRunId = setupRun?.sessionId ?? null;
   // …and the newest setup run when it stopped short (#230), so the strip and the
@@ -286,13 +272,6 @@ export function BoardView({
     undefined,
   );
   const failedSetupRunId = stoppedShort(lastSetupRun) ? (lastSetupRun?.sessionId ?? null) : null;
-  const finishSetup = useCallback(async () => {
-    const res = await startSetupRunAction();
-    // Take it on as this tab's, so the poll wakes at once and the run joins the
-    // panel in the same moment the strip says it started.
-    if (res.ok && res.sessionId) watch(res.sessionId, "finish setup");
-    return res;
-  }, [watch]);
 
   // A setup run writes the board as it goes — a box ticked, the module map, the
   // first cards — so while one is going the board is re-read on every poll rather
@@ -312,8 +291,9 @@ export function BoardView({
   // being shown drops off it.
   const moveSelected = useCallback(
     async (target: string) => {
+      if (!actions) return;
       const ids = [...selected];
-      const res = await setCardsReleaseAction(ids, target);
+      const res = await actions.setCardsRelease(ids, target);
       setMoveError(res.error ?? null);
       setFailed(res.failed);
       if (!res.error) {
@@ -322,7 +302,7 @@ export function BoardView({
         await refresh();
       }
     },
-    [selected, refresh],
+    [actions, selected, refresh],
   );
 
   // Give up on a release from the header (#131). The pick moves back to No
@@ -332,14 +312,15 @@ export function BoardView({
   // release and the version is off the list, so the screen the user lands on is
   // the one now holding the cards that came back.
   const dropRelease = useCallback(
-    async (id: string) => {
-      const res = await dropReleaseAction(id);
+    async (id: string): Promise<WriteResult> => {
+      if (!actions) return { ok: false };
+      const res = await actions.dropRelease(id);
       if (!res.ok) return res;
       setRelease(null);
       await refresh();
       return res;
     },
-    [refresh, setRelease],
+    [actions, refresh, setRelease],
   );
 
   // Close a shipped release from the header (#136). The pick moves the same way
@@ -351,8 +332,9 @@ export function BoardView({
   // could not start, or that stopped short, is said across the top of the board
   // instead, and it names the command that writes the changelog after all.
   const closeRelease = useCallback(
-    async (id: string) => {
-      const res = await closeReleaseAction(id);
+    async (id: string): Promise<ReleaseClosed> => {
+      if (!actions) return { ok: false };
+      const res = await actions.closeRelease(id);
       if (!res.ok) return res;
       setRelease(null);
       await refresh();
@@ -363,7 +345,7 @@ export function BoardView({
       if (res.changelogError) setChangelogGone({ release: id, why: res.changelogError });
       return res;
     },
-    [refresh, setRelease, watch],
+    [actions, refresh, setRelease, watch],
   );
 
   // The changelog run this tab started, watched to its end. The close is over and
@@ -396,12 +378,13 @@ export function BoardView({
   // file changes, so the pick stays where it is — but the board is re-read, since
   // the dropdown shows the goal under the version.
   const setGoal = useCallback(
-    async (id: string, goal: string) => {
-      const res = await setReleaseGoalAction(id, goal);
+    async (id: string, goal: string): Promise<WriteResult> => {
+      if (!actions) return { ok: false };
+      const res = await actions.setReleaseGoal(id, goal);
       if (res.ok) await refresh();
       return res;
     },
-    [refresh],
+    [actions, refresh],
   );
 
   // Re-read the board whenever any session finishes (from this tab or another),
@@ -422,86 +405,39 @@ export function BoardView({
   // focus is always correct regardless of what the diff saw.
   useOnTabFocus(refresh);
 
-  // A chat wrote the board while it was answering (#243) — a card written, moved
-  // into a release, archived. The chat's own poll notices within a few hundred
-  // milliseconds, so the columns catch up while the reply is still arriving. The
-  // runs poll is woken too: the same message may have started a run, and it
-  // belongs in the panel now rather than at the next idle tick.
-  const boardChanged = useCallback(() => {
-    void refresh();
-    kick();
-  }, [refresh, kick]);
-
-  // A board whose setup still has questions of its own opens on the guided run
-  // instead of the columns — the questions come first, and a board being asked
-  // about is not yet a board to work in. It draws the window's own top row (in
-  // the app that row is the title bar the traffic lights sit in), which is why
-  // it gets the header's props too. Stepping out of it shows the columns, with
-  // the way back on them.
-  if (board?.setup && leftFlow === false && inFlow) {
-    return (
-      <SetupFlow
-        setup={board.setup}
-        agent={agent}
-        projectRoot={projectRoot}
-        goalWritten={board.goalWritten ?? false}
-        desktop={desktop}
-        setupInstruction={setupInstruction}
-        skillInstalled={skillInstalled}
-        setupRunId={setupRunId}
-        failedSetupRunId={failedSetupRunId}
-        onFinishSetup={finishSetup}
-        onAgentChanged={setAgent}
-        onSaved={refresh}
-        onExit={exitSetup}
-      />
-    );
-  }
+  const chrome: BoardChrome = {
+    screen,
+    release,
+    onReleaseChange: setRelease,
+    onCreateRelease: makeRelease,
+    onPlanRelease: planRelease,
+    onDropRelease: dropRelease,
+    onCloseRelease: closeRelease,
+    onSetReleaseGoal: setGoal,
+    onError: setError,
+    sessions,
+    running: runningCardIds(sessions),
+    setupRunId,
+    failedSetupRunId,
+    refresh,
+    kick,
+    watch,
+  };
+  const Shell = shell ?? Bare;
+  const Strip = strips;
+  const state = screen.standing;
 
   return (
     <OpenIdsProvider ids={board?.openIds ?? []}>
-      {/* The board is what the rail's All cards row shows — the window's own
-          first screen, so it passes no current card and the rail leaves that row
-          lit. Everything below is the body: it sits on the window's paper, and
-          scrolls inside it rather than moving the chrome. */}
-      <Window
-        projectRoot={projectRoot}
-        openIds={board?.openIds ?? []}
-        memoryModules={board?.memoryModules ?? []}
-        goalWritten={board?.goalWritten ?? false}
-        running={runningCardIds(sessions)}
-        onBoardChanged={boardChanged}
-        header={
-          <Header
-            agent={agent}
-            projectRoot={projectRoot}
-            onError={setError}
-            releases={board?.releases ?? []}
-            releaseGoals={board?.releaseGoals ?? {}}
-            releaseCounts={board?.releaseCounts ?? {}}
-            release={release}
-            onReleaseChange={setRelease}
-            onCreateRelease={makeRelease}
-            onPlanRelease={planRelease}
-            onDropRelease={dropRelease}
-            onCloseRelease={closeRelease}
-            onSetReleaseGoal={setGoal}
-            // A card written while a version is on screen ships in that version.
-            createRelease={release}
-            goalWritten={board?.goalWritten ?? false}
-            desktop={desktop}
-          />
-        }
-      >
+      <Shell {...chrome}>
         <div className="flex h-full flex-col overflow-hidden">
-          {/* How this board is being run, when that is worth saying: a newer app
-              inside the app, a pointer to the app in a browser (#175). Above the
-              error strip because it is about the whole session, not this action. */}
-          <RunningNotice desktop={desktop} />
+          {/* The app's own band about how this board is being run (#175). Above the error
+              strip because it is about the whole session, not this action. */}
+          {Strip && <Strip {...chrome} at="head" />}
 
           {/* Cloud out of reach (#316). Above the error strip and separate from it: the
               board on screen is real, it is simply the copy — and a save is what says no. */}
-          {state?.offline && (
+          {state.offline && (
             <div className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6" style={{ background: "var(--color-nb-sky-soft)" }}>
               {state.readWhen ? c.notice.offline(state.readWhen) : c.notice.offlineNeverRead}
             </div>
@@ -517,7 +453,7 @@ export function BoardView({
               have its goal judged weak again, and that is not setup. It drops out
               with the next board refresh — the same one that already runs on
               session finish and tab focus — so it moves as the files do. */}
-          {board && !board.setup && board.goalNeedsWork && <GoalNotice onSaved={refresh} />}
+          {Strip && board && !board.setup && board.goalNeedsWork && <Strip {...chrome} at="notice" />}
 
           {!board && !error && (
             <div className="p-10 text-nb-ink-soft">{c.reading}</div>
@@ -595,7 +531,7 @@ export function BoardView({
           {/* Only while cards are ticked, or while the last move has something left
               to say (#114). With nothing ticked the board is exactly what it was
               before this existed. Above the columns, like the note above it. */}
-          {board && (selected.size > 0 || moveError || failed.length > 0) && (
+          {board && actions && (selected.size > 0 || moveError || failed.length > 0) && (
             <BulkReleaseBar
               count={selected.size}
               releases={board.releases}
@@ -612,26 +548,15 @@ export function BoardView({
               sessions={sessions}
               onOpenLog={setLogSessionId}
               selected={selected}
-              onSelect={toggleSelected}
+              onSelect={actions ? toggleSelected : undefined}
             />
           )}
 
-          {/* Setup left unfinished (#172) — the way back into the guided run for
-              someone who stepped out of it, and, once its questions are all
-              answered, the offer to finish the rest here (#173). It sits under the
-              columns rather than over them: the cards are what the board is for, and
-              a strip this wide at the top pushes them off the first screen. Outside
-              the scrolling row, so it stays put as the columns move. */}
-          {board?.setup && (
-            <SetupNotice
-              setup={board.setup}
-              skillInstalled={skillInstalled}
-              setupRunId={setupRunId}
-              failedSetupRunId={failedSetupRunId}
-              onFinishSetup={finishSetup}
-              onResume={setupHasQuestionsLeft(board.setup) ? resumeSetup : undefined}
-            />
-          )}
+          {/* Setup left unfinished (#172, #173) — the app's own strip, under the columns
+              rather than over them: the cards are what the board is for, and a strip this
+              wide at the top pushes them off the first screen. Outside the scrolling row,
+              so it stays put as the columns move. */}
+          {Strip && board?.setup && <Strip {...chrome} at="foot" />}
 
           {logSessionId && (
             <SessionLogOverlay
@@ -643,7 +568,7 @@ export function BoardView({
             />
           )}
         </div>
-      </Window>
+      </Shell>
     </OpenIdsProvider>
   );
 }

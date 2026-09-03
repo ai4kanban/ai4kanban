@@ -21,25 +21,17 @@
 // It draws two ends as carefully as the list: nothing waiting, and notifications off for
 // this board. Both say what would fill it, and the off state names where to turn it on.
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FiBell, FiBellOff, FiCheck, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
 import { boardNotificationsAction, watchReleaseAction } from "@/app/actions";
 import type { NotificationsCopy } from "@/i18n/notifications/types";
 import { useCopy } from "@/i18n/use-copy";
+import { useBell } from "@/lib/card-event";
 import type { BellRail } from "@/lib/bell-rail";
 import type { NotificationRow } from "@/lib/notifications";
 import { ALL_RELEASES } from "@/lib/types";
 import { Button } from "./button";
 import { HAIRLINE, TOOL_BTN } from "./chrome";
-
-// The rail's state belongs to the window and the button is in the top row, which the page
-// builds. Context is what puts the two on one state without every page threading it through
-// its header — the same seam the chat rail sits behind.
-const BellContext = createContext<BellRail | null>(null);
-
-export function BellProvider({ rail, children }: { rail: BellRail; children: React.ReactNode }) {
-  return <BellContext.Provider value={rail}>{children}</BellContext.Provider>;
-}
 
 /**
  * The tool cluster's first segment: the bell, and its unread count beside it.
@@ -50,7 +42,7 @@ export function BellProvider({ rail, children }: { rail: BellRail; children: Rea
  */
 export function BellButton() {
   const c = useCopy().notifications;
-  const rail = useContext(BellContext);
+  const rail = useBell();
   if (!rail) return null;
   const { unread } = rail.center;
   const lit = unread > 0;
@@ -341,21 +333,5 @@ function Empty({
         </span>
       )}
     </div>
-  );
-}
-
-/**
- * The live Cloud event on one of THIS board's cards, or null.
- *
- * Matched on the board's own Cloud id as well as the task number: the bell carries every
- * enabled board, and two boards can each hold a card #12.
- */
-export function useCardEvent(taskId: number): NotificationRow | null {
-  const rail = useContext(BellContext);
-  if (!rail) return null;
-  const { center } = rail;
-  if (!center.boardId) return null;
-  return (
-    center.rows.find((row) => row.boardId === center.boardId && row.taskId === taskId) ?? null
   );
 }

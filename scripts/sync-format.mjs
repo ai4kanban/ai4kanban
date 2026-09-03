@@ -65,6 +65,10 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //   machine/types            the languages the app works in (#334) — each one's own name
 //                            and its `<html lang>` tag. The switcher draws them and the
 //                            layout tags the document with them.
+//   board/screen             the one read the board screen makes and the one a card page
+//                            makes (#374), over the operations above. The server fills
+//                            them and the screens draw from them, so both sides name one
+//                            shape and neither screen assembles a read of its own.
 const SHARED = [
   "cadence.ts",
   "yaml.ts",
@@ -77,6 +81,7 @@ const SHARED = [
   "view/types.ts",
   "view/rules.ts",
   "board/contract.ts",
+  "board/screen.ts",
 ];
 
 const BANNER = (name) =>

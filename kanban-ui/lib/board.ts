@@ -1,16 +1,22 @@
 import { machineCopy } from "./language";
 import { boardRules, NoRulesError, type BoardState } from "./cli";
+import { repoRoot } from "./paths";
+import { LOCAL_STANDING } from "./types";
 import type {
   ArchiveList,
   ArchivedCardFile,
   Board,
+  BoardScreen,
+  BoardStanding,
   Card,
   CardRef,
+  CardScreen,
   DeliveryDiff,
   DeliveryPlan,
   MemoryFile,
   MetricsResult,
   ScoreResult,
+  ScreenBoard,
   SetupDraft,
   SetupState,
 } from "./types";
@@ -38,25 +44,70 @@ export async function readBoard(): Promise<Board> {
 /** How the board stands (#316): a folder here, or a copy of a Cloud workspace — and if so,
  *  whether Cloud is out of reach and when the copy was last read.
  *
- *  `readWhen` is that time already spelled, by the board's own rules: the strip renders on
- *  the server for the first paint and again in the browser, so the wording has to be one
- *  answer rather than each side's locale.
- *
  *  A board with no rules to ask, and one running rules older than Cloud boards, is Local:
  *  the strip that draws from this has nothing to say about either. */
-export type BoardStanding = BoardState & { readWhen: string };
-
 export async function readBoardState(): Promise<BoardStanding> {
   try {
     const rules = await boardRules();
-    const state = rules.boardState?.() ?? LOCAL_BOARD;
+    const state: BoardState = rules.boardState?.() ?? LOCAL_STANDING;
     return { ...state, readWhen: state.readAt ? (rules.boardCopyReadWhen?.(state.readAt) ?? state.readAt) : "" };
   } catch {
-    return { ...LOCAL_BOARD, readWhen: "" };
+    return LOCAL_STANDING;
   }
 }
 
-const LOCAL_BOARD: BoardState = { kind: "local", offline: false, readAt: "", workspaceName: "" };
+// --- the one read each screen makes (#374) -----------------------------------
+// `BoardScreen` and `CardScreen` (lib/format/board/screen.ts) name what the board screen and
+// a card page draw. These two are this machine's way of filling them; a board somewhere else
+// fills the same shapes from its own read, and neither screen assembles one of its own.
+//
+// Nothing machine-only is in them. The coding agent, the repository root, the setup
+// instruction, the skill state and a mockup on disk are read beside these, by the app shell
+// that draws the controls needing them.
+
+/** Which board this is, and how it stands — the head of both reads. */
+async function screenBoard(): Promise<ScreenBoard> {
+  return { id: repoRoot(), standing: await readBoardState() };
+}
+
+/** Everything the board screen draws. A board whose rules are missing or too old comes back
+ *  with its reason attached rather than thrown: the screen says so with the columns it had
+ *  still under the message. */
+export async function boardScreen(): Promise<BoardScreen> {
+  let board: Board | null = null;
+  let error: string | null = null;
+  try {
+    board = await readBoard();
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
+  // The standing is read AFTER the board: a read taken while offline is also the attempt
+  // that brings the board back live, so asking first would say the board is out of reach
+  // when that very read fetched it.
+  return { ...(await screenBoard()), board, error };
+}
+
+/** Everything a card page draws, or null when the board holds no card with that id. */
+export async function cardScreen(id: number): Promise<CardScreen | null> {
+  const card = await findCard(id);
+  if (!card) return null;
+  const board = await readBoard();
+  const [plan, diff, head] = await Promise.all([
+    deliveryPlan(),
+    deliveryDiff(card.delivery?.id ?? card.finished?.id),
+    screenBoard(),
+  ]);
+  return {
+    ...head,
+    card,
+    openIds: board.openIds,
+    releases: board.releases,
+    goalWritten: board.goalWritten,
+    memoryModules: board.memoryModules,
+    plan,
+    diff,
+  };
+}
 
 /** Read the whole workspace again — the user asking, never a timer. A Local board answers
  *  `ok` and does nothing, so no caller has to know which kind it is on. */

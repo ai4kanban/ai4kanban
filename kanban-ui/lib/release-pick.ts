@@ -19,7 +19,7 @@ const BLOCKERS = "blockers";
 
 const PREFIX = "kanban-ui.release:";
 
-// The picked release lives in the browser, keyed by project root: it changes
+// The picked release lives in the browser, keyed by the board it belongs to: it changes
 // what one tab is looking at, not what the board says. Nothing is written to the files, so a pick never reaches
 // the agent — background refining still works the whole board and the daily
 // progress chart still counts every card.
@@ -34,10 +34,12 @@ const PREFIX = "kanban-ui.release:";
 // board behind a version that is gone. That is also where a close or a drop
 // leaves the board: the cards it let go are exactly the ones No release shows.
 export function useReleasePick(
-  projectRoot: string,
+  /** What this board is called (`BoardScreen.id`) — the checkout it lives in, or the
+   *  workspace it is a copy of. */
+  boardId: string,
   releases: string[],
 ): [ReleasePick, (r: ReleasePick) => void] {
-  const storageKey = PREFIX + projectRoot;
+  const storageKey = PREFIX + boardId;
   const [pick, setPick] = useState<ReleasePick>(null);
 
   useEffect(() => {
