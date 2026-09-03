@@ -19,7 +19,7 @@ import {
   harnessByName,
   namesFlag,
 } from './harnesses'
-import { FLOWS } from './flows'
+import { FLOWS, flowPath } from './flows'
 import { commandBinary, pathLookup } from './installed'
 import { languageNote } from './language'
 import {
@@ -686,7 +686,7 @@ export function agentInfo(): AgentInfo {
       // `setup` always runs the global one: it is the run that has to work on a board
       // nobody has configured yet.
       const on = flow.command === 'setup' ? runtimes.global : runtimeOfFlow(flow.command, runtimes)
-      return { command: flow.command, runtime: on, harness: harnessOf(on) }
+      return { command: flow.command, path: flowPath(flow), runtime: on, harness: harnessOf(on) }
     }),
     unknownName,
     staleCommand,

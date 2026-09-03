@@ -491,7 +491,7 @@ export function withRuns<T>(fn: (runs: RunRecord[]) => T): T {
   return withStore((store) => fn(store.runs))
 }
 
-/** Attach cards made by `akb board create` to the run whose agent called it. */
+/** Attach cards made by `akb raw create` to the run whose agent called it. */
 export function recordCreatedCards(sessionId: string, ids: readonly number[]): boolean {
   const valid = ids.filter((id) => Number.isInteger(id) && id > 0)
   if (!valid.length) return false

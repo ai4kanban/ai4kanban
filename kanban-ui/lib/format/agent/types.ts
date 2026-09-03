@@ -110,7 +110,7 @@ export interface AgentRequest {
    *  the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
   /** implement: how THIS build commits (#346) — the Implement dialog's tick, and this one
-   *  delivery's answer. Absent on every other way in — a terminal `akb implement`, a queued
+   *  delivery's answer. Absent on every other way in — a terminal `akb card implement`, a queued
    *  build, a resolve that carries on — and those fall back to **Allow automatic Git
    *  commits**. Ignored where no worktree is possible; the build is manual there regardless. */
   commitMode?: DeliveryCommitMode
@@ -151,7 +151,7 @@ export interface RunRecord {
    *  spawns. A harness that mints an id of its own keeps it in `resumeId`. */
   sessionId: string
   cardId: number | null
-  /** Cards this run created through `akb board create`. A cardless creation run holds these
+  /** Cards this run created through `akb raw create`. A cardless creation run holds these
    *  until it closes, so an overlapping run cannot adopt and refine its half-written cards. */
   createdCardIds?: number[]
   action: AgentAction
@@ -335,7 +335,7 @@ export interface DeliveryApprovalEvent {
   mark?: string
   /** On a cancellation: which of the two moved. */
   moved?: 'base' | 'tree'
-  /** Where the approval came from — the card page, or `akb approve`. */
+  /** Where the approval came from — the card page, or `akb delivery approve`. */
   from?: string
   at: number
 }
@@ -438,8 +438,11 @@ export interface DeliveryRecord {
  *  board's own — every command that can start a flow — so a flow shipped later appears
  *  without the pane being touched. */
 export interface FlowRuleView {
-  /** The command a user types, which is also the rule file's name. */
+  /** The flow's name, which is also its rule file's. Not the line a user types — see
+   *  `path`. */
   command: string
+  /** The line a user types, without the command's own name: `card refine`. */
+  path: string
   /** One clause of plain words saying what the flow is. */
   gloss: string
   /** What this flow's rule is for, or what it can cost. Absent when there is nothing
@@ -471,7 +474,7 @@ export interface SpecAsk {
 }
 
 /** One ask for a refinement, written down by the run that asked for it with
- *  `akb refine <id>`. Same handoff as `SpecAsk`, in the same file and started by the same
+ *  `akb card refine <id>`. Same handoff as `SpecAsk`, in the same file and started by the same
  *  watcher — and in the same flow, so the refinement reads as the next step of the job
  *  that handed the card over. */
 export interface RefineAsk {
@@ -802,7 +805,10 @@ export interface RuntimeView {
 /** What one flow runs on: the runtime it names, and what that resolves to here. Keyed by
  *  the command a user types, which is the same key a flow's rule file uses. */
 export interface FlowRuntime {
+  /** The flow's name — what `agent runtime for` is given, and what the setting is keyed by. */
   command: string
+  /** The line a user types: `card refine`. What a screen shows. */
+  path: string
   runtime: string
   harness: string
 }

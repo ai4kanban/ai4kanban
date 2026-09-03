@@ -50,7 +50,7 @@ export function specRunsAfter(asks: SpecAsk[]): AgentRequest[] {
 }
 
 /**
- * The cards a run explicitly handed to a refinement with `akb refine <id>`, as the sessions
+ * The cards a run explicitly handed to a refinement with `akb card refine <id>`, as the sessions
  * to start now that it has ended.
  *
  * The card is read here, as the session is about to start, so an ask for a card that has

@@ -25,7 +25,7 @@ open, and stop only the work that depends on its answer. Only `[user]` questions
 completed QA pass.
 
 ```text
-akb board update-questions <id> \
+akb raw update-questions <id> \
   --append "[user] Which behavior should apply?" \
   --recommended-option "A — outcome and cost" \
   --option "B — outcome and cost"

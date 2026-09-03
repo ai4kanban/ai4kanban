@@ -16,7 +16,7 @@ one focus close a gap, scattered ideas just skim the product.
   weak`) — you are the only judge of it, this is the run that re-judges it, and it takes
   no question to the user. Then propose either way: a weak goal makes proposals guesses,
   not something to stop for.
-- Run `akb board list --module <module>` — every open card tagged with the focus module, so
+- Run `akb raw list --module <module>` — every open card tagged with the focus module, so
   you don't re-propose planned work.
 
 ## 2. Drill down to submodules

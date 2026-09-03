@@ -183,7 +183,7 @@ function holdForQuestions(): Set<string> {
 // Why a delivery is waiting outside the queue on an approval. Fixed opening words, the way
 // the question hold has them, so one hold can be told from the other without a field.
 const approvalWhy = (delivery: DeliveryRecord, why: string): string =>
-  `${HELD_ON_APPROVAL}: ${why} — approve it on #${delivery.cardId}, or with \`${boardCommand()} approve ${delivery.deliveryId}\``
+  `${HELD_ON_APPROVAL}: ${why} — approve it on #${delivery.cardId}, or with \`${boardCommand()} delivery approve ${delivery.deliveryId}\``
 
 /** The deliveries that need the user's approval and have none covering the tree they would
  *  land. They are built and reviewed, and approval is the step that waits — so one holding
@@ -513,7 +513,7 @@ async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: s
       {
         text:
           `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
-          `Once you have decided, \`${boardCommand()} review ${delivery.cardId}\` puts it back in motion.`,
+          `Once you have decided, \`${boardCommand()} delivery review ${delivery.cardId}\` puts it back in motion.`,
         options: [
           `I'll land it myself from ${delivery.branch}`,
           `pause whatever keeps moving ${delivery.targetBranch}, then the board lands it`,
@@ -594,7 +594,7 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
       text:
         `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
         `Its work is whole on ${delivery.branch}. Once you have decided, ` +
-        `\`${boardCommand()} review ${delivery.cardId}\` puts it back in motion.`,
+        `\`${boardCommand()} delivery review ${delivery.cardId}\` puts it back in motion.`,
       options: [
         `I'll resolve it myself and land ${delivery.branch}`,
         `cancel the delivery, and start the card again on top of ${delivery.targetBranch}`,

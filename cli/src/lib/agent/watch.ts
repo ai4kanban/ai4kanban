@@ -546,7 +546,7 @@ function brokeBoard(wasBroken: Set<string>): string | null {
     `the work is done, but the board came out of this run inconsistent — ${broke.length} thing${broke.length === 1 ? '' : 's'} to put right:`,
     ...shown.map((line) => `  ${line}`),
     ...(rest ? [`  … and ${rest} more`] : []),
-    `a card is taken off the board with \`${boardCommand()} board archive <id>\` or \`${boardCommand()} board reject <id>\`, never by deleting its file.`,
+    `a card is taken off the board with \`${boardCommand()} raw archive <id>\` or \`${boardCommand()} raw reject <id>\`, never by deleting its file.`,
   ].join('\n')
 }
 

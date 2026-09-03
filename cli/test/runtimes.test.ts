@@ -112,7 +112,7 @@ describe('a flow on its own runtime', () => {
     }
   })
 
-  it('keeps an `akb resolve` of its own on the resolve flow’s runtime', () => {
+  it('keeps an `akb card resolve` of its own on the resolve flow’s runtime', () => {
     // The same action as one of refine's passes, and only the round tells them apart: a
     // refine's `resolve` is refine's, and one a user typed is the `resolve` flow's.
     config({ ...board, runtimes: { ...board.runtimes, flows: { refine: 'cheap' } } })

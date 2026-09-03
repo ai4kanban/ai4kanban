@@ -244,6 +244,6 @@ describe('a board that will not grant a lease', () => {
       stopCollecting()
     }
     assert.match(box.out.join('\n'), /could not be archived/)
-    assert.match(box.out.join('\n'), /board archive 1/)
+    assert.match(box.out.join('\n'), /raw archive 1/)
   })
 })

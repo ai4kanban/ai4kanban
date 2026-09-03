@@ -4,7 +4,7 @@
 // a release, save the goal, tick a setup box, and ask what to start on its own.
 //
 // Every call here is one operation of the board's contract (../board/contract.ts) and
-// nothing else — the same operations `akb board`, the run engine and the board timer use,
+// nothing else — the same operations `akb raw`, the run engine and the board timer use,
 // so a button and a command can never disagree about what a card says. What this file adds
 // is what a screen needs and the contract deliberately doesn't:
 //

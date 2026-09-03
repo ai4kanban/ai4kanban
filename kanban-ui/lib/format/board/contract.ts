@@ -3,7 +3,7 @@
 
 // ---- the one contract every part of AI4Kanban reaches the board through -----
 //
-// One set of operations, one envelope, one conflict result. `akb board`, the app's screens,
+// One set of operations, one envelope, one conflict result. `akb raw`, the app's screens,
 // the run engine and the board timer all call these and nothing else, so putting a team's
 // board somewhere other than this machine is one more implementation of this file rather
 // than a rewrite of each caller (#312).
@@ -19,7 +19,7 @@
 //     because a Cloud board is across a network, not because anything is queued: there is
 //     no write buffer, no background flush, and no local copy applied first.
 //
-// A caller that never read the card — someone typing `akb board update` — takes its
+// A caller that never read the card — someone typing `akb raw update` — takes its
 // expected revision from the writer LEASE it acquires. That is what makes "no blind writes"
 // a rule the CLI can actually keep.
 //
@@ -129,7 +129,7 @@ export interface BoardMoveData {
   [key: string]: unknown
 }
 
-/** What one `akb board <move>` answers with: the move's own fields, and the prose it
+/** What one `akb raw <move>` answers with: the move's own fields, and the prose it
  *  printed — held rather than written out, because the caller may be answering in JSON. */
 export interface MoveOutput extends BoardMoveData {
   output?: string
@@ -152,7 +152,7 @@ export type BoardKind = 'local' | 'cloud'
  *
  * Grouped the way the work falls: snapshots, card reads, the lease, lifecycle and
  * frontmatter, releases, memory and setup, history, the delivery lifecycle, and the named
- * `akb board` moves. Adding a board that lives elsewhere means one more class here.
+ * `akb raw` moves. Adding a board that lives elsewhere means one more class here.
  */
 export interface BoardProvider {
   readonly kind: BoardKind
@@ -247,7 +247,7 @@ export interface BoardProvider {
     env: OpEnvelope,
   ): Promise<OpResult<{ deliveryId: string; covers: string }>>
 
-  // ---- the named `akb board` moves -----------------------------------------
+  // ---- the named `akb raw` moves -----------------------------------------
   /**
    * One board move, by the name a person types and what they typed after it.
    *

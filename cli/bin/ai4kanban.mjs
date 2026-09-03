@@ -5,7 +5,7 @@
 //
 // It does three things and nothing else: work out how the command was typed, find this
 // package's built rules, and hand the whole command line to one of the two trees in there —
-// `akb board <move>`, or everything else.
+// `akb raw <move>`, or everything else.
 //
 // Why so little lives here: the desktop app carries `bin/` and `dist/` and no node_modules
 // beside them (desktop/scripts/bundle-cli.mjs), so this file must have no dependencies. The
@@ -86,7 +86,7 @@ async function rules() {
   return import(pathToFileURL(file).href)
 }
 
-// The two trees, and the one word that picks between them. `akb board` takes over the whole
+// The two trees, and the one word that picks between them. `akb raw` takes over the whole
 // command line: its moves take options that collide with the rest — `create`, `archive` and
 // `reject` are words on both sides — so it is handed the line untouched.
 async function main() {
@@ -94,8 +94,8 @@ async function main() {
   const loaded = await rules()
   const shared = { program: PROGRAM, installHint: `\`${PROGRAM} install\`` }
 
-  if (argv[0] === 'board') {
-    process.exitCode = await loaded.runBoard(argv.slice(1), { ...shared, program: `${PROGRAM} board` })
+  if (argv[0] === 'raw') {
+    process.exitCode = await loaded.runBoard(argv.slice(1), { ...shared, program: `${PROGRAM} raw` })
     return
   }
 

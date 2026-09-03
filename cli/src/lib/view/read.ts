@@ -337,7 +337,7 @@ function lostCheckout(delivery: DeliveryRecord): string | undefined {
 }
 
 // The delivery of this card whose worktree could still be thrown away: the one in flight,
-// or the newest ended one that never gave its worktree back. `akb cancel` leaves a worktree
+// or the newest ended one that never gave its worktree back. `akb delivery cancel` leaves a worktree
 // where it is on purpose, so this is the only way one of those is ever offered up.
 function attachDiscard(card: Card, active: DeliveryRecord | undefined): void {
   const holder =

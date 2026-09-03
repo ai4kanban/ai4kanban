@@ -47,7 +47,7 @@ export const opRefused = (error: unknown): OpRefused => ({
  * and give the lease up again.
  *
  * This is the whole answer to "a caller that did not read the card first". Someone typing
- * `akb board update 12 --status ready` never read #12, and refusing them for having no
+ * `akb raw update 12 --status ready` never read #12, and refusing them for having no
  * revision would make the CLI unusable — so acquiring the lease IS their read.
  */
 export async function leaseAnd<T>(
@@ -66,7 +66,7 @@ export async function leaseAnd<T>(
 
 // ---- which resource a named move writes -------------------------------------
 
-/** The `akb board` moves that name a card by its first numeric argument. Everything else is
+/** The `akb raw` moves that name a card by its first numeric argument. Everything else is
  *  about the board itself — a release, the project's own files, a setup box. */
 const CARD_MOVES = new Set([
   'update',

@@ -250,7 +250,7 @@ describe('stopping for the user', () => {
     await close(first)
     assert.ok(deliveryWaiting(5))
 
-    // What `akb resolve` leaves behind: the answer is on the card and the question is gone.
+    // What `akb card resolve` leaves behind: the answer is on the card and the question is gone.
     // It joins no delivery, so nothing but the card says the stop is over.
     await ask(['--drop', '1'])
     assert.equal(deliveryWaiting(5), undefined)

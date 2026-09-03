@@ -25,7 +25,7 @@ context, nothing extra is billed, and "not that one" is your next message when i
 wrong turn. Under the hood it asks the CLI for the steps with `--print`, and follows what
 comes back for *your* board.
 
-**Sent off as a run.** You press a button on the local board, or type `akb refine 4`, and a
+**Sent off as a run.** You press a button on the local board, or type `akb card refine 4`, and a
 second agent starts on its own. It keeps working when you close the terminal, it shows in the
 runs panel with its own log, and you can stop it. Nothing you say reaches it while it goes, so
 a correction costs the whole run.
@@ -164,7 +164,7 @@ written by an agent from the cards it shipped, each one something you can now se
 the summary keeps what the version was for, since the line in `releases.md` is gone.
 
 The local board starts that agent itself in the background. In the terminal the close names the
-command instead — say **"write the changelog for v1"**, or run `akb changelog v1` — since a
+command instead — say **"write the changelog for v1"**, or run `akb release changelog v1` — since a
 bookkeeping command never starts an agent. Either way the card list is written first and stands
 whatever the agent does, and running it again replaces the changelog rather than adding a second.
 A version that shipped no card gets no changelog. Not every change goes through the board, so one
@@ -185,7 +185,7 @@ it wherever you keep such notes.
 
 Say **"add a task: `<idea>`"**. Before writing, the skill reviews the idea (business value,
 feasibility, duplication) and checks `redesign.md` so it doesn't repeat a known design mistake.
-Then it creates one indexed card with `akb board create`, fills its body in plain language split
+Then it creates one indexed card with `akb raw create`, fills its body in plain language split
 into checkable todos, and adds it to `todo/README.md` under its track.
 
 ## Turn a source into tasks
@@ -250,7 +250,7 @@ names the branch the change will land on.
   beside the skill names the delivery and stops the commit. Commit on another branch, or
   `git commit --no-verify`.
 
-In a terminal it is `akb implement 4`, which starts the same delivery and warns about an open
+In a terminal it is `akb card implement 4`, which starts the same delivery and warns about an open
 question the same way it warns about a blocker. `kanban-ui/README.md` has the whole of it.
 
 ## Let a specialist fill part of the spec
@@ -354,9 +354,9 @@ the board schedules one refine, then runs it when the last card in its way leave
 archived or rejected alike. Schedule an implement to replace that default.
 
 ```bash
-akb board schedule 4 --action implement --notes "start with the parser"
-akb board schedule 4 --action refine
-akb board schedule 4 --clear
+akb raw schedule 4 --action implement --notes "start with the parser"
+akb raw schedule 4 --action refine
+akb raw schedule 4 --clear
 ```
 
 In the local UI the card reads **Scheduled** with a **cancel** control, and **pending** in place
@@ -382,10 +382,10 @@ landed, so "#4 is done" is not something you have to say.
 For work done outside a delivery — you built it yourself, or an agent built it in the
 conversation you were in — say **"#4 is done"**. The skill updates the published doc the change
 touched (via the card's doc todos) and adds one line to `readme.md` — a link to that doc, or a
-short plain-words note when no doc covers the behavior yet — then runs `akb board archive 4`.
+short plain-words note when no doc covers the behavior yet — then runs `akb raw archive 4`.
 
 ```bash
-akb board archive 4
+akb raw archive 4
 ```
 
 The card file isn't deleted — it moves to `docs/kanban/.archive/`, which stays in git. So you can
@@ -403,13 +403,13 @@ still goes `ready`, still resolves, still archives, and they travel with the car
 | **check by hand** (clipboard, blue) | the work is done; look at this before you accept it | try it, then archive |
 | **open questions** (question mark, ember) | a call only you can make, and the card waits | answer it — "resolve #4" |
 
-Your agent writes them with `akb board update-verify 4 --append ".."`, and `--drop 1,3` or
+Your agent writes them with `akb raw update-verify 4 --append ".."`, and `--drop 1,3` or
 `--clear` takes them off once you've checked them.
 
 ## Reject an idea
 
 Say **"reject #4"** (rare). The skill adds a one-line "why not" to `rejected.md` and runs
-`akb board reject 4`. Future loops won't re-propose it.
+`akb raw reject 4`. Future loops won't re-propose it.
 
 ## Keep it lean
 
@@ -424,11 +424,11 @@ plainly, and your agent runs the matching command:
 
 | You say | What runs |
 | --- | --- |
-| "build #4 in the background" | `akb implement 4` — starts a run and returns |
-| "what's running?" | `akb runs` |
-| "show me that run's log" | `akb log <run>`, `--follow` to watch it go |
-| "stop it" | `akb stop <run>` |
-| "that run died — carry on" | `akb resume <run>` |
+| "build #4 in the background" | `akb card implement 4` — starts a run and returns |
+| "what's running?" | `akb run list` |
+| "show me that run's log" | `akb run log <run>`, `--follow` to watch it go |
+| "stop it" | `akb run stop <run>` |
+| "that run died — carry on" | `akb run resume <run>` |
 | "use Codex instead" | `akb agent use codex` |
 | "switch to Opus" / "make it think harder" | `akb agent set model …`, `akb agent set reasoning high`, `akb agent set args …` for a flag it has no box for |
 | "run implements on Codex" | `akb agent runtime add cheap`, `akb agent runtime for implement cheap`, then `akb agent bind cheap codex` on each machine |
@@ -444,28 +444,28 @@ an agent that isn't installed, `akb agent` for a key or provider that isn't set.
 
 ## The commands, for reference
 
-Only `akb board` allocates ids or touches metrics — never edit `next-id` or `metrics.csv` by hand.
+Only `akb raw` allocates ids or touches metrics — never edit `next-id` or `metrics.csv` by hand.
 
 ```bash
-akb board create --title ".." --track <track>
+akb raw create --title ".." --track <track>
                                   # write one card and allocate its id
-akb board release new v1          # plan a version
-akb board release new v1 --goal ".."  # …saying what it is for
-akb board release new v1 --fill   # …with the high-priority cards in
+akb raw release new v1          # plan a version
+akb raw release new v1 --goal ".."  # …saying what it is for
+akb raw release new v1 --fill   # …with the high-priority cards in
                                   # (filling from the goal is a run: "plan release v1")
-akb board release goal v1 ".."    # change what it is for
-akb board release list            # what each version holds
-akb board release close v1        # the version shipped
+akb raw release goal v1 ".."    # change what it is for
+akb raw release list            # what each version holds
+akb raw release close v1        # the version shipped
                                   # (it starts the run that writes the version's changelog)
-akb board release drop v1         # the version will not ship
-akb board schedule <id> --action implement|refine
+akb raw release drop v1         # the version will not ship
+akb raw schedule <id> --action implement|refine
                                   # run it by itself once the card comes free
                                   # (--clear takes the schedule off)
-akb board update-verify <id> --append ".."
+akb raw update-verify <id> --append ".."
                                   # a hand-check the build left you
                                   # (--drop n,n / --clear take them off)
-akb board archive <id>            # finish a task
-akb board reject  <id>            # drop an idea
+akb raw archive <id>            # finish a task
+akb raw reject  <id>            # drop an idea
 akb spec                          # the spec skills, and what each one fills
 akb spec <skill> <id> [note]      # put one on a card — its own run, starting clean
 akb chat "<message>"              # talk about the board — and change it
@@ -474,9 +474,9 @@ akb chat [<id>]                   # the conversation so far
 akb chat [<id>] --clear           # forget it and start fresh
 akb chat [<id>] --model <id>      # run this conversation on that model
 akb chat [<id>] --agent <name>    # …and on that agent — starts it over
-akb board peek                    # next free id
-akb board metrics                 # the daily CSV
-akb board help                    # full usage
+akb raw peek                    # next free id
+akb raw metrics                 # the daily CSV
+akb raw help                    # full usage
 ```
 
 The flows themselves — how a card is refined, what goes in memory, how a release is planned —

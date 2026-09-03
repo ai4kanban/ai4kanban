@@ -72,7 +72,7 @@ export function cancelApproval(deliveryId: string, moved?: 'base' | 'tree'): voi
  *  approved is what the record says they approved. Approving twice is not an error: the
  *  second one covers whatever the tree is now, which is what a user who clicked again meant.
  *
- *  `from` names where it came from — the card page, or `akb approve` — and rides into the
+ *  `from` names where it came from — the card page, or `akb delivery approve` — and rides into the
  *  permanent record. */
 export function approveDelivery(
   id: string,

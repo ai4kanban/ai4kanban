@@ -76,8 +76,8 @@ export async function cmdStartRun(
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
   say(`${action} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
-  say(`  follow it: ${program} log ${short(run.sessionId)} --follow${DIR_FLAG}`)
-  say(`  stop it:   ${program} stop ${short(run.sessionId)}${DIR_FLAG}`)
+  say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${DIR_FLAG}`)
+  say(`  stop it:   ${program} run stop ${short(run.sessionId)}${DIR_FLAG}`)
   if (follow) return { sessionId: run.sessionId, ...(await followRun(run.sessionId, '', program)) }
   return { sessionId: run.sessionId, action, cardId: run.cardId }
 }
@@ -157,7 +157,7 @@ function sayBeforeStart(req: CommandRequest, program: string): void {
   if (req.action === 'implement' && asked) {
     say(
       `#${req.id} has ${asked} open question${asked === 1 ? '' : 's'} — it is built and reviewed, then holds at landing ` +
-        `until ${asked === 1 ? 'it is' : 'they are'} answered. Answer first with \`${program} resolve ${req.id}\`.`,
+        `until ${asked === 1 ? 'it is' : 'they are'} answered. Answer first with \`${program} card resolve ${req.id}\`.`,
     )
   }
 }
@@ -254,10 +254,10 @@ export async function cmdCancel(named: string): Promise<MoveResult> {
  *  to approve.
  *
  *  The approval covers the delivery's base commit and the tree built on it as they stand
- *  right now, so read the diff first — `akb log` and the card page's **Diff** tab both show
+ *  right now, so read the diff first — `akb run log` and the card page's **Diff** tab both show
  *  it. Either one moving afterwards cancels the approval by itself. */
 export async function cmdApprove(named: string): Promise<MoveResult> {
-  const res = await approveDelivery(named, 'akb approve')
+  const res = await approveDelivery(named, 'akb delivery approve')
   if (!res.ok) die(res.error ?? 'that delivery could not be approved', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} approved — ${res.covers}.`)
   say('It lands from here. Change the tree or the commit it forked from and the approval is cancelled.')
@@ -320,7 +320,7 @@ export async function cmdRuns(opts: { card?: number; all?: boolean }, program = 
   if (live.length) say('')
   say(
     live.length
-      ? `${live.length} running. Follow one with \`${program} log <id> --follow${DIR_FLAG}\`.`
+      ? `${live.length} running. Follow one with \`${program} run log <id> --follow${DIR_FLAG}\`.`
       : 'nothing running.',
   )
   return { runs: shown }
@@ -436,7 +436,7 @@ function runLine(r: RunView, program = 'akb'): string {
   if (r.durationMs !== undefined) bits.push(`in ${ago(r.durationMs)}`)
   if (r.model) bits.push(r.model)
   if (r.costUsd !== undefined) bits.push(`$${r.costUsd.toFixed(4)}`)
-  if (r.canResume) bits.push(`— continue it with \`${program} resume ${short(r.sessionId)}${DIR_FLAG}\``)
+  if (r.canResume) bits.push(`— continue it with \`${program} run resume ${short(r.sessionId)}${DIR_FLAG}\``)
   const line = bits.join('  ')
   // The board's own last word rides on the row, not only in the log. `✓ done` beside a run
   // that left the board inconsistent reads as "nothing to see here", which is the one thing

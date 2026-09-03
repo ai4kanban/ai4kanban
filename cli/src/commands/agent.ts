@@ -109,7 +109,7 @@ function sayRuntimes(info: ReturnType<typeof agentInfo>): void {
   say(`The agent above is what a runtime nobody bound on this computer runs as.`)
   say(`Global runtime: ${info.globalRuntime}`)
   const off = info.flows.filter((f) => f.runtime !== info.globalRuntime)
-  for (const flow of off) say(`  ${flow.command.padEnd(20)} ${flow.runtime} — ${flow.harness} here`)
+  for (const flow of off) say(`  ${flow.path.padEnd(20)} ${flow.runtime} — ${flow.harness} here`)
   for (const skill of readSpecSkills().filter((s) => s.runtime !== info.globalRuntime)) {
     say(`  ${skill.name.padEnd(20)} ${skill.runtime} — ${skill.harness} here`)
   }
@@ -238,7 +238,7 @@ function showRuntimes(): MoveResult {
   }
   say('')
   say('Runs on')
-  for (const flow of info.flows) say(`  ${flow.command.padEnd(20)} ${flow.runtime} — ${flow.harness}`)
+  for (const flow of info.flows) say(`  ${flow.path.padEnd(20)} ${flow.runtime} — ${flow.harness}`)
   for (const skill of readSpecSkills()) {
     say(`  ${skill.name.padEnd(20)} ${skill.runtime} — ${skill.harness}`)
   }

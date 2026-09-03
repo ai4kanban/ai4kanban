@@ -21,7 +21,7 @@ export interface RuntimeAsk {
   /** The agent's name on a `spec` run, and nothing on any other. */
   specAgent?: string
   /** Set on a pass a refine spawned, absent on a flow a user typed — the one thing that
-   *  tells a refine's `resolve` pass from an `akb resolve` of its own. */
+   *  tells a refine's `resolve` pass from an `akb card resolve` of its own. */
   refineRound?: number
 }
 

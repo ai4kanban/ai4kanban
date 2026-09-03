@@ -417,7 +417,7 @@ describe('mrkdwn', () => {
   })
 
   it('leaves code exactly as the card wrote it', () => {
-    assert.equal(mrkdwn('run `akb implement 12` first'), 'run `akb implement 12` first')
+    assert.equal(mrkdwn('run `akb card implement 12` first'), 'run `akb card implement 12` first')
     assert.equal(mrkdwn('`**not bold**`'), '`**not bold**`')
   })
 

@@ -5,7 +5,7 @@
 // here that are holding it.
 //
 // It is machine-level, not per-process, because a run is not one process: the watcher
-// starts the agent, the agent's `akb board` moves are processes of their own, and the app's
+// starts the agent, the agent's `akb raw` moves are processes of their own, and the app's
 // server is another. `cloud.require_lock` refuses a lease that is not the holder's, so a run
 // that held its card against the rest of the machine would refuse its own lifecycle moves —
 // what fences other MACHINES off has to be one lease every process here presents.

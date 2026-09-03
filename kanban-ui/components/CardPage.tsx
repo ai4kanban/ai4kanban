@@ -432,7 +432,7 @@ function ResumeDelivery({
 //
 // One control, not two. Ending a delivery and reclaiming its checkout used to be Cancel and
 // Discard, which read as the same act under two names and left the checkout behind unless you
-// remembered the second click. `akb cancel` is still the way to end one and keep its branch.
+// remembered the second click. `akb delivery cancel` is still the way to end one and keep its branch.
 //
 // The popover says exactly what will be lost, and there is nothing to lose in a delivery with
 // no checkout of its own — one working in the project folder leaves the user's own tree alone.
@@ -1482,7 +1482,7 @@ export function CardPage({
                   />
                 ) : cancelled ? (
                   // The last delivery on this card was ended before it landed — Discard here,
-                  // or `akb cancel`. The card is free again, and saying "stopped" would name
+                  // or `akb delivery cancel`. The card is free again, and saying "stopped" would name
                   // the session and hide what happened. One word for both ways out: the record
                   // spells them the same, and which one it was changes nothing from here.
                   <DeliveryPill label={c.ended} tone="ended" />
@@ -1582,7 +1582,7 @@ export function CardPage({
                     </Button>
                   )}
                   {/* Discard (#303) — the checkout a delivery built in, thrown away. Offered
-                      whenever one is still on disk: `akb cancel` ends a delivery and leaves its
+                      whenever one is still on disk: `akb delivery cancel` ends a delivery and leaves its
                       worktree and branch alone, so nothing else ever reclaims one. Here only
                       when there is no block to carry it. */}
                   {card.discard && !delivery && !finishedBlock && (

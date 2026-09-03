@@ -1,10 +1,10 @@
 // The board's bookkeeping, declared once.
 //
 // Every move below says what it takes and what each option means, and that declaration IS
-// the help: `akb board help` is the summaries, `akb board help <move>` the whole of one.
+// the help: `akb raw help` is the summaries, `akb raw help <move>` the whole of one.
 // Nothing is written twice, so a flag that is added is a flag the help already knows about.
 //
-// The two front doors — `akb board <move>` and the `kanban.mjs` an installed skill folder
+// The two front doors — `akb raw <move>` and the `kanban.mjs` an installed skill folder
 // runs — are the same tree. They differ only in how they are spelled in a message.
 
 import { CADENCE_FORMS } from '../cadence'
@@ -418,7 +418,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
         'summary file, under a heading of their own, above the goal and the card list. Every line must ' +
         'read as one thing the user can now see or do; six lines at most. Run it again for the same ' +
         'version and the changelog is REPLACED, never added twice. Refused for a version the board holds ' +
-        'no closed record of, and for one that shipped no card. `akb changelog <version>` is the run that ' +
+        'no closed record of, and for one that shipped no card. `akb release changelog <version>` is the run that ' +
         'writes it.',
     )
     .option('--file <path>', 'the changelog, as markdown written to a file first')

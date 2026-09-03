@@ -1,7 +1,7 @@
 // ---- reaching the board -----------------------------------------------------
 //
 // `board()` is the one door. Everything that reads or writes a board goes through the
-// provider it hands back — `akb board`, the app's screens, the run engine's own moves, and
+// provider it hands back — `akb raw`, the app's screens, the run engine's own moves, and
 // the board timer — so none of them knows or cares where the board actually is.
 //
 // There are two: Local, the markdown board in `docs/kanban/` (./local.ts), and Cloud, a

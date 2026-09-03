@@ -106,7 +106,7 @@ export async function cmdChat(opts: ChatOptions, program = 'akb'): Promise<MoveR
 // A conversation about a card the board hasn't got is a typo, not a conversation.
 function assertCardExists(cardId: number): void {
   const title = titleOf(cardId)
-  if (!title) die(`no card #${cardId} on this board. \`akb board list\` says what is open.`, { kind: 'card-not-found', id: cardId })
+  if (!title) die(`no card #${cardId} on this board. \`akb raw list\` says what is open.`, { kind: 'card-not-found', id: cardId })
 }
 
 // ---- how a conversation reads ----------------------------------------------

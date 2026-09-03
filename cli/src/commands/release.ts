@@ -32,7 +32,7 @@ import type { MoveResult } from '../lib/types'
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
 
-/** `akb board release`, as its subcommands declare them (lib/cli/board.ts). Each one takes
+/** `akb raw release`, as its subcommands declare them (lib/cli/board.ts). Each one takes
  *  its own few, so this is their union. */
 export interface ReleaseOptions {
   goal?: string
@@ -112,7 +112,7 @@ function releaseClose(version: string): MoveResult {
     say(`  archive the ones that really shipped, then move their line by hand in ${rel(summary)}`)
   }
   // The summary says which cards shipped, not what changed — so the close starts the run
-  // that writes that, the same way the board UI's close does. It is the one `akb board ...`
+  // that writes that, the same way the board UI's close does. It is the one `akb raw ...`
   // command that starts a run, because the changelog has no other moment: nobody reads a
   // list of card ids, and a step the user has to remember is a step nobody takes.
   say('')
@@ -132,7 +132,7 @@ function releaseClose(version: string): MoveResult {
  *  command the user can type. */
 function startChangelog(id: string): { sessionId?: string; command?: string } {
   const program = boardCommand()
-  const command = `${program} changelog ${quoteId(id)}`
+  const command = `${program} release changelog ${quoteId(id)}`
   const byHand = (why: string) => {
     say(`the summary says which cards shipped, not what changed for the user — ${why}.`)
     say(`  write it with \`${command}\` — an agent reads this section and puts a changelog at the top of it.`)
@@ -146,8 +146,8 @@ function startChangelog(id: string): { sessionId?: string; command?: string } {
   const run = short(started.run.sessionId)
   say(`writing the changelog — run ${started.run.sessionId}`)
   say(`  an agent reads this section and puts a few plain lines at the top of it, saying what the version changed.`)
-  say(`  follow it: ${program} log ${run} --follow${DIR_FLAG}`)
-  say(`  stop it:   ${program} stop ${run}${DIR_FLAG}`)
+  say(`  follow it: ${program} run log ${run} --follow${DIR_FLAG}`)
+  say(`  stop it:   ${program} run stop ${run}${DIR_FLAG}`)
   return { sessionId: started.run.sessionId }
 }
 

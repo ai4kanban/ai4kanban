@@ -45,7 +45,7 @@ import {
   worktreeDir,
 } from './worktree'
 
-// A delivery id is read inside a branch name and typed into `akb cancel`, so it is short
+// A delivery id is read inside a branch name and typed into `akb delivery cancel`, so it is short
 // and unambiguous: eight characters from an alphabet with no look-alike pairs.
 const ID_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
 const ID_LENGTH = 8
@@ -139,7 +139,7 @@ export function deliveryPlan(): DeliveryPlan {
  *
  *  `wants` is the Implement dialog's tick — this one build's answer (#346). A request that
  *  says nothing falls back to **Automatic Git commits**, which is every other way in:
- *  a terminal `akb implement`, a queued build, a resolve that carries on.
+ *  a terminal `akb card implement`, a queued build, a resolve that carries on.
  *
  *  Called before the record is written and before anything spawns, so a refusal costs
  *  nothing and a delivery is never written down half-made. Whatever it made is undone by

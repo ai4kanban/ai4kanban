@@ -22,7 +22,7 @@ docs/kanban/
 │                   exactly as it was approved for it, and how it ended. Tracked in git,
 │                   kept after the card is archived; nobody edits one by hand
 ├── rules/          one rule per flow, in the user's own words — `<command>.md`, named by
-│                   the command a user types (`revise.md` for `akb revise`). It is appended
+│                   the command a user types (`revise.md` for `akb card revise`). It is appended
 │                   to the end of that flow's instructions, so every run the board
 │                   starts from that flow reads it. Tracked in git; a missing or empty file
 │                   means the flow runs unchanged. Written from the board UI, not by hand
@@ -32,7 +32,7 @@ docs/kanban/
 ├── setup-checklist.md
 │                   setup's own steps, while setup is unfinished (`akb guide setup`) —
 │                   completing the last item deletes the file
-├── next-id         the next free task id — NEVER edit by hand; only `akb board` writes it
+├── next-id         the next free task id — NEVER edit by hand; only `akb raw` writes it
 ├── metrics.csv     one row per day: completed, created, rejected — never touch
 └── record.csv      what board commands counted as they ran — they own it, nobody edits
                     it by hand
@@ -48,7 +48,7 @@ to "your tracks," "planning sources," or "reference docs" mean the values in thi
 ## Task ID
 
 Every task's id is the number at the front of its filename (`04-plan-cap-enforcement.md` →
-id 4). Ids are global and never reused; only `akb board create` allocates them.
+id 4). Ids are global and never reused; only `akb raw create` allocates them.
 
 ## Tracks
 
@@ -57,10 +57,10 @@ A track categorizes a task. Each track has a folder under `todo/`, and
 
 ## Never hand-write a card's frontmatter
 
-`akb board create`, `update`, `update-questions`, `update-verify`, and `schedule` manage
+`akb raw create`, `update`, `update-questions`, `update-verify`, and `schedule` manage
 the metadata: title, track, priority, roi, status, release, blocked_by, related, modules,
-questions, verify, and schedule. Edit only the card's **body** by hand. `akb board help`
-lists all operations; `akb board help <move>` explains one operation.
+questions, verify, and schedule. Edit only the card's **body** by hand. `akb raw help`
+lists all operations; `akb raw help <move>` explains one operation.
 
 ## The board's language
 
@@ -76,7 +76,7 @@ something other than English. Told nothing, everything below is English.
 - **Prose in frontmatter is still prose**: a title, a question, an option and a `verify:`
   line follow the language even though they sit in a field.
 - **A title that is not English needs an English slug**: filenames are ASCII, so pass
-  `akb board create --slug <short-english-slug>`, and name a group's own folder with one too.
+  `akb raw create --slug <short-english-slug>`, and name a group's own folder with one too.
 - **An edit follows the file, not the setting**: rewriting a card or a memory file that
   already exists keeps the language that file is already in. A changelog is the exception:
   the command replaces the whole block, so it follows the setting on a rewrite too
@@ -103,14 +103,14 @@ todo/<id>-<short-slug>/
 `create` writes one card at a time into a track folder, so build a group card by card and
 then move the files into the group's folder:
 
-1. **Write the root**: `akb board create --title "<the whole job>" --track <track>`. Call
+1. **Write the root**: `akb raw create --title "<the whole job>" --track <track>`. Call
    the id it prints `<id>`.
-2. **Write each subtask**: `akb board create --title "<one piece>" --track <track>
+2. **Write each subtask**: `akb raw create --title "<one piece>" --track <track>
    --related <id>`, adding `--blocked-by <subid>` where execution order matters.
 3. **Move the files**: the root becomes `todo/<id>-<short-slug>/root.md`, and each subtask
    goes under `todo/<id>-<short-slug>/<track>/` with its filename unchanged. The folder's
    slug is short English ASCII whatever language the root's title is in.
-4. **Point the root at its pieces**: `akb board update <id> --related <subid,subid,...>`.
+4. **Point the root at its pieces**: `akb raw update <id> --related <subid,subid,...>`.
    At create time `--related` can only name ids that already exist, so the root's list is
    filled in here.
 5. **Repoint the moved cards in `todo/README.md`**: give each bullet the card's new path
@@ -141,7 +141,7 @@ The set exists at the project level in `docs/kanban/memory/` and at the module l
 `docs/kanban/memory/<module>/`. **Choose the set from the card's `modules:` field.** Use
 each named module's set, or the project-level set if the card names no modules. Never
 copy a note between levels; project memory is not a mirror of module memory. Initialize
-a module's folder with the idempotent `akb board memory-init <module>` command before
+a module's folder with the idempotent `akb raw memory-init <module>` command before
 writing to it. `init` does this for every module already in the module map.
 
 **`goal.md` sits outside the set, in the project-level memory directory only.** It records
@@ -154,7 +154,7 @@ run without interrupting the user.
 
 ## Archive/Finish a task
 
-**`akb board archive <id>` is the only way a task leaves the board.** It files the card,
+**`akb raw archive <id>` is the only way a task leaves the board.** It files the card,
 drops it from the index, counts the completion, and prints every line that still points at
 the id so you can fix them.
 
@@ -176,7 +176,7 @@ internal-only changes. Use formats like these:
 - ❌ (docs/kanban/memory/site/readme.md) The landing site is live on Cloudflare Pages.
   This describes infrastructure, not user-facing behavior.
 
-Then run `akb board archive <id>`, and fix whatever it reports still mentioning the id.
+Then run `akb raw archive <id>`, and fix whatever it reports still mentioning the id.
 
 ## Record a redesign
 

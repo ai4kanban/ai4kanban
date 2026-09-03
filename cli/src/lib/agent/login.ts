@@ -9,7 +9,7 @@
 // uncached and on the page-load path. Nothing here can slow that down or make it stale.
 //
 // What it never does is gate. Implement, Schedule, Resolve & implement, a chat and
-// `akb implement` all start exactly as they did — a stale or wrong reading here costs one
+// `akb card implement` all start exactly as they did — a stale or wrong reading here costs one
 // wasted run, where gating on it would lock someone out of an agent that works. So the whole
 // of its answer is a warning, and it is only ever given for a CLI that said outright that
 // nobody is logged in.

@@ -488,7 +488,7 @@ export function Board({
               style={{ background: "var(--color-nb-peach-soft)" }}
             >
               <Rich>{c.notice.changelogMissing(changelogGone.release, changelogGone.why)}</Rich>{" "}
-              <Rich>{c.notice.changelogWriteIt(`akb changelog ${changelogGone.release}`)}</Rich>{" "}
+              <Rich>{c.notice.changelogWriteIt(`akb release changelog ${changelogGone.release}`)}</Rich>{" "}
               <button
                 type="button"
                 className="cursor-pointer underline underline-offset-2 hover:text-nb-accent-deep"

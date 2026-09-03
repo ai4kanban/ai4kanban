@@ -1,6 +1,6 @@
 // The flows this board can start — the one list, read by everything that needs it.
 //
-// A flow is a command a person types (`akb implement 12`) and the program it starts.
+// A flow is a command a person types (`akb card implement 12`) and the program it starts.
 // The list used to be written down three times: the dispatcher's table of commands, the
 // runs table `akb help` prints, and — once flow rules shipped (#306) — the pane that
 // writes them. Three copies fall behind each other, and a flow shipped later would take a
@@ -11,11 +11,21 @@
 // (lib/cli/agent.ts): `argument` and `options` ARE the flow's command line, and so are its
 // help. A flow shipped later is a command, a help entry and a rule at once.
 //
-// `command` is also the name of the flow's rule file, because the command is the one name
-// the user typed and the one a pane can show — `revise.md` for `akb revise`, whose action
-// the board keeps under the name `edit`.
+// `command` is the flow's NAME, not the line a person types: it names the flow's rule file,
+// keys the rules a delivery freezes, and keys which runtime the flow runs on. It stays put
+// when the command line is rearranged — `plan-release` is still `plan-release` on disk now
+// that it is typed `akb release plan`, so no board loses a rule to a rename and no delivery
+// in flight loses the rules it froze.
+//
+// `group` and `verb` are the line a person types. A flow with a group is typed under that
+// noun (`akb card refine`); one without is typed bare, because it acts on nothing that
+// exists yet — `create`, `propose`, `setup`.
 
 import { PROPOSE_MAX, type AgentAction, type CommandAction } from './types'
+
+/** The nouns the commands are grouped under. A flow acts on one of these, or on nothing
+ *  yet — see `Flow.group`. */
+export type FlowGroup = 'card' | 'delivery' | 'release'
 
 /** One option a flow takes, as its command declares it. `flags` is Commander's own
  *  notation, so `--effort <level>` takes a value and `--and-implement` does not. */
@@ -29,8 +39,13 @@ export interface FlowOption {
 }
 
 export interface Flow {
-  /** The word a person types — and the name of this flow's rule file. */
+  /** This flow's name: its rule file, its frozen key, its runtime. Never the line typed —
+   *  see `group` and `verb`. */
   command: string
+  /** The noun it is typed under. None means it is typed bare. */
+  group?: FlowGroup
+  /** The word typed under that noun, when it is not `command` itself. */
+  verb?: string
   /** The public action the command dispatcher receives. */
   action: CommandAction
   /** What follows the command word, in Commander's notation. Empty when it takes nothing. */
@@ -55,6 +70,7 @@ const NOTE = 'anything the run should know, in your own words'
 export const FLOWS: Flow[] = [
   {
     command: 'implement',
+    group: 'card',
     action: 'implement',
     argument: '<id> [note...]',
     argumentNote: NOTE,
@@ -64,6 +80,7 @@ export const FLOWS: Flow[] = [
   },
   {
     command: 'review',
+    group: 'delivery',
     action: 'review',
     argument: '<id>',
     gloss: 'review and fix what the delivery built against the approved card',
@@ -72,6 +89,7 @@ export const FLOWS: Flow[] = [
   },
   {
     command: 'conflict',
+    group: 'delivery',
     action: 'conflict',
     argument: '<id>',
     gloss: "resolve the conflict its landing's rebase stopped on",
@@ -79,6 +97,7 @@ export const FLOWS: Flow[] = [
   },
   {
     command: 'run',
+    group: 'card',
     action: 'run',
     argument: '<id> [note...]',
     argumentNote: NOTE,
@@ -86,6 +105,7 @@ export const FLOWS: Flow[] = [
   },
   {
     command: 'refine',
+    group: 'card',
     action: 'refine',
     argument: '<id>',
     gloss: 'sharpen the card until it is ready to build',
@@ -99,6 +119,7 @@ export const FLOWS: Flow[] = [
   },
   {
     command: 'resolve',
+    group: 'card',
     action: 'resolve',
     argument: '<id> [note...]',
     argumentNote: NOTE,
@@ -107,6 +128,7 @@ export const FLOWS: Flow[] = [
   },
   {
     command: 'revise',
+    group: 'card',
     action: 'edit',
     argument: '<id> <what...>',
     argumentNote: 'what to change about the card',
@@ -137,6 +159,8 @@ export const FLOWS: Flow[] = [
   },
   {
     command: 'plan-release',
+    group: 'release',
+    verb: 'plan',
     action: 'plan-release',
     argument: '<version>',
     argumentNote: 'the version to fill',
@@ -144,6 +168,7 @@ export const FLOWS: Flow[] = [
   },
   {
     command: 'changelog',
+    group: 'release',
     action: 'changelog',
     argument: '<version>',
     argumentNote: 'the closed version to write up',
@@ -160,9 +185,10 @@ export const FLOWS: Flow[] = [
     gloss: 'finish setting the board up',
     more: ['Every step still unticked on docs/kanban/setup-checklist.md, in one run.'],
   },
-  { command: 'archive', action: 'archive', argument: '<id>', gloss: 'finish the card' },
+  { command: 'archive', group: 'card', action: 'archive', argument: '<id>', gloss: 'finish the card' },
   {
     command: 'reject',
+    group: 'card',
     action: 'reject',
     argument: '<id> <why...>',
     argumentNote: 'why the card is being dropped',
@@ -170,10 +196,23 @@ export const FLOWS: Flow[] = [
   },
 ]
 
-/** The word a person types and the public action it starts — the dispatcher's table. */
+/** The flow's name and the public action it starts — the dispatcher's table. */
 export const RUN_COMMANDS: Record<string, CommandAction> = Object.fromEntries(
   FLOWS.map((flow) => [flow.command, flow.action]),
 )
+
+/** The word typed under the flow's noun. */
+export const flowVerb = (flow: Flow): string => flow.verb ?? flow.command
+
+/** The line a person types, without the command's own name — `card refine`, `release plan`,
+ *  `propose`. What every message and every doc spells. */
+export const flowPath = (flow: Flow): string => (flow.group ? `${flow.group} ${flowVerb(flow)}` : flowVerb(flow))
+
+/** The same, by flow name, for the places that hold one — a rule file, a runtime setting. */
+export const pathOfCommand = (command: string): string => {
+  const flow = flowByCommand(command)
+  return flow ? flowPath(flow) : command
+}
 
 export const flowByCommand = (command: string): Flow | undefined =>
   FLOWS.find((flow) => flow.command === command)

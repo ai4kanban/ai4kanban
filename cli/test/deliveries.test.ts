@@ -232,7 +232,7 @@ describe('the hold on the card', () => {
     const held = heldByDelivery(5)
     assert.match(held!, new RegExp(id))
     assert.match(held!, /Discard/)
-    // Not `akb cancel`: with no `akb` on PATH the board spells its own command as
+    // Not `akb delivery cancel`: with no `akb` on PATH the board spells its own command as
     // `node <path>/ai4kanban.mjs`, so the command is what to look for, not the program.
     assert.match(held!, new RegExp(`cancel ${id}`))
   })

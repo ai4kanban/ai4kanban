@@ -10,7 +10,7 @@
 //   • The caller's expected revision is checked against the file as it is at that moment,
 //     inside the lock. A revision that has moved is a CONFLICT, never a half-applied write.
 //   • Prose a move would have printed is swallowed for the typed operations, whose callers
-//     read the value. The named `akb board` moves keep their prose: it is their answer, and
+//     read the value. The named `akb raw` moves keep their prose: it is their answer, and
 //     the dispatcher above owns where it lands.
 //
 // Local grants every lease, and no card is written without one. The lock is what serializes
@@ -99,7 +99,7 @@ import type { BulkReleaseResult, CardPatch, CardSchedule, PlanCard, SaveProjectR
 
 // ---- the named moves -------------------------------------------------------
 //
-// Lifted here from the dispatcher: `akb board <move>` is one operation of this contract,
+// Lifted here from the dispatcher: `akb raw <move>` is one operation of this contract,
 // so the table of what each move does belongs to the board, not to the command line that
 // happens to be in front of it today.
 
@@ -514,7 +514,7 @@ export function localBoard(): BoardProvider {
         return { deliveryId: res.deliveryId, covers: res.covers }
       }),
 
-    // ---- the named `akb board` moves ----------------------------------------
+    // ---- the named `akb raw` moves ----------------------------------------
 
     runMove(move: string, input: MoveInput, env: OpEnvelope) {
       const run = MOVES[move]

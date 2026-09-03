@@ -119,7 +119,7 @@ async function moveOut(args: string[], program: string): Promise<MoveResult> {
   }
   const res = await exportBoard(workspace, to, (line) => say(`  ${line}`))
   if (!res.ok) die(res.error, { kind: 'cloud-refused' })
-  say(`Exported to ${res.moved.dir}. \`${program} --dir ${to} board list\` reads it as a Local board.`)
+  say(`Exported to ${res.moved.dir}. \`${program} --dir ${to} raw list\` reads it as a Local board.`)
   return { exported: res.moved }
 }
 

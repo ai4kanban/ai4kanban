@@ -1,6 +1,6 @@
 # Configuration
 
-This file adapts ai4kanban to your project. `akb board init` seeds it at
+This file adapts ai4kanban to your project. `akb raw init` seeds it at
 `docs/kanban/config.md`; setup fills in the project and tracks. Edit the defaults whenever
 the project needs something different.
 

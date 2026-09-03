@@ -12,9 +12,12 @@
 //   ./agent.ts  the flows, the runs in flight, the agent, Cloud, the guides
 //   ./board.ts  the board's own bookkeeping, which is a tree of its own (see below)
 //
-// `akb board <move>` stays separate on purpose. Its moves take options that collide with
+// `akb raw <move>` stays separate on purpose. Its moves take options that collide with
 // these — `create`, `archive` and `reject` are words on both sides — so the loader hands
 // that whole command line to the board's tree and this one never sees it.
+//
+// It is spelled `raw` because that is what it is: the file written, with no agent between
+// you and it. Everything else here asks an agent to do the work and write the file itself.
 
 import { declareRuns } from './agent'
 import { declareSetup } from './setup'
@@ -37,19 +40,21 @@ export function buildAkbProgram(cli: AkbCliOptions): Command {
   declareSetup(program, cli)
   declareRuns(program, cli)
 
-  // Named so it is in the list and `akb help board` says what it is. The loader routes the
+  // Named so it is in the list and `akb help raw` says what it is. The loader routes the
   // word to the board's own tree before this one is asked, so the action is only ever
   // reached when that routing has gone wrong.
   program
-    .command('board')
+    .command('raw')
     .argument('[move...]')
-    .summary("the board's bookkeeping: ids, a card's fields, releases, the index")
+    .summary("write the board's files directly, with no agent: ids, a card's fields, the index")
     .description(
-      `Every move: \`${cli.program} board help\`. Those are the agent's commands between runs — a person ` +
-        'never has to type one. They own docs/kanban/next-id, a card’s frontmatter and metrics.csv.',
+      `Every move: \`${cli.program} raw help\`. These are the agent's commands between runs — a person ` +
+        'never has to type one. They own docs/kanban/next-id, a card’s frontmatter and metrics.csv, and ' +
+        `they only write what they are told: \`${cli.program} raw archive 12\` files the card, where ` +
+        `\`${cli.program} card archive 12\` puts an agent on it first.`,
     )
     .action(function () {
-      throw new BoardError(`\`${cli.program} board\` is a tree of its own — this command line never reached it.`, {
+      throw new BoardError(`\`${cli.program} raw\` is a tree of its own — this command line never reached it.`, {
         kind: 'unreachable',
       })
     })

@@ -83,7 +83,7 @@ function openRows(): Row[] {
   return rows.sort((a, b) => a.id - b.id)
 }
 
-/** `akb board list`, as its command declares it (lib/cli/board.ts). */
+/** `akb raw list`, as its command declares it (lib/cli/board.ts). */
 export interface ListOptions {
   module?: string
 }

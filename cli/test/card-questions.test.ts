@@ -34,7 +34,7 @@ const card = (): string =>
 
 describe('a question handed to the user carries choices', () => {
   it('shows the operations and points to the canonical format guide', () => {
-    const program = buildBoardProgram({ program: 'akb board', cwd: root, installHint: '`akb install`', version: null })
+    const program = buildBoardProgram({ program: 'akb raw', cwd: root, installHint: '`akb install`', version: null })
     const declared = program.commands.find((c) => c.name() === 'update-questions')
     assert.ok(declared)
     const help = declared.helpInformation()

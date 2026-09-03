@@ -9,7 +9,7 @@
 //   • **before it starts** — the card's workspace lock is taken, and a run that cannot have
 //     it does not start,
 //   • **while it goes** — the lock is renewed from the watcher, the one process alive for
-//     the whole run, and every `akb board` move the run makes presents the same lease
+//     the whole run, and every `akb raw` move the run makes presents the same lease
 //     (`board/cloud.ts`),
 //   • **at its close** — the card bodies the run is answerable for and the memory,
 //     configuration and rule files it wrote are sent to the workspace in one pass, before

@@ -13,7 +13,7 @@ earlier in the same flow.
    memory, and the relevant project sources. Stop when the idea has unclear value,
    direction, or feasibility; explain the concern before creating anything.
 4. **Check existing work once.** Search the relevant code and docs, then run
-   `akb board list --module <module>` for each resolved module. Skip work already supported
+   `akb raw list --module <module>` for each resolved module. Skip work already supported
    or rejected. Update the card that already owns planned work when the idea is a tweak,
    reframe, or extra detail; create a new card only for a separate deliverable.
 

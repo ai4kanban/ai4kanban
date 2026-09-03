@@ -82,8 +82,8 @@ Then run `akb update` anyway — it repairs the board, which the plugin never to
 ## Verify
 
 ```
-akb board peek
-akb board version
+akb raw peek
+akb raw version
 ```
 
 Tell the user to review `git diff` before committing. The board app updates separately —

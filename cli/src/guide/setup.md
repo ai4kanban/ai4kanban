@@ -1,8 +1,8 @@
 # Setup
 
 ```text
-akb board setup-status
-akb board setup-done <step>
+akb raw setup-status
+akb raw setup-done <step>
 ```
 
 Start at the first unticked step in `docs/kanban/setup-checklist.md`. Tick each step when
@@ -73,7 +73,7 @@ discrepancies. Then `setup-done decisions`.
 ## `modules`
 
 Write at most five user-visible parts to `docs/kanban/modules.md` as
-`<module>: <purpose>`. Run `akb board init`, then move each module-specific decision to
+`<module>: <purpose>`. Run `akb raw init`, then move each module-specific decision to
 that module's `decisions.md`; keep cross-module decisions at project level. Then
 `setup-done modules`.
 

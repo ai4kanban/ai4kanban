@@ -14,7 +14,7 @@ another question, or change project code.
 3. Drop each answered question after its answer is fully applied:
 
 ```text
-akb board update-questions <id> --drop <n[,n...]>
+akb raw update-questions <id> --drop <n[,n...]>
 ```
 
 When an answer selects one of several options in a spec-skill section, remove the rejected

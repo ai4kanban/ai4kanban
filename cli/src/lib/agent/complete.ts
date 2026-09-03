@@ -7,7 +7,7 @@
 //
 // It is the board's own work, like landing: no run is started to do it. The two steps that
 // need judgment — ticking the todos and writing the shipped line — are the build run's,
-// and review checks them. What is left is `akb board archive`, which is a board command.
+// and review checks them. What is left is `akb raw archive`, which is a board command.
 //
 // The delivery is ended BEFORE this is called, so nothing is still holding the card when
 // it is archived.
@@ -37,6 +37,6 @@ export async function completeCard(cardId: number, deliveryId: string): Promise<
   }
   say(
     `delivery ${deliveryId} is done, but #${cardId} could not be archived: ${why} ` +
-      `Archive it with \`${boardCommand()} board archive ${cardId}\`.`,
+      `Archive it with \`${boardCommand()} raw archive ${cardId}\`.`,
   )
 }

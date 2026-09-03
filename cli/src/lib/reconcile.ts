@@ -13,7 +13,7 @@
 //
 // The same reading is available without the repair (`boardComplaints`), which is what a
 // finished run is checked against: an agent that took a card off the board with `rm`
-// instead of `akb board archive` leaves exactly this behind, and a run that reports a clean
+// instead of `akb raw archive` leaves exactly this behind, and a run that reports a clean
 // `✓ done` over it is the board agreeing that nothing happened.
 
 import fs from 'node:fs'

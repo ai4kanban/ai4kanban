@@ -62,7 +62,7 @@ function toView(run: RunView, deliveries?: Map<string, DeliveryRecord>): Session
 }
 
 // Write the run down, then hand it to a process of its own. The two steps are the CLI's,
-// and they are the same two `akb implement 12` takes — which is the point: a run started
+// and they are the same two `akb card implement 12` takes — which is the point: a run started
 // from a button and one started in a terminal are the same run, watched the same way, and
 // both outlive whatever asked for them.
 async function launch(

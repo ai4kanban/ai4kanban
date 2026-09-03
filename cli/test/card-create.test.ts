@@ -101,7 +101,7 @@ describe('card creation owns its id', () => {
   })
 
   it('puts the one-card and group rules in create help', () => {
-    const program = buildBoardProgram({ program: 'akb board', cwd: root, installHint: '`akb install`', version: null })
+    const program = buildBoardProgram({ program: 'akb raw', cwd: root, installHint: '`akb install`', version: null })
     const create = program.commands.find((c) => c.name() === 'create')
     assert.ok(create)
     const help = create.helpInformation()

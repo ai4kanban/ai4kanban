@@ -1,7 +1,7 @@
 // ---- the Cloud board -------------------------------------------------------
 //
 // A board whose authority is a workspace, behind the same contract the Local one answers
-// (#316). Nothing that reads or writes a board knows the difference: `akb board`, the app's
+// (#316). Nothing that reads or writes a board knows the difference: `akb raw`, the app's
 // screens and the run engine call the operations in ./contract.ts, and this is one more
 // implementation of them.
 //
@@ -831,7 +831,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     approveDelivery: (deliveryId, from, env) =>
       through({ board: true }, env, (e) => local.approveDelivery(deliveryId, from, e)),
 
-    // ---- the named `akb board` moves ----------------------------------------
+    // ---- the named `akb raw` moves ----------------------------------------
 
     runMove: (move, input, env) => through(moveTarget(move, input.args), env, (e) => local.runMove(move, input, e)),
     readMove: async (move, input) => (await tryLive(), local.readMove(move, input)),
@@ -985,7 +985,7 @@ async function carry(ctx: Context, before: BoardPayload, sessionId: string): Pro
     // already applies. The documents are shared and go up as they stand.
     //
     // A card OFF the board never travels here: an agent has no tool that archives one, so
-    // an archived card in the difference is either the run's own `akb archive`/`reject` —
+    // an archived card in the difference is either the run's own `akb card archive`/`reject` —
     // already sent under that move — or the whole archive pulled into the copy by another
     // process. Neither is in this process's revisions, so sending either would be a
     // conflict, and the conflict would take the run's real edits down with it.

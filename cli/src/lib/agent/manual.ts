@@ -12,23 +12,26 @@
 export const HELP_AFTER = {
   /** Under the whole list: what these commands are for, and what to do when one won't run. */
   root: (program: string): string => `
+Grouped by what each command acts on — \`${program} card\`, \`delivery\`, \`run\`, \`release\`.
+\`${program} <noun>\` lists that noun's verbs.
+
 A run keeps working after the command returns — close the terminal and it keeps going. Add
 --follow to any of them to watch the log instead.
 
 When an ask can't run, this is the one line that fixes it
   no board here                 \`${program} install\` in the project
-  the board is half a board     \`${program} board init\` adds what is missing
+  the board is half a board     \`${program} raw init\` adds what is missing
   this command is behind        \`npm install -g ai4kanban@latest\`, then \`${program} update\`
   the agent isn't installed     \`${program} agent test\` — it names the install command
   no key, or the wrong one      \`${program} agent\` says what is set; the user runs
                                 \`${program} agent set apiKey <their-key>\`
-  a run won't start             \`${program} runs\` — one run per card at a time, and the
+  a run won't start             \`${program} run list\` — one run per card at a time, and the
                                 refusal names the run already on it
-  a run died part-way           \`${program} resume <id>\` continues that conversation
-  a card won't change           a delivery is in flight on it — \`${program} cancel <id>\`
+  a run died part-way           \`${program} run resume <id>\` continues that conversation
+  a card won't change           a delivery is in flight on it — \`${program} delivery cancel <id>\`
                                 hands it back
   a delivery won't land         it is waiting for you to approve its tree —
-                                \`${program} approve <id>\` signs it off
+                                \`${program} delivery approve <id>\` signs it off
 `,
 
   /** Under every flow: print it, or run it. The one choice each of them has. */
@@ -85,7 +88,7 @@ A delivery — what an Implement click starts
   One click carries the card all the way: it builds, a fresh run reviews and fixes what it
   built, the board lands it, and the board archives the card. Nothing asks you again in
   between. While a delivery is in flight that card can't be revised, refined, rejected or
-  archived; \`${program} cancel\` and \`${program} discard\` are what take it back.
+  archived; \`${program} delivery cancel\` and \`${program} delivery discard\` are what take it back.
 
   Building a card that still has open questions is allowed and warned about: it is built and
   reviewed, and then holds outside the landing queue — taking no slot — until the questions

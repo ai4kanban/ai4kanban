@@ -1,4 +1,4 @@
-// The door onto `akb board <move>`, and the parts of a command that are not the command.
+// The door onto `akb raw <move>`, and the parts of a command that are not the command.
 //
 // The moves themselves — what each one takes, what its options mean, and the help that is
 // those two written down — are declared in lib/cli/board.ts. What lives here is what every
@@ -144,7 +144,7 @@ export interface RunBoardOptions {
  *
  * The tree, the options and the help all live in lib/cli/board.ts — this is only the door.
  *
- *   program     how the command is spelled in messages ("akb board", "kanban")
+ *   program     how the command is spelled in messages ("akb raw", "kanban")
  *   cwd         where the command was run, for finding the board
  *   installHint what to tell someone who has no board yet
  *   version     what `version` prints; without it the move refuses and names `akb version`

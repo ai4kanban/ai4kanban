@@ -5,10 +5,10 @@ run, or adds a field. Finding work the board is *missing* is `akb guide propose`
 
 ## 1. Read the board
 
-- **`akb board list --json`** — every open card with its `status`, `priority`, `roi`,
+- **`akb raw list --json`** — every open card with its `status`, `priority`, `roi`,
   `release`, `blocked_by`, `isRoot` and file path.
-- **`akb board release list`** — the open releases, in ship order.
-- **`akb runs`** — a run shown as `implement #<id>` is a card already being built.
+- **`akb raw release list`** — the open releases, in ship order.
+- **`akb run list`** — a run shown as `implement #<id>` is a card already being built.
 
 ## 2. Keep only the buildable cards
 

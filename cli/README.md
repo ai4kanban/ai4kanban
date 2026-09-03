@@ -94,13 +94,13 @@ card can be built from a terminal, over ssh, or from a script, without a chat se
 without a browser.
 
 ```bash
-akb implement 12              # build the card, then review what was built
-akb review 12                 # judge the delivery in flight on it again
-akb refine 12                 # sharpen it; defaults to standard QA
-akb refine 12 --effort lightweight --print  # use the chosen effort inline
+akb card implement 12              # build the card, then review what was built
+akb delivery review 12                 # judge the delivery in flight on it again
+akb card refine 12                 # sharpen it; defaults to standard QA
+akb card refine 12 --effort lightweight --print  # use the chosen effort inline
 akb create "add dark mode"    # write the card(s) for it
 akb propose                   # write the next tasks
-akb archive 12                # finish it
+akb card archive 12                # finish it
 ```
 
 Add `--print` to any of them and nothing starts: it prints what to do instead, filled in
@@ -108,22 +108,22 @@ for this board — the card's own path, the steps it has left, the memory file i
 point at, and the command that closes the job.
 
 ```bash
-akb implement 12 --print      # the steps, for whoever is asking
+akb card implement 12 --print      # the steps, for whoever is asking
 ```
 
 That is the mode for an agent already in a session: it does the job where it is, rather than
 paying for a second agent to do it. Start a run when you want the work to happen on its own.
 An agent working inside a run always gets the printed flow, so a run can't spawn a copy of
-itself. `akb help runs` carries the whole rule.
+itself. `akb help` carries the whole rule.
 
 The run keeps working after the command returns. Watch it, or stop it, from anywhere —
 including from the board app, which drives its buttons through these same commands:
 
 ```bash
-akb runs                      # what is running, and what ran lately
-akb log 3f2a1b04 --follow     # watch a run as it goes
-akb stop 3f2a1b04             # end one
-akb resume 3f2a1b04           # continue one that failed
+akb run list                      # what is running, and what ran lately
+akb run log 3f2a1b04 --follow     # watch a run as it goes
+akb run stop 3f2a1b04             # end one
+akb run resume 3f2a1b04           # continue one that failed
 ```
 
 Which agent runs them — Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness,
@@ -169,15 +169,15 @@ Every message is its own command, so a conversation is picked up from any termin
 survives closing one. The board's conversation and each card's are separate, both under
 `docs/kanban/.chats/`, on your machine and out of git.
 
-A chat is not a run: it never shows in `akb runs` and never holds a card. A change to a card a
+A chat is not a run: it never shows in `akb run list` and never holds a card. A change to a card a
 run is already working on is refused, and the refusal names the card and what that run is
 doing. Only an agent whose command can take a second message into its own session can hold a
 conversation; on any other, chat says so and names the agents that can.
 
 ## The manual
 
-`akb help runs` is what a coding agent reads: every command it may call — the card work,
-the runs, the agent settings — and when to call each. `akb board help` is the board's own
+`akb help` is what a coding agent reads: every command it may call — the card work,
+the runs, the agent settings — and when to call each. `akb raw help` is the board's own
 bookkeeping beneath it: ids, a card's fields, the index, the releases.
 
 The flows are `akb guide`:
@@ -192,8 +192,8 @@ akb guide plan-release        # fill a release from its goal
 
 A printed flow already carries the ones its action needs, in full, so this is for the rest.
 
-A run that writes or changes a card is followed by `akb refine` on that card, as a run of its
-own — so `akb create`, `akb revise`, `akb resolve`, `akb propose` and `akb plan-release` all
+A run that writes or changes a card is followed by `akb card refine` on that card, as a run of its
+own — so `akb create`, `akb card revise`, `akb card resolve`, `akb propose` and `akb release plan` all
 come back with their cards refined. Archiving or rejecting a card does the same for every card
 it was blocking that now has nothing left in its way.
 

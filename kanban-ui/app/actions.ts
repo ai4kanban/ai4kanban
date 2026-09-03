@@ -877,7 +877,7 @@ export async function installedAgentsAction(): Promise<HarnessOption[]> {
 // because this one spawns each CLI and the picker must never wait on it.
 //
 // It gates nothing. The answer is a line under the grid and a word on a card; Implement,
-// Schedule, Resolve & implement, a chat and `akb implement` all start exactly as before, so
+// Schedule, Resolve & implement, a chat and `akb card implement` all start exactly as before, so
 // a stale reading costs one wasted run rather than an agent the user can't reach.
 //
 // Nothing to say comes back as nothing: no rules to ask, a CLI that wouldn't answer, or the
@@ -997,7 +997,7 @@ export async function runtimeUsersAction(
     const info = await agentInfo();
     const skills = await specSkills().catch(() => []);
     return {
-      flows: info.flows.filter((f) => f.runtime === name).map((f) => f.command),
+      flows: info.flows.filter((f) => f.runtime === name).map((f) => f.path),
       specSkills: (skills ?? []).filter((s) => s.runtime === name).map((s) => s.name),
     };
   } catch {

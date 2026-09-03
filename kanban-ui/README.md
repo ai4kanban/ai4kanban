@@ -509,7 +509,7 @@ The close then starts an agent that writes the version's **changelog** — a few
 saying what it changed — at the top of that same section. The dialog says which of the two is
 coming before you confirm, since a version that shipped no card gets no changelog. The run
 shows in the runs panel like any other, the close is finished whatever it does, and if it
-can't start or doesn't finish the board says so and names `akb changelog v1` as the way to get
+can't start or doesn't finish the board says so and names `akb release changelog v1` as the way to get
 the changelog after all. Reading that changelog is still a matter of opening the file; the
 board shows the run, not the text. Nothing else edits that file — fix a wrong line in your own
 editor.
@@ -646,7 +646,7 @@ see **Where a delivery's code goes** below.
 
 **Implement** starts a **delivery**: the whole job, from the click to the finished work. A delivery
 is usually several **sessions** — one agent invocation each — and it has an id you'll see on the
-card, in the activity panel and in `akb runs`. Every other button is a single session and starts no
+card, in the activity panel and in `akb run list`. Every other button is a single session and starts no
 delivery.
 
 - **One click carries the card all the way.** The build is one session; a fresh session then
@@ -684,10 +684,10 @@ delivery.
   card as it was approved for it, each session and how it went, every review verdict and its
   findings, and how the delivery ended — finished, stopped or cancelled. It is tracked in git and
   kept after the card is archived.
-- **In a terminal**: `akb discard <delivery-or-card-id> --yes` is the same thing as the button.
-  `akb cancel <delivery-or-card-id>` is the half of it the UI does not offer — it ends the
+- **In a terminal**: `akb delivery discard <delivery-or-card-id> --yes` is the same thing as the button.
+  `akb delivery cancel <delivery-or-card-id>` is the half of it the UI does not offer — it ends the
   delivery and leaves its worktree and branch on disk, for when there is something in there to
-  salvage. `akb runs` names the delivery each session belongs to. `akb implement <id>` starts the same delivery the
+  salvage. `akb run list` names the delivery each session belongs to. `akb card implement <id>` starts the same delivery the
   button does, and warns about an open question the same way it warns about a blocker.
 
 #### What the card page says while a delivery runs
@@ -768,7 +768,7 @@ puts you back in the loop for every change, which is what auto-delivery exists t
   does not release a delivery already waiting; **Discard** is the way out of one.
 - **The delivery record keeps every approval** — what each one covered, and every cancellation
   with which of the two moved.
-- **In a terminal**: `akb approve <delivery-or-card-id>`, beside `cancel` and `discard`.
+- **In a terminal**: `akb delivery approve <delivery-or-card-id>`, beside `cancel` and `discard`.
 
 #### Building a card with open questions
 
@@ -800,7 +800,7 @@ is **manual commit mode**, below.
   is reachable from `HEAD` alone.
 - **Only the Implement button carries the tick.** **Schedule** and **Resolve & implement** start a
   build later, and each reads **Automatic Git commits** as it stands then; so does
-  `akb implement` in a terminal.
+  `akb card implement` in a terminal.
 
 - **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
   same files never write over each other, and neither one touches the edits you have open.
@@ -814,7 +814,7 @@ is **manual commit mode**, below.
   tree rather than a half-written one. Nothing reaches your own branch.
 - **Discard** on the card page removes the worktree and the branch, and everything only they hold.
   It says exactly what will be lost and asks for a second click. It is the one control here that
-  throws work away — nothing removes a worktree on its own, and `akb cancel` deliberately does not.
+  throws work away — nothing removes a worktree on its own, and `akb delivery cancel` deliberately does not.
 - **If a worktree or branch goes missing**, the card page says so and nothing is rebuilt: discard
   the delivery and start the card again.
 
@@ -916,8 +916,8 @@ If a delivery's next session never starts — the process watching the one befor
 **Continue delivery** appears in the same place and starts it. Nothing is lost either way: the
 delivery still says what it was about to do.
 
-**In a terminal**: `akb review <id>` reviews and fixes the delivery in flight on a card again,
-`akb conflict <id>` resolves the conflict a landing's rebase stopped on, and `akb guide review`
+**In a terminal**: `akb delivery review <id>` reviews and fixes the delivery in flight on a card again,
+`akb delivery conflict <id>` resolves the conflict a landing's rebase stopped on, and `akb guide review`
 prints the review flow.
 
 **Open questions** is answered where it is read. Click the panel — or **Resolve** in the toolbar,
@@ -1499,7 +1499,7 @@ agent runs on, and **each computer says what those names run as there**.
 
 `setup` always runs the global one: it is the run that has to work on a board nobody has configured
 yet. A pass a flow spawns runs that flow's runtime — a refine's clarify, resolve and writing passes
-take refine's, while an `akb resolve` you type keeps the `resolve` flow's — and only a flow is named,
+take refine's, while an `akb card resolve` you type keeps the `resolve` flow's — and only a flow is named,
 never a pass.
 
 **What each runtime runs as is the board's too**, in the same file. One place per runtime: the
@@ -1616,7 +1616,7 @@ name nothing you can guess at.
   button, and a rule is free text, so there is nothing to get wrong — a save that does not land
   says so across the top of the page.
 - **Rules are files in your board**: `docs/kanban/rules/<command>.md`, named by the command a user
-  types — `revise.md` for `akb revise`. They are tracked in git, so a team shares them and can see
+  types — `revise.md` for `akb card revise`. They are tracked in git, so a team shares them and can see
   them change, and a run started from a terminal reads the same words. Clearing a box deletes the
   file; a flow with no file runs exactly as the command ships it.
 - **A delivery freezes its rules.** The rules of the flows a delivery is made of — `implement`,

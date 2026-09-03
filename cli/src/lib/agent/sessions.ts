@@ -675,7 +675,7 @@ export function askForSpec(sessionId: string, ask: SpecAsk): 'queued' | 'already
   return 'queued'
 }
 
-/** Hand a card to a refinement from inside a run (`akb refine <id>`). Written down rather
+/** Hand a card to a refinement from inside a run (`akb card refine <id>`). Written down rather
  *  than started, exactly as a spec ask is, and started by this run's watcher at the close —
  *  in the same flow, so it reads as the next step of the job that handed the card over.
  *

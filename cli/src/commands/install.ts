@@ -95,7 +95,7 @@ function statOf(p: string): fs.Stats | null {
 // — the nearest board can be anywhere above it, up to the user's home. Naming the folder is
 // what keeps `install --dir X` from repairing somebody else's board and leaving X untouched.
 async function boardMove(root: string, args: string[]): Promise<void> {
-  const code = await runBoard([...args, '--dir', root], { program: 'akb board', cwd: root })
+  const code = await runBoard([...args, '--dir', root], { program: 'akb raw', cwd: root })
   if (code !== 0) throw new BoardError(`\`board ${args.join(' ')}\` failed — nothing else was changed`, { kind: 'board-move-failed' })
 }
 

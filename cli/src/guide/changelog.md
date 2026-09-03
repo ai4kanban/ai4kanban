@@ -17,7 +17,7 @@ The record is `docs/kanban/.release-summaries/<version>.md`. Read its **newest**
 Put the lines in a file, then hand them over in one call:
 
 ```
-akb board release changelog <version> --file <path>
+akb raw release changelog <version> --file <path>
 ```
 
 That command owns the placement: it splices the lines under their own heading at the top of the newest closed section and leaves every other byte of the file alone. Run it again for the same version and the changelog is **replaced**, never added twice.

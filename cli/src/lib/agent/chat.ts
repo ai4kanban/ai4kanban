@@ -628,7 +628,7 @@ const CLOSE_GRACE_MS = 3_000
 
 // How long a turn may produce NOTHING AT ALL before it is given up on.
 //
-// A chat has none of a run's safety net — no row in `akb runs`, no log file, no stop
+// A chat has none of a run's safety net — no row in `akb run list`, no log file, no stop
 // command — so an agent that wedges holds the conversation until someone deletes its file
 // by hand, and a wedged reply and a slow one look exactly the same from outside. This is
 // what makes them tell apart on their own.

@@ -9,7 +9,7 @@ import type { MoveResult } from '../lib/types'
 
 const MAX_FIELD = 240
 
-/** `akb board run-blocker`, as its command declares it (lib/cli/board.ts). */
+/** `akb raw run-blocker`, as its command declares it (lib/cli/board.ts). */
 export interface RunBlockerOptions {
   step: string
   cause: string

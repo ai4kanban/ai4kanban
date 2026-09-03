@@ -2,11 +2,11 @@
 
 Use this process to fill an existing release with the open cards required by its goal and to create any required cards that are missing from the board.
 
-- **Read the release goal**: Run `akb board release list` and use the selected release's goal as the boundary for every card you include, create, or leave out.
-- **Use the fallback when no goal exists**: Assign each high-priority card that has no release, no open blocker, and is not a group root with `akb board update <card-id> --release <release-id>`, report every high-priority card left out with the failed test, and stop.
-- **Read the open board**: Run `akb board list` to review every open card's identifier, title, release, priority, blockers, and summary before making assignments.
+- **Read the release goal**: Run `akb raw release list` and use the selected release's goal as the boundary for every card you include, create, or leave out.
+- **Use the fallback when no goal exists**: Assign each high-priority card that has no release, no open blocker, and is not a group root with `akb raw update <card-id> --release <release-id>`, report every high-priority card left out with the failed test, and stop.
+- **Read the open board**: Run `akb raw list` to review every open card's identifier, title, release, priority, blockers, and summary before making assignments.
 - **Read the relevant product context**: Review `docs/kanban/memory/goal.md` and the memory files for every module touched by the release goal before judging whether work belongs.
-- **Select cards by outcome**: For every open card with no release, assign it with `akb board update <card-id> --release <release-id>` only when completing it directly delivers part of the release goal.
+- **Select cards by outcome**: For every open card with no release, assign it with `akb raw update <card-id> --release <release-id>` only when completing it directly delivers part of the release goal.
 - **Assign groups through the root**: When a whole group belongs in the release, assign its root so every nested subtask receives the same release assignment.
 - **Include required blockers**: Assign every still-open, unassigned card that blocks an included card because the release cannot ship without that prerequisite.
 - **Protect other releases**: Leave cards already assigned to another release where they are unless the user explicitly asks to move them.

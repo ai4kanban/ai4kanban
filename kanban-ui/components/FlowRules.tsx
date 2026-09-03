@@ -166,7 +166,7 @@ export function FlowRulesPanel({ onError }: { onError?: (msg: string) => void })
                 plain words — `plan-release` and `run` name nothing a user can
                 guess at. */}
             <div className="mb-1.5 flex items-baseline gap-2">
-              <span className="font-mono text-[13px] font-[800] text-nb-ink">{flow.command}</span>
+              <span className="font-mono text-[13px] font-[800] text-nb-ink">{flow.path}</span>
               <span className="min-w-0 text-[11.5px] leading-[16px] text-nb-ink-soft">{flow.gloss}</span>
               {saved === flow.command && !saving && (
                 <span className="ml-auto flex shrink-0 items-center gap-1 text-[11px] font-[700] text-nb-mint-ink">

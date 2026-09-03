@@ -55,7 +55,7 @@ function stripOldHeader(text: string): string {
   return rest.join('\n')
 }
 
-/** `akb board migrate`, as its command declares it (lib/cli/board.ts). */
+/** `akb raw migrate`, as its command declares it (lib/cli/board.ts). */
 export interface MigrateOptions {
   dryRun?: boolean
 }

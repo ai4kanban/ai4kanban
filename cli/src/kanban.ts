@@ -8,7 +8,7 @@
 // It is both a program and a module, because the same rules are reached two ways:
 //   - run it (`node kanban.mjs <command>`) — the door `akb install` and the desktop app
 //     open, with the same commands, words and exit codes it has always had,
-//   - import it (`akb board <move>`) — the CLI's door, which asks for the compact help
+//   - import it (`akb raw <move>`) — the CLI's door, which asks for the compact help
 //     and puts the command's own name in front of a refusal.
 //
 // What the moves are, and what each one does, is `node kanban.mjs help`.
@@ -75,8 +75,8 @@ export { startRun } from './lib/agent/start'
 // permanent record is one file per delivery under docs/kanban/deliveries/.
 export { activeDelivery, heldByDelivery, listDeliveries } from './lib/agent/deliveries'
 // Ending, discarding and approving a delivery are board WRITES, so they are operations of
-// the contract below like every other one (#312) — the card page's buttons and `akb cancel`,
-// `akb discard` and `akb approve` are the same call.
+// the contract below like every other one (#312) — the card page's buttons and `akb delivery cancel`,
+// `akb delivery discard` and `akb delivery approve` are the same call.
 export { approveDelivery, cancelDelivery, discardDelivery } from './lib/view/api'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
@@ -359,14 +359,14 @@ if (invokedDirectly()) {
     void runAgent(argv, { program: 'akb' }).then((code) => {
       process.exitCode = code
     })
-  } else if (argv[0] === 'board' || argv[0] === 'guide') {
-    // The two doors every flow names by hand — `akb board <move>` and `akb guide <topic>` —
+  } else if (argv[0] === 'raw' || argv[0] === 'guide') {
+    // The two doors every flow names by hand — `akb raw <move>` and `akb guide <topic>` —
     // answered here under the same spellings (#173). This file is the copy of the rules the
     // board is actually running, and a setup run is told to call it: without these, an
     // agent on a machine with no `akb` on its PATH would have to translate every line of
     // every flow into the legacy door below, or fetch a different version off npm.
     //
-    // Neither word collides: there is no `board` move and no `guide` move. The rest of the
+    // Neither word collides: there is no `raw` move and no `guide` move. The rest of the
     // run commands are deliberately left out — they DO collide (`create`, `archive`,
     // `reject` are board moves here), and a run never starts another run anyway.
     if (argv[0] === 'guide') {
@@ -375,7 +375,7 @@ if (invokedDirectly()) {
       })
     } else {
       void runBoard(argv.slice(1), {
-        program: `node ${SELF} board`,
+        program: `node ${SELF} raw`,
         version: `ai4kanban ${SKILL_VERSION}`,
       }).then((code) => {
         process.exitCode = code

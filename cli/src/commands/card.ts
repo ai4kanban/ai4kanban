@@ -79,7 +79,7 @@ function cadenceFlag(raw: string): string {
   return formatCadence(parsed)
 }
 
-/** `akb board create`, as its command declares it (lib/cli/board.ts). */
+/** `akb raw create`, as its command declares it (lib/cli/board.ts). */
 export interface CreateOptions {
   title: string
   track: string
@@ -178,7 +178,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   return { id: start, ids: [start], title, track, file: rel(file), indexed, schedule: scheduled }
 }
 
-/** `akb board update`, as its command declares it (lib/cli/board.ts). */
+/** `akb raw update`, as its command declares it (lib/cli/board.ts). */
 export interface UpdateOptions {
   title?: string
   track?: string
@@ -315,7 +315,7 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   return { id, changes, file: rel(dest) }
 }
 
-/** `akb board schedule`, as its command declares it (lib/cli/board.ts). */
+/** `akb raw schedule`, as its command declares it (lib/cli/board.ts). */
 export interface ScheduleOptions {
   action?: ScheduledAction
   notes?: string

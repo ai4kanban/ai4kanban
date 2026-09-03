@@ -13,7 +13,7 @@ If a split is necessary, run `akb guide add-task` and follow its group-task proc
 each subtask with:
 
 ```text
-akb board create --title "<one area>" --track <track> --modules <modules> \
+akb raw create --title "<one area>" --track <track> --modules <modules> \
   --related <root-id> --schedule refine
 ```
 

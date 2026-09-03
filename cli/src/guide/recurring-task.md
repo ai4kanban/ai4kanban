@@ -9,7 +9,7 @@ shipped behavior.
 Evaluate it with `akb guide evaluate-task`, then create it with `--track recurring`:
 
 ```
-akb board create --title "Prune the memory" --track recurring \
+akb raw create --title "Prune the memory" --track recurring \
              --priority med --roi med --modules skill
 ```
 
@@ -71,4 +71,4 @@ imperative sentences.
 
 1. Read `## Run state`, then do the `## Process` steps in order.
 2. Update `## Run state` in place with only what the next run needs.
-3. Leave any `[user]` question open for the user; `akb resolve` applies their answer later.
+3. Leave any `[user]` question open for the user; `akb card resolve` applies their answer later.

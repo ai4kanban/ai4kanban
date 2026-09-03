@@ -8,7 +8,7 @@
 // command the board runs: what it actually causes is up to the agent reading it.
 //
 // The files sit in docs/kanban/rules/, named by the command a user types — `revise.md` for
-// `akb revise`, whose action the board keeps under the name `edit`. They are versioned in
+// `akb card revise`, whose action the board keeps under the name `edit`. They are versioned in
 // git so a team shares them, and they are inside docs/kanban/, which every delivery
 // worktree leaves out — which is why a run is given the WORDS and never the path.
 //
@@ -19,7 +19,7 @@ import path from 'node:path'
 
 import { RULES } from '../paths'
 import type { WriteResult } from '../view/types'
-import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
+import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, flowPath, type Flow } from './flows'
 import { REFINE_ACTIONS } from './types'
 import type { AgentRequest, FlowRuleView } from './types'
 
@@ -58,6 +58,7 @@ export function setFlowRule(command: string, text: string): WriteResult {
 export function readFlowRules(): FlowRuleView[] {
   return FLOWS.map((flow) => ({
     command: flow.command,
+    path: flowPath(flow),
     gloss: flow.gloss,
     note: flow.ruleNote,
     rule: readRule(flow.command),

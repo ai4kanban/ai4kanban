@@ -85,7 +85,7 @@ interface CardFacts {
 function readCard(id: number): CardFacts {
   const found = locate(id)
   if (!found) {
-    die(`no card #${id} on this board. \`akb board list\` says what is open.`, {
+    die(`no card #${id} on this board. \`akb raw list\` says what is open.`, {
       kind: 'card-not-found',
       id,
     })
@@ -99,7 +99,7 @@ function readCard(id: number): CardFacts {
   }
   const { meta, body } = parseFrontmatter(text)
   if (!meta) {
-    die(`${rel(file)} has no frontmatter — run \`akb board migrate\` before working on it.`, {
+    die(`${rel(file)} has no frontmatter — run \`akb raw migrate\` before working on it.`, {
       kind: 'card-unreadable',
       id,
     })
@@ -448,7 +448,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   // half-rewritten copy, and no `--dir` would leave the board to be guessed at.
   const inWorktree = req.id !== undefined && !!activeDelivery(req.id)?.worktree
   const self = inWorktree ? boardCommandFor(req.id) : `${program}${DIR_FLAG}`
-  const board = `${self} board`
+  const raw = `${self} raw`
   const facts: string[] = []
   const close: string[] = []
   const next: string[] = []
@@ -458,7 +458,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   // never inside the job that wrote the card — so the handover says fresh run, or an
   // agent reading the flow refines right here, in a context already full of the writing.
   const refineNext = (target: number | '<id>', when: string, effort?: string) =>
-    `${self} refine ${target === '<id>' ? target : String(target)}${effort ? ` --effort ${effort}` : ''} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
+    `${self} card refine ${target === '<id>' ? target : String(target)}${effort ? ` --effort ${effort}` : ''} --print — ${when}; in a fresh run, not this one — the board gives each refine its own clean context, and so should you`
 
   // Every card action opens the same way: where the card is, and what it says about itself.
   if (card) {
@@ -481,20 +481,20 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         ...committingClose(req.id!),
         'tick each box in ## Todo as you finish it — they are the record of what was built',
-        `${board} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
+        `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         reviewed
           ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
-          : `${board} archive ${req.id} — once every box is ticked and the card's goal is met`,
+          : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
       if (card!.meta.questions.length) {
         next.push(
-          `${self} resolve ${req.id} --print — first: the card has open questions, and building on a guess is what they are there to stop`,
+          `${self} card resolve ${req.id} --print — first: the card has open questions, and building on a guess is what they are there to stop`,
         )
       }
       if (reviewed) {
         next.push(
-          `${self} review ${req.id} --print — the review this delivery makes next. A run the board started has its review started for it; an agent that built this from a printed flow runs it itself, in a fresh run`,
+          `${self} delivery review ${req.id} --print — the review this delivery makes next. A run the board started has its review started for it; an agent that built this from a printed flow runs it itself, in a fresh run`,
         )
       }
       break
@@ -539,8 +539,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       close.push(
         `update or add the card's ## Run state in place with only what the next pass needs`,
-        `${board} record-run ${req.id} — counts this pass and stamps last_run`,
-        `${board} update-verify ${req.id} --append ".." — add one short note for each manual check this pass left to the user`,
+        `${raw} record-run ${req.id} — counts this pass and stamps last_run`,
+        `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check this pass left to the user`,
         `never archive it: a recurring card has no end state`,
       )
       break
@@ -550,7 +550,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         'settle the plan automatically with the selected QA guide; leave only genuine user-owned questions',
         'when no question remains, improve the body according to `akb guide writing`',
-        `${board} update ${req.id} --status ready — after the plan is compact, clear, and internally consistent`,
+        `${raw} update ${req.id} --status ready — after the plan is compact, clear, and internally consistent`,
       )
       break
     }
@@ -561,8 +561,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         req.refineRound !== undefined
           ? refineNext(req.id!, 'continue the programmatic refinement flow')
           : req.andImplement
-            ? `${self} implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
-            : `${self} implement ${req.id} --print — once every question is settled`,
+            ? `${self} card implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
+            : `${self} card implement ${req.id} --print — once every question is settled`,
       )
       break
     }
@@ -571,7 +571,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         'improve only the card body\'s writing according to `akb guide writing` — preserve every settled requirement, checked todo, and spec-skill section, and merge decisions that repeat each other rather than dropping either',
         `do not research, change the plan, raise or resolve questions, touch another card, or edit project code`,
-        `${board} update ${req.id} --status ready — after the body is compact, clear, and internally consistent`,
+        `${raw} update ${req.id} --status ready — after the body is compact, clear, and internally consistent`,
       )
       break
     }
@@ -590,7 +590,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ]),
       )
       close.push(
-        `${board} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
+        `${raw} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
         'fill the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
       )
       break
@@ -613,7 +613,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         // `--slug` only on a board that isn't English (#337): a non-English title slugifies
         // to nothing, and every card would be named `<id>-task.md`.
-        `${board} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''} --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
+        `${raw} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''} --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         'then fill only the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
       )
       break
@@ -623,7 +623,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
       close.push(
         'write the shipped line first — one line for what a user can now see or do, nothing for an internal-only change',
-        `${board} archive ${req.id} — it files the card, drops it from the index, and prints what still mentions it`,
+        `${raw} archive ${req.id} — it files the card, drops it from the index, and prints what still mentions it`,
       )
       break
     }
@@ -656,7 +656,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ),
       )
       close.push(
-        `${board} setup-done <step> — one tick per box, as each step finishes`,
+        `${raw} setup-done <step> — one tick per box, as each step finishes`,
         'the last tick deletes the checklist by itself — never delete it, and never edit it by hand',
       )
       next.push(refineNext('<id>', 'for each of the first cards, once the board is set up'))
@@ -687,7 +687,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         facts.push(...field('already', 'that section carries a changelog — writing again replaces it'))
       }
       close.push(
-        `write the lines to a file, then ${board} release changelog ${quoteId(version)} --file <path> — it owns the placement, and running it again replaces the changelog rather than adding one`,
+        `write the lines to a file, then ${raw} release changelog ${quoteId(version)} --file <path> — it owns the placement, and running it again replaces the changelog rather than adding one`,
         'change nothing else — not a card, not the release list, not the code',
       )
       break
@@ -697,7 +697,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'rejected.md')))
       close.push(
         'write the rejection note first — the idea and why we said no',
-        `${board} reject ${req.id} — this deletes the card; the receipt prints it out one last time`,
+        `${raw} reject ${req.id} — this deletes the card; the receipt prints it out one last time`,
       )
       break
     }

@@ -1,7 +1,7 @@
 // What the board reports about its own integrity, and what it stays quiet about.
 //
 // `boardComplaints` is the read a finished run is checked against (agent/watch.ts): an
-// agent that took a card off the board with `rm` instead of `akb board archive` leaves
+// agent that took a card off the board with `rm` instead of `akb raw archive` leaves
 // other cards pointing at an id that isn't there, and nothing else notices. These fix what
 // counts as broken — and, just as importantly, that it repairs nothing while looking.
 

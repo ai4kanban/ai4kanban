@@ -131,7 +131,7 @@ describe('the prompt', () => {
     assert.match(guide, /Repeating work[\s\S]*akb guide recurring-task/)
     assert.match(guide, /open question[\s\S]*akb guide update-questions/)
     assert.doesNotMatch(guide, /Parallel/)
-    assert.match(guide, /akb refine <id> --effort lightweight --print/)
+    assert.match(guide, /akb card refine <id> --effort lightweight --print/)
     assert.match(guide, /Lightweight[\s\S]*source already supplies[\s\S]*build scope/)
     assert.match(guide, /Standard[\s\S]*ordinary user requests[\s\S]*separate session/)
     assert.match(guide, /Choose standard unless/)
@@ -201,7 +201,7 @@ describe('the prompt', () => {
     )
     // The command declares the two it takes, so the refusal comes from the parse.
     await assert.rejects(
-      () => akb(root, ['refine', '1', '--effort', 'parallel', '--print']),
+      () => akb(root, ['card', 'refine', '1', '--effort', 'parallel', '--print']),
       /--effort .*lightweight \| standard/,
     )
   })
@@ -303,7 +303,7 @@ describe('the prompt', () => {
     try {
       const flow = printFlow({ action: 'create', description: 'Add a task.' })
       const next = (flow.next as string[]).join('\n')
-      assert.doesNotMatch(next, /akb refine <id>/)
+      assert.doesNotMatch(next, /akb card refine <id>/)
     } finally {
       stopCollecting()
     }
@@ -353,7 +353,7 @@ describe('the prompt', () => {
     assert.match(guide, /at least one is still materially vague/)
     assert.match(guide, /some areas may already be clear/)
     assert.match(guide, /akb guide add-task/)
-    assert.match(guide, /akb board create[\s\S]*--related <root-id> --schedule refine/)
+    assert.match(guide, /akb raw create[\s\S]*--related <root-id> --schedule refine/)
     assert.match(guide, /After creating the group, exit/)
     assert.doesNotMatch(guide, /\*\*Split\*\*:/)
     assert.doesNotMatch(guide, /200 lines|12 todo items/)

@@ -17,7 +17,7 @@ Read `docs/kanban/config.md`, `docs/kanban/memory/goal.md`, and
 change.
 
 Group candidates by module and send each group to a subagent. Split a large group when
-useful. Give it the relevant source excerpts, module memory, `akb board list --module
+useful. Give it the relevant source excerpts, module memory, `akb raw list --module
 <module>`, code, and docs. If no subagent is available, run the same checks in the main
 agent.
 

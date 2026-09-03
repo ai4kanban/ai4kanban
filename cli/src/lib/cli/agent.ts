@@ -1,7 +1,18 @@
 // The runs, and everything you do to one — declared onto `akb` (./akb.ts).
 //
-// `akb board <move>` is the board's own bookkeeping (./board.ts). This is the other half:
+// `akb raw <move>` is the board's own bookkeeping (./board.ts). This is the other half:
 // starting a run, steering it, talking to the agent, and setting up what the runs run on.
+//
+// Grouped by the thing each command acts on, because the words alone were ambiguous: `run`
+// meant three things at once — one pass of a recurring card, the list of runs, and the agent
+// process. So each noun holds its own verbs:
+//
+//   card <verb> <id>    the card on the board
+//   delivery <verb>     the build in flight on one
+//   run <verb>          the agent processes
+//   release <verb>      a version being planned
+//
+// A command that acts on nothing yet is typed bare — `create`, `propose`, `setup`.
 //
 // The flow commands are not written out here. They come from the board's own list of flows
 // (../agent/flows.ts), which the dispatcher and the Rules pane read too — so a flow shipped
@@ -13,7 +24,8 @@ import { openBoard } from '../board'
 import { BoardError } from '../io'
 import { KANBAN, setBoardRoot } from '../paths'
 import { resolveBoard, sayIfOffline } from '../board-cli'
-import { FLOWS, type Flow, type FlowOption } from '../agent/flows'
+import { FLOWS, flowVerb, type Flow, type FlowGroup, type FlowOption } from '../agent/flows'
+import { namedDelivery } from '../agent/deliveries'
 import { HELP_AFTER } from '../agent/manual'
 import { cmdAgent } from '../../commands/agent'
 import { cmdChat } from '../../commands/chat'
@@ -75,9 +87,52 @@ const positional = (vals: unknown[]): unknown[] => vals.slice(0, -2)
 
 /** Declare the runs, and everything you do to one, on `akb` (./akb.ts). */
 export function declareRuns(program: Command, cli: AgentCliOptions): void {
-  // ---- the flows -----------------------------------------------------------
+  // ---- the nouns, and the flows under them ----------------------------------
+  //
+  // Declared before the flows so the four of them head the help in this order, and so a
+  // flow only has to say which noun it belongs to.
 
-  for (const flow of FLOWS) declareFlow(program, flow, cli)
+  const noun = (name: string, summary: string, description?: string): Command => {
+    const cmd = withShared(program.command(name)).summary(summary)
+    if (description) cmd.description(description)
+    // A noun on its own is a question, not a command: answer it with its own verbs rather
+    // than with "missing subcommand".
+    return cmd.action(function (this: Command) {
+      this.help()
+    })
+  }
+
+  const groups: Record<FlowGroup | 'run', Command> = {
+    card: noun(
+      'card',
+      'one card: build it, sharpen it, change it, finish it',
+      'Every verb here takes the card’s id. A card with a delivery in flight refuses all of them but ' +
+        `\`implement\` — \`${cli.program} delivery cancel\` is what hands it back.`,
+    ),
+    delivery: noun(
+      'delivery',
+      'the build in flight on a card',
+      'Each verb takes the delivery, or the card it is on. The board runs `review` and `conflict` ' +
+        'itself; the rest are yours.',
+    ),
+    run: noun(
+      'run',
+      'the agent processes — what is going, and what went',
+      'A run is one agent working once. A delivery is made of several, so ending a run leaves the ' +
+        `delivery in flight — \`${cli.program} delivery cancel\` is what ends that.`,
+    ),
+    release: noun('release', 'a version being planned'),
+  }
+
+  for (const flow of FLOWS) declareFlow(flow.group ? groups[flow.group] : program, flow, cli)
+
+  declareRunning(groups.run, cli)
+  declareDelivery(groups.delivery, cli)
+
+  // What the list itself cannot say: how it is grouped, and the one line that fixes an ask
+  // that won't run. Then what a delivery is, which every noun above touches.
+  program.addHelpText('after', HELP_AFTER.root(cli.program))
+  program.addHelpText('after', HELP_AFTER.deliveries(cli.program))
 
   // ---- a named skill that fills one part of a card's spec --------------------
 
@@ -127,83 +182,6 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       const [id, message] = positional(vals) as [number | undefined, string[]]
       await onBoard(this, cli, (p) => cmdChat({ id, message, ...this.opts() }, p))
     })
-
-  // ---- runs in flight -------------------------------------------------------
-
-  withShared(program.command('runs'))
-    .summary('what is running, and what ran lately')
-    .option('-c, --card <id>', 'only the runs on that card', cardId)
-    .option('-a, --all', 'every run this board has kept, not just the last ten')
-    .action(async function (this: Command) {
-      await onBoard(this, cli, (p) => cmdRuns(this.opts(), p))
-    })
-
-  withShared(program.command('log'))
-    .argument('[id]', RUN_ID, String)
-    .summary("one run's log")
-    .option('-f, --follow', 'keep printing it until the run ends')
-    .option('--full', 'all of it, rather than the tail')
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [id] = positional(vals) as [string | undefined]
-      await onBoard(this, cli, (p) => cmdLog(id, this.opts(), p))
-    })
-
-  withShared(program.command('stop'))
-    .argument('[id]', RUN_ID, String)
-    .summary('end a run')
-    .description('Its half-finished edits are left in the working tree — the board never undoes work.')
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [id] = positional(vals) as [string | undefined]
-      await onBoard(this, cli, () => cmdStop(id))
-    })
-
-  withShared(program.command('resume'))
-    .argument('[id]', RUN_ID, String)
-    .summary('continue a run that failed, was cut off or was stopped')
-    .description(
-      "The one command that reaches past the board: it picks the coding agent's own session back up — " +
-        'the conversation it was having, with everything it had already read — while the board counts the ' +
-        'work as a fresh run.',
-    )
-    .option('-f, --follow', 'watch its log instead of returning')
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [id] = positional(vals) as [string | undefined]
-      await onBoard(this, cli, () => cmdResume(id, this.opts()))
-    })
-
-  withShared(program.command('cancel'))
-    .argument('<delivery>', DELIVERY)
-    .summary('end the delivery in flight on a card and hand it back')
-    .description('Its worktree and branch are left on disk. `discard` is what throws those away.')
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [named] = positional(vals) as [string]
-      await onBoard(this, cli, () => cmdCancel(named))
-    })
-
-  withShared(program.command('discard'))
-    .argument('<delivery>', DELIVERY)
-    .summary('end a delivery AND throw its worktree and branch away')
-    .description("What the card page's Discard does. This is the one command here that loses work.")
-    .option('-y, --yes', 'go ahead; without it, it only says what would be lost')
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [named] = positional(vals) as [string]
-      await onBoard(this, cli, () => cmdDiscard(named, this.opts()))
-    })
-
-  withShared(program.command('approve'))
-    .argument('<delivery>', DELIVERY)
-    .summary('sign off the tree a delivery would land, on a board that requires it')
-    .description(
-      'The approval covers the delivery’s base commit and the tree built on it as they stand right now, ' +
-        'so read the diff first — `akb log` and the card page’s Diff tab both show it. Either one moving ' +
-        'afterwards cancels the approval by itself.',
-    )
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [named] = positional(vals) as [string]
-      await onBoard(this, cli, () => cmdApprove(named))
-    })
-
-  program.addHelpText('after', HELP_AFTER.deliveries(cli.program))
 
   // ---- the agent that runs them ---------------------------------------------
 
@@ -271,7 +249,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       await boardless(this, cli, (p) => cmdGuide(topic, p))
     })
 
-  // The watcher's own door. Not a command anyone types — `akb implement 12` spawns it — and
+  // The watcher's own door. Not a command anyone types — `akb card implement 12` spawns it — and
   // spelled so it can never be mistaken for one.
   program
     .command('__watch', { hidden: true })
@@ -292,14 +270,107 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
 const RUN_ID = "a run's id, any prefix of one that names only one run, or `last`. Left out, it means the newest run"
 const DELIVERY = 'the delivery, or the card it is on'
 
+// ---- akb card run <verb> -------------------------------------------------------------------
+
+/** The agent processes: what is going, what went, and steering one. */
+function declareRunning(run: Command, cli: AgentCliOptions): void {
+  const verb = (name: string) => withShared(run.command(name))
+
+  verb('list')
+    .summary('what is running, and what ran lately')
+    .option('-c, --card <id>', 'only the runs on that card', cardId)
+    .option('-a, --all', 'every run this board has kept, not just the last ten')
+    .action(async function (this: Command) {
+      await onBoard(this, cli, (p) => cmdRuns(this.opts(), p))
+    })
+
+  verb('log')
+    .argument('[id]', RUN_ID, String)
+    .summary("one run's log")
+    .option('-f, --follow', 'keep printing it until the run ends')
+    .option('--full', 'all of it, rather than the tail')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [id] = positional(vals) as [string | undefined]
+      await onBoard(this, cli, (p) => cmdLog(id, this.opts(), p))
+    })
+
+  verb('stop')
+    .argument('[id]', RUN_ID, String)
+    .summary('end a run')
+    .description('Its half-finished edits are left in the working tree — the board never undoes work.')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [id] = positional(vals) as [string | undefined]
+      await onBoard(this, cli, () => cmdStop(id))
+    })
+
+  verb('resume')
+    .argument('[id]', RUN_ID, String)
+    .summary('continue a run that failed, was cut off or was stopped')
+    .description(
+      "The one command that reaches past the board: it picks the coding agent's own session back up — " +
+        'the conversation it was having, with everything it had already read — while the board counts the ' +
+        'work as a fresh run.',
+    )
+    .option('-f, --follow', 'watch its log instead of returning')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [id] = positional(vals) as [string | undefined]
+      await onBoard(this, cli, () => cmdResume(id, this.opts()))
+    })
+}
+
+// ---- akb delivery <verb> --------------------------------------------------------------
+
+/** What you do to a build in flight. `review` and `conflict` are flows and are declared with
+ *  the rest of them; these three start nothing. */
+function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
+  const verb = (name: string) => withShared(delivery.command(name))
+
+  verb('approve')
+    .argument('<delivery>', DELIVERY)
+    .summary('sign off the tree it would land, on a board that requires it')
+    .description(
+      'The approval covers the delivery’s base commit and the tree built on it as they stand right now, ' +
+        `so read the diff first — \`${cli.program} run log\` and the card page’s Diff tab both show it. ` +
+        'Either one moving afterwards cancels the approval by itself.',
+    )
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [named] = positional(vals) as [string]
+      await onBoard(this, cli, () => cmdApprove(named))
+    })
+
+  verb('cancel')
+    .argument('<delivery>', DELIVERY)
+    .summary('end it and hand the card back')
+    .description('Its worktree and branch are left on disk. `discard` is what throws those away.')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [named] = positional(vals) as [string]
+      await onBoard(this, cli, () => cmdCancel(named))
+    })
+
+  verb('discard')
+    .argument('<delivery>', DELIVERY)
+    .summary('end it AND throw its worktree and branch away')
+    .description("What the card page's Discard does. This is the one command here that loses work.")
+    .option('-y, --yes', 'go ahead; without it, it only says what would be lost')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [named] = positional(vals) as [string]
+      await onBoard(this, cli, () => cmdDiscard(named, this.opts()))
+    })
+}
+
 // ---- one flow -----------------------------------------------------------------------
 
 // Every flow is the same command with a different name: what it takes comes off the flow's
-// own entry, and `--print` and `--follow` are added to all of them.
-function declareFlow(program: Command, flow: Flow, cli: AgentCliOptions): void {
-  const cmd = withShared(program.command(flow.command))
+// own entry, and `--print` and `--follow` are added to all of them. It is declared onto the
+// noun it acts on (`parent`), or onto `akb` itself when it acts on nothing yet.
+function declareFlow(parent: Command, flow: Flow, cli: AgentCliOptions): void {
+  // A `delivery` verb answers to the delivery as well as to the card it is on, so the id is
+  // taken as written and read once the board is open — before that there is no record to
+  // look a delivery up in.
+  const byDelivery = flow.group === 'delivery'
+  const cmd = withShared(parent.command(flowVerb(flow)))
   for (const arg of splitArgs(flow.argument)) {
-    cmd.argument(arg, argNote(arg, flow), arg.startsWith('<id') ? cardId : undefined)
+    cmd.argument(arg, argNote(arg, flow), arg.startsWith('<id') ? (byDelivery ? String : cardId) : undefined)
   }
   cmd.summary(flow.gloss)
   if (flow.more?.length) cmd.description(`${sentence(flow.gloss)} ${flow.more.join(' ')}`)
@@ -310,8 +381,20 @@ function declareFlow(program: Command, flow: Flow, cli: AgentCliOptions): void {
     .addHelpText('after', HELP_AFTER.flow)
     .action(async function (this: Command, ...vals: unknown[]) {
       const args = positional(vals)
-      await onBoard(this, cli, (p) => cmdStartRun(flow.action, args, this.opts(), p))
+      await onBoard(this, cli, (p) =>
+        cmdStartRun(flow.action, byDelivery ? [cardOf(args[0] as string), ...args.slice(1)] : args, this.opts(), p),
+      )
     })
+}
+
+/** The card a `delivery` verb was aimed at: the id as typed, or the card the named delivery
+ *  is on. */
+function cardOf(named: string): number {
+  const id = Number(named)
+  if (Number.isInteger(id) && id > 0) return id
+  const delivery = namedDelivery(named)
+  if (!delivery) throw new BoardError(`no delivery here answers to "${named}"`, { kind: 'unknown-delivery' })
+  return delivery.cardId
 }
 
 function addFlowOption(cmd: Command, option: FlowOption): void {
@@ -326,7 +409,7 @@ function addFlowOption(cmd: Command, option: FlowOption): void {
 const splitArgs = (argument: string): string[] => (argument ? argument.split(/\s+/) : [])
 
 function argNote(arg: string, flow: Flow): string {
-  if (arg.startsWith('<id')) return "the card's id"
+  if (arg.startsWith('<id')) return flow.group === 'delivery' ? DELIVERY : "the card's id"
   return flow.argumentNote ?? ''
 }
 

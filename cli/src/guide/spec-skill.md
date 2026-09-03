@@ -8,7 +8,7 @@ else.
 
 Write your answer with:
 
-    akb board spec-write <id> <your-skill> --file <path>
+    akb raw spec-write <id> <your-skill> --file <path>
 
 Write the markdown to a file first so the shell cannot mangle it. The command puts it under
 ``## By `<your-skill>` skill`` and replaces your earlier section. Inside it, use `###`

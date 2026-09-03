@@ -355,7 +355,7 @@ describe('the copy while a run is working the board', () => {
     write(cardFile(3), `${serializeFrontmatter(meta({ title: 'Card 3' }))}\nThe agent wrote this.\n`)
 
     // A second process opening the same checkout — the board server, or the agent's own
-    // `akb board` — takes the workspace's revisions and writes over nothing.
+    // `akb raw` — takes the workspace's revisions and writes over nothing.
     await openBoard(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-cloudrun-other-')))
     setBoardRoot(root)
     const opened = await openBoard(root)
@@ -400,7 +400,7 @@ describe("a run's close", () => {
     write(path.join(root, 'docs', 'kanban', 'memory', 'skill', 'readme.md'), '# Shipped\n\n- one line\n')
     write(path.join(root, 'docs', 'kanban', 'record.csv'), 'date,action,card,detail\n2026-09-03,edit,3,\n')
 
-    // The card moved under the run — its own `akb board` moves each write it — so the close
+    // The card moved under the run — its own `akb raw` moves each write it — so the close
     // has to send against what the workspace holds now, not what it read at the start.
     cardRevisions.set(3, 'r3-moved')
 
@@ -439,7 +439,7 @@ describe("a run's close", () => {
     running()
 
     const image = boardImage()
-    // What `akb archive 3` leaves behind in the copy — and what the app's archive screen
+    // What `akb card archive 3` leaves behind in the copy — and what the app's archive screen
     // pulls into it. Either way the workspace already holds those cards, at revisions this
     // process never read: sending them would be a conflict, and would take the run's real
     // edits down with it.
@@ -485,7 +485,7 @@ describe("a run's close", () => {
     let holding = true
     const calls = worker((call) => {
       if (call.method !== 'POST' || !call.path.endsWith('/documents')) return undefined
-      // The BOARD's lock, not the card's: every `akb board` move on this machine takes it
+      // The BOARD's lock, not the card's: every `akb raw` move on this machine takes it
       // and gives it straight back, so a neighbour holding it says nothing about this card.
       if (!holding) return undefined
       holding = false

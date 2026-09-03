@@ -203,7 +203,7 @@ function cardMeta(cardId: number): ReturnType<typeof parseFrontmatter>['meta'] |
 export const cardStatus = (cardId: number): string => cardMeta(cardId)?.status || 'todo'
 
 /** How many questions this card still has open — the count landing holds on (#307), and the
- *  one the Implement dialog and `akb implement` warn about. A card nobody can read has
+ *  one the Implement dialog and `akb card implement` warn about. A card nobody can read has
  *  none: a missing card holds nothing up. */
 export const openQuestions = (cardId: number): number => cardMeta(cardId)?.questions.length ?? 0
 
@@ -451,7 +451,7 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
  *  Called by the watcher of the run that just closed, which is the one process that
  *  can start it: a run never starts another. A watcher that dies in between leaves
  *  `next` on the record, so the delivery still says what it was about to do and
- *  `akb review <id>` puts it back in motion. */
+ *  `akb delivery review <id>` puts it back in motion. */
 export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
   if (run.deliveryId) return takeNext(run.deliveryId)
   // A run that is not the delivery's own can still be the thing it was waiting for:
@@ -647,10 +647,10 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   // everywhere else. Naming the wrong one is a refusal nobody can act on.
   const answer =
     state.stage === 'approval'
-      ? `Approve it with \`${cmd} approve ${delivery.deliveryId}\`.`
+      ? `Approve it with \`${cmd} delivery approve ${delivery.deliveryId}\`.`
       : state.stage === 'refused'
         ? `Clear that and it lands by itself.`
-        : `Answer it with \`${cmd} resolve ${cardId}\`.`
+        : `Answer it with \`${cmd} card resolve ${cardId}\`.`
   const doing = state.paused
     ? `is waiting on you on #${cardId} — ${state.line} — so the board won't change the card. ` +
       `${answer} Or take the card back with `
@@ -660,6 +660,6 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   // worktree away with it, `cancel` ends it and leaves the work on disk.
   return (
     `delivery ${delivery.deliveryId} ${doing}` +
-    `Discard on the card page, or \`${cmd} cancel ${delivery.deliveryId}\` to end it and keep its work.`
+    `Discard on the card page, or \`${cmd} delivery cancel ${delivery.deliveryId}\` to end it and keep its work.`
   )
 }

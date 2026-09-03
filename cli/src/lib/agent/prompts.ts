@@ -38,7 +38,7 @@ const DELIVERY_RESUME = [
  *  re-enters the delivery's flow. */
 export function resumePrompt(deliveryId: string | undefined, cardId: number | null): string {
   if (!deliveryId || cardId === null) return RESUME_PROMPT
-  return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommandFor(cardId)} implement ${cardId} --print`)
+  return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommandFor(cardId)} card implement ${cardId} --print`)
 }
 
 // The actions whose ask can be said again from the record alone. A resume drops what the
@@ -273,7 +273,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'changelog':
       return [
         `${kb}. Write the changelog for the "${req.release || ''}" release following \`akb guide changelog\`.`,
-        `Change nothing but that version's summary file, and write it with \`akb board release changelog\`.`,
+        `Change nothing but that version's summary file, and write it with \`akb raw release changelog\`.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'clarify': {
@@ -325,7 +325,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         [
           `${kb}. You are the \`${req.specAgent}\` spec skill on task ${req.id} ${named}.`,
-          `Read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb board spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
+          `Read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb raw spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
           `Change nothing else — not the rest of the card, not another card, not the code.`,
           req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
           `Everything you need is in this message: the contract below, your skill, and the references it selected. Do not go looking for more of them.`,
@@ -348,7 +348,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'review':
       return [
         `${kb}. Review task ${req.id} ${named} — judge what the delivery in flight on it has built against the card as it was approved, following \`akb guide review\`.`,
-        `\`${command} review ${req.id} --print\` supplies the approved requirements, changed-file summary and small diff.`,
+        `\`${command} delivery review ${req.id} --print\` supplies the approved requirements, changed-file summary and small diff.`,
         `You did not build this. Do not read the run that wrote it.`,
         `Fix plain mistakes and rerun the affected checks. If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`,
         `Don't ask me questions with human-in-the-loop — the card's validated open question is how you defer to me.`,
@@ -361,7 +361,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'conflict':
       return [
         `${kb}. Task ${req.id} ${named} is landing, and its rebase onto the target branch stopped on a conflict.`,
-        `\`${command} conflict ${req.id} --print\` names the conflicted files, both cards and both diffs.`,
+        `\`${command} delivery conflict ${req.id} --print\` names the conflicted files, both cards and both diffs.`,
         `Resolve every conflicted file in the delivery's worktree so both cards' intent survives, \`git add\` each one, and stop there — the board finishes the rebase and lands it, with no review after this run.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
