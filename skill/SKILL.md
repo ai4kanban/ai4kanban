@@ -76,7 +76,7 @@ Cover what the requests asks for, DONT OVER DESIGN IT.
 
 Omit `--print` only when the user wants another agent to perform the work independently in
 the background. Use `--print` when the user wants you to perform it here; when unclear, use
-`--print`. Run `akb help` for the complete background-run workflow.
+`--print`. Run `akb delivery --help` for what a delivery does between its runs.
 
 Commands are grouped by what they act on: `card`, `delivery`, `run`, `release`.
 

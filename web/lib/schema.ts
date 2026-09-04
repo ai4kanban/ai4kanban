@@ -48,9 +48,14 @@ const organization = {
     width: 512,
     height: 512,
   },
-  // Not a knowledge-panel lever — this just points at the project's one
-  // official profile so the entity is unambiguous.
-  sameAs: [GITHUB_URL],
+  // Not a knowledge-panel lever — these just point at the project's official
+  // profiles so the entity is unambiguous. Only list a profile that links back
+  // here; one that doesn't corroborates nothing.
+  sameAs: [
+    GITHUB_URL,
+    "https://www.npmjs.com/package/ai4kanban",
+    "https://www.producthunt.com/products/ai4kanban",
+  ],
 };
 
 // No `potentialAction`/SearchAction: the site has no search endpoint, and

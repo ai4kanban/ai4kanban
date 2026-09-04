@@ -1,0 +1,54 @@
+---
+title: "Talk it over, and let it do it"
+title_tag: "AI4Kanban chat — talk about the board, and change it"
+description: "A conversation that already knows your board: decide what to build and why, understand a card, spot a duplicate — and make the change when you've settled it."
+lead: "Not every answer is a job. Open a conversation to think out loud — and when it lands on a change, the chat makes it."
+last_updated: "September 4, 2026"
+nav_label: "Chat"
+icon: "message"
+---
+
+When you want to think out loud — what's worth doing next, what a card actually means, whether
+two cards are the same card — open a conversation instead of starting a run.
+
+```bash
+akb chat "what should I build next, and why?"
+akb chat 241 "what is still unclear about this card?"
+akb chat 241 "put it in v0.8 and drop the last todo"
+akb chat "start a build on 241"
+```
+
+You explain nothing. A chat opens knowing what a coding agent knows after you type `/kanban`:
+your goal, your modules, your tracks, every open card in one line, and — when you name one —
+that card in full. In the app it is a rail down the right of the window (**Chat** in the
+header), following what you are reading: the board's chat on the board, a card's on its page.
+It is one conversation either way, so you can start it in a terminal and carry it on in the app.
+
+| You want | What happens |
+| --- | --- |
+| to decide what to build, or why | it answers — a question, not a job |
+| to understand a card before you approve it | it answers |
+| to compare two cards, or spot a duplicate | it answers |
+| a change you have already settled — reword it, put it in v1, archive it | it makes the change |
+| the card worked out, or the code written | the skill does its printed flow here unless you ask for a background run |
+
+Chat is the kanban skill in a persistent agent session, so it follows the same board-specific
+flows and by default does the work here. A card a run is already working on is off limits, and
+the refusal names the card and what that run is doing. The chat itself is not a run: it shows in
+no runs panel and holds no card. Each conversation lives on your machine under
+`docs/kanban/.chats/`, out of git, and `--clear` starts it fresh.
+
+## A model per conversation
+
+The agent and the model are one conversation's own. Both start on the board's; what you pick
+sticks to that conversation until you change it, and nothing about the board or any other chat
+moves — so a cheap model can take the quick questions while the expensive one takes the
+thinking.
+
+Changing the model carries the same session on, and the transcript marks where it changed.
+Changing the agent cannot: a session belongs to the CLI that opened it, so the old conversation
+goes. In the app both sit on the message box's bottom row, beside Send; in a terminal they are
+`--model` and `--agent`, which `akb chat --help` spells out.
+
+Only an agent whose command can take a second message into its own session can hold a
+conversation — chat says so and names the ones that can.

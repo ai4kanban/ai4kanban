@@ -129,10 +129,8 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   declareRunning(groups.run, cli)
   declareDelivery(groups.delivery, cli)
 
-  // What the list itself cannot say: how it is grouped, and the one line that fixes an ask
-  // that won't run. Then what a delivery is, which every noun above touches.
-  program.addHelpText('after', HELP_AFTER.root(cli.program))
-  program.addHelpText('after', HELP_AFTER.deliveries(cli.program))
+  // What a delivery is belongs under the noun it is about, not on the root list.
+  groups.delivery.addHelpText('after', HELP_AFTER.deliveries(cli.program))
 
   // ---- a named skill that fills one part of a card's spec --------------------
 

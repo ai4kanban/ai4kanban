@@ -7,7 +7,7 @@
     },
     {
       "label": "Using the board",
-      "items": ["daily-loop", "connectors"]
+      "items": ["daily-loop", "chat", "releases", "spec-skills", "runs", "connectors"]
     }
   ]
 }

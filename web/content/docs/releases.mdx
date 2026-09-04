@@ -1,0 +1,78 @@
+---
+title: "Releases"
+title_tag: "AI4Kanban releases — plan a version, close it, drop it"
+description: "A release is a version you're planning. Say what it is for and the board fills it, writes what shipped when you close it, and forgets it when you drop it."
+lead: "A version you're planning, filled from what it is for. Optional — a board that never plans one works exactly as it does without them."
+last_updated: "September 4, 2026"
+nav_label: "Releases"
+icon: "git-branch"
+---
+
+## Plan a release
+
+A release is a version you're planning — call it `v1`, `0.5.0`, or `august`; the board never
+reads the name. Say **"create release v1"** and it joins the list in `docs/kanban/releases.md`,
+in the order it ships. Say **"put #4 in v1"** and that card ships in that version. A card you
+never place is in no release — wanted, but not promised to a version.
+
+Say what the version is for while you make it: **"create release v1 — the first version worth
+showing someone"**. Those words sit on the release's own line in `releases.md`, and the release
+list prints them under each version. Say **"v1 is for …"** to change them later. A release made
+without a goal works everywhere one with a goal does.
+
+Say **"plan release v1"** and the agent fills the version against its goal: it moves the open
+cards that ship the goal into the release, writes the cards the goal needs that your board
+hasn't got, and refines each new one as a run of its own. Nothing waits on you, and it ends by
+saying what it moved in, what it wrote, and what it left out and why. A card already in another
+release stays where it is, so planning only ever adds — run it again whenever the goal changes.
+To take a card back out, say **"take #4 out of v1"**.
+
+A release with **no goal** falls back to a plain rule. Say **"create release v1 and fill it"**
+and the unplaced high-priority cards go in as the version is made: nothing open blocking it, and
+not a group root. Every card that moved is named, and every high-priority card left behind is
+named with the test it failed.
+
+On the local board the New release dialog carries both kinds as tabs — **From a goal**, where
+the goal box is the whole choice and the release can't be made without it, and **No goal**,
+which applies the plain rule and counts the cards it would put in. The **⋯** beside the release
+dropdown opens the goal to change it, and offers **Fill from its goal** on a release that
+already exists. Planning is an ordinary run: it shows in the runs panel, you can stop it, and
+the cards it moves in appear as it writes them.
+
+Say **"what's in v1?"** and you get every release in ship order, each with what it is for, how
+many cards it holds and how many are ready to build — the cards in no release counted last.
+
+## Close a release
+
+The version shipped. Say **"close v1"**. The skill writes what the release held to
+`docs/kanban/.release-summaries/v1.md` — what shipped, from the cards you archived while they
+named it, and what didn't — clears the release off every card still open in it, and takes the
+version off the list.
+
+You can close whenever you say the version shipped, however much is still open. Afterwards the
+id is gone: putting a card in `v1` fails like a typo. A card whose todos are all ticked but which
+you never archived counts as not shipped — the skill names it so you can archive it and fix that
+line in the summary. On the local board the **⋯** beside the release dropdown offers the close,
+showing what it records and which cards come out before you confirm.
+
+The summary opens with a **changelog** — at most six plain lines saying what the version changed,
+written by an agent from the cards it shipped, each one something you can now see or do. Under it
+the summary keeps what the version was for, since the line in `releases.md` is gone.
+
+The local board starts that agent itself in the background. In the terminal the close names the
+command instead — say **"write the changelog for v1"** — since a bookkeeping command never starts
+an agent. Either way the card list is written first and stands whatever the agent does, and
+running it again replaces the changelog rather than adding a second. A version that shipped no
+card gets no changelog. Not every change goes through the board, so one that was never a card is
+still yours to add.
+
+## Drop a release
+
+You gave up on the version — it will not ship. Say **"drop v1"**. The version comes off the list
+with no shipped record. It reports the cards already archived under it and the open ones it sends
+back to no release, but writes no summary file. A summary an earlier close left stays untouched.
+On the local board the **⋯** beside the release dropdown offers the drop and shows both groups
+before you confirm.
+
+Nothing is written down about the drop or why it happened. If the reason is worth keeping, write
+it wherever you keep such notes.

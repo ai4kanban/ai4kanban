@@ -8,7 +8,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { cmdInstall, cmdSkill, cmdUpdate, GET_LINE, NEWER_LINE } from '../../commands/install'
+import { cmdInstall, cmdSkill, cmdUpdate } from '../../commands/install'
 import { BoardError, say } from '../io'
 import { rulesPath } from '../skill/install'
 import { SKILL_VERSION } from '../../version'
@@ -23,16 +23,7 @@ export type SetupCliOptions = AkbCliOptions
 // help, and the flows a `--print` hands over. Cheaper than rewriting either, and it holds for
 // the lines inside them that this command never wrote.
 const spelled = (program: string): string =>
-  program === 'akb' ? '' : `This copy isn't on your PATH as \`akb\` — every \`akb\` below is \`${program}\` here.`
-
-const intro = (program: string): string =>
-  [
-    'Installed, it is `akb`. Without installing anything, every line below also works as\n' +
-      '`npx --yes ai4kanban@latest <command>` — the same command, fetched each time.',
-    spelled(program),
-  ]
-    .filter(Boolean)
-    .join('\n\n')
+  program === 'akb' ? '' : `\nThis copy isn't on your PATH as \`akb\` — every \`akb\` below is \`${program}\` here.\n`
 
 /** A comma-separated track list, as `--tracks` takes it. */
 const trackList = (value: string, previous: string[] = []): string[] =>
@@ -45,9 +36,7 @@ const trackList = (value: string, previous: string[] = []): string[] =>
 
 /** Declare setting a project up, and moving it to a newer release, on `akb` (./akb.ts). */
 export function declareSetup(program: Command, cli: SetupCliOptions): void {
-  program
-    .version(SKILL_VERSION, '-v, --version', 'print this version')
-    .addHelpText('beforeAll', `\nGet the command:  ${GET_LINE}\nMove to a newer one:  ${NEWER_LINE}\n\n${intro(cli.program)}\n`)
+  program.version(SKILL_VERSION, '-v, --version', 'print this version').addHelpText('beforeAll', spelled(cli.program))
 
   const dirOption = (cmd: Command) =>
     cmd.option('--dir <path>', 'the project to work on (default: the current folder)').option('--json', 'answer as one JSON object instead of prose')
