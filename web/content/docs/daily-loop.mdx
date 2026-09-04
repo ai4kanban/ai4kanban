@@ -444,39 +444,74 @@ an agent that isn't installed, `akb agent` for a key or provider that isn't set.
 
 ## The commands, for reference
 
-Only `akb raw` allocates ids or touches metrics — never edit `next-id` or `metrics.csv` by hand.
+Commands are grouped by what they act on. `akb <noun>` lists that noun's verbs.
+
+```bash
+akb card implement <id> [note]      # build it
+akb card refine <id>                # sharpen it until it is ready to build
+akb card resolve <id> [note]        # apply your answers to its open questions
+akb card revise <id> "<what>"       # change what the card says
+akb card run <id> [note]            # one pass of a recurring card
+akb card archive <id>               # finish it
+akb card reject <id> "<why>"        # drop it
+
+akb delivery cancel <id>            # end the build in flight, hand the card back
+akb delivery discard <id> --yes     # …and throw its worktree and branch away
+akb delivery approve <id>           # sign off the tree it would land
+akb delivery review <id>            # look again, after answering its question
+
+akb run list                        # what is running, and what ran lately
+akb run log <run> [--follow]        # one run's log
+akb run stop <run>                  # end a run
+akb run resume <run>                # continue one that failed or was cut off
+
+akb release plan v1                 # fill it from its goal
+akb release changelog v1            # write a closed version's changelog again
+
+akb create "<what you want>"        # turn something you said into card(s)
+akb propose                         # find the work the board is missing
+```
+
+`akb spec` and `akb chat` act on nothing until you name it, so both stay bare:
+
+```bash
+akb spec                            # the spec skills, and what each one fills
+akb spec <skill> <id> [note]        # put one on a card — its own run, starting clean
+akb chat "<message>"                # talk about the board — and change it
+akb chat <id> "<message>"           # talk about one card
+akb chat [<id>]                     # the conversation so far
+akb chat [<id>] --clear             # forget it and start fresh
+akb chat [<id>] --model <id>        # run this conversation on that model
+akb chat [<id>] --agent <name>      # …and on that agent — starts it over
+```
+
+`akb raw` writes the board's files directly, with no agent between you and them. It is the
+only thing that allocates ids or touches metrics — never edit `next-id` or `metrics.csv` by
+hand.
 
 ```bash
 akb raw create --title ".." --track <track>
-                                  # write one card and allocate its id
-akb raw release new v1          # plan a version
+                                    # write one card and allocate its id
+akb raw release new v1              # plan a version
 akb raw release new v1 --goal ".."  # …saying what it is for
-akb raw release new v1 --fill   # …with the high-priority cards in
-                                  # (filling from the goal is a run: "plan release v1")
-akb raw release goal v1 ".."    # change what it is for
-akb raw release list            # what each version holds
-akb raw release close v1        # the version shipped
-                                  # (it starts the run that writes the version's changelog)
-akb raw release drop v1         # the version will not ship
+akb raw release new v1 --fill       # …with the high-priority cards in
+                                    # (filling from the goal is a run: `akb release plan v1`)
+akb raw release goal v1 ".."        # change what it is for
+akb raw release list                # what each version holds
+akb raw release close v1            # the version shipped
+                                    # (it starts the run that writes the version's changelog)
+akb raw release drop v1             # the version will not ship
 akb raw schedule <id> --action implement|refine
-                                  # run it by itself once the card comes free
-                                  # (--clear takes the schedule off)
+                                    # run it by itself once the card comes free
+                                    # (--clear takes the schedule off)
 akb raw update-verify <id> --append ".."
-                                  # a hand-check the build left you
-                                  # (--drop n,n / --clear take them off)
-akb raw archive <id>            # finish a task
-akb raw reject  <id>            # drop an idea
-akb spec                          # the spec skills, and what each one fills
-akb spec <skill> <id> [note]      # put one on a card — its own run, starting clean
-akb chat "<message>"              # talk about the board — and change it
-akb chat <id> "<message>"         # talk about one card
-akb chat [<id>]                   # the conversation so far
-akb chat [<id>] --clear           # forget it and start fresh
-akb chat [<id>] --model <id>      # run this conversation on that model
-akb chat [<id>] --agent <name>    # …and on that agent — starts it over
-akb raw peek                    # next free id
-akb raw metrics                 # the daily CSV
-akb raw help                    # full usage
+                                    # a hand-check the build left you
+                                    # (--drop n,n / --clear take them off)
+akb raw archive <id>                # file the card, with no agent to check the work first
+akb raw reject <id>                 # delete it, with no agent to write down why
+akb raw peek                        # next free id
+akb raw metrics                     # the daily CSV
+akb raw help                        # full usage
 ```
 
 The flows themselves — how a card is refined, what goes in memory, how a release is planned —

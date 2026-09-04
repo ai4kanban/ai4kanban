@@ -15,8 +15,8 @@ run, or adds a field. Finding work the board is *missing* is `akb guide propose`
 A candidate is `status: ready` with an empty `blocked_by`. Drop these whatever their status:
 
 - **a group root** (`isRoot: true`) — the work is in its subtasks, not the root,
-- **a recurring card** (its file is under `todo/recurring/`) — it has no end state, and `run`
-  starts it rather than `implement`,
+- **a recurring card** (its file is under `todo/recurring/`) — it has no end state, and
+  `akb card run` starts it rather than `akb card implement`,
 - **a card a run is already building** — it is in flight and needs nothing.
 
 ## 3. Rank what is left

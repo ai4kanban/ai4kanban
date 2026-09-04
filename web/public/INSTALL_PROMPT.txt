@@ -6,7 +6,7 @@ skills extend the desktop workflow; they are not alternative distributions. Proj
 settings live with the board at `docs/kanban/config.md`.
 
 1. Verify that the desktop app is installed and that this project has been opened in it.
-   Then run `akb version`.
+   Then run `akb --version`.
 
    The app puts its bundled CLI on the PATH and updates it with the app. If the command
    succeeds, continue to step 2.
@@ -42,10 +42,11 @@ settings live with the board at `docs/kanban/config.md`.
 
 Everything else the board does is that same command:
 
-    akb help                 every command
-    akb help runs            the manual an agent reads — what to call, and when
+    akb help                    every command, and what to do when one won't run
+    akb card | delivery | run | release
+                                the verbs for one card, its build, the runs, a version
     akb <action> <id> --print   one job, filled in for this board, to do in this session
-    akb guide                the flows themselves, by name
+    akb guide                   the flows themselves, by name
 
 To update later, install the latest desktop release, then run `akb update` for the project.
 The desktop release updates both the app and its bundled workflows; `akb guide update`

@@ -13,7 +13,7 @@
 //   node scripts/board-probe.mjs cli/dist/kanban.mjs /tmp/after.txt
 //   diff /tmp/before.txt /tmp/after.txt
 //
-// Point it at `cli/bin/ai4kanban.mjs board` instead and the same transcript comes out of
+// Point it at `cli/bin/ai4kanban.mjs raw` instead and the same transcript comes out of
 // the CLI — that is how the two front doors are kept saying the same thing.
 //
 // The board it works on is a fresh temp folder, thrown away with the machine. Dates and
@@ -26,11 +26,11 @@ import { spawnSync } from 'node:child_process'
 
 const [target, out] = process.argv.slice(2)
 if (!target || !out) {
-  process.stderr.write('usage: node scripts/board-probe.mjs <path-to-kanban.mjs|"<cli.mjs> board"> <out.txt>\n')
+  process.stderr.write('usage: node scripts/board-probe.mjs <path-to-kanban.mjs|"<cli.mjs> raw"> <out.txt>\n')
   process.exit(1)
 }
 
-// The command under test: a script, optionally with a leading subcommand ("… board").
+// The command under test: a script, optionally with a leading subcommand ("… raw").
 const [script, ...prefix] = target.split(' ')
 const SCRIPT = path.resolve(script)
 const OUT = path.resolve(out)

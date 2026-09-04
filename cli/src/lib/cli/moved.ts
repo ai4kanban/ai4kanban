@@ -21,6 +21,9 @@ export const MOVED: Record<string, string> = {
   discard: 'delivery discard',
   approve: 'delivery approve',
   board: 'raw',
+  // Not part of the regrouping: `version` was a command until the tree became one
+  // Commander program, and it is what INSTALL_PROMPT tells a first-time reader to run.
+  version: '--version',
 }
 
 /** The whole refusal for a word that used to be a command, or '' when it never was. It
