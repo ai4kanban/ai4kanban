@@ -13,6 +13,14 @@
 //   - `akb guide <topic>` — ask for one by name,
 //   - a printed flow (`akb <action> --print`) — the guides that action needs, printed in
 //     full beside the board's own facts, so the agent needs one command and not two.
+//
+// And two solutions (#406, #407). `product` is the text below. `marketing` is a second copy
+// of the flows that read differently there — the rest it inherits unchanged, because a flow
+// copied to say the same thing is a flow that goes stale. Which one a board gets is the one
+// `Solution` line in its own `config.md`; a board with no line is `product`.
+//
+// Whichever text comes out, `docs/kanban` in it is swapped for the board's real path
+// (`boardText`), so an agent on `marketing/kanban` writes to `marketing/kanban/memory/`.
 
 import addTask from '../guide/add-task.md'
 import board from '../guide/board.md'
@@ -42,6 +50,13 @@ import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
 import validateOnReddit from '../guide/validate-on-reddit.md'
 import writing from '../guide/writing.md'
+
+import marketingBoard from '../guide/marketing/board.md'
+import marketingImplement from '../guide/marketing/implement.md'
+import marketingWriting from '../guide/marketing/writing.md'
+
+import { boardText } from './paths'
+import { solution, type Solution } from './solution'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
 export interface Guide {
@@ -84,7 +99,19 @@ export const GUIDES: Guide[] = [
 
 export const GUIDE_NAMES = GUIDES.map((g) => g.name)
 
-export const findGuide = (name: string): Guide | null => GUIDES.find((g) => g.name === name) ?? null
+/** The flows one solution says differently. Everything not named here is the text above. */
+const OVERRIDES: Record<Solution, Record<string, string>> = {
+  product: {},
+  marketing: { board: marketingBoard, implement: marketingImplement, writing: marketingWriting },
+}
+
+/** One flow as this board reads it: its solution's words, spelling this board's own path. */
+export function findGuide(name: string): Guide | null {
+  const guide = GUIDES.find((g) => g.name === name)
+  if (!guide) return null
+  const text = OVERRIDES[solution()][name] ?? guide.text
+  return { ...guide, text: boardText(text) }
+}
 
 // Wide enough for the longest name plus a gap, worked out rather than typed so adding a
 // longer one can't quietly run the two columns together.
@@ -103,5 +130,5 @@ export function guideList(program: string): string {
     'Flows',
     ...GUIDES.map(line),
   ]
-  return out.join('\n')
+  return boardText(out.join('\n'))
 }

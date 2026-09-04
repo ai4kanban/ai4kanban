@@ -23,6 +23,7 @@ import { BoardError, say } from '../lib/io'
 import { installSkill, readCommandState, readSkillState } from '../lib/skill/install'
 import { readCommitHook, sayCommitHook } from '../lib/skill/hook'
 import type { SkillFolder } from '../lib/skill/types'
+import type { Solution } from '../lib/solution'
 import type { MoveResult } from '../lib/types'
 import { SKILL_VERSION } from '../version'
 
@@ -51,6 +52,11 @@ const UNFILLED = '_(not filled in yet'
 export interface SetupContext {
   dir: string
   program: string
+  /** `--board <dir>` — where the board goes, when it is not `<dir>/docs/kanban` (#407).
+   *  Absolute by the time it gets here. */
+  board?: string | null
+  /** `--solution <name>` — what this board's work is, on a fresh board only. */
+  solution?: Solution
 }
 
 // ---- what happened ---------------------------------------------------------
@@ -94,8 +100,9 @@ function statOf(p: string): fs.Stats | null {
 // docs/kanban/. In a folder with no board of its own — every folder an install is pointed at
 // — the nearest board can be anywhere above it, up to the user's home. Naming the folder is
 // what keeps `install --dir X` from repairing somebody else's board and leaving X untouched.
-async function boardMove(root: string, args: string[]): Promise<void> {
-  const code = await runBoard([...args, '--dir', root], { program: 'akb raw', cwd: root })
+async function boardMove(root: string, args: string[], board?: string | null): Promise<void> {
+  const where = board ? ['--board', board] : ['--dir', root]
+  const code = await runBoard([...args, ...where], { program: 'akb raw', cwd: root })
   if (code !== 0) throw new BoardError(`\`board ${args.join(' ')}\` failed — nothing else was changed`, { kind: 'board-move-failed' })
 }
 
@@ -119,25 +126,37 @@ function boardAbove(root: string): string | null {
  *  That is what keeps a board made from the UI free of a folder nobody chose. */
 export async function cmdInstall(ctx: SetupContext): Promise<MoveResult> {
   const report = new Report()
+  const board = ctx.board ?? null
+  const where = board ? path.relative(ctx.dir, board) || board : 'docs/kanban'
   say(`ai4kanban ${SKILL_VERSION} — installing into ${ctx.dir}`)
   say('')
-  const above = fs.existsSync(path.join(ctx.dir, 'docs', 'kanban')) ? null : boardAbove(ctx.dir)
+  // A board named outright says nothing about the board above it: a second board in a repo
+  // that already has one is the whole point of naming it (#407).
+  const above = board || fs.existsSync(path.join(ctx.dir, 'docs', 'kanban')) ? null : boardAbove(ctx.dir)
   if (above) {
     report.notes.push(`there is already a board at ${above} — this makes a second one, and commands run here will find this one`)
   }
-  await boardMove(ctx.dir, ['init'])
+  await boardMove(ctx.dir, ['init', ...(ctx.solution ? ['--solution', ctx.solution] : [])], board)
   report.sayNotes()
   say('')
   // Say what landed, so nobody goes looking for the flows in the repo. They ship with the
   // command; a project holds its own board and nothing else.
-  say('That is the board, under docs/kanban/. The one line written outside it is `.akb/` in')
+  say(`That is the board, under ${where}/. The one line written outside it is \`.akb/\` in`)
   say('.gitignore, which keeps the folders a delivery works in out of git.')
+  if (board) {
+    say('')
+    say(`This board is not the project's \`docs/kanban\`, so every command has to name it:`)
+    say('')
+    say(`    ${ctx.program} --board ${where} <command>`)
+    say('')
+    say('…or `export AI4KANBAN_BOARD=' + where + '`. A command typed inside the board folder finds it.')
+  }
   say('')
   say('To drive this board from your coding agent, add the skill — from the button in the')
   say('board UI (Configuration → Agent setup), or here:')
   say('')
   say(`    ${ctx.program} skill`)
-  return { installed: ctx.dir }
+  return { installed: ctx.dir, board: board ?? path.join(ctx.dir, 'docs', 'kanban'), solution: ctx.solution ?? 'product' }
 }
 
 // ---- skill -----------------------------------------------------------------

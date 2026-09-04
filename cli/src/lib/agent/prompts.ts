@@ -5,6 +5,7 @@
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
 import { findGuide } from '../guide'
+import { boardText } from '../paths'
 import { findSpecSkill, specHeading, specSkillInstructions, specSkillSelector } from '../spec-skills'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
@@ -128,7 +129,9 @@ export function buildAsk(req: AgentRequest, notes: string[] = []): string {
   // spells the command the ordinary way.
   const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
   const ask = [actionPrompt(req, command, notes), commandNote(command)].filter(Boolean).join(' ')
-  return [ask, languageNote(), roster(req)].filter(Boolean).join('\n\n')
+  // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
+  // flows get, so the ask and the flow it names never disagree about where the board is.
+  return boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n'))
 }
 
 /** The words one run is given, this board's own rule for the flow last (#306). It goes

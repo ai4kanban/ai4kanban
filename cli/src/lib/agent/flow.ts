@@ -31,10 +31,11 @@ import { idPrefix, locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
-import { die, rel, CONFIG, DIR_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
+import { die, rel, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
+import { solution } from '../solution'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
 import { conflictedPaths, worktreeDir } from './worktree'
@@ -289,6 +290,19 @@ function workspaceField(cardId: number): string[] {
   ])
 }
 
+// The file a marketing build writes: `content/<id>-<slug>/source.md`, named off the card's
+// own filename so the draft folder and the card always match (#407). Nothing on a product
+// board, which delivers a diff.
+function draftField(card: CardFacts): string[] {
+  if (solution() !== 'marketing') return []
+  const slug = path.basename(card.file).replace(/\.md$/, '')
+  const dir = path.join(rel(KANBAN), 'content', slug)
+  return field('draft', [
+    `write the piece in ${dir}/source.md — make the folder if it isn't there.`,
+    'there is no branch and no worktree: the draft is the delivery, and the user editing it is the review.',
+  ])
+}
+
 // Where review stands on this delivery.
 function reviewField(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
@@ -447,7 +461,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   // the project's copy outright (#303) — a relative path there would run the worktree's own
   // half-rewritten copy, and no `--dir` would leave the board to be guessed at.
   const inWorktree = req.id !== undefined && !!activeDelivery(req.id)?.worktree
-  const self = inWorktree ? boardCommandFor(req.id) : `${program}${DIR_FLAG}`
+  const self = inWorktree ? boardCommandFor(req.id) : `${program}${BOARD_FLAG}`
   const raw = `${self} raw`
   const facts: string[] = []
   const close: string[] = []
@@ -469,10 +483,19 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'implement': {
       facts.push(...approvedField(req.id!))
       facts.push(...workspaceField(req.id!))
+      facts.push(...draftField(card!))
       facts.push(...stepsField(card!))
       if (card!.meta.questions.length) facts.push(...questionsField(card!.meta))
       facts.push(...verifyField(card!.meta))
-      facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
+      // What a finished piece is recorded in. `readme.md` is the product solution's "what
+      // shipped"; a marketing board records one line per published piece instead, and that
+      // file is the board's, not a pillar's.
+      facts.push(
+        ...field(
+          'memory',
+          solution() === 'marketing' ? [rel(path.join(MEMORY, 'published.md'))] : memoryFiles(card!.meta.modules, 'readme.md'),
+        ),
+      )
       // Inside a delivery the build is not the end of the job: a fresh run reviews what
       // it made against the approved copy, the board lands it, and the board archives the
       // card once it has landed (#302, #307). Outside one — a card built by hand from a
@@ -619,7 +642,15 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     case 'archive': {
       facts.push(...stepsCount(card!))
-      facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
+      // What a finished piece is recorded in. `readme.md` is the product solution's "what
+      // shipped"; a marketing board records one line per published piece instead, and that
+      // file is the board's, not a pillar's.
+      facts.push(
+        ...field(
+          'memory',
+          solution() === 'marketing' ? [rel(path.join(MEMORY, 'published.md'))] : memoryFiles(card!.meta.modules, 'readme.md'),
+        ),
+      )
       close.push(
         'write the shipped line first — one line for what a user can now see or do, nothing for an internal-only change',
         `${raw} archive ${req.id} — it files the card, drops it from the index, and prints what still mentions it`,

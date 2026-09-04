@@ -6,7 +6,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { TODO, readNextId, writeNextId } from './paths'
+import { TODO, boardText, readNextId, writeNextId } from './paths'
 import { serializeFrontmatter } from './frontmatter'
 
 export const RECURRING = 'recurring'
@@ -14,8 +14,10 @@ export const RECURRING = 'recurring'
 const PRUNE_SLUG = 'prune-the-memory'
 const PRUNE_TITLE = 'Prune the memory'
 
+// `boardText` because this card names its own board's folders, and a board away from
+// `docs/kanban` would otherwise send the job at the OTHER board's memory (#407).
 function pruneBody() {
-  return `Squeeze the memory files back down to what helps plan the next task. Delete this
+  return boardText(`Squeeze the memory files back down to what helps plan the next task. Delete this
 card if you don't want the job — nothing puts it back.
 
 ## Run state
@@ -24,7 +26,7 @@ None.
 ## Process
 1. Prune the project-wide memory at \`docs/kanban/memory/\` and each module's at
    \`docs/kanban/memory/<module>/\`, following \`akb guide prune-memory\`.
-`
+`)
 }
 
 /**

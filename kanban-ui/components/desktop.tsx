@@ -31,6 +31,8 @@ import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } 
 import type { ChromeCopy } from "@/i18n/chrome/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
+import { getBoardsAction } from "@/app/actions";
+import type { BoardEntry } from "@/lib/cli";
 import type { NotificationAlert } from "@/lib/notifications";
 import { Button } from "./button";
 import { CHROME } from "./chrome";
@@ -153,6 +155,11 @@ interface AppBridge {
   }>;
   projects(): Promise<ProjectEntry[]>;
   openProject(dir: string): Promise<string | null>;
+  /** Show another of this project's boards (#407) — the same handover the projects list
+   *  makes: the board on screen keeps running behind the window, the picked one gets its
+   *  own server, and the page is replaced. Optional — an app older than the second board
+   *  knows only projects, and the badge stays a label there. */
+  openBoard?(dir: string): Promise<string | null>;
   forgetProject(dir: string): Promise<ProjectEntry[]>;
   pickRepo(): Promise<string | null>;
   createBoard(): Promise<{ ok: boolean; error?: string }>;
@@ -275,35 +282,126 @@ export function NavEdge() {
 // badge that is a button — the projects list — has to say it isn't the part you
 // drag the window by (app/globals.css). Harmless on the plain label and in a
 // browser.
-const BADGE =
-  "a4k-nodrag hidden h-[26px] min-w-0 items-center gap-1.5 rounded-full px-2.5 font-mono text-[11px] text-nb-ink-soft sm:flex";
+// The one rounded frame, and the two controls inside it. They are side by side
+// rather than nested: a button inside a button has no honest hit area, and each
+// of these opens a different list — the path opens the projects, the badge opens
+// this project's boards (#407).
+const CHIP =
+  "a4k-nodrag hidden h-[26px] min-w-0 items-center rounded-full font-mono text-[11px] text-nb-ink-soft sm:flex";
+const PART = "flex h-full min-w-0 items-center gap-1.5 px-2.5";
 const BADGE_STYLE = {
   background: "color-mix(in srgb, var(--color-nb-ink) 5%, transparent)",
   border: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)",
 };
+const DIVIDER = { borderLeft: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)" };
 
-/** Which repo this board is, in the header. In the app it is the button that
- *  opens the projects list — the app has no terminal to be restarted from, so
- *  this is how a window is pointed at a different folder. It shows the folder
- *  name on a narrow window and the whole path on a wide one, the same either
- *  way. */
+/** Which repo this board is, in the header, and which of its boards is open.
+ *
+ *  In the app the path is the button that opens the projects list — the app has
+ *  no terminal to be restarted from, so this is how a window is pointed at a
+ *  different folder. It shows the folder name on a narrow window and the whole
+ *  path on a wide one, the same either way.
+ *
+ *  Beside it, the board's own word: "Engineering" on a product board, "Marketing"
+ *  on a marketing one, cut to "Eng" on the same break the path takes. A project
+ *  holding one board gets a label; one holding two gets a switcher, and picking
+ *  the other hands the window over the way the projects list does. */
 export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; desktop: boolean }) {
-  const inner = (
+  const path = (
     <>
       <FiFolder className="shrink-0 opacity-70" size={12} />
       <span className="truncate lg:hidden">{projectRoot.split("/").pop()}</span>
       <span className="hidden truncate lg:inline">{projectRoot}</span>
     </>
   );
+  return (
+    <span className={CHIP} style={BADGE_STYLE}>
+      {desktop ? (
+        <ProjectsMenu projectRoot={projectRoot}>{path}</ProjectsMenu>
+      ) : (
+        <span title={projectRoot} className={PART}>
+          {path}
+        </span>
+      )}
+      <BoardBadge desktop={desktop} />
+    </span>
+  );
+}
 
-  if (!desktop) {
+// --- the board badge, and the boards behind it -------------------------------
+
+/** Which board of this project is open, and — in the app, when the project holds
+ *  more than one — the switcher onto the others (#407).
+ *
+ *  Read after the page paints rather than handed down as a prop: it is one word
+ *  in the chrome, the same on every screen, and threading it through every page
+ *  and every window would be a prop nine components pass on and one reads. A
+ *  board whose rules are too old to know about boards answers with none, and the
+ *  chip is exactly the chip it always was. */
+function BoardBadge({ desktop }: { desktop: boolean }) {
+  const c = useCopy().chrome.boards;
+  const [here, setHere] = useState<{ board: string; boards: BoardEntry[] } | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void getBoardsAction()
+      .then((answer) => live && setHere(answer))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const open = here?.boards.find((b) => b.path === here.board);
+  if (!open) return null;
+
+  const word = (
+    <>
+      <span className="truncate lg:hidden">{open.short}</span>
+      <span className="hidden truncate lg:inline">{open.work}</span>
+    </>
+  );
+  // One board is a label with nothing to press, and so is a browser either way:
+  // switching hands the whole window over, which only the app can do.
+  const others = here!.boards.filter((b) => b.path !== here!.board);
+  if (!desktop || others.length === 0 || !bridge()?.openBoard) {
     return (
-      <span title={`${projectRoot}/docs/kanban`} className={BADGE} style={BADGE_STYLE}>
-        {inner}
+      <span title={here!.board} className={PART} style={DIVIDER}>
+        {word}
       </span>
     );
   }
-  return <ProjectsMenu projectRoot={projectRoot}>{inner}</ProjectsMenu>;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          title={c.badge(here!.board)}
+          className={`${PART} max-w-full cursor-pointer hover:text-nb-ink`}
+          style={DIVIDER}
+        >
+          {word}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-w-[min(28rem,calc(100vw-1.5rem))]">
+        <DropdownMenuLabel>{c.heading}</DropdownMenuLabel>
+        {here!.boards.map((b) => (
+          <DropdownMenuItem
+            key={b.path}
+            className={`flex-col items-stretch gap-0 font-[400] ${b.path === here!.board ? "cursor-default" : ""}`}
+            title={b.path}
+            onSelect={(e) => (b.path === here!.board ? e.preventDefault() : void bridge()?.openBoard?.(b.path))}
+          >
+            <span className="flex items-center gap-1.5">
+              {b.path === here!.board && <Dot tone="var(--color-nb-accent)" title={c.openHere} />}
+              <span className="truncate font-[700] text-nb-ink">{b.work}</span>
+            </span>
+            <span className="mt-0.5 block truncate font-mono text-[11px] text-nb-ink-soft">{b.path}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 /** The projects list (#178): the ones already opened, and Open Folder for one
@@ -350,9 +448,8 @@ function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          title={c.badge(`${projectRoot}/docs/kanban`)}
-          className={`${BADGE} max-w-full cursor-pointer hover:text-nb-ink`}
-          style={BADGE_STYLE}
+          title={c.badge(projectRoot)}
+          className={`${PART} max-w-full cursor-pointer hover:text-nb-ink`}
         >
           {children}
         </button>

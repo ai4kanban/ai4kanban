@@ -39,6 +39,7 @@ import {
   type VerifyOpsInput,
 } from '../../commands/card'
 import { cmdInit, cmdMemoryInit } from '../../commands/init'
+import type { Solution } from '../solution'
 import { cmdList, type ListOptions } from '../../commands/list'
 import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
@@ -115,7 +116,7 @@ type RunMove = (input: MoveInput) => MoveOutput | void
 const as = <T,>(opts: Record<string, unknown>): T => opts as T
 
 const MOVES: Record<string, RunMove> = {
-  init: () => cmdInit(),
+  init: ({ opts }) => cmdInit(as<{ solution?: Solution }>(opts).solution),
   'memory-init': ({ args }) => cmdMemoryInit(args[0]),
   'setup-done': ({ args }) => cmdSetupDone(args[0]),
   'setup-status': () => cmdSetupStatus(),

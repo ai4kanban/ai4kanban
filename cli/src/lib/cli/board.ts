@@ -13,9 +13,10 @@ import { recordCreatedCards } from '../agent/store'
 import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
 import { BoardError, say, warn } from '../io'
-import { KANBAN, setBoardRoot } from '../paths'
-import { resolveBoard, sayIfOffline } from '../board-cli'
+import { KANBAN } from '../paths'
+import { resolveBoard, sayIfOffline, useBoard } from '../board-cli'
 import { SCHEDULED_ACTIONS } from '../schedule'
+import { SOLUTIONS } from '../solution'
 import { LEVELS, STATUSES } from '../validate'
 import { QUESTION_TAGS } from '../view/rules'
 import {
@@ -53,9 +54,13 @@ async function dispatch(
   cli: BoardCliOptions,
 ): Promise<void> {
   const ctx = ctxOf(cmd, cli.program)
-  const data = await runAction(ctx, { board: KANBAN }, async () => {
-    const root = resolveBoard(move, { dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint })
-    setBoardRoot(root, ctx.dir !== null)
+  // `board:` is read INSIDE the work, not beside it: which board this is is only settled by
+  // `useBoard` a line below, and a field read before that names the last board this process
+  // had open (#407).
+  const data = await runAction(ctx, {}, async () => {
+    const found = resolveBoard(move, { board: ctx.board, dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint })
+    useBoard(found, ctx.dir !== null)
+    const root = found.root
     // Which board this checkout opens — the folder, or the workspace a committed pointer
     // names (#316). A Cloud board that cannot be opened refuses here, in the words that say
     // what to do about it.
@@ -85,7 +90,7 @@ async function dispatch(
     const { output, warnings, ...fields } = data
     if (output) say(output)
     for (const line of (warnings as string[] | undefined) ?? []) warn(line)
-    return fields
+    return { board: KANBAN, ...fields }
   })
   cli.onAnswer?.(data)
 }
@@ -428,11 +433,13 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
   // ---- the board itself ----------------------------------------------------
 
   move('init')
+    .option('--solution <name>', `what this board's work is: ${SOLUTIONS.join(' | ')}`, oneOf(SOLUTIONS))
     .summary('scaffold docs/kanban/; on an existing board add only what is missing')
     .description(
-      'Scaffold docs/kanban/ — the folders, the project-wide memory set in memory/, and a blank config.md ' +
+      'Scaffold the board — the folders, the project-wide memory set in memory/, and a blank config.md ' +
         'and releases.md. On an existing board it only adds the files that are missing, so it is safe to ' +
-        're-run and is the repair step for a board written by an older version.',
+        're-run and is the repair step for a board written by an older version. `--solution` is read on a ' +
+        "fresh board only: what an existing one is, its own config.md says.",
     )
     .action(async function (this: Command) {
       await dispatch('init', this, [], this.opts(), cli)

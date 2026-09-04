@@ -31,7 +31,7 @@ import {
   type RunView,
 } from '../lib/agent/types'
 import { say } from '../lib/io'
-import { die, DIR_FLAG } from '../lib/paths'
+import { die, BOARD_FLAG } from '../lib/paths'
 import { holdCloudClaims } from '../lib/cloud/requests'
 import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
@@ -76,8 +76,8 @@ export async function cmdStartRun(
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
   say(`${action} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
-  say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${DIR_FLAG}`)
-  say(`  stop it:   ${program} run stop ${short(run.sessionId)}${DIR_FLAG}`)
+  say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${BOARD_FLAG}`)
+  say(`  stop it:   ${program} run stop ${short(run.sessionId)}${BOARD_FLAG}`)
   if (follow) return { sessionId: run.sessionId, ...(await followRun(run.sessionId, '', program)) }
   return { sessionId: run.sessionId, action, cardId: run.cardId }
 }
@@ -320,7 +320,7 @@ export async function cmdRuns(opts: { card?: number; all?: boolean }, program = 
   if (live.length) say('')
   say(
     live.length
-      ? `${live.length} running. Follow one with \`${program} run log <id> --follow${DIR_FLAG}\`.`
+      ? `${live.length} running. Follow one with \`${program} run log <id> --follow${BOARD_FLAG}\`.`
       : 'nothing running.',
   )
   return { runs: shown }
@@ -436,7 +436,7 @@ function runLine(r: RunView, program = 'akb'): string {
   if (r.durationMs !== undefined) bits.push(`in ${ago(r.durationMs)}`)
   if (r.model) bits.push(r.model)
   if (r.costUsd !== undefined) bits.push(`$${r.costUsd.toFixed(4)}`)
-  if (r.canResume) bits.push(`— continue it with \`${program} run resume ${short(r.sessionId)}${DIR_FLAG}\``)
+  if (r.canResume) bits.push(`— continue it with \`${program} run resume ${short(r.sessionId)}${BOARD_FLAG}\``)
   const line = bits.join('  ')
   // The board's own last word rides on the row, not only in the log. `✓ done` beside a run
   // that left the board inconsistent reads as "nothing to see here", which is the one thing

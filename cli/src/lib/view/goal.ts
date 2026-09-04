@@ -20,6 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { GOAL } from '../paths'
+import { solution } from '../solution'
 import { unquote } from '../yaml'
 
 /** The values the field may hold. Anything else reads as no field at all. */
@@ -108,6 +109,10 @@ export function goalWritten(): boolean {
  *  judged what is written too vague to plan from. The board never grades the goal itself —
  *  it can see an empty file, and that takes no judgment. */
 export function goalNeedsWork(): boolean {
+  // A marketing board has no goal of its own (#407): positioning is a `decisions.md` line
+  // and the product board's goal is one of its planning sources. Asking for a file that
+  // solution does not have is the nag with no right answer.
+  if (solution() === 'marketing') return false
   return !goalWritten() || goalReviewed() === 'weak'
 }
 

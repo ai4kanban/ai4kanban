@@ -22,8 +22,8 @@ import { Option } from 'commander'
 
 import { openBoard } from '../board'
 import { BoardError } from '../io'
-import { KANBAN, setBoardRoot } from '../paths'
-import { resolveBoard, sayIfOffline } from '../board-cli'
+import { KANBAN } from '../paths'
+import { resolveBoard, sayIfOffline, useBoard } from '../board-cli'
 import { FLOWS, flowVerb, type Flow, type FlowGroup, type FlowOption } from '../agent/flows'
 import { namedDelivery } from '../agent/deliveries'
 import { HELP_AFTER } from '../agent/manual'
@@ -50,25 +50,32 @@ import type { AkbCliOptions } from './akb'
 export type AgentCliOptions = AkbCliOptions
 
 // Every command here works on one board, so finding it is done once rather than in each.
-// `guide` and the account half of `cloud` are the exceptions: a guide is the same text
-// wherever it is read, and the Cloud sign-in belongs to the machine rather than to any one
-// project (#326).
+// The account half of `cloud` is the exception: the Cloud sign-in belongs to the machine
+// rather than to any one project (#326).
+//
+// `guide` is a half-exception (#407). Its text is the board's — the solution picks which
+// words, and the board's own path is written into them — so it opens one when there is one,
+// and answers from the shipped text when there isn't. A flow has to be readable in a folder
+// that holds no board at all: that is how someone reads one before installing anything.
 async function onBoard(
   cmd: Command,
   cli: AgentCliOptions,
   work: (program: string) => Promise<Record<string, unknown> | void> | Record<string, unknown> | void,
 ): Promise<void> {
   const ctx = ctxOf(cmd, cli.program)
-  await runAction(ctx, { board: KANBAN }, async () => {
-    const root = resolveBoard('runs', { dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint })
-    setBoardRoot(root, ctx.dir !== null)
+  // `board:` is read INSIDE the work: which board this is is only settled by `useBoard`
+  // below, and a field read beside `runAction` names whichever board came before (#407).
+  await runAction(ctx, {}, async () => {
+    const found = resolveBoard('runs', { board: ctx.board, dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint })
+    useBoard(found, ctx.dir !== null)
+    const root = found.root
     // …and which board that checkout opens: the folder, or the workspace its committed
     // pointer names (#316). A refusal here is the whole answer — a run against a board that
     // could not be opened would be a run against no board at all.
     const opened = await openBoard(root)
     if (!opened.ok) throw new BoardError(opened.error, { kind: `cloud-${opened.reason}`, dir: root })
     sayIfOffline()
-    return (await work(cli.program)) ?? {}
+    return { board: KANBAN, ...((await work(cli.program)) ?? {}) }
   })
 }
 
@@ -244,6 +251,12 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     )
     .action(async function (this: Command, ...vals: unknown[]) {
       const [topic] = positional(vals) as [string | undefined]
+      const ctx = ctxOf(this, cli.program)
+      try {
+        useBoard(resolveBoard('guide', { board: ctx.board, dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint }), ctx.dir !== null)
+      } catch {
+        // No board here, or a half-made one. The shipped text still reads.
+      }
       await boardless(this, cli, (p) => cmdGuide(topic, p))
     })
 
@@ -254,8 +267,9 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .argument('<sessionId>')
     .action(async function (this: Command, sessionId: string) {
       const ctx = ctxOf(this, cli.program)
-      const root = resolveBoard('runs', { dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint })
-      setBoardRoot(root, ctx.dir !== null)
+      const found = resolveBoard('runs', { board: ctx.board, dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint })
+      useBoard(found, ctx.dir !== null)
+      const root = found.root
       const opened = await openBoard(root)
       if (!opened.ok) throw new BoardError(opened.error, { kind: `cloud-${opened.reason}`, dir: root })
       // The watcher runs for as long as the agent does, writes its own log, and says nothing

@@ -4,9 +4,9 @@
 // those two written down — are declared in lib/cli/board.ts. What lives here is what every
 // door needs and no command should have to think about:
 //
-//   - which board to work on: `--dir <path>`, or the nearest one at or above the folder the
-//     command was run in. Two boards at once never see each other's answers, because the
-//     paths are set per call (./paths.ts),
+//   - which board to work on: `--board <dir>`, `--dir <path>`, or the nearest one at or
+//     above the folder the command was run in. Two boards at once never see each other's
+//     answers, because the paths are set per call (./paths.ts),
 //   - refusing without ending the process: a command throws, `runProgram` catches, and
 //     `report` below turns it into a line a person reads or an object a program does,
 //   - answering a program instead of a person: `--json` puts the move's own fields, its
@@ -15,7 +15,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die } from './paths'
+import { die, projectRootOf, setBoardDir, setBoardRoot } from './paths'
 import { BoardError, warn, type Sink } from './io'
 import { boardState, when } from './board'
 import { readPointer } from './cloud/pointer'
@@ -44,29 +44,68 @@ const isDeliveryWorktree = (dir: string): boolean => {
 /** Whether this checkout's board lives in a workspace rather than in the folder. */
 const pointsAtCloud = (root: string): boolean => readPointer(root) !== null
 
+// A folder that IS a board rather than one that holds `docs/kanban` (#407) — `todo/` and
+// `config.md` together, which is what every install writes and nothing else does. It is the
+// same test `listBoards` uses, so a folder the switcher offers is one a command can open.
+export const isBoardDir = (dir: string): boolean =>
+  fs.existsSync(path.join(dir, 'todo')) && fs.existsSync(path.join(dir, 'config.md'))
+
+/** Which board a command works on, and which project it belongs to. */
+export interface FoundBoard {
+  /** The project — where `.akb/` and the repository `.gitignore` live. */
+  root: string
+  /** The board folder itself. */
+  board: string
+  /** Whether `--board` or `AI4KANBAN_BOARD` named it, rather than the walk up finding it.
+   *  A named board is named again in every hint the run prints (#407). */
+  named?: boolean
+}
+
+/** The board named by `AI4KANBAN_BOARD`, or nothing. The flag beats it, and it is a
+ *  relative path against the working directory the same way the flag is. */
+const boardFromEnv = (): string | null => {
+  const named = process.env.AI4KANBAN_BOARD?.trim()
+  return named ? named : null
+}
+
+/** Point every path in ./paths.ts at what `resolveBoard` found. The project goes with the
+ *  board: `resolveBoard` already worked it out, and letting `setBoardDir` guess it again
+ *  would put `.akb/` a folder deep in a project that is not a git repository. */
+export function useBoard(found: FoundBoard, dirNamed: boolean): void {
+  if (!found.named && found.board === path.join(found.root, 'docs', 'kanban')) setBoardRoot(found.root, dirNamed)
+  else setBoardDir(found.board, found.root)
+}
+
 // A board with no `todo/` is half a board — a folder someone deleted from, or one an
 // install never finished. Every move but `init` would fall over reading it, so it is
 // turned away here with the one command that repairs it.
 //
 // A Cloud checkout is never half a board: its `docs/kanban/` is a copy, written whole by the
 // hydration that happens after this, and a fresh clone has none at all.
-function requireWholeBoard(root: string, move: string): string {
-  if (move === MAKES_A_BOARD || pointsAtCloud(root)) return root
-  if (!fs.existsSync(path.join(root, 'docs', 'kanban', 'todo'))) {
-    die(`the board in ${root} has no docs/kanban/todo/ — run \`init\` to add what is missing.`, {
+function whole(found: FoundBoard, move: string): FoundBoard {
+  if (move === MAKES_A_BOARD || pointsAtCloud(found.root)) return found
+  if (!fs.existsSync(path.join(found.board, 'todo'))) {
+    die(`the board in ${found.board} has no todo/ — run \`init\` to add what is missing.`, {
       kind: 'board-incomplete',
-      dir: root,
+      dir: found.root,
     })
   }
-  return root
+  return found
 }
 
-// Walk up from `from` until a docs/kanban/ turns up. An agent's terminal is often a
-// subfolder deep, and "run it from the repo root" is a rule that gets forgotten.
-function findBoardUpward(from: string): string | null {
+// Walk up from `from` until a board turns up. An agent's terminal is often a subfolder
+// deep, and "run it from the repo root" is a rule that gets forgotten.
+//
+// A folder holding `docs/kanban/` is checked first, so the repo root of a project that also
+// carries a second board still means the product board. A folder that IS a board answers
+// second, which is what makes a command typed inside `marketing/kanban/` reach it (#407).
+// Nothing guesses between two boards a folder merely sits above: `marketing/` finds the
+// board over it, and naming the one you meant is what `--board` is for.
+function findBoardUpward(from: string): FoundBoard | null {
   let dir = path.resolve(from)
   for (;;) {
-    if (hasBoard(dir)) return dir
+    if (hasBoard(dir)) return { root: dir, board: path.join(dir, 'docs', 'kanban') }
+    if (isBoardDir(dir)) return { root: projectRootOf(dir), board: dir }
     const up = path.dirname(dir)
     if (up === dir) return null
     dir = up
@@ -75,8 +114,23 @@ function findBoardUpward(from: string): string | null {
 
 export function resolveBoard(
   move: string,
-  { dir, cwd, installHint }: { dir: string | null; cwd: string; installHint: string },
-): string {
+  { board, dir, cwd, installHint }: { board?: string | null; dir: string | null; cwd: string; installHint: string },
+): FoundBoard {
+  // `--board` beats `AI4KANBAN_BOARD`, and both beat `--dir`, which is then ignored.
+  const named = board ?? boardFromEnv()
+  if (named) {
+    const folder = path.resolve(cwd, named)
+    if (!fs.existsSync(folder) && move !== MAKES_A_BOARD) {
+      die(`no such folder: ${folder}`, { kind: 'no-such-folder', dir: folder })
+    }
+    if (fs.existsSync(folder) && !isBoardDir(folder) && move !== MAKES_A_BOARD) {
+      die(`${folder} is not a board — it has no todo/ and config.md. Run ${installHint} --board ${named} to make one.`, {
+        kind: 'no-board',
+        dir: folder,
+      })
+    }
+    return { root: projectRootOf(folder), board: folder, named: true }
+  }
   if (dir !== null) {
     const root = path.resolve(dir)
     if (!fs.existsSync(root)) die(`no such folder: ${root}`, { kind: 'no-such-folder', dir: root })
@@ -86,16 +140,16 @@ export function resolveBoard(
         dir: root,
       })
     }
-    return requireWholeBoard(root, move)
+    return whole({ root, board: path.join(root, 'docs', 'kanban') }, move)
   }
   const found = findBoardUpward(cwd)
-  if (found) return requireWholeBoard(found, move)
+  if (found) return whole(found, move)
   // `init` with nothing above it makes the board right here, which is what running it in a
   // fresh repo has always meant.
-  if (move === MAKES_A_BOARD) return path.resolve(cwd)
+  if (move === MAKES_A_BOARD) return { root: path.resolve(cwd), board: path.join(path.resolve(cwd), 'docs', 'kanban') }
   die(
     `no board here. Looked in ${path.resolve(cwd)} and every folder above it for docs/kanban/. ` +
-      `Run ${installHint} to make one, or name the project with --dir.`,
+      `Run ${installHint} to make one, or name the board with --board.`,
     { kind: 'no-board', dir: path.resolve(cwd) },
   )
 }

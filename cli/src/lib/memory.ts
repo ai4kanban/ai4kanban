@@ -7,6 +7,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { warn, MEMORY } from './paths'
+import { solution } from './solution'
 import { MODULE_NAME_RE } from './validate'
 
 // What a scaffold made: the path, the files it wrote, and whether the folder itself is new.
@@ -59,6 +60,33 @@ before proposing so you don't re-suggest them.
 `,
 }
 
+// The marketing solution's set (#406, #407). The kernel's two files are `decisions.md` and
+// `rejected.md`; everything else is the solution's, declared here rather than assumed. No
+// `goal.md` — positioning is a decision, and the product board's goal is a planning source —
+// and no `redesign.md`: a lesson from an edited draft is a writing rule.
+const KERNEL_SET = {
+  'decisions.md': MEMORY_SET['decisions.md'],
+  'rejected.md': MEMORY_SET['rejected.md'],
+}
+
+const MARKETING_PROJECT_SET = {
+  ...KERNEL_SET,
+  'writing.md': `# Writing
+
+The voice every piece shares — one line per rule, in your own words, as
+\`- ❌ <what not to do> → ✅ <what to do instead>\`.
+
+Every rule here was learned from an edit you made to a draft. Nothing is invented.
+`,
+  'published.md': `# Published
+
+One line per published piece: date, channel, URL, and what it did. What proposing reads to
+avoid a repeat and to see what worked.
+
+_(nothing published yet.)_
+`,
+}
+
 // `goal.md` is the board root's alone. The project has one direction, and every flow
 // judges a card against that one file — a per-module copy would only split it. So the
 // project-wide path gets these five files; a module path gets the four above.
@@ -88,7 +116,12 @@ export function scaffoldMemoryPath(module: string): Scaffolded | null {
 // The same scaffold, one level up: the project-wide set in `memory/` itself — the four
 // files plus `goal.md`.
 export function scaffoldProjectMemory(): Scaffolded | null {
-  return scaffoldMemoryDir(MEMORY, PROJECT_MEMORY_SET)
+  return scaffoldMemoryDir(MEMORY, solution() === 'marketing' ? MARKETING_PROJECT_SET : PROJECT_MEMORY_SET)
+}
+
+/** A marketing pillar's own set: the kernel's two files and nothing else. */
+export function scaffoldPillarMemory(pillar: string): Scaffolded | null {
+  return scaffoldMemoryDir(path.join(MEMORY, pillar), KERNEL_SET)
 }
 
 function scaffoldMemoryDir(dir: string, set: Record<string, string>): Scaffolded | null {

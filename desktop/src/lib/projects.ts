@@ -46,16 +46,26 @@ function pidAlive(pid: unknown): boolean {
   }
 }
 
-/** Whether an agent run is going in this project — a live session in its
- *  registry whose process is still there. Best-effort: a project with no board,
- *  no registry file or an unreadable one simply has no run going. */
+/** The board folder itself, for a folder that is either a project or a board.
+ *
+ *  A window may be showing a project's second board — `marketing/kanban`, which
+ *  has its own `todo/` and `config.md` and its own session registry (#407). Its
+ *  runs are as real as the first board's, so they have to be findable under the
+ *  folder the window was actually handed. */
+function sessionsBoardOf(dir: string): string | null {
+  if (fs.existsSync(path.join(dir, "docs", "kanban", "todo"))) return path.join(dir, "docs", "kanban");
+  if (fs.existsSync(path.join(dir, "todo")) && fs.existsSync(path.join(dir, "config.md"))) return dir;
+  return null;
+}
+
+/** Whether an agent run is going in this board — a live session in its registry
+ *  whose process is still there. Best-effort: a folder with no board, no
+ *  registry file or an unreadable one simply has no run going. */
 export function hasLiveRun(dir: string): boolean {
-  const root = boardRootOf(dir);
-  if (!root) return false;
+  const board = sessionsBoardOf(dir);
+  if (!board) return false;
   try {
-    const raw: unknown = JSON.parse(
-      fs.readFileSync(path.join(root, "docs", "kanban", ".sessions.json"), "utf8"),
-    );
+    const raw: unknown = JSON.parse(fs.readFileSync(path.join(board, ".sessions.json"), "utf8"));
     const live = (raw as { live?: unknown } | null)?.live;
     if (!Array.isArray(live)) return false;
     return live.some((r) => pidAlive((r as { pid?: unknown } | null)?.pid));

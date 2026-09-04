@@ -362,6 +362,43 @@ async function openProject(repo: unknown): Promise<string | null> {
   return servers?.boardDir ?? null;
 }
 
+/** Show another board of the project already open (#407) — `marketing/kanban`
+ *  beside `docs/kanban`.
+ *
+ *  It is the projects list's own handover, minus the two things that belong to a
+ *  PROJECT and not to a board: nothing is installed (a board folder is one
+ *  already, and `install` is what puts it on the list), and nothing is remembered
+ *  (the list is of projects, and this is the same project). The board on screen
+ *  keeps running behind the window exactly as another project's does. */
+async function openBoard(dir: unknown): Promise<string | null> {
+  if (typeof dir !== "string" || !dir) return servers?.boardDir ?? null;
+  if (dir === servers?.boardDir) return dir;
+  // A board folder someone deleted between the list being drawn and this click.
+  if (!fs.existsSync(path.join(dir, "todo"))) {
+    await messageBox({
+      type: "warning",
+      message: copy().dialog.folderGone.message(path.basename(dir)),
+      detail: copy().dialog.folderGone.detail(dir),
+    });
+    return servers?.boardDir ?? null;
+  }
+  win?.webContents.send(CHANNELS.opening, path.basename(dir) || dir);
+  try {
+    if (!servers) throw new Error("the app is not started yet");
+    const url = await servers.open(dir);
+    refreshMenu();
+    // The title stays as the project opened it. A switch here is within one project, and a
+    // board folder is called `kanban` on every board there is — a title saying so would
+    // name nothing. Which board is on screen is the chip's badge (#407).
+    await win?.loadURL(url);
+  } catch (e) {
+    fatal(e);
+    return servers?.boardDir ?? null;
+  }
+  nav?.reset();
+  return servers?.boardDir ?? null;
+}
+
 /** Close Project: leave the one on screen without opening another, and let the
  *  next launch start on the launcher too.
  *
@@ -429,7 +466,10 @@ async function pickRepo(): Promise<string | null> {
  *  what is true about each right now (gone from disk, a run going). */
 function listProjects(): ProjectInfo[] {
   const open = servers?.boardDir ?? null;
-  return store.projects().map((p) => projects.describe(p.path, { open: p.path === open }));
+  // A project is the open one when the board on screen is IN it — the window may be
+  // showing that project's second board rather than its `docs/kanban` (#407).
+  const showing = (dir: string): boolean => open !== null && (dir === open || open.startsWith(dir + path.sep));
+  return store.projects().map((p) => projects.describe(p.path, { open: showing(p.path) }));
 }
 
 /** Take a project off the list. Nothing on disk is touched. Removing the one
@@ -682,6 +722,8 @@ ipcMain.handle(
 ipcMain.handle(CHANNELS.projects, () => listProjects());
 
 ipcMain.handle(CHANNELS.openProject, (_e, repo: unknown) => openProject(repo));
+
+ipcMain.handle(CHANNELS.openBoard, (_e, dir: unknown) => openBoard(dir));
 
 ipcMain.handle(CHANNELS.forgetProject, (_e, repo: unknown) => forgetProject(repo));
 

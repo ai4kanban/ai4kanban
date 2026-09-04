@@ -24,6 +24,11 @@ const en: ChromeCopy = {
     runningHere: "A run is going here",
     forget: "Take this project off the list — nothing on disk is touched",
   },
+  boards: {
+    heading: "Boards",
+    badge: (boardDir) => `${boardDir} — click for this project's boards`,
+    openHere: "Open in this window",
+  },
   update: {
     out: (version) => `AI4Kanban ${version} is out. Click to install it.`,
     outManual: (version, reason) => `AI4Kanban ${version} is out. ${reason}`,

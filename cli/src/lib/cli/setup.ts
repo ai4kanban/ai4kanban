@@ -12,7 +12,8 @@ import { cmdInstall, cmdSkill, cmdUpdate } from '../../commands/install'
 import { BoardError, say } from '../io'
 import { rulesPath } from '../skill/install'
 import { SKILL_VERSION } from '../../version'
-import { ctxOf, runAction, type Command } from './shared'
+import { SOLUTIONS, type Solution } from '../solution'
+import { ctxOf, oneOf, runAction, type Command } from './shared'
 import type { AkbCliOptions } from './akb'
 
 
@@ -30,7 +31,9 @@ export function declareSetup(program: Command, cli: SetupCliOptions): void {
   program.version(SKILL_VERSION, '-v, --version', 'print this version').addHelpText('beforeAll', spelled(cli.program))
 
   const dirOption = (cmd: Command) =>
-    cmd.option('--dir <path>', 'the project to work on (default: the current folder)').option('--json', 'answer as one JSON object instead of prose')
+    cmd
+      .option('--dir <path>', 'the project to work on (default: the current folder)')
+      .option('--json', 'answer as one JSON object instead of prose')
 
   const where = (cmd: Command): string => {
     const dir = path.resolve(String((cmd.optsWithGlobals() as { dir?: string }).dir ?? cli.cwd))
@@ -38,7 +41,17 @@ export function declareSetup(program: Command, cli: SetupCliOptions): void {
     return dir
   }
 
+  // Where an install puts the board: `--board <dir>` against the working directory, or the
+  // project's own `docs/kanban` (#407). Unlike every other command this one may name a
+  // folder that isn't there yet — making it is the whole job.
+  const boardOf = (cmd: Command): string | null => {
+    const named = (cmd.optsWithGlobals() as { board?: string }).board
+    return named ? path.resolve(cli.cwd, named) : null
+  }
+
   dirOption(program.command('install'))
+    .option('--board <dir>', 'put the board here instead of docs/kanban/ (relative to this folder)')
+    .option('--solution <name>', `what this board's work is: ${SOLUTIONS.join(' | ')}`, oneOf(SOLUTIONS))
     .summary('scaffold docs/kanban/ — the board, and nothing else')
     .description(
       'Installing writes the board and nothing outside docs/kanban/. Driving that board from a coding ' +
@@ -47,7 +60,10 @@ export function declareSetup(program: Command, cli: SetupCliOptions): void {
     )
     .action(async function (this: Command) {
       const dir = where(this)
-      await runAction(ctxOf(this, cli.program), {}, () => cmdInstall({ dir, program: cli.program }))
+      const solution = (this.optsWithGlobals() as { solution?: string }).solution as Solution | undefined
+      await runAction(ctxOf(this, cli.program), {}, () =>
+        cmdInstall({ dir, program: cli.program, board: boardOf(this), solution }),
+      )
     })
 
   const skill = dirOption(program.command('skill'))

@@ -8,8 +8,15 @@
 // two files: the short note, and the command itself.
 
 import template from '../templates/config.md'
+import marketing from '../templates/config-marketing.md'
+
+import type { Solution } from './solution'
 
 export const CONFIG_TEMPLATE = template
+
+/** The blank config for one solution — the marketing board's names its solution, and its
+ *  planning sources are the product board's memory rather than the codebase (#407). */
+export const configTemplateFor = (name: Solution): string => (name === 'marketing' ? marketing : template)
 
 // A setting a newer release added that the board's own config has never heard of. Both
 // files list their settings the same way — `- **Name** — …` — so the names are the

@@ -52,6 +52,22 @@ Normally you don't run this by hand — you paste the install prompt from
 <https://ai4kanban.dev/INSTALL_PROMPT.txt> and your agent reads the repo, runs this
 command, and fills in the config afterwards.
 
+### A second board in the same repo
+
+`akb install --board <dir>` puts the board somewhere else — one repository, two boards:
+
+```bash
+akb install --board marketing/kanban
+```
+
+A board away from `docs/kanban` is **named, not found**: with no flag `akb` still walks up
+for `docs/kanban`, so name yours with `--board <dir>` on any command, or
+`export AI4KANBAN_BOARD=<dir>`. A command typed inside the board folder finds it. The flag
+beats the variable, and both beat `--dir`.
+
+The board app shows which one you are on in the folder chip, and switches between them
+there.
+
 ## Drive the board from your coding agent
 
 Optional, and separate from the board on purpose: a board works from the app on its own.

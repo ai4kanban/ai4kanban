@@ -39,6 +39,13 @@ The **×** on a project takes it off the list without touching its folder, board
 open the folder again to put it back. The project on screen has no **×**. A remembered folder
 that has been moved or deleted says **folder is gone** and offers only the **×**.
 
+Beside the path, in the same chip, is the board's own word — **Engineering** on a product
+board, **Marketing** on a marketing one, cut to **Eng** on a narrow window. A project holding
+one board shows it as a label; a project holding two makes it a second button that lists them,
+and picking the other hands the window over exactly as a project does. A board is any folder
+under the project with `todo/` and `config.md` in it, two levels down at most —
+`akb install --board marketing/kanban` is what puts one there, and nothing registers it.
+
 When a newer version is out, a line above the board says so with a link; the app never updates
 itself. Closing the window ends every board server and agent run across the open projects.
 
@@ -1750,7 +1757,8 @@ server starts. Two things it could be, and the page gives both:
 
 - **This repo has no board yet.** Make one — run `npx ai4kanban install` in the repo root.
 - **This is not the repo you meant.** Stop the UI and start it from your repo root, or point it at
-  the repo: `npx ai4kanban-ui --board /path/to/repo`.
+  the repo: `npx ai4kanban-ui --board /path/to/repo`. It takes a board folder too, which is how a
+  second board in the same repo is opened: `npx ai4kanban-ui --board /path/to/repo/marketing/kanban`.
 
 The UI never sets a board up for you. Install one in a terminal, switch back to the tab, and the board
 is there — no reload.

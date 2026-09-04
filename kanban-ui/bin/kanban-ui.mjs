@@ -32,7 +32,7 @@ function help() {
       "Usage: npx ai4kanban-ui [options]",
       "",
       "Options:",
-      "  -b, --board <dir>   repo that holds docs/kanban/ (default: current dir)",
+      "  -b, --board <dir>   repo that holds docs/kanban/, or a board folder itself (default: current dir)",
       "  -p, --port <n>      port to serve on (default: 7420)",
       "  -h, --help          show this help",
       "",

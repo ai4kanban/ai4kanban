@@ -38,7 +38,7 @@ machine.
 
 ```
 npx ai4kanban-ui                      # deprecated — http://localhost:7420
-npx ai4kanban-ui --board ../my-repo   # a board elsewhere (or set KANBAN_BOARD_DIR)
+npx ai4kanban-ui --board ../my-repo   # a project, or a board folder (or set KANBAN_BOARD_DIR)
 npx ai4kanban-ui --port 4000          # a different port
 ```
 

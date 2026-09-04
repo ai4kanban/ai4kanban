@@ -1,24 +1,37 @@
 import fs from "node:fs";
 import path from "node:path";
 
-// Find the repo whose board we drive.
+// Find the board we drive, and the project it belongs to.
 //
-// `KANBAN_BOARD_DIR` names it outright, and then it IS the answer — the folder
-// someone named is the project, board or no board. Whoever set it knew which
+// `KANBAN_BOARD_DIR` names it outright, and then it IS the answer. It takes either
+// shape (#407): a PROJECT folder, whose board is its `docs/kanban`, or a BOARD
+// folder itself — `marketing/kanban`, which has its own `todo/` and `config.md`.
+// Every launcher that passes a project keeps working unchanged; naming a board is
+// how a second one in the same repository is opened. Whoever set it knew which
 // folder they meant: the app passes the one you picked (desktop/src/lib/
 // server.ts), and the npx launcher passes `--board`, or your shell's directory
 // after doing its own looking (bin/kanban-ui.mjs).
 //
 // Only the fallback searches, because only the fallback is a guess: with nothing
-// set we walk up from `process.cwd()` to the first `docs/kanban/todo/`, so `pnpm
-// dev` works from `kanban-ui/` as well as from the repo root.
+// set we walk up from `process.cwd()` to the first board, so `pnpm dev` works from
+// `kanban-ui/` as well as from the repo root.
 //
 // The searching used to happen here in both cases, and it was wrong in the named
 // one: a folder with no board would climb out of itself and show whatever
 // board it happened to sit under — a stray `~/docs/kanban/` made every project in
 // the home directory show that one, under its own name in the header. Files stay
 // the single source of truth: we never store the board's location anywhere else.
-let cached: string | null = null;
+
+/** Which board is open, and which project holds it. */
+export interface FoundBoard {
+  /** The project — what the header's chip names, and what a chat and the rail are
+   *  keyed on. */
+  root: string;
+  /** The board folder: `<root>/docs/kanban`, or one named outright. */
+  kanban: string;
+}
+
+let cached: FoundBoard | null = null;
 
 // Where the search starts — the folder the user pointed us at, or the one we
 // were run from. Named in the "no board here" message either way, so it says
@@ -36,7 +49,7 @@ export function boardSearchStart(): string {
 // lookup that returns null, instead of on the text of a thrown error, is what
 // keeps them apart. Only a hit is cached: a board installed while the server is
 // up must still be found on the next look.
-export function findRepoRoot(): string | null {
+export function findBoard(): FoundBoard | null {
   if (cached) return cached;
   const start = boardSearchStart();
   // Named: that folder or nothing. Unset: walk up from where we were run.
@@ -45,19 +58,40 @@ export function findRepoRoot(): string | null {
   return found;
 }
 
+export function findRepoRoot(): string | null {
+  return findBoard()?.root ?? null;
+}
+
 // A board is a folder here, or a checkout pointed at a Cloud workspace (#316). A fresh
 // clone of a Cloud checkout carries no `docs/kanban/` at all — the copy is git-ignored and
 // written on the first read — so `.ai4kanban.json` is what says there is a board to open.
 // Whether that workspace can actually be reached is the board's answer, drawn in the error
 // strip, and not this lookup's: "no board here" and "the board would not open" are two
 // different pages.
-const boardAt = (dir: string): string | null =>
-  fs.existsSync(path.join(dir, "docs", "kanban", "todo")) ||
-  fs.existsSync(path.join(dir, ".ai4kanban.json"))
-    ? dir
-    : null;
+function boardAt(dir: string): FoundBoard | null {
+  if (fs.existsSync(path.join(dir, "docs", "kanban", "todo")) || fs.existsSync(path.join(dir, ".ai4kanban.json"))) {
+    return { root: dir, kanban: path.join(dir, "docs", "kanban") };
+  }
+  // The folder IS a board (#407) — `todo/` and `config.md` together, which is what
+  // every install writes and nothing else does. Its project is the nearest `.git`
+  // at or above it, else its own parent.
+  if (fs.existsSync(path.join(dir, "todo")) && fs.existsSync(path.join(dir, "config.md"))) {
+    return { root: projectRootOf(dir), kanban: dir };
+  }
+  return null;
+}
 
-function boardAtOrAbove(from: string): string | null {
+function projectRootOf(board: string): string {
+  let dir = board;
+  for (;;) {
+    if (fs.existsSync(path.join(dir, ".git"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return path.dirname(board);
+    dir = parent;
+  }
+}
+
+function boardAtOrAbove(from: string): FoundBoard | null {
   let dir = from;
   for (let i = 0; i < 8; i++) {
     const hit = boardAt(dir);
@@ -70,18 +104,22 @@ function boardAtOrAbove(from: string): string | null {
 }
 
 export function repoRoot(): string {
-  const found = findRepoRoot();
-  if (found) return found;
-  throw new Error(
-    "could not find docs/kanban/todo/ above " +
-      boardSearchStart() +
-      " — run the UI from inside the repo (kanban-ui/ or the repo root), " +
-      "or set KANBAN_BOARD_DIR to the folder that holds docs/kanban/.",
-  );
+  return found().root;
 }
 
 export function kanbanDir(): string {
-  return path.join(repoRoot(), "docs", "kanban");
+  return found().kanban;
+}
+
+function found(): FoundBoard {
+  const hit = findBoard();
+  if (hit) return hit;
+  throw new Error(
+    "could not find a board at or above " +
+      boardSearchStart() +
+      " — run the UI from inside the repo (kanban-ui/ or the repo root), " +
+      "or set KANBAN_BOARD_DIR to the folder that holds docs/kanban/, or to a board folder itself.",
+  );
 }
 export function todoDir(): string {
   return path.join(kanbanDir(), "todo");

@@ -11,11 +11,12 @@ import { BoardError, warn as sayWarning, type BoardErrorOptions } from './io'
 // template, so the folder holding them is this file's own.
 export const SKILL_DIR = path.dirname(fileURLToPath(import.meta.url))
 
-// The board lives at <root>/docs/kanban, and which root that is can change between calls:
-// a move takes `--dir <path>`, and with none named the dispatcher finds the nearest board
-// at or above the folder the command was run in. So these are bindings, not constants —
-// `setBoardRoot` repoints them and every module importing them sees the new value, because
-// an ES import is a live view of the name, not a copy of it.
+// A board is a folder, and which folder that is can change between calls: `--board <dir>`
+// names it outright, `--dir <path>` names the project holding `docs/kanban`, and with
+// neither the dispatcher finds the nearest board at or above the folder the command was run
+// in. So these are bindings, not constants — `setBoardRoot` and `setBoardDir` repoint them
+// and every module importing them sees the new value, because an ES import is a live view
+// of the name, not a copy of it.
 //
 // The default is the working directory, which is what a bare `node kanban.mjs <command>`
 // from a repo root has always meant.
@@ -141,18 +142,30 @@ export function ignoreBoardCopyIfMissing(): boolean {
   return true
 }
 
-// ` --dir <path>` when this command was told which board with `--dir`, empty when it found
-// one from the working directory. Every hint the board prints for a person to paste back —
-// follow it, stop it, resume it — carries this, or the paste lands on whatever board the
-// folder they are standing in has, which is usually none.
-export let DIR_FLAG = ''
+// The flag every hint the board prints for a person to paste back — follow it, stop it,
+// resume it — carries, or the paste lands on whatever board the folder they are standing in
+// has, which is usually the wrong one. ` --board <dir>` whenever the board was named,
+// ` --dir <project>` when `--dir` named the project, empty otherwise.
+export let BOARD_FLAG = ''
 
-// Point every path above at one project's board. Called once per command, before the
-// command runs. `named` is whether `--dir` chose it, which is what DIR_FLAG reports.
-export function setBoardRoot(root: string, named = false): string {
+/** Where a board folder's project is: the nearest `.git` at or above it, else the board's
+ *  parent. `.akb/` and the repository `.gitignore` are the project's, so two boards in one
+ *  repository share them. */
+export function projectRootOf(board: string): string {
+  let dir = path.resolve(board)
+  for (;;) {
+    if (fs.existsSync(path.join(dir, '.git'))) return dir
+    const up = path.dirname(dir)
+    if (up === dir) return path.dirname(path.resolve(board))
+    dir = up
+  }
+}
+
+// Point every path above at one board. Called once per command, before the command runs.
+function setBoard(kanban: string, root: string, flag: string): string {
   REPO_ROOT = path.resolve(root)
-  DIR_FLAG = named ? ` --dir ${REPO_ROOT}` : ''
-  KANBAN = path.join(REPO_ROOT, 'docs', 'kanban')
+  KANBAN = path.resolve(kanban)
+  BOARD_FLAG = flag
   TODO = path.join(KANBAN, 'todo')
   ARCHIVE = path.join(KANBAN, '.archive')
   ARCHIVE_MD = path.join(KANBAN, 'archive.md')
@@ -184,6 +197,26 @@ export function setBoardRoot(root: string, named = false): string {
   return REPO_ROOT
 }
 
+/** Point every path at `<root>/docs/kanban` — a project named by `--dir`, or found by the
+ *  walk up. `named` is whether `--dir` chose it, which is what BOARD_FLAG reports. */
+export function setBoardRoot(root: string, named = false): string {
+  const project = path.resolve(root)
+  return setBoard(path.join(project, 'docs', 'kanban'), project, named ? ` --dir ${project}` : '')
+}
+
+/** Point every path at a board folder named outright — `--board`, `AI4KANBAN_BOARD`, or a
+ *  board the walk up found under its own name (#407). Every hint then carries `--board`,
+ *  including for a board that happens to sit at `docs/kanban`: a paste has to reach the
+ *  board this command was told to use, not the one its folder would find.
+ *
+ *  `root` is the project when the caller already knows it. Working it back out of the board
+ *  folder is a guess — right for a repository, and one folder too deep for a project that
+ *  is not one — so it is only the fallback. */
+export function setBoardDir(board: string, root?: string): string {
+  const folder = path.resolve(board)
+  return setBoard(folder, root ?? projectRootOf(folder), ` --board ${folder}`)
+}
+
 setBoardRoot(process.cwd())
 
 // Refuse the move and say why. Throws rather than exiting: the caller may be a UI or
@@ -200,6 +233,21 @@ export function warn(msg: unknown): void {
 }
 
 export const rel = (p: string): string => path.relative(REPO_ROOT, p) || p
+
+/** This board's folder as the text an agent should read: `docs/kanban` on the default one,
+ *  the real path on any other. The shipped flow text spells `docs/kanban` throughout, so
+ *  every door that prints it swaps in the board it was asked about (#407) — otherwise an
+ *  agent on `marketing/kanban` writes its memory into a folder nothing reads. */
+export const BOARD_PATH_IN_TEXT = 'docs/kanban'
+
+export function boardPath(): string {
+  return rel(KANBAN).split(path.sep).join('/')
+}
+
+export function boardText(text: string): string {
+  const here = boardPath()
+  return here === BOARD_PATH_IN_TEXT ? text : text.split(BOARD_PATH_IN_TEXT).join(here)
+}
 
 export function readNextId(): number {
   if (!fs.existsSync(NEXT_ID)) die(`missing ${rel(NEXT_ID)}`, 'no-next-id')

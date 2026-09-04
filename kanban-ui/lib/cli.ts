@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { getCopy } from "@/i18n";
-import { repoRoot } from "./paths";
+import { kanbanDir, repoRoot } from "./paths";
 import { DEFAULT_LANGUAGE } from "./types";
 import type {
   AgentInfo,
@@ -97,6 +97,15 @@ export type OpenBoard =
   | { ok: true; kind: "cloud"; state: { workspaceId: string; workspaceName: string; offline: boolean; readAt: string } }
   | { ok: false; kind: "cloud"; reason: string; error: string };
 
+/** One board a project holds (#407). `work` is what its work is called — "Engineering",
+ *  "Marketing" — and `short` is that word on a window too narrow for the whole path. */
+export interface BoardEntry {
+  path: string;
+  work: string;
+  short: string;
+  solution: string;
+}
+
 /** How the board stands: a folder here, or a copy of a workspace and how old it is. */
 export interface BoardState {
   kind: "local" | "cloud";
@@ -115,6 +124,12 @@ export interface BoardState {
  *  value, which `await` takes just as happily — so awaiting is safe on every board. */
 export interface BoardRules {
   setBoardRoot(root: string): string;
+  /** Point the rules at a board folder rather than a project (#407). Optional: a copy of
+   *  the rules older than that release knows only `<root>/docs/kanban`. */
+  setBoardDir?(board: string): string;
+  /** Every board this project holds, and what each one's work is called. Optional for the
+   *  same reason — an older copy answers with nothing and the header draws a plain label. */
+  listBoards?(root: string): BoardEntry[];
 
   // which board this checkout opens (#316) — the folder, or the workspace `.ai4kanban.json`
   // names. Called before every read: a Cloud board hydrates its copy on the first one and
@@ -533,8 +548,16 @@ export function boardRules(): Promise<BoardRules> {
         throw new NoRulesError(ENGLISH.tooOld(found));
       }
       // Every command points the rules at one board before it runs; here it is one board
-      // for the life of the server, so it is set once.
-      mod.setBoardRoot?.(repoRoot());
+      // for the life of the server, so it is set once. `setBoardDir` names the board folder
+      // outright, which is the only way to say `marketing/kanban` (#407) — but only for a
+      // board that IS one. `<root>/docs/kanban` still goes through `setBoardRoot`, which is
+      // handed the project instead of working it back out of the board folder: a project
+      // that is not itself a git repo, or one nested inside a bigger one, would otherwise
+      // put `.akb/` somewhere it has never been. A copy of the rules older than #407 has
+      // only ever had one board per project, and its `setBoardRoot` is the same answer.
+      const root = repoRoot();
+      if (mod.setBoardDir && kanbanDir() !== path.join(root, "docs", "kanban")) mod.setBoardDir(kanbanDir());
+      else mod.setBoardRoot?.(root);
       return mod as BoardRules;
     },
   );

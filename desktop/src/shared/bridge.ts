@@ -136,6 +136,8 @@ export const CHANNELS = {
   info: "a4k:info",
   projects: "a4k:projects",
   openProject: "a4k:open-project",
+  /** Show another board of the project already open (#407). */
+  openBoard: "a4k:open-board",
   forgetProject: "a4k:forget-project",
   pickRepo: "a4k:pick-repo",
   createBoard: "a4k:create-board",
@@ -209,6 +211,11 @@ export interface Ai4kanbanBridge {
   /** Show a project from that list. Returns the folder now open, which is the
    *  old one when the project's folder has gone. */
   openProject(dir: string): Promise<string | null>;
+  /** Show another of this project's boards (#407) — `marketing/kanban` beside
+   *  `docs/kanban`. The same handover a project makes: the one on screen keeps
+   *  running behind the window, the picked one gets its own server, and the page
+   *  is replaced. Returns the folder now open. */
+  openBoard(dir: string): Promise<string | null>;
   /** Take a project off the list — nothing on disk is touched. Returns the list
    *  as it now is. */
   forgetProject(dir: string): Promise<ProjectInfo[]>;

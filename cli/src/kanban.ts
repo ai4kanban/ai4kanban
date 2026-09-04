@@ -150,7 +150,13 @@ export {
   setSpecAgentRuntime,
 } from './lib/agent/settings'
 export type { BoardRuntimes, RuntimeAgent } from './lib/agent/settings'
-export { ensureAkbDir, setBoardRoot } from './lib/paths'
+export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
+// Which boards this project holds, and what each one's work is called (#407). The folder
+// chip's badge is drawn from these: one board gets a label, two get a switcher.
+export { listBoards } from './lib/boards'
+export type { BoardEntry } from './lib/boards'
+export { solution } from './lib/solution'
+export type { Solution } from './lib/solution'
 
 // The Cloud sign-in (#326): the account this MACHINE acts as, held in one file outside every
 // repository, so the board UI server and a terminal `akb` are the same account. The Cloud

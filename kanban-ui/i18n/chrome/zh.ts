@@ -24,6 +24,11 @@ const zh: ChromeCopy = {
     runningHere: "这里有任务正在运行",
     forget: "把这个项目移出列表——磁盘上的文件不受影响",
   },
+  boards: {
+    heading: "看板",
+    badge: (boardDir) => `${boardDir}——点击查看这个项目的看板`,
+    openHere: "已在此窗口打开",
+  },
   update: {
     out: (version) => `AI4Kanban ${version} 已发布，点击安装。`,
     outManual: (version, reason) => `AI4Kanban ${version} 已发布。${reason}`,

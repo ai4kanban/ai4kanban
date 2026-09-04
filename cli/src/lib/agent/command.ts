@@ -17,7 +17,7 @@ import path from 'node:path'
 
 import { pathLookup } from './installed'
 import { SELF } from './launch'
-import { REPO_ROOT, rel } from '../paths'
+import { BOARD_FLAG, REPO_ROOT, rel } from '../paths'
 
 /** This copy of the command, called by its path: the package's `bin/` script when it is
  *  beside the built rules — it answers every command a flow can name — and the built rules
@@ -45,18 +45,19 @@ export function boardCommand(): string {
 }
 
 /** The board's command as a run working OUTSIDE the project folder has to type it: the
- *  command itself, and `--dir` naming the project whose board it means (#303).
+ *  command itself, and the flag naming the board it means (#303) — `--dir <project>` for the
+ *  project's own `docs/kanban`, `--board <dir>` for a board anywhere else (#407).
  *
  *  A delivery with a worktree of its own works in `.akb/worktrees/…`, where a relative
  *  `node cli/bin/…` would run that worktree's copy of the command — a copy the delivery may
- *  be halfway through rewriting — and where a board command with no `--dir` is one folder
- *  layout away from finding no board at all. Both are settled by saying which project, once,
+ *  be halfway through rewriting — and where a board command with no flag is one folder
+ *  layout away from finding no board at all. Both are settled by saying which board, once,
  *  in the words the run is given.
  *
  *  `cardId` only names what the flow is about; the answer is the same for every card. */
 export function boardCommandFor(_cardId?: number): string {
   const command = pathLookup()('akb') ? 'akb' : `node ${absoluteSelf()}`
-  return `${command} --dir ${REPO_ROOT}`
+  return `${command}${BOARD_FLAG || ` --dir ${REPO_ROOT}`}`
 }
 
 // This copy of the command by its full path, whatever folder anything runs in.
@@ -85,14 +86,18 @@ export function noteCommand(root: string, invoked?: string): string {
  *  nothing at all when it isn't. Said wherever words go out to an agent, so no run ever
  *  learns it by having a command fail.
  *
- *  Two things can make it differ, and the sentence says whichever ones apply: there is no
- *  `akb` on this machine, and — inside a delivery — the working folder is its
- *  own worktree rather than the project, so the board is named with `--dir` (#303). */
+ *  Three things can make it differ, and the sentence says whichever ones apply: there is no
+ *  `akb` on this machine; inside a delivery the working folder is its own worktree rather
+ *  than the project, so the board is named with `--dir` (#303); and this board was named
+ *  rather than found, so every command has to name it again with `--board` (#407). */
 export function commandNote(command: string): string {
   if (command === 'akb') return ''
   const why = [
     command.startsWith('akb') ? '' : `there is no \`akb\` on this machine's PATH`,
     command.includes(' --dir ') ? `the working folder here is not the project` : '',
+    // Spelled without the board's own path: this sentence is one of the few the board writes
+    // that must NOT be rewritten for the board it is about (`boardText`).
+    command.includes(' --board ') ? `this board is named rather than found` : '',
   ].filter(Boolean)
   return (
     `${why.length ? `Because ${why.join(', and ')}, ` : ''}\`${command}\` is the board's command here — ` +

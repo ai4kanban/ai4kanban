@@ -565,7 +565,7 @@ describe("a delivery's worktree on a Cloud checkout", () => {
     fs.copyFileSync(path.join(root, '.ai4kanban.json'), path.join(worktree, '.ai4kanban.json'))
 
     const found = resolveBoard('list', { dir: null, cwd: worktree, installHint: '`akb install`' })
-    assert.equal(fs.realpathSync(found), fs.realpathSync(root))
+    assert.equal(fs.realpathSync(found.root), fs.realpathSync(root))
   })
 })
 

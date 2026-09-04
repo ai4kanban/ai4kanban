@@ -8,6 +8,10 @@ description: Manage the file-based task board in docs/kanban/ with the akb comma
 Treat `akb` as the source of truth for the board in `docs/kanban/`. Ask the command for
 current, board-specific instructions instead of encoding its workflow in this file.
 
+A repository may hold a second board somewhere else — `marketing/kanban`. It is named, never
+guessed: pass `--board <dir>` on every command that means it, and leave it off for
+`docs/kanban/`. Every path a printed flow spells is that board's own.
+
 ## Select the command
 
 <!-- command -->

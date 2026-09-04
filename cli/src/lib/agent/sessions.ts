@@ -32,6 +32,7 @@ import {
   syncAudit,
 } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
+import { deliversWithGit } from '../solution'
 import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
 import { repairLanding } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
@@ -477,14 +478,19 @@ export function openRun(
   // and the worktree is made. A refusal here costs nothing, and whatever it made is undone
   // below if the run is refused after it. `req.commitMode` is the Implement dialog's tick,
   // this one build's answer (#346); without it the repository setting decides.
+  //
+  // …on a solution that delivers with git. On `marketing` a build is a file the user edits,
+  // so there is no worktree, no branch, nothing to review against a diff and nothing to land
+  // (#407): the run works in the project, and the flow's own close is what finishes the card.
+  const delivers = deliversWithGit()
   let start: DeliveryStart | undefined
-  if (cardId !== null && req.action === 'implement' && !activeDelivery(cardId)) {
+  if (delivers && cardId !== null && req.action === 'implement' && !activeDelivery(cardId)) {
     const prepared = prepareDelivery(cardId, req.commitMode)
     if ('error' in prepared) return { error: prepared.error }
     start = prepared.start
   }
   // Where this run works: its delivery's own worktree, or the project itself.
-  const joining = cardId !== null && DELIVERY_FLOWS.has(req.action) ? activeDelivery(cardId) : undefined
+  const joining = delivers && cardId !== null && DELIVERY_FLOWS.has(req.action) ? activeDelivery(cardId) : undefined
   const cwd = deliveryCwd(start ?? joining ?? {})
   // The one settings read for this whole run. Everything it needs is worked out here, at
   // the start — not later, when the agent finally spawns (an index action waits its turn
@@ -533,7 +539,7 @@ export function openRun(
     // belongs to, so a delivery can never be left holding a card with nothing working on
     // it. Review joins an existing delivery and never opens one: there is nothing to
     // review until something has been built.
-    if (cardId !== null && DELIVERY_FLOWS.has(req.action)) {
+    if (delivers && cardId !== null && DELIVERY_FLOWS.has(req.action)) {
       if (req.action === 'implement') {
         joinDelivery(store, record, req.title ?? cardNow(cardId)?.title ?? '', 'implement', start)
       } else if (!joinActive(store, record, req.action)) {

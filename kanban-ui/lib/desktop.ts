@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { boardSearchStart, findRepoRoot } from "./paths";
+import { boardSearchStart, findRepoRoot, kanbanDir } from "./paths";
 
 // Is this board running inside the desktop app, or being served to a browser?
 //
@@ -62,5 +62,11 @@ export function autoWorkAllowed(): boolean {
   const at = path.resolve(focused);
   // The app names the folder the user picked, which may sit anywhere inside the
   // repo the board was found in — so either answer counts as "this is me".
-  return at === path.resolve(boardSearchStart()) || at === findRepoRoot();
+  if (at === path.resolve(boardSearchStart())) return true;
+  // …except that a project may hold a second board (#407), and then its path is
+  // no longer proof of anything: the app writes the project when `docs/kanban`
+  // is on screen, and `marketing/kanban` would read that as its own turn. Only
+  // the project's own board may answer to the project's name.
+  const root = findRepoRoot();
+  return root !== null && at === root && kanbanDir() === path.join(root, "docs", "kanban");
 }

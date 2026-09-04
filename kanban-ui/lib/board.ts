@@ -1,6 +1,6 @@
 import { machineCopy } from "./language";
-import { boardRules, NoRulesError, type BoardState } from "./cli";
-import { repoRoot } from "./paths";
+import { boardRules, NoRulesError, type BoardEntry, type BoardState } from "./cli";
+import { kanbanDir, repoRoot } from "./paths";
 import { LOCAL_STANDING } from "./types";
 import type {
   ArchiveList,
@@ -85,6 +85,21 @@ export async function boardScreen(): Promise<BoardScreen> {
   // that brings the board back live, so asking first would say the board is out of reach
   // when that very read fetched it.
   return { ...(await screenBoard()), board, error };
+}
+
+/** Which board this window is showing, and every board its project holds (#407) — what the
+ *  folder chip's badge is drawn from. One board answers with one entry, which is a label
+ *  with nothing to press; a copy of the rules too old to know about boards answers with the
+ *  open one alone, for the same reason. */
+export async function boardsHere(): Promise<{ board: string; boards: BoardEntry[] }> {
+  const open = kanbanDir();
+  try {
+    const rules = await boardRules();
+    const boards = rules.listBoards?.(repoRoot()) ?? [];
+    return { board: open, boards: boards.length ? boards : [] };
+  } catch {
+    return { board: open, boards: [] };
+  }
 }
 
 /** Everything a card page draws, or null when the board holds no card with that id. */

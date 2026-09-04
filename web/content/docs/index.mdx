@@ -3,7 +3,7 @@ title: "AI4Kanban documentation"
 title_tag: "AI4Kanban documentation — the board, the loop, the agents"
 description: "How to run a project board that plans itself: write the goal the board plans from, drive the daily loop in plain language, and pick the coding agent your work runs on."
 lead: "A project board your coding agent drives. Write the goal, then say what you want in plain language — the board decides what happens next."
-last_updated: "September 1, 2026"
+last_updated: "September 4, 2026"
 nav_label: "Overview"
 icon: "compass"
 ---
@@ -17,6 +17,12 @@ your agent.
 
 Prefer a terminal? `npm install -g ai4kanban@latest`, then `akb install` in the
 project you want a board for.
+
+One repository can hold more than one board: `akb install --board marketing/kanban`
+puts a second one anywhere you like. A board away from `docs/kanban` is named rather
+than found, so pass `--board <dir>` on any command, or set `AI4KANBAN_BOARD` — a
+command typed inside the board folder finds it. In the app the folder chip says which
+board you are on, and switches between them.
 
 ## Read these first
 

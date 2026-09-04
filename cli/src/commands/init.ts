@@ -6,19 +6,24 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RUN_IGNORE_LINES, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
-import { CONFIG_TEMPLATE } from '../lib/config-template'
+import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RUN_IGNORE_LINES, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, RULES, SKILLS, SETUP_CHECKLIST } from '../lib/paths'
+import { configTemplateFor } from '../lib/config-template'
+import { solution, type Solution } from '../lib/solution'
 import { say } from '../lib/io'
 import { LOCK_IGNORE_LINE } from '../lib/lock'
 import { CHAT_IGNORE_LINE } from '../lib/agent/chat'
 import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
 import { writeReleasesIfMissing } from '../lib/releases'
-import { scaffoldMemoryPath, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
+import { scaffoldMemoryPath, scaffoldPillarMemory, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
 import { writePruneMemoryCard } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
 import type { MoveResult } from '../lib/types'
+
+// Where a marketing board's drafts go — one folder per card, tracked in git and kept after
+// the card is archived (#406). Only that solution has one.
+const contentDir = (): string => path.join(KANBAN, 'content')
 
 // The blank module map. `init` seeds it, the module-map flow fills it in from the repo.
 // It ships empty on purpose: only someone who has read the repo can name its parts, and
@@ -34,6 +39,16 @@ own, judged by meaning, not by folder.
 If a line here disagrees with the repo you just read, fix the line.
 
 _(not filled in yet — build the map from the repo before tagging a card.)_
+`
+
+// The marketing board's areas are pillars, and they live in the same file (#407) — the word
+// becomes "pillars" at #412; the file does not move.
+const PILLARS_TEMPLATE = `# Pillars
+
+What this board writes about — one line per pillar, each led by its **bolded name**, then
+what it covers and who it is for. A pillar is a theme that keeps producing topics.
+
+_(not filled in yet — write them from \`memory/decisions.md\` before tagging a card.)_
 `
 
 function boardReadme(): string {
@@ -52,10 +67,10 @@ _(none)_
 // command carries. The config lives WITH the board (not in the skill folder) so a
 // read-only plugin cache still yields an editable, per-project file. Idempotent: it never
 // overwrites a config that's already there, so a filled-in config survives a re-run.
-function writeConfigIfMissing() {
+function writeConfigIfMissing(name: Solution) {
   if (fs.existsSync(CONFIG)) return false
   fs.mkdirSync(KANBAN, { recursive: true })
-  fs.writeFileSync(CONFIG, CONFIG_TEMPLATE)
+  fs.writeFileSync(CONFIG, configTemplateFor(name))
   return true
 }
 
@@ -66,7 +81,7 @@ function writeConfigIfMissing() {
 function writeModulesIfMissing() {
   if (fs.existsSync(MODULES_MD)) return false
   fs.mkdirSync(KANBAN, { recursive: true })
-  fs.writeFileSync(MODULES_MD, MODULES_TEMPLATE)
+  fs.writeFileSync(MODULES_MD, solution() === 'marketing' ? PILLARS_TEMPLATE : MODULES_TEMPLATE)
   return true
 }
 
@@ -142,8 +157,13 @@ function writeSkeletonIfMissing(): string[] {
   return added
 }
 
-export function cmdInit(): MoveResult {
+/** Scaffold this board, or repair one an older version made.
+ *
+ *  `named` is `--solution` on a fresh install; a board that already has a `config.md` is
+ *  whatever that file says, so a repair never changes what a board is. */
+export function cmdInit(named?: Solution): MoveResult {
   if (fs.existsSync(KANBAN)) {
+    const marketing = (named ?? solution()) === 'marketing'
     // Re-running `init` is the repair step for a board made by an older version: it adds
     // whatever that version never wrote — docs/kanban/config.md if the board predates the
     // move out of the skill folder, modules.md if it predates the module map, releases.md
@@ -162,9 +182,9 @@ export function cmdInit(): MoveResult {
     // choice on every re-run.
     const added: string[] = [
       ...writeSkeletonIfMissing(),
-      writeConfigIfMissing() && rel(CONFIG),
+      writeConfigIfMissing(named ?? solution()) && rel(CONFIG),
       writeModulesIfMissing() && rel(MODULES_MD),
-      writeReleasesIfMissing() && rel(RELEASES),
+      !marketing && writeReleasesIfMissing() && rel(RELEASES),
       writeGitignoreIfMissing() && rel(KANBAN_GITIGNORE),
       writeRootIgnoreIfMissing() && rel(ROOT_GITIGNORE),
     ].filter(Boolean) as string[]
@@ -188,12 +208,12 @@ export function cmdInit(): MoveResult {
         warn(`skipping module "${m}" — a name needs letters, digits, and dashes to be a folder`)
         continue
       }
-      const done = scaffoldMemoryPath(m)
+      const done = marketing ? scaffoldPillarMemory(m) : scaffoldMemoryPath(m)
       if (done) scaffolded.push(done)
     }
     // A goal written by an older version: the seeded text goes, and a goal with words in
     // it stops reading as one nobody wrote.
-    const goalRepaired = repairGoal()
+    const goalRepaired = marketing ? null : repairGoal()
     const movedMockups = moveMockupsIfOld()
     say(
       added.length
@@ -210,29 +230,37 @@ export function cmdInit(): MoveResult {
   }
   fs.mkdirSync(TODO, { recursive: true })
   fs.writeFileSync(README, boardReadme())
+  // The config first: it is what says which solution this board is, and everything below
+  // reads that — the memory set, the areas template, and which files are written at all.
+  writeConfigIfMissing(named ?? 'product')
+  const marketing = solution() === 'marketing'
   scaffoldProjectMemory()
-  writeConfigIfMissing()
   writeModulesIfMissing()
-  writeReleasesIfMissing()
   writeGitignoreIfMissing()
   writeRootIgnoreIfMissing()
   writeNextId(1)
+  // A marketing board's own folders: the drafts, the channel skills, and the flow rules.
+  // Made empty rather than left out, because the layout is what the flow text points at.
+  if (marketing) for (const dir of [contentDir(), SKILLS, RULES]) fs.mkdirSync(dir, { recursive: true })
+  // Releases and setup are the product solution's. A marketing board plans no versions and
+  // has no repo to read, so a checklist telling it to would be a checklist about nothing.
+  if (!marketing) writeReleasesIfMissing()
   // Setup's remaining steps, written now so a user who installs and stops there still
   // opens the board onto a list of what is left instead of one that looks finished.
-  writeSetupChecklist()
   // The questions card comes right after `next-id` is seeded, so it takes id 1 and sorts
   // on top. Setup's steps append every call they can't settle to it as they run.
-  const questionsCard = writeSetupQuestionsCard()
+  const questionsCard = marketing ? null : (writeSetupChecklist(), writeSetupQuestionsCard())
   // The one job every board starts with, in the reserved `recurring/` folder. It ships
   // with no cadence, so nothing runs until someone asks for it.
   const pruneCard = writePruneMemoryCard()
   say(`initialised board at ${rel(KANBAN)}/`)
-  say(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
+  if (marketing) say(`  solution: marketing — \`${rel(contentDir())}/<id>-<slug>/\` is where a card's drafts go`)
+  else say(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
   if (questionsCard) say(`  questions card: #${questionsCard.id} — setup appends the calls it can't settle here`)
   if (pruneCard) say(`  recurring card: #${pruneCard.id} ${rel(pruneCard.file)} — prunes the memory; runs only when you run it`)
-  const next = nextSetupStep()
+  const next = marketing ? null : nextSetupStep()
   if (next) say(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
-  return { board: rel(KANBAN), created: true, next: next?.name ?? null }
+  return { board: rel(KANBAN), created: true, solution: solution(), next: next?.name ?? null }
 }
 
 export function cmdMemoryInit(module: string | undefined): MoveResult {
@@ -243,9 +271,9 @@ export function cmdMemoryInit(module: string | undefined): MoveResult {
       module,
     })
   }
-  const done = scaffoldMemoryPath(module)
+  const done = solution() === 'marketing' ? scaffoldPillarMemory(module) : scaffoldMemoryPath(module)
   if (!done) say(`${rel(path.join(MEMORY, module))}/ already has the full set — nothing to do`)
-  else if (done.fresh) say(`created memory path ${rel(done.dir)}/ with the four-file set`)
+  else if (done.fresh) say(`created memory path ${rel(done.dir)}/ with the full set`)
   else say(`filled in missing files in ${rel(done.dir)}/: ${done.made.join(', ')}`)
   return { module, dir: rel(done ? done.dir : path.join(MEMORY, module)), made: done ? done.made : [] }
 }

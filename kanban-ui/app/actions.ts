@@ -22,6 +22,7 @@ import {
 } from "@/lib/agent";
 import {
   boardScreen,
+  boardsHere,
   cardStillThere,
   refreshBoard,
   readGoalText,
@@ -117,6 +118,7 @@ import {
   type StartResult,
   stopSession,
 } from "@/lib/registry";
+import type { BoardEntry } from "@/lib/cli";
 import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import { setSpecSkillEnabled, setSpecSkillSetting, specSkillProblems, specSkills } from "@/lib/spec-skills";
@@ -192,6 +194,12 @@ export async function cardOnBoardAction(id: number): Promise<boolean> {
   } catch {
     return true;
   }
+}
+
+/** Which board this window is showing, and every board its project holds (#407) — what the
+ *  folder chip's badge draws itself from. */
+export async function getBoardsAction(): Promise<{ board: string; boards: BoardEntry[] }> {
+  return boardsHere();
 }
 
 /** The module names from docs/kanban/modules.md, for the create dialog's picker (#38). */

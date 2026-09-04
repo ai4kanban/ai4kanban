@@ -7,7 +7,7 @@
 
 import fs from 'node:fs'
 
-import { die, rel, DIR_FLAG, RELEASES } from '../lib/paths'
+import { die, rel, BOARD_FLAG, RELEASES } from '../lib/paths'
 import { say } from '../lib/io'
 import { boardCommand } from '../lib/agent/command'
 import { insideRun } from '../lib/agent/flow'
@@ -146,8 +146,8 @@ function startChangelog(id: string): { sessionId?: string; command?: string } {
   const run = short(started.run.sessionId)
   say(`writing the changelog — run ${started.run.sessionId}`)
   say(`  an agent reads this section and puts a few plain lines at the top of it, saying what the version changed.`)
-  say(`  follow it: ${program} run log ${run} --follow${DIR_FLAG}`)
-  say(`  stop it:   ${program} run stop ${run}${DIR_FLAG}`)
+  say(`  follow it: ${program} run log ${run} --follow${BOARD_FLAG}`)
+  say(`  stop it:   ${program} run stop ${run}${BOARD_FLAG}`)
   return { sessionId: started.run.sessionId }
 }
 

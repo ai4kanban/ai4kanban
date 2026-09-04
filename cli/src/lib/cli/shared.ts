@@ -10,9 +10,9 @@
 //     UI holding a run open, or a test.
 //   - everything it prints goes through `say`, so `--json` holds help and usage aside with
 //     the rest of a move's prose instead of writing it into the middle of the object.
-//   - `--dir` and `--json` are every command's, wherever they are typed. Commander scopes an
-//     option to the command it is declared on, so they are declared on all of them and read
-//     back with `optsWithGlobals`.
+//   - `--board`, `--dir` and `--json` are every command's, wherever they are typed.
+//     Commander scopes an option to the command it is declared on, so they are declared on
+//     all of them and read back with `optsWithGlobals`.
 
 import { Command, CommanderError, InvalidArgumentError } from 'commander'
 
@@ -50,9 +50,10 @@ export function newCommand(name: string): Command {
   return cmd
 }
 
-/** `--dir` and `--json`, which every command takes wherever they are typed. */
+/** `--board`, `--dir` and `--json`, which every command takes wherever they are typed. */
 export function withShared(cmd: Command): Command {
   return cmd
+    .option('--board <dir>', 'the board folder to work on (or AI4KANBAN_BOARD); beats --dir')
     .option('--dir <path>', 'the project to work on (default: the nearest board at or above this folder)')
     .option('--json', 'answer as one JSON object instead of prose')
 }
@@ -62,6 +63,8 @@ export function withShared(cmd: Command): Command {
 export interface Ctx {
   /** How the command is spelled in messages — `akb`, `akb raw`, `kanban`. */
   program: string
+  /** `--board`, or null for "the project's `docs/kanban`". */
+  board: string | null
   /** `--dir`, or null for "find the board from here". */
   dir: string | null
   /** `--json` — answer with one object rather than prose. */
@@ -72,8 +75,8 @@ export interface Ctx {
 
 /** Read the shared options off whichever command they were typed on. */
 export function ctxOf(cmd: Command, program: string): Omit<Ctx, 'box'> {
-  const opts = cmd.optsWithGlobals() as { dir?: string; json?: boolean }
-  return { program, dir: opts.dir ?? null, json: opts.json === true }
+  const opts = cmd.optsWithGlobals() as { board?: string; dir?: string; json?: boolean }
+  return { program, board: opts.board ?? null, dir: opts.dir ?? null, json: opts.json === true }
 }
 
 /** What a command's handler answers with: the fields `--json` reports. */

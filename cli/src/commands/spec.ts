@@ -19,7 +19,7 @@ import { titleOf } from '../lib/agent/sessions'
 import type { AgentRequest } from '../lib/agent/types'
 import { locate } from '../lib/cards'
 import { say } from '../lib/io'
-import { die, rel, DIR_FLAG, TODO } from '../lib/paths'
+import { die, rel, BOARD_FLAG, TODO } from '../lib/paths'
 import {
   findSpecSkill,
   notASkill,
@@ -132,8 +132,8 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
   const { run, spawned } = started
   if (!spawned) die(`couldn't start a process to run ${run.sessionId}`, { kind: 'spawn-failed' })
   say(`spec ${name} #${id} — run ${run.sessionId}`)
-  say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${DIR_FLAG}`)
-  say(`  stop it:   ${program} run stop ${short(run.sessionId)}${DIR_FLAG}`)
+  say(`  follow it: ${program} run log ${short(run.sessionId)} --follow${BOARD_FLAG}`)
+  say(`  stop it:   ${program} run stop ${short(run.sessionId)}${BOARD_FLAG}`)
   if (opts.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId, '', program)) }
   return { sessionId: run.sessionId, action: 'spec', specAgent: name, cardId: id }
 }

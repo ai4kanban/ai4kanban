@@ -36,6 +36,15 @@ export type ChromeCopy = {
     runningHere: string;
     forget: string;
   };
+  /** The board badge inside the folder chip (#407): which of this project's boards is
+   *  open, and the switcher onto the others. */
+  boards: {
+    heading: string;
+    /** The badge's tooltip in the app, where it opens the list. Takes the board's folder. */
+    badge: (boardDir: string) => string;
+    /** The dot on the board this window is showing. */
+    openHere: string;
+  };
   /** The update chip is an icon, so all but one of these are its tooltip. */
   update: {
     /** A newer version, and this copy can put it in place itself. */
