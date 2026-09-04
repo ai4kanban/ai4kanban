@@ -62,15 +62,19 @@ export type {
   BulkReleaseResult,
   Card,
   CardApproval,
+  CardChannel,
   CardDelivery,
   CardDeliveryStage,
   CardDeliveryState,
+  CardDraft,
+  CardDrafts,
   CardFinished,
   CardLanding,
   CardPatch,
   CardRef,
   CardSchedule,
   CardStatus,
+  ChannelStatus,
   ClosePlan,
   ClosePlanCard,
   Column,
@@ -104,11 +108,12 @@ export type {
   // The board's own name for a checklist box; `SetupStepView` there only because the
   // writing side already had a `SetupStep` of its own.
   SetupStepView as SetupStep,
+  Solution,
   Subtask,
   VerifyResult,
   WriteResult,
 } from "./format/view/types";
-export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES } from "./format/view/types";
+export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES, SOLUTIONS } from "./format/view/types";
 
 // The one read each screen makes (#374) — what the board screen draws, and what a card page
 // draws. The server fills them (lib/board.ts) and the screens take them as one prop.

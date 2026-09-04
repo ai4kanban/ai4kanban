@@ -11,9 +11,12 @@
 import fs from 'node:fs'
 
 import { CONFIG } from './paths'
+import { SOLUTIONS, type Solution } from './view/types'
 
-export const SOLUTIONS = ['product', 'marketing'] as const
-export type Solution = (typeof SOLUTIONS)[number]
+// The names themselves are in `view/types.ts`: a screen picks its face from them (#411) and
+// that file is the one the browser gets a copy of.
+export { SOLUTIONS }
+export type { Solution }
 
 // `- **Solution** — marketing`, the way every other setting in config.md is written.
 const LINE = /^- \*\*Solution\*\*\s*[—-]\s*([a-z-]+)/m

@@ -1,7 +1,7 @@
 import { machineCopy } from "./language";
 import { boardRules, NoRulesError, type BoardEntry, type BoardState } from "./cli";
 import { kanbanDir, repoRoot } from "./paths";
-import { LOCAL_STANDING } from "./types";
+import { LOCAL_STANDING, SOLUTIONS } from "./types";
 import type {
   ArchiveList,
   ArchivedCardFile,
@@ -9,8 +9,10 @@ import type {
   BoardScreen,
   BoardStanding,
   Card,
+  CardDrafts,
   CardRef,
   CardScreen,
+  ChannelStatus,
   DeliveryDiff,
   DeliveryPlan,
   MemoryFile,
@@ -19,6 +21,7 @@ import type {
   ScreenBoard,
   SetupDraft,
   SetupState,
+  Solution,
 } from "./types";
 
 // --- reading the board, through the CLI (#169) -------------------------------
@@ -65,9 +68,26 @@ export async function readBoardState(): Promise<BoardStanding> {
 // instruction, the skill state and a mockup on disk are read beside these, by the app shell
 // that draws the controls needing them.
 
-/** Which board this is, and how it stands — the head of both reads. */
+/** Which board this is, how it stands, and what its work IS (#411).
+ *
+ *  The solution is read HERE, on the server, and not fetched after the paint: a card page
+ *  that asked afterwards would draw the product face on every marketing card first. A board
+ *  with no rules to ask, and one whose `config.md` cannot be read, is `product` — which is
+ *  what every board drew before there was a second solution. */
 async function screenBoard(): Promise<ScreenBoard> {
-  return { id: repoRoot(), standing: await readBoardState() };
+  const [standing, solution] = await Promise.all([readBoardState(), readSolution()]);
+  return { id: repoRoot(), standing, solution };
+}
+
+/** What this board's work is. Anything unreadable — no rules, rules older than solutions, a
+ *  board that names one nobody has — answers `product`. */
+async function readSolution(): Promise<Solution> {
+  try {
+    const named = (await boardRules()).solution?.() ?? "";
+    return (SOLUTIONS as readonly string[]).includes(named) ? (named as Solution) : "product";
+  } catch {
+    return "product";
+  }
 }
 
 /** Everything the board screen draws. A board whose rules are missing or too old comes back
@@ -328,6 +348,78 @@ export async function readArchivedCard(id: number): Promise<ArchivedCardFile | n
     throw new NoRulesError(c.tooOldForArchive, c.updateIt);
   }
   return rules.readArchivedCard(id);
+}
+
+// --- a marketing card's drafts and its channels (#411) -----------------------
+// The card page's drafts block, on the server side of the boundary. Every one of these is
+// the CLI's own — a draft is `content/<id>-<slug>/<name>.md`, a repurpose is the `channel`
+// command with all of its checks, and Publish is `raw channel-status`.
+//
+// A board whose rules predate them says so in the block rather than failing: `error` on the
+// read, and the same line back from a write. That is the one thing a board too old to draw
+// this can honestly show — reading as a topic nobody has written for would be a lie.
+
+/** Which drafts this card has, each one whole. Read on each open and on tab focus, so a
+ *  draft a repurpose has just written is in the pane with nothing to poll. */
+export async function readDrafts(id: number): Promise<CardDrafts> {
+  try {
+    const rules = await boardRules();
+    if (!rules.readDrafts) return { dir: "", drafts: [], error: await tooOldForDrafts() };
+    return rules.readDrafts(id);
+  } catch (e) {
+    return { dir: "", drafts: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Write one draft and hand the set back as it now reads. Last write wins: the pane is
+ *  explicit about saving, and a draft held open in an editor too loses whichever save
+ *  landed second. */
+export async function saveDraft(id: number, name: string, text: string): Promise<CardDrafts> {
+  try {
+    const rules = await boardRules();
+    if (!rules.saveDraft) return { dir: "", drafts: [], error: await tooOldForDrafts() };
+    return rules.saveDraft(id, name, text);
+  } catch (e) {
+    return { dir: "", drafts: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Start the repurpose run for one channel. `kind` is the refusal's own name, which is how
+ *  the pane tells a draft that is already written — where the answer is to confirm and run
+ *  again — from a refusal there is nothing to do about. */
+export async function repurposeChannel(
+  id: number,
+  channel: string,
+  again: boolean,
+): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
+  try {
+    const rules = await boardRules();
+    if (!rules.repurposeChannel) return { ok: false, error: await tooOldForDrafts() };
+    return await rules.repurposeChannel(id, channel, again);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Move one channel along and record where the piece went up. It posts nothing. */
+export async function setChannelStatus(
+  id: number,
+  channel: string,
+  status: ChannelStatus,
+  url: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const rules = await boardRules();
+    if (!rules.setChannelStatus) return { ok: false, error: await tooOldForDrafts() };
+    return await rules.setChannelStatus(id, channel, status, url);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+async function tooOldForDrafts(): Promise<string> {
+  const c = (await machineCopy()).messages.rules;
+  return `${c.tooOldForDrafts} ${c.updateIt}`;
 }
 
 /** What the guided first run opens with — the project, its tracks, and the goal as they

@@ -25,7 +25,9 @@ import type {
   AgentInfo,
   BoardScreen,
   BulkReleaseResult,
+  CardDrafts,
   CardPatch,
+  ChannelStatus,
   CloudEventAnswer,
   CommandRequest,
   ScheduledAction,
@@ -104,6 +106,26 @@ export interface ScreenActions {
   // ---- an approval taken elsewhere whose machine stopped (#318) ------------
   resumeCloudRequest(eventId: string): Promise<WriteResult>;
   cancelCloudRequest(taskId: number, eventId: string): Promise<WriteResult>;
+
+  // ---- a marketing card's drafts and channels (#411) -----------------------
+  // Only the drafts block calls these, and only a marketing board draws it. A caller with
+  // no marketing board of its own still implements them; the block is never reached.
+  readDrafts(id: number): Promise<CardDrafts>;
+  saveDraft(id: number, name: string, text: string): Promise<CardDrafts>;
+  /** The CLI's `channel` command, with every check it makes. `again` answers a draft that
+   *  is already written; `kind` names the refusal, so `draft-exists` becomes a confirm. */
+  repurpose(id: number, channel: string, again: boolean): Promise<RepurposeAnswer>;
+  /** Move one channel along and record where the piece went up. It posts nothing. */
+  setChannelStatus(id: number, channel: string, status: ChannelStatus, url: string): Promise<WriteResult>;
+}
+
+/** A repurpose that started, or the reason it did not. */
+export interface RepurposeAnswer {
+  ok: boolean;
+  sessionId?: string;
+  error?: string;
+  /** The refusal's own name — `draft-exists` is the one the pane turns into a confirm. */
+  kind?: string;
 }
 
 /** What only the machine holding the board can answer. Everything here is read on the

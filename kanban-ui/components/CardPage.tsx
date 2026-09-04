@@ -37,7 +37,7 @@ import {
 import type { CardCopy } from "@/i18n/card/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import { Button } from "./button";
+import { Button, PanelAction } from "./button";
 import { DiffPane } from "./Diff";
 import {
   ActionDialog,
@@ -76,6 +76,7 @@ import { isReadyHalf } from "./Queue";
 import { SubtaskMap } from "./SubtaskMap";
 import { buildSubtaskMap } from "@/lib/subtask-map";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
+import { DraftsBlock } from "./Drafts";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
 
@@ -291,31 +292,6 @@ const heldNote = (delivery: CardDelivery, c: CardCopy): string => {
   const line = delivery.state.line.replace(/`/g, "");
   return `${line} ${delivery.state.paused ? c.heldPaused : c.heldRunning}`;
 };
-
-// A control that belongs to the delivery block rather than the page (#307). It is the same
-// chip the tabs at the other end of the strip wear — same radius, padding and weight — so the
-// row reads as one strip of chips. Only the ink differs: accent, because this one acts on the
-// run rather than switching what you are looking at.
-//
-// Its hover fill is that same accent, not the tabs' grey: the strip under it lightens on hover
-// too, and a neutral chip on a lightening strip is a change you have to look for.
-function PanelAction({
-  icon,
-  label,
-  ...props
-}: React.ComponentProps<"button"> & { icon: React.ReactNode; label: string }) {
-  return (
-    <button
-      type="button"
-      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 max-md:h-11 max-md:px-3 text-[12px] font-[700] transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_26%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
-      style={{ color: "var(--color-nb-accent-deep)" }}
-      {...props}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
 
 // Stop run (#49): ends the run in flight and nothing else. The delivery stands, its work
 // stays where it is, and Resume carries it on.
@@ -1144,6 +1120,9 @@ export function CardPage({
   // tags as the plain links they are.
   const mockups = useMachine()?.mockups ?? {};
   const { card, openIds, releases, plan, diff, standing: boardState } = screen;
+  // The marketing detail (#411): the drafts block stands where a product card's delivery
+  // block stands. Everything else on this page is the one both boards share.
+  const marketing = screen.solution === "marketing";
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   // The open-questions panel is answering rather than being read. Held here rather than
@@ -1197,12 +1176,18 @@ export function CardPage({
     void actions.cardOnBoard(card.id).then((there) => (there ? router.refresh() : router.push("/")));
   }, [actions, router, card.id]);
   const prevRunning = useRef<Set<string>>(new Set());
+  // …and the same signal the drafts pane re-reads on (#411): a repurpose writes its file
+  // and ends, and this is how the draft arrives in the pane with nothing to poll.
+  const [runsSettled, setRunsSettled] = useState(0);
   useEffect(() => {
     const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));
     let finished = false;
     for (const id of prevRunning.current) if (!now.has(id)) finished = true;
     prevRunning.current = now;
-    if (finished) refresh();
+    if (finished) {
+      refresh();
+      setRunsSettled((n) => n + 1);
+    }
   }, [sessions, refresh]);
 
   // On tab focus, re-read the card once, unconditionally — so a session that ran
@@ -1334,6 +1319,19 @@ export function CardPage({
       setShowLog(true);
     },
     [watch],
+  );
+
+  // The plain run log — a live tail while an agent works, re-openable afterwards. It is what
+  // a card with no delivery has always drawn, and a marketing card draws it under its drafts
+  // block rather than instead of one (#411).
+  const runLog = latestSession && (
+    <SessionLog
+      session={sessionLog}
+      collapsed={!busy && !showLog}
+      onToggle={busy ? undefined : () => setShowLog((v) => !v)}
+      warnUnfinished
+      onResumed={onResumed}
+    />
   );
 
   // Start a non-blocking session. The per-card lock refusal comes back as an error.
@@ -1709,11 +1707,25 @@ export function CardPage({
                 </div>
               )}
 
-              {/* The delivery block (#307) while one is in flight: the tab strip, the log in
+              {/* One block stands here, and which one is what the board's work decides.
+                  On a marketing board it is the drafts block (#411). On a product board it is
+                  the delivery block while one is in flight (#307) — the tab strip, the log in
                   it, and a foot naming the delivery, its commit mode and where its code is.
-                  A card with no delivery keeps the plain session log it has always had — a
-                  live tail while an agent works, re-openable afterwards. */}
-              {delivery ? (
+                  A card with neither keeps the plain session log it has always had. */}
+              {marketing ? (
+              /* A marketing card never has a delivery, so this displaces nothing — and the
+                 run log stays under it, because a repurpose is a run like any other. */
+              <>
+                <DraftsBlock
+                  cardId={card.id}
+                  channels={card.channels}
+                  reload={runsSettled}
+                  onWritten={refresh}
+                  onError={setError}
+                />
+                {runLog}
+              </>
+            ) : delivery ? (
               <DeliveryBlock
                 delivery={delivery}
                 diff={diff}
@@ -1743,15 +1755,7 @@ export function CardPage({
                 onError={setError}
               />
             ) : (
-              latestSession && (
-                <SessionLog
-                  session={sessionLog}
-                  collapsed={!busy && !showLog}
-                  onToggle={busy ? undefined : () => setShowLog((v) => !v)}
-                  warnUnfinished
-                  onResumed={onResumed}
-                />
-              )
+              runLog
             )}
 
             {/* Stacked label/value columns, on the page's one ground. At phone width the

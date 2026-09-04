@@ -8,6 +8,8 @@ import { parseQuestion } from "@/lib/questions";
 import { scheduleLabel } from "@/lib/schedule";
 import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
+import { ChannelRow } from "./channels";
+import { useSolution } from "./solution";
 import {
   BlockedChip,
   GroupChip,
@@ -28,6 +30,10 @@ import {
 // The track is NOT on the card. Both views band their cards by track and head
 // each band with its name — the kanban column heading, the queue's rule — so a
 // chip repeating it on every card says nothing the reader can't already see.
+//
+// The channels ARE on the card, on a marketing board (#411) — a topic's whole state is
+// where each of its channels has got to, and that is what the column is scanned for. It is
+// one row of marks between the title and the ranking, and it displaces nothing.
 //
 // The release is NOT on the card. The release picker at the top of the board is
 // how you look at one version, and the card page is where a card says and
@@ -65,6 +71,10 @@ export function BoardCard({
   const c = t.board.card;
   const cardHref = useCardHref();
   const isGroup = card.isGroup;
+  // The marketing face (#411): the same card, plus the channels this topic goes to. The
+  // board's own solution decides it, not the card — a product card has no channels to draw
+  // either way, and a marketing topic whose channels question is unanswered draws no row.
+  const marketing = useSolution() === "marketing";
   return (
     <Link
       href={cardHref(card.id)}
@@ -210,6 +220,7 @@ export function BoardCard({
       <p className="mb-2.5 text-[13px] font-[700] leading-snug tracking-[-0.01em] break-words">
         {card.title}
       </p>
+      {marketing && <ChannelRow channels={card.channels} />}
       <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <PriorityChip value={card.priority} />
         <RoiTag value={card.roi} />

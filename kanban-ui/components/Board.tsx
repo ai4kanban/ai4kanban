@@ -29,6 +29,7 @@ import { useActions, type ReleaseClosed, type ReleaseMade, type StartAnswer, typ
 import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
 import { BulkReleaseBar } from "./BulkReleaseBar";
 import { OpenIdsProvider } from "./open-ids";
+import { SolutionProvider } from "./solution";
 import { QueueView } from "./Queue";
 import { SessionLogOverlay, stoppedShort } from "./agent-shared";
 import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
@@ -429,6 +430,9 @@ export function Board({
 
   return (
     <OpenIdsProvider ids={board?.openIds ?? []}>
+      {/* What this board's work IS (#411) — the face its cards wear. It comes down with the
+          read, so the first paint is already the right one. */}
+      <SolutionProvider value={screen.solution}>
       <Shell {...chrome}>
         <div className="flex h-full flex-col overflow-hidden">
           {/* The app's own band about how this board is being run (#175). Above the error
@@ -569,6 +573,7 @@ export function Board({
           )}
         </div>
       </Shell>
+      </SolutionProvider>
     </OpenIdsProvider>
   );
 }

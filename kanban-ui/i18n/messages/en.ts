@@ -15,6 +15,7 @@ const en: MessagesCopy = {
     tooOldForScores: "This board's copy of the rules is older than the planning scores.",
     tooOldForMemory: "The board's rules this board runs are too old to read its memory.",
     tooOldForArchive: "The board's rules this board runs are too old to read its archive.",
+    tooOldForDrafts: "The board's rules this board runs are too old to read this topic's drafts.",
     updateIt: "Run `npm install -g ai4kanban` to update it.",
   },
   tooOld: {

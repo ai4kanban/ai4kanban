@@ -79,6 +79,12 @@ export interface CardSchedule {
   notes: string
 }
 
+/** What a board's work IS (#406, #407) — `product` is code, `marketing` is content. The
+ *  names live here rather than beside the reader in `lib/solution.ts` because a screen picks
+ *  its face and its detail from them (#411), and that judgment runs in the browser. */
+export const SOLUTIONS = ['product', 'marketing'] as const
+export type Solution = (typeof SOLUTIONS)[number]
+
 /** How far one channel has got with a topic (#409). Chosen and nothing written yet is the
  *  empty string, not a name of its own — the four below are the steps a draft moves along.
  *  `scheduled`, `published` and a channel's URL are in the shape from the start so the field
@@ -99,6 +105,26 @@ export interface CardChannel {
   status: ChannelStatus | ''
   /** Where it went up, once it is published. Empty until then. */
   url: string
+}
+
+/** One file under `content/<id>-<slug>/` (#411): `source`, or a channel's name. `text` is
+ *  the whole draft — they are a screenful of prose each — and `path` is what the pane names
+ *  under the editor, relative to the project. */
+export interface CardDraft {
+  name: string
+  path: string
+  text: string
+}
+
+/** Which drafts a card has, and each one whole. `dir` is the folder they live in, named
+ *  even when it holds nothing yet: it is where a save creates the first one.
+ *
+ *  `error` is a read that could not happen — a board whose rules predate drafts — so the
+ *  pane says why rather than reading as a topic nobody has written for. */
+export interface CardDrafts {
+  dir: string
+  drafts: CardDraft[]
+  error?: string
 }
 
 /** A group root's subtask, as shown on the root's page. Light meta only — clicking through

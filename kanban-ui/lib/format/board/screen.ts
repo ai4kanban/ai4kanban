@@ -21,7 +21,7 @@
 // This file is pure types and imports nothing that touches a filesystem, so it is copied
 // into the board UI by scripts/sync-format.mjs and both sides name one shape.
 
-import type { Board, Card, DeliveryDiff, DeliveryPlan, MemoryModule } from '../view/types'
+import type { Board, Card, DeliveryDiff, DeliveryPlan, MemoryModule, Solution } from '../view/types'
 
 /** How the board stands (#316): a folder here, or a copy of a Cloud workspace and whether
  *  that workspace is out of reach.
@@ -55,6 +55,10 @@ export interface ScreenBoard {
    *  cards it has open) and means nothing outside that. */
   id: string
   standing: BoardStanding
+  /** What this board's work IS (#411) — the face its cards wear and the block its card page
+   *  draws. Read where the board is, so the first paint is already the right screen; a board
+   *  whose `config.md` cannot be read, and every hosted board, answers `product`. */
+  solution: Solution
 }
 
 /** Everything the board screen draws.

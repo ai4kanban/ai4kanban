@@ -36,3 +36,29 @@ export function Button({
 }: React.ComponentProps<"button"> & VariantProps<typeof button>) {
   return <button className={cn(button({ variant, size }), className)} {...props} />;
 }
+
+// A control that belongs to a block's tab strip rather than to the page — the delivery
+// block's (#307) and the drafts block's (#411). It is the same chip the tabs at the other end
+// of the strip wear — same radius, padding and weight — so the row reads as one strip of
+// chips. Only the ink differs: accent, because this one acts rather than switching what you
+// are looking at.
+//
+// Its hover fill is that same accent, not the tabs' grey: the strip under it lightens on hover
+// too, and a neutral chip on a lightening strip is a change you have to look for.
+export function PanelAction({
+  icon,
+  label,
+  ...props
+}: React.ComponentProps<"button"> & { icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      type="button"
+      className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 max-md:h-11 max-md:px-3 text-[12px] font-[700] transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_26%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+      style={{ color: "var(--color-nb-accent-deep)" }}
+      {...props}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}

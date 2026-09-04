@@ -41,7 +41,9 @@ import type {
   Board,
   BulkReleaseResult,
   Card,
+  CardDrafts,
   CardPatch,
+  ChannelStatus,
   ClosePlan,
   DeliveryDiff,
   DeliveryPlan,
@@ -232,6 +234,33 @@ export interface BoardRules {
   // that added them, and the Rules pane says so rather than the dialog failing to draw.
   readFlowRules?(): Promise<FlowRuleView[]>;
   setFlowRule?(command: string, text: string): Promise<WriteResult>;
+
+  // a marketing card's drafts and its channels (#411) — what the card page's drafts block
+  // draws and acts through. Optional the way the flow rules are: a board running rules older
+  // than the release that added them draws the block with the reason in it rather than
+  // failing, and a product board never draws it at all.
+  //
+  // `repurposeChannel` is the `channel` COMMAND, so the button gets the checks a terminal
+  // gets — the channel is chosen, `source.md` is there, an existing draft needs `again`. It
+  // hands the refusal's own `kind` back, which is what turns `draft-exists` into a
+  // confirmation rather than a dead end.
+  readDrafts?(id: number): CardDrafts;
+  saveDraft?(id: number, name: string, text: string): CardDrafts;
+  repurposeChannel?(
+    id: number,
+    channel: string,
+    again?: boolean,
+  ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }>;
+  setChannelStatus?(
+    id: number,
+    channel: string,
+    status: ChannelStatus,
+    url?: string,
+  ): Promise<{ ok: boolean; error?: string }>;
+
+  /** What this board's work IS (#407) — `product` or `marketing`. Optional: a copy of the
+   *  rules older than the release that added solutions has only ever run product boards. */
+  solution?(): string;
 
   // may the board commit? (#303) The one repository-level setting behind worktrees,
   // parallel deliveries and landing reviewed code.

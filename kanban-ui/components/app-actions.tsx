@@ -29,10 +29,14 @@ import {
   listSessionsAction,
   patchCardAction,
   planReleaseAction,
+  readDraftsAction,
+  repurposeChannelAction,
   resumeCloudRequestAction,
   resumeSessionAction,
+  saveDraftAction,
   scheduleCardAction,
   setCardsReleaseAction,
+  setChannelStatusAction,
   setReleaseGoalAction,
   startAgentAction,
   stopSessionAction,
@@ -67,6 +71,11 @@ export const appActions: ScreenActions = {
 
   resumeCloudRequest: resumeCloudRequestAction,
   cancelCloudRequest: cancelCloudRequestAction,
+
+  readDrafts: readDraftsAction,
+  saveDraft: saveDraftAction,
+  repurpose: repurposeChannelAction,
+  setChannelStatus: setChannelStatusAction,
 };
 
 export function AppActions({ children }: { children: React.ReactNode }) {

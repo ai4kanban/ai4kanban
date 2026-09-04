@@ -349,9 +349,12 @@ const standingOf = (name: string): BoardStanding => ({
   readWhen: '',
 })
 
+// A hosted board is `product` (#411): the drafts a marketing card is built from are files
+// beside the board, and this read carries cards alone.
 const screenBoardOf = (read: BoardRead): ScreenBoard => ({
   id: read.workspace.id,
   standing: standingOf(read.workspace.name),
+  solution: 'product',
 })
 
 const documentBody = (read: BoardRead, path: string): string =>

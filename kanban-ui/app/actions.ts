@@ -25,6 +25,7 @@ import {
   boardsHere,
   cardStillThere,
   refreshBoard,
+  readDrafts,
   readGoalText,
   readMetrics,
   readModules,
@@ -32,7 +33,10 @@ import {
   readScore,
   readSetupDraft,
   readSetupState,
+  repurposeChannel,
+  saveDraft,
   searchCards,
+  setChannelStatus,
 } from "@/lib/board";
 import { type ChatRead, clearChat, pickChatAgent, pickChatModel, readChat, sendChat, stopChat } from "@/lib/chat";
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
@@ -145,8 +149,10 @@ import type {
   AgentInfo,
   BoardScreen,
   BulkReleaseResult,
+  CardDrafts,
   CardPatch,
   CardRef,
+  ChannelStatus,
   CloudAccount,
   CloudEventAnswer,
   CloudMove,
@@ -754,6 +760,58 @@ export async function scheduleCardAction(
 export async function unscheduleCardAction(id: number, expect = ""): Promise<WriteResult> {
   if (!Number.isInteger(id)) return { ok: false, error: "a card is scheduled by its number" };
   return clearSchedule(id, expect);
+}
+
+// ---- a marketing card's drafts (#411) ---------------------------------------
+//
+// The four the drafts block acts through. Each is a thin pass to the CLI, which owns every
+// rule about them: which names a draft may go by, whether this card chose that channel,
+// whether `source.md` is there to repurpose from.
+
+// Which drafts this topic has, each one whole. Asked on each open and on tab focus, so a
+// draft a repurpose has just written lands in the pane with nothing to poll.
+export async function readDraftsAction(id: number): Promise<CardDrafts> {
+  if (!Number.isInteger(id)) return { dir: "", drafts: [], error: "drafts are read by card number" };
+  return readDrafts(id);
+}
+
+// Save the draft on screen. Explicit — the pane has a Save — and last write wins: a draft
+// held open in an editor as well loses whichever save landed second, which is what the pane
+// says when it re-reads and finds the file moved.
+export async function saveDraftAction(id: number, name: string, text: string): Promise<CardDrafts> {
+  if (!Number.isInteger(id)) return { dir: "", drafts: [], error: "a draft is saved by card number" };
+  if (typeof name !== "string" || !name) return { dir: "", drafts: [], error: "a draft is named" };
+  if (typeof text !== "string") return { dir: "", drafts: [], error: "a draft is text" };
+  return saveDraft(id, name, text);
+}
+
+// Repurpose the topic's source into one channel's draft — the CLI's `channel` command, so
+// the button gets every check a terminal gets. `again` is the answer to a draft that is
+// already written, which the pane asks for rather than refusing.
+export async function repurposeChannelAction(
+  id: number,
+  channel: string,
+  again = false,
+): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
+  if (!Number.isInteger(id)) return { ok: false, error: "a repurpose names the topic by number" };
+  if (typeof channel !== "string" || !channel) return { ok: false, error: "a repurpose names a channel" };
+  return repurposeChannel(id, channel, again === true);
+}
+
+// Mark one channel published and record where the piece went up (#411). It posts nothing:
+// until #413 lands the piece is still posted by hand, and this is the board catching up
+// with what the user did. The URL is required, so every published channel has a link for
+// `memory/published.md` to key on.
+export async function setChannelStatusAction(
+  id: number,
+  channel: string,
+  status: ChannelStatus,
+  url = "",
+): Promise<{ ok: boolean; error?: string }> {
+  if (!Number.isInteger(id)) return { ok: false, error: "a channel is moved by card number" };
+  if (typeof channel !== "string" || !channel) return { ok: false, error: "a channel is named" };
+  if (typeof status !== "string" || !status) return { ok: false, error: "a channel moves to a status" };
+  return setChannelStatus(id, channel, status, typeof url === "string" ? url : "");
 }
 
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once

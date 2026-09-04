@@ -56,6 +56,33 @@ export type CardCopy = {
      *  panel is a page of its own, so the stack needs a button to push it. */
     resolve: string;
   };
+  /** The drafts block a marketing card's page draws where a product card draws its
+   *  delivery (#411). The tab names are file and channel names, so they are not here. */
+  drafts: {
+    repurpose: string;
+    repurposeHint: string;
+    repurposeFailed: string;
+    publish: string;
+    publishHint: string;
+    publishFailed: string;
+    /** Why both are off while the source is the tab on screen. */
+    notOnSource: string;
+    /** The empty editor, before anything is written for this tab. */
+    empty: string;
+    unsaved: string;
+    /** The draft was rewritten on disk while the reader was typing. Saving replaces it. */
+    movedUnderneath: string;
+    /** Repurposing over a draft that is already there. The body is the board's own
+     *  sentence, so only the title and the confirm are here. */
+    replaceTitle: string;
+    replaceBody: string;
+    replaceConfirm: string;
+    /** Publish asks where the piece went up before it marks the channel. */
+    publishTitle: (channel: string) => string;
+    publishIntro: string;
+    publishUrlPlaceholder: string;
+    publishConfirm: string;
+  };
   delivery: {
     /** The fold's own control, which is the whole tab strip. */
     fold: string;

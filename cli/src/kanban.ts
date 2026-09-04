@@ -90,6 +90,14 @@ export { refinementRequest } from './lib/agent/refine'
 // writes its rules where the board is and both clients call the same thing.
 export { readFlowRules, setFlowRule } from './lib/view/api'
 
+// A marketing card's drafts and its channels (#411) — what the board UI's drafts block is
+// drawn from and acts through. Reading and writing a draft is a file under
+// `content/<id>-<slug>/`; a repurpose is the `channel` command with every check it makes;
+// publishing is `raw channel-status`, which records where the piece went up and posts
+// nothing. A product board never draws the block, so nothing here is ever called on one.
+export { readDrafts, repurposeChannel, saveDraft, setChannelStatus } from './lib/view/drafts'
+export type { RepurposeResult } from './lib/view/drafts'
+
 // The chat (#240): the board's conversation with its agent, and each card's. A screen
 // drives it through these — `sendChatMessage` streams the reply back through `onText`, so
 // a chat in the app and a chat in a terminal are the same conversation, held by the same

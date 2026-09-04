@@ -12,6 +12,14 @@ const zh: SharedCopy = {
   copied: "已复制",
   none: "—",
   stop: "。",
+  channelStatus: {
+    none: "尚未撰写",
+    draft: "初稿",
+    ready: "待发",
+    scheduled: "已排期",
+    published: "已发布",
+  },
+  channelAt: (channel, status) => `${channel} —— ${status}`,
 };
 
 export default zh;
