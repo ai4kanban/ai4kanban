@@ -1908,7 +1908,7 @@ export function CardPage({
                 {/* The map reads left to right across layers, so it needs width the phone
                     hasn't got — and the list under it names every card the map draws
                     (#357). The rows are the group at that width. */}
-                {!phone && <SubtaskMap subtasks={card.subtasks} onHover={setMapTip} />}
+                {!phone && <SubtaskMap subtasks={card.subtasks} running={running} onHover={setMapTip} />}
                 <ul className="flex flex-col gap-1.5">
                   {card.subtasks.map((s) => (
                     <li key={s.id}>

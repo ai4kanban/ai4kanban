@@ -306,6 +306,37 @@ body {
   }
 }
 
+/* The subtask map's live chip: an ember ring that swells out of the frame and fades.
+   It is drawn on ::after so the chip keeps the press shadow `nb-press` gives it on
+   hover, and it is slow — the node is already tinted and carries the running dot, so
+   this is only what catches the eye on the way past. Off for less motion. */
+@keyframes nbChipRing {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+}
+.a4k-chip-live::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 1.5px solid var(--color-nb-accent);
+  border-radius: 11px;
+  pointer-events: none;
+  animation: nbChipRing 2s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-chip-live::after {
+    animation: none;
+    content: none;
+  }
+}
+
 /* The first run's probing sprite (#404) — the character shown while the board tries
    the agents this machine has. `steps(1, end)` is what makes it a sprite rather than a
    glide: it rests for half the beat and sits one pixel up for the other half, the way
