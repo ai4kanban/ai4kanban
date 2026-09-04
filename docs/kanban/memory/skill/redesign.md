@@ -121,6 +121,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   append only a decision that helps future decision-making, so it stays a short memory.
 - ❌ **An auto-refined card mixes the human's original input with the agent's additions** →
   ✅ split the card into two halves so the additions are easy to read and audit.
+- ❌ **Put an agent-proposed material change only in the folded half and let it become ready**
+  → ✅ preserve the user's accepted behavior by default; surface every new user-facing scope
+  choice as a `[user]` question before implementation can start.
+- ❌ **Use self-clarification to expand the observable outcome beyond the user's request** → ✅
+  self-answer implementation gaps only; ask the user before changing user-facing scope.
 - ❌ **A run does its own follow-up work inside its own session** → ✅ each step is its own
   run, so the user can see it, read its log and stop it.
 - ❌ **A printed flow hands over to refine without saying where it runs** → ✅ every handover

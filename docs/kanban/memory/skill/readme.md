@@ -62,11 +62,11 @@ covers it, or a plain-words note.
 - Say which release a card ships in — `create --release v1`, `update <id> --release v1`,
   `--release ""` to take it out: "Releases" in `skill/SKILL.md`, `akb guide releases`.
 - Plan a version, say what it is for, and list every version in ship order with its counts:
-  "Plan a release" in `web/content/docs/daily-loop.mdx`.
+  "Plan a release" in `web/content/docs/releases.mdx`.
 - Fill a version against its goal — the agent moves in the cards that ship it, writes the
   ones the board is missing, and only ever adds, so it can be run again: `akb guide plan-release`.
 - Close a shipped version or drop one that won't ship; both clear it off the cards still
-  open: "Close a release", "Drop a release" in `web/content/docs/daily-loop.mdx`.
+  open: "Close a release", "Drop a release" in `web/content/docs/releases.mdx`.
 - Closing also writes a changelog — a few plain lines saying what the version changed, six
   at most, in the language of the release goal. `akb changelog <version>` starts the same
   run by hand and replaces rather than appends: `akb guide changelog`.
@@ -105,7 +105,7 @@ covers it, or a plain-words note.
   the delivery starts and holds at landing until they are answered. The board archives the
   card itself as the last step after landing; the `review` flow no longer archives one.
 - A delivery reviews its own work: `akb review <id>` judges the candidate against the
-  approved card, `akb correct <id>` fixes what it found, and the board starts both. Review
+  approved card and fixes what it finds in the same run, and the board starts it. Review
   answers with `akb board review-verdict`, the only thing the delivery reads, so a review
   that records nothing stops the delivery and asks: `akb guide review`.
 - Review takes work nobody asked for back out of the delivery: it fixes implementation
@@ -157,7 +157,7 @@ covers it, or a plain-words note.
   entry under `runtimes.agents`. A runtime with no entry runs the board's agent, and its
   settings are that agent's block with its own overrides on top. `akb agent runtimes`,
   `runtime add|remove|global|for|rename` and `bind` are the whole of it: "Which tool each
-  flow runs on" in `web/content/docs/daily-loop.mdx`.
+  flow runs on" in `web/content/docs/runs.mdx`.
 - Renaming a runtime carries everything held under the old name, including what it runs as.
   Making another one global swaps the two homes so both go on running what they ran.
   Removing one clears the spec agents that named it as well as the flows.
@@ -171,7 +171,7 @@ covers it, or a plain-words note.
 - A **spec agent** fills one part of a card's spec in a run of its own: `akb spec` lists
   them, `akb spec <name> <id>` puts one on a card. It starts clean, writes one
   ``## By `<name>` agent`` section and nothing else, and rewrites that section when it runs
-  again: `web/content/docs/daily-loop.mdx`, `akb guide spec-agent`.
+  again: `web/content/docs/spec-skills.mdx`, `akb guide spec-agent`.
 - The board asks for one itself, so most spec runs are ones nobody typed: the flow writing a
   card asks for the part it would otherwise guess at, a refine or revise asks only when that
   part is still open, and propose and plan-release ask for none.
@@ -183,7 +183,7 @@ covers it, or a plain-words note.
   setting picks
   **Rendered screen** (a `.tsx`/`.html` file per option) or **ASCII drawing** (written into
   the card, travelling through git, a much shorter run): "Picking a layout by looking at it"
-  in `web/content/docs/daily-loop.mdx`.
+  in `web/content/docs/spec-skills.mdx`.
 - `technology-selection` comes back with one table — two or three candidates, what each is,
   pros and cons — and one line naming the pick. Keeping what the project already uses and
   writing it yourself are rows on the same terms, and every name is looked up before it is
@@ -199,7 +199,7 @@ covers it, or a plain-words note.
 - A fresh conversation is only the harness's kanban-skill invocation plus the user's
   message — no copied board snapshot, command manual or separate chat flow — so chat behaves
   exactly like the skill in a coding-agent conversation, `--print` and all. There is no
-  `akb guide chat`: `web/content/docs/daily-loop.mdx`.
+  `akb guide chat`: `web/content/docs/chat.mdx`.
 
 ## Installing and updating
 
@@ -248,11 +248,10 @@ covers it, or a plain-words note.
   Lightweight uses `--print` and finishes inline; standard QA gets its own session and
   checks task boundaries before refining details: "Push a card forward" in
   `web/content/docs/daily-loop.mdx`.
-- Grok Build joins the agents a board can run, and it is the one agent that gets a skill
-  folder of its own: `akb skill install` now writes `.grok/skills/kanban/` beside the other
-  two, because Grok reads `.grok/skills/` walked to the repo root and only the user-level
-  `~/.agents/skills/`, never a project's. Built from xAI's documentation and not yet run:
-  `web/content/docs/connectors.mdx`.
+- Grok Build joins the agents a board can run, and it needs no folder of its own:
+  `akb skill install` writes it into `.agents/skills/kanban/`, the folder the other six
+  agents already share, because grok scans that folder from the working folder up to the
+  repo root: `web/content/docs/connectors.mdx`.
 - A DeepSeek Harness resume whose session the agent has forgotten now restarts instead of
   failing: the board opens a fresh session, sends the task from the top, writes the new id
   over the dead one, and the log says it restarted. A chat thread unwedges the same way.
@@ -272,10 +271,10 @@ covers it, or a plain-words note.
 - `akb chat [<id>] --model <id>` and `akb chat [<id>] --agent <name>` set what one
   conversation runs on; `""` puts either back on the board's. The pick lives with the
   transcript, so a terminal and the board app read the same one, and every run still takes
-  the board's own agent and model: `web/content/docs/daily-loop.mdx`.
+  the board's own agent and model: `web/content/docs/chat.mdx`.
 - A **spec skill** is an Agent Skill directory, not board code: the board ships `ui-design` and
   `technology-selection`, and a project adds its own under `docs/kanban/skills/<name>/SKILL.md`.
   Its frontmatter carries `name`, `description` and an `akb:` block saying what part of a card's
   spec it owns and which settings it offers; each setting's choice names one file inside the
   skill, and only the chosen one reaches the run. `akb spec` lists them and says why any skill it
-  found can't be used: `web/content/docs/daily-loop.mdx`.
+  found can't be used: `web/content/docs/spec-skills.mdx`.

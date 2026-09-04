@@ -11,6 +11,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Softening a way in we no longer want by demoting it** → ✅ take it off the page. A
   way in that is still shown is still offered, whatever weight it is given.
 
+## Landing-page visuals
+
+- ❌ **Change a landing page's composition, sections, interactions, or visual medium while
+  revising its message** → ✅ preserve the existing design unless the user explicitly approves
+  that material user-facing change; copy work changes copy, not the page around it.
+
 ## Telling people what a feature is
 
 - ❌ **Leaving the privacy and terms pages to explain what a feature does** → ✅ give the

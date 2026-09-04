@@ -16,7 +16,6 @@ _(none)_
 - [#182 Sign the Mac build so it opens with no warning](features/182-sign-the-mac-build-so-it-opens-with-no-warning.md)
 - [#183 Install the Mac app with one Homebrew command](features/183-install-the-mac-app-with-one-homebrew-command.md)
 - [#250 Bring a task in from a file or your voice, not only typed text](250-friendly-task-import/root.md)
-- [#266 Make the chat rail a full chat, not a message box](266-chat-rail-full/root.md)
 - [#209 Make the daily loop something you can do from buttons](209-daily-loop-buttons/root.md)
 - [#311 Bring team collaboration to AI4Kanban Cloud](311-team-collaboration-cloud/root.md)
 - [#317 Lead onboarding with Local and make Cloud an explicit choice](373-cloud-board-browser/features/317-lead-onboarding-with-local-and-make-cloud-explicit.md)
@@ -32,13 +31,10 @@ _(none)_
 - [#373 Put a board on Cloud and open it in a browser](373-cloud-board-browser/root.md)
 - [#375 Hold a card against a second writer](311-team-collaboration-cloud/features/375-card-lease.md)
 - [#376 Add members and roles to a Cloud workspace](311-team-collaboration-cloud/features/376-workspace-members.md)
-- [#378 Run the board on Grok Build, xAI's coding agent](features/378-run-the-board-on-grok-build-xai-s-coding-agent.md)
 - [#379 Run the board's work with Antigravity CLI](features/379-run-the-board-s-work-with-antigravity-cli.md)
 - [#381 Kanbo, a desktop pet that speaks the board's notifications](features/381-kanbo-a-desktop-pet-that-speaks-the-board-s-notifications.md)
 - [#393 Warn when a coding agent's version is one we never exercised](features/393-version-check.md)
-- [#398 Run the coding agent on a Cloud board](373-cloud-board-browser/features/398-run-the-coding-agent-on-a-cloud-board.md)
 - [#399 Draw the Runs dialog as a fleet of pixelart agents at work](features/399-draw-the-runs-dialog-as-a-fleet-of-pixelart-agents-at-work.md)
-- [#404 Skip the agent step when a coding agent already works](features/404-skip-the-agent-step-when-a-coding-agent-already-works.md)
 - [#402 Show the spec skills as a grid of pixelart characters](features/402-show-the-spec-skills-as-a-grid-of-pixelart-characters.md)
 
 ## skill
@@ -77,9 +73,6 @@ _(none)_
 - [#252 Attach a file to Create task instead of retyping it](250-friendly-task-import/features/252-attach-a-file.md)
 - [#253 Speak a task instead of typing it](250-friendly-task-import/features/253-speak-a-task.md)
 
-## 266-chat-rail-full/features
-
-
 ## 209-daily-loop-buttons/features
 
 
@@ -95,7 +88,7 @@ _(none)_
 
 ## 292-app-telemetry/features
 
-- [#293 Keep optional usage reporting off until the user opts in](292-app-telemetry/features/293-consent-and-switch.md)
+- [#293 Disclose default-on usage reporting during onboarding](292-app-telemetry/features/293-consent-and-switch.md)
 - [#295 Report app opens and which parts of the board get used](292-app-telemetry/features/295-app-usage-events.md)
 
 ## 292-app-telemetry/distribution

@@ -20,11 +20,10 @@ covers it, or a plain-words note.
   the plan bought through BigModel in mainland China is the same plan. The tier numbers come
   from Z.ai's and BigModel's own docs and are marked untested; `README-zh.md` points at the
   section, `README.md` does not: `web/content/docs/connectors.mdx`.
-- Running the board on Grok Build, xAI's coding agent: how to install `grok`, that a key or
-  a `grok login` both work while an exported `GROK_DEPLOYMENT_KEY` is dropped, that the
-  board's rules go to `.grok/skills/kanban/`, and why the board drives ACP rather than
-  Grok's `-p` mode. The section says outright that none of it has been run:
-  `web/content/docs/connectors.mdx`.
+- Running the board on Grok Build, xAI's coding agent: how to install `grok`, that a
+  `grok login` or an xAI key both work with the saved login winning, that the board's rules
+  go to `.agents/skills/kanban/`, that the run is fenced by `GROK_SANDBOX=workspace`, and why
+  the board drives ACP rather than Grok's `-p` mode: `web/content/docs/connectors.mdx`.
 - Writing a spec skill of your own — the directory shape, the `akb:` frontmatter block, and how a
   setting's choice picks the one reference a run is given: "Let a specialist fill part of the spec"
-  in `web/content/docs/daily-loop.mdx`.
+  in `web/content/docs/spec-skills.mdx`.

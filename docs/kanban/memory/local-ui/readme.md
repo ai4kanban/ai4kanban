@@ -143,6 +143,14 @@ naming no other doc is covered there.
   waits, and nothing leaves the box until you press send. The box grows with what is typed
   to about eight rows, fewer on a short window, then scrolls; up- and down-arrow in an empty
   box walk back through what this conversation has sent. See `kanban-ui/README.md` → Chat.
+- While a reply is coming, Send is **Stop**: one click, or Esc, ends it there, what arrived is
+  kept and nothing is undone. Esc only counts when nothing sits over the chat, and a reply
+  `akb chat` is writing stays the terminal's own Ctrl-C. See `kanban-ui/README.md` → Chat.
+- A message gets used again without retyping: **Copy** under any reply and on a code block
+  inside one, **Send again** on a reply that stopped short or came back with nothing,
+  **Reword** on any message you sent to put those words back in the box, and a copy button in
+  the chat's header that takes the whole exchange as markdown. See `kanban-ui/README.md`
+  → Chat.
 
 ## Configuration
 
@@ -155,7 +163,7 @@ naming no other doc is covered there.
   is headed with the computer it runs on, picked there and travelling with the repository;
   pointed at another computer it shows what that machine reported and offers nothing to press.
   The pick says where a runtime belongs — a run still lands on the machine it was started
-  from: `web/content/docs/daily-loop.mdx`, "Which tool each flow runs on".
+  from: `web/content/docs/runs.mdx`, "Which tool each flow runs on".
 - Run the board on Claude Code, Codex CLI, Cursor, OpenCode, DeepSeek Harness or ZCode,
   each with its own settings, live log, stop and resume; the picker dims the ones whose CLI
   isn't installed and names the install command: "What each agent needs",
@@ -205,9 +213,10 @@ naming no other doc is covered there.
   and Lark directories; `LARK_COMING_SOON` turns the buttons back on, and a connection
   already made is untouched.
 - **Grok Build** is on the runtimes grid, configured with a model box and an xAI key box
-  and driven as an ACP conversation (`grok agent stdio`), so its log streams and a stopped
-  run offers Resume. It is marked untested — nobody has watched a run — and what the runs
-  panel shows for cost, tokens and model is a claim: `web/content/docs/connectors.mdx`.
+  and driven as an ACP conversation (`grok agent stdio`), so its log streams as it works and
+  a stopped run offers Resume. Implement, refine, archive, a stop, a resume and a failed run
+  have all been watched end to end, and the runs panel's cost, tokens and model are Grok's
+  own numbers: `web/content/docs/connectors.mdx`.
 - A reply in the chat rail folds what the agent did behind one line — **Worked for 1m 5s**,
   counting up while the reply comes, with the step it is on left in the open — and says what
   the turn cost under it (`1,840 tokens · est. $0.03`) for an agent that reports it. Your own
@@ -227,3 +236,10 @@ naming no other doc is covered there.
 - Configuration → Agents is **Spec skills** now. It lists the skills the board ships and the ones
   the project added under `docs/kanban/skills/`, draws each one's settings from that skill's own
   `SKILL.md`, and names any skill it found but cannot use with the reason: `kanban-ui/README.md`.
+- Setting up a new board **finds the coding agent instead of asking for it**: the first run
+  tries the agents already on the machine — Claude Code, then Codex, then the rest, skipping
+  any still wanting a key — with the same call the Test button makes, and the first that
+  answers is saved and named on the way to the project step. The try is one full-window view
+  with a pixel character at work and a "Set it up myself" link; the picker takes over when
+  nothing answers, carrying what came back, and the agent setting goes back the way it was:
+  `web/content/docs/connectors.mdx`.

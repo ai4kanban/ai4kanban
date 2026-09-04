@@ -25,8 +25,8 @@ people" has an answer beyond our own repo.
 - Counts only, so a bad number can never be looked into. We would see that questions went
   to the user often across all boards, not what kind of card kept causing it.
 - These are the only numbers in the group that say whether the product works rather than
-  whether it was opened, and they still cover only boards on a machine that explicitly
-  opted in. A terminal-only user may opt in with `akb telemetry on`; the command never asks.
+  whether it was opened. Reporting is on by default; a terminal-only user may disable it
+  with `akb telemetry off`, and the command never asks.
 
 <!-- agent -->
 

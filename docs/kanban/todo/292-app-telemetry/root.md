@@ -29,8 +29,8 @@ its own subtask in this folder.
   — plain markdown in your own repo. The app already calls out to GitHub to see whether a
   newer release exists, so this is not the first outbound call, but it is the first one
   that is about the user rather than for them, and someone who notices it after the fact
-  will read it as a broken promise. #293 keeps reporting off until an explicit opt-in and
-  asks in a non-blocking strip, so the board stays usable without accepting it.
+  will read it as a broken promise. #293 discloses default-on reporting during onboarding
+  and keeps the off switch in Configuration → General.
 - Nothing here is a feature a user gets, which is what the open question above asks about.
 
 <!-- agent -->
@@ -41,10 +41,9 @@ its own subtask in this folder.
 - The app reports nothing. An install that is opened once and an install used every day
   look identical to us. Its one outbound call asks GitHub whether a newer release is out,
   which tells us nothing.
-- Board settings live in `docs/kanban/ui.config.json`, inside the user's repository. The
-  desktop app keeps a small file of its own outside every repository, but the `akb`
-  command cannot read it, so there is nowhere both of them can keep an answer about
-  privacy or an install id. #293 has to make that place first.
+- `~/.ai4kanban/settings.json` already holds what a machine remembers — the language, the
+  notification silence — and the app, the board UI and a terminal `akb` all reach it
+  through the command. #293 adds the reporting answer and the install id there.
 - `docs/kanban/metrics.csv` and `docs/kanban/record.csv` already count real board work,
   but only inside the user's own repo. We never see them.
 - GitHub's release download counts are the only number we have for the app, and they mix
@@ -55,7 +54,7 @@ its own subtask in this folder.
 ## Scope
 - The numbers to answer four questions: how many people download, how many open the app,
   how many keep using it, and how much planning the board actually does for them.
-- The app and command send nothing until the user explicitly opts in through #293.
+- The app and command report by default unless the machine-wide setting from #293 is off.
 - The site counts page visits and download presses with no cookie and no identifier, so it
   needs no banner. A site visit is never tied to an install.
 - Nothing that identifies a person, a project or a repository is ever sent — no card
@@ -66,8 +65,8 @@ its own subtask in this folder.
 - Every fact is sent by exactly one card. #296 sends what the board already writes down in
   `metrics.csv` and `record.csv`; #295 sends only what a running app or command knows and
   those files do not hold.
-- Only installs that explicitly opt in are counted. Someone who installs the command and
-  never opens the app remains absent unless they run `akb telemetry on` themselves.
+- Installs are counted by default. A terminal-only user can disable reporting with
+  `akb telemetry off`; the command never prompts.
 - Wherever the numbers are read, they say that app opens and board use cover the app only.
 - The command's public npm install count is pulled on the same schedule as GitHub's release
   counts and stored beside them.
@@ -82,7 +81,7 @@ its own subtask in this folder.
   per-user analysis, and anything sent to an advertising or attribution service.
 
 ## Todo
-- [ ] Keep optional usage reporting off until the user opts in #293
+- [ ] Disclose default-on usage reporting during onboarding #293
 - [ ] Take in usage events on a server we run #294
 - [ ] Report app opens and which parts of the board get used #295
 - [ ] Report the board's own numbers from metrics.csv and record.csv #296

@@ -5,3 +5,5 @@ covers it, or a plain-words note.
 
 - Install and quick start: `README.md`.
 - The daily loop — propose, add, refine, resolve, review, finish, reject: `web/content/docs/daily-loop.mdx`.
+- Beside it, one page each: `chat.mdx`, `releases.mdx`, `spec-skills.mdx`, `runs.mdx`. The
+  commands themselves are `akb --help`, never copied onto the site.

@@ -17,8 +17,8 @@ Downloads say how many people took the app; nothing says how many opened it or c
 Report app opens and the handful of actions that say the product is being used.
 
 ## Worth noting
-- The counts only cover installs that explicitly opted in. The command never prompts, so a
-  terminal-only user is absent unless they run `akb telemetry on` themselves.
+- The counts cover installs by default. The command never prompts, so a terminal-only user
+  must run `akb telemetry off` to disable reporting.
 - Cards created, archived and rejected are not sent from here, so nothing in this card
   says how much planning a board did. That number comes from #296 instead, and it arrives
   once a day rather than as it happens.
@@ -47,7 +47,7 @@ Report app opens and the handful of actions that say the product is being used.
 - Each event says which surface it came from — the app or the command — so app use and
   terminal use can be told apart rather than summed.
 - Send the harness the run used, by name only.
-- Send nothing at all unless #293's setting says yes.
+- Send nothing when #293's setting says off.
 - Events are queued on disk and sent in batches, so an offline machine loses nothing and a
   slow network never makes the app wait.
 - At most one batch a day is sent, at a time of day the install picks for itself, so a

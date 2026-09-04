@@ -78,6 +78,10 @@ re-ask a settled call.
 - **A run that goes silent is ended by the board**: 10 minutes with no output, counted from
   its last line or from its start when it never printed one. It closes as a failed run, never
   as a stop, and the limit is a board setting that can be raised or switched off.
+- **A connector's shell is not fenced to the project folder**: every agent but Codex runs its
+  commands wherever the machine lets them, Antigravity included — fencing one whose sandbox
+  also shuts the network from a settings file the board cannot write would cost every card an
+  `npm install` or a `git fetch`. The fence stays available in Extra arguments.
 
 ## Open questions
 
