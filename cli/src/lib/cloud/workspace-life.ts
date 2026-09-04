@@ -9,26 +9,36 @@
 
 import { newOpId } from '../board/ops'
 import {
+  addWorkspaceMember,
   createWorkspace,
   deleteWorkspace,
+  listWorkspaceMembers,
   listWorkspaceNodes,
   listWorkspaces,
   readWorkspace,
+  removeWorkspaceMember,
   removeWorkspaceNode,
   renameWorkspace,
   renameWorkspaceNode,
+  setWorkspaceMemberRole,
   type CloudWorkspace,
+  type MemberRole,
+  type WireMember,
   type WireNode,
 } from './client'
 
-export type { CloudWorkspace, WireNode as CloudNode }
+export type { CloudWorkspace, MemberRole, WireMember as CloudMember, WireNode as CloudNode }
 
 /** What every move here answers with: the thing, or the service's own sentence.
  *
- *  `stranded` is Cloud saying this workspace is not this account's — deleted, or never
- *  theirs, which it answers with one code on purpose. A caller acts on it rather than
+ *  `stranded` is Cloud saying this workspace is not one of this account's — deleted, or
+ *  never theirs, which it answers with one code on purpose. A caller acts on it rather than
  *  retrying: it is the difference between a workspace that cannot be reached right now and
- *  one there is no longer any point pointing at. */
+ *  one there is no longer any point pointing at.
+ *
+ *  A member who lacks the OWNER role is deliberately not stranded (#376): they are in the
+ *  workspace and can still read the board, so the pane says an owner has to do it rather
+ *  than offering them the way out. */
 export type WorkspaceResult<T> =
   | { ok: true; value: T }
   | { ok: false; error: string; stranded: boolean }
@@ -36,7 +46,7 @@ export type WorkspaceResult<T> =
 const refused = (call: { error: string; code?: string }): { ok: false; error: string; stranded: boolean } => ({
   ok: false,
   error: call.error,
-  stranded: call.code === 'not_yours' || call.code === 'not_found',
+  stranded: call.code === 'not_a_member' || call.code === 'not_yours' || call.code === 'not_found',
 })
 
 /** Every workspace this account has — what "Open Cloud board" picks from. */
@@ -95,4 +105,45 @@ export async function renameCloudNode(
 export async function removeCloudNode(id: string, nodeId: string): Promise<WorkspaceResult<true>> {
   const call = await removeWorkspaceNode(id, nodeId, newOpId())
   return call.ok ? { ok: true, value: true } : refused(call)
+}
+
+// ---- who is in the workspace (#376) ------------------------------------------
+
+/** Who is in it, and the caller's own role beside them — so a screen draws the owner-only
+ *  controls off the service's answer rather than off a handle it matched itself. */
+export async function readWorkspaceMembers(id: string): Promise<WorkspaceResult<CloudMembers>> {
+  const call = await listWorkspaceMembers(id)
+  return call.ok
+    ? { ok: true, value: { role: call.value.role ?? null, members: call.value.members ?? [] } }
+    : refused(call)
+}
+
+export interface CloudMembers {
+  role: MemberRole | null
+  members: WireMember[]
+}
+
+/** Add somebody by GitHub handle. Cloud refuses every handle that does not resolve to
+ *  exactly one admitted account, with the one sentence that covers all of them. */
+export async function addCloudMember(
+  id: string,
+  handle: string,
+  role: MemberRole = 'member',
+): Promise<WorkspaceResult<WireMember>> {
+  const call = await addWorkspaceMember(id, newOpId(), handle, role)
+  return call.ok ? { ok: true, value: call.value.member } : refused(call)
+}
+
+export async function removeCloudMember(id: string, accountId: string): Promise<WorkspaceResult<true>> {
+  const call = await removeWorkspaceMember(id, accountId, newOpId())
+  return call.ok ? { ok: true, value: true } : refused(call)
+}
+
+export async function setCloudMemberRole(
+  id: string,
+  accountId: string,
+  role: MemberRole,
+): Promise<WorkspaceResult<WireMember>> {
+  const call = await setWorkspaceMemberRole(id, accountId, newOpId(), role)
+  return call.ok ? { ok: true, value: call.value.member } : refused(call)
 }

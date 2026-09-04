@@ -1,12 +1,17 @@
 "use client";
 
-// Configuration → Workspace (#317) — the workspace a Cloud board lives in, as its owner
-// runs it.
+// Configuration → Workspace (#317, #376) — the workspace a Cloud board lives in, as the
+// people in it run it.
 //
 // Three captioned groups, the same shape every other pane is built from:
-// **This board** — its name, its rename, and the machines allowed to run its work.
+// **This board** — its name, who is in it, and the machines allowed to run its work.
 // **Your copy** — the export, and leaving Cloud. **Ends the workspace** — the deletion,
 // behind a confirmation that names what goes.
+//
+// A workspace has two roles. An owner runs the board's name, its members, its nodes and its
+// deletion; a member reads all of it and changes none of it. The owner-only controls are not
+// drawn for a member rather than drawn and refused — the service refuses them either way, and
+// a button that always fails is worse than no button.
 //
 // The pane is only ever drawn on a Cloud board: a Local one has no workspace, and the
 // sidebar leaves the entry out (components/Configuration.tsx).
@@ -17,19 +22,27 @@
 // and takes the window to the launcher, because there is no board left for it to show.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiCloud, FiDownload, FiLogOut, FiServer, FiTrash2 } from "react-icons/fi";
+import { FiCloud, FiDownload, FiLogOut, FiServer, FiTrash2, FiUsers } from "react-icons/fi";
 import {
+  addWorkspaceMemberAction,
   commitCloudChangeAction,
   deleteWorkspaceAction,
   exportWorkspaceAction,
   leaveWorkspaceAction,
+  removeWorkspaceMemberAction,
   removeWorkspaceNodeAction,
   renameWorkspaceAction,
   renameWorkspaceNodeAction,
+  setWorkspaceMemberRoleAction,
   workspaceViewAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
-import type { CloudChange, WorkspaceNodeWire, WorkspaceView } from "@/lib/types";
+import type {
+  CloudChange,
+  WorkspaceMemberWire,
+  WorkspaceNodeWire,
+  WorkspaceView,
+} from "@/lib/types";
 import { ConfirmationPopover } from "./confirm-popover";
 import { Alert, CAPTION, CONTROL, DANGER_BTN, Group, Loading, Note, Panel, QUIET_BTN, Row } from "./settings";
 
@@ -89,10 +102,22 @@ export function WorkspacePanel({ onError }: { onError?: (msg: string) => void })
       <Group title={c.thisBoard}>
         <Panel>
           <Name view={view} busy={busy} onError={onError} onSaved={load} onRun={run} />
+          {/* A workspace always holds at least one person, so an empty list is rules that
+              predate members — there the row would say nothing. */}
+          {view.members.length > 0 && (
+            <Row icon={<FiUsers size={17} className="text-nb-ink-soft" />} label={c.members} hint={c.membersHint}
+              below={
+                <Members members={view.members} owner={view.owner} busy={busy} onError={onError}
+                  onDone={load} onRun={run} />
+              } />
+          )}
           <Row icon={<FiServer size={17} className="text-nb-ink-soft" />} label={c.nodes} hint={c.nodesHint}
-            below={<Nodes nodes={view.nodes} busy={busy} onError={onError} onDone={load} onRun={run} />} />
+            below={
+              <Nodes nodes={view.nodes} owner={view.owner} busy={busy} onError={onError}
+                onDone={load} onRun={run} />
+            } />
         </Panel>
-        <Note>{c.boundary}</Note>
+        <Note>{view.owner ? c.boundary : `${c.ownerOnly} ${c.boundary}`}</Note>
       </Group>
 
       <Group title={c.yourCopy}>
@@ -107,11 +132,15 @@ export function WorkspacePanel({ onError }: { onError?: (msg: string) => void })
         </Panel>
       </Group>
 
-      <Group title={c.ends}>
-        <Panel>
-          <Delete name={view.name} busy={busy} onError={onError} onDeleted={setExit} onRun={run} />
-        </Panel>
-      </Group>
+      {/* The one move that ends the workspace for everybody in it, so only an owner is
+          offered it at all. */}
+      {view.owner && (
+        <Group title={c.ends}>
+          <Panel>
+            <Delete name={view.name} busy={busy} onError={onError} onDeleted={setExit} onRun={run} />
+          </Panel>
+        </Group>
+      )}
     </div>
   );
 }
@@ -159,7 +188,7 @@ function Name({
       }
       hint={c.boardHint}
       below={
-        editing ? (
+        editing && view.owner ? (
           <div className="flex items-center gap-2">
             <input
               className={`${CONTROL} max-w-[280px]`}
@@ -182,7 +211,7 @@ function Name({
         ) : undefined
       }
     >
-      {!editing && (
+      {!editing && view.owner && (
         <button
           type="button"
           className={QUIET_BTN}
@@ -202,12 +231,14 @@ function Name({
 
 function Nodes({
   nodes,
+  owner,
   busy,
   onError,
   onDone,
   onRun,
 }: {
   nodes: WorkspaceNodeWire[];
+  owner: boolean;
   busy: boolean;
   onError?: (msg: string) => void;
   onDone: () => Promise<void>;
@@ -218,7 +249,8 @@ function Nodes({
   return (
     <div className="rounded-[10px] border border-nb-ink/12 bg-nb-paper px-3">
       {nodes.map((node) => (
-        <NodeRow key={node.id} node={node} busy={busy} onError={onError} onDone={onDone} onRun={onRun} />
+        <NodeRow key={node.id} node={node} owner={owner} busy={busy} onError={onError} onDone={onDone}
+          onRun={onRun} />
       ))}
     </div>
   );
@@ -226,12 +258,16 @@ function Nodes({
 
 function NodeRow({
   node,
+  owner,
   busy,
   onError,
   onDone,
   onRun,
 }: {
   node: WorkspaceNodeWire;
+  /** Renaming and removing a machine are the owner's; registering and renewing one are the
+   *  member's own, and happen without this pane. */
+  owner: boolean;
   busy: boolean;
   onError?: (msg: string) => void;
   onDone: () => Promise<void>;
@@ -287,27 +323,166 @@ function NodeRow({
       ) : (
         <span className="min-w-0 flex-1 truncate text-[12.5px] font-[700]">{name}</span>
       )}
+      {/* Whose machine it is. Attribution, not a check: any member may take one over. */}
+      {node.handle && <span className="text-[11.5px] text-nb-ink-soft">{c.nodeOf(node.handle)}</span>}
       <span className="text-[11.5px] text-nb-ink-soft">{node.live ? c.live : c.idle}</span>
-      <button type="button" className={QUIET_BTN} disabled={busy} onClick={() => setEditing(true)}>
-        {c.rename}
-      </button>
-      <span ref={anchor} className="relative">
-        <button type="button" className={DANGER_BTN} disabled={busy} onClick={() => setAsking(true)}>
-          {c.remove}
-        </button>
-        <ConfirmationPopover
-          open={asking}
-          anchorRef={anchor}
-          align="right"
-          title={c.removeTitle(name)}
-          description={c.removeBlurb}
-          cancelLabel={c.cancel}
-          confirmLabel={c.remove}
-          busy={busy}
-          onDismiss={() => setAsking(false)}
-          onConfirm={() => void remove()}
-        />
-      </span>
+      {owner && (
+        <>
+          <button type="button" className={QUIET_BTN} disabled={busy} onClick={() => setEditing(true)}>
+            {c.rename}
+          </button>
+          <span ref={anchor} className="relative">
+            <button type="button" className={DANGER_BTN} disabled={busy} onClick={() => setAsking(true)}>
+              {c.remove}
+            </button>
+            <ConfirmationPopover
+              open={asking}
+              anchorRef={anchor}
+              align="right"
+              title={c.removeTitle(name)}
+              description={c.removeBlurb}
+              cancelLabel={c.cancel}
+              confirmLabel={c.remove}
+              busy={busy}
+              onDismiss={() => setAsking(false)}
+              onConfirm={() => void remove()}
+            />
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+// --- who is in the workspace -------------------------------------------------
+
+/** The member list, and — for an owner — the three moves over it: add somebody by GitHub
+ *  handle, change a role, take somebody off. Adding never admits an account: which handles
+ *  Cloud takes is Cloud's, and every one it will not take meets the same sentence. */
+function Members({
+  members,
+  owner,
+  busy,
+  onError,
+  onDone,
+  onRun,
+}: {
+  members: WorkspaceMemberWire[];
+  owner: boolean;
+  busy: boolean;
+  onError?: (msg: string) => void;
+  onDone: () => Promise<void>;
+  onRun: Run;
+}) {
+  const c = useCopy().configuration.workspace;
+  const [handle, setHandle] = useState("");
+
+  const add = async () => {
+    const done = await onRun(() => addWorkspaceMemberAction(handle, "member"));
+    if (!done) return;
+    if (!done.ok) return onError?.(done.error);
+    setHandle("");
+    await onDone();
+  };
+
+  return (
+    <>
+      <div className="rounded-[10px] border border-nb-ink/12 bg-nb-paper px-3">
+        {members.map((member) => (
+          <MemberRow key={member.accountId} member={member} owner={owner} busy={busy} onError={onError}
+            onDone={onDone} onRun={onRun} />
+        ))}
+      </div>
+      {owner && (
+        <div className="mt-2.5">
+          <div className="flex items-center gap-2">
+            <input
+              className={`${CONTROL} max-w-[220px]`}
+              value={handle}
+              placeholder={c.handlePlaceholder}
+              spellCheck={false}
+              onChange={(e) => setHandle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void add();
+              }}
+            />
+            <button type="button" className={QUIET_BTN} disabled={busy || !handle.trim()}
+              onClick={() => void add()}>
+              {c.add}
+            </button>
+          </div>
+          <Note>{c.addBlurb}</Note>
+        </div>
+      )}
+    </>
+  );
+}
+
+function MemberRow({
+  member,
+  owner,
+  busy,
+  onError,
+  onDone,
+  onRun,
+}: {
+  member: WorkspaceMemberWire;
+  owner: boolean;
+  busy: boolean;
+  onError?: (msg: string) => void;
+  onDone: () => Promise<void>;
+  onRun: Run;
+}) {
+  const c = useCopy().configuration.workspace;
+  const [asking, setAsking] = useState(false);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const isOwner = member.role === "owner";
+
+  const move = async (work: () => Promise<{ ok: boolean; error?: string }>) => {
+    const done = await onRun(work);
+    if (!done) return;
+    setAsking(false);
+    // The two the service refuses on a rule of its own — the last owner's demotion, and its
+    // removal — come back as its own sentence, which is the whole of what to say.
+    if (!done.ok) return onError?.(done.error ?? "");
+    await onDone();
+  };
+
+  return (
+    <div className="flex items-center gap-2.5 border-b border-nb-ink/8 py-2 last:border-b-0">
+      <span className="min-w-0 flex-1 truncate text-[12.5px] font-[700]">@{member.handle}</span>
+      <span className="text-[11.5px] text-nb-ink-soft">{isOwner ? c.owner : c.member}</span>
+      {owner && (
+        <>
+          <button
+            type="button"
+            className={QUIET_BTN}
+            disabled={busy}
+            onClick={() =>
+              void move(() => setWorkspaceMemberRoleAction(member.accountId, isOwner ? "member" : "owner"))
+            }
+          >
+            {isOwner ? c.makeMember : c.makeOwner}
+          </button>
+          <span ref={anchor} className="relative">
+            <button type="button" className={DANGER_BTN} disabled={busy} onClick={() => setAsking(true)}>
+              {c.remove}
+            </button>
+            <ConfirmationPopover
+              open={asking}
+              anchorRef={anchor}
+              align="right"
+              title={c.removeMemberTitle(member.handle)}
+              description={c.removeMemberBlurb}
+              cancelLabel={c.cancel}
+              confirmLabel={c.remove}
+              busy={busy}
+              onDismiss={() => setAsking(false)}
+              onConfirm={() => void move(() => removeWorkspaceMemberAction(member.accountId))}
+            />
+          </span>
+        </>
+      )}
     </div>
   );
 }

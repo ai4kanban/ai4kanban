@@ -98,7 +98,7 @@ const LOST_REPLY_TRIES = 3
 
 /** Why a Cloud board could not be opened. Each one is a different sentence to a person, and
  *  a different thing for them to do about it. */
-export type OpenRefusal = 'signed-out' | 'not-yours' | 'unreachable' | 'refused'
+export type OpenRefusal = 'signed-out' | 'not-a-member' | 'unreachable' | 'refused'
 
 export type OpenCloudBoard =
   | { ok: true; board: CloudBoardHandle }
@@ -391,15 +391,17 @@ function refusalOf(call: { ok: false; error: string; code?: string }): {
         "Sign in from the app's Configuration dialog.",
     }
   }
-  if (call.code === 'not_yours' || call.code === 'not_found') {
-    // Cloud answers deleted and never-yours with one code on purpose, so nothing leaks
-    // whether a workspace ever existed (#317). One sentence has to be true of both.
+  if (call.code === 'not_a_member' || call.code === 'not_yours' || call.code === 'not_found') {
+    // Cloud answers a deleted workspace and one this account is not in with one code on
+    // purpose, so nothing leaks whether a workspace ever existed (#317). One sentence has to
+    // be true of both — and since #376 a workspace has members, so the way in is an owner
+    // adding this account rather than signing in as the one that owns it.
     return {
       ok: false,
-      reason: 'not-yours',
+      reason: 'not-a-member',
       error:
-        'This board is no longer this account’s — it was deleted, or it was never yours. ' +
-        'Sign in as the account that owns it, or leave Cloud to get the cards back as ' +
+        'This account is not in this board’s workspace — it was deleted, or nobody has ' +
+        'added you. Ask an owner to add you, or leave Cloud to get the cards back as ' +
         'markdown in docs/kanban/.',
     }
   }

@@ -8,6 +8,10 @@ export type RefusalCode =
   | 'not_admitted'
   | 'no_verified_address'
   | 'not_yours'
+  | 'not_a_member'
+  | 'owner_only'
+  | 'handle_not_admitted'
+  | 'last_owner'
   | 'stale_revision'
   | 'revision_conflict'
   | 'operation_reused'
@@ -87,6 +91,47 @@ export const noVerifiedAddress = () =>
 /** The request named a row belonging to another account. Whatever the row is. */
 export const notYours = () =>
   new Refusal('not_yours', 403, 'That belongs to another account.')
+
+/**
+ * The workspace's own four refusals (#376). Each is its own code because each asks the
+ * reader for something different.
+ *
+ * `not_a_member` is the workspace's answer to a signed-in stranger, and the one a deleted
+ * workspace gives too, so nothing says whether a workspace exists. It is deliberately not a
+ * rewording of `not_yours`: that code is shared with a board, a server and a connection,
+ * none of which has an owner to ask. The database's own sentence is carried through where
+ * there is one.
+ */
+export const notAMember = (message?: string) =>
+  new Refusal(
+    'not_a_member',
+    403,
+    message || 'You are not in this workspace. Ask an owner to add you to it.',
+  )
+
+/** In the workspace, without the role the move needs. Never `not_a_member`: telling somebody
+ *  already in it to ask to be added would offer them the way out of a board they can read. */
+export const ownerOnly = (message?: string) =>
+  new Refusal('owner_only', 403, message || 'An owner of this workspace has to do that.')
+
+/** The handle an owner named does not resolve to exactly one admitted account. One message
+ *  for every case, so adding a member cannot be used to find out who has a Cloud account. */
+export const handleNotAdmitted = (message?: string) =>
+  new Refusal(
+    'handle_not_admitted',
+    404,
+    message ||
+      'AI4Kanban Cloud has no admitted account for that GitHub handle. They have to sign in ' +
+        'to Cloud and be admitted before they can be added.',
+  )
+
+/** The change would leave the workspace with no owner. */
+export const lastOwner = (message?: string) =>
+  new Refusal(
+    'last_owner',
+    409,
+    message || 'A workspace always keeps an owner. Make somebody else an owner first.',
+  )
 
 /**
  * The two an action on a Cloud event can be refused with (#319), each with its own code

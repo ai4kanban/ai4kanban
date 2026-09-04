@@ -23,9 +23,10 @@ import { jsonLd, webPage } from "@/lib/schema";
 // rather than in `i18n/cloud/`, and the route carries `translated: false`, no
 // `TRANSLATED_PATHS` entry, and a hand-written line in `app/sitemap.ts`.
 //
-// Every sentence describes the 0.8.0 relay (#325) and the app's own sign-in
-// pane, not the team workspace the live legal pages still describe — agreeing
-// with those would put the same wrong product on a third page. It is short and
+// Every sentence describes what the release actually ships. #376 gave a
+// workspace members and two roles, so the limits below say what is still not
+// there — per-card permissions, and a way to invite somebody the preview has
+// not admitted — rather than that a board is one account's. It is short and
 // plain on purpose: a later release rewrites it as Cloud's landing page.
 
 export const PATH = "/cloud";
@@ -198,11 +199,15 @@ export function CloudPage() {
               title="What Cloud does not do"
             />
             <ul className="mt-6 max-w-2xl space-y-3 text-[0.95rem] leading-relaxed">
-              <Point lead="No shared or team board">
-                a Cloud board is one account&apos;s. It opens on every machine you
-                sign in from, and there is nobody else to let into it.
+              <Point lead="No per-card permissions">
+                a workspace has two roles and no third. An owner runs its name,
+                its members and its machines; a member does everything else on
+                the board. Nothing is locked to one person card by card.
               </Point>
-              <Point lead="No members and no roles" />
+              <Point lead="No way to invite somebody who is not in the preview">
+                an owner adds a GitHub handle we have already admitted. Anyone
+                else presses <b>Request an invite</b> first.
+              </Point>
               <Point lead="No board in the browser">
                 there is nothing to read or edit on the web.
               </Point>

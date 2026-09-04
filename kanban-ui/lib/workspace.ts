@@ -9,7 +9,13 @@
 // what leaving costs, or what the offered commit carries.
 
 import { getCopy } from "@/i18n";
-import { boardRules, type CloudChange, type WorkspaceNodeWire } from "./cli";
+import {
+  boardRules,
+  type CloudChange,
+  type MemberRoleWire,
+  type WorkspaceMemberWire,
+  type WorkspaceNodeWire,
+} from "./cli";
 import { repoRoot } from "./paths";
 import { DEFAULT_LANGUAGE } from "./types";
 
@@ -26,6 +32,12 @@ export interface WorkspaceView {
   workspaceId: string;
   name: string;
   nodes: WorkspaceNodeWire[];
+  /** Who is in the workspace, and in what role (#376). Empty on rules that predate members,
+   *  where the pane draws no member list rather than controls nothing can answer. */
+  members: WorkspaceMemberWire[];
+  /** Whether this account owns the workspace. The owner-only controls — the rename, the
+   *  member moves, the node moves and the deletion — are drawn only for one. */
+  owner: boolean;
   /** The going-Cloud commit this checkout still holds uncommitted, when it holds one. The
    *  offer comes back here until it is taken. */
   change: CloudChange | null;
@@ -42,6 +54,8 @@ const NOTHING: WorkspaceView = {
   workspaceId: "",
   name: "",
   nodes: [],
+  members: [],
+  owner: false,
   change: null,
   error: "",
   stranded: false,
@@ -72,11 +86,24 @@ export async function workspaceView(): Promise<WorkspaceView> {
   const read = await rules.readCloudWorkspace(pointer.workspace);
   if (!read.ok) return { ...held, error: read.error, stranded: read.stranded === true };
   const nodes = await rules.readWorkspaceNodes(pointer.workspace);
+  // The caller's own role travels with the list, so the pane never works out whose account
+  // this is by matching a handle — a namesake would be drawn the owner controls.
+  //
+  // Rules that predate members answer nothing, and there the reader IS the owner: before
+  // #376 a workspace only ever answered the account that made it. So they keep every control
+  // they had and draw no member list, rather than losing the rename and the delete.
+  if (!rules.readWorkspaceMembers) {
+    return { ...held, name: read.value.name, nodes: nodes.ok ? nodes.value : [], owner: true,
+      error: nodes.ok ? "" : nodes.error };
+  }
+  const members = await rules.readWorkspaceMembers(pointer.workspace);
   return {
     ...held,
     name: read.value.name,
     nodes: nodes.ok ? nodes.value : [],
-    error: nodes.ok ? "" : nodes.error,
+    members: members.ok ? members.value.members : [],
+    owner: members.ok && members.value.role === "owner",
+    error: nodes.ok ? (members.ok ? "" : members.error) : nodes.error,
   };
 }
 
@@ -179,4 +206,30 @@ export async function commitCloudChange(kind: "go" | "leave"): Promise<Workspace
   if (!rules.commitCloudChange) return { ok: false, error: TOO_OLD };
   const done = rules.commitCloudChange(repoRoot(), kind);
   return done.ok ? { ok: true } : { ok: false, error: done.error ?? "" };
+}
+
+// ---- who is in the workspace (#376) ------------------------------------------
+
+export async function addWorkspaceMember(handle: string, role: MemberRoleWire): Promise<WorkspaceMove> {
+  const rules = await boardRules();
+  const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
+  if (!rules.addCloudMember || !id) return { ok: false, error: TOO_OLD };
+  const done = await rules.addCloudMember(id, handle, role);
+  return done.ok ? { ok: true } : { ok: false, error: done.error };
+}
+
+export async function removeWorkspaceMember(accountId: string): Promise<WorkspaceMove> {
+  const rules = await boardRules();
+  const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
+  if (!rules.removeCloudMember || !id) return { ok: false, error: TOO_OLD };
+  const done = await rules.removeCloudMember(id, accountId);
+  return done.ok ? { ok: true } : { ok: false, error: done.error };
+}
+
+export async function setWorkspaceMemberRole(accountId: string, role: MemberRoleWire): Promise<WorkspaceMove> {
+  const rules = await boardRules();
+  const id = rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
+  if (!rules.setCloudMemberRole || !id) return { ok: false, error: TOO_OLD };
+  const done = await rules.setCloudMemberRole(id, accountId, role);
+  return done.ok ? { ok: true } : { ok: false, error: done.error };
 }

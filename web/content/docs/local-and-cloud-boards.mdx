@@ -59,27 +59,56 @@ the offer decides is whether git records the move.
 A folder with **no git repository** takes the same path. The workspace is made, the board
 opens and the pointer is written; the offer says there is nothing to commit to yet.
 
+## Members and roles
+
+A workspace holds the people an owner has added to it, and answers nobody else. There are two
+roles and no third:
+
+- **Owner** — runs the workspace's name, its members and their roles, its execution nodes, and
+  its deletion.
+- **Member** — every ordinary board operation: reading it, writing a card, running its work,
+  registering their own machine.
+
+Everyone in a workspace reads the whole board and the whole record of who changed what. There
+are no per-card permissions.
+
+**An owner adds somebody by GitHub handle, and only somebody we have already admitted to the
+preview.** Adding does not admit: a handle we have not let in is refused, and the workspace
+keeps nothing for it. That person presses **Request an invite** in the app like anyone else,
+and the owner adds them once we approve it.
+
+**A workspace always keeps an owner.** The role change or removal that would leave none is
+refused. Closing an account never deletes a workspace either — transfer it to another owner,
+or delete it, first.
+
+**Removing somebody stops their next write, not the screen they have open.** Nothing pushes
+to an open board in this release, so a removed member goes on reading the board they already
+loaded and meets the removal on the first thing they try to change.
+
 ## Running the workspace
 
 **Configuration → Workspace**, on a Cloud board:
 
+- **See who is in it**, and — as an owner — add somebody by GitHub handle, change a role, or
+  take somebody off.
 - **Rename it**, and see the **execution nodes** — the machines allowed to run this board's
-  work. Rename one, or take one off.
+  work, each named with whose machine it is. Any member registers and renews their own; an
+  owner renames one or takes one off.
 - **Export to a folder.** The whole board as Markdown, the archive included, into a folder
   you choose; that folder opens as a Local board. The preview keeps no backups, so an export
   you have made is the only copy anybody can restore from.
 - **Leave Cloud.** The board is written back into `docs/kanban/`, the pointer comes off, and
   the `docs/kanban/` block leaves the root `.gitignore` — again as one commit you read first,
   so the board you get back is one git tracks. The workspace stays where it is.
-- **Delete the workspace.** Everything in it goes, for every machine that opens it, and this
-  checkout stops pointing at it. There is no grace window and no backup — export first.
+- **Delete the workspace.** An owner's move. Everything in it goes, for everybody in it, and
+  this checkout stops pointing at it. There is no grace window and no backup — export first.
 
 ## When a checkout cannot read its workspace
 
-A workspace that was deleted and one that was never your account's meet the same refusal, on
-purpose: nothing leaks whether a workspace ever existed. The board says so in one sentence and
-names the two ways out — sign in as the account that owns it, or leave Cloud and take the
-markdown that is in the folder.
+A workspace that was deleted and one this account is not in meet the same refusal, on purpose:
+nothing leaks whether a workspace ever existed. The board says so in one sentence and names the
+two ways out — ask an owner to add you, or leave Cloud and take the markdown that is in the
+folder.
 
 ## What Cloud never gets
 

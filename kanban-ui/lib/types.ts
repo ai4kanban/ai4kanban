@@ -116,7 +116,7 @@ export type { BoardScreen, BoardStanding, CardScreen, ScreenBoard } from "./form
 
 // The workspace a Cloud board lives in (#317) — what Configuration → Workspace draws, and
 // the one commit each of its exits offers.
-export type { CloudChange, WorkspaceNodeWire } from "./cli";
+export type { CloudChange, MemberRoleWire, WorkspaceMemberWire, WorkspaceNodeWire } from "./cli";
 export type { WorkspaceExit, WorkspaceMove, WorkspaceView } from "./workspace";
 export { LOCAL_STANDING } from "./format/board/screen";
 

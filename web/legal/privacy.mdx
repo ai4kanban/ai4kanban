@@ -10,7 +10,8 @@ effective: 2026-09-04
 - **This site collects nothing.** No analytics, no cookies, no accounts. It is static files served by Cloudflare.
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out, and sends nothing else.
 - **AI4Kanban Cloud is an invite-only preview** that relays one signed-in account's task events — a review to approve, a question to answer — and the decisions made on them, on servers we run in Frankfurt. [What Cloud is](/cloud).
-- **A Cloud board is one you asked us to hold.** Its cards, memory, releases and history live in a workspace on those servers instead of in your repository. It is a deliberate choice, made board by board; you can export the whole board as Markdown at any time, and you can delete the workspace and everything in it yourself.
+- **A Cloud board is one you asked us to hold.** Its cards, memory, releases and history live in a workspace on those servers instead of in your repository. It is a deliberate choice, made board by board; you can export the whole board as Markdown at any time, and an owner can delete the workspace and everything in it.
+- **A workspace can hold more than one person.** An owner adds a teammate by GitHub handle — but only one we have already admitted to the preview. Everyone in a workspace reads the whole board and the whole record of who changed what, including your GitHub handle.
 - **An event carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
 - **The preview emails you for two things**: the answer to your invite request, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
@@ -67,7 +68,9 @@ AI4Kanban Cloud is an **invite-only preview**. It relays the task events a board
 
 Using it is a deliberate choice: you install the app on a local board, sign in, and turn Cloud on for a board afterwards. If you never do, nothing in this section applies to you.
 
-**This release has no shared board and no team workspace.** Every record described below belongs to one signed-in account, and Cloud answers that account alone.
+**A workspace can hold more than one person; everything else belongs to one account.** A workspace answers the people an owner has added to it, in one of two roles — an owner, who runs its name, its members and its machines, and a member, who does everything else on the board. Every other record described below — your account, your admission, your invite request, your Slack and Lark connections, and the boards and events of the 0.8.0 relay — belongs to one signed-in account, and Cloud answers that account alone.
+
+**What the other people in a workspace can see.** Everyone in it reads the whole board — every card, every memory file, every release and the whole history — and the workspace's record of who did what, which carries **each person's GitHub handle** beside every change. Adding somebody to a workspace shows them your handle and everything you have done in it. Nobody outside it sees any of it.
 
 ### What an event holds
 
@@ -91,7 +94,7 @@ A board on Cloud is an identifier that means nothing outside Cloud, and **a name
 
 ### What a board's machine record holds
 
-A board runs its work on one computer, so that computer registers itself with Cloud — otherwise an approval you press in Slack or Lark has nowhere to run. The record holds three things and no more:
+A board runs its work on a computer, so that computer registers itself with Cloud — otherwise an approval you press in Slack or Lark has nowhere to run. A workspace holds one record for each machine the people in it open it from, and the record names **the account that registered it**, so everyone in the workspace can tell one machine from another. The record holds three things and no more:
 
 - **A machine identifier** the computer generated for itself. It is tied to no account and to nothing about your hardware, and it means nothing outside Cloud.
 - **The name that computer calls itself** — its hostname, so you can tell one of your machines from another. Never an address.
@@ -142,7 +145,7 @@ That mail goes through **Resend**, and the `support@ai4kanban.dev` mailbox is ru
 
 - **The database** is a Supabase Postgres project in **`eu-central-1` (Frankfurt, Germany)**, inside the EU. It holds Cloud's records and nothing else.
 - **The API** runs on Cloudflare Workers at `api.ai4kanban.dev`.
-- **Every record answers one account.** A Cloud route is called with your own verified sign-in — or, for a decision pressed in Slack or Lark, with a callback that chat signs — and refuses a record belonging to anyone else. There is no shared board, no way into another account's records, no public link, and no read-only web view.
+- **Every record answers the account it belongs to, or the workspace it is in.** A Cloud route is called with your own verified sign-in — or, for a decision pressed in Slack or Lark, with a callback that chat signs. A workspace answers only the people an owner has added to it, and a workspace that was deleted and one you were never in are refused identically, so nothing says whether a workspace exists. Everything outside a workspace refuses a record belonging to anyone else. There is no way into another account's records, no public link, and no read-only web view.
 - **The database is not a client API.** Only the service can reach it: its tables are closed to every role, the project serves only the small set of functions the service calls, and its keys never leave the service.
 - **We can technically reach the database**, as the operator of any hosted service can. We access an account's records only when it is necessary to run the Service, to investigate a fault, or where the law requires it — not to read your board.
 - **The API keeps a request log of its own.** Cloudflare retains it, and we can query it while it lasts — unlike the static site's delivery logs above, which we never receive. What the API writes to that log is a status, a database error code, the kind of mail attempted, and an internal reference: no board content, no GitHub handle, and no email address.
@@ -181,7 +184,9 @@ A decision pressed in either chat comes back as a callback that chat signs and t
 
 Nothing else in the app deletes anything. Signing out stops that machine reaching Cloud and removes no record. Turning Cloud off for a board, or moving the board to another machine, removes no record either.
 
-**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, which message in a chat each task is, your Slack and Lark connections, and your invite request. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
+**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, which message in a chat each task is, your Slack and Lark connections, your invite request, and your membership of every workspace you are in. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
+
+**What it does not remove is a workspace, or your name on what you did in one.** A workspace you are in belongs to the people in it, so removing your account takes your membership and your machines out of it and leaves the workspace and its board where they are. The workspace's record of what happened keeps **the GitHub handle you had at the time**, written into each line as it happened, so the people still in it can read their own history. If you own a workspace, we cannot remove your account until you have made somebody else an owner or deleted it — otherwise a board a whole team is using would go with you.
 
 **It is all of it or none of it.** The service has no way to remove one board's record and leave the account behind it, so **asking us to forget a board ends your place in the preview**. If that is not what you meant, tell us what you need and we will say what we can do.
 
@@ -195,7 +200,7 @@ The preview keeps no backups of its own, so nothing is restored if a record is l
 
 **A Local board is not at risk.** Its cards, memory files, releases and configuration are Markdown in your own repository, on your own machine, and they are the same files whether Cloud is on or off.
 
-**A Cloud board is, and the export is what answers that.** Its cards, memory, releases and history live in the workspace, so losing the workspace would lose them. **Export it whenever you want a copy**: the app writes the whole board — the archive and the finished work included — as Markdown into a folder you choose, and that folder opens as a Local board. The preview keeps no backups of its own, so that export is the only copy anybody can restore from. **Leaving Cloud** writes the board back into `docs/kanban/` and takes the pointer off, and **deleting the workspace** removes it and everything in it; both are in the app, under Configuration → Workspace. A copy of what Cloud holds *about you* is a data request — see [Your rights and choices](#your-rights-and-choices).
+**A Cloud board is, and the export is what answers that.** Its cards, memory, releases and history live in the workspace, so losing the workspace would lose them. **Export it whenever you want a copy**: the app writes the whole board — the archive and the finished work included — as Markdown into a folder you choose, and that folder opens as a Local board. The preview keeps no backups of its own, so that export is the only copy anybody can restore from. **Leaving Cloud** writes the board back into `docs/kanban/` and takes the pointer off for that checkout, and **deleting the workspace** removes it and everything in it for everybody in it — an owner's move. Both are in the app, under Configuration → Workspace. A copy of what Cloud holds *about you* is a data request — see [Your rights and choices](#your-rights-and-choices).
 
 ### Making a data request about Cloud
 

@@ -55,13 +55,16 @@ import {
   startSlackConnect,
 } from "@/lib/cloud";
 import {
+  addWorkspaceMember,
   commitCloudChange,
   deleteWorkspace,
   exportWorkspace,
   leaveWorkspace,
+  removeWorkspaceMember,
   removeWorkspaceNode,
   renameWorkspace,
   renameWorkspaceNode,
+  setWorkspaceMemberRole,
   workspaceId,
   workspaceView,
   type WorkspaceExit,
@@ -159,6 +162,7 @@ import type {
   LarkCloud,
   LarkState,
   LoggedOutAgent,
+  MemberRoleWire,
   MetricsResult,
   SaveProjectResult,
   ScoreResult,
@@ -1282,7 +1286,16 @@ export async function workspaceViewAction(): Promise<WorkspaceView> {
   try {
     return await workspaceView();
   } catch (e) {
-    return { workspaceId: "", name: "", nodes: [], change: null, error: failed(e), stranded: false };
+    return {
+      workspaceId: "",
+      name: "",
+      nodes: [],
+      members: [],
+      owner: false,
+      change: null,
+      error: failed(e),
+      stranded: false,
+    };
   }
 }
 
@@ -1308,6 +1321,36 @@ export async function removeWorkspaceNodeAction(nodeId: string): Promise<Workspa
   if (!nodeId) return { ok: false, error: "No machine was named." };
   try {
     return await removeWorkspaceNode(nodeId);
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+/** Which handles Cloud will take is Cloud's — it answers every one it cannot resolve with
+ *  one sentence, so nothing here guesses at whether a person has an account (#376). */
+export async function addWorkspaceMemberAction(handle: string, role: MemberRoleWire): Promise<WorkspaceMove> {
+  const named = typeof handle === "string" ? handle.trim().replace(/^@/, "") : "";
+  if (!named) return { ok: false, error: "Type the GitHub handle to add." };
+  try {
+    return await addWorkspaceMember(named, role);
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+export async function removeWorkspaceMemberAction(accountId: string): Promise<WorkspaceMove> {
+  if (!accountId) return { ok: false, error: "No member was named." };
+  try {
+    return await removeWorkspaceMember(accountId);
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+export async function setWorkspaceMemberRoleAction(accountId: string, role: MemberRoleWire): Promise<WorkspaceMove> {
+  if (!accountId) return { ok: false, error: "No member was named." };
+  try {
+    return await setWorkspaceMemberRole(accountId, role);
   } catch (e) {
     return { ok: false, error: failed(e) };
   }

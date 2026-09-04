@@ -223,6 +223,21 @@ const en: ConfigurationCopy = {
     removeTitle: (machine) => `Remove ${machine}?`,
     removeBlurb:
       "Its next write and its next delivery are refused. Opening the board there again registers it back.",
+    nodeOf: (handle) => `@${handle}`,
+    members: "Members",
+    membersHint: "Everyone who can open this board. Owners also run it.",
+    owner: "Owner",
+    member: "Member",
+    handlePlaceholder: "GitHub handle",
+    add: "Add",
+    addBlurb:
+      "They have to be in the Cloud preview already. If they are not, they press Request an invite in the app and you add them once we let them in.",
+    makeOwner: "Make owner",
+    makeMember: "Make member",
+    removeMemberTitle: (handle) => `Remove @${handle}?`,
+    removeMemberBlurb:
+      "Their next write is refused. A board they already have open stays readable until they change something.",
+    ownerOnly: "An owner of this workspace runs these.",
     yourCopy: "Your copy",
     export: "Export to a folder",
     exportHint:

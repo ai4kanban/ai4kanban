@@ -98,14 +98,30 @@ export type WorkspaceCall<T> =
   | { ok: true; value: T }
   | { ok: false; error: string; stranded?: boolean };
 
-/** One machine registered to the workspace, as the owner controls list it. */
+/** One machine registered to the workspace, as the owner controls list it. `handle` is whose
+ *  machine it is — attribution, not a check: any member may take a machine over (#376). */
 export interface WorkspaceNodeWire {
   id: string;
   name: string;
   machineName: string;
+  handle: string;
   live: boolean;
   leaseExpiresAt: string | null;
 }
+
+/** One account in the workspace, as the member controls list it (#376). */
+export interface WorkspaceMemberWire {
+  accountId: string;
+  handle: string;
+  name: string | null;
+  avatarUrl: string | null;
+  role: MemberRoleWire;
+  addedAt: string;
+}
+
+/** An owner manages members, roles, nodes and the workspace itself; a member does every
+ *  ordinary board operation. No third role. */
+export type MemberRoleWire = "owner" | "member";
 
 /** What the one offered commit would carry — the board files entering or leaving git, the
  *  pointer, and the `docs/kanban/` block in the root `.gitignore` (#317). */
@@ -417,6 +433,14 @@ export interface BoardRules {
   readWorkspaceNodes?(id: string): Promise<WorkspaceCall<WorkspaceNodeWire[]>>;
   renameCloudNode?(id: string, nodeId: string, name: string): Promise<WorkspaceCall<WorkspaceNodeWire>>;
   removeCloudNode?(id: string, nodeId: string): Promise<WorkspaceCall<true>>;
+
+  // who is in the workspace, and in what role (#376). Optional like every Cloud move above:
+  // a project running rules that predate members draws no member list rather than controls
+  // nothing can answer.
+  readWorkspaceMembers?(id: string): Promise<WorkspaceCall<{ role: MemberRoleWire | null; members: WorkspaceMemberWire[] }>>;
+  addCloudMember?(id: string, handle: string, role: MemberRoleWire): Promise<WorkspaceCall<WorkspaceMemberWire>>;
+  removeCloudMember?(id: string, accountId: string): Promise<WorkspaceCall<true>>;
+  setCloudMemberRole?(id: string, accountId: string, role: MemberRoleWire): Promise<WorkspaceCall<WorkspaceMemberWire>>;
 
   // going Cloud and coming back (#317) — and the one commit each move offers, which is a
   // change the user reads before it lands.

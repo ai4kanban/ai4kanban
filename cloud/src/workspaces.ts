@@ -3,8 +3,11 @@
  *
  * One trusted place that decides what may change and in what order. Every route here is
  * behind #326's admission check and then behind the workspace's own: `cloud.workspace_for`
- * in the migration is the whole of it, and a workspace that is not the caller's and one that
- * has been deleted meet the same refusal, so nothing leaks whether a workspace ever existed.
+ * in the migration is the whole of it, and it answers the workspace's MEMBERS (#376). A
+ * workspace that is not one of the caller's and one that has been deleted meet the same
+ * refusal, so nothing leaks whether a workspace ever existed. The moves that manage the
+ * workspace rather than work on the board — its name, its deletion, its members and its
+ * nodes — keep an owner check of their own on top.
  *
  * Like every other route in this service, one call is one `api` function and therefore one
  * transaction: authorization, lifecycle rules, operation uniqueness and the expected revision
@@ -32,7 +35,6 @@ import type { Owner } from './owner.ts'
  *  tell the board changed without reading it back. */
 export interface Workspace {
   id: string
-  ownerId: string
   name: string
   revision: string
   /** The next card number the board has free. Import carries a board's own numbers in. */
@@ -102,7 +104,9 @@ export interface BoardExport {
   deliveries: DeliveryAttempt[]
 }
 
-/** A machine registered to run this workspace's work. */
+/** A machine registered to run this workspace's work. The account is who registered it —
+ *  it attributes rather than gates, so the check in front of a node stays "this workspace's,
+ *  and live" and a teammate can take a machine over (#376). */
 export interface WorkspaceNode {
   id: string
   workspaceId: string
@@ -110,9 +114,29 @@ export interface WorkspaceNode {
   machineId: string
   machineName: string
   runtimes: ServerRuntime[]
+  accountId: string | null
+  handle: string
   leaseExpiresAt: string | null
   live: boolean
 }
+
+/** One account inside one workspace. The handle, the name and the avatar are read back off
+ *  the account rather than kept a second time, so a member who renames on GitHub is one
+ *  name and not two (#376). */
+export interface WorkspaceMember {
+  accountId: string
+  handle: string
+  name: string | null
+  avatarUrl: string | null
+  role: MemberRole
+  addedAt: string
+}
+
+/** Two roles and no third. An owner manages members, roles, execution nodes and the
+ *  workspace itself; a member performs every ordinary board operation. */
+export type MemberRole = 'owner' | 'member'
+
+const ROLES: MemberRole[] = ['owner', 'member']
 
 /** One delivery attempt, under an id the service allocated. */
 export interface DeliveryAttempt {
@@ -302,6 +326,73 @@ export async function renewNode(env: Env, owner: Owner, id: string, nodeId: stri
       p_workspace: uuid(id, 'workspace'),
       p_node: uuid(nodeId, 'node'),
       p_lease_seconds: NODE_LEASE_SECONDS,
+    }),
+  }
+}
+
+// ---- the accounts inside the workspace --------------------------------------
+
+/** Who is in it, and what the CALLER's own role is — so a screen draws the owner controls
+ *  off the service's answer rather than off a handle it matched itself. */
+export async function listMembers(env: Env, owner: Owner, id: string): Promise<MemberList> {
+  const read = await call<MemberList>(env, 'list_members', {
+    p_subject: owner.accountId,
+    p_workspace: uuid(id, 'workspace'),
+  })
+  return { role: read?.role ?? null, members: read?.members ?? [] }
+}
+
+export interface MemberList {
+  /** The caller's own role in this workspace. Never null in practice — a non-member is
+   *  refused before the list is read. */
+  role: MemberRole | null
+  members: WorkspaceMember[]
+}
+
+/**
+ * Add somebody already admitted to the preview, by GitHub handle.
+ *
+ * Adding a member never admits an account: a handle we have not let in is refused, and the
+ * workspace keeps nothing for it — no pending member and no invitation of its own — so the
+ * teammate asks the preview for themselves and an owner adds them once we have approved
+ * them. Which handles are refused, and the one message they all meet, is the database's.
+ */
+export async function addMember(env: Env, owner: Owner, id: string, body: unknown): Promise<{ member: WorkspaceMember }> {
+  const input = held(body)
+  return {
+    member: await mutate<WorkspaceMember>(env, 'add_member', {
+      p_subject: owner.accountId,
+      p_workspace: uuid(id, 'workspace'),
+      p_op_id: opId(input.opId),
+      p_handle: handle(input.handle),
+      p_role: role(input.role),
+    }),
+  }
+}
+
+/** Take somebody off. Their next write and their next delivery confirmation are refused;
+ *  nothing pushes to a board they already have open, so that is where they meet it. */
+export async function removeMember(env: Env, owner: Owner, id: string, accountId: string, body: unknown): Promise<{ removed: true; accountId: string }> {
+  const input = held(body)
+  return await mutate(env, 'remove_member', {
+    p_subject: owner.accountId,
+    p_workspace: uuid(id, 'workspace'),
+    p_op_id: opId(input.opId),
+    p_account: uuid(accountId, 'account'),
+  })
+}
+
+/** Make a member an owner, or an owner a member. The one that would leave the workspace
+ *  with no owner is refused by the database, with the reason. */
+export async function setMemberRole(env: Env, owner: Owner, id: string, accountId: string, body: unknown): Promise<{ member: WorkspaceMember }> {
+  const input = held(body)
+  return {
+    member: await mutate<WorkspaceMember>(env, 'set_member_role', {
+      p_subject: owner.accountId,
+      p_workspace: uuid(id, 'workspace'),
+      p_op_id: opId(input.opId),
+      p_account: uuid(accountId, 'account'),
+      p_role: role(input.role),
     }),
   }
 }
@@ -686,6 +777,22 @@ export async function routeWorkspace(env: Env, owner: Owner, request: Request, u
     return json(await registerNode(env, owner, id, await bodyOf(request)))
   }
 
+  if (section === 'members' && !name) {
+    if (request.method === 'GET') return json(await listMembers(env, owner, id))
+    requireMethod(request, 'POST')
+    return json(await addMember(env, owner, id, await bodyOf(request)))
+  }
+
+  if (section === 'members' && name && (move === 'remove' || move === 'role')) {
+    requireMethod(request, 'POST')
+    const body = await bodyOf(request)
+    return json(
+      move === 'remove'
+        ? await removeMember(env, owner, id, name, body)
+        : await setMemberRole(env, owner, id, name, body),
+    )
+  }
+
   if (section === 'nodes' && (move === 'rename' || move === 'remove' || move === 'renew')) {
     requireMethod(request, 'POST')
     if (move === 'renew') return json(await renewNode(env, owner, id, name))
@@ -731,6 +838,25 @@ function opId(value: unknown): string {
  *  none, and a node that was removed is refused by the database rather than here. */
 const node = (value: unknown): string | null =>
   value === undefined || value === null || value === '' ? null : uuid(value, 'node')
+
+/** The GitHub handle an owner named. Bounded here; whether it resolves to exactly one
+ *  admitted account is the database's, and every handle it cannot resolve meets one
+ *  message. */
+function handle(value: unknown): string {
+  const named = typeof value === 'string' ? value.trim().slice(0, 100) : ''
+  if (!named) throw badRequest('That names no GitHub handle.')
+  return named
+}
+
+/** Which of the two roles. Refused here rather than folded into `member`, so a typo is a
+ *  refusal instead of a quiet demotion. */
+function role(value: unknown): MemberRole {
+  const named = typeof value === 'string' ? value.trim() : ''
+  if (!(ROLES as string[]).includes(named)) {
+    throw badRequest(`A member is ${ROLES.join(' or ')} — never “${named}”.`)
+  }
+  return named as MemberRole
+}
 
 /** The revision the caller read, as it travels: opaque, and `''` for a card that does not
  *  exist yet — #312's NO_REVISION, what a create expects to find. */

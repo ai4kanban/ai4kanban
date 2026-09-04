@@ -736,7 +736,11 @@ begin
 
   v_json := api.create_workspace(A, 'op-create-1', 'A board', BUDGET);
   v_ws := (v_json ->> 'id')::uuid;
-  assert (v_json ->> 'ownerId')::uuid = A, 'a workspace was not owned by the account that made it';
+  -- The creator's owner row is written by the same transaction, so a workspace is never a
+  -- moment old without somebody in it (#376). `ownerId` is off the wire with the check it
+  -- used to answer: the column records the create and nothing reads it.
+  assert cloud.member_role(v_ws, A) = 'owner', 'the account that made a workspace was not its owner';
+  assert not (v_json::jsonb ? 'ownerId'), 'a workspace still put its creator on the wire';
   assert (v_json ->> 'revision') = '1', 'a new workspace did not start at its first revision';
   assert (v_json ->> 'nextCardId')::integer = 1, 'a new workspace did not start numbering at 1';
   assert json_array_length(api.list_workspaces(A)) = 1, 'the account could not see its own workspace';
@@ -752,25 +756,30 @@ begin
   assert (select count(*) from cloud.workspaces where owner_id = A) = 1,
     'a retried create left a second workspace behind';
 
-  -- Every endpoint answers the owner and nobody else. One check does it —
-  -- `cloud.workspace_for` — which is the one place #376 changes.
-  perform pg_temp.refuses(format('select api.read_workspace(%L, %L)', B, v_ws), 'AKB02', 'read_workspace');
-  perform pg_temp.refuses(format('select api.read_cards(%L, %L)', B, v_ws), 'AKB02', 'read_cards');
-  perform pg_temp.refuses(format('select api.read_audit(%L, %L, 10)', B, v_ws), 'AKB02', 'read_audit');
-  perform pg_temp.refuses(format('select api.list_nodes(%L, %L)', B, v_ws), 'AKB02', 'list_nodes');
+  -- Every endpoint answers the workspace's MEMBERS and nobody else (#376). One check does
+  -- it — `cloud.workspace_for` — and a signed-in stranger meets AKB13 rather than the AKB02
+  -- a board, a server and a connection share.
+  perform pg_temp.refuses(format('select api.read_workspace(%L, %L)', B, v_ws), 'AKB13', 'read_workspace');
+  perform pg_temp.refuses(format('select api.read_cards(%L, %L)', B, v_ws), 'AKB13', 'read_cards');
+  perform pg_temp.refuses(format('select api.read_audit(%L, %L, 10)', B, v_ws), 'AKB13', 'read_audit');
+  perform pg_temp.refuses(format('select api.list_nodes(%L, %L)', B, v_ws), 'AKB13', 'list_nodes');
+  perform pg_temp.refuses(format('select api.list_members(%L, %L)', B, v_ws), 'AKB13', 'list_members');
   perform pg_temp.refuses(
     format('select api.rename_workspace(%L, %L, %L, null, %L, %L, %s)', B, v_ws, 'op-b', '1', 'stolen', BUDGET),
-    'AKB02', 'rename_workspace');
+    'AKB13', 'rename_workspace');
   perform pg_temp.refuses(
     format('select api.write_cards(%L, %L, %L, null, %L, %s)', B, v_ws, 'op-b2', '[{"expect":""}]', BUDGET),
-    'AKB02', 'write_cards');
+    'AKB13', 'write_cards');
   perform pg_temp.refuses(
     format('select api.register_node(%L, %L, %L, %L, %L, %s)', B, v_ws, MACHINE, 'm', '[]', BUDGET),
-    'AKB02', 'register_node');
+    'AKB13', 'register_node');
   perform pg_temp.refuses(
     format('select api.open_delivery(%L, %L, %L, null, 1, %s)', B, v_ws, 'op-b3', BUDGET),
-    'AKB02', 'open_delivery');
-  perform pg_temp.refuses(format('select api.delete_workspace(%L, %L)', B, v_ws), 'AKB02', 'delete_workspace');
+    'AKB13', 'open_delivery');
+  perform pg_temp.refuses(format('select api.delete_workspace(%L, %L)', B, v_ws), 'AKB13', 'delete_workspace');
+  perform pg_temp.refuses(
+    format('select api.add_member(%L, %L, %L, %L, %L, %s)', B, v_ws, 'op-b4', 'account-b', 'owner', BUDGET),
+    'AKB13', 'add_member');
 
   -- -------------------------------------------------------------------------
   -- The ids the control plane allocates
@@ -1039,18 +1048,20 @@ begin
   perform pg_temp.refuses(
     format('select api.write_cards(%L, %L, %L, null, %L, %s)', A, v_ws, 'op-after',
            '[{"expect":"","data":{}}]', BUDGET),
-    'AKB02', 'a write naming a deleted workspace');
+    'AKB13', 'a write naming a deleted workspace');
   perform pg_temp.refuses(
     format('select api.renew_node(%L, %L, %L, 900, %s)', A, v_ws, v_node, BUDGET),
-    'AKB02', 'a renewal naming a deleted workspace');
+    'AKB13', 'a renewal naming a deleted workspace');
   perform pg_temp.refuses(
     format('select api.confirm_delivery(%L, %L, %L, null, %L, %L, %L, %s)', A, v_ws, 'op-after-2',
            v_delivery, 'completed', '{}', BUDGET),
-    'AKB02', 'a delivery confirmation naming a deleted workspace');
+    'AKB13', 'a delivery confirmation naming a deleted workspace');
   perform pg_temp.refuses(
-    format('select api.delete_workspace(%L, %L)', A, v_ws), 'AKB02', 'the delete retried');
+    format('select api.delete_workspace(%L, %L)', A, v_ws), 'AKB13', 'the delete retried');
   perform pg_temp.refuses(
-    format('select api.read_workspace(%L, %L)', A, v_ws), 'AKB02', 'a read naming a deleted workspace');
+    format('select api.read_workspace(%L, %L)', A, v_ws), 'AKB13', 'a read naming a deleted workspace');
+  assert (select count(*) from cloud.workspace_members where workspace_id = v_ws) = 0,
+    'a member row outlived its workspace';
 
   -- What a deletion does not take: the owner's account and its admission, which are service
   -- data rather than workspace content. Nor anybody else's workspace.
@@ -1451,40 +1462,40 @@ begin
   assert json_array_length(api.read_cards(A, v_import) -> 'cards') = 2, 'the imported live board is wrong';
   assert json_array_length(api.read_archive(A, v_import) -> 'cards') = 1, 'the imported archive is wrong';
 
-  -- Every endpoint this card adds answers the owner and nobody else — one check, the one
-  -- place #376 changes.
-  perform pg_temp.refuses(format('select api.read_snapshot(%L, %L)', B, v_ws), 'AKB02', 'read_snapshot');
-  perform pg_temp.refuses(format('select api.read_card(%L, %L, 1)', B, v_ws), 'AKB02', 'read_card');
-  perform pg_temp.refuses(format('select api.read_archive(%L, %L)', B, v_ws), 'AKB02', 'read_archive');
-  perform pg_temp.refuses(format('select api.read_documents(%L, %L, %L)', B, v_ws, ''), 'AKB02', 'read_documents');
-  perform pg_temp.refuses(format('select api.read_deliveries(%L, %L, null)', B, v_ws), 'AKB02', 'read_deliveries');
-  perform pg_temp.refuses(format('select api.export_board(%L, %L)', B, v_ws), 'AKB02', 'export_board');
-  perform pg_temp.refuses(format('select api.export_events(%L, %L, 0, 10)', B, v_ws), 'AKB02', 'export_events');
-  perform pg_temp.refuses(format('select api.list_locks(%L, %L)', B, v_ws), 'AKB02', 'list_locks');
+  -- Every endpoint this card adds answers the workspace's members and nobody else — one
+  -- check, swapped to membership by #376.
+  perform pg_temp.refuses(format('select api.read_snapshot(%L, %L)', B, v_ws), 'AKB13', 'read_snapshot');
+  perform pg_temp.refuses(format('select api.read_card(%L, %L, 1)', B, v_ws), 'AKB13', 'read_card');
+  perform pg_temp.refuses(format('select api.read_archive(%L, %L)', B, v_ws), 'AKB13', 'read_archive');
+  perform pg_temp.refuses(format('select api.read_documents(%L, %L, %L)', B, v_ws, ''), 'AKB13', 'read_documents');
+  perform pg_temp.refuses(format('select api.read_deliveries(%L, %L, null)', B, v_ws), 'AKB13', 'read_deliveries');
+  perform pg_temp.refuses(format('select api.export_board(%L, %L)', B, v_ws), 'AKB13', 'export_board');
+  perform pg_temp.refuses(format('select api.export_events(%L, %L, 0, 10)', B, v_ws), 'AKB13', 'export_events');
+  perform pg_temp.refuses(format('select api.list_locks(%L, %L)', B, v_ws), 'AKB13', 'list_locks');
   perform pg_temp.refuses(
-    format('select api.take_lock(%L, %L, null, 1, null, 1800, %s)', B, v_ws, BUDGET), 'AKB02', 'take_lock');
+    format('select api.take_lock(%L, %L, null, 1, null, 1800, %s)', B, v_ws, BUDGET), 'AKB13', 'take_lock');
   perform pg_temp.refuses(
-    format('select api.release_lock(%L, %L, 1, %L)', B, v_ws, gen_random_uuid()), 'AKB02', 'release_lock');
+    format('select api.release_lock(%L, %L, 1, %L)', B, v_ws, gen_random_uuid()), 'AKB13', 'release_lock');
   perform pg_temp.refuses(
     format('select api.write_documents(%L, %L, %L, null, null, %L, %s)', B, v_ws, 'c-b',
            '[{"path":"a.md","kind":"config","expect":"","body":"x"}]', BUDGET),
-    'AKB02', 'write_documents');
+    'AKB13', 'write_documents');
   perform pg_temp.refuses(
     format('select api.record_delivery(%L, %L, %L, null, %L, %L, %L, %L, %s)', B, v_ws, 'c-b2', v_delivery,
            '{}', '', '', BUDGET),
-    'AKB02', 'record_delivery');
+    'AKB13', 'record_delivery');
   perform pg_temp.refuses(
     format('select api.begin_import(%L, %L, %L, %L, %s)', B, v_import, 'c-b3', FINGERPRINT, BUDGET),
-    'AKB02', 'begin_import');
+    'AKB13', 'begin_import');
   perform pg_temp.refuses(
     format('select api.import_events(%L, %L, %L, %L, %s)', B, v_import, 'c-b4', '[{"key":"9"}]', BUDGET),
-    'AKB02', 'import_events');
+    'AKB13', 'import_events');
   perform pg_temp.refuses(
     format('select api.import_deliveries(%L, %L, %L, %L, %s)', B, v_import, 'c-b4d',
            '[{"sourceId":"x","cardId":1}]', BUDGET),
-    'AKB02', 'import_deliveries');
+    'AKB13', 'import_deliveries');
   perform pg_temp.refuses(
-    format('select api.finish_import(%L, %L, %L, 1, %s)', B, v_import, 'c-b5', BUDGET), 'AKB02', 'finish_import');
+    format('select api.finish_import(%L, %L, %L, 1, %s)', B, v_import, 'c-b5', BUDGET), 'AKB13', 'finish_import');
 
   -- Everything a board holds goes with the workspace, inside the call that removes it.
   perform api.delete_workspace(A, v_ws);
@@ -1496,5 +1507,216 @@ begin
   raise notice 'sql checks: #315 board content checks passed';
 end
 $content$;
+
+-- ---------------------------------------------------------------------------
+-- Members and roles in a workspace (#376)
+-- ---------------------------------------------------------------------------
+--
+-- A block of its own, with accounts of its own: what a workspace does with two people in it
+-- is not a variation on what it does with one. The two roles, the refusals each of them
+-- meets, the handles an owner cannot add, and what closing an account leaves behind.
+
+do $members$
+declare
+  OWNER_A constant uuid := 'a0000000-1111-4111-8111-000000000001';
+  MEMBER_B constant uuid := 'b0000000-1111-4111-8111-000000000002';
+  OUTSIDER constant uuid := 'c0000000-1111-4111-8111-000000000003';
+  TWIN_1 constant uuid := 'd0000000-1111-4111-8111-000000000004';
+  TWIN_2 constant uuid := 'd0000000-1111-4111-8111-000000000005';
+  MACHINE_B constant uuid := 'e0000000-1111-4111-8111-000000000006';
+  BUDGET constant integer := 100000;
+  v_ws uuid;
+  v_node uuid;
+  v_delivery uuid;
+  v_json json;
+  v_count integer;
+begin
+  insert into cloud.accounts (id, handle) values
+    (OWNER_A, 'owner-a'), (MEMBER_B, 'member-b'), (OUTSIDER, 'outsider'),
+    (TWIN_1, 'twin'), (TWIN_2, 'Twin');
+
+  v_ws := (api.create_workspace(OWNER_A, 'm-create', 'A team board', BUDGET) ->> 'id')::uuid;
+
+  -- -------------------------------------------------------------------------
+  -- An owner adds somebody already admitted, by handle
+  -- -------------------------------------------------------------------------
+
+  v_json := api.add_member(OWNER_A, v_ws, 'm-add', 'MEMBER-B', 'member', BUDGET);
+  assert (v_json ->> 'accountId')::uuid = MEMBER_B, 'a handle did not resolve to its account';
+  assert (v_json ->> 'role') = 'member', 'an added member did not take the role it was added with';
+  assert (v_json ->> 'handle') = 'member-b', 'a member did not read its handle back off the account';
+  assert json_array_length(api.list_members(OWNER_A, v_ws) -> 'members') = 2,
+    'the workspace did not list both members';
+  assert (api.list_members(MEMBER_B, v_ws) ->> 'role') = 'member',
+    'the member list did not say what role the caller holds';
+
+  -- A workspace lists for its MEMBERS, not for the account that created it.
+  assert json_array_length(api.list_workspaces(MEMBER_B)) = 1, 'a member could not see the workspace';
+  assert json_array_length(api.list_workspaces(OUTSIDER)) = 0, 'a stranger saw a workspace';
+
+  -- Adding the same person again answers with the membership as it stands, and writes
+  -- nothing: an owner pressing twice must not re-role somebody or spend the day's budget.
+  assert (api.add_member(OWNER_A, v_ws, 'm-add-again', 'member-b', 'owner', BUDGET) ->> 'role') = 'member',
+    'adding somebody already in the workspace re-roled them';
+  assert (select count(*) from cloud.workspace_audit
+           where workspace_id = v_ws and action = 'member.added') = 1,
+    'adding somebody already in the workspace wrote a second line of trail';
+
+  -- A member change moves the board's revision, so a client holding one can tell.
+  assert (api.read_workspace(OWNER_A, v_ws) ->> 'revision') <> '1',
+    'adding a member did not advance the workspace''s revision';
+
+  -- The member does every ordinary board operation, and its own machine.
+  perform api.write_cards(MEMBER_B, v_ws, 'm-write', null, '[{"expect":"","data":{}}]'::jsonb, BUDGET);
+  v_json := api.register_node(MEMBER_B, v_ws, MACHINE_B, 'b-laptop', '[]'::jsonb, BUDGET);
+  v_node := (v_json ->> 'id')::uuid;
+  assert (v_json ->> 'accountId')::uuid = MEMBER_B, 'a node was not stamped with the account that registered it';
+  assert (v_json ->> 'handle') = 'member-b', 'the node list did not say whose machine it is';
+  assert (api.renew_node(MEMBER_B, v_ws, v_node, 900, BUDGET) ->> 'live')::boolean,
+    'a member could not renew its own machine';
+  assert (select actor_handle from cloud.workspace_audit
+           where workspace_id = v_ws and action = 'card.written' order by id desc limit 1) = 'member-b',
+    'a member''s write was not attributed to them';
+
+  -- -------------------------------------------------------------------------
+  -- A member without the role meets a refusal of its own
+  -- -------------------------------------------------------------------------
+  -- AKB14 and not AKB13: telling somebody already in the workspace to ask to be added would
+  -- leave their checkout offering the way out of a board they can still read.
+
+  perform pg_temp.refuses(
+    format('select api.rename_workspace(%L, %L, %L, null, %L, %L, %s)', MEMBER_B, v_ws, 'm-b1', '1', 'x', BUDGET),
+    'AKB14', 'a member renaming the workspace');
+  perform pg_temp.refuses(
+    format('select api.delete_workspace(%L, %L)', MEMBER_B, v_ws), 'AKB14', 'a member deleting the workspace');
+  perform pg_temp.refuses(
+    format('select api.rename_node(%L, %L, %L, %L, %L, %s)', MEMBER_B, v_ws, 'm-b2', v_node, 'x', BUDGET),
+    'AKB14', 'a member renaming a node');
+  perform pg_temp.refuses(
+    format('select api.remove_node(%L, %L, %L, %L, %s)', MEMBER_B, v_ws, 'm-b3', v_node, BUDGET),
+    'AKB14', 'a member removing a node');
+  perform pg_temp.refuses(
+    format('select api.add_member(%L, %L, %L, %L, %L, %s)', MEMBER_B, v_ws, 'm-b4', 'outsider', 'member', BUDGET),
+    'AKB14', 'a member adding a member');
+  perform pg_temp.refuses(
+    format('select api.remove_member(%L, %L, %L, %L, %s)', MEMBER_B, v_ws, 'm-b5', OWNER_A, BUDGET),
+    'AKB14', 'a member removing a member');
+  perform pg_temp.refuses(
+    format('select api.set_member_role(%L, %L, %L, %L, %L, %s)', MEMBER_B, v_ws, 'm-b6', MEMBER_B, 'owner', BUDGET),
+    'AKB14', 'a member promoting itself');
+  assert cloud.member_role(v_ws, MEMBER_B) = 'member', 'a refused re-role changed the role anyway';
+
+  -- -------------------------------------------------------------------------
+  -- One refusal for every handle an owner cannot add
+  -- -------------------------------------------------------------------------
+  -- A handle we admitted that never signed in, one signed in and still waiting on us, one
+  -- that does not exist, and one two accounts hold all meet the same message, so adding a
+  -- member cannot be used to find out who has an account. The workspace keeps nothing for
+  -- any of them.
+
+  insert into cloud.admitted_accounts (handle, note) values ('admitted', 'never signed in');
+  insert into cloud.invite_requests (subject, handle, email)
+  values (gen_random_uuid(), 'waiting', 'waiting@example.com');
+  for v_json in select to_json(h) from unnest(array['nobody', 'admitted', 'waiting', 'twin', '']) h loop
+    perform pg_temp.refuses(
+      format('select api.add_member(%L, %L, %L, %L, %L, %s)', OWNER_A, v_ws,
+             'm-bad-' || (v_json #>> '{}'), v_json #>> '{}', 'member', BUDGET),
+      'AKB15', format('adding the handle %L', v_json #>> '{}'));
+  end loop;
+  assert json_array_length(api.list_members(OWNER_A, v_ws) -> 'members') = 2,
+    'a refused add left something behind in the workspace';
+
+  -- -------------------------------------------------------------------------
+  -- A workspace always keeps an owner
+  -- -------------------------------------------------------------------------
+
+  perform pg_temp.refuses(
+    format('select api.set_member_role(%L, %L, %L, %L, %L, %s)', OWNER_A, v_ws, 'm-demote', OWNER_A, 'member', BUDGET),
+    'AKB16', 'the last owner demoting itself');
+  perform pg_temp.refuses(
+    format('select api.remove_member(%L, %L, %L, %L, %s)', OWNER_A, v_ws, 'm-self', OWNER_A, BUDGET),
+    'AKB16', 'the last owner removing itself');
+  assert cloud.member_role(v_ws, OWNER_A) = 'owner', 'a refused demotion changed the role anyway';
+
+  -- With a second owner in place, both moves land.
+  perform api.set_member_role(OWNER_A, v_ws, 'm-promote', MEMBER_B, 'owner', BUDGET);
+  assert cloud.member_role(v_ws, MEMBER_B) = 'owner', 'a promotion did not take';
+  perform api.set_member_role(MEMBER_B, v_ws, 'm-demote-2', OWNER_A, 'member', BUDGET);
+  assert cloud.member_role(v_ws, OWNER_A) = 'member', 'a demotion by the second owner did not take';
+  perform api.set_member_role(MEMBER_B, v_ws, 'm-promote-2', OWNER_A, 'owner', BUDGET);
+
+  -- -------------------------------------------------------------------------
+  -- A removal bites on the next write, not on an open screen
+  -- -------------------------------------------------------------------------
+
+  v_json := api.open_delivery(MEMBER_B, v_ws, 'm-deliver', v_node, 1, BUDGET);
+  v_delivery := (v_json ->> 'id')::uuid;
+  perform api.set_member_role(OWNER_A, v_ws, 'm-demote-3', MEMBER_B, 'member', BUDGET);
+  perform api.remove_member(OWNER_A, v_ws, 'm-remove', MEMBER_B, BUDGET);
+  assert cloud.member_role(v_ws, MEMBER_B) is null, 'a removed member kept its row';
+  perform pg_temp.refuses(
+    format('select api.write_cards(%L, %L, %L, null, %L, %s)', MEMBER_B, v_ws, 'm-after',
+           '[{"expect":"","data":{}}]', BUDGET),
+    'AKB13', 'a removed member writing');
+  perform pg_temp.refuses(
+    format('select api.confirm_delivery(%L, %L, %L, %L, %L, %L, %L, %s)', MEMBER_B, v_ws, 'm-after-2',
+           v_node, v_delivery, 'completed', '{}', BUDGET),
+    'AKB13', 'a removed member confirming a delivery');
+  perform pg_temp.refuses(
+    format('select api.read_workspace(%L, %L)', MEMBER_B, v_ws), 'AKB13', 'a removed member reading the workspace');
+  assert json_array_length(api.list_workspaces(MEMBER_B)) = 0, 'a removed member still listed the workspace';
+
+  -- Every member change is on the trail, attributed like any other.
+  assert (select count(*) from cloud.workspace_audit
+           where workspace_id = v_ws and action = 'member.removed') = 1,
+    'a removal left no line of trail';
+  assert (select count(*) from cloud.workspace_audit
+           where workspace_id = v_ws and action = 'member.role_changed') > 0,
+    'a role change left no line of trail';
+
+  -- The trail keeps their name on the work they did, with no row kept for them.
+  assert (select count(*) from cloud.workspace_audit
+           where workspace_id = v_ws and actor_handle = 'member-b') > 0,
+    'removing a member took their name off the trail';
+
+  -- Removing somebody who is not in it is a refusal rather than a silent success.
+  perform pg_temp.refuses(
+    format('select api.remove_member(%L, %L, %L, %L, %s)', OWNER_A, v_ws, 'm-remove-2', OUTSIDER, BUDGET),
+    'AKB10', 'removing a member the workspace does not hold');
+
+  -- -------------------------------------------------------------------------
+  -- Closing an account leaves the workspace where it is
+  -- -------------------------------------------------------------------------
+  -- An account that still holds an owner row is refused with what to transfer or delete
+  -- first, and one held row refuses the whole call — the removal is by handle and can match
+  -- more than one account.
+
+  perform pg_temp.refuses(
+    'select cloud.remove_account(''owner-a'')', 'P0001', 'closing an account that still owns a workspace');
+  assert (select count(*) from cloud.workspaces where id = v_ws) = 1,
+    'a refused account removal took the workspace anyway';
+
+  -- Once the workspace is somebody else's, closing removes the account, its memberships and
+  -- its machines — and keeps the workspace and its name on the trail.
+  perform api.add_member(OWNER_A, v_ws, 'm-add-2', 'outsider', 'owner', BUDGET);
+  perform api.set_member_role(OUTSIDER, v_ws, 'm-demote-4', OWNER_A, 'member', BUDGET);
+  perform cloud.remove_account('owner-a');
+  assert (select count(*) from cloud.accounts where id = OWNER_A) = 0, 'the account outlived its removal';
+  assert (select count(*) from cloud.workspaces where id = v_ws) = 1,
+    'closing an account took a workspace it no longer owned';
+  assert (select owner_id from cloud.workspaces where id = v_ws) is null,
+    'the create stamp was not cleared with the account that made it';
+  assert (select count(*) from cloud.workspace_members where workspace_id = v_ws and account_id = OWNER_A) = 0,
+    'a closed account kept its membership';
+  assert (select count(*) from cloud.workspace_audit
+           where workspace_id = v_ws and actor_handle = 'owner-a') > 0,
+    'closing an account took its name off the work it did';
+
+  select count(*) into v_count from cloud.workspace_members where workspace_id = v_ws;
+  assert v_count = 1, format('the workspace was left with the wrong members (%s)', v_count);
+
+  raise notice 'sql checks: #376 member checks passed';
+end
+$members$;
 
 rollback;

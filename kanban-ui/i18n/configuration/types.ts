@@ -236,6 +236,26 @@ export type ConfigurationCopy = {
     remove: string;
     removeTitle: (machine: string) => string;
     removeBlurb: string;
+    /** Whose machine a node is, beside its name. */
+    nodeOf: (handle: string) => string;
+    /** Who is in the workspace, and in what role (#376). Only an owner sees the controls;
+     *  a member sees the list. */
+    members: string;
+    membersHint: string;
+    owner: string;
+    member: string;
+    /** Adding one: a GitHub handle, and nothing else to fill in. */
+    handlePlaceholder: string;
+    add: string;
+    /** Said under the field: we add somebody already in the preview, and what a person who
+     *  is not does instead. */
+    addBlurb: string;
+    makeOwner: string;
+    makeMember: string;
+    removeMemberTitle: (handle: string) => string;
+    removeMemberBlurb: string;
+    /** Drawn in place of every owner control, for a member. */
+    ownerOnly: string;
     /** The caption over the two ways a copy of the board comes back to the user. */
     yourCopy: string;
     export: string;

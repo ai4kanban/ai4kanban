@@ -61,6 +61,13 @@ export const TERMINAL_CODES = [
   'operation_reused',
   'daily_write_budget_reached',
   'storage_limit_reached',
+  // The workspace's own four (#376). Each names what the reader does instead of retrying:
+  // ask an owner to add you, ask an owner to do it, have that person sign in and be
+  // admitted first, or make somebody else an owner.
+  'not_a_member',
+  'owner_only',
+  'handle_not_admitted',
+  'last_owner',
 ]
 
 export const isTerminal = (code?: string): boolean => !!code && TERMINAL_CODES.includes(code)
@@ -341,6 +348,49 @@ export const removeWorkspaceNode = (
     opId,
   })
 
+// ---- the accounts inside the workspace (#376) --------------------------------
+
+/** Who is in this workspace, and what the CALLER's own role is — what #317's member
+ *  controls list, and what decides whether the owner-only ones are drawn at all. */
+export const listWorkspaceMembers = (
+  workspaceId: string,
+): Promise<CloudCall<{ role: MemberRole | null; members: WireMember[] }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/members`)
+
+/** Add somebody by GitHub handle. It has to resolve to exactly one account we have already
+ *  admitted: adding a member never admits one, and every handle that does not resolve meets
+ *  the same refusal. */
+export const addWorkspaceMember = (
+  workspaceId: string,
+  opId: string,
+  handle: string,
+  role: MemberRole,
+): Promise<CloudCall<{ member: WireMember }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/members`, { opId, handle, role })
+
+/** Take somebody off. Their next write and their next delivery confirmation are refused. */
+export const removeWorkspaceMember = (
+  workspaceId: string,
+  accountId: string,
+  opId: string,
+): Promise<CloudCall<{ removed: true; accountId: string }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/members/${encodeURIComponent(accountId)}/remove`, {
+    opId,
+  })
+
+/** Make a member an owner, or an owner a member. The change that would leave the workspace
+ *  with no owner is refused, with the reason. */
+export const setWorkspaceMemberRole = (
+  workspaceId: string,
+  accountId: string,
+  opId: string,
+  role: MemberRole,
+): Promise<CloudCall<{ member: WireMember }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/members/${encodeURIComponent(accountId)}/role`, {
+    opId,
+    role,
+  })
+
 /** Claim a new workspace for one source board, by the fingerprint the machine derived from
  *  it. A workspace already holding a board is refused unless it holds this one. */
 export const beginImport = (
@@ -443,7 +493,8 @@ export interface WireLock {
   expiresAt: string
 }
 
-/** A machine registered to run this workspace's work. */
+/** A machine registered to run this workspace's work. `handle` is whose machine it is —
+ *  the account that registered it, which attributes rather than gates (#376). */
 export interface WireNode {
   id: string
   workspaceId: string
@@ -451,9 +502,26 @@ export interface WireNode {
   machineId: string
   machineName: string
   runtimes: ServerRuntime[]
+  accountId: string | null
+  handle: string
   leaseExpiresAt: string | null
   live: boolean
 }
+
+/** One account inside one workspace (#376). The handle and the name come back off the
+ *  account, so a member who renames on GitHub is one name and not two. */
+export interface WireMember {
+  accountId: string
+  handle: string
+  name: string | null
+  avatarUrl: string | null
+  role: MemberRole
+  addedAt: string
+}
+
+/** An owner manages members, roles, execution nodes and the workspace itself; a member does
+ *  every ordinary board operation. No third role, and no per-card permissions. */
+export type MemberRole = 'owner' | 'member'
 
 /** One card on the wire: its number, the revision the caller read, and the card itself. */
 export interface WireCard {

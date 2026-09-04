@@ -30,12 +30,21 @@ cloud/
 - **Sign-in is verified, never issued here**: Supabase Auth signs sessions with an asymmetric
   key and the Worker checks them against the project's JWKS. There is no shared signing
   secret to hold or leak.
-- **A workspace is one board, and one account's**: it holds the cards, the execution nodes
+- **A workspace is one board, and the people in it**: it holds the cards, the execution nodes
   registered to run its work, the operation ledger and the audit trail, all under ids this
   service allocates — except a card's, which stays the small integer the board already calls
-  it by. `cloud.workspace_for` is the whole of its authorization, in one place, and a
-  workspace that is not the caller's and one that has been deleted meet the same refusal: no
-  client has to tell "gone" from "not yours", and nothing leaks whether one ever existed.
+  it by. `cloud.workspace_for` is the whole of its authorization, in one place, and it answers
+  the workspace's members; a workspace that the caller is not in and one that has been deleted
+  meet the same refusal, so nothing leaks whether one ever existed.
+- **Two roles and no third**: an owner runs the workspace's name, its members and their roles,
+  its nodes and its deletion; a member does every ordinary board operation. Each owner-only
+  route keeps `cloud.require_workspace_owner` on top of the membership check, so widening one
+  check hands nobody the delete. A member without the role meets its own refusal rather than
+  the non-member one. There are no per-card permissions.
+- **Adding a member never admits an account**: an owner names a GitHub handle, and it has to
+  resolve to exactly one account already in `cloud.accounts`. A handle that never signed in,
+  one still waiting on us, one that does not exist and one two accounts hold all meet the same
+  message, so adding a member cannot be used to find out who has a Cloud account.
 - **One transaction per change, and one line of trail per change**: authorization, lifecycle
   rules, operation uniqueness and the expected revision are checked, the change is applied,
   revisions advance and an attributed audit event is appended — all of it or none of it. A
@@ -185,11 +194,21 @@ workspace, deleting it, and a node registering or renewing.
 - `POST /v1/workspaces` — make one. `{ "name": "…", "opId": "…" }`; the `opId` is optional,
   because the ledger that would deduplicate it lives inside the workspace this call is
   making — the workspace row carries it instead.
-- `GET /v1/workspaces` — the caller's own.
+- `GET /v1/workspaces` — the ones the caller is a member of.
 - `GET /v1/workspaces/<id>` — one, and the revision the board reads at now.
 - `POST /v1/workspaces/<id>/rename` — `{ "opId": "…", "expect": "…", "name": "…" }`.
-- `POST /v1/workspaces/<id>/delete` — the workspace and everything in it, at once. The
-  confirmation is the caller's; #317 is what asks a person whether they mean it.
+- `POST /v1/workspaces/<id>/delete` — the workspace and everything in it, at once. An owner's.
+  The confirmation is the caller's; #317 is what asks a person whether they mean it.
+- `GET /v1/workspaces/<id>/members` — who is in it, and the caller's own `role` beside them,
+  so a screen draws the owner-only controls off this answer rather than off a handle it
+  matched itself.
+- `POST /v1/workspaces/<id>/members` — add one: `{ "opId": "…", "handle": "…", "role": "owner"
+  | "member" }`. An owner's. The handle has to resolve to exactly one admitted account.
+- `POST /v1/workspaces/<id>/members/<account>/role` — `{ "opId": "…", "role": "…" }`. An
+  owner's. The change that would leave the workspace with no owner is refused.
+- `POST /v1/workspaces/<id>/members/<account>/remove` — take somebody off: `{ "opId": "…" }`.
+  An owner's. Their next write and delivery confirmation are refused; nothing pushes to a
+  board they already have open.
 - `GET /v1/workspaces/<id>/cards` — every card, each with its own revision.
 - `POST /v1/workspaces/<id>/cards` — write one card or many, in one transaction:
   `{ "opId": "…", "nodeId": "…", "cards": [{ "id": 7, "expect": "3", "data": { … } }] }`. An
@@ -199,11 +218,13 @@ workspace, deleting it, and a node registering or renewing.
 - `GET /v1/workspaces/<id>/audit?limit=N` — the trail, newest first.
 - `GET|POST /v1/workspaces/<id>/nodes` — the machines registered to run this workspace's
   work, and registering the one calling: `{ "machineId": "…", "machineName": "…",
-  "runtimes": [ … ] }`. Idempotent on the machine id.
-- `POST /v1/workspaces/<id>/nodes/<node>/rename` — `{ "opId": "…", "name": "…" }`. The name is
-  the owner's, so registering again never takes it back.
-- `POST /v1/workspaces/<id>/nodes/<node>/remove` — take the machine off. Its next renewal,
-  write and delivery confirmation are all refused.
+  "runtimes": [ … ] }`. Idempotent on the machine id. Any member registers and renews their
+  own machine; the node carries the account that registered it, which attributes rather than
+  gates.
+- `POST /v1/workspaces/<id>/nodes/<node>/rename` — `{ "opId": "…", "name": "…" }`. An owner's,
+  so registering again never takes the name back.
+- `POST /v1/workspaces/<id>/nodes/<node>/remove` — take the machine off. An owner's. Its next
+  renewal, write and delivery confirmation are all refused.
 - `POST /v1/workspaces/<id>/nodes/<node>/renew` — the node saying it is still there.
 - `GET /v1/workspaces/<id>/cards/<card>` — one card. What a `revision_conflict` is re-read
   through: the refusal names the card whose revision moved, never the whole board.
@@ -315,7 +336,11 @@ to be shown to a user as it stands. The two a client must tell apart:
 | --- | --- |
 | `unauthenticated` | No sign-in, or one that is expired or unreadable. Signing in again fixes it. |
 | `not_admitted` | A good sign-in from an account we have not admitted. Signing in again lands on the same refusal, so a client must never answer it with "sign in again". |
-| `not_yours` | The request named a row belonging to another account — or a workspace that has been deleted, which answers the same way on purpose. |
+| `not_yours` | The request named a row belonging to another account. Not a workspace: those answer with `not_a_member`. |
+| `not_a_member` | The caller is not in that workspace — or it has been deleted, which answers the same way on purpose, so nothing says whether one exists. |
+| `owner_only` | The caller is in the workspace without the owner role. Never `not_a_member`: they can still read the board. |
+| `handle_not_admitted` | The handle an owner named does not resolve to exactly one admitted account. One message for every case it does not. |
+| `last_owner` | The role change or removal would leave the workspace with no owner. |
 | `revision_conflict` | A write against a revision that has moved. Carries `current`, the revision the resource holds now, so the client re-reads that one card and writes again. |
 | `operation_reused` | One `opId`, two different changes. A retry carrying the same payload is answered with the first result instead; this is a client reusing an id. |
 | `node_removed` | The call came from a machine this workspace no longer runs its work on. |
@@ -450,6 +475,32 @@ for somebody who never signed in again, and the subject of any `cloud.accounts` 
 handle matches, for somebody who renamed after we let them in. `cloud.accounts.handle` is
 deliberately not unique, so check `select id, handle from cloud.accounts where lower(handle) =
 lower('…')` first if there is any chance two accounts share one.
+
+**An account that still owns a workspace is refused**, and the refusal names each workspace
+(#376). Closing an account no longer takes a workspace with it — a team's board would go with
+whoever created it — so the workspaces have to be handed over or removed first. Either move
+is one statement:
+
+```sql
+-- who owns what, for the handle you are about to remove
+select w.id, w.name, a.handle, m.role
+from cloud.workspace_members m
+join cloud.workspaces w on w.id = m.workspace_id
+join cloud.accounts a on a.id = m.account_id
+where lower(a.handle) = lower('neverchanje') and m.role = 'owner';
+
+-- hand one over: make somebody already in it an owner, then take the leaver's row out
+update cloud.workspace_members set role = 'owner'
+ where workspace_id = '<workspace-id>' and account_id = '<new-owner-id>';
+delete from cloud.workspace_members
+ where workspace_id = '<workspace-id>' and account_id = '<leaver-id>';
+```
+
+Because the removal is by handle and can match more than one account, one held owner row
+refuses the whole call: removing some and refusing the rest would leave you half-done. A
+permitted removal takes the account's memberships and its machines with it and leaves its
+handle on the work it already did — the trail copies a handle in at write time, so it reads
+after both the member row and the account are gone.
 
 Nothing here is reachable over REST: these functions live in `cloud`, which PostgREST serves
 to nobody. Run them in the project's SQL editor, the same way an account is admitted above.

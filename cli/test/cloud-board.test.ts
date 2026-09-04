@@ -501,28 +501,29 @@ describe('a workspace this machine may not read', () => {
     assert.match(opened.ok === false ? opened.error : '', /Configuration dialog/)
   })
 
-  // Cloud answers a deleted workspace and one that was never yours with the same code, on
+  // Cloud answers a deleted workspace and one this account is not in with the same code, on
   // purpose, so nothing leaks whether a workspace ever existed (#317). One sentence has to
-  // be true of both, and it has to name the two ways out.
-  it('says the board is no longer this account’s, and names the two ways out', async () => {
+  // be true of both, and it has to name the two ways out — since #376 the way in is an
+  // owner adding this account, not signing in as somebody else.
+  it('says this account is not in the workspace, and names the two ways out', async () => {
     worker((call) =>
       call.path.endsWith('/snapshot')
-        ? refused(403, { code: 'not_yours', message: 'That belongs to another account.' })
+        ? refused(403, { code: 'not_a_member', message: 'You are not in this workspace.' })
         : undefined,
     )
     pointed(false)
     const opened = await openBoard(root)
     assert.equal(opened.ok, false)
-    assert.equal(opened.ok === false && opened.reason, 'not-yours')
+    assert.equal(opened.ok === false && opened.reason, 'not-a-member')
     const said = opened.ok === false ? opened.error : ''
-    assert.match(said, /no longer this account’s/)
-    assert.match(said, /deleted, or it was never yours/)
-    assert.match(said, /Sign in as the account that owns it/)
+    assert.match(said, /not in this board’s workspace/)
+    assert.match(said, /deleted, or nobody has added you/)
+    assert.match(said, /Ask an owner to add you/)
     assert.match(said, /leave Cloud/)
 
     // And the board installed behind it answers with that, rather than with the markdown
     // left in the checkout.
-    await assert.rejects(() => board().readBoard(), /no longer this account’s/)
+    await assert.rejects(() => board().readBoard(), /not in this board’s workspace/)
   })
 
   // A refusal is never this process's final answer. The remedy every one of them names is

@@ -341,20 +341,32 @@ export type { BoardState, OpenBoard, OpenRefusal } from './lib/board'
 export { readPointer as readBoardPointer, writePointer as writeBoardPointer } from './lib/cloud/pointer'
 export type { BoardPointer } from './lib/cloud/pointer'
 
-// A workspace's own life, as its owner runs it (#317): making one, renaming it, deleting it,
-// and the machines registered to it. Called by onboarding in the desktop app and by
-// Configuration → Workspace; nothing in a run reaches any of it.
+// A workspace's own life, as its owners run it (#317): making one, renaming it, deleting it,
+// the machines registered to it, and — since #376 — who is in it and in what role. Called by
+// onboarding in the desktop app and by Configuration → Workspace; nothing in a run reaches
+// any of it.
 export {
+  addCloudMember,
   createCloudWorkspace,
   deleteCloudWorkspace,
   readCloudWorkspace,
   readCloudWorkspaces,
+  readWorkspaceMembers,
   readWorkspaceNodes,
+  removeCloudMember,
   removeCloudNode,
   renameCloudNode,
   renameCloudWorkspace,
+  setCloudMemberRole,
 } from './lib/cloud/workspace-life'
-export type { CloudNode, CloudWorkspace, WorkspaceResult } from './lib/cloud/workspace-life'
+export type {
+  CloudMember,
+  CloudMembers,
+  CloudNode,
+  CloudWorkspace,
+  MemberRole,
+  WorkspaceResult,
+} from './lib/cloud/workspace-life'
 
 // Taking a checkout to Cloud and bringing it back (#317), and the one commit each move
 // offers. The moves leave the repository dirty on purpose: the commit is a change the user

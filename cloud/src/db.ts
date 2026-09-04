@@ -12,10 +12,14 @@ import {
   boardNotEmpty,
   cardLocked,
   dailyWriteBudgetReached,
+  handleNotAdmitted,
+  lastOwner,
   nodeRemoved,
+  notAMember,
   notFound,
   notYours,
   operationReused,
+  ownerOnly,
   revisionConflict,
   serverElsewhere,
   serviceUnavailable,
@@ -57,6 +61,19 @@ export const PG_CARD_LOCKED = 'AKB11'
 
 /** SQLSTATE an import into a workspace that already holds a board raises (#315). */
 export const PG_BOARD_NOT_EMPTY = 'AKB12'
+
+/** SQLSTATE the workspace's membership check raises for a signed-in account that is not in
+ *  it — and for a workspace that has been deleted, which answers identically (#376). */
+export const PG_NOT_A_MEMBER = 'AKB13'
+
+/** SQLSTATE a member without the owner role raises on an owner-only move. */
+export const PG_OWNER_ONLY = 'AKB14'
+
+/** SQLSTATE a handle that does not resolve to exactly one admitted account raises. */
+export const PG_HANDLE_NOT_ADMITTED = 'AKB15'
+
+/** SQLSTATE a change that would leave the workspace with no owner raises. */
+export const PG_LAST_OWNER = 'AKB16'
 
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
@@ -123,6 +140,10 @@ export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_NOT_IN_WORKSPACE) return notFound(error.message)
   if (error.code === PG_CARD_LOCKED) return cardLocked(error.message, error.details)
   if (error.code === PG_BOARD_NOT_EMPTY) return boardNotEmpty(error.message)
+  if (error.code === PG_NOT_A_MEMBER) return notAMember(error.message)
+  if (error.code === PG_OWNER_ONLY) return ownerOnly(error.message)
+  if (error.code === PG_HANDLE_NOT_ADMITTED) return handleNotAdmitted(error.message)
+  if (error.code === PG_LAST_OWNER) return lastOwner(error.message)
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

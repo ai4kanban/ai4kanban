@@ -11,14 +11,19 @@ import {
 import {
   PG_BOARD_NOT_EMPTY,
   PG_CARD_LOCKED,
+  PG_HANDLE_NOT_ADMITTED,
+  PG_LAST_OWNER,
   PG_NODE_REMOVED,
+  PG_NOT_A_MEMBER,
   PG_NOT_IN_WORKSPACE,
   PG_OPERATION_REUSED,
+  PG_OWNER_ONLY,
   PG_REVISION_CONFLICT,
   refusalFor,
 } from '../src/db.ts'
 import { refusalResponse } from '../src/http.ts'
 import {
+  addMember,
   beginImport,
   confirmDelivery,
   importDeliveries,
@@ -27,8 +32,10 @@ import {
   recordDelivery,
   registerNode,
   releaseLock,
+  removeMember,
   renewNode,
   routeWorkspace,
+  setMemberRole,
   takeLock,
   writeCards,
   writeDocuments,
@@ -52,6 +59,7 @@ const NODE = '33333333-3333-4333-8333-333333333333'
 const MACHINE = '44444444-4444-4444-8444-444444444444'
 const DELIVERY = '55555555-5555-4555-8555-555555555555'
 const LEASE = '66666666-6666-4666-8666-666666666666'
+const ACCOUNT = '77777777-7777-4777-8777-777777777777'
 
 const ENV = { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'k' }
 
@@ -446,6 +454,46 @@ describe('a workspace’s nodes', () => {
   })
 })
 
+describe('the accounts inside a workspace', () => {
+  it('carries the handle and the role an owner named', async () => {
+    const calls = fakeDatabase({ accountId: ACCOUNT, role: 'member' })
+
+    await addMember(ENV, OWNER, WORKSPACE, { opId: 'op-1', handle: '  Teammate  ', role: 'member' })
+
+    assert.equal(calls[0].fn, 'add_member')
+    assert.equal(calls[0].args.p_handle, 'Teammate')
+    assert.equal(calls[0].args.p_role, 'member')
+  })
+
+  it('refuses a role that is neither, so a typo is never a quiet demotion', async () => {
+    const calls = fakeDatabase({})
+    for (const role of ['Owner', 'admin', '', undefined]) {
+      await assert.rejects(
+        addMember(ENV, OWNER, WORKSPACE, { opId: 'op-1', handle: 'teammate', role }),
+        (e) => e.code === 'bad_request',
+      )
+      await assert.rejects(
+        setMemberRole(ENV, OWNER, WORKSPACE, ACCOUNT, { opId: 'op-1', role }),
+        (e) => e.code === 'bad_request',
+      )
+    }
+    assert.equal(calls.length, 0)
+  })
+
+  it('refuses a handle that is nothing, and an account that is not an id', async () => {
+    const calls = fakeDatabase({})
+    await assert.rejects(
+      addMember(ENV, OWNER, WORKSPACE, { opId: 'op-1', handle: '   ', role: 'member' }),
+      (e) => e.code === 'bad_request',
+    )
+    await assert.rejects(
+      removeMember(ENV, OWNER, WORKSPACE, '../../etc', { opId: 'op-1' }),
+      (e) => e.code === 'bad_request',
+    )
+    assert.equal(calls.length, 0)
+  })
+})
+
 describe('confirming a delivery', () => {
   it('takes the three ways one ends and refuses anything else', async () => {
     const calls = fakeDatabase({ id: DELIVERY, state: 'failed' })
@@ -471,6 +519,18 @@ describe('the refusals a client acts on', () => {
     const body = await refusalResponse(refusal).json()
     assert.equal(body.error.code, 'revision_conflict')
     assert.equal(body.error.current, '12')
+  })
+
+  it('tells the four the workspace raises apart, and carries the database’s sentence', () => {
+    // A signed-in stranger and a deleted workspace answer with this one, so nothing says
+    // whether a workspace exists. Its own code, never a rewording of `not_yours`.
+    assert.equal(refusalFor({ code: PG_NOT_A_MEMBER, message: 'Ask an owner.' }, 400).code, 'not_a_member')
+    assert.equal(refusalFor({ code: PG_NOT_A_MEMBER, message: 'Ask an owner.' }, 400).message, 'Ask an owner.')
+    // In the workspace, without the role — so the checkout is never told to ask to be added
+    // to a board it can still read.
+    assert.equal(refusalFor({ code: PG_OWNER_ONLY }, 400).code, 'owner_only')
+    assert.equal(refusalFor({ code: PG_HANDLE_NOT_ADMITTED }, 400).code, 'handle_not_admitted')
+    assert.equal(refusalFor({ code: PG_LAST_OWNER }, 400).code, 'last_owner')
   })
 
   it('tells a reused operation id from a removed node from a card that is not there', () => {
@@ -528,13 +588,19 @@ describe('the routes', () => {
     await post(`${WORKSPACE}/nodes/${NODE}/rename`, { opId: 'o', name: 'n' })
     await post(`${WORKSPACE}/nodes/${NODE}/remove`, { opId: 'o' })
     await post(`${WORKSPACE}/nodes/${NODE}/renew`)
+    await get(`${WORKSPACE}/members`)
+    await post(`${WORKSPACE}/members`, { opId: 'o', handle: 'teammate', role: 'member' })
+    await post(`${WORKSPACE}/members/${ACCOUNT}/role`, { opId: 'o', role: 'owner' })
+    await post(`${WORKSPACE}/members/${ACCOUNT}/remove`, { opId: 'o' })
     await post(`${WORKSPACE}/deliveries`, { opId: 'o', cardId: 3 })
     await post(`${WORKSPACE}/deliveries/${DELIVERY}/confirm`, { opId: 'o', outcome: 'completed' })
 
     assert.deepEqual(calls.map((c) => c.fn), [
       'read_workspace', 'read_cards', 'read_audit', 'list_nodes',
       'rename_workspace', 'delete_workspace', 'register_node',
-      'rename_node', 'remove_node', 'renew_node', 'open_delivery', 'confirm_delivery',
+      'rename_node', 'remove_node', 'renew_node',
+      'list_members', 'add_member', 'set_member_role', 'remove_member',
+      'open_delivery', 'confirm_delivery',
     ])
   })
 
@@ -577,6 +643,8 @@ describe('the routes', () => {
     const paths = [
       `${WORKSPACE}/nonsense`,
       `${WORKSPACE}/nodes/${NODE}/nonsense`,
+      `${WORKSPACE}/members/${ACCOUNT}/nonsense`,
+      `${WORKSPACE}/members/${ACCOUNT}/remove/typo`,
       `${WORKSPACE}/cards/1/nonsense`,
       `${WORKSPACE}/locks/nonsense`,
       `${WORKSPACE}/import/nonsense`,
