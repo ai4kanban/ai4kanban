@@ -1,6 +1,5 @@
 ---
 title: Test whether the board changes what a coding agent builds
-track: distribution
 priority: med
 roi: high
 status: todo

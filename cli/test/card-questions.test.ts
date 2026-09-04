@@ -18,10 +18,10 @@ const todo = path.join(kanban, 'todo')
 
 beforeEach(async () => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
-  fs.mkdirSync(path.join(todo, 'features'), { recursive: true })
+  fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
   setBoardRoot(root)
-  await move(root, ['create', '--title', 'A card', '--track', 'features'])
+  await move(root, ['create', '--title', 'A card'])
 })
 
 const questions = (argv: string[]): Promise<Record<string, unknown>> =>
@@ -30,7 +30,7 @@ const questions = (argv: string[]): Promise<Record<string, unknown>> =>
 after(() => fs.rmSync(root, { recursive: true, force: true }))
 
 const card = (): string =>
-  fs.readFileSync(path.join(todo, 'features', fs.readdirSync(path.join(todo, 'features'))[0]!), 'utf8')
+  fs.readFileSync(path.join(todo, fs.readdirSync(todo).find((f) => f.endsWith('.md'))!), 'utf8')
 
 describe('a question handed to the user carries choices', () => {
   it('shows the operations and points to the canonical format guide', () => {
@@ -58,15 +58,15 @@ describe('a question handed to the user carries choices', () => {
   it('refuses a bare user question during create', async () => {
     await refuses(
       root,
-      ['create', '--title', 'Another card', '--track', 'features', '--question', '[user] Which region?'],
+      ['create', '--title', 'Another card', '--question', '[user] Which region?'],
       /needs choices to tick/,
     )
   })
 
   it('keeps a plain untagged refinement question during create', async () => {
-    await move(root, ['create', '--title', 'Another card', '--track', 'features', '--question', 'Which region?'])
+    await move(root, ['create', '--title', 'Another card', '--question', 'Which region?'])
     const written = fs.readFileSync(
-      path.join(todo, 'features', fs.readdirSync(path.join(todo, 'features')).find((name) => name.startsWith('2-'))!),
+      path.join(todo, fs.readdirSync(todo).find((name) => name.startsWith('2-'))!),
       'utf8',
     )
     assert.match(written, /questions:\n  - Which region\?/)

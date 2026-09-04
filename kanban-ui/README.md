@@ -6,7 +6,7 @@
 > terminal to keep alive. This package keeps working and is not going away, but it is frozen
 > at its last version and no new release lands here.
 
-The local board UI for [ai4kanban](https://ai4kanban.dev/). It shows every track and drives
+The local board UI for [ai4kanban](https://ai4kanban.dev/). It shows every open card and drives
 the work from buttons: each button spawns an agent in your repo that does the kanban work for
 you — propose, refine, implement, archive. The markdown files in `docs/kanban/` stay the
 single source of truth. The UI only reads and writes those files, so nothing here is locked in.
@@ -48,8 +48,8 @@ The home page is the board. It answers one question — what can I start now? �
 columns: **Ready to build**, the cards marked ready and under them the ones already being
 implemented, and **Not ready**, everything still to be worked out. Each column counts what's
 in it, and the ready one counts both numbers ("5 ready · 1 implementing"). Inside a column the
-cards keep their tracks, banded one under another. Click a card to open it: the full body, its
-meta (track, modules, release, priority, ROI, blockers), its open questions, and its buttons.
+cards are banded by module, one band under another. Click a card to open it: the full body, its
+meta (modules, release, priority, ROI, blockers), its open questions, and its buttons.
 
 A third, narrower column holds the **recurring** cards — jobs on a cadence that are never
 finished, so they are not part of the ready/not-ready question at all. The column is absent on
@@ -63,7 +63,7 @@ the way. It shows only while a blocker is still on the board, and a recurring ca
 as one. The card stays in its column either way: the marker says the work has an order to it,
 it doesn't hide or gate anything.
 
-The board hides nothing: every open card is in one of the three columns. Inside a track band,
+The board hides nothing: every open card is in one of the three columns. Inside a band,
 the best card to start comes first — a card waiting on another sinks below the ones you can
 start, and a blocker rises to the top of the rest.
 
@@ -550,11 +550,10 @@ window per step, one thing asked in each:
    sends one call through the agent you picked, and moves on only if it comes back.
 2. **The project** — a conversation, not a form. The agent reads your repo — README, package
    files, folder shape, recent commits — and comes back with one sentence saying what it thinks
-   this project is and what tracks its work falls into, starting from whatever `config.md` and the
-   folders under `docs/kanban/todo/` already hold. While it reads you get a turning arc and one
-   line, never a list of the files it opened. **Yes, that's it** writes the answer; a correction
-   in the box under it sends it back to read again. Nothing reaches disk before you press Yes, so
-   no guessed track leaves a folder to delete. On a repo with nothing to read the same view says
+   this project is, starting from whatever `config.md` already holds. While it reads you get a
+   turning arc and one line, never a list of the files it opened. **Yes, that's it** writes the
+   answer; a correction in the box under it sends it back to read again. Nothing reaches disk
+   before you press Yes. On a repo with nothing to read the same view says
    what little it saw and asks you outright — no guess is dressed as a finding.
 3. **The goal** — an empty box on `memory/goal.md`, in your own words, with the longer guide beside
    it. It is asked and never drafted: the agent will not put words in this box, not its own and
@@ -566,7 +565,7 @@ turn fails, the view shows what the agent said, verbatim, and the line **Nothing
 **Try again** starts the conversation over, and the board never explains how to log a harness in.
 
 **I'll fill it in myself** is on every view. It goes to the project and goal screens this run
-always had — boxes for the name, what it is and the tracks, and a box for the goal — carrying
+always had — boxes for the name and what it is, and a box for the goal — carrying
 whatever the conversation had already settled. Choosing it is not an answer and is written
 nowhere; the conversation is not offered again while that window is open, and a board reopened
 later starts on it as usual. It is also how a machine with no agent CLI at all still answers what

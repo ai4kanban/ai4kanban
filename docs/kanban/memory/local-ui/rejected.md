@@ -38,7 +38,7 @@ before proposing so you don't re-suggest them.
   frontmatter, which is no place for full detail. The drawing stays in the card body.
 - **Dropping the Edit button from the card page** — the chat rail is folded away by default,
   so cutting it would leave no visible way in.
-- **Editing a card's title, body, track and links straight from the card page** — priority,
+- **Editing a card's title, body and links straight from the card page** — priority,
   ROI, release and cadence are settings; the rest is the spec a flow wrote and a human
   approved. You ask, the agent rewrites.
 - **Writing a new hand-check on the card page** — hand-checks come from the spec the board

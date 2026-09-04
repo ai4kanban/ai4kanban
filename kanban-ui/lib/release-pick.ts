@@ -15,7 +15,6 @@ export type ReleasePick = string | null;
 /** The blockers track, which the pick never hides. A blocker is usually in the
  *  way of the very version being planned, and the point of the track is that a
  *  blocker is never out of sight. */
-const BLOCKERS = "blockers";
 
 const PREFIX = "kanban-ui.release:";
 
@@ -82,7 +81,6 @@ export function useReleasePick(
  *  subtask under it — including an unplanned subtask of a planned group, which
  *  No release is the only screen that can offer. */
 export function inPick(card: Card, pick: ReleasePick): boolean {
-  if (card.track === BLOCKERS) return true;
   const want = pick ?? NO_RELEASE;
   if (card.release === want) return true;
   return (card.subtasks ?? []).some((s) => s.release === want);
@@ -102,5 +100,5 @@ export function filterColumns(columns: Column[], pick: ReleasePick): Column[] {
  *  says whether the pick has anything; asked of the board's, whether there is
  *  anything for a pick to have. */
 export function hasOwnCards(columns: Column[]): boolean {
-  return columns.some((col) => col.track !== BLOCKERS && col.cards.length > 0);
+  return columns.some((col) => col.cards.length > 0);
 }

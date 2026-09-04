@@ -1,6 +1,5 @@
 ---
 title: Take in usage events on a server we run
-track: distribution
 priority: high
 roi: high
 status: ready

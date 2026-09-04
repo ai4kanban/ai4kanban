@@ -1,6 +1,5 @@
 ---
 title: Bring a task in from a file or your voice, not only typed text
-track: features
 priority: med
 roi: high
 status: todo

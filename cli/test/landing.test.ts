@@ -28,7 +28,6 @@ const card = (id: number, title: string): string =>
   [
     '---',
     `title: ${title}`,
-    'track: features',
     'priority: med',
     'roi: med',
     'status: ready',

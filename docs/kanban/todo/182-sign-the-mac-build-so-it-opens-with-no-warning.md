@@ -1,6 +1,5 @@
 ---
 title: Sign the Mac build so it opens with no warning
-track: features
 priority: med
 roi: med
 status: todo

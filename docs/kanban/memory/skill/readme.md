@@ -45,7 +45,7 @@ covers it, or a plain-words note.
 ## Setup and the goal
 
 - Setup follows one guide — config, goal, decisions, modules, first tasks — asking only for
-  the project and its tracks, the goal, and the agent that works, and leaving every call it
+  the project, the goal, and the agent that works, and leaving every call it
   can't settle as `[user]` questions on one card that tops the board: `akb guide setup`.
 - Setup keeps its steps in `docs/kanban/setup-checklist.md`, creating no cards while the
   file is there and deleting it on the last tick: "Setup" in `skill/SKILL.md`.
@@ -73,7 +73,7 @@ covers it, or a plain-words note.
 
 ## Recurring tasks
 
-- `akb board create --track recurring` writes `Run state` and `Process` into the card;
+- `akb raw create --recurring` writes `Run state` and `Process` into the card;
   cadence stays off unless `--cadence` is explicitly passed: `akb guide recurring-task`.
 - Run a job, give it a cadence (`30m`, `6h`, `1d at 09:30`) so the board runs it itself, and
   read when it last ran: "Recurring tasks" in `kanban-ui/README.md`. From a terminal it is
@@ -236,7 +236,7 @@ covers it, or a plain-words note.
   that sets it — the switcher is the app's — and what `akb` prints stays English either way.
 - A board set to 中文 comes back in 中文: card prose, questions, options, `verify:` lines,
   memory notes and changelogs follow it, while frontmatter keys, `##` headings, the
-  `<!-- agent -->` boundary, the `[user]` tag, track and module names and filenames stay
+  `<!-- agent -->` boundary, the `[user]` tag, module names and filenames stay
   English. Rewriting a file keeps the language it is already in: "The board's language" in
   `akb guide board`.
 - "What's next?" now answers with a pick from the cards you already have, not three new ones:

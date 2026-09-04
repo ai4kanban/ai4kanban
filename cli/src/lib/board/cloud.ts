@@ -787,18 +787,14 @@ function cloudBoard(ctx: Context): BoardProvider {
 
     /** The one write whose Local half answers `{ ok, error }` rather than an operation
      *  result, so it is turned into one on the way in and back on the way out. */
-    async saveProject(name, description, tracks, env): Promise<SaveProjectResult> {
+    async saveProject(name, description, env): Promise<SaveProjectResult> {
       const res = await through({ board: true }, env, async (e) => {
-        const saved = await local.saveProject(name, description, tracks, e)
+        const saved = await local.saveProject(name, description, e)
         if (!saved.ok) return opRefused(new Error(saved.error ?? 'the project could not be saved'))
-        return opOk('', {
-          added: saved.added,
-          renamed: saved.renamed,
-          keptBecauseUsed: saved.keptBecauseUsed,
-        })
+        return opOk('', {})
       })
       if (!res.ok) return { ok: false, error: res.error }
-      return { ok: true, added: res.added, renamed: res.renamed, keptBecauseUsed: res.keptBecauseUsed }
+      return { ok: true }
     },
 
     finishSetupStep: (name, env) => through({ board: true }, env, (e) => local.finishSetupStep(name, e)),

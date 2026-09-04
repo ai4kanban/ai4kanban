@@ -32,7 +32,6 @@ const code = path.join(root, 'src.txt')
 const CARD = [
   '---',
   'title: A card',
-  'track: features',
   'priority: med',
   'roi: med',
   'status: ready',

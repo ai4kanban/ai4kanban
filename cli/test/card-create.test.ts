@@ -40,7 +40,7 @@ const create = (argv: string[]): Promise<Record<string, unknown>> => move(root, 
 
 describe('card creation owns its id', () => {
   it('scaffolds the exact decision sections', async () => {
-    const made = await create(['--title', 'A card', '--track', 'features'])
+    const made = await create(['--title', 'A card'])
     assert.ok(typeof made.file === 'string')
     const written = fs.readFileSync(path.join(root, made.file), 'utf8')
     assert.deepEqual(
@@ -57,7 +57,7 @@ describe('card creation owns its id', () => {
   })
 
   it('scaffolds recurring state and process without an implicit cadence', async () => {
-    const made = await create(['--title', 'A repeated job', '--track', 'recurring'])
+    const made = await create(['--title', 'A repeated job', '--recurring'])
     assert.ok(typeof made.file === 'string')
     const written = fs.readFileSync(path.join(root, made.file), 'utf8')
     assert.deepEqual(
@@ -69,7 +69,7 @@ describe('card creation owns its id', () => {
   })
 
   it('writes a recurring cadence only when explicitly requested', async () => {
-    const made = await create(['--title', 'A scheduled job', '--track', 'recurring', '--cadence', '1d at 09:30'])
+    const made = await create(['--title', 'A scheduled job', '--recurring', '--cadence', '1d at 09:30'])
     assert.ok(typeof made.file === 'string')
     const written = fs.readFileSync(path.join(root, made.file), 'utf8')
     assert.match(written, /^cadence: 1d at 09:30$/m)
@@ -77,24 +77,14 @@ describe('card creation owns its id', () => {
 
   it('requires a complete card instead of reserving an id', async () => {
     await refuses(root, ['create'], /required option .*--title/)
-    await refuses(root, ['create', '--title', 'A card'], /required option .*--track/)
-    await refuses(root, ['create', '--title', 'A card', '--track', 'features', '--count', '3'], /unknown option .*--count/)
-    unchanged()
-  })
-
-  it('rejects a group folder path as the track', async () => {
-    await refuses(
-      root,
-      ['create', '--title', 'Hidden card', '--track', '7-group/features'],
-      /top-level track name, never a group folder path/,
-    )
+    await refuses(root, ['create', '--title', 'A card', '--count', '3'], /unknown option .*--count/)
     unchanged()
   })
 
   it('rejects an allocated number that has no open card', async () => {
     await refuses(
       root,
-      ['create', '--title', 'Dangling link', '--track', 'features', '--related', '7'],
+      ['create', '--title', 'Dangling link', '--related', '7'],
       /#7, which is not an open card/,
     )
     unchanged()
@@ -104,9 +94,9 @@ describe('card creation owns its id', () => {
     const program = buildBoardProgram({ program: 'akb raw', cwd: root, installHint: '`akb install`', version: null })
     const create = program.commands.find((c) => c.name() === 'create')
     assert.ok(create)
-    const help = create.helpInformation()
+    // Wrapped to the terminal, so a phrase is matched against one flat line.
+    const help = create.helpInformation().replace(/\s+/g, ' ')
     assert.match(help, /write exactly ONE card/i)
-    assert.match(help, /top-level track name/)
     assert.match(help, /existing open cards/)
     assert.match(help, /Group task/)
     assert.doesNotMatch(help, /--count/)
@@ -126,7 +116,7 @@ describe('card creation owns its id', () => {
     process.env[RUN_ENV] = owner.sessionId
 
     assert.equal(
-      await runBoard(['create', '--title', 'Owned card', '--track', 'features'], { cwd: root }),
+      await runBoard(['create', '--title', 'Owned card'], { cwd: root }),
       0,
     )
     assert.deepEqual(peekRun(owner.sessionId)?.createdCardIds, [8])

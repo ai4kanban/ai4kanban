@@ -1,6 +1,5 @@
 ---
 title: Report the board's own numbers from metrics.csv and record.csv
-track: skill
 priority: med
 roi: med
 status: todo

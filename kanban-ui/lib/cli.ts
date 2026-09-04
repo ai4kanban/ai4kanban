@@ -53,7 +53,6 @@ import type {
   ScoreResult,
   SetupDraft,
   SetupState,
-  TrackDraft,
   VerifyResult,
   WriteResult,
 } from "./format/view/types";
@@ -322,7 +321,7 @@ export interface BoardRules {
   closeRelease(id: string): Promise<WriteResult & { shipped?: number }>;
   dropRelease(id: string): Promise<WriteResult>;
   saveGoal(text: string): Promise<WriteResult>;
-  saveProject(name: string, description: string, tracks: TrackDraft[]): Promise<SaveProjectResult>;
+  saveProject(name: string, description: string): Promise<SaveProjectResult>;
   finishSetupStep(name: string): Promise<WriteResult>;
 
   // the language the app and the agent work in (#334) — one answer for this MACHINE, held

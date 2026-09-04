@@ -42,7 +42,6 @@ const frontmatter = (id: number, extra: Record<string, string> = {}): string =>
   [
     '---',
     `title: Card ${id}`,
-    'track: features',
     'priority: med',
     'roi: med',
     `status: ${extra.status ?? 'todo'}`,
@@ -54,7 +53,7 @@ const frontmatter = (id: number, extra: Record<string, string> = {}): string =>
     '---',
   ].join('\n')
 
-/** One card in a track folder. */
+/** One card on the board. */
 function card(id: number, extra: Record<string, string> = {}): string {
   const file = path.join(todo(), 'features', `${id}-a-card.md`)
   fs.writeFileSync(file, `${frontmatter(id, extra)}\n\nWhat it does.\n`)
@@ -145,7 +144,6 @@ describe('the archive, read', () => {
     )
     const [newest] = list.cards
     assert.equal(newest!.title, 'Card 93')
-    assert.equal(newest!.track, 'features')
     assert.equal(newest!.release, '0.9.0')
     assert.equal(newest!.archived, today())
     assert.equal(newest!.relPath, 'docs/kanban/.archive/93-a-card.md')

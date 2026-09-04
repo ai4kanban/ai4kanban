@@ -1,6 +1,5 @@
 ---
 title: Prune the memory
-track: recurring
 priority: med
 roi: med
 status: todo

@@ -47,12 +47,6 @@ describe('what the conversation opens with', () => {
     assert.match(prompt, /unsure/)
   })
 
-  it('states the tracks the board already has rather than asking to guess them', () => {
-    const opening = setupOpening()
-    assert.match(opening, /features/)
-    assert.match(opening, /platform/)
-  })
-
   it('never asks for the goal — that has a screen of its own', () => {
     assert.match(chatPrompt('setup', setupOpening()), /Never ask for the goal/)
   })
@@ -83,7 +77,6 @@ const GOOD = {
   summary: 'Ledger — the bookkeeping service behind the billing API.',
   name: 'Ledger',
   description: 'the bookkeeping service behind the billing API',
-  tracks: [{ name: 'features', note: 'new behavior a user can see.' }],
   unsure: false,
   ask: '',
 }
@@ -92,8 +85,7 @@ describe('reading one reply', () => {
   it('takes the block out of a reply that says other things around it', () => {
     const read = parseSetupProposal(`Here is what I found.\n\n${block(GOOD)}\n\nTell me what is wrong.`)
     assert.equal(read?.name, 'Ledger')
-    assert.equal(read?.tracks.length, 1)
-    assert.equal(read?.tracks[0]?.name, 'features')
+    assert.equal(read?.description, 'the bookkeeping service behind the billing API')
     assert.equal(read?.unsure, false)
   })
 
@@ -109,7 +101,6 @@ describe('reading one reply', () => {
         summary: 'I cannot tell what this is yet.',
         name: '',
         description: '',
-        tracks: [],
         unsure: true,
         ask: 'What is this project, in a line?',
       }),
@@ -127,21 +118,5 @@ describe('reading one reply', () => {
     assert.equal(parseSetupProposal(block({ ok: true })), null)
     // A name with no sentence to lead the view with is not an answer to this question.
     assert.equal(parseSetupProposal(block({ ...GOOD, summary: '' })), null)
-  })
-
-  it('carries the folder a renamed track replaces, so its cards move with it', () => {
-    const read = parseSetupProposal(
-      block({ ...GOOD, tracks: [{ name: 'features', note: 'x', was: 'feature' }, { name: 'docs', note: 'y' }] }),
-    )
-    assert.equal(read?.tracks[0]?.was, 'feature')
-    assert.equal(read?.tracks[1]?.was, undefined)
-  })
-
-  it('drops a track with no name rather than writing a folder called nothing', () => {
-    const read = parseSetupProposal(block({ ...GOOD, tracks: [{ name: '', note: 'x' }, { name: 'bugs', note: '' }] }))
-    assert.deepEqual(
-      read?.tracks.map((t) => t.name),
-      ['bugs'],
-    )
   })
 })

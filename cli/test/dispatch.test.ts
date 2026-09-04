@@ -30,7 +30,6 @@ after(() => fs.rmSync(root, { recursive: true, force: true }))
 function body(id: number, opts: { schedule?: Meta['schedule']; subtasks?: number[] } = {}): string {
   const meta: Partial<Meta> = {
     title: `Card ${id}`,
-    track: 'features',
     priority: 'med',
     roi: 'med',
     status: 'todo',

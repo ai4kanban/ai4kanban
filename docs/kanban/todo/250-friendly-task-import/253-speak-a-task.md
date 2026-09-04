@@ -1,6 +1,5 @@
 ---
 title: Speak a task instead of typing it
-track: features
 priority: low
 roi: med
 status: todo

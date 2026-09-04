@@ -24,7 +24,6 @@ export interface QuestionDraft {
 // reader never has to guard for a missing list or a damaged scalar.
 export interface Meta {
   title: string
-  track: string
   priority: string
   roi: string
   status: string

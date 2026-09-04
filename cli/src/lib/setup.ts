@@ -65,7 +65,7 @@ export interface TickResult {
 export const SETUP_STEPS: SetupStep[] = [
   { name: 'install', owner: 'script', text: 'Install the `akb` command and scaffold the board.' },
   { name: 'config', owner: 'script', text: 'Seed the board with practical default settings.' },
-  { name: 'project', owner: 'you', text: 'Say what this project is and what tracks its work falls into, in `docs/kanban/config.md`.' },
+  { name: 'project', owner: 'you', text: 'Say what this project is, in `docs/kanban/config.md`.' },
   { name: 'goal', owner: 'you', text: 'Write the project goal in `docs/kanban/memory/goal.md`.' },
   { name: 'agent', owner: 'you', text: 'Pick the agent that runs this board, and give it a key.' },
   { name: 'decisions', owner: 'agent', text: 'Settle `docs/kanban/memory/decisions.md` from the goal.' },
@@ -189,15 +189,15 @@ holds no build work, so no todos.
 // Written by the fresh scaffold, and by init's repair when a mid-setup board lacks it —
 // same test as the checklist: while that file exists, this card is expected. Not counted
 // in metrics: it is setup furniture, not planned work.
-export function writeSetupQuestionsCard(track: string): { id: number; file: string } | null {
+export function writeSetupQuestionsCard(): { id: number; file: string } | null {
   const id = readNextId()
-  const fileRel = path.join(track, `${id}-${SETUP_QUESTIONS_SLUG}.md`)
+  const fileRel = `${id}-${SETUP_QUESTIONS_SLUG}.md`
   const file = path.join(TODO, fileRel)
   if (fs.existsSync(file)) return null
   writeNextId(id + 1)
-  const meta: Partial<Meta> = { title: SETUP_QUESTIONS_TITLE, track, priority: 'high', roi: 'high', status: 'todo', release: '', blocked_by: [], related: [], modules: [], questions: [] }
+  const meta: Partial<Meta> = { title: SETUP_QUESTIONS_TITLE, priority: 'high', roi: 'high', status: 'todo', release: '', blocked_by: [], related: [], modules: [], questions: [] }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + SETUP_QUESTIONS_BODY)
-  addReadmeRef(track, id, SETUP_QUESTIONS_TITLE, fileRel)
+  addReadmeRef(id, SETUP_QUESTIONS_TITLE, fileRel)
   return { id, file }
 }
 

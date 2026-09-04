@@ -9,8 +9,8 @@ the remaining details.
 docs/kanban/
 ├── todo/           open tasks
 │   ├── README.md   the index — read it first
-│   ├── blockers/   hard blockers; they gate the next milestone — clear them first
-│   ├── <track>/    one folder per track (see "Configuration"), one card per file
+│   ├── <id>-<slug>.md
+│   │               one card per file — todo/ is flat
 │   └── recurring/  jobs we repeat (`akb guide recurring-task`) — never archived
 ├── memory/         all memory — see "The memory set"
 │   ├── readme.md, decisions.md, rejected.md, redesign.md
@@ -41,24 +41,19 @@ docs/kanban/
 ## Configuration
 
 **Read `docs/kanban/config.md` before proposing or adding tasks, and when a question audit
-needs planning sources or reference docs.** It defines the project name, tracks, planning
-sources, reference docs, and optional preset. Board updates leave it unchanged. References
-to "your tracks," "planning sources," or "reference docs" mean the values in this file.
+needs planning sources or reference docs.** It defines the project name, planning sources,
+and reference docs. Board updates leave it unchanged. References to "your planning sources"
+or "your reference docs" mean the values in this file.
 
 ## Task ID
 
 Every task's id is the number at the front of its filename (`04-plan-cap-enforcement.md` →
 id 4). Ids are global and never reused; only `akb raw create` allocates them.
 
-## Tracks
-
-A track categorizes a task. Each track has a folder under `todo/`, and
-`docs/kanban/config.md` lists the tracks configured during setup.
-
 ## Never hand-write a card's frontmatter
 
 `akb raw create`, `update`, `update-questions`, `update-verify`, and `schedule` manage
-the metadata: title, track, priority, roi, status, release, blocked_by, related, modules,
+the metadata: title, priority, roi, status, release, blocked_by, related, modules,
 questions, verify, and schedule. Edit only the card's **body** by hand. `akb raw help`
 lists all operations; `akb raw help <move>` explains one operation.
 
@@ -71,7 +66,7 @@ something other than English. Told nothing, everything below is English.
   `verify:` lines, memory notes, changelogs, and what the agent says back to the user.
 - **Stays English whatever the setting**: frontmatter keys and their fixed values, `##` and
   `###` section headings, the `<!-- agent -->` boundary, todo checkboxes, the `[user]` tag,
-  track names, module names, and card filenames. The board matches all of these by literal
+  module names and card filenames. The board matches all of these by literal
   English text, so a translated one is a card it can no longer read.
 - **Prose in frontmatter is still prose**: a title, a question, an option and a `verify:`
   line follow the language even though they sit in a field.
@@ -97,19 +92,19 @@ lives in its own folder:
 ```
 todo/<id>-<short-slug>/
   root.md                            # the tracking task
-  <track>/<subid>-<slug>.md          # a subtask, its own card, under any track folder
+  <subid>-<slug>.md                  # a subtask, its own card
 ```
 
-`create` writes one card at a time into a track folder, so build a group card by card and
-then move the files into the group's folder:
+`create` writes one card at a time into `todo/`, so build a group card by card and then
+move the files into the group's folder:
 
-1. **Write the root**: `akb raw create --title "<the whole job>" --track <track>`. Call
-   the id it prints `<id>`.
-2. **Write each subtask**: `akb raw create --title "<one piece>" --track <track>
-   --related <id>`, adding `--blocked-by <subid>` where execution order matters.
+1. **Write the root**: `akb raw create --title "<the whole job>"`. Call the id it prints
+   `<id>`.
+2. **Write each subtask**: `akb raw create --title "<one piece>" --related <id>`, adding
+   `--blocked-by <subid>` where execution order matters.
 3. **Move the files**: the root becomes `todo/<id>-<short-slug>/root.md`, and each subtask
-   goes under `todo/<id>-<short-slug>/<track>/` with its filename unchanged. The folder's
-   slug is short English ASCII whatever language the root's title is in.
+   goes under `todo/<id>-<short-slug>/` with its filename unchanged. The folder's slug is
+   short English ASCII whatever language the root's title is in.
 4. **Point the root at its pieces**: `akb raw update <id> --related <subid,subid,...>`.
    At create time `--related` can only name ids that already exist, so the root's list is
    filled in here.

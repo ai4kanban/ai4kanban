@@ -1,6 +1,6 @@
 # Run the board locally
 
-The board in a window: it shows every track and drives the work from buttons instead of the
+The board in a window: it shows every open card and drives the work from buttons instead of the
 terminal. The board works fully without it; get it when you want the buttons. The markdown
 files in `docs/kanban/` stay the single source of truth.
 

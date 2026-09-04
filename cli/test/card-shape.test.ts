@@ -31,7 +31,6 @@ const write = (body: string, status = 'ready'): void =>
     [
       '---',
       'title: A card',
-      'track: skill',
       'priority: med',
       'roi: med',
       `status: ${status}`,

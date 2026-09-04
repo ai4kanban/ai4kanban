@@ -66,7 +66,7 @@ export function FirstRun({
   steps: SetupStep[];
   /** Which of them is being asked. */
   index: number;
-  /** The board's answers as they stand, for the tracks a proposal is matched against. */
+  /** The board's answers as they stand. */
   draft: SetupDraft;
   agent: AgentInfo;
   /** The agent step just settled which agent runs the board. */
@@ -312,10 +312,9 @@ function AgentTurn({
 // ---- 2 · the project --------------------------------------------------------
 
 // The turn that replaces the form's first screen. The agent reads the repo and comes back
-// with one sentence about the project and the tracks its work falls into; the user agrees or
-// says what is wrong. Nothing is written until Yes.
+// with one sentence about the project; the user agrees or says what is wrong. Nothing is
+// written until Yes.
 function ProjectTurn({
-  draft,
   onSaved,
   onNoTalk,
   onProposal,
@@ -339,7 +338,6 @@ function ProjectTurn({
   // Why writing the answer failed. Kept apart from the turn: the agent said its piece and
   // the summary is still on screen, so this is a line under it rather than a dead end.
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [kept, setKept] = useState<string[]>([]);
   // The board is waiting on a turn it just asked for. Held here as well as read from the
   // server, so the waiting view is up from the click rather than from the next poll.
   const [sent, setSent] = useState(false);
@@ -423,22 +421,9 @@ function ProjectTurn({
     setBusy(true);
     setSaveError(null);
     try {
-      // The folder each track came from: the one the agent named where it is renaming one,
-      // and the track's own name where it already exists. Without it a rename would make a
-      // folder and strand the old one with its cards in it.
-      const have = new Set(draft.tracks.map((t) => t.name));
-      const tracks = proposal.tracks.map((row) => ({
-        name: row.name,
-        note: row.note,
-        was: row.was && have.has(row.was) ? row.was : have.has(row.name) ? row.name : undefined,
-      }));
-      const res = await saveSetupProjectAction(proposal.name, proposal.description, tracks);
+      const res = await saveSetupProjectAction(proposal.name, proposal.description);
       if (!res.ok) {
         setSaveError(res.error || t.setup.project.saveFailed);
-        return;
-      }
-      if (res.keptBecauseUsed?.length) {
-        setKept(res.keptBecauseUsed);
         return;
       }
       onSaved();
@@ -509,46 +494,18 @@ function ProjectTurn({
   return (
     <>
       <ProjectHeading name={proposal.name} description={proposal.description} />
-      {/* The tracks as a counted list, one to a line with what belongs in it — not four
-          words in a row. A reader meeting the board for the first time has never heard of a
-          track: the lead-in says how many and what one is, and each line says what that one
-          holds, so what the Yes agrees to is on screen rather than assumed. */}
-      {proposal.tracks.length > 0 && (
-        <div className="mt-5">
-          <p className="text-[16px] leading-[1.55]">{c.project.tracks(proposal.tracks.length)}</p>
-          <dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-5 gap-y-2 text-[15px] leading-[1.5]">
-            {proposal.tracks.map((track) => (
-              <Fragment key={track.name}>
-                <dt className="font-mono text-[14px] font-[700]">{track.name}</dt>
-                <dd className="min-w-0 text-nb-ink-soft">{track.note}</dd>
-              </Fragment>
-            ))}
-          </dl>
-        </div>
-      )}
       <Under>{c.project.right}</Under>
       <Box value={said} onChange={setSaid} hint={c.project.hint} rows={3} />
       {saveError && <Failure text={saveError} />}
 
-      {kept.length > 0 && (
-        <div className="mt-4">
-          <Failure text={(kept.length === 1 ? t.setup.project.keptOne : t.setup.project.keptMany)(kept.join(" and "))} />
-          <div className="mt-3">
-            <Button onClick={onSaved}>{t.setup.project.continue}</Button>
-          </div>
-        </div>
-      )}
-
-      {kept.length === 0 && (
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <Button disabled={busy} onClick={agree}>
-            {busy ? t.shared.saving : c.project.yes}
-          </Button>
-          <Button variant="ghost" disabled={!said.trim()} onClick={() => void say(said)}>
-            {c.project.send}
-          </Button>
-        </div>
-      )}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Button disabled={busy} onClick={agree}>
+          {busy ? t.shared.saving : c.project.yes}
+        </Button>
+        <Button variant="ghost" disabled={!said.trim()} onClick={() => void say(said)}>
+          {c.project.send}
+        </Button>
+      </div>
     </>
   );
 }

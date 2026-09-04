@@ -153,7 +153,6 @@ import type {
   SlackConversation,
   SlackState,
   SpecSkillView,
-  TrackDraft,
   VerifyResult,
   WriteResult,
 } from "@/lib/types";
@@ -507,27 +506,15 @@ export async function getSetupDraftAction(): Promise<SetupDraft> {
   return readSetupDraft();
 }
 
-// Save the project and its tracks, and tick setup's `project` box. The tracks are folders
-// as well as words, so this is also where a new one is made and an empty one that was
-// dropped is removed. A track holding cards is kept and named in the answer rather than
-// deleted.
+// Save the project, and tick setup's `project` box.
 export async function saveSetupProjectAction(
   name: string,
   description: string,
-  tracks: TrackDraft[],
 ): Promise<SaveProjectResult> {
   if (typeof name !== "string" || typeof description !== "string") {
     return { ok: false, error: "the project is saved as text" };
   }
-  if (!Array.isArray(tracks)) return { ok: false, error: "the tracks are saved as a list" };
-  const clean = tracks
-    .filter((t): t is TrackDraft => Boolean(t) && typeof t.name === "string")
-    .map((t) => ({
-      name: t.name,
-      note: typeof t.note === "string" ? t.note : "",
-      was: typeof t.was === "string" ? t.was : undefined,
-    }));
-  return saveProject(name, description, clean);
+  return saveProject(name, description);
 }
 
 // Tick setup's `agent` box — the flow's first step (#280), and the one it can't be pressed

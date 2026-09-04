@@ -1,6 +1,6 @@
 # Competitor analysis loop
 
-**Track:** recurring · **Priority:** med · **ROI:** med
+**Recurring** · **Priority:** med · **ROI:** med
 **Depends on:** [dist0](https://www.dist0.com) — a dist0 account + `DIST0_API_KEY`
 
 > **Brand recipe.** This one isn't board-agnostic: it runs on

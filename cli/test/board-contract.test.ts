@@ -52,7 +52,6 @@ async function readAt(id: number, expect: string): Promise<OpEnvelope> {
 function writeCard(id: number, over: Partial<Meta> = {}): void {
   const meta: Partial<Meta> = {
     title: `Card ${id}`,
-    track: 'features',
     priority: 'med',
     roi: 'med',
     status: 'todo',
@@ -227,7 +226,7 @@ describe('a board that will not grant a lease', () => {
   })
 
   it('answers a save that takes its own lease instead of throwing', async () => {
-    const res = await saveProject('A project', '', [])
+    const res = await saveProject('A project', '')
     assert.equal(res.ok, false)
     assert.match(res.error ?? '', /writing this board/)
   })

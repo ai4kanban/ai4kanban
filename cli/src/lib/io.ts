@@ -9,7 +9,7 @@
 // and answer in JSON instead. Imported by paths.ts, so it imports nothing of ours.
 
 // What a refusal knows beyond its message: `kind`, `bare`, and whatever facts the move
-// had at hand (an id, a track, a folder), which land in `details`.
+// had at hand (an id, a folder), which land in `details`.
 export interface BoardErrorOptions {
   kind?: string
   bare?: boolean
@@ -18,7 +18,7 @@ export interface BoardErrorOptions {
 
 export class BoardError extends Error {
   // `kind` is the machine-readable name of the refusal (card-not-found, no-board,
-  // unknown-track, …). It is what a caller reads; the exit code stays 1 for every
+  // unknown-module, …). It is what a caller reads; the exit code stays 1 for every
   // refusal, so nobody has to keep a table of numbers.
   kind: string
   // `bare` says the message is already the whole thing a person should see — a usage

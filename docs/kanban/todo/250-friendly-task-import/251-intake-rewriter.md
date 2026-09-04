@@ -1,6 +1,5 @@
 ---
 title: Rewrite raw material into a short brief before any card is written
-track: skill
 priority: med
 roi: high
 status: todo

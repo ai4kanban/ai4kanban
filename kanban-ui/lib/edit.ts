@@ -8,7 +8,6 @@ import type {
   DropPlan,
   FillPlan,
   SaveProjectResult,
-  TrackDraft,
   VerifyResult,
   WriteResult,
 } from "./types";
@@ -167,13 +166,9 @@ export async function saveGoal(text: string): Promise<WriteResult> {
 
 /** Save what the project is and what tracks its work falls into — setup's `project` step,
  *  folders and board index included. */
-export async function saveProject(
-  name: string,
-  description: string,
-  tracks: TrackDraft[],
-): Promise<SaveProjectResult> {
+export async function saveProject(name: string, description: string): Promise<SaveProjectResult> {
   try {
-    return await (await boardRules()).saveProject(name, description, tracks);
+    return await (await boardRules()).saveProject(name, description);
   } catch (e) {
     return refused(e);
   }

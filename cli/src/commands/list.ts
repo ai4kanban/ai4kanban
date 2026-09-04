@@ -12,7 +12,7 @@ import { die, rel, TODO, MODULES_MD } from '../lib/paths'
 import { say } from '../lib/io'
 import { moduleNames } from '../lib/validate'
 import { parseFrontmatter } from '../lib/frontmatter'
-import { walkMd, idPrefix, trackOf } from '../lib/cards'
+import { walkMd, idPrefix } from '../lib/cards'
 import type { MoveResult, Question } from '../lib/types'
 
 // One open card as the list shows it — the frontmatter fields it prints, plus where the
@@ -22,7 +22,6 @@ interface Row {
   file: string
   isRoot: boolean
   title: string
-  track: string
   status: string
   priority: string
   roi: string
@@ -67,7 +66,6 @@ function openRows(): Row[] {
       file,
       isRoot,
       title: (meta && meta.title) || base.replace(/^\d+-/, '').replace(/\.md$/, ''),
-      track: trackOf(path.relative(TODO, file), (meta && meta.track) || ''),
       status: (meta && meta.status) || 'todo',
       priority: (meta && meta.priority) || 'med',
       roi: (meta && meta.roi) || 'med',
@@ -113,7 +111,7 @@ export function cmdList(opts: ListOptions): MoveResult {
 
   say(`${plural(rows.length, 'open card')} ${scope}:`)
   for (const r of rows) {
-    const meta = [r.track, r.status, `priority ${r.priority}`, `roi ${r.roi}`]
+    const meta = [r.status, `priority ${r.priority}`, `roi ${r.roi}`]
     if (r.isRoot) meta.push('group root')
     if (r.release) meta.push(`release ${r.release}`)
     if (r.cadence) meta.push(`every ${r.cadence}`)

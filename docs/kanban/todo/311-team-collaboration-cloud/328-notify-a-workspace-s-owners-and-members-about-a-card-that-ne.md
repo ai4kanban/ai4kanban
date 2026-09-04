@@ -1,6 +1,5 @@
 ---
 title: Notify a workspace's owners and members about a card that needs them
-track: features
 priority: high
 roi: high
 status: todo

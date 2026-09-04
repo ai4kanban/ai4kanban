@@ -5,7 +5,7 @@
 //
 // Setting a board up used to mean copying a line into a coding agent and hoping.
 // The board asks for what only the user knows itself — which agent does the work,
-// what the project is and its tracks, and the goal. Everything else setup does
+// what the project is, and the goal. Everything else setup does
 // reads the repo and thinks, so it is an agent's job — and the board starts that
 // agent itself when asked (#173): one ordinary run, in the runs panel, doing every
 // step still unticked. The line to paste into a coding agent stays beside the
@@ -25,7 +25,7 @@
 //   • Nothing is a dead end. Every screen has a way through to the board, and the
 //     board has a way back in, so leaving is never losing.
 //   • Every answer starts on something sensible — what the agent read off the
-//     repo, or the tracks the board was scaffolded with — so someone in a hurry
+//     repo — so someone in a hurry
 //     can press through and still end up with a working board. The goal is the
 //     exception: it is asked, never drafted.
 //   • The agent step can't be pressed past. Setup says it is finished by deleting
@@ -278,7 +278,6 @@ export function SetupFlow({
           ? {
               ...d,
               project: { name: seed.name, description: seed.description },
-              tracks: seed.tracks.map((t) => ({ name: t.name, note: t.note, was: t.was })),
             }
           : d,
       );
@@ -496,11 +495,7 @@ function StepRail({
   const settled = (name: string): string => {
     if (!draft) return "";
     if (name === "project") {
-      return draft.project.name
-        ? draft.tracks.length === 1
-          ? c.rail.projectSettledOne(draft.project.name)
-          : c.rail.projectSettledMany(draft.project.name, draft.tracks.length)
-        : "";
+      return draft.project.name ? c.rail.projectSettled(draft.project.name) : "";
     }
     if (name === "goal") {
       if (draft.goal.trim()) return c.rail.goalWritten;
@@ -574,7 +569,7 @@ function stepTitle(c: ReturnType<typeof useCopy>["setup"], name: string): string
   return c.stepTitles[name as keyof typeof c.stepTitles] ?? name;
 }
 
-// ---- step 1: the project and its tracks ------------------------------------
+// ---- step 1: the project ---------------------------------------------------
 
 function ProjectStep({
   draft,
@@ -590,27 +585,14 @@ function ProjectStep({
   const shared = t.shared;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [kept, setKept] = useState<string[]>([]);
-
-  const setTracks = (tracks: SetupDraft["tracks"]) => onChange({ ...draft, tracks });
 
   const save = async () => {
     setSaving(true);
     setError(null);
     try {
-      const res = await saveSetupProjectAction(
-        draft.project.name,
-        draft.project.description,
-        draft.tracks,
-      );
+      const res = await saveSetupProjectAction(draft.project.name, draft.project.description);
       if (!res.ok) {
         setError(res.error || c.saveFailed);
-        return;
-      }
-      // A track that holds cards is never deleted out from under them. Say so
-      // rather than moving on as if it had gone.
-      if (res.keptBecauseUsed?.length) {
-        setKept(res.keptBecauseUsed);
         return;
       }
       onSaved();
@@ -642,99 +624,14 @@ function ProjectStep({
         />
       </Field>
 
-      <div className="mt-5 border-t border-nb-ink/12 pt-4">
-        <p className="text-[13px] font-[800]">{c.tracks}</p>
-        <p className="mt-1 text-[12px] leading-relaxed text-nb-ink-soft">
-          <Rich>{c.tracksBlurb}</Rich>
-        </p>
-        <TrackRows tracks={draft.tracks} used={draft.usedTracks} onChange={setTracks} />
-      </div>
-
-      {kept.length > 0 && (
-        <div className="mt-4">
-          <Failure
-            text={(kept.length === 1 ? c.keptOne : c.keptMany)(kept.join(" and "))}
-          />
-          <div className="mt-3 flex justify-end">
-            <Button size="sm" onClick={onSaved}>
-              {c.continue}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {error && <div className="mt-4"><Failure text={error} /></div>}
 
-      {kept.length === 0 && (
-        <StepButtons>
-          <Button size="sm" disabled={saving || !draft.project.name.trim()} onClick={save}>
-            {saving ? shared.saving : c.continue}
-          </Button>
-        </StepButtons>
-      )}
-    </StepBody>
-  );
-}
-
-// The track list: a row each, a line saying what belongs in it, and a way to add
-// or drop one. A track that already holds cards keeps its remove button away —
-// dropping it would be dropping the work in it — but it can still be renamed,
-// since a rename moves the folder and the cards go with it.
-function TrackRows({
-  tracks,
-  used,
-  onChange,
-}: {
-  tracks: SetupDraft["tracks"];
-  used: string[];
-  onChange: (tracks: SetupDraft["tracks"]) => void;
-}) {
-  const c = useCopy().setup.project;
-  const patch = (i: number, next: Partial<SetupDraft["tracks"][number]>) =>
-    onChange(tracks.map((t, at) => (at === i ? { ...t, ...next } : t)));
-
-  return (
-    <div className="mt-3 flex flex-col gap-2">
-      {tracks.map((track, i) => {
-        const locked = Boolean(track.was && used.includes(track.was));
-        return (
-          <div key={i} className="flex items-center gap-2">
-            <input
-              className={cn(INPUT, "w-[150px] shrink-0 font-mono text-[13px]")}
-              value={track.name}
-              aria-label={c.trackName(i + 1)}
-              onChange={(e) => patch(i, { name: e.target.value })}
-            />
-            <input
-              className={cn(INPUT, "min-w-0 flex-1")}
-              value={track.note}
-              aria-label={c.trackNote(track.name || c.thisTrack)}
-              placeholder={c.trackNotePlaceholder}
-              onChange={(e) => patch(i, { note: e.target.value })}
-            />
-            <button
-              type="button"
-              disabled={locked || tracks.length === 1}
-              title={locked ? c.trackLocked(track.was ?? "") : c.dropTrackHint}
-              aria-label={c.dropTrack(track.name)}
-              onClick={() => onChange(tracks.filter((_, at) => at !== i))}
-              className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-[8px] text-nb-ink-soft transition-colors hover:bg-nb-ink/8 hover:text-nb-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <FiX className="text-[15px]" />
-            </button>
-          </div>
-        );
-      })}
-      <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onChange([...tracks, { name: "", note: "" }])}
-        >
-          {c.addTrack}
+      <StepButtons>
+        <Button size="sm" disabled={saving || !draft.project.name.trim()} onClick={save}>
+          {saving ? shared.saving : c.continue}
         </Button>
-      </div>
-    </div>
+      </StepButtons>
+    </StepBody>
   );
 }
 

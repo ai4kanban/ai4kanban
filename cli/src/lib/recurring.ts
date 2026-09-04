@@ -49,7 +49,6 @@ export function writePruneMemoryCard() {
   writeNextId(id + 1)
   const meta = {
     title: PRUNE_TITLE,
-    track: RECURRING,
     priority: 'med',
     roi: 'med',
     status: 'todo',

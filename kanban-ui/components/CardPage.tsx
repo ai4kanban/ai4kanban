@@ -55,7 +55,6 @@ import {
   ReleaseSelect,
   StatusPill,
   TodoProgress,
-  TrackChip,
 } from "./chips";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { usePhone } from "@/lib/media";
@@ -1751,10 +1750,6 @@ export function CardPage({
                 row and squeezes the next three onto the following one, and the point of
                 this block is that it can be read across. */}
             <div className="nb-section flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-sheet px-4 py-3.5 max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:px-3.5 max-md:py-3">
-              <MetaItem label={c.meta.track}>
-                <TrackChip track={card.track} />
-              </MetaItem>
-
               {card.modules.length > 0 && (
                 <MetaItem label={c.meta.modules}>
                   <span className="flex flex-wrap items-center gap-1.5">

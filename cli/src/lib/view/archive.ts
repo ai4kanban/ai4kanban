@@ -33,9 +33,6 @@ function readFile(file: string): { row: ArchivedCard; body: string } | null {
     row: {
       id,
       title: meta.title,
-      // The card's own, unlike an open card's: `.archive` is flat, so there is no track
-      // folder to read it off.
-      track: meta.track,
       release: meta.release,
       archived: meta.archived,
       relPath: rel(file).split(path.sep).join('/'),

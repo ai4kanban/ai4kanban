@@ -72,7 +72,6 @@ const card = (over: Partial<Card> = {}): Card =>
     revision: 'r1',
     relPath: 'features/12-a.md',
     title: 'A task',
-    track: 'features',
     priority: 'high',
     roi: 'high',
     status: 'ready',

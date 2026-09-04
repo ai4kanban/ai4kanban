@@ -84,7 +84,6 @@ export interface CardSchedule {
 export interface Subtask {
   id: number
   title: string
-  track: string
   /** The release this subtask ships in. A subtask carries its own — the root is a tracking
    *  card — and no column ever draws a subtask, so this is what lets a root stand in for a
    *  group under a picked release. */
@@ -255,7 +254,6 @@ export interface Card {
   /** Path relative to `docs/kanban/todo/`, e.g. `features/07-local-kanban-ui.md`. */
   relPath: string
   title: string
-  track: string
   priority: string
   roi: string
   status: CardStatus
@@ -353,10 +351,12 @@ export interface DeliveryPlan {
   canChooseWorktree?: boolean
 }
 
+/** One band of the board: a module from `docs/kanban/modules.md` and the cards whose
+ *  first `modules:` entry names it. A card tagged with several modules bands under the
+ *  first; `module` is empty for the catch-all holding cards that name none. */
 export interface Column {
-  /** Track folder name, or `blockers`. */
-  track: string
-  /** Heading to show above the column ("Blockers", or the track name). */
+  module: string
+  /** Heading to show above the band — the module's name, or the untagged catch-all's. */
   title: string
   cards: Card[]
 }
@@ -399,27 +399,12 @@ export const GUIDED_STEPS = ['agent', 'project', 'goal'] as const
  *  for later, and a run that reopened on it would make "later" mean nothing. */
 export const FIRST_RUN_DONE = ['agent', 'project'] as const
 
-/** One track as the first-run flow shows it: the folder's name, and the plain line saying
- *  what belongs in it. `was` is the folder this row came from, which is what makes renaming
- *  a track a rename rather than "one gone, another arrived". */
-export interface TrackDraft {
-  name: string
-  note: string
-  was?: string
-}
-
 /** What a guided first run opens with — the board's own answers as they stand, so every
  *  screen starts on something sensible rather than an empty box. */
 export interface SetupDraft {
   /** The project's name and the one line saying what it is, from `docs/kanban/config.md`.
    *  The name falls back to the repo's folder name; the line to empty. */
   project: { name: string; description: string }
-  /** The tracks work falls into — the folders under `docs/kanban/todo/`, with whatever the
-   *  config says each is for. */
-  tracks: TrackDraft[]
-  /** The tracks that already hold cards, so the flow can refuse to drop one out from under
-   *  the work in it. */
-  usedTracks: string[]
   /** The goal as it stands, for the flow's goal box (empty on a fresh board). */
   goal: string
 }
@@ -470,7 +455,7 @@ export interface WriteResult {
   current?: string
 }
 
-/** The fields a direct edit may write. Everything else about a card (track, id, links,
+/** The fields a direct edit may write. Everything else about a card (id, links,
  *  questions) stays with the agents and the commands. */
 export interface CardPatch {
   title?: string
@@ -500,13 +485,8 @@ export interface BulkReleaseResult {
   error?: string
 }
 
-/** What a save of the project and its tracks did: the tracks it made, the ones it renamed,
- *  and the ones it left alone because they hold cards. */
-export interface SaveProjectResult extends WriteResult {
-  added?: string[]
-  renamed?: { from: string; to: string }[]
-  keptBecauseUsed?: string[]
-}
+/** What a save of the project did. */
+export type SaveProjectResult = WriteResult
 
 /** A card named in a release plan. */
 export interface PlanCard {
@@ -604,7 +584,6 @@ export interface MemoryFile extends MemoryRef {
 export interface ArchivedCard {
   id: number
   title: string
-  track: string
   /** The version it shipped in, or empty on a card that named none. */
   release: string
   /** The day it was archived, `YYYY-MM-DD`. Empty on every card archived before the board

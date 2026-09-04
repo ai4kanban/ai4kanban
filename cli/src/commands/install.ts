@@ -117,7 +117,7 @@ function boardAbove(root: string): string | null {
 /** Scaffold the board and nothing else (#174). The folders a coding agent reads are not
  *  written: driving the board from one is an extra, and `akb skill` is how it is asked for.
  *  That is what keeps a board made from the UI free of a folder nobody chose. */
-export async function cmdInstall(ctx: SetupContext, tracks: string[]): Promise<MoveResult> {
+export async function cmdInstall(ctx: SetupContext): Promise<MoveResult> {
   const report = new Report()
   say(`ai4kanban ${SKILL_VERSION} — installing into ${ctx.dir}`)
   say('')
@@ -125,7 +125,7 @@ export async function cmdInstall(ctx: SetupContext, tracks: string[]): Promise<M
   if (above) {
     report.notes.push(`there is already a board at ${above} — this makes a second one, and commands run here will find this one`)
   }
-  await boardMove(ctx.dir, ['init', ...tracks])
+  await boardMove(ctx.dir, ['init'])
   report.sayNotes()
   say('')
   // Say what landed, so nobody goes looking for the flows in the repo. They ship with the
@@ -137,7 +137,7 @@ export async function cmdInstall(ctx: SetupContext, tracks: string[]): Promise<M
   say('board UI (Configuration → Agent setup), or here:')
   say('')
   say(`    ${ctx.program} skill`)
-  return { installed: ctx.dir, tracks }
+  return { installed: ctx.dir }
 }
 
 // ---- skill -----------------------------------------------------------------

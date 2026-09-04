@@ -1,6 +1,5 @@
 ---
 title: Competitor analysis loop
-track: recurring
 priority: med
 roi: med
 status: todo

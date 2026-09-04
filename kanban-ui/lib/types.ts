@@ -105,7 +105,6 @@ export type {
   // writing side already had a `SetupStep` of its own.
   SetupStepView as SetupStep,
   Subtask,
-  TrackDraft,
   VerifyResult,
   WriteResult,
 } from "./format/view/types";

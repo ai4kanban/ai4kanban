@@ -25,33 +25,27 @@ setup is finished.
 ## The first-run conversation
 
 This section applies only to the board app's `project` screen. Read the README, package
-files, folder structure, current config, and existing track folders. Return one fenced
-`json` block and write nothing.
+files, folder structure, and current config. Return one fenced `json` block and write
+nothing.
 
 ```json
 {
   "summary": "Ledger — the bookkeeping service behind Acme's billing API.",
   "name": "Ledger",
   "description": "The bookkeeping service behind Acme's billing API.",
-  "tracks": [
-    { "name": "features", "note": "User-visible product work.", "was": "feature" }
-  ],
   "unsure": false,
   "ask": ""
 }
 ```
 
 - `name` and `description` become the project heading and subheading.
-- Track names use lowercase letters, digits, and dashes. Keep existing folders. Use `was`
-  only when renaming a track.
 - If the repository is unclear, set `unsure: true`, summarize what is known, and put one
   question in `ask`. Do not guess.
 - A correction returns the same JSON shape. Never ask for the goal here.
 
 ## `project`
 
-Fill the project name, description, and tracks in `docs/kanban/config.md`. Keep existing
-track folders and create any confirmed new ones. Then `setup-done project`.
+Fill the project name and description in `docs/kanban/config.md`. Then `setup-done project`.
 
 ## `goal`
 

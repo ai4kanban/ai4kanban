@@ -47,7 +47,6 @@ const read = (rel: string): string => fs.readFileSync(path.join(kanban, rel), 'u
 function card(rel: string, id: number, over: Partial<Meta> = {}): void {
   const meta: Partial<Meta> = {
     title: `Card ${id}`,
-    track: 'features',
     priority: 'med',
     roi: 'med',
     status: 'todo',

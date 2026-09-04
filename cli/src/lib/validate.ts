@@ -2,13 +2,13 @@
 //
 // Reading the command line is Commander's (lib/cli/), and so is refusing an unknown option
 // or a value outside a fixed set. What is left here is the checking a command line cannot
-// do on its own: whether a track exists, whether a module is on the map, whether an id names
-// an open card. A hallucinated one is a hard error rather than a silently written field.
+// do on its own: whether a module is on the map, whether an id names an open card. A
+// hallucinated one is a hard error rather than a silently written field.
 
 import fs from 'node:fs'
 
-import { die, warn, rel, TODO, MODULES_MD } from './paths'
-import { locate, trackNames } from './cards'
+import { die, warn, rel, MODULES_MD } from './paths'
+import { locate } from './cards'
 
 export function slugify(s: unknown): string {
   const out = String(s)
@@ -45,23 +45,12 @@ import { NO_RELEASE } from './view/types'
 
 // A version id is free text (`v1`, `0.5.0`, `august`) — the board never parses it. It's
 // kept exactly as typed minus the spaces at each end, and its case stands, the way a
-// track or a module name does: `V1` and `v1` are two different names. An empty, blank or
+// module name does: `V1` and `v1` are two different names. An empty, blank or
 // damaged value reads as no release, so an old or hand-edited card still opens.
 export function normalizeRelease(raw: unknown): string {
   if (raw === undefined || raw === null || typeof raw === 'object') return NO_RELEASE
   if (typeof raw === 'boolean') return NO_RELEASE
   return String(raw).trim()
-}
-
-export function validTrack(track: string): void {
-  const known = trackNames()
-  if (!known.includes(track)) {
-    die(
-      `unknown track "${track}". existing tracks: ${known.join(', ') || '(none)'}. ` +
-        `--track takes a top-level track name, never a group folder path.`,
-      { kind: 'unknown-track', track, known },
-    )
-  }
 }
 
 // The module map (docs/kanban/modules.md) lists the project's parts, one per line,
@@ -78,7 +67,7 @@ export function moduleNames(): string[] | null {
   return names
 }
 
-// Validate tags against the module map, the same way --track checks the track folders.
+// Validate tags against the module map.
 // No map yet → the field is skipped (returns []), not an error, so a pre-map install still
 // works. An unknown name is a hard error whose message lists the known names and says how
 // to add one — that message is the whole refresh path, so a new module gets on the map the
@@ -116,6 +105,5 @@ export function parseIdList(raw: string[], name: string, ceiling: number): numbe
   })
 }
 
-// A module name doubles as a folder name under memory/, so it's held to the same shape as
-// a track's.
+// A module name doubles as a folder name under memory/, so it's held to a folder's shape.
 export const MODULE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/i

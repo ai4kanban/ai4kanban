@@ -187,7 +187,7 @@ export function answer(object: Record<string, unknown>): void {
 
 // A refused command says why and stops there. Prose goes to stderr with the command in
 // front of it, so a terminal shows which one refused; --json puts the kind and whatever the
-// refusal knows (an id, a track, a folder) where a caller can read them, next to the lines
+// refusal knows (an id, a folder) where a caller can read them, next to the lines
 // the command managed to print first — those are usually what explains the refusal.
 export function report(
   err: unknown,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiRepeat, FiTag, FiUser } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import { type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import type { ChipsCopy } from "@/i18n/chips/types";
@@ -241,37 +241,9 @@ export function BlockedChip({ blockers }: { blockers: { id: number; title: strin
   );
 }
 
-// The track a card came from — the card page's chip. The board doesn't draw
-// it: it bands its cards by track and heads each band with its name.
-// `blockers` and `recurring` are reserved folders, not tracks someone named, so
-// each says so — peach for the blocker (the colour the board gives work in the
-// way), a repeat icon for recurring, which comes round again instead of being
-// built once.
-export function TrackChip({ track }: { track: string }) {
-  const blocker = track === "blockers";
-  const recurring = track === "recurring";
-  return (
-    <span
-      className="nb-chip"
-      style={{
-        background: blocker
-          ? "var(--color-nb-peach-soft)"
-          : "var(--color-nb-lilac-soft)",
-        color: blocker
-          ? "var(--color-nb-peach-ink)"
-          : "var(--color-nb-lilac-ink)",
-      }}
-    >
-      {recurring && <FiRepeat aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />}
-      {track}
-    </span>
-  );
-}
-
 // Module — what part of the product the card touches (from modules.md). Its own
-// mint colour and a box icon keep it from reading as a second TrackChip (lilac):
-// the track is the kind of effort, the module is the part it lands in. One chip
-// per module — a card can name two. Read-only; the CLI writes the field.
+// mint colour and a box icon set it apart from the other chips. One chip per
+// module — a card can name two. Read-only; the CLI writes the field.
 export function ModuleChip({ module }: { module: string }) {
   return (
     <span
@@ -287,7 +259,7 @@ export function ModuleChip({ module }: { module: string }) {
 // The card page's release picker — the version this card ships in (#105), made
 // pickable the way LevelSelect makes the priority chip pickable. A tag icon,
 // since a release is a name pinned on the work rather than a kind of work (the
-// track) or a part of the product (the module). It draws only here: the board
+// part of the product (the module). It draws only here: the board
 // cards don't carry the version (see BoardCard). The options are the open
 // releases plus a bare "—" last for a card in no release — the "Release" label
 // beside the chip says what the dash means, and the file value it writes is

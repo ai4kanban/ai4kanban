@@ -1,6 +1,5 @@
 ---
 title: Bring team collaboration to AI4Kanban Cloud
-track: features
 priority: high
 roi: high
 status: ready

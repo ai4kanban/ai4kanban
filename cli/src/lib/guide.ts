@@ -26,8 +26,6 @@ import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
 import nextCard from '../guide/next-card.md'
 import planRelease from '../guide/plan-release.md'
-import presetIndieHacker from '../guide/preset-indie-hacker.md'
-import presetValidateOnReddit from '../guide/preset-validate-on-reddit.md'
 import propose from '../guide/propose.md'
 import pruneMemory from '../guide/prune-memory.md'
 import qaLightweight from '../guide/qa-lightweight.md'
@@ -42,6 +40,7 @@ import setup from '../guide/setup.md'
 import specSkill from '../guide/spec-skill.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
+import validateOnReddit from '../guide/validate-on-reddit.md'
 import writing from '../guide/writing.md'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
@@ -50,9 +49,6 @@ export interface Guide {
   /** What it is for, in one line — this is what the list is read for. */
   when: string
   text: string
-  /** A bundle for one kind of project rather than a flow every board runs. Listed apart so
-   *  the everyday list stays short. */
-  preset?: boolean
 }
 
 export const GUIDES: Guide[] = [
@@ -83,8 +79,7 @@ export const GUIDES: Guide[] = [
   { name: 'setup', when: "setup's own steps, while the checklist is still there", text: setup },
   { name: 'update', when: 'pull a newer version into a project that already has one', text: update },
   { name: 'local-ui', when: 'run the board from buttons instead of the terminal', text: localUi },
-  { name: 'preset-indie-hacker', when: 'extra tracks and reviews for a solo product launch', text: presetIndieHacker, preset: true },
-  { name: 'preset-validate-on-reddit', when: 'check an idea against what people actually say', text: presetValidateOnReddit, preset: true },
+  { name: 'validate-on-reddit', when: 'check an idea against what people actually say', text: validateOnReddit },
 ]
 
 export const GUIDE_NAMES = GUIDES.map((g) => g.name)
@@ -106,11 +101,7 @@ export function guideList(program: string): string {
     'filled in for the board it was asked about.',
     '',
     'Flows',
-    ...GUIDES.filter((g) => !g.preset).map(line),
-    '',
-    'Presets — optional bundles for one kind of project; a board uses one only if its',
-    'docs/kanban/config.md names it',
-    ...GUIDES.filter((g) => g.preset).map(line),
+    ...GUIDES.map(line),
   ]
   return out.join('\n')
 }

@@ -19,7 +19,7 @@ const todo = () => path.join(root, 'docs', 'kanban', 'todo')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
-  fs.mkdirSync(path.join(todo(), 'feature'), { recursive: true })
+  fs.mkdirSync(todo(), { recursive: true })
   setBoardRoot(root)
 })
 
@@ -27,10 +27,10 @@ after(() => fs.rmSync(root, { recursive: true, force: true }))
 
 // One card, with whatever frontmatter the test is about.
 function card(id: number, slug: string, extra = ''): string {
-  const rel = path.join('feature', `${id}-${slug}.md`)
+  const rel = `${id}-${slug}.md`
   fs.writeFileSync(
     path.join(todo(), rel),
-    `---\nid: ${id}\ntitle: ${slug}\ntrack: feature\nstatus: todo\n${extra}---\n\nthe card.\n`,
+    `---\nid: ${id}\ntitle: ${slug}\nstatus: todo\n${extra}---\n\nthe card.\n`,
   )
   return rel
 }
@@ -103,7 +103,7 @@ describe('a card the index never learned about', () => {
 describe('looking is not repairing', () => {
   it('leaves a moved card\'s stale link exactly as it found it', () => {
     const moved = card(1, 'one')
-    index('feature/1-somewhere-else.md')
+    index('1-somewhere-else.md')
     const readme = path.join(todo(), 'README.md')
     const before = fs.readFileSync(readme, 'utf8')
     const said = boardComplaints()

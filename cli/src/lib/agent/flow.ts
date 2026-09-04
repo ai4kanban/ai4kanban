@@ -40,7 +40,7 @@ import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from '
 import { conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
 import { activeDelivery } from './deliveries'
-import { field, metaLine, numbered, trackNames } from './facts'
+import { field, metaLine, numbered } from './facts'
 import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
 import { flowByAction } from './flows'
@@ -590,7 +590,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ]),
       )
       close.push(
-        `${raw} update ${req.id} [--title|--priority|--roi|--release|--modules|--track|--blocked-by|--related] — the fields are the command's, never hand-written`,
+        `${raw} update ${req.id} [--title|--priority|--roi|--release|--modules|--blocked-by|--related] — the fields are the command's, never hand-written`,
         'fill the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
       )
       break
@@ -598,7 +598,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'create':
     case 'propose':
     case 'plan-release': {
-      facts.push(...field('tracks', trackNames().join(', ') || '(none)'))
       facts.push(...field('modules', (moduleNames() ?? []).join(', ') || `(none — ${rel(MODULES_MD)})`))
       if (req.action === 'plan-release') {
         const entry = readReleaseEntries().find((e) => e.id === req.release)
@@ -613,7 +612,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         // `--slug` only on a board that isn't English (#337): a non-English title slugifies
         // to nothing, and every card would be named `<id>-task.md`.
-        `${raw} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''} --track <track>${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
+        `${raw} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''}${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         'then fill only the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
       )
       break

@@ -21,9 +21,9 @@ import { runningSessionForCard } from "./sessions";
 // dropdown (#104) hides cards before this draws them, so what the columns hold
 // and what is on screen can never disagree.
 //
-// Inside a column the cards keep their tracks, banded one under another in the
-// board's own column order. The column is the answer to "can I start this", the
-// band says "what kind of work is it" — so a card needs no track chip.
+// Inside a column the cards keep their modules, banded one under another in the
+// module map's own order. The column is the answer to "can I start this", the
+// band says "what part of the product is it" — so a card needs no module chip.
 //
 // The three columns are fixed width and the row scrolls sideways. A column that
 // stretched to the window would rewrap its cards at every window size, and the
@@ -45,10 +45,10 @@ import { runningSessionForCard } from "./sessions";
 // only one answer to which column a card is in.
 export const isReadyHalf = (card: Card) => card.status === "ready" || card.status === "implementing";
 
-/** One track's cards within a column. Empty bands are dropped before drawing —
- *  a track with nothing on this side of the split has nothing to say. */
+/** One module's cards within a column. Empty bands are dropped before drawing —
+ *  a module with nothing on this side of the split has nothing to say. */
 interface Band {
-  track: string;
+  module: string;
   title: string;
   cards: Card[];
 }
@@ -56,7 +56,7 @@ interface Band {
 const bandsFor = (columns: Column[], keep: (card: Card) => boolean): Band[] =>
   columns
     .map((col) => ({
-      track: col.track,
+      module: col.module,
       title: col.title,
       cards: col.cards.filter(keep).sort(byQueueOrder),
     }))
@@ -110,7 +110,7 @@ export function QueueView({
   // Every column, once — the same list the window lays side by side and the phone pages
   // through, so neither shape can grow a column the other doesn't have.
   //
-  // Recurring is a reserved folder, not a track someone named, and not part of the
+  // Recurring is a reserved folder, and not part of the
   // ready/not-ready question at all — so it stands as its own column, narrower because it
   // is a list you glance at rather than the work you came here to pick from. The faint
   // lilac cast the board gives a schedule rides on the header band, which is the only
@@ -388,8 +388,8 @@ function Bands({
   return (
     <div className="flex flex-col gap-2">
       {bands.map((band) => (
-        <TrackBand
-          key={band.track}
+        <ModuleBand
+          key={band.module}
           band={band}
           sessions={sessions}
           onOpenLog={onOpenLog}
@@ -401,10 +401,10 @@ function Bands({
   );
 }
 
-// One track's cards inside a column: a rule carrying the track name and its
-// count, then the grid. The rule is what cuts one track from the next — the
+// One module's cards inside a column: a rule carrying the module name and its
+// count, then the grid. The rule is what cuts one band from the next — the
 // bands sit on the same paper, so a line and a name are all it takes.
-function TrackBand({
+function ModuleBand({
   band,
   sessions,
   onOpenLog,

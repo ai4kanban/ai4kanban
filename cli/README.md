@@ -42,15 +42,15 @@ rather not install anything.
 From your project root:
 
 ```bash
-akb install --tracks feature,bug,research
+akb install
 ```
 
-That scaffolds `docs/kanban/`: the track folders, the board index, the memory set, and a
-blank `config.md`. Nothing is written outside that folder — that is the whole footprint.
+That scaffolds `docs/kanban/`: the board folder, its index, the memory set, and a blank
+`config.md`. Nothing is written outside that folder — that is the whole footprint.
 
-Pass the tracks your project actually splits into. Normally you don't run this by hand —
-you paste the install prompt from <https://ai4kanban.dev/INSTALL_PROMPT.txt> and your agent
-reads the repo, picks the tracks, runs this command, and fills in the config afterwards.
+Normally you don't run this by hand — you paste the install prompt from
+<https://ai4kanban.dev/INSTALL_PROMPT.txt> and your agent reads the repo, runs this
+command, and fills in the config afterwards.
 
 ## Drive the board from your coding agent
 

@@ -7,8 +7,7 @@ export type SetupCopy = {
     steps: string;
     exit: string;
     /** What each step has settled, under its name in the rail. */
-    projectSettledOne: (name: string) => string;
-    projectSettledMany: (name: string, tracks: number) => string;
+    projectSettled: (name: string) => string;
     goalWritten: string;
     goalSkipped: string;
   };
@@ -42,9 +41,6 @@ export type SetupCopy = {
     };
     reading: { ask: string; blurb: string };
     project: {
-      /** Leads the list of tracks, counting them: a reader who has never heard the word
-       *  learns what one is from this line and the list under it. */
-      tracks: (count: number) => string;
       right: string;
       hint: string;
       yes: string;
@@ -72,19 +68,6 @@ export type SetupCopy = {
     name: string;
     what: string;
     whatPlaceholder: string;
-    tracks: string;
-    tracksBlurb: string;
-    trackName: (n: number) => string;
-    trackNote: (track: string) => string;
-    thisTrack: string;
-    trackNotePlaceholder: string;
-    dropTrack: (track: string) => string;
-    dropTrackHint: string;
-    /** A track that holds cards is never dropped out from under them. */
-    trackLocked: (track: string) => string;
-    addTrack: string;
-    keptOne: (tracks: string) => string;
-    keptMany: (tracks: string) => string;
     saveFailed: string;
     continue: string;
   };

@@ -22,7 +22,7 @@ naming no other doc is covered there.
 - The same board in a browser with `npx ai4kanban-ui` — deprecated the day the app
   shipped, still working, and npm points at the download: `akb guide local-ui`.
 - Started where there is no board, the page says so and names the command that fixes it.
-- Set a board up in the app: a guided run for project, tracks, goal and agent, then
+- Set a board up in the app: a guided run for project, goal and agent, then
   **Finish setup** runs everything still left as one ordinary run — watchable, stoppable,
   resuming from the first unfinished step, and saying when the last one died. A progress
   bar hands over the line to paste into a coding agent: "The first run".
@@ -32,7 +32,7 @@ naming no other doc is covered there.
 
 ## Reading the board
 
-- Flip between the track board and a **Queue** that splits the same cards into ready and
+- Flip between the board and a **Queue** that splits the same cards into ready and
   not ready, see which card is in the way of a blocked one, and show one release at a time.
 - Read and edit the whole project goal from the header compass, on the board and on a card.
 - Find a card by typing part of its title or body into the rail's search box: "Finding a card".

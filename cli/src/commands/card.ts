@@ -10,19 +10,19 @@ import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { countsForRecord, recordFact, type Answerer, type Origin } from '../lib/record'
-import { slugify, validTrack, validModules, parseIdList, normalizeRelease } from '../lib/validate'
+import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
 import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
-import { locate, enclosingGroupRoot, isRecurringCard, trackOf } from '../lib/cards'
+import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
 import { RECURRING } from '../lib/recurring'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
 import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
 import { findCard } from '../lib/view/read'
 import type { ScheduledAction } from '../lib/view/types'
-import { readmeHeadingFor, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
+import { TASKS_HEADING, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
 import type { Meta, MoveResult, Question } from '../lib/types'
 
@@ -82,7 +82,8 @@ function cadenceFlag(raw: string): string {
 /** `akb raw create`, as its command declares it (lib/cli/board.ts). */
 export interface CreateOptions {
   title: string
-  track: string
+  /** `--recurring`: the card goes in the reserved `recurring/` folder and repeats. */
+  recurring?: boolean
   priority: string
   roi: string
   release?: string
@@ -106,8 +107,8 @@ export interface CreateOptions {
 //
 // Which words are actions is the command's own check; what is left here is the two ways a
 // perfectly-spelled one would still never fire.
-function createSchedule(action: ScheduledAction, track: string, questions: Question[]): ScheduledAction {
-  if (track === RECURRING) die('--schedule is not for a recurring card: its cadence is its schedule.')
+function createSchedule(action: ScheduledAction, recurring: boolean, questions: Question[]): ScheduledAction {
+  if (recurring) die('--schedule is not for a recurring card: its cadence is its schedule.')
   if (
     action === 'refine' &&
     questions.length > 0 &&
@@ -128,8 +129,7 @@ const originOf = (opts: CreateOptions): Origin => (opts.proposed ? 'proposed' : 
 export function cmdCreate(opts: CreateOptions): MoveResult {
   const title = opts.title.trim()
   if (!title) die('--title must not be empty')
-  const track = opts.track.trim()
-  validTrack(track)
+  const recurring = opts.recurring === true
   const { priority, roi } = opts
   // No --release means no release: the card is wanted, not promised to a version. Any
   // other value has to name a release on the list — a typo must not invent a version.
@@ -141,25 +141,27 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   // Only a card that repeats can have a cadence — a one-shot task is built once.
   let cadence = ''
   if (opts.cadence !== undefined) {
-    if (track !== RECURRING) die(`--cadence is for recurring cards only (--track ${RECURRING}); a one-shot task is built once, not repeated.`)
+    if (!recurring) die('--cadence is for recurring cards only (--recurring); a one-shot task is built once, not repeated.')
     cadence = cadenceFlag(opts.cadence)
   }
   const questions = collectQuestions(opts.asked ?? [])
   warnBadQuestionTags(questions)
-  const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, track, questions) : null
+  const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, recurring, questions) : null
   const slug = slugify(opts.slug !== undefined ? opts.slug : title)
-  const fileRel = path.join(track, `${start}-${slug}.md`)
+  const fileRel = recurring ? path.join(RECURRING, `${start}-${slug}.md`) : `${start}-${slug}.md`
   const file = path.join(TODO, fileRel)
   if (fs.existsSync(file)) die(`${rel(file)} already exists — pick a different --slug`)
 
   // validation passed → allocate + write
   writeNextId(start + 1)
   bumpMetric('created')
-  const meta: Partial<Meta> = { title, track, priority, roi, status: 'todo', release, blocked_by, related, modules, cadence, questions }
-  const body = opts.body === false ? '' : track === RECURRING ? recurringBody() : defaultBody()
+  const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, cadence, questions }
+  const body = opts.body === false ? '' : recurring ? recurringBody() : defaultBody()
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   if (countsForRecord(file)) recordFact('card-created', start, originOf(opts))
-  const indexed = addReadmeRef(track, start, title, fileRel)
+  // A recurring card is a job, not one of the open tasks — it never archives and the index
+  // is the task list, so it stays out of it (the same cards `reconcile` never asks for).
+  const indexed = recurring ? false : addReadmeRef(start, title, fileRel)
   // An asked-for schedule wins over the default one a blocked card gets — it is the same
   // field, and the user named the action.
   let scheduled: ScheduledAction | null = null
@@ -172,16 +174,15 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   say(start)
   say(`  wrote ${rel(file)} — frontmatter is set; fill the body with your editor, leave the frontmatter to the script`)
   if (scheduled) say(`  ${scheduleReceipt(start, scheduled)}`)
-  if (track !== RECURRING && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
-  if (indexed) say(`  indexed under "## ${readmeHeadingFor(track)}"`)
+  if (!recurring && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
+  if (indexed) say(`  indexed under "## ${TASKS_HEADING}"`)
   reconcileBoard()
-  return { id: start, ids: [start], title, track, file: rel(file), indexed, schedule: scheduled }
+  return { id: start, ids: [start], title, file: rel(file), indexed, schedule: scheduled }
 }
 
 /** `akb raw update`, as its command declares it (lib/cli/board.ts). */
 export interface UpdateOptions {
   title?: string
-  track?: string
   priority?: string
   roi?: string
   status?: string
@@ -193,9 +194,8 @@ export interface UpdateOptions {
   cadence?: string
 }
 
-// Rewrite a card's frontmatter fields. Also the sanctioned way to move a card between
-// tracks (--track moves the file + fixes the index) or rename it (--slug). Body is
-// untouched, and so is the question list — that's cmdUpdateQuestions' job.
+// Rewrite a card's frontmatter fields. Also the sanctioned way to rename a card (--slug).
+// Body is untouched, and so is the question list — that's cmdUpdateQuestions' job.
 export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
@@ -258,31 +258,14 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   }
 
   const curRel = path.relative(TODO, file)
-  const curTrack = trackOf(curRel, meta.track)
   const isSubtask = found.kind === 'file' && enclosingGroupRoot(file) !== null
-  let newTrack = curTrack
-  if (flags.track !== undefined) {
-    if (found.kind === 'group') die('moving a group task between tracks by script is not supported — move the folder by hand')
-    if (isSubtask) die('moving a group subtask between tracks by script is not supported — move the file by hand')
-    newTrack = flags.track.trim()
-    validTrack(newTrack)
-  }
   let base = path.basename(file)
   if (flags.slug !== undefined) {
     if (found.kind === 'group') die('renaming a group root by script is not supported')
     base = `${id}-${slugify(flags.slug)}.md`
   }
-  meta.track = newTrack
-  // A card moved out of recurring/ leaves its cadence behind: nothing runs a
-  // one-shot task on a schedule, so the line would only mislead whoever reads it.
-  if (flags.track !== undefined && newTrack !== RECURRING && meta.cadence) {
-    meta.cadence = ''
-    changes.push('cadence cleared (no longer recurring)')
-  }
-  // Only a standalone card can change folders (--track). A subtask and a group
-  // root stay in their own folder; --slug at most renames the file there.
-  const standalone = found.kind === 'file' && !isSubtask
-  const destRel = standalone ? path.join(newTrack, base) : path.join(path.dirname(curRel), base)
+  // A card never changes folders: --slug at most renames the file where it sits.
+  const destRel = path.join(path.dirname(curRel), base)
   const dest = path.join(TODO, destRel)
   const moving = dest !== file
   if (moving && fs.existsSync(dest)) die(`${rel(dest)} already exists`)
@@ -302,11 +285,11 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     if (moving) changes.push(`renamed → ${destRel.split(path.sep).join('/')}`)
   } else if (moving) {
     stripReadmeRefs({ kind: 'file', rel: curRel })
-    addReadmeRef(newTrack, id, meta.title, destRel)
-    changes.push(`moved → ${destRel.split(path.sep).join('/')}`)
+    addReadmeRef(id, meta.title, destRel)
+    changes.push(`renamed → ${destRel.split(path.sep).join('/')}`)
   } else if (changes.includes('title')) {
     stripReadmeRefs({ kind: 'file', rel: curRel })
-    addReadmeRef(curTrack, id, meta.title, curRel)
+    addReadmeRef(id, meta.title, curRel)
   }
   if (flags.blockedBy !== undefined && scheduleRefineOnBlock(id, wasBlocked)) {
     changes.push('schedule→refine when unblocked')

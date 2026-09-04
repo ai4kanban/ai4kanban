@@ -70,7 +70,6 @@ function signedIn(): void {
 const meta = (over: Partial<Meta> = {}): Meta =>
   ({
     title: 'A card',
-    track: 'features',
     priority: 'med',
     roi: 'med',
     status: 'todo',

@@ -8,7 +8,7 @@
 // waiting inside it, and nothing written outside it. The coding agent skill is
 // not part of this (#174) — it is added later, from Configuration → General.
 //
-// Nothing here decides anything the CLI wouldn't: no tracks are passed, so the
+// Nothing here decides anything the CLI wouldn't: no arguments are passed, so the
 // board gets the defaults, and everything past that is setup's job — which is
 // what the board shows the moment this returns.
 //

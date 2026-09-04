@@ -94,7 +94,7 @@ re-ask a settled call.
 
 ## Recurring tasks
 
-- A built-in background job ships as a seeded card in the recurring track, run when the user
+- A built-in background job ships as a seeded card in `todo/recurring/`, run when the user
   sets a cadence — never as its own UI switch with its own state file. The card is the
   visible, editable record; deleting it is the opt-out, and nothing re-adds it.
 - A cadence is always the units grammar — `30m`, `2h`, `1d`, `1d at 09:30`. There is no word

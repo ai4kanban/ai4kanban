@@ -18,7 +18,6 @@ import {
   RoiTag,
   StatusPill,
   TodoProgress,
-  TrackChip,
 } from "@/components/chips";
 import { Dialog } from "@/components/Dialog";
 import { DiffPane } from "@/components/Diff";
@@ -267,7 +266,6 @@ const CARD: Card = {
   id: 42,
   revision: "design-page",
   title: "Give the board a design page",
-  track: "ui",
   priority: "high",
   roi: "med",
   status: "ready",
@@ -806,19 +804,14 @@ export function DesignSystem() {
             </p>
           </div>
           <div>
-            <Label>where a card came from and what it touches</Label>
+            <Label>what a card touches</Label>
             <Row>
-              <TrackChip track="ui" />
-              <TrackChip track="blockers" />
-              <TrackChip track="recurring" />
               <ModuleChip module="board" />
               <ModuleChip module="skill" />
             </Row>
             <p className="mt-2.5 text-[12.5px] leading-relaxed text-nb-ink-soft">
-              Lilac for the kind of effort, mint for the part of the product it
-              lands in — two chips that would read as one thing in one colour. The
-              two reserved folders say so: peach for blockers, a repeat icon for
-              recurring.
+              Mint and a box icon for the part of the product the card lands in,
+              so it never reads as the stage pill beside it.
             </p>
           </div>
           <div>

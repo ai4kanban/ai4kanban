@@ -101,7 +101,6 @@ const en: CardCopy = {
     working: "Working…",
   },
   meta: {
-    track: "Track",
     modules: "Modules",
     release: "Release",
     priority: "Priority",

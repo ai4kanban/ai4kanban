@@ -1,6 +1,5 @@
 ---
 title: Run each test request twice — once with the board, once without
-track: distribution
 priority: med
 roi: high
 status: ready

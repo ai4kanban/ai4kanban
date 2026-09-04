@@ -27,7 +27,7 @@ import { Btn, CROP, ChipIcon, HAIR, NB, Section, Shot, Tag, em } from "./nb";
 // wanted, mint where the work is already done.
 //
 // The real card puts its meta box between the toolbar and the questions, and
-// asks #48 two questions rather than one. Neither is drawn: track/priority/roi
+// asks #48 two questions rather than one. Neither is drawn: priority/roi
 // are what step 01 is about, and the open panel — which is a third taller than
 // the closed one — only fits the crop with one question in it.
 

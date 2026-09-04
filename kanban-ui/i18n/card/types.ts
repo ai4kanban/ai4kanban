@@ -120,7 +120,6 @@ export type CardCopy = {
     working: string;
   };
   meta: {
-    track: string;
     modules: string;
     release: string;
     priority: string;

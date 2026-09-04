@@ -2,7 +2,7 @@
 //
 // A printed flow already carries the guides its action needs, so this is for the topics no
 // action maps to: how the board works at all, the module map, setup, updating, the local
-// UI, the presets. It is also the door back for an agent that was pointed at one guide
+// UI. It is also the door back for an agent that was pointed at one guide
 // from inside another.
 
 import { findGuide, GUIDE_NAMES, guideList } from '../lib/guide'

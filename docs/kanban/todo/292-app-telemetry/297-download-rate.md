@@ -1,6 +1,5 @@
 ---
 title: Count how many site visitors go on to download the app
-track: distribution
 priority: med
 roi: high
 status: todo

@@ -15,17 +15,14 @@ settings live with the board at `docs/kanban/config.md`.
    from https://ai4kanban.dev/download. Do not install the npm package globally or use
    `npx` as a substitute, because neither provides the required desktop app.
 
-2. Read this repository, before installing anything into it — enough to pick the tracks the
-   work naturally splits into: the buckets a task can live in. The default is
-   `feature bug research`; pick something that fits this project better if it does. A solo
-   product being launched fits the indie-hacker preset (`akb guide preset-indie-hacker`)
-   better than the default tracks.
+2. Read this repository, before installing anything into it — enough to say what the
+   project is and what parts it is made of.
 
-3. Install into the project, from its root, passing those tracks:
+3. Install into the project, from its root:
 
-       akb install --tracks <track1>,<track2>,...
+       akb install
 
-   That creates the board under `docs/kanban/` and writes nothing else — the track folders,
+   That creates the board under `docs/kanban/` and writes nothing else — the board folder,
    the board index, the memory set, a blank `config.md`, and
    `docs/kanban/setup-checklist.md`: setup's remaining steps, one box each. Nothing lands
    outside that folder. It's safe to run twice and it never edits a board that's already

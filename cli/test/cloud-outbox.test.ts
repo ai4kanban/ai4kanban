@@ -81,7 +81,6 @@ function card(over: Partial<Card> = {}): Card {
     revision: 'r1',
     relPath: 'features/12-a.md',
     title: 'A task',
-    track: 'features',
     priority: 'high',
     roi: 'high',
     status: 'ready',
@@ -402,7 +401,6 @@ function writeCardFile(release = '0.8.0'): void {
     [
       '---',
       'title: A task',
-      'track: features',
       'priority: high',
       'roi: high',
       'status: ready',

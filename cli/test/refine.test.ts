@@ -53,7 +53,6 @@ function writeCard(opts: { status?: string; body?: string; questions?: string[] 
     [
       '---',
       'title: A card to refine',
-      'track: skill',
       'priority: med',
       'roi: med',
       `status: ${opts.status ?? 'todo'}`,
@@ -112,7 +111,6 @@ function writePiece(id: number, opts: { body?: string; blockedBy?: number[] } = 
     [
       '---',
       `title: Piece ${id}`,
-      'track: skill',
       'priority: med',
       'roi: med',
       'status: todo',

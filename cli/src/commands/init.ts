@@ -15,13 +15,10 @@ import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/vi
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
 import { writeReleasesIfMissing } from '../lib/releases'
 import { scaffoldMemoryPath, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
+import { TASKS_HEADING } from '../lib/readme'
 import { writePruneMemoryCard } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
 import type { MoveResult } from '../lib/types'
-
-// Default tracks when `init` is run with no track args. Swap by passing your own,
-// e.g. `init growth validation building`. Keep in step with `akb help`'s defaults.
-const DEFAULT_TRACKS = ['feature', 'bug', 'research']
 
 // The blank module map. `init` seeds it, the module-map flow fills it in from the repo.
 // It ships empty on purpose: only someone who has read the repo can name its parts, and
@@ -39,17 +36,16 @@ If a line here disagrees with the repo you just read, fix the line.
 _(not filled in yet — build the map from the repo before tagging a card.)_
 `
 
-function boardReadme(tracks: string[]): string {
-  const sections = ['## Blockers', '', '_(none)_', '']
-  for (const t of tracks) sections.push(`## ${t}`, '', '_(none)_', '')
+function boardReadme(): string {
   return `# Board
 
 Open tasks for the kanban board. One card per file. Ids are global and never reused —
 the number at the front of a filename is the task id.
 
-Blockers gate the next milestone; clear them first. Everything else sits under a track.
+## ${TASKS_HEADING}
 
-${sections.join('\n')}`
+_(none)_
+`
 }
 
 // Seed the per-project config at docs/kanban/config.md from the blank template this
@@ -128,18 +124,15 @@ function writeGitignoreIfMissing(): boolean {
 
 // The parts of a board every move needs: the folder the cards live in, its index, and the
 // counter that hands out ids. A board can be missing them — a half-finished install, a
-// folder someone deleted from — and then every move but this one turns it away. The track
-// folders are only made when `todo/` itself is gone: on a board that has one, the tracks
-// are whatever it already has, not what this call's arguments happen to say.
-function writeSkeletonIfMissing(tracks: string[]): string[] {
+// folder someone deleted from — and then every move but this one turns it away.
+function writeSkeletonIfMissing(): string[] {
   const added: string[] = []
   if (!fs.existsSync(TODO)) {
-    fs.mkdirSync(path.join(TODO, 'blockers'), { recursive: true })
-    for (const t of tracks) fs.mkdirSync(path.join(TODO, t), { recursive: true })
+    fs.mkdirSync(TODO, { recursive: true })
     added.push(`${rel(TODO)}/`)
   }
   if (!fs.existsSync(README)) {
-    fs.writeFileSync(README, boardReadme(tracks))
+    fs.writeFileSync(README, boardReadme())
     added.push(rel(README))
   }
   if (!fs.existsSync(NEXT_ID)) {
@@ -149,13 +142,7 @@ function writeSkeletonIfMissing(tracks: string[]): string[] {
   return added
 }
 
-export function cmdInit(args: string[]): MoveResult {
-  const tracks = args.length ? args : DEFAULT_TRACKS
-  for (const t of tracks) {
-    if (!/^[a-z0-9][a-z0-9-]*$/i.test(t)) {
-      die(`bad track name "${t}" — use letters, digits, and dashes (a folder name)`)
-    }
-  }
+export function cmdInit(): MoveResult {
   if (fs.existsSync(KANBAN)) {
     // Re-running `init` is the repair step for a board made by an older version: it adds
     // whatever that version never wrote — docs/kanban/config.md if the board predates the
@@ -174,7 +161,7 @@ export function cmdInit(args: string[]): MoveResult {
     // it is how a board opts out of the job, and a repair that re-added it would undo that
     // choice on every re-run.
     const added: string[] = [
-      ...writeSkeletonIfMissing(tracks),
+      ...writeSkeletonIfMissing(),
       writeConfigIfMissing() && rel(CONFIG),
       writeModulesIfMissing() && rel(MODULES_MD),
       writeReleasesIfMissing() && rel(RELEASES),
@@ -184,9 +171,8 @@ export function cmdInit(args: string[]): MoveResult {
     // A board still mid-setup gets the questions card if it was made before the card
     // existed — same test as everything else about setup: the checklist file says so.
     if (setupUnfinished() && !findSetupQuestionsCard()) {
-      const track = tracks.find((t) => fs.existsSync(path.join(TODO, t))) || tracks[0]!
-      fs.mkdirSync(path.join(TODO, track), { recursive: true })
-      const card = writeSetupQuestionsCard(track)
+      fs.mkdirSync(TODO, { recursive: true })
+      const card = writeSetupQuestionsCard()
       if (card) added.push(rel(card.file))
     }
     // The project-wide memory, then every module already on the map, so a board whose map
@@ -222,9 +208,8 @@ export function cmdInit(args: string[]): MoveResult {
     }
     return { board: rel(KANBAN), created: false, added, memory_paths: scaffolded.map((s) => rel(s.dir)) }
   }
-  fs.mkdirSync(path.join(TODO, 'blockers'), { recursive: true })
-  for (const t of tracks) fs.mkdirSync(path.join(TODO, t), { recursive: true })
-  fs.writeFileSync(README, boardReadme(tracks))
+  fs.mkdirSync(TODO, { recursive: true })
+  fs.writeFileSync(README, boardReadme())
   scaffoldProjectMemory()
   writeConfigIfMissing()
   writeModulesIfMissing()
@@ -237,18 +222,17 @@ export function cmdInit(args: string[]): MoveResult {
   writeSetupChecklist()
   // The questions card comes right after `next-id` is seeded, so it takes id 1 and sorts
   // on top. Setup's steps append every call they can't settle to it as they run.
-  const questionsCard = writeSetupQuestionsCard(tracks[0]!)
-  // The one job every board starts with, in `recurring/` beside the track folders. It
-  // ships with no cadence, so nothing runs until someone asks for it.
+  const questionsCard = writeSetupQuestionsCard()
+  // The one job every board starts with, in the reserved `recurring/` folder. It ships
+  // with no cadence, so nothing runs until someone asks for it.
   const pruneCard = writePruneMemoryCard()
   say(`initialised board at ${rel(KANBAN)}/`)
-  say(`  tracks: ${tracks.join(', ')}`)
   say(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
   if (questionsCard) say(`  questions card: #${questionsCard.id} — setup appends the calls it can't settle here`)
   if (pruneCard) say(`  recurring card: #${pruneCard.id} ${rel(pruneCard.file)} — prunes the memory; runs only when you run it`)
   const next = nextSetupStep()
   if (next) say(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
-  return { board: rel(KANBAN), created: true, tracks, next: next?.name ?? null }
+  return { board: rel(KANBAN), created: true, next: next?.name ?? null }
 }
 
 export function cmdMemoryInit(module: string | undefined): MoveResult {

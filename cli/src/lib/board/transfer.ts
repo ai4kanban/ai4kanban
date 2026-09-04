@@ -42,7 +42,7 @@ import { revisionOf } from './revision'
 export type DocumentKind = 'config' | 'memory' | 'rule' | 'summary' | 'history'
 
 /** One card, under the number the board already calls it by. `path` is where it is
- *  written — a track folder, a group's folder, or the archive. */
+ *  written — todo/, a group's folder, or the archive. */
 export interface CardPayload {
   id: number
   archived: boolean

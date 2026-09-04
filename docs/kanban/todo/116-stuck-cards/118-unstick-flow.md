@@ -1,6 +1,5 @@
 ---
 title: Split, rewrite, or reject a card that sat too long
-track: features
 priority: med
 roi: high
 status: todo

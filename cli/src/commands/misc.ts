@@ -23,9 +23,7 @@ function extractOldMeta(text: string, file: string): Partial<Meta> {
     const m = text.match(re)
     return m ? m[1]!.trim() : null
   }
-  const folderTrack = path.relative(TODO, file).split(path.sep)[0]!
   const title = grab(/^#\s+(.+)$/m) || slugify(path.basename(file, '.md').replace(/^\d+-/, '')).replace(/-/g, ' ')
-  const track = (grab(/\*\*Track:\*\*\s*([^·|\n]+?)\s*(?:·|\||\n|$)/) || folderTrack).toLowerCase()
   const norm = (raw: string | null): string => {
     const v = (raw || '').toLowerCase()
     return LEVELS.includes(v) ? v : 'med'
@@ -33,7 +31,6 @@ function extractOldMeta(text: string, file: string): Partial<Meta> {
   const ids = (raw: string | null): number[] => (raw && !/none/i.test(raw) ? (raw.match(/\d+/g) || []).map(Number) : [])
   return {
     title,
-    track,
     priority: norm(grab(/\*\*Priority:\*\*\s*([^·|\n]+?)\s*(?:·|\||\n|$)/)),
     roi: norm(grab(/\*\*ROI:\*\*\s*([^·|\n]+?)\s*(?:·|\||\n|$)/)),
     status: 'todo',
@@ -73,7 +70,7 @@ export function cmdMigrate(opts: MigrateOptions): MoveResult {
     }
     const meta = extractOldMeta(text, file)
     const out = serializeFrontmatter(meta) + '\n\n' + stripOldHeader(text).replace(/^\n+/, '')
-    if (dry) say(`would migrate ${rel(file)}  (track=${meta.track} priority=${meta.priority} roi=${meta.roi})`)
+    if (dry) say(`would migrate ${rel(file)}  (priority=${meta.priority} roi=${meta.roi})`)
     else {
       fs.writeFileSync(file, out.endsWith('\n') ? out : out + '\n')
       say(`migrated ${rel(file)}`)

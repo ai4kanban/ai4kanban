@@ -10,7 +10,7 @@
 //     notes: "..."
 //
 // Keeping it on the card is what makes it survive a server restart, a reboot and a clone on
-// another machine; what makes it travel when the card moves track or joins a group; and what
+// another machine; what makes it travel when the card joins a group; and what
 // takes it away with the file when the card is archived or rejected. A separate list of
 // schedules would have to be kept in step with a board people also edit by hand and in git.
 //

@@ -35,7 +35,6 @@ const frontmatter = (id: number, questions: string[] = []): string =>
   [
     '---',
     `title: Card ${id}`,
-    'track: features',
     'priority: med',
     'roi: med',
     'status: todo',

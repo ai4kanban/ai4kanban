@@ -4,7 +4,6 @@
 // starts with (`akb chat`). Both want the same `label   value` shape and the same one-line
 // summary of a card's fields, so the layout lives here rather than once per caller.
 
-import { trackNames } from '../cards'
 import type { CardSchedule } from '../view/types'
 
 const LABEL = 10
@@ -21,7 +20,6 @@ export const numbered = (items: string[]): string[] => items.map((s, i) => `${i 
 /** The fields a card's one-line summary is built from — satisfied by a card's frontmatter
  *  and by the card a board read hands back, so neither side needs a shape of its own. */
 export interface MetaBits {
-  track: string
   status: string
   priority: string
   roi: string
@@ -35,7 +33,7 @@ export interface MetaBits {
 /** A card's meta as one line — the fields a job actually steers by, and nothing it can read
  *  off the file itself in a second. */
 export function metaLine(meta: MetaBits): string {
-  const bits = [meta.track, meta.status || 'todo', `priority ${meta.priority}`, `roi ${meta.roi}`]
+  const bits = [meta.status || 'todo', `priority ${meta.priority}`, `roi ${meta.roi}`]
   if (meta.release) bits.push(`release ${meta.release}`)
   if (meta.modules.length) bits.push(`modules ${meta.modules.join(', ')}`)
   if (meta.cadence) bits.push(`every ${meta.cadence}`)
@@ -48,4 +46,3 @@ export function metaLine(meta: MetaBits): string {
 
 /** The buckets a card can live in on this board, read off the folders rather than described
  *  in general (../cards.ts). */
-export { trackNames }

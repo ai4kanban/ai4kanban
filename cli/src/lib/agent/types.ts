@@ -945,12 +945,8 @@ export interface SetupProposal {
   /** The project's name, and the one line saying what it is — `config.md`'s two values. */
   name: string
   description: string
-  /** The tracks its work falls into, each with the line saying what belongs in it. `was` is
-   *  the folder a track replaces, so a rename moves the folder and its cards rather than
-   *  making one and stranding the other. */
-  tracks: { name: string; note: string; was?: string }[]
-  /** The repo said nothing worth stating. Then `summary` is what little it saw, `ask` is
-   *  the one question, and the tracks are whatever the board was scaffolded with. */
+  /** The repo said nothing worth stating. Then `summary` is what little it saw and `ask`
+   *  is the one question. */
   unsure: boolean
   /** The one question an unsure answer asks. Empty otherwise. */
   ask: string

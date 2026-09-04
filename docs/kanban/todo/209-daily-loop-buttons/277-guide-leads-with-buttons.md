@@ -1,6 +1,5 @@
 ---
 title: Rewrite the daily-loop guide so each step leads with the button
-track: distribution
 priority: med
 roi: med
 status: ready

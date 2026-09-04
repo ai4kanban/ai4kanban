@@ -30,7 +30,7 @@ import {
   type VerifyOp,
 } from '../board'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
-import type { BulkReleaseResult, CardPatch, SaveProjectResult, TrackDraft, WriteResult } from './types'
+import type { BulkReleaseResult, CardPatch, SaveProjectResult, WriteResult } from './types'
 
 export type { ReleaseFill }
 
@@ -248,21 +248,14 @@ export async function saveGoal(text: string, opts?: WriteOptions): Promise<Write
   return flat(await envelopeFor({ board: true }, opts, (env) => board().saveGoal(text, env)))
 }
 
-/** Save what the project is and what tracks its work falls into, and tick setup's `project`
- *  box. The tracks are folders as well as words, so this is also where a new one is made
- *  and an empty one that was dropped is removed. A track holding cards is kept and named in
- *  the answer rather than deleted. */
-export async function saveProject(
-  name: string,
-  description: string,
-  tracks: TrackDraft[],
-): Promise<SaveProjectResult> {
+/** Save what the project is, and tick setup's `project` box. */
+export async function saveProject(name: string, description: string): Promise<SaveProjectResult> {
   let lease: string | undefined
   try {
     const got = await board().lease({ board: true })
     if (!got.ok) return { ok: false, error: got.error }
     lease = got.lease.id
-    return await board().saveProject(name, description, tracks, envelope(got.lease.revision, lease))
+    return await board().saveProject(name, description, envelope(got.lease.revision, lease))
   } catch (e) {
     return { ok: false, error: opRefused(e).error }
   } finally {

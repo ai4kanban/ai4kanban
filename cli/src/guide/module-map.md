@@ -3,8 +3,7 @@
 Write and repair `docs/kanban/modules.md` — a plain list of the project's modules.
 
 A module is anything maintained in the codebase that grows independently. Judged by
-meaning, not by folder; a handful of lines, not one per folder. (Not a track: a track
-is a kind of effort, a module is a part of the product — a task has both.)
+meaning, not by folder; a handful of lines, not one per folder.
 
 Keep the list short. A simple single-purpose project is one module, and more lines come
 only as the code grows. Be strictest in a repo with no code, where the plan is all there

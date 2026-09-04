@@ -1,6 +1,5 @@
 ---
 title: Turn a spec you already wrote into the cards that build it
-track: skill
 priority: med
 roi: high
 status: ready

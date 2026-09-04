@@ -18,11 +18,11 @@ import { move, refuses } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-blocked-refine-'))
 const kanban = path.join(root, 'docs', 'kanban')
-const track = path.join(kanban, 'todo', 'features')
+const todo = path.join(kanban, 'todo')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
-  fs.mkdirSync(track, { recursive: true })
+  fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '20\n')
   setBoardRoot(root)
 })
@@ -30,7 +30,7 @@ beforeEach(() => {
 after(() => fs.rmSync(root, { recursive: true, force: true }))
 
 function cardFile(id: number): string {
-  return path.join(track, `${id}-card-${id}.md`)
+  return path.join(todo, `${id}-card-${id}.md`)
 }
 
 function writeCard(
@@ -44,7 +44,6 @@ function writeCard(
 ): void {
   const meta: Partial<Meta> = {
     title: `Card ${id}`,
-    track: 'features',
     priority: 'med',
     roi: 'med',
     status: opts.status ?? 'todo',
@@ -62,9 +61,9 @@ function writeCard(
 }
 
 function scheduleOf(id: number): Meta['schedule'] {
-  const name = fs.readdirSync(track).find((entry) => entry.startsWith(`${id}-`))
+  const name = fs.readdirSync(todo).find((entry) => entry.startsWith(`${id}-`))
   assert.ok(name)
-  const { meta } = parseFrontmatter(fs.readFileSync(path.join(track, name), 'utf8'))
+  const { meta } = parseFrontmatter(fs.readFileSync(path.join(todo, name), 'utf8'))
   assert.ok(meta)
   return meta.schedule
 }
@@ -77,7 +76,7 @@ describe('the default refine schedule', () => {
     writeCard(1)
     fs.writeFileSync(path.join(kanban, 'next-id'), '2\n')
 
-    const made = await move(root, ['create', '--title', 'Dependent', '--track', 'features', '--blocked-by', '1'])
+    const made = await move(root, ['create', '--title', 'Dependent', '--blocked-by', '1'])
 
     assert.equal(made.schedule, 'refine')
     assert.equal(scheduleOf(2)?.action, 'refine')
@@ -120,7 +119,7 @@ describe('the default refine schedule', () => {
   it('is what --schedule writes on a card nothing is in the way of', async () => {
     fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
 
-    const made = await move(root, ['create', '--title', 'Second slice', '--track', 'features', '--schedule', 'refine'])
+    const made = await move(root, ['create', '--title', 'Second slice', '--schedule', 'refine'])
 
     assert.equal(made.schedule, 'refine')
     assert.equal(scheduleOf(1)?.action, 'refine')
@@ -134,8 +133,6 @@ describe('the default refine schedule', () => {
       'create',
       '--title',
       'Dependent',
-      '--track',
-      'features',
       '--blocked-by',
       '1',
       '--schedule',
@@ -152,11 +149,11 @@ describe('the default refine schedule', () => {
     // The command declares the actions it takes, so the refusal comes from the parse.
     await refuses(
       root,
-      ['create', '--title', 'Nope', '--track', 'features', '--schedule', 'review'],
+      ['create', '--title', 'Nope', '--schedule', 'review'],
       /--schedule .*implement \| refine/,
     )
     assert.equal(fs.readFileSync(path.join(kanban, 'next-id'), 'utf8').trim(), '1')
-    assert.deepEqual(fs.readdirSync(track), [])
+    assert.deepEqual(fs.readdirSync(todo), [])
   })
 
   it('is not put on a card a refine cannot move', async () => {

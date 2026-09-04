@@ -1,6 +1,5 @@
 ---
 title: Disclose default-on usage reporting during onboarding
-track: features
 priority: high
 roi: high
 status: todo

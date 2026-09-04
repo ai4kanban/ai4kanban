@@ -35,36 +35,19 @@ export const idPrefix = (name: string): number | null => {
 
 // ---- what a folder under todo/ is ------------------------------------------
 //
-// Two shapes live side by side under `docs/kanban/todo/`, and telling them apart is the
-// board's most-asked question — the columns a screen draws, the tracks `--track` accepts,
-// and what a flow tells an agent the board's buckets are all come out of it:
+// `docs/kanban/todo/` is flat — one card per file:
 //
-//   todo/<track>/<id>-<slug>.md            a TRACK — one column on the board
-//   todo/<id>-<slug>/root.md               a GROUP task — one card, never a column
-//                    <track>/<sub>-….md    its subtasks
+//   todo/<id>-<slug>.md                    a card
+//   todo/<id>-<slug>/root.md               a GROUP task — one card
+//                    <sub>-<slug>.md       its subtasks
+//   todo/recurring/<id>-<slug>.md          the one reserved folder (see isRecurringCard)
 //
-// The id prefix decides, and it decides alone. It is the board's own naming: a group
-// folder is created as `<id>-<slug>/` and nothing else under todo/ ever is. Asking for a
-// `root.md` instead would call a group folder written a moment ago — its name minted, its
-// card not yet saved — a brand new track, and draw a column for it.
+// The id prefix is what tells a group folder from the reserved one, and it decides alone.
+// It is the board's own naming: a group folder is created as `<id>-<slug>/` and nothing
+// else under todo/ ever is.
 
 /** A group task's folder, told by its name. */
 export const isGroupFolder = (name: string): boolean => idPrefix(name) !== null
-
-/** The tracks this board has, in name order. The folders are the authority — the config
- *  describes them, it doesn't define them — so a track added by hand shows up without
- *  anyone editing a file. Empty on a board with no `todo/` yet. */
-export function trackNames(): string[] {
-  try {
-    return fs
-      .readdirSync(TODO, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && !isGroupFolder(e.name))
-      .map((e) => e.name)
-      .sort()
-  } catch {
-    return []
-  }
-}
 
 // Returns { kind: 'group'|'file', target, rel } or null.
 //   group  — an id-prefixed folder holding a root.md tracking card; target is the folder.
@@ -149,22 +132,11 @@ export function subtaskLines(body: string): { total: number; resolved: number; t
   return { total, resolved, ticked }
 }
 
-// A card's track is the folder its file sits in — `skill/06-x.md` and a subtask's
-// `<group>/skill/21-x.md` both read `skill`, so a subtask names its own track and never
-// its parent's folder. A group root's folder is the group, not a track, so there the
-// frontmatter value stands. `relFromTodo` is the path relative to `todo/`.
-export function trackOf(relFromTodo: string, metaTrack: string): string {
-  const parts = relFromTodo.split(/[\\/]/)
-  if (parts[parts.length - 1] === 'root.md') return metaTrack
-  return parts[parts.length - 2] || metaTrack
-}
-
 // Where a finished card goes. It sits next to `todo/`, not inside it: everything that
 // walks the board reads every folder under `todo/` without skipping dot-names, so an
-// archive folder there would show up as a track column and finished cards would look
-// open. Flat — no track subfolders — because ids are never reused so names never
-// collide, and each card still names its track in its own frontmatter. Nothing reads
-// this folder; it is a git history store, not part of the memory set.
+// archive folder there would make finished cards look open. Flat, like `todo/` — ids are
+// never reused so names never collide. Nothing reads this folder; it is a git history
+// store, not part of the memory set.
 export function archiveDest(found: Found): string {
   const dest = path.join(ARCHIVE, path.basename(found.target))
   // Only reachable if someone moved a file here by hand. Never overwrite finished work.
@@ -174,8 +146,8 @@ export function archiveDest(found: Found): string {
 
 // A recurring task never archives — each run bumps "completed" but the card stays,
 // so its ## Process can be refined toward less human effort on the next run. Recurring
-// cards live in the `recurring/` folder, parallel to the track folders; the guard keys
-// off that so a one-shot task can't be run.
+// cards live in the reserved `recurring/` folder; the guard keys off that so a one-shot
+// task can't be run.
 export function isRecurringCard(found: Found): boolean {
   return found.rel.split(path.sep)[0] === 'recurring'
 }

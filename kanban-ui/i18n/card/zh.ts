@@ -99,7 +99,6 @@ const zh: CardCopy = {
     working: "运行中…",
   },
   meta: {
-    track: "分类",
     modules: "模块",
     release: "版本",
     priority: "优先级",

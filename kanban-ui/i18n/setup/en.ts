@@ -8,8 +8,7 @@ const en: SetupCopy = {
     blurb: "Answer three questions. The remaining setup is based on your repository.",
     steps: "Setup steps",
     exit: "Go to the board",
-    projectSettledOne: (name) => `${name} · 1 track`,
-    projectSettledMany: (name, tracks) => `${name} · ${tracks} tracks`,
+    projectSettled: (name) => name,
     goalWritten: "Completed",
     goalSkipped: "Skipped",
   },
@@ -38,10 +37,6 @@ const en: SetupCopy = {
         "This usually takes less than a minute. You can review the suggested project details before they are saved.",
     },
     project: {
-      tracks: (count) =>
-        count === 1
-          ? "Suggested track for organizing cards:"
-          : `Suggested tracks for organizing cards (${count}):`,
       right: "Review these suggestions. Nothing is saved until you confirm.",
       hint: "Describe any changes",
       yes: "Confirm",
@@ -68,21 +63,6 @@ const en: SetupCopy = {
     name: "Name",
     what: "Description",
     whatPlaceholder: "A Markdown-based project management board.",
-    tracks: "Work tracks",
-    tracksBlurb:
-      "Tracks organize cards by type of work. Each track is stored as a folder under `docs/kanban/todo/`.",
-    trackName: (n) => `Track ${n}`,
-    trackNote: (track) => `Purpose of ${track}`,
-    thisTrack: "this track",
-    trackNotePlaceholder: "Work included in this track",
-    dropTrack: (track) => `Delete ${track}`,
-    dropTrackHint: "Delete this track",
-    trackLocked: (track) => `${track} contains cards. Move them before deleting this track.`,
-    addTrack: "Add a track",
-    keptOne: (tracks) =>
-      `Changes saved. ${tracks} was not deleted because it contains cards. Move or archive them first.`,
-    keptMany: (tracks) =>
-      `Changes saved. ${tracks} were not deleted because they contain cards. Move or archive them first.`,
     saveFailed: "Could not save the project details",
     continue: "Continue",
   },

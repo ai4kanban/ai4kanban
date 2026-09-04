@@ -1,6 +1,5 @@
 ---
 title: Update the sibling tasks when one task's plan changes
-track: skill
 priority: med
 roi: high
 status: ready

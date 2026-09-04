@@ -95,7 +95,7 @@ import type {
 } from './contract'
 import { leaseAnd, moveTarget, opConflict, opOk, opRefused, sameTarget, targetName } from './ops'
 import { boardRevision, cardRevision } from './revision'
-import type { BulkReleaseResult, CardPatch, CardSchedule, PlanCard, SaveProjectResult, TrackDraft } from '../view/types'
+import type { BulkReleaseResult, CardPatch, CardSchedule, PlanCard, SaveProjectResult } from '../view/types'
 
 // ---- the named moves -------------------------------------------------------
 //
@@ -115,7 +115,7 @@ type RunMove = (input: MoveInput) => MoveOutput | void
 const as = <T,>(opts: Record<string, unknown>): T => opts as T
 
 const MOVES: Record<string, RunMove> = {
-  init: ({ args }) => cmdInit(args),
+  init: () => cmdInit(),
   'memory-init': ({ args }) => cmdMemoryInit(args[0]),
   'setup-done': ({ args }) => cmdSetupDone(args[0]),
   'setup-status': () => cmdSetupStatus(),
@@ -430,11 +430,10 @@ export function localBoard(): BoardProvider {
     async saveProject(
       name: string,
       description: string,
-      tracks: TrackDraft[],
       env: OpEnvelope,
     ): Promise<SaveProjectResult> {
       const res = await mutate({ board: true }, env, () => {
-        const result = saveProjectWrite(name, description, tracks)
+        const result = saveProjectWrite(name, description)
         // Saying what the project is IS setup's `project` step. It matters more than the
         // meter: setup starts at the first unticked box, so a box left open here is a run
         // that comes back and asks the repo what the user already answered.
@@ -442,7 +441,7 @@ export function localBoard(): BoardProvider {
         return result
       })
       if (!res.ok) return { ok: false, error: res.error }
-      return { ok: true, added: res.added, renamed: res.renamed, keptBecauseUsed: res.keptBecauseUsed }
+      return { ok: true }
     },
 
     finishSetupStep: (name, env) =>

@@ -6,10 +6,10 @@ shipped behavior.
 
 ## Add one
 
-Evaluate it with `akb guide evaluate-task`, then create it with `--track recurring`:
+Evaluate it with `akb guide evaluate-task`, then create it with `--recurring`:
 
 ```
-akb raw create --title "Prune the memory" --track recurring \
+akb raw create --title "Prune the memory" --recurring \
              --priority med --roi med --modules skill
 ```
 
@@ -23,7 +23,6 @@ cadence the card runs only when someone asks; `board create` omits the field ent
 ```
 ---
 title: …
-track: recurring
 priority: …
 roi: …
 blocked_by: []

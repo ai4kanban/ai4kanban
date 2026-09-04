@@ -36,7 +36,6 @@ const card = (id: number, title: string): string =>
   [
     '---',
     `title: ${title}`,
-    'track: features',
     'priority: med',
     'roi: med',
     'status: ready',
@@ -492,9 +491,9 @@ describe("the board's language", () => {
       }
     }
     // The guides printed below it name `--slug` too, so this asks about the close line.
-    assert.match(printed(), /create --title "\.\." --track <track>/)
+    assert.match(printed(), /create --title "\.\." —/)
     setLanguage('zh')
-    assert.match(printed(), /create --title "\.\." --slug <short-english-slug> --track <track>/)
+    assert.match(printed(), /create --title "\.\." --slug <short-english-slug> —/)
   })
 
   it('carries the rule in full in `akb guide board`', () => {

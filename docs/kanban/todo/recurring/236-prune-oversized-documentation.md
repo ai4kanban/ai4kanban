@@ -1,6 +1,5 @@
 ---
 title: Prune oversized documentation
-track: recurring
 priority: med
 roi: med
 status: todo

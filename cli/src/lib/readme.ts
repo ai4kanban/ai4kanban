@@ -54,15 +54,16 @@ export function stripReadmeRefs(target: Pick<Found, 'kind' | 'rel'>): string[] {
   return removed
 }
 
-export const readmeHeadingFor = (track: string): string => (track === 'blockers' ? 'Blockers' : track)
+/** The one section every card is indexed under — `todo/` is flat, so the index is too. */
+export const TASKS_HEADING = 'Tasks'
 
-// Insert a card's bullet under its track heading, replacing a `_(none)_` placeholder
+// Insert a card's bullet under the index heading, replacing a `_(none)_` placeholder
 // or appending after the section's last bullet. Adds the section if it's missing.
-export function addReadmeRef(track: string, id: number, title: string, relPath: string): boolean {
+export function addReadmeRef(id: number, title: string, relPath: string): boolean {
   if (!fs.existsSync(README)) return false
   const link = relPath.split(path.sep).join('/')
   const bullet = `- [#${id} ${title}](${link})`
-  const heading = `## ${readmeHeadingFor(track)}`
+  const heading = `## ${TASKS_HEADING}`
   let lines = fs.readFileSync(README, 'utf8').split('\n')
   const hi = lines.findIndex((l) => l.trim().toLowerCase() === heading.toLowerCase())
   if (hi === -1) {

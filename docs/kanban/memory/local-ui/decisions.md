@@ -75,7 +75,7 @@ re-ask a settled call.
 ## Setup and the first run
 
 - Setup runs in the UI as a guided first run asking only what the user knows — the project,
-  its tracks, the goal, which agent works — with defaults so it can be pressed through. The
+  the goal, which agent works — with defaults so it can be pressed through. The
   steps that read the repo and think run after it.
 - Which agent works is asked first, before anything else the first run does. Nothing is
   spent on an agent the user did not choose.

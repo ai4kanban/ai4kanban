@@ -18,10 +18,11 @@ import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
 import type { DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
-import { idPrefix, isGroupFolder, subtaskLines, trackNames, trackOf } from '../cards'
+import { idPrefix, isGroupFolder, subtaskLines } from '../cards'
 import { ARCHIVE_MD, README, TODO } from '../paths'
 import { formatStamp, nextDue } from '../cadence'
 import { parseFrontmatter } from '../frontmatter'
+import { moduleNames } from '../validate'
 import { readReleaseEntries } from '../releases'
 import { readSetupChecklist } from '../setup'
 import { revisionOf } from '../board/revision'
@@ -66,11 +67,10 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
   const text = fs.readFileSync(file, 'utf8')
   const { meta, body } = parseFrontmatter(text)
   if (!meta) return null
-  const track = trackOf(relFromTodo, meta.track)
   const relPath = relFromTodo.split(path.sep).join('/')
-  // `recurring/` is a reserved folder, not a track someone named: a card in it repeats on a
-  // cadence instead of being built once. The path is what says so — the same test
-  // `record-run` makes before it will record a run.
+  // `recurring/` is the one reserved folder: a card in it repeats on a cadence instead of
+  // being built once. The path is what says so — the same test `record-run` makes before it
+  // will record a run.
   const recurring = relPath.split('/')[0] === 'recurring'
   return {
     id,
@@ -79,7 +79,6 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     revision: revisionOf(text),
     relPath,
     title: meta.title,
-    track,
     priority: meta.priority,
     roi: meta.roi,
     status: meta.status as CardStatus,
@@ -126,8 +125,7 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
   const groupDir = path.join(TODO, folderName)
   const rootFile = path.join(groupDir, 'root.md')
   // A group folder whose card isn't written yet — the name minted, `root.md` still to come.
-  // Nothing to show for it, and it is emphatically not a new column: its name says group
-  // (../cards.ts), so it waits rather than appearing on the board as a track.
+  // Nothing to show for it: its name says group (../cards.ts), so it waits.
   if (!fs.existsSync(rootFile)) return null
   const root = readCard(rootFile, path.join(folderName, 'root.md'))
   if (!root) return null
@@ -163,7 +161,6 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
   root.subtasks = subCards.map<Subtask>((c) => ({
     id: c.id,
     title: c.title,
-    track: c.track,
     release: c.release,
     todos: c.todos,
     blocked_by: c.blocked_by,
@@ -171,15 +168,15 @@ function readGroup(folderName: string): { root: Card; subCards: Card[] } | null 
   return { root, subCards }
 }
 
-// Standalone `NN-slug.md` cards directly under a track folder. Group folders are read
-// separately (they live at the top of todo/, not inside a track).
-function standaloneCards(track: string): Card[] {
-  const dir = path.join(TODO, track)
+// The plain `NN-slug.md` cards in one folder under todo/ — the board's own top level, or
+// the reserved `recurring/`. Group folders are read by readGroup instead.
+function standaloneCards(dirRel: string): Card[] {
+  const dir = dirRel ? path.join(TODO, dirRel) : TODO
   if (!fs.existsSync(dir)) return []
   const cards: Card[] = []
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'README.md') {
-      const c = readCard(path.join(dir, entry.name), path.join(track, entry.name))
+      const c = readCard(path.join(dir, entry.name), path.join(dirRel, entry.name))
       if (c) cards.push(c)
     }
   }
@@ -192,6 +189,10 @@ function standaloneCards(track: string): Card[] {
 function collectCards(): { board: Card[]; every: Card[] } {
   const board: Card[] = []
   const every: Card[] = []
+  // todo/ is flat, so its own `NN-slug.md` files are cards in their own right.
+  const top = standaloneCards('')
+  board.push(...top)
+  every.push(...top)
   for (const entry of fs.readdirSync(TODO, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
     if (isGroupFolder(entry.name)) {
@@ -360,33 +361,25 @@ export function allCards(): Card[] {
   return collectCards().every
 }
 
-// Column order follows the README's `## ` headings so the board matches the board file,
-// with any track folder missing from the README appended after.
-function orderedTracks(): { track: string; title: string }[] {
-  const folders = new Set(trackNames())
-  const ordered: { track: string; title: string }[] = []
-  const seen = new Set<string>()
+/** The catch-all band's heading — cards whose `modules:` is empty. */
+const UNTAGGED = 'Untagged'
 
-  if (fs.existsSync(README)) {
-    for (const line of fs.readFileSync(README, 'utf8').split('\n')) {
-      const m = line.match(/^##\s+(.+?)\s*$/)
-      if (!m) continue
-      const heading = m[1]!
-      const track = heading.toLowerCase() === 'blockers' ? 'blockers' : heading
-      if (folders.has(track) && !seen.has(track)) {
-        ordered.push({ track, title: track === 'blockers' ? 'Blockers' : heading })
-        seen.add(track)
-      }
-    }
+// Band order follows `docs/kanban/modules.md`, so the board reads in the same order as the
+// module map. A module nothing is tagged with draws no band (readBoard drops the empties),
+// and cards naming no module fall to one catch-all band at the end.
+function orderedModules(present: Set<string>): { module: string; title: string }[] {
+  const ordered: { module: string; title: string }[] = []
+  const seen = new Set<string>()
+  for (const name of moduleNames() ?? []) {
+    if (seen.has(name)) continue
+    ordered.push({ module: name, title: name })
+    seen.add(name)
   }
-  // Blockers always first, even if the README didn't list it.
-  if (folders.has('blockers') && !seen.has('blockers')) {
-    ordered.unshift({ track: 'blockers', title: 'Blockers' })
-    seen.add('blockers')
+  // A card can name a module the map has since lost — band it rather than drop it.
+  for (const name of Array.from(present).sort()) {
+    if (name && !seen.has(name)) ordered.push({ module: name, title: name })
   }
-  for (const t of trackNames()) {
-    if (!seen.has(t)) ordered.push({ track: t, title: t })
-  }
+  ordered.push({ module: '', title: UNTAGGED })
   return ordered
 }
 
@@ -430,20 +423,23 @@ export function readSetupState(): SetupState | null {
 /** The whole board in one read. */
 export function readBoard(): Board {
   const { board, every } = collectCards()
-  // Bucket the board cards by their frontmatter track, then lay the columns out in README
-  // order. A group root lands in its declared track next to the plain cards, not in a
-  // column named after its folder.
-  const byTrack = new Map<string, Card[]>()
+  // Bucket the board cards by their first module, then lay the bands out in module-map
+  // order. A card tagged with several bands under the first; one tagged with none falls to
+  // the catch-all. An empty band is dropped — a module nobody is working on says nothing.
+  const byModule = new Map<string, Card[]>()
   for (const card of board) {
-    const list = byTrack.get(card.track)
+    const key = card.modules[0] ?? ''
+    const list = byModule.get(key)
     if (list) list.push(card)
-    else byTrack.set(card.track, [card])
+    else byModule.set(key, [card])
   }
-  const columns: Column[] = orderedTracks().map(({ track, title }) => ({
-    track,
-    title,
-    cards: (byTrack.get(track) ?? []).sort(byPickOrder),
-  }))
+  const columns: Column[] = orderedModules(new Set(byModule.keys()))
+    .map(({ module, title }) => ({
+      module,
+      title,
+      cards: (byModule.get(module) ?? []).sort(byPickOrder),
+    }))
+    .filter((col) => col.cards.length > 0)
   const entries = readReleaseEntries()
   const releaseGoals: Record<string, string> = {}
   for (const entry of entries) if (entry.goal) releaseGoals[entry.id] = entry.goal

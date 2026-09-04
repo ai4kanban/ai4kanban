@@ -18,7 +18,7 @@
 // - Extract whole sentences, never grammar. The component still branches on count;
 //   each branch takes its own key holding a whole sentence. A key holding `"s"` or
 //   `"are"` cannot be translated.
-// - Product names, file names, paths, track names, shell commands and URLs are not
+// - Product names, file names, paths, module names, shell commands and URLs are not
 //   copy. They stay in the component, and stay English in every language.
 // - Punctuation follows the target language: full-width ，。；：？（） in Chinese.
 // - Chinese wording follows docs/kanban/memory/goal.md: 自主拆解、循环澄清、需求、

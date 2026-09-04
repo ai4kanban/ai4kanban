@@ -43,7 +43,6 @@ const cardText = (
   [
     '---',
     `title: ${title}`,
-    'track: features',
     'priority: med',
     'roi: med',
     `status: ${status}`,

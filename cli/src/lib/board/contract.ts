@@ -44,7 +44,6 @@ import type {
   ScoreResult,
   SetupDraft,
   SetupState,
-  TrackDraft,
 } from '../view/types'
 
 // ---- revisions -------------------------------------------------------------
@@ -208,7 +207,7 @@ export interface BoardProvider {
 
   // ---- memory, the goal and setup ------------------------------------------
   saveGoal(text: string, env: OpEnvelope): Promise<OpResult>
-  saveProject(name: string, description: string, tracks: TrackDraft[], env: OpEnvelope): Promise<SaveProjectResult>
+  saveProject(name: string, description: string, env: OpEnvelope): Promise<SaveProjectResult>
   finishSetupStep(name: string, env: OpEnvelope): Promise<OpResult>
   /** One of the four memory files, written whole — the project's copy, or a module's when
    *  `module` names one. Until #315 the only writer of a memory file was the coding agent
@@ -260,7 +259,7 @@ export interface BoardProvider {
 /**
  * What a move was asked for, once the command line has been read.
  *
- * `args` is the positional arguments as typed — an id, a version, a track list. It is what
+ * `args` is the positional arguments as typed — an id, a version. It is what
  * a lease target is read from (`moveTarget`), so it stays a plain list of words.
  * `opts` is the options, already validated by the command that declared them
  * (lib/cli/board.ts): a move never re-checks that `--priority` is one of three words.

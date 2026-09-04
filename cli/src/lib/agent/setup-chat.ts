@@ -1,6 +1,6 @@
 // The board's first-run conversation (#280).
 //
-// The app's first run used to be a form: the project and its tracks in one screen of boxes,
+// The app's first run used to be a form: the project in one screen of boxes,
 // the goal in another. It talks now — the agent reads the repo, says what it thinks the
 // project is, and the user agrees or says what is wrong. What the agent answers with is not
 // prose but one JSON block, because the board writes the answer itself: nothing reaches disk
@@ -44,17 +44,15 @@ export function setupSubject(): string {
 }
 
 /** The board's own opening turn — the first thing said in the conversation, and not the
- *  user's words. It carries what the board already holds so a track set in the terminal is
- *  stated back rather than guessed at again. */
+ *  user's words. It carries what the board already holds so an answer given in the
+ *  terminal is stated back rather than guessed at again. */
 export function setupOpening(): string {
   let held = ''
   try {
     const draft = readSetupDraft()
-    const tracks = draft.tracks.map((t) => t.name).join(', ')
     held = [
       draft.project.name ? `The config names the project "${draft.project.name}".` : '',
       draft.project.description ? `It says it is: ${draft.project.description}` : '',
-      tracks ? `The folders under docs/kanban/todo/ are: ${tracks}.` : '',
     ]
       .filter(Boolean)
       .join(' ')
@@ -111,24 +109,10 @@ function readProposal(text: string): SetupProposal | null {
   // some other JSON the agent happened to print.
   if (!unsure && !name) return null
   if (!summary) return null
-  const tracks = Array.isArray(o.tracks)
-    ? o.tracks
-        .map((t) => {
-          const row = (t ?? {}) as Record<string, unknown>
-          const was = typeof row.was === 'string' ? row.was.trim() : ''
-          return {
-            name: typeof row.name === 'string' ? row.name.trim() : '',
-            note: typeof row.note === 'string' ? row.note.trim() : '',
-            was: was || undefined,
-          }
-        })
-        .filter((t) => t.name)
-    : []
   return {
     summary,
     name,
     description: str('description'),
-    tracks,
     unsure,
     ask: str('ask'),
   }

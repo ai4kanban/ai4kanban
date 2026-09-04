@@ -19,7 +19,7 @@ evaluation instead. Skip unclear, duplicate, unsupported, or previously rejected
 Create the card with metadata flags rather than editing frontmatter:
 
 ```text
-akb raw create --title "..." --track <track> --modules <modules> \
+akb raw create --title "..." --modules <modules> \
   --priority <low|med|high> --roi <low|med|high>
 ```
 
@@ -32,13 +32,13 @@ Add `--blocked-by` or `--related` when needed. Non-English titles also need
 Representative examples:
 
 ```text
-akb raw create --title "Add CSV export" --track features \
+akb raw create --title "Add CSV export" \
   --modules local-ui --priority med --roi high
 
-akb raw create --title "Document the export format" --track features \
+akb raw create --title "Document the export format" \
   --modules docs --blocked-by 42 --related 41 --priority low --roi med
 
-akb raw create --title "支持导出任务" --slug export-tasks --track features \
+akb raw create --title "支持导出任务" --slug export-tasks \
   --modules local-ui --priority med --roi high
 ```
 

@@ -1,6 +1,5 @@
 ---
 title: Show the result on the site and in the README
-track: distribution
 priority: med
 roi: med
 status: todo

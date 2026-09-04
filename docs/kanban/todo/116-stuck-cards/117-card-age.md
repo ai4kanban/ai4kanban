@@ -1,6 +1,5 @@
 ---
 title: Show how long each card has sat untouched
-track: features
 priority: med
 roi: med
 status: todo

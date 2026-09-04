@@ -1,6 +1,5 @@
 ---
 title: Move a module's calls into its memory when the map gains that module
-track: skill
 priority: med
 roi: med
 status: ready

@@ -1,6 +1,5 @@
 ---
 title: Sweep the stuck cards on a schedule
-track: features
 priority: low
 roi: med
 status: todo

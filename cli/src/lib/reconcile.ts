@@ -20,6 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { warn, TODO, README } from './paths'
+import { TASKS_HEADING } from './readme'
 import { walkMd, walkDirs, idPrefix, locate } from './cards'
 import { parseFrontmatter } from './frontmatter'
 
@@ -38,8 +39,9 @@ function liveIds() {
   return ids
 }
 
-// Cards that OWN a top-level README entry: a group root, or a card directly in a track
-// folder. Nested subtasks are only optionally indexed, so they aren't required here.
+// Cards that OWN a top-level README entry: a group root, or a card directly in `todo/`.
+// A subtask nested in a group folder is only optionally indexed, and so is a card left in a
+// folder by a board written before `todo/` went flat — neither is required here.
 function indexableCards() {
   const out = []
   for (const dir of walkDirs(TODO)) {
@@ -53,8 +55,7 @@ function indexableCards() {
     if (base === 'README.md' || base === 'root.md') continue
     const relTODO = path.relative(TODO, file)
     const segs = relTODO.split(path.sep)
-    if (segs.length !== 2) continue // nested subtask — optional
-    if (segs[0] === 'recurring') continue // recurring cards aren't board-index tasks
+    if (segs.length !== 1) continue // in a folder: a subtask, or recurring — optional
     const id = idPrefix(base)
     if (id != null) out.push({ id, rel: segs.join('/') })
   }
@@ -93,7 +94,7 @@ function readmeComplaints(fix: boolean): string[] {
   if (fixed) fs.writeFileSync(README, lines.join('\n'))
   for (const c of indexableCards()) {
     if (!indexed.has(c.id)) {
-      said.push(`card ${c.rel} (#${c.id}) is not in the README index. Add it under its track heading.`)
+      said.push(`card ${c.rel} (#${c.id}) is not in the README index. Add it under "## ${TASKS_HEADING}".`)
     }
   }
   return said

@@ -1,6 +1,5 @@
 ---
 title: Import GitHub Issues and mirror progress back
-track: features
 priority: med
 roi: high
 status: todo

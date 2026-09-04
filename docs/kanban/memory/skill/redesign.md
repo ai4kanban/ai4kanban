@@ -14,7 +14,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Card format
 
-- ❌ **Leave recurring state without an in-card home** → ✅ `board create --track recurring`
+- ❌ **Leave recurring state without an in-card home** → ✅ `raw create --recurring`
   writes `Run state` and `Process`; keep next-run state on the card, and omit cadence unless
   the user explicitly asks for a schedule.
 - ❌ **The agent half of a card carries a "worth noting" list** → ✅ it is a reviewer's aid
@@ -67,7 +67,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   neighbouring tool is not already using for a different lifetime. The board has three
   levels — delivery, run, session — and each keeps one name.
 - ❌ **Ship the flows as reference pages copied into each project** → ✅ the command prints
-  the flow for the board it was asked about, naming that project's own tracks and paths.
+  the flow for the board it was asked about, naming that project's own modules and paths.
 - ❌ **Route a flow's card edits through a board command, so the board is the only writer** →
   ✅ flows edit card bodies with their own file tools. One session per card is already
   refused and `akb board` only rewrites frontmatter, so the clobber this guards against

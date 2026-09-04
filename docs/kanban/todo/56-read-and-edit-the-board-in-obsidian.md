@@ -1,6 +1,5 @@
 ---
 title: Let a user read and edit the board in Obsidian
-track: features
 priority: med
 roi: med
 status: todo

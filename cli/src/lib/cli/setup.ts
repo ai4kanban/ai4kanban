@@ -25,15 +25,6 @@ export type SetupCliOptions = AkbCliOptions
 const spelled = (program: string): string =>
   program === 'akb' ? '' : `\nThis copy isn't on your PATH as \`akb\` — every \`akb\` below is \`${program}\` here.\n`
 
-/** A comma-separated track list, as `--tracks` takes it. */
-const trackList = (value: string, previous: string[] = []): string[] =>
-  previous.concat(
-    value
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean),
-  )
-
 /** Declare setting a project up, and moving it to a newer release, on `akb` (./akb.ts). */
 export function declareSetup(program: Command, cli: SetupCliOptions): void {
   program.version(SKILL_VERSION, '-v, --version', 'print this version').addHelpText('beforeAll', spelled(cli.program))
@@ -54,11 +45,9 @@ export function declareSetup(program: Command, cli: SetupCliOptions): void {
         'agent is a later extra — `akb skill install`, or the button in the board UI under ' +
         'Configuration → Agent setup. Safe to run twice.',
     )
-    .option('--tracks <a,b,c>', "the board's tracks", trackList, [])
     .action(async function (this: Command) {
       const dir = where(this)
-      const opts = this.opts() as { tracks: string[] }
-      await runAction(ctxOf(this, cli.program), {}, () => cmdInstall({ dir, program: cli.program }, opts.tracks))
+      await runAction(ctxOf(this, cli.program), {}, () => cmdInstall({ dir, program: cli.program }))
     })
 
   const skill = dirOption(program.command('skill'))

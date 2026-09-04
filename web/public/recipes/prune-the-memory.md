@@ -1,6 +1,6 @@
 # Prune the memory
 
-**Track:** recurring · **Priority:** med · **ROI:** med
+**Recurring** · **Priority:** med · **ROI:** med
 
 Reduce the memory files to the information needed to plan the next task. Delete this
 card to stop the recurring task; it will not be recreated automatically.

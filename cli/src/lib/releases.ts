@@ -36,7 +36,6 @@ export interface CardRow {
   id: number
   file: string
   title: string
-  track: string
   priority: string
   release: string
   ready: boolean
@@ -254,7 +253,6 @@ function cardRows(dir: string): CardRow[] {
       file,
       // A card the script never wrote may have no title — its filename says enough.
       title: (meta && meta.title) || base.replace(/^\d+-/, '').replace(/\.md$/, ''),
-      track: (meta && meta.track) || '',
       priority: (meta && meta.priority) || '',
       release: normalizeRelease(meta && meta.release),
       ready: Boolean(meta) && meta!.status === 'ready',
@@ -375,7 +373,7 @@ export function setSubtreeRelease(dir: string, release: string): number[] {
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
 
-const cardLine = (card: CardRow): string => `- #${card.id} ${card.title}${card.track ? ` (${card.track})` : ''}`
+const cardLine = (card: CardRow): string => `- #${card.id} ${card.title}`
 
 // The line for a card that was still open — the ticked-but-never-archived marker only
 // makes sense there, so an archived card's line never carries it.

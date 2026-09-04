@@ -68,7 +68,6 @@ const wroteOf = (card: Card): string =>
         card.status,
         card.relPath,
         card.title,
-        card.track,
         card.priority,
         card.roi,
         card.release,

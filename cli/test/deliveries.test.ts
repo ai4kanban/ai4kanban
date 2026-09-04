@@ -30,7 +30,6 @@ const file = path.join(todo, 'features', '5-a-card.md')
 const CARD = [
   '---',
   'title: A card',
-  'track: features',
   'priority: med',
   'roi: med',
   'status: ready',

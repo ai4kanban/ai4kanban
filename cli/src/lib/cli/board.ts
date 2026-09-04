@@ -126,14 +126,13 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .summary('write exactly one card — its fields, its body template and its index entry')
     .description(
       'Write exactly ONE card: allocate its id, write its frontmatter and a body template, and index it. ' +
-        'There is no separate id-reservation mode. --track takes a top-level track name, never a group ' +
-        'folder path. --blocked-by and --related take ids of existing open cards; for a group, create the ' +
-        'root first, then create each subtask related to its id (see "Group task" in `akb guide board`). ' +
-        'The script owns the frontmatter and writes the body scaffold for the track — recurring cards get ' +
-        'Run state + Process; fill only the body by hand.',
+        'There is no separate id-reservation mode. --blocked-by and --related take ids of existing open ' +
+        'cards; for a group, create the root first, then create each subtask related to its id (see ' +
+        '"Group task" in `akb guide board`). The script owns the frontmatter and writes the body ' +
+        'scaffold — recurring cards get Run state + Process; fill only the body by hand.',
     )
     .requiredOption('--title <title>', 'what the card is called')
-    .requiredOption('--track <track>', 'a top-level track name, never a group folder path')
+    .option('--recurring', 'a job that repeats: it goes in recurring/ and gets a Run state + Process body')
     .option('--priority <level>', `how much it matters: ${LEVELS.join(' | ')}`, oneOf(LEVELS), 'med')
     .option('--roi <level>', `what it is worth: ${LEVELS.join(' | ')}`, oneOf(LEVELS), 'med')
     .option('--release <version>', 'the version it ships in. Left off, the card is wanted, not promised to one')
@@ -146,7 +145,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--mode <mode>', 'how many choices the --question before it takes: single | multi', inOrder('mode'))
     .option('--slug <slug>', 'the filename to write it under (default: from the title)')
     .option('--no-body', 'write the frontmatter and no body template')
-    .option('--cadence <cadence>', `how often a recurring card repeats: ${CADENCE_FORMS}. --track recurring only`)
+    .option('--cadence <cadence>', `how often a recurring card repeats: ${CADENCE_FORMS}. --recurring only`)
     .option('--proposed', 'the board went looking for this work rather than a person asking for it')
     .option(
       '--schedule <action>',
@@ -161,12 +160,11 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .argument('<id>', ID, cardId)
     .summary("rewrite a card's fields")
     .description(
-      "Rewrite a card's frontmatter fields. --track moves the card and fixes the index; --slug renames " +
-        'it. Body, questions and verify lines are left untouched — those have their own moves. Putting a ' +
-        'group root in a release puts every subtask in it too.',
+      "Rewrite a card's frontmatter fields. --slug renames it. Body, questions and verify lines are left " +
+        'untouched — those have their own moves. Putting a group root in a release puts every subtask in ' +
+        'it too.',
     )
     .option('--title <title>', 'what the card is called')
-    .option('--track <track>', 'move it to another track, fixing the index')
     .option('--priority <level>', LEVELS.join(' | '), oneOf(LEVELS))
     .option('--roi <level>', LEVELS.join(' | '), oneOf(LEVELS))
     .option('--status <status>', STATUSES.join(' | '), oneOf(STATUSES))
@@ -294,8 +292,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
   move('list')
     .summary('the open cards: id, title, meta, summary, path')
     .description(
-      'The open cards at a glance — one block per card with its id, title, meta (track, status, priority, ' +
-        'roi, release, blockers, open questions, hand-checks), summary line and file path.',
+      'The open cards at a glance — one block per card with its id, title, meta (status, priority, roi, ' +
+        'release, blockers, open questions, hand-checks), summary line and file path.',
     )
     .option('-m, --module <name>', 'only the cards tagged with that module, validated against modules.md')
     .action(async function (this: Command) {
@@ -430,15 +428,14 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
   // ---- the board itself ----------------------------------------------------
 
   move('init')
-    .argument('[tracks...]', 'the board’s tracks (default: feature bug research)')
     .summary('scaffold docs/kanban/; on an existing board add only what is missing')
     .description(
       'Scaffold docs/kanban/ — the folders, the project-wide memory set in memory/, and a blank config.md ' +
         'and releases.md. On an existing board it only adds the files that are missing, so it is safe to ' +
         're-run and is the repair step for a board written by an older version.',
     )
-    .action(async function (this: Command, tracks: string[]) {
-      await dispatch('init', this, tracks, this.opts(), cli)
+    .action(async function (this: Command) {
+      await dispatch('init', this, [], this.opts(), cli)
     })
 
   move('memory-init')

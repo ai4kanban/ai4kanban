@@ -27,7 +27,6 @@ const git = (args: string[], cwd = root): string => {
 const CARD = [
   '---',
   'title: A card',
-  'track: features',
   'priority: med',
   'roi: med',
   'status: ready',

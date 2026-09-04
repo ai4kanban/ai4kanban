@@ -1,6 +1,5 @@
 ---
 title: Score the runs and keep the whole record in the repo
-track: distribution
 priority: med
 roi: high
 status: ready

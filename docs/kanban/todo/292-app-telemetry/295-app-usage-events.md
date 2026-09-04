@@ -1,6 +1,5 @@
 ---
 title: Report app opens and which parts of the board get used
-track: features
 priority: med
 roi: high
 status: todo

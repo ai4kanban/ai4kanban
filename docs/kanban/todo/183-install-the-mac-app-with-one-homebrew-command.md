@@ -1,6 +1,5 @@
 ---
 title: Install the Mac app with one Homebrew command
-track: features
 priority: low
 roi: med
 status: ready

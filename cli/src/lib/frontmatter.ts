@@ -15,7 +15,6 @@ import type { Meta, Question } from './types'
 export function serializeFrontmatter(m: Partial<Meta>): string {
   const out = ['---']
   out.push(`title: ${yamlScalar(m.title)}`)
-  out.push(`track: ${yamlScalar(m.track)}`)
   out.push(`priority: ${m.priority}`)
   out.push(`roi: ${m.roi}`)
   out.push(`status: ${STATUSES.includes(String(m.status)) ? m.status : 'todo'}`)

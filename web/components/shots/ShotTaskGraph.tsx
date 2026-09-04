@@ -234,11 +234,6 @@ export function ShotTaskGraph() {
             marginBottom: em(14),
           }}
         >
-          <MetaItem label="Track">
-            <Chip bg={NB.lilacSoft} ink={NB.lilacInk}>
-              features
-            </Chip>
-          </MetaItem>
           <MetaItem label="Modules">
             <Chip bg={NB.mintSoft} ink={NB.mintInk}>
               cloud
