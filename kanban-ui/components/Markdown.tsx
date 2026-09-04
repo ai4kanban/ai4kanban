@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
 import { mockupBlock, type MockupSet } from "@/lib/mockup-tag";
+import { useCardHref } from "./board-links";
 import { Copied, useCopyText } from "./copy";
 import { Mockup } from "./Mockup";
 import { useOpenIds } from "./open-ids";
@@ -104,10 +105,11 @@ function MockupNode(props: any) {
 }
 
 function Anchor({ href, children }: { href?: string; children?: React.ReactNode }) {
+  const cardHref = useCardHref();
   if (href && href.startsWith("card:")) {
     const id = Number(href.slice(5));
     return (
-      <Link className="nb-idlink" href={`/${id}`}>
+      <Link className="nb-idlink" href={cardHref(id)}>
         {children}
       </Link>
     );

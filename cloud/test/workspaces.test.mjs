@@ -608,6 +608,7 @@ describe('the routes', () => {
     const calls = fakeDatabase({})
 
     await get(`${WORKSPACE}/snapshot`)
+    await get(`${WORKSPACE}/read`)
     await get(`${WORKSPACE}/cards/7`)
     await get(`${WORKSPACE}/archive`)
     await get(`${WORKSPACE}/documents`)
@@ -625,7 +626,7 @@ describe('the routes', () => {
     await get(`${WORKSPACE}/export/events`)
 
     assert.deepEqual(calls.map((c) => c.fn), [
-      'read_snapshot', 'read_card', 'read_archive', 'read_documents', 'write_documents',
+      'read_snapshot', 'read_for_reader', 'read_card', 'read_archive', 'read_documents', 'write_documents',
       'list_locks', 'take_lock', 'release_lock', 'read_deliveries', 'record_delivery',
       'begin_import', 'import_events', 'import_deliveries', 'finish_import',
       'export_board', 'export_events',

@@ -71,6 +71,12 @@ cloud/
   invent a name on either side. What stays on the machine is what the board keeps out of git:
   the API keys, the run record and its logs, the chats, the mockups, and `ui.config.json`,
   which is that machine's own answer to which coding agent runs the board.
+- **A browser reads less than the app does**: the hosted pages (#322, `../cloud-ui/`) draw two
+  screens, so `read_for_reader` serves what those two draw and nothing else — the workspace's
+  name, its live cards, and four configuration documents. The memory set, the per-flow rules,
+  the archive, closed releases' summaries, the history files, the trail, the delivery records
+  and the execution nodes are left behind in the migration rather than fetched and dropped by
+  a Worker somebody later edits. It opens no write path: those pages are read-only.
 - **Nothing about the code is here**: no repository, branch, worktree, commit, credential or
   model key, on any path. A delivery's repository half is stripped by
   `cloud.portable_delivery` in the database rather than trusted to the client that sent it,
@@ -232,6 +238,13 @@ workspace, deleting it, and a node registering or renewing.
   live cards, and the documents somebody is working on. What a screen hydrates from. It leaves
   out what grows with the board's whole past — the archive, the trail and delivery records —
   which are read on demand.
+- `GET /v1/workspaces/<id>/read` — what the hosted pages at `cloud.ai4kanban.dev` draw
+  (#322): the workspace's **name**, its live cards, and the four configuration documents
+  those two screens draw — `config.md`, `modules.md`, `releases.md` and `todo/README.md`.
+  Less than a snapshot on purpose: the memory set, the per-flow rules, the archive, closed
+  releases' summaries, the history files, the trail, the delivery records and the execution
+  nodes are served to no browser, and the migration is what leaves them behind rather than
+  the Worker. See `../cloud-ui/README.md`.
 - `GET /v1/workspaces/<id>/archive` — the cards that have left the board.
 - `GET|POST /v1/workspaces/<id>/documents` — every board file that is not a card, under the
   path it is written back to: `config.md`, `modules.md`, `releases.md`, `todo/README.md`, the
@@ -657,11 +670,14 @@ Only needed once, and again if the project is ever recreated.
    and nothing else** (`cli/src/lib/cloud/signin.ts`), so every account carries an address
    GitHub itself verified — which is where we answer a request — and the grant still cannot
    read a repository.
-4. **The sign-in's return address** — in the project's Auth URL configuration, add
-   `ai4kanban://cloud/signed-in` to the redirect allow-list. That is the URL scheme the
+4. **The sign-in's two return addresses** — in the project's Auth URL configuration, add
+   both to the redirect allow-list. `ai4kanban://cloud/signed-in` is the URL scheme the
    desktop app registers for itself (#326): the board UI server's loopback port is whatever
-   the OS handed out at launch, so there is no fixed `http` address to register instead. Set
-   the site URL to `https://ai4kanban.dev`.
+   the OS handed out at launch, so there is no fixed `http` address to register instead.
+   `https://cloud.ai4kanban.dev/signin/callback` is the browser's own (#322,
+   `../cloud-ui/`). An address that is not on the list is not refused — Auth quietly returns
+   to the site URL instead — so a missing one reads as a sign-in that lands on the wrong
+   page rather than as an error. Set the site URL to `https://ai4kanban.dev`.
 5. **The client's own two values** — put the project URL and its publishable (anon) key into
    `cli/src/lib/cloud/config.ts`, which is what the app, the board UI server and `akb` sign
    in against. Neither is a secret: PostgREST serves `api` alone and `api` grants nothing to

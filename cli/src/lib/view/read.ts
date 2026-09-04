@@ -20,35 +20,23 @@ import type { DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
 import { idPrefix, isGroupFolder, subtaskLines } from '../cards'
 import { ARCHIVE_MD, README, TODO } from '../paths'
-import { formatStamp, nextDue } from '../cadence'
 import { parseFrontmatter } from '../frontmatter'
 import { moduleNames } from '../validate'
 import { readReleaseEntries } from '../releases'
 import { readSetupChecklist } from '../setup'
+// The reading rules a hosted page shares (#322): what a `## Todo` counts, when a recurring
+// card is next due, what really blocks a card, and how the bands are laid out.
+import {
+  attachBlockers,
+  columnsFrom,
+  countByRelease,
+  countTodos,
+  dueLabel,
+} from '../board/assemble'
 import { revisionOf } from '../board/revision'
 import { goalNeedsWork, goalWritten } from './goal'
 import { readMemoryModules } from './memory'
-import { byPickOrder } from './rules'
-import type { ArchiveGroup, Board, Card, CardApproval, CardStatus, Column, SetupState, Subtask } from './types'
-
-function countTodos(body: string): { total: number; done: number } {
-  const matches = body.match(/^[ \t]*[-*]\s+\[( |x|X)\]/gm) || []
-  const done = matches.filter((l) => /\[[xX]\]/.test(l)).length
-  return { total: matches.length, done }
-}
-
-// When a recurring card comes round again, in words a page can print as it stands. Empty
-// when the card has no cadence — nothing will start it but a person. "Due now" when the
-// wait is already over, which covers a card that has never run: it is due the moment it
-// gets a cadence, so a new job is seen working instead of waiting a day for its first pass.
-//
-// Worked out here, on the machine whose clock the schedule runs on. A browser on another
-// machine would otherwise show its own idea of the time.
-function dueLabel(lastRun: string, cadence: string): string {
-  const due = nextDue(lastRun, cadence)
-  if (!due) return ''
-  return due.getTime() <= Date.now() ? 'Due now' : formatStamp(due)
-}
+import type { ArchiveGroup, Board, Card, CardApproval, CardStatus, SetupState, Subtask } from './types'
 
 // Read one card file into a Card. Null when it has no id or no frontmatter.
 function readCard(file: string, relFromTodo: string): Card | null {
@@ -97,24 +85,6 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     isGroup: false, // readGroup flips this on the one card that is a root
     recurring,
     openBlockers: [], // filled by attachBlockers once every card has been read
-  }
-}
-
-// Work out what is really blocking each card. A `blocked_by` id counts only when it names a
-// card that is still open — an id no longer on the board was archived or rejected, so that
-// work is done and the block is cleared. A recurring blocker and a card that names itself
-// are skipped: neither can ever clear, since a recurring card is never archived.
-//
-// Runs over every card at once (subtasks included), so a blocker inside a group folder
-// resolves like any other card.
-function attachBlockers(cards: Card[]): void {
-  const byId = new Map(cards.map((c) => [c.id, c]))
-  for (const card of cards) {
-    card.openBlockers = card.blocked_by
-      .filter((n) => n !== card.id)
-      .map((n) => byId.get(n))
-      .filter((b): b is Card => !!b && !b.recurring)
-      .map((b) => ({ id: b.id, title: b.title }))
   }
 }
 
@@ -361,28 +331,6 @@ export function allCards(): Card[] {
   return collectCards().every
 }
 
-/** The catch-all band's heading — cards whose `modules:` is empty. */
-const UNTAGGED = 'Untagged'
-
-// Band order follows `docs/kanban/modules.md`, so the board reads in the same order as the
-// module map. A module nothing is tagged with draws no band (readBoard drops the empties),
-// and cards naming no module fall to one catch-all band at the end.
-function orderedModules(present: Set<string>): { module: string; title: string }[] {
-  const ordered: { module: string; title: string }[] = []
-  const seen = new Set<string>()
-  for (const name of moduleNames() ?? []) {
-    if (seen.has(name)) continue
-    ordered.push({ module: name, title: name })
-    seen.add(name)
-  }
-  // A card can name a module the map has since lost — band it rather than drop it.
-  for (const name of Array.from(present).sort()) {
-    if (name && !seen.has(name)) ordered.push({ module: name, title: name })
-  }
-  ordered.push({ module: '', title: UNTAGGED })
-  return ordered
-}
-
 // Parse archive.md into groups keyed by topic heading. Read-only, no ids.
 function readArchiveNotes(): ArchiveGroup[] {
   if (!fs.existsSync(ARCHIVE_MD)) return []
@@ -401,15 +349,6 @@ function readArchiveNotes(): ArchiveGroup[] {
   return groups.map((g) => ({ ...g, markdown: g.markdown.trim() })).filter((g) => g.markdown.length > 0)
 }
 
-// How many open cards name each release. Counted over EVERY open card, subtasks included,
-// so the number a release dropdown shows is the number `release list` prints — a group's
-// subtasks answer for themselves there too. A blocker counts once, in the release it names.
-function countByRelease(cards: Card[]): Record<string, number> {
-  const counts: Record<string, number> = {}
-  for (const card of cards) counts[card.release] = (counts[card.release] ?? 0) + 1
-  return counts
-}
-
 /** How far setup got: every box in order, the count, and the first unticked one. Null when
  *  there is no checklist (setup is finished) and also when there is one we can't read a
  *  single box out of — a file we don't understand is not something to nag about. */
@@ -423,28 +362,11 @@ export function readSetupState(): SetupState | null {
 /** The whole board in one read. */
 export function readBoard(): Board {
   const { board, every } = collectCards()
-  // Bucket the board cards by their first module, then lay the bands out in module-map
-  // order. A card tagged with several bands under the first; one tagged with none falls to
-  // the catch-all. An empty band is dropped — a module nobody is working on says nothing.
-  const byModule = new Map<string, Card[]>()
-  for (const card of board) {
-    const key = card.modules[0] ?? ''
-    const list = byModule.get(key)
-    if (list) list.push(card)
-    else byModule.set(key, [card])
-  }
-  const columns: Column[] = orderedModules(new Set(byModule.keys()))
-    .map(({ module, title }) => ({
-      module,
-      title,
-      cards: (byModule.get(module) ?? []).sort(byPickOrder),
-    }))
-    .filter((col) => col.cards.length > 0)
   const entries = readReleaseEntries()
   const releaseGoals: Record<string, string> = {}
   for (const entry of entries) if (entry.goal) releaseGoals[entry.id] = entry.goal
   return {
-    columns,
+    columns: columnsFrom(board, moduleNames() ?? []),
     archive: readArchiveNotes(),
     // Linkify every open id, subtasks included — not just the cards the columns show.
     openIds: Array.from(new Set(every.map((card) => card.id))),

@@ -1198,6 +1198,28 @@ begin
   assert (v_json ->> 'revision') = (v_json -> 'workspace' ->> 'revision'),
     'the snapshot''s cursor was not the workspace''s own revision';
 
+  -- -------------------------------------------------------------------------
+  -- What a browser reads (#322)
+  -- -------------------------------------------------------------------------
+  -- Less than a snapshot, and that is the point: the workspace's name, its live cards and
+  -- the configuration documents the two hosted screens draw. Not the memory set, not the
+  -- per-flow rules, not the archive, and not who owns the workspace.
+
+  v_json := api.read_for_reader(A, v_ws);
+  assert json_array_length(v_json -> 'cards') = 2, 'the reader read carried the archive';
+  assert not exists (
+    select 1 from json_array_elements(v_json -> 'documents') d
+     where (d ->> 'path') not in ('config.md', 'modules.md', 'releases.md', 'todo/README.md')),
+    'the reader read carried a board file no hosted screen draws';
+  assert json_array_length(v_json -> 'documents') = 3,
+    'the reader read did not carry the board''s configuration documents';
+  assert not (v_json -> 'workspace')::jsonb ? 'ownerId',
+    'the reader read named the account a workspace belongs to';
+  assert (v_json -> 'workspace' ->> 'name') = (api.read_workspace(A, v_ws) ->> 'name'),
+    'the reader read lost the board''s own name';
+  assert not (v_json -> 'cards' -> 0)::jsonb ? 'archivedAt',
+    'the reader read carried a card field no hosted screen draws';
+
   -- A conflict names one card, and that card is what a caller re-reads.
   assert (api.read_card(A, v_ws, 1) -> 'card' -> 'data' ->> 'title') = 'live one',
     'reading one card did not answer with that card';
@@ -1465,6 +1487,7 @@ begin
   -- Every endpoint this card adds answers the workspace's members and nobody else — one
   -- check, swapped to membership by #376.
   perform pg_temp.refuses(format('select api.read_snapshot(%L, %L)', B, v_ws), 'AKB13', 'read_snapshot');
+  perform pg_temp.refuses(format('select api.read_for_reader(%L, %L)', B, v_ws), 'AKB13', 'read_for_reader');
   perform pg_temp.refuses(format('select api.read_card(%L, %L, 1)', B, v_ws), 'AKB13', 'read_card');
   perform pg_temp.refuses(format('select api.read_archive(%L, %L)', B, v_ws), 'AKB13', 'read_archive');
   perform pg_temp.refuses(format('select api.read_documents(%L, %L, %L)', B, v_ws, ''), 'AKB13', 'read_documents');

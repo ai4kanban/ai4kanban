@@ -81,7 +81,14 @@ export function LanguageProvider({
         router.refresh();
         // The menu bar is outside the page, so the app is told once the setting is safely
         // saved. Absent in a browser, and in an app older than the setting.
-        void window.ai4kanban?.languageChanged?.(next);
+        //
+        // Reached through a cast rather than through the global `Window` this app declares
+        // (components/desktop.tsx), the way every other caller of the bridge does: this file
+        // is what every screen on the board leads back to, so a caller serving those screens
+        // from somewhere else (#322) must not have to pull the app's own window in to
+        // typecheck one optional call.
+        void (window as { ai4kanban?: { languageChanged?(next: Language): void } }).ai4kanban
+          ?.languageChanged?.(next);
         return null;
       },
     }),

@@ -1,0 +1,11 @@
+/* The board's own stylesheet, whole. The screens here are `kanban-ui`'s, so the tokens,
+   the utilities and the markdown rules have to be the same ones — a second copy would be a
+   board that reads as a different product in a browser. */
+@import "../../kanban-ui/app/globals.css";
+@import "../../kanban-ui/app/markdown.css";
+
+/* Tailwind scans the folder its stylesheet is in. The classes are almost all in the other
+   tree, so it is named here — without this every screen comes up unstyled. */
+@source "../../kanban-ui/components";
+@source "../../kanban-ui/i18n";
+@source "../../kanban-ui/lib";

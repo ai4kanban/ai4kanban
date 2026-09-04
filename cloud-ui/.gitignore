@@ -1,0 +1,14 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next
+
+# the Worker the adapter builds
+/.open-next
+
+# misc
+*.tsbuildinfo
+next-env.d.ts
+.dev.vars
+.DS_Store

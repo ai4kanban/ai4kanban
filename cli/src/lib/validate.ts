@@ -8,6 +8,7 @@
 import fs from 'node:fs'
 
 import { die, warn, rel, MODULES_MD } from './paths'
+import { moduleNamesFrom } from './board/assemble'
 import { locate } from './cards'
 
 export function slugify(s: unknown): string {
@@ -59,12 +60,7 @@ export function normalizeRelease(raw: unknown): string {
 // callers can skip the field instead of failing.
 export function moduleNames(): string[] | null {
   if (!fs.existsSync(MODULES_MD)) return null
-  const names: string[] = []
-  for (const line of fs.readFileSync(MODULES_MD, 'utf8').split('\n')) {
-    const m = line.match(/^\s*[-*]\s+\*\*([^*]+)\*\*/)
-    if (m) names.push(m[1]!.trim())
-  }
-  return names
+  return moduleNamesFrom(fs.readFileSync(MODULES_MD, 'utf8'))
 }
 
 // Validate tags against the module map.

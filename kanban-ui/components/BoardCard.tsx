@@ -7,6 +7,7 @@ import { type Card, type SessionView } from "@/lib/types";
 import { parseQuestion } from "@/lib/questions";
 import { scheduleLabel } from "@/lib/schedule";
 import { RunningBadge } from "./agent-shared";
+import { useCardHref } from "./board-links";
 import {
   BlockedChip,
   GroupChip,
@@ -62,10 +63,11 @@ export function BoardCard({
   // would vanish right then.
   const t = useCopy();
   const c = t.board.card;
+  const cardHref = useCardHref();
   const isGroup = card.isGroup;
   return (
     <Link
-      href={`/${card.id}`}
+      href={cardHref(card.id)}
       // Column flex + `mt-auto` on the badge row: in the queue's grid the cards
       // in a row stretch to the tallest one, and a one-line title would leave
       // its badges floating mid-card. This pins them to the bottom edge. No

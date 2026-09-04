@@ -66,6 +66,7 @@ import { useCardEvent } from "@/lib/card-event";
 import type { BoardChange } from "@/lib/chat-rail";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
+import { useBoardHref, useCardHref } from "./board-links";
 import { CardBody } from "./CardBody";
 import { ConfirmationPopover } from "./confirm-popover";
 import { Fold } from "./fold";
@@ -1135,6 +1136,8 @@ export function CardPage({
 }) {
   const t = useCopy();
   const c = t.card;
+  const cardHref = useCardHref();
+  const boardHref = useBoardHref();
   const actions = useActions();
   // The screens this card's `<Mockup>` tags point at (#239) — a file on this machine, so it
   // travels with the machine rather than on the card's read. A caller without one draws the
@@ -1436,7 +1439,7 @@ export function CardPage({
                   rather than saying "back": where you are going is worth a word. */}
               {phone && (
                 <Link
-                  href={`/?column=${columnKey}`}
+                  href={`${boardHref}?column=${columnKey}`}
                   aria-label={c.toolbar.backTo(column)}
                   className="-ml-2 inline-flex h-11 items-center gap-1.5 self-start rounded-[10px] px-2 text-[13.5px] font-[700] text-nb-ink"
                 >
@@ -1448,7 +1451,7 @@ export function CardPage({
               {/* part of a group — link up to the tracking root */}
               {card.parent && (
                 <Link
-                  href={`/${card.parent.id}`}
+                  href={cardHref(card.parent.id)}
                   className="inline-flex self-start items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft hover:text-nb-accent-deep"
                 >
                   <FiCornerLeftUp className="text-[13px]" aria-hidden />
@@ -1839,7 +1842,7 @@ export function CardPage({
                   {card.blocked_by.map((n) => (
                     <Link
                       key={n}
-                      href={`/${n}`}
+                      href={cardHref(n)}
                       className="nb-chip"
                       style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
                     >
@@ -1882,7 +1885,7 @@ export function CardPage({
                   {card.related.map((n) => (
                     <Link
                       key={n}
-                      href={`/${n}`}
+                      href={cardHref(n)}
                       className="nb-chip"
                       style={{
                         background: "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)",
@@ -1943,7 +1946,7 @@ export function CardPage({
                     {card.subtasks.map((s) => (
                     <li key={s.id}>
                       <Link
-                        href={`/${s.id}`}
+                        href={cardHref(s.id)}
                         // A row is the same control the map's chip is, so it hovers the
                         // same way: outline in, onto paper, up onto the ink shadow. The
                         // border is there at rest, transparent, so nothing shifts when

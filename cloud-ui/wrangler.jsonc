@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai4kanban-cloud-ui",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-26",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+
+  // The hosted board. `api.ai4kanban.dev` is the service these pages read; this is the
+  // name a member opens in a browser, kept free for exactly this by cloud/wrangler.jsonc.
+  //
+  // Server-rendering a board runs past Workers Free — the render is per request and the
+  // bundle carries Next — so this Worker deploys to Workers Paid on the account the site
+  // already deploys from. See README.md, "Deploy".
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "cloud.ai4kanban.dev", "custom_domain": true }],
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // The sign-in start and its callback are the only routes here that do anything for a
+  // caller with no session, so they are the only ones a stranger can spend anything on.
+  // The service's day budget counts writes inside a mutation's transaction and bounds no
+  // read, so the bound is here: Workers' own limiter, keyed per client, costing no
+  // dependency and no database write.
+  "ratelimits": [
+    {
+      "name": "SIGNIN_LIMITER",
+      "namespace_id": "1322",
+      "simple": { "limit": 20, "period": 60 }
+    }
+  ],
+
+  "observability": { "enabled": true }
+}

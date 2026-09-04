@@ -19,17 +19,16 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { die, rel, KANBAN, TODO, ARCHIVE, RELEASES, RELEASE_SUMMARIES } from './paths'
+import { releaseEntriesFrom, releaseLineEntry, type ReleaseEntry } from './board/assemble'
 import { formatDay } from './cadence'
 import { walkMd, idPrefix } from './cards'
 import { parseFrontmatter, serializeFrontmatter } from './frontmatter'
 import { NO_RELEASE, normalizeRelease } from './validate'
 import { recordFact } from './record'
 
-// One release as the list carries it: its id, and what it is for.
-export interface ReleaseEntry {
-  id: string
-  goal: string
-}
+// One release as the list carries it: its id, and what it is for. Read by `board/assemble.ts`,
+// so a hosted page draws the same release picker this file writes.
+export type { ReleaseEntry }
 
 // One card as the release commands read it — enough to count it, list it and move it.
 export interface CardRow {
@@ -90,23 +89,7 @@ function validNewId(raw: string | undefined): string {
   return id
 }
 
-// The release one line of the file names and what it says that release is for, or null
-// when the line isn't a release at all. Every shape a line can take is read: `- **v1** —
-// what it is for` (what the script writes), `- **v1**` (a release with no goal) and a bare
-// `- v1` (what a hand edit leaves). Only the FIRST em dash splits the line, so a goal that
-// holds one of its own reads back whole.
-function lineEntry(line: string): ReleaseEntry | null {
-  const m = line.match(/^\s*[-*]\s+(.*)$/)
-  if (!m) return null
-  const cut = m[1]!.indexOf('—')
-  const head = (cut === -1 ? m[1]! : m[1]!.slice(0, cut)).trim()
-  const goal = cut === -1 ? '' : m[1]!.slice(cut + 1).trim()
-  const bold = head.match(/^\*\*(.+?)\*\*$/)
-  const id = (bold ? bold[1]! : head).trim()
-  return id ? { id, goal } : null
-}
-
-const lineId = (line: string): string | null => lineEntry(line)?.id || null
+const lineId = (line: string): string | null => releaseLineEntry(line)?.id || null
 
 // A goal as it goes on disk: one line, whatever the user typed. Line breaks and runs of
 // spaces fold into single spaces, so the file's shape never depends on how the goal was
@@ -123,13 +106,7 @@ const releaseLine = (id: string, goal: string): string => `- **${id}**${goal ? `
 // list, so a board that never planned a version keeps working.
 export function readReleaseEntries(): ReleaseEntry[] {
   if (!fs.existsSync(RELEASES)) return []
-  const out: ReleaseEntry[] = []
-  for (const line of fs.readFileSync(RELEASES, 'utf8').split('\n')) {
-    const entry = lineEntry(line)
-    // A duplicate can only come from a hand edit; the first line wins so the order holds.
-    if (entry && !out.some((e) => e.id === entry.id)) out.push(entry)
-  }
-  return out
+  return releaseEntriesFrom(fs.readFileSync(RELEASES, 'utf8'))
 }
 
 // Every release on the list, in file order — ids only, which is what most callers want.

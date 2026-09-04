@@ -1,7 +1,7 @@
 ---
 title: "Local and Cloud boards"
 title_tag: "AI4Kanban — Local and Cloud boards, and moving between them"
-description: "A Local board is Markdown in your repository. A Cloud board lives in a workspace we host and opens on every machine you sign in from. What each one is, and what moving between them costs."
+description: "A Local board is Markdown in your repository. A Cloud board lives in a workspace we host, opens on every machine you sign in from, and reads in a browser. What each one is, and what moving between them costs."
 lead: "Two boards, one app. A Local board is Markdown in your repository; a Cloud board lives in a workspace we host. Onboarding leads with Local, and Cloud is a choice you take deliberately."
 last_updated: "September 4, 2026"
 nav_label: "Local and Cloud"
@@ -102,6 +102,31 @@ loaded and meets the removal on the first thing they try to change.
   so the board you get back is one git tracks. The workspace stays where it is.
 - **Delete the workspace.** An owner's move. Everything in it goes, for everybody in it, and
   this checkout stops pointing at it. There is no grace window and no backup — export first.
+
+## Reading a Cloud board in a browser
+
+A Cloud board also has a URL: **`cloud.ai4kanban.dev/<workspace-id>`**, and a card at
+`cloud.ai4kanban.dev/<workspace-id>/<card-id>`. Open it on a second computer, a borrowed
+laptop or a phone — anywhere the app is not installed — and sign in with GitHub there. The
+browser sign-in and your machine's are separate: ending either one leaves the other signed in.
+
+`cloud.ai4kanban.dev` on its own lands you on your workspace, or lists them by name when you
+have more than one, so a device holding no link still gets to the board.
+
+**It reads; it does not write.** The board and its cards, whole — the human half, the folded
+agent half, the subtasks and the open questions — with the release picker and the way back,
+and nothing else. There is no chat, no Create task and no card action, so nothing you press
+in a browser changes the board. Answering the agent from a browser comes later.
+
+**No board is on the open web.** Every page is for the account the workspace belongs to and
+refuses everyone else. A signed-out visitor, an account the workspace is not for, a deleted
+workspace and a made-up id all meet the same sentence, so none of them learns whether that
+workspace exists; every page is `noindex`, and a link pasted into a chat previews nothing of
+the board. There is no way to publish a board for anyone to read.
+
+The page draws in your browser's own language — English or Simplified Chinese — since there
+is no app here holding your setting. The board's own words travel in whatever language they
+were written.
 
 ## When a checkout cannot read its workspace
 

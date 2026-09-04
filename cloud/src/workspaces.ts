@@ -95,6 +95,15 @@ export interface BoardSnapshot {
   documents: WorkspaceDocument[]
 }
 
+/** What a browser is served (#322): the two screens' own read, and no more of the workspace
+ *  than they draw. */
+export interface ReaderBoard {
+  revision: string
+  workspace: { id: string; name: string; revision: string }
+  cards: { id: number; revision: string; data: Record<string, unknown> }[]
+  documents: { path: string; body: string }[]
+}
+
 /** Everything a standalone markdown board is made of. The trail comes beside it, paged. */
 export interface BoardExport {
   revision: string
@@ -454,6 +463,18 @@ export const readCard = (
     p_card: cardId(card),
   })
 
+/**
+ * One read the hosted pages draw both their screens from (#322): the workspace's name, its
+ * live cards and the four configuration documents those screens draw — and nothing else a
+ * workspace holds.
+ *
+ * A read of its own rather than the snapshot above, because the snapshot carries the memory
+ * set and the per-flow rules and neither belongs in a browser. The migration is what leaves
+ * them behind, so a route added later cannot serve them by forgetting to.
+ */
+export const readForReader = (env: Env, owner: Owner, id: string): Promise<ReaderBoard> =>
+  call(env, 'read_for_reader', { p_subject: owner.accountId, p_workspace: uuid(id, 'workspace') })
+
 /** The cards that have left the board. Never in a snapshot: this board holds three times as
  *  many archived cards as live ones, and a screen draws the present. */
 export const readArchive = (
@@ -720,6 +741,13 @@ export async function routeWorkspace(env: Env, owner: Owner, request: Request, u
   if (section === 'snapshot' && !name) {
     requireMethod(request, 'GET')
     return json(await readSnapshot(env, owner, id))
+  }
+
+  // What the hosted pages read (#322). Its own route because it is its own read: less of the
+  // workspace than a snapshot, and nothing a browser does not draw.
+  if (section === 'read' && !name) {
+    requireMethod(request, 'GET')
+    return json(await readForReader(env, owner, id))
   }
 
   if (section === 'archive' && !name) {

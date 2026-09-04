@@ -69,6 +69,11 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //                            makes (#374), over the operations above. The server fills
 //                            them and the screens draw from them, so both sides name one
 //                            shape and neither screen assembles a read of its own.
+//   board/assemble           the board's own reading rules as plain functions (#322) — what
+//                            a `## Todo` counts, what a group folder is, how the bands are
+//                            laid out — and the two screen shapes assembled from one Cloud
+//                            read. `akb` reads a card off disk with these; a hosted page
+//                            reads the same card over the network with them.
 const SHARED = [
   "cadence.ts",
   "yaml.ts",
@@ -82,6 +87,7 @@ const SHARED = [
   "view/rules.ts",
   "board/contract.ts",
   "board/screen.ts",
+  "board/assemble.ts",
 ];
 
 const BANNER = (name) =>

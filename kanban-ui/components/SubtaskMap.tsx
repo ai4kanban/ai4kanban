@@ -7,6 +7,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { buildSubtaskMap, type MapNode } from "@/lib/subtask-map";
 import type { Subtask } from "@/lib/types";
 
+import { useCardHref } from "./board-links";
 import { PULSE_DOT } from "./chrome";
 
 // A group's build order, drawn at the head of the subtasks panel on the root's page (#333):
@@ -50,6 +51,7 @@ export function SubtaskMap({
   onHover: (title: string) => void;
 }) {
   const c = useCopy().card.subtasks;
+  const cardHref = useCardHref();
   const map = buildSubtaskMap(subtasks);
   if (!map) return null;
 
@@ -117,7 +119,7 @@ export function SubtaskMap({
             return (
               <Link
                 key={n.id}
-                href={`/${n.id}`}
+                href={cardHref(n.id)}
                 // `#123` is the only text in the link, and the heading that names it is not
                 // read out — so the name is spelled out here.
                 aria-label={`#${n.id} ${n.title}${live ? ` — ${c.running}` : ""}${waiting ? ` — ${waiting}` : ""}`}
