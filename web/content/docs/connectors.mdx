@@ -77,14 +77,12 @@ Codex, OpenCode, DeepSeek Harness and Grok Build run inside a fence: they write 
 project and refuse anything outside it. All four still reach the network, so a card that
 needs an `npm install` or a `git fetch` works on any agent.
 
-Cursor, Kimi Code and ZCode have none — their tools run without stopping to ask, because a run
-has nobody at the keyboard to answer, and nothing holds them to the project folder. Kimi still
-refuses `rm -rf`, `shutdown` and `reboot` on its own, whatever a card asks for.
-
-Claude Code is the one the board doesn't decide for: it runs under your own Claude Code
-permission settings, whatever those already are. Put `--permission-mode bypassPermissions`
-or `--dangerously-skip-permissions` in **Extra arguments** to stop a run being refused work
-it needed to do — its log names any tool call that was turned down.
+Claude Code, Cursor, Kimi Code and ZCode have none — their tools run without stopping to ask,
+because a run has nobody at the keyboard to answer, and nothing holds them to the project
+folder. Kimi still refuses `rm -rf`, `shutdown` and `reboot` on its own, whatever a card asks
+for. Claude Code gets there through `--dangerously-skip-permissions` in its default command;
+override the command to run it under your own permission settings instead, and its log will
+name any tool call that was turned down.
 
 Pick a fenced agent if that matters to you, or run the board in a container.
 

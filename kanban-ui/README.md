@@ -1407,7 +1407,7 @@ in the file, so switching agents or providers never touches any of them.
       "provider": "subscription",
       "model": "claude-opus-5",
       "reasoning": "high",
-      "args": "--dangerously-skip-permissions"
+      "args": "--max-budget-usd 5"
     },
     "codex": {
       "model": "gpt-5.1-codex"

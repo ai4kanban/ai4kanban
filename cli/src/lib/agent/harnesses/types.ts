@@ -179,6 +179,6 @@ export const RAW_ARGS: HarnessSetting = {
   key: RAW_ARGS_KEY,
   label: 'Extra arguments',
   kind: 'text',
-  placeholder: '--dangerously-skip-permissions',
+  placeholder: '--max-budget-usd 5',
   help: "Appended to the command as written, for whatever the settings above don't cover. Split on spaces; a bad one fails the run and the log says why.",
 }

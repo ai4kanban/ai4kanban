@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CardWindow } from "@/components/CardWindow";
 import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
-import { cardScreen } from "@/lib/board";
+import { cardScreen, readArchivedCard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
 import { readMockups } from "@/lib/mockup";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
@@ -35,7 +35,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   } catch (e) {
     return <NoRules why={e instanceof Error ? e.message : String(e)} desktop={isDesktop()} />;
   }
-  if (!screen) notFound();
+  // Off the board is not the same as gone. A delivery that landed archives its card in the
+  // same breath (#380), so a bell row saying "Landed" — and every card link beside it —
+  // arrives here for a card whose page is now the archive's. Send it there rather than
+  // showing "no such card" for one the board finished.
+  if (!screen) {
+    const archived = await readArchivedCard(cardId).catch(() => null);
+    if (archived) redirect(`/archive/${cardId}`);
+    notFound();
+  }
 
   // …and what only this machine can answer, for the window drawn around that screen. The
   // mockups are here for the same reason the agent is: a mockup is a file on this disk, and

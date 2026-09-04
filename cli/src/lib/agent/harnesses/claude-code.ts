@@ -13,7 +13,9 @@ export const CLAUDE_CODE: Harness = {
   name: 'claude-code',
   label: 'Claude Code',
   icon: '/agents/claude.svg',
-  command: 'claude -p',
+  // `claude -p` has nobody at the keyboard, so every tool call it can't pre-approve is
+  // refused. Skip the prompts, the way every other harness's default command already does.
+  command: 'claude -p --dangerously-skip-permissions',
 
   // Stream the events (see claudeStreamArgs), and pin the session id: `--session-id <id>`
   // makes Claude Code adopt the id we generated up front, so the record's key IS Claude
