@@ -1,0 +1,16 @@
+# The board's API keys — never commit them.
+.env
+# The write lock, held for as long as one command takes.
+.lock/
+# What is running on this machine, and what ran lately.
+.sessions.json
+# One log per run — the agent's own output.
+.sessions/
+# The lock that record is written under.
+.sessions.lock/
+# Held by the one run at a time that may rewrite the board index.
+.index.lock/
+# The conversations held with the agent, on this machine.
+.chats/
+# Drawings of the screens cards change — redrawn, never read back from git.
+.mockups/
