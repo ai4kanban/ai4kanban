@@ -4,8 +4,11 @@
 // button say exactly the same thing. Only the opening — how this agent is asked for the
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
+import { locate } from '../cards'
+import { channelLanguage } from '../channels'
+import { draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
-import { boardText } from '../paths'
+import { boardText, rel } from '../paths'
 import { findSpecSkill, specHeading, specSkillInstructions, specSkillSelector } from '../spec-skills'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
@@ -54,6 +57,7 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'writing',
   'archive',
   'spec',
+  'channel',
   'review',
   'conflict',
 ])
@@ -159,6 +163,15 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
 //
 // It goes after everything else because it is a block and the rest is prose.
 const SELECTOR_FOR = new Set(['clarify', 'resolve', 'edit'])
+
+// The two files a repurpose works between, as paths from the project root. Null when the
+// card has gone — the command that starts the run has already refused that, so this is only
+// the guard a restart needs.
+function draftPaths(cardId: number | undefined, channel: string): { source: string; target: string } | null {
+  const found = cardId === undefined ? null : locate(cardId)
+  if (!found || found.kind !== 'file') return null
+  return { source: rel(draftFile(found.target, SOURCE)), target: rel(draftFile(found.target, channel)) }
+}
 
 const roster = (req: AgentRequest): string =>
   SELECTOR_FOR.has(req.action) && req.id !== undefined ? specSkillSelector(req.id) : ''
@@ -342,6 +355,28 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join('\n\n')
+    }
+    // One channel's draft, repurposed from the topic's `source.md` (#409). The two paths
+    // are named outright: `akb channel` has no `--print`, so this message is the whole of
+    // what the run is handed, and a run left to work out its own filename is a run that
+    // writes the draft somewhere nobody looks.
+    //
+    // Nothing here says what the piece argues. That is `source.md`, which the run reads —
+    // a summary pasted in would be this file's reading of it, and the whole job is to carry
+    // the piece across rather than to write it again.
+    case 'channel': {
+      const name = req.channel ?? ''
+      const files = draftPaths(req.id, name)
+      return [
+        `${kb}. Repurpose task ${req.id} ${named} for ${name} following \`akb guide channel\`.`,
+        files ? `Read ${files.source} and write ${files.target}, in ${channelLanguage(name)}.` : '',
+        `One pass: shorten or expand the piece into that channel's shape and language, and stop.`,
+        `Write that one file and nothing else — not the card, not \`source.md\`, and not another channel's draft.`,
+        req.notes ? `Extra notes: ${req.notes}` : '',
+        `Don't ask me questions with human-in-the-loop — the review is me editing the draft.`,
+      ]
+        .filter(Boolean)
+        .join(' ')
     }
     // Judging a delivery's work (#302). Nothing here says what the card wants or what the
     // diff holds: both are on the board, the flow prints them, and a copy pasted in here

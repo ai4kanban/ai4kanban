@@ -12,13 +12,30 @@ writing run works from. Every flow writes a card in this order:
 <!-- agent -->               <- boundary
 
 ## Today                     <- what has already been published on this, and what it left
-## Scope                     <- the brief: angle, audience, hook, channels, the lead one
+## Scope                     <- the brief: the angle, the audience, the hook
 ## Todo                      <- one writing step per checkbox
 ## Decided by the agent
 - **<question the decision settles>**: <answer>
 ### Overruled by the user    <- always last
 ## Source
 ```
+
+## `channels:`
+
+The frontmatter field, not a line in the body: it is what every flow and every screen reads.
+
+- **The moment the user answers "which channels, and which of them leads", write it**:
+
+  ```text
+  akb raw update <id> --channels x,xiaohongshu
+  ```
+
+  in the order they picked, **lead channel first**. Then drop the question. An answer left
+  as prose is an answer nothing can act on.
+- **The lead channel is the first entry**: the one `source.md` is written for. Every other
+  chosen channel is a repurposing of it, not a second draft.
+- **Never hand-write the field**, and never invent a channel: the four are in
+  `akb guide channel`.
 
 ## `Worth noting`
 
@@ -36,9 +53,9 @@ writing run works from. Every flow writes a card in this order:
 
 ## `Scope`
 
-- **Name the lead channel**: the one `source.md` is written for. Every other chosen channel
-  is a repurposing of it, not a second draft.
 - **Requirements, not rationale**: what the piece must say and must not claim.
+- **Name the lead channel** only on a card whose `channels:` is still empty: once the field
+  is written, it is what says which channel leads.
 
 ## `Todo`
 

@@ -8,6 +8,7 @@
 // runs — are the same tree. They differ only in how they are spelled in a message.
 
 import { CADENCE_FORMS } from '../cadence'
+import { CHANNEL_NAMES, CHANNEL_STATUSES } from '../channels'
 import { insideRun } from '../agent/env'
 import { recordCreatedCards } from '../agent/store'
 import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
@@ -177,10 +178,30 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--blocked-by <ids>', 'ids of open cards this one waits on', collectList)
     .option('--related <ids>', 'ids of open cards this one relates to', collectList)
     .option('--modules <names>', 'the parts of the project it touches', collectList)
+    .option(
+      '--channels <names>',
+      `the channels this topic goes to, LEAD FIRST: ${CHANNEL_NAMES.join(' | ')}. Marketing boards only`,
+      collectList,
+    )
     .option('--slug <slug>', 'rename the file')
     .option('--cadence <cadence>', `how often it repeats: ${CADENCE_FORMS}. "" clears it. Recurring cards only`)
     .action(async function (this: Command, id: number) {
       await dispatch('update', this, [String(id)], this.opts(), cli)
+    })
+
+  move('channel-status')
+    .argument('<id>', ID, cardId)
+    .argument('<channel>', `which channel: ${CHANNEL_NAMES.join(' | ')}`, oneOf(CHANNEL_NAMES))
+    .argument('<status>', CHANNEL_STATUSES.join(' | '), oneOf(CHANNEL_STATUSES))
+    .summary('move one of a topic\'s channels along')
+    .description(
+      "Set where one channel stands on this topic. Refused for a channel the card has not chosen — " +
+        '`update <id> --channels <names>` is what chooses them, and this move never adds one. ' +
+        '`akb channel <name> <id>` sets `draft` itself once it has written the file.',
+    )
+    .option('--url <url>', 'where it went up, once it is published')
+    .action(async function (this: Command, id: number, channel: string, status: string) {
+      await dispatch('channel-status', this, [String(id), channel, status], this.opts(), cli)
     })
 
   // Every op patches the list in place and they run in the order typed, so handing one

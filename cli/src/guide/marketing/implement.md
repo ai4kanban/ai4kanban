@@ -3,8 +3,9 @@
 Write the approved topic's draft. Do not add, rewrite, or tag questions on the card.
 
 The deliverable is one file: `docs/kanban/content/<id>-<slug>/source.md`, written for the
-lead channel the card names. There is no branch, no worktree and no diff to review — the
-review is the user editing the draft.
+card's **lead channel** — the first entry in its `channels:`, or, on a card that names none,
+the lead channel its `## Scope` names. There is no branch, no worktree and no diff to
+review — the review is the user editing the draft.
 
 - **Read the voice first**: `memory/writing.md`, then whichever file under `memory/writing/`
   covers this format or language. Every rule there was learned from an edit the user made;
@@ -17,4 +18,6 @@ review is the user editing the draft.
 - **Stop on a real blocker**: when the work cannot safely continue, run
   `akb raw run-blocker <id> --step ".." --cause ".." --unblock ".."`, then stop.
 - Do not replace or contradict what the card says.
-- Repurposing the draft per channel is a later pass, not this one.
+- **Repurposing is a later pass**: `akb channel <name> <id>` writes each chosen channel's
+  own draft from this one, including the lead channel's. Do not write any of them here, and
+  do not touch `channels:`.

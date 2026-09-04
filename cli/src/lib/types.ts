@@ -9,7 +9,7 @@
 // Declared with the shapes a reader is handed (./view/types.ts), because a question is one
 // of the few things both sides of the board see — the writers here, and every front end.
 export type { Question, QuestionMode } from './view/types'
-import type { CardSchedule, Question } from './view/types'
+import type { CardChannel, CardSchedule, Question } from './view/types'
 
 // A question still being built out of the flags that describe it.
 export interface QuestionDraft {
@@ -31,6 +31,9 @@ export interface Meta {
   blocked_by: number[]
   related: number[]
   modules: string[]
+  /** The channels this topic goes to, lead first (./channels.ts). Empty on every product
+   *  card — the field is the marketing solution's. */
+  channels: CardChannel[]
   cadence: string
   last_run: string
   /** The day this card was archived — `YYYY-MM-DD`, written by `board archive` on its way

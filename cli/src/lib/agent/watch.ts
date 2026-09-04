@@ -39,6 +39,7 @@ import {
   clearAsks,
   closeRun,
   finishWriting,
+  markChannelDrafted,
   needsIndexLock,
   patch,
   peekRun,
@@ -324,6 +325,16 @@ export async function watchRun(sessionId: string): Promise<number> {
           await finishWriting(record.cardId)
         } catch {
           // The refinement state below reports the card still at todo.
+        }
+      }
+      // And a finished repurpose says so on the card (#409). The board stamps it, not the
+      // run: an agent that crashed after writing the draft would leave the card claiming
+      // nothing was written.
+      if (status === 'done' && record.action === 'channel' && record.cardId !== null && record.channel) {
+        try {
+          await markChannelDrafted(record.cardId, record.channel)
+        } catch {
+          // The draft is on disk either way; `akb raw channel-status` is one command away.
         }
       }
       // What this run changed, taken now and taken once (agent/refine.ts). Every ending
@@ -639,6 +650,7 @@ function requestOf(record: RunRecord): AgentRequest {
     id,
     title: titleOf(id),
     specAgent: record.specAgent,
+    channel: record.channel,
     refineRound: record.refineRound,
     refineEffort: record.refineEffort,
     flowId: record.flowId,

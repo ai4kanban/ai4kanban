@@ -13,8 +13,8 @@ docs/kanban/
 │   │               one card per file — todo/ is flat
 │   └── recurring/  jobs we repeat (`akb guide recurring-task`) — never archived
 ├── content/<id>-<slug>/
-│                   the deliverable: `source.md` and one file per channel. Tracked in git
-│                   and kept after the card is archived
+│                   the deliverable: `source.md`, and `<channel>.md` per chosen channel.
+│                   Tracked in git and kept after the card is archived
 ├── memory/
 │   ├── decisions.md, rejected.md
 │   │               positioning, audience, what we may claim — and what we turned down
@@ -24,8 +24,8 @@ docs/kanban/
 │   ├── published.md
 │   │               one line per published piece: channel, URL, result
 │   └── <pillar>/   a pillar's own decisions.md and rejected.md
-├── skills/<channel>/SKILL.md
-│                   how one channel is written for
+├── skills/<name>/SKILL.md
+│                   a spec skill this board adds of its own
 ├── rules/          one rule per flow, in the user's own words — `<command>.md`, appended
 │                   to the end of that flow's instructions on every run
 ├── modules.md      the pillars — one line each
@@ -47,9 +47,39 @@ sources — the product board's goal and what shipped, the site docs, and this b
 ## The loop
 
 ```
-create ─▶ refine ─▶ implement ─▶ you edit ─▶ publish ─▶ archive
- topic     brief     source.md               per channel  published.md + writing lessons
+create ─▶ refine ─▶ implement ─▶ you edit ─▶ channel ─▶ you edit ─▶ publish ─▶ archive
+ topic     brief     source.md               <channel>.md            published.md
+                                                                   + writing lessons
 ```
+
+`akb channel <name> <id>` is a step you take, once `source.md` reads right — one run per
+chosen channel, and nothing starts it for you.
+
+## Channels
+
+A topic goes to the channels its card names, in `channels:`. **Order is meaning: the first
+entry is the lead channel**, the one `source.md` is written for. Every chosen channel gets
+its own file, the lead included — `source.md` is the argument, and is never published.
+
+| channel | language |
+| --- | --- |
+| `x` | English |
+| `linkedin` | English |
+| `reddit` | English |
+| `xiaohongshu` | Chinese |
+
+A channel is a name and a language, and that is the whole definition — there is no
+instruction file per channel. What makes a draft good is `memory/writing.md` and
+`memory/writing/`, so a rule learned on one channel reaches every channel it fits.
+
+Two moves write the field, and nothing else touches it:
+
+```text
+akb raw update <id> --channels x,xiaohongshu       # chosen, lead first
+akb raw channel-status <id> x published --url ..   # move one channel along
+```
+
+`akb channel` sets a channel to `draft` itself, once it has written the file.
 
 ## Task ID
 
@@ -75,6 +105,6 @@ metadata. Edit only the card's **body** by hand. `akb raw help` lists every move
 
 ## Finish a task
 
-A topic is finished when every chosen channel is published and its line is in
+A topic is finished when every channel in `channels:` reads `published` and its line is in
 `published.md`. Then `akb raw archive <id>` — the card leaves the board and its
 `content/<id>-<slug>/` folder stays in git.

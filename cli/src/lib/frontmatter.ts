@@ -5,6 +5,7 @@
 
 import { STATUSES, normalizeRelease } from './validate'
 import { yamlScalar, unquote } from './yaml'
+import { normalizeChannels, parseChannelsBlock, serializeChannels } from './channels'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
 import { normalizeVerify } from './verify'
 import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
@@ -22,6 +23,10 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   out.push(`blocked_by: [${(m.blocked_by || []).join(', ')}]`)
   out.push(`related: [${(m.related || []).join(', ')}]`)
   out.push(`modules: [${(m.modules || []).join(', ')}]`)
+  // The channels a topic goes to, lead first (./channels.ts). Written only when the card
+  // names some, so every product card — and every topic whose channels question is still
+  // open — keeps the frontmatter it always had.
+  out.push(...serializeChannels(m.channels))
   // How often a recurring card repeats (`30m`, `6h`, `1d at 09:30` — see
   // ./cadence.ts). Written only when the card carries one; no cadence means the
   // card runs when a human clicks Run and never on its own.
@@ -97,6 +102,21 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
       }
       continue
     }
+    // `channels:` holds two shapes at once the way `questions:` does — a bare name, and a
+    // block carrying that channel's status and URL — so it gets its own reader too.
+    if (key === 'channels') {
+      if (val === '') {
+        const block: string[] = []
+        while (j + 1 < fm.length && /^\s/.test(fm[j + 1]!) && fm[j + 1]!.trim() !== '') {
+          block.push(fm[j + 1]!)
+          j++
+        }
+        meta.channels = parseChannelsBlock(block)
+      } else {
+        meta.channels = normalizeChannels(val.trim() === '[]' ? [] : val.replace(/^\[|\]$/g, '').split(','))
+      }
+      continue
+    }
     // `schedule:` is the other block field — an action and its notes, indented under it.
     if (key === 'schedule') {
       if (val === '') {
@@ -146,6 +166,9 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   meta.release = normalizeRelease(meta.release)
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []
+  // The channels this topic goes to. A card written before the field, one on a product
+  // board, and one whose list was damaged by hand all read as no channels chosen.
+  meta.channels = normalizeChannels(meta.channels)
   // When this card last ran — recurring cards only, and only once they have run.
   // Anything but text reads as never run, so a blanked or damaged line just means
   // the card has no run to report.

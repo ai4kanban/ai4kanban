@@ -22,6 +22,7 @@ import { byPickOrder } from '../view/rules'
 import type {
   Board,
   Card,
+  CardChannel,
   CardSchedule,
   CardStatus,
   Column,
@@ -225,6 +226,17 @@ const ids = (value: unknown): number[] =>
   Array.isArray(value) ? value.filter((n): n is number => Number.isInteger(n)) : []
 const lines = (value: unknown): string[] =>
   Array.isArray(value) ? value.map((v) => text(v)).filter(Boolean) : []
+// The channels a topic goes to, in the order they were chosen — an entry with no name is
+// dropped, since nothing can be drawn or written for it. Read here rather than through
+// `lib/channels.ts`: this module is copied into the browser and imports only its siblings.
+const channels = (value: unknown): CardChannel[] =>
+  Array.isArray(value)
+    ? value.flatMap((v) => {
+        const held = (v ?? {}) as Record<string, unknown>
+        const name = text(held.name)
+        return name ? [{ name, status: text(held.status) as CardChannel['status'], url: text(held.url) }] : []
+      })
+    : []
 
 /** A card's stored `data`, read as the fields a screen draws. Anything missing reads as
  *  empty: a screen drawing a card with no priority is better than one that will not draw. */
@@ -258,6 +270,7 @@ function cardFrom(read: ReadCard, now: number): Card | null {
     questions: (Array.isArray(meta.questions) ? meta.questions : []) as Question[],
     verify: lines(meta.verify),
     modules: lines(meta.modules),
+    channels: channels(meta.channels),
     last_run: lastRun,
     cadence,
     schedule: (meta.schedule ?? null) as CardSchedule | null,

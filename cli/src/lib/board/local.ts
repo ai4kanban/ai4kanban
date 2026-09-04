@@ -26,12 +26,14 @@ import { deliveryPlan } from '../agent/commit-mode'
 import { activeDelivery, listDeliveries, settleManualCommit } from '../agent/deliveries'
 import { cancelDelivery, discardDelivery } from '../agent/sessions'
 import {
+  cmdChannelStatus,
   cmdCreate,
   cmdSchedule,
   cmdTag,
   cmdUpdate,
   cmdUpdateQuestions,
   cmdUpdateVerify,
+  type ChannelStatusOptions,
   type CreateOptions,
   type QuestionOpsInput,
   type ScheduleOptions,
@@ -125,6 +127,8 @@ const MOVES: Record<string, RunMove> = {
   'update-questions': ({ args, opts }) => cmdUpdateQuestions(Number(args[0]), as<QuestionOpsInput>(opts)),
   'update-verify': ({ args, opts }) => cmdUpdateVerify(Number(args[0]), as<VerifyOpsInput>(opts)),
   schedule: ({ args, opts }) => cmdSchedule(Number(args[0]), as<ScheduleOptions>(opts)),
+  'channel-status': ({ args, opts }) =>
+    cmdChannelStatus(Number(args[0]), args[1] ?? '', args[2] ?? '', as<ChannelStatusOptions>(opts)),
   tag: ({ args }) => cmdTag(Number(args[0]), args[1] ?? '', args[2] ?? ''),
   list: ({ opts }) => cmdList(as<ListOptions>(opts)),
   release: ({ args, opts }) => cmdRelease(args, as<ReleaseOptions>(opts)),

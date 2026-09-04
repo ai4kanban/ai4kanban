@@ -28,6 +28,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { idPrefix, locate } from '../cards'
+import { channelLanguage } from '../channels'
+import { draftFile, SOURCE } from '../content'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
@@ -290,15 +292,19 @@ function workspaceField(cardId: number): string[] {
   ])
 }
 
-// The file a marketing build writes: `content/<id>-<slug>/source.md`, named off the card's
-// own filename so the draft folder and the card always match (#407). Nothing on a product
-// board, which delivers a diff.
+// The file a marketing build writes: `content/<id>-<slug>/source.md` (#407, #409), and the
+// channel it is written for — the first entry in the card's `channels:`. A card whose
+// channels question is still unanswered falls back to the lead channel its `## Scope`
+// names, so the topics written before the field keep working. Nothing on a product board,
+// which delivers a diff.
 function draftField(card: CardFacts): string[] {
   if (solution() !== 'marketing') return []
-  const slug = path.basename(card.file).replace(/\.md$/, '')
-  const dir = path.join(rel(KANBAN), 'content', slug)
+  const lead = card.meta.channels[0]
   return field('draft', [
-    `write the piece in ${dir}/source.md — make the folder if it isn't there.`,
+    `write the piece in ${rel(draftFile(card.file, SOURCE))} — make the folder if it isn't there.`,
+    lead
+      ? `it is written for ${lead.name}, this topic's lead channel, in ${channelLanguage(lead.name)} — every other chosen channel is repurposed from it by \`akb channel\`.`
+      : `this card names no channels yet, so write it for the lead channel its ## Scope names.`,
     'there is no branch and no worktree: the draft is the delivery, and the user editing it is the review.',
   ])
 }
@@ -446,6 +452,10 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   // so the card format, the memory set and the tracks are a page of rules about work it is
   // not allowed to do. `akb spec` has no --print, so this is only ever read by the run.
   spec: ['spec-skill'],
+  // A repurpose gets its own flow and NOT `board`: it writes one file under `content/` and
+  // never a card, so the card format and the memory set are a page about work it may not do.
+  // `akb channel` has no --print either, so this is only ever the run's.
+  channel: ['channel'],
 }
 
 const guidesFor = (req: AgentRequest): string[] => {

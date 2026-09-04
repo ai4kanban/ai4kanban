@@ -231,6 +231,10 @@ export function refinementAfter(
 // so a refine of a card one of them merely edited spends a run re-doing what has just
 // closed. A card one of them split off is another matter: it is as rough as any other
 // newborn card, and nothing else comes for it.
+//
+// A repurpose is here for the opposite reason: it never touches the plan at all. The one
+// write it leaves on the card is the channel's `draft` status, and a refine started over
+// that would re-plan a settled topic because a file was written.
 const FOLLOWS_CREATED = new Set<AgentAction>([
   'implement',
   'edit',
@@ -238,6 +242,7 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   'resolve',
   'writing',
   'spec',
+  'channel',
 ])
 
 /** Cards this run left worth refining — its own claims and no one else's. `before` is the

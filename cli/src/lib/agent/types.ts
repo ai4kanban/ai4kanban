@@ -58,6 +58,10 @@ export type AgentAction =
    *  `specAgent`, it starts clean, and it writes one section of that card and nothing
    *  else. A flow asks for one; the board starts it once that flow's own run has ended. */
   | 'spec'
+  /** One channel's draft, repurposed from a topic's `source.md` (#409). It is named by
+   *  `channel`, starts clean, and writes one file under `content/<id>-<slug>/` — no card,
+   *  no other channel's draft, and no second pass. Marketing boards only. */
+  | 'channel'
   /** Write one closed version's changelog (#232) — a few plain lines saying what the
    *  version changed, from the goal and the cards the close wrote down. It touches no
    *  card, so it carries a release id, and the close that made the record starts it. */
@@ -106,6 +110,9 @@ export interface AgentRequest {
    *  record, and a rename would strand the runs already in flight. It decides
    *  the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
+  /** channel: which channel this run repurposes the topic for — one of the four names
+   *  (`lib/channels.ts`). It decides the file the run writes and the language it writes in. */
+  channel?: string
   /** implement: how THIS build commits (#346) — the Implement dialog's tick, and this one
    *  delivery's answer. Absent on every other way in — a terminal `akb card implement`, a queued
    *  build, a resolve that carries on — and those fall back to **Allow automatic Git
@@ -115,7 +122,7 @@ export interface AgentRequest {
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<AgentAction, 'clarify' | 'writing' | 'spec'>
+  | Exclude<AgentAction, 'clarify' | 'writing' | 'spec' | 'channel'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -202,6 +209,9 @@ export interface RunRecord {
   /** Which spec skill this run is, on a `spec` run. Kept on the record so the run list can
    *  say which one is working, and so a resume starts the same agent again. */
   specAgent?: string
+  /** Which channel this run repurposes for, on a `channel` run — kept for the same reasons,
+   *  and so its close knows which channel's status to move to `draft`. */
+  channel?: string
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
   /** The QA guide this refinement uses across its sessions and resume. */

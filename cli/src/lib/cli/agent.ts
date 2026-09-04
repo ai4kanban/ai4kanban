@@ -29,6 +29,7 @@ import { namedDelivery } from '../agent/deliveries'
 import { HELP_AFTER } from '../agent/manual'
 import { cmdAgent } from '../../commands/agent'
 import { cmdChat } from '../../commands/chat'
+import { cmdChannel } from '../../commands/channel'
 import { cmdCloud } from '../../commands/cloud'
 import { cmdGuide } from '../../commands/guide'
 import {
@@ -165,6 +166,34 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [skill, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
       await onBoard(this, cli, (p) => cmdSpec({ skill, id, note, ...this.opts() }, p))
+    })
+
+  // ---- one channel's draft, repurposed from the topic's source --------------
+
+  withShared(program.command('channel'))
+    .argument('[name]', 'which channel; left off, the channels are listed')
+    .argument('[id]', "the topic to repurpose", cardId)
+    .argument('[note...]', 'anything the run should know, in your own words')
+    .summary("repurpose a topic's draft for one channel")
+    .description(
+      "It is a run of its own: it reads that topic's `source.md` and writes " +
+        '`content/<id>-<slug>/<name>.md` in the channel\'s own language, and changes nothing else. Run ' +
+        'it once `source.md` reads right — nothing follows the write run on its own. A draft already ' +
+        'there is never silently replaced. Marketing boards only.',
+    )
+    .option('--again', 'replace the draft that is already there')
+    .option('-f, --follow', 'watch its log instead of returning')
+    .option('--notes <text>', 'what the run should know, for a caller building a command')
+    // Declared so the refusal can say WHY there is none, rather than "unknown option".
+    .addOption(new Option('--print', 'refused — see below').hideHelp())
+    .addHelpText(
+      'after',
+      '\nThere is no --print: a draft written in the conversation that asked for it is that\n' +
+        "conversation's opinion of the piece, not a pass over what `source.md` says.\n",
+    )
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [channel, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
+      await onBoard(this, cli, (p) => cmdChannel({ channel, id, note, ...this.opts() }, p))
     })
 
   // ---- talking to the agent -------------------------------------------------

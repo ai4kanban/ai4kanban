@@ -11,6 +11,8 @@ import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { countsForRecord, recordFact, type Answerer, type Origin } from '../lib/record'
 import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
+import { CHANNEL_NAMES, CHANNEL_STATUSES, asChannelStatus, chooseChannels } from '../lib/channels'
+import { solution } from '../lib/solution'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
@@ -190,8 +192,22 @@ export interface UpdateOptions {
   blockedBy?: string[]
   related?: string[]
   modules?: string[]
+  channels?: string[]
   slug?: string
   cadence?: string
+}
+
+// The channels a topic goes to, and the order it goes to them in — the first is the lead
+// channel. Marketing's field: a product card has no channels to name, and writing one would
+// put a field on it that nothing there reads or draws.
+function channelsFlag(names: string[], current: Meta['channels']): Meta['channels'] {
+  if (solution() !== 'marketing') {
+    die(`--channels is the marketing solution's — this board is \`${solution()}\`, and its cards go nowhere.`, {
+      kind: 'wrong-solution',
+      solution: solution(),
+    })
+  }
+  return chooseChannels(names, current)
 }
 
 // Rewrite a card's frontmatter fields. Also the sanctioned way to rename a card (--slug).
@@ -240,6 +256,12 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (flags.modules !== undefined) {
     meta.modules = validModules(flags.modules)
     changes.push('modules')
+  }
+  // The chosen channels and their order. A channel that stays keeps the status and URL it
+  // already had — a reorder must not throw away where a piece was published.
+  if (flags.channels !== undefined) {
+    meta.channels = channelsFlag(flags.channels, meta.channels)
+    changes.push(`channels→${meta.channels.map((c) => c.name).join(', ') || '(none)'}`)
   }
   // How often the card repeats, and so whether the local UI runs it in the
   // background at all. `--cadence ""` clears it and the card goes back to
@@ -337,6 +359,53 @@ export function cmdSchedule(id: number, flags: ScheduleOptions): MoveResult {
   const was = setCardSchedule(id, { action, notes })
   say(scheduleReceipt(id, action) + (was ? ` (replacing the ${was.action} that was scheduled)` : ''))
   return { id, schedule: action, notes, was: was?.action ?? null }
+}
+
+/** `akb raw channel-status`, as its command declares it (lib/cli/board.ts). */
+export interface ChannelStatusOptions {
+  url?: string
+}
+
+// Move one channel along: `draft` once its file is written, `ready` once the user has read
+// it, then `scheduled` and `published`. The only other move that touches `channels:` is
+// `update --channels`, which chooses the list; this one never adds a channel, because a
+// channel nobody chose is a draft nobody asked for.
+export function cmdChannelStatus(
+  id: number,
+  channel: string,
+  status: string,
+  flags: ChannelStatusOptions,
+): MoveResult {
+  const name = channel.trim().toLowerCase()
+  if (!CHANNEL_NAMES.includes(name)) {
+    die(`unknown channel "${channel}". the channels are: ${CHANNEL_NAMES.join(', ')}.`, {
+      kind: 'unknown-channel',
+      channels: [channel],
+      known: CHANNEL_NAMES,
+    })
+  }
+  const wanted = asChannelStatus(status)
+  if (!wanted) die(`--status must be one of ${CHANNEL_STATUSES.join(' | ')} (got "${status}")`)
+  const found = locate(id)
+  if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
+
+  const entry = meta.channels.find((c) => c.name === name)
+  if (!entry) {
+    die(
+      `#${id} does not go to ${name} — its channels are ${meta.channels.map((c) => c.name).join(', ') || '(none chosen)'}. ` +
+        `Choose it first with \`update ${id} --channels <names>\`.`,
+      { kind: 'channel-not-chosen', id, channel: name },
+    )
+  }
+  const was = entry.status || '(no draft yet)'
+  entry.status = wanted
+  if (flags.url !== undefined) entry.url = flags.url.trim()
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  say(`#${id} ${name}: ${was} → ${wanted}${entry.url ? ` (${entry.url})` : ''}`)
+  return { id, channel: name, status: wanted, url: entry.url, was, file: rel(file) }
 }
 
 // Patch a card's open-question list. Every op edits in place — append one, rewrite

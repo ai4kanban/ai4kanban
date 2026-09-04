@@ -123,6 +123,7 @@ export function readStore(): Store {
       priorStatus: typeof entry.priorStatus === 'string' ? entry.priorStatus : undefined,
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
+      channel: typeof entry.channel === 'string' && entry.channel ? entry.channel : undefined,
       refineRound:
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
           ? entry.refineRound

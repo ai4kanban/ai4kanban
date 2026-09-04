@@ -10,7 +10,7 @@
 
 import type { BoardProvider, LeaseTarget, OpEnvelope, OpResult } from './contract'
 import { localBoard } from './local'
-import { leaseAnd } from './ops'
+import { leaseAnd, moveTarget } from './ops'
 
 export * from './contract'
 // The one read each screen makes, over the operations above (#374).
@@ -72,3 +72,9 @@ export const appendCardQuestion = (id: number, question: string, options: string
 export const archiveCard = (id: number) => withLease({ card: id }, (env) => board().archiveCard(id, env))
 
 export const recordCardRun = (id: number) => withLease({ card: id }, (env) => board().recordRun(id, env))
+
+/** One named `akb raw` move, run in process — for the board's own bookkeeping, where there
+ *  is no command line to go through (lib/cli/board.ts) but the write still belongs to the
+ *  board and still has to reach a Cloud workspace. */
+export const runBoardMove = (move: string, args: string[], opts: Record<string, unknown> = {}) =>
+  withLease(moveTarget(move, args), (env) => board().runMove(move, { args, opts }, env))

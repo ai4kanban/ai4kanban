@@ -8,6 +8,9 @@ import path from 'node:path'
 
 import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RUN_IGNORE_LINES, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, RULES, SKILLS, SETUP_CHECKLIST } from '../lib/paths'
 import { configTemplateFor } from '../lib/config-template'
+// Where a marketing board's drafts go — one folder per card, tracked in git and kept after
+// the card is archived (#406). Only that solution has one.
+import { contentDir } from '../lib/content'
 import { solution, type Solution } from '../lib/solution'
 import { say } from '../lib/io'
 import { LOCK_IGNORE_LINE } from '../lib/lock'
@@ -20,10 +23,6 @@ import { TASKS_HEADING } from '../lib/readme'
 import { writePruneMemoryCard } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
 import type { MoveResult } from '../lib/types'
-
-// Where a marketing board's drafts go — one folder per card, tracked in git and kept after
-// the card is archived (#406). Only that solution has one.
-const contentDir = (): string => path.join(KANBAN, 'content')
 
 // The blank module map. `init` seeds it, the module-map flow fills it in from the repo.
 // It ships empty on purpose: only someone who has read the repo can name its parts, and
@@ -239,8 +238,9 @@ export function cmdInit(named?: Solution): MoveResult {
   writeGitignoreIfMissing()
   writeRootIgnoreIfMissing()
   writeNextId(1)
-  // A marketing board's own folders: the drafts, the channel skills, and the flow rules.
-  // Made empty rather than left out, because the layout is what the flow text points at.
+  // A marketing board's own folders: the drafts, the spec skills it adds of its own, and
+  // the flow rules. Made empty rather than left out, because the layout is what the flow
+  // text points at.
   if (marketing) for (const dir of [contentDir(), SKILLS, RULES]) fs.mkdirSync(dir, { recursive: true })
   // Releases and setup are the product solution's. A marketing board plans no versions and
   // has no repo to read, so a checklist telling it to would be a checklist about nothing.

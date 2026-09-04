@@ -52,7 +52,9 @@ import validateOnReddit from '../guide/validate-on-reddit.md'
 import writing from '../guide/writing.md'
 
 import marketingBoard from '../guide/marketing/board.md'
+import marketingChannel from '../guide/marketing/channel.md'
 import marketingImplement from '../guide/marketing/implement.md'
+import marketingPruneMemory from '../guide/marketing/prune-memory.md'
 import marketingWriting from '../guide/marketing/writing.md'
 
 import { boardText } from './paths'
@@ -97,29 +99,50 @@ export const GUIDES: Guide[] = [
   { name: 'validate-on-reddit', when: 'check an idea against what people actually say', text: validateOnReddit },
 ]
 
-export const GUIDE_NAMES = GUIDES.map((g) => g.name)
-
 /** The flows one solution says differently. Everything not named here is the text above. */
 const OVERRIDES: Record<Solution, Record<string, string>> = {
   product: {},
-  marketing: { board: marketingBoard, implement: marketingImplement, writing: marketingWriting },
+  marketing: {
+    board: marketingBoard,
+    implement: marketingImplement,
+    'prune-memory': marketingPruneMemory,
+    writing: marketingWriting,
+  },
 }
+
+/** The flows one solution has that the other has no use for. Not an override: a `channel`
+ *  flow on a product board would be a page about work that board cannot do. */
+const EXTRA: Record<Solution, Guide[]> = {
+  product: [],
+  marketing: [
+    { name: 'channel', when: "repurpose a topic's draft for one channel", text: marketingChannel },
+  ],
+}
+
+/** Every flow THIS board reads: the shared list in its solution's words, then the flows that
+ *  solution has of its own. */
+function guidesHere(): Guide[] {
+  const which = solution()
+  return [...GUIDES.map((g) => ({ ...g, text: OVERRIDES[which][g.name] ?? g.text })), ...EXTRA[which]]
+}
+
+/** The names this board answers to — its solution's, so a topic it has no use for is not
+ *  offered and a topic only it has is. */
+export const guideNames = (): string[] => guidesHere().map((g) => g.name)
 
 /** One flow as this board reads it: its solution's words, spelling this board's own path. */
 export function findGuide(name: string): Guide | null {
-  const guide = GUIDES.find((g) => g.name === name)
-  if (!guide) return null
-  const text = OVERRIDES[solution()][name] ?? guide.text
-  return { ...guide, text: boardText(text) }
+  const guide = guidesHere().find((g) => g.name === name)
+  return guide ? { ...guide, text: boardText(guide.text) } : null
 }
-
-// Wide enough for the longest name plus a gap, worked out rather than typed so adding a
-// longer one can't quietly run the two columns together.
-const NAME_COL = Math.max(...GUIDES.map((g) => g.name.length)) + 4
 
 /** The list of flows, one line each — what `akb guide` with no topic prints. */
 export function guideList(program: string): string {
-  const line = (g: Guide) => `  ${g.name.padEnd(NAME_COL - 2)}${g.when}`
+  const guides = guidesHere()
+  // Wide enough for the longest name plus a gap, worked out rather than typed so adding a
+  // longer one can't quietly run the two columns together.
+  const col = Math.max(...guides.map((g) => g.name.length)) + 4
+  const line = (g: Guide) => `  ${g.name.padEnd(col - 2)}${g.when}`
   const out = [
     `${program} guide <topic> — the board's flows, shipped with this command.`,
     '',
@@ -128,7 +151,7 @@ export function guideList(program: string): string {
     'filled in for the board it was asked about.',
     '',
     'Flows',
-    ...GUIDES.map(line),
+    ...guides.map(line),
   ]
   return boardText(out.join('\n'))
 }

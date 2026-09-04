@@ -20,6 +20,7 @@ const zh: RunsCopy = {
     changelog: "更新日志",
     setup: "初始化",
     spec: "补充规格",
+    channel: "渠道改写",
   },
   verb: {
     implement: "开发",
@@ -38,6 +39,7 @@ const zh: RunsCopy = {
     changelog: "写更新日志",
     setup: "初始化",
     spec: "补充规格",
+    channel: "渠道改写",
   },
   step: {
     implement: "开发",
@@ -56,6 +58,7 @@ const zh: RunsCopy = {
     changelog: "更新日志",
     setup: "初始化",
     spec: "补充规格",
+    channel: "渠道改写",
   },
   flow: {
     edit: "修订",

@@ -13,10 +13,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { locate } from '../cards'
+import { draftFile } from '../content'
 import type { CloudEventState } from '../cloud/events'
 import { reportCloudRunEnd } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
-import { dropRunCard, recordCardRun, setCardStatusOn, takeRunCard } from '../board'
+import { dropRunCard, recordCardRun, runBoardMove, setCardStatusOn, takeRunCard } from '../board'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
 import { pidAlive } from '../lock'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
@@ -86,6 +87,7 @@ const VERB: Record<AgentAction, string> = {
   'plan-release': 'planned',
   setup: 'set up',
   spec: 'specified',
+  channel: 'repurposed',
   changelog: 'written up',
   review: 'reviewed',
   conflict: 'unblocked',
@@ -207,6 +209,26 @@ export async function finishWriting(cardId: number): Promise<void> {
   const result = await setCardStatusOn(cardId, 'ready')
   if (!result.ok) throw new Error(result.error)
   if (result.card?.status !== 'ready') throw new Error(`#${cardId} did not reach ready`)
+}
+
+/** A finished `akb channel` run: its draft is on disk, so the card says that channel is at
+ *  `draft` (#409). The run is never asked to stamp its own state — an agent that crashed
+ *  after writing the file would leave the card saying nothing was written.
+ *
+ *  Nothing is written when the file never arrived, or when the channel is already
+ *  `scheduled` or `published`: it is out in the world, and a run re-done with `--again`
+ *  must not take it back. A `ready` one does go back to `draft` — the draft the user read
+ *  it for has just been replaced. */
+export async function markChannelDrafted(cardId: number, channel: string): Promise<void> {
+  const found = locate(cardId)
+  if (!found) return
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  if (!fs.existsSync(draftFile(file, channel))) return
+  const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  const entry = meta?.channels.find((c) => c.name === channel)
+  if (!entry || (entry.status !== '' && entry.status !== 'ready')) return
+  const res = await runBoardMove('channel-status', [String(cardId), channel, 'draft'])
+  if (!res.ok) throw new Error(res.error)
 }
 
 /** The card's stage and whether it has open questions, or null when there is no such card.
@@ -519,6 +541,9 @@ export function openRun(
     // Which spec skill this is, on the one action that has one — so the run list can name
     // it, and so a resume starts the same agent rather than a different one.
     specAgent: req.action === 'spec' ? req.specAgent : undefined,
+    // …and which channel, on the one action that has one, so its close knows whose status
+    // to move and a resume repurposes for the same channel.
+    channel: req.action === 'channel' ? req.channel : undefined,
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round: it already applies the answers and runs QA in this session.
     refineRound: req.refineRound,
@@ -614,6 +639,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     resumedFrom: prev.sessionId,
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
+    channel: prev.channel,
     refineRound: prev.refineRound,
     refineEffort: prev.refineEffort,
     // The same refinement carried on, not a second one — the way a resume re-joins the

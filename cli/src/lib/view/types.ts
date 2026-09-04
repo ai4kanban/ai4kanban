@@ -76,6 +76,28 @@ export interface CardSchedule {
   notes: string
 }
 
+/** How far one channel has got with a topic (#409). Chosen and nothing written yet is the
+ *  empty string, not a name of its own — the four below are the steps a draft moves along.
+ *  `scheduled`, `published` and a channel's URL are in the shape from the start so the field
+ *  never has to change; only `draft` and `ready` are written before publishing ships. */
+export type ChannelStatus = 'draft' | 'ready' | 'scheduled' | 'published'
+
+/** One channel a topic goes to.
+ *
+ *  A channel is a NAME and a LANGUAGE, and that pair is the whole of what one is: there is
+ *  no per-channel instruction file, because what makes a draft good is the board's writing
+ *  memory, and a rule learned on one channel should reach every channel it fits.
+ *
+ *  The card's list is ordered, and the order is meaning: the FIRST entry is the lead
+ *  channel — the one `source.md` is written for. No second field, and no flag. */
+export interface CardChannel {
+  name: string
+  /** Empty until something is written for it: the channel is chosen, and has no draft. */
+  status: ChannelStatus | ''
+  /** Where it went up, once it is published. Empty until then. */
+  url: string
+}
+
 /** A group root's subtask, as shown on the root's page. Light meta only — clicking through
  *  opens the subtask's own page for the full card. */
 export interface Subtask {
@@ -267,6 +289,10 @@ export interface Card {
   verify: string[]
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
+  /** The channels this topic goes to, in the order the user picked — the first is the lead
+   *  channel (#409). Marketing boards only; empty on every product card, and on a marketing
+   *  card whose channels question has not been answered yet. */
+  channels: CardChannel[]
   /** When this card last ran, as `YYYY-MM-DD HH:MM` — recurring cards only, and only once
    *  one has run. Empty means never run. */
   last_run: string
