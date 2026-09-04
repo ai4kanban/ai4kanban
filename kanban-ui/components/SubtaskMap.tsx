@@ -11,9 +11,8 @@ import { PULSE_DOT } from "./chrome";
 
 // A group's build order, drawn at the head of the subtasks panel on the root's page (#333):
 // one chip per subtask, a line from a blocker to what it blocks. It is a band inside that
-// panel, not a panel of its own — the list right beneath it is what these ids say, and two
-// outlines around one subject read as two subjects with a gap of dead paper between them. A
-// hairline is all that parts the drawing from the rows: they are one thing said twice.
+// panel, not a panel of its own — the list folded beneath it is what these ids say, and two
+// outlines around one subject read as two subjects with a gap of dead paper between them.
 //
 // The picture is placed, not laid out: every chip is the same size and every column the
 // same pitch, so the SVG can put a line between two chips without measuring the DOM. A
@@ -66,11 +65,7 @@ export function SubtaskMap({
   const height = (Math.max(...rows) - 1) * ROW_PITCH + CHIP_H;
 
   return (
-    <div
-      className="mb-2.5 pb-4"
-      style={{ borderBottom: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)" }}
-      onMouseLeave={() => onHover("")}
-    >
+    <div className="pb-2" onMouseLeave={() => onHover("")}>
       {/* Wider than the panel, it scrolls sideways: a drawing whose columns wrap is a
           different drawing. The padding is the room a chip's press shadow needs — a
           sideways scroller clips both axes, and without it the bottom row's shadow is

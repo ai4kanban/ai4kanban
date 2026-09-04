@@ -73,6 +73,7 @@ import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
 import { isReadyHalf } from "./Queue";
 import { SubtaskMap } from "./SubtaskMap";
+import { buildSubtaskMap } from "@/lib/subtask-map";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
@@ -1156,6 +1157,11 @@ export function CardPage({
   const [error, setError] = useState<string | null>(null);
   // The subtask chip under the cursor, said in the panel's heading (#333).
   const [mapTip, setMapTip] = useState("");
+  // The rows under the map are folded away until asked for; the map is the panel. Where
+  // there is no map — the phone, or a group with no line to draw — the rows are all there is.
+  const mapDrawn = !phone && !!buildSubtaskMap(card.subtasks ?? []);
+  const [listOpen, setListOpen] = useState(false);
+  useEffect(() => setListOpen(false), [card.id]);
 
   // A session this tab started just finished. Reject/archive take the card off the
   // board, so we go back to it (the inline SessionLog can't show output for a card
@@ -1891,7 +1897,7 @@ export function CardPage({
             </div>
 
             {/* The group, in one section (#333): its build order drawn at the head, and the
-                rows the drawing's ids stand for right under it. One heading covers both —
+                rows the drawing's ids stand for folded under it. One heading covers both —
                 the map has no words of its own, and the list is what reads them out. */}
             {card.subtasks && card.subtasks.length > 0 && (
               <div className="nb-section bg-nb-sheet p-3.5">
@@ -1908,9 +1914,33 @@ export function CardPage({
                 {/* The map reads left to right across layers, so it needs width the phone
                     hasn't got — and the list under it names every card the map draws
                     (#357). The rows are the group at that width. */}
-                {!phone && <SubtaskMap subtasks={card.subtasks} running={running} onHover={setMapTip} />}
-                <ul className="flex flex-col gap-1.5">
-                  {card.subtasks.map((s) => (
+                {mapDrawn && (
+                  <>
+                    <SubtaskMap subtasks={card.subtasks} running={running} onHover={setMapTip} />
+                    {/* The hairline that parts the drawing from the rows is the fold: the
+                        count sits in the line, and the whole line is the control. */}
+                    <button
+                      type="button"
+                      aria-expanded={listOpen}
+                      onClick={() => setListOpen((v) => !v)}
+                      className="group flex w-full cursor-pointer items-center gap-2.5 py-1.5 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:text-nb-ink"
+                    >
+                      <span className="h-px flex-1 bg-[color-mix(in_srgb,var(--color-nb-ink)_14%,transparent)] transition-colors group-hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_40%,transparent)]" aria-hidden />
+                      <span className="flex items-center gap-1">
+                        <FiChevronRight
+                          size={13}
+                          aria-hidden
+                          className={`shrink-0 transition-transform duration-150 ease-out ${listOpen ? "rotate-90" : ""}`}
+                        />
+                        {c.subtasks.list(card.subtasks.length)}
+                      </span>
+                      <span className="h-px flex-1 bg-[color-mix(in_srgb,var(--color-nb-ink)_14%,transparent)] transition-colors group-hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_40%,transparent)]" aria-hidden />
+                    </button>
+                  </>
+                )}
+                {(!mapDrawn || listOpen) && (
+                  <ul className="mt-1.5 flex flex-col gap-1.5">
+                    {card.subtasks.map((s) => (
                     <li key={s.id}>
                       <Link
                         href={`/${s.id}`}
@@ -1942,7 +1972,8 @@ export function CardPage({
                       </Link>
                     </li>
                   ))}
-                </ul>
+                  </ul>
+                )}
               </div>
             )}
 

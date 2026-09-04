@@ -118,6 +118,7 @@ const zh: CardCopy = {
     heading: "子任务",
     running: "运行中",
     waitingOutside: (ids) => `等待 ${ids}，它们在这个任务组之外`,
+    list: (n) => `${n} 张卡片`,
   },
   questions: {
     heading: "待澄清问题",

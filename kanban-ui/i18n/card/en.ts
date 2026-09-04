@@ -120,6 +120,7 @@ const en: CardCopy = {
     heading: "subtasks",
     running: "running",
     waitingOutside: (ids) => `waiting on ${ids}, outside this group`,
+    list: (n) => `${n} cards`,
   },
   questions: {
     heading: "open questions",

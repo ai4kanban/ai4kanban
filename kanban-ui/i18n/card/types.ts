@@ -141,6 +141,8 @@ export type CardCopy = {
     running: string;
     /** A chip in the build-order map that waits on a card outside its own group. */
     waitingOutside: (ids: string) => string;
+    /** The fold under the map that opens the rows: how many there are. */
+    list: (n: number) => string;
   };
   /** The block the card's open questions are read in — and answered in. */
   questions: {
