@@ -51,6 +51,11 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resiz
  *  without it doesn't hand the rail a fresh empty set on every render. */
 const EMPTY: Set<number> = new Set();
 
+/** Every panel scrolls inside itself, never as a whole. The library's panels are `overflow:
+ *  auto`, and a pane whose own scroller sits above something pinned — the chat's box, the
+ *  bell's foot — would otherwise let a scroll past the end carry that foot off the screen. */
+const PANE_CLIP = { overflow: "hidden" } as const;
+
 /** The one thing this window says on its own: a card link that leads nowhere. It sits over
  *  the top of the body, says the one sentence, and goes when it is dismissed — there is
  *  nothing to do about it here, and the checkout can come back. */
@@ -268,6 +273,7 @@ export function Window({
             minSize={RAIL_MIN}
             maxSize={RAIL_MAX}
             groupResizeBehavior="preserve-pixel-size"
+            style={PANE_CLIP}
           >
             <Rail
               rows={rows}
@@ -288,7 +294,7 @@ export function Window({
           <ResizablePanel
             id="body"
             className={`md:pl-1 ${beside ? "pr-1" : ""}`}
-            style={{ overflow: "hidden" }}
+            style={PANE_CLIP}
           >
             {/* The paper rounds the corner it turns away from the chrome on. With the chat
                 up there is chrome on the right too, so it rounds that corner as well — and
@@ -315,6 +321,7 @@ export function Window({
                 minSize={BELL_MIN}
                 maxSize={BELL_MAX}
                 groupResizeBehavior="preserve-pixel-size"
+                style={PANE_CLIP}
               >
                 <BellPane rail={bell} />
               </ResizablePanel>
@@ -329,6 +336,7 @@ export function Window({
                 minSize={CHAT_MIN}
                 maxSize={CHAT_MAX}
                 groupResizeBehavior="preserve-pixel-size"
+                style={PANE_CLIP}
               >
                 <ChatPane rail={chat} />
               </ResizablePanel>

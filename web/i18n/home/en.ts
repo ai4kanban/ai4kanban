@@ -25,35 +25,35 @@ const en: HomeCopy = {
   },
 
   loop: {
-    title: "Keep work moving",
-    lead: "Give it a goal or a rough idea. The agent reads your code and project memory, determines what comes next, clarifies requirements, breaks the work down, orders dependencies and priorities, and moves into execution.",
+    title: "Less managing. More shipping.",
+    lead: "Hand over the planning, follow-ups, and coordination. Keep your attention on what the product should become.",
     steps: [
       {
-        title: "Define tasks and dependencies",
-        body: "The agent breaks large goals into bounded cards, automatically deciding what can run in parallel and what must wait, so each task can be completed within its own context window.",
+        title: "Rough idea in. Detailed plan out.",
+        body: "Describe what you want to build. AI4Kanban reads your code and project memory, fills in the requirements, and breaks the work into tasks with a clear order. You get a plan your agents can act on.",
       },
       {
-        title: "Clarify requirements",
-        body: "The agent turns rough requirements into an actionable plan. It answers most questions from project memory and the codebase, leaving only taste, business direction, risk, and cost for human judgment.",
+        title: "Make a few choices before the build.",
+        body: "The questions that need your judgment come with options and a recommendation. Choose the direction before coding starts, while changes are still cheap.",
       },
       {
-        title: "Execute",
-        body: "Run ready tasks in parallel across multiple agents. Each delivery uses its own Git worktree to isolate changes, and conflicts trigger a dedicated resolution pass before landing.",
+        title: "Move more work forward at once.",
+        body: "Independent tasks run in parallel across your agents, so one task finishing is no longer the cue to start the next. AI4Kanban handles dependencies and coordinates the work.",
       },
       {
-        title: "Settle key decisions before implementation",
-        body: "Create your own Spec Skills or use the built-ins: a technology-selection skill compares technical options, while a UI-design skill gives you multiple working mockups to choose from.",
+        title: "Plan the way you think.",
+        body: "Want a technical comparison or a working UI mockup before committing to a direction? Use built-in skills or add your own, and let the agent work through requirements using your approach.",
       },
       {
-        title: "Request approval only when necessary",
-        body: "AI4Kanban keeps work moving in the background and reports back only for product decisions and delivery approval. Like a project manager, it keeps demands on your attention to a minimum.",
+        title: "Agents handle the details. You sign off.",
+        body: "Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and delivery approvals brought back to you in the app or Slack.",
       },
     ],
   },
 
   memory: {
-    title: "Learns as you build",
-    lead: "Conversations end. Product decisions stay. AI4Kanban saves your project goals and keeps a module-by-module record of shipped features, product decisions, reasons behind rejected ideas, and design lessons. It brings that context back when planning and clarifying new work.",
+    title: "Understands you better as you build",
+    lead: "Your preferences, decisions, and rejected ideas carry into the next plan. As project memory grows, your agents have more context to work from, and you have less to explain.",
     cards: [
       {
         title: "No need to repeat yourself",
@@ -79,8 +79,8 @@ const en: HomeCopy = {
   },
 
   iterate: {
-    title: "Drive continuous product iteration",
-    lead: "Turn external signals into requirements that keep the product — and each release — moving forward.",
+    title: "Turn feedback into product improvements",
+    lead: "User feedback, competitor research, and industry discussions can all inform what to build next. AI4Kanban turns those insights into tasks aligned with your product goals, ready for your agents to work on.",
     inputsLabel: "External inputs",
     inputs: [
       "User feedback",

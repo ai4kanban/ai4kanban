@@ -1,42 +1,58 @@
 # AI4Kanban — the AI project manager for coding agents
 
-> Ship without babysitting coding agents. AI4Kanban turns rough ideas into
-> build-ready work, runs it through your agents, and asks only for product
-> decisions.
+> Ship without babysitting coding agents. AI4Kanban turns rough ideas into build-ready work, runs it through your agents, and asks only for product decisions.
 
 - Download: https://ai4kanban.dev/download
 - View on GitHub: https://github.com/ai4kanban/ai4kanban
 
-## Coding got fast. Product decisions became the bottleneck.
+## Less managing. More shipping.
 
-Agents build clear requirements reliably. Vague ones turn into drift, rework, and a
-queue of long agent conversations nobody has time to read. AI4Kanban sits above your
-coding agents: it settles what to build before anything runs, and brings back only
-what a person has to decide.
+Hand over the planning, follow-ups, and coordination. Keep your attention on what the product should become.
 
-## From a rough idea to a landed change
+### Rough idea in. Detailed plan out.
 
-- **Start with a rough idea** — Describe the outcome in a sentence. AI4Kanban reads
-  your codebase, breaks the goal into bounded tasks, and orders them by dependency so
-  independent work can run in parallel.
-- **Approve only what needs you** — Routine details are answered from the code and
-  from project memory. Taste, business direction, risk, and cost come back as a short
-  question with a recommended answer. Every answer becomes project memory, so the next
-  plan asks less of you.
-- **Let the agents run** — Ready tasks run in the background, each in its own Git
-  worktree, and conflicts get a resolution pass before anything lands. You hear about
-  it when a delivery is waiting for approval.
+Describe what you want to build. AI4Kanban reads your code and project memory, fills in the requirements, and breaks the work into tasks with a clear order. You get a plan your agents can act on.
 
-## Learns your project, stays in your repository
+### Make a few choices before the build.
 
-Product decisions, rejected directions, and design lessons outlive the conversation
-that produced them, so autonomy grows and review shrinks as the project goes on.
+The questions that need your judgment come with options and a recommendation. Choose the direction before coding starts, while changes are still cheap.
 
-- **Apache-2.0** — Open source. Free to use, modify, and redistribute.
-- **Local-first** — The board and its memory are Markdown under `docs/kanban/`,
-  versioned in Git.
-- **Your coding agent** — Claude Code, Codex, Cursor, OpenCode, Kimi Code,
-  DeepSeek Harness, ZCode, and Grok Build.
+### Move more work forward at once.
+
+Independent tasks run in parallel across your agents, so one task finishing is no longer the cue to start the next. AI4Kanban handles dependencies and coordinates the work.
+
+### Plan the way you think.
+
+Want a technical comparison or a working UI mockup before committing to a direction? Use built-in skills or add your own, and let the agent work through requirements using your approach.
+
+### Agents handle the details. You sign off.
+
+Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and delivery approvals brought back to you in the app or Slack.
+
+## Understands you better as you build
+
+Your preferences, decisions, and rejected ideas carry into the next plan. As project memory grows, your agents have more context to work from, and you have less to explain.
+
+### No need to repeat yourself
+
+Established preferences and constraints carry straight into planning the next task.
+
+### Avoid the same dead ends
+
+Rejected directions and known design problems are not proposed again.
+
+### Pick up where you left off
+
+Before planning new work, it reads what has already shipped and checks the current code.
+
+## Turn feedback into product improvements
+
+User feedback, competitor research, and industry discussions can all inform what to build next. AI4Kanban turns those insights into tasks aligned with your product goals, ready for your agents to work on.
+
+User feedback, competitor research, industry reports, Reddit discussions, and your
+product roadmap feed tasks on the board. Ready tasks run through your coding agents,
+with project data stored in Markdown, to deliver product improvements and release
+iterations.
 
 ## Start with the desktop app
 

@@ -31,35 +31,35 @@ const es: HomeCopy = {
   },
 
   loop: {
-    title: "El trabajo sigue avanzando",
-    lead: "Dale un objetivo o una idea por definir. El agente lee tu código y la memoria del proyecto, determina qué viene después, aclara los requisitos, descompone el trabajo, ordena dependencias y prioridades, y pasa a la ejecución.",
+    title: "Menos seguimiento. Más entregas.",
+    lead: "Delega la planificación, el seguimiento y la coordinación. Centra tu atención en el producto que quieres crear.",
     steps: [
       {
-        title: "Definir tareas y dependencias",
-        body: "El agente divide los objetivos grandes en tarjetas bien delimitadas y decide automáticamente cuáles pueden avanzar en paralelo y cuáles deben esperar, para que cada tarea se complete dentro de su propio contexto.",
+        title: "De una idea vaga a un plan detallado.",
+        body: "Describe lo que quieres crear. AI4Kanban lee tu código y la memoria del proyecto, concreta los requisitos y organiza las tareas en el orden adecuado. Recibes un plan que tus agentes pueden ejecutar.",
       },
       {
-        title: "Aclarar los requisitos",
-        body: "El agente convierte requisitos imprecisos en un plan viable. Responde la mayoría de las preguntas a partir de la memoria del proyecto y el código, y deja al criterio humano solo el gusto, la dirección comercial, el riesgo y el coste.",
+        title: "Toma unas pocas decisiones antes de empezar.",
+        body: "Las preguntas que necesitan tu criterio llegan con opciones y una recomendación. Elige el rumbo antes de escribir código, cuando cambiar aún cuesta poco.",
       },
       {
-        title: "Ejecutar",
-        body: "Puedes coordinar varios agentes para ejecutar en paralelo las tareas preparadas. Cada entrega usa su propio Git worktree para aislar los cambios, y los conflictos activan una fase específica de resolución antes de integrar.",
+        title: "Haz avanzar más trabajo a la vez.",
+        body: "Las tareas independientes se ejecutan en paralelo con tus agentes, sin esperar a que termine una para empezar la siguiente. AI4Kanban gestiona las dependencias y coordina el trabajo.",
       },
       {
-        title: "Resolver las decisiones clave antes de implementar",
-        body: "Puedes crear tus propias Spec Skills o usar las incluidas: una skill de selección tecnológica compara las opciones técnicas y una skill de diseño de interfaz ofrece varios mockups funcionales entre los que elegir.",
+        title: "Analiza los requisitos a tu manera.",
+        body: "¿Quieres comparar opciones técnicas o probar un prototipo funcional antes de elegir un rumbo? Usa las skills incluidas o añade las tuyas para que el agente analice los requisitos con tu método.",
       },
       {
-        title: "Solicitar aprobación solo cuando sea necesario",
-        body: "AI4Kanban mantiene el trabajo en marcha en segundo plano y solo informa cuando hace falta una decisión de producto o aprobar una entrega. Como un jefe de proyecto, reduce al mínimo la atención que requiere de ti.",
+        title: "Los agentes resuelven los detalles. Tú apruebas.",
+        body: "La mayoría de los detalles se resuelven a partir del código y las decisiones anteriores. El trabajo avanza en segundo plano y recibes las decisiones de producto y las entregas pendientes de aprobación en la aplicación o en Slack.",
       },
     ],
   },
 
   memory: {
-    title: "Aprende a medida que construyes",
-    lead: "Las conversaciones terminan. Las decisiones de producto permanecen. AI4Kanban guarda los objetivos del proyecto y mantiene, módulo por módulo, un registro de las funciones entregadas, las decisiones de producto, los motivos por los que se descartaron ideas y las lecciones de diseño. Recupera ese contexto al planificar y aclarar trabajo nuevo.",
+    title: "Te conoce mejor con cada avance",
+    lead: "Tus preferencias, decisiones e ideas descartadas se incorporan al siguiente plan. A medida que crece la memoria del proyecto, tus agentes tienen más contexto para trabajar y tú tienes menos que explicar.",
     cards: [
       {
         title: "No hace falta repetir lo mismo",
@@ -85,8 +85,8 @@ const es: HomeCopy = {
   },
 
   iterate: {
-    title: "Impulsa la iteración continua del producto",
-    lead: "Convierte señales externas en requisitos que mantienen en marcha el producto y cada nueva versión.",
+    title: "Convierte los comentarios en mejoras del producto",
+    lead: "Los comentarios de usuarios, el análisis de la competencia y las conversaciones del sector ayudan a decidir qué construir a continuación. AI4Kanban convierte esa información en tareas alineadas con los objetivos de tu producto, listas para tus agentes.",
     inputsLabel: "Entradas externas",
     inputs: [
       "Comentarios de usuarios",

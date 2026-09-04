@@ -169,6 +169,18 @@ export function formatTokens(u: TokenUsage, c: RunsCopy["log"]): string {
   return c.tokens(n(u.input), n(u.cacheCreation), n(u.cacheRead), n(u.output));
 }
 
+// The same count where it is read in passing rather than studied: 845, 12.8k,
+// 3.3M. A turn spends most of its tokens re-reading the prompt cache at every
+// step, so the full number is long and its digits say nothing — the breakdown is
+// a hover away (formatTokens).
+export function shortTokens(total: number): string {
+  const scale = (v: number, unit: string) =>
+    `${(v < 100 ? v.toFixed(1).replace(/\.0$/, "") : Math.round(v).toString())}${unit}`;
+  if (total < 1000) return String(Math.round(total));
+  if (total < 1_000_000) return scale(total / 1000, "k");
+  return scale(total / 1_000_000, "M");
+}
+
 // A run that ended without finishing: it failed, or it was cut off when the UI
 // died mid-run. Both leave the work half-done and both can be picked up again,
 // so every screen that reports one asks this rather than testing the two states

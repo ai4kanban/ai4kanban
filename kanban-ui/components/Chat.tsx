@@ -44,10 +44,11 @@ import {
   FiX,
 } from "react-icons/fi";
 import type { ChatCopy } from "@/i18n/chat/types";
+import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
 import type { ChatMessage, ChatPick, ModelChange, TokenUsage } from "@/lib/types";
-import { formatCost, formatDuration, formatTokens } from "./agent-shared";
+import { formatCost, formatDuration, formatTokens, shortTokens } from "./agent-shared";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { AgentMark } from "./Configuration";
@@ -412,13 +413,14 @@ const Said = memo(
     onReword(text: string, force?: boolean): boolean;
   }) {
     const c = useCopy().chat;
+    const log = useCopy().runs.log;
     if (message.role === "you") {
       return (
         <div className="group ml-6 mt-3 first:mt-0">
           <div className="whitespace-pre-wrap rounded-[10px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]">
             {message.text}
           </div>
-          <div className={ACTIONS}>
+          <div className={`mt-0.5 ${ACTIONS}`}>
             <Reword text={message.text} onReword={onReword} />
           </div>
         </div>
@@ -429,6 +431,7 @@ const Said = memo(
     // sending the same words after it would be asking twice.
     const said = saidOf(message.text);
     const again = sent !== null && (message.stoppedWhy !== undefined || said === "");
+    const spent = spentOn(message, c, log);
     return (
       <div className="group">
         {message.text ? (
@@ -436,24 +439,34 @@ const Said = memo(
         ) : (
           <p className="text-[13px] italic text-nb-ink-soft">{c.nothingCameBack}</p>
         )}
-        <Cost usage={message.usage} costUsd={message.costUsd} />
         {message.stoppedWhy && <Stopped why={message.stoppedWhy} />}
-        {(said !== "" || again) && (
-          <div className={ACTIONS}>
-            {said !== "" && <CopyReply text={said} />}
-            {again && (
-              <button
-                type="button"
-                className={ACTION}
-                disabled={!canSend}
-                title={c.againHint}
-                aria-label={c.againHint}
-                onClick={() => onResend(sent)}
+        {(spent !== "" || said !== "" || again) && (
+          <div className="mt-1 flex items-center gap-1">
+            {/* What the turn cost, at rest; the buttons come up with the message. */}
+            {spent !== "" && (
+              <span
+                className="truncate text-[11px] tabular-nums text-nb-ink-soft"
+                title={message.usage ? formatTokens(message.usage, log) : undefined}
               >
-                <FiRefreshCw size={11} aria-hidden />
-                {c.again}
-              </button>
+                {spent}
+              </span>
             )}
+            <span className={ACTIONS}>
+              {said !== "" && <CopyReply text={said} />}
+              {again && (
+                <button
+                  type="button"
+                  className={ACTION}
+                  disabled={!canSend}
+                  title={c.againHint}
+                  aria-label={c.againHint}
+                  onClick={() => onResend(sent)}
+                >
+                  <FiRefreshCw size={11} aria-hidden />
+                  {c.again}
+                </button>
+              )}
+            </span>
           </div>
         )}
       </div>
@@ -477,13 +490,14 @@ const Said = memo(
  *  as a conversation rather than a wall of buttons; hovering the message brings it up, and
  *  so does tabbing into it (#269). */
 const ACTIONS =
-  "mt-0.5 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100";
+  "flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100";
 
 const ACTION =
   "inline-flex cursor-pointer items-center gap-1 rounded-[6px] px-1.5 py-0.5 text-[11px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] hover:text-nb-ink disabled:cursor-default disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-nb-ink-soft";
 
-/** The reply's own words on the clipboard. Its name never changes, so a reader hears
- *  "copied" once — from the live region — rather than twice. */
+/** The reply's own words on the clipboard — the icon alone, since the row it shares with the
+ *  turn's tokens has no room for a word everyone already knows. Its name never changes, so a
+ *  reader hears "copied" once, from the live region, rather than twice. */
 function CopyReply({ text }: { text: string }) {
   const c = useCopy();
   const { copied, copy } = useCopyText();
@@ -491,13 +505,12 @@ function CopyReply({ text }: { text: string }) {
     <>
       <button
         type="button"
-        className={ACTION}
+        className={`${ACTION} px-1`}
         title={c.chat.copyReply}
         aria-label={c.chat.copyReply}
         onClick={() => copy(text)}
       >
-        {copied ? <FiCheck size={11} aria-hidden /> : <FiCopy size={11} aria-hidden />}
-        {copied ? c.shared.copied : c.shared.copy}
+        {copied ? <FiCheck size={12} aria-hidden /> : <FiCopy size={12} aria-hidden />}
       </button>
       <Copied on={copied} />
     </>
@@ -552,18 +565,25 @@ function sentBefore(messages: ChatMessage[], at: number): string | null {
   return null;
 }
 
-/** The reply as it is being written. The dot is the board's own mark for an agent at work,
- *  and the fold above counts the seconds up from the moment the message was sent. */
+/** The reply as it arrives. One live line at a time, and it says what the agent is actually
+ *  doing: the step it is on, drawn by the fold below, or — before the first step and while
+ *  the answer itself comes in — this line. "Writing" over a run of tool calls said the one
+ *  thing that wasn't happening. */
 function Writing({ text, since }: { text: string; since: number | null }) {
   const c = useCopy().chat;
   const ms = useElapsed(since);
+  // What has come back so far, which is what says where the turn is: nothing, a step, words.
+  const blocks = blocksOf(text);
+  const onStep = blocks.at(-1)?.kind === "looked";
   return (
     <div>
-      {text ? <Reply text={text} ms={ms} live /> : <p className="text-[13px] text-nb-ink-soft">{c.thinking}</p>}
-      <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
-        <span className={PULSE_DOT} aria-hidden />
-        {c.writing}
-      </span>
+      {blocks.length > 0 && <Reply text={text} ms={ms} live onStep={onStep} />}
+      {!onStep && (
+        <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
+          <span className={PULSE_DOT} aria-hidden />
+          {blocks.length > 0 ? c.writing : c.thinking}
+        </span>
+      )}
     </div>
   );
 }
@@ -574,7 +594,20 @@ function Writing({ text, since }: { text: string; since: number | null }) {
  *
  *  One fold for the whole reply, not one per run of steps: the time on it is the turn's, and
  *  a fold per run would have to name a share of it that nothing measures. */
-function Reply({ text, copyCode, ms, live }: { text: string; copyCode?: boolean; ms?: number; live?: boolean }) {
+function Reply({
+  text,
+  copyCode,
+  ms,
+  live,
+  onStep,
+}: {
+  text: string;
+  copyCode?: boolean;
+  ms?: number;
+  live?: boolean;
+  /** The agent is on a step right now, so the fold pulses the one it named last. */
+  onStep?: boolean;
+}) {
   const blocks = blocksOf(text);
   let last = -1;
   blocks.forEach((block, i) => {
@@ -584,7 +617,7 @@ function Reply({ text, copyCode, ms, live }: { text: string; copyCode?: boolean;
   const answer = blocks.slice(last + 1);
   return (
     <div className="flex flex-col gap-2">
-      {work.length > 0 && <Work blocks={work} ms={ms} live={live} />}
+      {work.length > 0 && <Work blocks={work} ms={ms} live={live} onStep={onStep} />}
       {answer.map((block, i) =>
         block.kind === "said" ? (
           <Markdown key={i} body={block.text} className="nb-sessionlog-md" copyCode={copyCode} />
@@ -597,12 +630,24 @@ function Reply({ text, copyCode, ms, live }: { text: string; copyCode?: boolean;
 /** The fold over what the agent did before it answered: "Worked for 1m 5s" shut, and the
  *  steps and its own notes in order when opened. While the reply is still coming the line
  *  counts up and the newest step stays under it, so the rail never goes quiet mid-answer. */
-function Work({ blocks, ms, live }: { blocks: Block[]; ms?: number; live?: boolean }) {
+function Work({
+  blocks,
+  ms,
+  live,
+  onStep,
+}: {
+  blocks: Block[];
+  ms?: number;
+  live?: boolean;
+  onStep?: boolean;
+}) {
   const c = useCopy().chat;
   const log = useCopy().runs.log;
   const [open, setOpen] = useState(false);
   const time = ms === undefined ? undefined : formatDuration(ms, log);
-  const doing = live ? lastStep(blocks) : undefined;
+  // Only while that step is what the agent is on. Once the answer starts coming the step is
+  // over, and a pulse under it would be the app inventing work.
+  const doing = onStep ? lastStep(blocks) : undefined;
   return (
     <div>
       <button
@@ -662,25 +707,17 @@ function lastStep(blocks: Block[]): string | undefined {
   return undefined;
 }
 
-/** What the reply cost, under it: the tokens the turn consumed and the price the connector
- *  put on them, in the run log's own words. Only what was actually reported — a connector
- *  that counts neither leaves the line out rather than showing a zero. The time is not here:
- *  the fold above already carries it. */
-function Cost({ usage, costUsd }: { usage?: TokenUsage; costUsd?: number }) {
-  const c = useCopy().chat;
-  const log = useCopy().runs.log;
+/** What the reply cost, in the row under it: the tokens the turn consumed, short-formed, and
+ *  the price the connector put on them. A turn spends most of them re-reading the prompt
+ *  cache at every step, so the count runs to millions and only its scale is worth reading —
+ *  the four numbers behind it are on the hover. Only what was actually reported: a connector
+ *  that counts neither says nothing rather than showing a zero. The time is not here — the
+ *  fold above already carries it. */
+function spentOn(message: ChatMessage, c: ChatCopy, log: RunsCopy["log"]): string {
   const said: string[] = [];
-  if (usage) said.push(c.tokens(totalTokens(usage).toLocaleString("en-US")));
-  if (costUsd !== undefined) said.push(formatCost(costUsd, log));
-  if (said.length === 0) return null;
-  return (
-    <p
-      className="mt-1 truncate text-[11px] tabular-nums text-nb-ink-soft"
-      title={usage ? formatTokens(usage, log) : undefined}
-    >
-      {said.join(" · ")}
-    </p>
-  );
+  if (message.usage) said.push(c.tokens(shortTokens(totalTokens(message.usage))));
+  if (message.costUsd !== undefined) said.push(formatCost(message.costUsd, log));
+  return said.join(" · ");
 }
 
 const totalTokens = (u: TokenUsage): number => u.input + u.cacheCreation + u.cacheRead + u.output;
@@ -914,9 +951,14 @@ function Pick({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answe
   const canGoBack = pick.ownModel || (pick.ownAgent && pick.agents.some((a) => a.name === pick.boardHarness));
   return (
     <>
-      <AgentPick rail={rail} pick={pick} label={running?.label ?? pick.harness} answering={answering} />
-      {/* No box where the agent has no model setting to fill in. */}
-      {running?.takesModel && <ModelPick rail={rail} pick={pick} agentModel={running.model} />}
+      {/* One pill, two segments and no seam: they are the same setting read left to right. */}
+      {/* Wide enough for a model id and no wider: the row's room belongs to nothing else,
+          and a box stretched across it reads as the thing you are meant to fill in. */}
+      <span className="flex h-[28px] min-w-0 items-center overflow-hidden rounded-[8px]">
+        <AgentPick rail={rail} pick={pick} label={running?.label ?? pick.harness} answering={answering} />
+        {/* No box where the agent has no model setting to fill in. */}
+        {running?.takesModel && <ModelPick rail={rail} pick={pick} agentModel={running.model} />}
+      </span>
       {canGoBack && <ToBoard rail={rail} pick={pick} answering={answering} />}
     </>
   );
@@ -952,7 +994,8 @@ function AgentPick({
           type="button"
           title={c.agentPickHint(label)}
           aria-label={c.agentPick}
-          className={`inline-flex h-[28px] shrink-0 cursor-pointer items-center gap-1 rounded-[8px] pl-1.5 pr-1 ${CHIP}`}
+          className="inline-flex h-full shrink-0 cursor-pointer items-center gap-1 pl-2 pr-1.5 hover:brightness-[0.97]"
+          style={{ background: AGENT_FILL }}
         >
           <AgentMark src={pick.agents.find((a) => a.name === pick.harness)?.icon ?? ""} size={16} name={label} />
           <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
@@ -1027,7 +1070,10 @@ function ModelPick({ rail, pick, agentModel }: { rail: ChatRail; pick: ChatPick;
   };
 
   return (
-    <span className={`inline-flex h-[28px] min-w-0 flex-1 items-center rounded-[8px] pl-2 pr-0.5 ${CHIP}`}>
+    <span
+      className="inline-flex h-full min-w-0 items-center pl-2 pr-0.5"
+      style={{ background: MODEL_FILL }}
+    >
       <input
         value={typed}
         onChange={(e) => setTyped(e.target.value)}
@@ -1046,7 +1092,8 @@ function ModelPick({ rail, pick, agentModel }: { rail: ChatRail; pick: ChatPick;
         placeholder={c.modelDefault}
         aria-label={c.modelPick}
         title={c.modelPick}
-        className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-nb-ink placeholder:font-sans placeholder:text-nb-ink-soft/70 focus:outline-none"
+        // A model id's own width, and it gives way before the row does.
+        className="w-[124px] min-w-0 shrink bg-transparent font-mono text-[12px] text-nb-ink placeholder:font-sans placeholder:text-nb-ink-soft/70 focus:outline-none"
       />
       {pick.recent.length > 0 && (
         <DropdownMenu>
@@ -1139,9 +1186,10 @@ function ToBoard({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; an
   );
 }
 
-/** The frame the two picks wear inside the box — a hairline ring, so they read as parts of
- *  the box rather than buttons stuck on it. */
-const CHIP = "shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_22%,transparent)]";
+/** What tells the two segments apart, now that no rule does: a fill each, both a shade off
+ *  the box's paper. The agent keeps the ember family its mark is already in. */
+const AGENT_FILL = "var(--color-nb-accent-wash)";
+const MODEL_FILL = "var(--color-nb-wash)";
 
 /** Grow the box with what is typed, and scroll past the ceiling rather than pushing the
  *  conversation off the screen. */
