@@ -150,18 +150,21 @@ export function CloudPage() {
             <div className={`${panelBare} p-6`}>
               <h3 className="text-lg font-bold">Stays on your machine</h3>
               <ul className="mt-4 space-y-3 text-[0.95rem] leading-relaxed">
-                <Point lead="The board">
-                  every card is a Markdown file in your own repository.
-                </Point>
                 <Point lead="The repository">
                   Cloud is never given access to it.
                 </Point>
                 <Point lead="The agent, and the work it does">
                   every run happens here.
                 </Point>
+                <Point lead="A Local board">
+                  every card is a Markdown file in your own repository, and it is
+                  what a new install starts on.
+                </Point>
               </ul>
               <p className="mt-5 text-sm text-muted">
-                Cloud stores no board, runs no agent, and reads no repository.
+                Cloud runs no agent and reads no repository. It holds a board only
+                where you asked it to — a Cloud board, which you can export as
+                Markdown or delete outright, whenever you like.
               </p>
             </div>
 
@@ -196,8 +199,8 @@ export function CloudPage() {
             />
             <ul className="mt-6 max-w-2xl space-y-3 text-[0.95rem] leading-relaxed">
               <Point lead="No shared or team board">
-                Cloud relays one account&apos;s events; it is not a board other
-                people open.
+                a Cloud board is one account&apos;s. It opens on every machine you
+                sign in from, and there is nobody else to let into it.
               </Point>
               <Point lead="No members and no roles" />
               <Point lead="No board in the browser">

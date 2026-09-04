@@ -200,26 +200,10 @@ export async function exportBoard(
     return { ok: false, error: `${kanban} already holds a board — export into an empty folder` }
   }
 
-  const read = await readExport(workspaceId)
+  const read = await readWorkspacePayload(workspaceId)
   if (!read.ok) return { ok: false, error: read.error }
 
-  const payload: BoardPayload = {
-    fingerprint: '',
-    nextCardId: read.value.workspace.nextCardId,
-    cards: read.value.cards.flatMap((card) =>
-      card.data?.path && card.data.meta
-        ? [{ id: card.id, archived: card.archived, path: card.data.path, meta: card.data.meta, body: card.data.body ?? '' }]
-        : [],
-    ),
-    documents: read.value.documents,
-    // The trail is Cloud's own record of what happened there. `record.csv` travels as a
-    // document and comes back exactly as it was, so nothing is rebuilt from the trail.
-    events: [],
-    leftBehind: [],
-    deliveries: read.value.deliveries.map((d) => ({ ...d, deliveryId: deliveryIdOf(d) })),
-  }
-
-  const written = unpackBoard(payload, dir)
+  const written = unpackBoard(read.payload, dir)
   say(`wrote ${written.cards} cards, ${written.documents} documents and ${written.deliveries} deliveries`)
 
   // The trail comes out BESIDE the board rather than into it. It is the workspace's own
@@ -240,6 +224,34 @@ export async function exportBoard(
       events: trail.length,
       deliveries: written.deliveries,
       dir: kanban,
+    },
+  }
+}
+
+/** A whole workspace read back as a board on disk. Shared by the export above and by
+ *  leaving Cloud (#317), which writes the same payload into the checkout it is leaving from.
+ *
+ *  The trail is not in it: that is Cloud's own record of what happened there, and `record.csv`
+ *  travels as a document and comes back exactly as it was. */
+export async function readWorkspacePayload(
+  workspaceId: string,
+): Promise<{ ok: true; payload: BoardPayload } | { ok: false; error: string }> {
+  const read = await readExport(workspaceId)
+  if (!read.ok) return { ok: false, error: read.error }
+  return {
+    ok: true,
+    payload: {
+      fingerprint: '',
+      nextCardId: read.value.workspace.nextCardId,
+      cards: read.value.cards.flatMap((card) =>
+        card.data?.path && card.data.meta
+          ? [{ id: card.id, archived: card.archived, path: card.data.path, meta: card.data.meta, body: card.data.body ?? '' }]
+          : [],
+      ),
+      documents: read.value.documents,
+      events: [],
+      leftBehind: [],
+      deliveries: read.value.deliveries.map((d) => ({ ...d, deliveryId: deliveryIdOf(d) })),
     },
   }
 }

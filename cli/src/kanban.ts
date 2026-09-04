@@ -341,6 +341,30 @@ export type { BoardState, OpenBoard, OpenRefusal } from './lib/board'
 export { readPointer as readBoardPointer, writePointer as writeBoardPointer } from './lib/cloud/pointer'
 export type { BoardPointer } from './lib/cloud/pointer'
 
+// A workspace's own life, as its owner runs it (#317): making one, renaming it, deleting it,
+// and the machines registered to it. Called by onboarding in the desktop app and by
+// Configuration → Workspace; nothing in a run reaches any of it.
+export {
+  createCloudWorkspace,
+  deleteCloudWorkspace,
+  readCloudWorkspace,
+  readCloudWorkspaces,
+  readWorkspaceNodes,
+  removeCloudNode,
+  renameCloudNode,
+  renameCloudWorkspace,
+} from './lib/cloud/workspace-life'
+export type { CloudNode, CloudWorkspace, WorkspaceResult } from './lib/cloud/workspace-life'
+
+// Taking a checkout to Cloud and bringing it back (#317), and the one commit each move
+// offers. The moves leave the repository dirty on purpose: the commit is a change the user
+// reads first, and declining it leaves a checkout that still works.
+export { abandonCloud, goCloud, leaveCloud, readFolder } from './lib/cloud/going'
+export type { FolderState, GoCloudRequest, GoneCloud, LeftCloud } from './lib/cloud/going'
+export { commitCloudChange, readCloudChange } from './lib/cloud/checkout'
+export type { CloudChange, CloudChangeKind } from './lib/cloud/checkout'
+export { exportBoard as exportCloudBoard } from './lib/cloud/workspace-board'
+
 const SELF = fileURLToPath(import.meta.url)
 
 // True when this file IS the program, rather than something another program imported.

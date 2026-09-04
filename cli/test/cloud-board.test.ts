@@ -501,7 +501,10 @@ describe('a workspace this machine may not read', () => {
     assert.match(opened.ok === false ? opened.error : '', /Configuration dialog/)
   })
 
-  it('says the workspace is not this account’s rather than reporting a broken board', async () => {
+  // Cloud answers a deleted workspace and one that was never yours with the same code, on
+  // purpose, so nothing leaks whether a workspace ever existed (#317). One sentence has to
+  // be true of both, and it has to name the two ways out.
+  it('says the board is no longer this account’s, and names the two ways out', async () => {
     worker((call) =>
       call.path.endsWith('/snapshot')
         ? refused(403, { code: 'not_yours', message: 'That belongs to another account.' })
@@ -511,11 +514,15 @@ describe('a workspace this machine may not read', () => {
     const opened = await openBoard(root)
     assert.equal(opened.ok, false)
     assert.equal(opened.ok === false && opened.reason, 'not-yours')
-    assert.match(opened.ok === false ? opened.error : '', /not this account/)
+    const said = opened.ok === false ? opened.error : ''
+    assert.match(said, /no longer this account’s/)
+    assert.match(said, /deleted, or it was never yours/)
+    assert.match(said, /Sign in as the account that owns it/)
+    assert.match(said, /leave Cloud/)
 
     // And the board installed behind it answers with that, rather than with the markdown
     // left in the checkout.
-    await assert.rejects(() => board().readBoard(), /not this account/)
+    await assert.rejects(() => board().readBoard(), /no longer this account’s/)
   })
 
   // A refusal is never this process's final answer. The remedy every one of them names is

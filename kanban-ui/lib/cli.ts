@@ -91,6 +91,33 @@ export interface WriteOptions {
   expect?: string;
 }
 
+/** What the workspace moves answer with: the thing, or the service's own sentence (#317).
+ *  `stranded` is Cloud saying the workspace is not this account's — deleted, or never
+ *  theirs — as against one it simply could not reach. */
+export type WorkspaceCall<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: string; stranded?: boolean };
+
+/** One machine registered to the workspace, as the owner controls list it. */
+export interface WorkspaceNodeWire {
+  id: string;
+  name: string;
+  machineName: string;
+  live: boolean;
+  leaseExpiresAt: string | null;
+}
+
+/** What the one offered commit would carry — the board files entering or leaving git, the
+ *  pointer, and the `docs/kanban/` block in the root `.gitignore` (#317). */
+export interface CloudChange {
+  kind: "go" | "leave";
+  git: boolean;
+  cards: number;
+  pointer: "add" | "remove" | "none";
+  ignore: boolean;
+  clean: boolean;
+}
+
 /** Which board this checkout opened, and why it wouldn't (#316). */
 export type OpenBoard =
   | { ok: true; kind: "local" }
@@ -379,6 +406,27 @@ export interface BoardRules {
   // that sign in to Cloud but predate the invitation loop, and the pane offers nothing rather
   // than a button nothing can answer.
   requestCloudInvite?(): Promise<CloudMove>;
+
+  // the workspace a Cloud board lives in, as its owner runs it (#317). Optional like every
+  // Cloud move above; the pane is only ever drawn on a Cloud board, and a project running
+  // older rules has none.
+  readBoardPointer?(root: string): { workspace: string; name?: string } | null;
+  readCloudWorkspace?(id: string): Promise<WorkspaceCall<{ id: string; name: string }>>;
+  renameCloudWorkspace?(id: string, name: string): Promise<WorkspaceCall<{ id: string; name: string }>>;
+  deleteCloudWorkspace?(id: string): Promise<WorkspaceCall<{ name: string }>>;
+  readWorkspaceNodes?(id: string): Promise<WorkspaceCall<WorkspaceNodeWire[]>>;
+  renameCloudNode?(id: string, nodeId: string, name: string): Promise<WorkspaceCall<WorkspaceNodeWire>>;
+  removeCloudNode?(id: string, nodeId: string): Promise<WorkspaceCall<true>>;
+
+  // going Cloud and coming back (#317) — and the one commit each move offers, which is a
+  // change the user reads before it lands.
+  readCloudChange?(root: string, kind: "go" | "leave"): CloudChange;
+  commitCloudChange?(root: string, kind: "go" | "leave"): { ok: boolean; error?: string };
+  leaveCloud?(root: string, id: string): Promise<
+    { ok: true; value: { cards: number; change: CloudChange } } | { ok: false; error: string }
+  >;
+  abandonCloud?(root: string): { cards: number; change: CloudChange };
+  exportCloudBoard?(id: string, dir: string): Promise<{ ok: boolean; error?: string }>;
 
   // the Cloud notification center (#319) — the events this machine's boards raise, and the
   // bell that carries them. A board turns itself on inside the rules as soon as this machine

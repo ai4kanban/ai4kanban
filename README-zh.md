@@ -43,6 +43,24 @@ Agent 执行，只在需要产品决策时找你。
   版本。AI4Kanban 支持 Claude Code、Codex、Cursor、OpenCode、Kimi Code、DeepSeek Harness、
   ZCode 和 Grok Build。
 
+## 本地看板与 Cloud 看板
+
+新安装默认从**本地看板**开始：卡片、记忆、发布和配置都是 `docs/kanban/` 下的 Markdown 文件，
+由 Git 管理版本，任何内容都不会离开这台机器。启动页把它放在最显眼的位置——**新建本地看板**和
+**打开本地看板**。
+
+**Cloud 看板**是同一个看板，只是保存在我们托管的工作区里，因此你在任何一台登录过的机器上打开
+的都是它。它目前是邀请制预览，与本地入口并列展示，且不会被预先选中。Cloud 检出目录同样是一个
+项目文件夹：它提交 `.ai4kanban.json` 指明工作区，让每一次 clone 都打开同一个看板，并在
+`docs/kanban/` 保留一份被 git 忽略的副本，供看板自身的规则运行。Agent 仍然在你的机器上、在你
+的仓库里运行；Cloud 既不会收到代码，也不会运行 Agent。
+
+两者之间的迁移，每个方向都是一次由你审阅的提交，而且都由你自己发起。迁到 Cloud 会把看板文件
+移出 Git、新增指针文件，并忽略 `docs/kanban/`。离开 Cloud 会把看板写回 `docs/kanban/`、删除
+指针，并取消对该目录的忽略。你随时可以把 Cloud 看板导出成一个独立的 Markdown 看板，也可以直接
+删除整个工作区——两者都在**配置 → 工作区**中。详见
+[本地看板与 Cloud 看板](https://ai4kanban.dev/docs/local-and-cloud-boards)。
+
 ## 实际效果
 
 从一个模糊目标到一次落地提交，这就是完整的一轮。点击任意截图查看大图。
@@ -111,6 +129,7 @@ Agent 执行，只在需要产品决策时找你。
 - [日常工作流](https://ai4kanban.dev/docs/daily-loop)
 - [如何写好项目目标](https://ai4kanban.dev/docs/what-makes-a-good-goal)
 - [各个编码 Agent 的能力差异](https://ai4kanban.dev/docs/connectors)
+- [本地看板与 Cloud 看板](https://ai4kanban.dev/docs/local-and-cloud-boards)
 - 运行 `akb help` 查看内置 CLI 的命令说明。
 - 在 [`docs/kanban/`](docs/kanban/) 中查看本仓库实际使用的看板。
 

@@ -50,6 +50,26 @@ delivered features, and design lessons — so the next plan asks less of you.
   `docs/kanban/`, versioned in Git. AI4Kanban supports Claude Code, Codex, Cursor,
   OpenCode, Kimi Code, DeepSeek Harness, ZCode, and Grok Build.
 
+## Local boards and Cloud boards
+
+A new install starts on a **Local board**: the cards, memory, releases, and configuration are
+Markdown under `docs/kanban/`, versioned in Git, and nothing about the board leaves the
+machine. The launcher leads with it — **Create Local board** and **Open Local board**.
+
+A **Cloud board** is the same board held in a hosted workspace, so it opens on every machine
+you sign in from. It is an invite-only preview, offered beside the Local moves and never
+preselected. A Cloud checkout still has a project folder: it commits `.ai4kanban.json`, which
+names the workspace so every clone opens the same board, and keeps a git-ignored copy in
+`docs/kanban/` for the board's own rules to run over. The agent still runs on your machine,
+over your repository; Cloud receives no code and runs no agent.
+
+Moving between the two is one reviewed commit each way, and both directions are yours to
+make. Going to Cloud takes the board files out of Git, adds the pointer, and ignores
+`docs/kanban/`. Leaving Cloud writes the board back into `docs/kanban/`, removes the pointer,
+and un-ignores the folder. You can export a Cloud board to a standalone Markdown board at any
+time, and delete the workspace outright — both under **Configuration → Workspace**. See
+[Local and Cloud boards](https://ai4kanban.dev/docs/local-and-cloud-boards).
+
 ## See it work
 
 One planning loop, from a rough goal to a landed commit. Click any shot for the full-size
@@ -124,6 +144,7 @@ criteria.
 - [Daily workflow](https://ai4kanban.dev/docs/daily-loop)
 - [Writing a useful project goal](https://ai4kanban.dev/docs/what-makes-a-good-goal)
 - [What each coding agent can and can't do](https://ai4kanban.dev/docs/connectors)
+- [Local and Cloud boards](https://ai4kanban.dev/docs/local-and-cloud-boards)
 - Run `akb help` for the bundled CLI reference.
 - Explore this repository's own board in [`docs/kanban/`](docs/kanban/).
 

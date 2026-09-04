@@ -1,0 +1,88 @@
+---
+title: "Local and Cloud boards"
+title_tag: "AI4Kanban — Local and Cloud boards, and moving between them"
+description: "A Local board is Markdown in your repository. A Cloud board lives in a workspace we host and opens on every machine you sign in from. What each one is, and what moving between them costs."
+lead: "Two boards, one app. A Local board is Markdown in your repository; a Cloud board lives in a workspace we host. Onboarding leads with Local, and Cloud is a choice you take deliberately."
+last_updated: "September 4, 2026"
+nav_label: "Local and Cloud"
+icon: "layers"
+---
+
+Every board is authoritative in exactly one place, and that place is what tells the two
+kinds apart.
+
+## A Local board
+
+The cards, the memory files, the releases and the board's configuration are Markdown under
+`docs/kanban/` in your own repository. Git carries them, you read them, your coding agent
+reads them, and nothing about the board leaves the machine.
+
+This is what a new install starts on. **Create Local board** on the launcher picks a project
+folder and puts a board in it; **Open Local board** picks a folder that already has one. Both
+are the same folder picker under different intent, and a mismatch falls through to what the
+folder actually holds — Open on a folder with no board offers to make one, and Create on a
+folder that has one opens it. Nothing overwrites a board.
+
+## A Cloud board
+
+The cards, the memory, the releases and the whole history live in a **workspace** we host, so
+the board opens on every machine you sign in from. It is an invite-only preview in this
+release: [what Cloud is](/cloud), and the [Privacy Policy](/privacy) and
+[Terms of Service](/terms).
+
+**A Cloud board is still a folder on this machine.** The checkout carries two things:
+
+- **`.ai4kanban.json`** at the repository root, naming the workspace. It is committed, so
+  every clone of the repository opens the same Cloud board. It carries no secret — a
+  workspace id means nothing without the sign-in your machine holds.
+- **A git-ignored copy in `docs/kanban/`.** The board's own rules run over that copy, and it
+  is rewritten from the workspace on every read. It is a copy, never the record.
+
+Cloud decides where the board is authoritative. It does not decide whether there is a project
+folder — the agent still runs here, over your repository, exactly as it does on a Local board.
+
+## Going to Cloud
+
+Take **Create Cloud board** or **Open Cloud board** on the launcher. It walks through the
+GitHub sign-in, the workspace, the folder on this machine, and — where the folder already
+holds a board — importing its cards into the workspace.
+
+Once the workspace is yours, the repository has three changes in it: the board files stop
+being tracked, `.ai4kanban.json` is added, and `docs/kanban/` joins the root `.gitignore`.
+The app offers those as **one commit**, staged by path, so nothing else in your working tree
+goes with it. Decline it and the checkout still works — `git status` is simply full of the
+change, and the offer comes back under **Configuration → Workspace** until you take it.
+
+Nothing is lost either way: the cards are in git history whichever way you answer, and what
+the offer decides is whether git records the move.
+
+A folder with **no git repository** takes the same path. The workspace is made, the board
+opens and the pointer is written; the offer says there is nothing to commit to yet.
+
+## Running the workspace
+
+**Configuration → Workspace**, on a Cloud board:
+
+- **Rename it**, and see the **execution nodes** — the machines allowed to run this board's
+  work. Rename one, or take one off.
+- **Export to a folder.** The whole board as Markdown, the archive included, into a folder
+  you choose; that folder opens as a Local board. The preview keeps no backups, so an export
+  you have made is the only copy anybody can restore from.
+- **Leave Cloud.** The board is written back into `docs/kanban/`, the pointer comes off, and
+  the `docs/kanban/` block leaves the root `.gitignore` — again as one commit you read first,
+  so the board you get back is one git tracks. The workspace stays where it is.
+- **Delete the workspace.** Everything in it goes, for every machine that opens it, and this
+  checkout stops pointing at it. There is no grace window and no backup — export first.
+
+## When a checkout cannot read its workspace
+
+A workspace that was deleted and one that was never your account's meet the same refusal, on
+purpose: nothing leaks whether a workspace ever existed. The board says so in one sentence and
+names the two ways out — sign in as the account that owns it, or leave Cloud and take the
+markdown that is in the folder.
+
+## What Cloud never gets
+
+Cloud manages board coordination and nothing else. It never receives your repository, never
+runs an agent, and never reads a card the board has not published. A workspace holds this
+board — its cards, memory, releases and history — and nothing around it.

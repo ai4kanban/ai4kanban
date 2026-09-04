@@ -54,6 +54,20 @@ import {
   startLarkConnect,
   startSlackConnect,
 } from "@/lib/cloud";
+import {
+  commitCloudChange,
+  deleteWorkspace,
+  exportWorkspace,
+  leaveWorkspace,
+  removeWorkspaceNode,
+  renameWorkspace,
+  renameWorkspaceNode,
+  workspaceId,
+  workspaceView,
+  type WorkspaceExit,
+  type WorkspaceMove,
+  type WorkspaceView,
+} from "@/lib/workspace";
 import { machineCopy, setMachineLanguage } from "@/lib/language";
 import {
   addRuntime,
@@ -1246,6 +1260,98 @@ export async function requestCloudInviteAction(): Promise<CloudMove> {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
+
+// --- the workspace a Cloud board lives in (#317) -----------------------------
+// Configuration → Workspace: the board's name, the machines allowed to run its work, the
+// export, leaving Cloud and the deletion. Asked when the pane opens and after every press in
+// it, never on the board's poll — every one of these reaches the service.
+
+/** Whether this checkout points at a workspace, so the dialog knows whether to offer the
+ *  Workspace pane at all. The pointer alone, and no network: a Local board has no workspace
+ *  to run, and a Cloud board whose workspace this machine cannot read still needs the pane
+ *  — leaving Cloud is one of the two ways out of a stranded checkout. */
+export async function hasWorkspaceAction(): Promise<boolean> {
+  try {
+    return (await workspaceId()) !== "";
+  } catch {
+    return false;
+  }
+}
+
+export async function workspaceViewAction(): Promise<WorkspaceView> {
+  try {
+    return await workspaceView();
+  } catch (e) {
+    return { workspaceId: "", name: "", nodes: [], change: null, error: failed(e), stranded: false };
+  }
+}
+
+export async function renameWorkspaceAction(name: string): Promise<WorkspaceMove> {
+  if (typeof name !== "string" || !name.trim()) return { ok: false, error: "Name it something." };
+  try {
+    return await renameWorkspace(name.trim());
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+export async function renameWorkspaceNodeAction(nodeId: string, name: string): Promise<WorkspaceMove> {
+  if (!nodeId || typeof name !== "string" || !name.trim()) return { ok: false, error: "Name it something." };
+  try {
+    return await renameWorkspaceNode(nodeId, name.trim());
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+export async function removeWorkspaceNodeAction(nodeId: string): Promise<WorkspaceMove> {
+  if (!nodeId) return { ok: false, error: "No machine was named." };
+  try {
+    return await removeWorkspaceNode(nodeId);
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+export async function exportWorkspaceAction(dir: string): Promise<WorkspaceMove> {
+  if (typeof dir !== "string" || !dir) return { ok: false, error: "No folder was named." };
+  try {
+    return await exportWorkspace(dir);
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+/** `force` is a checkout whose workspace this machine cannot read — deleted, or another
+ *  account's. There is nothing to write back, so leaving is only taking the pointer off. */
+export async function leaveWorkspaceAction(force = false): Promise<WorkspaceExit> {
+  try {
+    return await leaveWorkspace(force === true);
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+export async function deleteWorkspaceAction(): Promise<WorkspaceExit> {
+  try {
+    return await deleteWorkspace();
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+/** Take the offered commit — the board files entering or leaving git, the pointer and the
+ *  `.gitignore` block, and nothing else the working tree holds. */
+export async function commitCloudChangeAction(kind: "go" | "leave"): Promise<WorkspaceMove> {
+  if (kind !== "go" && kind !== "leave") return { ok: false, error: "No change was named." };
+  try {
+    return await commitCloudChange(kind);
+  } catch (e) {
+    return { ok: false, error: failed(e) };
+  }
+}
+
+const failed = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 // --- the account's Slack destination (#320) ----------------------------------
 // Where a task waiting on a decision arrives, and where that decision is made. Asked when

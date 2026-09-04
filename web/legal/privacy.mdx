@@ -2,14 +2,15 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-08-29
+effective: 2026-09-04
 ---
 
 <TLDR title="The short version">
 
 - **This site collects nothing.** No analytics, no cookies, no accounts. It is static files served by Cloudflare.
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out, and sends nothing else.
-- **AI4Kanban Cloud is an invite-only preview** that relays one signed-in account's task events — a review to approve, a question to answer — and the decisions made on them, on servers we run in Frankfurt. The board itself stays on your machine. [What Cloud is](/cloud).
+- **AI4Kanban Cloud is an invite-only preview** that relays one signed-in account's task events — a review to approve, a question to answer — and the decisions made on them, on servers we run in Frankfurt. [What Cloud is](/cloud).
+- **A Cloud board is one you asked us to hold.** Its cards, memory, releases and history live in a workspace on those servers instead of in your repository. It is a deliberate choice, made board by board; you can export the whole board as Markdown at any time, and you can delete the workspace and everything in it yourself.
 - **An event carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
 - **The preview emails you for two things**: the answer to your invite request, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
@@ -60,7 +61,7 @@ The coding agent you point at your board is separate software with its own accou
 
 ## Using AI4Kanban Cloud
 
-AI4Kanban Cloud is an **invite-only preview**. It relays the task events a board raises — a review to approve, a question to answer — and the decisions made on them, so you can act on a board without being at the machine it runs on. The board, the repository around it, and the agent that works on it stay on that machine.
+AI4Kanban Cloud is an **invite-only preview**. It relays the task events a board raises — a review to approve, a question to answer — and the decisions made on them, so you can act on a board without being at the machine it runs on. It can also hold the board itself, in a **workspace** — a choice you make board by board, and never the default. The repository around a board, and the agent that works on it, stay on your machine either way.
 
 **[What Cloud is, and what this release does not ship, is described on `/cloud`](/cloud).** This section says only what it does with your information.
 
@@ -192,7 +193,9 @@ The preview keeps no backups of its own, so nothing is restored if a record is l
 
 **What you would lose is your event history and the decisions recorded against it** — which task asked what, what you answered, and how the run ended.
 
-**You would not lose your board.** Cloud never held it. Your cards, your memory files, your releases and the board's configuration are Markdown in your own repository, on your own machine, and they are the same files whether Cloud is on or off. There is no board export from Cloud, because there is no board on Cloud to export. A copy of what Cloud *does* hold about you is a data request — see [Your rights and choices](#your-rights-and-choices).
+**A Local board is not at risk.** Its cards, memory files, releases and configuration are Markdown in your own repository, on your own machine, and they are the same files whether Cloud is on or off.
+
+**A Cloud board is, and the export is what answers that.** Its cards, memory, releases and history live in the workspace, so losing the workspace would lose them. **Export it whenever you want a copy**: the app writes the whole board — the archive and the finished work included — as Markdown into a folder you choose, and that folder opens as a Local board. The preview keeps no backups of its own, so that export is the only copy anybody can restore from. **Leaving Cloud** writes the board back into `docs/kanban/` and takes the pointer off, and **deleting the workspace** removes it and everything in it; both are in the app, under Configuration → Workspace. A copy of what Cloud holds *about you* is a data request — see [Your rights and choices](#your-rights-and-choices).
 
 ### Making a data request about Cloud
 

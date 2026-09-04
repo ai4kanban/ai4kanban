@@ -181,6 +181,27 @@ export const listWorkspaces = (): Promise<CloudCall<{ workspaces: CloudWorkspace
 export const createWorkspace = (opId: string, name: string): Promise<CloudCall<{ workspace: CloudWorkspace }>> =>
   send('POST', '/v1/workspaces', { opId, name })
 
+/** One workspace, by id — what the owner controls draw the name and the revision from. */
+export const readWorkspace = (workspaceId: string): Promise<CloudCall<{ workspace: CloudWorkspace }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}`)
+
+/** Rename it. `expect` is the revision the caller read, so a rename over another machine's
+ *  write is refused rather than applied blind. */
+export const renameWorkspace = (
+  workspaceId: string,
+  opId: string,
+  name: string,
+  expect: string,
+): Promise<CloudCall<{ workspace: CloudWorkspace }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/rename`, { opId, name, expect })
+
+/** Delete it and everything in it, inside the call. There is no grace window and no backup
+ *  — the confirmation in front of this is #317's. */
+export const deleteWorkspace = (
+  workspaceId: string,
+): Promise<CloudCall<{ deleted: true; workspaceId: string; name: string }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/delete`)
+
 /** Write cards, in passes small enough that one call can be retried. Answers with each card
  *  as the workspace now holds it, so a caller folds the revisions it was handed back into
  *  its own copy rather than re-reading the board (#316). */
@@ -291,6 +312,33 @@ export const registerWorkspaceNode = (
     machineId,
     machineName,
     runtimes,
+  })
+
+/** The machines registered to this workspace — what the owner controls list. */
+export const listWorkspaceNodes = (workspaceId: string): Promise<CloudCall<{ nodes: WireNode[] }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/nodes`)
+
+/** Rename one. The name is the owner's own word for a machine, not the machine's. */
+export const renameWorkspaceNode = (
+  workspaceId: string,
+  nodeId: string,
+  opId: string,
+  name: string,
+): Promise<CloudCall<{ node: WireNode }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(nodeId)}/rename`, {
+    opId,
+    name,
+  })
+
+/** Take one off. Its next renewal, write and delivery confirmation are all refused after
+ *  this. */
+export const removeWorkspaceNode = (
+  workspaceId: string,
+  nodeId: string,
+  opId: string,
+): Promise<CloudCall<{ removed: true; nodeId: string }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/nodes/${encodeURIComponent(nodeId)}/remove`, {
+    opId,
   })
 
 /** Claim a new workspace for one source board, by the fingerprint the machine derived from

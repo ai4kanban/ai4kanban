@@ -28,6 +28,7 @@ import {
 import fs from "node:fs";
 import path from "node:path";
 import { makeBoard, unmakeBoard, type NewBoard } from "./lib/board-init";
+import * as cloud from "./lib/cloud";
 import { commandAnswers, commandState, installCommand, refreshSkillNote } from "./lib/command";
 import { copy, holdLanguage, heldLanguage } from "./lib/copy";
 import { launcherUrl } from "./lib/launcher";
@@ -57,6 +58,9 @@ import {
 import {
   CHANNELS,
   type AppInfo,
+  type CloudAccountView,
+  type CloudFolder,
+  type CloudGoRequest,
   type CommandInstall,
   type CommandInstallResult,
   type CreateBoardResult,
@@ -140,9 +144,14 @@ function schemeUrl(argv: string[]): string | null {
  *
  *  Two channels, because the two are answered in different places: a card link (#320) is
  *  the window's, wherever the user is, and the sign-in answers are the Configuration
- *  dialog's and reach it only while that dialog is open. */
+ *  dialog's and reach it only while that dialog is open.
+ *
+ *  The one exception is a sign-in the LAUNCHER started (#317): there is no board server
+ *  behind that page, so this process is holding the call, and the answer is taken here
+ *  rather than sent on. */
 function handleSchemeUrl(url: string): void {
   if (!url.startsWith(`${URL_SCHEME}://`)) return;
+  if (takeLauncherSignIn(url)) return;
   if (!win || win.webContents.isLoading()) {
     pendingUrl = url;
     return;
@@ -215,13 +224,13 @@ function namedCwd(argv: string[]): string | null {
 }
 
 /** The project holding `dir`'s board — that folder or the nearest one above it with a
- *  `docs/kanban/`. Null when there is no board over it, which is when a launch falls back
- *  to the project the app had open last. */
+ *  `docs/kanban/` or a workspace pointer. Null when there is no board over it, which is
+ *  when a launch falls back to the project the app had open last. */
 function boardNear(dir: string | null | undefined): string | null {
   if (!dir) return null;
   let at = path.resolve(dir);
   for (;;) {
-    if (fs.existsSync(path.join(at, "docs", "kanban"))) return at;
+    if (fs.existsSync(path.join(at, "docs", "kanban")) || projects.pointsAtWorkspace(at)) return at;
     const up = path.dirname(at);
     if (up === at) return null;
     at = up;
@@ -230,9 +239,13 @@ function boardNear(dir: string | null | undefined): string | null {
 
 /** Whether `dir` itself holds a board the UI can read. Half a board — a `docs/kanban/`
  *  with no `todo/` in it — counts as none: that is what the UI turns away, and the
- *  installer is also the repair for it. */
+ *  installer is also the repair for it.
+ *
+ *  A checkout pointed at a Cloud workspace (#317) holds one whatever is on disk: the folder
+ *  is a copy the first read writes, so installing a Local board over it would put a second
+ *  board in front of the one the repository actually names. */
 function boardIn(dir: string): boolean {
-  return fs.existsSync(path.join(dir, "docs", "kanban", "todo"));
+  return fs.existsSync(path.join(dir, "docs", "kanban", "todo")) || projects.pointsAtWorkspace(dir);
 }
 
 // On macOS the window has no title bar of its own: the board's own top row is
@@ -607,7 +620,66 @@ function flushPendingUrl(): void {
   const url = pendingUrl;
   if (!url || !win) return;
   pendingUrl = null;
+  if (takeLauncherSignIn(url)) return;
   win.webContents.send(channelFor(url), url);
+}
+
+// --- the Cloud path through onboarding (#317) --------------------------------
+// Onboarding offers a Cloud board before any board is open, so there is no board server to
+// ask: this process answers, out of the rules it already carries (./lib/cloud.ts).
+//
+// The sign-in is one call rather than a start and a listener, because the launcher is a
+// `data:` page with no session to hold: the app opens the consent screen, waits for its own
+// URL scheme to answer, exchanges the code, and hands back the account as it now stands.
+
+/** The launcher sign-in this process is holding, if one is out in the browser. */
+let launcherSignIn: ((url: string) => void) | null = null;
+
+/** Take a sign-in answer for the launcher's own call. False when nobody here is waiting,
+ *  which is every sign-in the Configuration dialog started. */
+function takeLauncherSignIn(url: string): boolean {
+  if (!launcherSignIn || !url.startsWith(`${URL_SCHEME}://cloud/signed-in`)) return false;
+  const waiting = launcherSignIn;
+  launcherSignIn = null;
+  if (win?.isMinimized()) win.restore();
+  win?.focus();
+  waiting(url);
+  return true;
+}
+
+/** How long the app waits for a consent screen the user may simply have walked away from.
+ *  Long enough to read one and sign in; short enough that a forgotten tab does not leave the
+ *  button spinning for the rest of the session. */
+const SIGN_IN_WAIT_MS = 5 * 60 * 1000;
+
+async function cloudSignIn(): Promise<CloudAccountView> {
+  const start = await cloud.startCloudSignIn();
+  if (!start.ok) return { ...(await cloud.cloudAccount()), error: start.error };
+  await shell.openExternal(start.url);
+
+  const answer = await new Promise<string | null>((resolve) => {
+    const giveUp = setTimeout(() => {
+      if (launcherSignIn === take) launcherSignIn = null;
+      resolve(null);
+    }, SIGN_IN_WAIT_MS);
+    const take = (url: string) => {
+      clearTimeout(giveUp);
+      resolve(url);
+    };
+    launcherSignIn = take;
+  });
+  if (!answer) return await cloud.cloudAccount();
+
+  const done = await cloud.finishCloudSignIn(answer);
+  const account = await cloud.cloudAccount();
+  return done.ok ? account : { ...account, error: done.error };
+}
+
+/** Ask for a folder without opening it, and say what it already holds. Onboarding's four
+ *  moves all start here — a Cloud board is still a folder on this machine. */
+async function pickFolder(): Promise<CloudFolder | null> {
+  const picked = await askForRepo();
+  return picked ? await cloud.cloudFolder(picked) : null;
 }
 
 function refreshMenu(): void {
@@ -728,6 +800,46 @@ ipcMain.handle(CHANNELS.openBoard, (_e, dir: unknown) => openBoard(dir));
 ipcMain.handle(CHANNELS.forgetProject, (_e, repo: unknown) => forgetProject(repo));
 
 ipcMain.handle(CHANNELS.pickRepo, () => pickRepo());
+
+ipcMain.handle(CHANNELS.pickFolder, () => pickFolder());
+
+ipcMain.handle(CHANNELS.closeProject, async () => {
+  await closeProject();
+  return null;
+});
+
+// The Cloud path onboarding takes (#317). Every one of these is the CLI's own move, reached
+// through the rules the app carries — nothing about a workspace is decided here.
+ipcMain.handle(CHANNELS.cloudAccount, () => cloud.cloudAccount());
+
+ipcMain.handle(CHANNELS.cloudSignIn, () => cloudSignIn());
+
+ipcMain.handle(CHANNELS.cloudSignOut, async () => {
+  await cloud.signOutOfCloud();
+  return await cloud.cloudAccount();
+});
+
+ipcMain.handle(CHANNELS.cloudRequestInvite, async () => {
+  const asked = await cloud.requestCloudInvite();
+  const account = await cloud.cloudAccount();
+  return asked.ok ? account : { ...account, error: asked.error };
+});
+
+ipcMain.handle(CHANNELS.cloudWorkspaces, () => cloud.cloudWorkspaces());
+
+ipcMain.handle(CHANNELS.cloudGo, (_e, request: unknown) => {
+  const asked = request as Partial<CloudGoRequest> | undefined;
+  if (typeof asked?.dir !== "string" || !asked.dir) {
+    return { ok: false, error: "no folder was picked" };
+  }
+  return cloud.goCloud(asked as CloudGoRequest);
+});
+
+ipcMain.handle(CHANNELS.cloudCommit, (_e, dir: unknown) =>
+  typeof dir === "string" && dir
+    ? cloud.commitCloudChange(dir)
+    : Promise.resolve({ ok: false as const, error: "no folder was named" }),
+);
 
 ipcMain.handle(CHANNELS.createBoard, () => createBoard());
 

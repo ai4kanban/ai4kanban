@@ -74,20 +74,103 @@ export interface DesktopCopy {
     help: { title: string; guide: string; downloads: string };
   };
   /** The launcher page (`lib/launcher.ts`) — its markup, and the inline script that draws
-   *  the recent list. */
+   *  the recent list and runs the Cloud path (#317). */
   launcher: {
-    openFolder: string;
     recent: string;
     language: string;
     /** A language on the switcher that isn't written yet. */
     soon: string;
     runningHere: string;
+    /** The badge on a project the board of which lives in a Cloud workspace. */
+    cloudBadge: string;
     /** What the button says while a project is being opened. */
     opening: (name: string) => string;
     /** One row's tooltip, where the folder has gone. */
     pathGone: (path: string) => string;
     forget: string;
     forgetGone: string;
+    /** The move onboarding leads with (#317). Both buttons open the same folder picker:
+     *  what the folder turns out to hold is what happens, so the two labels are about what
+     *  the user came to do. */
+    local: {
+      title: string;
+      blurb: string;
+      create: string;
+      open: string;
+    };
+    /** The choice beside it — offered, labelled, and never preselected. */
+    cloud: {
+      title: string;
+      /** What this release of Cloud is. Worn on the card and on every panel below. */
+      preview: string;
+      blurb: string;
+      create: string;
+      open: string;
+      privacy: string;
+      terms: string;
+      /** Back to the two cards. */
+      back: string;
+      /** The one line under everything on this path. */
+      busy: string;
+      /** Signing in, with no board open. */
+      signIn: {
+        /** What Cloud holds and what it never receives — the same boundary #326 draws
+         *  above the machine's sign-in, said of a workspace. */
+        boundary: string;
+        button: string;
+        /** The two links are built by the page and handed in whole. */
+        confirms: (privacyLink: string, termsLink: string) => string;
+        /** The way out that costs nothing. */
+        instead: (localLink: string) => string;
+      };
+      /** Signed in, and the preview is closed to this account (#327, #350). */
+      closed: {
+        title: string;
+        blurb: string;
+        ask: string;
+        /** They have asked already, on this date. */
+        asked: (date: string) => string;
+        signOut: string;
+        instead: (localLink: string) => string;
+      };
+      /** The workspace and the folder, on one panel. */
+      pick: {
+        workspace: string;
+        newWorkspace: string;
+        namedBelow: string;
+        namePlaceholder: string;
+        /** One existing workspace's second line. */
+        opened: (date: string) => string;
+        folder: string;
+        choose: string;
+        noFolder: string;
+        /** Carry what is already in `docs/kanban/` into the workspace. */
+        importCards: (count: number) => string;
+        importBlurb: string;
+        create: string;
+        open: string;
+      };
+      /** The workspace is made and this checkout points at it. */
+      done: {
+        /** What landed, in one line. */
+        ready: (name: string, cards: number) => string;
+        /** The cards left in the folder are a stale copy now. */
+        stale: string;
+        offerTitle: string;
+        /** What the one commit carries — files leaving git, the pointer, the ignore block. */
+        offerBlurb: (cards: number) => string;
+        /** Nothing is lost either way, and this is why. */
+        offerSafe: string;
+        /** There is no repository to commit to yet. */
+        noGit: string;
+        /** Nothing of this checkout was ever in git. */
+        nothingTracked: string;
+        commit: string;
+        keep: string;
+        committed: string;
+        openBoard: string;
+      };
+    };
   };
   /** The dialogs the app draws over the window. */
   dialog: {

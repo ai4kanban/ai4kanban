@@ -142,6 +142,20 @@ export function ignoreBoardCopyIfMissing(): boolean {
   return true
 }
 
+/** Take that block back out — the other half of leaving Cloud (#317), so the cards the
+ *  checkout gets back are cards git tracks. Only our own two lines go; the rest of the
+ *  user's file is untouched. True when it removed one. */
+export function unignoreBoardCopy(): boolean {
+  if (!fs.existsSync(ROOT_GITIGNORE)) return false
+  const lines = fs.readFileSync(ROOT_GITIGNORE, 'utf8').split('\n')
+  const at = lines.findIndex((line) => line.trim() === COPY_IGNORE_LINE)
+  if (at === -1) return false
+  const from = at > 0 && lines[at - 1].startsWith('# This board lives in a Cloud workspace') ? at - 1 : at
+  lines.splice(from, at - from + 1)
+  fs.writeFileSync(ROOT_GITIGNORE, lines.join('\n'))
+  return true
+}
+
 // The flag every hint the board prints for a person to paste back — follow it, stop it,
 // resume it — carries, or the paste lands on whatever board the folder they are standing in
 // has, which is usually the wrong one. ` --board <dir>` whenever the board was named,

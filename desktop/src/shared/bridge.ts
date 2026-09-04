@@ -30,6 +30,8 @@ export interface ProjectInfo {
   /** The folder was moved or deleted since it was opened. */
   missing: boolean;
   hasBoard: boolean;
+  /** Its board lives in a Cloud workspace — the checkout carries `.ai4kanban.json` (#317). */
+  cloud: boolean;
   /** An agent run is going in this project right now. */
   running: boolean;
   /** This is the project on screen. */
@@ -60,6 +62,75 @@ export interface UpdateStatus {
 }
 
 export type CreateBoardResult = { ok: true } | { ok: false; error: string };
+
+// --- the Cloud path through onboarding (#317) --------------------------------
+// Onboarding offers a Cloud board before any board is open, so there is no board server to
+// ask for any of this: the app answers it itself, from the rules it already carries
+// (lib/cloud.ts). Configuration → Workspace runs the same moves through the board server,
+// on a board that IS open.
+
+/** Which account this machine acts as — the four answers a sign-in comes back with, and
+ *  what the service said about the last of them. */
+export interface CloudAccountView {
+  /** `signed-out`, `signed-in`, `not-admitted` or `expired`. */
+  state: string;
+  handle: string | null;
+  name: string | null;
+  /** The service's own sentence, shown as it stands. */
+  message: string | null;
+  inviteRequestedAt: string | null;
+  /** This build carries a Cloud to talk to at all. */
+  configured: boolean;
+  /** Cloud could not be reached. */
+  error: string | null;
+}
+
+export type CloudMoveResult = { ok: true } | { ok: false; error: string };
+
+/** One of the account's workspaces, as the picker lists them. */
+export interface CloudWorkspaceView {
+  id: string;
+  name: string;
+  updatedAt: string;
+}
+
+/** What a picked folder already holds. All four onboarding moves pick a project folder,
+ *  and what the folder turns out to be is what happens next. */
+export interface CloudFolder {
+  path: string;
+  name: string;
+  board: boolean;
+  cards: number;
+  git: boolean;
+  /** It already points at a workspace. */
+  workspace: string;
+}
+
+/** What the one offered commit would carry. */
+export interface CloudChangeView {
+  git: boolean;
+  cards: number;
+  pointer: "add" | "remove" | "none";
+  ignore: boolean;
+  clean: boolean;
+}
+
+export interface CloudGoRequest {
+  dir: string;
+  /** The workspace to open, or empty to make a new one under `name`. */
+  workspaceId?: string;
+  name?: string;
+  importCards?: boolean;
+}
+
+export type CloudGoResult =
+  | {
+      ok: true;
+      workspace: { id: string; name: string };
+      imported: number;
+      change: CloudChangeView;
+    }
+  | { ok: false; error: string };
 
 /**
  * One interruption the board is asking the app to raise (#319).
@@ -140,7 +211,22 @@ export const CHANNELS = {
   openBoard: "a4k:open-board",
   forgetProject: "a4k:forget-project",
   pickRepo: "a4k:pick-repo",
+  /** Ask for a folder and answer with what it holds — the picker onboarding's four moves
+   *  share, and the one Export writes into. Nothing is opened (#317). */
+  pickFolder: "a4k:pick-folder",
+  /** Leave the board on screen and show the launcher — what a deleted workspace leaves the
+   *  window on (#317). */
+  closeProject: "a4k:close-project",
   createBoard: "a4k:create-board",
+  /** The Cloud path through onboarding (#317), answered by the app itself because there is
+   *  no board server before a board is open. */
+  cloudAccount: "a4k:cloud-account",
+  cloudSignIn: "a4k:cloud-sign-in",
+  cloudSignOut: "a4k:cloud-sign-out",
+  cloudRequestInvite: "a4k:cloud-request-invite",
+  cloudWorkspaces: "a4k:cloud-workspaces",
+  cloudGo: "a4k:cloud-go",
+  cloudCommit: "a4k:cloud-commit",
   /** Take back a board the app made when this folder was opened. */
   discardBoard: "a4k:discard-board",
   /** Where `akb` stands on this machine, and the press that puts it there (#226). */
@@ -222,6 +308,29 @@ export interface Ai4kanbanBridge {
   /** Ask the user for another project folder and open it. Returns the folder
    *  now open, which is the old one when they cancelled. */
   pickRepo(): Promise<string | null>;
+  /** Ask for a folder without opening it, and say what it already holds (#317). Null when
+   *  the user cancelled. Onboarding's four moves all start here, and Export writes into
+   *  whatever this answers with. */
+  pickFolder(): Promise<CloudFolder | null>;
+  /** Leave the project on screen and show the launcher — where a checkout lands when the
+   *  workspace it pointed at has been deleted (#317). */
+  closeProject(): Promise<null>;
+  /** Which account this machine acts as (#317). Asked by onboarding, which has no board
+   *  server behind it. */
+  cloudAccount(): Promise<CloudAccountView>;
+  /** Sign in: the app opens the consent screen and waits for its own URL scheme to answer,
+   *  so one call covers the whole round trip. Answers with the account as it now stands. */
+  cloudSignIn(): Promise<CloudAccountView>;
+  cloudSignOut(): Promise<CloudAccountView>;
+  /** Ask to be let into the preview (#327), and be handed the account again. */
+  cloudRequestInvite(): Promise<CloudAccountView>;
+  /** Every workspace this account has. */
+  cloudWorkspaces(): Promise<{ ok: true; workspaces: CloudWorkspaceView[] } | { ok: false; error: string }>;
+  /** Make or open a workspace on a folder, import its cards when asked, and point the
+   *  checkout at it. The board is not opened — `openProject` is the press after. */
+  cloudGo(request: CloudGoRequest): Promise<CloudGoResult>;
+  /** Take the offered commit on that folder. */
+  cloudCommit(dir: string): Promise<CloudMoveResult>;
   /** Make a board in the open project — the retry on "there is no board here"
    *  in a window with no terminal. */
   createBoard(): Promise<CreateBoardResult>;

@@ -11,6 +11,8 @@ export type ConfigurationCopy = {
     agents: string;
     rules: string;
     cloud: string;
+    /** The workspace a Cloud board lives in (#317). Only ever on a Cloud board. */
+    workspace: string;
   };
   /** Configuration → General: three captioned groups on one pane. Each caption is the
    *  whole of that group's explanation, so the panes below carry no blurb of their own. */
@@ -214,6 +216,63 @@ export type ConfigurationCopy = {
     saveFailed: string;
     /** Beside a language the app doesn't speak yet — listed, but not pickable. */
     comingSoon: string;
+  };
+  /** Configuration → Workspace (#317): the workspace this board lives in, as its owner runs
+   *  it. The pane is only offered on a Cloud board — a Local one has no workspace. */
+  workspace: {
+    checking: string;
+    /** The caption over the board itself. */
+    thisBoard: string;
+    preview: string;
+    boardHint: string;
+    rename: string;
+    save: string;
+    cancel: string;
+    nodes: string;
+    nodesHint: string;
+    noNodes: string;
+    live: string;
+    idle: string;
+    remove: string;
+    removeTitle: (machine: string) => string;
+    removeBlurb: string;
+    /** The caption over the two ways a copy of the board comes back to the user. */
+    yourCopy: string;
+    export: string;
+    exportHint: string;
+    exportButton: string;
+    exported: (folder: string) => string;
+    leave: string;
+    leaveHint: string;
+    leaveButton: string;
+    leaveTitle: string;
+    leaveBlurb: string;
+    /** The caption over the one move that ends the workspace. */
+    ends: string;
+    delete: string;
+    deleteHint: string;
+    deleteButton: string;
+    deleteTitle: (name: string) => string;
+    /** What goes, named before it goes. */
+    deleteBlurb: string;
+    /** The one commit going Cloud offered and this checkout has not taken. It comes back
+     *  here until it is taken. */
+    offerTitle: string;
+    offerBlurb: (cards: number) => string;
+    offerSafe: string;
+    commit: string;
+    keep: string;
+    committed: string;
+    /** What a leave left behind, and the same offer the other way round. */
+    left: (cards: number) => string;
+    leftBlurb: (cards: number) => string;
+    reopen: string;
+    /** The workspace is gone, and this checkout no longer names it. */
+    deleted: (name: string) => string;
+    /** The codebase boundary, said of a workspace (#326 says it of the sign-in). */
+    boundary: string;
+    /** The folder to export into, typed rather than picked in a plain browser. */
+    folderPlaceholder: string;
   };
   cloud: {
     /** The caption over who this machine acts as. */

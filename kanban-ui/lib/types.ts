@@ -113,6 +113,11 @@ export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_REL
 // The one read each screen makes (#374) — what the board screen draws, and what a card page
 // draws. The server fills them (lib/board.ts) and the screens take them as one prop.
 export type { BoardScreen, BoardStanding, CardScreen, ScreenBoard } from "./format/board/screen";
+
+// The workspace a Cloud board lives in (#317) — what Configuration → Workspace draws, and
+// the one commit each of its exits offers.
+export type { CloudChange, WorkspaceNodeWire } from "./cli";
+export type { WorkspaceExit, WorkspaceMove, WorkspaceView } from "./workspace";
 export { LOCAL_STANDING } from "./format/board/screen";
 
 export type {

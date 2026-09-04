@@ -11,6 +11,7 @@ const en: ConfigurationCopy = {
     runtimes: "Runtimes",
     agents: "Agents",
     rules: "Rules",
+    workspace: "Workspace",
     cloud: "Notifications",
   },
   general: {
@@ -203,6 +204,70 @@ const en: ConfigurationCopy = {
     saveFailed: "couldn't save that language",
     comingSoon: "Coming soon",
     note: "Follows you into every board on this machine. What `akb` prints, and what an agent writes onto a card, stay English.",
+  },
+  workspace: {
+    checking: "Reading the workspace…",
+    thisBoard: "This board",
+    preview: "Invite-only preview",
+    boardHint:
+      "Cloud holds the cards, memory, releases and history. The repository keeps the pointer.",
+    rename: "Rename",
+    save: "Save",
+    cancel: "Cancel",
+    nodes: "Execution nodes",
+    nodesHint: "The machines allowed to run this board’s work.",
+    noNodes: "No machine has opened this board yet.",
+    live: "Working now",
+    idle: "Idle",
+    remove: "Remove",
+    removeTitle: (machine) => `Remove ${machine}?`,
+    removeBlurb:
+      "Its next write and its next delivery are refused. Opening the board there again registers it back.",
+    yourCopy: "Your copy",
+    export: "Export to a folder",
+    exportHint:
+      "The whole board as markdown, archive included. The preview keeps no backups — this is the only copy you can restore from.",
+    exportButton: "Export",
+    exported: (folder) => `Written to ${folder}. It opens as a Local board.`,
+    leave: "Leave Cloud",
+    leaveHint:
+      "Board back in docs/kanban/, pointer off, folder un-ignored — one commit you review, so git tracks the cards again.",
+    leaveButton: "Leave Cloud…",
+    leaveTitle: "Leave Cloud?",
+    leaveBlurb:
+      "The workspace stays where it is and keeps everything in it. This checkout stops reading it and becomes a Local board.",
+    ends: "Ends the workspace",
+    delete: "Delete workspace",
+    deleteHint: "Everything in it goes, for everyone. Export first.",
+    deleteButton: "Delete…",
+    deleteTitle: (name) => `Delete ${name}?`,
+    deleteBlurb:
+      "The cards, the archive, the releases, the memory and the whole history go — for every machine that opens this workspace, and this checkout stops pointing at it. The preview keeps no backups.",
+    offerTitle: "Take the copy out of the repository",
+    offerBlurb: (cards) =>
+      cards === 1
+        ? "One commit: 1 board file leaves git, .ai4kanban.json is added, and docs/kanban/ joins the root .gitignore. Nothing else in your working tree goes with it."
+        : `One commit: ${cards} board files leave git, .ai4kanban.json is added, and docs/kanban/ joins the root .gitignore. Nothing else in your working tree goes with it.`,
+    offerSafe:
+      "Nothing is lost either way — the cards are in git history, and what you decide here is whether git records the move.",
+    commit: "Commit this change",
+    keep: "Keep the files as they are",
+    committed: "Committed. The board is the workspace from here on.",
+    left: (cards) =>
+      cards === 0
+        ? "This checkout no longer points at the workspace. What is in docs/kanban/ is the board again."
+        : cards === 1
+          ? "1 card is back in docs/kanban/, and this checkout no longer points at the workspace."
+          : `${cards} cards are back in docs/kanban/, and this checkout no longer points at the workspace.`,
+    leftBlurb: (cards) =>
+      cards === 1
+        ? "One commit: 1 board file goes back into git, .ai4kanban.json is removed, and docs/kanban/ leaves the root .gitignore. Nothing else in your working tree goes with it."
+        : `One commit: ${cards} board files go back into git, .ai4kanban.json is removed, and docs/kanban/ leaves the root .gitignore. Nothing else in your working tree goes with it.`,
+    reopen: "Reopen this board",
+    deleted: (name) => `${name} is gone, and this checkout no longer points at it.`,
+    boundary:
+      "A workspace holds this board and nothing else — its cards, memory, releases and history. Cloud never receives your repository, never runs an agent, and never reads a card the board has not published.",
+    folderPlaceholder: "Folder to write the board into",
   },
   cloud: {
     account: "Account",

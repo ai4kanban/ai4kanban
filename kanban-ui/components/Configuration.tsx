@@ -27,9 +27,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiAlignLeft, FiBell, FiCheck, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiAlignLeft, FiBell, FiCheck, FiCloud, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   bindRuntimeAction,
+  hasWorkspaceAction,
   installedAgentsAction,
   loggedOutAgentsAction,
   setHarnessAction,
@@ -60,6 +61,7 @@ import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
 import { CAPTION, CONTROL, Note, QUIET_BTN } from "./settings";
 import { SpecSkillsPanel } from "./SpecSkills";
+import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // Every box, list and small button in here is the settings kit's
@@ -86,7 +88,7 @@ export function AgentMark({ src, size, name }: { src: string; size: number; name
 // The dialog's sections, in sidebar order — what the board is set up with, then the tool
 // it runs on, then what that tool is told, then where the answers go. Adding a settings
 // group is one entry here plus its pane below; nothing else moves.
-type Section = "general" | "runtimes" | "agents" | "rules" | "cloud";
+type Section = "general" | "runtimes" | "agents" | "rules" | "workspace" | "cloud";
 const SECTIONS: { id: Section; icon: IconType }[] = [
   { id: "general", icon: FiSliders },
   { id: "runtimes", icon: FiTerminal },
@@ -94,8 +96,12 @@ const SECTIONS: { id: Section; icon: IconType }[] = [
   // The rules a run follows (#306). Shortened to **Rules** here; the pane wears its full
   // name — Flow rules — where a reader meets it cold.
   { id: "rules", icon: FiAlignLeft },
+  // The workspace this board lives in (#317). Only on a Cloud board — a Local one has no
+  // workspace to run, so the entry is left out rather than drawn onto an empty pane.
+  { id: "workspace", icon: FiCloud },
   // How work reaches the person this machine signs in as (#326) — named for the job, not
-  // for Cloud, which is what carries it.
+  // for Cloud, which is what carries it. Beside Workspace rather than instead of it: one is
+  // the machine's sign-in, the other is this board.
   { id: "cloud", icon: FiBell },
 ];
 
@@ -151,6 +157,17 @@ export function Configuration({
     setOpen(true);
   }, [request]);
 
+  // Whether this checkout points at a workspace (#317), so the Workspace entry is offered
+  // only where there is one. The pointer alone rather than whether the board opened: a
+  // checkout whose workspace has been deleted still needs the pane, since leaving Cloud is
+  // one of the two ways out of it. Asked when the dialog opens, not on every render.
+  const [cloudBoard, setCloudBoard] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    void hasWorkspaceAction().then(setCloudBoard);
+  }, [open]);
+  const sections = SECTIONS.filter((entry) => entry.id !== "workspace" || cloudBoard);
+
   return (
     <>
       {/* The last tool in the header's cluster (components/chrome.tsx) — no frame
@@ -194,7 +211,7 @@ export function Configuration({
             aria-label={c.sections}
             className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-nb-ink/10 bg-nb-cream p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
           >
-            {SECTIONS.map(({ id, icon: Icon }) => {
+            {sections.map(({ id, icon: Icon }) => {
               const on = id === section;
               return (
                 <button
@@ -254,6 +271,10 @@ export function Configuration({
             {/* The Cloud sign-in (#326) — the account this MACHINE acts as, not a setting of
                 this board. Mounted only while it is the section on screen: it asks the
                 service who is signed in, over the network. */}
+            {/* The workspace this board lives in (#317) — its name, the machines that run its
+                work, the export, leaving Cloud and the deletion. Mounted only while it is the
+                section on screen: it asks the service what the workspace holds right now. */}
+            {section === "workspace" && cloudBoard && <WorkspacePanel onError={onError} />}
             {section === "cloud" && <CloudPanel onError={onError} />}
           </div>
         </Dialog>

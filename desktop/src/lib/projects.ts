@@ -58,6 +58,18 @@ function sessionsBoardOf(dir: string): string | null {
   return null;
 }
 
+/** Whether this checkout's board lives in a Cloud workspace (#317). The pointer at the
+ *  repository root is the whole answer — a workspace id means nothing without the sign-in
+ *  this machine holds, which is what lets it be committed and shared. */
+export function pointsAtWorkspace(dir: string): boolean {
+  try {
+    const held: unknown = JSON.parse(fs.readFileSync(path.join(dir, ".ai4kanban.json"), "utf8"));
+    return typeof (held as { workspace?: unknown } | null)?.workspace === "string";
+  } catch {
+    return false;
+  }
+}
+
 /** Whether an agent run is going in this board — a live session in its registry
  *  whose process is still there. Best-effort: a folder with no board, no
  *  registry file or an unreadable one simply has no run going. */
@@ -86,6 +98,7 @@ export function describe(dir: string, { open = false }: { open?: boolean } = {})
     // offers to be removed, rather than opening a window onto nothing.
     missing: !there,
     hasBoard: there ? Boolean(boardRootOf(dir)) : false,
+    cloud: there ? pointsAtWorkspace(dir) : false,
     running: there ? hasLiveRun(dir) : false,
     open,
   };

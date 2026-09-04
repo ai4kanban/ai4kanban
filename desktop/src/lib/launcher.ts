@@ -3,8 +3,21 @@
 // Before this, a launch with nothing remembered opened a native folder dialog
 // over an empty screen — a file picker with no app behind it, which says
 // nothing about what it is for. This is the app instead, in two columns: a
-// full-height piece of artwork on the left, and on the right the one move there
-// is — Open Folder — over the projects opened before.
+// full-height piece of artwork on the left, and on the right the ways in, over
+// the projects opened before.
+//
+// There are four of them (#317), and Local leads: Create Local board and Open Local board
+// on the framed card, Create Cloud board and Open Cloud board beside it, labelled a hosted
+// service and an invite-only preview. Nothing on the Cloud side is preselected — pricing
+// and the open-source support policy do not exist yet, so a default install must not land
+// on a service we pay to run. All four pick a project folder, because a Cloud board is
+// still a folder on this machine; Cloud decides where the board is authoritative, not
+// whether there is a folder.
+//
+// Taking the Cloud choice opens a panel over this same column: the GitHub sign-in, the
+// preview being closed to an account with no invite, the workspace and the folder, and what
+// going Cloud left in the repository. It is here rather than in Configuration because that
+// dialog needs a board open before it draws, and a machine with no session has no board.
 //
 // It is a page in the same window, not a second window: picking a project loads
 // that board's URL over it, and the window the user arranged stays the window.
@@ -43,6 +56,11 @@ export function launcherUrl(options: LauncherOptions): string {
  *  together in the browser around this mark. A private-use codepoint, so no path or folder
  *  name can be mistaken for it. */
 const FILLS_IN = "\uE000";
+
+/** The count a plural sentence is asked for with, so the page can put the real number in
+ *  afterwards. Nothing else in one of these sentences can be this — a translation is free to
+ *  say "2" for its own reasons, and `.ai4kanban.json` says "4" in every language. */
+const SENTINEL = 987654321;
 
 /** A folder name is whoever made it's, and so is nothing here — but the page is
  *  built as a string, so everything put into one goes through this. */
@@ -102,6 +120,123 @@ function artwork(): string {
   }
 }
 
+/** The two ways in (#317). Local leads — its card is the framed one, and Create Local
+ *  board is the button the eye lands on. Cloud sits beside it, said plainly for what it is:
+ *  a hosted service, and an invite-only preview in this release. Neither side is
+ *  preselected and neither button is pressed for anybody.
+ *
+ *  All four moves pick a project folder, because a Cloud board is still a folder on this
+ *  machine — the checkout carries the committed pointer and the git-ignored copy the board's
+ *  rules run over. */
+function choices(c: DesktopCopy["launcher"]): string {
+  return `<div class="choices">
+      <section class="pick lead">
+        <h3>${FOLDER_ICON}${escapeHtml(c.local.title)}</h3>
+        <p>${escapeHtml(c.local.blurb)}</p>
+        <div class="stack">
+          <button type="button" class="btn lead" id="local-create">${escapeHtml(c.local.create)}</button>
+          <button type="button" class="btn" id="local-open">${escapeHtml(c.local.open)}</button>
+        </div>
+      </section>
+      <section class="pick aside">
+        <h3>${CLOUD_ICON}${escapeHtml(c.cloud.title)}<span class="pill">${escapeHtml(c.cloud.preview)}</span></h3>
+        <p>${escapeHtml(c.cloud.blurb)}</p>
+        <div class="stack">
+          <button type="button" class="btn quiet" id="cloud-create">${escapeHtml(c.cloud.create)}</button>
+          <button type="button" class="btn quiet" id="cloud-open">${escapeHtml(c.cloud.open)}</button>
+        </div>
+        <p class="pages">${link("privacy", c.cloud.privacy)} · ${link("terms", c.cloud.terms)}</p>
+      </section>
+    </div>
+    <p class="status" id="status" hidden></p>`;
+}
+
+/** An inline link the page answers itself. Every link here opens the user's own browser or
+ *  moves this page, so none of them is an anchor. */
+const link = (act: string, label: string): string =>
+  `<button type="button" class="linkish" data-act="${act}">${escapeHtml(label)}</button>`;
+
+/**
+ * The Cloud path, drawn in this same window with no board behind it.
+ *
+ * Four steps, in the order somebody meets them: sign in, the preview being closed to this
+ * account, the workspace and the folder, and what going Cloud left in the repository. Every
+ * one of them is on the page from the start and hidden; the script shows one.
+ */
+function cloudPath(c: DesktopCopy["launcher"]): string {
+  const cc = c.cloud;
+  const head = `<div class="head">
+        <button type="button" class="back" id="cloud-back" title="${escapeHtml(cc.back)}" aria-label="${escapeHtml(cc.back)}">${BACK_ICON}</button>
+        ${MARK_SMALL}<h2>${escapeHtml(cc.title)}</h2><span class="pill">${escapeHtml(cc.preview)}</span>
+      </div>`;
+  return `<div class="inner panel" id="cloud" hidden>
+      ${head}
+      <p class="note bad" id="cloud-error" hidden></p>
+
+      <section class="step" id="step-signin" hidden>
+        <p class="lede">${escapeHtml(cc.signIn.boundary)}</p>
+        <div class="stack" style="margin-top:20px;max-width:300px">
+          <button type="button" class="btn lead" id="cloud-signin">${GITHUB_ICON}${escapeHtml(cc.signIn.button)}</button>
+        </div>
+        <p class="fine">${cc.signIn.confirms(link("privacy", cc.privacy), link("terms", cc.terms))}</p>
+        <p class="rule">${cc.signIn.instead(link("local", c.local.create))}</p>
+      </section>
+
+      <section class="step" id="step-closed" hidden>
+        <div class="note warn" style="margin-top:16px">
+          <div>
+            <strong>${escapeHtml(cc.closed.title)}</strong>
+            <span>${escapeHtml(cc.closed.blurb)}</span>
+          </div>
+        </div>
+        <p class="fine" id="cloud-asked" hidden></p>
+        <div class="row" style="display:flex;gap:10px;margin-top:16px">
+          <button type="button" class="btn lead small" id="cloud-invite">${escapeHtml(cc.closed.ask)}</button>
+          <button type="button" class="btn quiet small" id="cloud-signout">${escapeHtml(cc.closed.signOut)}</button>
+        </div>
+        <p class="rule">${cc.closed.instead(link("local", c.local.create))}</p>
+      </section>
+
+      <section class="step" id="step-pick" hidden>
+        <p class="caption">${escapeHtml(cc.pick.workspace)}</p>
+        <div class="list" id="cloud-workspaces"></div>
+        <div id="cloud-name-box" style="margin-top:10px;max-width:280px">
+          <input type="text" class="field" id="cloud-name" placeholder="${escapeHtml(cc.pick.namePlaceholder)}" spellcheck="false">
+        </div>
+        <p class="caption">${escapeHtml(cc.pick.folder)}</p>
+        <div class="card folder">
+          ${FOLDER_ICON}
+          <span class="where empty" id="cloud-folder">${escapeHtml(cc.pick.noFolder)}</span>
+          <button type="button" class="btn quiet small" id="cloud-pick">${escapeHtml(cc.pick.choose)}</button>
+        </div>
+        <label class="check" id="cloud-import-box" hidden>
+          <input type="checkbox" id="cloud-import" checked>
+          <span id="cloud-import-label"><small>${escapeHtml(cc.pick.importBlurb)}</small></span>
+        </label>
+        <div class="stack" style="margin-top:16px;max-width:260px">
+          <button type="button" class="btn lead" id="cloud-go" disabled></button>
+        </div>
+      </section>
+
+      <section class="step" id="step-done" hidden>
+        <p class="note good" id="cloud-ready" style="margin-top:16px"></p>
+        <p class="lede" id="cloud-stale">${escapeHtml(cc.done.stale)}</p>
+        <div class="card" id="cloud-offer" style="margin-top:12px">
+          <h4>${escapeHtml(cc.done.offerTitle)}</h4>
+          <p id="cloud-offer-blurb"></p>
+          <p id="cloud-offer-safe">${escapeHtml(cc.done.offerSafe)}</p>
+          <div class="row" id="cloud-offer-row">
+            <button type="button" class="btn quiet small" id="cloud-commit">${escapeHtml(cc.done.commit)}</button>
+            <button type="button" class="btn quiet small" id="cloud-keep">${escapeHtml(cc.done.keep)}</button>
+          </div>
+        </div>
+        <div class="stack" style="margin-top:16px;max-width:220px">
+          <button type="button" class="btn lead" id="cloud-open-board">${escapeHtml(cc.done.openBoard)}</button>
+        </div>
+      </section>
+    </div>`;
+}
+
 // The board's own colours and shapes (kanban-ui/app/globals.css): cream canvas,
 // ink outlines, one ember accent, a hard offset shadow that presses down. This
 // screen is the app's front door, so it has to be the same object as the board
@@ -125,6 +260,10 @@ function page({ mac, language, languages }: LauncherOptions): string {
     --accent-soft: #f7ddce;
     --accent-deep: #b83a12;
     --mint-ink: #2f6b46;
+    --mint-soft: #e4f3ea;
+    --peach-ink: #8a4a28;
+    --peach-soft: #fbe9dd;
+    --sheet: #fbfaf7;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
@@ -209,53 +348,27 @@ function page({ mac, language, languages }: LauncherOptions): string {
     flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 340px;
+    max-width: 700px;
   }
+  .inner[hidden] { display: none; }
 
   .lockup { display: flex; align-items: center; gap: 13px; }
   h1 { margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -0.015em; }
 
-  .open {
-    -webkit-app-region: no-drag;
-    margin-top: 30px;
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    padding: 12px 22px;
-    border: 1.5px solid var(--ink);
-    border-radius: 12px;
-    background: var(--accent);
-    box-shadow: 3px 3px 0 0 var(--ink);
-    color: var(--paper);
-    font: inherit;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .open:hover { background: var(--accent-deep); }
-  .open:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 0 var(--ink); }
-  .open:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-  /* A folder is named by whoever made it, so the button holds the long ones
-     rather than growing past the column. */
-  .open .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 230px; }
-
   /* Opening a project. Installing a board into a fresh folder and starting its
      server are seconds of work with this page still on screen, and a front door
-     that answers nothing reads as a hang — so the button becomes the progress,
-     and the page stops taking clicks it would only queue up. */
+     that answers nothing reads as a hang — so the page says what it is doing and
+     stops taking clicks it would only queue up. */
   body.busy .inner { pointer-events: none; }
-  body.busy .open { background: var(--accent-deep); }
-  body.busy .recent { opacity: 0.45; }
-  .spinner {
-    flex: none;
-    width: 15px;
-    height: 15px;
-    border: 2px solid color-mix(in srgb, var(--paper) 32%, transparent);
-    border-top-color: var(--paper);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
+  body.busy .choices, body.busy .recent { opacity: 0.45; }
+  .status {
+    align-self: stretch;
+    margin: 16px 0 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--accent-deep);
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .status[hidden] { display: none; }
 
   /* The projects you have opened before. Absent on a first launch, which is
      the launch this screen was drawn for. */
@@ -424,6 +537,187 @@ function page({ mac, language, languages }: LauncherOptions): string {
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
+
+  /* --- the two ways in (#317) ----------------------------------------------
+     Local leads and Cloud sits beside it: the framed card with the hard shadow
+     is the one the eye lands on, and the Cloud card is a hairline on a paler
+     sheet. Nothing on the Cloud side is preselected, and nothing is pressed for
+     you. */
+  .choices {
+    -webkit-app-region: no-drag;
+    display: flex;
+    align-self: stretch;
+    gap: 20px;
+    margin-top: 30px;
+    align-items: flex-start;
+  }
+  @media (max-width: 640px) { .choices { flex-direction: column; } }
+  .pick {
+    flex: 1;
+    min-width: 0;
+    padding: 18px;
+    border-radius: 14px;
+  }
+  .pick.lead { border: 1.5px solid var(--ink); background: var(--paper); box-shadow: 3px 3px 0 0 var(--ink); }
+  .pick.aside { border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); background: var(--sheet); }
+  .pick h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .pick p { margin: 7px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-soft); }
+  .pick .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+    background: var(--paper);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+
+  /* One button family, three weights. */
+  .btn {
+    -webkit-app-region: no-drag;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px 16px;
+    border-radius: 11px;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn.lead { background: var(--accent); border-color: var(--ink); box-shadow: 3px 3px 0 0 var(--ink); color: var(--paper); }
+  .btn.lead:hover { background: var(--accent-deep); }
+  .btn.lead:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 0 var(--ink); }
+  .btn.quiet { border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
+  .btn.quiet:hover, .btn:not(.lead):hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+  .btn.small { width: auto; padding: 6px 12px; font-size: 12.5px; }
+  .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .btn[disabled] { opacity: 0.5; cursor: default; }
+
+  /* An inline link out of the page — the published pages, and the way back to
+     the Local moves. Everything here is a button: this page has no navigation of
+     its own, so a link either opens the browser or changes what is on screen. */
+  .linkish {
+    -webkit-app-region: no-drag;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent-deep);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .pages { margin-top: 12px; font-size: 11px; color: var(--ink-soft); }
+
+  /* --- the Cloud path, in this same window --------------------------------- */
+  /* The panel is the column, not something centred in it: every row in it — the head, a
+     caption, the workspace list — keeps the same left edge. */
+  .panel { align-items: stretch; max-width: 590px; }
+  .panel .head { display: flex; align-items: center; gap: 10px; }
+  .panel .head h2 { margin: 0; font-size: 15px; font-weight: 800; }
+  .back {
+    -webkit-app-region: no-drag;
+    display: inline-flex;
+    padding: 4px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--ink-soft);
+    line-height: 0;
+    cursor: pointer;
+  }
+  .back:hover { color: var(--ink); }
+  .panel .lede { margin: 16px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); }
+  .panel .fine { margin: 14px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--ink-soft); }
+  .panel .rule { margin: 22px 0 0; padding-top: 16px; border-top: 1px solid color-mix(in srgb, var(--ink) 10%, transparent); font-size: 12px; color: var(--ink-soft); }
+  .step[hidden] { display: none; }
+  .caption {
+    margin: 16px 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .card {
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+    border-radius: 10px;
+    background: var(--paper);
+  }
+  .card h4 { margin: 0; font-size: 13px; font-weight: 700; }
+  .card p { margin: 5px 0 0; font-size: 12px; line-height: 1.55; color: var(--ink-soft); }
+  .card .row { display: flex; gap: 10px; margin-top: 11px; }
+  .note { display: flex; gap: 9px; padding: 12px 14px; border-radius: 10px; font-size: 12.5px; line-height: 1.6; }
+  .note.warn { background: var(--peach-soft); color: var(--ink); }
+  .note.warn strong { display: block; color: var(--peach-ink); }
+  .note.good { background: var(--mint-soft); color: var(--mint-ink); font-weight: 700; }
+  .note.bad { background: var(--peach-soft); color: var(--peach-ink); }
+  .note[hidden] { display: none; }
+
+  /* The workspace list: one row is one decision, and a new workspace is one of
+     them rather than a second screen. */
+  .list { border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); border-radius: 10px; background: var(--paper); padding: 0 12px; }
+  .wsrow {
+    -webkit-app-region: no-drag;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 0;
+    border: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .wsrow:last-child { border-bottom: 0; }
+  .wsrow .who { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; }
+  .wsrow .when { font-size: 11.5px; font-weight: 400; color: var(--ink-soft); }
+  .dotmark {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 999px;
+    border: 1.5px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+  .wsrow[aria-checked="true"] .dotmark { border-color: var(--accent); box-shadow: inset 0 0 0 3.5px var(--paper), inset 0 0 0 8px var(--accent); }
+  .field {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+    border-radius: 9px;
+    background: var(--paper);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .field:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .folder { display: flex; align-items: center; gap: 10px; }
+  .folder .where { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  .folder .where.empty { font-family: inherit; color: var(--ink-soft); }
+  .check { -webkit-app-region: no-drag; display: flex; align-items: flex-start; gap: 9px; margin-top: 10px; cursor: pointer; }
+  .check input { margin: 2px 0 0; accent-color: var(--accent); }
+  .check span { font-size: 12px; line-height: 1.55; }
+  .check small { display: block; color: var(--ink-soft); }
 </style>
 </head>
 <body>
@@ -431,14 +725,15 @@ function page({ mac, language, languages }: LauncherOptions): string {
 ${switcher(language, languages, c)}
 <aside class="art">${artwork()}</aside>
 <main>
-  <div class="inner">
+  <div class="inner" id="home">
     <div class="lockup">${MARK}<h1>AI4Kanban</h1></div>
-    <button type="button" class="open" id="open">${FOLDER_ICON}<span class="label">${escapeHtml(c.openFolder)}</span></button>
+    ${choices(c)}
     <section class="recent" id="recent" hidden>
       <h2><span>${escapeHtml(c.recent)}</span></h2>
       <ul class="rows" id="rows"></ul>
     </section>
   </div>
+  ${cloudPath(c)}
 </main>
 <script>
 ${script(c)}
@@ -461,6 +756,15 @@ const MARK = `<svg width="34" height="34" viewBox="0 0 78 78" role="img" aria-la
     </svg>`;
 
 const FOLDER_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+
+const CLOUD_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6.2 10.3 3.9 3.9 0 0 0 6.5 19z"/></svg>`;
+
+const BACK_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m0 0 6-6m-6 6 6 6"/></svg>`;
+
+const GITHUB_ICON = `<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.34c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.23 1.88.87 2.34.67.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0"/></svg>`;
+
+/** The app's mark again, small enough to sit in a panel heading. */
+const MARK_SMALL = MARK.replace('width="34" height="34"', 'width="20" height="20"');
 
 const CLOSE_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
 
@@ -669,14 +973,65 @@ const DRAWN_ART = `<svg viewBox="0 0 480 900" preserveAspectRatio="xMidYMid slic
 // here has to undraw itself. Rows are built as nodes rather than as markup: a
 // folder is named by whoever made it, and a path is not something to paste into
 // HTML.
+//
+// The Cloud path (#317) is the one part that has states: it swaps the column for a panel
+// and moves between four steps. Every move it makes is a bridge call — the app holds the
+// sign-in, the workspace calls and the import, out of the rules it already carries — so
+// nothing about Cloud is decided here.
 function script(c: DesktopCopy["launcher"]): string {
   return `
   const app = window.ai4kanban;
   const FILLS_IN = ${JSON.stringify(FILLS_IN)};
   const PATH_GONE = ${JSON.stringify(c.pathGone(FILLS_IN))};
   const OPENING = ${JSON.stringify(c.opening(FILLS_IN))};
-  const openButton = document.getElementById("open");
-  openButton.addEventListener("click", () => app?.pickRepo());
+  const CLOUD_BADGE = ${JSON.stringify(c.cloudBadge)};
+  const BUSY = ${JSON.stringify(c.cloud.busy)};
+  const PICK = ${JSON.stringify({
+    newWorkspace: c.cloud.pick.newWorkspace,
+    namedBelow: c.cloud.pick.namedBelow,
+    noFolder: c.cloud.pick.noFolder,
+    create: c.cloud.pick.create,
+    open: c.cloud.pick.open,
+    importBlurb: c.cloud.pick.importBlurb,
+  })};
+  const OPENED = ${JSON.stringify(c.cloud.pick.opened(FILLS_IN))};
+  // A number the page puts in afterwards. One and many are two whole sentences, so the
+  // plural one is asked for with a count no sentence could hold for any other reason —
+  // ".ai4kanban.json" and "docs/kanban/" are full of digits, and a translation is free to
+  // add more.
+  const MANY = ${JSON.stringify(String(SENTINEL))};
+  const IMPORT_ONE = ${JSON.stringify(c.cloud.pick.importCards(1))};
+  const IMPORT_MANY = ${JSON.stringify(c.cloud.pick.importCards(SENTINEL))};
+  const ASKED = ${JSON.stringify(c.cloud.closed.asked(FILLS_IN))};
+  const DONE = ${JSON.stringify({
+    stale: c.cloud.done.stale,
+    noGit: c.cloud.done.noGit,
+    nothingTracked: c.cloud.done.nothingTracked,
+    committed: c.cloud.done.committed,
+    safe: c.cloud.done.offerSafe,
+  })};
+  const READY_NONE = ${JSON.stringify(c.cloud.done.ready(FILLS_IN, 0))};
+  const READY_ONE = ${JSON.stringify(c.cloud.done.ready(FILLS_IN, 1))};
+  const READY_MANY = ${JSON.stringify(c.cloud.done.ready(FILLS_IN, SENTINEL))};
+  const OFFER_ONE = ${JSON.stringify(c.cloud.done.offerBlurb(1))};
+  const OFFER_MANY = ${JSON.stringify(c.cloud.done.offerBlurb(SENTINEL))};
+  const PRIVACY_URL = "https://ai4kanban.dev/privacy";
+  const TERMS_URL = "https://ai4kanban.dev/terms";
+
+  const $ = (id) => document.getElementById(id);
+  // Through a function, so a dollar sign in a folder's name is a character and not a
+  // replacement pattern.
+  const fill = (sentence, value) => sentence.replace(FILLS_IN, () => String(value));
+  // A count decides which sentence is drawn, and the number is put in afterwards: one and
+  // many are two whole sentences, and neither is stitched together here.
+  const counted = (one, many, n) => (n === 1 ? one : many.replace(MANY, () => String(n)));
+
+  // --- the two Local moves ---------------------------------------------------
+  // Both are the same folder picker under different intent, and a mismatch falls through to
+  // what the folder actually holds: Open on a folder with no board offers to make one, and
+  // Create on a folder that has one opens it. Nothing overwrites a board.
+  $("local-create").addEventListener("click", () => app?.pickRepo());
+  $("local-open").addEventListener("click", () => app?.pickRepo());
 
   // The app has started opening a project — the picker is already gone, and this page has
   // the wait. Nothing puts it back: the board's page loads over this one, and the only
@@ -684,19 +1039,15 @@ function script(c: DesktopCopy["launcher"]): string {
   app?.onOpening((name) => {
     document.body.classList.add("busy");
     document.body.setAttribute("aria-busy", "true");
-    const spinner = document.createElement("span");
-    spinner.className = "spinner";
-    const label = document.createElement("span");
-    label.className = "label";
-    // Through a function, so a dollar sign in a folder's name is a character.
-    label.textContent = OPENING.replace(FILLS_IN, () => name);
-    openButton.replaceChildren(spinner, label);
+    const status = $("status");
+    status.hidden = false;
+    status.textContent = fill(OPENING, name);
   });
 
   // The switcher saves through the app rather than through a board server, which this
   // page has none of. The app draws this page again in whatever was saved, so a click
   // that lands shows the new language and one that could not save shows the old.
-  const langs = document.getElementById("langs");
+  const langs = $("langs");
   for (const row of document.querySelectorAll(".lang[data-lang]")) {
     row.addEventListener("click", () => {
       if (langs) langs.open = false;
@@ -714,8 +1065,20 @@ function script(c: DesktopCopy["launcher"]): string {
     });
   }
 
-  const recent = document.getElementById("recent");
-  const rows = document.getElementById("rows");
+  // The two published pages, and the way back to the Local moves. Every link on this page
+  // is a button, because none of them is navigation: two open the user's own browser and
+  // one changes what is on screen.
+  for (const row of document.querySelectorAll(".linkish[data-act]")) {
+    row.addEventListener("click", () => {
+      if (row.dataset.act === "privacy") app?.openExternal(PRIVACY_URL);
+      else if (row.dataset.act === "terms") app?.openExternal(TERMS_URL);
+      else app?.pickRepo();
+    });
+  }
+
+  // --- the projects opened before -------------------------------------------
+  const recent = $("recent");
+  const rows = $("rows");
 
   function draw(projects) {
     rows.replaceChildren();
@@ -729,9 +1092,7 @@ function script(c: DesktopCopy["launcher"]): string {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "row";
-    // Through a function, so a dollar sign in a folder's name is a character and not a
-    // replacement pattern.
-    button.title = p.missing ? PATH_GONE.replace(FILLS_IN, () => p.path) : p.path;
+    button.title = p.missing ? fill(PATH_GONE, p.path) : p.path;
     if (p.missing) button.dataset.missing = "true";
     else button.addEventListener("click", () => app?.openProject(p.path));
 
@@ -744,6 +1105,15 @@ function script(c: DesktopCopy["launcher"]): string {
       name.append(dot);
     }
     name.append(p.name);
+    // Which of the two kinds of board this project is (#317). Said on the row, because the
+    // two open the same way and behave differently once open.
+    if (p.cloud) {
+      const badge = document.createElement("span");
+      badge.className = "pill";
+      badge.style.marginLeft = "7px";
+      badge.textContent = CLOUD_BADGE;
+      name.append(badge);
+    }
 
     const path = document.createElement("span");
     path.className = "path";
@@ -766,5 +1136,254 @@ function script(c: DesktopCopy["launcher"]): string {
   }
 
   app?.projects().then(draw).catch(() => {});
+
+  // --- the Cloud path --------------------------------------------------------
+  // One panel over the same column, four steps deep. What it holds between presses: the
+  // account, the workspaces the account has, which one is picked, the folder, and what
+  // going Cloud left in the repository.
+  let account = null;
+  let workspaces = [];
+  let picked = "";        // a workspace id, or "" for a new one
+  let folder = null;      // what the picked folder holds
+  let intent = "create";  // which of the two Cloud buttons was pressed
+  let gone = null;        // the answer from going Cloud
+
+  const STEPS = ["signin", "closed", "pick", "done"];
+  const home = $("home");
+  const panel = $("cloud");
+  const error = $("cloud-error");
+
+  function show(which) {
+    home.hidden = which !== "home";
+    panel.hidden = which === "home";
+  }
+
+  function step(which) {
+    for (const name of STEPS) $("step-" + name).hidden = name !== which;
+  }
+
+  function say(message) {
+    error.hidden = !message;
+    error.textContent = message || "";
+  }
+
+  /** A press that is waiting on the network. The button says so and takes no second
+   *  click — every move here is a call the app makes, and some of them are slow. */
+  async function working(button, work) {
+    // The nodes, not the text: a button that carries a mark would come back without it.
+    const was = Array.from(button.childNodes);
+    button.disabled = true;
+    button.replaceChildren(BUSY);
+    say("");
+    try {
+      return await work();
+    } finally {
+      button.disabled = false;
+      button.replaceChildren(...was);
+    }
+  }
+
+  /** Which step this account belongs on. Signing in happens here because Configuration is
+   *  only reachable once a board is open, and a machine with no session has no board. */
+  function route() {
+    if (!account) return step("signin");
+    if (account.error) say(account.error);
+    if (account.state === "signed-in") return openPicker();
+    if (account.state === "not-admitted") {
+      const asked = $("cloud-asked");
+      asked.hidden = !account.inviteRequestedAt;
+      if (account.inviteRequestedAt) asked.textContent = fill(ASKED, account.inviteRequestedAt.slice(0, 10));
+      return step("closed");
+    }
+    // Signed out, expired, or a build with no Cloud to talk to. The service's own sentence is
+    // shown as it stands — including the one a build carrying no Cloud says for itself, which
+    // is the whole reason the button in front of it will not finish.
+    if (account.message && (!account.configured || account.state !== "signed-out")) say(account.message);
+    step("signin");
+  }
+
+  async function openCloud(which) {
+    intent = which;
+    say("");
+    show("cloud");
+    step("signin");
+    account = await app?.cloudAccount();
+    route();
+  }
+
+  $("cloud-create").addEventListener("click", () => openCloud("create"));
+  $("cloud-open").addEventListener("click", () => openCloud("open"));
+  $("cloud-back").addEventListener("click", () => {
+    say("");
+    show("home");
+  });
+
+  $("cloud-signin").addEventListener("click", async (e) => {
+    account = await working(e.currentTarget, () => app?.cloudSignIn());
+    route();
+  });
+
+  $("cloud-invite").addEventListener("click", async (e) => {
+    account = await working(e.currentTarget, () => app?.cloudRequestInvite());
+    route();
+  });
+
+  $("cloud-signout").addEventListener("click", async (e) => {
+    account = await working(e.currentTarget, () => app?.cloudSignOut());
+    route();
+  });
+
+  // --- the workspace and the folder ------------------------------------------
+
+  async function openPicker() {
+    step("pick");
+    $("cloud-go").textContent = intent === "open" ? PICK.open : PICK.create;
+    drawFolder();
+    const answer = await app?.cloudWorkspaces();
+    if (!answer || !answer.ok) {
+      workspaces = [];
+      say(answer ? answer.error : "");
+    } else {
+      workspaces = answer.workspaces;
+    }
+    // Open lands on the first workspace the account has; Create lands on a new one. Neither
+    // is a default the other cannot leave — the list is one control.
+    picked = intent === "open" && workspaces.length ? workspaces[0].id : "";
+    drawWorkspaces();
+  }
+
+  function drawWorkspaces() {
+    const list = $("cloud-workspaces");
+    list.replaceChildren();
+    list.append(workspaceRow({ id: "", name: PICK.newWorkspace, when: PICK.namedBelow }));
+    for (const w of workspaces) {
+      list.append(workspaceRow({ id: w.id, name: w.name, when: fill(OPENED, (w.updatedAt || "").slice(0, 10)) }));
+    }
+    $("cloud-name-box").hidden = picked !== "";
+    drawFolder();
+    drawGo();
+  }
+
+  function workspaceRow(entry) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "wsrow";
+    button.setAttribute("role", "radio");
+    button.setAttribute("aria-checked", String(picked === entry.id));
+    const mark = document.createElement("span");
+    mark.className = "dotmark";
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = entry.name;
+    const when = document.createElement("span");
+    when.className = "when";
+    when.textContent = entry.when;
+    button.append(mark, who, when);
+    button.addEventListener("click", () => {
+      picked = entry.id;
+      drawWorkspaces();
+    });
+    return button;
+  }
+
+  $("cloud-pick").addEventListener("click", async () => {
+    const answer = await app?.pickFolder();
+    if (!answer) return;
+    folder = answer;
+    drawFolder();
+    drawGo();
+  });
+
+  function drawFolder() {
+    const where = $("cloud-folder");
+    where.textContent = folder ? folder.path : PICK.noFolder;
+    where.classList.toggle("empty", !folder);
+    // Import is offered only where there is something to carry, and it says how much.
+    const box = $("cloud-import-box");
+    const has = !!folder && folder.cards > 0;
+    box.hidden = !has;
+    // On for a new workspace, off for one that is already a board: a workspace that holds a
+    // board refuses a second, so importing into one by default would fail the move rather
+    // than open it. The tick is still there to take either way.
+    $("cloud-import").checked = !picked;
+    if (has) {
+      const label = $("cloud-import-label");
+      label.replaceChildren();
+      label.append(document.createTextNode(counted(IMPORT_ONE, IMPORT_MANY, folder.cards)));
+      const small = document.createElement("small");
+      small.textContent = PICK.importBlurb;
+      label.append(small);
+    }
+  }
+
+  function drawGo() {
+    // A folder is the one thing that cannot be guessed: a Cloud board is still a folder on
+    // this machine, and the pointer is written into it.
+    $("cloud-go").disabled = !folder;
+  }
+
+  $("cloud-name").addEventListener("input", drawGo);
+
+  $("cloud-go").addEventListener("click", async (e) => {
+    if (!folder) return;
+    const request = {
+      dir: folder.path,
+      importCards: !$("cloud-import-box").hidden && $("cloud-import").checked,
+    };
+    if (picked) request.workspaceId = picked;
+    else request.name = $("cloud-name").value.trim() || folder.name;
+    const answer = await working(e.currentTarget, () => app?.cloudGo(request));
+    if (!answer || !answer.ok) return say(answer ? answer.error : "");
+    gone = answer;
+    drawDone();
+    step("done");
+  });
+
+  // --- what going Cloud left in the repository -------------------------------
+
+  function drawDone() {
+    const name = gone.workspace.name || (folder ? folder.name : "");
+    const ready = gone.imported === 0 ? READY_NONE : counted(READY_ONE, READY_MANY, gone.imported);
+    $("cloud-ready").textContent = fill(ready, name);
+    $("cloud-stale").textContent = DONE.stale;
+    const change = gone.change;
+    const blurb = $("cloud-offer-blurb");
+    const safe = $("cloud-offer-safe");
+    const row = $("cloud-offer-row");
+    if (!change.git) {
+      blurb.textContent = DONE.noGit;
+      safe.hidden = true;
+      row.hidden = true;
+      return;
+    }
+    if (change.clean) {
+      blurb.textContent = DONE.nothingTracked;
+      safe.hidden = true;
+      row.hidden = true;
+      return;
+    }
+    blurb.textContent = counted(OFFER_ONE, OFFER_MANY, change.cards);
+    safe.hidden = false;
+    safe.textContent = DONE.safe;
+    row.hidden = false;
+  }
+
+  $("cloud-commit").addEventListener("click", async (e) => {
+    const done = await working(e.currentTarget, () => app?.cloudCommit(folder.path));
+    if (!done || !done.ok) return say(done ? done.error : "");
+    $("cloud-offer-blurb").textContent = DONE.committed;
+    $("cloud-offer-safe").hidden = true;
+    $("cloud-offer-row").hidden = true;
+  });
+
+  // Declining leaves a working checkout with a dirty git status, and the same offer waits
+  // in the workspace controls until it is taken.
+  $("cloud-keep").addEventListener("click", () => {
+    $("cloud-offer-row").hidden = true;
+  });
+
+  $("cloud-open-board").addEventListener("click", () => {
+    if (folder) app?.openProject(folder.path);
+  });
 `;
 }
