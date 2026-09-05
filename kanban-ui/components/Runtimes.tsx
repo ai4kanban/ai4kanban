@@ -32,7 +32,7 @@ import { useCopy } from "@/i18n/use-copy";
 import type { AgentInfo, RuntimeView } from "@/lib/types";
 import { AgentMark, HarnessPicker } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
-import { CONTROL, DANGER_BTN, Group, Note, QUIET_BTN } from "./settings";
+import { CONTROL, DANGER_BTN, Group, QUIET_BTN } from "./settings";
 
 export function RuntimesPanel({
   agent,
@@ -51,26 +51,23 @@ export function RuntimesPanel({
 
   // A board with no rules at all has no agents to offer: it draws today's agent pane and
   // stops there, since every move below it would fail.
+  //
+  // No caption over it: the sidebar entry beside the pane already says Runtimes, and the
+  // word repeated at the top of it is a line that answers nothing.
   if (!info.options.length) {
-    return (
-      <Group title={c.title}>
-        <HarnessPicker agent={info} onError={onError} />
-        <Note>{c.boardsOwn}</Note>
-      </Group>
-    );
+    return <HarnessPicker agent={info} onError={onError} />;
   }
 
   if (!info.namedRuntimes) {
     // The board's own agent, on a board that names no runtimes — the one runtime every flow
     // is on, which IS this setting.
     return (
-      <Group title={c.title}>
+      <div className="flex flex-col gap-5">
         <HarnessPicker agent={info} onError={onError} />
-        <Note>{c.boardsOwn}</Note>
-        <div className="mt-3">
+        <div>
           <AddRuntime onAdded={setInfo} onError={onError} />
         </div>
-      </Group>
+      </div>
     );
   }
 
@@ -78,7 +75,7 @@ export function RuntimesPanel({
     <Group title={c.listCaption}>
       {/* One block, one runtime per row: the open one carries everything that can be said
           about it, and the rest are a name and a line. */}
-      <div className="overflow-hidden rounded-[12px] border border-nb-ink/12 bg-nb-paper">
+      <div className="overflow-hidden rounded-[12px] bg-nb-sheet">
         {info.runtimes.map((runtime) =>
           runtime.name === open ? (
             <OpenRuntime
@@ -103,7 +100,6 @@ export function RuntimesPanel({
       <div className="mt-3">
         <AddRuntime onAdded={setInfo} onError={onError} />
       </div>
-      <Note>{c.boardsOwn}</Note>
     </Group>
   );
 }
@@ -321,7 +317,7 @@ function OpenRuntime({
         </span>
       </div>
 
-      <div className="rounded-[12px] bg-nb-sheet px-4 py-3">
+      <div className="rounded-[12px] px-4 py-3">
         {/* Keyed by what it runs, not just by the runtime: every field in the picker is
             seeded once at mount, so an agent changed elsewhere needs a fresh one. */}
         <HarnessPicker

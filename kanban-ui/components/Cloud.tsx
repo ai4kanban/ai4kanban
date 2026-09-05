@@ -72,6 +72,7 @@ import { Button } from "./button";
 import {
   Alert,
   CAPTION,
+  FLAT_CONTROL,
   Group,
   Loading,
   MARK,
@@ -470,7 +471,7 @@ function Picker<T extends { id: string; name: string }>({
           that is already set. */}
       <SelectTrigger
         aria-label={label}
-        className={`h-8 w-auto max-w-[24ch] rounded-[8px] py-0 text-[13px] font-[700] ${
+        className={`${FLAT_CONTROL} h-8 w-auto max-w-[24ch] rounded-[8px] py-0 text-[13px] font-[700] ${
           name ? "" : "text-nb-ink-soft/60"
         }`}
       >
@@ -909,7 +910,7 @@ function Notifications() {
           >
             <SelectTrigger
               aria-label={c.watching}
-              className="h-8 w-auto rounded-[8px] py-0 font-mono text-[12px] font-[700]"
+              className={`${FLAT_CONTROL} h-8 w-auto rounded-[8px] py-0 font-mono text-[12px] font-[700]`}
             >
               <SelectValue placeholder={c.pickRelease} />
             </SelectTrigger>

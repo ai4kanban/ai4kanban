@@ -27,7 +27,7 @@ import type { UsageReporting } from "@/lib/types";
 import { Button } from "./button";
 import { openLink } from "./desktop";
 import { LogoMark } from "./Logo";
-import { Alert, Group, Note, Panel, Row, Switch } from "./settings";
+import { Alert, Group, Panel, Row, Switch } from "./settings";
 
 /** The published page that lists every event and field — what "Privacy details" opens, and
  *  what the Configuration row links to. In the app it opens the user's browser. */
@@ -148,8 +148,7 @@ export function UsageDisclosure({ onDone }: { onDone: () => void }) {
 
 // ---- Configuration → General ------------------------------------------------
 
-/** The **Privacy** group: one switch, the same sentence the step showed, the install id
- *  while there is one, and the link to the published list. */
+/** The **Privacy** group: one switch and the same sentence the step showed. */
 export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
   const t = useCopy();
   const c = t.configuration.privacy;
@@ -178,8 +177,6 @@ export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
       onError?.(res.error || (next ? c.failedOn : c.failedOff));
       return;
     }
-    // Turning it off forgets the id, and turning it on makes a new one at the first event —
-    // so the row is re-read rather than guessed at.
     await load();
   };
 
@@ -205,25 +202,7 @@ export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
         <Alert>{t.messages.tooOld.usageReporting}</Alert>
       ) : unreadable ? (
         <Alert>{c.unreadable}</Alert>
-      ) : (
-        <>
-          <Note>
-            <button
-              type="button"
-              className="cursor-pointer font-[700] text-nb-accent-deep underline-offset-2 hover:underline"
-              onClick={() => openLink(PRIVACY_URL)}
-            >
-              {c.details} →
-            </button>
-          </Note>
-          {/* The id this machine's reports carry, while there is one to show. Before the
-              first event there is nothing — which is itself the honest answer. */}
-          {held?.on && (
-            <Note>{held.installId ? c.installId(held.installId) : c.nothingSent}</Note>
-          )}
-          <Note>{c.offNote}</Note>
-        </>
-      )}
+      ) : null}
     </Group>
   );
 }

@@ -328,7 +328,7 @@ function Empty({
       <span className="text-[13px] font-[800] text-nb-ink">{title}</span>
       <span className="max-w-[34ch] text-[12px] leading-[17px]">{body}</span>
       {hint && (
-        <span className="mt-1 rounded-[8px] border-[1.5px] border-nb-ink bg-nb-paper px-2.5 py-1 text-[12px] font-[700] text-nb-ink shadow-[2px_2px_0_0_var(--color-nb-ink)]">
+        <span className="mt-1 rounded-[8px] bg-nb-ink/8 px-2.5 py-1 text-[12px] font-[700] text-nb-ink">
           {hint}
         </span>
       )}

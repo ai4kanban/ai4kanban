@@ -181,7 +181,7 @@ function Name({
       label={
         <span className="inline-flex items-center gap-2">
           {view.name}
-          <span className={`${CAPTION} rounded-full border border-nb-ink/20 px-2 py-[3px] text-nb-ink-soft`}>
+          <span className={`${CAPTION} rounded-full bg-nb-ink/8 px-2 py-[3px] text-nb-ink-soft`}>
             {c.preview}
           </span>
         </span>
@@ -247,7 +247,7 @@ function Nodes({
   const c = useCopy().configuration.workspace;
   if (!nodes.length) return <Note>{c.noNodes}</Note>;
   return (
-    <div className="rounded-[10px] border border-nb-ink/12 bg-nb-paper px-3">
+    <div className="rounded-[10px] bg-nb-sheet px-3">
       {nodes.map((node) => (
         <NodeRow key={node.id} node={node} owner={owner} busy={busy} onError={onError} onDone={onDone}
           onRun={onRun} />
@@ -387,7 +387,7 @@ function Members({
 
   return (
     <>
-      <div className="rounded-[10px] border border-nb-ink/12 bg-nb-paper px-3">
+      <div className="rounded-[10px] bg-nb-sheet px-3">
         {members.map((member) => (
           <MemberRow key={member.accountId} member={member} owner={owner} busy={busy} onError={onError}
             onDone={onDone} onRun={onRun} />
@@ -675,7 +675,7 @@ function Offer({
   };
 
   return (
-    <div className="rounded-[12px] border border-nb-ink/12 bg-nb-paper px-4 py-3">
+    <div className="rounded-[12px] bg-nb-sheet px-4 py-3">
       <p className="text-[13px] font-[700]">{c.offerTitle}</p>
       <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">
         {taken ? c.committed : kind === "go" ? c.offerBlurb(change.cards) : c.leftBlurb(change.cards)}

@@ -21,10 +21,7 @@ const zh: ConfigurationCopy = {
     language: "语言",
   },
   runtimes: {
-    title: "运行时",
     listCaption: "这个看板用哪些名字来跑工作",
-    boardsOwn:
-      "这些设置属于看板：它们随仓库一起走，所以每份 checkout 跑的都一样。添加一个运行时，可以让部分流程跑在别的工具上。",
     global: "全局",
     runs: (harness, model) => (model ? `${harness} · ${model}` : harness),
     unknownAgent: (agent) => `不认识的 Agent「${agent}」`,
@@ -51,8 +48,11 @@ const zh: ConfigurationCopy = {
     globalFailed: (runtime) => `未能把 ${runtime} 设为全局运行时`,
   },
   harness: {
+    installed: "已安装",
     notInstalled: "未安装",
     notHere: (binary) => `这台机器上没有 ${binary}`,
+    advanced: "高级设置",
+    advancedBlurb: "供应商、模型、推理强度。不填就用 CLI 自己的默认值。",
     missingHint: (binary) => `这台机器上没有 \`${binary}\`，运行会启动失败。请安装它：`,
     loggedOut: "未登录",
     loggedOutHere: (binary) => `${binary} 已安装，但没有登录`,
@@ -211,14 +211,10 @@ const zh: ConfigurationCopy = {
   privacy: {
     title: "使用情况上报",
     body: "上报匿名的功能使用与失败情况。绝不包含代码、卡片内容、项目名称或文件路径。",
-    details: "查看全部事件与字段",
     on: "已开启",
     off: "已关闭",
     switchOn: (name) => `${name}已开启`,
     switchOff: (name) => `${name}已关闭`,
-    installId: (id) => `安装 ID：${id}`,
-    nothingSent: "尚未上报过任何内容，因此还没有安装 ID。",
-    offNote: "关闭后立即停止上报，删除仍在等待发送的内容，并清除安装 ID。",
     unreadable: "这台机器上的设置文件无法读取，因此不会上报任何内容，也无法保存设置。请修复或删除该文件后重新打开。",
     failedOn: "使用情况上报开启失败",
     failedOff: "使用情况上报关闭失败",

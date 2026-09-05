@@ -218,44 +218,42 @@ export function AgentsPanel({ onError }: { onError?: (msg: string) => void }) {
 
       {agents && (
         <>
-          <div className="rounded-[12px] border border-nb-ink/12 bg-nb-sheet px-4 py-2.5">
-            {/* Roles first, then the specialists the command ships, then this project's own
-                — one grid, in the board's own order. Fixed tracks, so a short roster leaves
-                empty ones rather than stretching its tiles. */}
-            <div className="grid grid-cols-5 gap-3 max-sm:grid-cols-3">
-              {agents.map((a) => (
-                <Tile
-                  key={a.name}
-                  agent={a}
-                  held={a.name === picked}
-                  busy={saving.includes(a.name)}
-                  onOpen={() => void select(a.name)}
-                  onFlip={(next) => flip(a, next)}
-                />
-              ))}
-              {adding && <NewTile onCreate={create} onCancel={() => setAdding(false)} />}
-            </div>
-
-            {agent && (
-              <Page
-                agent={agent}
-                rule={rules[agent.name] ?? ""}
-                file={files[agent.name]}
-                saved={savedRule === agent.name}
-                refusal={refusal && refusal.agent === agent.name ? refusal.why : ""}
-                focusFile={focusFile}
-                onFocused={() => setFocusFile(false)}
-                onRule={(text) => {
-                  setRules((all) => ({ ...all, [agent.name]: text }));
-                  setSavedRule("");
-                }}
-                onFile={(text) => setFiles((all) => ({ ...all, [agent.name]: text }))}
-                onLeave={() => void leave.current(agent.name)}
-                onPick={(key, value) => void pick(agent, key, value)}
-                busy={(key) => saving.includes(`${agent.name}/${key}`)}
+          {/* Roles first, then the specialists the command ships, then this project's own
+              — one grid, in the board's own order. Fixed tracks, so a short roster leaves
+              empty ones rather than stretching its tiles. */}
+          <div className="grid grid-cols-5 gap-3 max-sm:grid-cols-3">
+            {agents.map((a) => (
+              <Tile
+                key={a.name}
+                agent={a}
+                held={a.name === picked}
+                busy={saving.includes(a.name)}
+                onOpen={() => void select(a.name)}
+                onFlip={(next) => flip(a, next)}
               />
-            )}
+            ))}
+            {adding && <NewTile onCreate={create} onCancel={() => setAdding(false)} />}
           </div>
+
+          {agent && (
+            <Page
+              agent={agent}
+              rule={rules[agent.name] ?? ""}
+              file={files[agent.name]}
+              saved={savedRule === agent.name}
+              refusal={refusal && refusal.agent === agent.name ? refusal.why : ""}
+              focusFile={focusFile}
+              onFocused={() => setFocusFile(false)}
+              onRule={(text) => {
+                setRules((all) => ({ ...all, [agent.name]: text }));
+                setSavedRule("");
+              }}
+              onFile={(text) => setFiles((all) => ({ ...all, [agent.name]: text }))}
+              onLeave={() => void leave.current(agent.name)}
+              onPick={(key, value) => void pick(agent, key, value)}
+              busy={(key) => saving.includes(`${agent.name}/${key}`)}
+            />
+          )}
 
           {problems.length > 0 && (
             <Note icon={<FiAlertCircle />}>
@@ -301,9 +299,9 @@ function Tile({
   const off = !agent.enabled;
   return (
     <div
-      className={`relative rounded-[12px] bg-nb-paper ${
-        held ? "border-[1.5px] border-nb-accent" : "border border-nb-ink/12"
-      }`}
+      // No frame: the tile is a plate on the pane, and the ember wash is what says which one
+      // is open.
+      className={`relative rounded-[12px] ${held ? "bg-nb-accent-soft" : "bg-nb-wash"}`}
     >
       {agent.switchable && (
         <span className="absolute right-[7px] top-[7px] z-10 scale-[0.62] origin-top-right">
@@ -359,7 +357,7 @@ function NewTile({
   };
 
   return (
-    <div className="flex min-h-[108px] flex-col rounded-[12px] border-[1.5px] border-dashed border-nb-ink/25 bg-nb-sheet px-2 pb-1.5 pt-[7px]">
+    <div className="flex min-h-[108px] flex-col rounded-[12px] bg-nb-wash px-2 pb-1.5 pt-[7px]">
       <span className={`${CAPTION} text-[10px] tracking-[0.08em] text-nb-ink-soft`}>{c.newAgent}</span>
       <input
         autoFocus
@@ -376,7 +374,7 @@ function NewTile({
           if (e.key === "Enter") void create();
           if (e.key === "Escape") onCancel();
         }}
-        className="mt-[5px] w-full rounded-[8px] border border-nb-ink/25 bg-nb-paper px-2 py-[3px] font-mono text-[11.5px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
+        className="mt-[5px] w-full rounded-[8px] bg-nb-paper px-2 py-[3px] font-mono text-[11.5px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
       />
       <span className="mt-[3px] block text-[10.5px] leading-[13px] text-nb-ink-soft">{why || c.nameHint}</span>
       <span className="mt-auto flex items-center gap-1.5 pt-1.5">
@@ -384,7 +382,7 @@ function NewTile({
           type="button"
           disabled={busy}
           onClick={() => void create()}
-          className="cursor-pointer rounded-[7px] border-[1.5px] border-nb-ink bg-nb-accent px-2 py-[3px] text-[11px] font-[800] text-nb-paper disabled:cursor-wait disabled:opacity-60"
+          className="cursor-pointer rounded-[7px] bg-nb-accent px-2 py-[3px] text-[11px] font-[800] text-nb-paper disabled:cursor-wait disabled:opacity-60"
         >
           {c.create}
         </button>
@@ -484,7 +482,7 @@ function Page({
             spellCheck={false}
             aria-label={c.ruleLabel(agent.name)}
             placeholder={c.rulePlaceholder(agent.name)}
-            className="h-[64px] w-full resize-none rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+            className="h-[64px] w-full resize-none rounded-[10px] bg-nb-wash px-3 py-2 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
           />
 
           {agent.memory.length > 0 && (
@@ -494,7 +492,7 @@ function Page({
                 {agent.memory.map((file: string) => (
                   <div
                     key={file}
-                    className="flex items-center justify-between gap-2 rounded-[9px] border border-nb-ink/12 bg-nb-wash px-3 py-[5px]"
+                    className="flex items-center justify-between gap-2 rounded-[9px] bg-nb-sheet px-3 py-[5px]"
                   >
                     <span className="min-w-0 truncate font-mono text-[11.5px] text-nb-ink-soft">{file}</span>
                     <span className="shrink-0 rounded-[5px] bg-nb-ink/7 px-1.5 py-[2px] text-[9.5px] font-[800] uppercase tracking-[0.08em] text-nb-ink-soft">
@@ -533,7 +531,7 @@ function Page({
               onBlur={onLeave}
               spellCheck={false}
               aria-label={c.fileLabel(agent.name)}
-              className="h-[132px] w-full resize-none rounded-[10px] border border-nb-ink/25 bg-nb-paper px-2.5 py-2 font-mono text-[11px] leading-[15px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+              className="h-[132px] w-full resize-none rounded-[10px] bg-nb-wash px-2.5 py-2 font-mono text-[11px] leading-[15px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
             />
             {/* The board reads the text the way its catalog reads an agent. A save it would
                 refuse keeps every word of it, keeps this page open, and says what is wrong. */}
@@ -682,7 +680,7 @@ function SettingLine({
   const shown = picked?.label ?? value;
 
   return (
-    <div className={`rounded-[10px] border border-nb-ink/12 bg-nb-wash px-3 py-2 ${off ? "opacity-70" : ""}`}>
+    <div className={`rounded-[10px] bg-nb-sheet px-3 py-2 ${off ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-3">
         {/* Closed, the line carries the cost too — that is the whole answer, and it wraps
             rather than trailing off in an ellipsis. Open, the cost is dropped: every
@@ -728,12 +726,12 @@ function SettingLine({
                 aria-checked={on}
                 disabled={busy}
                 onClick={() => onPick(choice.value)}
-                className="flex cursor-pointer items-start gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors duration-100 hover:bg-nb-ink/5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait disabled:opacity-60"
+                className="flex cursor-pointer items-start gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors duration-100 hover:bg-nb-wash focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait disabled:opacity-60"
               >
                 <span
                   aria-hidden
-                  className={`mt-[3px] flex size-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-nb-ink ${
-                    on ? "bg-nb-accent" : "bg-nb-paper"
+                  className={`mt-[3px] flex size-[13px] shrink-0 items-center justify-center rounded-full ${
+                    on ? "bg-nb-accent" : "bg-nb-ink/20"
                   }`}
                 >
                   {on && <span className="size-[4px] rounded-full bg-nb-paper" />}

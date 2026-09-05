@@ -6,11 +6,9 @@
 // offset shadow, not the OS menu. Icons are react-icons' Fi set (we
 // deliberately avoid lucide).
 //
-// The default trigger is the settings-pane box (the CONTROL frame in
-// Configuration.tsx) — a 1px hairline, since every place that draws it is
-// inside a dialog. A caller with its own frame — the header's release sticker, a
-// card's level chip — restyles it through className; `cn` lets those overrides
-// win. The open list keeps the ink frame and the hard shadow: it floats over
+// The default trigger is a 1px hairline box. A caller with its own frame — the header's
+// release sticker, a card's level chip, the Configuration dialog's frameless FLAT_CONTROL —
+// restyles it through className; `cn` lets those overrides win. The open list keeps the ink frame and the hard shadow: it floats over
 // everything, so it is a raised block of its own. The chevron and check are sized `1em`, so they follow the
 // trigger's/item's own font size instead of needing an override of their own.
 

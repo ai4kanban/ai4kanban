@@ -27,7 +27,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiBell, FiCheck, FiCloud, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   bindRuntimeAction,
   hasWorkspaceAction,
@@ -43,7 +43,12 @@ import {
 import type { ConfigurationCopy } from "@/i18n/configuration/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import { missingRequired, pickedProvider, providerSetting, shownForProvider } from "@/lib/providers";
+import {
+  missingRequired,
+  pickedProvider,
+  providerSetting,
+  shownForProvider,
+} from "@/lib/providers";
 import type {
   AgentInfo,
   ConnectionTest,
@@ -59,14 +64,22 @@ import { CloudPanel } from "./Cloud";
 import { Dialog } from "./Dialog";
 import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
-import { CAPTION, CONTROL, Note, QUIET_BTN } from "./settings";
+import { CAPTION, CONTROL, FLAT_CONTROL, Note, QUIET_BTN } from "./settings";
 import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // Every box, list and small button in here is the settings kit's
-// (components/settings.tsx) — CONTROL is the frame a field wears and ui/select.tsx's
-// trigger copies, QUIET_BTN the flat button attached to one. Both live there because
-// every pane in this dialog draws them.
+// (components/settings.tsx) — CONTROL is the fill a field wears, FLAT_CONTROL the same one
+// for a ui/select.tsx trigger, QUIET_BTN the flat button attached to one. They live there
+// because every pane in this dialog draws them.
+//
+// Nothing in this dialog wears a frame. A hairline round every card, box and button turned
+// a pane of six settings into a page of boxes; a fill says the same thing more quietly, and
+// what is left of the lines are the rules BETWEEN a card's rows, which is where the eye
+// actually needs them. The dialog spends ONE neutral ramp on all of it — paper pane, sheet
+// for what groups (a card, a list, a plate), wash for what you can change (a field, a button,
+// a tile), canvas for the hover under that — which is the card page's ground and the rung
+// below it, not a third grey of its own.
 
 // A harness's mark, e.g. the Claude sunburst at public/agents/claude.svg. `name` is passed
 // only where the mark stands alone — on the cards the agent's name sits right next to it.
@@ -218,7 +231,7 @@ export function Configuration({
                   className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent max-sm:w-auto max-sm:shrink-0 ${
                     on
                       ? "bg-nb-accent-soft text-nb-accent-deep"
-                      : "text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
+                      : "text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
                   }`}
                 >
                   <Icon className="shrink-0 text-[15px]" aria-hidden />
@@ -427,6 +440,10 @@ export function HarnessPicker({
   // this the endpoint could never be picked at all: its base URL only shows once
   // it is picked, and it can't be picked until the base URL is there.
   const [pending, setPending] = useState("");
+  // Whether the agent's own settings are open, once someone has said so. Null until then,
+  // which reads as shut. Put back to null on a switch: that answer is about the agent that
+  // was picked, not the new one.
+  const [advanced, setAdvanced] = useState<boolean | null>(null);
 
   // Look again the moment the picker draws — opening the dialog mounts it, and so does the
   // agent step of the guided first run. The page load already answered this, and that
@@ -515,6 +532,11 @@ export function HarnessPicker({
         filled,
       ).map((key) => settings.find((s) => s.key === key)?.label ?? key);
 
+  // Shut until someone opens it, whatever the file already holds. Every field behind the
+  // fold has a working default, so the pane's one real question is which agent — and a fold
+  // that opened itself on a saved model put four fields above the answer.
+  const showAdvanced = advanced ?? false;
+
   const pick = async (option: HarnessOption) => {
     if (saving || option.name === active) return;
     const prev = { name: active, values, saved, ignored, secretsSet };
@@ -530,6 +552,7 @@ export function HarnessPicker({
     setIgnored([]);
     setSecretsSet([]);
     setPending("");
+    setAdvanced(null);
     setSaving(true);
     const revert = () => {
       setActive(prev.name);
@@ -670,92 +693,70 @@ export function HarnessPicker({
   const spawns = active || view?.harness || "";
   const testLabel = labelOf(spawns);
 
-  return (
-    <div className="flex flex-col gap-2">
-      {/* One square card per agent, all of them visible at once — the name and
-          the mark say what each is, no note needed. The ember frame alone marks
-          the active one.
+  // Which agents this machine can run, and which it can't. `=== false` on purpose: a board
+  // reading older rules doesn't answer this at all, and an unanswered question counts as
+  // here rather than putting every agent under "not installed".
+  const here = options.filter((o) => o.installed !== false);
+  const missing = options.filter((o) => o.installed === false);
 
-          A fixed six-column grid rather than a wrapping row: the cards then sit
-          on the same six columns whatever the count, instead of the last row's
-          width drifting with however many agents we ship. The dialog is sized
-          for six, so a seventh starts a second row under the first. */}
-      <div className="grid grid-cols-6 gap-2">
-        {options.map((option) => {
-          const on = option.name === active;
-          // This machine doesn't have that agent's CLI (#207), so a run under it would die
-          // at the spawn. The card dims and says "not installed" in words — never colour
-          // alone — but it is still a card you can press: someone whose CLI lives outside
-          // the PATH this board was started with would otherwise be shut out of the agent
-          // they use every day. `=== false` on purpose: a board reading older rules
-          // doesn't answer this at all, and an unanswered question greys out nothing.
-          //
-          // The picked agent never dims, whatever the answer. It is the agent this board
-          // runs; the line under the grid is where its missing CLI is said, in full, with
-          // the command that installs it.
-          const missing = option.installed === false && !on;
-          // The CLI is here, and nobody is logged in to it (#392). Said in the same slot as
-          // "not installed" and read the same way, with one difference: the mark doesn't
-          // dim. This agent IS on the machine and one command away from working, so a card
-          // greyed out like a missing one would overstate it. The word carries the answer
-          // and the peach ink is only a second way to see it.
-          //
-          // The picked agent says it under the grid instead, with the command, exactly the
-          // way a missing CLI does.
-          const signedOut = !missing && !on && !!loggedOut[option.name];
-          return (
-            <button
-              key={option.name}
-              type="button"
-              aria-pressed={on}
-              disabled={saving}
-              onClick={() => pick(option)}
-              title={
-                missing
-                  ? c.notHere(option.binary)
-                  : signedOut
-                    ? c.loggedOutHere(option.binary)
-                    : undefined
-              }
-              // One frame per card and nothing else: a 1px hairline, ember when
-              // it is the picked one. The mark sits straight on the paper — a
-              // tinted plate behind it was a second surface saying what the
-              // frame already says.
-              className={`flex cursor-pointer flex-col items-center gap-2 rounded-[12px] border bg-nb-paper px-2 pb-2.5 pt-4 transition-colors duration-100 disabled:cursor-wait ${
-                on ? "border-nb-accent" : "border-nb-ink/15 hover:border-nb-ink/30"
-              }`}
-            >
-              <span
-                className="flex h-[30px] items-center justify-center"
-                style={{ opacity: missing ? 0.45 : 1 }}
-              >
-                <AgentMark src={option.icon} size={26} />
-              </span>
-              <span className={`text-[12px] font-[800] ${missing ? "text-nb-ink-soft" : ""}`}>
-                {option.label}
-              </span>
-              {missing && (
-                <span className="-mt-1 text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-ink-soft">
-                  {c.notInstalled}
-                </span>
-              )}
-              {signedOut && (
-                <span className="-mt-1 text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-peach-ink">
-                  {c.loggedOut}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+  const card = (option: HarnessOption) => {
+    const on = option.name === active;
+    // The CLI is here, and nobody is logged in to it (#392). This agent IS on the machine
+    // and one command away from working, so it stays in the installed block and says so on
+    // the card; the peach ink is only a second way to see the word.
+    //
+    // The picked agent says it under the grid instead, with the command that logs it in.
+    const signedOut = !on && option.installed !== false && !!loggedOut[option.name];
+    const notHere = option.installed === false;
+    return (
+      <button
+        key={option.name}
+        type="button"
+        aria-pressed={on}
+        disabled={saving}
+        onClick={() => pick(option)}
+        title={
+          notHere ? c.notHere(option.binary) : signedOut ? c.loggedOutHere(option.binary) : undefined
+        }
+        // One fill per card and no frame: a faint ink plate, the ember wash when it is the
+        // picked one. The fill is what marks the pick now, so it has to be the ember one —
+        // a hairline is not what tells them apart any more.
+        className={`flex cursor-pointer flex-col items-center gap-2 rounded-[12px] px-2 pb-2.5 pt-4 transition-colors duration-100 disabled:cursor-wait ${
+          on ? "bg-nb-accent-soft" : "bg-nb-wash hover:bg-nb-canvas"
+        }`}
+      >
+        <span
+          className="flex h-[30px] items-center justify-center"
+          // A missing agent's mark dims, unless it is the one the board runs — the line
+          // under the grid is where that case is said, in full, with the install command.
+          style={{ opacity: notHere && !on ? 0.45 : 1 }}
+        >
+          <AgentMark src={option.icon} size={26} />
+        </span>
+        <span className={`text-[12px] font-[800] ${notHere && !on ? "text-nb-ink-soft" : ""}`}>
+          {option.label}
+        </span>
+        {signedOut && (
+          <span className="-mt-1 text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-peach-ink">
+            {c.loggedOut}
+          </span>
+        )}
+      </button>
+    );
+  };
 
+  // What the picked agent needs said, and what it can be set to. It hangs off the block the
+  // picked card is in rather than sitting under every grid: these are that agent's settings,
+  // and under a list of agents that don't have them they read as the pane's.
+  const detail = activeOption && (
+    <div>
       {/* The picked agent's CLI isn't here (#207). Said as a line rather than by dimming
           the card, because this one has something to do about it: the command that
           installs it. It shows the moment the agent is picked — including mid-switch,
           before the save lands — since that is when the user is asking what this agent
           needs. It says nothing about whether the CLI would then work: that is Test's
           answer, from a real run. */}
-      {activeOption?.installed === false && (
+      {activeOption.installed === false && (
         <Note icon={<FiAlertCircle />}>
           <Rich>{c.missingHint(activeOption.binary)}</Rich>{" "}
           <code className="rounded bg-nb-ink/8 px-1 py-0.5">{activeOption.install}</code>
@@ -769,7 +770,7 @@ export function HarnessPicker({
           It warns and stops nothing. Implement, Schedule, Resolve & implement and a chat all
           start under this agent exactly as they would without it — so a probe that read the
           CLI wrong costs one run, not the agent. */}
-      {activeOption && activeOption.installed !== false && loggedOut[activeOption.name] && (
+      {activeOption.installed !== false && loggedOut[activeOption.name] && (
         <Note icon={<FiAlertCircle />}>
           <Rich>{c.loggedOutHint(activeOption.binary)}</Rich>{" "}
           <code className="rounded bg-nb-ink/8 px-1 py-0.5">{loggedOut[activeOption.name]}</code>
@@ -783,8 +784,10 @@ export function HarnessPicker({
           costs, and it belongs at the moment of the switch. An agent that lacks nothing
           draws nothing, and so does a board reading older rules, which doesn't answer this
           at all. */}
-      {activeOption?.gaps?.length ? (
-        <HarnessGaps heading={c.gaps(activeOption.label)} gaps={activeOption.gaps} />
+      {activeOption.gaps?.length ? (
+        <div className="mt-3">
+          <HarnessGaps heading={c.gaps(activeOption.label)} gaps={activeOption.gaps} />
+        </div>
       ) : null}
 
       {/* The override, when there is one, so what actually runs is never hidden.
@@ -792,7 +795,7 @@ export function HarnessPicker({
           agent that is on its way out. Each agent has an override of its own, so
           switching back brings that agent's note back with it. */}
       {overridden && active === savedActive && (
-        <p className="text-[12px] leading-relaxed text-nb-ink-soft">
+        <p className="mt-3 text-[12px] leading-relaxed text-nb-ink-soft">
           <Rich>{c.override(savedCommand)}</Rich>
         </p>
       )}
@@ -802,12 +805,17 @@ export function HarnessPicker({
           (#71) and how hard that model thinks (#97). Nothing here knows an
           agent's name: another agent draws its own list in this same place.
 
+          Folded, always, however much the file already holds: every one of these fields
+          left alone runs the CLI's own default, so the pane's one real question is which
+          agent — and a fold that opened itself on a saved model made four fields the first
+          thing read on a pane that had already answered.
+
           Only the fields the picked provider needs are drawn: the base URL for
           an endpoint, the key for a provider that takes one, neither for the
           subscription. A field that isn't drawn doesn't reach a run either, so
           what you see here is what the agent is given. */}
-      {activeOption && activeOption.settings.length > 0 && (
-        <div className="mt-3">
+      {activeOption.settings.length > 0 && (
+        <Advanced open={showAdvanced} onToggle={() => setAdvanced(!showAdvanced)}>
           <div className="flex flex-col gap-5">
             {activeOption.settings
               .filter((setting) => shownForProvider(activeOption.settings, setting.key, picked))
@@ -852,24 +860,60 @@ export function HarnessPicker({
                 ),
               )}
           </div>
-        </div>
+        </Advanced>
       )}
+    </div>
+  );
 
-      {/* Test the setup that is saved (#96). Last in the pane, under the
-          settings it tests. It is keyed on the saved setup, so changing any of
-          it throws the old result away rather than leaving a "Passed" standing
-          for a setup that is gone. */}
-      <ConnectionTester
-        key={`${bind?.runtime ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
-        agentLabel={testLabel}
-        expected={spawns}
-        labelOf={labelOf}
-        runtime={bind?.runtime}
-        unsavedPick={Boolean(pending)}
-        disabled={saving}
-        onResult={onTested}
-        runTest={runTest}
-      />
+  // Which block holds the picked card, so the settings under it land in the right place. An
+  // agent nothing matches counts as installed: that is where the grid draws first.
+  const pickedMissing = missing.some((o) => o.name === active);
+
+  // Test the setup that is saved (#96). Keyed on that setup, so changing any of it throws
+  // the old result away rather than leaving a "Passed" standing for a setup that is gone.
+  //
+  // Its own button goes at the pane's top right — the one thing here that is a press rather
+  // than a setting, and the answer people open this pane to get. Where the press belongs to
+  // a screen outside (the guided first run), all that is left is the result, and that stays
+  // at the foot, under the button that started it.
+  const tester = (
+    <ConnectionTester
+      key={`${bind?.runtime ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
+      agentLabel={testLabel}
+      expected={spawns}
+      labelOf={labelOf}
+      runtime={bind?.runtime}
+      unsavedPick={Boolean(pending)}
+      disabled={saving}
+      onResult={onTested}
+      runTest={runTest}
+    />
+  );
+
+  return (
+    <div className="flex flex-col gap-5">
+      {!runTest && tester}
+
+      {/* The agents, in two blocks: the ones this machine can run, then the ones it can't
+          (#207). Which block a card is in is the whole of that answer, so no card wears a
+          "not installed" word of its own — a grid where most agents aren't installed used
+          to repeat that badge down every row.
+
+          A card in the second block is still a card you can press: someone whose CLI lives
+          outside the PATH this board was started with would otherwise be shut out of the
+          agent they use every day.
+
+          A fixed six-column grid rather than a wrapping row: the cards then sit on the same
+          six columns whatever the count, instead of the last row's width drifting with
+          however many agents we ship. */}
+      {here.length > 0 && (
+        <AgentGrid caption={missing.length ? c.installed : ""}>{here.map(card)}</AgentGrid>
+      )}
+      {!pickedMissing && detail}
+      {missing.length > 0 && <AgentGrid caption={c.notInstalled}>{missing.map(card)}</AgentGrid>}
+      {pickedMissing && detail}
+
+      {runTest && tester}
 
       {/* Never move a user to another agent silently: when the config asks for a
           harness we don't ship, or still carries the pre-#68 `command` key that
@@ -883,6 +927,55 @@ export function HarnessPicker({
               )
             : c.staleCommand}
         </Note>
+      )}
+    </div>
+  );
+}
+
+// One block of agent cards, under the word that says what they have in common. The caption
+// is left out when there is only one block: a lone "Installed" over every agent we ship
+// names a distinction that isn't being drawn.
+function AgentGrid({ caption, children }: { caption: string; children: React.ReactNode }) {
+  return (
+    <div>
+      {caption && <p className={`mb-2 ${CAPTION} text-nb-ink-soft`}>{caption}</p>}
+      <div className="grid grid-cols-6 gap-2">{children}</div>
+    </div>
+  );
+}
+
+// The agent's own settings, folded. Everything in here has a default that works — the fold
+// is what says so, and what keeps a pane whose only real question is "which agent" from
+// opening on four fields nobody should have to answer.
+function Advanced({
+  open,
+  onToggle,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  const c = useCopy().configuration.harness;
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className="flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft transition-colors duration-100 hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+      >
+        {open ? (
+          <FiChevronDown className="shrink-0 text-[13px]" aria-hidden />
+        ) : (
+          <FiChevronRight className="shrink-0 text-[13px]" aria-hidden />
+        )}
+        {c.advanced}
+      </button>
+      {open ? (
+        <div className="mt-4">{children}</div>
+      ) : (
+        <p className="mt-1 pl-[19px] text-[12px] leading-relaxed text-nb-ink-soft">{c.advancedBlurb}</p>
       )}
     </div>
   );
@@ -905,7 +998,7 @@ export function HarnessPicker({
 // once, and a reader that hears it four more times learns nothing.
 function HarnessGaps({ heading, gaps }: { heading: string; gaps: HarnessGap[] }) {
   return (
-    <div className="rounded-[10px] border border-nb-ink/15 bg-nb-wash px-3 py-2.5">
+    <div className="rounded-[10px] bg-nb-sheet px-3 py-2.5">
       <p className={`mb-1.5 ${CAPTION} text-nb-ink-soft`}>{heading}</p>
       <dl className="flex flex-col gap-1">
         {gaps.map((gap) => (
@@ -1013,11 +1106,18 @@ function ConnectionTester({
   if (!own && !unsavedPick && !running && !result) return null;
 
   return (
-    <div className="mt-3">
+    <div>
+      {/* The button alone, at the pane's right edge. What it costs is a hover away rather
+          than a line of prose across the top of a pane whose first question is which agent;
+          the one sentence that stays on screen is the one with something to do about it. */}
       {own ? (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-3">
+          {unsavedPick && (
+            <p className="min-w-0 text-[12px] leading-relaxed text-nb-ink-soft">{c.unsavedPick}</p>
+          )}
           <button
             type="button"
+            title={c.blurb(agentLabel)}
             disabled={running || disabled || unsavedPick}
             onClick={() => void test()}
             className={`${QUIET_BTN} inline-flex shrink-0 items-center gap-1.5`}
@@ -1025,9 +1125,6 @@ function ConnectionTester({
             <FiZap className="text-[13px]" aria-hidden />
             {running ? c.running : c.run}
           </button>
-          <p className="text-[12px] leading-relaxed text-nb-ink-soft">
-            {unsavedPick ? c.unsavedPick : c.blurb(agentLabel)}
-          </p>
         </div>
       ) : (
         unsavedPick && <p className="text-[12px] leading-relaxed text-nb-ink-soft">{c.unsavedPick}</p>
@@ -1079,7 +1176,7 @@ export function TestResult({
   return (
     <div
       aria-live="polite"
-      className="mt-3 rounded-[10px] border border-nb-ink/12 px-3 py-2.5"
+      className="mt-3 rounded-[10px] px-3 py-2.5"
       style={{ background: tone.bg }}
     >
       <p className="flex items-start gap-2 text-[13px] font-[700]" style={{ color: tone.ink }}>
@@ -1128,7 +1225,7 @@ export function TestResult({
       {/* The agent's own words, as they came — so they can be read, searched, or
           pasted somewhere that knows what they mean. */}
       {!running && result?.output && (
-        <pre className="mt-2 max-h-[220px] overflow-auto whitespace-pre-wrap break-words rounded-[8px] border border-nb-ink/15 bg-nb-paper px-2.5 py-2 text-[11px] leading-relaxed text-nb-ink">
+        <pre className="mt-2 max-h-[220px] overflow-auto whitespace-pre-wrap break-words rounded-[8px] bg-nb-paper px-2.5 py-2 text-[11px] leading-relaxed text-nb-ink">
           {result.output}
         </pre>
       )}
@@ -1190,7 +1287,7 @@ function ProviderField({
       }
     >
       <Select value={value || undefined} disabled={disabled} onValueChange={onPick}>
-        <SelectTrigger id={id} className="disabled:cursor-wait">
+        <SelectTrigger id={id} className={`${FLAT_CONTROL} disabled:cursor-wait`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -1322,7 +1419,7 @@ function SecretField({
           )}
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-2 rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2">
+        <div className="flex items-center justify-between gap-2 rounded-[10px] bg-nb-sheet px-3 py-2">
           <span className="flex items-center gap-2 text-[13px] font-[700] text-nb-ink">
             <FiCheck className="shrink-0 text-nb-accent-deep" aria-hidden />
             {c.set}
@@ -1400,7 +1497,7 @@ function SettingField({
             onSave(next);
           }}
         >
-          <SelectTrigger id={id} className="disabled:cursor-wait">
+          <SelectTrigger id={id} className={`${FLAT_CONTROL} disabled:cursor-wait`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

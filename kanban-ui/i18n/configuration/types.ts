@@ -26,11 +26,8 @@ export type ConfigurationCopy = {
    *  as, all of it in docs/kanban/ui.config.json. The harness block below draws one
    *  runtime's agent — and, on a board that names no runtimes, the board's own. */
   runtimes: {
-    title: string;
     /** Over the runtime list. */
     listCaption: string;
-    /** Said under the list: these settings are the board's, and everyone reads them. */
-    boardsOwn: string;
     /** The badge on the runtime a flow that names none runs on. */
     global: string;
     /** What that runtime runs as, in words. The row itself draws the agent as its own mark,
@@ -67,9 +64,15 @@ export type ConfigurationCopy = {
   /** The harness picker, drawn on a runtime and — on a board that names none — as the
    *  Runtimes pane itself. Its heading is `runtimes` above. */
   harness: {
-    /** A harness whose CLI this machine doesn't have. */
+    /** Over the agents this machine can run, and over the ones it can't. The second caption
+     *  is the whole of that answer — no card carries it. */
+    installed: string;
     notInstalled: string;
     notHere: (binary: string) => string;
+    /** The fold over the settings the picked agent declares: everything in it has a default
+     *  that works, so it opens only for a board that already set one. */
+    advanced: string;
+    advancedBlurb: string;
     missingHint: (binary: string) => string;
     /** A harness whose CLI is here but logged out (#392). A warning and never a gate: the
      *  run still starts. */
@@ -229,22 +232,15 @@ export type ConfigurationCopy = {
     behind: { runThis: string; copy: string };
   };
   /** The **Privacy** group of Configuration → General (#293): the one switch that decides
-   *  whether this machine reports anonymous usage, and the id its reports carry. */
+   *  whether this machine reports anonymous usage. */
   privacy: {
     title: string;
     body: string;
-    /** The link to the published list of every event and field. */
-    details: string;
     on: string;
     off: string;
     /** Read out loud in place of the On/Off word the switch already shows. */
     switchOn: (name: string) => string;
     switchOff: (name: string) => string;
-    /** The id this machine's reports carry, and what it says before the first one. */
-    installId: (id: string) => string;
-    nothingSent: string;
-    /** Said under the card: what turning it off does, at the moment it is pressed. */
-    offNote: string;
     /** The settings file is there and cannot be read, so nothing sends and nothing saves. */
     unreadable: string;
     failedOn: string;

@@ -21,10 +21,7 @@ const en: ConfigurationCopy = {
     language: "Language",
   },
   runtimes: {
-    title: "Runtimes",
     listCaption: "The names this board runs its work under",
-    boardsOwn:
-      "These settings are the board's: they travel with the repository, so every checkout runs the same thing. Add a runtime to run some flows on something else.",
     global: "global",
     runs: (harness, model) => (model ? `${harness} · ${model}` : harness),
     unknownAgent: (agent) => `Unknown agent "${agent}"`,
@@ -52,8 +49,11 @@ const en: ConfigurationCopy = {
     globalFailed: (runtime) => `couldn't make ${runtime} the global runtime`,
   },
   harness: {
-    notInstalled: "not installed",
+    installed: "Installed",
+    notInstalled: "Not installed",
     notHere: (binary) => `${binary} isn't on this machine`,
+    advanced: "Advanced",
+    advancedBlurb: "Provider, model, reasoning. Left alone, each runs the CLI's own default.",
     missingHint: (binary) =>
       `\`${binary}\` isn’t on this machine, so a run would fail to start. Install it:`,
     loggedOut: "logged out",
@@ -215,15 +215,10 @@ const en: ConfigurationCopy = {
   privacy: {
     title: "Usage reporting",
     body: "Share anonymous feature use and failures. Never code, card text, project names or file paths.",
-    details: "See every event and field",
     on: "On",
     off: "Off",
     switchOn: (name) => `${name} is on`,
     switchOff: (name) => `${name} is off`,
-    installId: (id) => `Install id: ${id}`,
-    nothingSent: "Nothing has been sent yet, so there is no install id.",
-    offNote:
-      "Turning this off stops new reports immediately, removes anything waiting to be sent, and forgets the install id.",
     unreadable:
       "The settings file on this machine cannot be read, so nothing is reported and nothing can be saved. Fix or remove it, then reopen this.",
     failedOn: "usage reporting could not be turned on",

@@ -26,7 +26,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getCopy } from "@/i18n";
 import { Rich } from "@/i18n/rich";
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES, type Language, type WriteResult } from "@/lib/types";
-import { Group, Panel } from "./settings";
+import { FLAT_CONTROL, Group, Panel } from "./settings";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "./ui/select";
 
 const LanguageContext = createContext<{
@@ -141,7 +141,7 @@ export function LanguageGroup({ onError }: { onError?: (msg: string) => void }) 
           >
             <SelectTrigger
               aria-label={c.group}
-              className="w-[184px] shrink-0 text-[13px] font-[700] disabled:cursor-wait max-sm:w-full"
+              className={`${FLAT_CONTROL} w-[184px] shrink-0 text-[13px] font-[700] disabled:cursor-wait max-sm:w-full`}
             >
               <SelectValue />
             </SelectTrigger>

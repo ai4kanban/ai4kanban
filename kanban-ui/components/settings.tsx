@@ -13,6 +13,10 @@
 // on the pane's ground with its settings in one inset under it says it before it is read.
 // Anything that is not a setting — a note, a line to copy, a fold — stays outside the card,
 // which is what keeps the card meaning "these are the things you can change".
+//
+// Nothing here is framed. The card is a fill, the button and the box are fainter fills, and
+// the only lines drawn are the rules between a card's rows. A fill that has to read on the
+// white pane AND on a card's sheet is one step darker again, never a grey plate of ink.
 
 import { useState } from "react";
 import { FiAlertCircle } from "react-icons/fi";
@@ -49,10 +53,13 @@ export function Group({
   );
 }
 
-/** The card a group's settings sit in — one quiet inset inside the dialog, so a hairline
- *  frame and no shadow. Its own side padding is what insets the rules between its rows. */
+/** The card a group's settings sit in — one quiet inset inside the dialog. Sand: the
+ *  cream family's warm rung, light enough that a tall card of settings never reads as a
+ *  grey slab, and the one fill every pane in the dialog uses so the tabs match. No frame:
+ *  the fill alone says where the group starts, and the rules between its rows are the only
+ *  lines it draws. Its own side padding is what insets those rules. */
 export function Panel({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-[12px] border border-nb-ink/12 bg-nb-sheet px-4">{children}</div>;
+  return <div className="rounded-[12px] bg-nb-sheet px-4">{children}</div>;
 }
 
 /** A row's mark, the slot it is centred in, and the column anything under that row starts
@@ -164,13 +171,15 @@ export function Switch({
       aria-label={label}
       disabled={held}
       onClick={() => void flip()}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-[1.5px] border-nb-ink transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50 ${
-        on ? "bg-nb-accent" : "bg-nb-wash"
+      // No frame: off is a filled grey track rather than an empty outlined one, so the
+      // switch still reads on whatever surface it sits on.
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50 ${
+        on ? "bg-nb-accent" : "bg-nb-ink/20"
       }`}
     >
       <span
-        className={`inline-block size-[16px] rounded-full border border-nb-ink bg-nb-paper transition-transform duration-150 ${
-          on ? "translate-x-[22px]" : "translate-x-[3px]"
+        className={`inline-block size-[18px] rounded-full bg-nb-paper shadow-[0_1px_2px_rgba(36,35,31,0.28)] transition-transform duration-150 ${
+          on ? "translate-x-[21px]" : "translate-x-[3px]"
         }`}
         aria-hidden
       />
@@ -227,18 +236,25 @@ export function Loading({ children }: { children: React.ReactNode }) {
 }
 
 /** The pane's one quiet button — a caption's Check again, a row's Sign out, a field's Save.
- *  Flat on a hairline: the dialog is already one raised block, and the button family's ink
- *  frame and hard shadow belong to the one action a pane is really about. */
+ *  A fill and no frame: the dialog is already one raised block, and the button family's ink
+ *  frame and hard shadow belong to the one action a pane is really about. Wash, the rung
+ *  under the sheet a card is: the dialog's whole neutral ramp is paper → sheet → wash →
+ *  canvas, so a button reads on the pane and on a card alike without a grey plate. */
 export const QUIET_BTN =
-  "inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border border-nb-ink/20 bg-nb-paper px-2.5 py-1.5 text-[12px] font-[700] text-nb-ink transition-[background-color,border-color,transform] duration-100 hover:border-nb-ink/35 hover:bg-nb-wash active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] bg-nb-wash px-2.5 py-1.5 text-[12px] font-[700] text-nb-ink transition-[background-color,transform] duration-100 hover:bg-nb-canvas active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
 /** The same button, for the one move that takes something away — peach, the palette's
  *  attention signal, so Remove reads apart from Rename beside it without shouting. */
 export const DANGER_BTN =
-  "inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] border border-nb-peach/60 bg-nb-paper px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink transition-[background-color,border-color,transform] duration-100 hover:border-nb-peach hover:bg-nb-peach-soft active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-[9px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink transition-[background-color,transform] duration-100 hover:bg-nb-peach/45 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
-/** The pane's one box to type in, and the frame ui/select.tsx gives its trigger — so a list
- *  and a text box read as the same control. A hairline frame and an ember focus ring;
- *  `disabled` here is always a save in flight, hence the wait cursor. */
+/** The pane's one box to type in. Frameless like everything else in the dialog: the same
+ *  faint ink fill marks it as a place to type, and the ember focus ring is what says it has
+ *  focus. `disabled` here is always a save in flight, hence the wait cursor. */
 export const CONTROL =
-  "w-full rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
+  "w-full rounded-[10px] bg-nb-wash px-3 py-2 text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait";
+
+/** CONTROL for a `ui/select.tsx` trigger, which carries a framed version everywhere else in
+ *  the app (the header's release picker, a card's chips). Passed by the dialog's own lists so
+ *  a list and a text box beside it still read as the same control. */
+export const FLAT_CONTROL = "border-0 bg-nb-wash";

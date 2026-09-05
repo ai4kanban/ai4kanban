@@ -290,7 +290,7 @@ function CommandLine({ line, copy }: { line: string; copy: SkillCopy }) {
   return (
     <div className="mt-3">
       <p className="text-[12px] leading-relaxed text-nb-ink-soft">{copy.behind.runThis}</p>
-      <div className="mt-1.5 flex items-center gap-1 rounded-[10px] border border-nb-ink/12 bg-nb-wash py-2 pl-3 pr-1.5">
+      <div className="mt-1.5 flex items-center gap-1 rounded-[10px] bg-nb-wash py-2 pl-3 pr-1.5">
         <code className="min-w-0 flex-1 break-words font-mono text-[12px] text-nb-ink">{line}</code>
         <button
           type="button"
@@ -303,7 +303,7 @@ function CommandLine({ line, copy }: { line: string; copy: SkillCopy }) {
               // select by hand, so there is nothing to report.
               .catch(() => {});
           }}
-          className="shrink-0 cursor-pointer rounded-[7px] p-1.5 text-nb-ink-soft transition-colors hover:bg-nb-ink/[0.07] hover:text-nb-ink"
+          className="shrink-0 cursor-pointer rounded-[7px] p-1.5 text-nb-ink-soft transition-colors hover:bg-nb-canvas hover:text-nb-ink"
         >
           {copied ? <FiCheck size={14} className="text-nb-mint-ink" /> : <FiCopy size={14} />}
         </button>

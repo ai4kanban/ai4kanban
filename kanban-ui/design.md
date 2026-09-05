@@ -111,36 +111,49 @@ shadow. Shadows never blur or change direction.
   focus ring, not the frame, is what has to be loud. The open dropdown panel floats free
   of its trigger, so it keeps the ink frame and hard shadow on every platform.
 - **Small controls keep their ink**: a toggle, checkbox, or radio is too small to read as
-  a shape from a hairline, so it keeps the full ink outline wherever it sits.
+  a shape from a hairline, so it keeps the full ink outline wherever it sits — except in
+  the Configuration dialog, which frames nothing: there the off state is a filled grey
+  track or dot, which reads at that size without an outline.
 - **Chips and badges**: keep them compact, borderless, bold, and uppercase. Meaning
   comes from their semantic fill; avoid drawing a row of little framed boxes inside a
   card. Use only one marker for the same state.
 - **Tabs and choices**: mark the active option once, with an ember underline, an ember
   frame, or a soft semantic fill. Inactive options use soft ink and strengthen on hover.
-  A picker card's frame is the mark — do not also put a tinted plate behind its icon.
+  Where the cards are frameless — the Configuration dialog — the soft ember fill is the
+  mark instead, and inactive cards take a faint ink fill. Mark it once either way.
 - **Dialogs and overlays**: place one raised paper block over a translucent ink scrim.
   Group the actions, support Escape and outside-click dismissal, and preserve a clear
   safe path.
 - **A dialog is one block**: the panel's own frame is the only ink outline in it. The rule
-  under the title bar is a hairline in every dialog, and so is every rule, inset, and
-  control frame inside. Only an action keeps the button family's ink frame and hard
-  shadow; a small button attached to a field — Save a key, Test the harness — is flat on
-  the same hairline as the field it belongs to.
+  under the title bar is a hairline in every dialog, and so is every rule and inset inside.
+  Only an action keeps the button family's ink frame and hard shadow; a small button
+  attached to a field — Save a key, Test the harness — is flat, on the field's own fill.
 - **A dialog's sidebar sits on cream**: wash is for insets within a pane, not for the
   column beside it.
 - **A settings pane is captioned groups**: it carries no title of its own — the sidebar
   names it — and each group is a small uppercase caption on the pane's ground with its
-  settings in one hairline `nb-sheet` card under it. The kit is `components/settings.tsx`;
-  every pane in Configuration is built from it and nothing reimplements a part of it.
+  settings in one frameless `nb-sheet` card under it — the card page's own section ground,
+  the same fill on every pane. The kit is `components/settings.tsx`; every pane in
+  Configuration is built from it and nothing reimplements a part of it.
+- **A settings pane frames nothing**: the group card, the button, the box, the picker card
+  and the result panel are all fills. The only lines left are the rules BETWEEN a card's
+  rows, which is where the eye actually needs them — a hairline round each of them turned
+  a pane of six settings into a page of boxes.
+- **A dialog spends one neutral ramp**: paper for the pane, `nb-sheet` for what GROUPS (a
+  card, a list, a row of read-only facts), `nb-wash` for what you can CHANGE (a field, a
+  quiet button, an agent or runtime tile), `nb-canvas` for the hover under that. Both fills
+  are the card page's — nothing in the dialog gets a grey of its own, and a plate of ink at
+  a few percent reads cold beside them.
 - **One row is one decision**: its name and at most a line or two of what it does on the
   left, its control on the right, hairlines between rows. What will not fit on that line —
   where a connection posts, what a choice costs — goes under the row, on the label's column.
 - **Only settings go in the card**: a note, a fold, a line to copy, an alert and a pane's
   own explanation sit outside it, which is what keeps the card meaning "these are the
   things you can change".
-- **One caption, one quiet button, one box**: `CAPTION`, `QUIET_BTN` and `CONTROL`. A row's
-  secondary action — Sign out, Disconnect, Check again — is the quiet button; the button
-  family's ink frame and hard shadow belong to the one action a pane is really about.
+- **One caption, one quiet button, one box**: `CAPTION`, `QUIET_BTN`, `CONTROL` and, for a
+  dropdown, `FLAT_CONTROL`. A row's secondary action — Sign out, Disconnect, Check again —
+  is the quiet button; the button family's ink frame and hard shadow belong to the one
+  action a pane is really about.
 - **An inner window is a dialog one rung down**: a log or preview frame is a hairline, a
   paper title bar, a hairline under it, and a wash well below — the same shape wherever it
   is dropped, inside a dialog or on a page.
