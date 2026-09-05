@@ -26,8 +26,7 @@ const zh: ConfigurationCopy = {
     runs: (harness, model) => (model ? `${harness} · ${model}` : harness),
     unknownAgent: (agent) => `不认识的 Agent「${agent}」`,
     add: "添加运行时",
-    addBlurb:
-      "看板持有一个名字，并给它一个自己的 Agent。看板会保留 **default** 并继续以它为全局运行时，因此所有流程当前跑什么，之后还跑什么。",
+    addBlurb: "再加一个名字，配它自己的 Agent。现在跑的东西不受影响。",
     namePlaceholder: "plan",
     save: "保存",
     cancel: "取消",
@@ -68,6 +67,115 @@ const zh: ConfigurationCopy = {
       "你的 ui.config.json 里还留着旧的顶层 \"command\" 字段。没有任何地方会读它——实际运行的是上面这个 Agent。你可以删掉这个字段；那是你的文件，这里不会去动它。",
     waitingFor: (boxes) => `尚未保存——把下面的${boxes}填好，这个选择会自动保存。`,
     fromConfig: (value) => `${value}（来自你的 ui.config.json）`,
+    // 看板流程随每个 Agent 交给界面的英文原文，按原文作键。产品名、命令、路径保持英文。
+    // 与英文一字不差才会命中：改动 cli/src/lib/agent/ 里的措辞，这里要跟着改。
+    rulesText: {
+      // 设置项名称
+      Provider: "提供方",
+      Model: "模型",
+      "Model id": "模型 ID",
+      "Reasoning effort": "推理强度",
+      "Endpoint base URL": "接口地址",
+      "Endpoint format": "接口格式",
+      "Endpoint key": "接口密钥",
+      "API key": "API 密钥",
+      "OpenAI API key": "OpenAI API 密钥",
+      "Cursor API key": "Cursor API 密钥",
+      "DeepSeek API key": "DeepSeek API 密钥",
+      "xAI API key": "xAI API 密钥",
+      "Z.AI Coding Plan key": "Z.AI Coding Plan 密钥",
+      "Extra arguments": "额外参数",
+
+      // 提供方
+      "Claude subscription": "Claude 订阅",
+      "Anthropic-compatible endpoint": "Anthropic 兼容接口",
+      "ChatGPT subscription": "ChatGPT 订阅",
+      "OpenAI-compatible endpoint": "OpenAI 兼容接口",
+      "Kimi sign-in": "Kimi 登录",
+      "Custom model endpoint": "自定义模型接口",
+      "Runs on the login your claude CLI already has. Nothing else to fill in.":
+        "使用 claude CLI 已有的登录，不用再填任何东西。",
+      "Runs on the login your codex CLI already has. Nothing else to fill in.":
+        "使用 codex CLI 已有的登录，不用再填任何东西。",
+      "Runs on the login your kimi CLI already has. Nothing else to fill in.":
+        "使用 kimi CLI 已有的登录，不用再填任何东西。",
+      "Pay per token, with an Anthropic API key.": "用 Anthropic API 密钥按 token 付费。",
+      "Pay per token, with an OpenAI API key.": "用 OpenAI API 密钥按 token 付费。",
+      "A gateway that answers in the Anthropic format — OpenRouter, LiteLLM, a company proxy.":
+        "以 Anthropic 格式响应的网关——OpenRouter、LiteLLM 或公司代理。",
+      "A gateway that answers OpenAI's Responses API — OpenRouter, LiteLLM, a company proxy.":
+        "以 OpenAI Responses API 响应的网关——OpenRouter、LiteLLM 或公司代理。",
+      "Any Kimi-, Anthropic- or OpenAI-shaped endpoint, with its own key.":
+        "任何 Kimi、Anthropic 或 OpenAI 格式的接口，配它自己的密钥。",
+
+      // 选项
+      "Agent's default": "Agent 默认",
+      Low: "低",
+      Medium: "中",
+      High: "高",
+      "Extra high (xhigh)": "极高（xhigh）",
+      Max: "最高",
+      "Kimi (default)": "Kimi（默认）",
+
+      // 说明
+      "Empty runs the agent's default. A wrong id fails the run; the log says why.":
+        "留空即用 Agent 自己的默认模型。ID 写错会让运行失败，日志里写明原因。",
+      "Chosen as the run's session opens. Empty runs the agent's default. A wrong id fails the run; the log says why.":
+        "在运行开启会话时选定。留空即用 Agent 自己的默认模型。ID 写错会让运行失败，日志里写明原因。",
+      "Chosen as the run's session opens. Empty runs the model Grok is set to. A wrong id fails the run; the log says why.":
+        "在运行开启会话时选定。留空即用 Grok 当前设定的模型。ID 写错会让运行失败，日志里写明原因。",
+      "Chosen as the run's session opens. Empty runs the model ZCode is set to. A wrong id fails the run; the log says why.":
+        "在运行开启会话时选定。留空即用 ZCode 当前设定的模型。ID 写错会让运行失败，日志里写明原因。",
+      "Written as provider/model. Empty runs the agent's default. A wrong id fails the run; the log says why.":
+        "写成 provider/model。留空即用 Agent 自己的默认模型。ID 写错会让运行失败，日志里写明原因。",
+      "An alias from your kimi config. Empty runs the agent's default. A wrong one fails the run; the log says why.":
+        "你 kimi 配置里的别名。留空即用 Agent 自己的默认模型。写错会让运行失败，日志里写明原因。",
+      "The id sent to the endpoint, as that endpoint spells it.": "发给接口的模型 ID，按那个接口的写法填。",
+      "Lower is quicker and cheaper, higher is slower and more careful.":
+        "越低越快越省，越高越慢越细致。",
+      "Your provider's own level, e.g. minimal, high, max. Empty lets the model think however it thinks.":
+        "你的提供方自己的档位，如 minimal、high、max。留空则让模型按自己的方式思考。",
+      "The address the gateway answers on.": "网关响应的地址。",
+      "The address the endpoint answers on.": "接口响应的地址。",
+      "The API your gateway answers in — OpenRouter and LiteLLM speak OpenAI.":
+        "网关所用的 API 格式——OpenRouter 和 LiteLLM 用 OpenAI。",
+      "Saved to docs/kanban/.env (kept out of git), never shown back.":
+        "保存在 docs/kanban/.env（不进 git），不会再显示出来。",
+      "Optional — empty uses your cursor-agent CLI's own login. Saved to docs/kanban/.env, never shown back.":
+        "可选——留空则用 cursor-agent CLI 自己的登录。保存在 docs/kanban/.env，不会再显示出来。",
+      "Optional — empty uses the key dsh itself saved. Saved to docs/kanban/.env, never shown back.":
+        "可选——留空则用 dsh 自己保存的密钥。保存在 docs/kanban/.env，不会再显示出来。",
+      "Used when `grok login` has not been run — a saved login outranks it. Saved to docs/kanban/.env (kept out of git), never shown back.":
+        "在没运行过 `grok login` 时使用——已保存的登录优先。保存在 docs/kanban/.env（不进 git），不会再显示出来。",
+      "From Z.ai, or BigModel for the same plan. A `zcode login` is not enough — a run signs in with this key. Saved to docs/kanban/.env (kept out of git), never shown back.":
+        "来自 Z.ai，或同一套餐的 BigModel。只运行 `zcode login` 不够——运行是用这个密钥登录的。保存在 docs/kanban/.env（不进 git），不会再显示出来。",
+      "Appended to the command as written, for whatever the settings above don't cover. Split on spaces; a bad one fails the run and the log says why.":
+        "原样追加在命令后面，用于上面的设置覆盖不到的东西。按空格拆分；写错会让运行失败，日志里写明原因。",
+      'Not in effect: this agent\'s "command" in your ui.config.json already names a model, and that wins.':
+        "未生效：ui.config.json 里这个 Agent 的 \"command\" 已经指定了模型，以它为准。",
+      'Not in effect: this agent\'s "command" in your ui.config.json already names an effort level, and that wins.':
+        "未生效：ui.config.json 里这个 Agent 的 \"command\" 已经指定了推理强度，以它为准。",
+      'Not in effect: this agent\'s "command" in your ui.config.json already names a model provider, and that wins.':
+        "未生效：ui.config.json 里这个 Agent 的 \"command\" 已经指定了模型提供方，以它为准。",
+      'Not in effect: this agent\'s "command" in your ui.config.json already names a variant, and that wins.':
+        "未生效：ui.config.json 里这个 Agent 的 \"command\" 已经指定了 variant，以它为准。",
+
+      // 这个 Agent 做不到、而别的 Agent 做得到的事
+      "Chat and resume": "对话与续跑",
+      "No conversations, and a run that stops short starts over.": "不能对话，中断的运行只能从头再来。",
+      "Early-crash resume": "早期崩溃续跑",
+      "A run that fails in its first seconds starts over.": "刚启动几秒就失败的运行只能从头再来。",
+      "Run cost": "运行花费",
+      "No price in the runs panel.": "运行面板里没有花费。",
+      "Token counts": "Token 用量",
+      "No token numbers in the runs panel.": "运行面板里没有 token 数。",
+      "Model name": "模型名",
+      "The runs panel shows no model.": "运行面板不显示模型。",
+      "Rate-limit exit": "限流即退出",
+      "A rate-limited run waits it out, holding its card.": "被限流的运行会一直等下去，卡片也一直占着。",
+      "Direct skill call": "直接调用 Skill",
+      "Prompts ask for the board skill in a sentence.": "提示词用一句话请求看板 Skill。",
+    },
     secret: {
       set: "已设置——存在 docs/kanban/.env",
       save: "保存",
@@ -211,8 +319,6 @@ const zh: ConfigurationCopy = {
   privacy: {
     title: "使用情况上报",
     body: "上报匿名的功能使用与失败情况。绝不包含代码、卡片内容、项目名称或文件路径。",
-    on: "已开启",
-    off: "已关闭",
     switchOn: (name) => `${name}已开启`,
     switchOff: (name) => `${name}已关闭`,
     unreadable: "这台机器上的设置文件无法读取，因此不会上报任何内容，也无法保存设置。请修复或删除该文件后重新打开。",

@@ -26,8 +26,7 @@ const en: ConfigurationCopy = {
     runs: (harness, model) => (model ? `${harness} · ${model}` : harness),
     unknownAgent: (agent) => `Unknown agent "${agent}"`,
     add: "Add runtime",
-    addBlurb:
-      "A name the board holds, with an agent of its own. The board keeps **default** beside it and stays global on it, so every flow goes on running what it runs now.",
+    addBlurb: "A second name, with an agent of its own. Nothing that runs today changes.",
     namePlaceholder: "plan",
     save: "Save",
     cancel: "Cancel",
@@ -71,6 +70,8 @@ const en: ConfigurationCopy = {
       'Your ui.config.json still has the old top-level "command" key. Nothing reads it — the agent above is what runs. You can delete the key; it\'s your file, so nothing here touches it.',
     waitingFor: (boxes) => `Not saved yet — fill in the ${boxes} below and this pick saves itself.`,
     fromConfig: (value) => `${value} (from your ui.config.json)`,
+    // The rules already say all of this in English.
+    rulesText: {},
     secret: {
       set: "Set — it’s in docs/kanban/.env",
       save: "Save",
@@ -215,8 +216,6 @@ const en: ConfigurationCopy = {
   privacy: {
     title: "Usage reporting",
     body: "Share anonymous feature use and failures. Never code, card text, project names or file paths.",
-    on: "On",
-    off: "Off",
     switchOn: (name) => `${name} is on`,
     switchOff: (name) => `${name} is off`,
     unreadable:

@@ -93,6 +93,11 @@ export type ConfigurationCopy = {
     waitingFor: (boxes: string) => string;
     /** A value hand-written into the config that isn't one of the choices. */
     fromConfig: (value: string) => string;
+    /** The words the board's rules hand down with each agent — a setting's label and help,
+     *  the providers on its list, what it can't do — all of them English. A language that
+     *  isn't English maps them here, keyed by what the rules say. What isn't in the map
+     *  draws as it came, so a rules build newer than this UI still reads. */
+    rulesText: Record<string, string>;
     secret: { set: string; save: string; replace: string; clear: string; cancel: string };
     test: {
       run: string;
@@ -236,9 +241,8 @@ export type ConfigurationCopy = {
   privacy: {
     title: string;
     body: string;
-    on: string;
-    off: string;
-    /** Read out loud in place of the On/Off word the switch already shows. */
+    /** What the switch says to a screen reader — the switch itself is the only state on
+     *  screen, the same as every other switch in this dialog. */
     switchOn: (name: string) => string;
     switchOff: (name: string) => string;
     /** The settings file is there and cannot be read, so nothing sends and nothing saves. */

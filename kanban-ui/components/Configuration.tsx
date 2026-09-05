@@ -246,7 +246,7 @@ export function Configuration({
               so unmounting on a section switch would throw away a value saved a
               moment ago. The dialog's fixed height keeps the panes steady;
               a pane taller than it scrolls here. */}
-          <div className="min-h-0 flex-1 overflow-y-auto p-6 max-sm:p-4">
+          <div className="min-h-0 flex-1 overflow-y-auto p-6 pb-12 max-sm:p-4 max-sm:pb-8">
             {/* What the board is set up with, in three groups on one pane (see General.tsx):
                 the coding-agent setup (#174), how a delivery is built (#303, #308) and the
                 language this machine reads in (#334). Mounted only while it is the section
@@ -317,6 +317,15 @@ function Field({
   );
 }
 
+// An agent's settings are drawn from words the board's RULES hand down — a setting's label
+// and help, a provider's blurb, what the agent can't do — and those are English wherever the
+// board runs. This turns one into the language the rest of the dialog is in; a word the copy
+// doesn't carry draws as the rules wrote it, so a newer rules build still reads.
+function useRulesText() {
+  const map = useCopy().configuration.harness.rulesText;
+  return (text: string) => map[text] ?? text;
+}
+
 // The harness picker: one square card per agent we can run, the active one
 // framed in ember, and under them the settings that agent declares (#93) — for
 // Claude Code, the model it runs with (#71). Clicking a card saves
@@ -373,6 +382,7 @@ export function HarnessPicker({
   // that was picked when the page loaded.
   const c = useCopy().configuration.harness;
   const cr = useCopy().configuration.runtimes;
+  const rules = useRulesText();
   // What this picker is set to right now: the board's own answer, or one runtime's binding
   // on this computer. Read once, here, so every piece of state below is seeded the same way
   // whichever of the two it is.
@@ -530,7 +540,7 @@ export function HarnessPicker({
     : missingRequired(
         list?.providers?.find((p) => p.id === pending),
         filled,
-      ).map((key) => settings.find((s) => s.key === key)?.label ?? key);
+      ).map((key) => rules(settings.find((s) => s.key === key)?.label ?? key));
 
   // Shut until someone opens it, whatever the file already holds. Every field behind the
   // fold has a working default, so the pane's one real question is which agent — and a fold
@@ -596,7 +606,7 @@ export function HarnessPicker({
         ? await setRuntimeSecretAction(bind.runtime, setting.key, next)
         : await setHarnessSecretAction(setting.key, next);
       if (!res.ok) {
-        onError?.(res.error || c.saveSecretFailed(setting.label.toLowerCase()));
+        onError?.(res.error || c.saveSecretFailed(rules(setting.label).toLowerCase()));
         return false;
       }
       told(res.agent);
@@ -631,7 +641,7 @@ export function HarnessPicker({
         return true;
       }
       put(was);
-      onError?.(res.error || c.saveSettingFailed(setting.label.toLowerCase()));
+      onError?.(res.error || c.saveSettingFailed(rules(setting.label).toLowerCase()));
       return false;
     } catch (e) {
       put(was);
@@ -892,7 +902,8 @@ export function HarnessPicker({
 
   return (
     <div className="flex flex-col gap-5">
-      {!runTest && tester}
+      {/* A pane whose first grid is missing has nowhere to hang the Test on. */}
+      {!runTest && here.length === 0 && tester}
 
       {/* The agents, in two blocks: the ones this machine can run, then the ones it can't
           (#207). Which block a card is in is the whole of that answer, so no card wears a
@@ -907,7 +918,11 @@ export function HarnessPicker({
           six columns whatever the count, instead of the last row's width drifting with
           however many agents we ship. */}
       {here.length > 0 && (
-        <AgentGrid caption={missing.length ? c.installed : ""}>{here.map(card)}</AgentGrid>
+        // The Test rides the first block's caption line rather than taking a row of its
+        // own: one button, right-aligned, above a pane whose whole first answer is a grid.
+        <AgentGrid caption={missing.length ? c.installed : ""} aside={!runTest && tester}>
+          {here.map(card)}
+        </AgentGrid>
       )}
       {!pickedMissing && detail}
       {missing.length > 0 && <AgentGrid caption={c.notInstalled}>{missing.map(card)}</AgentGrid>}
@@ -935,10 +950,27 @@ export function HarnessPicker({
 // One block of agent cards, under the word that says what they have in common. The caption
 // is left out when there is only one block: a lone "Installed" over every agent we ship
 // names a distinction that isn't being drawn.
-function AgentGrid({ caption, children }: { caption: string; children: React.ReactNode }) {
+//
+// `aside` is the Test and whatever it answered, on that same line — the caption is one short
+// word, and a button given a row to itself left the pane opening on empty space.
+function AgentGrid({
+  caption,
+  aside,
+  children,
+}: {
+  caption: string;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      {caption && <p className={`mb-2 ${CAPTION} text-nb-ink-soft`}>{caption}</p>}
+      {(caption || aside) && (
+        <div className="mb-2 flex items-start justify-between gap-3">
+          {/* Nudged down onto the button's own text, which sits inside its padding. */}
+          <p className={`pt-[7px] ${CAPTION} text-nb-ink-soft`}>{caption}</p>
+          {aside && <div className="min-w-0 flex-1">{aside}</div>}
+        </div>
+      )}
       <div className="grid grid-cols-6 gap-2">{children}</div>
     </div>
   );
@@ -958,7 +990,9 @@ function Advanced({
 }) {
   const c = useCopy().configuration.harness;
   return (
-    <div className="mt-3">
+    // The margin is what separates the fold from a note above it. Directly under the agent
+    // grid — the usual case — there is no note, and the pane's own gap is separation enough.
+    <div className="mt-3 first:mt-0">
       <button
         type="button"
         aria-expanded={open}
@@ -997,6 +1031,7 @@ function Advanced({
 // and every agent here runs the board. It is aria-hidden — the heading says "not supported"
 // once, and a reader that hears it four more times learns nothing.
 function HarnessGaps({ heading, gaps }: { heading: string; gaps: HarnessGap[] }) {
+  const rules = useRulesText();
   return (
     <div className="rounded-[10px] bg-nb-sheet px-3 py-2.5">
       <p className={`mb-1.5 ${CAPTION} text-nb-ink-soft`}>{heading}</p>
@@ -1007,9 +1042,9 @@ function HarnessGaps({ heading, gaps }: { heading: string; gaps: HarnessGap[] })
           <div key={gap.id} className="flex gap-2 text-[12px] leading-snug max-sm:flex-col max-sm:gap-0">
             <dt className="flex w-[142px] shrink-0 items-center gap-1.5 font-[700] text-nb-ink">
               <FiX className="shrink-0 text-[13px] text-nb-ink-soft" aria-hidden />
-              {gap.label}
+              {rules(gap.label)}
             </dt>
-            <dd className="text-nb-ink-soft max-sm:pl-[19px]">{gap.blurb}</dd>
+            <dd className="text-nb-ink-soft max-sm:pl-[19px]">{rules(gap.blurb)}</dd>
           </div>
         ))}
       </dl>
@@ -1105,6 +1140,13 @@ function ConnectionTester({
   const own = !runTest;
   if (!own && !unsavedPick && !running && !result) return null;
 
+  // Which agent answered, when it isn't the one this pane offered.
+  const ran = result?.harness && result.harness !== expected ? c.ran(labelOf(result.harness)) : "";
+  // A pass is one word beside the button, not a panel: it says the setup works and there is
+  // nothing to do about it. A failure keeps the panel — it carries the agent's own output —
+  // and so does a pass by an agent the pane didn't offer, which has that to say too.
+  const passedInline = own && !running && result?.ok === true && !ran;
+
   return (
     <div>
       {/* The button alone, at the pane's right edge. What it costs is a hover away rather
@@ -1114,6 +1156,15 @@ function ConnectionTester({
         <div className="flex items-center justify-end gap-3">
           {unsavedPick && (
             <p className="min-w-0 text-[12px] leading-relaxed text-nb-ink-soft">{c.unsavedPick}</p>
+          )}
+          {passedInline && result && (
+            <p
+              aria-live="polite"
+              className="flex min-w-0 items-center gap-1.5 text-[12px] font-[700] text-nb-mint-ink"
+            >
+              <FiCheck className="shrink-0" aria-hidden />
+              {c.passed(seconds(result.ms, c))}
+            </p>
           )}
           <button
             type="button"
@@ -1129,15 +1180,11 @@ function ConnectionTester({
       ) : (
         unsavedPick && <p className="text-[12px] leading-relaxed text-nb-ink-soft">{c.unsavedPick}</p>
       )}
-      {(running || result) && (
-        <TestResult
-          copy={c}
-          running={running}
-          result={result}
-          ran={
-            result?.harness && result.harness !== expected ? c.ran(labelOf(result.harness)) : ""
-          }
-        />
+      {/* While it runs, the button already says so — a panel repeating it in a sentence is
+          the one thing on a pane that is about to be replaced anyway. Elsewhere (the guided
+          first run, whose button is not this one) the panel is the only thing saying it. */}
+      {(own ? Boolean(result) && !passedInline : running || result) && (
+        <TestResult copy={c} running={running} result={result} ran={ran} />
       )}
     </div>
   );
@@ -1265,6 +1312,7 @@ function ProviderField({
   onPick: (id: string) => void;
 }) {
   const c = useCopy().configuration.harness;
+  const rules = useRulesText();
   const id = `harness-setting-${setting.key}`;
   const providers = setting.providers ?? [];
   const shown = providers.find((p) => p.id === value);
@@ -1272,16 +1320,16 @@ function ProviderField({
   return (
     <Field
       id={id}
-      label={setting.label}
+      label={rules(setting.label)}
       help={
         <>
-          {shown && <p>{shown.blurb}</p>}
+          {shown && <p>{rules(shown.blurb)}</p>}
           {waitingFor.length > 0 ? (
             <p>
               <strong className="text-nb-accent-deep">{c.waitingFor(waitingFor.join(" and "))}</strong>
             </p>
           ) : (
-            setting.help && <p>{setting.help}</p>
+            setting.help && <p>{rules(setting.help)}</p>
           )}
         </>
       }
@@ -1293,7 +1341,7 @@ function ProviderField({
         <SelectContent>
           {providers.map((provider) => (
             <SelectItem key={provider.id} value={provider.id}>
-              {provider.label}
+              {rules(provider.label)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -1334,6 +1382,7 @@ function SecretField({
   onSave: (value: string) => Promise<boolean>;
 }) {
   const c = useCopy().configuration.harness.secret;
+  const rules = useRulesText();
   const [typed, setTyped] = useState("");
   // Replace was pressed on a key that is set: show the box again. A save or a
   // Cancel puts the line back.
@@ -1356,10 +1405,10 @@ function SecretField({
   return (
     <Field
       id={id}
-      label={setting.label}
+      label={rules(setting.label)}
       help={
         <>
-          <p>{setting.help}</p>
+          <p>{setting.help && rules(setting.help)}</p>
           {note && <p>{note}</p>}
         </>
       }
@@ -1462,6 +1511,7 @@ function SettingField({
   onSave: (value: string) => void;
 }) {
   const c = useCopy().configuration.harness;
+  const rules = useRulesText();
   const id = `harness-setting-${setting.key}`;
 
   // What the list offers. A value hand-written into ui.config.json that isn't on
@@ -1484,8 +1534,12 @@ function SettingField({
   return (
     <Field
       id={id}
-      label={setting.label}
-      help={<p>{ignored && setting.overriddenHelp ? setting.overriddenHelp : setting.help}</p>}
+      label={rules(setting.label)}
+      help={
+        <p>
+          {rules((ignored && setting.overriddenHelp ? setting.overriddenHelp : setting.help) ?? "")}
+        </p>
+      }
     >
       {setting.kind === "select" ? (
         <Select
@@ -1503,7 +1557,7 @@ function SettingField({
           <SelectContent>
             {listed.map((choice) => (
               <SelectItem key={choice.value} value={toItem(choice.value)}>
-                {choice.label}
+                {rules(choice.label)}
               </SelectItem>
             ))}
           </SelectContent>

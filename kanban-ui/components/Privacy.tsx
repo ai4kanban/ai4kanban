@@ -186,14 +186,11 @@ export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
       <Panel>
         <Row label={c.title} hint={c.body}>
           {!tooOld && !unreadable && (
-            <>
-              {held && <span className="text-[12px] font-[800]">{held.on ? c.on : c.off}</span>}
-              <Switch
-                on={held ? held.on : null}
-                label={(held?.on ? c.switchOn : c.switchOff)(c.title)}
-                onFlip={flip}
-              />
-            </>
+            <Switch
+              on={held ? held.on : null}
+              label={(held?.on ? c.switchOn : c.switchOff)(c.title)}
+              onFlip={flip}
+            />
           )}
         </Row>
       </Panel>

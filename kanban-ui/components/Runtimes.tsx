@@ -380,7 +380,9 @@ function AddRuntime({
 
   return (
     <div className="flex items-start gap-3">
-      <div className="flex w-[260px] shrink-0 items-center gap-2">
+      {/* The box is what has a width; the two answers keep theirs, so a language whose
+          words are wider than English's doesn't wrap them onto two lines. */}
+      <div className="flex shrink-0 items-center gap-2">
         <input
           autoFocus
           type="text"
@@ -395,7 +397,7 @@ function AddRuntime({
             if (e.key === "Enter") void add();
             if (e.key === "Escape") setNaming(false);
           }}
-          className={CONTROL}
+          className={`${CONTROL} w-[200px]`}
         />
         <button
           type="button"
@@ -405,7 +407,12 @@ function AddRuntime({
         >
           {c.save}
         </button>
-        <button type="button" disabled={busy} onClick={() => setNaming(false)} className={QUIET_BTN}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setNaming(false)}
+          className={QUIET_BTN}
+        >
           {c.cancel}
         </button>
       </div>
