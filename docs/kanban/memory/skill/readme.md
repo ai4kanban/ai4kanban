@@ -118,6 +118,17 @@ covers it, or a plain-words note.
 - A build's commit mode can be asked for per Implement, not just configured; `akb implement`
   in a terminal carries none and falls back to the setting. A detached `HEAD` no longer
   refuses a build — it joins no-git and no-commit as a case where manual mode is the answer.
+- A rebase before landing no longer buys a second full review. When the target branch brought
+  in nothing the delivery also changes, the verdict the delivery already has carries on and it
+  lands; when the two share a file — a resolved conflict among them — the review that follows
+  judges only that intersection and reruns only the checks those paths affect: `akb guide
+  review`.
+- Review can be turned off, per board and per Implement: `aiReview` in
+  `docs/kanban/ui.config.json`, on by default and written only when off. With it off a
+  finished implementation queues for landing itself, a rebase on the way starts no review
+  either, and in manual commit mode the user's own commit ends the delivery whatever it
+  holds. The repository's checks, the open-question hold and diff approval are untouched, and
+  `akb delivery review <id>` still starts one: `web/content/docs/daily-loop.mdx`.
 - Every delivery leaves one JSON file under `docs/kanban/deliveries/`, tracked in git and
   kept after the card is archived, including every review verdict and why one stopped:
   `akb guide board`.
@@ -171,7 +182,7 @@ covers it, or a plain-words note.
 - A **spec agent** fills one part of a card's spec in a run of its own: `akb spec` lists
   them, `akb spec <name> <id>` puts one on a card. It starts clean, writes one
   ``## By `<name>` agent`` section and nothing else, and rewrites that section when it runs
-  again: `web/content/docs/spec-skills.mdx`, `akb guide spec-agent`.
+  again: `web/content/docs/agents.mdx`, `akb guide spec-agent`.
 - The board asks for one itself, so most spec runs are ones nobody typed: the flow writing a
   card asks for the part it would otherwise guess at, a refine or revise asks only when that
   part is still open, and propose and plan-release ask for none.
@@ -183,7 +194,7 @@ covers it, or a plain-words note.
   setting picks
   **Rendered screen** (a `.tsx`/`.html` file per option) or **ASCII drawing** (written into
   the card, travelling through git, a much shorter run): "Picking a layout by looking at it"
-  in `web/content/docs/spec-skills.mdx`.
+  in `web/content/docs/agents.mdx`.
 - `technology-selection` comes back with one table — two or three candidates, what each is,
   pros and cons — and one line naming the pick. Keeping what the project already uses and
   writing it yourself are rows on the same terms, and every name is looked up before it is
@@ -276,12 +287,18 @@ covers it, or a plain-words note.
   conversation runs on; `""` puts either back on the board's. The pick lives with the
   transcript, so a terminal and the board app read the same one, and every run still takes
   the board's own agent and model: `web/content/docs/chat.mdx`.
-- A **spec skill** is an Agent Skill directory, not board code: the board ships `ui-design` and
-  `technology-selection`, and a project adds its own under `docs/kanban/skills/<name>/SKILL.md`.
-  Its frontmatter carries `name`, `description` and an `akb:` block saying what part of a card's
-  spec it owns and which settings it offers; each setting's choice names one file inside the
-  skill, and only the chosen one reaches the run. `akb spec` lists them and says why any skill it
-  found can't be used: `web/content/docs/spec-skills.mdx`.
+- A **spec agent** is one folder, not board code: the board ships `ui-design` and
+  `technology-selection`, and a project adds its own under `docs/kanban/agents/<name>/AGENT.md`.
+  Its frontmatter carries `name`, `description` and an `akb:` block saying which hook it plugs
+  into — `kind: spec`, or `kind: write` on a marketing board and refused anywhere else — what
+  part of a card's spec it owns, and which settings it offers; each setting's choice names one
+  file inside the agent's folder, and only the chosen one reaches the run. `akb spec` lists them
+  and, under them, anything wrong with one it found: `web/content/docs/agents.mdx`.
+- The word changed from **skill** to **agent** in 0.9.0, and a board upgrades without moving a
+  file: `docs/kanban/skills/` and `SKILL.md` are still read for one release, each hit listed with
+  a line saying to move it; a section written as ``## By `x` skill`` is rewritten in place; and
+  `akb guide spec-skill` still answers under its new name, `spec-agent`. `akb spec <agent> <id>`,
+  `akb raw spec-write` and the `specAgents` setting never changed spelling.
 - A repository can hold **more than one board**. `akb install --board <dir>` puts one anywhere;
   every command takes `--board <dir>` or reads `AI4KANBAN_BOARD`, and a command typed inside the
   board folder finds it. The flag beats the variable, both beat `--dir`, and with none of them the

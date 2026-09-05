@@ -48,6 +48,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A character is invented from scratch for a thing the app already ships a mark for** (a
   generic figure per run, beside `public/agents/*.svg`) → ✅ build the character on the mark
   that already exists — no new art, and the agents tell themselves apart for free.
+- ❌ **A card that replaces a whole screen names the screen's parts in prose and leaves the
+  layout to the build** → ✅ the screen is drawn before the card is settled — where each part
+  sits, what fills the empty space, and how the screen is entered and left. Scope lines say
+  what the screen does, never what it looks like.
 - ❌ **A control that qualifies the next message gets a strip of its own above the
   transcript** (the chat's agent and model on a row between the header and the conversation)
   → ✅ it goes inside the message box, on the box's own bottom row beside Send, and the box
@@ -111,6 +115,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A list that only reports sends the user into a page of its own to change what it
   reports** → ✅ set it where it is read: the one row that matters is open, the rest are
   folded, and a separate view is only for what the list cannot hold.
+- ❌ **A grid of characters draws the same placeholder figure in every tile, with the real
+  art left for the user to generate afterwards** → ✅ each role gets its own character —
+  different silhouette, pose and prop — and the ones the product ships carry finished art
+  in the repo. A screen whose whole point is the artwork cannot ship without it.
 - ❌ **Monospace is used to make a name read as a literal** → ✅ settings prose is one
   typeface; a name earns its weight from position and weight, not from a second font.
 

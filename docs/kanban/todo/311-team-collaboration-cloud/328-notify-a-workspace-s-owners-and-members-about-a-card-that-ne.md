@@ -3,7 +3,7 @@ title: Notify a workspace's owners and members about a card that needs them
 priority: high
 roi: high
 status: ready
-release: 0.9.0
+release: ""
 blocked_by: []
 related: [311]
 modules: [cloud, local-ui, site]

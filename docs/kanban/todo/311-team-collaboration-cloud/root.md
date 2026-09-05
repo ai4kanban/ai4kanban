@@ -3,7 +3,7 @@ title: Bring team collaboration to AI4Kanban Cloud
 priority: high
 roi: high
 status: ready
-release: 0.9.0
+release: ""
 blocked_by: []
 related: [328, 375]
 modules: [cloud, local-ui]
@@ -14,16 +14,17 @@ verify:
 ---
 
 Let a team share one authoritative Cloud board while every member keeps code and agent work
-on their own machine. #373 puts a board in Cloud and reaches it from a browser, but it holds
-one account's board: a second contributor cannot be identified, cannot be reached when a
-question needs an answer, and nothing stops two machines from changing the same card. This
+on their own machine. Cloud already keeps a whole board in a workspace and opens it in a
+browser, but it holds one account's board: a second contributor cannot be identified, cannot
+be reached when a question needs an answer, and nothing stops two machines from changing the
+same card. This
 is a group task; each piece is its own subtask in this folder.
 
 ## Worth noting
-- **This group needs a Cloud board, not the other way round**: #373 ships the workspace, its
-  store, the app and CLI against it and the browser surface for one account, and everything
-  here is a layer on top — members, a per-card writer, and routing a question to the person
-  who can answer it.
+- **This group needs a Cloud board, not the other way round**: the workspace, its store, the
+  app and CLI against it and the read-only browser surface all shipped for one account, and
+  everything here is a layer on top — members, a per-card writer, and routing a question to
+  the person who can answer it.
 - **A shared board changes when you act, not when a teammate does**: nothing pushes an edit
   to an open board, so a member meets a teammate's change on their next action or refresh and
   a notification is what tells them something needs them; a live subscription would hold a
@@ -38,10 +39,10 @@ is a group task; each piece is its own subtask in this folder.
 <!-- agent -->
 
 ## Today
-- **#373 is what this group builds on**: the workspace and its one-transaction mutation
-  (#314), the board stored in Cloud (#315), the app and CLI working against it (#316), the
-  Local-or-Cloud onboarding (#317), and the browser surface (#322, #364). All of it answers
-  one account.
+- **The one-account Cloud board is what this group builds on**: the workspace and its
+  one-transaction mutation (#314), the board stored in Cloud (#315), the app and CLI working
+  against it (#316), the Local-or-Cloud onboarding (#317), and the browser surface (#322,
+  whose two card decisions are #364's). All of it answers one account.
 - **The authorization check is in one place**: #314 puts every workspace endpoint behind an
   owner check deliberately kept in one predicate, so #376 swaps it for a membership check
   rather than reworking the control plane.
@@ -105,7 +106,8 @@ is a group task; each piece is its own subtask in this folder.
   model key reaches it on any card in this group, and every agent run stays on a member's own
   machine.
 - **Out of the group**: the workspace, its store, the app and CLI against it, onboarding and
-  the browser surface — all #373, and this group changes them rather than builds them.
+  the browser surface — all shipped with the one-account Cloud board, and this group changes
+  them rather than builds them.
 - **Out of the group**: realtime body editing, fine-grained card permissions, dispatching work
   between members' machines, and any Cloud handling of code.
 - **Out of the group**: GitHub Issues intake — #313 is an intake door into either board, and a
@@ -127,4 +129,5 @@ is a group task; each piece is its own subtask in this folder.
 ## Source
 - `docs/kanban/memory/goal.md`, the 团队协作 section — the four problems a shared board has to
   solve.
-- #373 — the Cloud board and browser surface this group layers on.
+- The Cloud board group, now closed — the workspace and the read-only browser surface this
+  group layers on.

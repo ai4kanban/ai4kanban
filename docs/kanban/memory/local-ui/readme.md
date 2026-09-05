@@ -86,6 +86,11 @@ naming no other doc is covered there.
 - **Approve diffs before landing** holds every delivery for a human read of the
   tree, outside the landing queue so other cards still land; an approval covers one base
   commit and one tree and is cancelled by either moving: "Approving a delivery".
+- **AI review** turns that review off — a third switch beside the two above, on by default,
+  with **Have a second agent review it** on the Implement dialog turning one build round the
+  way the worktree tick does. The build then goes straight to landing, the delivery block's
+  foot reads **No AI review**, and the choice is frozen when the delivery starts:
+  "Turning AI review off".
 - Building a card with **open questions** is allowed behind a third warning: it builds,
   reviews, then holds outside the landing queue until the questions are answered.
   Answering carries the same delivery on unless it changed what the card asks for.
@@ -239,9 +244,10 @@ naming no other doc is covered there.
   the model carries the same conversation on and the transcript marks where it changed;
   switching the agent starts it over behind the bin's ask-once, and is refused while a reply
   is coming.
-- Configuration → Agents is **Spec skills** now. It lists the skills the board ships and the ones
-  the project added under `docs/kanban/skills/`, draws each one's settings from that skill's own
-  `SKILL.md`, and names any skill it found but cannot use with the reason: `kanban-ui/README.md`.
+- Configuration → Agents is **Spec agents**. It lists the agents the board ships and the ones the
+  project added under `docs/kanban/agents/`, draws each one's settings from that agent's own
+  `AGENT.md`, and lists anything wrong with one it found under **Problems on this board** — a
+  folder still where agents used to live is one of them: `kanban-ui/README.md`.
 - Setting up a new board **finds the coding agent instead of asking for it**: the first run
   tries the agents already on the machine — Claude Code, then Codex, then the rest, skipping
   any still wanting a key — with the same call the Test button makes, and the first that

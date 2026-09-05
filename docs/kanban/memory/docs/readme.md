@@ -29,9 +29,10 @@ covers it, or a plain-words note.
   the model id, why the board widens `--print-timeout` past a card's length, and that its
   shell is not fenced to the project — with the note that no card has run on it yet:
   `web/content/docs/connectors.mdx`.
-- Writing a spec skill of your own — the directory shape, the `akb:` frontmatter block, and how a
-  setting's choice picks the one reference a run is given: "Let a specialist fill part of the spec"
-  in `web/content/docs/spec-skills.mdx`.
+- Writing a spec agent of your own — the folder shape, the `akb:` frontmatter block with the hook
+  it plugs into, and how a setting's choice picks the one reference a run is given: "Let a
+  specialist fill part of the spec" in `web/content/docs/agents.mdx`, which `/docs/spec-skills`
+  now redirects to.
 - What a Local board is, what a Cloud board is, and what moving between them costs — the
   committed `.ai4kanban.json` pointer, the git-ignored copy in `docs/kanban/`, the one reviewed
   commit each way, the export, leaving Cloud and deleting the workspace:

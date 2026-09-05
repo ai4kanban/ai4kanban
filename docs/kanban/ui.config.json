@@ -10,7 +10,8 @@
       "provider": "coding-plan"
     },
     "codex": {
-      "reasoning": "high"
+      "reasoning": "high",
+      "command": "/Applications/ChatGPT.app/Contents/Resources/codex exec"
     }
   }
 }

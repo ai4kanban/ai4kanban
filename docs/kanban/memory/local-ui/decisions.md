@@ -16,11 +16,15 @@ re-ask a settled call.
 - Configuration settles the board; what belongs to the machine rather than the board —
   the Cloud sign-in, the language, a runtime's binding — sits after the board's own
   settings and separated from them.
-- A pane of short settings is a list of rows. A pane whose items are paragraphs — flow
-  rules — is a narrow picker column beside one tall box.
-- Spec skills are the exception to the rows rule: a grid with one pixelart character per
-  named skill, its switch on the tile, and what it contributes and what it is set to read
-  by selecting the tile. Its art ships as files, unlike the Runs fleet.
+- A pane of short settings is a list of rows. A pane whose items are paragraphs is a narrow
+  picker column beside one tall box.
+- **The Agents pane**: one roster replacing both Spec skills and Rules, drawn as a grid with
+  one pixelart character per agent — the switch on the tile, and the agent's rule, what it
+  remembers and its settings read by selecting the tile. It ships as characters from the
+  first release, and its art ships as files, unlike the Runs fleet.
+- **A specialist you add is written in the pane**: its whole `AGENT.md` is a box on its page,
+  saved the way a rule is, and Add a specialist ends with the cursor in it. The app never
+  learns to open a local file in your editor.
 - Runtimes is a list of runtimes, never a list of computers: each one names the single
   computer it runs on, the global one is open and the rest are folded, and its computer,
   harness and model are set in place. Computers get a tab of their own. A board naming no
@@ -71,6 +75,8 @@ re-ask a settled call.
 - A delivery's state rides on the card's title band: the pill, plus one line saying what it
   waits on. Its diff and approval are tabs in the block that already holds the log, so the
   page gains no new furniture.
+- **A card-less build never waits**: it runs with AI review and diff approval off whatever the
+  board's settings say, so the implementation's commit lands with nothing to answer.
 
 ## Setup and the first run
 
@@ -180,13 +186,22 @@ re-ask a settled call.
   dialogs until we have seen how it reads. The rail's search reaches open cards only.
 - The archive is reached from one row in the left rail directly above Memory, and stays
   hidden until that row is opened: archived cards appear in no column and no count.
-- Propose and add-task take one module at a time and picking one is optional; with none
-  picked the agent chooses the focus itself.
+- Add-task takes one module at a time and picking one is optional; with none picked the
+  agent chooses the focus itself.
 - Reading a closed version's changelog on the board is its own card, separate from the one
   that writes it.
 
 ## Chat in the UI
 
+- The Create task chat offers **Discuss**, **Add task**, and **Build now**: shape a vague idea,
+  put clear work on the board, or implement it without a task.
+- **Create task is an action, not a place**: it opens a full-screen sheet over the board that Esc
+  or ✕ closes, rather than a Board/Build tab pair in the header.
+- **A plan file is read outside the app**: Discuss writes `docs/kanban/plans/<id>-<slug>.md` and the
+  cards it produced name its path; the board never opens it.
+- **Propose tasks is gone from the app**: the mode is dropped rather than carried into the
+  chat, because cards nobody asked for are rarely worth trusting; `akb propose` still writes
+  them from a terminal.
 - The chat is a full-height rail down the right, folded away by default so the board stays
   the centre of the app, and it follows what you are reading — the board's chat on the
   board and on a memory file, a card's on its page — so only one is ever on screen.

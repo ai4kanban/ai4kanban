@@ -63,6 +63,9 @@ before proposing so you don't re-suggest them.
   Cloud workspace's URL and its GitHub sign-in reach a phone from anywhere, work while the
   machine is asleep, and need no second way in; the cost we accepted is that a user who
   never turns Cloud on has no phone access at all.
+- **A separate card for restyling the Spec agents pane as pixelart characters** — the
+  Agents pane draws that same screen once, so the characters ship with it rather than as
+  a second pass over rows the user would see twice. The characters themselves stand.
 
 ## Runs
 

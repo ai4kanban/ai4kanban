@@ -86,6 +86,11 @@ re-ask a settled call.
   can drive one end to end — Antigravity's `--dangerously-skip-permissions` is refused by the
   sandbox every session here runs under — it reaches the picker with the docs saying so, and
   the first real card's surprises become a new card.
+- **A rebase is reviewed for what it brought in, not for the whole delivery again**: one that
+  touches none of the delivery's files lands with nothing run — no review and no repository
+  check — and only one that shares a file with the delivery, or a resolved conflict, takes a
+  review, scoped to that intersection. A board that wants its own check on every rebase gets a
+  hook to plug one into later.
 
 ## Open questions
 
@@ -188,6 +193,13 @@ re-ask a settled call.
 
 ## Chat
 
+- The Create task chat offers **Discuss**, **Add task**, and **Build now**: shape a vague idea,
+  put clear work on the board, or implement it without a task.
+- **What Build now leaves behind**: a delivery record and nothing else — the run is logged, its
+  branch lands the way any delivery's does, and Runs shows it with the typed sentence where a card
+  id would be.
+- **Build now never waits**: it runs with AI review and diff approval off, so nothing holds the
+  delivery between the implementation's commit and landing.
 - Only agents whose command can be sent a second message into the session it already opened
   can hold a chat; any other names the ones that can. A conversation is never held by
   sending the whole exchange again each turn.
@@ -200,6 +212,8 @@ re-ask a settled call.
 - A conversation carries its own agent and model, kept with the transcript, so a terminal
   continues it on the same pair. The board's are the default, and switching the agent starts
   the conversation over rather than moving the transcript to a CLI that never opened it.
+- A plan a **Discuss** chat writes is kept: it stays in `docs/kanban/plans/` after its cards
+  are written, and every card it produced names it as its source.
 
 ## Card format
 
@@ -250,3 +264,6 @@ re-ask a settled call.
 - **A repurpose run is one pass, not a loop**: `source.md` is a medium-length piece, so the
   run only shortens or expands it into the channel's shape; there is no clarify or QA phase
   on a draft, because the user editing it is the review.
+- **A user `write` agent adds to the writer, never replaces it**: the bundled writer keeps
+  writing the draft and calls a named specialist — an image generator, say — when one helps,
+  the way a planning run asks for a spec agent.
