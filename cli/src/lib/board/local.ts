@@ -101,7 +101,7 @@ import type {
 } from './contract'
 import { leaseAnd, moveTarget, opConflict, opOk, opRefused, sameTarget, targetName } from './ops'
 import { boardRevision, cardRevision } from './revision'
-import type { BulkReleaseResult, CardPatch, CardSchedule, PlanCard, SaveProjectResult } from '../view/types'
+import type { CardPatch, CardSchedule, PlanCard, SaveProjectResult } from '../view/types'
 
 // ---- the named moves -------------------------------------------------------
 //
@@ -366,35 +366,6 @@ export function localBoard(): BoardProvider {
     rejectCard: (id, env) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'rejected') || {} })),
 
     // ---- releases -----------------------------------------------------------
-
-    async setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult> {
-      const target = normalizeRelease(release)
-      if (target !== NO_RELEASE) {
-        const known = await read(readReleases, [] as string[])
-        if (!known.includes(target)) {
-          return {
-            moved: 0,
-            failed: [],
-            error: `unknown release "${target}" — releases on the list: ${known.join(', ') || '(none)'}.`,
-          }
-        }
-      }
-      const failed: { id: number; error: string }[] = []
-      let moved = 0
-      for (const id of ids) {
-        // Each card is written on its own, under its own lease: one bad card must not cost
-        // the rest their move, and the card files stay the record either way. A lease the
-        // board would not grant throws where a mutation refuses, so it is caught here too.
-        try {
-          const res = await leaseAnd(provider, { card: id }, (env) => provider.patchCard(id, { release: target }, env))
-          if (res.ok) moved += 1
-          else failed.push({ id, error: res.error || 'could not be moved' })
-        } catch (e) {
-          failed.push({ id, error: opRefused(e).error })
-        }
-      }
-      return { moved, failed }
-    },
 
     newRelease: (id, goal, fill, env) =>
       mutate({ board: true }, env, () => {

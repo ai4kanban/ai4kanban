@@ -365,7 +365,6 @@ export {
   readSetupState,
   saveGoal,
   saveProject,
-  setCardsRelease,
   setReleaseGoal,
   setSchedule,
 } from './lib/view/api'

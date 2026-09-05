@@ -74,17 +74,10 @@ export function QueueView({
   columns,
   sessions,
   onOpenLog,
-  selected,
-  onSelect,
 }: {
   columns: Column[];
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
-  /** The cards ticked for the bulk release move (#114). */
-  selected: Set<number>;
-  /** Tick or untick one. Left out draws no ticks at all — a screen that cannot write a
-   *  card's release has nothing to tick them for (#374). */
-  onSelect?: (id: number, next: boolean) => void;
 }) {
   const c = useCopy().board.queue;
   const phone = usePhone();
@@ -123,13 +116,7 @@ export function QueueView({
       count: c.readyCount(readyCount, implementingCount),
       width: HALF_W,
       body: (
-        <Bands
-          bands={ready}
-          sessions={sessions}
-          onOpenLog={onOpenLog}
-          selected={selected}
-          onSelect={onSelect}
-        />
+        <Bands bands={ready} sessions={sessions} onOpenLog={onOpenLog} />
       ),
     },
     {
@@ -138,13 +125,7 @@ export function QueueView({
       count: `${notReadyCount}`,
       width: HALF_W,
       body: (
-        <Bands
-          bands={notReady}
-          sessions={sessions}
-          onOpenLog={onOpenLog}
-          selected={selected}
-          onSelect={onSelect}
-        />
+        <Bands bands={notReady} sessions={sessions} onOpenLog={onOpenLog} />
       ),
     },
     ...(recurring.length > 0
@@ -164,8 +145,6 @@ export function QueueView({
                     card={card}
                     liveSession={runningSessionForCard(sessions, card.id)}
                     onOpenLog={onOpenLog}
-                    selected={selected.has(card.id)}
-                    onSelect={onSelect}
                   />
                 ))}
               </div>
@@ -374,14 +353,10 @@ function Bands({
   bands,
   sessions,
   onOpenLog,
-  selected,
-  onSelect,
 }: {
   bands: Band[];
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
-  selected: Set<number>;
-  onSelect?: (id: number, next: boolean) => void;
 }) {
   const c = useCopy().board.queue;
   if (bands.length === 0) return <p className="text-[12px] italic text-nb-ink-soft">{c.empty}</p>;
@@ -393,8 +368,6 @@ function Bands({
           band={band}
           sessions={sessions}
           onOpenLog={onOpenLog}
-          selected={selected}
-          onSelect={onSelect}
         />
       ))}
     </div>
@@ -408,14 +381,10 @@ function ModuleBand({
   band,
   sessions,
   onOpenLog,
-  selected,
-  onSelect,
 }: {
   band: Band;
   sessions: SessionView[];
   onOpenLog: (sessionId: string) => void;
-  selected: Set<number>;
-  onSelect?: (id: number, next: boolean) => void;
 }) {
   return (
     <section className="rounded-[10px] px-2 pb-3 pt-2">
@@ -435,8 +404,6 @@ function ModuleBand({
             card={card}
             liveSession={runningSessionForCard(sessions, card.id)}
             onOpenLog={onOpenLog}
-            selected={selected.has(card.id)}
-            onSelect={onSelect}
           />
         ))}
       </div>

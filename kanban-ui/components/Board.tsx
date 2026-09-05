@@ -27,7 +27,6 @@ import { useCopy } from "@/i18n/use-copy";
 import { filterColumns, hasOwnCards, useReleasePick, type ReleasePick } from "@/lib/release-pick";
 import { useActions, type ReleaseClosed, type ReleaseMade, type StartAnswer, type StripPlace } from "@/lib/screen";
 import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
-import { BulkReleaseBar } from "./BulkReleaseBar";
 import { OpenIdsProvider } from "./open-ids";
 import { SolutionProvider } from "./solution";
 import { QueueView } from "./Queue";
@@ -105,50 +104,6 @@ export function Board({
   // that second half a board whose every card is planned reads the same as a
   // board with no cards at all, and only one of those is worth a note.
   const emptyPick = !hasOwnCards(columns) && hasOwnCards(board?.columns ?? []);
-  // The cards ticked for a bulk release move (#114), and what the last move
-  // couldn't do. Not remembered anywhere: a selection is one action in progress,
-  // not a way of looking at the board.
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [failed, setFailed] = useState<{ id: number; error: string }[]>([]);
-  const [moveError, setMoveError] = useState<string | null>(null);
-  const clearSelection = useCallback(() => {
-    setSelected(new Set());
-    setFailed([]);
-    setMoveError(null);
-  }, []);
-  // Touching a tick drops the last move's report: the user has moved on to a
-  // different set of cards, and a message about the old one would read as
-  // something the next move did.
-  const toggleSelected = useCallback((id: number, next: boolean) => {
-    setFailed([]);
-    setMoveError(null);
-    setSelected((prev) => {
-      const out = new Set(prev);
-      if (next) out.add(id);
-      else out.delete(id);
-      return out;
-    });
-  }, []);
-
-  // Changing what is on screen unticks everything: the release dropdown can hide
-  // a ticked card, and moving a card someone has stopped looking at is the one
-  // way this action surprises them.
-  useEffect(clearSelection, [release, clearSelection]);
-
-  // A ticked card that has left the screen some other way — archived by a run,
-  // rejected, its file edited — is dropped from the selection in the same render
-  // it goes, so a move can only ever write the cards in front of the user. The
-  // same identity is handed back when nothing changed, so this can't loop.
-  const onScreen = useMemo(
-    () => new Set(columns.flatMap((col) => col.cards.map((c) => c.id))),
-    [columns],
-  );
-  useEffect(() => {
-    setSelected((prev) => {
-      const next = new Set([...prev].filter((id) => onScreen.has(id)));
-      return next.size === prev.size ? prev : next;
-    });
-  }, [onScreen]);
 
   // The board comes back with its reason attached rather than thrown (#169): a board whose
   // copy of the rules is missing or too old can't be read at all, and a thrown error from a
@@ -282,29 +237,6 @@ export function Board({
   useEffect(() => {
     if (setupRunId) refresh();
   }, [sessions, setupRunId, refresh]);
-
-  // Send every ticked card into one release, or back out of one (#114). Each
-  // card is written on its own on the server, so one card that can't be moved
-  // costs the others nothing: the ones that went through are unticked and the
-  // ones that didn't stay ticked, with the reason in the bar above them — a
-  // second try needs no re-ticking. Then the board is re-read from the files, so
-  // what is on screen is what the cards say and anything that left the release
-  // being shown drops off it.
-  const moveSelected = useCallback(
-    async (target: string) => {
-      if (!actions) return;
-      const ids = [...selected];
-      const res = await actions.setCardsRelease(ids, target);
-      setMoveError(res.error ?? null);
-      setFailed(res.failed);
-      if (!res.error) {
-        const stuck = new Set(res.failed.map((f) => f.id));
-        setSelected(new Set(ids.filter((id) => stuck.has(id))));
-        await refresh();
-      }
-    },
-    [actions, selected, refresh],
-  );
 
   // Give up on a release from the header (#131). The pick moves back to No
   // release first — the release is about to be gone, and the fallback in
@@ -532,28 +464,8 @@ export function Board({
             </div>
           )}
 
-          {/* Only while cards are ticked, or while the last move has something left
-              to say (#114). With nothing ticked the board is exactly what it was
-              before this existed. Above the columns, like the note above it. */}
-          {board && actions && (selected.size > 0 || moveError || failed.length > 0) && (
-            <BulkReleaseBar
-              count={selected.size}
-              releases={board.releases}
-              failed={failed}
-              error={moveError}
-              onMove={moveSelected}
-              onClear={clearSelection}
-            />
-          )}
-
           {board && (
-            <QueueView
-              columns={columns}
-              sessions={sessions}
-              onOpenLog={setLogSessionId}
-              selected={selected}
-              onSelect={actions ? toggleSelected : undefined}
-            />
+            <QueueView columns={columns} sessions={sessions} onOpenLog={setLogSessionId} />
           )}
 
           {/* Setup left unfinished (#172, #173) — the app's own strip, under the columns

@@ -130,7 +130,6 @@ import {
   patchCard,
   saveGoal,
   saveProject,
-  setCardsRelease,
   setReleaseGoal,
   setSchedule,
 } from "@/lib/edit";
@@ -164,7 +163,6 @@ import type {
   AgentInfo,
   AgentView,
   BoardScreen,
-  BulkReleaseResult,
   CardDrafts,
   CardPatch,
   CardRef,
@@ -699,19 +697,6 @@ export async function closeReleaseAction(
     changelogSessionId: run.ok ? run.sessionId : undefined,
     changelogError: run.ok ? undefined : run.error,
   };
-}
-
-// Move the cards ticked on the board into one release, or back out of one (#114) — the same
-// single-card write the card page's Release box makes, run once per card.
-export async function setCardsReleaseAction(ids: number[], release: string): Promise<BulkReleaseResult> {
-  if (!Array.isArray(ids) || typeof release !== "string") {
-    return { moved: 0, failed: [], error: "a bulk move takes card ids and a release" };
-  }
-  const clean = ids.filter((id) => Number.isInteger(id));
-  if (clean.length === 0) {
-    return { moved: 0, failed: [], error: (await machineCopy()).messages.actions.nothingTicked };
-  }
-  return setCardsRelease(clean, release);
 }
 
 // ---- a card, and the numbers -------------------------------------------------

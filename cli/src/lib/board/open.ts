@@ -171,7 +171,6 @@ function refusing(error: string): import('./contract').BoardProvider {
     appendQuestion: refused,
     archiveCard: refused,
     rejectCard: refused,
-    setCardsRelease: () => Promise.resolve({ moved: 0, failed: [], error }),
     newRelease: refused,
     setReleaseGoal: refused,
     closeRelease: refused,

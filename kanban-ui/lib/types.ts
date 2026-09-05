@@ -58,7 +58,6 @@ export type {
   ArchivedCard,
   ArchivedCardFile,
   Board,
-  BulkReleaseResult,
   Card,
   CardApproval,
   CardChannel,

@@ -35,7 +35,6 @@ import {
   resumeSessionAction,
   saveDraftAction,
   scheduleCardAction,
-  setCardsReleaseAction,
   setChannelStatusAction,
   setReleaseGoalAction,
   startAgentAction,
@@ -53,7 +52,6 @@ export const appActions: ScreenActions = {
   scheduleCard: scheduleCardAction,
   unscheduleCard: unscheduleCardAction,
 
-  setCardsRelease: setCardsReleaseAction,
   createRelease: createReleaseAction,
   planRelease: planReleaseAction,
   dropRelease: dropReleaseAction,

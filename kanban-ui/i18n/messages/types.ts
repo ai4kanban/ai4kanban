@@ -43,7 +43,6 @@ export type MessagesCopy = {
     noSuchCard: string;
     emptyChat: string;
     goalFirst: string;
-    nothingTicked: string;
   };
   run: { noProcess: string };
   chat: { busy: string; sendFailed: string; clearFailed: string; pickFailed: string };

@@ -30,7 +30,7 @@ import {
   type VerifyOp,
 } from '../board'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
-import type { BulkReleaseResult, CardPatch, SaveProjectResult, WriteResult } from './types'
+import type { CardPatch, SaveProjectResult, WriteResult } from './types'
 
 export type { ReleaseFill }
 
@@ -160,19 +160,6 @@ export async function setSchedule(id: number, action: string, notes = '', opts?:
  *  the button and the mark it takes off are drawn from a read that can be a moment old. */
 export async function clearSchedule(id: number, opts?: WriteOptions): Promise<WriteResult> {
   return flat(await envelopeFor({ card: id }, opts, (env) => board().setSchedule(id, null, env)))
-}
-
-/**
- * Move several cards into one release, or back out of one.
- *
- * Each card is written on its own, under its own lease: one bad card must not cost the rest
- * their move, and the card files stay the record either way. The release is checked once,
- * before any card is written — a release that isn't on the list would fail every card for
- * the same reason, and a bar listing that message twenty times says less than one line
- * saying the release doesn't exist.
- */
-export function setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult> {
-  return board().setCardsRelease(ids, release)
 }
 
 // ---- releases --------------------------------------------------------------

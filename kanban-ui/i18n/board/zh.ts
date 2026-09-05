@@ -31,9 +31,6 @@ const zh: BoardCopy = {
     goToColumn: (title) => `显示「${title}」`,
   },
   card: {
-    tick: (id, title) => `勾选 #${id} ${title}`,
-    untick: (id, title) => `取消勾选 #${id} ${title}`,
-    tickHint: "勾选后可把这张卡片移入某个版本",
     questionsOne: "1 个待澄清问题",
     questionsMany: (n) => `${n} 个待澄清问题`,
     needsYouOne: "1 个待你决定",
@@ -52,16 +49,6 @@ const zh: BoardCopy = {
       keys: "Enter 发送 · Shift-Enter 换行 · Esc 关闭",
       shipsIn: (release) => `将在 ${release} 中交付`,
     },
-  },
-  bulk: {
-    tickedOne: "已勾选 1 张卡片",
-    tickedMany: (n) => `已勾选 ${n} 张卡片`,
-    move: "移入…",
-    moving: "移动中…",
-    noRelease: "不属于任何版本",
-    untickAll: "全部取消勾选",
-    failedOne: "这张卡片没有移动成功，其余的都已完成：",
-    failedMany: (n) => `这 ${n} 张卡片没有移动成功，其余的都已完成：`,
   },
   release: {
     which: "显示哪个版本",

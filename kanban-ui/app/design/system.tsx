@@ -652,13 +652,7 @@ export function DesignSystem() {
                 onClick={(e) => e.preventDefault()}
               >
                 <BoardCard card={CARD} onOpenLog={() => {}} />
-                <BoardCard
-                  card={GROUP_CARD}
-                  liveSession={LIVE_SESSION}
-                  onOpenLog={() => {}}
-                  selected
-                  onSelect={() => {}}
-                />
+                <BoardCard card={GROUP_CARD} liveSession={LIVE_SESSION} onOpenLog={() => {}} />
               </div>
             </section>
             <section className="flex w-[300px] shrink-0 flex-col">

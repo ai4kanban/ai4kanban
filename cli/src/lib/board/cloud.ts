@@ -59,7 +59,7 @@ import path from 'node:path'
 
 import { ignoreBoardCopyIfMissing, readNextId, TODO } from '../paths'
 import { nextWork as dispatchNextWork } from '../view/dispatch'
-import type { BulkReleaseResult, SaveProjectResult } from '../view/types'
+import type { SaveProjectResult } from '../view/types'
 import { NO_REVISION } from './contract'
 import type {
   BoardProvider,
@@ -751,25 +751,6 @@ function cloudBoard(ctx: Context): BoardProvider {
     rejectCard: (id, env) => through({ card: id }, env, (e) => local.rejectCard(id, e)),
 
     // ---- releases -----------------------------------------------------------
-
-    /** Each card on its own, under its own lease and its own workspace write: one card the
-     *  workspace refuses must not cost the rest their move, exactly as on a Local board. */
-    async setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult> {
-      const failed: { id: number; error: string }[] = []
-      let moved = 0
-      for (const id of ids) {
-        try {
-          const res = await leaseAnd(provider, { card: id }, (env) =>
-            provider.patchCard(id, { release }, env),
-          )
-          if (res.ok) moved += 1
-          else failed.push({ id, error: res.error || 'could not be moved' })
-        } catch (e) {
-          failed.push({ id, error: opRefused(e).error })
-        }
-      }
-      return { moved, failed }
-    },
 
     newRelease: (id, goal, fill, env) => through({ board: true }, env, (e) => local.newRelease(id, goal, fill, e)),
     setReleaseGoal: (id, goal, env) => through({ board: true }, env, (e) => local.setReleaseGoal(id, goal, e)),

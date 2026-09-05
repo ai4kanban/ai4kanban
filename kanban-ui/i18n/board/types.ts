@@ -1,5 +1,5 @@
-/** The board screen: its columns, the cards in them, the notices above them, the
- *  bulk-move bar, Create task, and the release picker in the top row. */
+/** The board screen: its columns, the cards in them, the notices above them,
+ *  Create task, and the release picker in the top row. */
 export type BoardCopy = {
   reading: string;
   notice: {
@@ -40,9 +40,6 @@ export type BoardCopy = {
     goToColumn: (title: string) => string;
   };
   card: {
-    tick: (id: number, title: string) => string;
-    untick: (id: number, title: string) => string;
-    tickHint: string;
     questionsOne: string;
     questionsMany: (n: number) => string;
     /** Of those, the ones waiting on the user. Joined after the count above. */
@@ -71,16 +68,6 @@ export type BoardCopy = {
        *  screen. */
       shipsIn: (release: string) => string;
     };
-  };
-  bulk: {
-    tickedOne: string;
-    tickedMany: (n: number) => string;
-    move: string;
-    moving: string;
-    noRelease: string;
-    untickAll: string;
-    failedOne: string;
-    failedMany: (n: number) => string;
   };
   release: {
     which: string;

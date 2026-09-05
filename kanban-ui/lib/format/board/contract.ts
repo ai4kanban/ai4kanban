@@ -31,7 +31,6 @@ import type {
   ArchiveList,
   ArchivedCardFile,
   Board,
-  BulkReleaseResult,
   Card,
   CardPatch,
   CardSchedule,
@@ -202,7 +201,6 @@ export interface BoardProvider {
   rejectCard(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
 
   // ---- releases ------------------------------------------------------------
-  setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult>
   newRelease(id: string, goal: string, fill: boolean, env: OpEnvelope): Promise<OpResult<{ fill: ReleaseFill }>>
   setReleaseGoal(id: string, goal: string, env: OpEnvelope): Promise<OpResult>
   closeRelease(id: string, env: OpEnvelope): Promise<OpResult<{ shipped: number }>>

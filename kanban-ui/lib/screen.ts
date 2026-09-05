@@ -24,7 +24,6 @@ import type { MockupSet } from "./mockup-tag";
 import type {
   AgentInfo,
   BoardScreen,
-  BulkReleaseResult,
   CardDrafts,
   CardPatch,
   ChannelStatus,
@@ -80,7 +79,6 @@ export interface ScreenActions {
   unscheduleCard(id: number, expect: string): Promise<WriteResult>;
 
   // ---- releases ------------------------------------------------------------
-  setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult>;
   createRelease(id: string, fill: boolean, goal: string): Promise<ReleaseMade>;
   planRelease(id: string): Promise<StartAnswer>;
   dropRelease(id: string): Promise<WriteResult>;

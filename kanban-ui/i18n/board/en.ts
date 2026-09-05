@@ -35,9 +35,6 @@ const en: BoardCopy = {
     goToColumn: (title) => `Show ${title}`,
   },
   card: {
-    tick: (id, title) => `Tick #${id} ${title}`,
-    untick: (id, title) => `Untick #${id} ${title}`,
-    tickHint: "Tick to move this card into a release",
     questionsOne: "1 open question",
     questionsMany: (n) => `${n} open questions`,
     needsYouOne: "1 needs you",
@@ -56,16 +53,6 @@ const en: BoardCopy = {
       keys: "Enter sends · Shift-Enter for a new line · Esc closes",
       shipsIn: (release) => `Ships in ${release}`,
     },
-  },
-  bulk: {
-    tickedOne: "1 card ticked",
-    tickedMany: (n) => `${n} cards ticked`,
-    move: "Move into…",
-    moving: "Moving…",
-    noRelease: "No release",
-    untickAll: "Untick all",
-    failedOne: "This card did not move — the rest went through:",
-    failedMany: (n) => `These ${n} cards did not move — the rest went through:`,
   },
   release: {
     which: "Which release to show",

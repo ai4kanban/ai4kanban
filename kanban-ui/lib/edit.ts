@@ -2,7 +2,6 @@ import { getCopy } from "@/i18n";
 import { boardRules } from "./cli";
 import { DEFAULT_LANGUAGE } from "./types";
 import type {
-  BulkReleaseResult,
   CardPatch,
   ClosePlan,
   DropPlan,
@@ -13,7 +12,7 @@ import type {
 } from "./types";
 
 // --- writing the board, through the CLI (#169) -------------------------------
-// Every change a button makes: a card's fields and body, a bulk move into a release, a
+// Every change a button makes: a card's fields and body, a
 // release opened, given a goal, closed or dropped, the project goal, the project and its
 // tracks, a setup box ticked. Each one is the CLI's own move — the same code `akb` runs —
 // so a card edited from a screen and a card edited from a terminal come out identical.
@@ -97,17 +96,6 @@ export async function clearSchedule(id: number, expect = ""): Promise<WriteResul
     return await (await boardRules()).clearSchedule(id, expect ? { expect } : undefined);
   } catch (e) {
     return refused(e);
-  }
-}
-
-/** Move the ticked cards into one release, or back out of one. A release the list doesn't
- *  hold refuses the whole move before anything is written; a card that can't be moved on
- *  its own comes back in `failed` while the rest go through. */
-export async function setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult> {
-  try {
-    return await (await boardRules()).setCardsRelease(ids, release);
-  } catch (e) {
-    return { moved: 0, failed: [], error: refused(e).error };
   }
 }
 

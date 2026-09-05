@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FiCheck, FiClipboard, FiHelpCircle } from "react-icons/fi";
+import { FiClipboard, FiHelpCircle } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { type Card, type SessionView } from "@/lib/types";
 import { parseQuestion } from "@/lib/questions";
@@ -39,26 +39,14 @@ import {
 // how you look at one version, and the card page is where a card says and
 // changes which one it is in — a version stamped on every card as well is a
 // third place saying the same thing, and it crowds out what the card is for.
-//
-// The tick (#114) is a target of its own at the head of the card, so several
-// cards can be sent into a release at once while clicking the card itself still
-// opens its page — the card is a link, and the whole point of ticking is to do
-// something to a card without going to it. It draws only where the view passes
-// `onSelect`, so a card page or any future reuse gets the plain card.
 export function BoardCard({
   card,
   liveSession,
   onOpenLog,
-  selected = false,
-  onSelect,
 }: {
   card: Card;
   liveSession?: SessionView;
   onOpenLog: (sessionId: string) => void;
-  /** Ticked for the bulk move. Only meaningful with `onSelect`. */
-  selected?: boolean;
-  /** Tick or untick this card. Left out draws no tick at all. */
-  onSelect?: (id: number, next: boolean) => void;
 }) {
   // A group root's progress comes from its own todo checklist, not from counting
   // subtask files: a finished subtask gets archived and its file removed, so the
@@ -83,11 +71,7 @@ export function BoardCard({
       // its badges floating mid-card. This pins them to the bottom edge. No
       // `h-full` — grid items stretch on their own, and in the kanban column
       // (a flex stack) it would blow one card up to the column's full height.
-      // A ticked card wears the accent ring so the group being moved reads at a
-      // glance across a full column, not one 16px box at a time.
-      className={`nb-panel-sm nb-press flex cursor-pointer flex-col p-3 text-left ${
-        selected ? "outline-2 outline-offset-2 outline-nb-accent" : ""
-      }`}
+      className="nb-panel-sm nb-press flex cursor-pointer flex-col p-3 text-left"
     >
       {/* The meta row. A column can be dragged narrow and a status label can be
           as long as "resolving a conflict", so the row has to say which side
@@ -96,44 +80,11 @@ export function BoardCard({
           beside it — and the mark side gives at its one elastic pill, whose
           words stay on hover. Everything else in here holds its size. */}
       <div className="mb-1.5 flex items-center justify-between gap-1.5">
-        <span className="flex shrink-0 items-center gap-1.5">
-          {onSelect && (
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={selected}
-              aria-label={
-                selected ? c.untick(card.id, card.title) : c.tick(card.id, card.title)
-              }
-              title={c.tickHint}
-              onClick={(e) => {
-                // The card is a link; keep the click on the tick.
-                e.preventDefault();
-                e.stopPropagation();
-                onSelect(card.id, !selected);
-              }}
-              // The negative margin buys a bigger hit area than the box it
-              // draws, so the tick is easy to hit without pushing the id along.
-              // At phone width it buys more of one — 40px around an 18px box —
-              // since a thumb has to land on it beside a card that is itself a
-              // link (#357).
-              className={`-m-1 inline-flex cursor-pointer items-center justify-center p-1 max-md:-m-[11px] max-md:p-[11px] ${
-                selected ? "text-white" : "text-transparent hover:text-nb-ink-soft"
-              }`}
-            >
-              <span
-                className="inline-flex size-[14px] max-md:size-[18px] items-center justify-center rounded-[4px] border-[1.5px] border-nb-ink"
-                style={{
-                  background: selected ? "var(--color-nb-accent)" : "var(--color-nb-paper)",
-                }}
-              >
-                <FiCheck aria-hidden className="size-[10px] max-md:size-[13px]" strokeWidth={3} />
-              </span>
-            </button>
-          )}
-          <span className="text-[11.5px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
-            #{card.id}
-          </span>
+        <span
+          className="shrink-0 text-[11.5px] font-[800]"
+          style={{ color: "var(--color-nb-accent-deep)" }}
+        >
+          #{card.id}
         </span>
         <span className="flex min-w-0 items-center gap-1.5">
           {isGroup && <GroupChip />}

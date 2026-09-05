@@ -535,15 +535,6 @@ export interface VerifyResult extends WriteResult {
   verify?: string[]
 }
 
-/** One bulk release move. `failed` names the cards that did not move and why, so a bar can
- *  say so while the rest go through. `error` is the whole move refused before anything was
- *  written — then nothing was touched at all. */
-export interface BulkReleaseResult {
-  moved: number
-  failed: { id: number; error: string }[]
-  error?: string
-}
-
 /** What a save of the project did. */
 export type SaveProjectResult = WriteResult
 

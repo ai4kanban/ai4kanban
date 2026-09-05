@@ -39,7 +39,6 @@ import type {
   ArchiveList,
   ArchivedCardFile,
   Board,
-  BulkReleaseResult,
   Card,
   CardDrafts,
   CardPatch,
@@ -408,7 +407,6 @@ export interface BoardRules {
   dropVerify?(id: number, line: string, opts?: WriteOptions): Promise<VerifyResult>;
   setSchedule(id: number, action: string, notes?: string, opts?: WriteOptions): Promise<WriteResult>;
   clearSchedule(id: number, opts?: WriteOptions): Promise<WriteResult>;
-  setCardsRelease(ids: number[], release: string): Promise<BulkReleaseResult>;
   newRelease(id: string, goal?: string, fill?: boolean): Promise<WriteResult & { fill?: "none" | "fill" | "agent" }>;
   setReleaseGoal(id: string, goal: string): Promise<WriteResult>;
   // `shipped` is how many cards the close counted, so the caller knows whether a changelog
