@@ -27,7 +27,7 @@
 // call below checks first.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiColumns, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
 import type { ChromeCopy } from "@/i18n/chrome/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -286,36 +286,37 @@ export function NavEdge() {
 // rather than nested: a button inside a button has no honest hit area, and each
 // of these opens a different list — the path opens the projects, the badge opens
 // this project's boards (#407).
+// Paper, not a gray: the header is a bright band and the chip sits on it as a
+// white pill. `overflow-hidden` clips each half's hover fill to the pill.
 const CHIP =
-  "a4k-nodrag hidden h-[26px] min-w-0 items-center rounded-full font-mono text-[11px] text-nb-ink-soft sm:flex";
-const PART = "flex h-full min-w-0 items-center gap-1.5 px-2.5";
-const BADGE_STYLE = {
-  background: "color-mix(in srgb, var(--color-nb-ink) 5%, transparent)",
-  border: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)",
-};
-const DIVIDER = { borderLeft: "1px solid color-mix(in srgb, var(--color-nb-ink) 12%, transparent)" };
+  "a4k-nodrag hidden h-[26px] min-w-0 items-center overflow-hidden rounded-full bg-nb-paper text-[12px] font-[500] text-nb-ink-soft sm:flex";
+const PART = "flex h-full min-w-0 items-center gap-1.5 px-2.5 transition-colors";
+const PRESSABLE = "cursor-pointer hover:bg-nb-wash hover:text-nb-ink";
+// The board badge is the other half of the chip in the ember wash, so the eye
+// reads two controls, not one path with a suffix.
+const BOARD_PART = `${PART} bg-nb-accent-wash text-nb-ink`;
+const BOARD_PRESSABLE = "cursor-pointer hover:bg-nb-accent-soft hover:text-nb-accent-deep";
 
 /** Which repo this board is, in the header, and which of its boards is open.
  *
  *  In the app the path is the button that opens the projects list — the app has
  *  no terminal to be restarted from, so this is how a window is pointed at a
- *  different folder. It shows the folder name on a narrow window and the whole
- *  path on a wide one, the same either way.
+ *  different folder. Only the folder's name is shown; the whole path is the
+ *  tooltip, which leaves the board switcher its room.
  *
  *  Beside it, the board's own word: "Engineering" on a product board, "Marketing"
- *  on a marketing one, cut to "Eng" on the same break the path takes. A project
+ *  on a marketing one, in the ember wash so it reads as its own control. A project
  *  holding one board gets a label; one holding two gets a switcher, and picking
  *  the other hands the window over the way the projects list does. */
 export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; desktop: boolean }) {
   const path = (
     <>
       <FiFolder className="shrink-0 opacity-70" size={12} />
-      <span className="truncate lg:hidden">{projectRoot.split("/").pop()}</span>
-      <span className="hidden truncate lg:inline">{projectRoot}</span>
+      <span className="truncate">{projectRoot.split("/").pop()}</span>
     </>
   );
   return (
-    <span className={CHIP} style={BADGE_STYLE}>
+    <span className={CHIP}>
       {desktop ? (
         <ProjectsMenu projectRoot={projectRoot}>{path}</ProjectsMenu>
       ) : (
@@ -357,8 +358,8 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
 
   const word = (
     <>
-      <span className="truncate lg:hidden">{open.short}</span>
-      <span className="hidden truncate lg:inline">{open.work}</span>
+      <FiColumns className="shrink-0 text-nb-accent" size={12} />
+      <span className="truncate">{open.work}</span>
     </>
   );
   // One board is a label with nothing to press, and so is a browser either way:
@@ -366,7 +367,7 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
   const others = here!.boards.filter((b) => b.path !== here!.board);
   if (!desktop || others.length === 0 || !bridge()?.openBoard) {
     return (
-      <span title={here!.board} className={PART} style={DIVIDER}>
+      <span title={here!.board} className={BOARD_PART}>
         {word}
       </span>
     );
@@ -377,8 +378,7 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
         <button
           type="button"
           title={c.badge(here!.board)}
-          className={`${PART} max-w-full cursor-pointer hover:text-nb-ink`}
-          style={DIVIDER}
+          className={`${BOARD_PART} ${BOARD_PRESSABLE} max-w-full`}
         >
           {word}
         </button>
@@ -449,7 +449,7 @@ function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children
         <button
           type="button"
           title={c.badge(projectRoot)}
-          className={`${PART} max-w-full cursor-pointer hover:text-nb-ink`}
+          className={`${PART} ${PRESSABLE} max-w-full`}
         >
           {children}
         </button>
