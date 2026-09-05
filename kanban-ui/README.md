@@ -1122,7 +1122,7 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**General**, **Runtimes**, **Agents**, **Rules** and **Notifications**. Settings live in
+**General**, **Runtimes**, **Agents** and **Notifications**. Settings live in
 `docs/kanban/ui.config.json`, next to your board, so `npx` always serves the latest UI and an update
 never touches them. Everything the dialog holds writes itself there, with three exceptions: a key
 goes to `docs/kanban/.env`, and the language and the Cloud sign-in settle this machine rather than
@@ -1580,30 +1580,96 @@ each flow and spec agent runs on, `akb agent runtime add|remove|rename|global|fo
 and the pointers, and `akb agent bind <runtime> <agent>` changes what one runs as. `akb agent test
 <runtime>` spawns it. Everything but `runtime for` is also in **Configuration → Runtimes** above.
 
-### The spec agents
+### The agents
 
-**Agents** lists the spec agents this board can use. A **spec agent** is a markdown file the board
-puts on a card to fill one part of that card's spec: **UI design** draws the screen the card
-changes, and **Technology selection** picks the library it leans on. Each one runs on its own, while
-a card is being planned — never while it is being built — and writes one section of that card and
-nothing else.
+**Agents** is everyone working on this board, drawn as a grid of characters — one per agent, in the
+board's own order: the **roles** its own flows are run by, then the **specialists** the command
+ships, then the ones this project added.
 
-The pane lists them in the board's own order, with one readable name and two lines each: what that
-agent fills in, and when the board calls it. The command/file identifier is not repeated in the UI.
-Both lines come out of that agent's own `AGENT.md`, so this section and `akb spec` can never say
-different things. There is no way to put an agent on a card by hand: that is what the board does for
-you.
+- A **role** is the agent behind a group of flows. **Planner** plans and refines cards, **Builder**
+  builds them and lands them, **Reviewer** checks what was built; a marketing board has a **Writer**
+  in place of the Builder. A role is always on — a board without a planner plans nothing.
+- A **specialist** fills one part of a card's spec while that card is being planned, never while it
+  is being built: **UI design** draws the screen the card changes, **Technology selection** picks the
+  library it leans on. Each runs on its own and writes one section of that card and nothing else.
+  There is no way to put one on a card by hand: that is what the board does for you.
 
-The board ships two, and a project adds its own under `docs/kanban/agents/<name>/AGENT.md` — those
-appear in this pane too, with the same switch and the same settings. Anything wrong with an agent
-this board found — an `AGENT.md` that doesn't parse, a name already taken, a folder still in the
-`docs/kanban/skills/` agents used to live in — is named in a note under the list, with the reason,
-rather than quietly missing.
+Selecting a character opens its page under the grid — its rule, what it remembers, its settings, and,
+for a specialist you added, its own `AGENT.md`. One page is open at a time; selecting the open
+character closes it, and the pane opens with none.
 
-Each agent has a switch, on until you turn it off:
+Every name and line comes out of the board's own roster, so this pane and `akb spec` can never say
+different things. Anything wrong with an agent this board found — an `AGENT.md` that doesn't parse, a
+name already taken, a folder still in the `docs/kanban/skills/` agents used to live in — is named
+under the grid, with the reason, rather than quietly missing.
 
-- A switched-off agent is greyed and reads **Paused** beside its switch. The switch still works — that
-  is how it goes back on.
+Each character is a picture the board ships at `kanban-ui/public/agent-art/<name>.png`. An agent with
+no picture — which is every agent you add — draws its first letter in the same pixel style, so two
+of them still differ and nothing ever reads as broken.
+
+#### Give an agent a rule
+
+A **rule** is one paragraph, in your own words, added to the **end** of every run that agent does,
+after everything the board writes. Write it in the box on the agent's page.
+
+- **A rule is plain words, not a command the board runs.** What it actually causes is up to the agent
+  reading it. On the Reviewer, a check it asks for is one of the repository's checks — review already
+  runs your tests, linter and type check, fixes plain failures, and stops when it needs you.
+- **It is the agent's, not the flow's.** One rule on the Builder reaches `implement`, `conflict` and
+  `run` alike. Writing to the Builder about landing therefore also reaches building; the agent
+  reading it can tell.
+- **Saving is per agent, when you leave the box**, with a quiet **Saved** beside it. There is no Save
+  button, and an edit not yet saved is saved when you select another character rather than dropped.
+  A rule is free text, so there is nothing to get wrong — a save that does not land says so across
+  the top of the dialog.
+- **Rules are files in your board**: `docs/kanban/rules/<agent>.md`. They are tracked in git, so a
+  team shares them and can see them change, and a run started from a terminal reads the same words.
+  Clearing a box deletes the file; an agent with no file runs exactly as the command ships it.
+- **A delivery freezes its rules.** The rules of the agents a delivery is made of are copied onto the
+  delivery record when it starts, beside the copy of the card it was approved to build. Editing a
+  rule changes the next delivery and never one in flight.
+- **Every session the agent starts reads it**, so a long rule makes every card slower.
+
+There is no way to run a shell command from a rule, and no per-delivery approval of one: both would
+break the one-click flow. **Chat** takes none — it is a conversation rather than a flow the board
+starts.
+
+#### Give an agent memory
+
+Some agents **remember** — what they were corrected on, and the product facts they needed. The
+agent's page lists the files it owns, read-only:
+
+- A **role** remembers in the files its own flows already write: the Planner in `memory/decisions.md`,
+  `memory/rejected.md` and `memory/goal.md`, the Builder in `memory/readme.md`, `memory/redesign.md`
+  and `modules.md`.
+- A **specialist** that declares `memory: project` in its `AGENT.md` owns
+  `docs/kanban/memory/agents/<name>.md`. `ui-design` declares one; `technology-selection` does not.
+- The files are written by the runs themselves and edited as files, not here. The page says where
+  they are so you can read one; nothing on this pane changes them.
+
+#### Add a specialist
+
+**Add a specialist** asks for a name in the tile the new agent will occupy, then writes
+`docs/kanban/agents/<name>/AGENT.md` from a template and opens that agent's page with its `AGENT.md`
+box focused — so you carry straight on into writing the prompt without leaving the dialog.
+
+- **A name already taken is refused in the tile**, before anything is written: a role's name, a
+  bundled agent's, or a folder already under `docs/kanban/agents/`.
+- **The template says the agent is unwritten**, in its `description` and its `owns`, so a planning
+  flow that reads the roster before you finish never picks it for a card.
+- **The whole file is the box**, frontmatter included — `description`, `owns` and `settings` live
+  there. It saves the way a rule does, when you leave it.
+- **A save the board would refuse keeps your text**, keeps the page open on that agent and says what
+  is wrong, rather than leaving an agent the catalog cannot read. Closing the dialog on a refused
+  save drops that text: the file keeps its last accepted version.
+- **A bundled agent shows no such box.** Its `AGENT.md` ships inside the command.
+- **The pane never deletes one.** A name typed wrong is switched off like any other agent, and an
+  `AGENT.md` broken by hand is a problem line repaired in an editor.
+
+Each specialist has a switch, on until you turn it off:
+
+- A switched-off agent's character is greyed and its tile reads **Paused**. The switch is in the
+  tile's corner, outside what opens its page, so flipping it never opens or closes one.
 - While it is off the board starts no new run of it, on any card. It leaves the list a planning flow
   picks from, and a flow that asks for it by name is turned away and plans that part of the card
   itself.
@@ -1618,65 +1684,25 @@ Every agent is on until somebody switches one off, so a board set up before this
 them on with nothing to undo.
 
 An agent can also carry **settings** of its own — what it produces, not just whether it runs — and
-they are set on its row, under the two lines:
+they are set on its page, under its rule:
 
 - One line per setting says what it is set to and what that choice costs. **Change** opens the
   choices in place, each with its own cost, and a pick saves the moment you make it.
 - The settings, their choices and the words describing each one are declared in that agent's own
-  `AGENT.md` frontmatter, the same as the two lines above them. Nothing here keeps a list of its
-  own, so a new agent's settings need no change to this pane.
+  `AGENT.md` frontmatter. Nothing here keeps a list of its own, so a new agent's settings need no
+  change to this pane.
 - A setting is board-wide: every card that agent runs on gets the same answer. There is no per-card
   and no per-run setting. Each choice names one file inside the agent's folder, and only the chosen
   one's instructions reach the run.
 - A save that fails puts the choice back and the reason goes across the top of the page, the way the
   switch already behaves.
-- A switched-off agent keeps its settings on screen, greyed with the rest of the row and still
-  changeable, so it is ready for the day you switch it back on.
-- `akb spec`, typed in a terminal, prints what each agent is set to under its two lines. It offers no
-  way to change one: this pane is where they are picked.
+- A paused agent keeps its page and its settings, greyed and still changeable, so it is ready for
+  the day you switch it back on.
+- `akb spec`, typed in a terminal, prints what each agent is set to. It offers no way to change one:
+  this pane is where they are picked.
 
 An agent that declares no settings draws nothing extra, and neither does a board running rules older
-than the settings — its rows read exactly as they did.
-
-### Flow rules
-
-**Rules** is where a board says something of its own to a flow. A **flow** is anything the board
-can start — building a card, reviewing one, refining it, proposing the next tasks. Its instructions
-ship inside the command, so until now every board was given the same words. A **flow rule** is one
-paragraph, in your own words, added to the **end** of one flow's instructions. Every session the
-board starts from that flow reads it — a long rule therefore makes every card slower.
-
-A rule is plain words, not a command the board runs. What it actually causes is up to the agent
-reading it.
-
-The pane is a column naming every flow, with a dot on the ones that have a rule and a count above
-them, beside one tall box for whichever flow you click. Each box says which flow it changes — the
-command that starts it, and one clause of plain words, because `plan-release` and `run`
-name nothing you can guess at.
-
-- **Two flows say what their rule is for**, in a line under the box. On `implement`: each delivery
-  builds in a fresh worktree, and this is where you say how to prepare one — installing
-  dependencies, seeding a local config. On `review`: add any repository-specific checks.
-- **Checks a review rule asks for are the repository's checks.** Review already runs your tests,
-  linter and type check, fixes plain failures, and stops when it needs you. A check your rule adds
-  is handled the same way.
-- **Saving is per flow, on blur**, with a quiet **Saved** beside the flow's name. There is no Save
-  button, and a rule is free text, so there is nothing to get wrong — a save that does not land
-  says so across the top of the page.
-- **Rules are files in your board**: `docs/kanban/rules/<command>.md`, named by the command a user
-  types — `revise.md` for `akb card revise`. They are tracked in git, so a team shares them and can see
-  them change, and a run started from a terminal reads the same words. Clearing a box deletes the
-  file; a flow with no file runs exactly as the command ships it.
-- **A delivery freezes its rules.** The rules of the flows a delivery is made of — `implement`,
-  `review` and `conflict` — are copied onto the delivery record when it starts, beside
-  the copy of the card it was approved to build. Every session in that delivery runs with those, so
-  editing a rule changes the next delivery and never one in flight.
-- **The list of flows is the board's own** — every command that can start one — so a flow shipped
-  in a later release appears here on its own.
-
-There is no way to run a shell command from a rule, and no per-delivery approval of one: both would
-break the one-click flow. Spec agents take no rule — each keeps its own settings already — and
-neither does **Chat**, which is a conversation rather than a flow the board starts.
+than the settings.
 
 ### General → Setup: the coding agent skill
 

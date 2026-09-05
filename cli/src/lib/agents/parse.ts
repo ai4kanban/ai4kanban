@@ -26,6 +26,11 @@ export interface SpecAgent {
   builtIn: boolean
   /** One of its own files, by agent-relative path. Null when it isn't there. */
   file(relative: string): string | null
+  /** A project agent's folder, absolute, and the whole of its `AGENT.md` — filled in by
+   *  ../agents/catalog.ts. Absent on a bundled agent: its file ships inside the command,
+   *  so there is nothing on disk to point at or write back. */
+  dir?: string
+  text?: string
 }
 
 /** The hooks an agent may plug into: `spec` fills one part of a card's spec, `write` joins
@@ -40,7 +45,9 @@ export type AgentKind = (typeof AGENT_KINDS)[number]
 export const AGENT_MEMORIES = ['project'] as const
 export type AgentMemory = (typeof AGENT_MEMORIES)[number]
 
-const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
+/** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
+ *  and the word every flow asks for it by. */
+export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const RESERVED_KEYS = ['enabled', 'runtime']
 
 /** Read one `AGENT.md`. Either the agent, or the one line saying why it can't be used. */
@@ -57,7 +64,7 @@ export function parseSpecAgent(
 
   const name = str(front.name)
   if (!name) return bad('its frontmatter has no `name`')
-  if (!NAME.test(name)) return bad(`"${name}" is not a usable agent name — use lower-case words joined by "-"`)
+  if (!AGENT_NAME.test(name)) return bad(`"${name}" is not a usable agent name — use lower-case words joined by "-"`)
   const description = str(front.description)
   if (!description) return bad(`\`${name}\` has no \`description\`, which tells the caller when to request it`)
 

@@ -472,24 +472,6 @@ export interface DeliveryRecord {
   rules?: Record<string, string>
 }
 
-/** One flow and the rule it carries, as the Rules pane draws it (#306). The list is the
- *  board's own — every command that can start a flow — so a flow shipped later appears
- *  without the pane being touched. */
-export interface FlowRuleView {
-  /** The flow's name, which is also its rule file's. Not the line a user types — see
-   *  `path`. */
-  command: string
-  /** The line a user types, without the command's own name: `card refine`. */
-  path: string
-  /** One clause of plain words saying what the flow is. */
-  gloss: string
-  /** What this flow's rule is for, or what it can cost. Absent when there is nothing
-   *  particular to say about this flow's rule. */
-  note?: string
-  /** The rule as it stands, or empty when the flow has none. */
-  rule: string
-}
-
 /** How a delivery commits its work (#303). */
 export type DeliveryCommitMode = 'auto' | 'manual'
 
@@ -965,6 +947,43 @@ export interface SpecAgentView {
   runtime: string
   /** What that runtime resolves to on this computer. */
   harness: string
+}
+
+/** One agent as the Agents pane draws it (#422): a role the board ships, or a specialist a
+ *  card asks for. One shape for both, because the pane draws one roster — what parts them is
+ *  `kind` and whether there is a switch, not two lists. */
+export interface AgentView {
+  name: string
+  /** What it does, in one clause: a role's line, or a specialist's `akb.owns`. */
+  gloss: string
+  /** When the board calls it — a specialist's own `description`. Empty on a role, which is
+   *  called by its flows rather than by a trigger. */
+  when: string
+  /** `role` for one of the board's own; otherwise the hook the specialist plugs into. Spelled
+   *  out rather than imported: this file is copied into the board UI and may reach only its
+   *  siblings, and `AgentKind` lives beside the catalog that reads an `AGENT.md`. */
+  kind: 'role' | 'spec' | 'write'
+  /** Whether the command ships it, as opposed to the project adding it. */
+  builtIn: boolean
+  /** Whether it may be switched off. A role runs the board's own flows, so it never is. */
+  switchable: boolean
+  enabled: boolean
+  /** The rule it carries, in the user's own words, or empty when it has none. */
+  rule: string
+  /** The memory files it owns, repo-relative. The pane shows them; nothing edits one here. */
+  memory: string[]
+  settings: SpecAgentSettingView[]
+  values: Record<string, string>
+  /** A project agent's whole `AGENT.md`, frontmatter included — what its page writes
+   *  through. Absent on a bundled agent, whose file ships inside the command. */
+  file?: AgentFileView
+}
+
+/** A project agent's own file, as its page holds it. */
+export interface AgentFileView {
+  /** Where it is, for the line under the agent's name. */
+  path: string
+  text: string
 }
 
 /** What one connection test found out. */

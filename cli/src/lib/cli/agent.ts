@@ -15,8 +15,8 @@
 // A command that acts on nothing yet is typed bare — `create`, `propose`, `setup`.
 //
 // The flow commands are not written out here. They come from the board's own list of flows
-// (../agent/flows.ts), which the dispatcher and the Rules pane read too — so a flow shipped
-// later is a command, a help entry and a rule at once, with nothing to remember to add.
+// (../agent/flows.ts), which the dispatcher reads too — so a flow shipped later is a command
+// and a help entry at once, with nothing to remember to add.
 
 import { Option } from 'commander'
 

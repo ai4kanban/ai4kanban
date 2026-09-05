@@ -116,7 +116,6 @@ import {
   silenceMinutes,
 } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
-import { flowRules, setFlowRule } from "@/lib/flow-rules";
 import {
   addVerify,
   clearSchedule,
@@ -149,11 +148,21 @@ import {
 import type { BoardEntry } from "@/lib/cli";
 import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
-import { setSpecAgentEnabled, setSpecAgentSetting, specAgentProblems, specAgents } from "@/lib/agents";
+import {
+  agents as boardAgents,
+  createAgent,
+  saveAgentFile,
+  setAgentRule,
+  setSpecAgentEnabled,
+  setSpecAgentSetting,
+  specAgentProblems,
+  specAgents,
+} from "@/lib/agents";
 import { testConnection } from "@/lib/test-connection";
 import { isLanguage } from "@/lib/types";
 import type {
   AgentInfo,
+  AgentView,
   BoardScreen,
   BulkReleaseResult,
   CardDrafts,
@@ -168,7 +177,6 @@ import type {
   ConnectionTest,
   DropPlan,
   FillPlan,
-  FlowRuleView,
   HarnessOption,
   Language,
   LarkChat,
@@ -920,32 +928,6 @@ export async function setSilenceLimitAction(minutes: number): Promise<WriteResul
   return setSilenceMinutes(minutes);
 }
 
-// --- the flow rules (#306) ---------------------------------------------------
-// Every flow the board can start, with the rule it carries. Asked when the Rules pane
-// opens; nothing else on screen shows them.
-
-export async function flowRulesAction(): Promise<{ flows: FlowRuleView[] | null; error?: string }> {
-  try {
-    return { flows: await flowRules() };
-  } catch (e) {
-    return { flows: null, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** Save one flow's rule, or clear it with empty text. The command is checked against the
- *  board's own list of flows, so a stale client can't write a rule for a flow that does not
- *  exist. */
-export async function setFlowRuleAction(command: string, text: string): Promise<WriteResult> {
-  if (typeof command !== "string" || typeof text !== "string") {
-    return { ok: false, error: "a flow rule is saved by command and text" };
-  }
-  try {
-    return await setFlowRule(command, text);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
 // The agents the board can run and which of them this machine has (#207) — the picker asks
 // for this each time it opens, so a CLI installed while the board was open is offered the
 // next time you look rather than after a reload.
@@ -1245,6 +1227,65 @@ export async function setSpecAgentSettingAction(
   }
   try {
     return await setSpecAgentSetting(name, key, value);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- the team (#420, #422) ---------------------------------------------------
+// Everyone working on this board, and the three writes the Agents pane makes on them. The
+// board owns every check — which names it answers to, which clash, and whether an
+// `AGENT.md` reads — so these only say when, and turn a failure into a value the pane can
+// show rather than a crash page.
+
+/** The roster the pane draws its grid and its page from. `agents` is `null` when this
+ *  project's rules are older than the pane, so it can say that rather than drawing a grid
+ *  it cannot fill. */
+export async function agentsAction(): Promise<{
+  agents: AgentView[] | null;
+  problems: string[];
+  error?: string;
+}> {
+  try {
+    const read = await boardAgents();
+    return { agents: read?.agents ?? null, problems: read?.problems ?? [] };
+  } catch (e) {
+    return { agents: null, problems: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Save one agent's rule, or clear it with empty text. The name is checked against the
+ *  board's own roster, so a stale client can't write a rule for an agent that isn't there. */
+export async function setAgentRuleAction(agent: string, text: string): Promise<WriteResult> {
+  if (typeof agent !== "string" || typeof text !== "string") {
+    return { ok: false, error: "an agent's rule is saved by name and text" };
+  }
+  try {
+    return await setAgentRule(agent, text);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Add a specialist from the board's template. A name already taken is refused before
+ *  anything is written, so the pane never creates a clash it would then report. */
+export async function createAgentAction(name: string): Promise<WriteResult & { agent?: string }> {
+  if (typeof name !== "string") return { ok: false, error: "an agent is created by name" };
+  try {
+    return await createAgent(name);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Replace one project agent's `AGENT.md`, whole. The board reads the text the way its
+ *  catalog reads an agent, so a text it would refuse never reaches the file. */
+export async function saveAgentFileAction(name: string, text: string): Promise<WriteResult> {
+  if (typeof name !== "string" || typeof text !== "string") {
+    return { ok: false, error: "an agent's file is saved by name and text" };
+  }
+  try {
+    return await saveAgentFile(name, text);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

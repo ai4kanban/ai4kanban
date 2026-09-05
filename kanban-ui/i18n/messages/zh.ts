@@ -25,7 +25,7 @@ const zh: MessagesCopy = {
     silenceLimit: "这个看板的运行规则早于静默上限——请运行 `npm install -g ai4kanban`。",
     deliveries: "这个看板的运行规则早于交付流程——请运行 `npm install -g ai4kanban`。",
     worktrees: "这个看板的运行规则早于交付 worktree——请运行 `npm install -g ai4kanban`。",
-    flowRule: "这个项目里的运行规则太旧，无法保存流程规则",
+    agents: "这个项目里的运行规则太旧，无法读写这个看板的 Agent",
     language: "这个看板的运行规则早于语言设置——请运行 `npm install -g ai4kanban`。",
     skillInstall: "这个项目里的运行规则太旧，无法安装 skill",
     specAgentSwitch: "这个项目里的运行规则太旧，无法开关规格 Agent",

@@ -25,10 +25,10 @@ import path from 'node:path'
 import { rel, RULES } from '../paths'
 import { canonicalSpecAgent } from '../spec-agent-names'
 import type { WriteResult } from '../view/types'
-import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, flowPath, type Flow } from './flows'
+import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
 import { agentNames, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
-import type { AgentRequest, FlowRuleView } from './types'
+import type { AgentRequest } from './types'
 
 const rulePath = (agent: string): string => path.join(RULES, `${agent}.md`)
 
@@ -72,29 +72,6 @@ export function setAgentRule(agent: string, text: string): WriteResult {
  *  Not `lib/agents`' `notAnAgent`, which answers for the spec hook alone. */
 export const notOnTheRoster = (name: string): string =>
   `"${name}" is not an agent on this board. It has: ${agentNames().join(', ')}.`
-
-/** Save the rule of the agent that runs one flow — the older, per-flow door, kept while the
- *  board UI still draws a row per flow. It writes that flow's ROLE, so the two rows for the
- *  flows beside it read the same rule afterwards. */
-export function setFlowRule(command: string, text: string): WriteResult {
-  if (!flowByCommand(command)) return { ok: false, error: `no flow is started by \`akb ${command}\`` }
-  const role = roleForFlow(command)
-  if (!role) return { ok: false, error: `no agent on this board runs \`akb ${command}\`` }
-  return setAgentRule(role.name, text)
-}
-
-/** Every flow the board has, with the rule its agent carries — what the Rules pane draws.
- *  The list is the board's own, so a flow shipped later appears here without further work. */
-export function readFlowRules(): FlowRuleView[] {
-  migrateFlowRules()
-  return FLOWS.map((flow) => ({
-    command: flow.command,
-    path: flowPath(flow),
-    gloss: flow.gloss,
-    note: flow.ruleNote,
-    rule: ruleFile(roleForFlow(flow.command)?.name ?? ''),
-  }))
-}
 
 /** The rules a delivery freezes when it starts, keyed by the AGENT that carries each: the
  *  agents a delivery's flows are run by, read once, the way it reads the card it was

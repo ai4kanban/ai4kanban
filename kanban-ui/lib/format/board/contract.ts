@@ -26,7 +26,7 @@
 // This file is pure types and imports nothing that touches a filesystem, so it is copied
 // into the board UI by scripts/sync-format.mjs and both sides name one contract.
 
-import type { AgentRequest, DeliveryRecord, FlowRuleView } from '../agent/types'
+import type { AgentRequest, AgentView, DeliveryRecord } from '../agent/types'
 import type {
   ArchiveList,
   ArchivedCardFile,
@@ -217,13 +217,21 @@ export interface BoardProvider {
    *  editing it as a file, which a board that is not on this machine has no way to do. */
   saveMemoryFile(name: string, text: string, module: string, env: OpEnvelope): Promise<OpResult<{ file?: MemoryFile }>>
 
-  // ---- the per-flow rules (#306) -------------------------------------------
-  /** Every flow this board has, with the rule its agent carries (#420). The list is the
-   *  board's own, so a flow shipped later appears without this being touched. */
-  readFlowRules(): Promise<FlowRuleView[]>
-  /** Save the rule of the agent that runs one flow. Empty text clears it, and the flows that
-   *  agent also runs read the same rule afterwards. */
-  saveFlowRule(command: string, text: string, env: OpEnvelope): Promise<OpResult>
+  // ---- the team (#420, #422) -----------------------------------------------
+  /** Everyone working on this board — the roles it ships, the specialists the command
+   *  ships, then the ones the project added — each with its rule, the memory files it owns,
+   *  the settings it declares and, for a project agent, the whole of its `AGENT.md`. One
+   *  read: the Agents pane draws its grid and its page from this and asks for nothing else. */
+  readAgents(): Promise<{ agents: AgentView[]; problems: string[] }>
+  /** Save one agent's rule, in the user's own words. Empty text clears it, and every flow
+   *  that agent runs reads the same rule afterwards. */
+  saveAgentRule(agent: string, text: string, env: OpEnvelope): Promise<OpResult>
+  /** Write a new specialist from the board's template. The name is checked against the
+   *  roster and the folders on disk first, so a clash is refused rather than created. */
+  createAgent(name: string, env: OpEnvelope): Promise<OpResult<{ agent: string }>>
+  /** Replace one project agent's `AGENT.md`, whole. Read the way the catalog reads an
+   *  agent, so a text it would refuse never reaches the file. */
+  saveAgentFile(name: string, text: string, env: OpEnvelope): Promise<OpResult>
   /** The rules a delivery freezes when it starts, keyed by the agent that carries each —
    *  read once, the way it reads the card it was approved to build. Editing a rule afterwards
    *  changes the next delivery, never one in flight. */

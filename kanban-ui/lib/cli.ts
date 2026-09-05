@@ -8,13 +8,13 @@ import { DEFAULT_LANGUAGE } from "./types";
 import type {
   AgentInfo,
   AgentRequest,
+  AgentView,
   CommandRequest,
   ChatReply,
   ChatTarget,
   ChatView,
   ConnectionTest,
   DeliveryRecord,
-  FlowRuleView,
   HarnessSetting,
   LoggedOutAgent,
   RunRecord,
@@ -229,11 +229,14 @@ export interface BoardRules {
    *  started over. */
   repairDeliveries?(): string[];
 
-  // the flow rules (#306) — one rule per flow, in the user's own words, appended to that
-  // flow's built-in prompt. Optional: a project can be running rules older than the release
-  // that added them, and the Rules pane says so rather than the dialog failing to draw.
-  readFlowRules?(): Promise<FlowRuleView[]>;
-  setFlowRule?(command: string, text: string): Promise<WriteResult>;
+  // the team (#420, #422) — everyone working on the board, the rule each of them carries,
+  // and the two writes on a project agent's own file. All four are optional together: a
+  // project can be running rules older than the release that added them, and the Agents
+  // pane says so rather than drawing a grid it cannot fill.
+  readAgents?(): Promise<{ agents: AgentView[]; problems: string[] }>;
+  setAgentRule?(agent: string, text: string): Promise<WriteResult>;
+  createAgent?(name: string): Promise<WriteResult & { agent?: string }>;
+  saveAgentFile?(name: string, text: string): Promise<WriteResult>;
 
   // a marketing card's drafts and its channels (#411) — what the card page's drafts block
   // draws and acts through. Optional the way the flow rules are: a board running rules older

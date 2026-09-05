@@ -114,12 +114,11 @@ const AGENT_FILE = 'AGENT.md'
 const LEGACY_AGENT_FILE = 'SKILL.md'
 const AGENT_FILES = [AGENT_FILE, LEGACY_AGENT_FILE]
 
-function readProject(root: string, folder: string): { agent: SpecAgent } | { problem: string } {
-  const dir = path.join(root, folder)
-  // Read through the agent's own folder only. A reference is agent-relative by contract
-  // (./parse.ts refuses an absolute or climbing one); this is the second lock on it, so a
-  // path that slipped through still cannot reach the rest of the repo.
-  const file = (relative: string): string | null => {
+/** Read through one agent's own folder and no further. A reference is agent-relative by
+ *  contract (./parse.ts refuses an absolute or climbing one); this is the second lock on it,
+ *  so a path that slipped through still cannot reach the rest of the repo. */
+export function agentFileReader(dir: string): (relative: string) => string | null {
+  return (relative) => {
     const target = path.resolve(dir, relative)
     if (target !== dir && !target.startsWith(dir + path.sep)) return null
     try {
@@ -128,7 +127,16 @@ function readProject(root: string, folder: string): { agent: SpecAgent } | { pro
       return null
     }
   }
+}
+
+function readProject(root: string, folder: string): { agent: SpecAgent } | { problem: string } {
+  const dir = path.join(root, folder)
+  const file = agentFileReader(dir)
   const found = AGENT_FILES.map((name) => ({ name, text: file(name) })).find((f) => f.text !== null)
   if (!found) return { problem: `${rel(path.join(dir, AGENT_FILES[0]!))} is missing` }
-  return parseSpecAgent(found.text!, rel(path.join(dir, found.name)), file)
+  const read = parseSpecAgent(found.text!, rel(path.join(dir, found.name)), file)
+  // Where it lives and what it says, whole — a project agent's file is the box the Agents
+  // pane writes it through (#422), and only an agent read off disk has one.
+  if ('agent' in read) Object.assign(read.agent, { dir, text: found.text! })
+  return read
 }

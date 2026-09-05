@@ -14,7 +14,11 @@
 // `marketing` board writes drafts, so the same flows belong to a Writer, which also runs
 // the repurpose `akb channel` starts. Planner and Reviewer are the same work either way.
 
+import path from 'node:path'
+
 import { specAgentCatalog } from '../agents/catalog'
+import { agentMemoryFile } from '../memory'
+import { KANBAN, rel } from '../paths'
 import { solution } from '../solution'
 import { FLOWS } from './flows'
 import type { AgentKind } from '../agents/parse'
@@ -116,15 +120,19 @@ export function roleFlowsInOrder(role: AgentRole): string[] {
 /** One agent as a roster reads it — a role, or one of the specialists a card asks for. */
 export interface RosterEntry {
   name: string
-  /** A role's line, or a specialist's own description. */
+  /** What it does, in one clause: a role's line, or a specialist's `akb.owns`. */
   gloss: string
+  /** When the board calls it — a specialist's own `description`. Empty on a role, which is
+   *  called by its flows rather than by a trigger. */
+  when: string
   /** `role` for one of the board's own; otherwise the hook the specialist plugs into. */
   kind: 'role' | AgentKind
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
   /** A role's flows. Empty on a specialist: it is asked for by name, never by a flow. */
   flows: string[]
-  /** The memory files it owns, board-relative. */
+  /** The memory files it owns, repo-relative — a role's are the files its own flows already
+   *  write, and a specialist that declares `memory: project` owns one of its own. */
   memory: string[]
 }
 
@@ -134,20 +142,22 @@ export interface RosterEntry {
 export function agentRoster(): RosterEntry[] {
   const specialists = specAgentCatalog().agents.map((agent) => ({
     name: agent.name,
-    gloss: agent.description,
+    gloss: agent.owns,
+    when: agent.description,
     kind: agent.kind,
     builtIn: agent.builtIn,
     flows: [],
-    memory: [],
+    memory: agent.memory ? [rel(agentMemoryFile(agent.name))] : [],
   }))
   return [
     ...roles().map((role) => ({
       name: role.name,
       gloss: role.gloss,
+      when: '',
       kind: 'role' as const,
       builtIn: true,
       flows: role.flows,
-      memory: role.memory,
+      memory: role.memory.map((file) => rel(path.join(KANBAN, file))),
     })),
     ...specialists.filter((a) => a.builtIn),
     ...specialists.filter((a) => !a.builtIn),

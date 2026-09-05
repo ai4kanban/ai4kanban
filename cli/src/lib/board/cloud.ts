@@ -806,10 +806,12 @@ function cloudBoard(ctx: Context): BoardProvider {
     saveMemoryFile: (name, text, module, env) =>
       through({ board: true }, env, (e) => local.saveMemoryFile(name, text, module, e)),
 
-    // ---- the rules, one per agent -------------------------------------------
+    // ---- the team, and the rule each of them carries -------------------------
 
-    readFlowRules: () => local.readFlowRules(),
-    saveFlowRule: (command, text, env) => through({ board: true }, env, (e) => local.saveFlowRule(command, text, e)),
+    readAgents: () => local.readAgents(),
+    saveAgentRule: (agent, text, env) => through({ board: true }, env, (e) => local.saveAgentRule(agent, text, e)),
+    createAgent: (name, env) => through({ board: true }, env, (e) => local.createAgent(name, e)),
+    saveAgentFile: (name, text, env) => through({ board: true }, env, (e) => local.saveAgentFile(name, text, e)),
     deliveryRules: () => local.deliveryRules(),
 
     // ---- history ------------------------------------------------------------

@@ -5,8 +5,8 @@
 // setup #174, how a delivery is built #303/#308, and the language this machine
 // reads in #334), Runtimes (the coding tools the board runs work on, #68/#344, and
 // the settings each declares, #93), Agents (the spec agents that fill part of a
-// card's spec, and the switch that keeps one from running, #191), Rules (#306) and
-// Notifications (#326).
+// card's spec, the rule each agent carries and the AGENT.md of one you add, #191/
+// #306/#420/#422) and Notifications (#326).
 // The sidebar is how the dialog grows: a new group of settings is one more entry
 // there with a pane of its own, and the harness's growing field list (the model,
 // the reasoning level #97, #95's provider and base URL) never squeezes what joins
@@ -27,7 +27,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiAlignLeft, FiBell, FiCheck, FiCloud, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiCheck, FiCloud, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   bindRuntimeAction,
   hasWorkspaceAction,
@@ -54,13 +54,12 @@ import type {
   WriteResult,
 } from "@/lib/types";
 import { TOOL_BTN } from "./chrome";
+import { AgentsPanel } from "./Agents";
 import { CloudPanel } from "./Cloud";
 import { Dialog } from "./Dialog";
-import { FlowRulesPanel } from "./FlowRules";
 import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
 import { CAPTION, CONTROL, Note, QUIET_BTN } from "./settings";
-import { SpecAgentsPanel } from "./SpecAgents";
 import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -88,14 +87,11 @@ export function AgentMark({ src, size, name }: { src: string; size: number; name
 // The dialog's sections, in sidebar order — what the board is set up with, then the tool
 // it runs on, then what that tool is told, then where the answers go. Adding a settings
 // group is one entry here plus its pane below; nothing else moves.
-type Section = "general" | "runtimes" | "agents" | "rules" | "workspace" | "cloud";
+type Section = "general" | "runtimes" | "agents" | "workspace" | "cloud";
 const SECTIONS: { id: Section; icon: IconType }[] = [
   { id: "general", icon: FiSliders },
   { id: "runtimes", icon: FiTerminal },
   { id: "agents", icon: FiUsers },
-  // The rules a run follows (#306). Shortened to **Rules** here; the pane wears its full
-  // name — Flow rules — where a reader meets it cold.
-  { id: "rules", icon: FiAlignLeft },
   // The workspace this board lives in (#317). Only on a Cloud board — a Local one has no
   // workspace to run, so the entry is left out rather than drawn onto an empty pane.
   { id: "workspace", icon: FiCloud },
@@ -254,20 +250,12 @@ export function Configuration({
             <div hidden={section !== "runtimes"}>
               <RuntimesPanel agent={agent} onError={onError} />
             </div>
-            {/* The spec agents (#191, #403) — what each one fills in, and whether it may run.
-                Mounted only while it is the section on screen: it asks the board for its
-                own list when it draws, and that list carries the switches as they read
-                right now. */}
-            {section === "agents" && <SpecAgentsPanel onError={onError} />}
-            {/* One rule per flow, in the user's own words (#306) — appended to the end of
-                that flow's instructions. Mounted only while it is the section on screen:
-                it asks the board for its own list of flows when it draws, and that list
-                carries the rules as they read right now. */}
-            {section === "rules" && (
-              <div className="h-full">
-                <FlowRulesPanel onError={onError} />
-              </div>
-            )}
+            {/* The team (#420, #422) — everyone working on the board, the rule each one
+                carries, what it remembers, its settings and, for an agent this project
+                added, its own AGENT.md. Mounted only while it is the section on screen: it
+                asks the board for its roster when it draws, and that roster carries the
+                switches and the rules as they read right now. */}
+            {section === "agents" && <AgentsPanel onError={onError} />}
             {/* The Cloud sign-in (#326) — the account this MACHINE acts as, not a setting of
                 this board. Mounted only while it is the section on screen: it asks the
                 service who is signed in, over the network. */}

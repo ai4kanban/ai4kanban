@@ -14,11 +14,11 @@ import { chatPrompt } from '../src/lib/agent/chat.ts'
 import { cmdStartRun } from '../src/commands/run.ts'
 import { activeDelivery } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
-import { FLOWS } from '../src/lib/agent/flows.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { setupInstruction } from '../src/lib/agent/resolve.ts'
-import { readFlowRules, ruleFor, setAgentRule, setFlowRule } from '../src/lib/agent/rules.ts'
+import { ruleFor, setAgentRule } from '../src/lib/agent/rules.ts'
+import { readAgents } from '../src/lib/agents/roster.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { setLanguage } from '../src/lib/machine/settings.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
@@ -94,35 +94,30 @@ describe('the files', () => {
     assert.equal(fs.existsSync(path.join(RULES, 'builder.md')), false)
   })
 
-  it('is named by the agent that runs the flow, not by the flow (#420)', async () => {
-    setFlowRule('revise', 'Say what changed.')
+  it('is named by the agent, so every flow it runs reads one file (#420)', async () => {
+    setAgentRule('planner', 'Say what changed.')
     assert.equal(fs.readFileSync(path.join(RULES, 'planner.md'), 'utf8').trim(), 'Say what changed.')
-    for (const gone of ['revise.md', 'edit.md']) {
-      assert.equal(fs.existsSync(path.join(RULES, gone)), false, gone)
+    for (const action of ['edit', 'propose', 'resolve'] as const) {
+      assert.equal(ruleFor({ action, id: 1 }), 'Say what changed.', action)
+      assert.equal(fs.existsSync(path.join(RULES, `${action}.md`)), false, action)
     }
   })
 
-  it('refuses a flow this board does not have, and a name no agent answers to', async () => {
-    const flow = setFlowRule('deploy', 'Ship it.')
-    assert.equal(flow.ok, false)
-    assert.match(flow.error!, /deploy/)
+  it('refuses a name no agent on this board answers to', async () => {
     const agent = setAgentRule('deployer', 'Ship it.')
     assert.equal(agent.ok, false)
     assert.match(agent.error!, /planner, builder, reviewer/)
   })
 
-  it("lists every flow the board can start, carrying its agent's rule or none", async () => {
+  it("carries each agent's rule on the roster, and nothing for the ones without one", async () => {
     setAgentRule('builder', 'Install first.')
-    const listed = readFlowRules()
-    assert.equal(listed.length, FLOWS.length)
+    const { agents } = readAgents()
+    assert.equal(agents.find((a) => a.name === 'builder')!.rule, 'Install first.')
+    assert.equal(agents.find((a) => a.name === 'planner')!.rule, '')
     // One rule, every flow that agent runs.
-    for (const command of ['implement', 'conflict', 'run']) {
-      assert.equal(listed.find((f) => f.command === command)!.rule, 'Install first.', command)
+    for (const action of ['implement', 'conflict', 'run'] as const) {
+      assert.equal(ruleFor({ action, id: 1 }), 'Install first.', action)
     }
-    assert.equal(listed.find((f) => f.command === 'propose')!.rule, '')
-    // Every flow says what it is, because `plan-release` names nothing a user
-    // can guess at.
-    assert.ok(listed.every((f) => f.gloss.length > 0))
   })
 })
 

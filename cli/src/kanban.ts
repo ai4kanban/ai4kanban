@@ -82,14 +82,13 @@ export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 export { refinementRequest } from './lib/agent/refine'
 
-// The rules (#306, #420): one rule per agent, in the user's own words, appended to the end
-// of every run that agent does. The Rules pane in the Configuration dialog still draws a row
-// per flow and reads and writes through these, each row carrying the rule of the agent that
-// runs that flow — the list of flows is the board's own, so a flow shipped later takes its
-// agent's rule with nothing else touched.
+// The team (#420, #422): everyone working on the board, and the four moves the Agents pane
+// makes on them — the roster read that carries each agent's rule, memory, settings and
+// `AGENT.md`; the rule write; the template a new specialist starts as; and the write of one
+// agent's own file. They ship together, so a UI that finds the roster read finds all four.
 // They are board operations like every other write (#315), so a Cloud board reads and
-// writes its rules where the board is and both clients call the same thing.
-export { readFlowRules, setFlowRule } from './lib/view/api'
+// writes its team where the board is and both clients call the same thing.
+export { createAgent, readAgents, saveAgentFile, setAgentRule } from './lib/view/api'
 
 // A marketing card's drafts and its channels (#411) — what the board UI's drafts block is
 // drawn from and acts through. Reading and writing a draft is a file under

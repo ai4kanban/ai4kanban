@@ -73,7 +73,8 @@ import { deliveryDiff } from '../view/diff'
 import { nextWork as dispatchNextWork } from '../view/dispatch'
 import { addVerifyLine, dropVerifyLine, patchCard as patchCardWrite, setCardSchedule } from '../view/edit'
 import { readModules, readSetupDraft, saveProject as saveProjectWrite } from '../view/first-run'
-import { deliveryRules, readFlowRules, setFlowRule } from '../agent/rules'
+import { deliveryRules, setAgentRule } from '../agent/rules'
+import { createAgent, readAgents, saveAgentFile } from '../agents/roster'
 import { readGoalText, writeGoalText } from '../view/goal'
 import { readMemoryFile, readMemoryModules, writeMemoryFile } from '../view/memory'
 import { readMetricsView } from '../view/metrics'
@@ -469,15 +470,30 @@ export function localBoard(): BoardProvider {
         return { file }
       }),
 
-    // ---- the rules, one per agent -------------------------------------------
+    // ---- the team, and the rule each of them carries -------------------------
 
-    readFlowRules: () => Promise.resolve(readFlowRules()),
+    readAgents: () => Promise.resolve(readAgents()),
 
     // A rule is the board's, not one card's, so it is written under the board's own lease
-    // like the module map and the release list beside it.
-    saveFlowRule: (command, text, env) =>
+    // like the module map and the release list beside it. An agent's own file and the
+    // template a new one starts as are the same kind of write.
+    saveAgentRule: (agent, text, env) =>
       mutate({ board: true }, env, () => {
-        const res = setFlowRule(command, text)
+        const res = setAgentRule(agent, text)
+        if (!res.ok) throw new Error(res.error)
+        return {}
+      }),
+
+    createAgent: (name, env) =>
+      mutate({ board: true }, env, () => {
+        const res = createAgent(name)
+        if (!res.ok) throw new Error(res.error)
+        return { agent: res.agent! }
+      }),
+
+    saveAgentFile: (name, text, env) =>
+      mutate({ board: true }, env, () => {
+        const res = saveAgentFile(name, text)
         if (!res.ok) throw new Error(res.error)
         return {}
       }),

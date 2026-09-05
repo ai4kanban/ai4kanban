@@ -9,7 +9,6 @@ export type ConfigurationCopy = {
     general: string;
     runtimes: string;
     agents: string;
-    rules: string;
     cloud: string;
     /** The workspace a Cloud board lives in (#317). Only ever on a Cloud board. */
     workspace: string;
@@ -108,28 +107,57 @@ export type ConfigurationCopy = {
       ran: (harness: string) => string;
     };
   };
-  specAgents: {
+  /** Configuration → Agents (#422): everyone working on the board as a grid of characters,
+   *  and the page one opens — its rule, what it remembers, its settings, and a project
+   *  agent's own `AGENT.md`. */
+  agents: {
     title: string;
     blurb: string;
     loading: string;
     tooOld: string;
-    enabled: string;
-    paused: string;
     /** One line per problem the board reports about its agents — a malformed AGENT.md, a
      *  name twice over, a folder still where agents used to live. */
     problems: string;
-    /** Only read out loud: the switch on one agent's row. */
+    /** A tile's state line. A role runs the board's own flows, so it is always on. */
+    alwaysOn: string;
+    enabled: string;
+    paused: string;
+    /** Only read out loud: the tile that opens an agent's page, and its switch. */
+    open: (agent: string) => string;
     switchOn: (agent: string) => string;
     switchOff: (agent: string) => string;
-    contributes: string;
-    runsWhen: string;
-    change: string;
-    /** One setting's line, before it is opened. */
-    setting: (label: string, value: string) => string;
-    settingWithCost: (label: string, value: string, cost: string) => string;
     flipFailedOn: (agent: string) => string;
     flipFailedOff: (agent: string) => string;
+
+    /** The page under the grid. */
+    /** Before a specialist's own trigger, on its page. */
+    runsWhen: string;
+    yours: string;
+    rule: string;
+    ruleLabel: (agent: string) => string;
+    rulePlaceholder: (agent: string) => string;
+    saved: string;
+    ruleFailed: (agent: string) => string;
+    remembers: string;
+    readOnly: string;
+    file: string;
+    fileLabel: (agent: string) => string;
+    /** Before the board's own reason a save was refused. */
+    notSaved: string;
+
+    /** One setting's line, before it is opened. */
+    change: string;
+    setting: (label: string, value: string) => string;
+    settingWithCost: (label: string, value: string, cost: string) => string;
     saveFailed: (agent: string) => string;
+
+    /** Add a specialist. */
+    add: string;
+    newAgent: string;
+    namePlaceholder: string;
+    nameHint: string;
+    create: string;
+    cancel: string;
   };
   delivery: {
     /** A change only reaches deliveries started afterwards. Said once, under all three. */
@@ -155,18 +183,6 @@ export type ConfigurationCopy = {
     /** What a box that isn't a whole number of minutes is told. */
     whole: string;
     failed: string;
-  };
-  flowRules: {
-    title: string;
-    blurb: string;
-    loading: string;
-    tooOld: string;
-    flows: string;
-    set: (inUse: number, total: number) => string;
-    saved: string;
-    rule: (flow: string) => string;
-    placeholder: (flow: string) => string;
-    saveFailed: (flow: string) => string;
   };
   skill: {
     /** The right-hand answer on either row while the board is being asked. */

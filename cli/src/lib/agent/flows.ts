@@ -59,10 +59,6 @@ export interface Flow {
   more?: string[]
   /** The options this flow takes, on top of the `--print` and `--follow` every one takes. */
   options?: FlowOption[]
-  /** What this flow's rule is for, read beside that flow rather than in a warning the user
-   *  meets before they know which flow they want. Most flows have nothing particular to
-   *  say and carry none. */
-  ruleNote?: string
 }
 
 const NOTE = 'anything the run should know, in your own words'
@@ -75,8 +71,6 @@ export const FLOWS: Flow[] = [
     argument: '<id> [note...]',
     argumentNote: NOTE,
     gloss: 'build the card',
-    ruleNote:
-      'Each delivery builds in a fresh worktree. This rule is where you say how to prepare one — installing dependencies, seeding a local config.',
   },
   {
     command: 'review',
@@ -85,7 +79,6 @@ export const FLOWS: Flow[] = [
     argument: '<id>',
     gloss: 'review and fix what the delivery built against the approved card',
     more: ['The board runs this itself after a build; type it to look again after answering its question.'],
-    ruleNote: 'Add repository-specific checks here. Review fixes plain failures or stops when it needs you.',
   },
   {
     command: 'conflict',

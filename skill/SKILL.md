@@ -112,8 +112,8 @@ flow puts it last, after the flows.
 - **Where a rule lives**: `docs/kanban/rules/<agent>.md`, named by the agent — the roles the
   board ships (`planner`, `builder`, `reviewer`; `writer` on a marketing board) and each spec
   agent. A missing or empty file means no rule.
-- **Who writes one**: the user, in the board UI under Configuration → Rules. Edit one only
-  when they ask you to, with `akb raw rule <agent> --file <path>`.
+- **Who writes one**: the user, in the board UI under Configuration → Agents, on that
+  agent's page. Edit one only when they ask you to, with `akb raw rule <agent> --file <path>`.
 
 ## Preserve board integrity
 

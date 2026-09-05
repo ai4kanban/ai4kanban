@@ -111,36 +111,70 @@ describe('the memory set, as a contract write', () => {
   })
 })
 
-describe('the rules, as a contract write', () => {
-  it("saves one onto the flow's agent, lists it against every flow that agent runs, and clears it", async () => {
-    const saved = await onBoard((env) => board().saveFlowRule('implement', 'Install dependencies first.', env))
+describe('the team, as a contract read and write', () => {
+  it("saves one agent's rule, carries it on the roster, and clears it", async () => {
+    const saved = await onBoard((env) => board().saveAgentRule('builder', 'Install dependencies first.', env))
     assert.ok(saved.ok)
     // The file is the AGENT's, not the flow's (#420).
     assert.equal(read('rules/builder.md'), 'Install dependencies first.\n')
     assert.equal(fs.existsSync(path.join(kanban, 'rules', 'implement.md')), false)
 
-    const listed = await board().readFlowRules()
-    // Every flow the builder runs reads it, and a flow another agent runs does not.
-    for (const command of ['implement', 'conflict', 'run']) {
-      assert.equal(listed.find((f) => f.command === command)?.rule, 'Install dependencies first.', command)
-    }
-    assert.equal(listed.find((f) => f.command === 'review')?.rule, '')
+    const { agents } = await board().readAgents()
+    assert.equal(agents.find((a) => a.name === 'builder')?.rule, 'Install dependencies first.')
+    assert.equal(agents.find((a) => a.name === 'reviewer')?.rule, '')
+    // A role runs the board's own flows, so it has no switch; a specialist does.
+    assert.equal(agents.find((a) => a.name === 'builder')?.switchable, false)
+    assert.equal(agents.find((a) => a.name === 'ui-design')?.switchable, true)
 
-    const cleared = await onBoard((env) => board().saveFlowRule('implement', '   ', env))
+    const cleared = await onBoard((env) => board().saveAgentRule('builder', '   ', env))
     assert.ok(cleared.ok)
     // An agent with no rule and an agent with an empty rule are the same agent, so the file goes.
     assert.equal(fs.existsSync(path.join(kanban, 'rules', 'builder.md')), false)
   })
 
-  it('refuses a command that starts no flow', async () => {
-    const res = await onBoard((env) => board().saveFlowRule('deploy', 'Ship it.', env))
+  it('refuses a name no agent on this board answers to', async () => {
+    const res = await onBoard((env) => board().saveAgentRule('deployer', 'Ship it.', env))
     assert.equal(res.ok, false)
-    assert.equal(fs.existsSync(path.join(kanban, 'rules', 'deploy.md')), false)
+    assert.equal(fs.existsSync(path.join(kanban, 'rules', 'deployer.md')), false)
+  })
+
+  it('adds a specialist from the template, and refuses a name already taken', async () => {
+    const added = await onBoard((env) => board().createAgent('api-contract', env))
+    assert.ok(added.ok)
+    const file = path.join(kanban, 'agents', 'api-contract', 'AGENT.md')
+    assert.match(fs.readFileSync(file, 'utf8'), /kind: spec/)
+
+    // It parses, so it is in the roster with its own box rather than in the problems list.
+    const { agents } = await board().readAgents()
+    const added2 = agents.find((a) => a.name === 'api-contract')
+    assert.ok(added2?.file, 'a project agent draws its own AGENT.md')
+    // Both lines a planning flow would pick it by say it is unwritten, so nothing asks for
+    // it until the user fills the file in.
+    assert.match(added2!.gloss, /unwritten/i)
+    assert.match(added2!.when, /Unwritten/i)
+
+    for (const taken of ['api-contract', 'ui-design', 'builder']) {
+      assert.equal((await onBoard((env) => board().createAgent(taken, env))).ok, false, taken)
+    }
+  })
+
+  it("refuses an AGENT.md the catalog would not read, and keeps the file it had", async () => {
+    await onBoard((env) => board().createAgent('api-contract', env))
+    const file = path.join(kanban, 'agents', 'api-contract', 'AGENT.md')
+    const was = fs.readFileSync(file, 'utf8')
+
+    const bad = await onBoard((env) => board().saveAgentFile('api-contract', '---\nname: api-contract\n---\n', env))
+    assert.equal(bad.ok, false)
+    assert.equal(fs.readFileSync(file, 'utf8'), was)
+
+    const good = '---\nname: api-contract\ndescription: Use when a card changes an endpoint.\nakb:\n  kind: spec\n  owns: the request and response shape\n---\n\nWrite the contract.\n'
+    assert.ok((await onBoard((env) => board().saveAgentFile('api-contract', good, env))).ok)
+    assert.equal(fs.readFileSync(file, 'utf8'), good)
   })
 
   it("hands a delivery the rules it freezes, keyed by agent, and only the agents it is built by", async () => {
-    await onBoard((env) => board().saveFlowRule('implement', 'Install dependencies first.', env))
-    await onBoard((env) => board().saveFlowRule('propose', 'Stay small.', env))
+    await onBoard((env) => board().saveAgentRule('builder', 'Install dependencies first.', env))
+    await onBoard((env) => board().saveAgentRule('planner', 'Stay small.', env))
 
     const frozen = await board().deliveryRules()
     assert.equal(frozen.builder, 'Install dependencies first.')

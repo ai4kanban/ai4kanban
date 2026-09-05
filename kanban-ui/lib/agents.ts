@@ -1,6 +1,6 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
-import type { SpecAgentView, WriteResult } from "./types";
+import type { AgentView, SpecAgentView, WriteResult } from "./types";
 
 // --- the spec agents (#191, #403, #419) --------------------------------------
 // A spec agent fills one part of a card's spec — the screen it changes, the library it
@@ -52,4 +52,42 @@ export async function setSpecAgentSetting(name: string, key: string, value: stri
     return { ok: false, error: (await machineCopy()).messages.tooOld.specAgentSetting };
   }
   return rules.setSpecSkillSetting(name, key, value);
+}
+
+// --- the whole team (#420, #422) ---------------------------------------------
+// The Agents pane draws everyone working on the board — the roles it ships, the specialists
+// the command ships, then the ones this project added — and writes a rule, a template and
+// an agent's own `AGENT.md` back. Four moves, one release: a copy of the rules that has the
+// roster read has all four, so the pane never draws a grid it cannot save from.
+
+/** Everyone on this board, each with its rule, the memory files it owns, the settings it
+ *  declares and — for a project agent — the whole of its `AGENT.md`. `null` on rules older
+ *  than the pane, which is what the "too old" note is drawn from. */
+export async function agents(): Promise<{ agents: AgentView[]; problems: string[] } | null> {
+  const rules = await boardRules();
+  return rules.readAgents ? await rules.readAgents() : null;
+}
+
+/** Save one agent's rule, or clear it with empty text. Every flow that agent runs reads it,
+ *  and a run started from a terminal reads the same words. */
+export async function setAgentRule(agent: string, text: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.setAgentRule) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
+  return await rules.setAgentRule(agent, text);
+}
+
+/** Add a specialist from the board's template. A name already on the roster or already a
+ *  folder is refused before anything is written. */
+export async function createAgent(name: string): Promise<WriteResult & { agent?: string }> {
+  const rules = await boardRules();
+  if (!rules.createAgent) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
+  return await rules.createAgent(name);
+}
+
+/** Replace one project agent's `AGENT.md`, whole. The board reads the text the way its
+ *  catalog reads an agent, so a save it would refuse never reaches the file. */
+export async function saveAgentFile(name: string, text: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.saveAgentFile) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
+  return await rules.saveAgentFile(name, text);
 }

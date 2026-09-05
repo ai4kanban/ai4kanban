@@ -29,7 +29,7 @@ export type MessagesCopy = {
     silenceLimit: string;
     deliveries: string;
     worktrees: string;
-    flowRule: string;
+    agents: string;
     language: string;
     skillInstall: string;
     specAgentSwitch: string;

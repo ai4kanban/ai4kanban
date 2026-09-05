@@ -54,7 +54,7 @@ export const readReleases = () => board().readReleases()
 export const readGoalText = () => board().readGoalText()
 export const readMemoryFile = (name: string, module = '') => board().readMemoryFile(name, module)
 export const readMemoryModules = () => board().readMemoryModules()
-export const readFlowRules = () => board().readFlowRules()
+export const readAgents = () => board().readAgents()
 export const deliveryPlan = () => board().deliveryPlan()
 export const deliveryDiff = (deliveryId: string) => board().deliveryDiff(deliveryId)
 export const nextWork = () => board().nextWork()
@@ -229,10 +229,22 @@ export async function saveMemoryFile(
   return flat(await envelopeFor({ board: true }, opts, (env) => board().saveMemoryFile(name, text, module, env)))
 }
 
-/** Save the rule of the agent that runs one flow, in the user's own words. Empty text
- *  clears it, and the flows that agent also runs read the same rule afterwards (#420). */
-export async function setFlowRule(command: string, text: string, opts?: WriteOptions): Promise<WriteResult> {
-  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveFlowRule(command, text, env)))
+/** Save one agent's rule, in the user's own words (#420). Empty text clears it, and every
+ *  flow that agent runs reads the same rule afterwards. */
+export async function setAgentRule(agent: string, text: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveAgentRule(agent, text, env)))
+}
+
+/** Add a specialist from the board's template (#422). A name already on the roster or
+ *  already a folder is refused before anything is written. */
+export async function createAgent(name: string, opts?: WriteOptions): Promise<WriteResult & { agent?: string }> {
+  return flat<{ agent: string }>(await envelopeFor({ board: true }, opts, (env) => board().createAgent(name, env)))
+}
+
+/** Replace one project agent's `AGENT.md`, whole. A text the catalog would refuse never
+ *  reaches the file, so the pane cannot leave an agent broken. */
+export async function saveAgentFile(name: string, text: string, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveAgentFile(name, text, env)))
 }
 
 // ---- the goal and setup ----------------------------------------------------
