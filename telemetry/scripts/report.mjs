@@ -6,10 +6,16 @@ import { LIMITS } from '../contract.ts'
 /** The free plan's daily allowances, which the summary's own counters are read against. */
 export const ALLOWANCE = { requests: 100_000, rows_written: 100_000, rows_read: 5_000_000 }
 
+/** The pages the rate is over: the two that carry a download button. A docs reader who did
+ *  not download is not a failed download, and counting them would drown the number. */
+export const RATE_PAGES = ['/', '/download']
+
+// `site` is the day over the rate pages, so the three site columns divide into each other.
+// Presses over every page of the site would be a rate whose halves count different readers.
 const COLUMNS = [
-  ['views', (n) => count(n.events?.page_view)],
-  ['presses', (n) => count(n.events?.download_press)],
-  ['rate', (n) => rate(n.events?.download_press, n.events?.page_view)],
+  ['views', (_, site) => count(site.views)],
+  ['presses', (_, site) => count(site.presses)],
+  ['rate', (_, site) => rate(site.presses, site.views)],
   ['opens', (n) => count(n.events?.app_open)],
   ['installs', (n) => count(n.installs)],
   ['returning', (n) => count(n.returning_installs)],
@@ -34,11 +40,13 @@ export function report(endpoint, days, held) {
   return (
     `\nAI4Kanban usage — ${endpoint}, ${from} to ${to}\n\n` +
     `${table(days, held)}\n\n` +
+    downloadRate(days, held, from, to) +
     installSpreads(days, held) +
     boardNumbers(days, held, from, to) +
     allowances(days, held) +
     'The app numbers cover installs with usage reporting on, and the site numbers cover\n' +
-    "browsers that ran the counter. Neither is the whole product's use. Raw events are kept\n" +
+    'browsers that ran the counter on the two pages that carry a download button. Neither is\n' +
+    "the whole product's use, and no bot is filtered out of either. Raw events are kept\n" +
     `${LIMITS.retentionDays} days, so an install away longer than that counts as new again.\n\n`
   )
 }
@@ -49,10 +57,109 @@ function table(days, held) {
     const numbers = held.get(day)
     // A day with no summary is marked, never printed as zero.
     if (!numbers) return [day, ...COLUMNS.map(() => '—')]
-    return [day, ...COLUMNS.map(([, read]) => read(numbers))]
+    return [day, ...COLUMNS.map(([, read]) => read(numbers, over(numbers)))]
   })
   return laidOut([head, ...body])
 }
+
+/**
+ * #297's number: of the visitors who reached a page with a download button, how many pressed
+ * it. Both counts are keyed by page and language together, so the same two grids read per
+ * page, per language, and per language on one page.
+ *
+ * It is a rate per visit, not per person: nothing is stored in the browser, so somebody who
+ * opens the page four times before downloading reads as a poor rate.
+ */
+function downloadRate(days, held, from, to) {
+  const cells = cellsOf(days.map((day) => held.get(day)).filter(Boolean))
+  const title = `Download rate, ${from} to ${to}`
+  if (cells.size === 0) return `${title}\n  —\n\n`
+
+  const pages = RATE_PAGES.filter((page) => cells.has(page))
+  // Busiest language first: a language with three views is noise, not a finding.
+  const languages = languagesOf(cells).sort(
+    (a, b) => summed(cells, pages, [b]).views - summed(cells, pages, [a]).views,
+  )
+  const line = (label, cell) => [
+    label,
+    count(cell.views),
+    count(cell.presses),
+    rate(cell.presses, cell.views),
+  ]
+
+  const byPage = [
+    ['page', 'views', 'presses', 'rate'],
+    ...pages.map((page) => line(page, summed(cells, [page], languages))),
+    line('all', summed(cells, pages, languages)),
+  ]
+  const byLanguage = [
+    ['language', 'views', 'presses', 'rate', ...pages],
+    ...languages.map((language) => [
+      ...line(language, summed(cells, pages, [language])),
+      ...pages.map((page) => {
+        const cell = summed(cells, [page], [language])
+        return rate(cell.presses, cell.views)
+      }),
+    ]),
+  ]
+  return `${title}\n${indented(byPage)}\n\n${indented(byLanguage)}\n\n`
+}
+
+/** Views and presses over the pages that carry a button, as page -> language -> counts.
+ *  Event counts, not distinct machines, so summaries add across days. */
+function cellsOf(summaries) {
+  const cells = new Map()
+  const add = (group, of) => {
+    for (const [key, n] of Object.entries(group ?? {})) {
+      const [page, language] = split(key)
+      if (!RATE_PAGES.includes(page) || !language) continue
+      if (!cells.has(page)) cells.set(page, new Map())
+      const languages = cells.get(page)
+      const cell = languages.get(language) ?? { views: 0, presses: 0 }
+      cell[of] += n
+      languages.set(language, cell)
+    }
+  }
+  for (const numbers of summaries) {
+    add(numbers.page_view_seen, 'views')
+    add(numbers.download_press_seen, 'presses')
+  }
+  return cells
+}
+
+const languagesOf = (cells) => [...new Set([...cells.values()].flatMap((one) => [...one.keys()]))]
+
+/** What one selection of pages and languages comes to. */
+function summed(cells, pages, languages) {
+  const total = { views: 0, presses: 0 }
+  for (const page of pages) {
+    for (const language of languages) {
+      const cell = cells.get(page)?.get(language)
+      if (!cell) continue
+      total.views += cell.views
+      total.presses += cell.presses
+    }
+  }
+  return total
+}
+
+/** One day over the rate pages, which is what the day table's three site columns are. */
+function over(numbers) {
+  const cells = cellsOf([numbers])
+  return summed(cells, RATE_PAGES, languagesOf(cells))
+}
+
+/** `/download zh` back into its two halves. A token has no space, so the first one splits. */
+function split(key) {
+  const space = key.indexOf(' ')
+  return space === -1 ? [key, ''] : [key.slice(0, space), key.slice(space + 1)]
+}
+
+const indented = (grid) =>
+  laidOut(grid)
+    .split('\n')
+    .map((line) => `  ${line}`)
+    .join('\n')
 
 /** Distinct install counts cannot be added across days, so a spread is one day's, never a
  *  range's. The most recent day that has a summary is the one shown. */

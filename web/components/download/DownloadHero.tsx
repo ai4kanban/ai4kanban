@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FiDownload } from "react-icons/fi";
 import { detectSystem, type Pick } from "./detect";
 import type { ResolvedSystem } from "./builds";
+import { countDownloadPress } from "@/lib/usage";
 
 // The top row of the download block (`DownloadBlock.tsx` owns the rounding and
 // the ink strip below): the words on the wash, the button on the ember. The
@@ -68,6 +69,17 @@ export function DownloadHero({
       <a
         href={pick ? pick.build.url : fallback}
         rel="noopener"
+        // Both halves of this link leave for GitHub — the file, or the release
+        // page — so both are a press. Nothing detected still counts, with the
+        // version it offered and `unknown` twice (#297).
+        onClick={() =>
+          countDownloadPress({
+            place: "download",
+            os: pick?.system.os ?? null,
+            arch: pick?.build.arch ?? null,
+            version,
+          })
+        }
         className="group flex flex-col bg-accent px-8 py-12 text-elev no-underline transition-colors duration-150 hover:bg-accent-deep sm:px-12 sm:py-16"
       >
         {/* The two headings begin on the same row across the split. */}

@@ -66,9 +66,10 @@ npm run burst              # a bounded release-day burst, development copy only
 npm test                   # the Worker's checks, and the SQL against a real SQLite
 ```
 
-**Deploy the service before the sender that needs it.** The endpoint drops event names it
-does not know, so a sender released first loses its new event silently for as long as the two
-are apart. Add the name to `contract.ts`, deploy, then ship the sender.
+**Deploy the service before the sender that needs it.** The endpoint drops event names AND
+fields it does not know, so a sender released first loses its new event — or its new field on
+an event that otherwise stores — silently for as long as the two are apart. Add it to
+`contract.ts`, deploy, then ship the sender.
 
 **Forgetting is asked for before reporting is switched off.** #293 shows the install id only
 while reporting is on, so someone who switches off first has no id left to give us. What goes

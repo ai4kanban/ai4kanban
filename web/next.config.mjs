@@ -6,6 +6,10 @@ const nextConfig = {
   images: { unoptimized: true },
   // Emit `/path.html` so clean slash-free URLs work on static hosts.
   trailingSlash: false,
+  // `lib/usage.ts` imports `telemetry/contract.ts`, which is outside this folder. The site
+  // and the service read the one file rather than each keeping a copy, so a field renamed
+  // on one side alone cannot lose a number in silence.
+  experimental: { externalDir: true },
 };
 
 export default nextConfig;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PageView } from "@/components/PageView";
 import { getCopy } from "@/i18n";
 import { inter } from "@/lib/fonts";
 import { htmlLang, pageMetadata, siteIcons } from "@/lib/metadata";
@@ -49,7 +50,10 @@ export default async function IntlRootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        <PageView />
+      </body>
     </html>
   );
 }

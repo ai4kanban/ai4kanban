@@ -20,10 +20,14 @@ export function Start({
   c,
   locale,
   systems,
+  version,
 }: {
   c: HomeCopy["start"];
   locale: Locale;
   systems: ResolvedSystem[];
+  /** The release the button hands over. It is counted with the press (#297),
+   *  and this page shows it nowhere. */
+  version: string;
 }) {
   return (
     // No top margin: this section sits in a `Band`, which owns its own air.
@@ -44,8 +48,10 @@ export function Start({
       >
         <PlatformCta
           systems={systems}
+          version={version}
           label={c.cta}
           fallback={localeHref(locale, "/download")}
+          place="start"
         />
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           {c.notes.map((note) => (

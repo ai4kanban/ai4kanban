@@ -41,6 +41,18 @@ function json(dim: string, field: string, where: string): string {
   )
 }
 
+/** Page and language as one key, `/download zh`. Kept together rather than as two spreads
+ *  because #297's rate is read per page, per language, AND per language for one page — and
+ *  two separate spreads can give the first two but never the third. A token has no space, so
+ *  the key splits back apart unambiguously. */
+function pageAndLanguage(dim: string, where: string): string {
+  return (
+    `UNION ALL SELECT '${dim}', ` +
+    `json_extract(fields, '$.page') || ' ' || json_extract(fields, '$.language'), COUNT(*) ` +
+    `FROM d WHERE ${where} GROUP BY 2`
+  )
+}
+
 /** One query for every spread a summary carries. `?1` is the day, used by every branch. */
 export const SPREAD = [
   'WITH d AS (SELECT * FROM events WHERE day = ?1)',
@@ -54,11 +66,15 @@ export const SPREAD = [
   spread('first_run_surface', 'surface', firstRun, true),
   spread('first_run_version', 'version', `${firstRun} AND version <> ''`, true),
   json('run_harness', 'harness', "name IN ('run_started', 'run_finished', 'run_failed')"),
-  json('page_view_page', 'page', "name = 'page_view'"),
-  json('page_view_language', 'language', "name = 'page_view'"),
-  json('download_press_page', 'page', "name = 'download_press'"),
-  json('download_press_language', 'language', "name = 'download_press'"),
+  // #297's rate: views and presses over the same key, so the two divide cell by cell.
+  pageAndLanguage('page_view_seen', "name = 'page_view'"),
+  pageAndLanguage('download_press_seen', "name = 'download_press'"),
+  // What a press carried, so it outlives the 90-day deletion of the events behind it.
+  json('download_press_place', 'place', "name = 'download_press'"),
   json('download_press_os', 'os', "name = 'download_press'"),
+  json('download_press_arch', 'arch', "name = 'download_press'"),
+  // `version` is a column, not a field: `take.ts` lifts it out of every event that carries one.
+  spread('download_press_version', 'version', "name = 'download_press' AND version <> ''"),
   ...BOARD_COUNTERS.map(
     (counter) =>
       `UNION ALL SELECT 'board', '${counter}', ` +

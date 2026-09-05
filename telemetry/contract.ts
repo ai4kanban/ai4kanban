@@ -6,7 +6,7 @@
  *
  * A name and a field listed here are stored. Anything else a sender puts in a batch is
  * dropped without a word back, so it is never retried. Deploy the service before shipping a
- * sender that emits a new name (see README.md).
+ * sender that emits a new name or a new field (see README.md).
  */
 
 /** Where a batch is posted. A build made for development must use the development copy. */
@@ -88,10 +88,18 @@ export const EVENTS = {
   },
   /** A page of the site was loaded (#297). No identifier, so it is never de-duplicated. */
   page_view: { from: 'site', fields: { page: 'token', language: 'token' } },
-  /** A download button was pressed (#297). */
+  /** A download button was pressed (#297). `place` is which button on the page, because
+   *  `page` is the path and the landing page carries two of them. */
   download_press: {
     from: 'site',
-    fields: { page: 'token', language: 'token', os: 'token', arch: 'token', version: 'token' },
+    fields: {
+      page: 'token',
+      language: 'token',
+      place: 'token',
+      os: 'token',
+      arch: 'token',
+      version: 'token',
+    },
   },
 } as const satisfies Record<string, EventShape>
 

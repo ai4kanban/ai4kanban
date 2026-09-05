@@ -14,6 +14,7 @@ repo directly.
 | Board app | GitHub release for the version tag | `npm run dist` from `desktop/`, then upload |
 | Board UI (frozen) | npm `ai4kanban-ui` | **deprecated — no new releases**, see below |
 | Landing page | ai4kanban.dev (Cloudflare Pages) | `env -u NODE_ENV pnpm run deploy` from `web/` — every release (below), and whenever the copy changes |
+| Usage endpoint | t.ai4kanban.dev (Cloudflare Workers) | `npm run deploy` from `telemetry/` — only when it or `telemetry/contract.ts` changed, and always before the sender that needs it |
 
 The CLI carries the note inside its build: `skill/SKILL.md` is a source file that
 `cli/src/lib/skill/install.ts` imports as a string, so it ships baked into the rules. A
@@ -82,9 +83,12 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
      404s for all of them. They come out of `desktop/dist/` with the builds and need no
      editing — the only thing to get right is uploading them, and the count above is the
      check.
-7. Deploy the landing page — last, and not optional. Every asset name on a release carries
-   the version, so the download page links straight at this tag's files: `web/lib/release.ts`
-   reads the root `VERSION` at build time and writes
+7. Deploy the landing page — last, and not optional. **If `telemetry/contract.ts` changed,
+   deploy the usage endpoint first**: it drops event names and fields it does not know, so a
+   site shipped ahead of it loses that count in silence for as long as the two are apart.
+
+   Every asset name on a release carries the version, so the download page links straight at
+   this tag's files: `web/lib/release.ts` reads the root `VERSION` at build time and writes
    `…/releases/download/v<version>/AI4Kanban-<version>-arm64.dmg` and its four siblings. Until
    the deploy, ai4kanban.dev/download hands out the previous release; deploy it before the
    release exists and the buttons 404. If a build's file name changes, that page's

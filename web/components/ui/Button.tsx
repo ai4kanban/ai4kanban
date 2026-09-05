@@ -81,7 +81,8 @@ export type ButtonProps = {
   href?: string;
   /** Saves `href` to disk instead of navigating — the recipe card downloads. */
   download?: boolean;
-  /** Only reachable from a client component — the copy CTA is the one caller. */
+  /** Only reachable from a client component — the copy CTA, and the
+   *  download count on a link that leaves for GitHub (#297). */
   onClick?: () => void;
   "aria-label"?: string;
 };
@@ -104,6 +105,7 @@ export function Button({
       <a
         href={href}
         download={download}
+        onClick={onClick}
         rel={href.startsWith("http") ? "noopener" : undefined}
         className={className}
         {...rest}

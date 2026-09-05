@@ -81,7 +81,7 @@ describe("a day's summary", () => {
     await put(db, null, TODAY, [
       { name: 'page_view', day: TODAY, page: '/', language: 'en' },
       { name: 'page_view', day: TODAY, page: '/download', language: 'zh' },
-      { name: 'download_press', day: TODAY, page: '/download', language: 'zh', os: 'darwin', arch: 'arm64', version: '0.8.1' },
+      { name: 'download_press', day: TODAY, page: '/download', language: 'zh', place: 'download', os: 'macos', arch: 'arm', version: '0.8.1' },
     ])
 
     const numbers = await summaryOf(db, TODAY)
@@ -94,8 +94,15 @@ describe("a day's summary", () => {
     assert.deepEqual(numbers.first_run_surface, { app: 1 })
     assert.deepEqual(numbers.first_run_version, { '0.8.1': 1 })
     assert.deepEqual(numbers.run_harness, { 'claude-code': 1 })
-    assert.deepEqual(numbers.page_view_page, { '/': 1, '/download': 1 })
-    assert.deepEqual(numbers.download_press_language, { zh: 1 })
+    // Page and language in one key, so the rate divides cell by cell.
+    assert.deepEqual(numbers.page_view_seen, { '/ en': 1, '/download zh': 1 })
+    assert.deepEqual(numbers.download_press_seen, { '/download zh': 1 })
+    // What a press carried, so it outlives the events behind it.
+    assert.deepEqual(numbers.download_press_place, { download: 1 })
+    assert.deepEqual(numbers.download_press_os, { macos: 1 })
+    assert.deepEqual(numbers.download_press_arch, { arm: 1 })
+    // The version a press named is a site number, never an install's.
+    assert.deepEqual(numbers.download_press_version, { '0.8.1': 1 })
     assert.equal(numbers.usage, null)
   })
 

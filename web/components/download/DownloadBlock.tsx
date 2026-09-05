@@ -1,5 +1,5 @@
-import { FiDownload } from "react-icons/fi";
 import { IconChip } from "@/components/ui/IconChip";
+import { BuildLink } from "./BuildLink";
 import { DownloadHero } from "./DownloadHero";
 import { SYSTEM_ICON } from "./icons";
 import type { ResolvedSystem } from "./builds";
@@ -74,17 +74,7 @@ export function DownloadBlock({
               <ul className="mt-5 space-y-3">
                 {system.builds.map((build) => (
                   <li key={build.url}>
-                    <a
-                      href={build.url}
-                      rel="noopener"
-                      className="group inline-flex items-baseline gap-2.5 font-semibold text-elev/80 no-underline transition-colors hover:text-elev"
-                    >
-                      <span className="group-hover:underline">{build.label}</span>
-                      <FiDownload
-                        aria-hidden="true"
-                        className="h-4 w-4 shrink-0 translate-y-0.5 text-accent transition-transform duration-150 group-hover:translate-y-1"
-                      />
-                    </a>
+                    <BuildLink build={build} os={system.os} version={version} />
                   </li>
                 ))}
               </ul>

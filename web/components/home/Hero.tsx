@@ -24,10 +24,14 @@ export function Hero({
   c,
   locale,
   systems,
+  version,
 }: {
   c: HomeCopy["hero"];
   locale: Locale;
   systems: ResolvedSystem[];
+  /** The release the button hands over. It is counted with the press (#297),
+   *  and this page shows it nowhere. */
+  version: string;
 }) {
   return (
     <section className={heroTop}>
@@ -66,8 +70,10 @@ export function Hero({
               browser says which that is, it points at the download page. */}
           <PlatformCta
             systems={systems}
+            version={version}
             label={c.ctaDownload}
             fallback={localeHref(locale, "/download")}
+            place="hero"
           />
           <Button href={GITHUB_URL}>{c.ctaGithub}</Button>
         </div>

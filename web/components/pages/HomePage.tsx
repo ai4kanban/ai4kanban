@@ -64,13 +64,13 @@ export function HomePage({ locale }: { locale: Locale }) {
           way into the ink footer. Everything above is pictures and type. */}
       <main>
         <div className={column}>
-          <Hero c={c.hero} locale={locale} systems={systems} />
+          <Hero c={c.hero} locale={locale} systems={systems} version={VERSION} />
           <Loop c={c.loop} />
           <Memory c={c.memory} />
           <Iterate c={c.iterate} />
         </div>
         <Band flush>
-          <Start c={c.start} locale={locale} systems={systems} />
+          <Start c={c.start} locale={locale} systems={systems} version={VERSION} />
         </Band>
       </main>
       <SiteFooter c={copy} locale={locale} path="" />

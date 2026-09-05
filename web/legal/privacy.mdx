@@ -7,7 +7,7 @@ effective: 2026-09-05
 
 <TLDR title="The short version">
 
-- **This site collects nothing.** No analytics, no cookies, no accounts. It is static files served by Cloudflare.
+- **This site counts two things.** A page was loaded, and a download button was pressed — so we can see whether the landing page works. No cookies, no accounts, nothing stored in your browser, and no identifier of any kind, so one visit is never tied to another. It is static files served by Cloudflare.
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out.
 - **Anonymous usage reporting is on by default**, in the app and in the `akb` command. It sends which features are used and which of them fail, tied to a random install id and to nothing about you. It never carries your code, your card text, your project names, or your file paths. The app discloses it in a step you answer before your first board opens, and you can turn it off there, in **Configuration → General**, or with `akb telemetry off`.
 - **AI4Kanban Cloud is an invite-only preview** that relays one signed-in account's task events — a review to approve, a question to answer — and the decisions made on them, on servers we run in Frankfurt. [What Cloud is](/cloud).
@@ -35,10 +35,27 @@ The three parts of the Service handle data very differently, so the three sectio
 
 `ai4kanban.dev` is a static website. Every page is a file built ahead of time and served by Cloudflare Pages; there is no application server behind it and no database.
 
-- **No analytics.** We run no analytics product on this site — not ours, not a third party's. We do not measure page views, sessions, scroll depth, or anything else about your visit.
-- **No cookies.** The site sets no cookies of any kind, essential or otherwise, and stores nothing in your browser. There is no cookie banner because there is nothing to consent to.
+- **We count page loads and download presses, and nothing else.** There is no analytics product on this site — no third-party script, no session recorder, no dashboard. The counter is a few lines of our own that post to `t.ai4kanban.dev`, the endpoint the app reports to, and the whole of what it sends is the table below. It answers one question: of the people who reach a page with a download button, how many press it.
+- **No cookies.** The site sets no cookies of any kind, essential or otherwise, and stores nothing in your browser — no local storage, no identifier. There is no cookie banner because there is nothing to consent to.
 - **No advertising or tracking pixels.** There are no ad networks, no data brokers, no retargeting tags, and no third-party trackers embedded in any page.
 - **No accounts.** There is nothing to sign up for on this site, and no form that asks for your email address.
+
+### What the site counts
+
+Two events, and this is the whole of what each holds:
+
+| Event | What it holds |
+| --- | --- |
+| **A page was loaded** | The page's path with the language prefix taken off — `/download`, never `/zh/download` — and the language on its own. Never the query string, the referrer, or your screen size. |
+| **A download button was pressed** | Those two, plus which button on the page it was, the operating system and processor architecture the file is for, and the release it points at. A press we could not aim, which goes to the release page instead of a file, is sent with `unknown` for the system and the architecture. |
+
+Both also carry the calendar date your own browser's clock saw, and the country worked out from the address the request arrived from — the address itself is not stored, exactly as it is not for the app.
+
+**Neither carries an identifier of anything.** No install id, no visitor id, no session, and nothing derived from your browser or your machine. Two loads of the same page are two events with nothing in common, so we cannot tell your second visit from somebody else's first, and the number we get is a rate per visit rather than per person. A click that leaves this site for GitHub is what counts as a press; a click that stays on the site is not.
+
+**Nothing you see waits on it.** The count is sent once the page is usable, and a download starts whether the count was sent, blocked, refused, or slow. A count that fails is dropped rather than retried or queued — there is nowhere in your browser we would keep it.
+
+The raw events are kept **90 days** and then deleted; the daily totals worked out from them hold nothing about any one visit and are kept indefinitely. There is no id to quote and nothing stored that could be yours, so there is nothing here to request or delete. A content blocker that stops the request is the whole of the opt-out, and it costs you nothing else on this site.
 
 The one thing we do not control is the delivery itself. Cloudflare, as our hosting and content delivery provider, processes the technical request data that any web server sees — your IP address, the page requested, your user agent, and a timestamp — to route the request and protect the site from abuse. That processing is Cloudflare's own, under their published privacy documentation, and we do not receive, keep, or query those logs. Cloud's API is a different system with a log of its own, described below.
 
@@ -263,7 +280,7 @@ Write to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) for anything in t
 We use information to:
 
 - **Run the Service** — serve the site, tell the app whether a newer release exists, and relay a board's events and the decisions made on them, to and from the account they belong to.
-- **Understand whether the product works** — count how the app and the `akb` command are used and where they fail, from the anonymous usage reports described above, so we can decide what to build and what to fix. We read these as totals, never as one machine's story, and we do not attempt to work out who an install id belongs to.
+- **Understand whether the product works** — count how the app and the `akb` command are used and where they fail, and how many people who reach a page with a download button press it, from the anonymous reports described above, so we can decide what to build and what to fix. We read these as totals, never as one machine's or one visitor's story, and we do not attempt to work out who an install id belongs to.
 - **Keep the Service safe** — verify a sign-in, check that a record belongs to the account asking for it, detect abuse, and stay inside the capacity the preview runs on.
 - **Send you a service notice** — the answer to the invite request you made, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
 - **Answer you** — handle a support message or a data request you send us.
@@ -274,10 +291,10 @@ We do **not** use your information for advertising, profiling, or scoring, and w
 For users in the EU, the UK, and Switzerland, the legal bases we rely on are:
 
 - **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, and answering the invite request you made.
-- **Legitimate interests** — keeping the Service secure and working, preventing abuse, telling an account in the preview that the preview is ending or that these pages have materially changed, and understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens.
+- **Legitimate interests** — keeping the Service secure and working, preventing abuse, telling an account in the preview that the preview is ending or that these pages have materially changed, understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens, and the two counts this site keeps, which carry no identifier and so are about no one in particular.
 - **Legal obligation** — when a law applies to us.
 
-We rely on **consent** for nothing today: there is no marketing email and no non-essential cookie to consent to. Anonymous usage reporting is optional and disclosed before your first board opens, and it rests on legitimate interests rather than on consent, so **turning it off is the choice you make and we do not ask you for one again**.
+We rely on **consent** for nothing today: there is no marketing email, no non-essential cookie, and nothing the site stores in your browser to consent to. Anonymous usage reporting is optional and disclosed before your first board opens, and it rests on legitimate interests rather than on consent, so **turning it off is the choice you make and we do not ask you for one again**.
 
 ## How we share information
 
@@ -292,7 +309,7 @@ We share information only in these limited cases:
 
 ## Cookies and tracking
 
-The site sets no cookies and runs no analytics, as described above.
+The site sets no cookies and stores nothing in your browser. The two things it counts are described above, and neither carries an identifier of any kind.
 
 Cloud's sign-in is not a browser cookie either. Signing in happens once per machine and the session is stored locally by the app, kept out of your repository, and used by both the app and the `akb` command. Signing out removes it.
 
@@ -302,7 +319,7 @@ We do not use tracking pixels, fingerprinting, or cross-site identifiers anywher
 
 We keep personal information only as long as we need it for the purposes described in this Policy:
 
-- **Site visits** — nothing is retained by us. Cloudflare's own delivery logs are kept under Cloudflare's policy and are not ours to query.
+- **Site visits** — the two counts described above are kept for 90 days and then deleted, and the daily totals worked out from them are kept indefinitely. Neither holds an identifier, so nothing in them is about a particular person. Cloudflare's own delivery logs are kept under Cloudflare's policy and are not ours to query.
 - **Usage reporting events** — kept for 90 days and then deleted. The daily totals worked out from them carry no install id and are kept indefinitely. Turning reporting off deletes what is still queued on your machine and forgets your install id; the events already with us are deleted on request, quoting that id.
 - **The rest of app use** — nothing is retained, because nothing else is collected. Apart from usage reporting, a board you have not turned Cloud on for sends us nothing to retain.
 - **Your sign-in record** — held by Supabase Auth, kept while your account can sign in. Only a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) removes it, and removing it is its own step: it does not go with your Cloud records automatically.
@@ -363,7 +380,7 @@ California residents have additional rights, including the right to know what ca
 In the past 12 months, the categories of personal information we have collected, as defined by the CCPA, are:
 
 - **Identifiers** — a GitHub username and numeric id, a display name, an avatar URL, and an email address where the sign-in returns one; and, for a board on Cloud, the name of the folder that board sits in, the identifier the computer running it generated for itself, and that computer's hostname.
-- **Internet or network activity** — limited to what our subprocessors log to deliver a request, and the API's own request log described above.
+- **Internet or network activity** — the site's two counts and the app's anonymous usage reporting, neither of which identifies a person; what our subprocessors log to deliver a request; and the API's own request log described above.
 - **Other information you choose to provide** — the part of a card an event carries (its title, its opening paragraph, its review notes, and its questions), the decisions and answers you record against it, and anything you write to us in an email.
 
 We collect no commercial information, no geolocation, no biometric data, and we draw no inferences about you. We share these categories only with the service providers described above.
