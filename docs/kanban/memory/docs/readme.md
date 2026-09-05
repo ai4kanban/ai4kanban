@@ -24,6 +24,16 @@ covers it, or a plain-words note.
   `grok login` or an xAI key both work with the saved login winning, that the board's rules
   go to `.agents/skills/kanban/`, that the run is fenced by `GROK_SANDBOX=workspace`, and why
   the board drives ACP rather than Grok's `-p` mode: `web/content/docs/connectors.mdx`.
+- Running the board on Antigravity CLI, Google's coding agent: how to install `agy`, that a
+  Google login signs its runs and there is no key box, that the thinking level rides inside
+  the model id, why the board widens `--print-timeout` past a card's length, and that its
+  shell is not fenced to the project — with the note that no card has run on it yet:
+  `web/content/docs/connectors.mdx`.
 - Writing a spec skill of your own — the directory shape, the `akb:` frontmatter block, and how a
   setting's choice picks the one reference a run is given: "Let a specialist fill part of the spec"
   in `web/content/docs/spec-skills.mdx`.
+- What a Local board is, what a Cloud board is, and what moving between them costs — the
+  committed `.ai4kanban.json` pointer, the git-ignored copy in `docs/kanban/`, the one reviewed
+  commit each way, the export, leaving Cloud and deleting the workspace:
+  `web/content/docs/local-and-cloud-boards.mdx`, and a section of its own in `README.md` and
+  `README-zh.md`.

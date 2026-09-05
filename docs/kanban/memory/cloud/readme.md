@@ -89,6 +89,18 @@ covers it, or a plain-words note.
   machine writing a card the first has moved past is refused as a conflict naming the version
   the board holds now — never a silent overwrite.
 
+## A Cloud board in a browser
+
+- A Cloud workspace has a URL its members open in a browser: `cloud.ai4kanban.dev/<workspace-id>`
+  for the board, and `/<workspace-id>/<card-id>` for one card. Signing in there is a GitHub
+  sign-in of its own, independent of the machine's — ending either leaves the other signed in
+  — and a device holding no link lands on its workspace from `cloud.ai4kanban.dev` itself.
+  The pages read and never write: `web/content/docs/local-and-cloud-boards.mdx`.
+- No Cloud board is on the open web. A signed-out visitor, an account the workspace is not
+  for, a deleted workspace and a made-up id all meet the same sentence, so none of them learns
+  whether that workspace exists; every page is `noindex`, and a link pasted into a chat
+  previews nothing of the board.
+
 ## What Cloud says about a board's machine
 
 - Cloud reports what the computer running a board's approvals resolves each of the board's

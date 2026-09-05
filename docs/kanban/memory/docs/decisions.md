@@ -12,3 +12,6 @@ Internal detail stays on the card.
 - **The base-URL way into GLM is not mentioned at all.** Claude Code's compatible-endpoint
   provider would reach Z.ai, but the guides stay silent about it — not even as an unsupported
   alternative. A second way into GLM in the docs splits the one answer we support.
+- **A connector nobody has run a card on says so.** The guide keeps a "No card has run on it
+  here" paragraph until a real card has passed on it, rather than reading like a tested
+  connector's.

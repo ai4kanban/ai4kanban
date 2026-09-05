@@ -42,6 +42,12 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A control's label narrates what happened in empty words** ("looked at 6 things") → ✅
   say the one thing the reader wants from it — how long the agent worked — in the words the
   tools they already use say it in.
+- ❌ **A new expressive view replaces the plain list it was meant to enliven** → ✅ it is a
+  second view beside the list, switched where the dialog is titled. The expressive one may
+  be what opens; the plain one is never taken away.
+- ❌ **A character is invented from scratch for a thing the app already ships a mark for** (a
+  generic figure per run, beside `public/agents/*.svg`) → ✅ build the character on the mark
+  that already exists — no new art, and the agents tell themselves apart for free.
 - ❌ **A control that qualifies the next message gets a strip of its own above the
   transcript** (the chat's agent and model on a row between the header and the conversation)
   → ✅ it goes inside the message box, on the box's own bottom row beside Send, and the box

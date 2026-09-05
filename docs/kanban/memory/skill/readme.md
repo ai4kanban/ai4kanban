@@ -252,6 +252,10 @@ covers it, or a plain-words note.
   `akb skill install` writes it into `.agents/skills/kanban/`, the folder the other six
   agents already share, because grok scans that folder from the working folder up to the
   repo root: `web/content/docs/connectors.mdx`.
+- Antigravity CLI reads that same folder, and needs no target of its own either:
+  `akb skill install` writes it into `.agents/skills/kanban/`, and every run carries
+  `--add-dir <folder>` because `agy -p` expands a skill's slash name only when the run
+  names the folder holding it: `web/content/docs/connectors.mdx`.
 - A DeepSeek Harness resume whose session the agent has forgotten now restarts instead of
   failing: the board opens a fresh session, sends the task from the top, writes the new id
   over the dead one, and the log says it restarted. A chat thread unwedges the same way.
@@ -278,3 +282,33 @@ covers it, or a plain-words note.
   spec it owns and which settings it offers; each setting's choice names one file inside the
   skill, and only the chosen one reaches the run. `akb spec` lists them and says why any skill it
   found can't be used: `web/content/docs/spec-skills.mdx`.
+- A repository can hold **more than one board**. `akb install --board <dir>` puts one anywhere;
+  every command takes `--board <dir>` or reads `AI4KANBAN_BOARD`, and a command typed inside the
+  board folder finds it. The flag beats the variable, both beat `--dir`, and with none of them the
+  walk up for `docs/kanban` is exactly what it was. A named board's project is the nearest `.git`
+  above it, so `.akb/` and the repo `.gitignore` stay shared; every pasteable hint and every
+  printed flow spells that board's own path in place of `docs/kanban`: `cli/README.md`.
+- A board says what its work IS in one `- **Solution**` line in its own `config.md` — `product`
+  (a board with no line, which is every board made before this) or `marketing`. The solution
+  picks the flow text `akb guide` and every `--print` hand over: `marketing` replaces `board`,
+  `writing` and `implement` and inherits the rest. `akb install --solution marketing` scaffolds
+  that layout — `content/`, `skills/`, `rules/`, and a memory set of `decisions.md`,
+  `rejected.md`, `writing.md` and `published.md`, with no goal, redesign, readme, releases or
+  setup checklist — and a build on it writes `content/<id>-<slug>/source.md` in the repo with no
+  worktree, branch, review or landing.
+- A marketing card names the **channels** it goes to in `channels:`, lead channel first — the
+  four are `x`, `linkedin` and `reddit` in English and `xiaohongshu` in Chinese, and a channel
+  is that name and language and nothing else. `akb raw update <id> --channels <names>` chooses
+  them and `akb raw channel-status <id> <channel> <status> [--url]` moves one along;
+  `akb channel <name> <id>` is a run of its own that repurposes the topic's `source.md` into
+  `content/<id>-<slug>/<channel>.md` and marks that channel `draft`. It refuses a channel the
+  card has not chosen, a topic with no `source.md`, a non-marketing board, being typed inside a
+  run, and a draft already written unless `--again` says to replace it. `akb guide channel` is
+  the flow, and marketing's `akb guide prune-memory` splits a rule that stopped holding
+  everywhere out of `writing.md` into `memory/writing/`.
+- `akb telemetry status|on|off` reads and changes anonymous usage reporting for the machine,
+  never prompting, so a terminal-only user can turn it off without opening the app. The answer
+  is on when absent and lives beside the language in `~/.ai4kanban/settings.json`; turning it
+  off drops what is queued and forgets the install id, and `status` prints that id while
+  reporting is on. A settings file that exists but cannot be read stops reporting and refuses
+  every write until it is fixed.

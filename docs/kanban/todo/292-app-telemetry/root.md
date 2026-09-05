@@ -80,9 +80,9 @@ its own subtask in this folder.
   per-user analysis, and anything sent to an advertising or attribution service.
 
 ## Todo
-- [ ] Disclose default-on usage reporting during onboarding #293
-- [ ] Take in usage events on a server we run #294
-- [ ] Report app opens and which parts of the board get used #295
+- [x] Disclose default-on usage reporting during onboarding #293
+- [x] Take in usage events on a server we run #294
+- [x] Report app opens and which parts of the board get used #295
 - [ ] Report the board's own numbers from metrics.csv and record.csv #296
 - [ ] Count how many site visitors go on to download the app #297
 

@@ -82,6 +82,10 @@ re-ask a settled call.
   commands wherever the machine lets them, Antigravity included — fencing one whose sandbox
   also shuts the network from a settings file the board cannot write would cost every card an
   `npm install` or a `git fetch`. The fence stays available in Extra arguments.
+- **A connector may ship before a card has run on it**: when no agent session on the machine
+  can drive one end to end — Antigravity's `--dangerously-skip-permissions` is refused by the
+  sandbox every session here runs under — it reaches the picker with the docs saying so, and
+  the first real card's surprises become a new card.
 
 ## Open questions
 
@@ -216,3 +220,33 @@ re-ask a settled call.
 - On a card already written in English, an agent's open question and `verify:` line still
   come in the reader's language: the two things written to be read by the user personally
   follow the setting on every card, while the body around them follows the file.
+
+## Solutions
+
+- **The word for a job is `solution`**: it names both what a user picks — product,
+  marketing — and the folder that provides it. `job` and `plugin` are not the product's
+  words.
+- **The marketing pack is its own code**: marketing's flows and commands are written
+  separately rather than as options on the product ones. Content marketing runs
+  draft → repurpose → edit → publish, which shares little with the product's
+  add-task → refine → implement → archive; what the two really do share moves into the
+  kernel at the extraction, not before.
+
+## Marketing
+
+- **A channel is a name and a language, not a skill**: `akb channel <name> <id>` carries one
+  built-in instruction — repurpose `source.md` for that channel in that channel's language —
+  and there is no per-channel instruction file to edit. `x`, `linkedin` and `reddit` are
+  English, `xiaohongshu` is Chinese, and the four ship inside the command.
+- **The writing memory is what decides quality**: `memory/writing.md` and the files under
+  `memory/writing/` are where the user's taste lives, so a rule learned on one channel
+  reaches every channel it fits. Nothing declares formats.
+- **Repurposing does not follow the write run**: the user runs `akb channel` per channel
+  once `source.md` reads right.
+- **Publishing is local-first, never a channel API**: a piece goes out from a browser the user
+  is already signed into on their own machine — the vendored 小红书 skill, or the channel's
+  own composer carrying the draft. No developer account is funded and no token is
+  kept alive, so X and LinkedIn numbers stay whatever the user last typed.
+- **A repurpose run is one pass, not a loop**: `source.md` is a medium-length piece, so the
+  run only shortens or expands it into the channel's shape; there is no clarify or QA phase
+  on a draft, because the user editing it is the review.

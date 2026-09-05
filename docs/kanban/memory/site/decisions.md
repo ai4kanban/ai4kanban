@@ -75,3 +75,7 @@ re-ask a settled call.
   subprocessor table names it and places it in the United States, taken from Spaceship's own
   privacy policy — its DPA permits only a US transfer and publishes no subprocessor list, so
   the pages cite no document for the location.
+- **How does the privacy policy change when the app starts reporting usage?**: the existing
+  page is amended in place with a new effective date, never joined by a second page, because
+  the sentence promising no collection has to stop being true for existing users as well as
+  new ones. That amended page plus the in-app step is the whole notice a local user gets.

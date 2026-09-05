@@ -217,6 +217,12 @@ naming no other doc is covered there.
   a stopped run offers Resume. Implement, refine, archive, a stop, a resume and a failed run
   have all been watched end to end, and the runs panel's cost, tokens and model are Grok's
   own numbers: `web/content/docs/connectors.mdx`.
+- **Antigravity CLI** is on the runtimes grid with a Model box and no key box — runs sign
+  with the Google login `agy` already holds, and the thinking level is part of the model
+  id rather than a box of its own. It is driven as a printing run (`agy … -p`), so its log
+  streams as it works and a stopped run offers Resume; the runs panel shows its token
+  counts and a blank for cost and model. No card has run on it yet:
+  `web/content/docs/connectors.mdx`.
 - A reply in the chat rail folds what the agent did behind one line — **Worked for 1m 5s**,
   counting up while the reply comes, with the step it is on left in the open — and says what
   the turn cost under it (`1,840 tokens · est. $0.03`) for an agent that reports it. Your own
@@ -243,3 +249,45 @@ naming no other doc is covered there.
   with a pixel character at work and a "Set it up myself" link; the picker takes over when
   nothing answers, carrying what came back, and the agent setting goes back the way it was:
   `web/content/docs/connectors.mdx`.
+- The folder chip carries a **board badge** beside the path: the board's own word —
+  "Engineering" on a product board, "Marketing" on a marketing one, cut to "Eng" on a narrow
+  window. The two are side by side in the one frame, the path opening the projects list and the
+  badge this project's boards; a project with one board gets a label with nothing to press.
+  Picking another board hands the window over the way the projects list does — its own server,
+  the page replaced, the board left behind still running. A board is any folder under the
+  project with `todo/` and `config.md`, looked for two levels down: `kanban-ui/README.md`.
+
+- Onboarding **leads with Local and offers Cloud beside it**: the launcher's one Open Folder
+  button is now four moves — Create and Open Local board on the framed card, Create and Open
+  Cloud board on the card beside it, marked a hosted, invite-only preview and never
+  preselected. The Cloud choice opens a panel in the same window with no board behind it: the
+  GitHub sign-in, the preview being closed to an account with no invite, the workspace and the
+  project folder with a Local-to-Cloud import, and the one commit going Cloud offers. All four
+  moves pick a project folder, and a recent project whose board lives in a workspace wears a
+  Cloud badge: `web/content/docs/local-and-cloud-boards.mdx`.
+- **Configuration → Workspace**, on a Cloud board only, is where the owner runs the workspace:
+  its name and rename, the execution nodes with rename and remove, an export of the whole board
+  to a folder that opens as a Local board, leaving Cloud, and deleting the workspace behind a
+  confirmation that names what goes. A leave writes the board back into `docs/kanban/` and
+  offers the reverse commit; a delete takes the pointer off and the window lands on the
+  launcher: `web/content/docs/local-and-cloud-boards.mdx`.
+- **Going Cloud and coming back are one commit each, staged by path.** It carries the board
+  files leaving or entering git, `.ai4kanban.json`, and the `docs/kanban/` block in the root
+  `.gitignore` — and nothing else the working tree holds, including work already staged.
+  Declining leaves a checkout that still works, and the offer comes back from the workspace
+  controls until it is taken. A folder with no git repository takes the Cloud path and is told
+  there is nothing to commit to yet: `web/content/docs/local-and-cloud-boards.mdx`.
+- A checkout whose workspace it can no longer read is told **the board is no longer this
+  account's — deleted, or never theirs** — and offered the two ways out: sign in as the account
+  that owns it, or leave Cloud and keep the markdown in the folder.
+- The board and card screens the app draws are the same ones the hosted pages at
+  `cloud.ai4kanban.dev` draw, read-only: handed no actions they render every control that
+  would write as absent rather than dead, and they draw in the reader's own browser
+  language — English or Simplified Chinese — where there is no machine setting to read.
+- Anonymous usage reporting is on by default, and the app says so once per machine before it
+  opens anything: a **Help improve AI4Kanban** step with a **Share anonymous usage** switch
+  already on, **Privacy details**, and **Continue** as the only way past it. It is not a setup
+  box — it comes ahead of the guided first run on a new board and on its own before a board
+  that is already set up, and it never returns once answered. The same switch stays as the
+  **Privacy** group of Configuration → General, with the install id while there is one and the
+  link to every event and field: `https://ai4kanban.dev/privacy`.

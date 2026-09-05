@@ -91,6 +91,9 @@ re-ask a settled call.
 - The first run's agent step probes the agents already installed instead of asking, and
   the probing view's one control is a Set it up myself link to the picker — nothing cuts
   the probe short by a timer or a cap.
+- Optional usage reporting is on by default, and one required step discloses it before a
+  board opens — once per machine, not per board. An install that predates the release takes
+  the same step and the same default; there is no grandfathered-off state.
 
 ## The goal
 
@@ -115,9 +118,12 @@ re-ask a settled call.
   `[user]` questions, and a stopped refine is not picked up again.
 - The changes view shows uncommitted changes in a folder, never a file list claimed for one
   run, and every run gets it — a refine or resolve writes card files too.
-- **The Runs dialog's fleet**: the per-run characters replace the run list rather than
-  sitting in a band above it, and they are drawn in CSS or SVG from the board's palette —
-  no art files ship for them.
+- **The Runs dialog's fleet**: the dialog opens on a scene of per-run characters with the
+  run list one toggle away, and the characters are drawn from the board's palette — no art
+  files ship for them beyond each agent's own mark.
+- **The fleet's scene runs on a 2D engine**: PixiJS draws it rather than the DOM, at the
+  cost of the engine's weight in the app bundle and keyboard access built by hand over the
+  canvas. A machine where no renderer can be created gets the list instead.
 
 ## Connectors and keys
 
@@ -213,6 +219,10 @@ re-ask a settled call.
 - A mouse's back and forward buttons work wherever the system reports them. The two-finger
   swipe moves between card pages only, because the board scrolls its columns with the very
   same gesture.
+- A project holding more than one board shows the second inside the header's folder chip: a
+  small inner badge naming the board's work — "Engineering", "Marketing" — and pressing it
+  hands the window to that board the way picking a project does. One board means a plain
+  label; a browser gets a label too.
 
 ## The app's language
 

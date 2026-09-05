@@ -43,7 +43,7 @@ Internal detail stays on the card.
 - Supabase is on its free tier, $0 a month: the preview keeps no backups, and a free-tier
   limit refuses writes rather than producing a bill. Charging a user for AI4Kanban comes with
   pricing.
-- The Worker moves to Workers Paid, $5 a month, when 0.9.0's public board pages ship —
+- The Worker moves to Workers Paid, $5 a month, when 0.9.0's browser board pages ship —
   server-rendering a board does not fit Workers Free's bundle cap or its CPU per request.
 - The region is `eu-central-1`, Frankfurt, so an EU team's data stays inside the EU and the
   privacy page covers a transfer under an adequacy decision. Changing it means recreating
@@ -85,6 +85,10 @@ Internal detail stays on the card.
   write. Asking a named member is later work.
 - A workspace cannot be left without an owner: the role change or removal that would is
   refused, because owner is the address a question is sent to.
+- A member's notification switch and watched release belong to the workspace, not to a
+  machine, so they follow the member to every machine they open the board on. A member an
+  owner adds starts with the switch on, watching the workspace's newest open release, so
+  routing works the day a team is formed.
 - Pressing Implement in a Slack or Lark message records the decision in Cloud on the spot,
   from a phone included. It does not open the app and does not need the machine awake — the
   board's server picks it up when next reachable.
@@ -114,8 +118,11 @@ Internal detail stays on the card.
   the board for the run's coding agent to work in, so a run reads and writes files on a Cloud
   board exactly as it does on a Local one.
 - A Cloud board is reached from the installed app only until 0.9.0, when a workspace gets a
-  URL: a public read-only board for anyone, and card review and Resolve for a signed-in
-  account.
+  URL. Every board is member-only there: a signed-in account with a claim on the workspace
+  reads it and makes a card's two decisions, and a signed-out visitor is served nothing at
+  all. Publishing a board read-only for a community is a later change — 0.9.0 builds no public
+  flag, no owner switch and no unauthenticated route, so the only board a community can read
+  stays a `docs/kanban/` folder in a public repository.
 - A save finishes against the machine's own copy before the command returns and reaches the
   workspace behind it, so no edit waits on a round trip and the workspace ends up holding the
   latest card.
@@ -142,8 +149,7 @@ Internal detail stays on the card.
 
 - A board in Cloud and a team sharing it are two pieces of work, not one. The workspace, its
   store, the app and CLI against it, onboarding and the browser surface serve one account on
-  their own — the board survives the machine, opens on a phone and can be published read-only
-  — and members, roles, a per-card writer and question routing are a layer on top of them.
+  their own — the board survives the machine and opens on a phone — and members, roles, a per-card writer and question routing are a layer on top of them.
 - Deferring the team layer costs no rewrite: one owner on two machines already has two
   writers and the card lock settles that, so what a second person adds is the member half —
   the holder named on the card and the draft kept while they are offline — and membership is a

@@ -53,3 +53,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Let a connector chat only about the card its message carries** → ✅ the board's own
   conversation is a chat too — a direct message and a mention reach it, and only a card's
   thread scopes a turn to a card.
+- ❌ **Block a solo Cloud board's browser decisions on the team's notification-routing card**
+  → ✅ the event moves onto the workspace where the browser needs it — one owner on two
+  machines already raises two live events for one card — and the team card keeps the audience,
+  the per-member fan-out and the routing.

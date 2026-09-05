@@ -78,3 +78,14 @@ covers it, or a plain-words note.
   comparison pages name Grok Build alongside the other seven agents, in all five languages.
 - The landing page keeps its screenshot-led `01`–`04` composition while using “Ship without
   babysitting coding agents.” as the H1 and keeping the product category in metadata.
+- `/cloud`, `/privacy` and `/terms` say that Cloud can hold the board itself, in a workspace:
+  the boundary panel names a Local board as what stays on the machine and Cloud as holding a
+  board only where you asked it to, the "no shared or team board" limit is now one account's
+  board opening on every machine you sign in from, and both legal pages describe the export,
+  leaving Cloud and deleting the workspace in place of "there is no board on Cloud to export".
+  Both effective dates moved to 2026-09-04.
+- `/privacy` says anonymous usage reporting is on by default in the app and in `akb`, lists
+  every field and event it sends, where it goes (`t.ai4kanban.dev`), the 90-day retention and
+  how to have an install's events deleted by install id, and separates it from what a coding
+  agent sends its own model provider. The effective date moved to 2026-09-05. The README, the
+  Chinese README and `/docs/local-and-cloud-boards` say the same in one line and link there.
