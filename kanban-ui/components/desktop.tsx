@@ -27,7 +27,8 @@
 // call below checks first.
 
 import { useCallback, useEffect, useState } from "react";
-import { FiAlertTriangle, FiColumns, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
+import { FaBullhorn, FaCode } from "react-icons/fa";
+import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
 import type { ChromeCopy } from "@/i18n/chrome/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -331,6 +332,13 @@ export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; des
 
 // --- the board badge, and the boards behind it -------------------------------
 
+// What a board's work IS, as a glyph: code on a product board, a bullhorn on a
+// marketing one, so two boards of one project are told apart at a glance.
+function BoardIcon({ solution }: { solution: string }) {
+  const Icon = solution === "marketing" ? FaBullhorn : FaCode;
+  return <Icon className="shrink-0 text-nb-accent" size={12} aria-hidden />;
+}
+
 /** Which board of this project is open, and — in the app, when the project holds
  *  more than one — the switcher onto the others (#407).
  *
@@ -358,7 +366,7 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
 
   const word = (
     <>
-      <FiColumns className="shrink-0 text-nb-accent" size={12} />
+      <BoardIcon solution={open.solution} />
       <span className="truncate">{open.work}</span>
     </>
   );
