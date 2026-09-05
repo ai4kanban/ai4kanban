@@ -2,13 +2,14 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-09-04
+effective: 2026-09-05
 ---
 
 <TLDR title="The short version">
 
 - **This site collects nothing.** No analytics, no cookies, no accounts. It is static files served by Cloudflare.
-- **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out, and sends nothing else.
+- **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out.
+- **Anonymous usage reporting is on by default**, in the app and in the `akb` command. It sends which features are used and which of them fail, tied to a random install id and to nothing about you. It never carries your code, your card text, your project names, or your file paths. The app discloses it in a step you answer before your first board opens, and you can turn it off there, in **Configuration → General**, or with `akb telemetry off`.
 - **AI4Kanban Cloud is an invite-only preview** that relays one signed-in account's task events — a review to approve, a question to answer — and the decisions made on them, on servers we run in Frankfurt. [What Cloud is](/cloud).
 - **A Cloud board is one you asked us to hold.** Its cards, memory, releases and history live in a workspace on those servers instead of in your repository. It is a deliberate choice, made board by board; you can export the whole board as Markdown at any time, and an owner can delete the workspace and everything in it.
 - **A workspace can hold more than one person.** An owner adds a teammate by GitHub handle — but only one we have already admitted to the preview. Everyone in a workspace reads the whole board and the whole record of who changed what, including your GitHub handle.
@@ -47,11 +48,11 @@ Pages on the site link out to other places, including GitHub. Once you follow a 
 
 The AI4Kanban desktop app and the `akb` command run on your own machine. A board is a folder of Markdown files inside your own repository, and the app reads and writes those files locally.
 
-**For a local board — one you have not turned Cloud on for — nothing about your board, your project, your prompts, or your work is sent to us.**
+**For a local board — one you have not turned Cloud on for — no part of your board, your project, your prompts, or your work is sent to us.** Anonymous usage reporting, described below, is the one thing that reaches us from a local board, and it carries none of those.
 
 - **No account and no sign-in** are needed to install or use the app on a local board.
-- **No usage data, telemetry, or crash reports** are collected by the app today.
-- **The one network request the app makes on its own** is to `api.github.com`, once, to ask which release of AI4Kanban is newest, so it can tell you when a newer build is out. That request is unauthenticated, carries no identifier of yours, and sends nothing about your board or your machine. If it fails, the app carries on without a notice. GitHub sees the request as it would see any anonymous visitor: your IP address, a static user agent, and a timestamp.
+- **Anonymous usage reporting is on unless you turn it off.** It says which features are used and which of them fail. It carries no part of your board and nothing that identifies you, and the whole of what it does carry is listed under "What usage reporting sends" below.
+- **The other network request the app makes on its own** is to `api.github.com`, once, to ask which release of AI4Kanban is newest, so it can tell you when a newer build is out. That request is unauthenticated, carries no identifier of yours, and sends nothing about your board or your machine. If it fails, the app carries on without a notice. GitHub sees the request as it would see any anonymous visitor: your IP address, a static user agent, and a timestamp. **Turning usage reporting off does not stop it** — it is the app telling you something, not a report about you.
 
 **Turning Cloud on for a board is what changes that**, and it reaches two destinations rather than one. Neither is contacted for a board you have not turned Cloud on for:
 
@@ -59,6 +60,57 @@ The AI4Kanban desktop app and the `akb` command run on your own machine. A board
 - **The Supabase project behind sign-in** — where the app signs you in through your own browser, refreshes that sign-in, and holds a live socket open so a decision you press elsewhere reaches the machine in seconds.
 
 The coding agent you point at your board is separate software with its own account, its own model provider, and its own privacy policy. It runs on your machine under your control, and what it sends to its provider is governed by that provider's terms — not by this policy.
+
+**That agent's traffic and usage reporting are not the same thing, and it is worth saying which is which.** Asking an agent to work on a card sends your prompt, and as much of your code as the agent decides it needs, to that agent's model provider — because that is the work you asked for. Usage reporting sends us none of it: not a prompt, not a line of code, not a card's text, not a file path, not a project name. It sends the names of things that happened, and the fields listed below.
+
+### What usage reporting sends
+
+Reporting is **on when you have not answered**, in the app and in the `akb` command. It goes to `t.ai4kanban.dev`, an endpoint we run on Cloudflare, and to nowhere else. There is no third-party analytics product anywhere in the app.
+
+Every event carries the same seven fields and nothing more:
+
+| Field | What it is |
+| --- | --- |
+| **Install id** | A random value your machine makes the first time it has an event to send. It is not derived from your hardware, your user account, your home folder, or your repository, and it is not the machine identifier a Cloud board registers. Apart from the per-board id below, it is the only thing that ties two of your events together. |
+| **Event name** | Which of the events below it is. |
+| **App version** | The release of AI4Kanban that sent it. |
+| **Surface** | Whether it came from the app or from the `akb` command. |
+| **Date** | The calendar date the event happened, as your own machine's clock and time zone saw it. |
+| **Event id** | A random value for that one event. It is what stops a batch your machine sent twice from being counted twice. |
+| **Country** | Worked out from the address the batch arrived from, and stored in its place. The address itself is not. |
+
+The events are the whole list, and what each adds to those seven:
+
+| Event | What it adds |
+| --- | --- |
+| **The app was opened** | Whether this is the first open on this install, your operating system — macOS, Windows, or Linux — and your processor architecture, such as `arm64` or `x64`. |
+| **The app was used today** | Nothing. Sent at most once a day, so returning use can be counted without an event per click. |
+| **A run started, finished, or failed** | The name of the coding agent it ran on — `claude-code`, `codex`, and so on. Never the card, and never anything the run read or wrote. |
+| **A chat message was sent** | Nothing. Not the message, and not the reply. |
+| **A board's own counts** | Counts since that board's last report, under a second random id for the board: cards created — and how many of those you asked for and how many the agent proposed — cards completed, cards rejected, questions closed and which kind each was, agent decisions that stood and ones you overruled, and releases closed. Numbers only. Sent at most once a day, and only when a count changed. |
+
+**What it never carries**, on any event: a card id, title or body; a file path; a repository, folder or project name; a branch name or commit message; your goal text; anything you or an agent typed; a model prompt or response; your name, email address or GitHub handle; your IP address; and the machine identifier a Cloud board registers.
+
+Your IP address reaches the endpoint the way it reaches any web server. It is used for two things and then discarded: the country above, and an hourly request count kept against a one-way hash of the address, in memory, so that one script cannot spend a day's capacity. The address itself is never written to the database.
+
+Events are queued on your own machine and sent in batches, at most one batch a day. An offline machine loses nothing and never waits on the network; a machine that stays offline simply never sends.
+
+### How long it is kept, and how to have it deleted
+
+- **The events themselves** are kept for **90 days** and then deleted.
+- **Daily totals** worked out from them are kept indefinitely. They carry no install id and nothing about any one machine.
+
+To have your install's events deleted, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev) with your **install id**. You can read it in the app under **Configuration → General → Privacy**, or by running `akb telemetry status`. A machine that has never sent anything has no install id, and there is nothing to delete.
+
+### Turning usage reporting off
+
+Three places, all the same setting, held on your machine outside every repository so one answer covers every project you open and every terminal on it:
+
+- The **Help improve AI4Kanban** step the app shows you once, before your first board opens.
+- **Configuration → General → Privacy**, at any time afterwards.
+- `akb telemetry off`, which needs no app and never prompts.
+
+Turning it off stops reporting immediately, deletes anything queued on your machine and not yet sent, and forgets the install id. Turning it back on makes a new install id; the old one is not brought back, and we cannot connect the two. Events already sent are deleted on request, as above.
 
 ## Using AI4Kanban Cloud
 
@@ -152,11 +204,11 @@ That mail goes through **Resend**, and the `support@ai4kanban.dev` mailbox is ru
 
 ### Subprocessors
 
-The preview uses four subprocessors and one identity provider. There is no separate subprocessors page, because this is the whole list:
+Four subprocessors and one identity provider, across the whole Service — the Cloud preview, and the usage reporting a local install does. There is no separate subprocessors page, because this is the whole list:
 
 | Who | What they do | Where |
 | --- | --- | --- |
-| **Cloudflare, Inc.** | Compute and hosting — the API, and the static site — and the Email Routing that delivers `support@ai4kanban.dev` | Global network |
+| **Cloudflare, Inc.** | Compute and hosting — the API, the usage-reporting endpoint and the database behind it, and the static site — and the Email Routing that delivers `support@ai4kanban.dev` | Global network |
 | **Supabase, Inc.** | The database and sign-in | `eu-central-1`, Frankfurt |
 | **Resend (Plus Five Five, Inc.)** | Sending the answer to an invite request, and the request notice | United States |
 | **Spacemail (Spaceship, Inc.)** | The mailbox that routing forwards `support@ai4kanban.dev` to — where a data request, a support message, and the preview notice are read and sent | United States |
@@ -211,6 +263,7 @@ Write to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) for anything in t
 We use information to:
 
 - **Run the Service** — serve the site, tell the app whether a newer release exists, and relay a board's events and the decisions made on them, to and from the account they belong to.
+- **Understand whether the product works** — count how the app and the `akb` command are used and where they fail, from the anonymous usage reports described above, so we can decide what to build and what to fix. We read these as totals, never as one machine's story, and we do not attempt to work out who an install id belongs to.
 - **Keep the Service safe** — verify a sign-in, check that a record belongs to the account asking for it, detect abuse, and stay inside the capacity the preview runs on.
 - **Send you a service notice** — the answer to the invite request you made, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
 - **Answer you** — handle a support message or a data request you send us.
@@ -221,10 +274,10 @@ We do **not** use your information for advertising, profiling, or scoring, and w
 For users in the EU, the UK, and Switzerland, the legal bases we rely on are:
 
 - **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, and answering the invite request you made.
-- **Legitimate interests** — keeping the Service secure and working, preventing abuse, and telling an account in the preview that the preview is ending or that these pages have materially changed.
+- **Legitimate interests** — keeping the Service secure and working, preventing abuse, telling an account in the preview that the preview is ending or that these pages have materially changed, and understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens.
 - **Legal obligation** — when a law applies to us.
 
-We rely on **consent** for nothing today, because the Service asks for nothing optional: there is no marketing email, no analytics, and no non-essential cookie to consent to.
+We rely on **consent** for nothing today: there is no marketing email and no non-essential cookie to consent to. Anonymous usage reporting is optional and disclosed before your first board opens, and it rests on legitimate interests rather than on consent, so **turning it off is the choice you make and we do not ask you for one again**.
 
 ## How we share information
 
@@ -243,14 +296,15 @@ The site sets no cookies and runs no analytics, as described above.
 
 Cloud's sign-in is not a browser cookie either. Signing in happens once per machine and the session is stored locally by the app, kept out of your repository, and used by both the app and the `akb` command. Signing out removes it.
 
-We do not use tracking pixels, fingerprinting, or cross-site identifiers anywhere in the Service.
+We do not use tracking pixels, fingerprinting, or cross-site identifiers anywhere in the Service. The install id that anonymous usage reporting carries is none of those: it is a random value your own machine makes, it is used on no website, and turning reporting off deletes it.
 
 ## Data retention
 
 We keep personal information only as long as we need it for the purposes described in this Policy:
 
 - **Site visits** — nothing is retained by us. Cloudflare's own delivery logs are kept under Cloudflare's policy and are not ours to query.
-- **App use** — nothing is retained, because nothing is collected. A board you have not turned Cloud on for sends us nothing to retain.
+- **Usage reporting events** — kept for 90 days and then deleted. The daily totals worked out from them carry no install id and are kept indefinitely. Turning reporting off deletes what is still queued on your machine and forgets your install id; the events already with us are deleted on request, quoting that id.
+- **The rest of app use** — nothing is retained, because nothing else is collected. Apart from usage reporting, a board you have not turned Cloud on for sends us nothing to retain.
 - **Your sign-in record** — held by Supabase Auth, kept while your account can sign in. Only a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) removes it, and removing it is its own step: it does not go with your Cloud records automatically.
 - **Your Cloud account row and your admission** — kept until we remove them by hand on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
 - **Your invite request** — kept until we remove it by hand, whether or not we admitted you. A request we never approved stays until you ask us to delete it. Resend's own sending logs are kept for 30 days under Resend's policy.
@@ -292,7 +346,7 @@ Depending on where you live, you may have the right to:
 
 To exercise any of these rights, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev). We will respond within the time applicable law requires — typically within 30 days, with one extension permitted under the GDPR. We may need to verify your identity before acting on a request. We will not discriminate against you for exercising any of these rights.
 
-Two things you can do without asking us: **disconnect Slack or Lark**, which deletes that connection at once, and **turn Cloud off for a board**, which stops it sending anything more. A copy, a correction, or a removal is a request to us.
+Three things you can do without asking us: **turn anonymous usage reporting off**, which stops it at once and deletes what is queued on your machine; **disconnect Slack or Lark**, which deletes that connection at once; and **turn Cloud off for a board**, which stops it sending anything more. A copy, a correction, or a removal of what we already hold is a request to us.
 
 ### United Kingdom and European Economic Area
 
@@ -334,6 +388,8 @@ The Service is not directed to children under 16, and we do not knowingly collec
 We will update this Policy as the Service evolves. When we do, we will change the effective date at the top of this page.
 
 **For a material change we send a notice by hand**, from [support@ai4kanban.dev](mailto:support@ai4kanban.dev) to the email address GitHub verified for your account. That is the route: the preview delivers no notice inside the app and none in a connected Slack or Lark chat. A post on `ai4kanban.dev` may accompany the email, but never stands in for it.
+
+That email reaches Cloud accounts, because a signed-in account is the only address we have. **If you have never signed in to Cloud, this page is your notice** — we hold no way to reach you — so the effective date at the top is what to check. The one thing the app tells you itself is the usage-reporting disclosure, shown once before your first board opens.
 
 ## Contact
 

@@ -15,6 +15,21 @@ export type SetupCopy = {
    *  script's and stay as they are. */
   stepTitles: { project: string; goal: string; agent: string };
   reading: string;
+  /** The one step nothing gets past (#293), shown once per machine before the board and
+   *  before the guided run. It is not a checklist box: the answer belongs to the machine,
+   *  and a box would ask again on the next board. */
+  privacy: {
+    title: string;
+    blurb: string;
+    /** The switch's own name, and the line under it. */
+    share: string;
+    shareNote: string;
+    switchOn: (name: string) => string;
+    switchOff: (name: string) => string;
+    details: string;
+    continue: string;
+    saveFailed: string;
+  };
   /** The first run as a conversation (#280): one full window per step, one thing asked in
    *  each. The screens below it are what "I'll fill it in myself" reaches. */
   firstRun: {

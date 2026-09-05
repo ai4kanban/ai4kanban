@@ -15,6 +15,7 @@ import { startSetupRunAction } from "@/app/actions";
 import { useMachine, ScreenMachineProvider, type ScreenMachine, type StripPlace } from "@/lib/screen";
 import type { BoardScreen } from "@/lib/types";
 import { Board, type BoardChrome } from "./Board";
+import { UsageDisclosure } from "./Privacy";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import {
@@ -98,6 +99,10 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
   const machine = useAppMachine();
   const flow = useFlow();
   const board = screen.board;
+  // Whether the usage-reporting disclosure is still owed on this machine (#293). Answered
+  // by the server for the first paint and held here from then on, since Continue writes the
+  // machine's file rather than the board and nothing this window re-reads would notice.
+  const [owed, setOwed] = useState(machine.usageDisclosure === true);
   // Which agent runs this board. It starts as the server's first paint and moves when a
   // screen here answers that question — the guided run's agent step, or the Configuration
   // dialog. What the runs panel names turns on it, so it can't be a page-load value.
@@ -113,6 +118,12 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
     void refresh();
     kick();
   }, [refresh, kick]);
+
+  // Before the board, and before the guided run: the step is the whole window, so there is
+  // nothing else on screen to press and Continue is the only way past it. It is drawn here
+  // rather than as a step inside the run because it is owed once per MACHINE — a new board
+  // and a board that was set up long ago reach it by the same path.
+  if (owed) return <UsageDisclosure onDone={() => setOwed(false)} />;
 
   if (board?.setup && flow.left === false && flow.open) {
     return (

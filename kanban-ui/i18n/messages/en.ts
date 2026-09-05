@@ -31,6 +31,8 @@ const en: MessagesCopy = {
     skillInstall: "the board's rules in this project are too old to install the skill",
     specSkillSwitch: "the board's rules in this project are too old to switch a spec skill",
     specSkillSetting: "the board's rules in this project are too old to set a spec skill",
+    usageReporting:
+      "this board's rules are older than the usage-reporting setting — run `npm install -g ai4kanban`.",
   },
   actions: {
     noSuchCard: "that is not a card on this board.",

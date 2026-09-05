@@ -18,6 +18,7 @@ const en: ConfigurationCopy = {
     setup: "Setup",
     delivery: "Delivery",
     runs: "Runs",
+    privacy: "Privacy",
     language: "Language",
   },
   runtimes: {
@@ -198,6 +199,23 @@ const en: ConfigurationCopy = {
       runThis: "Run this in a terminal to use the current AI4Kanban flows:",
       copy: "Copy",
     },
+  },
+  privacy: {
+    title: "Usage reporting",
+    body: "Share anonymous feature use and failures. Never code, card text, project names or file paths.",
+    details: "See every event and field",
+    on: "On",
+    off: "Off",
+    switchOn: (name) => `${name} is on`,
+    switchOff: (name) => `${name} is off`,
+    installId: (id) => `Install id: ${id}`,
+    nothingSent: "Nothing has been sent yet, so there is no install id.",
+    offNote:
+      "Turning this off stops new reports immediately, removes anything waiting to be sent, and forgets the install id.",
+    unreadable:
+      "The settings file on this machine cannot be read, so nothing is reported and nothing can be saved. Fix or remove it, then reopen this.",
+    failedOn: "usage reporting could not be turned on",
+    failedOff: "usage reporting could not be turned off",
   },
   language: {
     group: "Language",

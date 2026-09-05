@@ -29,6 +29,7 @@ const zh: MessagesCopy = {
     skillInstall: "这个项目里的运行规则太旧，无法安装 skill",
     specSkillSwitch: "这个项目里的运行规则太旧，无法开关规格技能",
     specSkillSetting: "这个项目里的运行规则太旧，无法设置规格技能",
+    usageReporting: "这个看板的运行规则早于使用情况上报设置——请运行 `npm install -g ai4kanban`。",
   },
   actions: {
     noSuchCard: "这不是本看板上的卡片。",

@@ -6,6 +6,7 @@ import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { ScreenMachine } from "@/lib/screen";
 import { skillState, UNKNOWN_SKILL } from "@/lib/skill";
+import { usageDisclosureOwed } from "@/lib/telemetry";
 
 // Read the board on the server for the first paint (no loading flash); the
 // client re-reads through the actions it was handed after each mutation.
@@ -27,10 +28,14 @@ export default async function Page() {
   // fields fall back to what an unconfigured board would show, and the run itself is what
   // says the rules are missing. The skill is read here too — only whether it is there
   // (#174), a file check cheap enough for the first paint.
-  const [agent, instruction, skill] = await Promise.all([
+  // …plus whether this machine still owes the usage-reporting disclosure (#293). Read here
+  // rather than in the browser so the step is up in the first paint: the board flashing past
+  // before a step nobody can skip would be the board being taken away again.
+  const [agent, instruction, skill, disclosure] = await Promise.all([
     agentInfo().catch(() => NO_AGENT),
     setupInstruction().catch(() => ""),
     skillState().catch(() => UNKNOWN_SKILL),
+    usageDisclosureOwed().catch(() => false),
   ]);
   const machine: ScreenMachine = {
     projectRoot: repoRoot(),
@@ -38,6 +43,7 @@ export default async function Page() {
     setupInstruction: instruction,
     skillInstalled: skill.installed,
     desktop: isDesktop(),
+    usageDisclosure: disclosure,
   };
   return <BoardWindow screen={screen} machine={machine} />;
 }

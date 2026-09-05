@@ -20,6 +20,7 @@ export type ConfigurationCopy = {
     setup: string;
     delivery: string;
     runs: string;
+    privacy: string;
     language: string;
   };
   /** Configuration → Runtimes (#344): the runtimes the board names and what each one runs
@@ -208,6 +209,28 @@ export type ConfigurationCopy = {
     /** The line to type where no button can put a current `akb` on the PATH — a browser,
      *  Linux, or an `akb` that came from somewhere else. */
     behind: { runThis: string; copy: string };
+  };
+  /** The **Privacy** group of Configuration → General (#293): the one switch that decides
+   *  whether this machine reports anonymous usage, and the id its reports carry. */
+  privacy: {
+    title: string;
+    body: string;
+    /** The link to the published list of every event and field. */
+    details: string;
+    on: string;
+    off: string;
+    /** Read out loud in place of the On/Off word the switch already shows. */
+    switchOn: (name: string) => string;
+    switchOff: (name: string) => string;
+    /** The id this machine's reports carry, and what it says before the first one. */
+    installId: (id: string) => string;
+    nothingSent: string;
+    /** Said under the card: what turning it off does, at the moment it is pressed. */
+    offNote: string;
+    /** The settings file is there and cannot be read, so nothing sends and nothing saves. */
+    unreadable: string;
+    failedOn: string;
+    failedOff: string;
   };
   language: {
     /** Only read out loud: the group of language choices. */

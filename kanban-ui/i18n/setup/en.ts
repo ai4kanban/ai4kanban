@@ -14,6 +14,18 @@ const en: SetupCopy = {
   },
   stepTitles: { project: "Project", goal: "Goal", agent: "Agent" },
   reading: "Reading the board…",
+  privacy: {
+    title: "Help improve AI4Kanban",
+    blurb:
+      "Share anonymous feature use and failures. Never code, card text, project names or file paths.",
+    share: "Share anonymous usage",
+    shareNote: "On by default. You can change this later in General.",
+    switchOn: (name) => `${name} is on`,
+    switchOff: (name) => `${name} is off`,
+    details: "Privacy details",
+    continue: "Continue",
+    saveFailed: "that choice could not be saved",
+  },
   firstRun: {
     title: "Set up this board",
     step: (at, total) => `${at} of ${total}`,

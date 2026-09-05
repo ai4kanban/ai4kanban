@@ -49,12 +49,18 @@ delivered features, and design lessons — so the next plan asks less of you.
 - **Stays local, and stays your choice of agent.** The board is Markdown under
   `docs/kanban/`, versioned in Git. AI4Kanban supports Claude Code, Codex, Cursor,
   OpenCode, Kimi Code, DeepSeek Harness, ZCode, and Grok Build.
+- **Reports anonymous usage, on by default.** Which features are used and which of them
+  fail — never your code, card text, project names, or file paths. The app discloses it
+  before your first board opens and you can turn it off there, in **Configuration →
+  General**, or with `akb telemetry off`. Every event and field is listed in the
+  [Privacy Policy](https://ai4kanban.dev/privacy).
 
 ## Local boards and Cloud boards
 
 A new install starts on a **Local board**: the cards, memory, releases, and configuration are
-Markdown under `docs/kanban/`, versioned in Git, and nothing about the board leaves the
-machine. The launcher leads with it — **Create Local board** and **Open Local board**.
+Markdown under `docs/kanban/`, versioned in Git, and no board content leaves the machine —
+anonymous usage reporting sends counts and event names only, and never any of it. The
+launcher leads with it — **Create Local board** and **Open Local board**.
 
 A **Cloud board** is the same board held in a hosted workspace, so it opens on every machine
 you sign in from. It is an invite-only preview, offered beside the Local moves and never

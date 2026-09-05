@@ -77,6 +77,11 @@ import {
 } from "@/lib/workspace";
 import { machineCopy, setMachineLanguage } from "@/lib/language";
 import {
+  recordUsageDisclosure,
+  setUsageReporting,
+  usageReporting,
+} from "@/lib/telemetry";
+import {
   addRuntime,
   setRuntimeHarness,
   removeRuntime,
@@ -179,6 +184,7 @@ import type {
   SlackConversation,
   SlackState,
   SpecSkillView,
+  UsageReporting,
   VerifyResult,
   WriteResult,
 } from "@/lib/types";
@@ -1592,6 +1598,37 @@ export async function setLanguageAction(value: Language): Promise<WriteResult> {
   if (!isLanguage(value)) return { ok: false, error: "that is not a language this app knows" };
   try {
     return await setMachineLanguage(value);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- optional usage reporting (#293) -----------------------------------------
+// One answer for this MACHINE, held outside every repository. The disclosure step is drawn
+// from the value the page read on the server; these three are what the step and the
+// Privacy row in Configuration → General call.
+
+export async function usageReportingAction(): Promise<UsageReporting | null> {
+  try {
+    return await usageReporting();
+  } catch {
+    return null;
+  }
+}
+
+export async function setUsageReportingAction(on: boolean): Promise<WriteResult> {
+  try {
+    return await setUsageReporting(on === true);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Continue on the disclosure step: the setting as it was shown, and the record that it
+ *  was shown, in one write. */
+export async function recordUsageDisclosureAction(on: boolean): Promise<WriteResult> {
+  try {
+    return await recordUsageDisclosure(on === true);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

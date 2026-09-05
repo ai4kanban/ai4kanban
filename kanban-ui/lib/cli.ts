@@ -33,7 +33,7 @@ import type {
   SlackState,
 } from "./format/cloud/types";
 import type { BoardNotifications, NotificationCenter } from "./notifications";
-import type { Language } from "./format/machine/types";
+import type { Language, UsageReporting } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
   ArchiveList,
@@ -416,6 +416,16 @@ export interface BoardRules {
   // release that added them, and every screen then draws in English, which is what it did.
   readLanguage?(): Language;
   setLanguage?(value: Language): WriteResult;
+
+  // optional usage reporting (#293) — the same machine-wide file, one answer for the app
+  // and every `akb` on this computer. Optional for the same reason as the language above:
+  // rules older than the release that added them can neither read the answer nor record
+  // the disclosure, so the app draws no step and the Privacy row says why.
+  readUsageReporting?(): UsageReporting;
+  setUsageReporting?(on: boolean): WriteResult;
+  /** What Continue on the disclosure step does: save the setting as shown and record that
+   *  the step has been shown, in one write. */
+  recordUsageDisclosure?(on: boolean): WriteResult;
 
   // the spec skills, and which of them may run (#191, #403). Optional for the same reason
   // as the skill moves below: a project can be running rules older than the release that

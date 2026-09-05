@@ -144,6 +144,11 @@ export interface ScreenMachine {
   skillInstalled?: boolean;
   /** Whether this board is running inside the desktop app (#175). */
   desktop: boolean;
+  /** Whether this MACHINE still owes the usage-reporting disclosure (#293). The window
+   *  draws that step ahead of the board and ahead of the guided run. Absent on a caller
+   *  that is not this app (#322), which then draws no step: the answer belongs to the
+   *  machine holding `docs/kanban/`, not to whoever is reading the board. */
+  usageDisclosure?: boolean;
   /** The screens the card on screen points its `<Mockup>` tags at, already read off this
    *  disk (#239). Absent on the board, which draws none. */
   mockups?: MockupSet;

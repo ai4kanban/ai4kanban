@@ -283,6 +283,25 @@ export {
 } from './lib/machine/types'
 export type { Language } from './lib/machine/types'
 
+// Optional usage reporting (#293): the same file, one folder over. The app never keeps a
+// store of its own for it — the disclosure step and the Privacy row in Configuration →
+// General read and write it through these, so a terminal `akb telemetry off` and the
+// switch in the app are one answer.
+//
+// `ensureUsageInstallId` and `usageQueueFile` are the senders' (#295, #296): the id is made
+// when the first event is queued and never before, and the queue is what turning reporting
+// off empties.
+export {
+  ensureUsageInstallId,
+  readUsageReporting,
+  recordUsageDisclosure,
+  setUsageReporting,
+  usageDisclosureOwed,
+  usageQueueFile,
+  usageReportingOn,
+} from './lib/machine/telemetry'
+export type { UsageReporting } from './lib/machine/types'
+
 // The spec skills (#191, #403): the list a screen draws — each one's two lines and whether
 // it is switched on — and the switch itself. The words and the order come from each skill's
 // own SKILL.md, so the Agents section in the Configuration dialog and `akb spec` can never

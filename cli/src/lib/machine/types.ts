@@ -39,3 +39,21 @@ export function languageForTag(tag: string): Language | null {
   const primary = tag.split('-')[0]?.toLowerCase()
   return isLanguage(primary) ? primary : null
 }
+
+// ---- optional usage reporting (#293) ----------------------------------------
+
+/** What this machine has answered about usage reporting. The board UI draws the disclosure
+ *  step and the Configuration row from it, so the shape is here rather than beside the file
+ *  it is read from (./telemetry.ts, which touches disk). */
+export interface UsageReporting {
+  /** Whether anything may be sent. On when the machine has never answered. */
+  on: boolean
+  /** Whether the disclosure step has been shown and answered — the only thing that step is
+   *  gated on, so an answer typed with `akb telemetry off` still brings it up. */
+  disclosed: boolean
+  /** The id this machine's reports carry, or `''` before the first event is queued. */
+  installId: string
+  /** The settings file is there and cannot be read. Nothing is sent, the step is held back,
+   *  and every write refuses until it can be read again. */
+  unreadable: boolean
+}

@@ -44,6 +44,7 @@ import {
   cmdWatch,
 } from '../../commands/run'
 import { cmdSpec } from '../../commands/spec'
+import { cmdTelemetry } from '../../commands/telemetry'
 import { cardId, ctxOf, intInRange, oneOf, runAction, withShared, type Command } from './shared'
 import type { AkbCliOptions } from './akb'
 
@@ -267,6 +268,32 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       const [workspace] = positional(vals) as [string]
       await boardless(this, cli, (p) => cmdCloud(['export', workspace, '--to', String(this.opts().to)], p))
     })
+
+  // ---- optional usage reporting ---------------------------------------------
+
+  const telemetry = withShared(program.command('telemetry'))
+    .summary('whether this MACHINE reports anonymous usage')
+    .description(
+      'On unless it is turned off, for the app and for every `akb` on this machine — one answer, held ' +
+        'outside every repository like the Cloud sign-in. The app asks once in an onboarding step; this ' +
+        'never prompts, so a terminal-only user turns it off here. What is sent, and how to have it ' +
+        'deleted: https://ai4kanban.dev/privacy',
+    )
+    .action(async function (this: Command) {
+      await boardless(this, cli, (p) => cmdTelemetry([], p))
+    })
+
+  for (const move of ['status', 'on', 'off'] as const) {
+    withShared(telemetry.command(move))
+      .summary(
+        move === 'status'
+          ? 'what this machine reports, and the install id its reports carry'
+          : `turn reporting ${move}`,
+      )
+      .action(async function (this: Command) {
+        await boardless(this, cli, (p) => cmdTelemetry([move], p))
+      })
+  }
 
   // ---- the flows, as text ---------------------------------------------------
 

@@ -130,12 +130,12 @@ export function CloudPage() {
 
             <p className="mt-8 max-w-2xl text-[0.95rem] leading-relaxed text-muted">
               <span className="font-semibold text-ink">
-                Nothing is sent until you sign in.
+                No board event is sent until you sign in.
               </span>{" "}
               Cloud is off until you sign in with GitHub inside the app. The
               boards you open on that machine then raise their events, and each
               one watches what you pick — every release, or one. Sign out and
-              the machine sends nothing.
+              the machine raises none.
             </p>
           </section>
         </div>

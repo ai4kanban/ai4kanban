@@ -12,8 +12,9 @@
 //   format/cloud/types  the Cloud sign-in: which account this machine acts as
 //   format/cloud/events what a Cloud event is (#319): the nine state names, and the one
 //                       wording every surface — bell, card band, notification — says
-//   format/machine/types  the languages the app works in: each one's own name, and the
-//                       `<html lang>` tag the layout wears
+//   format/machine/types  the languages the app works in — each one's own name and the
+//                       `<html lang>` tag the layout wears — and what this machine has
+//                       answered about usage reporting (#293)
 //
 // What IS declared here is the one shape the CLI has no opinion about: `SessionView`, a run
 // as the browser reads it. The record the CLI keeps carries a couple of fields the UI has
@@ -164,7 +165,7 @@ export { answerNotes, bandLabel, CARD_BAND_STATES, eventLabel, isFinalEventState
  *  browser importing a constant out of it would drag `node:fs` into the client bundle. */
 export const ALL_RELEASES = "*";
 
-export type { Language } from "./format/machine/types";
+export type { Language, UsageReporting } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
 
 /** A running or finished agent run, as the UI sees it when it polls the server. One shared

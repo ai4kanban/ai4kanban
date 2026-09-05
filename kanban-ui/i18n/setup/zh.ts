@@ -14,6 +14,17 @@ const zh: SetupCopy = {
   },
   stepTitles: { project: "项目", goal: "目标", agent: "Agent" },
   reading: "正在读取看板…",
+  privacy: {
+    title: "帮助改进 AI4Kanban",
+    blurb: "上报匿名的功能使用与失败情况。绝不包含代码、卡片内容、项目名称或文件路径。",
+    share: "共享匿名使用情况",
+    shareNote: "默认开启。之后可在「通用」中修改。",
+    switchOn: (name) => `${name}已开启`,
+    switchOff: (name) => `${name}已关闭`,
+    details: "隐私说明",
+    continue: "继续",
+    saveFailed: "该选择保存失败",
+  },
   firstRun: {
     title: "设置看板",
     step: (at, total) => `第 ${at} 步 / 共 ${total} 步`,

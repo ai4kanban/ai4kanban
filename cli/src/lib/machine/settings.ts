@@ -5,8 +5,9 @@
 // fact about the reader rather than about a board, so it never lands in `docs/kanban/` —
 // there it would be cloned along with the repository and shared with everyone on it.
 //
-// Nothing here fails: a missing file, an unreadable one, or a value this build does not
-// know reads as English. A preference is never worth taking a screen down over.
+// A preference never fails: a missing file, an unreadable one, or a value this build does
+// not know reads as English, and a preference is never worth taking a screen down over.
+// An answer that is ON when absent is a different case — see `heldSettings` below.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -17,16 +18,31 @@ import { DEFAULT_LANGUAGE, isLanguage, type Language } from './types'
 
 export const settingsFile = (): string => path.join(machineHome(), 'settings.json')
 
-/** The file as it stands. Anything that is not an object — absent, half-written, an array —
- *  is no settings, so every reader below falls back rather than throwing. */
-function held(): Record<string, unknown> {
+/** The file as it stands, and whether it could be read at all.
+ *
+ *  A missing file is no settings and reads fine — every default below stands. One that is
+ *  there and will not parse is `unreadable`, which is NOT the same answer: usage reporting
+ *  is on when its key is absent (#293), so a reader that could not tell the two apart would
+ *  start sending from a machine whose user had already said no. Writing is refused for the
+ *  same reason — a merge over an unreadable file would drop the answer it holds. */
+export function heldSettings(): { unreadable: boolean; values: Record<string, unknown> } {
+  let text: string
   try {
-    const parsed: unknown = JSON.parse(fs.readFileSync(settingsFile(), 'utf8'))
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {}
+    text = fs.readFileSync(settingsFile(), 'utf8')
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { unreadable: false, values: {} }
+    return { unreadable: true, values: {} }
+  }
+  try {
+    const parsed: unknown = JSON.parse(text)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { unreadable: true, values: {} }
+    return { unreadable: false, values: parsed as Record<string, unknown> }
   } catch {
-    return {}
+    return { unreadable: true, values: {} }
   }
 }
+
+const held = (): Record<string, unknown> => heldSettings().values
 
 /** The language every screen draws in. */
 export function readLanguage(): Language {
@@ -47,7 +63,7 @@ export function languageChosen(): boolean {
  *  whatever else the file holds — a setting a later release added is not this one's to drop. */
 export function setLanguage(value: Language): WriteResult {
   if (!isLanguage(value)) return { ok: false, error: `${String(value)} is not a language this build knows` }
-  return save({ language: value })
+  return saveSettings({ language: value })
 }
 
 /** Whether this machine's system notifications are silenced (#319).
@@ -60,15 +76,22 @@ export function notificationsSilenced(): boolean {
 }
 
 export function setNotificationsSilenced(on: boolean): WriteResult {
-  return save({ notificationsSilenced: !!on })
+  return saveSettings({ notificationsSilenced: !!on })
 }
 
-function save(patch: Record<string, unknown>): WriteResult {
+/** Write these keys, keeping whatever else the file holds; a key given `undefined` is
+ *  removed. Refused while the file cannot be read, since the merge would write the keys it
+ *  could not parse out of existence. */
+export function saveSettings(patch: Record<string, unknown>): WriteResult {
+  const { unreadable, values } = heldSettings()
+  if (unreadable) return { ok: false, error: `${settingsFile()} cannot be read — fix or remove it, then try again` }
+  const next = { ...values, ...patch }
+  for (const [key, value] of Object.entries(patch)) if (value === undefined) delete next[key]
   try {
     fs.mkdirSync(machineHome(), { recursive: true, mode: 0o700 })
     const file = settingsFile()
     const tmp = `${file}.${process.pid}.tmp`
-    fs.writeFileSync(tmp, `${JSON.stringify({ ...held(), ...patch }, null, 2)}\n`)
+    fs.writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`)
     fs.renameSync(tmp, file)
     return { ok: true }
   } catch (err) {
