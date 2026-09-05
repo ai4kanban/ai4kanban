@@ -575,13 +575,16 @@ function Writing({ text, since }: { text: string; since: number | null }) {
   // What has come back so far, which is what says where the turn is: nothing, a step, words.
   const blocks = blocksOf(text);
   const onStep = blocks.at(-1)?.kind === "looked";
+  // A line its CLI printed is not the agent answering, so it doesn't turn THINKING into
+  // WRITING — a run that has only traced something so far has said nothing yet.
+  const started = blocks.some((block) => block.kind !== "note");
   return (
     <div>
       {blocks.length > 0 && <Reply text={text} ms={ms} live onStep={onStep} />}
       {!onStep && (
         <span className="mt-1.5 flex items-center gap-1.5 text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
           <span className={PULSE_DOT} aria-hidden />
-          {blocks.length > 0 ? c.writing : c.thinking}
+          {started ? c.writing : c.thinking}
         </span>
       )}
     </div>
@@ -613,8 +616,10 @@ function Reply({
   blocks.forEach((block, i) => {
     if (block.kind === "looked") last = i;
   });
-  const work = blocks.slice(0, last + 1);
-  const answer = blocks.slice(last + 1);
+  // Everything up to the last step, plus the CLI's own notes wherever they landed — one
+  // printed after the answer must not take the answer down with it.
+  const work = blocks.filter((block, i) => i <= last || block.kind === "note");
+  const answer = blocks.filter((block, i) => i > last && block.kind === "said");
   return (
     <div className="flex flex-col gap-2">
       {work.length > 0 && <Work blocks={work} ms={ms} live={live} onStep={onStep} />}
@@ -672,16 +677,22 @@ function Work({
           style={{ borderLeft: `1.5px solid color-mix(in srgb, var(--color-nb-ink) 14%, transparent)` }}
         >
           {blocks.map((block, i) =>
-            block.kind === "looked" ? (
+            block.kind === "said" ? (
+              <Markdown key={i} body={block.text} className="nb-sessionlog-md" />
+            ) : (
               <ul key={i} className="flex flex-col gap-0.5">
                 {block.lines.map((line, k) => (
-                  <li key={k} className="truncate font-mono text-[11px] text-nb-ink-soft" title={line}>
+                  <li
+                    key={k}
+                    className={`truncate font-mono text-[11px] ${
+                      block.kind === "note" ? "text-nb-peach-ink" : "text-nb-ink-soft"
+                    }`}
+                    title={line}
+                  >
                     {line}
                   </li>
                 ))}
               </ul>
-            ) : (
-              <Markdown key={i} body={block.text} className="nb-sessionlog-md" />
             ),
           )}
         </div>
@@ -698,11 +709,15 @@ function Work({
   );
 }
 
-/** The step the agent is on right now — the last one it named. */
+/** The step the agent is on right now — the last one it named, without its mark: the pulse
+ *  in front of the line is already the bullet, and two of them read as two things. */
 function lastStep(blocks: Block[]): string | undefined {
   for (let i = blocks.length - 1; i >= 0; i--) {
     const block = blocks[i];
-    if (block.kind === "looked") return block.lines[block.lines.length - 1];
+    if (block.kind === "looked") {
+      const line = block.lines[block.lines.length - 1];
+      return line.startsWith(LOOKED) ? line.slice(LOOKED.length) : line;
+    }
   }
   return undefined;
 }
@@ -730,27 +745,27 @@ function useElapsed(since: number | null): number | undefined {
   return since === null ? undefined : Math.max(0, now - since);
 }
 
-/** The mark every connector's stream puts in front of a tool call (cli/src/lib/agent/). */
+/** The mark every connector's stream puts in front of a tool call, and the one the board
+ *  puts in front of a line the CLI itself printed (cli/src/lib/agent/chat.ts). */
 const LOOKED = "⏺ ";
+const NOTE = "⚠ ";
 
-type Block = { kind: "looked"; lines: string[] } | { kind: "said"; text: string };
+type Block = { kind: "looked" | "note"; lines: string[] } | { kind: "said"; text: string };
 
-/** Split what the agent wrote into what it said and what it looked at, keeping the order it
- *  came in. */
+/** Split what the agent wrote into what it said, what it looked at, and what its CLI had to
+ *  say for itself, keeping the order it came in. */
 function blocksOf(text: string): Block[] {
   const blocks: Block[] = [];
   for (const line of text.split("\n")) {
-    const looked = line.startsWith(LOOKED);
+    const kind = line.startsWith(LOOKED) ? "looked" : line.startsWith(NOTE) ? "note" : "said";
     const last = blocks[blocks.length - 1];
-    if (looked) {
-      if (last?.kind === "looked") last.lines.push(line);
-      else blocks.push({ kind: "looked", lines: [line] });
-    } else {
+    if (kind === "said") {
       if (last?.kind === "said") last.text += `\n${line}`;
-      else blocks.push({ kind: "said", text: line });
-    }
+      else blocks.push({ kind, text: line });
+    } else if (last?.kind === kind) last.lines.push(line);
+    else blocks.push({ kind, lines: [line] });
   }
-  return blocks.filter((b) => (b.kind === "looked" ? b.lines.length > 0 : b.text.trim() !== ""));
+  return blocks.filter((b) => (b.kind === "said" ? b.text.trim() !== "" : b.lines.length > 0));
 }
 
 /** What the agent said, with the lookup lines taken out — what a copy of a reply takes.

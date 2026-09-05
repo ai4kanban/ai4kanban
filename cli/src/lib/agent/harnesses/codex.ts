@@ -208,10 +208,15 @@ export const CODEX: Harness = {
   // came back more housekeeping than work. The list it failed to refresh is not one the
   // board uses: a run's model comes from the settings or the CLI's own default.
   //
-  // Only this one module is dropped. Codex's network, sandbox and MCP failures all trace
-  // the same way and all stay — a websocket that keeps resetting is the answer to why a run
+  // The other line is Codex noticing that its stdin isn't a terminal and reading it out —
+  // which is us: a printing connector is spawned with no stdin at all. It says nothing
+  // about the run, and it is the FIRST thing a chat reply would otherwise open with.
+  //
+  // Only these two are dropped. Codex's network, sandbox and MCP failures all trace the
+  // same way and all stay — a websocket that keeps resetting is the answer to why a run
   // died, and it reads as noise right up until it is the only thing that matters.
-  quietStderr: (line) => line.includes('codex_models_manager::'),
+  quietStderr: (line) =>
+    line.includes('codex_models_manager::') || line.trim() === 'Reading additional input from stdin...',
 
   // Codex names its own thread, so our session id is only ever the board's key for the
   // run. The real resume id lands on the first event and the record saves it there.

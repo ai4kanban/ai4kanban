@@ -646,6 +646,24 @@ const SILENCE_MS = 5 * 60_000
 
 const SILENCE_SAID = `the agent said nothing for ${SILENCE_MS / 60_000} minutes, so the reply was given up on.`
 
+/** The mark in front of a line the CLI itself printed, which the chat rail folds away
+ *  (kanban-ui/components/Chat.tsx). */
+const NOTE = '⚠ '
+
+// The CLI's own lines, marked as the CLI's. Unmarked, the rail reads a line as the agent's
+// words: a stray MCP trace or a startup notice opened the reply as prose. Marked, it folds
+// under "Worked for …" wherever in the turn it arrived, and stays one click away.
+//
+// Its own mark rather than the tool-call one, because a note is not a step: it must not
+// count as the last thing the agent did, or a trace printed on the way out would push the
+// answer itself into the fold.
+function noted(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => (line.trim() ? `${NOTE}${line}` : line))
+    .join('\n')
+}
+
 async function speak(io: {
   plan: RunPlan
   prompt: string
@@ -711,7 +729,7 @@ async function speak(io: {
   const errs = createStderrFilter(active.quietStderr)
   child.stderr.on('data', (d: Buffer) => {
     touch()
-    push(errs.push(d.toString()))
+    push(noted(errs.push(d.toString())))
   })
   child.on('error', (err) => {
     spawnError =
@@ -736,7 +754,7 @@ async function speak(io: {
         usage ??= renderer.usage?.()
         costUsd ??= renderer.costUsd?.()
       }
-      push(errs.flush())
+      push(noted(errs.flush()))
       resolve({
         ok: ok && !spawnError && !stopped && !silent,
         text,
