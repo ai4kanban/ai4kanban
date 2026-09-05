@@ -172,9 +172,6 @@ const en: RunsCopy = {
         "The agent works in a separate copy of the project — a git worktree — so your own files are left exactly as they are.",
       ownBranchOff:
         "The agent works right here, in this folder, and nothing else can be built until you commit what it leaves.",
-      aiReview: "Have a second agent review it",
-      aiReviewOn: "A fresh session judges the build against this card and fixes what it finds. It costs a second run.",
-      aiReviewOff: "Nothing reads the code after the build but your own checks. Turn on **Approve diffs before landing** to read it yourself.",
       autoBranchNoReview: (branch) =>
         `One click carries this card all the way: the agent builds it, and the board lands it as one commit on \`${branch}\`. Nothing reviews it in between.`,
       autoHereNoReview:

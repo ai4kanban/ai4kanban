@@ -929,9 +929,8 @@ prints the review flow.
 #### Turning AI review off
 
 Review is a separate paid run on every delivery. **AI review** in Configuration → General →
-Delivery turns it off for the board, and **Have a second agent review it** on the Implement dialog
-turns it off for one build — the box opens on the setting and never writes back to it, exactly as
-the worktree box does. There is no flag: **Schedule**, **Resolve & implement** and
+Delivery is the one place it is turned off, and it answers for the whole board. There is no
+per-build box and no flag: **Implement**, **Schedule**, **Resolve & implement** and
 `akb card implement` all read the setting as it stands then.
 
 - **The choice is frozen when the delivery starts.** Flip the setting while a build runs and that
@@ -1158,8 +1157,8 @@ its own, however that was chosen, so it stays settable with automatic Git commit
 - **On** — nothing lands unread: every delivery waits after review until you approve the exact tree
   it would land. See **Approving a delivery** below.
 
-**AI review**, on by default. It decides whether a build is judged at all. The Implement dialog's
-**Have a second agent review it** turns one build round and leaves this where it is.
+**AI review**, on by default. It decides whether a build is judged at all, for every build the
+board starts — the Implement dialog does not ask per click.
 
 - **On** — a fresh session reviews each delivery and fixes what it finds. It is a separate paid
   run per delivery.

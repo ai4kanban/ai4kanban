@@ -167,9 +167,6 @@ const zh: RunsCopy = {
       ownBranch: "在单独的分支上构建",
       ownBranchOn: "Agent 在项目的一份独立副本（git worktree）里工作，你自己的文件原样不动。",
       ownBranchOff: "Agent 就在当前目录里工作，在你提交它留下的改动之前，别的构建都开不了。",
-      aiReview: "让第二个 Agent 评审",
-      aiReviewOn: "一次全新的会话会对照这张卡片评审构建结果并修复问题。这会多花一次运行。",
-      aiReviewOff: "构建之后除了你自己的检查，没有别的东西会再读这些代码。想自己过一遍，可以开启**合入前需要批准差异**。",
       autoBranchNoReview: (branch) =>
         `点一下就把这张卡片走完：Agent 构建之后，看板直接把它作为一个提交合入 \`${branch}\`，中间没有任何评审。`,
       autoHereNoReview:
