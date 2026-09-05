@@ -42,12 +42,21 @@ const zh: BoardCopy = {
     startFailed: "Agent 未能启动",
     sheet: {
       headline: "你想要实现什么？",
-      slogan: "用你自己的话说出来，Agent 来写卡片。",
+      slogan: "用你自己的话说出来，写成卡片，或者直接开做。",
       placeholder: "描述这个任务",
+      modes: "发送后会做什么",
       addTask: "新建任务",
+      buildNow: "直接开做",
       send: "发送",
       keys: "Enter 发送 · Shift-Enter 换行 · Esc 关闭",
       shipsIn: (release) => `将在 ${release} 中交付`,
+      builds: "立即开做，不写卡片",
+      guard: {
+        title: "不写卡片，直接开做？",
+        skips: ["不会写卡片", "不会反问，也没有方案可看", "代码进入你的分支前没有任何评审"],
+        cancel: "取消",
+        confirm: "直接开做",
+      },
     },
   },
   release: {

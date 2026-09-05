@@ -709,6 +709,11 @@ function requestOf(record: RunRecord): AgentRequest {
   return {
     action: record.action,
     id,
+    // A run with no card is named by its delivery (#428), and the sentence it was given is
+    // what the record kept as its input — together they are its whole ask.
+    ...(id === undefined && record.deliveryId
+      ? { deliveryId: record.deliveryId, description: record.input }
+      : {}),
     title: titleOf(id),
     specAgent: record.specAgent,
     channel: record.channel,

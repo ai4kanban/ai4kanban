@@ -114,6 +114,67 @@ const statusOf = (deliveryId: string): string =>
 
 const log = (ref = 'main'): string[] => git(['log', '--format=%s', ref]).split('\n')
 
+// A build with no card (#428) lands the same way, and leaves nothing on the board behind
+// it: there is no card to hold, none to put back, and none to archive.
+describe('a build with no card', () => {
+  const typed = 'Rename the Runs panel heading to Activity'
+
+  it('lands its own commit, named by the delivery, and archives nothing', async () => {
+    const opened = openRun({ action: 'implement', description: typed }, 'prompt', [])
+    assert.ok(!('error' in opened), 'a card-less build should start')
+    const built = (opened as { run: { sessionId: string } }).run.sessionId
+    const delivery = listDeliveries().find((d) => d.cardId === null && d.status === 'active')!
+
+    // Its checkout and its branch are named by the delivery — there is no card number.
+    assert.equal(delivery.worktree, `.akb/worktrees/delivery/${delivery.deliveryId}`)
+    assert.equal(delivery.branch, `delivery/${delivery.deliveryId}`)
+    // And nothing gates it: no review run reads the code, nothing waits to be approved.
+    assert.equal(delivery.aiReview, false)
+    assert.equal(delivery.approval?.required, false)
+
+    fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'renamed\n')
+    await end(built)
+    // The build itself finishes the delivery's work — it queues to land with no review.
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'waiting')
+
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
+    assert.equal(statusOf(delivery.deliveryId), 'finished')
+    assert.deepEqual(log(), [typed, 'start'])
+    assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'renamed\n')
+    // Nothing was written to the board: the two cards the fixture set up are still the
+    // only ones there.
+    assert.deepEqual(
+      fs.readdirSync(path.join(root, 'docs', 'kanban', 'todo', 'features')).sort(),
+      ['1-card.md', '2-card.md'],
+    )
+  })
+
+  it('is reviewed and landed by its own id when a landing has to be put back in motion', async () => {
+    const opened = openRun({ action: 'implement', description: typed }, 'prompt', [])
+    const built = (opened as { run: { sessionId: string } }).run.sessionId
+    const delivery = listDeliveries().find((d) => d.cardId === null && d.status === 'active')!
+    fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'renamed\n')
+    await end(built)
+
+    // What `akb delivery review <delivery>` opens: a review run named by the delivery,
+    // never by a card there is none of.
+    const review = openRun(
+      { action: 'review', deliveryId: delivery.deliveryId, title: typed },
+      'prompt',
+      [],
+    )
+    assert.ok(!('error' in review), 'the review should join the delivery it names')
+    assert.equal(
+      listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)!.sessions.length,
+      2,
+    )
+    await end((review as { run: { sessionId: string } }).run.sessionId)
+    assert.equal(await advanceLanding(), null)
+    assert.equal(statusOf(delivery.deliveryId), 'finished')
+  })
+})
+
 describe('one card at a time', () => {
   it('lands as one squash commit and takes the delivery with it', async () => {
     const delivery = await reviewed(1, 'card one', 'one\n')

@@ -102,9 +102,16 @@ export interface AgentRequest {
   action: AgentAction
   id?: number
   title?: string
+  /** The delivery this run is for, when it is not named by a card (#428). A card-less build
+   *  carries none — its delivery is opened as the run is written down — and its review and
+   *  its conflict run carry the delivery the build opened. */
+  deliveryId?: string
   notes?: string // implement, edit, clarify, resolve, archive, run
   reason?: string // reject
-  description?: string // create
+  /** create: what the user wants, in their own words. implement with no `id`: the typed
+   *  sentence a card-less build is approved to build (#428) — its requirements, its prompt
+   *  and its delivery's title all at once. */
+  description?: string
   /** create: the version the new card(s) ship in. plan-release: the version being
    *  planned, and changelog: the version being written up — the whole of what either run
    *  is about, since neither names a card. */
@@ -395,9 +402,14 @@ export interface DeliveryApproval {
  *  `docs/kanban/deliveries/`, tracked in git and kept after the card is archived. */
 export interface DeliveryRecord {
   deliveryId: string
-  cardId: number
+  /** The card it builds, or null for a build with no card at all (#428) — **Build now**
+   *  sends a typed sentence straight to an implementation run. A card-less delivery is found
+   *  by its own id everywhere a carded one is found by its card, and its worktree, branch and
+   *  commit message are named by the delivery id. */
+  cardId: number | null
   /** The card's title when the delivery started, so a record still names its card after
-   *  the card has been archived. */
+   *  the card has been archived — and the typed sentence itself on a card-less one, which is
+   *  the only account of what it was asked to build. */
   title: string
   status: DeliveryStatus
   startedAt: number

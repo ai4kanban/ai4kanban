@@ -12,12 +12,15 @@ import {
   activeDelivery,
   approvedRequirements,
   endDelivery,
+  findDelivery,
   heldByDelivery,
   insideDelivery,
   joinDelivery,
+  namedDelivery,
   settleDelivery,
 } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
+import { resumePrompt } from '../src/lib/agent/prompts.ts'
 import { cancelDelivery } from '../src/lib/agent/sessions.ts'
 import { cardsAtWork, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
@@ -301,9 +304,82 @@ describe('the cards the board is working on', () => {
   })
 })
 
+// A build with no card at all (#428) — what **Build now** starts. The typed sentence is the
+// whole of what it was approved to build, and its own id is the only name it has.
+describe('a delivery with no card', () => {
+  const typed = 'Rename the Runs panel heading to Activity'
+
+  // What openRun does for a card-less build: the sentence is the title AND the approved copy.
+  const startCardless = (run: RunRecord): string =>
+    withStore((store) => {
+      store.runs.push(run)
+      return joinDelivery(store, run, typed, 'implement', undefined, typed).deliveryId
+    })
+
+  it('takes the typed sentence as its requirements and its title', () => {
+    const id = startCardless(session({ cardId: null }))
+    const delivery = readStore().deliveries.find((d) => d.deliveryId === id)!
+    assert.equal(delivery.cardId, null)
+    assert.equal(delivery.approved, typed)
+    assert.equal(delivery.title, typed)
+    // Nothing on the board was held, so there is no stage to put back at the end.
+    assert.equal(delivery.priorStatus, undefined)
+  })
+
+  it('opens one delivery per send — two never collapse into one', () => {
+    const first = startCardless(session({ cardId: null }))
+    const second = startCardless(session({ cardId: null }))
+    assert.notEqual(first, second)
+    assert.equal(readStore().deliveries.filter((d) => d.cardId === null).length, 2)
+  })
+
+  it('is found by its own id, and holds no card', () => {
+    const id = startCardless(session({ cardId: null }))
+    assert.equal(findDelivery(id)?.deliveryId, id)
+    assert.equal(namedDelivery(id)?.deliveryId, id)
+    assert.deepEqual([...cardsAtWork()], [])
+  })
+
+  it('keeps its row when the record is read back', () => {
+    const id = startCardless(session({ cardId: null }))
+    // Straight through the file, the way another process reads it.
+    assert.equal(readStore().deliveries.some((d) => d.deliveryId === id && d.cardId === null), true)
+  })
+
+  it('is cancelled by its own id, with no card to hand back', async () => {
+    const id = startCardless(session({ cardId: null }))
+    assert.equal((await cancelDelivery(id)).ok, true)
+    assert.equal(readAudit(id).status, 'cancelled')
+  })
+
+  // What a restarted run is told when its saved conversation is gone. A carded delivery is
+  // pointed at the command that prints its approved copy; this one has no file and no such
+  // command, so the sentence itself has to be in the words.
+  it('quotes the typed sentence to a run that has to start over', () => {
+    const id = startCardless(session({ cardId: null }))
+    const prompt = resumePrompt(id, null)
+    assert.match(prompt, new RegExp(`Continue delivery ${id}`))
+    assert.match(prompt, /There is no card: build exactly this, and nothing more/)
+    assert.match(prompt, new RegExp(typed))
+  })
+
+  it('finishes on its own build in manual commit mode, waiting for no commit', async () => {
+    const id = startCardless(session({ cardId: null }))
+    withStore((store) => {
+      const live = store.deliveries.find((d) => d.deliveryId === id)!
+      live.commitMode = 'manual'
+      live.aiReview = false
+    })
+    await settleDelivery({ ...readStore().runs[0]!, status: 'done' })
+    const ended = readStore().deliveries.find((d) => d.deliveryId === id)!
+    assert.equal(ended.status, 'finished')
+    assert.equal(ended.reviewed, undefined)
+  })
+})
+
 function readAudit(id: string): {
   status: string
-  cardId: number
+  cardId: number | null
   approved: string
   sessions: { sessionId: string; log: string }[]
 } {

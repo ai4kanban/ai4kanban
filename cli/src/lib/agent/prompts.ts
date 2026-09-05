@@ -20,7 +20,7 @@ import {
 } from '../agents'
 import { solution } from '../solution'
 import { boardCommand, boardCommandFor, commandNote } from './command'
-import { activeDelivery } from './deliveries'
+import { deliveryFor, findDelivery } from './deliveries'
 import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
@@ -45,14 +45,24 @@ export const RESUME_PROMPT = [
 const DELIVERY_RESUME = [
   `Continue delivery %s. The previous run ended before the delivery finished.`,
   `Re-enter the flow from the top and check each step's precondition before you do it — work that is already done is done, so do not repeat it.`,
-  `Build the card as the delivery holds it, not as the file reads now: \`%c\` prints the approved copy.`,
 ].join(' ')
+
+// And the last line, which says where the requirements are. A card file can have moved
+// under the delivery, so the copy it is building from is what to read. A build with no card
+// (#428) has no file and no command that prints one, so the typed sentence is quoted here —
+// this is the whole of what a restarted run would otherwise be left without.
+const DELIVERY_RESUME_CARD = `Build the card as the delivery holds it, not as the file reads now: \`%c\` prints the approved copy.`
 
 /** What a resumed run is told: the plain "carry on", or — inside a delivery — the one that
  *  re-enters the delivery's flow. */
 export function resumePrompt(deliveryId: string | undefined, cardId: number | null): string {
-  if (!deliveryId || cardId === null) return RESUME_PROMPT
-  return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommandFor(cardId)} card implement ${cardId} --print`)
+  if (!deliveryId) return RESUME_PROMPT
+  const lead = DELIVERY_RESUME.replace('%s', deliveryId)
+  if (cardId !== null) {
+    return `${lead} ${DELIVERY_RESUME_CARD.replace('%c', `${boardCommandFor(cardId)} card implement ${cardId} --print`)}`
+  }
+  const typed = findDelivery(deliveryId)?.approved.trim()
+  return typed ? `${lead} There is no card: build exactly this, and nothing more — "${typed}".` : lead
 }
 
 /** A format repair continues the same run without repeating its task. */
@@ -103,8 +113,9 @@ const RESTART_LEAD = [
  *  ask can no longer be written down, and the client fails such a run rather than restarting
  *  it blind. */
 export function restartPrompt(req: AgentRequest, deliveryId?: string): string | undefined {
-  if (req.id === undefined) return undefined
-  if (deliveryId && req.action === 'implement') return resumePrompt(deliveryId, req.id)
+  // A run that names neither a card nor a delivery has no ask to write down again.
+  if (req.id === undefined && !req.deliveryId && !deliveryId) return undefined
+  if (deliveryId && req.action === 'implement') return resumePrompt(deliveryId, req.id ?? null)
   if (!RESTARTABLE.has(req.action)) return undefined
   return [RESTART_LEAD, buildPrompt(req)].join('\n\n')
 }
@@ -172,8 +183,7 @@ export function buildPrompt(req: AgentRequest, notes: string[] = []): string {
  *  this run is not part of one. A delivery's runs work to the rules it started with, the
  *  way they build the card it started with. */
 export function frozenRules(req: AgentRequest): Record<string, string> | undefined {
-  if (!DELIVERY_FLOWS.has(req.action) || req.id === undefined) return undefined
-  return activeDelivery(req.id)?.rules
+  return deliveryFor(req)?.rules
 }
 
 // The specialists a pass may call in — the catalog, not a rule about any one of them.
@@ -226,6 +236,19 @@ export function buildRun(req: AgentRequest): { prompt: string; notes: string[] }
   return { prompt: buildPrompt(req, notes), notes }
 }
 
+/** What a review or a conflict run is aimed at, and what its flow is typed with: the card
+ *  where there is one, the delivery itself where there is not (#428). */
+function deliveryAim(
+  req: AgentRequest,
+  delivery: { deliveryId: string } | undefined,
+): { subject: string; arg: string } {
+  if (req.id !== undefined) {
+    return { subject: `Task ${req.id}${req.title ? ` ("${req.title}")` : ''}`, arg: String(req.id) }
+  }
+  const id = req.deliveryId ?? delivery?.deliveryId ?? ''
+  return { subject: `Delivery ${id} (a build with no card)`, arg: id }
+}
+
 function actionPrompt(req: AgentRequest, command: string, notes: string[]): string {
   // How this agent calls the skill — the only part of a prompt that follows the agent. It
   // is the agent THIS run's runtime resolves to here (#343), not the board's global one: a
@@ -234,7 +257,17 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
   const tag = req.id ? `#${req.id}` : ''
   const named = req.title ? `${tag} ("${req.title}")` : tag
   switch (req.action) {
+    // A build with no card (#428): the typed sentence IS the requirement, so it is quoted
+    // here rather than pointed at. Nothing about the board follows — there is no card to
+    // tick, no question to raise and nothing to archive, which the flow says in full.
     case 'implement':
+      if (req.id === undefined) {
+        return [
+          `${kb}. Build this, with no card: "${req.description?.trim() ?? ''}".`,
+          `Follow \`akb guide implement\`. That sentence is the whole requirement — build exactly it, and write no card.`,
+          `Don't ask me questions with human-in-the-loop; stop on a real blocker instead.`,
+        ].join(' ')
+      }
       return [
         `${kb}. Implement task ${req.id} ${named} following \`akb guide implement\`.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
@@ -461,34 +494,46 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       // A rebase put the target's own changes beside work that already passed (#415). The
       // ask has to say so, or the run goes looking for approved requirements the flow
       // deliberately leaves out and judges the delivery a second time.
-      if (owesFocusedReview(activeDelivery(req.id!))) {
+    {
+      // What this review is aimed at. A build with no card is named by its delivery — the
+      // only name it has — and has no card to append a question to (#428), so it says what
+      // to do instead of naming one.
+      const delivery = deliveryFor(req)
+      const aim = deliveryAim(req, delivery)
+      const defer = req.id === undefined
+        ? `If a genuine user decision still blocks landing, say so in your last message and stop; there is no card to write it on.`
+        : `If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`
+      if (owesFocusedReview(delivery)) {
         return [
-          `${kb}. Task ${req.id} ${named} is landing, and its rebase put the target branch's own changes beside a delivery that already passed review.`,
-          `\`${command} delivery review ${req.id} --print\` names the target delta and the paths both changed.`,
+          `${kb}. ${aim.subject} is landing, and its rebase put the target branch's own changes beside a delivery that already passed review.`,
+          `\`${command} delivery review ${aim.arg} --print\` names the target delta and the paths both changed.`,
           `You did not build this. Do not read the run that wrote it.`,
-          `Judge only how those changes interact, following \`akb guide review\` — not the delivery's own design, which stands. Fix plain mistakes and rerun the checks those paths affect. If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`,
-          `Don't ask me questions with human-in-the-loop — the card's validated open question is how you defer to me.`,
+          `Judge only how those changes interact, following \`akb guide review\` — not the delivery's own design, which stands. Fix plain mistakes and rerun the checks those paths affect. ${defer}`,
+          `Don't ask me questions with human-in-the-loop.`,
         ].join(' ')
       }
       return [
-        `${kb}. Review task ${req.id} ${named} — judge what the delivery in flight on it has built against the card as it was approved, following \`akb guide review\`.`,
-        `\`${command} delivery review ${req.id} --print\` supplies the approved requirements, changed-file summary and small diff.`,
+        `${kb}. Review ${aim.subject} — judge what the delivery in flight on it has built against what it was approved to build, following \`akb guide review\`.`,
+        `\`${command} delivery review ${aim.arg} --print\` supplies the approved requirements, changed-file summary and small diff.`,
         `You did not build this. Do not read the run that wrote it.`,
-        `Fix plain mistakes and rerun the affected checks. If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`,
-        `Don't ask me questions with human-in-the-loop — the card's validated open question is how you defer to me.`,
+        `Fix plain mistakes and rerun the affected checks. ${defer}`,
+        `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
+    }
     // Resolving the conflict a landing's rebase stopped on (#304). It is new work, not a
     // correction: the two cards were both right on their own, and what to keep is a
     // judgment neither card wrote down. Nothing here names the files — they are in the
     // worktree and the flow prints them — and nothing here says to finish the rebase: the
     // board does that, so the run has one job and no rebase state to get wrong.
-    case 'conflict':
+    case 'conflict': {
+      const aim = deliveryAim(req, deliveryFor(req))
       return [
-        `${kb}. Task ${req.id} ${named} is landing, and its rebase onto the target branch stopped on a conflict.`,
-        `\`${command} delivery conflict ${req.id} --print\` names the conflicted files, both cards and both diffs.`,
-        `Resolve every conflicted file in the delivery's worktree so both cards' intent survives, \`git add\` each one, and stop there — the board finishes the rebase, then reviews your resolution before it lands.`,
+        `${kb}. ${aim.subject} is landing, and its rebase onto the target branch stopped on a conflict.`,
+        `\`${command} delivery conflict ${aim.arg} --print\` names the conflicted files, both sides' intent and both diffs.`,
+        `Resolve every conflicted file in the delivery's worktree so both intentions survive, \`git add\` each one, and stop there — the board finishes the rebase, then reviews your resolution before it lands.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
+    }
     case 'resolve':
       return [
         `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`, then validate the updated plan following \`akb guide qa-loop\`.`,

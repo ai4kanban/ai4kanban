@@ -40,6 +40,7 @@ import type {
   ArchivedCardFile,
   Board,
   Card,
+  CardDeliveryState,
   CardDrafts,
   CardPatch,
   ChannelStatus,
@@ -213,6 +214,9 @@ export interface BoardRules {
   // and then a run simply carries no delivery and no card is ever held.
   listDeliveries?(): DeliveryRecord[];
   activeDelivery?(cardId: number): DeliveryRecord | undefined;
+  /** Where one delivery stands, by its own id — what a card page draws in its title band.
+   *  A build with no card (#428) has no card page, so its flow in Runs draws this. */
+  deliveryPause?(deliveryId: string): CardDeliveryState | undefined;
   cancelDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
   /** A delivery's worktree and branch, thrown away on request (#303). Cancelling one leaves
    *  its checkout where it is; this is the only thing that removes one. */

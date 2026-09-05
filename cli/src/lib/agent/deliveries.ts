@@ -7,6 +7,10 @@
 // won't change it — and the way to take the card back is Discard on the card page, or
 // `cancel` here, which ends it the same way but leaves its worktree behind.
 //
+// A delivery may also carry NO card (#428) — **Build now** sends a typed sentence straight
+// to a build. Its snapshot is that sentence, which nothing can rewrite; it holds nothing,
+// archives nothing, and its own id is what everything finds it by.
+//
 // It leaves two records. The live row sits in docs/kanban/.sessions.json, where the lock
 // and the card page read it. The permanent one is a JSON file per delivery under
 // docs/kanban/deliveries/, tracked in git, kept after the card is archived, and never
@@ -31,6 +35,7 @@ import {
 } from './commit-mode'
 import { completeCard } from './complete'
 import { insideRun } from './env'
+import { DELIVERY_FLOWS } from './flows'
 import { answeredStop, deliveryState, type DeliveryState } from './pause'
 import { deliveryRules } from './rules'
 import {
@@ -240,10 +245,26 @@ export function namedDelivery(id: string): DeliveryRecord | undefined {
 /** Every delivery the live record holds, oldest first. */
 export const listDeliveries = (): DeliveryRecord[] => readStore().deliveries
 
+/** The delivery one run belongs to: the one it names outright — the only way a build with
+ *  no card can be found (#428) — or the one in flight on its card. Nothing on a run that is
+ *  not a delivery's own. */
+export function deliveryFor(req: Pick<AgentRequest, 'action' | 'id' | 'deliveryId'>): DeliveryRecord | undefined {
+  if (!DELIVERY_FLOWS.has(req.action)) return undefined
+  // In flight, either way: a delivery that has ended is not one to build, review or resolve
+  // a conflict against, however it was named.
+  if (req.deliveryId) {
+    const found = findDelivery(req.deliveryId)
+    return found?.status === 'active' ? found : undefined
+  }
+  return req.id === undefined ? undefined : activeDelivery(req.id)
+}
+
 /** Put a run into the delivery its card is being built under, opening one when the
- *  card has none. Called with the record's lock already held, from inside the same
- *  transaction that writes the run down — so a delivery can never exist with no run to
- *  it, and two clicks can never open two deliveries on one card.
+ *  card has none — and always opening one for a build that names no card at all (#428),
+ *  whose `approved` is the typed sentence the caller passes in. Called with the record's
+ *  lock already held, from inside the same transaction that writes the run down — so a
+ *  delivery can never exist with no run to it, and two clicks can never open two
+ *  deliveries on one card.
  *
  *  `step` is what the run is entering the delivery to do. It is kept as history and
  *  never trusted on a resume: a stored position goes stale in exactly the crash it exists
@@ -259,9 +280,12 @@ export function joinDelivery(
   title: string,
   step: string,
   start?: DeliveryStart,
+  approved?: string,
 ): DeliveryRecord {
-  const cardId = run.cardId as number
-  let delivery = activeIn(store, cardId)
+  const cardId = run.cardId
+  // A build with no card joins nothing (#428): there is no card to look one up by, and two
+  // Build now sends are two builds — each opens a delivery of its own.
+  let delivery = cardId === null ? undefined : activeIn(store, cardId)
   if (!delivery) {
     delivery = {
       deliveryId: start?.deliveryId ?? newDeliveryId(store.deliveries),
@@ -270,19 +294,20 @@ export function joinDelivery(
       status: 'active',
       startedAt: run.startedAt,
       sessions: [],
-      // The one read of the card this delivery will ever make for its requirements.
-      approved: approvedRequirements(cardId),
+      // The one read of the card this delivery will ever make for its requirements — or,
+      // with no card, the typed sentence it was handed, which can never move under it.
+      approved: cardId === null ? approved ?? '' : approvedRequirements(cardId),
       // Existing questions predate review. Review waits only on a decision it adds itself;
       // these keep waiting at landing as before.
-      initialQuestions: openQuestions(cardId),
+      initialQuestions: cardId === null ? 0 : openQuestions(cardId),
       steps: [],
       // And the one read of where the code stood before it started. Everything the
       // delivery writes is the difference from here, which is the diff review judges.
       base: start ? start.base : (candidateBase() ?? undefined),
       // The stage to put back when the whole delivery ends. Read here, from the first
       // run, because every run after this one would read `implementing` — the
-      // stage this delivery itself put there.
-      priorStatus: cardStatus(cardId),
+      // stage this delivery itself put there. There is no stage to hold with no card.
+      priorStatus: cardId === null ? undefined : cardStatus(cardId),
       // How it commits, and where. Written now and never again: flipping the setting
       // changes the next delivery, not this one.
       commitMode: start?.commitMode ?? 'manual',
@@ -311,8 +336,9 @@ export function joinDelivery(
   // The permanent record exists from the delivery's first moment, not from its first
   // ending: a delivery whose machine died in its first minute still left one behind.
   writeAudit(delivery, store.runs)
-  // The action a Cloud event carries is followed by its delivery's own states (#319).
-  recordCloudDeliveryState(cardId, 'running')
+  // The action a Cloud event carries is followed by its delivery's own states (#319). A
+  // card-less delivery answers no action and reports nothing.
+  if (cardId !== null) recordCloudDeliveryState(cardId, 'running')
   return delivery
 }
 
@@ -325,9 +351,19 @@ export function joinDelivery(
  *
  *  Starting one also clears the stop it may be waiting at: the user has answered, approved
  *  an exception, or asked for another look, and this run is that look. */
-export function joinActive(store: Store, run: RunRecord, step: string): DeliveryRecord | undefined {
-  const cardId = run.cardId as number
-  const delivery = activeIn(store, cardId)
+export function joinActive(
+  store: Store,
+  run: RunRecord,
+  step: string,
+  deliveryId?: string,
+): DeliveryRecord | undefined {
+  // By the delivery the caller named, or by the card when it named none — the same delivery
+  // either way, and the only one a build with no card can be found by (#428).
+  const delivery = deliveryId
+    ? store.deliveries.find((d) => d.status === 'active' && d.deliveryId === deliveryId)
+    : run.cardId === null
+      ? undefined
+      : activeIn(store, run.cardId)
   if (!delivery) return undefined
   delivery.sessions.push(run.sessionId)
   delivery.steps.push({ step, at: run.startedAt })
@@ -350,8 +386,9 @@ export function endDelivery(deliveryId: string, status: Exclude<DeliveryStatus, 
   if (ended) {
     syncAudit(deliveryId)
     // How it ended, against the Cloud event whose action started it (#319). A card with no
-    // action on record has nothing to report, so this is a no-op on most deliveries.
-    recordCloudDeliveryState(ended.cardId, DELIVERY_OUTCOME[status])
+    // action on record has nothing to report, so this is a no-op on most deliveries — and a
+    // delivery with no card at all answers no action and reports nothing.
+    if (ended.cardId !== null) recordCloudDeliveryState(ended.cardId, DELIVERY_OUTCOME[status])
   }
   return ended
 }
@@ -375,7 +412,7 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   const before = readStore().deliveries.find((d) => d.deliveryId === run.deliveryId)
   if (!before) return
   type Settled = { end: 'finished' }
-  const questions = openQuestions(before.cardId)
+  const questions = before.cardId === null ? 0 : openQuestions(before.cardId)
   const raisedQuestions = Math.max(0, questions - (before.initialQuestions ?? 0))
 
   // Everything that has to run git happens here, before the record's lock — every process
@@ -395,8 +432,12 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   // it, leaving the user's checkout uncommitted.
   const finishing =
     run.action === 'review' ? raisedQuestions === 0 : run.action === 'implement' && !aiReviewOn(before)
+  //
+  // A build with no card takes no snapshot (#428): nothing is waiting for the user's commit,
+  // because the wait is read on a card page and there is none — the delivery finishes with
+  // its run and leaves the change where it is.
   const reviewed =
-    !uncommitted && before.commitMode === 'manual' && run.status === 'done' && finishing
+    !uncommitted && before.commitMode === 'manual' && before.cardId !== null && run.status === 'done' && finishing
       ? snapshotReviewed(before)
       : undefined
 
@@ -472,6 +513,9 @@ export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
   // written before the run spawned and never written back into, so its `status` still reads
   // `running` at the moment it asks. The delivery then carried on nothing, and the card sat
   // at its stop until a tick happened to pick it up.
+  //
+  // A run with no card answers no stop either: a card-less delivery has no questions to
+  // settle, and its own `next` is taken above.
   return run.cardId === null ? null : answeredReview(run.cardId)
 }
 
@@ -486,7 +530,7 @@ export function answeredReview(cardId: number): AgentRequest | null {
   const delivery = activeDelivery(cardId)
   if (!delivery || delivery.next) return null
   if (!answeredStop(delivery, openQuestions(cardId))) return null
-  return { action: 'review', id: delivery.cardId, title: delivery.title }
+  return { action: 'review', id: cardId, deliveryId: delivery.deliveryId, title: delivery.title }
 }
 
 /** The same for every delivery on the board, which is what the tick asks (`view/dispatch`).
@@ -498,7 +542,8 @@ export function answeredReview(cardId: number): AgentRequest | null {
 export function answeredWork(busy: Set<number> = new Set()): AgentRequest[] {
   const work: AgentRequest[] = []
   for (const delivery of readStore().deliveries) {
-    if (delivery.status !== 'active' || busy.has(delivery.cardId)) continue
+    // A card-less delivery has no questions and so no stop to be answered (#428).
+    if (delivery.status !== 'active' || delivery.cardId === null || busy.has(delivery.cardId)) continue
     const request = answeredReview(delivery.cardId)
     if (request) work.push(request)
   }
@@ -515,7 +560,7 @@ export function takeNext(deliveryId: string): AgentRequest | null {
     return { action, cardId: delivery.cardId, title: delivery.title }
   })
   if (!taken) return null
-  return { action: taken.action, id: taken.cardId, title: taken.title }
+  return { action: taken.action, id: taken.cardId ?? undefined, deliveryId, title: taken.title }
 }
 
 // ---- landing: the queue a passed delivery joins (#304) ----------------------
@@ -556,9 +601,13 @@ function releaseLanding(delivery: DeliveryRecord): void {
 
 // A manual delivery that review has passed, or nothing when this card has no such
 // delivery waiting on the user's commit.
+//
+// A build with no card never waits (#428): the wait is read on a card page, there is none,
+// and there is no card to archive at the end of it — so the delivery finishes when its run
+// does and leaves the change uncommitted in the checkout.
 function awaitingCommit(delivery: DeliveryRecord | undefined): DeliveryRecord | undefined {
   if (!delivery || delivery.status !== 'active' || delivery.commitMode === 'auto' || !delivery.reviewed) return undefined
-  return delivery
+  return delivery.cardId === null ? undefined : delivery
 }
 
 /** Where a manual delivery stands now that its work is finished and the code is the user's
@@ -616,7 +665,7 @@ export async function settleManualCommit(cardId: number): Promise<void> {
   const state = manualState(delivery)
   if (state !== 'landed' && !(state === 'changed' && !aiReviewOn(delivery))) return
   endDelivery(delivery.deliveryId, 'finished')
-  await completeCard(delivery.cardId, delivery.deliveryId)
+  await completeCard(delivery.cardId as number, delivery.deliveryId)
 }
 
 // ---- the hold a delivery puts on its card -----------------------------------
@@ -639,6 +688,14 @@ export function insideDelivery(cardId: number): boolean {
 export function deliveryStateOf(cardId: number): DeliveryState | undefined {
   const delivery = activeDelivery(cardId)
   return delivery && deliveryState(delivery, openQuestions(cardId))
+}
+
+/** The same by delivery id — what a build with no card is read by (#428). Its flow in Runs
+ *  draws this where a card page draws `deliveryStateOf`, because there is no card page. */
+export function deliveryPause(deliveryId: string): DeliveryState | undefined {
+  const delivery = findDelivery(deliveryId)
+  if (!delivery) return undefined
+  return deliveryState(delivery, delivery.cardId === null ? 0 : openQuestions(delivery.cardId))
 }
 
 /** The one line saying what the delivery in flight is waiting on, while it waits on the

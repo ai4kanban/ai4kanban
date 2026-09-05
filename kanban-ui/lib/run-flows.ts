@@ -73,3 +73,9 @@ export function stepLabel(action: AgentAction, copy: RunLabels): string {
  *  it opened with. What came after is what the job went on to do, not what it is. */
 export const flowLabel = (flow: RunFlow, copy: RunLabels): string =>
   copy.flow[flow.root.action] ?? copy.step[flow.root.action];
+
+/** What a flow with no card is called instead of `#id` (#428): the sentence the user typed
+ *  to start it, which is the only account of what it was for. A build with no card has one,
+ *  and so does a create — which showed a dash until now. Empty when the flow was started
+ *  with no words at all (a propose, a setup), and the dash is right for those. */
+export const flowSaid = (flow: RunFlow): string => (flow.root.input ?? "").trim();

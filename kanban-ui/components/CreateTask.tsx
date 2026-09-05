@@ -12,6 +12,10 @@
 // panel is its only home for the log. That log entry point (the archive icon, the
 // badge, a past session's tail) now lives in the shared Sessions component; this
 // component just starts the session and hands it to the panel.
+//
+// A start that was refused goes back to the sheet rather than to a popover under this
+// button: the sheet is still up, so a message behind it is a message nobody reads — and the
+// sentence has to stay in the box to be sent again.
 
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -30,11 +34,11 @@ export function CreateTask({ release = null }: { release?: string | null }) {
   const c = useCopy().board.create;
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // A create session this tab started finished — re-open the sessions panel on it
-  // so the result/errors are never lost, and re-read the server component so the
-  // new card shows up (on the board; harmless on a card page).
+  // A session this tab started finished — re-open the sessions panel on it so the
+  // result/errors are never lost, and re-read the server component so the new card shows up
+  // (on the board; harmless on a card page, and harmless after a Build now, which wrote
+  // none).
   const onFinish = useCallback(
     (session: SessionView) => {
       sessionsPanel.open(session.sessionId);
@@ -47,17 +51,19 @@ export function CreateTask({ release = null }: { release?: string | null }) {
 
   // Start a non-blocking session. Creates run side by side — the board lease makes
   // each card's id and index entry atomic — so the button never locks.
+  //
+  // The sheet closes only once a run is actually going. A refusal — uncommitted changes, a
+  // build already working in this checkout, a workspace out of reach — is handed back to
+  // the sheet, which says it under the box with the sentence still there to send again.
   const startSession = useCallback(
     async (req: AgentReq, label: string) => {
-      setOpen(false);
       const res = await start(req, label);
-      if (!res.ok) {
-        setError(res.error || c.startFailed);
-        return;
-      }
+      if (!res.ok) return { ok: false, error: res.error || c.startFailed };
+      setOpen(false);
       // Pop the sessions panel open on the new session so it's visibly working
       // from the first frame — it tails live there until the agent finishes.
       if (res.sessionId) sessionsPanel.open(res.sessionId);
+      return { ok: true };
     },
     [start, c],
   );
@@ -71,33 +77,25 @@ export function CreateTask({ release = null }: { release?: string | null }) {
         size="xs"
         className="shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
         aria-label={c.button}
-        onClick={() => {
-          setError(null);
-          setOpen(true);
-        }}
+        onClick={() => setOpen(true)}
       >
         <FiPlus className="text-[15px]" aria-hidden />
         <span className="sr-only sm:not-sr-only">{c.button}</span>
       </Button>
 
-      {error && (
-        <div
-          className="absolute right-0 top-full z-30 mt-2 max-w-[300px] cursor-pointer nb-panel-sm p-2.5 text-[12px]"
-          style={{ background: "var(--color-nb-peach-soft)" }}
-          onClick={() => setError(null)}
-        >
-          {error}
-        </div>
-      )}
-
       {open && (
         <CreateSheet
           release={release}
           onClose={() => setOpen(false)}
-          onSend={(description) =>
-            void startSession(
-              { action: "create", description, release: release ?? undefined },
-              "Create task",
+          onSend={(description, mode) =>
+            startSession(
+              // Build now carries no card id (#428): the sentence is the requirement, and
+              // the run opens a delivery of its own. It ships in no release — there is no
+              // card to ship.
+              mode === "build"
+                ? { action: "implement", description }
+                : { action: "create", description, release: release ?? undefined },
+              mode === "build" ? "Build now" : "Create task",
             )
           }
         />

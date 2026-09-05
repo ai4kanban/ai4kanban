@@ -282,9 +282,12 @@ function packDeliveries(): DeliveryPayload[] {
       continue
     }
     if (!record?.deliveryId) continue
+    // A build with no card is this machine's alone (#428): Cloud files a delivery under the
+    // card it is on, and there is none to file it under.
+    if (!Number.isInteger(record.cardId)) continue
     out.push({
       deliveryId: record.deliveryId,
-      cardId: record.cardId,
+      cardId: record.cardId as number,
       record: portableDelivery(record),
       approved: record.approved ?? '',
       finalBody: '',

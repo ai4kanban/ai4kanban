@@ -20,6 +20,7 @@ import { say } from '../io'
 import { REPO_ROOT } from '../paths'
 import { approvalStands, cancelApproval } from './approval'
 import { boardCommand } from './command'
+import { deliveryMessage, deliveryName } from './commit-mode'
 import { completeCard } from './complete'
 import {
   approvedRequirements,
@@ -132,6 +133,9 @@ function giveUpSlot(delivery: DeliveryRecord, why: string): void {
 // Stop, and leave the card an open question. The slot goes back and nothing picks the
 // delivery up again until the user answers — `review.stopped` is the same gate a stopped
 // review waits at, and joining a run clears it.
+//
+// A build with no card has nowhere to put the question (#428): the stop itself is the whole
+// account, and its flow in Runs is where the reason and the way back are read.
 async function handOver(
   delivery: DeliveryRecord,
   status: 'waiting' | 'conflict',
@@ -146,7 +150,7 @@ async function handOver(
     live.next = undefined
   })
   syncAudit(delivery.deliveryId)
-  await askUser(delivery.cardId, question)
+  if (delivery.cardId !== null) await askUser(delivery.cardId, question)
 }
 
 // ---- held on the card's open questions (#307) -------------------------------
@@ -169,6 +173,8 @@ function holdForQuestions(): Set<string> {
   const held = new Set<string>()
   for (const delivery of readStore().deliveries) {
     if (delivery.status !== 'active' || !delivery.landing || delivery.landing.status === 'landed') continue
+    // A build with no card has no questions to be held on (#428).
+    if (delivery.cardId === null) continue
     const asked = openQuestions(delivery.cardId)
     if (!asked) continue
     held.add(delivery.deliveryId)
@@ -184,7 +190,7 @@ function holdForQuestions(): Set<string> {
 // Why a delivery is waiting outside the queue on an approval. Fixed opening words, the way
 // the question hold has them, so one hold can be told from the other without a field.
 const approvalWhy = (delivery: DeliveryRecord, why: string): string =>
-  `${HELD_ON_APPROVAL}: ${why} — approve it on #${delivery.cardId}, or with \`${boardCommand()} delivery approve ${delivery.deliveryId}\``
+  `${HELD_ON_APPROVAL}: ${why} — approve it on ${deliveryName(delivery)}, or with \`${boardCommand()} delivery approve ${delivery.deliveryId}\``
 
 /** The deliveries that need the user's approval and have none covering the tree they would
  *  land. They are built and reviewed, and approval is the step that waits — so one holding
@@ -232,7 +238,7 @@ const hasStep = (delivery: DeliveryRecord, step: string): boolean =>
  *  stage no run is working on. */
 async function supersededDelivery(held: Set<string>): Promise<AgentRequest | null> {
   for (const delivery of readStore().deliveries) {
-    if (delivery.status !== 'active' || !wantsLanding(delivery)) continue
+    if (delivery.status !== 'active' || !wantsLanding(delivery) || delivery.cardId === null) continue
     if (!delivery.landing || delivery.landing.status === 'landed') continue
     if (held.has(delivery.deliveryId) || delivery.review?.stopped) continue
     if (!wasHeldOnQuestions(delivery)) continue
@@ -248,7 +254,7 @@ async function supersededDelivery(held: Set<string>): Promise<AgentRequest | nul
       `delivery ${delivery.deliveryId} was approved to build a #${delivery.cardId} that has since changed — ` +
         `it ends here, and a fresh delivery starts on the card as it now reads.`,
     )
-    return { action: 'implement', id: delivery.cardId, title: delivery.title }
+    return { action: 'implement', id: delivery.cardId as number, title: delivery.title }
   }
   return null
 }
@@ -258,6 +264,7 @@ async function supersededDelivery(held: Set<string>): Promise<AgentRequest | nul
 // delivery has ended either way, and a stage that would not take the write is one board
 // command away.
 async function handBackCard(delivery: DeliveryRecord): Promise<void> {
+  if (delivery.cardId === null) return
   try {
     await setCardStatusOn(delivery.cardId, delivery.priorStatus ?? 'todo')
   } catch {
@@ -283,6 +290,9 @@ async function handBackCard(delivery: DeliveryRecord): Promise<void> {
 async function owedRestart(): Promise<AgentRequest | null> {
   const store = readStore()
   for (const delivery of store.deliveries) {
+    // Only a card can be superseded: a build with no card holds the typed sentence itself,
+    // and nothing can rewrite it underneath (#428).
+    if (delivery.cardId === null) continue
     if (!hasStep(delivery, 'superseded') || hasStep(delivery, 'dropped')) continue
     // Paid: some delivery opened on this card after this one ended.
     const paid = store.deliveries.some(
@@ -296,15 +306,15 @@ async function owedRestart(): Promise<AgentRequest | null> {
     // A card left at `implementing` by a supersede written down before the hand-back
     // existed. Nothing else takes that stage off, so it is put back here.
     if (cardStatus(delivery.cardId) === 'implementing') await handBackCard(delivery)
-    return { action: 'implement', id: delivery.cardId, title: delivery.title }
+    return { action: 'implement', id: delivery.cardId as number, title: delivery.title }
   }
   return null
 }
 
 // ---- queued behind the slot -------------------------------------------------
 
-const inLineWhy = (cardId: number): string =>
-  `${IN_LINE} #${cardId} — one card lands at a time, and this one carries on by itself`
+const inLineWhy = (holder: DeliveryRecord): string =>
+  `${IN_LINE} ${deliveryName(holder)} — one build lands at a time, and this one carries on by itself`
 
 /** Tell every waiter that the slot is taken, and by which card.
  *
@@ -319,7 +329,7 @@ function noteQueue(held: Set<string>): void {
   const store = readStore()
   const holder = store.deliveries.find((d) => d.status === 'active' && d.landing?.status === 'landing')
   if (!holder) return
-  const why = inLineWhy(holder.cardId)
+  const why = inLineWhy(holder)
   for (const delivery of store.deliveries) {
     if (delivery.deliveryId === holder.deliveryId) continue
     if (delivery.status !== 'active' || delivery.landing?.status !== 'waiting') continue
@@ -399,7 +409,7 @@ async function landStep(delivery: DeliveryRecord): Promise<Step> {
 
   // One commit, made before the rebase rather than after it: a single commit conflicts at
   // most once, so a conflict is one run and `--continue` finishes the replay.
-  const squashed = squashOnto(dir, delivery.base!, landingMessage(delivery))
+  const squashed = squashOnto(dir, delivery.base!, deliveryMessage(delivery))
   if (!squashed.ok) {
     giveUpSlot(delivery, squashed.error)
     return { done: true }
@@ -429,11 +439,6 @@ async function landStep(delivery: DeliveryRecord): Promise<Step> {
   }
   return await move(delivery, tip, target)
 }
-
-// The commit message: the card's title, its id, and the delivery — so a line of
-// `git log` names the card it came from and the record that holds the rest.
-const landingMessage = (delivery: DeliveryRecord): string =>
-  `${delivery.title || `card #${delivery.cardId}`} (#${delivery.cardId})\n\ndelivery ${delivery.deliveryId}`
 
 // ---- before it lands --------------------------------------------------------
 
@@ -477,7 +482,11 @@ function warnOverlap(delivery: DeliveryRecord): void {
   const dir = worktreeDir(delivery.worktree!)
   const mine = new Set(changedPaths(delivery.base!, delivery.branch!, dir) ?? [])
   if (!mine.size) return
+  // The cards being built over the same files, and — since a build with no card has no id
+  // to record — the names those clashes read under. `overlap` stays a list of cards: it is
+  // what the conflict flow points a run at, and there is no card to point at (#428).
   const clashes: number[] = []
+  const named: string[] = []
   const shared: string[] = []
   for (const other of listDeliveries()) {
     if (other.deliveryId === delivery.deliveryId || other.status !== 'active') continue
@@ -485,15 +494,16 @@ function warnOverlap(delivery: DeliveryRecord): void {
     if (!worktreeExists(other.worktree)) continue
     const hits = (changedPaths(other.base, other.branch, worktreeDir(other.worktree)) ?? []).filter((f) => mine.has(f))
     if (!hits.length) continue
-    clashes.push(other.cardId)
+    if (other.cardId !== null) clashes.push(other.cardId)
+    named.push(deliveryName(other))
     shared.push(...hits)
   }
   patchLanding(delivery.deliveryId, (landing) => {
     landing.overlap = clashes.length ? clashes : undefined
   })
-  if (!clashes.length) return
+  if (!named.length) return
   say(
-    `delivery ${delivery.deliveryId} is landing over work in flight on ${clashes.map((c) => `#${c}`).join(', ')} — ` +
+    `delivery ${delivery.deliveryId} is landing over work in flight on ${named.join(', ')} — ` +
       `both change ${names([...new Set(shared)])}. Landing goes ahead; a real conflict is resolved as new work.`,
   )
 }
@@ -532,7 +542,7 @@ async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: s
       {
         text:
           `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
-          `Once you have decided, \`${boardCommand()} delivery review ${delivery.cardId}\` puts it back in motion.`,
+          `Once you have decided, \`${boardCommand()} delivery review ${delivery.deliveryId}\` puts it back in motion.`,
         options: [
           `I'll land it myself from ${delivery.branch}`,
           `pause whatever keeps moving ${delivery.targetBranch}, then the board lands it`,
@@ -594,7 +604,7 @@ async function afterRebase(
   if (!live || live.status !== 'active') return { done: true }
   if (!reviews) return {}
   if (kind === 'disjoint') return await landStep(live)
-  return { start: { action: 'review', id: live.cardId, title: live.title } }
+  return { start: { action: 'review', id: live.cardId ?? undefined, deliveryId: live.deliveryId, title: live.title } }
 }
 
 const rebaseWhy = (delivery: DeliveryRecord, kind: 'overlap' | 'conflict'): string =>
@@ -612,7 +622,9 @@ function startConflict(delivery: DeliveryRecord, target: string, files: string[]
     landing.onto = target
     landing.why = `resolving a conflict with ${delivery.targetBranch} in ${names(files)}`
   })
-  return { start: { action: 'conflict', id: delivery.cardId, title: delivery.title } }
+  return {
+    start: { action: 'conflict', id: delivery.cardId ?? undefined, deliveryId: delivery.deliveryId, title: delivery.title },
+  }
 }
 
 // Finish the rebase the conflict run resolved. It staged the resolution and stopped;
@@ -629,7 +641,7 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
   }
   abortRebase(dir)
   const why =
-    `the conflict between #${delivery.cardId} and ${delivery.targetBranch} was not resolved — ` +
+    `the conflict between ${deliveryName(delivery)} and ${delivery.targetBranch} was not resolved — ` +
     `${done.why ?? 'the rebase would not go through'}`
   await handOver(
     delivery,
@@ -639,7 +651,7 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
       text:
         `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
         `Its work is whole on ${delivery.branch}. Once you have decided, ` +
-        `\`${boardCommand()} delivery review ${delivery.cardId}\` puts it back in motion.`,
+        `\`${boardCommand()} delivery review ${delivery.deliveryId}\` puts it back in motion.`,
       options: [
         `I'll resolve it myself and land ${delivery.branch}`,
         `cancel the delivery, and start the card again on top of ${delivery.targetBranch}`,
@@ -725,7 +737,8 @@ async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto:
       ? `delivery ${delivery.deliveryId} landed on ${delivery.targetBranch} as ${landed.commit.slice(0, 12)}.`
       : `delivery ${delivery.deliveryId} changed nothing, so nothing landed on ${delivery.targetBranch}.`,
   )
-  await completeCard(delivery.cardId, delivery.deliveryId)
+  // With no card there is nothing to archive (#428) — the delivery just ends.
+  if (delivery.cardId !== null) await completeCard(delivery.cardId, delivery.deliveryId)
 }
 
 // ---- picking up after a crash -----------------------------------------------
@@ -746,7 +759,7 @@ export function repairLanding(): string[] {
     abortRebase(worktreeDir(d.worktree))
     giveUpSlot(d, 'a rebase was interrupted and has been put back — the landing will be tried again')
     complaints.push(
-      `delivery ${d.deliveryId} on #${d.cardId}: a landing rebase was left half-done and has been put back. ` +
+      `delivery ${d.deliveryId}${d.cardId === null ? '' : ` on #${d.cardId}`}: a landing rebase was left half-done and has been put back. ` +
         `Its work is whole on ${d.branch}, and the landing is tried again on its own.`,
     )
   }

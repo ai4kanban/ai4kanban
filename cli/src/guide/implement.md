@@ -13,3 +13,16 @@ Build the approved card. Do not add, rewrite, or tag questions on it.
   always keep their delivery, review, and landing path.
 - On an eligible interactive change, run focused checks for the affected path plus every
   repository-required check.
+
+## A build with no card
+
+**Build now** sends a typed sentence straight here, with no card behind it. That sentence is
+the whole requirement, and the delivery is the only record of the job.
+
+- **Build exactly the sentence**: nothing else says what this was for, so do not widen it.
+- **Write no card**: no card is created, ticked, questioned or archived — the delivery and
+  its commit are all this build leaves.
+- **Nothing reviews it**: AI review and diff approval are off, so your own commit is the
+  last word before it reaches the branch. Run the repository's checks yourself.
+- **Blockers carry no id**: `akb raw run-blocker --step ".." --cause ".." --unblock ".."`,
+  with the id left out. The blocker is read on the run's flow in Runs.

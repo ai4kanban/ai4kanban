@@ -8,18 +8,19 @@
 // history dialog.
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { FiActivity, FiX } from "react-icons/fi";
+import { FiActivity, FiCheck, FiCopy, FiX } from "react-icons/fi";
 import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useOverRail } from "@/lib/over-rail";
 import { useActions, type ScreenActions, type StartAnswer } from "@/lib/screen";
-import { flowLabel, flowOf, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
+import { flowLabel, flowOf, flowSaid, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
 import { TOOL_BTN } from "./chrome";
+import { Copied, useCopyText } from "./copy";
 
 const POLL_MS = 1500; // while a run is live
 const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
@@ -334,6 +335,7 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
   const language = useLanguage();
   const steps = flow.sessions.length > 1 ? flow.sessions : [];
   const holds = flow.sessions.some((s) => s.sessionId === selectedId);
+  const said = flow.cardId === null ? flowSaid(flow) : "";
   // The row stands for the job, so it selects the session the job is ON: the live one, or
   // the one it ended with.
   const head = flow.latest;
@@ -349,12 +351,15 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
       >
         <SessionDot session={head} />
         <span className="min-w-0 flex-1">
-          <span className="flex items-baseline gap-1.5">
-            <span className={`text-[12.5px] font-[700] ${holds ? "text-nb-ink" : "text-nb-ink-soft"}`}>
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span className={`shrink-0 text-[12.5px] font-[700] ${holds ? "text-nb-ink" : "text-nb-ink-soft"}`}>
               {flowLabel(flow, t.runs)}
             </span>
-            <span className="text-[11px] text-nb-ink-soft">
-              {flow.cardId !== null ? `#${flow.cardId}` : t.shared.none}
+            {/* The card, or — with none — the sentence the job was started with (#428),
+                truncated to the row. A build with no card has nothing else that says what
+                it was for, and a create's description reads better there than a dash. */}
+            <span className="min-w-0 truncate text-[11px] text-nb-ink-soft">
+              {flow.cardId !== null ? `#${flow.cardId}` : said || t.shared.none}
             </span>
             {/* A cancelled delivery, said on the row itself: its run reads
                 "stopped", which describes the run and not what happened to the
@@ -423,6 +428,56 @@ function FlowEnding({ flow, selectedId }: { flow: RunFlow; selectedId: string | 
     <p className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2 text-[12.5px] leading-relaxed text-nb-peach-ink">
       {last.note}
     </p>
+  );
+}
+
+// Where a card-less delivery stands, drawn on the flow that belongs to it (#428).
+//
+// A carded delivery says this in its card page's title band, and the board sends the reader
+// there. A build with no card has no page, so the pause rides on the run
+// (lib/registry.ts) and is read here — the reason, and the commands that answer it, which
+// the delivery's own state already words.
+//
+// Only a pause is drawn. A delivery that is simply working says so by running, and a second
+// line repeating it is a line the reader learns to skip.
+function DeliveryStop({ session }: { session: SessionView }) {
+  const c = useCopy().runs.panel;
+  const state = session.delivery?.state;
+  if (!session.delivery?.cardless || !state?.paused) return null;
+  return (
+    <div className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
+      <p className="nb-tag mb-1.5 text-nb-peach-ink">{c.stopped(state.label)}</p>
+      <p className="text-[12.5px] leading-relaxed text-nb-ink">
+        {/* Each command in the line is one press away from the clipboard: the way out of
+            this stop is a command, and there is no card page with a button on it. */}
+        {state.line.split(/`([^`]+)`/).map((part, i) =>
+          i % 2 === 0 ? <Fragment key={i}>{part}</Fragment> : <CopyCommand key={i} text={part} />,
+        )}
+      </p>
+    </div>
+  );
+}
+
+// One command in that line, and the press that copies it.
+function CopyCommand({ text }: { text: string }) {
+  const t = useCopy().shared;
+  const { copied, copy } = useCopyText();
+  return (
+    <button
+      type="button"
+      onClick={() => copy(text)}
+      title={t.copy}
+      aria-label={`${t.copy}: ${text}`}
+      className="mx-[1px] inline-flex cursor-pointer items-center gap-1 rounded-[5px] bg-nb-paper px-1.5 py-[1px] align-baseline font-mono text-[12px] font-[700] text-nb-ink transition-colors hover:bg-nb-wash"
+    >
+      {text}
+      {copied ? (
+        <FiCheck className="text-[11px] text-nb-peach-ink" aria-hidden />
+      ) : (
+        <FiCopy className="text-[11px] text-nb-peach-ink" aria-hidden />
+      )}
+      <Copied on={copied} />
+    </button>
   );
 }
 
@@ -586,7 +641,7 @@ function SessionsDialog({
                       you'd click. The board's not-found page says so and takes
                       you back. Navigating closes the dialog, or it would sit on
                       top of the card you just opened. */}
-                  {selected.cardId !== null && (
+                  {selected.cardId !== null ? (
                     <Link
                       href={`/${selected.cardId}`}
                       className="nb-idlink text-[12px]"
@@ -594,6 +649,14 @@ function SessionsDialog({
                     >
                       #{selected.cardId}
                     </Link>
+                  ) : (
+                    // No card to link to, so the sentence the job was started with stands
+                    // where the id would (#428). It is the whole account of a build with
+                    // no card, and the note below prints it in full.
+                    flow &&
+                    flowSaid(flow) && (
+                      <span className="min-w-0 truncate text-[12px] text-nb-ink-soft">{flowSaid(flow)}</span>
+                    )
                   )}
                   {/* A job is dated by when IT started, not by the session you happen to be
                       reading — each session carries its own time on its step. */}
@@ -624,6 +687,10 @@ function SessionsDialog({
                     </span>
                   )}
                 </div>
+                {/* Where its delivery stands, when the delivery has no card page to say it
+                    on (#428): the stop that will not land, the refusal that clears itself,
+                    and the commands that put either back in motion. */}
+                <DeliveryStop session={log ?? selected} />
                 {/* How the job ended — its steps are the left list's job. */}
                 {flow && flow.sessions.length > 1 && <FlowEnding flow={flow} selectedId={selectedId} />}
                 {/* The note is the optional free text the user typed when

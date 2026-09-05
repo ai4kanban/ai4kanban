@@ -42,14 +42,14 @@ import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
-import { activeDelivery } from './deliveries'
+import { deliveryFor } from './deliveries'
 import { aiReviewOn, owesFocusedReview } from './review'
 import { field, metaLine, numbered } from './facts'
 import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { setupInstruction } from './resolve'
-import type { AgentAction, AgentRequest } from './types'
+import type { AgentAction, AgentRequest, DeliveryRecord } from './types'
 
 // The run id an agent works under. It lives in agent/env.ts, which imports nothing, so
 // the delivery lock can ask the same question without pulling this module in behind it.
@@ -220,22 +220,27 @@ function stepsCount(card: CardFacts): string[] {
 //
 // `## Todo` is deliberately not in the copy: it is the one requirement-shaped section a
 // delivery writes to as it works, so it stays live and is printed from the card below.
-function approvedField(cardId: number): string[] {
-  const delivery = activeDelivery(cardId)
+function approvedField(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery) return []
   const approved = delivery.approved.trim()
+  // A build with no card was given a sentence, not a file (#428): there is nothing it could
+  // have moved on from, so the warning that belongs to a card is left off.
+  const lead =
+    delivery.cardId === null
+      ? ['build exactly this — it is the whole of what was asked for, and there is no card:']
+      : [
+          'build THIS, not the card file as it reads now — it is the card as it was approved when',
+          'the delivery started, and the file may have moved on since:',
+        ]
   return [
     ...field('delivery', `${delivery.deliveryId} — you are working inside it`),
     ...field(
       'approved',
       approved
-        ? [
-            'build THIS, not the card file as it reads now — it is the card as it was approved when',
-            'the delivery started, and the file may have moved on since:',
-            '',
-            ...approved.split('\n'),
-          ]
-        : 'nothing was captured when this delivery started — build the card as it reads',
+        ? [...lead, '', ...approved.split('\n')]
+        : delivery.cardId === null
+          ? 'nothing was captured when this delivery started — there is nothing to build'
+          : 'nothing was captured when this delivery started — build the card as it reads',
     ),
   ]
 }
@@ -244,8 +249,7 @@ function approvedField(cardId: number): string[] {
 // every changed file and its line counts so review can open only what needs inspection.
 // A focused post-rebase review takes the file list without the patch: what it judges is the
 // intersection named beside it, not the delivery it has already passed.
-function candidateField(cardId: number, includePatch = true): string[] {
-  const delivery = activeDelivery(cardId)
+function candidateField(delivery: DeliveryRecord | undefined, includePatch = true): string[] {
   if (!delivery) return []
   if (!delivery.base) {
     return field('changes', [
@@ -286,8 +290,7 @@ function candidateField(cardId: number, includePatch = true): string[] {
 //
 // Empty for a disjoint rebase, which starts no review at all, and for a review that has
 // already passed since the rebase — that one is the ordinary full pass.
-function rebaseReviewField(cardId: number): string[] {
-  const delivery = activeDelivery(cardId)
+function rebaseReviewField(delivery: DeliveryRecord | undefined): string[] {
   const landing = delivery?.landing
   if (!delivery?.base || !delivery.branch || !delivery.worktree || !landing?.rebasedFrom || !owesFocusedReview(delivery)) {
     return []
@@ -314,13 +317,12 @@ function rebaseReviewField(cardId: number): string[] {
 // code there and the board's own files in the project, and a relative `node cli/bin/…`
 // would run the worktree's copy of a command the delivery may be halfway through
 // rewriting.
-function workspaceField(cardId: number): string[] {
-  const delivery = activeDelivery(cardId)
+function workspaceField(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery?.worktree) return []
   return field('workspace', [
     `write code in ${delivery.worktree} — this delivery's own worktree, on branch ${delivery.branch}.`,
     `it is your working folder already; the board's own files are NOT in it and never go on that branch.`,
-    `every board command names the project's own copy: \`${boardCommandFor(cardId)} <command>\`.`,
+    `every board command names the project's own copy: \`${boardCommandFor()} <command>\`.`,
     `${rel(REPO_ROOT)} is the project — the card, the memory files and the docs are changed there, not here.`,
   ])
 }
@@ -343,8 +345,7 @@ function draftField(card: CardFacts): string[] {
 }
 
 // Where review stands on this delivery.
-function reviewField(cardId: number): string[] {
-  const delivery = activeDelivery(cardId)
+function reviewField(delivery: DeliveryRecord | undefined): string[] {
   const review = delivery?.review
   if (!review?.rounds.length) return field('review', 'the first pass on this delivery — nothing has judged it yet')
   const rounds = review.rounds.map((r, i) => `${i + 1}. ${r.verdict}${r.findings.length ? ` — ${r.findings.map((f) => f.title).join('; ')}` : ''}`)
@@ -357,9 +358,8 @@ function reviewField(cardId: number): string[] {
 // The conflict a landing's rebase stopped on: the files, the branch it clashed with, and
 // the cards on the other side — everything the run needs to see both intentions rather
 // than only the markers in front of it.
-function conflictField(cardId: number): string[] {
-  const delivery = activeDelivery(cardId)
-  if (!delivery?.worktree) return field('conflict', 'no delivery with a worktree is landing this card')
+function conflictField(delivery: DeliveryRecord | undefined): string[] {
+  if (!delivery?.worktree) return field('conflict', 'no delivery with a worktree is landing right now')
   const files = conflictedPaths(worktreeDir(delivery.worktree))
   const overlap = delivery.landing?.overlap ?? []
   return field('conflict', [
@@ -367,7 +367,7 @@ function conflictField(cardId: number): string[] {
       ? `${files.length} file${files.length === 1 ? '' : 's'} to resolve in ${delivery.worktree}:`
       : `the rebase onto ${delivery.targetBranch} stopped, but no file is conflicted right now — check \`git status\` there`,
     ...files.map((f) => `  ${f}`),
-    `the other side is ${delivery.targetBranch} as it stands now; \`git log ${delivery.base?.slice(0, 12) ?? delivery.targetBranch}..${delivery.targetBranch}\` is what arrived while this card was being built.`,
+    `the other side is ${delivery.targetBranch} as it stands now; \`git log ${delivery.base?.slice(0, 12) ?? delivery.targetBranch}..${delivery.targetBranch}\` is what arrived while this was being built.`,
     ...(overlap.length
       ? [`${overlap.map((c) => `#${c}`).join(', ')} ${overlap.length === 1 ? 'is' : 'are'} being built over the same files — read ${overlap.length === 1 ? 'that card' : 'those cards'} before you decide what to keep.`]
       : []),
@@ -421,8 +421,7 @@ function verifyField(meta: Meta): string[] {
 // is what a commit would be refused for. In manual commit mode nothing is committed at all:
 // the code stays in the user's checkout and the commit is theirs. What comes next is a
 // review, or — with AI review off (#416) — the landing itself.
-function committingClose(cardId: number): string[] {
-  const delivery = activeDelivery(cardId)
+function committingClose(delivery: DeliveryRecord | undefined): string[] {
   if (!delivery) return []
   const reviewed = aiReviewOn(delivery)
   if (delivery.worktree) {
@@ -508,8 +507,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   // How this job spells the board's command. A delivery working in its own worktree names
   // the project's copy outright (#303) — a relative path there would run the worktree's own
   // half-rewritten copy, and no `--dir` would leave the board to be guessed at.
-  const inWorktree = req.id !== undefined && !!activeDelivery(req.id)?.worktree
-  const self = inWorktree ? boardCommandFor(req.id) : `${program}${BOARD_FLAG}`
+  const delivery = deliveryFor(req)
+  const self = delivery?.worktree ? boardCommandFor(req.id) : `${program}${BOARD_FLAG}`
   const raw = `${self} raw`
   const facts: string[] = []
   const close: string[] = []
@@ -529,19 +528,30 @@ function buildFlow(req: AgentRequest, program: string): Flow {
 
   switch (req.action) {
     case 'implement': {
-      facts.push(...approvedField(req.id!))
-      facts.push(...workspaceField(req.id!))
-      facts.push(...draftField(card!))
-      facts.push(...stepsField(card!))
-      if (card!.meta.questions.length) facts.push(...questionsField(card!.meta))
-      facts.push(...verifyField(card!.meta))
+      facts.push(...approvedField(delivery))
+      facts.push(...workspaceField(delivery))
+      // A build with no card (#428): the typed sentence is the whole requirement, so there
+      // is no plan to work through, nothing on the board to tick and no memory line to
+      // write — the flow says so rather than leaving the reader to look for a card.
+      if (!card) {
+        close.push(
+          ...committingClose(delivery),
+          'build exactly the sentence above and nothing more — no card was written, so nothing else records what this was for',
+          'write no card, tick nothing, raise no question, and archive nothing: this build leaves a delivery and a commit, and that is all',
+        )
+        break
+      }
+      facts.push(...draftField(card))
+      facts.push(...stepsField(card))
+      if (card.meta.questions.length) facts.push(...questionsField(card.meta))
+      facts.push(...verifyField(card.meta))
       // What a finished piece is recorded in. `readme.md` is the product solution's "what
       // shipped"; a marketing board records one line per published piece instead, and that
       // file is the board's, not a pillar's.
       facts.push(
         ...field(
           'memory',
-          solution() === 'marketing' ? [rel(path.join(MEMORY, 'published.md'))] : memoryFiles(card!.meta.modules, 'readme.md'),
+          solution() === 'marketing' ? [rel(path.join(MEMORY, 'published.md'))] : memoryFiles(card.meta.modules, 'readme.md'),
         ),
       )
       // Inside a delivery the build is not the end of the job: a fresh run reviews what
@@ -550,20 +560,19 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       // (#416) — the build goes straight to landing, and the card is still not this run's
       // to close. Outside a delivery — a card built by hand from a printed flow — the build
       // closes the card exactly as it always has.
-      const inDelivery = activeDelivery(req.id!)
-      const reviewed = !!inDelivery && aiReviewOn(inDelivery)
+      const reviewed = !!delivery && aiReviewOn(delivery)
       close.push(
-        ...committingClose(req.id!),
+        ...committingClose(delivery),
         'tick each box in ## Todo as you finish it — they are the record of what was built',
         `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
-        inDelivery
+        delivery
           ? reviewed
             ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
             : `leave the card on the board — the board archives the card itself once the delivery has landed`
           : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
-      if (card!.meta.questions.length) {
+      if (card.meta.questions.length) {
         next.push(
           `${self} card resolve ${req.id} --print — first: the card has open questions, and building on a guess is what they are there to stop`,
         )
@@ -580,43 +589,53 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // run that wrote it, because a reviewer that reads the implementer's reasoning
     // agrees with it.
     case 'review': {
-      const focused = rebaseReviewField(req.id!)
+      const focused = rebaseReviewField(delivery)
       if (focused.length) {
-        facts.push(...workspaceField(req.id!))
+        facts.push(...workspaceField(delivery))
         facts.push(...focused)
-        facts.push(...candidateField(req.id!, false))
-        facts.push(...reviewField(req.id!))
+        facts.push(...candidateField(delivery, false))
+        facts.push(...reviewField(delivery))
       } else {
-        facts.push(...approvedField(req.id!))
-        facts.push(...workspaceField(req.id!))
-        facts.push(...candidateField(req.id!))
-        facts.push(...reviewField(req.id!))
-        facts.push(...stepsField(card!))
-        facts.push(...notesField(card!))
-        facts.push(...questionsField(card!.meta))
+        facts.push(...approvedField(delivery))
+        facts.push(...workspaceField(delivery))
+        facts.push(...candidateField(delivery))
+        facts.push(...reviewField(delivery))
+        if (card) {
+          facts.push(...stepsField(card))
+          facts.push(...notesField(card))
+          facts.push(...questionsField(card.meta))
+        }
       }
+      close.push(`finish successfully with no new question when the work is ready — that passes review`)
+      // Where a decision that blocks landing goes. A build with no card has nowhere to put
+      // one (#428), so it says so and stops rather than writing a card nobody asked for.
       close.push(
-        `finish successfully with no new question when the work is ready — that passes review`,
-        `append a question to #${req.id} by \`akb guide update-questions\` only when a genuine user-owned decision blocks landing; then stop`,
-        'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself, settle facts, and drop unrelated discoveries after noting them in the run log',
-        `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
+        card
+          ? `append a question to #${req.id} by \`akb guide update-questions\` only when a genuine user-owned decision blocks landing; then stop`
+          : `there is no card to append a question to — say a blocking decision in your last message and stop, and write no card`,
       )
+      if (card) {
+        close.push(
+          'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself, settle facts, and drop unrelated discoveries after noting them in the run log',
+          `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
+        )
+      }
       break
     }
     // Resolving the conflict a landing's rebase stopped on (#304). It reads this card's
     // approved outcome and the newer target implementation it has to fit.
     case 'conflict': {
-      facts.push(...approvedField(req.id!))
-      facts.push(...workspaceField(req.id!))
-      facts.push(...conflictField(req.id!))
-      facts.push(...candidateField(req.id!))
+      facts.push(...approvedField(delivery))
+      facts.push(...workspaceField(delivery))
+      facts.push(...conflictField(delivery))
+      facts.push(...candidateField(delivery))
       close.push(
         'treat the target branch as the current implementation; preserve it and replay only what the approved copy above requires',
         '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue`' +
-          (aiReviewOn(activeDelivery(req.id!) ?? {})
+          (aiReviewOn(delivery ?? {})
             ? ', then reviews the composed result before it lands'
             : ' and lands the composed result — this delivery has AI review off'),
-        'change nothing the conflict does not name, change nothing on the card, and create no cards or follow-up tasks',
+        'change nothing the conflict does not name, change nothing on the board, and create no cards or follow-up tasks',
       )
       break
     }
@@ -802,7 +821,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
 
 // What the flow opens with: the action, what it is on, and — plainly — that nothing started.
 function leadLine(req: AgentRequest, program: string): string {
-  const what = req.id !== undefined ? `#${req.id}` : req.release ? `"${req.release}"` : ''
+  const what =
+    req.id !== undefined
+      ? `#${req.id}`
+      : req.deliveryId
+        ? `delivery ${req.deliveryId}`
+        : req.release
+          ? `"${req.release}"`
+          : ''
   return `${req.action}${what ? ` ${what}` : ''} — printed, not started. Do it here, in this session (${program}).`
 }
 
@@ -892,6 +918,7 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
     mode: 'print',
     action: req.action,
     cardId: req.id ?? null,
+    ...(req.deliveryId ? { deliveryId: req.deliveryId } : {}),
     prompt,
     guides: flow.guides,
     close: flow.close,

@@ -31,6 +31,8 @@ export function MessageBox({
   sendLabel,
   hint,
   foot,
+  guard,
+  sendRef,
   stop,
   disabled = false,
   autoFocus = false,
@@ -50,6 +52,12 @@ export function MessageBox({
   hint: React.ReactNode;
   /** The foot row, left of the corner button — the rail's agent pick, the sheet's mode row. */
   foot?: React.ReactNode;
+  /** A confirmation hung off the corner button — the sheet's Build now guard (#428). It is
+   *  drawn inside the button's own positioned box, so it opens where the press was. */
+  guard?: React.ReactNode;
+  /** That box, for whatever draws the guard: it is the anchor an outside click is measured
+   *  against, and where focus goes back to. */
+  sendRef?: React.Ref<HTMLSpanElement>;
   /** The corner is Stop instead of Send, and pressing it ends the reply this server owns. */
   stop?: { label: string; onStop: () => void };
   /** Shut for good — no agent that can answer, or one already held with another. */
@@ -91,20 +99,22 @@ export function MessageBox({
           {foot}
           {/* One button in this corner, not two: on a reply this server owns it IS Stop,
               and everywhere else it is a Send. */}
-          <Button
-            className="ml-auto"
-            size="xs"
-            disabled={stop ? false : !canSend}
-            onClick={() => (stop ? stop.onStop() : onSend())}
-            aria-label={stop ? stop.label : sendLabel}
-          >
-            {stop ? (
-              <FiSquare className="text-[13px]" aria-hidden />
-            ) : (
-              <FiSend className="text-[13px]" aria-hidden />
-            )}
-            <span className="sr-only">{stop ? stop.label : sendLabel}</span>
-          </Button>
+          <span ref={sendRef} className="relative ml-auto flex">
+            <Button
+              size="xs"
+              disabled={stop ? false : !canSend}
+              onClick={() => (stop ? stop.onStop() : onSend())}
+              aria-label={stop ? stop.label : sendLabel}
+            >
+              {stop ? (
+                <FiSquare className="text-[13px]" aria-hidden />
+              ) : (
+                <FiSend className="text-[13px]" aria-hidden />
+              )}
+              <span className="sr-only">{stop ? stop.label : sendLabel}</span>
+            </Button>
+            {guard}
+          </span>
         </div>
       </div>
       <div className="mt-1 px-1 text-[11px] text-nb-ink-soft">{hint}</div>

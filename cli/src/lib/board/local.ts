@@ -142,7 +142,7 @@ const MOVES: Record<string, RunMove> = {
   'record-run': ({ args }) => cmdRun(Number(args[0])),
   'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
   rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
-  'run-blocker': ({ args, opts }) => cmdRunBlocker(Number(args[0]), as<RunBlockerOptions>(opts)),
+  'run-blocker': ({ args, opts }) => cmdRunBlocker(args[0] ? Number(args[0]) : undefined, as<RunBlockerOptions>(opts)),
   peek: () => {
     const id = readNextId()
     say(String(id))

@@ -26,6 +26,7 @@ import { KANBAN } from '../paths'
 import { resolveBoard, sayIfOffline, useBoard } from '../board-cli'
 import { FLOWS, flowVerb, type Flow, type FlowGroup, type FlowOption } from '../agent/flows'
 import { namedDelivery } from '../agent/deliveries'
+import type { DeliveryRecord } from '../agent/types'
 import { HELP_AFTER } from '../agent/manual'
 import { cmdAgent } from '../../commands/agent'
 import { cmdChat } from '../../commands/chat'
@@ -463,7 +464,9 @@ function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
 function declareFlow(parent: Command, flow: Flow, cli: AgentCliOptions): void {
   // A `delivery` verb answers to the delivery as well as to the card it is on, so the id is
   // taken as written and read once the board is open — before that there is no record to
-  // look a delivery up in.
+  // look a delivery up in. What it is read INTO is the delivery itself (#428): a build with
+  // no card has no id to be resolved to, and a carded one is found by its delivery just the
+  // same.
   const byDelivery = flow.group === 'delivery'
   const cmd = withShared(parent.command(flowVerb(flow)))
   for (const arg of splitArgs(flow.argument)) {
@@ -479,19 +482,18 @@ function declareFlow(parent: Command, flow: Flow, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const args = positional(vals)
       await onBoard(this, cli, (p) =>
-        cmdStartRun(flow.action, byDelivery ? [cardOf(args[0] as string), ...args.slice(1)] : args, this.opts(), p),
+        cmdStartRun(flow.action, byDelivery ? [deliveryOf(args[0] as string), ...args.slice(1)] : args, this.opts(), p),
       )
     })
 }
 
-/** The card a `delivery` verb was aimed at: the id as typed, or the card the named delivery
- *  is on. */
-function cardOf(named: string): number {
-  const id = Number(named)
-  if (Number.isInteger(id) && id > 0) return id
+/** The delivery a `delivery` verb was aimed at — named by its own id, by a prefix of one, or
+ *  by the card it is on. The run carries the delivery from here, so a build with no card
+ *  (#428) reaches its review and its conflict run exactly as a carded one does. */
+function deliveryOf(named: string): DeliveryRecord {
   const delivery = namedDelivery(named)
   if (!delivery) throw new BoardError(`no delivery here answers to "${named}"`, { kind: 'unknown-delivery' })
-  return delivery.cardId
+  return delivery
 }
 
 function addFlowOption(cmd: Command, option: FlowOption): void {

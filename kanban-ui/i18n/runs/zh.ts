@@ -130,6 +130,7 @@ const zh: RunsCopy = {
     note: "备注",
     resumed: "已继续",
     cancelled: "已取消",
+    stopped: (label) => label,
     steps: (n) => `${n} 个会话`,
     justNow: "刚刚",
     minutesAgo: (m) => `${m} 分钟前`,

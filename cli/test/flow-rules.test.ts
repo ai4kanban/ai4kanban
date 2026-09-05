@@ -476,7 +476,7 @@ describe('a delivery', () => {
     // What a build in flight across the upgrade holds: the flow's name, not the agent's.
     const delivery = activeDelivery(1)!
     const frozen = { implement: 'Install dependencies first.' }
-    assert.equal(ruleFor({ action: 'implement', id: delivery.cardId }, frozen), 'Install dependencies first.')
+    assert.equal(ruleFor({ action: 'implement', id: delivery.cardId ?? undefined }, frozen), 'Install dependencies first.')
     await end(built)
   })
 

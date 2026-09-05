@@ -132,6 +132,7 @@ const en: RunsCopy = {
     note: "note",
     resumed: "resumed",
     cancelled: "cancelled",
+    stopped: (label) => label,
     steps: (n) => `${n} sessions`,
     justNow: "just now",
     minutesAgo: (m) => `${m}m ago`,

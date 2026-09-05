@@ -280,7 +280,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     })
 
   move('run-blocker')
-    .argument('<id>', ID, cardId)
+    .argument('[id]', `${ID} — leave it out on a build with no card`, cardId)
     .summary('pause an implementation on one actionable blocker')
     .description(
       'Record why the current implementation cannot safely continue and the one action that lets Resume ' +
@@ -290,8 +290,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .requiredOption('--step <text>', 'the step it stopped on')
     .requiredOption('--cause <text>', 'why it cannot safely continue')
     .requiredOption('--unblock <text>', 'the one action that lets Resume carry it on')
-    .action(async function (this: Command, id: number) {
-      await dispatch('run-blocker', this, [String(id)], this.opts(), cli)
+    .action(async function (this: Command, id: number | undefined) {
+      await dispatch('run-blocker', this, id === undefined ? [] : [String(id)], this.opts(), cli)
     })
 
   move('validate')

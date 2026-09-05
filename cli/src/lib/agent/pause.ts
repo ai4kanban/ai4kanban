@@ -8,6 +8,7 @@
 // One answer, read three ways: the card page's pill and the line under it, the sentence a
 // refused board move gives, and the hold that lets Resolve through while a delivery waits.
 
+import { boardCommand } from './command'
 import { aiReviewOn } from './review'
 import type { DeliveryRecord } from './types'
 
@@ -73,6 +74,16 @@ const end = (text: string): string => (/[.!?)]$/.test(text) ? text : `${text}.`)
 
 const isHold = (why: string): boolean => why.startsWith(HELD_ON_QUESTIONS) || why.startsWith(HELD_ON_APPROVAL)
 
+// The two commands that put a build with no card back in motion, or end it (#428). A carded
+// delivery says the card page's controls instead; this one has no page to say them on.
+const backInMotion = (delivery: DeliveryRecord): string => {
+  const cmd = boardCommand()
+  return (
+    `\`${cmd} delivery review ${delivery.deliveryId}\` tries it again, ` +
+    `\`${cmd} delivery cancel ${delivery.deliveryId}\` ends it and leaves the branch.`
+  )
+}
+
 /** True when a review's stop is over: it stopped to ask, and the card has no question
  *  left. The questions ARE that stop, so answering ends it — nothing has to be pressed.
  *
@@ -110,9 +121,13 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
     return {
       stage: 'stopped',
       label: 'Waiting on you',
-      line: questions
-        ? `${upper(end(stopped.why))} Answer it on this card, then \`Review again\`.`
-        : `${upper(end(stopped.why))} Fix it, then \`Review again\`.`,
+      // With no card there is no page to answer on and no `Review again` to press, so the
+      // line names the two commands that are the whole way out (#428).
+      line: delivery.cardId === null
+        ? `${upper(end(stopped.why))} ${backInMotion(delivery)}`
+        : questions
+          ? `${upper(end(stopped.why))} Answer it on this card, then \`Review again\`.`
+          : `${upper(end(stopped.why))} Fix it, then \`Review again\`.`,
       paused: true,
     }
   }
@@ -204,7 +219,12 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
   return {
     stage: 'working',
     label: 'In progress',
-    line: `Building this card as it was approved when work started${where}.`,
+    // A build with no card has no card to have been approved: what it is building is the
+    // sentence it was given, which cannot move under it (#428).
+    line:
+      delivery.cardId === null
+        ? `Building what you typed${where}.`
+        : `Building this card as it was approved when work started${where}.`,
     paused: false,
   }
 }

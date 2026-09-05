@@ -23,6 +23,7 @@ import {
   type AgentRequest,
   type CommandAction,
   type CommandRequest,
+  type DeliveryRecord,
   type Boldness,
   type RefineEffort,
   type RunView,
@@ -211,6 +212,23 @@ function readRequest(
   }
   // The last of them: setting the board up names nothing at all. The checklist says what is left.
   if (action === 'setup') return { req: { action }, follow, print }
+
+  // A delivery verb is aimed at the delivery its command already looked up (#428) — never
+  // at a card id, because a build with no card has none. It carries both: the card where
+  // there is one, so every flow that names one still does, and the delivery always.
+  if (action === 'review' || action === 'conflict') {
+    const delivery = args[0] as DeliveryRecord
+    return {
+      req: {
+        action,
+        id: delivery.cardId ?? undefined,
+        deliveryId: delivery.deliveryId,
+        title: delivery.title,
+      },
+      follow,
+      print,
+    }
+  }
 
   // Everything else works on one card.
   const id = args[0] as number

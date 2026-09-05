@@ -61,8 +61,14 @@ arguments are the same with or without `--print`.
 - **`setup`**: `docs/kanban/setup-checklist.md` is still there — finish it before any other
   action on this board.
 
-`delivery review <id>` and `delivery conflict <id>` are the board's own: it starts each one
-itself after a build. Type one only to look again after answering a question.
+`delivery review <delivery>` and `delivery conflict <delivery>` are the board's own: it starts
+each one itself after a build. Type one only to look again after answering a question — each
+takes the delivery, or the card it is on.
+
+**Build now** on the board's Create screen is the one build with no card: what the user typed
+goes straight to an implementation run. It writes no card, asks nothing back, and nothing
+reviews it — the run's own commit is the last word. All it leaves is a delivery and that
+commit, read on its flow in Runs, so `delivery cancel`/`review` name the delivery.
 
 Each action's full flow comes back from `--print`, so don't work one out from this list.
 

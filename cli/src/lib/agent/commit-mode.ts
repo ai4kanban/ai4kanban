@@ -151,14 +151,17 @@ export function deliveryPlan(): DeliveryPlan {
  *  nothing and a delivery is never written down half-made. Whatever it made is undone by
  *  `undoPrepared` when the run is refused after it. */
 export function prepareDelivery(
-  cardId: number,
+  cardId: number | null,
   wants?: DeliveryCommitMode,
   wantsReview?: boolean,
 ): { start: DeliveryStart } | { error: string } {
   const deliveryId = newDeliveryId()
   // The other tick (#416), settled here for the same reason and read from the record
-  // afterwards — so a resume follows the policy this build started with.
-  const aiReview = wantsReview ?? aiReviewEnabled()
+  // afterwards — so a resume follows the policy this build started with. A build with no
+  // card is never reviewed and never waits to be approved (#428): those are the checks it
+  // exists to skip, so both are forced off here rather than left to a setting or a caller.
+  const gated = cardId !== null
+  const aiReview = gated ? wantsReview ?? aiReviewEnabled() : false
   const base = inGitRepo() ? headCommit() : null
   // No git, no commit to branch from, or a detached HEAD: there is nothing to fork, so the
   // delivery works where it is however it was asked for. A board in an unversioned folder
@@ -202,7 +205,7 @@ export function prepareDelivery(
       targetBranch,
       worktree: made.worktree,
       branch: made.branch,
-      needsApproval: diffApprovalRequired(),
+      needsApproval: gated && diffApprovalRequired(),
       aiReview,
     },
   }
@@ -211,13 +214,15 @@ export function prepareDelivery(
 // Why a manual delivery can't start right now — one at a time, from clean code — or
 // nothing when it may. It names the mode, never the setting: the dialog's tick reaches
 // manual mode too, and a refusal blaming a switch the user never touched would be a lie.
-function manualRefusal(cardId: number, hasBase: boolean): string | undefined {
+function manualRefusal(cardId: number | null, hasBase: boolean): string | undefined {
+  // A delivery already on THIS card is the one being retried, so it is not in the way. A
+  // build with no card has none to be the same as (#428): every other manual delivery is.
   const held = readStore().deliveries.find(
-    (d) => d.status === 'active' && d.commitMode !== 'auto' && d.cardId !== cardId,
+    (d) => d.status === 'active' && d.commitMode !== 'auto' && (cardId === null || d.cardId !== cardId),
   )
   if (held) {
     return (
-      `delivery ${held.deliveryId} is already working in this checkout on #${held.cardId} — a build without a branch ` +
+      `delivery ${held.deliveryId} is already working in this checkout${held.cardId === null ? '' : ` on #${held.cardId}`} — a build without a branch ` +
       `of its own works in your project folder, and only one does at a time. Finish or cancel that one first.`
     )
   }
@@ -240,6 +245,36 @@ export function undoPrepared(start: DeliveryStart): void {
   if (start.worktree) removeWorktree(start.worktree, start.branch, true)
 }
 
+// ---- how a delivery is named ------------------------------------------------
+
+// The longest a commit's first line runs before it is cut. A card's title is a title; a
+// card-less build's is whatever sentence the user typed, and that is a paragraph as often
+// as not.
+const MAX_SUBJECT = 72
+
+/** What a delivery is called in a sentence: its card, or — with no card (#428) — the
+ *  delivery itself, which is the only name that build has. */
+export const deliveryName = (delivery: Pick<DeliveryRecord, 'cardId' | 'deliveryId'>): string =>
+  delivery.cardId === null ? `delivery ${delivery.deliveryId}` : `#${delivery.cardId}`
+
+/** The commit message a delivery's work is committed and landed under — the same words on
+ *  both, so a session commit and the squash that lands it read alike.
+ *
+ *  A card names itself in the subject, so `git log` says which card a line came from. A
+ *  card-less build has only the typed sentence, cut to one line; the delivery id under it is
+ *  what leads back to the record either way. */
+export function deliveryMessage(delivery: DeliveryRecord): string {
+  const trailer = `delivery ${delivery.deliveryId}`
+  if (delivery.cardId === null) return `${subject(delivery.title) || trailer}\n\n${trailer}`
+  return `${delivery.title || `card #${delivery.cardId}`} (#${delivery.cardId})\n\n${trailer}`
+}
+
+// The typed sentence as one commit subject: its first line, cut where it runs long.
+function subject(title: string): string {
+  const line = title.split('\n')[0]!.trim()
+  return line.length > MAX_SUBJECT ? `${line.slice(0, MAX_SUBJECT - 1).trimEnd()}…` : line
+}
+
 // ---- committing a session's work --------------------------------------------
 
 /** Commit whatever this delivery's session left behind, so its branch IS the candidate.
@@ -254,8 +289,7 @@ export function commitDeliveryWork(delivery: DeliveryRecord): { ok: true } | { o
   if (!fs.existsSync(dir)) {
     return { ok: false, why: `its worktree ${delivery.worktree} is gone, so there is nothing to review` }
   }
-  const message = `${delivery.title || `card #${delivery.cardId}`} (#${delivery.cardId})\n\ndelivery ${delivery.deliveryId}`
-  const done = commitWork(delivery.worktree, message)
+  const done = commitWork(delivery.worktree, deliveryMessage(delivery))
   if (!done.ok) return { ok: false, why: done.error }
   return { ok: true }
 }

@@ -214,14 +214,17 @@ export function cardsAtWork(): Set<number> {
     if (runIsLive(run)) held.add(run.cardId)
   }
   for (const delivery of store.deliveries) {
-    if (delivery.status === 'active') held.add(delivery.cardId)
+    if (delivery.status === 'active' && delivery.cardId !== null) held.add(delivery.cardId)
   }
   return held
 }
 
-/** Attach the one interruption a person must clear before this implementation resumes. */
+/** Attach the one interruption a person must clear before this implementation resumes.
+ *
+ *  `cardId` is null on a build with no card (#428): there is no id to name, so the run's own
+ *  is not checked against one. */
 export function recordRunBlocker(
-  cardId: number,
+  cardId: number | null,
   sessionId: string,
   blocker: ExecutionBlocker,
 ): { ok: true; run: RunRecord } | { ok: false; error: string } {
@@ -229,7 +232,9 @@ export function recordRunBlocker(
     const run = runs.find((r) => r.sessionId === sessionId)
     if (!run || run.status !== 'running') return { ok: false, error: 'no active run can record this blocker' }
     if (run.action !== 'implement') return { ok: false, error: 'only an implementation run can record a blocker' }
-    if (run.cardId !== cardId) return { ok: false, error: `this run is implementing #${run.cardId}, not #${cardId}` }
+    if (cardId !== null && run.cardId !== cardId) {
+      return { ok: false, error: `this run is implementing ${run.cardId === null ? 'no card' : `#${run.cardId}`}, not #${cardId}` }
+    }
     run.blocker = blocker
     return { ok: true, run: { ...run } }
   })
@@ -240,10 +245,12 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
   const rows: DeliveryRecord[] = []
   for (const entry of raw as Partial<DeliveryRecord>[]) {
     if (!entry || typeof entry.deliveryId !== 'string' || !entry.deliveryId) continue
-    if (!Number.isInteger(entry.cardId)) continue
     rows.push({
       deliveryId: entry.deliveryId,
-      cardId: entry.cardId as number,
+      // A delivery with no card is a **Build now** (#428) and is kept, not dropped: its own
+      // id is what everything finds it by, and dropping the row would hand its worktree and
+      // its landing slot to nobody.
+      cardId: Number.isInteger(entry.cardId) ? (entry.cardId as number) : null,
       title: typeof entry.title === 'string' ? entry.title : '',
       status: asDeliveryStatus(entry.status),
       startedAt: typeof entry.startedAt === 'number' ? entry.startedAt : Date.now(),

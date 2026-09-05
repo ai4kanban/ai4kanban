@@ -46,12 +46,25 @@ const en: BoardCopy = {
     startFailed: "could not start the agent",
     sheet: {
       headline: "What do you want to happen?",
-      slogan: "Say it in your own words — the agent writes the card.",
+      slogan: "Say it in your own words — write it up, or build it now.",
       placeholder: "Describe the task",
+      modes: "What sending does",
       addTask: "Add task",
+      buildNow: "Build now",
       send: "Send",
       keys: "Enter sends · Shift-Enter for a new line · Esc closes",
       shipsIn: (release) => `Ships in ${release}`,
+      builds: "Builds it straight away — no card",
+      guard: {
+        title: "Build it now, with no card?",
+        skips: [
+          "No card is written",
+          "No questions back, no plan to read",
+          "Nothing reviews it before it reaches your branch",
+        ],
+        cancel: "Cancel",
+        confirm: "Build now",
+      },
     },
   },
   release: {

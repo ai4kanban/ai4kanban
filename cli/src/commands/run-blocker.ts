@@ -16,7 +16,7 @@ export interface RunBlockerOptions {
   unblock: string
 }
 
-export function cmdRunBlocker(id: number, flags: RunBlockerOptions): MoveResult {
+export function cmdRunBlocker(id: number | undefined, flags: RunBlockerOptions): MoveResult {
   const sessionId = insideRun()
   if (!sessionId) die('run-blocker is only for the implementation run currently doing the work')
 
@@ -25,10 +25,15 @@ export function cmdRunBlocker(id: number, flags: RunBlockerOptions): MoveResult 
     cause: field(flags.cause, '--cause'),
     unblock: field(flags.unblock, '--unblock'),
   }
-  const out = recordRunBlocker(id, sessionId, blocker)
+  // No id on a build with no card (#428): the blocker belongs to the run, which is the only
+  // place it could ever have been read from on one of those.
+  const out = recordRunBlocker(id ?? null, sessionId, blocker)
   if (!out.ok) die(out.error)
-  say(`#${id}: implementation blocker recorded; stop this run and resume it after the unblock action`)
-  return { id, blocker }
+  say(
+    `${id === undefined ? 'this build' : `#${id}`}: implementation blocker recorded; ` +
+      `stop this run and resume it after the unblock action`,
+  )
+  return { ...(id === undefined ? {} : { id }), blocker }
 }
 
 function field(raw: string, name: string): string {

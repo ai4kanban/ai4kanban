@@ -22,6 +22,7 @@
 // other.
 
 import type { AgentAction, DeliveryStatus, ExecutionBlocker, TokenUsage } from "./format/agent/types";
+import type { CardDeliveryState } from "./format/view/types";
 
 export type {
   AgentAction,
@@ -256,6 +257,10 @@ export interface SessionView {
   /** The delivery this run belongs to, when it belongs to one (#301). Only an `implement`
    *  run does: everything else is a single run that stands alone. The status is the
    *  DELIVERY's, not this run's — a run the user stopped inside a cancelled delivery reads
-   *  "cancelled", because that is what happened. */
-  delivery?: { id: string; status: DeliveryStatus };
+   *  "cancelled", because that is what happened.
+   *
+   *  `cardless` is a build started from **Build now** (#428): there is no card page, so the
+   *  typed sentence stands where the `#id` would and `state` — the delivery's own pause,
+   *  which a card page draws in its title band — is drawn on the flow instead. */
+  delivery?: { id: string; status: DeliveryStatus; cardless?: boolean; state?: CardDeliveryState };
 }

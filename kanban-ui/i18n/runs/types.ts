@@ -79,6 +79,9 @@ export type RunsCopy = {
     note: string;
     resumed: string;
     cancelled: string;
+    /** The cap over a card-less delivery's pause (#428) — it has no card page to be read
+     *  on, so its own label rides here. */
+    stopped: (label: string) => string;
     /** How many sessions one job took, under its row. */
     steps: (n: number) => string;
     justNow: string;

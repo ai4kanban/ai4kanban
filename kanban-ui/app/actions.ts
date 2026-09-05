@@ -293,7 +293,10 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   // A tab left open across the upgrade that made refine the loop still posts the old name.
   if (req && (req.action as string) === "auto-refine") req = { ...req, action: "refine" };
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
-  if (!CARDLESS.has(req.action) && !Number.isInteger(req.id)) {
+  // **Build now** is the one implement with no card (#428): the typed sentence is the whole
+  // requirement, so it stands in for the id an implement usually names.
+  const buildNow = req.action === "implement" && !!req.description?.trim();
+  if (!CARDLESS.has(req.action) && !buildNow && !Number.isInteger(req.id)) {
     throw new Error("action needs a card id");
   }
   if (req.action === "plan-release" && !req.release?.trim()) {

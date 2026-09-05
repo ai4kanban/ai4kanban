@@ -53,20 +53,34 @@ export type BoardCopy = {
     /** Shown when the agent wouldn't start and said nothing about why. */
     startFailed: string;
     /** The full-screen sheet the button opens (#426): what it asks, what sending does,
-     *  and the two short lines under the box. The headline still holds once Discuss and
-     *  Build now join the mode row. */
+     *  and the two short lines under the box. */
     sheet: {
       headline: string;
       slogan: string;
       placeholder: string;
-      /** The only mode in the row for now — it runs today's create flow. */
+      /** What the mode row is, read out. */
+      modes: string;
+      /** The mode that writes a card — what the screen always opens on. */
       addTask: string;
+      /** The mode that builds what you typed with no card at all (#428). */
+      buildNow: string;
       /** The corner button. Its own word, so a reader isn't told "Add task" twice. */
       send: string;
       keys: string;
       /** Which version a card written here ships in. Nothing is said with no release on
-       *  screen. */
+       *  screen, and nothing in Build now — that mode writes no card to ship. */
       shipsIn: (release: string) => string;
+      /** What Build now says instead: it skips every step the board is for, so it names
+       *  them before the run starts (#428). */
+      builds: string;
+      /** The guard Send opens in Build now. Nothing starts until it is confirmed. */
+      guard: {
+        title: string;
+        /** One line per step this mode skips. */
+        skips: readonly string[];
+        cancel: string;
+        confirm: string;
+      };
     };
   };
   release: {

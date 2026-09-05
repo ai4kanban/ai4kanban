@@ -253,7 +253,10 @@ describe('stopping for the user', () => {
     // It joins no delivery, so nothing but the card says the stop is over.
     await ask(['--drop', '1'])
     assert.equal(deliveryWaiting(5), undefined)
-    assert.deepEqual(answeredWork(), [{ action: 'review', id: 5, title: 'A card' }])
+    // The request names the delivery as well as the card: that is what a build with no card
+    // is found by, and a carded one carries it just the same (#428).
+    const owed = activeDelivery(5)!.deliveryId
+    assert.deepEqual(answeredWork(), [{ action: 'review', id: 5, deliveryId: owed, title: 'A card' }])
     // A card with a run already on it is left for the next pass.
     assert.deepEqual(answeredWork(new Set([5])), [])
 
@@ -261,7 +264,7 @@ describe('stopping for the user', () => {
     const answering = session('resolve')
     withStore((store) => void store.runs.push(answering))
     const carry = deliveryRunAfter(await close(answering))
-    assert.deepEqual(carry, { action: 'review', id: 5, title: 'A card' })
+    assert.deepEqual(carry, { action: 'review', id: 5, deliveryId: owed, title: 'A card' })
   })
 
   // The watcher asks with the row it claimed the card with — read before the run spawned,
@@ -283,7 +286,12 @@ describe('stopping for the user', () => {
     await close(answering)
 
     assert.equal(asClaimed.status, 'running')
-    assert.deepEqual(deliveryRunAfter(asClaimed), { action: 'review', id: 5, title: 'A card' })
+    assert.deepEqual(deliveryRunAfter(asClaimed), {
+      action: 'review',
+      id: 5,
+      deliveryId: activeDelivery(5)!.deliveryId,
+      title: 'A card',
+    })
   })
 
   // The other half of that rule: what decides is the card, not the run. A resolve that left

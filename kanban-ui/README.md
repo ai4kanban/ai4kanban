@@ -80,10 +80,17 @@ The header carries seven things:
 - **The release dropdown** — which version the board is showing, and where a release is
   started, filled, or dropped; see **Releases**.
 - **Create task** — opens a full-screen sheet over the board: describe an idea in your own
-  words and the agent writes the card. Enter sends, Shift-Enter starts a line, and Esc or
-  the ✕ hands the board back. An unsent draft is kept for the next time you open it.
+  words, and pick what sending does. **Add task** — what it opens on — has the agent write the
+  card. **Build now** sends the sentence straight to a build with no card at all: it asks
+  before it starts, because no card is written, no questions come back, and nothing reviews
+  the work before it reaches your branch. Enter sends, Shift-Enter starts a line, and Esc or
+  the ✕ hands the board back. An unsent draft is kept for the next time you open it, and a
+  start that is refused keeps the sentence there to send again.
 - **Runs** — every agent session, live or finished. Open one to read its log. A finished run
-  can be continued with a follow-up prompt; that starts a new run.
+  can be continued with a follow-up prompt; that starts a new run. A job with no card shows
+  the sentence it was started with where a `#id` would be, and a **Build now** build reads
+  its whole account there: what it built, and — where a build cannot land — why and the
+  commands that put it back in motion.
 - **Insights** (the chart) — two read-only charts, a tab each: **Daily progress** and
   **Planning quality**; see below.
 - **Configuration** (the gear) — see below.
@@ -451,7 +458,7 @@ its name; the same numbers `release list` prints in your terminal. A few more th
 
 - A **group task** shows whenever the root or any subtask is in the release you picked.
 - **Create task** puts the new card in the release on screen, and the sheet says which one
-  under its box.
+  under its box. **Build now** ships in no release — it writes no card.
 - A release with **nothing open in it says so**, with **No release** one click away. Blockers on
   screen don't count.
 - Your pick is remembered in your browser, per board, and never written to the files — so it
@@ -929,9 +936,10 @@ prints the review flow.
 #### Turning AI review off
 
 Review is a separate paid run on every delivery. **AI review** in Configuration → General →
-Delivery is the one place it is turned off, and it answers for the whole board. There is no
-per-build box and no flag: **Implement**, **Schedule**, **Resolve & implement** and
-`akb card implement` all read the setting as it stands then.
+Delivery is the one place it is turned off, and it answers for every build that has a card. There
+is no per-build box and no flag: **Implement**, **Schedule**, **Resolve & implement** and
+`akb card implement` all read the setting as it stands then. **Build now** is the one build it
+does not answer for — with no card there is nothing to review against, so it never is.
 
 - **The choice is frozen when the delivery starts.** Flip the setting while a build runs and that
   delivery still finishes the way it started; the next one gets the new answer. The delivery block's
@@ -1157,8 +1165,8 @@ its own, however that was chosen, so it stays settable with automatic Git commit
 - **On** — nothing lands unread: every delivery waits after review until you approve the exact tree
   it would land. See **Approving a delivery** below.
 
-**AI review**, on by default. It decides whether a build is judged at all, for every build the
-board starts — the Implement dialog does not ask per click.
+**AI review**, on by default. It decides whether a build is judged at all, for every build that has
+a card — the Implement dialog does not ask per click, and **Build now** is never reviewed.
 
 - **On** — a fresh session reviews each delivery and fixes what it finds. It is a separate paid
   run per delivery.

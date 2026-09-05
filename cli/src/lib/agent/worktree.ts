@@ -5,7 +5,8 @@
 // open. The worktree lives under `.akb/worktrees/<cardID>/<deliveryID>` — ignored at the
 // repository root, because it is this machine's build space and never something git
 // carries — and its branch is `card/<cardID>/<deliveryID>`, forked from the delivery's
-// recorded base.
+// recorded base. A build with no card (#428) has no card number to be named by, so both
+// spell the delivery instead: `.akb/worktrees/delivery/<deliveryID>` on `delivery/<deliveryID>`.
 //
 // The board's OWN files are kept out of it. A delivery writes to the card, the delivery
 // record and the run state as it works, and all three live in the repo root's copy —
@@ -114,13 +115,14 @@ export function boardPathsAmong(files: string[]): string[] {
 
 // ---- where a delivery's checkout lives --------------------------------------
 
-/** The branch a delivery builds on. */
-export const deliveryBranch = (cardId: number, deliveryId: string): string =>
-  `card/${cardId}/${deliveryId}`
+/** The branch a delivery builds on. A build with no card (#428) is named by the delivery
+ *  itself, which is the only name it has. */
+export const deliveryBranch = (cardId: number | null, deliveryId: string): string =>
+  cardId === null ? `delivery/${deliveryId}` : `card/${cardId}/${deliveryId}`
 
-/** Where a delivery's worktree sits, repo-relative. */
-export const deliveryWorktree = (cardId: number, deliveryId: string): string =>
-  posix(path.join(rel(AKB_DIR), 'worktrees', String(cardId), deliveryId))
+/** Where a delivery's worktree sits, repo-relative — under the same two names. */
+export const deliveryWorktree = (cardId: number | null, deliveryId: string): string =>
+  posix(path.join(rel(AKB_DIR), 'worktrees', cardId === null ? 'delivery' : String(cardId), deliveryId))
 
 /** That path as it really is on this machine. */
 export const worktreeDir = (relPath: string): string => path.resolve(REPO_ROOT, relPath)
@@ -166,7 +168,7 @@ export function dirtyPaths(withUntracked: boolean, cwd = REPO_ROOT): string[] {
  *  Never over an existing one: a retry reuses the worktree that is already there, and a
  *  changed card makes a new delivery with a new worktree. */
 export function addWorktree(
-  cardId: number,
+  cardId: number | null,
   deliveryId: string,
   base: string,
 ): { ok: true; worktree: string; branch: string } | { ok: false; error: string } {

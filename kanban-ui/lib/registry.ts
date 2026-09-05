@@ -1,6 +1,6 @@
 import { machineCopy } from "./language";
 import { boardRules, type AgentRequest, type RunView } from "./cli";
-import type { DeliveryRecord, SessionView } from "./types";
+import type { CardDeliveryState, DeliveryRecord, SessionView } from "./types";
 
 // --- the runs, through the CLI (#168) ----------------------------------------
 // The board no longer runs agents itself. Starting one, watching it, listing them,
@@ -25,8 +25,15 @@ export interface StartResult {
 // One run as the browser reads it. The record carries a couple of fields the UI has no use
 // for (where the log file is, which agent the run was pinned to internally), and the UI
 // wants the log under the name it has always used.
-function toView(run: RunView, deliveries?: Map<string, DeliveryRecord>): SessionView {
+function toView(
+  run: RunView,
+  deliveries?: Map<string, DeliveryRecord>,
+  pauses?: Map<string, CardDeliveryState>,
+): SessionView {
   const delivery = run.deliveryId ? deliveries?.get(run.deliveryId) : undefined;
+  // A build with no card (#428) has no card page to read its pause on, so the pause rides
+  // here and its flow in Runs draws it. A carded delivery's belongs on its card.
+  const cardless = !!delivery && delivery.cardId === null;
   return {
     sessionId: run.sessionId,
     cardId: run.cardId,
@@ -57,7 +64,13 @@ function toView(run: RunView, deliveries?: Map<string, DeliveryRecord>): Session
     // The DELIVERY this session belonged to, and how that delivery ended (#301). A session
     // the user stopped inside a cancelled delivery has to read "cancelled": "stopped" would
     // describe the session and hide what happened to the job it was part of.
-    delivery: delivery ? { id: delivery.deliveryId, status: delivery.status } : undefined,
+    delivery: delivery
+      ? {
+          id: delivery.deliveryId,
+          status: delivery.status,
+          ...(cardless ? { cardless: true, state: pauses?.get(delivery.deliveryId) } : {}),
+        }
+      : undefined,
   };
 }
 
@@ -124,13 +137,31 @@ export async function stopSession(sessionId: string): Promise<StartResult> {
   }
 }
 
+// Where each card-less delivery stands (#428) — worked out once per read rather than once
+// per run, since every session of one delivery shares the answer. Nothing else needs it: a
+// carded delivery's pause is read on its card page.
+function pauseMap(
+  rules: Awaited<ReturnType<typeof boardRules>>,
+  deliveries: Map<string, DeliveryRecord> | undefined,
+): Map<string, CardDeliveryState> {
+  const pauses = new Map<string, CardDeliveryState>();
+  if (!rules.deliveryPause || !deliveries) return pauses;
+  for (const delivery of deliveries.values()) {
+    if (delivery.cardId !== null) continue;
+    const state = rules.deliveryPause(delivery.deliveryId);
+    if (state) pauses.set(delivery.deliveryId, state);
+  }
+  return pauses;
+}
+
 /** Every session the board knows about, each carrying the delivery it belongs to. One
  *  picture, shared by every tab and every terminal. */
 export async function listSessions(): Promise<SessionView[]> {
   try {
     const rules = await boardRules();
     const deliveries = deliveryMap(rules.listDeliveries?.());
-    return (await rules.listRuns()).map((r) => toView(r, deliveries));
+    const pauses = pauseMap(rules, deliveries);
+    return (await rules.listRuns()).map((r) => toView(r, deliveries, pauses));
   } catch {
     // No rules to load: the board has no sessions to show and says why elsewhere, rather
     // than failing the poll that draws the whole page.
@@ -144,7 +175,9 @@ export async function getSession(sessionId: string): Promise<SessionView | null>
   try {
     const rules = await boardRules();
     const run = await rules.getRun(sessionId);
-    return run ? toView(run, deliveryMap(rules.listDeliveries?.())) : null;
+    if (!run) return null;
+    const deliveries = deliveryMap(rules.listDeliveries?.());
+    return toView(run, deliveries, pauseMap(rules, deliveries));
   } catch {
     return null;
   }

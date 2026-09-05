@@ -295,6 +295,8 @@ async function restoreCardStatus(run: RunRecord): Promise<void> {
 // the work away is not the same as unsettling the plan. Questions still win: a card with
 // something to answer rests at `todo`.
 async function releaseCard(delivery: DeliveryRecord): Promise<void> {
+  // A build with no card held no stage, so there is none to put back (#428).
+  if (delivery.cardId === null) return
   const card = cardNow(delivery.cardId)
   if (card?.status !== 'implementing') return
   await setCardStatus(delivery.cardId, card.questions > 0 ? 'todo' : delivery.priorStatus ?? 'ready')
@@ -511,15 +513,28 @@ export function openRun(
   // …on a solution that delivers with git. On `marketing` a build is a file the user edits,
   // so there is no worktree, no branch, nothing to review against a diff and nothing to land
   // (#407): the run works in the project, and the flow's own close is what finishes the card.
+  //
+  // A build with no card at all is the third way in (#428): **Build now** sends the typed
+  // sentence straight here, so there is no card to look a delivery up by and one is always
+  // opened. It is refused where a carded manual build would be, and nowhere else.
   const delivers = deliversWithGit()
+  const cardless = req.action === 'implement' && cardId === null && !!req.description?.trim()
   let start: DeliveryStart | undefined
-  if (delivers && cardId !== null && req.action === 'implement' && !activeDelivery(cardId)) {
+  if (delivers && req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId)))) {
     const prepared = prepareDelivery(cardId, req.commitMode, req.aiReview)
     if ('error' in prepared) return { error: prepared.error }
     start = prepared.start
   }
-  // Where this run works: its delivery's own worktree, or the project itself.
-  const joining = delivers && cardId !== null && DELIVERY_FLOWS.has(req.action) ? activeDelivery(cardId) : undefined
+  // Where this run works: its delivery's own worktree, or the project itself. A run of a
+  // delivery names it outright when it has no card to be found by.
+  const joining =
+    delivers && DELIVERY_FLOWS.has(req.action)
+      ? req.deliveryId
+        ? findDelivery(req.deliveryId)
+        : cardId !== null
+          ? activeDelivery(cardId)
+          : undefined
+      : undefined
   const cwd = deliveryCwd(start ?? joining ?? {})
   // The one settings read for this whole run. Everything it needs is worked out here, at
   // the start — not later, when the agent finally spawns (an index action waits its turn
@@ -571,12 +586,17 @@ export function openRun(
     // belongs to, so a delivery can never be left holding a card with nothing working on
     // it. Review joins an existing delivery and never opens one: there is nothing to
     // review until something has been built.
-    if (delivers && cardId !== null && DELIVERY_FLOWS.has(req.action)) {
+    if (delivers && DELIVERY_FLOWS.has(req.action) && (cardId !== null || cardless || req.deliveryId)) {
       if (req.action === 'implement') {
-        joinDelivery(store, record, req.title ?? cardNow(cardId)?.title ?? '', 'implement', start)
-      } else if (!joinActive(store, record, req.action)) {
+        // A card-less delivery is titled by the sentence it was given, which is also the
+        // whole of what it was approved to build (#428).
+        const typed = req.description?.trim() ?? ''
+        const title = cardId === null ? typed : req.title ?? cardNow(cardId)?.title ?? ''
+        joinDelivery(store, record, title, 'implement', start, typed)
+      } else if (!joinActive(store, record, req.action, req.deliveryId)) {
         store.runs.pop()
-        return { error: `no delivery is in flight on #${cardId}, so there is nothing to ${req.action}` }
+        const on = req.deliveryId ? `delivery ${req.deliveryId}` : `#${cardId}`
+        return { error: `no delivery is in flight on ${on}, so there is nothing to ${req.action}` }
       }
     }
     return { run: record }
@@ -1020,8 +1040,9 @@ export function repairDeliveries(): string[] {
     if (!lostTree && !lostBranch) continue
     const gone = lostTree && lostBranch ? 'worktree and branch are' : lostTree ? 'worktree is' : 'branch is'
     complaints.push(
-      `delivery ${d.deliveryId} on #${d.cardId}: its ${gone} gone (${d.worktree}${d.branch ? `, ${d.branch}` : ''}). ` +
-        `Discard it and start the card again — nothing will rebuild it on its own.`,
+      `delivery ${d.deliveryId}${d.cardId === null ? '' : ` on #${d.cardId}`}: its ${gone} gone ` +
+        `(${d.worktree}${d.branch ? `, ${d.branch}` : ''}). ` +
+        `Discard it and start ${d.cardId === null ? 'the build' : 'the card'} again — nothing will rebuild it on its own.`,
     )
   }
   return complaints
