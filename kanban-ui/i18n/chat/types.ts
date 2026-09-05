@@ -25,8 +25,6 @@ export type ChatCopy = {
   worked: (time: string) => string;
   working: (time: string) => string;
   workHint: string;
-  /** What the turn consumed, beside the price the run log already words. */
-  tokens: (count: string) => string;
   /** The button back to the newest line, and how many arrived while the reader was away. */
   newLines: (count: number) => string;
   toFoot: string;

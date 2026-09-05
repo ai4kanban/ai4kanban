@@ -58,16 +58,11 @@ export function CreateTask({ release = null }: { release?: string | null }) {
     [router],
   );
 
-  const { sessions, start } = useAgentSessions(onFinish);
-  // Create and propose are both single global actions (the server refuses a
-  // second of either) and share this one button, so disable it while either is
-  // live.
-  const creating = sessions.some(
-    (r) => r.status === "running" && (r.action === "create" || r.action === "propose"),
-  );
+  const { start } = useAgentSessions(onFinish);
 
-  // Start a non-blocking session. A lock refusal ("a task is already being
-  // created") comes back as an error message.
+  // Start a non-blocking session. Creates run side by side — the board lease makes
+  // each card's id and index entry atomic — so the button never locks. Propose is
+  // still one at a time, and its refusal comes back as an error message.
   const startSession = useCallback(
     async (req: AgentReq, label: string) => {
       setOpen(false);
@@ -92,7 +87,6 @@ export function CreateTask({ release = null }: { release?: string | null }) {
         size="xs"
         className="shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
         aria-label={c.button}
-        disabled={creating}
         onClick={() => {
           setError(null);
           setOpen(true);

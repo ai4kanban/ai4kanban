@@ -47,8 +47,8 @@ import type { ChatCopy } from "@/i18n/chat/types";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
-import type { ChatMessage, ChatPick, ModelChange, TokenUsage } from "@/lib/types";
-import { formatCost, formatDuration, formatTokens, shortTokens } from "./agent-shared";
+import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
+import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { AgentMark } from "./Configuration";
@@ -431,7 +431,7 @@ const Said = memo(
     // sending the same words after it would be asking twice.
     const said = saidOf(message.text);
     const again = sent !== null && (message.stoppedWhy !== undefined || said === "");
-    const spent = spentOn(message, c, log);
+    const spent = spentOn(message, log);
     return (
       <div className="group">
         {message.text ? (
@@ -707,20 +707,16 @@ function lastStep(blocks: Block[]): string | undefined {
   return undefined;
 }
 
-/** What the reply cost, in the row under it: the tokens the turn consumed, short-formed, and
- *  the price the connector put on them. A turn spends most of them re-reading the prompt
- *  cache at every step, so the count runs to millions and only its scale is worth reading —
- *  the four numbers behind it are on the hover. Only what was actually reported: a connector
- *  that counts neither says nothing rather than showing a zero. The time is not here — the
- *  fold above already carries it. */
-function spentOn(message: ChatMessage, c: ChatCopy, log: RunsCopy["log"]): string {
-  const said: string[] = [];
-  if (message.usage) said.push(c.tokens(shortTokens(totalTokens(message.usage))));
-  if (message.costUsd !== undefined) said.push(formatCost(message.costUsd, log));
-  return said.join(" · ");
+/** What the reply cost, in the row under it: the price the connector put on the turn, and
+ *  nothing else. The token count is deliberately not here — a turn re-reads the prompt cache
+ *  at every step, so the total is billed volume rather than anything the reader can picture,
+ *  and six figures under a short answer reads as a warning it isn't. The four numbers are
+ *  still on the hover. Only what was actually reported: a connector that prices nothing says
+ *  nothing rather than showing a zero. The time is not here — the fold above already carries
+ *  it. */
+function spentOn(message: ChatMessage, log: RunsCopy["log"]): string {
+  return message.costUsd === undefined ? "" : formatCost(message.costUsd, log);
 }
-
-const totalTokens = (u: TokenUsage): number => u.input + u.cacheCreation + u.cacheRead + u.output;
 
 /** How long the reply in flight has been coming, to the second. Nothing to count from — a
  *  reply a terminal started — counts nothing. */

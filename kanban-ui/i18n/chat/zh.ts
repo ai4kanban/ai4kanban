@@ -22,7 +22,6 @@ const zh: ChatCopy = {
   worked: (time) => `用时 ${time}`,
   working: (time) => `已用 ${time}`,
   workHint: "作答前它做了什么",
-  tokens: (count) => `${count} tokens`,
   newLines: (count) => `${count} 条新消息`,
   toFoot: "跳到最新一条",
   stopped: "已经收到的内容会保留——再发一条消息即可继续。",

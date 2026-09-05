@@ -56,21 +56,21 @@ import type {
 
 export { logPathOf, readAction, readRuns, withRuns } from './store'
 
-// create / propose / archive / reject all rewrite the board's shared files (next-id, the
-// README index, metrics.csv). Two at once corrupt each other even on different cards, so
-// these wait for one another. Propose allocates several ids in one run, so it belongs here
-// too, and so does a recurring run: its close bumps metrics.csv and rewrites the README
-// index, the very files this lock exists for. A plan-release run belongs here for the same
-// reason propose does — it allocates ids and rewrites the index as it moves cards in. So
-// does a setup run: its last step writes three initial cards.
-const INDEX_ACTIONS = new Set<AgentAction>(['create', 'propose', 'archive', 'reject', 'run', 'plan-release', 'setup'])
+// Runs that write the board's shared files (next-id, the README index, metrics.csv) as a
+// batch, and so wait for one another. A single card write does NOT belong here: `raw
+// create` allocates the id and writes all three under the board lease, so two of them
+// interleave safely. What needs the whole run serialized is a run that writes several
+// cards off one read of the board — propose, plan-release, setup — plus archive/reject and
+// a recurring run's close, which reconcile the index against the board they read.
+const INDEX_ACTIONS = new Set<AgentAction>(['propose', 'archive', 'reject', 'run', 'plan-release', 'setup'])
 
-// Actions that may run only one at a time across the whole board. A create has no card
-// yet, so the per-card rule can't catch a duplicate. A plan-release run is one of them
-// too: it has no card id either, and two at once — on one release or on two — would read
-// the same board and write the same missing cards twice. A setup run is the third, and the
-// starkest: two of them would work down the same checklist side by side.
-const SINGLETON_ACTIONS = new Set<AgentAction>(['create', 'propose', 'plan-release', 'setup'])
+// Actions that may run only one at a time across the whole board. None has a card id, so
+// the per-card rule can't catch a duplicate, and each reads the whole board to decide what
+// to write: two proposes pick the same ideas, two plan-releases write the same missing
+// cards, and two setups work down the same checklist side by side. A create is not one of
+// them — it writes the one card it was handed, and its id and index entry are the board
+// lease's problem, not this lock's.
+const SINGLETON_ACTIONS = new Set<AgentAction>(['propose', 'plan-release', 'setup'])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
 // implemented".

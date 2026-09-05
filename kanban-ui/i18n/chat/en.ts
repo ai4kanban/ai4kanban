@@ -22,7 +22,6 @@ const en: ChatCopy = {
   worked: (time) => `Worked for ${time}`,
   working: (time) => `Working for ${time}`,
   workHint: "What the agent did before answering",
-  tokens: (count) => `${count} tokens`,
   newLines: (count) => (count === 1 ? "1 new line" : `${count} new lines`),
   toFoot: "Jump to the newest line",
   stopped: "What arrived is kept — send another message to carry on.",
