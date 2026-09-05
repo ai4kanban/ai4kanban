@@ -1175,15 +1175,18 @@ export function CardPage({
   // reject/archive still navigate home via onFinish; this only adds the in-place
   // refresh for the rest.)
   //
-  // Asks first whether the card is still there (#299). Another card's run can take this
-  // one off the board — a group root is archived by the board itself the moment its last
-  // subtask leaves — and a plain refresh would then render "not on the board" and count
-  // down at a user who did nothing. Gone means straight back to the board, which is where
-  // the countdown was going anyway.
+  // Asks first whether the card is still there (#299). A delivery that lands archives its
+  // card, and a group root goes the moment its last subtask leaves — so a background
+  // re-read can find the card off the board while the user is mid-page. It never moves
+  // them: nothing here was their doing, and a reader thrown back to the columns loses
+  // their place. The page holds the read it has, says the card left, and points at the
+  // archive; the re-reads stop, since there is nothing left to re-read.
+  const [offBoard, setOffBoard] = useState(false);
+  useEffect(() => setOffBoard(false), [card.id]);
   const refresh = useCallback(() => {
-    if (!actions) return;
-    void actions.cardOnBoard(card.id).then((there) => (there ? router.refresh() : router.push("/")));
-  }, [actions, router, card.id]);
+    if (!actions || offBoard) return;
+    void actions.cardOnBoard(card.id).then((there) => (there ? router.refresh() : setOffBoard(true)));
+  }, [actions, router, card.id, offBoard]);
   const prevRunning = useRef<Set<string>>(new Set());
   // …and the same signal the drafts pane re-reads on (#411): a repurpose writes its file
   // and ends, and this is how the draft arrives in the pane with nothing to poll.
@@ -1206,18 +1209,18 @@ export function CardPage({
 
   // A chat wrote the board while it was answering (#243) — quite possibly this very
   // card, since the card's own conversation is the one in the rail. Re-read in place,
-  // and wake the runs poll in case the same message started a run. When the card
-  // itself has gone — the chat archived or rejected it — there is nothing left to
-  // draw, so the app goes back to the board rather than sitting on a dead page.
+  // and wake the runs poll in case the same message started a run. When the card itself
+  // has gone — the chat archived or rejected it — the page says so where it stands, the
+  // same as any other way a card can leave the board under a reader.
   const boardChanged = useCallback(
     ({ cardGone }: BoardChange) => {
-      if (cardGone) router.push("/");
+      if (cardGone) setOffBoard(true);
       else {
         refresh();
         kick();
       }
     },
-    [router, refresh, kick],
+    [refresh, kick],
   );
 
   // A live session on this card (from any tab) blocks a second one and shows a badge.
@@ -1435,6 +1438,25 @@ export function CardPage({
             {error && (
               <div className="nb-section bg-nb-peach-soft p-3.5 text-[13px] text-nb-peach-ink">
                 {error}
+              </div>
+            )}
+
+            {/* The card left the board while it was being read (#299). Not an alert either:
+                nothing failed, the work finished — so it sits where the offline line sits,
+                with the one place the card went. */}
+            {offBoard && (
+              <div className="nb-section flex flex-wrap items-center gap-x-2 gap-y-1 bg-nb-sky-soft p-3.5 text-[13px]">
+                <span>{c.offBoard.line}</span>
+                {/* The archive is a screen only the app has, and only the app can reach
+                    this line at all — the hosted card page is handed no actions. */}
+                {actions && (
+                  <Link
+                    href={`/archive/${card.id}`}
+                    className="font-[700] text-nb-accent hover:text-nb-accent-deep"
+                  >
+                    {c.offBoard.open}
+                  </Link>
+                )}
               </div>
             )}
 

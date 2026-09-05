@@ -9,6 +9,7 @@ const zh: CardCopy = {
   landed: (commit) => `已合入 ${commit}`,
   landedNothing: "已合入——没有需要提交的改动",
   ended: "已结束",
+  offBoard: { line: "这张卡片已离开看板。", open: "在归档中打开" },
   supersedes: "此前批准的成果已经与这张卡片不符，因此本次运行从当前版本重新开始。",
   waitingOnYou: "等你决定",
   interrupted: {

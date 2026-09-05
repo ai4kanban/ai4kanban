@@ -11,6 +11,10 @@ export type CardCopy = {
   landedNothing: string;
   /** The last delivery on this card was ended before it landed. */
   ended: string;
+  /** The card left the board while its page was open (#299) — a delivery that landed
+   *  archived it, or a group root went with its last subtask. The page stays put and says
+   *  so; the archive holds what it became. */
+  offBoard: { line: string; open: string };
   /** The delivery started again from the current card rather than the approved copy. */
   supersedes: string;
   /** The heading over a delivery note that is waiting on the reader. */
