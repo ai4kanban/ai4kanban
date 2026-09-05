@@ -16,6 +16,8 @@ import { runtimeHarness } from '../agent/resolve'
 import { specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from '../agent/settings'
 import type { SpecAgentEntry } from '../agent/settings'
 import type { SpecAgentView } from '../agent/types'
+import { agentMemoryFile, readAgentMemory } from '../memory'
+import { rel } from '../paths'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import { specAgentCatalog } from './catalog'
 import type { SpecAgent } from './parse'
@@ -127,6 +129,22 @@ export function specAgentInstructions(
   return { instructions: agent.body.trim(), references, notes }
 }
 
+/** What an agent that remembers is handed of its own file (#421) — read as the run starts,
+ *  like everything else it is given, so it has nothing to go and find.
+ *
+ *  An agent that has written nothing down yet is still handed the block. A memory it is
+ *  never shown is a memory it never starts: the empty file is the invitation.
+ *
+ *  Empty for an agent that declares no memory, which is every agent that did not ask for
+ *  one — those start each run fresh, as they always have. */
+export function agentMemoryBlock(agent: SpecAgent): string {
+  if (!agent.memory) return ''
+  return [
+    'What you learned on this board, in your own words from earlier runs — the taste you were corrected on and the product facts you needed. Follow it here:',
+    readAgentMemory(agent.name) || '_(empty — nothing has been written down yet.)_',
+  ].join('\n\n')
+}
+
 /** The agents on the `spec` hook — the ones `akb spec` runs. An agent on another hook is
  *  still on this board and still drawn in its pane; it is just not something a card's spec
  *  is filled by. */
@@ -159,7 +177,14 @@ export function specAgentSelector(id: number | string): string {
     // own job.
     '<spec-agents>',
     "Specialist agents this board has, each filling one part of a card's spec in a run of its own:",
-    ...on.flatMap((a) => [`- \`${a.name}\``, `  owns ${a.owns}`, `  ${a.description}`]),
+    ...on.flatMap((a) => [
+      `- \`${a.name}\``,
+      `  owns ${a.owns}`,
+      `  ${a.description}`,
+      // Which of them remember, and where (#421). These flows are the ones that hear the
+      // user's answer about an agent's section, and the line they append goes in this file.
+      ...(a.memory ? [`  remembers ${rel(agentMemoryFile(a.name))}`] : []),
+    ]),
     `Review this list once. Ask for an agent only where the card would otherwise be planned by guess in the part that agent owns, and only when that section is missing: \`akb spec <agent> ${id} <short note>\`.`,
     'Asking for none is the usual answer. Do not ask for an agent to review, repeat or check work, and do not wait for one — the board starts it when this run ends.',
     '</spec-agents>',

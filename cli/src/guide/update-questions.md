@@ -52,3 +52,14 @@ A `verify:` line is a post-build check that needs human judgment or an environme
 cannot use. It is not a decision, carries no options, and does not block the card. Give a
 reproducible setup, human action, expected result, and any required fixture. Put checks the
 implementation agent can run in `## Todo` instead.
+
+### An agent's memory
+
+A spec agent that remembers is marked `remembers <path>` in the roster of agents. When the
+user's answer or revision lands on that agent's section — its recommendation taken, sent
+back, or overruled — append one line to that file: what was taken, what was sent back, and
+why. Start the file with ``# What `<agent>` learned`` when it isn't there.
+
+One line, in the user's own terms, and no card id, date, or story of the run. Nothing else
+goes in that file; the rest of it is the agent's. An agent the roster does not mark keeps no
+memory — write nothing.

@@ -18,7 +18,13 @@ import { CHAT_IGNORE_LINE } from '../lib/agent/chat'
 import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
 import { writeReleasesIfMissing } from '../lib/releases'
-import { scaffoldMemoryPath, scaffoldPillarMemory, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
+import {
+  RESERVED_MEMORY_DIR,
+  scaffoldMemoryPath,
+  scaffoldPillarMemory,
+  scaffoldProjectMemory,
+  type Scaffolded,
+} from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
 import { writePruneMemoryCard } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
@@ -207,6 +213,12 @@ export function cmdInit(named?: Solution): MoveResult {
         warn(`skipping module "${m}" — a name needs letters, digits, and dashes to be a folder`)
         continue
       }
+      // The same folder `memory-init` refuses: the memory set scaffolded here would land on
+      // top of the agents' own files (#421).
+      if (m === RESERVED_MEMORY_DIR) {
+        warn(`skipping module "${m}" — memory/${RESERVED_MEMORY_DIR}/ is where agent memories live`)
+        continue
+      }
       const done = marketing ? scaffoldPillarMemory(m) : scaffoldMemoryPath(m)
       if (done) scaffolded.push(done)
     }
@@ -268,6 +280,14 @@ export function cmdMemoryInit(module: string | undefined): MoveResult {
   if (!MODULE_NAME_RE.test(module)) {
     die(`bad module name "${module}" — use letters, digits, and dashes (a folder name)`, {
       kind: 'bad-module-name',
+      module,
+    })
+  }
+  // `memory/agents/` is where the agents that remember keep their own files (#421), so a
+  // module of that name would scaffold the memory set on top of them.
+  if (module === RESERVED_MEMORY_DIR) {
+    die(`\`${RESERVED_MEMORY_DIR}\` is the board's own memory folder — the agents that remember keep their files there. Name the module something else.`, {
+      kind: 'reserved-module-name',
       module,
     })
   }

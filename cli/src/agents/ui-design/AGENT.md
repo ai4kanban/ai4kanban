@@ -4,6 +4,7 @@ description: Use when a card changes or adds a screen the user sees.
 akb:
   kind: spec
   owns: the screen a card changes — one layout drawn by default, alternatives only when requested
+  memory: project
   settings:
     - key: mockupStyle
       label: Mockup style

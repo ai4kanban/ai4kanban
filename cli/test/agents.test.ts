@@ -25,13 +25,14 @@ import {
   specHookAgents,
 } from '../src/lib/agents/index.ts'
 import { parseYamlBlock } from '../src/lib/agents/yaml.ts'
+import { move, refuses } from './helpers/board.ts'
 
 let root = ''
 
 const kanban = (): string => path.join(root, 'docs', 'kanban')
 
 const board = (cfg: Record<string, unknown> = {}): void => {
-  fs.mkdirSync(kanban(), { recursive: true })
+  fs.mkdirSync(path.join(kanban(), 'todo'), { recursive: true })
   fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg, null, 2))
   setBoardRoot(root)
 }
@@ -63,6 +64,36 @@ const AGENT = [
   'You settle the wire contract a card changes.',
   '',
 ].join('\n')
+
+/** One card on the board, the shape a spec agent writes into. */
+const card = (id: number): string => {
+  const file = path.join(kanban(), 'todo', 'skill', `${id}-a-card.md`)
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(
+    file,
+    [
+      '---',
+      'title: A card',
+      'priority: med',
+      'roi: med',
+      'status: ready',
+      'release: ""',
+      'blocked_by: []',
+      'related: []',
+      'modules: [skill]',
+      'questions: []',
+      '---',
+      '',
+      'A card.',
+      '',
+    ].join('\n'),
+  )
+  return file
+}
+
+/** What one agent remembers, as it stands on disk. */
+const remembered = (name: string): string =>
+  fs.readFileSync(path.join(kanban(), 'memory', 'agents', `${name}.md`), 'utf8')
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-spec-agents-'))
@@ -340,5 +371,138 @@ describe("the YAML an agent's frontmatter is written in", () => {
         },
       },
     )
+  })
+})
+
+// An agent that remembers (#421): one scope, one file, read into every run it starts and
+// written back whole by the move that writes its section.
+describe('the memory an agent declares', () => {
+  const withMemory = (scope: string): string =>
+    AGENT.replace('  kind: spec\n', `  kind: spec\n  memory: ${scope}\n`)
+
+  it('is `project` on `ui-design` and nothing on `technology-selection`', () => {
+    assert.equal(findSpecAgent('ui-design')?.memory, 'project')
+    assert.equal(findSpecAgent('technology-selection')?.memory, null)
+  })
+
+  it('is read the same way off a project agent', () => {
+    project('api-contract', { 'AGENT.md': withMemory('project') })
+    assert.deepEqual(specAgentCatalog().problems, [])
+    assert.equal(findSpecAgent('api-contract')?.memory, 'project')
+  })
+
+  it('refuses any other scope, naming the file', () => {
+    project('api-contract', { 'AGENT.md': withMemory('user') })
+    const { agents, problems } = specAgentCatalog()
+    assert.ok(!agents.some((a) => a.name === 'api-contract'))
+    assert.match(problems.join('\n'), /agents\/api-contract\/AGENT\.md:/)
+    assert.match(problems.join('\n'), /`akb.memory: user` — `project` is the only scope/)
+  })
+
+  it('marks in the roster which agents remember, and where', () => {
+    const catalog = specAgentSelector(12)
+    assert.match(catalog, /remembers docs\/kanban\/memory\/agents\/ui-design\.md/)
+    assert.doesNotMatch(catalog, /remembers.*technology-selection/)
+  })
+})
+
+describe('what a run of an agent that remembers is handed', () => {
+  it('inlines the file as one more block, and says how to write it back', () => {
+    fs.mkdirSync(path.join(kanban(), 'memory', 'agents'), { recursive: true })
+    fs.writeFileSync(
+      path.join(kanban(), 'memory', 'agents', 'ui-design.md'),
+      '# What `ui-design` learned\n\n- This product never opens a modal.\n',
+    )
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    assert.match(prompt, /——— what you remember ———/)
+    assert.match(prompt, /This product never opens a modal\./)
+    assert.match(prompt, /adding `--memory <path>` to that same call/)
+    // Beside its own rule, and after it — the board's words end before the agent's do.
+    assert.ok(prompt.indexOf('——— you, the `ui-design` agent ———') < prompt.indexOf('——— what you remember ———'))
+  })
+
+  it('hands it the empty file rather than nothing, so it knows it has one', () => {
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    assert.match(prompt, /——— what you remember ———/)
+    assert.match(prompt, /nothing has been written down yet/)
+  })
+
+  it('says nothing of memory to an agent that declares none', () => {
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'technology-selection' })
+    assert.doesNotMatch(prompt, /——— what you remember ———/)
+    assert.doesNotMatch(prompt, /You keep a memory of this board/)
+  })
+})
+
+describe('writing what an agent remembers', () => {
+  const memoryFile = (text: string): string => {
+    const file = path.join(root, 'memory.md')
+    fs.writeFileSync(file, text)
+    return file
+  }
+
+  it('starts the file with one heading, beside the section it wrote', async () => {
+    card(12)
+    await move(root, [
+      'spec-write',
+      '12',
+      'ui-design',
+      '--text',
+      'a screen',
+      '--memory',
+      memoryFile('- This product never opens a modal.'),
+    ])
+    assert.equal(
+      remembered('ui-design'),
+      '# What `ui-design` learned\n\n- This product never opens a modal.\n',
+    )
+  })
+
+  it('replaces it whole, and never stacks a second heading', async () => {
+    card(12)
+    const write = (text: string): Promise<unknown> =>
+      move(root, ['spec-write', '12', 'ui-design', '--text', 'a screen', '--memory', memoryFile(text)])
+    await write('- One.')
+    await write('# What `ui-design` learned\n\n- One.\n- Two.')
+    assert.equal(remembered('ui-design'), '# What `ui-design` learned\n\n- One.\n- Two.\n')
+    // Handed back with the heading retyped rather than copied, it is still the one heading.
+    await write('# What ui-design learned\n\n- One.')
+    assert.equal(remembered('ui-design'), '# What `ui-design` learned\n\n- One.\n')
+  })
+
+  it('refuses it for an agent that declares no memory', async () => {
+    card(12)
+    await refuses(
+      root,
+      ['spec-write', '12', 'technology-selection', '--text', 'a pick', '--memory', memoryFile('- One.')],
+      /keeps no memory/,
+    )
+    assert.ok(!fs.existsSync(path.join(kanban(), 'memory', 'agents')))
+  })
+})
+
+// `memory/agents/` is the board's own, so a module of that name would scaffold the memory
+// set on top of the agents' files.
+describe('`agents` as a module name', () => {
+  it('is refused by `memory-init`', async () => {
+    await refuses(root, ['memory-init', 'agents'], /board's own memory folder/)
+  })
+
+  it('still takes any other module name', async () => {
+    const made = await move(root, ['memory-init', 'skill'])
+    assert.match(String(made.dir), /memory\/skill$/)
+  })
+
+  // `init` scaffolds the set for every module the map names, so the map is the other way
+  // the four files could land on top of the agents' own.
+  it('gets no memory set from `init` when the map names it anyway', async () => {
+    fs.writeFileSync(path.join(kanban(), 'modules.md'), '- **agents** — a module someone named\n- **skill** — the command\n')
+    fs.mkdirSync(path.join(kanban(), 'memory', 'agents'), { recursive: true })
+    fs.writeFileSync(path.join(kanban(), 'memory', 'agents', 'ui-design.md'), '# What `ui-design` learned\n\n- One.\n')
+    await move(root, ['init'])
+    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'decisions.md')), false)
+    assert.equal(remembered('ui-design'), '# What `ui-design` learned\n\n- One.\n')
+    // Every other module on the map still gets its set.
+    assert.ok(fs.existsSync(path.join(kanban(), 'memory', 'skill', 'decisions.md')))
   })
 })

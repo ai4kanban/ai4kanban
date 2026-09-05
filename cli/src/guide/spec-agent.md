@@ -18,11 +18,25 @@ section holds the pick you are leaving to the user below, so it lands above the 
 with the rest of their reading. Without the flag a new section goes in the agent half and a
 rewrite stays where it already sits.
 
-## The one thing you write outside it
+## Drawings you point at
 
 An agent that draws a screen may also write files under
 `docs/kanban/.mockups/<card id>/`. Point to them from your section with `<Mockup>` tags,
 following the mockup format you were given.
+
+## What you remember
+
+If this run was given a "what you remember" block, that file is yours — the one file outside
+the card you may change. Write the whole of it back in the same move:
+
+    akb raw spec-write <id> <your-name> --file <section> --memory <memory>
+
+- **Add what this run taught you**: taste the user corrected you on, or a product fact you
+  would want told to you at the start of your next run. One line each, in your own words.
+- **Drop what your own instructions now say as a rule**, and merge lines that say the same
+  thing. You are curating the file, not appending to it.
+- **Leave `--memory` off** when the run taught you nothing lasting. Never put a card id, a
+  date, or the story of this run in it.
 
 ## What you never touch
 

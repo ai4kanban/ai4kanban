@@ -302,7 +302,9 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       "Put a spec agent's answer on the card as one section headed `## By `<agent>` agent`, and change " +
         'nothing else. Run again for the same agent and the section is REPLACED, never added twice. The ' +
         'section goes before `## Decided by the agent`, or at the end. Told nothing, a new section goes ' +
-        'below the agent boundary and a rewrite stays put.',
+        'below the agent boundary and a rewrite stays put. `--memory` writes the other file an agent may ' +
+        'have — docs/kanban/memory/agents/<agent>.md, replaced whole, created with its heading on the ' +
+        'first write.',
     )
     .option('--file <path>', 'the answer, as markdown written to a file first')
     .option('--text <text>', 'the answer, for a one-liner')
@@ -310,6 +312,10 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       '--half <half>',
       'human — above the agent boundary, where a pick the user still has to make belongs; agent — below it',
       oneOf(['human', 'agent']),
+    )
+    .option(
+      '--memory <path>',
+      "what the agent remembers, curated whole and written to a file first — only for an agent whose AGENT.md declares `memory: project`",
     )
     .action(async function (this: Command, id: number, agent: string) {
       await dispatch('spec-write', this, [String(id), agent], this.opts(), cli)

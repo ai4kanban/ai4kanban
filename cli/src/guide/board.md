@@ -147,6 +147,10 @@ proposals. The board sets `pending` when a goal is saved; replace it with an ass
 the next time you read the goal. Assess it during the `goal` setup step and every propose
 run without interrupting the user.
 
+**`docs/kanban/memory/agents/` is not a module.** It holds one file per spec agent that
+declares `memory: project` — that agent's own, curated by it and appended to by the flow
+that hears the user's answer about its section (`akb guide update-questions`).
+
 ## Archive/Finish a task
 
 **`akb raw archive <id>` is the only way a task leaves the board.** It files the card,

@@ -1,8 +1,9 @@
 # Prune the memory set
 
-Prune every file in the memory set (see "The memory set" in `akb guide board`). Prune whichever
-copy you're compressing: the project-wide one at `docs/kanban/memory/` or a module's at
-`docs/kanban/memory/<module>/`. `goal.md` is not in the set — it's user-owned, leave it alone.
+Prune every file in the memory set (see "The memory set" in `akb guide board`), and the agent
+memories beside it in `docs/kanban/memory/agents/`. Prune whichever copy you're compressing:
+the project-wide one at `docs/kanban/memory/` or a module's at `docs/kanban/memory/<module>/`.
+`goal.md` is not in the set — it's user-owned, leave it alone.
 
 One principle for all files: they exist to stop us re-proposing work, re-making a
 design mistake, or re-asking a settled question. Rewrite each as **topics** (h2 title) — areas of
@@ -28,3 +29,6 @@ On top of that, per file:
   that fails its bar in `akb guide board` ("The memory set"): a call about code detail, or one the
   published docs now cover. Drop a decision once the question no longer arises or
   `redesign.md` states it as a rule.
+- `agents/<agent>.md` — one line per entry: taste that agent was corrected on, or a product
+  fact it needs next time. Drop an entry once that agent's own instructions say it as a
+  rule, and drop the file when its agent is gone from `akb spec`.

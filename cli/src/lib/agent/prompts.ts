@@ -9,7 +9,7 @@ import { channelLanguage } from '../channels'
 import { draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
 import { boardText, rel } from '../paths'
-import { findSpecAgent, specHeading, specAgentInstructions, specAgentSelector } from '../agents'
+import { agentMemoryBlock, findSpecAgent, specHeading, specAgentInstructions, specAgentSelector } from '../agents'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
@@ -338,10 +338,16 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       const own = agent ? specAgentInstructions(agent) : null
       if (own) notes.push(...own.notes)
       const contract = findGuide('spec-agent')?.text.trim()
+      // What this agent remembers, when it declares a memory at all (#421) — the last block,
+      // so the board's own words end before the agent's do.
+      const memory = agent ? agentMemoryBlock(agent) : ''
       return [
         [
           `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
           `Read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb raw spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
+          memory
+            ? `You keep a memory of this board, below. Follow it, and when this run taught you something lasting, curate it and write the whole file back by adding \`--memory <path>\` to that same call.`
+            : '',
           `Change nothing else — not the rest of the card, not another card, not the code.`,
           req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
           `Everything you need is in this message: the contract below, your instructions, and the references they selected. Do not go looking for more of them.`,
@@ -352,6 +358,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         contract ? `——— how a spec agent works ———\n\n${contract}` : '',
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
+        memory ? `——— what you remember ———\n\n${memory}` : '',
       ]
         .filter(Boolean)
         .join('\n\n')

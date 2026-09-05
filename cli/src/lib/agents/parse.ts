@@ -10,6 +10,7 @@
 //   akb:
 //     kind: spec
 //     owns: the screen a card changes
+//     memory: project       # optional; the only scope there is
 //     settings:
 //       - key: mockupStyle
 //         label: Mockup style
@@ -41,6 +42,8 @@ export interface SpecAgent {
   owns: string
   /** The hook it plugs into. */
   kind: AgentKind
+  /** The scope it remembers in, or null when it declares none and starts every run fresh. */
+  memory: AgentMemory | null
   settings: SpecAgentSetting[]
   /** Its `AGENT.md` instructions, without the frontmatter. */
   body: string
@@ -57,6 +60,12 @@ export interface SpecAgent {
  *  else is refused rather than registered as something that could never run. */
 export const AGENT_KINDS = ['spec', 'write'] as const
 export type AgentKind = (typeof AGENT_KINDS)[number]
+
+/** The scopes an agent may remember in. One: the board it runs on, in a file its team
+ *  shares. A memory of the machine or of the person reading it would be a memory nobody
+ *  else could see, which is the opposite of what an agent on a board is for. */
+export const AGENT_MEMORIES = ['project'] as const
+export type AgentMemory = (typeof AGENT_MEMORIES)[number]
 
 const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const RESERVED_KEYS = ['enabled', 'runtime']
@@ -93,6 +102,14 @@ export function parseSpecAgent(
   const owns = str(akb.owns)
   if (!owns) return bad(`\`${name}\` has no \`akb.owns\`, which is the part of the spec it answers for`)
 
+  // Declaring nothing is the common case: an agent without a memory starts every run fresh,
+  // which is what all of them did before this existed.
+  const declaredMemory = str(akb.memory)
+  if (declaredMemory && !isMemory(declaredMemory)) {
+    return bad(`\`${name}\` declares \`akb.memory: ${declaredMemory}\` — \`${AGENT_MEMORIES.join('` or `')}\` is the only scope`)
+  }
+  const memory = isMemory(declaredMemory) ? declaredMemory : null
+
   const settings: SpecAgentSetting[] = []
   const declared = akb.settings === undefined || akb.settings === '' ? [] : akb.settings
   if (!Array.isArray(declared)) return bad(`\`${name}\`: \`akb.settings\` has to be a list`)
@@ -109,11 +126,13 @@ export function parseSpecAgent(
   if (!instructions) return bad(`\`${name}\` has frontmatter but no instructions under it`)
 
   return {
-    agent: { name, description, owns, kind: declaredKind, settings, body: instructions, from, builtIn, file },
+    agent: { name, description, owns, kind: declaredKind, memory, settings, body: instructions, from, builtIn, file },
   }
 }
 
 const isKind = (value: string): value is AgentKind => (AGENT_KINDS as readonly string[]).includes(value)
+
+const isMemory = (value: string): value is AgentMemory => (AGENT_MEMORIES as readonly string[]).includes(value)
 
 function readSetting(
   raw: YamlValue,

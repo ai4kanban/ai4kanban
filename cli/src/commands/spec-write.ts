@@ -14,8 +14,10 @@ import { locate } from '../lib/cards'
 import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter'
 import { say } from '../lib/io'
 import { fixMockupBlocks } from '../lib/mockups'
+import { writeAgentMemory } from '../lib/memory'
 import { die, rel, TODO, warn } from '../lib/paths'
 import { findSpecAgent, notAnAgent, specHeading, specAgentNames } from '../lib/agents'
+import type { SpecAgent } from '../lib/agents'
 import type { MoveResult } from '../lib/types'
 
 // The sections a spec agent's own goes in FRONT of. They are the card's tail — what the
@@ -33,11 +35,16 @@ type Half = (typeof HALVES)[number]
 
 /** `akb raw spec-write`, as its command declares it (lib/cli/board.ts). Told no `--half`,
  *  a new section goes in the agent half and a rewrite stays where it sits — a spec agent
- *  that says nothing about the reader has not asked for the card to be reshaped. */
+ *  that says nothing about the reader has not asked for the card to be reshaped.
+ *
+ *  `--memory` is the other half of the same write (#421): an agent that declares one keeps
+ *  its memory here too, so the run that answers the card and the run that learned something
+ *  are one call and one place. */
 export interface SpecWriteOptions {
   file?: string
   text?: string
   half?: Half
+  memory?: string
 }
 
 // `agent` is the word a section carries now; `skill` is the word it carried between #403
@@ -52,6 +59,9 @@ export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOpti
   const name = agent.name
 
   const section = readSection(flags.file, flags.text)
+  // Both inputs are read before either is written, so a memory the move cannot read never
+  // leaves the card written and the memory not.
+  const memory = readMemory(agent, flags.memory)
   const half = flags.half ?? null
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
@@ -62,7 +72,33 @@ export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOpti
   const { body: next, replaced } = splice(body, name, section, half)
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + next)
   say(`${replaced ? 'rewrote' : 'wrote'} the \`${name}\` section on #${id} (${rel(file)})`)
-  return { id, specAgent: name, replaced, file: rel(file) }
+  const kept = memory === null ? null : writeAgentMemory(name, memory)
+  if (kept) say(`${kept.fresh ? 'started' : 'rewrote'} what \`${name}\` remembers (${rel(kept.file)})`)
+  return { id, specAgent: name, replaced, file: rel(file), ...(kept ? { memory: rel(kept.file) } : {}) }
+}
+
+// The agent's curated memory, from the file `--memory` names. Null when the flag was not
+// passed, which is the usual run: an agent that learned nothing this time writes nothing.
+//
+// The whole file every time, never an appended line — an agent is handed its memory and
+// hands it back, so what it keeps is a choice it made rather than a pile it never revisits.
+function readMemory(agent: SpecAgent, from: string | undefined): string | null {
+  if (from === undefined) return null
+  if (!agent.memory) {
+    die(`the \`${agent.name}\` agent keeps no memory — add \`memory: project\` under \`akb:\` in its AGENT.md first`, {
+      kind: 'agent-has-no-memory',
+      specAgent: agent.name,
+    })
+  }
+  let raw: string
+  try {
+    raw = fs.readFileSync(from, 'utf8')
+  } catch {
+    die(`can't read ${from} — write your memory to a file, then pass its path`)
+  }
+  const text = raw!.trim()
+  if (!text) die('the memory is empty — leave `--memory` off rather than emptying what you remember')
+  return text
 }
 
 // The agent's answer, from a file or straight off the command line. A file is what the

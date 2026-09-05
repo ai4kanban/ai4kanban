@@ -6,7 +6,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { warn, MEMORY } from './paths'
+import { warn, AGENT_MEMORY, MEMORY } from './paths'
 import { solution } from './solution'
 import { MODULE_NAME_RE } from './validate'
 
@@ -139,6 +139,52 @@ function scaffoldMemoryDir(dir: string, set: Record<string, string>): Scaffolded
   return made.length ? { dir, made, fresh: false } : null
 }
 
+// ---- an agent's own memory (#421) ------------------------------------------
+//
+// An agent that declares `memory: project` keeps one file of what it learned — the taste it
+// was corrected on and the product facts it needs next time. It sits beside the memory set
+// rather than in it: the set is the board's memory, keyed by module, and this is one
+// agent's, keyed by its name.
+//
+// The file is the whole memory. It is read into every run that agent starts and written
+// back whole, so an agent curates what it kept rather than appending to a file it cannot
+// see the end of.
+
+/** The one folder name a module may not take: it is where agent memories live. */
+export const RESERVED_MEMORY_DIR = 'agents'
+
+export const agentMemoryFile = (agent: string): string => path.join(AGENT_MEMORY, `${agent}.md`)
+
+export const agentMemoryHeading = (agent: string): string => `# What \`${agent}\` learned`
+
+// A heading the agent wrote for itself, matched by its shape rather than its exact words —
+// the way `spec-write` matches the one it owns, so a near-miss is dropped instead of stacked
+// under the board's own.
+const HEADING_RE = /^#\s+What\s+.+\s+learned\s*$/i
+
+/** What one agent remembers, or empty when it has written nothing down yet. */
+export function readAgentMemory(agent: string): string {
+  try {
+    return fs.readFileSync(agentMemoryFile(agent), 'utf8').trim()
+  } catch {
+    return ''
+  }
+}
+
+/** Replace what one agent remembers. The heading is the board's, added on the first write
+ *  and never twice: an agent handed its file back rewrites the lines under it, and a
+ *  heading it wrote for itself is dropped the way `spec-write` drops one. */
+export function writeAgentMemory(agent: string, text: string): { file: string; fresh: boolean } {
+  const file = agentMemoryFile(agent)
+  const fresh = !fs.existsSync(file)
+  const heading = agentMemoryHeading(agent)
+  const lines = text.trim().split('\n')
+  if (HEADING_RE.test(lines[0]?.trim() ?? '')) lines.shift()
+  fs.mkdirSync(AGENT_MEMORY, { recursive: true })
+  fs.writeFileSync(file, `${heading}\n\n${lines.join('\n').trim()}\n`)
+  return { file, fresh }
+}
+
 // Which copy of a memory file a card's note belongs in — "The memory set" in `akb guide board`
 // in code, so a flow about to write a note stops re-deriving it: the named module's copy,
 // both when the card names two, the project-wide one when it names none. Never a module
@@ -150,6 +196,10 @@ function scaffoldMemoryDir(dir: string, set: Record<string, string>): Scaffolded
 // goes — and whether it merges into one already there — is a judgment call.
 export function memoryTargets(modules: string[], fileName: string): MemoryTarget[] {
   const named = modules.filter((m: string) => {
+    if (m === RESERVED_MEMORY_DIR) {
+      warn(`card names module "${m}", which is where agent memories live — skipping its memory path`)
+      return false
+    }
     if (MODULE_NAME_RE.test(m)) return true
     warn(`card names module "${m}", which isn't a usable folder name — skipping its memory path`)
     return false

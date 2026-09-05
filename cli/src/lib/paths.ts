@@ -63,6 +63,10 @@ export const MOCKUP_IGNORE_LINE = '.mockups/'
 // All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
 // itself, each module's set in a subfolder named after the module.
 export let MEMORY = ''
+// What each agent that declares `memory: project` learned — one file per agent, named after
+// it (#421). Reserved: a module called `agents` would write its set into this folder, so
+// `memory-init` refuses the name.
+export let AGENT_MEMORY = ''
 // The one goal file — board root only, never per module (see PROJECT_MEMORY_SET).
 export let GOAL = ''
 // The lock every writing move takes, so two of them never hand out the same id (lock.ts).
@@ -199,6 +203,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   LEGACY_AGENTS = path.join(KANBAN, 'skills')
   MOCKUPS = path.join(KANBAN, '.mockups')
   MEMORY = path.join(KANBAN, 'memory')
+  AGENT_MEMORY = path.join(MEMORY, 'agents')
   GOAL = path.join(MEMORY, 'goal.md')
   LOCK = path.join(KANBAN, '.lock')
   UI_CONFIG = path.join(KANBAN, 'ui.config.json')

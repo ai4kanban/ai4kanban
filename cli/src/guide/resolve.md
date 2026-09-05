@@ -36,5 +36,8 @@ Record only durable, user-facing answers in `memory/<module>/decisions.md`. Writ
 contradicted call instead of keeping both. If the user's answer is unclear, leave memory
 unchanged and keep the question open.
 
+Where the answer lands on a spec agent's section, also record it in that agent's memory —
+"An agent's memory" in `akb guide update-questions`.
+
 After applying the supplied answers, follow `akb guide qa-loop` to validate the updated card
 and every question still open.

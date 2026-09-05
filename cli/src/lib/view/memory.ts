@@ -19,6 +19,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { RESERVED_MEMORY_DIR } from '../memory'
 import { MEMORY, rel } from '../paths'
 import { readModules } from './first-run'
 import { MEMORY_FILES, type MemoryFile, type MemoryModule, type MemoryName } from './types'
@@ -29,13 +30,20 @@ const memoryPath = (name: string, module: string): string =>
 const known = (name: string): name is MemoryName =>
   MEMORY_FILES.some((f) => f.name === name)
 
+// The project's own copy, or a module the map names — never `memory/agents/`, which is the
+// agents' own and not a module's set however the map spells it (#421).
+const openable = (module: string): boolean =>
+  !module || (module !== RESERVED_MEMORY_DIR && readModules().includes(module))
+
 /** The modules the panel can open, in the map's order, each saying whether it has a memory
  *  folder yet. A module with none gets one line saying so rather than four dead rows. */
 export function readMemoryModules(): MemoryModule[] {
-  return readModules().map((name) => ({
-    name,
-    hasMemory: fs.existsSync(path.join(MEMORY, name)),
-  }))
+  return readModules()
+    .filter(openable)
+    .map((name) => ({
+      name,
+      hasMemory: fs.existsSync(path.join(MEMORY, name)),
+    }))
 }
 
 /** One memory file, whole — the project's copy, or a module's when `module` names one.
@@ -44,7 +52,7 @@ export function readMemoryModules(): MemoryModule[] {
  *  caller passing an address someone typed gets an answer it can turn into "no such page". */
 export function readMemoryFile(name: string, module = ''): MemoryFile | null {
   if (!known(name)) return null
-  if (module && !readModules().includes(module)) return null
+  if (!openable(module)) return null
   const ref = MEMORY_FILES.find((f) => f.name === name)!
   const file = memoryPath(name, module)
   let text = ''
@@ -79,7 +87,7 @@ export function readMemoryFile(name: string, module = ''): MemoryFile | null {
  */
 export function writeMemoryFile(name: string, text: string, module = ''): MemoryFile | null {
   if (!known(name)) return null
-  if (module && !readModules().includes(module)) return null
+  if (!openable(module)) return null
   const file = memoryPath(name, module)
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, text.endsWith('\n') || text === '' ? text : `${text}\n`)

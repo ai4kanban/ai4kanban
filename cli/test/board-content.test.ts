@@ -98,6 +98,17 @@ describe('the memory set, as a contract write', () => {
     assert.equal(fs.existsSync(path.join(kanban, 'memory', 'notes.md')), false)
     assert.equal(fs.existsSync(path.join(kanban, 'memory', 'nowhere')), false)
   })
+
+  // `memory/agents/` is the agents' own (#421). A map that names a module `agents` does not
+  // turn it into one, or the set would be written on top of what an agent remembers.
+  it('refuses `agents`, whatever the map says', async () => {
+    write('modules.md', '- **agents** — a module someone named\n- **skill** — the command\n')
+    const res = await onBoard((env) => board().saveMemoryFile('decisions', 'x', 'agents', env))
+    assert.equal(res.ok, false)
+    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'agents')), false)
+    assert.equal(await board().readMemoryFile('decisions', 'agents'), null)
+    assert.deepEqual((await board().readMemoryModules()).map((m) => m.name), ['skill'])
+  })
 })
 
 describe('the per-flow rules, as a contract write', () => {
