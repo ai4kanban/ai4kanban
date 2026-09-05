@@ -97,6 +97,9 @@ export type CardCopy = {
     projectFolderHint: string;
     autoCommit: string;
     manualCommits: string;
+    /** Only said when this delivery froze AI review OFF (#416) — the default needs no line. */
+    noReview: string;
+    noReviewHint: string;
     landedAs: string;
     finished: string;
     /** What a session's own line says once it is not running. */

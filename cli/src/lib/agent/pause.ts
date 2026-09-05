@@ -8,6 +8,7 @@
 // One answer, read three ways: the card page's pill and the line under it, the sentence a
 // refused board move gives, and the hold that lets Resolve through while a delivery waits.
 
+import { aiReviewOn } from './review'
 import type { DeliveryRecord } from './types'
 
 /** Where a delivery stands. Three of these are pauses: nothing moves until the user acts. */
@@ -21,7 +22,8 @@ export type DeliveryStage =
   /** Built and reviewed; landing waits until the user approves the tree it would land
    *  (#308). Only on a board with **Approve diffs before landing** on. */
   | 'approval'
-  /** Manual commit mode: review passed, and the commit is the user's to make. */
+  /** Manual commit mode: the delivery's own work is finished, and the commit is the user's
+   *  to make. */
   | 'commit'
   /** The whole candidate goes back through review before anything else happens: its
    *  question has been answered, or — in manual commit mode — they committed something
@@ -116,10 +118,14 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
   }
   if (delivery.commitMode !== 'auto') {
     if (delivery.reviewed) {
+      // Nothing read this code but the build and the repository's own checks when AI review
+      // is off (#416), so the line says the build is done rather than that a review passed.
       return {
         stage: 'commit',
         label: 'Waiting for your commit',
-        line: 'Review passed — commit these changes yourself, and the delivery carries on.',
+        line: aiReviewOn(delivery)
+          ? 'Review passed — commit these changes yourself, and the delivery carries on.'
+          : 'The build is done — commit these changes yourself, and the delivery carries on.',
         paused: true,
       }
     }

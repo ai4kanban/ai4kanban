@@ -126,6 +126,12 @@ const zh: ConfigurationCopy = {
       failedOn: "未能开启差异批准",
       failedOff: "未能关闭差异批准",
     },
+    review: {
+      title: "AI 评审",
+      body: "开启时，每次构建后会有一次全新的付费会话评审并修复问题。关闭后，构建就是最后一个读代码的 Agent——仓库自身的检查和差异批准依然生效。",
+      failedOn: "未能开启 AI 评审",
+      failedOff: "未能关闭 AI 评审",
+    },
     switchOn: (setting) => `${setting}——已开启`,
     switchOff: (setting) => `${setting}——已关闭`,
   },

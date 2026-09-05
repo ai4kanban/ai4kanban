@@ -706,9 +706,9 @@ to act on.
 | Pill | What it means |
 | --- | --- |
 | **Delivery in progress** | It is building or reviewing. Nothing is waiting on you. |
-| **Held at landing** | Built and reviewed, holding until the card's open questions are answered. |
-| **Waiting for your approval** | Built and reviewed, holding until you approve the tree it would land. |
-| **Waiting for your commit** | Manual commit mode: review passed, and the commit is yours to make. |
+| **Held at landing** | Built, holding until the card's open questions are answered. |
+| **Waiting for your approval** | Built, holding until you approve the tree it would land. |
+| **Waiting for your commit** | Manual commit mode: the delivery's own work is done, and the commit is yours to make. |
 | **Code changed after review** | You committed something other than what review passed, so it is being reviewed again. |
 | **Landed as `abc123`** | Its commit is on your branch, and the board is taking the card off. |
 
@@ -804,9 +804,9 @@ is **manual commit mode**, below.
   detached HEAD there is nothing to choose: the build is manual, and the paragraph says which of the
   three is why. A detached HEAD builds this way rather than being refused — the commit you then make
   is reachable from `HEAD` alone.
-- **Only the Implement button carries the tick.** **Schedule** and **Resolve & implement** start a
-  build later, and each reads **Automatic Git commits** as it stands then; so does
-  `akb card implement` in a terminal.
+- **Only the Implement button carries the ticks.** **Schedule** and **Resolve & implement** start a
+  build later, and each reads **Automatic Git commits** and **AI review** as they stand then; so
+  does `akb card implement` in a terminal.
 
 - **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
   same files never write over each other, and neither one touches the edits you have open.
@@ -925,6 +925,34 @@ delivery still says what it was about to do.
 **In a terminal**: `akb delivery review <id>` reviews and fixes the delivery in flight on a card again,
 `akb delivery conflict <id>` resolves the conflict a landing's rebase stopped on, and `akb guide review`
 prints the review flow.
+
+#### Turning AI review off
+
+Review is a separate paid run on every delivery. **AI review** in Configuration → General →
+Delivery turns it off for the board, and **Have a second agent review it** on the Implement dialog
+turns it off for one build — the box opens on the setting and never writes back to it, exactly as
+the worktree box does. There is no flag: **Schedule**, **Resolve & implement** and
+`akb card implement` all read the setting as it stands then.
+
+- **The choice is frozen when the delivery starts.** Flip the setting while a build runs and that
+  delivery still finishes the way it started; the next one gets the new answer. The delivery block's
+  foot reads **No AI review** on one that froze it off.
+- **The build goes straight to landing.** A finished implementation queues for the landing slot
+  itself, and the delivery record names the implementation as the check that let it land rather
+  than a review that never ran.
+- **A rebase starts no review either.** The delivery keeps the landing slot and the next pass
+  lands it against the new base.
+- **What still gates it**: the repository's own checks, which the build and conflict resolution
+  run as before; the open-question hold at landing; and **Approve diffs before landing**. The two
+  settings are independent — a board that wants a human in the loop with review off is exactly a
+  board with approval on.
+- **Nothing else reads the code before it lands.** Only those checks and whoever approves the diff
+  see the change.
+- **Without automatic Git commits, your commit is the last word.** The card reads **Waiting for
+  your commit** without claiming a review passed, and committing ends the delivery whatever it
+  holds — the board has no reviewer to judge a commit that differs from what it built.
+- **An explicit review still runs.** `akb delivery review <id>` starts one whichever way the
+  setting is set.
 
 **Open questions** is answered where it is read. Click the panel — or **Resolve** in the toolbar,
 which brings it on screen — and every question you own turns into an answer box. A question that
@@ -1109,7 +1137,7 @@ there is nothing to turn on.
 
 ### General → Delivery
 
-Two switches. Both are repository-level answers, saved in `ui.config.json` and shared by everyone
+Three switches. All are repository-level answers, saved in `ui.config.json` and shared by everyone
 on the board. A change applies to deliveries started afterwards; one already in flight keeps what it
 started with.
 
@@ -1129,6 +1157,14 @@ its own, however that was chosen, so it stays settable with automatic Git commit
   is what auto-delivery is for.
 - **On** — nothing lands unread: every delivery waits after review until you approve the exact tree
   it would land. See **Approving a delivery** below.
+
+**AI review**, on by default. It decides whether a build is judged at all. The Implement dialog's
+**Have a second agent review it** turns one build round and leaves this where it is.
+
+- **On** — a fresh session reviews each delivery and fixes what it finds. It is a separate paid
+  run per delivery.
+- **Off** — the build is the last agent to read the code, and the delivery goes straight to
+  landing. See **Turning AI review off** below.
 
 ### Runtimes, and the harness behind one
 
@@ -1409,6 +1445,7 @@ in the file, so switching agents or providers never touches any of them.
   "harness": "claude-code",
   "autoCommit": false,
   "requireDiffApproval": true,
+  "aiReview": false,
   "harnessSettings": {
     "claude-code": {
       "provider": "subscription",
@@ -1436,6 +1473,10 @@ missing key means on, which is the default.
 
 `requireDiffApproval` is **Approve diffs before landing** above. The other way round:
 only written when you turn it **on**, so a missing key means off, which is the default.
+
+`aiReview` is **AI review** above. Like `autoCommit`, only written when you turn it off — a
+missing key means on, and so does a file that will not parse: an unreadable setting must not be
+the reason something landed unreviewed.
 
 `harness` is the agent that runs: `claude-code` (the default), `codex`, `cursor`, `opencode`,
 `kimi`, `dsh` or `zcode`. The name decides everything about how that agent runs — the command, the

@@ -30,7 +30,7 @@ import {
   wantsLanding,
 } from './deliveries'
 import { HELD_ON_APPROVAL, HELD_ON_QUESTIONS, IN_LINE } from './pause'
-import { askUser, reviewOf, type Ask } from './review'
+import { aiReviewOn, askUser, reviewOf, type Ask } from './review'
 import { readStore, withStore } from './store'
 import type { AgentRequest, DeliveryLanding, DeliveryRecord } from './types'
 import {
@@ -499,9 +499,10 @@ function warnOverlap(delivery: DeliveryRecord): void {
 
 // ---- the target branch moved ------------------------------------------------
 
-// Rebase the one squash commit onto the target's new tip. The result always goes back
-// through review: the target is the current implementation, and a verdict on the old tree
-// cannot authorize the composition Git or a conflict agent made with it.
+// Rebase the one squash commit onto the target's new tip. The result goes back through
+// review: the target is the current implementation, and a verdict on the old tree cannot
+// authorize the composition Git or a conflict agent made with it. Unless the delivery has
+// AI review off (#416), which has no verdict to carry over either way — `afterRebase`.
 async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: string): Promise<Step> {
   const spent = delivery.landing?.attempts ?? 0
   if (spent >= MAX_LAND_ATTEMPTS) {
@@ -535,8 +536,13 @@ async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: s
 // The rebase completed. Its target becomes the delivery's base — the same field, so review
 // sees everything this delivery changes against the current implementation. Hold the slot
 // while a fresh review judges that exact tree; opening the run clears the stop.
+//
+// With AI review off there is no such run (#416). The delivery keeps the slot and nothing
+// is stopped, so the next landing pass picks the same holder up and carries on against the
+// new base.
 async function afterRebase(delivery: DeliveryRecord, target: string): Promise<Step> {
   const at = Date.now()
+  const reviews = aiReviewOn(delivery)
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
     if (!live || live.status !== 'active') return
@@ -547,17 +553,19 @@ async function afterRebase(delivery: DeliveryRecord, target: string): Promise<St
     landing.rebasedAt = at
     landing.why = undefined
     landing.at = at
-    reviewOf(live).stopped = {
-      reason: 'landing',
-      why: `${delivery.targetBranch} moved, so the rebased result must be reviewed before it lands`,
-      at,
+    if (reviews) {
+      reviewOf(live).stopped = {
+        reason: 'landing',
+        why: `${delivery.targetBranch} moved, so the rebased result must be reviewed before it lands`,
+        at,
+      }
     }
   })
   syncAudit(delivery.deliveryId)
   const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-  return live && live.status === 'active'
-    ? { start: { action: 'review', id: live.cardId, title: live.title } }
-    : { done: true }
+  if (!live || live.status !== 'active') return { done: true }
+  if (!reviews) return {}
+  return { start: { action: 'review', id: live.cardId, title: live.title } }
 }
 
 // ---- a conflict is new work -------------------------------------------------

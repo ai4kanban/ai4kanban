@@ -119,6 +119,18 @@ export type RunsCopy = {
       ownBranch: string;
       ownBranchOn: string;
       ownBranchOff: string;
+      /** The box beside it that decides whether THIS build is reviewed (#416), and the line
+       *  under it, which follows the tick the same way. */
+      aiReview: string;
+      aiReviewOn: string;
+      aiReviewOff: string;
+      /** The same five sentences with that box unticked: no review step, and the commit is
+       *  matched against what the build left rather than against what review passed. */
+      autoBranchNoReview: (branch: string) => string;
+      autoHereNoReview: string;
+      manualFolderNoReview: string;
+      manualNoReview: string;
+      manualWhyNoReview: (why: string) => string;
       questionsOne: string;
       questionsMany: (n: number) => string;
       ackQuestionsOne: string;

@@ -216,6 +216,7 @@ function attachDelivery(card: Card): void {
     startedAt: live.startedAt,
     state: deliveryState(live, card.questions.length),
     commitMode: live.commitMode === 'auto' ? 'auto' : 'manual',
+    aiReview: live.aiReview !== false,
     supersedes: supersededBy(card.id, live),
     sessionId: session?.sessionId,
     waiting: live.review?.stopped?.why,

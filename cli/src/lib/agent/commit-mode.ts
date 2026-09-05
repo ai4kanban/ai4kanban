@@ -29,7 +29,7 @@ import {
   writeRootIgnoreIfMissing,
 } from '../paths'
 import { candidateOf, candidateDiff, candidateMark } from './candidate'
-import { autoCommitAllowed, diffApprovalRequired } from './settings'
+import { aiReviewEnabled, autoCommitAllowed, diffApprovalRequired } from './settings'
 import { readStore } from './store'
 import type { DeliveryPlan } from '../view/types'
 import type { DeliveryCommitMode, DeliveryRecord } from './types'
@@ -100,6 +100,9 @@ export interface DeliveryStart {
    *  here and never again. Only ever true in auto commit mode: in manual mode the board
    *  never commits, so the user's own commit is the approval. */
   needsApproval?: boolean
+  /** Whether a fresh session reviews what this delivery builds (#416), read from the
+   *  setting or the dialog's tick here and never again. */
+  aiReview: boolean
 }
 
 /** The checkout a delivery's sessions work in. */
@@ -125,21 +128,24 @@ function noWorktreeWhy(): string | undefined {
  *  never written. */
 export function deliveryPlan(): DeliveryPlan {
   const manualWhy = noWorktreeWhy()
-  if (manualWhy) return { commitMode: 'manual', manualWhy, canChooseWorktree: false }
+  const aiReview = aiReviewEnabled()
+  if (manualWhy) return { commitMode: 'manual', manualWhy, canChooseWorktree: false, aiReview }
   return {
     commitMode: autoCommitAllowed() ? 'auto' : 'manual',
     branch: currentBranch() ?? undefined,
     needsApproval: diffApprovalRequired(),
     canChooseWorktree: true,
+    aiReview,
   }
 }
 
 /** Get a delivery ready to start on this card: decide the mode, refuse what can't start,
  *  and make its worktree.
  *
- *  `wants` is the Implement dialog's tick — this one build's answer (#346). A request that
- *  says nothing falls back to **Automatic Git commits**, which is every other way in:
- *  a terminal `akb card implement`, a queued build, a resolve that carries on.
+ *  `wants` and `wantsReview` are the Implement dialog's two ticks — this one build's
+ *  answers (#346, #416). A request that says nothing falls back to **Automatic Git commits**
+ *  and **AI review**, which is every other way in: a terminal `akb card implement`, a queued
+ *  build, a resolve that carries on.
  *
  *  Called before the record is written and before anything spawns, so a refusal costs
  *  nothing and a delivery is never written down half-made. Whatever it made is undone by
@@ -147,8 +153,12 @@ export function deliveryPlan(): DeliveryPlan {
 export function prepareDelivery(
   cardId: number,
   wants?: DeliveryCommitMode,
+  wantsReview?: boolean,
 ): { start: DeliveryStart } | { error: string } {
   const deliveryId = newDeliveryId()
+  // The other tick (#416), settled here for the same reason and read from the record
+  // afterwards — so a resume follows the policy this build started with.
+  const aiReview = wantsReview ?? aiReviewEnabled()
   const base = inGitRepo() ? headCommit() : null
   // No git, no commit to branch from, or a detached HEAD: there is nothing to fork, so the
   // delivery works where it is however it was asked for. A board in an unversioned folder
@@ -159,7 +169,9 @@ export function prepareDelivery(
   if (wanted === 'manual') {
     const refusal = manualRefusal(cardId, !!base)
     if (refusal) return { error: refusal }
-    return { start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy, needsApproval: false } }
+    return {
+      start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy, needsApproval: false, aiReview },
+    }
   }
 
   // `noWorktreeWhy` cleared all three, so the branch and the base are both there.
@@ -191,6 +203,7 @@ export function prepareDelivery(
       worktree: made.worktree,
       branch: made.branch,
       needsApproval: diffApprovalRequired(),
+      aiReview,
     },
   }
 }

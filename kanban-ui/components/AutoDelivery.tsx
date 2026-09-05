@@ -2,7 +2,7 @@
 
 // Delivery: how the board builds a card once you press Implement.
 //
-// Two switches, both repository-level, both saved with the board rather than with this
+// Three switches, all repository-level, all saved with the board rather than with this
 // machine, so a team shares one answer.
 //
 // **Automatic Git commits** (#303) is the side each Implement opens on. On — the default —
@@ -16,35 +16,46 @@
 // default — a reviewed delivery lands by itself. On, every delivery that got a branch of
 // its own waits after review until you approve the exact tree it would land — however that
 // branch was chosen, so this stays settable with automatic commits off.
+//
+// **AI review** (#416) decides whether a build is judged at all. On — the default — a fresh
+// paid session reviews each delivery. Off, the implementation is the last agent to read the
+// code; the repository's own checks, the open-question hold and the switch above all still
+// gate landing, and the Implement dialog's second box turns this one build round.
 
 import { useEffect, useState } from "react";
 import { FiAlertCircle } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import {
+  aiReviewAction,
   autoCommitAction,
   diffApprovalAction,
+  setAiReviewAction,
   setAutoCommitAction,
   setDiffApprovalAction,
 } from "@/app/actions";
 import { Group, Panel, Row, Switch } from "./settings";
 
-/** The **Delivery** group of Configuration → General. It reads both settings from the board
- *  when it draws. */
+/** The **Delivery** group of Configuration → General. It reads all three settings from the
+ *  board when it draws. */
 export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) {
   const c = useCopy().configuration.delivery;
   const caption = useCopy().configuration.general.delivery;
   const [commits, setCommits] = useState<boolean | null>(null);
   const [approval, setApproval] = useState<boolean | null>(null);
+  const [review, setReview] = useState<boolean | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
-    void Promise.all([autoCommitAction(), diffApprovalAction()]).then(([commit, approve]) => {
-      if (!live) return;
-      setCommits(commit.on);
-      setApproval(approve.on);
-      setLoadError(commit.error ?? approve.error ?? null);
-    });
+    void Promise.all([autoCommitAction(), diffApprovalAction(), aiReviewAction()]).then(
+      ([commit, approve, judge]) => {
+        if (!live) return;
+        setCommits(commit.on);
+        setApproval(approve.on);
+        setReview(judge.on);
+        setLoadError(commit.error ?? approve.error ?? judge.error ?? null);
+      },
+    );
     return () => {
       live = false;
     };
@@ -68,6 +79,15 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
     }
   };
 
+  const flipReview = async (next: boolean) => {
+    setReview(next);
+    const res = await setAiReviewAction(next);
+    if (!res.ok) {
+      setReview(!next);
+      onError?.(res.error || (next ? c.review.failedOn : c.review.failedOff));
+    }
+  };
+
   return (
     <Group title={caption}>
       <Panel>
@@ -88,6 +108,16 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
             onFlip={flipApproval}
           />
         </Row>
+
+        {/* Independent of the one above (#416): a board that wants a human in the loop with
+            review off is exactly a board with approval on. */}
+        <Row label={c.review.title} hint={c.review.body}>
+          <Switch
+            on={review}
+            label={(review ? c.switchOn : c.switchOff)(c.review.title)}
+            onFlip={flipReview}
+          />
+        </Row>
       </Panel>
 
       {loadError && (
@@ -97,7 +127,7 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
         </p>
       )}
 
-      {/* Said once for both, under them — a change is a change to either switch. */}
+      {/* Said once for all three, under them — a change is a change to any of the switches. */}
       <p className="mt-2.5 text-[11.5px] leading-relaxed text-nb-ink-soft">{c.frozen}</p>
     </Group>
   );

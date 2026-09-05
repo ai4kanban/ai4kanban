@@ -87,6 +87,8 @@ export interface AgentReq {
   /** Where THIS build works (#346) — the Implement dialog's tick, and nothing else's.
    *  Absent everywhere it wasn't asked, and the board then reads the repository setting. */
   commitMode?: DeliveryCommitMode;
+  /** Whether THIS build is reviewed (#416) — the dialog's other tick, on the same terms. */
+  aiReview?: boolean;
 }
 
 export type DialogState =
@@ -824,11 +826,11 @@ function WarningBox({
   );
 }
 
-// The one choice on the Implement dialog (#346): whether THIS build gets a worktree and a
-// branch of its own, or works in the folder the user is looking at. Not a warning, so it
-// sits on the quiet wash rung rather than in peach or accent, and nothing is gated on it.
-// The hint follows the tick, because what it costs is exactly what the tick changes.
-function WorktreeBox({ on, onFlip, label, hint }: { on: boolean; onFlip: (v: boolean) => void; label: string; hint: string }) {
+// One choice on the Implement dialog: whether THIS build gets a worktree and a branch of
+// its own (#346), and whether a second agent reviews it (#416). Not a warning, so it sits on
+// the quiet wash rung rather than in peach or accent, and nothing is gated on it. The hint
+// follows the tick, because what it costs is exactly what the tick changes.
+function ChoiceBox({ on, onFlip, label, hint }: { on: boolean; onFlip: (v: boolean) => void; label: string; hint: string }) {
   return (
     <label className="mb-3 block cursor-pointer rounded-[8px] bg-nb-wash px-3 py-2 text-[12.5px] leading-relaxed">
       <span className="flex items-start gap-2 font-[700] text-nb-ink">
@@ -894,11 +896,13 @@ export function ActionDialog({
   const [ack, setAck] = useState(false);
   const [ackRough, setAckRough] = useState(false);
   const [ackAsked, setAckAsked] = useState(false);
-  // Where THIS build works (#346) — the Implement dialog's own box. It starts on the side
-  // the repository setting picks and never writes back to it, so the setting is still the
-  // default every Implement opens with. Like the acks, it is not persisted: closing the
-  // dialog drops it and the next open asks the board again.
+  // Where THIS build works (#346), and whether a second agent reviews it (#416) — the
+  // Implement dialog's own two boxes. Each starts on the side its repository setting picks
+  // and never writes back to it, so the settings are still the defaults every Implement
+  // opens with. Like the acks, neither is persisted: closing the dialog drops them and the
+  // next open asks the board again.
   const [ownBranch, setOwnBranch] = useState(plan.commitMode === "auto");
+  const [reviewIt, setReviewIt] = useState(plan.aiReview !== false);
   const run = (req: AgentReq, label: string) => {
     clearDraft();
     onRun(req, label);
@@ -943,28 +947,56 @@ export function ActionDialog({
     // always had. Where it is offered, the tick is what the paragraph reads from.
     const canChoose = plan.canChooseWorktree === true;
     const auto = canChoose ? ownBranch : plan.commitMode === "auto";
+    // The review box is offered wherever the rules carry the setting (#416) — a review needs
+    // no worktree, so it is asked even where the box above is not. Rules older than it say
+    // nothing, and every build they start is reviewed.
+    const canChooseReview = plan.aiReview !== undefined;
+    const reviewed = canChooseReview ? reviewIt : true;
+    // The opening sentence, in the shape the two ticks and the checkout put it in.
+    const autoIntro = plan.branch
+      ? reviewed
+        ? c.autoBranch(plan.branch)
+        : c.autoBranchNoReview(plan.branch)
+      : reviewed
+        ? c.autoHere
+        : c.autoHereNoReview;
+    const manualIntro = plan.manualWhy
+      ? reviewed
+        ? c.manualWhy(plan.manualWhy)
+        : c.manualWhyNoReview(plan.manualWhy)
+      : reviewed
+        ? c.manual
+        : c.manualNoReview;
     return (
       <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
         <p className={INTRO}>
           {auto ? (
             <>
-              <Rich code={BRANCH}>{plan.branch ? c.autoBranch(plan.branch) : c.autoHere}</Rich>
+              <Rich code={BRANCH}>{autoIntro}</Rich>
               {/* The one place the click does NOT carry the card all the way (#308). */}
               {plan.needsApproval ? c.needsApproval : ""}
               {c.thenArchives}
             </>
           ) : canChoose ? (
-            <Rich>{c.manualFolder}</Rich>
+            <Rich>{reviewed ? c.manualFolder : c.manualFolderNoReview}</Rich>
           ) : (
-            <Rich>{plan.manualWhy ? c.manualWhy(plan.manualWhy) : c.manual}</Rich>
+            <Rich>{manualIntro}</Rich>
           )}
         </p>
         {canChoose && (
-          <WorktreeBox
+          <ChoiceBox
             on={ownBranch}
             onFlip={setOwnBranch}
             label={c.ownBranch}
             hint={ownBranch ? c.ownBranchOn : c.ownBranchOff}
+          />
+        )}
+        {canChooseReview && (
+          <ChoiceBox
+            on={reviewIt}
+            onFlip={setReviewIt}
+            label={c.aiReview}
+            hint={reviewIt ? c.aiReviewOn : c.aiReviewOff}
           />
         )}
         {asked > 0 && (
@@ -1022,10 +1054,11 @@ export function ActionDialog({
                 // against this card's live Cloud event (#319), and is dropped on a card
                 // that has none — which is most of them.
                 cloudRevision: dialog.card.revision,
-                // This build's own answer (#346), sent only where the box was there to
-                // answer it. Left off, the board falls back to the repository setting —
-                // which is what every other way in does.
+                // This build's own answers (#346, #416), each sent only where its box was
+                // there to answer it. Left off, the board falls back to the repository
+                // setting — which is what every other way in does.
                 commitMode: canChoose ? (ownBranch ? "auto" : "manual") : undefined,
+                aiReview: canChooseReview ? reviewIt : undefined,
               },
               `Implement #${dialog.card.id}`,
             )

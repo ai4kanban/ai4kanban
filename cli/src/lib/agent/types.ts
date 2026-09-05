@@ -118,6 +118,9 @@ export interface AgentRequest {
    *  build, a resolve that carries on — and those fall back to **Allow automatic Git
    *  commits**. Ignored where no worktree is possible; the build is manual there regardless. */
   commitMode?: DeliveryCommitMode
+  /** implement: whether THIS build is reviewed (#416) — the Implement dialog's other tick.
+   *  Absent on every other way in, and those fall back to **AI review**. */
+  aiReview?: boolean
 }
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
@@ -408,6 +411,10 @@ export interface DeliveryRecord {
    *  checkout and waits for them to commit. Flipping the setting changes the next
    *  delivery, never one already in flight. */
   commitMode?: DeliveryCommitMode
+  /** Whether a fresh session reviews what this delivery built (#416), frozen the same way.
+   *  `false` and the implementation is the last agent to read the code. Absent on a
+   *  delivery recorded before the setting existed, which reads as review on. */
+  aiReview?: boolean
   /** Why this delivery is in manual commit mode when the setting did not ask for it —
    *  no git, or no commit to fork from. The card page says it in these words. */
   manualWhy?: string

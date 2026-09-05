@@ -34,6 +34,7 @@ import { insideRun } from './env'
 import { answeredStop, deliveryState, type DeliveryState } from './pause'
 import { deliveryRules } from './rules'
 import {
+  aiReviewOn,
   lastRound,
   nextAfterSession,
   reviewOf,
@@ -285,6 +286,9 @@ export function joinDelivery(
       // How it commits, and where. Written now and never again: flipping the setting
       // changes the next delivery, not this one.
       commitMode: start?.commitMode ?? 'manual',
+      // And whether a fresh session reviews what it builds (#416). Frozen here too, so a
+      // resume and every later session follow the policy this build started with.
+      aiReview: start ? start.aiReview : true,
       manualWhy: start?.manualWhy,
       // And the one read of the flow rules this delivery runs under (#306) — the four
       // flows a delivery is made of, frozen the way the card is. Every run in it is
@@ -383,14 +387,16 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
   const built = run.status === 'done' && (run.action === 'implement' || run.action === 'review')
   const commit = built && before.status === 'active' ? commitDeliveryWork(before) : { ok: true as const }
   const uncommitted = commit.ok ? undefined : commit.why
-  // And, in manual commit mode, the snapshot a passed review leaves for the user's own
-  // commit to be matched against.
+  // And, in manual commit mode, the snapshot the finished work leaves for the user's own
+  // commit to be matched against. It comes from the run that ends the delivery's own work:
+  // a review that passed, or — with AI review off (#416) — the implementation itself. A
+  // review asked for by hand on a review-off delivery is still a review, and still the run
+  // that ends its work; without this the delivery would finish on it and take the card with
+  // it, leaving the user's checkout uncommitted.
+  const finishing =
+    run.action === 'review' ? raisedQuestions === 0 : run.action === 'implement' && !aiReviewOn(before)
   const reviewed =
-    !uncommitted &&
-    before.commitMode === 'manual' &&
-    run.action === 'review' &&
-    run.status === 'done' &&
-    raisedQuestions === 0
+    !uncommitted && before.commitMode === 'manual' && run.status === 'done' && finishing
       ? snapshotReviewed(before)
       : undefined
 
@@ -412,8 +418,8 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
       delivery.next = undefined
       // In manual commit mode a pass is not the end: the code is sitting in the user's own
       // checkout and only they can commit it. The delivery stays ACTIVE, holding the card,
-      // with what review passed written down — and the card page is where the wait is read
-      // (`manualSettled` below).
+      // with what the board built written down — and the card page is where the wait is
+      // read (`manualSettled` below).
       if (reviewed) {
         delivery.reviewed = reviewed
         return null
@@ -521,9 +527,10 @@ export function takeNext(deliveryId: string): AgentRequest | null {
 export const wantsLanding = (delivery: DeliveryRecord): boolean =>
   delivery.commitMode === 'auto' && !!delivery.worktree && !!delivery.branch && !!delivery.targetBranch
 
-// Queue it for the repository's one landing slot, and record the review that authorized
-// the landing as the check that ran — with no review rule (#306) the re-review IS the
-// gate, so it is the only check there is to record.
+// Queue it for the repository's one landing slot, and record the run that authorized the
+// landing as the check that ran — with no review rule (#306) the re-review IS the gate, so
+// it is the only check there is to record. The check is named for the run that actually
+// ran, which with AI review off is the implementation (#416).
 function queueLanding(delivery: DeliveryRecord, run: RunRecord): void {
   const round = lastRound(delivery)
   const landing = delivery.landing ?? { status: 'waiting' as const, attempts: 0, at: Date.now() }
@@ -531,7 +538,10 @@ function queueLanding(delivery: DeliveryRecord, run: RunRecord): void {
     ...landing,
     status: landing.status === 'landing' ? 'landing' : 'waiting',
     why: undefined,
-    checks: [...(landing.checks ?? []), { name: `review ${run.sessionId.slice(0, 8)}`, ok: true, at: round?.at ?? Date.now() }],
+    checks: [
+      ...(landing.checks ?? []),
+      { name: `${run.action} ${run.sessionId.slice(0, 8)}`, ok: true, at: round?.at ?? Date.now() },
+    ],
     at: Date.now(),
   }
 }
@@ -551,13 +561,14 @@ function awaitingCommit(delivery: DeliveryRecord | undefined): DeliveryRecord | 
   return delivery
 }
 
-/** Where a manual delivery stands now that review has passed it and the code is the user's
+/** Where a manual delivery stands now that its work is finished and the code is the user's
  *  to commit — and act on it if they have.
  *
  *  Nothing watches git for this: it is asked when the card page is read, which is the
- *  moment somebody wants to know. They committed exactly what review passed and the
- *  delivery is done; they committed something else and a fresh review judges it; or the
- *  code is still sitting there uncommitted and the delivery waits.
+ *  moment somebody wants to know. They committed exactly what the board built and the
+ *  delivery is done; they committed something else and a fresh review judges it — or, with
+ *  AI review off, the delivery ends on that commit too (#416); or the code is still sitting
+ *  there uncommitted and the delivery waits.
  *
  *  Reports what it found. Ending a finished delivery is `settleManualCommit`, which the
  *  Local board's `readCard` awaits before this is asked.
@@ -568,12 +579,17 @@ export function manualSettled(delivery: DeliveryRecord): string | undefined {
   if (!awaitingCommit(delivery)) return undefined
   const state = manualState(delivery)
   if (state === 'waiting') {
-    return `review passed — commit the change in your own checkout and this delivery is done`
+    return aiReviewOn(delivery)
+      ? `review passed — commit the change in your own checkout and this delivery is done`
+      : `the build is done — commit the change in your own checkout and this delivery is done`
   }
   if (state === 'landed') return undefined
-  // They committed something other than what review passed, so the whole candidate goes
-  // back through review. The snapshot is dropped first, so a second read of the card page
-  // can't ask for a second review of the same commit.
+  // They committed something other than what the board built. With AI review off there is
+  // no reviewer to judge the difference, so their commit is the last word and
+  // `settleManualCommit` has already ended the delivery on it (#416).
+  if (!aiReviewOn(delivery)) return undefined
+  // Otherwise the whole candidate goes back through review. The snapshot is dropped first,
+  // so a second read of the card page can't ask for a second review of the same commit.
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
     if (!live || live.status !== 'active' || !live.reviewed) return
@@ -584,8 +600,11 @@ export function manualSettled(delivery: DeliveryRecord): string | undefined {
   return undefined
 }
 
-/** End the delivery on this card and archive it, when the user has committed exactly what
- *  review passed (#303) — and do nothing at all otherwise.
+/** End the delivery on this card and archive it, when the user has committed what the
+ *  board built (#303) — and do nothing at all otherwise.
+ *
+ *  With AI review off a commit that differs ends it too (#416): the board has no reviewer
+ *  to judge one, so whatever they committed is the last word.
  *
  *  Reading a card must not write the board, so this is the awaited step that comes first:
  *  the Local board's `readCard` calls it, and the read that follows finds a card the
@@ -593,7 +612,9 @@ export function manualSettled(delivery: DeliveryRecord): string | undefined {
  *  holding the card when it goes. */
 export async function settleManualCommit(cardId: number): Promise<void> {
   const delivery = awaitingCommit(activeDelivery(cardId))
-  if (!delivery || manualState(delivery) !== 'landed') return
+  if (!delivery) return
+  const state = manualState(delivery)
+  if (state !== 'landed' && !(state === 'changed' && !aiReviewOn(delivery))) return
   endDelivery(delivery.deliveryId, 'finished')
   await completeCard(delivery.cardId, delivery.deliveryId)
 }

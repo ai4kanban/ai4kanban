@@ -43,6 +43,7 @@ import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from '
 import { conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
 import { activeDelivery } from './deliveries'
+import { aiReviewOn } from './review'
 import { field, metaLine, numbered } from './facts'
 import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
@@ -382,22 +383,24 @@ function verifyField(meta: Meta): string[] {
   ])
 }
 
-// What a run that wrote code has to leave behind for review to read it. In a worktree the
-// board commits the whole change onto the delivery's branch as the run closes — so the one
-// thing asked of the run is to leave nothing of the board's own in there, which
+// What a run that wrote code has to leave behind for whatever reads it next. In a worktree
+// the board commits the whole change onto the delivery's branch as the run closes — so the
+// one thing asked of the run is to leave nothing of the board's own in there, which
 // is what a commit would be refused for. In manual commit mode nothing is committed at all:
-// the code stays in the user's checkout and the commit is theirs, after review passes.
+// the code stays in the user's checkout and the commit is theirs. What comes next is a
+// review, or — with AI review off (#416) — the landing itself.
 function committingClose(cardId: number): string[] {
   const delivery = activeDelivery(cardId)
   if (!delivery) return []
+  const reviewed = aiReviewOn(delivery)
   if (delivery.worktree) {
     return [
-      `leave your work in ${delivery.worktree} — the board commits all of it onto ${delivery.branch} when this run ends, and review reads that branch`,
+      `leave your work in ${delivery.worktree} — the board commits all of it onto ${delivery.branch} when this run ends, and ${reviewed ? 'review reads' : 'the landing takes'} that branch`,
       `never write the board's own files into the worktree: a commit that reaches one is refused, and the delivery stops`,
     ]
   }
   return [
-    'leave your work uncommitted — this build has no branch of its own, so the user commits it themselves once review passes',
+    `leave your work uncommitted — this build has no branch of its own, so the user commits it themselves once ${reviewed ? 'review passes' : 'this run ends'}`,
   ]
 }
 
@@ -508,16 +511,21 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       // Inside a delivery the build is not the end of the job: a fresh run reviews what
       // it made against the approved copy, the board lands it, and the board archives the
-      // card once it has landed (#302, #307). Outside one — a card built by hand from a
-      // printed flow — the build closes the card exactly as it always has.
-      const reviewed = !!activeDelivery(req.id!)
+      // card once it has landed (#302, #307). With AI review off there is no such run
+      // (#416) — the build goes straight to landing, and the card is still not this run's
+      // to close. Outside a delivery — a card built by hand from a printed flow — the build
+      // closes the card exactly as it always has.
+      const inDelivery = activeDelivery(req.id!)
+      const reviewed = !!inDelivery && aiReviewOn(inDelivery)
       close.push(
         ...committingClose(req.id!),
         'tick each box in ## Todo as you finish it — they are the record of what was built',
         `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
-        reviewed
-          ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
+        inDelivery
+          ? reviewed
+            ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
+            : `leave the card on the board — the board archives the card itself once the delivery has landed`
           : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
       if (card!.meta.questions.length) {
@@ -561,7 +569,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...candidateField(req.id!))
       close.push(
         'treat the target branch as the current implementation; preserve it and replay only what the approved copy above requires',
-        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue`, then reviews the composed result before it lands',
+        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue`' +
+          (aiReviewOn(activeDelivery(req.id!) ?? {})
+            ? ', then reviews the composed result before it lands'
+            : ' and lands the composed result — this delivery has AI review off'),
         'change nothing the conflict does not name, change nothing on the card, and create no cards or follow-up tasks',
       )
       break

@@ -159,6 +159,9 @@ export interface CardDelivery {
   /** How it commits (#303): `auto` builds on a branch of its own and the board lands it,
    *  `manual` works in the user's checkout and stops after review for their own commit. */
   commitMode: 'auto' | 'manual'
+  /** Whether a fresh session reviews what it built (#416), frozen the same way. False and
+   *  the block's foot says so — the default needs no line. */
+  aiReview: boolean
   /** The delivery this one replaced, when the card's approved requirements changed while
    *  the last one was paused (#307). It ended, and this one is building the card as it now
    *  reads. Absent on a delivery that replaced nothing. */
@@ -401,6 +404,10 @@ export interface DeliveryPlan {
    *  possible. Absent on rules older than the choice, and the dialog then offers no box and
    *  says only what `commitMode` alone always said. */
   canChooseWorktree?: boolean
+  /** Which side the dialog's AI review tick starts on (#416), read from the setting.
+   *  Absent on rules older than it, and the dialog then offers no box — every delivery
+   *  those rules start is reviewed. */
+  aiReview?: boolean
 }
 
 /** One band of the board: a module from `docs/kanban/modules.md` and the cards whose

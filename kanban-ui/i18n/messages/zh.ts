@@ -21,6 +21,7 @@ const zh: MessagesCopy = {
   tooOld: {
     autoDelivery: "这个看板的运行规则早于自动交付——请运行 `npm install -g ai4kanban`。",
     diffApproval: "这个看板的运行规则早于差异批准——请运行 `npm install -g ai4kanban`。",
+    aiReview: "这个看板的运行规则早于 AI 评审设置——请运行 `npm install -g ai4kanban`。",
     silenceLimit: "这个看板的运行规则早于静默上限——请运行 `npm install -g ai4kanban`。",
     deliveries: "这个看板的运行规则早于交付流程——请运行 `npm install -g ai4kanban`。",
     worktrees: "这个看板的运行规则早于交付 worktree——请运行 `npm install -g ai4kanban`。",

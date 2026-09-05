@@ -970,8 +970,17 @@ function DeliveryBlock({
               </>
             )}
           </span>
-          <span className={CAP} title={delivery.manualWhy}>
-            {delivery.commitMode === "auto" ? c.autoCommit : c.manualCommits}
+          <span className="flex items-center gap-2.5">
+            {/* Only when it is off (#416): the default is what every delivery did before the
+                setting existed, and a line saying so would be noise on every card. */}
+            {!delivery.aiReview && (
+              <span className={CAP} title={c.noReviewHint}>
+                {c.noReview}
+              </span>
+            )}
+            <span className={CAP} title={delivery.manualWhy}>
+              {delivery.commitMode === "auto" ? c.autoCommit : c.manualCommits}
+            </span>
           </span>
         </DeliveryFoot>
       )}

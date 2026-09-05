@@ -169,10 +169,23 @@ const en: RunsCopy = {
         "The agent works in a separate copy of the project — a git worktree — so your own files are left exactly as they are.",
       ownBranchOff:
         "The agent works right here, in this folder, and nothing else can be built until you commit what it leaves.",
+      aiReview: "Have a second agent review it",
+      aiReviewOn: "A fresh session judges the build against this card and fixes what it finds. It costs a second run.",
+      aiReviewOff: "Nothing reads the code after the build but your own checks. Turn on **Approve diffs before landing** to read it yourself.",
+      autoBranchNoReview: (branch) =>
+        `One click carries this card all the way: the agent builds it, and the board lands it as one commit on \`${branch}\`. Nothing reviews it in between.`,
+      autoHereNoReview:
+        "One click carries this card all the way: the agent builds it, and the board lands it as one commit on the branch you are on. Nothing reviews it in between.",
+      manualFolderNoReview:
+        "One click carries this card all the way: the agent builds it here in your project folder, and it stops. Nothing reviews it, and nothing is committed for you: commit what it built, and the card is archived then.",
+      manualNoReview:
+        "One click carries this card all the way: the agent builds it, and it stops. Nothing reviews it, and **manual commit mode** is on, so nothing is committed for you: commit what it built, and the card is archived then.",
+      manualWhyNoReview: (why) =>
+        `One click carries this card all the way: the agent builds it, and it stops. Nothing reviews it, and nothing is committed for you — ${why}. Commit what it built, and the card is archived then.`,
       questionsOne:
-        "This card has **1 open question**. It will be built and reviewed, then hold at landing until you answer it — or press **Resolve & implement** to answer it first.",
+        "This card has **1 open question**. It will be built, then hold at landing until you answer it — or press **Resolve & implement** to answer it first.",
       questionsMany: (n) =>
-        `This card has **${n} open questions**. It will be built and reviewed, then hold at landing until you answer them — or press **Resolve & implement** to answer them first.`,
+        `This card has **${n} open questions**. It will be built, then hold at landing until you answer them — or press **Resolve & implement** to answer them first.`,
       ackQuestionsOne: "I know a question is still open.",
       ackQuestionsMany: (n) => `I know ${n} questions are still open.`,
       blockedOne: (ids) =>

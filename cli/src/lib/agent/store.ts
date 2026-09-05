@@ -256,6 +256,9 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       // with no worktree, which is exactly what manual commit mode is — so that is what it
       // reads as, rather than a worktree nothing ever made.
       commitMode: entry.commitMode === 'auto' ? 'auto' : entry.commitMode === 'manual' ? 'manual' : undefined,
+      // Whether a fresh session reviews what it built (#416). A delivery written down before
+      // the setting existed carries nothing, and every one of those was reviewed.
+      aiReview: entry.aiReview === false ? false : true,
       manualWhy: text(entry.manualWhy),
       targetBranch: text(entry.targetBranch),
       worktree: text(entry.worktree),

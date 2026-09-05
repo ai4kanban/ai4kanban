@@ -136,6 +136,10 @@ names the branch the change will land on.
   after review, and the card is archived when your own commit matches what review passed. Where a
   worktree is impossible anyway — no git, no commit to fork from, a detached `HEAD` — the build
   works this way regardless.
+- **The review is optional.** It is a separate paid run on every delivery, so **AI review** in
+  Configuration → General → Delivery turns it off for the board and **Have a second agent review
+  it** in the dialog turns it off for one build. The build then goes straight to landing; your
+  own checks, the open-question hold and **Approve diffs before landing** still gate it.
 - **Your own commits on that branch are refused while it lands.** A `pre-commit` hook installed
   beside the skill names the delivery and stops the commit. Commit on another branch, or
   `git commit --no-verify`.

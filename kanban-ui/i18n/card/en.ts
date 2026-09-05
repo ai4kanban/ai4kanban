@@ -74,6 +74,8 @@ const en: CardCopy = {
     projectFolderHint: "Changes are in your project folder",
     autoCommit: "Auto-commit",
     manualCommits: "Manual commits",
+    noReview: "No AI review",
+    noReviewHint: "This delivery started with AI review off, and keeps that whatever the setting says now",
     landedAs: "Landed",
     finished: "Finished",
     stopped: "stopped",

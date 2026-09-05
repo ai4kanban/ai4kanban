@@ -171,6 +171,35 @@ export function setDiffApproval(on: boolean): { ok: boolean; error?: string } {
   })
 }
 
+// ---- auto-delivery: does a build get an AI review? (#416) ------------------
+//
+//   "aiReview": false
+//
+// On by default, and only written down when somebody turned it off — the same call
+// `autoCommit` made, and for the same reason.
+//
+// With it ON every delivery gets a fresh review run after its implementation. With it OFF
+// the implementation is the last agent to read the code: the repository's required checks
+// still run, and the open-question hold and diff approval still gate landing.
+
+/** True unless somebody switched AI review off. A file that won't parse reads as on: an
+ *  unreadable setting must not be the reason something landed unreviewed. */
+export function aiReviewEnabled(): boolean {
+  try {
+    return readConfigRaw().aiReview !== false
+  } catch {
+    return true
+  }
+}
+
+/** Save it. Turning it back on drops the key rather than writing `true`. */
+export function setAiReview(on: boolean): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    if (on) delete cfg.aiReview
+    else cfg.aiReview = false
+  })
+}
+
 // ---- how long a run may say nothing (#394) ---------------------------------
 //
 //   "silenceMinutes": 20

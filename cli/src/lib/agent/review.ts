@@ -2,6 +2,10 @@
 // fixes plain mistakes in the same session. A successful run passes unless it appended a
 // user-owned question to the card.
 //
+// A delivery can decline that run (#416): with AI review off the implementation is the last
+// agent to read the code, and the delivery goes on to land without one. Every other gate —
+// the repository's own checks, the open-question hold, diff approval — is untouched.
+//
 // This file decides; it never starts anything. `deliveries.ts` writes the decision onto
 // the delivery, and the watcher of the run that just closed starts what it says.
 
@@ -21,6 +25,11 @@ export function reviewOf(delivery: DeliveryRecord): DeliveryReview {
   if (!delivery.review) delivery.review = { rounds: [] }
   return delivery.review
 }
+
+/** Whether a fresh session reviews what this delivery built (#416). Frozen when the
+ *  delivery started; a delivery recorded before the setting existed carries none and reads
+ *  as review on. */
+export const aiReviewOn = (delivery: Pick<DeliveryRecord, 'aiReview'>): boolean => delivery.aiReview !== false
 
 /** The last review conclusion, or undefined before the first review has finished. */
 export const lastRound = (delivery: DeliveryRecord): ReviewRound | undefined =>
@@ -55,7 +64,10 @@ export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, raise
   if (run.action === 'implement') {
     // A build that was cut off is picked up by Resume — the delivery is unfinished, not
     // wrong, and there is nothing for a reviewer to judge yet.
-    return run.status === 'done' ? { start: 'review' } : HOLD
+    if (run.status !== 'done') return HOLD
+    // With AI review off the build IS the delivery's own work, so it finishes here and the
+    // caller queues it for landing exactly as a pass would (#416).
+    return aiReviewOn(delivery) ? { start: 'review' } : { finish: true }
   }
   if (run.action === 'review') return afterReview(delivery, run, raisedQuestions)
   return HOLD

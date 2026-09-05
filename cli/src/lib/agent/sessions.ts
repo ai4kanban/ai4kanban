@@ -499,8 +499,9 @@ export function openRun(
   // A build with no delivery on its card opens one, and a delivery is got ready before
   // anything is written down (#303): the commit mode is decided, the checkout is checked,
   // and the worktree is made. A refusal here costs nothing, and whatever it made is undone
-  // below if the run is refused after it. `req.commitMode` is the Implement dialog's tick,
-  // this one build's answer (#346); without it the repository setting decides.
+  // below if the run is refused after it. `req.commitMode` and `req.aiReview` are the
+  // Implement dialog's ticks, this one build's answers (#346, #416); without them the
+  // repository settings decide.
   //
   // …on a solution that delivers with git. On `marketing` a build is a file the user edits,
   // so there is no worktree, no branch, nothing to review against a diff and nothing to land
@@ -508,7 +509,7 @@ export function openRun(
   const delivers = deliversWithGit()
   let start: DeliveryStart | undefined
   if (delivers && cardId !== null && req.action === 'implement' && !activeDelivery(cardId)) {
-    const prepared = prepareDelivery(cardId, req.commitMode)
+    const prepared = prepareDelivery(cardId, req.commitMode, req.aiReview)
     if ('error' in prepared) return { error: prepared.error }
     start = prepared.start
   }

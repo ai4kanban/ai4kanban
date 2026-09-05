@@ -132,10 +132,11 @@ export type ConfigurationCopy = {
     saveFailed: (agent: string) => string;
   };
   delivery: {
-    /** A change only reaches deliveries started afterwards. Said once, under both. */
+    /** A change only reaches deliveries started afterwards. Said once, under all three. */
     frozen: string;
     commits: { title: string; body: string; failedOn: string; failedOff: string };
     approval: { title: string; body: string; failedOn: string; failedOff: string };
+    review: { title: string; body: string; failedOn: string; failedOff: string };
     /** Only read out loud: one setting's switch. */
     switchOn: (setting: string) => string;
     switchOff: (setting: string) => string;

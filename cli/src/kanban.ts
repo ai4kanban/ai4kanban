@@ -124,8 +124,10 @@ export { agentInfo, activeSettings, setupInstruction, settingSaveError } from '.
 // a form; it is the same PATH read `agentInfo` already makes, so it spawns nothing.
 export { runnableAgents } from './lib/agent/resolve'
 export {
+  aiReviewEnabled,
   autoCommitAllowed,
   diffApprovalRequired,
+  setAiReview,
   setAutoCommit,
   setDiffApproval,
   setHarness,

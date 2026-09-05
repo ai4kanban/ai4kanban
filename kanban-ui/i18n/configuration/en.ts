@@ -130,6 +130,12 @@ const en: ConfigurationCopy = {
       failedOn: "couldn't switch diff approval on",
       failedOff: "couldn't switch diff approval off",
     },
+    review: {
+      title: "AI review",
+      body: "On, a fresh paid session judges each build and fixes what it finds. Off, the build is the last agent to read the code — your checks and diff approval still gate it.",
+      failedOn: "couldn't switch AI review on",
+      failedOff: "couldn't switch AI review off",
+    },
     switchOn: (setting) => `${setting} — on`,
     switchOff: (setting) => `${setting} — off`,
   },

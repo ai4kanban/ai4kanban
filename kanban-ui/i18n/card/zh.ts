@@ -73,6 +73,8 @@ const zh: CardCopy = {
     projectFolderHint: "改动就在你的项目文件夹里",
     autoCommit: "自动提交",
     manualCommits: "手动提交",
+    noReview: "无 AI 评审",
+    noReviewHint: "这次交付开始时 AI 评审就是关闭的，之后设置怎么改都不影响它",
     landedAs: "已合入",
     finished: "已完成",
     stopped: "已中止",
