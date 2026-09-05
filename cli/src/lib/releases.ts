@@ -18,13 +18,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, rel, KANBAN, TODO, ARCHIVE, RELEASES, RELEASE_SUMMARIES } from './paths'
+import { die, rel, KANBAN, TODO, ARCHIVE, RELEASES, RELEASE_SUMMARIES, REPO_ROOT } from './paths'
 import { releaseEntriesFrom, releaseLineEntry, type ReleaseEntry } from './board/assemble'
 import { formatDay } from './cadence'
 import { walkMd, idPrefix } from './cards'
 import { parseFrontmatter, serializeFrontmatter } from './frontmatter'
 import { NO_RELEASE, normalizeRelease } from './validate'
 import { recordFact } from './record'
+import { cloudBoardFor, setCloudBoardRelease } from './cloud/boards'
 
 // One release as the list carries it: its id, and what it is for. Read by `board/assemble.ts`,
 // so a hosted page draws the same release picker this file writes.
@@ -459,6 +460,12 @@ function removeReleaseLine(id: string): void {
   while (kept.length && !kept[kept.length - 1]!.trim()) kept.pop()
   if (!kept.some((line) => lineId(line))) kept.push('', EMPTY_MARK)
   fs.writeFileSync(RELEASES, kept.join('\n') + '\n')
+  // Only an explicit close/drop ends a watch; an unavailable release list does not.
+  try {
+    if (cloudBoardFor(REPO_ROOT)?.release === id) setCloudBoardRelease(REPO_ROOT, '')
+  } catch {
+    // Machine notification settings must not fail a board write.
+  }
 }
 
 export function closeRelease(raw: string | undefined) {

@@ -26,7 +26,7 @@ import crypto from 'node:crypto'
 import { cardsAtWork } from '../agent/store'
 import { board } from '../board'
 import { REPO_ROOT } from '../paths'
-import { ALL_RELEASES, cloudBoardFor, setCloudBoardRelease, type CloudBoard } from './boards'
+import { cloudBoardFor, type CloudBoard } from './boards'
 import {
   isTerminal,
   listEvents,
@@ -96,22 +96,6 @@ function publishing(): CloudBoard | null {
   return readSession() ? enabled : null
 }
 
-/**
- * The watched release closed, so the filling stops.
- *
- * The board is left enabled with no release: the rail is where the user picks another,
- * because the rail is where the filling stopped. Its live events are not retired here —
- * closing a release clears its open cards' release, so the ordinary retirement test finds
- * them on the very next pass. A board watching every release has none to close.
- */
-async function pauseIfReleaseClosed(enabled: CloudBoard): Promise<CloudBoard> {
-  if (!enabled.release || enabled.release === ALL_RELEASES) return enabled
-  const open = await board().readReleases()
-  if (open.includes(enabled.release)) return enabled
-  setCloudBoardRelease(REPO_ROOT, '')
-  return { ...enabled, release: '' }
-}
-
 // ---- the pass ---------------------------------------------------------------
 
 /**
@@ -147,8 +131,7 @@ export async function recordBoardEvents({ reconcile = false } = {}): Promise<voi
   const enabled = cloudBoardFor(REPO_ROOT)
   if (!enabled || !readSession()) return
   try {
-    const watching = await pauseIfReleaseClosed(enabled)
-    if (watching.release) await queueDifference(watching, reconcile)
+    if (enabled.release) await queueDifference(enabled, reconcile)
     else retireLive()
   } catch {
     // A board we could not read this second is a board the next write reads again.
@@ -164,7 +147,7 @@ export async function recordBoardEvents({ reconcile = false } = {}): Promise<voi
  */
 export async function afterBoardWrite(): Promise<void> {
   try {
-    if (!publishing()) return
+    if (!cloudBoardFor(REPO_ROOT) || !readSession()) return
     await recordBoardEvents()
     void flushCloudOutbox()
   } catch {
@@ -182,7 +165,7 @@ export async function afterBoardWrite(): Promise<void> {
  * network the board never waited for: what does not get out stays queued and is retried.
  */
 export async function flushOnExit(timeoutMs = FLUSH_ON_EXIT_MS): Promise<void> {
-  if (!publishing() || duePending().length === 0) return
+  if (!readSession() || duePending().length === 0) return
   await Promise.race([flushCloudOutbox(), sleep(timeoutMs)])
 }
 

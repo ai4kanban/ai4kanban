@@ -15,13 +15,16 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
+import { board, setBoardProvider } from '../src/lib/board/index.ts'
+import { closeRelease, dropRelease } from '../src/lib/releases.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
-import { ALL_RELEASES, enableCloudBoard } from '../src/lib/cloud/boards.ts'
+import { ALL_RELEASES, cloudBoardFor, enableCloudBoard } from '../src/lib/cloud/boards.ts'
 import { startCloudServer, stopCloudServer } from '../src/lib/cloud/board-server.ts'
 import type { CloudEventState } from '../src/lib/cloud/events.ts'
 import { duePending, notePublication, queue, readOutbox, unsentToCloud, type Pending } from '../src/lib/cloud/outbox.ts'
 import {
+  afterBoardWrite,
   flushCloudOutbox,
   publishBoardEvents,
   recordCloudActionFor,
@@ -52,6 +55,7 @@ beforeEach(() => {
 
 afterEach(() => {
   mock.restoreAll()
+  setBoardProvider(null)
   stopCloudServer()
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(root, { recursive: true, force: true })
@@ -584,4 +588,45 @@ describe('a machine that is not signed in', () => {
     assert.deepEqual(calls, [])
     assert.equal(readOutbox().pending.length, 1, 'what was queued while signed in waits')
   })
+})
+
+
+describe('release watch durability', () => {
+  for (const fails of [false, true]) {
+    it(`keeps publishing when the release list ${fails ? 'fails' : 'is temporarily empty'}`, async () => {
+      BOARD()
+      writeCardFile()
+      setBoardProvider({ ...board(), readReleases: async () => {
+        if (fails) throw new Error('unavailable')
+        return []
+      } })
+      await recordBoardEvents()
+      assert.equal(cloudBoardFor(root)?.release, '0.8.0')
+      assert.ok(duePending().some((p) => p.kind === 'publish' && p.snapshot.taskId === 12))
+    })
+  }
+
+  it('retires existing events after an explicit close pauses publishing', async () => {
+    writeCardFile()
+    fs.writeFileSync(path.join(root, 'docs/kanban/releases.md'), '- **0.8.0**\n')
+    BOARD()
+    notePublication(12, 'e-12', 'actionable')
+    fakeCloud(unreachable)
+    closeRelease('0.8.0')
+    await afterBoardWrite()
+    await flushCloudOutbox()
+    assert.ok(readOutbox().pending.some((p) => p.kind === 'retire' && p.eventId === 'e-12'))
+  })
+
+  for (const end of [closeRelease, dropRelease]) {
+    for (const watch of ['0.8.0', '0.9.0', ALL_RELEASES]) {
+      it(`${end.name} pauses only the watch for the ended release (${watch})`, () => {
+        writeCardFile()
+        fs.writeFileSync(path.join(root, 'docs/kanban/releases.md'), '- **0.8.0**\n- **0.9.0**\n')
+        enableCloudBoard(root, watch)
+        end('0.8.0')
+        assert.equal(cloudBoardFor(root)?.release, watch === '0.8.0' ? '' : watch)
+      })
+    }
+  }
 })
