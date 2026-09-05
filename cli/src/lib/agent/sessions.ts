@@ -20,6 +20,7 @@ import { parseFrontmatter } from '../frontmatter'
 import { dropRunCard, recordCardRun, runBoardMove, setCardStatusOn, takeRunCard } from '../board'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
 import { pidAlive } from '../lock'
+import { reportRun } from '../machine/usage'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
 import {
   activeDelivery,
@@ -582,6 +583,9 @@ export function openRun(
   }
   const spec: RunSpec = { sessionId, plan, prompt, ...(notes.length ? { notes } : {}) }
   writeSpec(spec)
+  // A run started (#295), on the surface that asked for it: the agent's name, and nothing
+  // about the card.
+  reportRun('started', record.harness)
   return { run: record, spec }
 }
 
@@ -685,6 +689,9 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   }
   const spec: RunSpec = { sessionId, plan, prompt: '' } // the prompt is the watcher's
   writeSpec(spec)
+  // A resume spawns a process and works like any other run, so it counts as one — and
+  // started stays ahead of finished plus failed (#295).
+  reportRun('started', record.harness)
   return { run: record, spec }
 }
 
@@ -832,6 +839,10 @@ export async function closeRun(
     return { ...run }
   })
   if (!closed) return
+  // …and the count of it (#295). Only the two endings the board WITNESSED: a stop is the
+  // user's decision rather than an outcome, and a run nobody saw the end of never finished.
+  if (closed.status === 'done') reportRun('finished', closed.harness)
+  else if (closed.status === 'error') reportRun('failed', closed.harness)
   // The delivery first: a run ending is a decision for the delivery it belongs to, and
   // whether the delivery is over is what decides whether the card is still being built.
   // Restoring the stage before that would read a delivery that was about to end as one

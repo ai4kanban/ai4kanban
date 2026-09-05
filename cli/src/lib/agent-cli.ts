@@ -10,6 +10,10 @@
 
 import { buildAkbProgram } from './cli/akb'
 import { runProgram } from './cli/shared'
+import { reportAppOpen } from './machine/usage'
+
+/** The watcher's own door — spawned by whichever command started a run, never typed. */
+const WATCH = '__watch'
 
 export interface RunAgentOptions {
   program?: string
@@ -19,5 +23,14 @@ export interface RunAgentOptions {
 
 export async function runAgent(argv: string[], options: RunAgentOptions = {}): Promise<number> {
   const { program = 'akb', cwd = process.cwd(), installHint = '`akb install`' } = options
+  // The command started (#295) — the terminal's half of "how many people use this". Once a
+  // day, never from an `akb` an agent typed inside a run, and never at all from a machine
+  // that turned reporting off. It touches no board and blocks nothing.
+  //
+  // Except the watcher, which comes through this same door and is nobody opening anything:
+  // the board spawns one per run on the environment that started it, so under the app —
+  // where an open is counted on every launch rather than once a day — one run would be one
+  // more person having opened it.
+  if (argv[0] !== WATCH) reportAppOpen()
   return runProgram(buildAkbProgram({ program, cwd, installHint }), argv, program)
 }

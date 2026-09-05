@@ -426,6 +426,11 @@ export interface BoardRules {
   /** What Continue on the disclosure step does: save the setting as shown and record that
    *  the step has been shown, in one write. */
   recordUsageDisclosure?(on: boolean): WriteResult;
+  /** The app or the command started (#295). Called once, by the Continue that answers the
+   *  step above, so the launch the machine was first asked on is counted like every launch
+   *  after it — nothing is queued before that answer, so the rules cannot count it
+   *  themselves. Every other counted action is counted inside the rules. */
+  reportAppOpen?(): void;
 
   // the spec skills, and which of them may run (#191, #403). Optional for the same reason
   // as the skill moves below: a project can be running rules older than the release that

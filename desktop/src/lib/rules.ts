@@ -22,6 +22,7 @@ interface Rules {
   LANGUAGES?: readonly string[];
   LANGUAGE_NAMES?: Record<string, string>;
   LANGUAGE_TAGS?: Record<string, string>;
+  reportAppOpen?(surface?: string): void;
 }
 
 // The rules are ESM and this process is CommonJS, so a plain `import()` would be compiled
@@ -99,4 +100,19 @@ export async function languageChoices(): Promise<LanguageChoice[]> {
   const names = mod.LANGUAGE_NAMES;
   const tags = mod.LANGUAGE_TAGS;
   return mod.LANGUAGES.map((code) => ({ code, name: names[code] ?? code, tag: tags[code] ?? code }));
+}
+
+/** The app was opened (#295) — one of the four numbers #292 exists to answer, and the one
+ *  thing only this process witnesses. Every other counted action happens inside the board
+ *  server, where the rules count it themselves.
+ *
+ *  The surface is said rather than sniffed: the rules read `KANBAN_DESKTOP`, which this
+ *  process sets on the SERVERS it starts and not on itself.
+ *
+ *  Optional and silent, like every read above. It reports nothing on a machine that turned
+ *  reporting off, and nothing at all until the disclosure step has been answered — so the
+ *  first launch of all is counted by the step's own Continue (kanban-ui/components/Privacy).
+ */
+export async function reportAppOpen(): Promise<void> {
+  (await rules()).reportAppOpen?.("app");
 }

@@ -38,3 +38,16 @@ export async function recordUsageDisclosure(on: boolean): Promise<WriteResult> {
   if (!rules.recordUsageDisclosure) return { ok: false, error: (await machineCopy()).messages.tooOld.usageReporting };
   return rules.recordUsageDisclosure(on);
 }
+
+/** Count the launch the disclosure step was answered on (#295).
+ *
+ *  The rules queue nothing while that step is owed, so the first launch of all would
+ *  otherwise be the one open never counted — and with it the `first_run` that says a real
+ *  install happened. Called after Continue saved, and only when the answer was yes.
+ *
+ *  Silent on rules that predate it, like every call above: a missing count is not worth a
+ *  message to somebody who just pressed Continue. */
+export async function reportAppOpen(): Promise<void> {
+  const rules = await boardRules();
+  rules.reportAppOpen?.();
+}

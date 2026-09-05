@@ -78,6 +78,7 @@ import {
 import { machineCopy, setMachineLanguage } from "@/lib/language";
 import {
   recordUsageDisclosure,
+  reportAppOpen,
   setUsageReporting,
   usageReporting,
 } from "@/lib/telemetry";
@@ -1625,10 +1626,13 @@ export async function setUsageReportingAction(on: boolean): Promise<WriteResult>
 }
 
 /** Continue on the disclosure step: the setting as it was shown, and the record that it
- *  was shown, in one write. */
+ *  was shown, in one write — and then, when the answer was yes, the launch that answer was
+ *  given on, which is the one open the rules cannot count for themselves (#295). */
 export async function recordUsageDisclosureAction(on: boolean): Promise<WriteResult> {
   try {
-    return await recordUsageDisclosure(on === true);
+    const saved = await recordUsageDisclosure(on === true);
+    if (saved.ok && on) await reportAppOpen().catch(() => undefined);
+    return saved;
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

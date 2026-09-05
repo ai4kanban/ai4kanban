@@ -41,6 +41,7 @@ import {
   knownLanguage,
   languageChoices,
   machineLanguage,
+  reportAppOpen,
   saveLanguage,
 } from "./lib/rules";
 import { BoardServers } from "./lib/server";
@@ -205,6 +206,10 @@ async function start(): Promise<void> {
 
   createWindow();
   refreshMenu();
+  // The app was opened (#295). After the language, so nothing about reporting can delay the
+  // first paint, and never awaited: it appends a line to a file this machine owns and the
+  // batch that carries it goes out at a time this install picked for itself.
+  void reportAppOpen();
   // Nothing to open on the first launch, and nothing to open when the folder we
   // had is gone. Either way the window says what this app is and offers the one
   // move there is, rather than opening a file dialog over an empty screen.

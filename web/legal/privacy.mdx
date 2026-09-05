@@ -83,9 +83,9 @@ The events are the whole list, and what each adds to those seven:
 
 | Event | What it adds |
 | --- | --- |
-| **The app was opened** | Whether this is the first open on this install, your operating system — macOS, Windows, or Linux — and your processor architecture, such as `arm64` or `x64`. |
+| **The app or the command was opened** | Whether this is the first open on this install, your operating system — macOS, Windows, or Linux — and your processor architecture, such as `arm64` or `x64`. The app sends this on each launch; the `akb` command sends it at most once a day, and never for an `akb` a coding agent ran for itself. |
 | **The app was used today** | Nothing. Sent at most once a day, so returning use can be counted without an event per click. |
-| **A run started, finished, or failed** | The name of the coding agent it ran on — `claude-code`, `codex`, and so on. Never the card, and never anything the run read or wrote. |
+| **A run started, finished, or failed** | The name of the coding agent it ran on — `claude-code`, `codex`, and so on. Never the card, and never anything the run read or wrote. A run you stopped yourself is reported as neither finished nor failed. |
 | **A chat message was sent** | Nothing. Not the message, and not the reply. |
 | **A board's own counts** | Counts since that board's last report, under a second random id for the board: cards created — and how many of those you asked for and how many the agent proposed — cards completed, cards rejected, questions closed and which kind each was, agent decisions that stood and ones you overruled, and releases closed. Numbers only. Sent at most once a day, and only when a count changed. |
 
@@ -93,7 +93,7 @@ The events are the whole list, and what each adds to those seven:
 
 Your IP address reaches the endpoint the way it reaches any web server. It is used for two things and then discarded: the country above, and an hourly request count kept against a one-way hash of the address, in memory, so that one script cannot spend a day's capacity. The address itself is never written to the database.
 
-Events are queued on your own machine and sent in batches, at most one batch a day. An offline machine loses nothing and never waits on the network; a machine that stays offline simply never sends.
+Events are queued on your own machine and sent in batches, at most one batch a day, at a time of day your install picks for itself. An offline machine loses nothing and never waits on the network; a machine that stays offline simply never sends, and the queue is capped rather than allowed to grow.
 
 ### How long it is kept, and how to have it deleted
 

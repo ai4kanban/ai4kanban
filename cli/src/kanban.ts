@@ -299,8 +299,17 @@ export {
   usageDisclosureOwed,
   usageQueueFile,
   usageReportingOn,
+  usageStateFile,
 } from './lib/machine/telemetry'
 export type { UsageReporting } from './lib/machine/types'
+
+// …and the queue that carries it (#295). Runs and chat messages are counted from inside
+// these rules, so a run started from a button and one started in a terminal are one count
+// like they are one run — what a surface has to call is the OPEN, which only it witnesses:
+// the desktop app on each launch, and `akb` once a day. `reportUsage` is the door #296
+// queues the board's own numbers through rather than building a second sender.
+export { reportAppOpen, reportUsage, sendUsage } from './lib/machine/usage'
+export type { Surface as UsageSurface } from './lib/machine/usage'
 
 // The spec skills (#191, #403): the list a screen draws — each one's two lines and whether
 // it is switched on — and the switch itself. The words and the order come from each skill's

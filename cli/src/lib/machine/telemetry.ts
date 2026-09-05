@@ -32,6 +32,13 @@ import type { UsageReporting } from './types'
  *  reporting off is what empties it, and that switch is this file's. */
 export const usageQueueFile = (): string => path.join(machineHome(), 'usage-queue.jsonl')
 
+/** And what the sender remembers between runs (#295): the day it last tried, and the minute
+ *  of the day this install sends at. Its own file rather than a key in `settings.json` — a
+ *  file that will not parse reads as "cannot be read" below, which turns reporting off and
+ *  refuses every write, and the sender's bookkeeping must never be able to do that to the
+ *  user's own answers. Emptied by the same switch. */
+export const usageStateFile = (): string => path.join(machineHome(), 'usage-state.json')
+
 /** What this machine has answered. `on` is the only question a sender has to ask. */
 export function readUsageReporting(): UsageReporting {
   const { unreadable, values } = heldSettings()
@@ -98,7 +105,11 @@ function write(on: boolean, disclosed: boolean): WriteResult {
   if (!on) patch.usageInstallId = undefined
   const saved = saveSettings(patch)
   // …and drops what was waiting to be sent, so nothing queued before the switch goes out
-  // after it. Nothing writes the queue yet (#295); this is what empties it when one does.
-  if (saved.ok && !on) fs.rmSync(usageQueueFile(), { force: true })
+  // after it — along with the sender's own bookkeeping, so turning it on again starts from
+  // a fresh install id AND a freshly picked send time rather than the old machine's.
+  if (saved.ok && !on) {
+    fs.rmSync(usageQueueFile(), { force: true })
+    fs.rmSync(usageStateFile(), { force: true })
+  }
   return saved
 }

@@ -27,6 +27,7 @@ import type { Readable, Writable } from 'node:stream'
 import { locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { pidAlive } from '../lock'
+import { reportChatMessage } from '../machine/usage'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { ensureSkillInstalled } from '../skill/install'
 import { languageNote } from './language'
@@ -511,6 +512,9 @@ export async function sendChatMessage(
     if (!options.fromBoard) held.messages.push({ role: 'you', text, at: now })
     held.updatedAt = now
     writeChat(held)
+    // Counted here, and only what the user said (#295): the name of the action and nothing
+    // of the message. The board's own opening turn was nobody's message, so it is not one.
+    if (!options.fromBoard) reportChatMessage()
 
     // What this conversation picked for itself (#272): the agent it pins, and its model on
     // top of that agent's own settings. Empty on a conversation that never picked, which is
