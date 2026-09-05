@@ -1,31 +1,4 @@
-// Reading one `AGENT.md` into a spec agent.
-//
-// An agent is one folder under a name of its own: `AGENT.md` with `name`, `description` and
-// instructions, and optional `references/` beside it. AKB's own additions live in the same
-// frontmatter, under `akb:`, so an agent is one file to write and one file to read:
-//
-//   ---
-//   name: ui-design
-//   description: Use when a card changes or adds a screen the user sees.
-//   akb:
-//     kind: spec
-//     owns: the screen a card changes
-//     memory: project       # optional; the only scope there is
-//     settings:
-//       - key: mockupStyle
-//         label: Mockup style
-//         help: ...
-//         default: full
-//         choices:
-//           - value: full
-//             label: Rendered screen
-//             cost: ...
-//             reference: references/rendered-screen.md
-//   ---
-//
-// Everything is checked here rather than where it is used. An agent that does not parse is
-// reported by name and left out of the catalog — a half-read agent reaching a run is a run
-// given instructions nobody wrote.
+// Read and validate an agent’s frontmatter and instructions.
 
 import type { SpecAgentChoice, SpecAgentSetting } from '../agent/types'
 import { solution } from '../solution'
@@ -36,9 +9,9 @@ import type { YamlValue } from './yaml'
  *  folder, so a bundled agent and a project one are used the same way. */
 export interface SpecAgent {
   name: string
+  /** When the calling flow must request this agent. */
   description: string
-  /** The part of a card's spec it owns, in one line. A flow reads this against the card in
-   *  front of it to decide whether the card needs the agent at all. */
+  /** The part of a card's spec it owns. */
   owns: string
   /** The hook it plugs into. */
   kind: AgentKind
@@ -86,7 +59,7 @@ export function parseSpecAgent(
   if (!name) return bad('its frontmatter has no `name`')
   if (!NAME.test(name)) return bad(`"${name}" is not a usable agent name — use lower-case words joined by "-"`)
   const description = str(front.description)
-  if (!description) return bad(`\`${name}\` has no \`description\`, which is the line a flow picks it by`)
+  if (!description) return bad(`\`${name}\` has no \`description\`, which tells the caller when to request it`)
 
   const akb = map(front.akb)
   if (!akb) return bad(`\`${name}\` has no \`akb:\` block, so the board can't tell what kind of agent it is`)

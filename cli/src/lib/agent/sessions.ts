@@ -693,7 +693,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   } catch {
     // already pruned, or never written — the record is gone either way
   }
-  const spec: RunSpec = { sessionId, plan, prompt: '' } // the prompt is the watcher's
+  const spec: RunSpec = { sessionId, plan, prompt: prev.error?.startsWith('Spec format validation failed.') ? prev.error : '' }
   writeSpec(spec)
   // A resume spawns a process and works like any other run, so it counts as one — and
   // started stays ahead of finished plus failed (#295).

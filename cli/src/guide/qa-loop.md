@@ -22,8 +22,9 @@ After creating the group, exit. The scheduled subtasks refine themselves.
 ## Refine when no split is needed
 
 1. Read only the card and relevant project evidence.
-2. Compare it with the available spec agents once. Request only agents whose responsibility
-   is material and whose section is missing, then stop; QA resumes after their work.
+2. Use every available spec agent’s `description` as its trigger. Check the current scope
+   and request each match whose section is missing or outdated, even if you can plan it yourself. Then stop;
+   QA resumes after their work. Recheck triggers when the scope changes.
 3. Resolve every question project evidence can answer. Drop duplicated or unnecessary
    questions.
 4. Reconstruct the promised outcome and walk concrete normal, edge, failure, recovery, and
@@ -44,7 +45,7 @@ When no split was made, the session ends only in one of these states:
 - **No questions**: every gap is settled; writing is next.
 - **Only `[user]` questions**: each was revalidated in the final sweep and carries concrete
   choices and a recommendation; wait for the user.
-- **Spec agents requested**: QA stopped after its one catalog check; their work resumes QA.
+- **Spec agents requested**: QA stopped for matching agents; their work resumes QA.
 
 Never leave an untagged question for another session to triage. If the session cannot reach
 one of these states, it is incomplete and must not claim convergence.

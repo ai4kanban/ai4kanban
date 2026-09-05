@@ -13,10 +13,13 @@
 import { spawn, type ChildProcessByStdio, type StdioNull, type StdioPipe } from 'node:child_process'
 import type { Readable, Writable } from 'node:stream'
 import fs from 'node:fs'
+import { randomUUID } from 'node:crypto'
 
 import { boardImage, carryRunEdits, holdRunCard, rereadRunCard } from '../board'
-import { REPO_ROOT, SESSIONS_DIR } from '../paths'
+import { rel, TODO, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
+import { formatContractErrors, snapshotSpecs, validateRunSpecs, type SpecSnapshot } from '../spec-contract'
+import { withStore } from './store'
 import { boardCommand } from './command'
 import { deliveryRunAfter } from './deliveries'
 import { advanceLanding } from './landing'
@@ -24,8 +27,8 @@ import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter, writeRunsAfter } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './wire'
-import { restartPrompt, resumePrompt } from './prompts'
-import { openPlan } from './resolve'
+import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
+import { openPlan, planResume, planRun, type RunPlan } from './resolve'
 import {
   claimChanges,
   markBoard,
@@ -54,7 +57,8 @@ import {
 import { silenceMinutes } from './settings'
 import { startRun } from './start'
 import type { TurnEnd } from './wire'
-import type { AgentRequest, RunRecord, RunStatus } from './types'
+import { holdsCard } from './types'
+import type { AgentRequest, RunRecord, RunStatus, TokenUsage } from './types'
 
 // How long a run gets to end on its own after a stop asks it to, before it is killed
 // outright.
@@ -90,13 +94,38 @@ const UNSENT = (why: string): string =>
   'copy out anything worth keeping.'
 
 /** Watch one run from start to finish. Resolves when the record is closed out. */
-export async function watchRun(sessionId: string): Promise<number> {
+interface ContractRepair {
+  attempt: number
+  plan: RunPlan
+  prompt: string
+  before: BoardMarks
+  sources: SpecSnapshot
+  image: ReturnType<typeof boardImage>
+  wasBroken: Set<string>
+  cost?: number
+  usage?: TokenUsage
+}
+
+const MAX_FORMAT_REPAIRS = 3
+
+function addUsage(a?: TokenUsage, b?: TokenUsage): TokenUsage | undefined {
+  if (!a) return b
+  if (!b) return a
+  return { input: a.input + b.input, output: a.output + b.output, cacheRead: a.cacheRead + b.cacheRead, cacheCreation: a.cacheCreation + b.cacheCreation }
+}
+
+export async function watchRun(sessionId: string, repair?: ContractRepair): Promise<number> {
   const spec = readSpec(sessionId)
   const run = peekRun(sessionId)
   if (!run || !spec) {
     // Nothing to watch. Either the record has gone (a stop that landed before this process
     // was up closed it) or the plan was never written.
     if (run?.status === 'running') await closeRun(sessionId, { status: 'interrupted', code: null })
+    return 1
+  }
+
+  if (repair && run.stopping) {
+    await closeRun(sessionId, { status: 'stopped', code: null })
     return 1
   }
 
@@ -133,7 +162,7 @@ export async function watchRun(sessionId: string): Promise<number> {
   // card is marked once the lock is back.
   let claim: CardClaim | undefined
   const claimed = patch(sessionId, (r) => {
-    claim = claimCard(r)
+    if (!repair) claim = claimCard(r)
   })
   const record = claimed ?? run
   if (claim) await setCardStatus(claim.cardId, claim.status)
@@ -147,26 +176,27 @@ export async function watchRun(sessionId: string): Promise<number> {
 
   // The keys are read here and nowhere else: the plan on disk carries the command and the
   // agent's name, never a key, and this is the one moment one is needed.
-  const active = openPlan(spec.plan)
+  const active = openPlan(repair?.plan ?? spec.plan)
   // A resumed run's prompt is the "carry on" one — the conversation already holds the
   // card, the work done and the error it died on, so the whole action prompt would be a
   // second instruction nobody gave. Inside a delivery it says more: re-enter the flow and
   // check each step's precondition, rather than carrying on from a half-finished sentence.
-  const prompt = record.resumedFrom ? resumePrompt(record.deliveryId, record.cardId) : spec.prompt
+  const prompt = repair?.prompt ?? (record.resumedFrom ? [resumePrompt(record.deliveryId, record.cardId), spec.prompt].filter(Boolean).join('\n\n') : spec.prompt)
 
   // The board as it was the moment before the agent touched it. The difference between this
   // and the same read at the close is what this run could be answerable for; which of it
   // really is its own — and not a neighbouring run's — is settled at the close by
   // `claimChanges`, and that is what earns a card the refine that follows.
-  const before = markBoard()
+  const before = repair?.before ?? markBoard()
+  const sources = repair?.sources ?? (record.resumedFrom && spec.prompt.startsWith('Spec format validation failed.') ? new Map() : snapshotSpecs())
   // And the board's own files as they stand, on a Cloud board: the difference between this
   // and the same read at the close is what this run wrote with its own tools, and what its
   // close sends to the workspace. Null on a Local board, where the files ARE the record.
-  const image = boardImage()
+  const image = repair?.image ?? boardImage()
   // And what was already broken about it. Only what a run BREAKS is worth reporting on that
   // run: a board carrying a stale link from last month would otherwise put the same line on
   // the end of every run forever, which is how a real warning gets read as furniture.
-  const wasBroken = new Set(boardComplaints())
+  const wasBroken = repair?.wasBroken ?? new Set(boardComplaints())
 
   const [cmd, ...args] = active.argv
   const workDir = active.cwd ?? REPO_ROOT
@@ -220,10 +250,10 @@ export async function watchRun(sessionId: string): Promise<number> {
   // Both ids are written into the record the first time the stream names them, and never
   // looked for again — every write takes the record's lock, and a run's output arrives in
   // hundreds of chunks.
-  let sawResumeId = !!record.resumeId
+  let sawResumeId = repair ? false : !!record.resumeId
   let sawModel = false
   const gotResumeId = (id: string | undefined, restarted = false) => {
-    if (restarted) sawResumeId = catchResumeId(sessionId, id, true)
+    if (restarted || repair) sawResumeId = catchResumeId(sessionId, id, true)
     else if (!sawResumeId) sawResumeId = catchResumeId(sessionId, id)
   }
   const gotModel = (model: string | undefined) => {
@@ -318,6 +348,50 @@ export async function watchRun(sessionId: string): Promise<number> {
             : code === 0
               ? 'done'
               : 'error'
+      const cost = spoken ? spoken.costUsd : renderer?.costUsd?.()
+      const totalCost = cost === undefined && repair?.cost === undefined ? undefined : (cost ?? 0) + (repair?.cost ?? 0)
+      const usage = addUsage(repair?.usage, spoken ? spoken.usage : renderer?.usage?.())
+      const heldElsewhere = withStore((store) => new Set(store.runs
+        .filter((r) => r.sessionId !== sessionId && r.status === 'running' && holdsCard(r.action))
+        .flatMap((r) => [r.cardId, ...(r.createdCardIds ?? [])]).filter((id): id is number => id !== null)))
+      let formatErrors: ReturnType<typeof validateRunSpecs> = []
+      if (!takenOver) {
+        try {
+          const current = snapshotSpecs()
+          formatErrors = validateRunSpecs(sources, current, record.cardId, heldElsewhere)
+          if (record.cardId !== null && !['archive', 'reject'].includes(record.action)
+            && [...sources.values()].some((card) => card.id === record.cardId)
+            && ![...current.values()].some((card) => card.id === record.cardId)) {
+            formatErrors.push({ file: rel(TODO), line: 1, rule: 'missing-card', message: `Task #${record.cardId} disappeared. Restore its card file; this run must not delete it.` })
+          }
+        } catch (error) {
+          formatErrors = [{ file: rel(TODO), line: 1, rule: 'read-error', message: `Cannot validate the card files: ${String(error)}. Restore readable Markdown files and retry.` }]
+        }
+      }
+      const contractError = formatErrors.length ? formatContractErrors(formatErrors) : undefined
+      if (contractError) {
+        log.write(`\n[validation] ${contractError}\n`)
+        if (status === 'done' && (repair?.attempt ?? 0) < MAX_FORMAT_REPAIRS) {
+          const attempt = (repair?.attempt ?? 0) + 1
+          log.write(`[validation] Returning format errors to the agent (repair ${attempt}/${MAX_FORMAT_REPAIRS}).\n`)
+          patch(sessionId, (r) => { r.error = contractError; r.costUsd = totalCost; r.usage = usage })
+          await new Promise<void>((closed) => log.end(closed))
+          letGo()
+          const resumeId = peekRun(sessionId)?.resumeId ?? active.resumeId
+          const own = { pin: active.harness, settings: active.settings }
+          const plan = (resumeId ? planResume(active.harness, resumeId, workDir, active.runtime, own) : null)
+            ?? planRun(randomUUID(), workDir, active.runtime, own)
+          resolve(await watchRun(sessionId, {
+            attempt,
+            plan,
+            prompt: contractRepairPrompt(requestOf(record), contractError),
+            before, sources, image, wasBroken, cost: totalCost, usage,
+          }))
+          return
+        }
+        if (status === 'done') status = 'error'
+        if (record.cardId !== null && !record.deliveryId) await setCardStatus(record.cardId, 'todo')
+      }
       // Writing is the last refinement session. A clean exit is its verdict; lifecycle
       // bookkeeping belongs to the watcher, not to an agent editing prose. The board keeps
       // the card at todo if questions appeared or refuses the transition for another reason.
@@ -371,9 +445,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       // closed, which would race its pending flush), and hand the same instant to the
       // record so the file and the record agree.
       log.write(durationLine(endedAt - record.startedAt))
-      const cost = spoken ? spoken.costUsd : renderer?.costUsd?.()
-      if (cost !== undefined) log.write(costLine(cost))
-      const usage = spoken ? spoken.usage : renderer?.usage?.()
+      if (totalCost !== undefined) log.write(costLine(totalCost))
       if (usage) log.write(usageLine(usage))
       const model = peekRun(sessionId)?.model
       if (model) log.write(modelLine(model))
@@ -384,7 +456,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       log.end()
 
       patch(sessionId, (r) => {
-        if (cost !== undefined) r.costUsd = cost
+        if (totalCost !== undefined) r.costUsd = totalCost
         if (usage) r.usage = usage
         if (final) r.result = final
       })
@@ -403,14 +475,14 @@ export async function watchRun(sessionId: string): Promise<number> {
         status,
         // `ok` stays unset on a stopped run, as it does on one that was cut off: it
         // neither passed nor failed, it was ended.
-        ok: asked ? undefined : takenOver ? false : !silent && !unfinished && code === 0,
+        ok: asked ? undefined : status === 'done',
         code: asked ? null : code,
         // What went wrong, in whoever's words know: ours when the command wouldn't start or
         // when it went quiet, the agent's own when the conversation ended badly or its
         // stream said so.
         error: takenOver
           ? TAKEN_OVER(record.cardId)
-          : (spawnError ??
+          : (contractError ?? spawnError ??
             (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure))),
         note,
         endedAt,
@@ -418,12 +490,12 @@ export async function watchRun(sessionId: string): Promise<number> {
       letGo()
       // The delivery's own next run first, when it has one — the review after a build. It is
       // read from the record the close just wrote, so it is taken once and started once.
-      const carryOn = deliveryRunAfter(record)
+      const carryOn = status === 'done' ? deliveryRunAfter(record) : null
       // Then the landing queue (#304): a delivery review has just passed takes the slot and
       // lands here, and what it hands back is the run that landing wants — conflict
       // resolution, or the focused review an overlapping rebase owes.
-      const landing = await advanceLanding()
-      await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
+      const landing = status === 'done' ? await advanceLanding() : null
+      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
       resolve(status === 'done' ? 0 : 1)
     }
 
@@ -522,7 +594,7 @@ export async function watchRun(sessionId: string): Promise<number> {
             cwd: workDir,
             // Only a resumed run carries a conversation to continue. A fresh run's session
             // is opened inside the conversation, and its id comes back here.
-            resumeId: record.resumedFrom ? record.resumeId : undefined,
+            resumeId: repair ? repair.plan.resumeId ?? undefined : record.resumedFrom ? record.resumeId : undefined,
             restartPrompt: restart,
             log: append,
             gotResumeId: (id, restarted) => gotResumeId(id, restarted),

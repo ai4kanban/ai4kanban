@@ -177,22 +177,12 @@ export const findWriteAgent = (name: string): SpecAgent | null => {
   return agent?.kind === 'write' ? agent : null
 }
 
-/** The catalog a planning run is shown, so it can decide for itself which — if any — a card
- *  needs (#403). One entry each: the name it is asked for by, the line it is picked by, and
- *  the part of the spec it owns. Nothing of an agent's instructions is in here; a selector
- *  handed an agent's body would start following it.
- *
- *  It is a catalog, not an instruction: a flow reads `owns` against the card in front of it,
- *  and asking for none is the common answer. Switched-off agents are left out, so a board
- *  that turned one off is never offered it.
- *
- *  Empty when every agent is off — a heading over an empty list reads as a list that failed
- *  to load. */
+/** Enabled agents and their triggers, without their execution instructions. */
 export const specAgentSelector = (id: number | string): string =>
   selector(enabledSpecAgents(), {
     tag: 'spec-agents',
     lead: "Specialist agents this board has, each filling one part of a card's spec in a run of its own:",
-    ask: `Review this list once. Ask for an agent only where the card would otherwise be planned by guess in the part that agent owns, and only when that section is missing: \`akb spec <agent> ${id} <short note>\`.`,
+    ask: `Use each agent’s description as its trigger. Check it against the current card. You must request each matching agent whose section is missing or no longer covers the changed scope, even when you can plan that work yourself: \`akb spec <agent> ${id} <short note>\`.`,
   })
 
 /** The same catalog, for the agents the writer can call in (#424) — the specialists a draft
@@ -204,7 +194,7 @@ export const writeAgentSelector = (id: number | string): string =>
   selector(enabledWriteAgents(), {
     tag: 'write-agents',
     lead: "Specialist agents this board has, each writing part of a topic's draft folder in a run of its own:",
-    ask: `Review this list once. Ask for an agent only where the draft needs a file you cannot write yourself, naming every file you want in the one note: \`akb write <agent> ${id} <short note>\`.`,
+    ask: `Use each agent’s description as its trigger. Check it against the current draft. Request each matching agent whose required output is missing or outdated, naming every file you want in the one note: \`akb write <agent> ${id} <short note>\`.`,
   })
 
 function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: string }): string {
@@ -224,7 +214,7 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
       ...(a.memory ? [`  remembers ${rel(agentMemoryFile(a.name))}`] : []),
     ]),
     words.ask,
-    'Asking for none is the usual answer. Do not ask for an agent to review, repeat or check work, and do not wait for one — the board starts it when this run ends.',
+    'Skip only when the trigger does not match or the agent’s existing output covers the current scope. Your own plan does not count as the agent’s output. After requesting agents, stop; the board starts them when this run ends and resumes this workflow afterward.',
     `</${words.tag}>`,
   ].join('\n')
 }
@@ -329,7 +319,7 @@ export const specAgentList = (program: string, forPerson = false): string =>
     blurb: [
       "A spec agent fills one part of a card's spec. It runs on its own, in its own context:",
       'it is given the card and your note, it writes one section of that card, and it changes',
-      'nothing else. Ask for one when the card would otherwise be planned by guess.',
+      'nothing else. Request each agent when its trigger matches the card.',
     ],
     guide: 'spec-agent',
   })
@@ -341,7 +331,7 @@ export const writeAgentList = (program: string, forPerson = false): string =>
     blurb: [
       "A write agent writes part of a topic's draft folder. It runs on its own, in its own",
       'context: it is given the card and your note, it writes the files that note names, and',
-      'it changes nothing else. Ask for one when the draft needs a file you cannot write.',
+      'it changes nothing else. Request each agent when its description matches the draft.',
     ],
     guide: 'write-agent',
   })

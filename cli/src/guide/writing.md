@@ -89,3 +89,6 @@ Every flow writes a card in this order:
 - **Specify behavior**: omit planning notes and unnecessary coding details.
 - **Say each decision once**: merge duplicates across the three decision sections; remove
   decisions that only repeat scope or no longer apply.
+
+- **Validate after edits**: run `akb raw validate <id>` for every card you wrote. Fix each
+  reported file and line before finishing; validation does not rewrite the card for you.

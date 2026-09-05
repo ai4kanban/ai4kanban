@@ -21,6 +21,7 @@ import {
   setSpecAgentSetting,
   specAgentCatalog,
   specAgentInstructions,
+  specAgentList,
   specAgentSelector,
   specHookAgents,
 } from '../src/lib/agents/index.ts'
@@ -115,6 +116,8 @@ describe('the agents this command ships', () => {
     const ui = findSpecAgent('ui-design')!
     assert.match(ui.owns, /the screen a card changes/)
     assert.match(ui.description, /^Use when/)
+    assert.match(ui.description, /user-facing feature/)
+    assert.match(ui.description, /Skip only extremely tiny fixes/)
     assert.match(ui.body, /You draw the screen a card needs/)
     assert.equal(ui.builtIn, true)
   })
@@ -302,9 +305,33 @@ describe('what a session is shown', () => {
     assert.match(catalog, /<spec-agents>/)
     assert.match(catalog, /- `ui-design`/)
     assert.match(catalog, /owns the screen a card changes/)
+    assert.ok(catalog.includes(findSpecAgent('ui-design')!.description))
+    assert.match(catalog, /description as its trigger/)
+    assert.match(catalog, /must request each matching agent/)
+    assert.doesNotMatch(catalog, /planned by guess|Asking for none is the usual answer/)
     assert.match(catalog, /akb spec <agent> 12 <short note>/)
     assert.doesNotMatch(catalog, /Rendered screen/)
     assert.doesNotMatch(catalog, /You draw the screen a card needs/)
+  })
+
+  it('shows project triggers in both the selector and command listing', () => {
+    project('api-contract', { 'AGENT.md': AGENT })
+    const trigger = findSpecAgent('api-contract')!.description
+    assert.ok(specAgentSelector(12).includes(trigger))
+    assert.ok(specAgentList('akb').includes(trigger))
+  })
+
+  it('includes trigger checks for standard and lightweight refinement, resolve and revise', () => {
+    for (const req of [
+      { action: 'clarify', id: 426, refineEffort: 'standard' },
+      { action: 'clarify', id: 426, refineEffort: 'lightweight' },
+      { action: 'resolve', id: 426 },
+      { action: 'edit', id: 426 },
+    ] as const) {
+      const prompt = buildPrompt(req)
+      assert.match(prompt, /Use whenever a card designs or changes a user-facing feature/)
+      assert.match(prompt, /must request each matching agent/)
+    }
   })
 
   it('says nothing at all when every agent is switched off', () => {
@@ -416,7 +443,8 @@ describe('what a run of an agent that remembers is handed', () => {
     const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
     assert.match(prompt, /——— what you remember ———/)
     assert.match(prompt, /This product never opens a modal\./)
-    assert.match(prompt, /adding `--memory <path>` to that same call/)
+    assert.match(prompt, /Edit `docs\/kanban\/memory\/agents\/ui-design\.md` directly/)
+    assert.doesNotMatch(prompt, /spec-write|--memory/)
     // Beside its own rule, and after it — the board's words end before the agent's do.
     assert.ok(prompt.indexOf('——— you, the `ui-design` agent ———') < prompt.indexOf('——— what you remember ———'))
   })
@@ -430,7 +458,7 @@ describe('what a run of an agent that remembers is handed', () => {
   it('says nothing of memory to an agent that declares none', () => {
     const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'technology-selection' })
     assert.doesNotMatch(prompt, /——— what you remember ———/)
-    assert.doesNotMatch(prompt, /You keep a memory of this board/)
+    assert.doesNotMatch(prompt, /--memory|Follow your memory below/)
   })
 })
 

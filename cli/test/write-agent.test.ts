@@ -109,6 +109,7 @@ describe('the roster each run carries', () => {
       assert.match(prompt, /<write-agents>/)
       assert.match(prompt, /- `poster`/)
       assert.match(prompt, /owns the images a draft links to/)
+      assert.match(prompt, /description as its trigger/)
       assert.match(prompt, /akb write <agent> 2 <short note>/)
       assert.doesNotMatch(prompt, /<spec-agents>/)
       // A roster is a catalog, never the agent's own instructions.

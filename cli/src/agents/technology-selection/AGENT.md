@@ -1,6 +1,6 @@
 ---
 name: technology-selection
-description: Use when a card leans on an outside library, tool or service.
+description: Use when a card needs to choose or replace an outside library, tool, or service. Skip when it only uses an already settled dependency without a new selection decision.
 akb:
   kind: spec
   owns: the library, tool, or service a card leans on — the candidates weighed, one recommended

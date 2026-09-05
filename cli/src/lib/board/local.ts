@@ -49,6 +49,7 @@ import { cmdRemove } from '../../commands/remove'
 import { cmdRule, type RuleOptions } from '../../commands/rule'
 import { cmdRunBlocker, type RunBlockerOptions } from '../../commands/run-blocker'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
+import { cmdValidate } from '../../commands/validate'
 import { cmdSpecWrite, type SpecWriteOptions } from '../../commands/spec-write'
 import { afterBoardWrite } from '../cloud/publish'
 import { quietly, say } from '../io'
@@ -119,6 +120,7 @@ type RunMove = (input: MoveInput) => MoveOutput | void
 const as = <T,>(opts: Record<string, unknown>): T => opts as T
 
 const MOVES: Record<string, RunMove> = {
+  validate: ({ args }) => cmdValidate(args[0] === undefined ? undefined : Number(args[0])),
   init: ({ opts }) => cmdInit(as<{ solution?: Solution }>(opts).solution),
   'memory-init': ({ args }) => cmdMemoryInit(args[0]),
   'setup-done': ({ args }) => cmdSetupDone(args[0]),
@@ -157,7 +159,7 @@ export const BOARD_MOVES: ReadonlySet<string> = new Set(Object.keys(MOVES))
 
 /** The moves that only read. They take no lock and no envelope — nothing they do can be
  *  half-written, and a board someone is mid-write on is still readable. */
-export const READ_ONLY_MOVES: ReadonlySet<string> = new Set(['list', 'peek', 'metrics', 'setup-status'])
+export const READ_ONLY_MOVES: ReadonlySet<string> = new Set(['list', 'peek', 'metrics', 'setup-status', 'validate'])
 
 // ---- the provider ----------------------------------------------------------
 

@@ -294,6 +294,14 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('run-blocker', this, [String(id)], this.opts(), cli)
     })
 
+  move('validate')
+    .argument('[id]', ID, cardId)
+    .summary('validate card format and report file, line, and repair instructions')
+    .description('Check one card, or every open card when no id is given. Reads only; exits non-zero with detailed errors until the format is valid.')
+    .action(async function (this: Command, id?: number) {
+      await dispatch('validate', this, id === undefined ? [] : [String(id)], this.opts(), cli)
+    })
+
   move('spec-write')
     .argument('<id>', ID, cardId)
     .argument('<agent>', 'the spec agent whose section this is — `akb spec` lists them')

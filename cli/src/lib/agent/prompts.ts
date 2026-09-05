@@ -4,7 +4,9 @@
 // button say exactly the same thing. Only the opening — how this agent is asked for the
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
+import path from 'node:path'
 import { locate } from '../cards'
+import { agentMemoryFile } from '../memory'
 import { channelLanguage } from '../channels'
 import { draftDir, draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
@@ -12,7 +14,6 @@ import { boardText, rel } from '../paths'
 import {
   agentMemoryBlock,
   findSpecAgent,
-  specHeading,
   specAgentInstructions,
   specAgentSelector,
   writeAgentSelector,
@@ -52,6 +53,18 @@ const DELIVERY_RESUME = [
 export function resumePrompt(deliveryId: string | undefined, cardId: number | null): string {
   if (!deliveryId || cardId === null) return RESUME_PROMPT
   return DELIVERY_RESUME.replace('%s', deliveryId).replace('%c', `${boardCommandFor(cardId)} card implement ${cardId} --print`)
+}
+
+/** A format repair continues the same run without repeating its task. */
+export function contractRepairPrompt(req: AgentRequest, errors: string): string {
+  const command = boardCommandFor(req.id)
+  return boardText([
+    'The task ended with invalid card formatting. Fix only the errors below in the listed files. Preserve planned behavior and completed work; do not repeat the task or request other agents.',
+    errors,
+    `Run \`${command} raw validate <id>\` for every affected card and fix every error before finishing.`,
+    languageNote(),
+    ruleBlock(req, frozenRules(req)),
+  ].filter(Boolean).join('\n\n'))
 }
 
 // The actions whose ask can be said again from the record alone. A resume drops what the
@@ -142,7 +155,8 @@ export function buildAsk(req: AgentRequest, notes: string[] = []): string {
   // name the project's own copy outright (#303). Everything else runs in the project and
   // spells the command the ordinary way.
   const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
-  const ask = [actionPrompt(req, command, notes), commandNote(command)].filter(Boolean).join(' ')
+  const check = 'After editing a card, run `akb raw validate <id>` for each card you wrote and fix every reported format error before finishing. Background runs also validate automatically before advancing.'
+  const ask = [actionPrompt(req, command, notes), check, commandNote(command)].filter(Boolean).join(' ')
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
   return boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n'))
@@ -349,18 +363,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `At the tasks step, read \`${command} guide add-task\` once. Do not call any other guide or help command during setup.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions, the way the setup flow says.`,
       ].join(' ')
-    // One spec agent on one card (#187, #403). The whole run is assembled here and inlined:
-    // the contract every spec run works to, the agent's own instructions, and the one
-    // reference each of its settings picked. A pointer to a second command is a step an
-    // agent skips, and a reference it had to go and find is one it could load the wrong
-    // one of — the board resolves them, so the run has nothing to locate.
-    //
-    // Nothing here says what the card is about. The card is on the board and the agent is
-    // told to read it — a summary pasted in would be the planning flow's reading of it,
-    // which is the one thing this run exists to be free of.
+    // Inject the shared contract, specialty instructions, and selected references.
     case 'spec': {
       const agent = findSpecAgent(req.specAgent ?? '')
-      const heading = specHeading(req.specAgent ?? '')
+      const found = req.id === undefined ? null : locate(req.id)
+      const cardFile = found ? rel(found.kind === 'group' ? path.join(found.target, 'root.md') : found.target) : `task #${req.id}`
       // The one read of what this agent is set to, taken as the run starts and frozen for
       // it: everything below is assembled from these values (#255).
       const own = agent ? specAgentInstructions(agent) : null
@@ -372,13 +379,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         [
           `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
-          `Read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb raw spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
+          `Edit \`${cardFile}\` directly. Replace or add only the section headed \`\`## By \`${req.specAgent}\` agent\`\`; use \`###\` for its subheadings.`,
           memory
-            ? `You keep a memory of this board, below. Follow it, and when this run taught you something lasting, curate it and write the whole file back by adding \`--memory <path>\` to that same call.`
+            ? `Follow your memory below. Edit \`${rel(agentMemoryFile(req.specAgent!))}\` directly when you learn lasting preferences or product facts. Create it if missing; merge duplicates and drop rules already in your instructions. Omit task IDs and run history.`
             : '',
-          `Change nothing else — not the rest of the card, not another card, not the code.`,
           req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
-          `Everything you need is in this message: the contract below, your instructions, and the references they selected. Do not go looking for more of them.`,
           `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
         ]
           .filter(Boolean)
@@ -413,7 +418,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           `Never \`source.md\`, never a channel's draft, never the card, never project code.`,
           memory ? `You keep a memory of this board, below. Follow it — this run does not write it back.` : '',
           req.notes ? `What the writing run that asked for you wants: ${req.notes}` : '',
-          `Everything you need is in this message: the contract below, your instructions, and the references they selected. Do not go looking for more of them.`,
           `Don't ask me questions with human-in-the-loop — if the ask cannot be done, write no file and say why in your last message.`,
         ]
           .filter(Boolean)
