@@ -97,10 +97,11 @@ export let INDEX_LOCK = ''
 // after the card is archived (lib/agent/deliveries.ts). The live copy is a row in
 // SESSIONS above; this is what outlives the machine it ran on.
 export let DELIVERIES = ''
-// One rule per flow, in the user's own words, appended to that flow's built-in prompt
-// (#306) — `rules/<command>.md`, named by the command a user types. Tracked in git so a
-// team shares them, and inside docs/kanban/, which every delivery worktree leaves out.
-// Never created up front: a missing or empty file means the flow runs unchanged.
+// One rule per agent, in the user's own words, appended to the end of every run that agent
+// does (#306, #420) — `rules/<agent>.md`, named by a role the board ships or a specialist a
+// card asks for. Tracked in git so a team shares them, and inside docs/kanban/, which every
+// delivery worktree leaves out. Never created up front: a missing or empty file means the
+// run goes unchanged.
 export let RULES = ''
 // Delivery state that never belongs in git — #303's worktrees are the first thing in it.
 // At the REPOSITORY root, not under docs/kanban/, because docs/kanban/.gitignore cannot

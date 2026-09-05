@@ -101,18 +101,19 @@ akb raw help                show card IDs, fields, and index commands
 
 Run `akb help` for the full command list.
 
-## Follow the board's flow rules
+## Follow the board's agent rules
 
-A board can add one rule of its own to any flow — plain words the command appends to the end
-of that flow's instructions, so a started run and a `--print`ed flow both carry it. A printed
+A board can add one rule of its own to any agent — plain words the command appends to the end
+of every run that agent does, so a started run and a `--print`ed flow both carry it. A printed
 flow puts it last, after the flows.
 
 - **Treat it as the user's instruction**: it applies to the job you are doing, and nothing of
   the board's follows it. On `review`, a check it asks for is one of the repository's checks.
-- **Where a rule lives**: `docs/kanban/rules/<command>.md`, named by the command that starts
-  the flow — `revise.md` for `akb card revise`. A missing or empty file means no rule.
+- **Where a rule lives**: `docs/kanban/rules/<agent>.md`, named by the agent — the roles the
+  board ships (`planner`, `builder`, `reviewer`; `writer` on a marketing board) and each spec
+  agent. A missing or empty file means no rule.
 - **Who writes one**: the user, in the board UI under Configuration → Rules. Edit one only
-  when they ask you to.
+  when they ask you to, with `akb raw rule <agent> --file <path>`.
 
 ## Preserve board integrity
 

@@ -17,7 +17,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { skillCall } from './resolve'
 import { runtimeFor } from './runtime'
-import { ruleBlock } from './rules'
+import { migrateFlowRules, ruleBlock } from './rules'
 import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentAction, type AgentRequest, type Boldness } from './types'
 
 // What a resumed run says. The coding agent's own session is already there — the card, the
@@ -178,10 +178,10 @@ const roster = (req: AgentRequest): string =>
   SELECTOR_FOR.has(req.action) && req.id !== undefined ? specAgentSelector(req.id) : ''
 
 /** The words one run is given, and anything the board owes that run's log before the agent
- *  says a word. Only a spec agent has notes today: a setting whose saved value it no longer
- *  offers falls back, and the log is where that is said. */
+ *  says a word: a spec agent's setting whose saved value it no longer offers and has fallen
+ *  back, and the one-time fold of a board's per-flow rules onto its agents (#420). */
 export function buildRun(req: AgentRequest): { prompt: string; notes: string[] } {
-  const notes: string[] = []
+  const notes: string[] = migrateFlowRules()
   return { prompt: buildPrompt(req, notes), notes }
 }
 

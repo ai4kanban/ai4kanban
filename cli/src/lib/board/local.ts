@@ -46,6 +46,7 @@ import { cmdList, type ListOptions } from '../../commands/list'
 import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove } from '../../commands/remove'
+import { cmdRule, type RuleOptions } from '../../commands/rule'
 import { cmdRunBlocker, type RunBlockerOptions } from '../../commands/run-blocker'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
 import { cmdSpecWrite, type SpecWriteOptions } from '../../commands/spec-write'
@@ -137,6 +138,7 @@ const MOVES: Record<string, RunMove> = {
   reject: ({ args }) => cmdRemove(Number(args[0]), 'rejected'),
   'record-run': ({ args }) => cmdRun(Number(args[0])),
   'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
+  rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
   'run-blocker': ({ args, opts }) => cmdRunBlocker(Number(args[0]), as<RunBlockerOptions>(opts)),
   peek: () => {
     const id = readNextId()
@@ -465,7 +467,7 @@ export function localBoard(): BoardProvider {
         return { file }
       }),
 
-    // ---- the per-flow rules -------------------------------------------------
+    // ---- the rules, one per agent -------------------------------------------
 
     readFlowRules: () => Promise.resolve(readFlowRules()),
 

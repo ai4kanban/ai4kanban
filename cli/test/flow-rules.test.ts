@@ -1,4 +1,4 @@
-// One rule per flow, in the user's own words (#306).
+// One rule per agent, in the user's own words (#306, #420).
 //
 // What is asked here: a rule reaches the prompt and reaches it LAST, a printed flow carries
 // the same rule a started session does, and a delivery runs on the rules it started with
@@ -18,7 +18,7 @@ import { FLOWS } from '../src/lib/agent/flows.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { setupInstruction } from '../src/lib/agent/resolve.ts'
-import { readFlowRules, setFlowRule } from '../src/lib/agent/rules.ts'
+import { readFlowRules, ruleFor, setAgentRule, setFlowRule } from '../src/lib/agent/rules.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { setLanguage } from '../src/lib/machine/settings.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
@@ -88,29 +88,37 @@ async function end(sessionId: string): Promise<void> {
 describe('the files', () => {
   it('is nothing until a rule is saved, and nothing again when one is cleared', async () => {
     assert.equal(fs.existsSync(RULES), false)
-    assert.deepEqual(setFlowRule('implement', 'Install first.'), { ok: true })
-    assert.equal(fs.readFileSync(path.join(RULES, 'implement.md'), 'utf8').trim(), 'Install first.')
-    assert.deepEqual(setFlowRule('implement', '   '), { ok: true })
-    assert.equal(fs.existsSync(path.join(RULES, 'implement.md')), false)
+    assert.deepEqual(setAgentRule('builder', 'Install first.'), { ok: true })
+    assert.equal(fs.readFileSync(path.join(RULES, 'builder.md'), 'utf8').trim(), 'Install first.')
+    assert.deepEqual(setAgentRule('builder', '   '), { ok: true })
+    assert.equal(fs.existsSync(path.join(RULES, 'builder.md')), false)
   })
 
-  it('is named by the command a user types, not the action the board keeps', async () => {
+  it('is named by the agent that runs the flow, not by the flow (#420)', async () => {
     setFlowRule('revise', 'Say what changed.')
-    assert.equal(fs.existsSync(path.join(RULES, 'revise.md')), true)
-    assert.equal(fs.existsSync(path.join(RULES, 'edit.md')), false)
+    assert.equal(fs.readFileSync(path.join(RULES, 'planner.md'), 'utf8').trim(), 'Say what changed.')
+    for (const gone of ['revise.md', 'edit.md']) {
+      assert.equal(fs.existsSync(path.join(RULES, gone)), false, gone)
+    }
   })
 
-  it('refuses a flow this board does not have', async () => {
-    const res = setFlowRule('deploy', 'Ship it.')
-    assert.equal(res.ok, false)
-    assert.match(res.error!, /deploy/)
+  it('refuses a flow this board does not have, and a name no agent answers to', async () => {
+    const flow = setFlowRule('deploy', 'Ship it.')
+    assert.equal(flow.ok, false)
+    assert.match(flow.error!, /deploy/)
+    const agent = setAgentRule('deployer', 'Ship it.')
+    assert.equal(agent.ok, false)
+    assert.match(agent.error!, /planner, builder, reviewer/)
   })
 
-  it('lists every flow the board can start, rule or no rule', async () => {
-    setFlowRule('review', 'Run the smoke tests.')
+  it("lists every flow the board can start, carrying its agent's rule or none", async () => {
+    setAgentRule('builder', 'Install first.')
     const listed = readFlowRules()
     assert.equal(listed.length, FLOWS.length)
-    assert.equal(listed.find((f) => f.command === 'review')!.rule, 'Run the smoke tests.')
+    // One rule, every flow that agent runs.
+    for (const command of ['implement', 'conflict', 'run']) {
+      assert.equal(listed.find((f) => f.command === command)!.rule, 'Install first.', command)
+    }
     assert.equal(listed.find((f) => f.command === 'propose')!.rule, '')
     // Every flow says what it is, because `plan-release` names nothing a user
     // can guess at.
@@ -384,62 +392,102 @@ describe('the prompt', () => {
   })
 
   it('ends on the rule, after everything the board writes', async () => {
-    setFlowRule('implement', 'Install dependencies first.')
+    setAgentRule('builder', 'Install dependencies first.')
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     assert.ok(prompt.trimEnd().endsWith('Install dependencies first.'))
-    assert.match(prompt, /adds one rule of its own to every `implement` run/)
+    assert.match(prompt, /`builder` agent carries one rule of its own, on every flow it runs/)
   })
 
-  it('carries no rule when the flow has none', async () => {
+  it('carries no rule when the agent has none', async () => {
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     assert.doesNotMatch(prompt, /rule of its own/)
   })
 
-  it('reads only its own flow file', async () => {
-    setFlowRule('review', 'Run the smoke tests.')
+  it("reads only its own agent's rule", async () => {
+    setAgentRule('reviewer', 'Run the smoke tests.')
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /smoke tests/)
     assert.match(buildPrompt({ action: 'review', id: 1 }), /smoke tests/)
   })
 
-  it('uses the refine rule throughout the composite flow', async () => {
-    setFlowRule('refine', 'Ask about the data model.')
-    setFlowRule('resolve', 'Use the standalone resolver rule.')
-    for (const action of ['clarify', 'resolve', 'writing'] as const) {
-      const prompt = buildPrompt({ action, id: 1, refineRound: 2 })
-      assert.match(prompt, /data model/)
-      assert.doesNotMatch(prompt, /standalone resolver/)
+  it('reaches every flow its agent runs, the refinement passes included', async () => {
+    setAgentRule('planner', 'Ask about the data model.')
+    setAgentRule('builder', 'Install dependencies first.')
+    // One planner, so the composite refine and the standalone resolve read the same words.
+    for (const req of [
+      { action: 'clarify' as const, id: 1, refineRound: 2 },
+      { action: 'writing' as const, id: 1, refineRound: 2 },
+      { action: 'resolve' as const, id: 1 },
+      { action: 'edit' as const, id: 1, notes: 'Use A.' },
+      { action: 'propose' as const },
+    ]) {
+      const prompt = buildPrompt(req)
+      assert.match(prompt, /data model/, req.action)
+      assert.doesNotMatch(prompt, /Install dependencies/, req.action)
     }
-    assert.match(buildPrompt({ action: 'resolve', id: 1 }), /standalone resolver/)
+  })
+
+  it("puts a spec agent's own rule after its instructions, and no role's", async () => {
+    setAgentRule('planner', 'Ask about the data model.')
+    setAgentRule('ui-design', 'Keep to the existing palette.')
+    const prompt = buildPrompt({ action: 'spec', id: 1, specAgent: 'ui-design' })
+    assert.ok(prompt.trimEnd().endsWith('Keep to the existing palette.'))
+    assert.match(prompt, /`ui-design` agent carries one rule of its own\./)
+    assert.doesNotMatch(prompt, /data model/)
+  })
+
+  // A printed flow says the same thing in its own words, at the very end. It must name the
+  // AGENT too: saying "the rule for `implement`" would tell the reader it stops there.
+  it('names the same agent when the flow is printed, last of all', async () => {
+    setAgentRule('builder', 'Install dependencies first.')
+    const sink = startCollecting()
+    try {
+      printFlow({ action: 'implement', id: 1, title: 'card one' })
+    } finally {
+      stopCollecting()
+    }
+    const printed = sink.out.join('\n')
+    assert.match(printed, /`builder` agent carries one rule of its own, on every flow it runs/)
+    assert.doesNotMatch(printed, /own rule for `implement`/)
+    assert.ok(printed.trimEnd().endsWith('Install dependencies first.'))
   })
 })
 
 describe('a delivery', () => {
-  it('freezes the rules of the flows it is made of', async () => {
-    setFlowRule('implement', 'Install dependencies first.')
-    setFlowRule('review', 'Run the smoke tests.')
-    setFlowRule('propose', 'Stay small.')
+  it('freezes the rules of the agents it is built by, keyed by agent', async () => {
+    setAgentRule('builder', 'Install dependencies first.')
+    setAgentRule('reviewer', 'Run the smoke tests.')
+    setAgentRule('planner', 'Stay small.')
     const built = run('implement', 1)
     const delivery = activeDelivery(1)!
     assert.deepEqual(delivery.rules, {
-      implement: 'Install dependencies first.',
-      review: 'Run the smoke tests.',
+      builder: 'Install dependencies first.',
+      reviewer: 'Run the smoke tests.',
     })
     await end(built)
   })
 
   it('gives its later sessions the rules it started with, not the files as they read now', async () => {
-    setFlowRule('review', 'Run the smoke tests.')
+    setAgentRule('reviewer', 'Run the smoke tests.')
     const built = run('implement', 1)
     await end(built)
-    setFlowRule('review', 'Something else entirely.')
+    setAgentRule('reviewer', 'Something else entirely.')
     const prompt = buildPrompt({ action: 'review', id: 1, title: 'card one' })
     assert.match(prompt, /smoke tests/)
     assert.doesNotMatch(prompt, /Something else entirely/)
   })
 
+  it('reads a delivery frozen before the rules were keyed by agent', async () => {
+    const built = run('implement', 1)
+    // What a build in flight across the upgrade holds: the flow's name, not the agent's.
+    const delivery = activeDelivery(1)!
+    const frozen = { implement: 'Install dependencies first.' }
+    assert.equal(ruleFor({ action: 'implement', id: delivery.cardId }, frozen), 'Install dependencies first.')
+    await end(built)
+  })
+
   it('leaves a flow that is not one of its own reading the file', async () => {
     const built = run('implement', 1)
-    setFlowRule('refine', 'Ask about the data model.')
+    setAgentRule('planner', 'Ask about the data model.')
     assert.match(buildPrompt({ action: 'clarify', id: 1, refineRound: 1 }), /data model/)
     await end(built)
   })

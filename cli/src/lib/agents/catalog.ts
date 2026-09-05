@@ -7,7 +7,8 @@
 // Built-ins come first, so a board reads the same list whether or not it has added any of
 // its own. A project agent taking a built-in's name is refused rather than allowed to
 // shadow it: a card would otherwise be planned by instructions nobody at the board could
-// see, and the name in the log would say the built-in ran.
+// see, and the name in the log would say the built-in ran. A role's name is refused for the
+// same reason — a rule is keyed by the agent's name (#420), so the two would share one file.
 //
 // Whatever cannot be used is reported, never dropped in silence — an agent nobody can see
 // failing is a specialist that quietly stops being asked for.
@@ -15,6 +16,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { ROLE_NAMES } from '../agent/roles'
 import { AGENTS, LEGACY_AGENTS, rel } from '../paths'
 import { BUNDLED_AGENT_FILES } from './bundled'
 import { parseSpecAgent } from './parse'
@@ -34,6 +36,13 @@ export function specAgentCatalog(): SpecAgentCatalog {
   const problems: string[] = []
   const take = (read: { agent: SpecAgent } | { problem: string }, folder: string): void => {
     if ('problem' in read) return void problems.push(read.problem)
+    if (ROLE_NAMES.includes(read.agent.name)) {
+      problems.push(
+        `${read.agent.from}: \`${read.agent.name}\` is one of the roles the board ships, whose rule ` +
+          'this agent would then share, so this one is not used. Rename it.',
+      )
+      return
+    }
     const clash = agents.find((a) => a.name === read.agent.name)
     if (clash) {
       problems.push(

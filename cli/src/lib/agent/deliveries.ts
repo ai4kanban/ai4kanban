@@ -290,8 +290,8 @@ export function joinDelivery(
       // resume and every later session follow the policy this build started with.
       aiReview: start ? start.aiReview : true,
       manualWhy: start?.manualWhy,
-      // And the one read of the flow rules this delivery runs under (#306) — the four
-      // flows a delivery is made of, frozen the way the card is. Every run in it is
+      // And the one read of the rules this delivery runs under (#306, #420) — the agents
+      // its flows are run by, frozen the way the card is. Every run in it is
       // given these words rather than the files, a printed flow included, so editing a
       // rule changes the next delivery and never one in flight.
       rules: deliveryRules(),

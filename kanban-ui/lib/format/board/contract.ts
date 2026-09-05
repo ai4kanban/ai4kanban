@@ -218,15 +218,15 @@ export interface BoardProvider {
   saveMemoryFile(name: string, text: string, module: string, env: OpEnvelope): Promise<OpResult<{ file?: MemoryFile }>>
 
   // ---- the per-flow rules (#306) -------------------------------------------
-  /** Every flow this board has, with the rule it carries. The list is the board's own, so a
-   *  flow shipped later appears without this being touched. */
+  /** Every flow this board has, with the rule its agent carries (#420). The list is the
+   *  board's own, so a flow shipped later appears without this being touched. */
   readFlowRules(): Promise<FlowRuleView[]>
-  /** Save one flow's rule. Empty text clears it: a flow with no rule and a flow with an
-   *  empty rule are the same flow. */
+  /** Save the rule of the agent that runs one flow. Empty text clears it, and the flows that
+   *  agent also runs read the same rule afterwards. */
   saveFlowRule(command: string, text: string, env: OpEnvelope): Promise<OpResult>
-  /** The rules a delivery freezes when it starts, keyed by command — read once, the way it
-   *  reads the card it was approved to build. Editing a rule afterwards changes the next
-   *  delivery, never one in flight. */
+  /** The rules a delivery freezes when it starts, keyed by the agent that carries each —
+   *  read once, the way it reads the card it was approved to build. Editing a rule afterwards
+   *  changes the next delivery, never one in flight. */
   deliveryRules(): Promise<Record<string, string>>
 
   // ---- history -------------------------------------------------------------

@@ -82,10 +82,11 @@ export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 export { refinementRequest } from './lib/agent/refine'
 
-// The flow rules (#306): one rule per flow, in the user's own words, appended to that
-// flow's built-in prompt. The Rules pane in the Configuration dialog reads and writes them
-// through these, the way it reads every other setting — the list of flows is the board's
-// own, so a flow shipped later takes a rule with nothing else touched.
+// The rules (#306, #420): one rule per agent, in the user's own words, appended to the end
+// of every run that agent does. The Rules pane in the Configuration dialog still draws a row
+// per flow and reads and writes through these, each row carrying the rule of the agent that
+// runs that flow — the list of flows is the board's own, so a flow shipped later takes its
+// agent's rule with nothing else touched.
 // They are board operations like every other write (#315), so a Cloud board reads and
 // writes its rules where the board is and both clients call the same thing.
 export { readFlowRules, setFlowRule } from './lib/view/api'

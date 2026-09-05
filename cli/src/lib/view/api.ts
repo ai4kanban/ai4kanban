@@ -215,7 +215,7 @@ export async function dropRelease(id: string, opts?: WriteOptions): Promise<Writ
   return flat(await envelopeFor({ board: true }, opts, (env) => board().dropRelease(id, env)))
 }
 
-// ---- memory and the per-flow rules -----------------------------------------
+// ---- memory and the rules --------------------------------------------------
 
 /** Write one of the four memory files whole — the project's copy, or a module's when
  *  `module` names one. The board owns which names and which modules exist, so a name that
@@ -229,8 +229,8 @@ export async function saveMemoryFile(
   return flat(await envelopeFor({ board: true }, opts, (env) => board().saveMemoryFile(name, text, module, env)))
 }
 
-/** Save one flow's rule, in the user's own words. Empty text clears it — a flow with no
- *  rule and a flow with an empty rule are the same flow. */
+/** Save the rule of the agent that runs one flow, in the user's own words. Empty text
+ *  clears it, and the flows that agent also runs read the same rule afterwards (#420). */
 export async function setFlowRule(command: string, text: string, opts?: WriteOptions): Promise<WriteResult> {
   return flat(await envelopeFor({ board: true }, opts, (env) => board().saveFlowRule(command, text, env)))
 }

@@ -806,7 +806,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     saveMemoryFile: (name, text, module, env) =>
       through({ board: true }, env, (e) => local.saveMemoryFile(name, text, module, e)),
 
-    // ---- the per-flow rules -------------------------------------------------
+    // ---- the rules, one per agent -------------------------------------------
 
     readFlowRules: () => local.readFlowRules(),
     saveFlowRule: (command, text, env) => through({ board: true }, env, (e) => local.saveFlowRule(command, text, e)),
@@ -846,7 +846,7 @@ function cloudBoard(ctx: Context): BoardProvider {
 interface Change {
   cards: CardPayload[]
   /** A document with an empty body is one the move deleted — that is how the workspace
-   *  spells it, and how an emptied per-flow rule already travels. */
+   *  spells it, and how an emptied agent rule already travels. */
   documents: DocumentPayload[]
 }
 

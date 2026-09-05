@@ -450,8 +450,9 @@ export interface DeliveryRecord {
    *  and never again, so flipping the setting changes the next delivery. Absent on a
    *  delivery started before diff approval existed, which needs none. */
   approval?: DeliveryApproval
-  /** The flow rules this delivery froze when it started (#306), keyed by command — the
-   *  flows a delivery is made of, and only the ones that had a rule. Every run in the
+  /** The rules this delivery froze when it started (#306), keyed by agent (#420) — the
+   *  agents a delivery's flows are run by, and only the ones that had a rule. A delivery
+   *  frozen before #420 is keyed by flow, and its runs are still read under both. Every run in the
    *  delivery is given these rather than the files, so editing a rule changes the next
    *  delivery and never one in flight. Absent on a delivery started before flow rules
    *  existed, which reads the files instead. */

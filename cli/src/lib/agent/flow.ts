@@ -47,8 +47,7 @@ import { aiReviewOn, owesFocusedReview } from './review'
 import { field, metaLine, numbered } from './facts'
 import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
-import { flowByAction } from './flows'
-import { ruleFor } from './rules'
+import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { setupInstruction } from './resolve'
 import type { AgentAction, AgentRequest } from './types'
 
@@ -875,16 +874,14 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
       say(guide.text.trimEnd())
     }
   }
-  // Last of all: this board's own rule for the action, in the user's words (#306). A
-  // started run is given one block of words and reads the rule wherever it sits; a
+  // Last of all: the rule of the agent this run is done by, in the user's words (#306,
+  // #420). A started run is given one block of words and reads the rule wherever it sits; a
   // printed flow is several sections and pages of guides, so a rule left up in the ask
   // would be read before everything that buries it. Here the reader ends on it.
-  if (rule) {
+  const owner = ruleOwner(req)
+  if (rule && owner) {
     say('')
-    say(
-      `this board's own rule for \`${flowByAction(req.action)?.command}\` — the user's words, ` +
-        `added to the end of every ${req.action} run, and yours to follow here too:`,
-    )
+    say(`this board's ${ruleOwnerSays(owner)} — the user's words, and yours to follow here too:`)
     say('')
     say(rule)
   }

@@ -1,5 +1,5 @@
 // The board's own content, as a board that does not live on this machine needs it (#315):
-// the memory set and the per-flow rules as operations of the contract rather than as files
+// the memory set and the rules as operations of the contract rather than as files
 // only a coding agent can edit, and the whole board packed into one payload and written back
 // out as a markdown board that reads the same.
 //
@@ -111,20 +111,25 @@ describe('the memory set, as a contract write', () => {
   })
 })
 
-describe('the per-flow rules, as a contract write', () => {
-  it('saves one, lists it with the flow it belongs to, and clears it with empty text', async () => {
-    const saved = await onBoard((env) => board().saveFlowRule('review', 'Run the smoke tests.', env))
+describe('the rules, as a contract write', () => {
+  it("saves one onto the flow's agent, lists it against every flow that agent runs, and clears it", async () => {
+    const saved = await onBoard((env) => board().saveFlowRule('implement', 'Install dependencies first.', env))
     assert.ok(saved.ok)
-    assert.equal(read('rules/review.md'), 'Run the smoke tests.\n')
+    // The file is the AGENT's, not the flow's (#420).
+    assert.equal(read('rules/builder.md'), 'Install dependencies first.\n')
+    assert.equal(fs.existsSync(path.join(kanban, 'rules', 'implement.md')), false)
 
     const listed = await board().readFlowRules()
-    assert.equal(listed.find((f) => f.command === 'review')?.rule, 'Run the smoke tests.')
-    assert.equal(listed.find((f) => f.command === 'implement')?.rule, '')
+    // Every flow the builder runs reads it, and a flow another agent runs does not.
+    for (const command of ['implement', 'conflict', 'run']) {
+      assert.equal(listed.find((f) => f.command === command)?.rule, 'Install dependencies first.', command)
+    }
+    assert.equal(listed.find((f) => f.command === 'review')?.rule, '')
 
-    const cleared = await onBoard((env) => board().saveFlowRule('review', '   ', env))
+    const cleared = await onBoard((env) => board().saveFlowRule('implement', '   ', env))
     assert.ok(cleared.ok)
-    // A flow with no rule and a flow with an empty rule are the same flow, so the file goes.
-    assert.equal(fs.existsSync(path.join(kanban, 'rules', 'review.md')), false)
+    // An agent with no rule and an agent with an empty rule are the same agent, so the file goes.
+    assert.equal(fs.existsSync(path.join(kanban, 'rules', 'builder.md')), false)
   })
 
   it('refuses a command that starts no flow', async () => {
@@ -133,13 +138,13 @@ describe('the per-flow rules, as a contract write', () => {
     assert.equal(fs.existsSync(path.join(kanban, 'rules', 'deploy.md')), false)
   })
 
-  it('hands a delivery the rules it freezes, and only the flows a delivery is made of', async () => {
+  it("hands a delivery the rules it freezes, keyed by agent, and only the agents it is built by", async () => {
     await onBoard((env) => board().saveFlowRule('implement', 'Install dependencies first.', env))
     await onBoard((env) => board().saveFlowRule('propose', 'Stay small.', env))
 
     const frozen = await board().deliveryRules()
-    assert.equal(frozen.implement, 'Install dependencies first.')
-    assert.ok(!('propose' in frozen), 'a flow no delivery is made of was frozen into one')
+    assert.equal(frozen.builder, 'Install dependencies first.')
+    assert.ok(!('planner' in frozen), 'an agent no delivery is built by was frozen into one')
   })
 })
 

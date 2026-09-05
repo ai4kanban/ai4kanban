@@ -321,6 +321,21 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('spec-write', this, [String(id), agent], this.opts(), cli)
     })
 
+  move('rule')
+    .argument('<agent>', 'the agent the rule is for — a role the board ships, or one of its specialists')
+    .summary("set one agent's rule, in the user's own words")
+    .description(
+      "The rule is appended to the end of every run that agent does, after everything else the board " +
+        'writes — so a rule on `builder` reaches `card implement`, `delivery conflict` and `card run` ' +
+        'alike. It replaces whatever that agent carried; an empty rule clears it. The words are the ' +
+        "user's: write one only when they ask you to.",
+    )
+    .option('--file <path>', 'the rule, as markdown written to a file first')
+    .option('--text <text>', 'the rule, for a one-liner; empty clears it')
+    .action(async function (this: Command, agent: string) {
+      await dispatch('rule', this, [agent], this.opts(), cli)
+    })
+
   move('list')
     .summary('the open cards: id, title, meta, summary, path')
     .description(

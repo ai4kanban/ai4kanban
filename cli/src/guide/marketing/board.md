@@ -26,8 +26,9 @@ docs/kanban/
 │   └── <pillar>/   a pillar's own decisions.md and rejected.md
 ├── agents/<name>/AGENT.md
 │                   a spec agent this board adds of its own
-├── rules/          one rule per flow, in the user's own words — `<command>.md`, appended
-│                   to the end of that flow's instructions on every run
+├── rules/          one rule per agent, in the user's own words — `<agent>.md`, named by a
+│                   role the board ships (`planner`, `writer`, `reviewer`) or a spec agent,
+│                   appended to the end of every run that agent does
 ├── modules.md      the pillars — one line each
 ├── config.md       board settings — the solution, and the planning sources
 ├── next-id         the next free id — NEVER edit by hand; only `akb raw` writes it

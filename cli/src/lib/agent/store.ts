@@ -288,8 +288,9 @@ function readBlocker(raw: unknown): RunRecord['blocker'] {
   return step && cause && unblock ? { step, cause, unblock } : undefined
 }
 
-// The rules a delivery froze, keyed by the command that starts the flow. An empty object is
-// kept and undefined is not: `{}` means this delivery froze rules and none were set, while
+// The rules a delivery froze, keyed by the agent that carries each — by the flow's command
+// on a delivery frozen before #420, which is why nothing here checks the key. An empty object
+// is kept and undefined is not: `{}` means this delivery froze rules and none were set, while
 // nothing at all means a delivery from before rules existed, whose runs read the files.
 function readRules(raw: unknown): Record<string, string> | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
