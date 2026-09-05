@@ -121,6 +121,11 @@ export function readStore(): Store {
       resumeId: typeof entry.resumeId === 'string' ? entry.resumeId : undefined,
       logPath: typeof entry.logPath === 'string' && entry.logPath ? entry.logPath : logPathOf(entry.sessionId),
       resumedFrom: typeof entry.resumedFrom === 'string' ? entry.resumedFrom : undefined,
+      formatRepair: entry.formatRepair && typeof entry.formatRepair === 'object'
+        && Number.isInteger(entry.formatRepair.attempt) && entry.formatRepair.attempt >= 0
+        && typeof entry.formatRepair.errors === 'string'
+        && [entry.formatRepair.cardIds, entry.formatRepair.changedIds, entry.formatRepair.existingIds].every((ids) => Array.isArray(ids) && ids.every(Number.isInteger))
+        ? entry.formatRepair : undefined,
       priorStatus: typeof entry.priorStatus === 'string' ? entry.priorStatus : undefined,
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,

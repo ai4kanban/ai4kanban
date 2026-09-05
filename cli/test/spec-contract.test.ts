@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { setBoardRoot, SESSIONS_DIR } from '../src/lib/paths'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs, validateSpec } from '../src/lib/spec-contract'
-import { openRun, patch, peekRun } from '../src/lib/agent/sessions'
+import { openRun, openResume, patch, peekRun } from '../src/lib/agent/sessions'
 import { setBoardProvider } from '../src/lib/board'
 import type { AgentAction } from '../src/lib/agent/types'
 import { watchRun } from '../src/lib/agent/watch'
@@ -102,6 +102,7 @@ describe('the card format contract', () => {
     assert.ok(validateRunSpecs(before, snapshotSpecs(), null).some((e) => e.file.endsWith('2-broken.md')))
     assert.deepEqual(validateRunSpecs(before, snapshotSpecs(), null, new Set([2])), [])
     assert.deepEqual(validateRunSpecs(snapshotSpecs(), snapshotSpecs(), null), [])
+    assert.ok(validateRunSpecs(snapshotSpecs(), snapshotSpecs(), null, new Set(), new Set([2])).some((e) => e.file.endsWith('2-broken.md')))
   })
 })
 
@@ -129,17 +130,31 @@ async function fakeRun(repairable: boolean, action: AgentAction = 'writing') {
   return opened.run.sessionId
 }
 
+async function watchWithResume(id: string): Promise<string> {
+  let last = id
+  await watchRun(id, async (previous) => {
+    assert.equal(peekRun(previous)?.status, 'error')
+    const opened = await openResume(previous)
+    if ('error' in opened) return opened
+    assert.equal(peekRun(previous), undefined)
+    patch(opened.run.sessionId, (r) => { r.pid = process.pid })
+    last = await watchWithResume(opened.run.sessionId)
+    return { run: opened.run, spawned: true }
+  })
+  return last
+}
+
 describe('run completion validation', () => {
   it('returns errors to the agent and only marks writing ready after a successful repair', async () => {
     const id = await fakeRun(true)
-    assert.equal(await watchRun(id), 0)
+    const last = await watchWithResume(id)
     const prompts = fs.readFileSync(path.join(root, 'prompts.log'), 'utf8').trim().split('\n').map((line) => JSON.parse(line) as string)
     assert.equal(prompts.length, 2)
     assert.match(prompts[1]!, /1-feature.md:\d+ \[section-name\]/)
     assert.match(fs.readFileSync(file, 'utf8'), /status: ready/)
-    assert.equal(peekRun(id)?.status, 'done')
-    assert.equal(peekRun(id)?.costUsd, 0.2)
-    assert.equal(peekRun(id)?.usage?.input, 20)
+    assert.equal(peekRun(last)?.status, 'done')
+    assert.equal(peekRun(last)?.costUsd, 0.1)
+    assert.equal(peekRun(last)?.usage?.input, 10)
     const args = fs.readFileSync(path.join(root, 'args.log'), 'utf8').trim().split('\n').map((line) => JSON.parse(line) as string[])
     assert.ok(args[1]!.includes('--resume'))
     assert.ok(!args[1]!.includes('--session-id'))
@@ -149,18 +164,31 @@ describe('run completion validation', () => {
     for (const action of ['spec', 'clarify', 'edit'] as const) {
       fs.writeFileSync(file, valid)
       const id = await fakeRun(false, action)
-      assert.equal(await watchRun(id), 1, action)
-      assert.equal(peekRun(id)?.status, 'error', action)
-      assert.match(peekRun(id)?.error ?? '', /Spec format validation failed/)
+      const last = await watchWithResume(id)
+      assert.equal(peekRun(last)?.status, 'error', action)
+      assert.match(peekRun(last)?.error ?? '', /Spec format validation failed/)
     }
+  })
+
+  it('keeps the failure when no harness conversation id is available', async () => {
+    const id = await fakeRun(false)
+    patch(id, (r) => { r.harness = 'dsh'; r.resumeId = undefined })
+    await watchRun(id, async (previous) => {
+      const opened = await openResume(previous)
+      assert.ok('error' in opened)
+      return opened
+    })
+    assert.equal(peekRun(id)?.status, 'error')
+    assert.match(peekRun(id)?.error ?? '', /never reported a session id/)
+    assert.equal(fs.readFileSync(path.join(root, 'prompts.log'), 'utf8').trim().split('\n').length, 1)
   })
 
   it('fails with detailed errors after bounded repair attempts and never marks the card ready', async () => {
     const id = await fakeRun(false)
-    assert.equal(await watchRun(id), 1)
-    assert.equal(peekRun(id)?.status, 'error')
-    assert.equal(peekRun(id)?.ok, false)
-    assert.match(peekRun(id)?.error ?? '', /1-feature.md:\d+ \[section-name\]/)
+    const last = await watchWithResume(id)
+    assert.equal(peekRun(last)?.status, 'error')
+    assert.equal(peekRun(last)?.ok, false)
+    assert.match(peekRun(last)?.error ?? '', /1-feature.md:\d+ \[section-name\]/)
     assert.match(fs.readFileSync(file, 'utf8'), /status: todo/)
     assert.equal(fs.readFileSync(path.join(root, 'prompts.log'), 'utf8').trim().split('\n').length, 4)
   })

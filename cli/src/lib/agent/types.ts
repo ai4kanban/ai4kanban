@@ -218,6 +218,7 @@ export interface RunRecord {
   /** The run this one continued, when it was started by Resume. It names a run that is
    *  deliberately gone: resuming drops the record it took over from. */
   resumedFrom?: string
+  formatRepair?: { attempt: number; errors: string; cardIds: number[]; changedIds: number[]; existingIds: number[] }
   /** The card's saved stage the instant before this run overwrote it with
    *  `implementing`, so the end of the run puts back what was there. */
   priorStatus?: string

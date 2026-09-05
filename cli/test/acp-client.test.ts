@@ -23,6 +23,7 @@ async function turnAgainst(
   opened: Record<string, unknown>,
   done: Record<string, unknown>,
   model?: string,
+  resume?: { id: string; missing?: boolean },
 ): Promise<{ end: TurnEnd; calls: Call[]; model?: string }> {
   const stdout = new PassThrough()
   const stdin = new PassThrough()
@@ -43,6 +44,10 @@ async function turnAgainst(
         'session/set_config_option': { configOptions: [{ id: 'model', currentValue: model }] },
         'session/prompt': { stopReason: 'end_turn', ...done },
       }
+      if (msg.method === 'session/load' && resume?.missing) {
+        stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: 'session not found' } })}\n`)
+        continue
+      }
       stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: answers[msg.method] ?? {} })}\n`)
     }
   })
@@ -51,6 +56,7 @@ async function turnAgainst(
     stdout,
     stdin,
     prompt: 'do the work',
+    resumeId: resume?.id,
     cwd: '/tmp/project',
     log: () => {},
     gotResumeId: () => {},
@@ -126,5 +132,23 @@ describe('what a finished ACP turn spent', () => {
     assert.equal(end.usage, undefined)
     assert.equal(end.costUsd, undefined)
     assert.equal(end.ok, true)
+  })
+})
+
+
+describe('ACP saved conversations', () => {
+  it('loads the DSH conversation and sends the next turn to its existing id', async () => {
+    const { end, calls } = await turnAgainst(DSH_OPENED, DSH_DONE, undefined, { id: 'saved-dsh' })
+    assert.equal(end.ok, true)
+    assert.equal(calls.some((c) => c.method === 'session/new'), false)
+    assert.equal(calls.find((c) => c.method === 'session/load')?.params.sessionId, 'saved-dsh')
+    assert.equal(calls.find((c) => c.method === 'session/prompt')?.params.sessionId, 'saved-dsh')
+  })
+
+  it('fails without creating a fresh conversation when saved history is missing', async () => {
+    const { end, calls } = await turnAgainst(DSH_OPENED, DSH_DONE, undefined, { id: 'missing', missing: true })
+    assert.equal(end.ok, false)
+    assert.match(end.error ?? '', /session not found/)
+    assert.equal(calls.some((c) => ['session/new', 'session/prompt'].includes(c.method)), false)
   })
 })

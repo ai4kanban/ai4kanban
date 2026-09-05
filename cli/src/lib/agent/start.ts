@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto'
 import { dropRunCard, runCanStart, takeRunCard } from '../board'
 import { spawnWatcher } from './launch'
 import { buildRun } from './prompts'
-import { markSpawned, openRun } from './sessions'
+import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import type { AgentRequest, RunRecord } from './types'
 
 /** Open a run and spawn its watcher. `spawned` false means nothing is watching it — the
@@ -46,4 +46,14 @@ function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: 
   const pid = spawnWatcher(run.sessionId)
   markSpawned(run.sessionId, pid)
   return { run, spawned: pid !== undefined }
+}
+
+/** Continue the saved harness conversation through the same path as the Resume command. */
+export async function startResume(id: string): Promise<{ run: RunRecord; spawned: boolean } | { error: string }> {
+  const opened = await openResume(id)
+  if ('error' in opened) return opened
+  const pid = spawnWatcher(opened.run.sessionId)
+  markSpawned(opened.run.sessionId, pid)
+  if (pid === undefined) await closeRun(opened.run.sessionId, { status: 'error', code: null, error: 'Could not start the resumed run watcher.' })
+  return { run: opened.run, spawned: pid !== undefined }
 }

@@ -7,7 +7,6 @@
 
 import { activeDelivery, deliveryWaiting, heldByDelivery } from '../lib/agent/deliveries'
 import { insideRun, printFlow } from '../lib/agent/flow'
-import { spawnWatcher } from '../lib/agent/launch'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import { refinementRequest, startRefinement } from '../lib/agent/refine'
 import {
@@ -15,12 +14,10 @@ import {
   discardCost,
   getRun,
   listRuns,
-  markSpawned,
-  openResume,
   stopRun,
   titleOf,
 } from '../lib/agent/sessions'
-import { startRun } from '../lib/agent/start'
+import { startResume, startRun } from '../lib/agent/start'
 import {
   PROPOSE_MAX,
   type AgentRequest,
@@ -228,12 +225,10 @@ function readRequest(
 /** Send one more turn into a run that stopped short: same agent, same conversation, same
  *  card — and the prompt is just "carry on". */
 export async function cmdResume(id: string | undefined, opts: { follow?: boolean }): Promise<MoveResult> {
-  const opened = await openResume(id ?? 'last')
+  const opened = await startResume(id ?? 'last')
   if ('error' in opened) die(opened.error, { kind: 'run-refused' })
   const { run } = opened
-  const pid = spawnWatcher(run.sessionId)
-  markSpawned(run.sessionId, pid)
-  if (!pid) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
+  if (!opened.spawned) die(`couldn't start a process for run ${run.sessionId}`, { kind: 'spawn-failed' })
   say(`continuing ${short(run.resumedFrom!)} — run ${run.sessionId}${run.deliveryId ? ` in delivery ${run.deliveryId}` : ''}`)
   if (opts.follow === true) return { sessionId: run.sessionId, ...(await followRun(run.sessionId)) }
   return { sessionId: run.sessionId, resumedFrom: run.resumedFrom }

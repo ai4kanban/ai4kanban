@@ -146,9 +146,10 @@ export function validateRunSpecs(
   now: SpecSnapshot,
   target: number | null,
   heldElsewhere: ReadonlySet<number> = new Set(),
+  required: ReadonlySet<number> = new Set(),
 ): ContractError[] {
   return [...now].flatMap(([file, card]) => {
-    if (card.id !== target && (heldElsewhere.has(card.id) || before.get(file)?.text === card.text)) return []
+    if (card.id !== target && !required.has(card.id) && (heldElsewhere.has(card.id) || before.get(file)?.text === card.text)) return []
     return validateSpec(file, card.text)
   })
 
