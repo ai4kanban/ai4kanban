@@ -37,9 +37,8 @@ delivered features, and design lessons — so the next plan asks less of you.
 
 ## What else it does
 
-- **Settles key decisions before implementation.** Built-in Spec Skills compare technology
-  choices and produce a working UI mockup. Add your own as an Agent Skill under
-  `docs/kanban/skills/`.
+- **Settles key decisions before implementation.** Built-in spec agents compare technology
+  choices and produce a working UI mockup. Add your own under `docs/kanban/agents/`.
 - **Reaches you where you are.** Reviews awaiting approval and questions only you can
   answer appear in the app's notification center and in Slack. Approve the task or answer
   the question directly from the message.
@@ -98,8 +97,8 @@ version.
 <sub><b>Execute</b> — run ready tasks in parallel across multiple agents. Each delivery uses its own git worktree to isolate changes, and conflicts trigger a dedicated resolution pass before landing.</sub>
 </td>
 <td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="A ui-design skill's report with two working mockups attached to the card" /></a><br/>
-<sub><b>Settle key decisions first</b> — create your own Spec Skills or use the built-ins: a technology-selection skill compares technical options, while a UI-design skill gives you one working mockup by default and alternatives when requested.</sub>
+<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="A ui-design agent's report with two working mockups attached to the card" /></a><br/>
+<sub><b>Settle key decisions first</b> — create your own spec agents or use the built-ins: a technology-selection agent compares technical options, while a UI-design agent gives you one working mockup by default and alternatives when requested.</sub>
 </td>
 </tr>
 <tr>

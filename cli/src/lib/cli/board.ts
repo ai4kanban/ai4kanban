@@ -296,11 +296,11 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
 
   move('spec-write')
     .argument('<id>', ID, cardId)
-    .argument('<skill>', 'the spec skill whose section this is — `akb spec` lists them')
-    .summary("write a spec skill's own section onto the card")
+    .argument('<agent>', 'the spec agent whose section this is — `akb spec` lists them')
+    .summary("write a spec agent's own section onto the card")
     .description(
-      "Put a spec skill's answer on the card as one section headed `## By `<skill>` skill`, and change " +
-        'nothing else. Run again for the same skill and the section is REPLACED, never added twice. The ' +
+      "Put a spec agent's answer on the card as one section headed `## By `<agent>` agent`, and change " +
+        'nothing else. Run again for the same agent and the section is REPLACED, never added twice. The ' +
         'section goes before `## Decided by the agent`, or at the end. Told nothing, a new section goes ' +
         'below the agent boundary and a rewrite stays put.',
     )
@@ -311,8 +311,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       'human — above the agent boundary, where a pick the user still has to make belongs; agent — below it',
       oneOf(['human', 'agent']),
     )
-    .action(async function (this: Command, id: number, skill: string) {
-      await dispatch('spec-write', this, [String(id), skill], this.opts(), cli)
+    .action(async function (this: Command, id: number, agent: string) {
+      await dispatch('spec-write', this, [String(id), agent], this.opts(), cli)
     })
 
   move('list')

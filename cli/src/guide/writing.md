@@ -14,14 +14,14 @@ Every flow writes a card in this order:
                              <- answered material decisions building turned up; written
                                 by review, omit when empty. Never approved delivery scope
 
-## By `<name>` skill         <- only while a [user] open question points at it
+## By `<name>` agent         <- only while a [user] open question points at it
 
 <!-- agent -->               <- boundary
 
 ## Today
 ## Scope                     <- requirements, not rationale
 ## Todo                      <- one build step per checkbox
-## By `<name>` skill
+## By `<name>` agent
 ## Decided by the agent
 - **<question the decision settles>**: <answer>
 ### Overruled by the user    <- always last

@@ -143,8 +143,8 @@ export { testConnection } from './lib/agent/test'
 export { loggedOutAgents } from './lib/agent/login'
 
 // The runtimes (#343): the board names them, says what each one runs as, and points each
-// flow and spec skill at one — all of it in docs/kanban/ui.config.json. `agentInfo` already
-// carries the answer for every runtime and every flow, and `readSpecSkills` for every skill,
+// flow and spec agent at one — all of it in docs/kanban/ui.config.json. `agentInfo` already
+// carries the answer for every runtime and every flow, and `readSpecSkills` for every agent,
 // so a screen offering these keeps no list of its own — these are only the writers.
 export {
   addRuntime,
@@ -311,11 +311,20 @@ export type { UsageReporting } from './lib/machine/types'
 export { reportAppOpen, reportUsage, sendUsage } from './lib/machine/usage'
 export type { Surface as UsageSurface } from './lib/machine/usage'
 
-// The spec skills (#191, #403): the list a screen draws — each one's two lines and whether
-// it is switched on — and the switch itself. The words and the order come from each skill's
-// own SKILL.md, so the Agents section in the Configuration dialog and `akb spec` can never
-// say different things, and a skill the project added is in both.
-export { readSpecSkills, setSpecSkillEnabled, setSpecSkillSetting, specSkillProblems } from './lib/spec-skills'
+// The spec agents (#191, #403): the list a screen draws — each one's two lines and whether
+// it is switched on — and the switch itself. The words and the order come from each agent's
+// own AGENT.md, so the Agents section in the Configuration dialog and `akb spec` can never
+// say different things, and an agent the project added is in both.
+//
+// The four names keep the spelling they had when the word was "skill", like the `specAgents`
+// settings key (#419). A UI loads whatever `akb` the project has, and one newer than the
+// rules would find nothing under a new name and draw the pane as too old to list.
+export {
+  readSpecAgents as readSpecSkills,
+  setSpecAgentEnabled as setSpecSkillEnabled,
+  setSpecAgentSetting as setSpecSkillSetting,
+  specAgentProblems as specSkillProblems,
+} from './lib/agents'
 export type * from './lib/agent/types'
 
 // …and the board itself: the columns, one card in full, the archive, the releases, the

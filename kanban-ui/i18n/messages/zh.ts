@@ -27,8 +27,8 @@ const zh: MessagesCopy = {
     flowRule: "这个项目里的运行规则太旧，无法保存流程规则",
     language: "这个看板的运行规则早于语言设置——请运行 `npm install -g ai4kanban`。",
     skillInstall: "这个项目里的运行规则太旧，无法安装 skill",
-    specSkillSwitch: "这个项目里的运行规则太旧，无法开关规格技能",
-    specSkillSetting: "这个项目里的运行规则太旧，无法设置规格技能",
+    specAgentSwitch: "这个项目里的运行规则太旧，无法开关规格 Agent",
+    specAgentSetting: "这个项目里的运行规则太旧，无法设置规格 Agent",
     usageReporting: "这个看板的运行规则早于使用情况上报设置——请运行 `npm install -g ai4kanban`。",
   },
   actions: {

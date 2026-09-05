@@ -148,7 +148,7 @@ import {
 import type { BoardEntry } from "@/lib/cli";
 import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
-import { setSpecSkillEnabled, setSpecSkillSetting, specSkillProblems, specSkills } from "@/lib/spec-skills";
+import { setSpecAgentEnabled, setSpecAgentSetting, specAgentProblems, specAgents } from "@/lib/agents";
 import { testConnection } from "@/lib/test-connection";
 import { isLanguage } from "@/lib/types";
 import type {
@@ -184,7 +184,7 @@ import type {
   SkillState,
   SlackConversation,
   SlackState,
-  SpecSkillView,
+  SpecAgentView,
   UsageReporting,
   VerifyResult,
   WriteResult,
@@ -1063,20 +1063,20 @@ export async function testConnectionAction(runtime?: string): Promise<Connection
 // changes more than the row it was made on: a removal moves the flows that named it, a
 // rename carries them, and a bind changes what the list says the runtime runs as.
 
-/** What one runtime is named by, before it is removed — the flows and spec skills that would
+/** What one runtime is named by, before it is removed — the flows and spec agents that would
  *  be moved onto the board's global one. Both lists come from the board's own answer, so the
  *  pane keeps no list of its own. */
 export async function runtimeUsersAction(
   name: string,
-): Promise<{ flows: string[]; specSkills: string[] }> {
-  const blank = { flows: [], specSkills: [] };
+): Promise<{ flows: string[]; specAgents: string[] }> {
+  const blank = { flows: [], specAgents: [] };
   if (typeof name !== "string" || !name) return blank;
   try {
     const info = await agentInfo();
-    const skills = await specSkills().catch(() => []);
+    const agents = await specAgents().catch(() => []);
     return {
       flows: info.flows.filter((f) => f.runtime === name).map((f) => f.path),
-      specSkills: (skills ?? []).filter((s) => s.runtime === name).map((s) => s.name),
+      specAgents: (agents ?? []).filter((a) => a.runtime === name).map((a) => a.name),
     };
   } catch {
     // Nothing to read them with. The removal itself still says whether it worked, and a
@@ -1195,45 +1195,45 @@ async function runtimeMove(
 /** The list the Agents section draws: each agent's two lines and whether it is on. `null`
  *  when this project's rules are older than the switches, so the section can say that
  *  instead of showing an empty list. */
-export async function specSkillsAction(): Promise<{
-  skills: SpecSkillView[] | null;
-  /** Why a skill this board carries can't be used — reported, never dropped in silence. */
+export async function specAgentsAction(): Promise<{
+  agents: SpecAgentView[] | null;
+  /** What is wrong with the agents this board carries — reported, never dropped in silence. */
   problems: string[];
   error?: string;
 }> {
   try {
-    return { skills: await specSkills(), problems: await specSkillProblems() };
+    return { agents: await specAgents(), problems: await specAgentProblems() };
   } catch (e) {
-    return { skills: null, problems: [], error: e instanceof Error ? e.message : String(e) };
+    return { agents: null, problems: [], error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-/** Switch one spec skill on or off. The name is checked against the board's own list, so a
- *  stale client can't write a switch for a skill that doesn't exist. */
-export async function setSpecSkillAction(name: string, on: boolean): Promise<WriteResult> {
+/** Switch one spec agent on or off. The name is checked against the board's own list, so a
+ *  stale client can't write a switch for an agent that doesn't exist. */
+export async function setSpecAgentAction(name: string, on: boolean): Promise<WriteResult> {
   if (typeof name !== "string" || typeof on !== "boolean") {
-    return { ok: false, error: "a spec skill is switched by name" };
+    return { ok: false, error: "a spec agent is switched by name" };
   }
   try {
-    return await setSpecSkillEnabled(name, on);
+    return await setSpecAgentEnabled(name, on);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-/** Save one of the settings a spec skill declares (#257). The skill, the setting and the
+/** Save one of the settings a spec agent declares (#257). The agent, the setting and the
  *  choice are all checked against the board's own list, so a stale client can't write a
- *  setting no skill has or a choice no setting offers. */
-export async function setSpecSkillSettingAction(
+ *  setting no agent has or a choice no setting offers. */
+export async function setSpecAgentSettingAction(
   name: string,
   key: string,
   value: string,
 ): Promise<WriteResult> {
   if (typeof name !== "string" || typeof key !== "string" || typeof value !== "string") {
-    return { ok: false, error: "a spec skill setting is saved by name, key and value" };
+    return { ok: false, error: "a spec agent setting is saved by name, key and value" };
   }
   try {
-    return await setSpecSkillSetting(name, key, value);
+    return await setSpecAgentSetting(name, key, value);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

@@ -1,48 +1,48 @@
 "use client";
 
-// The spec skills, listed and switched (#191, #403).
+// The spec agents, listed and switched (#191, #403, #419).
 //
-// A spec skill fills one part of a card's spec — the screen it changes, the library it
+// A spec agent fills one part of a card's spec — the screen it changes, the library it
 // picks — in a run of its own, while the card is being planned. They start on their own,
 // so before this section there was no screen that said which ones exist or let one be
 // turned off.
 //
 // What this section knows: nothing. The names, the two lines under each one, the settings
-// a skill declares and the choices each setting offers all come out of that skill's own
-// SKILL.md, asked for when the section opens — so `akb spec` and this can never say
-// different things, and a skill the project added is in both. It reads, switches and sets,
-// and that is all: a skill's instructions are not something the UI writes.
+// an agent declares and the choices each setting offers all come out of that agent's own
+// AGENT.md, asked for when the section opens — so `akb spec` and this can never say
+// different things, and an agent the project added is in both. It reads, switches and sets,
+// and that is all: an agent's instructions are not something the UI writes.
 //
-// One captioned group and one row per skill (components/settings.tsx): the name and its
+// One captioned group and one row per agent (components/settings.tsx): the name and its
 // switch on the row's own line, what it contributes and when it runs as its hint, and the
-// settings it declares under it. A paused skill keeps every one of them.
+// settings it declares under it. A paused agent keeps every one of them.
 
 import { useEffect, useState } from "react";
 import { FiAlertCircle, FiChevronDown } from "react-icons/fi";
-import { setSpecSkillAction, setSpecSkillSettingAction, specSkillsAction } from "@/app/actions";
+import { setSpecAgentAction, setSpecAgentSettingAction, specAgentsAction } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import type { SpecSkillSettingView, SpecSkillView } from "@/lib/types";
+import type { SpecAgentSettingView, SpecAgentView } from "@/lib/types";
 import { Group, Loading, Note, Panel, Row, Switch } from "./settings";
 
 /** The section in the Configuration dialog. It reads the board's list when it first draws;
  *  the board's poll never carries it, and nothing else on screen shows these switches. */
-export function SpecSkillsPanel({ onError }: { onError?: (msg: string) => void }) {
-  const c = useCopy().configuration.specSkills;
-  const [agents, setAgents] = useState<SpecSkillView[] | null>(null);
+export function SpecAgentsPanel({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.specAgents;
+  const [agents, setAgents] = useState<SpecAgentView[] | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  // What is being saved right now, by the thing being saved: a skill's name for its
+  // What is being saved right now, by the thing being saved: an agent's name for its
   // switch, `name/key` for one of its settings. One at a time is the normal case, but a
   // second change shouldn't wait on the first.
   const [saving, setSaving] = useState<string[]>([]);
 
   useEffect(() => {
     let live = true;
-    void specSkillsAction().then((res) => {
+    void specAgentsAction().then((res) => {
       if (!live) return;
-      setAgents(res.skills);
+      setAgents(res.agents);
       setProblems(res.problems);
       setLoadError(res.error ?? null);
       setLoaded(true);
@@ -55,11 +55,11 @@ export function SpecSkillsPanel({ onError }: { onError?: (msg: string) => void }
   // Flip one switch: on screen at once, saved behind it, and put back if the save fails.
   // The switch is the whole section, so a flip that silently didn't land would be a
   // setting the user can't trust.
-  const flip = async (agent: SpecSkillView, on: boolean) => {
+  const flip = async (agent: SpecAgentView, on: boolean) => {
     setAgents((all) => all?.map((a) => (a.name === agent.name ? { ...a, enabled: on } : a)) ?? all);
     setSaving((names) => [...names, agent.name]);
     try {
-      const res = await setSpecSkillAction(agent.name, on);
+      const res = await setSpecAgentAction(agent.name, on);
       if (!res.ok) {
         setAgents((all) => all?.map((a) => (a.name === agent.name ? { ...a, enabled: !on } : a)) ?? all);
         onError?.(res.error || (on ? c.flipFailedOn : c.flipFailedOff)(agent.name));
@@ -72,7 +72,7 @@ export function SpecSkillsPanel({ onError }: { onError?: (msg: string) => void }
   // Pick one of an agent's settings (#257): on screen at once, saved behind it, and put
   // back if the save fails — the switch's own behaviour, for the same reason. The error
   // goes across the top of the dialog, where the section's errors already appear.
-  const pick = async (agent: SpecSkillView, key: string, value: string) => {
+  const pick = async (agent: SpecAgentView, key: string, value: string) => {
     const was = agent.values?.[key] ?? "";
     if (value === was) return;
     const put = (v: string) =>
@@ -84,7 +84,7 @@ export function SpecSkillsPanel({ onError }: { onError?: (msg: string) => void }
     put(value);
     setSaving((names) => [...names, token]);
     try {
-      const res = await setSpecSkillSettingAction(agent.name, key, value);
+      const res = await setSpecAgentSettingAction(agent.name, key, value);
       if (!res.ok) {
         put(was);
         onError?.(res.error || c.saveFailed(agent.name));
@@ -168,15 +168,15 @@ export function SpecSkillsPanel({ onError }: { onError?: (msg: string) => void }
   );
 }
 
-// One setting on a skill's row: a line saying what it is set to and what that choice
+// One setting on an agent's row: a line saying what it is set to and what that choice
 // costs, and a Change that opens the choices in place.
 //
 // Folded by default, because the answer is the thing worth reading and the pane is a list
-// of skills, not a form. Open, every choice says its own cost in the skill's own words, so
+// of agents, not a form. Open, every choice says its own cost in the agent's own words, so
 // a pick is made by comparing rather than by trying one.
 //
-// A switched-off skill keeps its line, greyed with the rest of the row and still working:
-// setting a skill you have paused is how it is ready for the day you switch it back on.
+// A switched-off agent keeps its line, greyed with the rest of the row and still working:
+// setting an agent you have paused is how it is ready for the day you switch it back on.
 function SettingLine({
   setting,
   value,
@@ -184,7 +184,7 @@ function SettingLine({
   busy,
   onPick,
 }: {
-  setting: SpecSkillSettingView;
+  setting: SpecAgentSettingView;
   /** The choice in effect — the saved one, or the setting's own default. */
   value: string;
   off: boolean;
@@ -192,7 +192,7 @@ function SettingLine({
   busy: boolean;
   onPick: (value: string) => void;
 }) {
-  const copy = useCopy().configuration.specSkills;
+  const copy = useCopy().configuration.specAgents;
   const [open, setOpen] = useState(false);
   const picked = setting.choices.find((c) => c.value === value);
   const shown = picked?.label ?? value;

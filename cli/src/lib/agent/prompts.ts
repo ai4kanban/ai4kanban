@@ -9,7 +9,7 @@ import { channelLanguage } from '../channels'
 import { draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
 import { boardText, rel } from '../paths'
-import { findSpecSkill, specHeading, specSkillInstructions, specSkillSelector } from '../spec-skills'
+import { findSpecAgent, specHeading, specAgentInstructions, specAgentSelector } from '../agents'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
@@ -152,14 +152,14 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
   return activeDelivery(req.id)?.rules
 }
 
-// The spec skills a pass may put on the card — the catalog, not a rule about any one of
+// The spec agents a pass may put on the card — the catalog, not a rule about any one of
 // them. The passes that rewrite a plan are the ones that can tell what it still has no
-// answer for, so they are the ones that pick; they just have to know which skills the board
+// answer for, so they are the ones that pick; they just have to know which agents the board
 // has. Naming any of them in a flow instead would go stale the moment one is switched off
 // or a new one ships.
 //
 // A spec run is never given it (#403): the selector belongs to the session planning a card,
-// and a skill handed the list of skills is a skill that can ask for itself.
+// and an agent handed the list of agents is an agent that can ask for itself.
 //
 // It goes after everything else because it is a block and the rest is prose.
 const SELECTOR_FOR = new Set(['clarify', 'resolve', 'edit'])
@@ -174,10 +174,10 @@ function draftPaths(cardId: number | undefined, channel: string): { source: stri
 }
 
 const roster = (req: AgentRequest): string =>
-  SELECTOR_FOR.has(req.action) && req.id !== undefined ? specSkillSelector(req.id) : ''
+  SELECTOR_FOR.has(req.action) && req.id !== undefined ? specAgentSelector(req.id) : ''
 
 /** The words one run is given, and anything the board owes that run's log before the agent
- *  says a word. Only a spec skill has notes today: a setting whose saved value it no longer
+ *  says a word. Only a spec agent has notes today: a setting whose saved value it no longer
  *  offers falls back, and the log is where that is said. */
 export function buildRun(req: AgentRequest): { prompt: string; notes: string[] } {
   const notes: string[] = []
@@ -321,8 +321,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `At the tasks step, read \`${command} guide add-task\` once. Do not call any other guide or help command during setup.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions, the way the setup flow says.`,
       ].join(' ')
-    // One spec skill on one card (#187, #403). The whole run is assembled here and inlined:
-    // the contract every spec run works to, the skill's own instructions, and the one
+    // One spec agent on one card (#187, #403). The whole run is assembled here and inlined:
+    // the contract every spec run works to, the agent's own instructions, and the one
     // reference each of its settings picked. A pointer to a second command is a step an
     // agent skips, and a reference it had to go and find is one it could load the wrong
     // one of — the board resolves them, so the run has nothing to locate.
@@ -331,26 +331,26 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // told to read it — a summary pasted in would be the planning flow's reading of it,
     // which is the one thing this run exists to be free of.
     case 'spec': {
-      const skill = findSpecSkill(req.specAgent ?? '')
+      const agent = findSpecAgent(req.specAgent ?? '')
       const heading = specHeading(req.specAgent ?? '')
-      // The one read of what this skill is set to, taken as the run starts and frozen for
+      // The one read of what this agent is set to, taken as the run starts and frozen for
       // it: everything below is assembled from these values (#255).
-      const own = skill ? specSkillInstructions(skill) : null
+      const own = agent ? specAgentInstructions(agent) : null
       if (own) notes.push(...own.notes)
-      const contract = findGuide('spec-skill')?.text.trim()
+      const contract = findGuide('spec-agent')?.text.trim()
       return [
         [
-          `${kb}. You are the \`${req.specAgent}\` spec skill on task ${req.id} ${named}.`,
+          `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
           `Read the card, answer only the part you own, and write it into that card's "${heading}" section with \`akb raw spec-write ${req.id} ${req.specAgent} --file <path>\`.`,
           `Change nothing else — not the rest of the card, not another card, not the code.`,
           req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
-          `Everything you need is in this message: the contract below, your skill, and the references it selected. Do not go looking for more of them.`,
+          `Everything you need is in this message: the contract below, your instructions, and the references they selected. Do not go looking for more of them.`,
           `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
         ]
           .filter(Boolean)
           .join(' '),
-        contract ? `——— how a spec skill works ———\n\n${contract}` : '',
-        skill && own ? `——— your skill: \`${skill.name}\` ———\n\n${own.instructions}` : '',
+        contract ? `——— how a spec agent works ———\n\n${contract}` : '',
+        agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
       ]
         .filter(Boolean)

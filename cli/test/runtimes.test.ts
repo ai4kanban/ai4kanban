@@ -1,7 +1,7 @@
 // A runtime, and what it runs as (#343).
 //
 // What is asked here is the whole of the promise: a board that names no runtimes runs
-// exactly as it did before they existed; a flow, a pass a flow spawns, and a spec skill each
+// exactly as it did before they existed; a flow, a pass a flow spawns, and a spec agent each
 // come up on the right one; every answer lives in the board's own file, so a fresh clone
 // runs what everyone else runs; and a resume stays on the agent it started on.
 
@@ -26,7 +26,7 @@ import {
   specAgentEntries,
 } from '../src/lib/agent/settings.ts'
 import { runtimesHere } from '../src/lib/cloud/servers.ts'
-import { readSpecSkills } from '../src/lib/spec-skills/index.ts'
+import { readSpecAgents } from '../src/lib/agents/index.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 let root = ''
@@ -127,13 +127,13 @@ describe('a flow on its own runtime', () => {
     assert.equal(runtimeFor({ action: 'setup' }), 'default')
   })
 
-  it('runs a spec skill on the runtime its own entry names', () => {
+  it('runs a spec agent on the runtime its own entry names', () => {
     assert.equal(runtimeFor({ action: 'spec', specAgent: 'ui-design' }), 'cheap')
     assert.equal(runtimeFor({ action: 'spec', specAgent: 'technology-selection' }), 'default')
     assert.equal(plan({ action: 'spec', specAgent: 'ui-design' }).harness, 'codex')
   })
 
-  it('keeps the spec skill’s runtime out of its settings, and its switch a switch', () => {
+  it('keeps the spec agent’s runtime out of its settings, and its switch a switch', () => {
     // `runtime` is the entry's own key: `mockupStyle` is the only setting here, and the
     // agent is still on because nothing switched it off.
     assert.deepEqual(specAgentEntries()['ui-design'], {
@@ -141,7 +141,7 @@ describe('a flow on its own runtime', () => {
       values: { mockupStyle: 'ascii' },
       runtime: 'cheap',
     })
-    const view = readSpecSkills().find((s) => s.name === 'ui-design')
+    const view = readSpecAgents().find((s) => s.name === 'ui-design')
     assert.equal(view?.enabled, true)
     assert.equal(view?.values.mockupStyle, 'ascii')
     assert.equal(view?.runtime, 'cheap')
@@ -381,7 +381,7 @@ describe('writing the runtime block', () => {
     assert.equal(readRuntimes().named, false)
   })
 
-  it('keeps a spec skill’s switch and settings when its runtime changes', () => {
+  it('keeps a spec agent’s switch and settings when its runtime changes', () => {
     config({ harness: 'claude-code', specAgents: { 'ui-design': { enabled: false, mockupStyle: 'ascii' } } })
     addRuntime('cheap')
     assert.equal(setSpecAgentRuntime('ui-design', 'cheap').ok, true)
@@ -409,14 +409,14 @@ describe('writing the runtime block', () => {
     assert.match(res.error ?? '', /default, cheap/)
   })
 
-  it('clears a removed runtime’s spec skills too, so re-adding it never puts them back', () => {
+  it('clears a removed runtime’s spec agents too, so re-adding it never puts them back', () => {
     config({ harness: 'claude-code', specAgents: { 'ui-design': { mockupStyle: 'ascii' } } })
     addRuntime('cheap')
     setSpecAgentRuntime('ui-design', 'cheap')
     assert.equal(removeRuntime('cheap').ok, true)
-    assert.equal(readSpecSkills().find((s) => s.name === 'ui-design')?.runtime, 'default')
+    assert.equal(readSpecAgents().find((s) => s.name === 'ui-design')?.runtime, 'default')
     addRuntime('cheap')
-    assert.equal(readSpecSkills().find((s) => s.name === 'ui-design')?.runtime, 'default')
+    assert.equal(readSpecAgents().find((s) => s.name === 'ui-design')?.runtime, 'default')
     assert.deepEqual(held().specAgents, { 'ui-design': { mockupStyle: 'ascii' } })
   })
 })
@@ -544,7 +544,7 @@ describe('renaming a runtime', () => {
     })
   })
 
-  it('carries the flows and the spec skills that named it', () => {
+  it('carries the flows and the spec agents that named it', () => {
     assert.equal(renameRuntime('cheap', 'plan').ok, true)
     assert.deepEqual(readRuntimes().names, ['default', 'plan'])
     assert.equal(runtimeFor({ action: 'implement' }), 'plan')

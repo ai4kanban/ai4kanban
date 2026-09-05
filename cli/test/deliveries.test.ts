@@ -99,7 +99,7 @@ const start = (run: RunRecord): string =>
   })
 
 describe('the approved requirements', () => {
-  it('copies the title, the opening, Worth noting, Scope and a spec skill section', async () => {
+  it('copies the title, the opening, Worth noting, Scope and a spec agent section', async () => {
     const approved = approvedRequirements(5)
     assert.match(approved, /^# A card/)
     assert.match(approved, /What this card is for/)

@@ -45,7 +45,7 @@ const fr: HomeCopy = {
       },
       {
         title: "Analysez les besoins à votre façon.",
-        body: "Vous voulez comparer des options techniques ou essayer une maquette fonctionnelle avant de choisir une direction ? Utilisez les skills intégrées ou ajoutez les vôtres pour que l’agent analyse les besoins selon votre méthode.",
+        body: "Vous voulez comparer des options techniques ou essayer une maquette fonctionnelle avant de choisir une direction ? Utilisez les agents de spécification intégrés ou ajoutez les vôtres pour qu’ils analysent les besoins selon votre méthode.",
       },
       {
         title: "Les agents règlent les détails. Vous validez.",

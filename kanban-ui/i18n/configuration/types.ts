@@ -108,27 +108,28 @@ export type ConfigurationCopy = {
       ran: (harness: string) => string;
     };
   };
-  specSkills: {
+  specAgents: {
     title: string;
     blurb: string;
     loading: string;
     tooOld: string;
     enabled: string;
     paused: string;
-    /** One line per skill this board can't use — a malformed SKILL.md, a name twice over. */
+    /** One line per problem the board reports about its agents — a malformed AGENT.md, a
+     *  name twice over, a folder still where agents used to live. */
     problems: string;
-    /** Only read out loud: the switch on one skill's row. */
-    switchOn: (skill: string) => string;
-    switchOff: (skill: string) => string;
+    /** Only read out loud: the switch on one agent's row. */
+    switchOn: (agent: string) => string;
+    switchOff: (agent: string) => string;
     contributes: string;
     runsWhen: string;
     change: string;
     /** One setting's line, before it is opened. */
     setting: (label: string, value: string) => string;
     settingWithCost: (label: string, value: string, cost: string) => string;
-    flipFailedOn: (skill: string) => string;
-    flipFailedOff: (skill: string) => string;
-    saveFailed: (skill: string) => string;
+    flipFailedOn: (agent: string) => string;
+    flipFailedOff: (agent: string) => string;
+    saveFailed: (agent: string) => string;
   };
   delivery: {
     /** A change only reaches deliveries started afterwards. Said once, under both. */

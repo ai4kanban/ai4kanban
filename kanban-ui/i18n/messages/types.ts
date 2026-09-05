@@ -31,8 +31,8 @@ export type MessagesCopy = {
     flowRule: string;
     language: string;
     skillInstall: string;
-    specSkillSwitch: string;
-    specSkillSetting: string;
+    specAgentSwitch: string;
+    specAgentSetting: string;
     usageReporting: string;
   };
   /** The refusals a server action gives back to the screen that called it. The rest

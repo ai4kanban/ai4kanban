@@ -47,12 +47,15 @@ export let RELEASE_SUMMARIES = ''
 // and the tick that closes the last box deletes it. A board with no file is a board that
 // is set up — which is why boards made before this file existed stay quiet.
 export let SETUP_CHECKLIST = ''
-// The spec skills this project adds of its own (#403) — one folder per skill, each with its
-// own SKILL.md. The board's built-in skills ship inside the command, so this folder is only
+// The spec agents this project adds of its own (#403) — one folder per agent, each with its
+// own AGENT.md. The board's built-in agents ship inside the command, so this folder is only
 // ever the project's, and a board that never adds one has no folder at all.
-export let SKILLS = ''
+export let AGENTS = ''
+// Where they used to sit, read for one release so a board that already has some keeps
+// working (#419). Every agent found here is reported, telling the user to move it.
+export let LEGACY_AGENTS = ''
 // Drawings of the screens cards change — one folder per card id (see the `ui-design` spec
-// skill). Keyed by id, so a card leaving the board takes its folder.
+// agent). Keyed by id, so a card leaving the board takes its folder.
 // Dotted and ignored: a mockup is a working drawing, redrawn from the card whenever the
 // question comes back, so it is never something the repo carries or a teammate pulls.
 export let MOCKUPS = ''
@@ -192,7 +195,8 @@ function setBoard(kanban: string, root: string, flag: string): string {
   RELEASES = path.join(KANBAN, 'releases.md')
   RELEASE_SUMMARIES = path.join(KANBAN, '.release-summaries')
   SETUP_CHECKLIST = path.join(KANBAN, 'setup-checklist.md')
-  SKILLS = path.join(KANBAN, 'skills')
+  AGENTS = path.join(KANBAN, 'agents')
+  LEGACY_AGENTS = path.join(KANBAN, 'skills')
   MOCKUPS = path.join(KANBAN, '.mockups')
   MEMORY = path.join(KANBAN, 'memory')
   GOAL = path.join(MEMORY, 'goal.md')

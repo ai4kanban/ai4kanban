@@ -33,8 +33,8 @@ Agent 执行，只在需要产品决策时找你。
 
 ## 其他能力
 
-- **在实施前完成关键决策。** 内置 Spec Skills 可以比较技术方案，也可以给出可运行的 UI
-  方案；你也可以在 `docs/kanban/skills/` 下添加自己的技能。
+- **在实施前完成关键决策。** 内置的规格 Agent 可以比较技术方案，也可以给出可运行的 UI
+  方案；你也可以在 `docs/kanban/agents/` 下添加自己的 Agent。
 - **需要你时及时通知。** 待确认的评审和只能由你决定的问题会集中显示在应用的通知中心，并推送
   到 Slack。你可以直接在消息中批准任务或回答问题。
 - **按模块积累项目记忆。** 已完成功能、产品决策、未采纳的方向和设计经验保存在
@@ -87,8 +87,8 @@ Agent 执行，只在需要产品决策时找你。
 <sub><b>推进执行</b> — 你可以并行调度多个 Agent 完成已就绪的任务。每项交付都在独立的 git worktree 中进行，确保变更隔离；合入前如有冲突，会触发独立的解冲突流程。</sub>
 </td>
 <td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design 技能的报告，卡片上附有两套可运行的 mockup" /></a><br/>
-<sub><b>在实施前完成关键决策</b> — 支持自定义 Spec Skills，也内置技术选型技能和 UI 设计技能：前者帮助比较技术方案，后者默认提供一套可运行的界面方案，并仅在明确要求时提供备选方案。</sub>
+<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design Agent 的报告，卡片上附有两套可运行的 mockup" /></a><br/>
+<sub><b>在实施前完成关键决策</b> — 支持自定义规格 Agent，也内置技术选型 Agent 和 UI 设计 Agent：前者帮助比较技术方案，后者默认提供一套可运行的界面方案，并仅在明确要求时提供备选方案。</sub>
 </td>
 </tr>
 <tr>

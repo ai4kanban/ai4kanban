@@ -138,7 +138,7 @@ describe('the prompt', () => {
 
   it('keeps the question format in one guide', () => {
     assert.match(findGuide('update-questions')!.text, /--recommended-option[\s\S]*--option/)
-    for (const name of ['add-task', 'qa-lightweight', 'qa-loop', 'recurring-task', 'reject', 'review', 'setup', 'spec-skill']) {
+    for (const name of ['add-task', 'qa-lightweight', 'qa-loop', 'recurring-task', 'reject', 'review', 'setup', 'spec-agent']) {
       const guide = findGuide(name)!.text
       assert.match(guide, /akb guide\s+update-questions/, name)
       assert.doesNotMatch(guide, /--recommended-option|--mode multi/, name)
@@ -281,16 +281,16 @@ describe('the prompt', () => {
     assert.match(prompt, /akb guide qa-loop/)
   })
 
-  it('shows the spec-skill catalog to every QA-carrying session and to no spec run', () => {
+  it('shows the spec-agent catalog to every QA-carrying session and to no spec run', () => {
     for (const action of ['clarify', 'resolve', 'edit'] as const) {
       const prompt = buildPrompt({ action, id: 1 })
-      assert.match(prompt, /<spec-skills>/)
+      assert.match(prompt, /<spec-agents>/)
       // The catalog is names, descriptions and ownership — never a skill's own instructions.
       assert.match(prompt, /- `ui-design`/)
       assert.doesNotMatch(prompt, /You draw the screen a card needs/)
     }
-    assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-skills>/)
-    assert.doesNotMatch(buildPrompt({ action: 'spec', id: 1, specAgent: 'ui-design' }), /<spec-skills>/)
+    assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-agents>/)
+    assert.doesNotMatch(buildPrompt({ action: 'spec', id: 1, specAgent: 'ui-design' }), /<spec-agents>/)
   })
 
   it('keeps the card-creation refinement choice in one guide', () => {
@@ -446,7 +446,7 @@ describe("the board's language", () => {
     setLanguage('zh')
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     assert.match(prompt, /Write this board's prose in 中文/)
-    // The boundary rides in the ask itself: `writing`, `qa-loop`, `revise`, `spec-skill`
+    // The boundary rides in the ask itself: `writing`, `qa-loop`, `revise`, `spec-agent`
     // and `changelog` are never given `akb guide board`.
     assert.match(prompt, /section headings/)
     assert.match(prompt, /--slug/)

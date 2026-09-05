@@ -208,9 +208,9 @@ export function setSilenceMinutes(minutes: number): { ok: boolean; error?: strin
   })
 }
 
-// ---- the spec skills: the switch, and what each one is set to (#191, #255) --
+// ---- the spec agents: the switch, and what each one is set to (#191, #255) --
 //
-// The same file also holds which spec skills may run, and what each one is set to:
+// The same file also holds which spec agents may run, and what each one is set to:
 //
 //   "specAgents": {
 //     "technology-selection": false,
@@ -227,11 +227,11 @@ export function setSilenceMinutes(minutes: number): { ok: boolean; error?: strin
 // are independent — flipping the switch leaves the picked values alone, and picking a value
 // leaves the switch alone.
 
-/** One spec skill's entry, read. */
+/** One spec agent's entry, read. */
 export interface SpecAgentEntry {
   enabled: boolean
   /** The picked values, by setting key — only the ones the file carries. Filling the rest
-   *  in from the skill's own defaults is `lib/spec-skills/`'s, which is the only side
+   *  in from the agent's own defaults is `lib/agents/`'s, which is the only side
    *  that knows what an agent offers. */
   values: Record<string, string>
   /** The runtime this agent runs on (#343). A reserved key in the entry, never one of the
@@ -265,7 +265,7 @@ function entryOf(block: Record<string, unknown>, names: string[]): SpecAgentEntr
   return null
 }
 
-/** Which spec skills the file says something about, and what it says. A malformed file
+/** Which spec agents the file says something about, and what it says. A malformed file
  *  reads as nothing saved at all: an agent nobody can decide about is an agent that runs. */
 export function specAgentEntries(): Record<string, SpecAgentEntry> {
   let cfg: Record<string, unknown>
@@ -282,7 +282,7 @@ export function specAgentEntries(): Record<string, SpecAgentEntry> {
   return saved
 }
 
-/** Save one spec skill's switch, keeping whatever it is set to. Every other key in the file
+/** Save one spec agent's switch, keeping whatever it is set to. Every other key in the file
  *  is left as it is — this is the same file the harness settings live in. */
 export function setSpecAgentSwitch(
   name: string,
@@ -292,13 +292,13 @@ export function setSpecAgentSwitch(
   return writeSpecAgentEntry(name, legacyNames, (entry) => ({ ...entry, enabled: on }))
 }
 
-/** Save one of the settings a spec skill declares, leaving its switch and its other values
+/** Save one of the settings a spec agent declares, leaving its switch and its other values
  *  alone. An empty value drops the key, which is how a value goes back to its default: a
  *  missing key and one holding the default mean the same thing, and only one of them reads
  *  as deliberate.
  *
  *  That the key and the value are ones the agent offers is checked by the caller above this
- *  (`lib/spec-skills/`), which is the side that knows. */
+ *  (`lib/agents/`), which is the side that knows. */
 export function setSpecAgentValue(
   name: string,
   key: string,
@@ -647,8 +647,8 @@ function writeRuntimes(change: (current: BoardRuntimes) => BoardRuntimes): { ok:
   return writeConfig((cfg) => writeRuntimeBlock(cfg, change(readRuntimes(cfg))))
 }
 
-// Repoint every spec skill that names one runtime at another, or clear the pointer with an
-// empty `to`. The flows live in the runtime block above and move with it; a spec skill's
+// Repoint every spec agent that names one runtime at another, or clear the pointer with an
+// empty `to`. The flows live in the runtime block above and move with it; a spec agent's
 // runtime is a key inside its own entry, so it has to be walked separately.
 function moveSpecAgentRuntimes(cfg: Record<string, unknown>, from: string, to: string): void {
   const block = { ...configBlock(cfg.specAgents) }
@@ -680,7 +680,7 @@ export function addRuntime(name: string): { ok: boolean; error?: string } {
   }))
 }
 
-/** Drop a runtime. Every flow and spec skill that named it falls back to the global one
+/** Drop a runtime. Every flow and spec agent that named it falls back to the global one
  *  rather than the removal being refused. The global runtime itself is refused — point the
  *  global at another one first, so a board is never left with nothing global on it. */
 export function removeRuntime(name: string): { ok: boolean; error?: string } {
@@ -704,7 +704,7 @@ export function removeRuntime(name: string): { ok: boolean; error?: string } {
       flows: Object.fromEntries(Object.entries(current.flows).filter(([, on]) => on !== name)),
       agents,
     })
-    // The spec skills that named it go back to the global one too, and their pointers are
+    // The spec agents that named it go back to the global one too, and their pointers are
     // CLEARED rather than left: re-adding the name later must not quietly put them back on
     // a runtime that has since been given another agent.
     moveSpecAgentRuntimes(cfg, name, '')
@@ -712,7 +712,7 @@ export function removeRuntime(name: string): { ok: boolean; error?: string } {
 }
 
 /** Rename a runtime, carrying everything the board holds under the old name: what it runs
- *  as, the flows and the spec skills that named it, and the global pointer when it was the
+ *  as, the flows and the spec agents that named it, and the global pointer when it was the
  *  global one. One name changes and nothing else does. */
 export function renameRuntime(from: string, to: string): { ok: boolean; error?: string } {
   const now = readRuntimes()
@@ -828,7 +828,7 @@ export function setFlowRuntime(command: string, name: string): { ok: boolean; er
   })
 }
 
-/** Point one spec skill at a runtime, or back at the global one with an empty name. Its
+/** Point one spec agent at a runtime, or back at the global one with an empty name. Its
  *  switch and its settings are left exactly as they were. */
 export function setSpecAgentRuntime(
   name: string,

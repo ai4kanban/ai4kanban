@@ -141,17 +141,17 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   // What a delivery is belongs under the noun it is about, not on the root list.
   groups.delivery.addHelpText('after', HELP_AFTER.deliveries(cli.program))
 
-  // ---- a named skill that fills one part of a card's spec --------------------
+  // ---- a named agent that fills one part of a card's spec --------------------
 
   withShared(program.command('spec'))
-    .argument('[skill]', 'which spec skill; left off, the skills this board has are listed')
+    .argument('[agent]', 'which spec agent; left off, the agents this board has are listed')
     .argument('[id]', 'the card to put it on', cardId)
     .argument('[note...]', 'what the flow wants looked at')
-    .summary("a named skill that fills one part of a card's spec")
+    .summary("a named agent that fills one part of a card's spec")
     .description(
       'It is a run of its own: it starts clean, with the card and your note and nothing else, and it ' +
-        'writes one section of that card — `## By `<skill>` skill` — and changes nothing more. A project ' +
-        'adds its own under docs/kanban/skills/<name>/SKILL.md; the built-in ones ship with this command. ' +
+        'writes one section of that card — `## By `<agent>` agent` — and changes nothing more. A project ' +
+        'adds its own under docs/kanban/agents/<name>/AGENT.md; the built-in ones ship with this command. ' +
         'Asked for from inside a run, it is written down rather than started, and the board starts it the ' +
         'moment that run ends.',
     )
@@ -161,12 +161,12 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .addOption(new Option('--print', 'refused — see below').hideHelp())
     .addHelpText(
       'after',
-      '\nThere is no --print: doing a spec skill in the conversation that asked for it is the one thing it\n' +
+      '\nThere is no --print: doing a spec agent in the conversation that asked for it is the one thing it\n' +
         'exists not to be.\n',
     )
     .action(async function (this: Command, ...vals: unknown[]) {
-      const [skill, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
-      await onBoard(this, cli, (p) => cmdSpec({ skill, id, note, ...this.opts() }, p))
+      const [agent, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
+      await onBoard(this, cli, (p) => cmdSpec({ agent, id, note, ...this.opts() }, p))
     })
 
   // ---- one channel's draft, repurposed from the topic's source --------------
@@ -533,7 +533,7 @@ function declareAgent(program: Command, cli: AgentCliOptions): void {
     })
 
   word('runtimes')
-    .summary('the runtimes, and what each flow and spec skill is on')
+    .summary('the runtimes, and what each flow and spec agent is on')
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdAgent(['runtimes']))
     })
@@ -580,9 +580,9 @@ function declareAgent(program: Command, cli: AgentCliOptions): void {
     })
 
   verb('for')
-    .argument('<what>', 'a flow or a spec skill')
+    .argument('<what>', 'a flow or a spec agent')
     .argument('<runtime>', 'the runtime to put it on; "-" puts it back on the global one')
-    .summary('point one flow or spec skill at a runtime')
+    .summary('point one flow or spec agent at a runtime')
     .action(async function (this: Command, what: string, name: string) {
       await onBoard(this, cli, () => cmdAgent(['runtime', 'for', what, name]))
     })

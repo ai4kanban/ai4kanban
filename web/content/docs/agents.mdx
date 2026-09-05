@@ -1,16 +1,17 @@
 ---
 title: "Let a specialist fill part of the spec"
-title_tag: "AI4Kanban spec skills — the screen, the library, and your own"
-description: "A spec skill owns one part of a card's spec and fills only that part: the screen a feature needs, the library it leans on, or something your project defines itself."
-lead: "Some parts of a card nobody should plan by guess. Those go to a spec skill, which fills that part and nothing else."
-last_updated: "September 4, 2026"
-nav_label: "Spec skills"
+title_tag: "AI4Kanban spec agents — the screen, the library, and your own"
+description: "A spec agent owns one part of a card's spec and fills only that part: the screen a feature needs, the library it leans on, or something your project defines itself."
+lead: "Some parts of a card nobody should plan by guess. Those go to a spec agent, which fills that part and nothing else."
+last_updated: "September 5, 2026"
+nav_label: "Spec agents"
 icon: "layers"
 ---
 
 Some parts of a card nobody should plan by guess — the screen a feature puts in front of the
-user, the outside library it leans on. Those go to a **spec skill**: an Agent Skill that owns one
-part of a card's spec and fills only that part. The board ships two, and `akb spec` lists them:
+user, the outside library it leans on. Those go to a **spec agent**: a markdown file with
+frontmatter that owns one part of a card's spec and fills only that part. The board ships two,
+and `akb spec` lists them:
 
 - **`ui-design`** — draws the screen a card needs as one layout by default, with alternatives
   only when you ask for them, and nothing written under the drawing. Its **mockup** is either a
@@ -23,7 +24,7 @@ part of a card's spec and fills only that part. The board ships two, and `akb sp
 
 It is a run like any other, with three things that make it different: it starts clean, given the
 card and a short note but never the conversation that asked for it; it writes one named section —
-``## By `ui-design` skill`` — and nothing else, rewritten rather than doubled on a second run;
+``## By `ui-design` agent`` — and nothing else, rewritten rather than doubled on a second run;
 and nothing waits for it, so a planning flow carries on and the section arrives when it is done.
 When the answer is a pick only you can make, it leaves an open question instead of choosing.
 
@@ -32,22 +33,22 @@ card is added, after a refine or revise that moved the screen or the library, an
 propose or a release plan (each card's own refine asks instead). A card that needs neither a
 screen nor a library goes through all of those without a spec run, and nothing tells you it did.
 
-When you do want one: **"put the ui-design skill on #4"**, or `akb spec ui-design 4`. Switching
+When you do want one: **"put the ui-design agent on #4"**, or `akb spec ui-design 4`. Switching
 one off and setting what it produces are both in **Configuration → Agents**; `akb spec` prints
 what each is set to.
 
 ## Add one of your own
 
-A spec skill is a standard Agent Skill directory, so a project adds one by writing it:
+A spec agent is one folder with one markdown file in it, so a project adds one by writing it:
 
 ```text
-docs/kanban/skills/api-contract/SKILL.md
-docs/kanban/skills/api-contract/references/openapi.md   # optional
+docs/kanban/agents/api-contract/AGENT.md
+docs/kanban/agents/api-contract/references/openapi.md   # optional
 ```
 
-`SKILL.md` opens with frontmatter carrying the skill's `name`, the `description` a planning
-session picks it by, and an `akb:` block saying it is a spec skill and what part of a card's spec
-it owns:
+`AGENT.md` opens with frontmatter carrying the agent's `name`, the `description` a planning
+session picks it by, and an `akb:` block saying which hook it plugs into and what part of a
+card's spec it owns:
 
 ```yaml
 ---
@@ -72,7 +73,12 @@ akb:
 ---
 ```
 
-Everything under the frontmatter is the skill's instructions. A `settings` entry becomes a
-control in Configuration → Agents, and only the chosen choice's `reference` is loaded into the
-run — the instructions for the option nobody picked are never read. `akb spec` lists the skills
-this board can use and, under them, the reason any skill it found can't be used.
+Everything under the frontmatter is the agent's instructions. `kind: spec` is the hook it plugs
+into; `kind: write` joins the writer on a marketing board and is refused anywhere else. A
+`settings` entry becomes a control in Configuration → Agents, and only the chosen choice's
+`reference` is loaded into the run — the instructions for the option nobody picked are never
+read. `akb spec` lists the agents this board can use and, under them, anything wrong with one it
+found.
+
+Agents used to live in `docs/kanban/skills/<name>/SKILL.md`. That folder still works for one
+release, and every agent found there is listed with a line telling you to move it.

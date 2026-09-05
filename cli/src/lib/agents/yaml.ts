@@ -1,12 +1,12 @@
-// The YAML subset a skill's frontmatter is written in.
+// The YAML subset an agent's frontmatter is written in.
 //
 // A card's frontmatter has its own reader (`lib/frontmatter.ts`) because its shape is fixed
-// and known. A skill's is not: it carries nested maps and lists of maps, and a project may
+// and known. An agent's is not: it carries nested maps and lists of maps, and a project may
 // write one by hand. This reads that shape and nothing more — scalars, nested maps, lists of
 // scalars and lists of maps, all by indentation.
 //
-// What it deliberately does not do: anchors, multi-line scalars, flow maps, types. A skill
-// that needs one of those is a skill written against a YAML library this command does not
+// What it deliberately does not do: anchors, multi-line scalars, flow maps, types. An agent
+// that needs one of those is an agent written against a YAML library this command does not
 // ship, and the parse it gets back is what the validator reports on.
 
 import { unquote } from '../yaml'

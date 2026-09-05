@@ -42,7 +42,7 @@ const en: HomeCopy = {
       },
       {
         title: "Plan the way you think.",
-        body: "Want a technical comparison or a working UI mockup before committing to a direction? Use built-in skills or add your own, and let the agent work through requirements using your approach.",
+        body: "Want a technical comparison or a working UI mockup before committing to a direction? Use the built-in spec agents or add your own, and let the board work through requirements using your approach.",
       },
       {
         title: "Agents handle the details. You sign off.",

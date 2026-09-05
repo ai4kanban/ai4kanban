@@ -8,7 +8,7 @@
 // board's prompts stay exactly as they were and cost nothing.
 //
 // The boundary rides in the line rather than only in `akb guide board`, because the flows
-// that write the most prose — `writing`, `qa-loop`, `revise`, `spec-skill` and `changelog` —
+// that write the most prose — `writing`, `qa-loop`, `revise`, `spec-agent` and `changelog` —
 // are never given that guide. A run told to write Chinese without the boundary translates a
 // section heading, and that is a card the board can no longer read.
 

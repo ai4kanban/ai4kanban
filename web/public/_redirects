@@ -6,3 +6,6 @@
 # otherwise 404. Send them to the page they meant.
 /en / 301
 /en/* /:splat 301
+
+# `/docs/spec-skills` became `/docs/agents` when a spec skill became a spec agent.
+/docs/spec-skills /docs/agents 301

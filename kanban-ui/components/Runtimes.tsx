@@ -15,7 +15,7 @@
 // with **Add runtime** on it. `readRuntimes` answers `named: false` there, so a row called
 // `default` would put a name on screen the board doesn't hold.
 //
-// Which runtime a flow or spec skill uses is NOT set here — `akb agent runtime for` is where
+// Which runtime a flow or spec agent uses is NOT set here — `akb agent runtime for` is where
 // that lives (#343), and a removal says so where it names the flows it moves.
 
 import { useEffect, useRef, useState } from "react";
@@ -468,7 +468,7 @@ function RenameRuntime({
   );
 }
 
-// What a removal costs, before it is made: the flows and spec skills that named this runtime
+// What a removal costs, before it is made: the flows and spec agents that named this runtime
 // fall back to the board's global one, and their pointers are cleared — so re-adding the
 // name never quietly puts them back on it. Where that assignment is changed is a typed
 // command, and the line says so.
@@ -492,7 +492,7 @@ function RemoveRuntime({
   onRemove: () => void;
 }) {
   const c = useCopy().configuration.runtimes;
-  const [users, setUsers] = useState<{ flows: string[]; specSkills: string[] } | null>(null);
+  const [users, setUsers] = useState<{ flows: string[]; specAgents: string[] } | null>(null);
 
   useEffect(() => {
     if (!open || isGlobal) return;
@@ -510,7 +510,7 @@ function RemoveRuntime({
     };
   }, [runtime, isGlobal, open]);
 
-  const moved = [...(users?.flows ?? []), ...(users?.specSkills ?? [])];
+  const moved = [...(users?.flows ?? []), ...(users?.specAgents ?? [])];
 
   return (
     <ConfirmationPopover

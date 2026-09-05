@@ -48,7 +48,7 @@ const es: HomeCopy = {
       },
       {
         title: "Analiza los requisitos a tu manera.",
-        body: "¿Quieres comparar opciones técnicas o probar un prototipo funcional antes de elegir un rumbo? Usa las skills incluidas o añade las tuyas para que el agente analice los requisitos con tu método.",
+        body: "¿Quieres comparar opciones técnicas o probar un prototipo funcional antes de elegir un rumbo? Usa los agentes de especificación incluidos o añade los tuyos para que analicen los requisitos con tu método.",
       },
       {
         title: "Los agentes resuelven los detalles. Tú apruebas.",

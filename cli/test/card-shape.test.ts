@@ -1,5 +1,5 @@
 // The two halves of a card, where they are enforced in code (#261): the boundary marker is
-// what a spec skill's section is placed against, and a refine that only moves sections has
+// what a spec agent's section is placed against, and a refine that only moves sections has
 // not replanned anything, so the loop does not spend another pass on it.
 
 import assert from 'node:assert/strict'
@@ -70,7 +70,7 @@ const SHAPED = [
 const specWrite = (argv: string[]): Promise<Record<string, unknown>> =>
   move(root, ['spec-write', '5', 'ui-design', ...argv])
 
-describe("a spec skill's section and the boundary", () => {
+describe("a spec agent's section and the boundary", () => {
   it('lands in the agent half when nothing says otherwise', async () => {
     write(SHAPED)
     await specWrite(['--text', 'a screen'])
@@ -79,7 +79,7 @@ describe("a spec skill's section and the boundary", () => {
       '<!-- agent -->',
       '## Scope',
       '## Todo',
-      '## By `ui-design` skill',
+      '## By `ui-design` agent',
       '## Decided by the agent',
     ])
   })
@@ -89,7 +89,7 @@ describe("a spec skill's section and the boundary", () => {
     await specWrite(['--text', 'a screen', '--half', 'human'])
     assert.deepEqual(headings(), [
       '## Worth noting',
-      '## By `ui-design` skill',
+      '## By `ui-design` agent',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
@@ -103,7 +103,7 @@ describe("a spec skill's section and the boundary", () => {
     await specWrite(['--text', 'a better screen'])
     assert.deepEqual(headings(), [
       '## Worth noting',
-      '## By `ui-design` skill',
+      '## By `ui-design` agent',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
@@ -121,9 +121,27 @@ describe("a spec skill's section and the boundary", () => {
       '<!-- agent -->',
       '## Scope',
       '## Todo',
-      '## By `ui-design` skill',
+      '## By `ui-design` agent',
       '## Decided by the agent',
     ])
+  })
+
+  // The word the heading carries changed twice (#403, #419). A card written under either
+  // one is rewritten in place, so a rerun never leaves two sections for the same agent.
+  it('rewrites the heading a card already carries, whichever word it uses', async () => {
+    write(SHAPED.replace('## Scope', '## By `ui-design` skill\n\nan old screen\n\n## Scope'))
+    await specWrite(['--text', 'a new screen'])
+    assert.deepEqual(headings(), [
+      '## Worth noting',
+      '<!-- agent -->',
+      '## By `ui-design` agent',
+      '## Scope',
+      '## Todo',
+      '## Decided by the agent',
+    ])
+    const card = fs.readFileSync(file, 'utf8')
+    assert.ok(card.includes('a new screen'))
+    assert.ok(!card.includes('an old screen'))
   })
 })
 

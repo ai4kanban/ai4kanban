@@ -92,7 +92,7 @@ akb run stop <run>          stop a run
 akb run resume <run>        resume a failed, interrupted or stopped run
 akb delivery cancel <id>    end the build in flight on a card and hand the card back
 akb delivery discard <id>   end it and throw its worktree and branch away
-akb spec                    list the spec skills and what part of a spec each one fills
+akb spec                    list the spec agents and what part of a spec each one fills
 akb spec <name> <id>        put one on a card — always its own run, never `--print`
 akb agent                   show the configured agent
 akb guide                   list board workflows; `akb guide board` explains the board

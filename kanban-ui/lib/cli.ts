@@ -20,7 +20,7 @@ import type {
   RunRecord,
   RunView,
   SetupProposal,
-  SpecSkillView,
+  SpecAgentView,
 } from "./format/agent/types";
 import type { CloudEventAnswer } from "./format/cloud/events";
 import type {
@@ -432,17 +432,21 @@ export interface BoardRules {
    *  themselves. Every other counted action is counted inside the rules. */
   reportAppOpen?(): void;
 
-  // the spec skills, and which of them may run (#191, #403). Optional for the same reason
+  // the spec agents, and which of them may run (#191, #403). Optional for the same reason
   // as the skill moves below: a project can be running rules older than the release that
   // added them, and the Agents section says so rather than the dialog failing to draw.
-  readSpecSkills?(): SpecSkillView[];
+  //
+  // All four keep the spelling they had when a spec agent was called a spec skill (#419):
+  // this is the boundary between the app and whatever `akb` the project has, and a UI
+  // newer than the rules would find nothing under a new name.
+  readSpecSkills?(): SpecAgentView[];
   setSpecSkillEnabled?(name: string, on: boolean): WriteResult;
-  /** Save one of the settings a skill declares (#257). Optional on its own: a board can
-   *  be running rules that list the skills but predate their settings, and the row then
+  /** Save one of the settings an agent declares (#257). Optional on its own: a board can
+   *  be running rules that list the agents but predate their settings, and the row then
    *  draws no control rather than offering one nothing can save. */
   setSpecSkillSetting?(name: string, key: string, value: string): WriteResult;
-  /** Why a skill on this board can't be used (#403) — a malformed SKILL.md, a name already
-   *  taken. Optional: rules that predate project skills report nothing. */
+  /** What is wrong with the agents on this board (#403) — a malformed AGENT.md, a name
+   *  already taken. Optional: rules that predate project agents report nothing. */
   specSkillProblems?(): string[];
 
   // the coding agent skill — whether this project has one, and the move that adds it

@@ -145,7 +145,7 @@ const APPROVED = [
 const isApproved = (heading: string): boolean => APPROVED.some((re) => re.test(heading))
 
 /** The card's approved requirements as one block of markdown: its title, its opening
- *  paragraph, `## Worth noting`, `## Scope`, `## Scope out`, and every spec skill's
+ *  paragraph, `## Worth noting`, `## Scope`, `## Scope out`, and every spec agent's
  *  section, in the order the card writes them.
  *
  *  Empty when there is no such card — a delivery is refused before that can happen, and a

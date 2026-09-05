@@ -1,6 +1,6 @@
-// Putting a spec skill on a card.
+// Putting a spec agent on a card.
 //
-// `akb spec` with nothing after it lists the skills. `akb spec <skill> <id> [note]` asks
+// `akb spec` with nothing after it lists the agents. `akb spec <agent> <id> [note]` asks
 // for one, and what that means depends on who is asking:
 //
 //   - a flow working inside a run the board started — the ask is written onto that run's
@@ -9,7 +9,7 @@
 //
 // Either way it is a run of its own, with its own log, stoppable like anything else, and
 // it starts clean. That is the one thing this command will not bend on: there is no
-// `--print`, because a spec skill run in the conversation that asked for it is the
+// `--print`, because a spec agent run in the conversation that asked for it is the
 // conversation's own opinion written under someone else's name.
 
 import { insideRun } from '../lib/agent/flow'
@@ -21,19 +21,19 @@ import { locate } from '../lib/cards'
 import { say } from '../lib/io'
 import { die, rel, BOARD_FLAG, TODO } from '../lib/paths'
 import {
-  findSpecSkill,
-  notASkill,
-  specSkillEnabled,
-  specSkillList,
-  specSkillNamesOnBoard,
+  findSpecAgent,
+  notAnAgent,
+  specAgentEnabled,
+  specAgentList,
+  specAgentNamesOnBoard,
   SPEC_SWITCH_HOME,
-} from '../lib/spec-skills'
+} from '../lib/agents'
 import type { MoveResult } from '../lib/types'
 import { followRun, short } from './run'
 
 /** `akb spec`, as its command declares it (lib/cli/agent.ts). */
 export interface SpecOptions {
-  skill?: string
+  agent?: string
   id?: number
   note?: string[]
   notes?: string
@@ -42,27 +42,29 @@ export interface SpecOptions {
 }
 
 export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveResult> {
-  // No skill named: say which ones there are. This is the list a flow reads to decide
-  // whether a card needs one at all, so a switched-off skill is not in it (#191). Typed by
-  // a person it is still named, in the closing line — a skill that vanished with no
+  // No agent named: say which ones there are. This is the list a flow reads to decide
+  // whether a card needs one at all, so a switched-off agent is not in it (#191). Typed by
+  // a person it is still named, in the closing line — an agent that vanished with no
   // explanation reads as a board that broke.
-  if (!opts.skill) {
-    say(specSkillList(program, !insideRun()))
-    return { agents: specSkillNamesOnBoard() }
+  if (!opts.agent) {
+    say(specAgentList(program, !insideRun()))
+    return { agents: specAgentNamesOnBoard() }
   }
 
-  const askedName = opts.skill.trim()
-  const skill = findSpecSkill(askedName)
-  if (!skill) die(notASkill(askedName), { kind: 'no-such-spec-agent', specAgent: askedName })
-  const name = skill.name
+  const askedName = opts.agent.trim()
+  const agent = findSpecAgent(askedName)
+  // An agent on another hook is on this board but is not what fills a card's spec, so it is
+  // turned away by the same door as a name nobody has.
+  if (!agent || agent.kind !== 'spec') die(notAnAgent(askedName), { kind: 'no-such-spec-agent', specAgent: askedName })
+  const name = agent.name
 
-  // Switched off in the board's settings (#191). A flow naming a skill from memory would
+  // Switched off in the board's settings (#191). A flow naming an agent from memory would
   // otherwise walk round the switch, so the ask is refused rather than quietly dropped —
   // and the refusal says what to do instead, because the user turned this off on purpose
   // and a flow that stopped over it would turn a preference into a blocker.
-  if (!specSkillEnabled(name)) {
+  if (!specAgentEnabled(name)) {
     die(
-      `the \`${name}\` spec skill is switched off for this board, so it isn't running. Plan that part of the card yourself and carry on. It goes back on in ${SPEC_SWITCH_HOME}.`,
+      `the \`${name}\` spec agent is switched off for this board, so it isn't running. Plan that part of the card yourself and carry on. It goes back on in ${SPEC_SWITCH_HOME}.`,
       { kind: 'spec-agent-off', specAgent: name },
     )
   }
@@ -74,16 +76,16 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
   if (!locate(id)) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
 
   // The one starting command with no `--print`. A printed flow is "do it here", and here is
-  // exactly where a spec skill must not be: it is worth a run precisely because it has not
+  // exactly where a spec agent must not be: it is worth a run precisely because it has not
   // read the conversation that wanted it.
   if (opts.print === true) {
     die(
-      `a spec skill has no --print: it is worth asking for only because it starts clean, and printing its instructions would have you write the section in the conversation that asked for it. Run \`${program} spec ${name} ${id}\` and it starts on its own.`,
+      `a spec agent has no --print: it is worth asking for only because it starts clean, and printing its instructions would have you write the section in the conversation that asked for it. Run \`${program} spec ${name} ${id}\` and it starts on its own.`,
       { kind: 'bad-option' },
     )
   }
 
-  // One skill on one card at a time. A flow that asks while that skill is still working the
+  // One agent on one card at a time. A flow that asks while that agent is still working the
   // card would get its section written twice from the same plan, and the second run would
   // land on whatever the first one left — so the ask is dropped, not queued behind it.
   const live = readRuns().find(
@@ -98,18 +100,18 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
   const req: AgentRequest = { action: 'spec', id, title: titleOf(id), specAgent: name, notes }
 
   // Asked for from inside a run: written down, not started. A run never starts another, and
-  // a skill that ran inside the asking run would read the very conversation it is meant to
+  // an agent that ran inside the asking run would read the very conversation it is meant to
   // be free of.
   const inside = insideRun()
   if (inside) {
-    // …unless the asking run is itself a spec run (#403). A spec skill answers one part of
-    // the card and nothing else, so a skill asking for a skill is either work it was given
+    // …unless the asking run is itself a spec run (#403). A spec agent answers one part of
+    // the card and nothing else, so an agent asking for an agent is either work it was given
     // and should do, or work outside its own part. Refused rather than dropped: a chain that
     // silently went nowhere reads as a board that lost the ask.
     if (readRuns().find((r) => r.sessionId === inside)?.action === 'spec') {
       die(
-        `a spec skill does not ask for another spec skill — answer the part you own and leave the rest of the card to the session planning it.`,
-        { kind: 'spec-skill-recursion', specAgent: name },
+        `a spec agent does not ask for another spec agent — answer the part you own and leave the rest of the card to the session planning it.`,
+        { kind: 'spec-agent-recursion', specAgent: name },
       )
     }
     const queued = askForSpec(inside, { specAgent: name, cardId: id, notes })
@@ -122,7 +124,7 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
     say(
       queued === 'already'
         ? `${name} was already asked for on #${id} — one ask is enough; it starts when this run ends.`
-        : `asked for the ${name} spec skill on #${id}. The board starts it when this run ends — don't wait for it, and don't write its section yourself.`,
+        : `asked for the ${name} spec agent on #${id}. The board starts it when this run ends — don't wait for it, and don't write its section yourself.`,
     )
     return { specAgent: name, cardId: id, queued: queued === 'queued', pending: true }
   }

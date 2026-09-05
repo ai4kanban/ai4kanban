@@ -117,7 +117,7 @@ export interface RunSpec {
   sessionId: string
   plan: RunPlan
   prompt: string
-  /** What the board owes this run's log before the agent's own output — a spec skill's
+  /** What the board owes this run's log before the agent's own output — a spec agent's
    *  setting that had to fall back, and nothing else today. The watcher writes them out as
    *  it opens the log, so the reason is above the work it changed. */
   notes?: string[]
@@ -142,7 +142,7 @@ const RUN_OUTCOME: Partial<Record<RunStatus, CloudEventState>> = {
 // ---- the run's own files ---------------------------------------------------
 
 const specPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.plan.json`)
-// The spec skills a run asked for while it went, waiting for its watcher to start them.
+// The spec agents a run asked for while it went, waiting for its watcher to start them.
 const asksPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.asks.json`)
 
 
@@ -421,7 +421,7 @@ function lockedBy(
   cardId: number | null,
   release?: string,
 ): string | undefined {
-  // A spec skill is out of that rule at both ends: it fills one section and never the
+  // A spec agent is out of that rule at both ends: it fills one section and never the
   // plan, so it neither takes the card nor waits for one. Two agents may work a card —
   // they write different sections — and a card being refined can still have its screen
   // drawn. Two runs writing one card file at the same moment is the problem #156 owns,
@@ -519,7 +519,7 @@ export function openRun(
   // the start — not later, when the agent finally spawns (an index action waits its turn
   // first, and the picker may well have been flipped by then). A run therefore always uses
   // one agent end to end: its command, its flags, and the name recorded against it.
-  // Which runtime this run goes on — its flow's, or the spec skill's on a spec run (#343).
+  // Which runtime this run goes on — its flow's, or the spec agent's on a spec run (#343).
   // Read here, with everything else, so a change made mid-run reaches the next run and not
   // this one.
   const plan = planRun(sessionId, cwd, runtimeFor(req))
@@ -539,7 +539,7 @@ export function openRun(
     // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs
     // none, and one that mints its own has nothing to record yet.
     logPath: logPathOf(sessionId),
-    // Which spec skill this is, on the one action that has one — so the run list can name
+    // Which spec agent this is, on the one action that has one — so the run list can name
     // it, and so a resume starts the same agent rather than a different one.
     specAgent: req.action === 'spec' ? req.specAgent : undefined,
     // …and which channel, on the one action that has one, so its close knows whose status
@@ -551,7 +551,7 @@ export function openRun(
     refineEffort: req.refineEffort,
     // And the flow it belongs to. A run started by a person opens one here; the watcher
     // copies the id onto every session that run goes on to start — a refinement's passes,
-    // the spec skills it asked for, the review after a build. So one job is one thing in
+    // the spec agents it asked for, the review after a build. So one job is one thing in
     // the record however many sessions it takes, and a second run on the same card is
     // never mistaken for a continuation of the first.
     flowId: req.flowId ?? randomUUID(),
@@ -695,11 +695,11 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   return { run: record, spec }
 }
 
-/** Ask for a spec skill from inside a run.
+/** Ask for a spec agent from inside a run.
  *
  *  A run never starts another, so nothing spawns here: the ask is written into the asking
  *  run's own asks file, and that run's watcher starts it once the run has ended
- *  (`readSpecAsks`). That is also what keeps a spec skill clean — by the time it starts,
+ *  (`readSpecAsks`). That is also what keeps a spec agent clean — by the time it starts,
  *  the conversation that wanted it is over, so there is nothing of it to inherit.
  *
  *  `already` means this run has asked for that agent on that card before; a second ask
@@ -728,7 +728,7 @@ export function askForRefine(sessionId: string, ask: RefineAsk): 'queued' | 'alr
   return 'queued'
 }
 
-/** The spec skills this run has been asked for. */
+/** The spec agents this run has been asked for. */
 export const readSpecAsks = (sessionId: string): SpecAsk[] => readAsks(sessionId).asks
 
 /** The cards this run handed to a refinement. */

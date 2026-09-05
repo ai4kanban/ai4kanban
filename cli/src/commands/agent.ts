@@ -6,7 +6,7 @@
 // front end can offer the agents and their settings without keeping a list of its own.
 //
 // All of it is the BOARD's, in docs/kanban/ui.config.json (#343): the runtimes it names,
-// what each one runs as, and which one each flow and spec skill goes on. So it travels with
+// what each one runs as, and which one each flow and spec agent goes on. So it travels with
 // the repository and a fresh clone runs what everyone else runs, with nothing to set up per
 // machine. `akb agent use` and `akb agent set` write the global runtime's agent — the
 // `harness` and `harnessSettings` a board has always had — and `akb agent bind` writes any
@@ -33,7 +33,7 @@ import {
 import { testConnection } from '../lib/agent/test'
 import { HARNESSES, RAW_ARGS_KEY } from '../lib/agent/harnesses'
 import type { HarnessSetting } from '../lib/agent/types'
-import { findSpecSkill, readSpecSkills, specSkillNames, specSkillNamesOnBoard } from '../lib/spec-skills'
+import { findSpecAgent, readSpecAgents, specAgentNames, specAgentNamesOnBoard } from '../lib/agents'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import { finishSetupStep } from '../lib/view/api'
@@ -110,8 +110,8 @@ function sayRuntimes(info: ReturnType<typeof agentInfo>): void {
   say(`Global runtime: ${info.globalRuntime}`)
   const off = info.flows.filter((f) => f.runtime !== info.globalRuntime)
   for (const flow of off) say(`  ${flow.path.padEnd(20)} ${flow.runtime} — ${flow.harness} here`)
-  for (const skill of readSpecSkills().filter((s) => s.runtime !== info.globalRuntime)) {
-    say(`  ${skill.name.padEnd(20)} ${skill.runtime} — ${skill.harness} here`)
+  for (const agent of readSpecAgents().filter((a) => a.runtime !== info.globalRuntime)) {
+    say(`  ${agent.name.padEnd(20)} ${agent.runtime} — ${agent.harness} here`)
   }
   say(`\`akb agent runtimes\` is the whole of it.`)
 }
@@ -228,7 +228,7 @@ function checkSetting(setting: HarnessSetting, value: string, runtime?: string):
 
 // ---- the runtimes (#343) ---------------------------------------------------
 
-/** Every runtime, what it runs as, and what each flow and spec skill is on. */
+/** Every runtime, what it runs as, and what each flow and spec agent is on. */
 function showRuntimes(): MoveResult {
   const info = agentInfo()
   for (const runtime of info.runtimes) {
@@ -239,8 +239,8 @@ function showRuntimes(): MoveResult {
   say('')
   say('Runs on')
   for (const flow of info.flows) say(`  ${flow.path.padEnd(20)} ${flow.runtime} — ${flow.harness}`)
-  for (const skill of readSpecSkills()) {
-    say(`  ${skill.name.padEnd(20)} ${skill.runtime} — ${skill.harness}`)
+  for (const agent of readSpecAgents()) {
+    say(`  ${agent.name.padEnd(20)} ${agent.runtime} — ${agent.harness}`)
   }
   say('')
   say('The one marked * is the board\'s global runtime — what a flow that names none runs on.')
@@ -289,7 +289,7 @@ function removeOne(name: string): MoveResult {
 }
 
 // Rename a runtime. Everything the board holds under the old name moves whole — what it runs
-// as, the flows, the spec skills and the global pointer — so only the name changes.
+// as, the flows, the spec agents and the global pointer — so only the name changes.
 function renameOne(from: string, to: string): MoveResult {
   if (!from || !to) die('name a runtime and its new name: akb agent runtime rename cheap plan', { kind: 'needs-input' })
   const res = renameRuntime(from, to)
@@ -306,12 +306,12 @@ function globalOne(name: string): MoveResult {
   return { globalRuntime: name }
 }
 
-// Point one flow or one spec skill at a runtime. "-" puts it back on the global one.
+// Point one flow or one spec agent at a runtime. "-" puts it back on the global one.
 function runtimeFor(args: string[]): MoveResult {
   const what = args[0]?.trim() ?? ''
   const asked = args[1]?.trim() ?? ''
   if (!what || !asked) {
-    die('name a flow or spec skill and a runtime: akb agent runtime for implement cheap', {
+    die('name a flow or spec agent and a runtime: akb agent runtime for implement cheap', {
       kind: 'needs-input',
     })
   }
@@ -320,11 +320,11 @@ function runtimeFor(args: string[]): MoveResult {
   if (runtime && !runtimes.names.includes(runtime)) die(unknownRuntime(runtime, runtimes), { kind: 'bad-value' })
 
   const flow = FLOWS.find((f) => f.command === what)
-  const skill = flow ? null : findSpecSkill(what)
-  if (!flow && !skill) {
+  const agent = flow ? null : findSpecAgent(what)
+  if (!flow && !agent) {
     die(
-      `"${what}" is neither a flow nor a spec skill. Flows: ${FLOWS.map((f) => f.command).join(', ')}. ` +
-        `Spec skills: ${specSkillNamesOnBoard().join(', ')}.`,
+      `"${what}" is neither a flow nor a spec agent. Flows: ${FLOWS.map((f) => f.command).join(', ')}. ` +
+        `Spec agents: ${specAgentNamesOnBoard().join(', ')}.`,
       { kind: 'bad-value' },
     )
   }
@@ -338,13 +338,13 @@ function runtimeFor(args: string[]): MoveResult {
   }
   const res = flow
     ? setFlowRuntime(flow.command, runtime)
-    : setSpecAgentRuntime(skill!.name, runtime, specSkillNames(skill!.name).slice(1))
+    : setSpecAgentRuntime(agent!.name, runtime, specAgentNames(agent!.name).slice(1))
   if (!res.ok) die(res.error ?? 'the runtime could not be saved', { kind: 'save-failed' })
 
-  const name = flow?.command ?? skill!.name
+  const name = flow?.command ?? agent!.name
   const on = runtime || readRuntimes().global
   say(`\`${name}\` runs on "${on}"${runtime ? '' : ' — the global runtime'}, which is ${runtimeHarness(on).label} here.`)
-  return { flow: flow?.command, specAgent: skill?.name, runtime: on }
+  return { flow: flow?.command, specAgent: agent?.name, runtime: on }
 }
 
 // ---- what one runtime runs as ----------------------------------------------

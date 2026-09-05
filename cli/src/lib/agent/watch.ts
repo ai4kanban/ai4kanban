@@ -139,7 +139,7 @@ export async function watchRun(sessionId: string): Promise<number> {
 
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
   const log = fs.createWriteStream(record.logPath, { flags: 'a' })
-  // What the board settled before the agent said a word — a spec skill's setting whose saved
+  // What the board settled before the agent said a word — a spec agent's setting whose saved
   // value it no longer offers, and what it ran at instead. It goes above the output so the
   // reason sits before the work it changed.
   for (const note of spec.notes ?? []) log.write(`[board] ${note}\n`)
@@ -389,7 +389,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       })
       // The refines themselves are only for a run that finished. One that failed or was
       // ended left the board half-written, and a refine of half a card is a refine you throw
-      // away — and a spec skill sent at half a plan would answer the wrong plan.
+      // away — and a spec agent sent at half a plan would answer the wrong plan.
       //
       // Worked out BEFORE the record closes, so anything watching for the run to end sees
       // the note it ended with rather than catching the record a beat too early.
@@ -581,7 +581,7 @@ function settleBoard(
   }
 }
 
-// What follows this run: the spec skills and refinements it asked for by name, and
+// What follows this run: the spec agents and refinements it asked for by name, and
 // refinement on each card it wrote, changed, or set free. Each one is an ordinary run of its
 // own, so it shows in the panel with its own log and can be stopped.
 //

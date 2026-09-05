@@ -6,7 +6,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RUN_IGNORE_LINES, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, RULES, SKILLS, SETUP_CHECKLIST } from '../lib/paths'
+import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RUN_IGNORE_LINES, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, RULES, AGENTS, SETUP_CHECKLIST } from '../lib/paths'
 import { configTemplateFor } from '../lib/config-template'
 // Where a marketing board's drafts go — one folder per card, tracked in git and kept after
 // the card is archived (#406). Only that solution has one.
@@ -238,10 +238,10 @@ export function cmdInit(named?: Solution): MoveResult {
   writeGitignoreIfMissing()
   writeRootIgnoreIfMissing()
   writeNextId(1)
-  // A marketing board's own folders: the drafts, the spec skills it adds of its own, and
+  // A marketing board's own folders: the drafts, the spec agents it adds of its own, and
   // the flow rules. Made empty rather than left out, because the layout is what the flow
   // text points at.
-  if (marketing) for (const dir of [contentDir(), SKILLS, RULES]) fs.mkdirSync(dir, { recursive: true })
+  if (marketing) for (const dir of [contentDir(), AGENTS, RULES]) fs.mkdirSync(dir, { recursive: true })
   // Releases and setup are the product solution's. A marketing board plans no versions and
   // has no repo to read, so a checklist telling it to would be a checklist about nothing.
   if (!marketing) writeReleasesIfMissing()

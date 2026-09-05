@@ -24,8 +24,8 @@ docs/kanban/
 │   ├── published.md
 │   │               one line per published piece: channel, URL, result
 │   └── <pillar>/   a pillar's own decisions.md and rejected.md
-├── skills/<name>/SKILL.md
-│                   a spec skill this board adds of its own
+├── agents/<name>/AGENT.md
+│                   a spec agent this board adds of its own
 ├── rules/          one rule per flow, in the user's own words — `<command>.md`, appended
 │                   to the end of that flow's instructions on every run
 ├── modules.md      the pillars — one line each

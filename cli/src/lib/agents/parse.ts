@@ -1,8 +1,8 @@
-// Reading one `SKILL.md` into a spec skill.
+// Reading one `AGENT.md` into a spec agent.
 //
-// A skill is an ordinary Agent Skill directory: `SKILL.md` with `name`, `description` and
+// An agent is one folder under a name of its own: `AGENT.md` with `name`, `description` and
 // instructions, and optional `references/` beside it. AKB's own additions live in the same
-// frontmatter, under `akb:`, so a skill is one file to write and one file to read:
+// frontmatter, under `akb:`, so an agent is one file to write and one file to read:
 //
 //   ---
 //   name: ui-design
@@ -22,46 +22,52 @@
 //             reference: references/rendered-screen.md
 //   ---
 //
-// Everything is checked here rather than where it is used. A skill that does not parse is
-// reported by name and left out of the catalog — a half-read skill reaching a run is a run
+// Everything is checked here rather than where it is used. An agent that does not parse is
+// reported by name and left out of the catalog — a half-read agent reaching a run is a run
 // given instructions nobody wrote.
 
-import type { SpecSkillChoice, SpecSkillSetting } from '../agent/types'
+import type { SpecAgentChoice, SpecAgentSetting } from '../agent/types'
+import { solution } from '../solution'
 import { parseYamlBlock, splitFrontmatter } from './yaml'
 import type { YamlValue } from './yaml'
 
-/** One spec skill, read. `body` is its instructions; `file` reads anything else inside its
- *  folder, so a bundled skill and a project one are used the same way. */
-export interface SpecSkill {
+/** One spec agent, read. `body` is its instructions; `file` reads anything else inside its
+ *  folder, so a bundled agent and a project one are used the same way. */
+export interface SpecAgent {
   name: string
   description: string
   /** The part of a card's spec it owns, in one line. A flow reads this against the card in
-   *  front of it to decide whether the card needs the skill at all. */
+   *  front of it to decide whether the card needs the agent at all. */
   owns: string
-  settings: SpecSkillSetting[]
-  /** Its `SKILL.md` instructions, without the frontmatter. */
+  /** The hook it plugs into. */
+  kind: AgentKind
+  settings: SpecAgentSetting[]
+  /** Its `AGENT.md` instructions, without the frontmatter. */
   body: string
   /** Where it was read from, for a message a person has to act on. */
   from: string
   /** Whether the board ships it, as opposed to the project adding it. */
   builtIn: boolean
-  /** One of its own files, by skill-relative path. Null when it isn't there. */
+  /** One of its own files, by agent-relative path. Null when it isn't there. */
   file(relative: string): string | null
 }
 
-/** The only kind of skill AKB runs today. A skill declaring anything else is left out. */
-export const SPEC_KIND = 'spec'
+/** The hooks an agent may plug into: `spec` fills one part of a card's spec, `write` joins
+ *  the board's writer. Only the marketing board has a writer, so a `write` agent anywhere
+ *  else is refused rather than registered as something that could never run. */
+export const AGENT_KINDS = ['spec', 'write'] as const
+export type AgentKind = (typeof AGENT_KINDS)[number]
 
 const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const RESERVED_KEYS = ['enabled', 'runtime']
 
-/** Read one `SKILL.md`. Either the skill, or the one line saying why it can't be used. */
-export function parseSpecSkill(
+/** Read one `AGENT.md`. Either the agent, or the one line saying why it can't be used. */
+export function parseSpecAgent(
   text: string,
   from: string,
   file: (relative: string) => string | null,
   builtIn = false,
-): { skill: SpecSkill } | { problem: string } {
+): { agent: SpecAgent } | { problem: string } {
   const bad = (why: string) => ({ problem: `${from}: ${why}` })
   const { meta, body } = splitFrontmatter(text)
   if (meta === null) return bad('no `---` frontmatter, so it declares no name or description')
@@ -69,20 +75,25 @@ export function parseSpecSkill(
 
   const name = str(front.name)
   if (!name) return bad('its frontmatter has no `name`')
-  if (!NAME.test(name)) return bad(`"${name}" is not a usable skill name — use lower-case words joined by "-"`)
+  if (!NAME.test(name)) return bad(`"${name}" is not a usable agent name — use lower-case words joined by "-"`)
   const description = str(front.description)
   if (!description) return bad(`\`${name}\` has no \`description\`, which is the line a flow picks it by`)
 
   const akb = map(front.akb)
-  if (!akb) return bad(`\`${name}\` has no \`akb:\` block, so the board can't tell what kind of skill it is`)
-  const kind = str(akb.kind)
-  if (kind !== SPEC_KIND) {
-    return bad(`\`${name}\` declares \`akb.kind: ${kind || '(none)'}\` — this board runs \`${SPEC_KIND}\` skills`)
+  if (!akb) return bad(`\`${name}\` has no \`akb:\` block, so the board can't tell what kind of agent it is`)
+  const declaredKind = str(akb.kind)
+  if (!isKind(declaredKind)) {
+    return bad(
+      `\`${name}\` declares \`akb.kind: ${declaredKind || '(none)'}\` — an agent is \`${AGENT_KINDS.join('\` or \`')}\``,
+    )
+  }
+  if (declaredKind === 'write' && solution() !== 'marketing') {
+    return bad(`\`${name}\` is a \`write\` agent, and only a marketing board has a writer to join`)
   }
   const owns = str(akb.owns)
   if (!owns) return bad(`\`${name}\` has no \`akb.owns\`, which is the part of the spec it answers for`)
 
-  const settings: SpecSkillSetting[] = []
+  const settings: SpecAgentSetting[] = []
   const declared = akb.settings === undefined || akb.settings === '' ? [] : akb.settings
   if (!Array.isArray(declared)) return bad(`\`${name}\`: \`akb.settings\` has to be a list`)
   for (const raw of declared) {
@@ -97,15 +108,19 @@ export function parseSpecSkill(
   const instructions = body.trim()
   if (!instructions) return bad(`\`${name}\` has frontmatter but no instructions under it`)
 
-  return { skill: { name, description, owns, settings, body: instructions, from, builtIn, file } }
+  return {
+    agent: { name, description, owns, kind: declaredKind, settings, body: instructions, from, builtIn, file },
+  }
 }
+
+const isKind = (value: string): value is AgentKind => (AGENT_KINDS as readonly string[]).includes(value)
 
 function readSetting(
   raw: YamlValue,
-  skill: string,
+  agent: string,
   file: (relative: string) => string | null,
-): { setting: SpecSkillSetting } | { problem: string } {
-  const bad = (why: string) => ({ problem: `\`${skill}\`: ${why}` })
+): { setting: SpecAgentSetting } | { problem: string } {
+  const bad = (why: string) => ({ problem: `\`${agent}\`: ${why}` })
   const entry = map(raw)
   if (!entry) return bad('each entry under `akb.settings` has to be a block with a `key`')
   const key = str(entry.key)
@@ -118,7 +133,7 @@ function readSetting(
   if (!Array.isArray(rawChoices) || !rawChoices.length) {
     return bad(`the \`${key}\` setting offers no \`choices\``)
   }
-  const choices: SpecSkillChoice[] = []
+  const choices: SpecAgentChoice[] = []
   for (const rawChoice of rawChoices) {
     const choice = map(rawChoice)
     if (!choice) return bad(`a choice under \`${key}\` is not a block`)
@@ -132,7 +147,7 @@ function readSetting(
     if (!cost) return bad(`the "${value}" choice under \`${key}\` has no \`cost\``)
     if (!reference) return bad(`the "${value}" choice under \`${key}\` names no \`reference\``)
     if (reference.startsWith('/') || reference.split('/').includes('..')) {
-      return bad(`the "${value}" choice under \`${key}\` points outside the skill: ${reference}`)
+      return bad(`the "${value}" choice under \`${key}\` points outside the agent: ${reference}`)
     }
     if (file(reference) === null) return bad(`the "${value}" choice under \`${key}\` points at a missing ${reference}`)
     choices.push({ value, label: choiceLabel, cost, reference })

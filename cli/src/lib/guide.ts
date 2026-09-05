@@ -45,7 +45,7 @@ import releases from '../guide/releases.md'
 import resolve from '../guide/resolve.md'
 import revise from '../guide/revise.md'
 import setup from '../guide/setup.md'
-import specSkill from '../guide/spec-skill.md'
+import specAgent from '../guide/spec-agent.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
 import validateOnReddit from '../guide/validate-on-reddit.md'
@@ -91,7 +91,7 @@ export const GUIDES: Guide[] = [
   { name: 'changelog', when: "write a closed version's changelog from what its close wrote down", text: changelog },
   { name: 'document-feature', when: 'which docs a change has to update', text: documentFeature },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
-  { name: 'spec-skill', when: "fill one part of a card's spec, as the skill that owns it", text: specSkill },
+  { name: 'spec-agent', when: "fill one part of a card's spec, as the agent that owns it", text: specAgent },
   { name: 'module-map', when: 'write or rebuild docs/kanban/modules.md', text: moduleMap },
   { name: 'setup', when: "setup's own steps, while the checklist is still there", text: setup },
   { name: 'update', when: 'pull a newer version into a project that already has one', text: update },
@@ -130,9 +130,14 @@ function guidesHere(): Guide[] {
  *  offered and a topic only it has is. */
 export const guideNames = (): string[] => guidesHere().map((g) => g.name)
 
+/** Names a flow answered to before it was renamed. Asked for by the old one, the flow still
+ *  comes back — every board, card and habit that spells it the old way keeps working. */
+const RENAMED: Record<string, string> = { 'spec-skill': 'spec-agent' }
+
 /** One flow as this board reads it: its solution's words, spelling this board's own path. */
 export function findGuide(name: string): Guide | null {
-  const guide = guidesHere().find((g) => g.name === name)
+  const wanted = RENAMED[name] ?? name
+  const guide = guidesHere().find((g) => g.name === wanted)
   return guide ? { ...guide, text: boardText(guide.text) } : null
 }
 
