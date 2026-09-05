@@ -1,12 +1,12 @@
 "use client";
 
 // The Create-task action, self-contained so the shared Header can show it on
-// both the board and a card page. The button opens the create dialog; starting a
-// session pops the header's global sessions panel open on that new session so the
-// agent is visibly working (a create takes a while — a silent button reads as
-// "nothing happened"). When the session finishes it re-opens the panel on that
-// session (so its result/errors are never lost) and re-reads the server component
-// so the new card shows up on the board.
+// both the board and a card page. The button opens the create sheet (#426);
+// starting a session pops the header's global sessions panel open on that new
+// session so the agent is visibly working (a create takes a while — a silent
+// button reads as "nothing happened"). When the session finishes it re-opens the
+// panel on that session (so its result/errors are never lost) and re-reads the
+// server component so the new card shows up on the board.
 //
 // A create touches no card, so it has no card page of its own — the sessions
 // panel is its only home for the log. That log entry point (the archive icon, the
@@ -14,38 +14,23 @@
 // component just starts the session and hands it to the panel.
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { getModules } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { SessionView } from "@/lib/types";
-import { ActionDialog, type AgentReq } from "./agent-shared";
+import type { AgentReq } from "./agent-shared";
 import { Button } from "./button";
+import { CreateSheet } from "./CreateSheet";
 import { sessionsPanel, useAgentSessions } from "./sessions";
 
 // `release` is the version the board is showing (#104), or null for the whole
 // board. A card written while one release is on screen ships in it, so it doesn't
-// vanish the moment it is written. Propose is different — it offers work nobody
-// has planned — so its cards start with no release and this never reaches them.
+// vanish the moment it is written.
 export function CreateTask({ release = null }: { release?: string | null }) {
   const c = useCopy().board.create;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // The module names for the dialog's picker, read from modules.md server-side.
-  // Fetched once when the dialog first opens (the board's modules rarely change
-  // within a session), so a closed Create button costs nothing.
-  const [modules, setModules] = useState<string[]>([]);
-  useEffect(() => {
-    if (!open) return;
-    let alive = true;
-    getModules()
-      .then((m) => alive && setModules(m))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [open]);
 
   // A create session this tab started finished — re-open the sessions panel on it
   // so the result/errors are never lost, and re-read the server component so the
@@ -61,8 +46,7 @@ export function CreateTask({ release = null }: { release?: string | null }) {
   const { start } = useAgentSessions(onFinish);
 
   // Start a non-blocking session. Creates run side by side — the board lease makes
-  // each card's id and index entry atomic — so the button never locks. Propose is
-  // still one at a time, and its refusal comes back as an error message.
+  // each card's id and index entry atomic — so the button never locks.
   const startSession = useCallback(
     async (req: AgentReq, label: string) => {
       setOpen(false);
@@ -107,12 +91,15 @@ export function CreateTask({ release = null }: { release?: string | null }) {
       )}
 
       {open && (
-        <ActionDialog
-          dialog={{ kind: "create" }}
-          modules={modules}
+        <CreateSheet
           release={release}
           onClose={() => setOpen(false)}
-          onRun={startSession}
+          onSend={(description) =>
+            void startSession(
+              { action: "create", description, release: release ?? undefined },
+              "Create task",
+            )
+          }
         />
       )}
     </div>

@@ -28,7 +28,6 @@ import {
   readDrafts,
   readGoalText,
   readMetrics,
-  readModules,
   readReleases,
   readScore,
   readSetupDraft,
@@ -235,11 +234,6 @@ export async function getBoardsAction(): Promise<{ board: string; boards: BoardE
   return boardsHere();
 }
 
-/** The module names from docs/kanban/modules.md, for the create dialog's picker (#38). */
-export async function getModules(): Promise<string[]> {
-  return readModules();
-}
-
 /** The open cards matching what is typed in the rail's search box (#212). The search runs
  *  here and not in the browser: the card page hands its client nothing but the one card it
  *  is showing, and the board's bodies are the better part of a megabyte on a board of any
@@ -266,7 +260,6 @@ const ACTIONS = new Set([
   "edit",
   "create",
   "resolve",
-  "propose",
   "refine",
   // Fill a release from its goal (#165) — started from the New release dialog and from a
   // release's ⋯ menu, never from a card.
@@ -280,12 +273,12 @@ const ACTIONS = new Set([
   "setup",
 ]);
 
-// create and propose touch no existing card (create makes one, propose makes several), so
-// they carry no `id` — every other action needs one. plan-release is the third: it moves and
-// writes many cards, and names a release instead. A setup run is the fourth and names
-// nothing at all: the checklist is what it works from. A changelog run is the fifth, and
-// names a version too — the one it writes up.
-const CARDLESS = new Set(["create", "propose", "plan-release", "changelog", "setup"]);
+// create touches no existing card — it makes one — so it carries no `id`, and every other
+// action needs one. plan-release is the second: it moves and writes many cards, and names a
+// release instead. A setup run is the third and names nothing at all: the checklist is what
+// it works from. A changelog run is the fourth, and names a version too — the one it writes
+// up.
+const CARDLESS = new Set(["create", "plan-release", "changelog", "setup"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's

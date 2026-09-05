@@ -21,7 +21,6 @@ import {
   createContext,
   Fragment,
   memo,
-  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -38,8 +37,6 @@ import {
   FiEdit3,
   FiMessageSquare,
   FiRefreshCw,
-  FiSend,
-  FiSquare,
   FiTrash2,
   FiX,
 } from "react-icons/fi";
@@ -51,6 +48,7 @@ import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
+import { MessageBox } from "./composer";
 import { AgentMark } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
@@ -70,14 +68,6 @@ const CONFIRM_MS = 4000;
 /** Near enough to the bottom that a new line should follow it down. Further up and the
  *  user is reading something older, which a jump would take them away from. */
 const STICK_PX = 72;
-
-/** How tall the box grows with what is typed, and what it opens at. */
-const MAX_ROWS = 8;
-const MIN_ROWS = 3;
-
-/** What the rest of the window keeps whatever is typed — the top row, the rail's head, the
- *  hint line, and a few lines of the conversation above the box. */
-const KEEP_PX = 260;
 
 // The rail's state belongs to the window, and the button that folds it is in the top row —
 // which the page builds and hands the window as a prop. Context is what puts the two on the
@@ -885,66 +875,41 @@ function Composer({
 }) {
   const c = useCopy().chat;
   const empty = !rail.draft.trim();
-  const sends = !disabled && !answering && !empty;
-  const box = useGrow(rail.draft);
   const pick = rail.read?.pick ?? null;
   // On a card's page the box asks about that card, so the words in it never read as an
   // invitation to talk about the whole board.
   const ask = rail.cardId === null ? c.ask : c.askCard(rail.cardId);
   return (
     <div className="relative shrink-0 px-2.5 pb-0.5 pt-1.5">
-      <div className="rounded-[12px] bg-nb-paper p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus-within:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]">
-        <textarea
-          ref={box}
-          // The one text box Esc is not taken in: it is where the hand is while a reply is
-          // coming, and Esc there ends the reply (lib/chat-rail.ts).
-          data-chat-box=""
-          value={rail.draft}
-          onChange={(e) => rail.setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              if (sends) void rail.send();
-              return;
-            }
-            // An empty box walks back through what this conversation has sent; a typed one
-            // leaves the arrows to the caret (lib/chat-rail.ts).
-            const arrow = e.key === "ArrowUp" || e.key === "ArrowDown";
-            if (arrow && rail.recall(e.key === "ArrowUp")) e.preventDefault();
-          }}
-          rows={MIN_ROWS}
-          disabled={disabled}
-          placeholder={ask}
-          aria-label={c.message}
-          className="w-full resize-none bg-transparent px-1.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60"
-        />
-        <div className="flex items-center gap-1.5">
-          {/* What will answer it, and the way back to the board's pair — this conversation's
-              alone (#272). Nothing here while the rules are too old to answer. */}
-          {pick && <Pick rail={rail} pick={pick} answering={answering} />}
-          {/* One button in this corner, not two: on a reply this server owns it IS Stop, and
-              on one a terminal is writing it is a Send that has to wait for it. */}
-          <Button
-            className="ml-auto"
-            size="xs"
-            disabled={ours ? false : answering || disabled || empty}
-            onClick={() => void (ours ? rail.stop() : rail.send())}
-            aria-label={ours ? c.stop : c.send}
-          >
-            {ours ? (
-              <FiSquare className="text-[13px]" aria-hidden />
-            ) : (
-              <FiSend className="text-[13px]" aria-hidden />
-            )}
-            <span className="sr-only">{ours ? c.stop : c.send}</span>
-          </Button>
-        </div>
-      </div>
-      <p className="mt-1 truncate px-1 text-[11px] text-nb-ink-soft">
-        {/* One short line: the one thing that matters right then. Esc only where it
-            reaches — a terminal's reply is ended in that terminal. */}
-        {answering ? (ours ? c.sendingWaitsEsc : c.sendingWaits) : c.keys}
-      </p>
+      <MessageBox
+        value={rail.draft}
+        onChange={rail.setDraft}
+        onSend={() => void rail.send()}
+        canSend={!disabled && !answering && !empty}
+        disabled={disabled}
+        placeholder={ask}
+        label={c.message}
+        sendLabel={c.send}
+        // The box is where the hand is while a reply is coming, so Esc there ends the
+        // reply rather than doing nothing (lib/chat-rail.ts).
+        escEndsReply
+        // An empty box walks back through what this conversation has sent; a typed one
+        // leaves the arrows to the caret (lib/chat-rail.ts).
+        onArrow={(up) => rail.recall(up)}
+        // On a reply a terminal is writing there is nothing here to stop — that Send just
+        // has to wait for it.
+        stop={ours ? { label: c.stop, onStop: () => void rail.stop() } : undefined}
+        // What will answer it, and the way back to the board's pair — this conversation's
+        // alone (#272). Nothing here while the rules are too old to answer.
+        foot={pick ? <Pick rail={rail} pick={pick} answering={answering} /> : undefined}
+        hint={
+          // One short line: the one thing that matters right then. Esc only where it
+          // reaches — a terminal's reply is ended in that terminal.
+          <span className="block truncate">
+            {answering ? (ours ? c.sendingWaitsEsc : c.sendingWaits) : c.keys}
+          </span>
+        }
+      />
     </div>
   );
 }
@@ -1202,47 +1167,3 @@ function ToBoard({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; an
 const AGENT_FILL = "var(--color-nb-accent-wash)";
 const MODEL_FILL = "var(--color-nb-wash)";
 
-/** Grow the box with what is typed, and scroll past the ceiling rather than pushing the
- *  conversation off the screen. */
-function useGrow(text: string) {
-  const box = useRef<HTMLTextAreaElement>(null);
-
-  const fit = useCallback(() => {
-    const el = box.current;
-    if (!el) return;
-    const style = getComputedStyle(el);
-    const line = parseFloat(style.lineHeight) || 20;
-    const pad = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-    // Eight rows where the window has room for them, fewer where it hasn't, never under
-    // the three the box has always opened at.
-    const rows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, Math.floor((window.innerHeight - KEEP_PX) / line)));
-    const ceiling = rows * line + pad;
-    el.style.height = "auto";
-    const wanted = el.scrollHeight;
-    el.style.height = `${Math.min(wanted, ceiling)}px`;
-    el.style.overflowY = wanted > ceiling ? "auto" : "hidden";
-  }, []);
-
-  useLayoutEffect(fit, [text, fit]);
-
-  // The rail dragged wider takes the same words in fewer lines, and a shorter window brings
-  // the ceiling down. Width only from the box itself: its own height is what `fit` changes.
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    let wide = el.clientWidth;
-    const watch = new ResizeObserver(() => {
-      if (el.clientWidth === wide) return;
-      wide = el.clientWidth;
-      fit();
-    });
-    watch.observe(el);
-    window.addEventListener("resize", fit);
-    return () => {
-      watch.disconnect();
-      window.removeEventListener("resize", fit);
-    };
-  }, [fit]);
-
-  return box;
-}

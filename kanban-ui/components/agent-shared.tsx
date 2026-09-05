@@ -7,7 +7,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiPlay, FiZap } from "react-icons/fi";
+import { FiPlay } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { Rich } from "@/i18n/rich";
@@ -19,9 +19,6 @@ import { useActions } from "@/lib/screen";
 import { parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
 import {
-  PROPOSE_DEFAULT,
-  PROPOSE_MAX,
-  type Boldness,
   type Card,
   type CommandAction,
   type DeliveryCommitMode,
@@ -54,26 +51,12 @@ const INTRO = "mb-3 text-[13px] leading-relaxed text-nb-ink-soft";
 // A branch name said inline, in the wash chip the board uses for a path (#307).
 const BRANCH = "rounded-[5px] bg-nb-wash px-1.5 py-[1px] font-mono text-[12.5px] font-[700] text-nb-ink";
 
-// The create dialog's picker chips — the focus module and the boldness: the
-// nb-chip shape a step up from the board's 10px meta chips, because these are
-// tap targets, not passive labels. ON is a row's single ember mark; OFF is the
-// resting look; DIM is the disabled look the not-in-effect side of the module
-// row wears (auto-pick ↔ the module names) — still clickable, hover wakes it.
-const PICK_CHIP =
-  "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] px-2.5 py-[5px] text-[12px] font-[700] uppercase leading-none tracking-[0.04em] transition-[color,background-color,opacity]";
-const PICK_CHIP_ON = "bg-nb-accent-soft text-nb-accent-deep";
-const PICK_CHIP_OFF = "bg-nb-wash text-nb-ink-soft hover:text-nb-ink";
-const PICK_CHIP_DIM = "bg-nb-wash text-nb-ink-soft opacity-45 hover:opacity-100 hover:text-nb-ink";
-
 export interface AgentReq {
   action: CommandAction;
   id?: number;
   notes?: string;
   reason?: string;
   description?: string;
-  module?: string;
-  count?: number; // propose: how many tasks to write
-  boldness?: Boldness;
   title?: string;
   andImplement?: boolean;
   release?: string; // create: the version the new card ships in
@@ -98,7 +81,6 @@ export type DialogState =
   | { kind: "reject"; card: Card }
   | { kind: "archive"; card: Card }
   | { kind: "edit"; card: Card }
-  | { kind: "create" }
   | null;
 
 // A small inline "running" pill. Runs are non-blocking now (task #12):
@@ -856,8 +838,6 @@ export function ActionDialog({
   onSchedule,
   onResolveFirst,
   plan = { commitMode: "auto" },
-  modules = [],
-  release = null,
 }: {
   dialog: Exclude<DialogState, null>;
   onClose: () => void;
@@ -872,22 +852,15 @@ export function ActionDialog({
   plan?: DeliveryPlan;
   // Queue this action instead of starting it (#140) — offered only on a card
   // with an open blocker, and only where the owner passed a handler. A view that
-  // doesn't schedule (the board's Create dialog) simply doesn't offer it.
+  // doesn't schedule simply doesn't offer it.
   onSchedule?: (action: ScheduledAction, notes: string) => void;
-  // The module names for the create dialog's picker (from modules.md, read
-  // server-side). Only the create kind uses it; the per-card dialogs ignore it.
-  modules?: string[];
-  // The release the board is showing, which a card made here ships in (#104).
-  // Create only, like `modules`.
-  release?: string | null;
 }) {
   // Persist the draft per action + card so an accidental close keeps the text
   // (resolve keeps its own list-shaped draft in ResolveDialog below). `run`
   // clears the draft once the run has actually started.
   const t = useCopy();
   const d = t.runs.dialog;
-  const draftKey = dialog.kind === "create" ? "create" : `${dialog.kind}:${dialog.card.id}`;
-  const [text, setText, clearDraft] = useDraft(draftKey);
+  const [text, setText, clearDraft] = useDraft(`${dialog.kind}:${dialog.card.id}`);
   // "Yes, I know" for a warned action (see the implement branch). Deliberately NOT
   // persisted like the note draft is: closing the dialog drops it, so every open
   // asks again. The dialog unmounts on close, so this resets on its own. There is
@@ -1215,269 +1188,24 @@ export function ActionDialog({
     );
   }
 
-  if (dialog.kind === "edit") {
-    const c = d.edit;
-    return (
-      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
-        <p className={INTRO}>{c.blurb}</p>
-        <textarea
-          className={INPUT}
-          rows={4}
-          placeholder={c.placeholder}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <DialogButtons
-          onClose={onClose}
-          confirmLabel={c.confirm}
-          disabled={!text.trim()}
-          onConfirm={() => run({ action: "edit", id: dialog.card.id, title: dialog.card.title, notes: text.trim() }, `Edit #${dialog.card.id}`)}
-        />
-      </Dialog>
-    );
-  }
-
-  // create — its own component so the propose toggle + module pick are clean,
-  // unconditional hooks.
-  return <CreateDialog modules={modules} release={release} onClose={onClose} onRun={onRun} />;
-}
-
-// The Create-task dialog, which also folds in propose (#38). They're two modes
-// of making new cards — not a create with an option bolted on — so a tab strip
-// (design.md's tab-strip pattern: hairline rule, bold-ink active tab over a
-// short ember underline) switches the dialog's whole shape:
-//   • Describe — a textarea for what you want; the agent runs add-task and
-//     infers the modules itself (`akb guide add-task` step 1).
-//   • Propose — no textarea (there's nothing to describe); the agent walks one
-//     module as a user and proposes new tasks inside it (`akb guide propose`).
-//     Three chip rows steer it instead: WHERE the tasks land (the focus module,
-//     with "auto-pick" as the default chip), HOW MANY there are, and HOW BIG
-//     they are (the boldness).
-function CreateDialog({
-  modules,
-  release,
-  onClose,
-  onRun,
-}: {
-  modules: string[];
-  release: string | null;
-  onClose: () => void;
-  onRun: (req: AgentReq, label: string) => void;
-}) {
-  const t = useCopy();
-  const c = t.runs.dialog.create;
-  const [text, setText, clearDraft] = useDraft("create");
-  const [mode, setMode] = useState<"describe" | "propose">("describe");
-  const [module, setModule] = useState("");
-  // How many cards the run writes, 1..PROPOSE_MAX. Sent every time — the skill
-  // has the same default, but a count the user tapped is worth saying out loud.
-  const [count, setCount] = useState(PROPOSE_DEFAULT);
-  // How big a swing those tasks take. "normal" is the size a propose run has
-  // always written, so it's the default and travels as no instruction at all.
-  const [boldness, setBoldness] = useState<Boldness>("normal");
-  const propose = mode === "propose";
-  const run = (req: AgentReq, label: string) => {
-    clearDraft();
-    onRun(req, label);
-  };
-
-  const TABS = [
-    { key: "describe", label: c.tabDescribe },
-    { key: "propose", label: c.tabPropose },
-  ] as const;
-
+  const c = d.edit;
   return (
-    <Dialog title={c.title} onClose={onClose} width={600}>
-      {/* The mode strip. Hairline under both tabs; the active tab's ember
-          underline laps the hairline (bottom-[-1px]) and is the strip's only
-          strong mark, per design.md. */}
-      <div className="mb-4 flex gap-5 border-b border-nb-ink/12" role="tablist">
-        {TABS.map((t) => {
-          const active = mode === t.key;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setMode(t.key)}
-              className={`relative cursor-pointer pb-2 text-[13.5px] tracking-[-0.01em] transition-colors ${active ? "font-[800] text-nb-ink" : "font-[600] text-nb-ink-soft hover:text-nb-ink"
-                }`}
-            >
-              {t.label}
-              {active && (
-                <span
-                  className="absolute inset-x-0 bottom-[-1px] h-[2px] rounded-full bg-nb-accent"
-                  aria-hidden
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      <p className={INTRO}>
-        {propose ? c.proposeBlurb : c.describeBlurb}
-        {/* Where the new cards land, when the board is showing one release. Said
-            here rather than left to be discovered: a card that quietly joined a
-            version is worse than one you were told about. Propose says nothing —
-            its cards start with no release whatever is on screen. */}
-        {!propose && release && (
-          <>
-            {" "}
-            <Rich>{c.shipsIn(release)}</Rich>
-          </>
-        )}
-      </p>
-
-      {propose ? (
-        <div className="flex flex-col gap-4">
-          {/* The focus-module chips — every module visible at a glance, one tap
-              to focus. "Auto-pick" (the AI default, led by a zap mark) sits
-              apart from the module names behind a hairline divider so it doesn't
-              read as a module itself. The two sides are an either/or: whichever
-              isn't in effect dims to a disabled look, but stays clickable —
-              that's how you switch. No module map → no row; the agent picks
-              anyway. */}
-          {modules.length > 0 && (
-            <PickerSection label={c.module.label} blurb={c.module.blurb}>
-              <button
-                type="button"
-                onClick={() => setModule("")}
-                aria-pressed={module === ""}
-                className={`${PICK_CHIP} ${module === "" ? PICK_CHIP_ON : PICK_CHIP_DIM}`}
-              >
-                <FiZap className="text-[12px]" aria-hidden />
-                {c.module.auto}
-              </button>
-              <span aria-hidden className="mx-1 h-[18px] w-px bg-nb-ink/15" />
-              {modules.map((m) => {
-                const selected = module === m;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setModule(m)}
-                    aria-pressed={selected}
-                    className={`${PICK_CHIP} ${
-                      selected ? PICK_CHIP_ON : module === "" ? PICK_CHIP_DIM : PICK_CHIP_OFF
-                    }`}
-                  >
-                    {m}
-                  </button>
-                );
-              })}
-            </PickerSection>
-          )}
-
-          {/* How many cards the run writes. Single digits, so the whole range
-              fits one wrapped row and every count is one tap — no stepper to
-              click up ten times. PROPOSE_MAX is the skill's cap ("How many" in
-              `akb guide propose`), not a UI limit. */}
-          <PickerSection label={c.count.label} blurb={c.count.blurb}>
-            {Array.from({ length: PROPOSE_MAX }, (_, i) => i + 1).map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setCount(n)}
-                aria-pressed={count === n}
-                className={`${PICK_CHIP} min-w-[30px] justify-center ${count === n ? PICK_CHIP_ON : PICK_CHIP_OFF}`}
-              >
-                {n}
-              </button>
-            ))}
-          </PickerSection>
-
-          {/* How big a swing they take. Same chip row as the module pick, so
-              the rows read as one set of dials: where the tasks land, how many
-              there are, and how big they are. The picked level's own words sit
-              under the row — one line changes as you tap, instead of three lines
-              of small print spelling out every level at once. */}
-          <PickerSection label={c.boldness.label} blurb={c.boldness.blurb}>
-            {BOLDNESS_LEVELS.map((b) => (
-              <button
-                key={b}
-                type="button"
-                onClick={() => setBoldness(b)}
-                aria-pressed={boldness === b}
-                className={`${PICK_CHIP} ${boldness === b ? PICK_CHIP_ON : PICK_CHIP_OFF}`}
-              >
-                {c.boldness[b]}
-              </button>
-            ))}
-            <p className="mt-2 basis-full text-[12px] leading-relaxed text-nb-ink-soft">
-              {boldness === "safe"
-                ? c.boldness.safeBlurb
-                : boldness === "bold"
-                  ? c.boldness.boldBlurb
-                  : c.boldness.normalBlurb}
-            </p>
-          </PickerSection>
-        </div>
-      ) : (
-        <textarea
-          className={INPUT}
-          rows={5}
-          autoFocus
-          placeholder={c.describePlaceholder}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-      )}
-
+    <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
+      <p className={INTRO}>{c.blurb}</p>
+      <textarea
+        className={INPUT}
+        rows={4}
+        placeholder={c.placeholder}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
       <DialogButtons
         onClose={onClose}
-        confirmLabel={propose ? (count === 1 ? c.proposeOne : c.proposeMany(count)) : c.confirm}
-        disabled={!propose && !text.trim()}
-        onConfirm={() =>
-          propose
-            ? run(
-                {
-                  action: "propose",
-                  module: module || undefined,
-                  count,
-                  // "normal" is what a propose run does on its own — send it as
-                  // nothing, so only a level the user actually reached for
-                  // reaches the prompt.
-                  boldness: boldness === "normal" ? undefined : boldness,
-                },
-                "Propose tasks",
-              )
-            : run(
-                { action: "create", description: text.trim(), release: release ?? undefined },
-                "Create task",
-              )
-        }
+        confirmLabel={c.confirm}
+        disabled={!text.trim()}
+        onConfirm={() => run({ action: "edit", id: dialog.card.id, title: dialog.card.title, notes: text.trim() }, `Edit #${dialog.card.id}`)}
       />
     </Dialog>
-  );
-}
-
-// The three boldness levels, in order of how big a swing they take. What each one
-// MEANS to the agent is the skill's ("Boldness" in `akb guide propose`); the words
-// under the row are `i18n/runs`.
-const BOLDNESS_LEVELS: Boldness[] = ["safe", "normal", "bold"];
-
-// One labelled row in the propose tab: the uppercase kicker, a quiet one-liner
-// under it, then the chips. Both picks (focus module, boldness) wear this, so
-// they read as one pair of dials rather than two separate widgets.
-function PickerSection({
-  label,
-  blurb,
-  children,
-}: {
-  label: string;
-  blurb: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <span className="mb-2 block text-[12px] font-[700] uppercase tracking-[0.04em] text-nb-ink-soft">
-        {label}
-      </span>
-      <p className="mb-2 text-[12px] leading-relaxed text-nb-ink-soft">{blurb}</p>
-      <div className="flex flex-wrap items-center gap-1.5">{children}</div>
-    </div>
   );
 }
 

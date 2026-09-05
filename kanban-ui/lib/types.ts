@@ -27,7 +27,6 @@ export type {
   AgentAction,
   AgentInfo,
   AgentRequest,
-  Boldness,
   Chat,
   ChatMessage,
   ChatPick,
@@ -52,7 +51,6 @@ export type {
   TokenUsage,
 } from "./format/agent/types";
 export type { DeliveryCommitMode, DeliveryRecord, DeliveryStatus, DeliveryStep } from "./format/agent/types";
-export { PROPOSE_DEFAULT, PROPOSE_MAX } from "./format/agent/types";
 
 export type {
   ArchiveGroup,

@@ -252,38 +252,6 @@ const zh: RunsCopy = {
       placeholder: "这个任务要改什么？例如：把范围收窄到…、补一个 todo…",
       confirm: "保存修改",
     },
-    create: {
-      title: "新建任务",
-      tabDescribe: "描述一个任务",
-      tabPropose: "让 Agent 提案",
-      describeBlurb: "描述你想要什么。Agent 会把它拆成一张或多张卡片，并判断它们涉及哪些模块。",
-      proposeBlurb: "Agent 以用户视角走一遍产品的某个模块，在其中提出新任务——不需要你描述什么。",
-      shipsIn: (release) => `它们会在屏幕上的版本 **${release}** 中交付。`,
-      describePlaceholder: "你想要实现什么？",
-      confirm: "新建任务",
-      proposeOne: "提出 1 个任务",
-      proposeMany: (n) => `提出 ${n} 个任务`,
-      module: {
-        label: "聚焦模块",
-        blurb:
-          "选择你想要新任务落在产品的哪一部分——它们都会落在这个模块里。保持「自动选择」，Agent 会挑最需要投入的部分。",
-        auto: "自动选择",
-      },
-      count: {
-        label: "数量",
-        blurb: "本次运行要写多少个任务。任务越多，运行越久，每个想法也越薄。",
-      },
-      boldness: {
-        label: "力度",
-        blurb: "每个任务的跨度有多大。",
-        safe: "保守",
-        safeBlurb: "一个任务一小步——打磨粗糙的细节，补上已有功能的缺口。",
-        normal: "常规",
-        normalBlurb: "一个任务一项功能——一次运行就能做完的一张卡片。这是提案运行默认的力度。",
-        bold: "激进",
-        boldBlurb: "一个任务一次大跨越——做模块眼下完全没有的能力，规模仍控制在一次运行做得完。",
-      },
-    },
   },
 };
 

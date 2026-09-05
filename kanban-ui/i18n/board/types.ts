@@ -55,6 +55,22 @@ export type BoardCopy = {
     button: string;
     /** Shown when the agent wouldn't start and said nothing about why. */
     startFailed: string;
+    /** The full-screen sheet the button opens (#426): what it asks, what sending does,
+     *  and the two short lines under the box. The headline still holds once Discuss and
+     *  Build now join the mode row. */
+    sheet: {
+      headline: string;
+      slogan: string;
+      placeholder: string;
+      /** The only mode in the row for now — it runs today's create flow. */
+      addTask: string;
+      /** The corner button. Its own word, so a reader isn't told "Add task" twice. */
+      send: string;
+      keys: string;
+      /** Which version a card written here ships in. Nothing is said with no release on
+       *  screen. */
+      shipsIn: (release: string) => string;
+    };
   };
   bulk: {
     tickedOne: string;

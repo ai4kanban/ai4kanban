@@ -43,6 +43,15 @@ const zh: BoardCopy = {
   create: {
     button: "新建任务",
     startFailed: "Agent 未能启动",
+    sheet: {
+      headline: "你想要实现什么？",
+      slogan: "用你自己的话说出来，Agent 来写卡片。",
+      placeholder: "描述这个任务",
+      addTask: "新建任务",
+      send: "发送",
+      keys: "Enter 发送 · Shift-Enter 换行 · Esc 关闭",
+      shipsIn: (release) => `将在 ${release} 中交付`,
+    },
   },
   bulk: {
     tickedOne: "已勾选 1 张卡片",

@@ -190,29 +190,5 @@ export type RunsCopy = {
       placeholder: string;
       confirm: string;
     };
-    create: {
-      title: string;
-      tabDescribe: string;
-      tabPropose: string;
-      describeBlurb: string;
-      proposeBlurb: string;
-      shipsIn: (release: string) => string;
-      describePlaceholder: string;
-      confirm: string;
-      proposeOne: string;
-      proposeMany: (n: number) => string;
-      module: { label: string; blurb: string; auto: string };
-      count: { label: string; blurb: string };
-      boldness: {
-        label: string;
-        blurb: string;
-        safe: string;
-        safeBlurb: string;
-        normal: string;
-        normalBlurb: string;
-        bold: string;
-        boldBlurb: string;
-      };
-    };
   };
 };

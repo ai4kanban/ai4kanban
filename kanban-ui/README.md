@@ -8,7 +8,7 @@
 
 The local board UI for [ai4kanban](https://ai4kanban.dev/). It shows every open card and drives
 the work from buttons: each button spawns an agent in your repo that does the kanban work for
-you — propose, refine, implement, archive. The markdown files in `docs/kanban/` stay the
+you — create, refine, implement, archive. The markdown files in `docs/kanban/` stay the
 single source of truth. The UI only reads and writes those files, so nothing here is locked in.
 
 ```
@@ -79,11 +79,9 @@ The header carries seven things:
 - **The goal** (the compass, beside the folder path) — see below.
 - **The release dropdown** — which version the board is showing, and where a release is
   started, filled, or dropped; see **Releases**.
-- **Create task** — describe an idea in your words and the agent writes the card. The same
-  dialog has a **Propose tasks** mode: pick a module (or let the agent pick), a **How many**
-  count (3 by default, 10 at most), and a **Boldness** — `safe` polishes what already works,
-  `normal` is a feature each, `bold` asks for a capability the module doesn't have at all.
-  Every proposal is a single card a session can finish, never a group task.
+- **Create task** — opens a full-screen sheet over the board: describe an idea in your own
+  words and the agent writes the card. Enter sends, Shift-Enter starts a line, and Esc or
+  the ✕ hands the board back. An unsent draft is kept for the next time you open it.
 - **Runs** — every agent session, live or finished. Open one to read its log. A finished run
   can be continued with a follow-up prompt; that starts a new run.
 - **Insights** (the chart) — two read-only charts, a tab each: **Daily progress** and
@@ -452,8 +450,8 @@ Each entry counts the open cards in it — "v1 (7)" — and carries what that ve
 its name; the same numbers `release list` prints in your terminal. A few more things it does:
 
 - A **group task** shows whenever the root or any subtask is in the release you picked.
-- **Create task** puts the new card in the release on screen. **Propose tasks** doesn't — that
-  work stays in no release.
+- **Create task** puts the new card in the release on screen, and the sheet says which one
+  under its box.
 - A release with **nothing open in it says so**, with **No release** one click away. Blockers on
   screen don't count.
 - Your pick is remembered in your browser, per board, and never written to the files — so it

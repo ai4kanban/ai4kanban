@@ -262,43 +262,6 @@ const en: RunsCopy = {
       placeholder: "What should change about this task? e.g. narrow the scope to…, add a todo for…",
       confirm: "Save edit",
     },
-    create: {
-      title: "Create task",
-      tabDescribe: "Describe a task",
-      tabPropose: "Propose tasks",
-      describeBlurb:
-        "Describe what you want. The agent turns it into one or more cards and figures out which modules they touch.",
-      proposeBlurb:
-        "The agent walks one module of the product as a user and proposes new tasks inside it — nothing to describe.",
-      shipsIn: (release) => `They ship in **${release}**, the release on screen.`,
-      describePlaceholder: "What do you want to happen?",
-      confirm: "Create task",
-      proposeOne: "Propose 1 task",
-      proposeMany: (n) => `Propose ${n} tasks`,
-      module: {
-        label: "Focus module",
-        blurb:
-          "Pick the part of the product you want new tasks in — they all land inside it. Leave it on “auto-pick” and the agent chooses the part that needs work most.",
-        auto: "auto-pick",
-      },
-      count: {
-        label: "How many",
-        blurb: "Tasks this run writes. More tasks means a longer run and a thinner idea each.",
-      },
-      boldness: {
-        label: "Boldness",
-        blurb: "How big a move each task is.",
-        safe: "safe",
-        safeBlurb:
-          "Small moves — polish a rough edge, fill a gap in something that already works.",
-        normal: "normal",
-        normalBlurb:
-          "A feature each — one card a run can finish. This is what a propose run does on its own.",
-        bold: "bold",
-        boldBlurb:
-          "A big leap each — a capability the module doesn't have at all, still sized so one run can finish it.",
-      },
-    },
   },
 };
 

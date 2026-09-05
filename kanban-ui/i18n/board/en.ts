@@ -47,6 +47,15 @@ const en: BoardCopy = {
   create: {
     button: "Create task",
     startFailed: "could not start the agent",
+    sheet: {
+      headline: "What do you want to happen?",
+      slogan: "Say it in your own words — the agent writes the card.",
+      placeholder: "Describe the task",
+      addTask: "Add task",
+      send: "Send",
+      keys: "Enter sends · Shift-Enter for a new line · Esc closes",
+      shipsIn: (release) => `Ships in ${release}`,
+    },
   },
   bulk: {
     tickedOne: "1 card ticked",
