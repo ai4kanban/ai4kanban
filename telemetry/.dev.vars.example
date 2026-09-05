@@ -1,0 +1,8 @@
+# Copy to .dev.vars for `npm run dev`. Never commit either file; the deployed Worker reads
+# these from its secret store instead (`wrangler secret put <NAME>`).
+#
+# Both are for the daily job's usage gauge alone — the token needs Account Analytics Read and
+# nothing else. Without them every request is still taken and every summary is still written,
+# with that day's usage recorded as unknown.
+CF_ACCOUNT_ID="<the Cloudflare account id>"
+CF_API_TOKEN="<a token with Account Analytics Read>"

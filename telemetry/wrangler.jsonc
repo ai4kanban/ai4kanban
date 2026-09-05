@@ -1,0 +1,70 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai4kanban-telemetry",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-26",
+
+  // The endpoint answers on its own name. Never a `workers.dev` address: common content
+  // blockers drop those, which would remove an unknown share of the site's page views and
+  // leave #297 reporting a download rate that is quietly wrong.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "t.ai4kanban.dev", "custom_domain": true }],
+
+  // The last hour of the UTC day, so the job spends what the day's allowance has left rather
+  // than taking it from the senders first. Later cards add their step to this one run
+  // (#400) rather than a schedule of their own.
+  "triggers": { "crons": ["45 23 * * *"] },
+
+  "observability": { "enabled": true },
+
+  // `database_id` comes from `wrangler d1 create ai4kanban-telemetry` — see README.md.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ai4kanban-telemetry",
+      "database_id": "PASTE_THE_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // The per-address hourly limit. It holds a number in memory and never calls storage, so
+  // nothing about an address outlives the hour.
+  "durable_objects": { "bindings": [{ "name": "LIMITER", "class_name": "AddressHour" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AddressHour"] }],
+
+  // The day's own requests and rows written. One dataset for both copies: the allowance
+  // belongs to the account, so the gauge is only honest if it counts both.
+  "analytics_engine_datasets": [
+    { "binding": "USAGE", "dataset": "ai4kanban_telemetry_usage" }
+  ],
+
+  "vars": { "COPY": "production" },
+
+  "env": {
+    // The copy our own work on the senders posts into, so testing never lands in the real
+    // numbers. It draws on the same account allowance, which is why `npm run burst` is
+    // capped rather than left to spend the real endpoint's day.
+    "dev": {
+      "name": "ai4kanban-telemetry-dev",
+      "workers_dev": false,
+      "preview_urls": false,
+      "routes": [{ "pattern": "t-dev.ai4kanban.dev", "custom_domain": true }],
+      "triggers": { "crons": ["15 23 * * *"] },
+      "observability": { "enabled": true },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ai4kanban-telemetry-dev",
+          "database_id": "PASTE_THE_DEV_DATABASE_ID",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "durable_objects": { "bindings": [{ "name": "LIMITER", "class_name": "AddressHour" }] },
+      "analytics_engine_datasets": [
+        { "binding": "USAGE", "dataset": "ai4kanban_telemetry_usage" }
+      ],
+      "vars": { "COPY": "development" }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "ai4kanban-telemetry",
+  "version": "0.1.0",
+  "private": true,
+  "license": "SEE LICENSE IN ../LICENSE",
+  "description": "The service that takes usage events in — the Worker at t.ai4kanban.dev, its D1 database, and the commands that read and forget.",
+  "type": "module",
+  "scripts": {
+    "deploy": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler deploy --env=\"\"",
+    "deploy:dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler deploy --env dev",
+    "migrate": "node scripts/migrate.mjs",
+    "migrate:dev": "node scripts/migrate.mjs --dev",
+    "dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler dev",
+    "tail": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler tail",
+    "numbers": "node scripts/numbers.mjs",
+    "forget": "node scripts/forget.mjs",
+    "burst": "node scripts/burst.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.125.0"
+  }
+}

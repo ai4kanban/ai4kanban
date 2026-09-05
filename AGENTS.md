@@ -25,8 +25,9 @@ We discourage over-design.
 - **Python**: `uv run pre-commit run --all-files`
 - **JavaScript/Typescript**: run in whichever app you touched — `web/` (the public site),
   `kanban-ui/` (the local board UI), `cloud-ui/` (the hosted board at `cloud.ai4kanban.dev`),
-  `cli/` (the `akb` command and the board's rules) and `cloud/` (the Cloud service) each have
-  their own checks. Don't use `pnpm build`.
+  `cli/` (the `akb` command and the board's rules), `cloud/` (the Cloud service) and
+  `telemetry/` (the usage endpoint at `t.ai4kanban.dev`) each have their own checks. Don't use
+  `pnpm build`.
   - `cd web && pnpm typecheck && pnpm run lint`
   - `cd kanban-ui && pnpm typecheck && pnpm run lint`
   - `cd cloud-ui && npm run lint` — its own files only; the screens it draws are
@@ -35,6 +36,7 @@ We discourage over-design.
     which is a build product and not in git: `npm install` in `cli/` makes it, and there is
     nothing to commit or keep in sync.
   - `cd cloud && npm run lint && npm test`
+  - `cd telemetry && npm run lint && npm test`
 
 ## The `akb` command in this repo
 
