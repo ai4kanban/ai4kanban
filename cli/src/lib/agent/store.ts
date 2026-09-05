@@ -21,6 +21,7 @@ import path from 'node:path'
 import { pidAlive, withLock } from '../lock'
 import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { asUsage } from './log'
+import { holdsCard } from './types'
 import type {
   AgentAction,
   DeliveryApproval,
@@ -176,12 +177,13 @@ export const workingRun = (): RunRecord | undefined => readRuns().find(runIsLive
 /** The cards live runs OTHER than this one are holding — theirs to upload when they close,
  *  which is what keeps a run's own close from sending a neighbour's half-written card (#398).
  *
- *  A spec run holds nothing: it fills one section while the card's own loop carries on around
- *  it, the rule `lockedBy` and `claimChanges` both follow. */
+ *  A specialist run holds nothing (`holdsCard`): it fills one section, or writes one file in
+ *  the draft folder, while the card's own loop carries on around it — the rule `lockedBy`
+ *  and `claimChanges` both follow. */
 export function cardsHeldElsewhere(sessionId: string): Set<number> {
   const held = new Set<number>()
   for (const run of readRuns()) {
-    if (run.sessionId === sessionId || run.action === 'spec' || !runIsLive(run)) continue
+    if (run.sessionId === sessionId || !holdsCard(run.action) || !runIsLive(run)) continue
     if (run.cardId !== null) held.add(run.cardId)
     for (const id of run.createdCardIds ?? []) held.add(id)
   }
@@ -196,14 +198,14 @@ export function cardsHeldElsewhere(sessionId: string): Set<number> {
  * off one record, so the rule that decides what Cloud raises (../cloud/snapshot.ts) is the
  * same rule that decides what may start.
  *
- * A spec run holds nothing: it fills one section of the card and never the plan, which is
- * what `lockedBy` already says.
+ * A specialist run holds nothing (`holdsCard`): it fills one section of the card, or writes
+ * one file in its draft folder, and never the plan — which is what `lockedBy` already says.
  */
 export function cardsAtWork(): Set<number> {
   const store = readStore()
   const held = new Set<number>()
   for (const run of store.runs) {
-    if (run.cardId === null || run.action === 'spec') continue
+    if (run.cardId === null || !holdsCard(run.action)) continue
     if (runIsLive(run)) held.add(run.cardId)
   }
   for (const delivery of store.deliveries) {

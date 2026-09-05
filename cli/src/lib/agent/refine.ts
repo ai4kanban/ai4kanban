@@ -15,6 +15,7 @@ import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
 import { withStore } from './store'
+import { holdsCard } from './types'
 import type { AgentAction, AgentRequest, CommandRequest, RefineEffort, RunRecord } from './types'
 
 export type RefinementStep = 'clarify' | 'writing' | 'done'
@@ -115,11 +116,12 @@ export function claimChanges(before: BoardMarks, sessionId: string): number[] {
   try {
     return withStore((store) => {
       // A card another run is working on is that run's to account for when it closes. A
-      // spec run holds nothing — it fills one section while the card's own loop carries on
-      // around it — which is the rule `heldByRun` follows too.
+      // specialist run holds nothing (`holdsCard`) — it fills one section, or writes one
+      // file in the draft folder, while the card's own loop carries on around it — which is
+      // the rule `heldByRun` follows too.
       const held = new Set(
         store.runs
-          .filter((r) => r.status === 'running' && r.sessionId !== sessionId && r.action !== 'spec')
+          .filter((r) => r.status === 'running' && r.sessionId !== sessionId && holdsCard(r.action))
           .flatMap((r) => [r.cardId, ...(r.createdCardIds ?? [])]),
       )
       const claimed: number[] = []
@@ -232,9 +234,10 @@ export function refinementAfter(
 // closed. A card one of them split off is another matter: it is as rough as any other
 // newborn card, and nothing else comes for it.
 //
-// A repurpose is here for the opposite reason: it never touches the plan at all. The one
-// write it leaves on the card is the channel's `draft` status, and a refine started over
-// that would re-plan a settled topic because a file was written.
+// A repurpose and a write agent are here for the opposite reason: neither touches the plan
+// at all. A repurpose's one write on the card is the channel's `draft` status and a write
+// agent's is nothing, and a refine started over either would re-plan a settled topic because
+// a file was written.
 const FOLLOWS_CREATED = new Set<AgentAction>([
   'implement',
   'edit',
@@ -243,6 +246,7 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   'writing',
   'spec',
   'channel',
+  'write',
 ])
 
 /** Cards this run left worth refining — its own claims and no one else's. `before` is the

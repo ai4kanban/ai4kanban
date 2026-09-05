@@ -75,6 +75,21 @@ export type AgentAction =
    *  both diffs and the checkout, it stages the resolution, and the board finishes the
    *  rebase after it. Its resolution gets the focused review an overlap owes (#415). */
   | 'conflict'
+  /** One `write` agent writing part of a topic's draft folder (#424) — an image for a
+   *  post, a chart, a caption file. It is named by `specAgent`, it starts clean, and it
+   *  writes files under `content/<id>-<slug>/` and nothing else. The writer asks for one;
+   *  the board starts it once the writing run has ended. Marketing boards only. */
+  | 'write'
+
+/** The actions a specialist run takes: one section of a card (`spec`), or one file in a
+ *  topic's draft folder (`write`). Neither holds the card it names — each works beside the
+ *  loop that asked for it — so both are out of the one-run-per-card rule at both ends, and
+ *  both are named by an agent rather than run by a role. */
+export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'write'])
+
+/** Whether a run of this action holds the card it names. The one answer every lock reads,
+ *  so a specialist is exempt everywhere or nowhere. */
+export const holdsCard = (action: AgentAction): boolean => !SPECIALIST_ACTIONS.has(action)
 
 /** The action names used by refinement passes (`agent/refine.ts`). A pass carries its
  *  refine round; `resolve` without one is the standalone flow a user typed. */
@@ -108,10 +123,10 @@ export interface AgentRequest {
   /** The flow this run belongs to. Absent on the run that opens one — it is given an id
    *  when it is written down, and every session it goes on to start inherits that id. */
   flowId?: string
-  /** spec: which spec agent this run is — a name from the board's catalog
+  /** spec and write: which agent this run is — a name from the board's catalog
    *  (`lib/agents/`). The key keeps the older spelling: it is written into every run
    *  record, and a rename would strand the runs already in flight. It decides
-   *  the prompt the run is given and the section it is allowed to write. */
+   *  the prompt the run is given and the section — or the file — it is allowed to write. */
   specAgent?: string
   /** channel: which channel this run repurposes the topic for — one of the four names
    *  (`lib/channels.ts`). It decides the file the run writes and the language it writes in. */
@@ -128,7 +143,7 @@ export interface AgentRequest {
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<AgentAction, 'clarify' | 'writing' | 'spec' | 'channel'>
+  | Exclude<AgentAction, 'clarify' | 'writing' | 'spec' | 'channel' | 'write'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -212,8 +227,8 @@ export interface RunRecord {
   /** A stop has been asked for. Written so the supervisor's own end, whichever path
    *  witnesses it, records `stopped` rather than a failure. */
   stopping?: boolean
-  /** Which spec agent this run is, on a `spec` run. Kept on the record so the run list can
-   *  say which one is working, and so a resume starts the same agent again. */
+  /** Which agent this run is, on a `spec` or `write` run. Kept on the record so the run
+   *  list can say which one is working, and so a resume starts the same agent again. */
   specAgent?: string
   /** Which channel this run repurposes for, on a `channel` run — kept for the same reasons,
    *  and so its close knows which channel's status to move to `draft`. */
@@ -496,6 +511,21 @@ export interface SpecAsk {
    *  is the card itself: the conversation that asked is deliberately not passed on. */
   notes?: string
   refineEffort?: RefineEffort
+}
+
+/** One ask for a `write` agent, as the writing run that wanted it wrote it down (#424).
+ *
+ *  Its own list rather than a second kind of entry in `asks`: an older copy of these rules
+ *  reading the file would start a write agent as a `spec` run, which `spec-write` then
+ *  refuses — with the ask already spent. A list it does not know about is a list it leaves
+ *  alone. */
+export interface WriteAsk {
+  /** The agent's name — a name from the board's catalog (`lib/agents/`). */
+  specAgent: string
+  cardId: number
+  /** Which files the writer wants, in a line or two. One ask names all of them: the run
+   *  gets this note and the card, and nothing of the conversation that asked. */
+  notes?: string
 }
 
 /** One ask for a refinement, written down by the run that asked for it with

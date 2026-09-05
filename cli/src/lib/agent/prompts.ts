@@ -6,10 +6,18 @@
 
 import { locate } from '../cards'
 import { channelLanguage } from '../channels'
-import { draftFile, SOURCE } from '../content'
+import { draftDir, draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
 import { boardText, rel } from '../paths'
-import { agentMemoryBlock, findSpecAgent, specHeading, specAgentInstructions, specAgentSelector } from '../agents'
+import {
+  agentMemoryBlock,
+  findSpecAgent,
+  specHeading,
+  specAgentInstructions,
+  specAgentSelector,
+  writeAgentSelector,
+} from '../agents'
+import { solution } from '../solution'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
 import { owesFocusedReview } from './review'
@@ -49,7 +57,8 @@ export function resumePrompt(deliveryId: string | undefined, cardId: number | nu
 // The actions whose ask can be said again from the record alone. A resume drops what the
 // user typed on purpose — it was already in the conversation being continued — so an action
 // that is mostly those words (a revise's request, a reject's reason, a create's requirement,
-// a plan's version) has nothing left to rebuild from, and is not restarted.
+// a plan's version) has nothing left to rebuild from, and is not restarted. A `write` run is
+// left out for the same reason: the note naming the files it was asked for is its whole job.
 const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'implement',
   'run',
@@ -153,17 +162,21 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
   return activeDelivery(req.id)?.rules
 }
 
-// The spec agents a pass may put on the card — the catalog, not a rule about any one of
-// them. The passes that rewrite a plan are the ones that can tell what it still has no
-// answer for, so they are the ones that pick; they just have to know which agents the board
-// has. Naming any of them in a flow instead would go stale the moment one is switched off
-// or a new one ships.
+// The specialists a pass may call in — the catalog, not a rule about any one of them.
+// Naming any of them in a flow instead would go stale the moment one is switched off or a
+// new one ships.
 //
-// A spec run is never given it (#403): the selector belongs to the session planning a card,
-// and an agent handed the list of agents is an agent that can ask for itself.
+// Two rosters, on different flows (#424). The passes that rewrite a plan are the ones that
+// can tell what it still has no answer for, so they pick the `spec` agents — on a product
+// board only, where a card's spec is what a build is written from. The Writer's own flows
+// pick the `write` agents, because a draft is where a specialist's file is wanted.
+//
+// A specialist run is given neither (#403): a roster belongs to the run doing the job, and
+// an agent handed the list of agents is an agent that can ask for itself.
 //
 // It goes after everything else because it is a block and the rest is prose.
-const SELECTOR_FOR = new Set(['clarify', 'resolve', 'edit'])
+const SPEC_SELECTOR_FOR = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
+const WRITE_SELECTOR_FOR = new Set<AgentAction>(['implement', 'channel'])
 
 // The two files a repurpose works between, as paths from the project root. Null when the
 // card has gone — the command that starts the run has already refused that, so this is only
@@ -174,8 +187,22 @@ function draftPaths(cardId: number | undefined, channel: string): { source: stri
   return { source: rel(draftFile(found.target, SOURCE)), target: rel(draftFile(found.target, channel)) }
 }
 
-const roster = (req: AgentRequest): string =>
-  SELECTOR_FOR.has(req.action) && req.id !== undefined ? specAgentSelector(req.id) : ''
+// The folder a `write` agent may write in, resolved here rather than described: `akb write`
+// has no `--print`, so the run is handed the path instead of the rule for building one.
+function draftFolder(cardId: number | undefined): string | null {
+  const found = cardId === undefined ? null : locate(cardId)
+  return found && found.kind === 'file' ? rel(draftDir(found.target)) : null
+}
+
+// `<spec-agents>` asks which solution this board is: `ui-design` and `technology-selection`
+// answer nothing a marketing topic asks. `<write-agents>` does not — the roster is empty on
+// a product board by itself, since `kind: write` does not parse there.
+function roster(req: AgentRequest): string {
+  if (req.id === undefined) return ''
+  if (SPEC_SELECTOR_FOR.has(req.action)) return solution() === 'product' ? specAgentSelector(req.id) : ''
+  if (WRITE_SELECTOR_FOR.has(req.action)) return writeAgentSelector(req.id)
+  return ''
+}
 
 /** The words one run is given, and anything the board owes that run's log before the agent
  *  says a word: a spec agent's setting whose saved value it no longer offers and has fallen
@@ -357,6 +384,41 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           .filter(Boolean)
           .join(' '),
         contract ? `——— how a spec agent works ———\n\n${contract}` : '',
+        agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
+        ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
+        memory ? `——— what you remember ———\n\n${memory}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n')
+    }
+    // One `write` agent on one topic (#424) — the writer's specialist, assembled exactly as
+    // a spec run is: the contract it works to, its own instructions, the references its
+    // settings picked, and what it remembers. What differs is where its answer goes. A spec
+    // agent writes a section of the card through one move; this one writes files, so it is
+    // handed the one folder they may go in and nothing about the card is its to change.
+    //
+    // Nothing here says what the piece is about — that is the card and `source.md`, which the
+    // run reads. The note names the files the writer wants, and that is the whole of the ask.
+    case 'write': {
+      const agent = findSpecAgent(req.specAgent ?? '')
+      const own = agent ? specAgentInstructions(agent) : null
+      if (own) notes.push(...own.notes)
+      const contract = findGuide('write-agent')?.text.trim()
+      const folder = draftFolder(req.id)
+      const memory = agent ? agentMemoryBlock(agent) : ''
+      return [
+        [
+          `${kb}. You are the \`${req.specAgent}\` write agent on task ${req.id} ${named}.`,
+          `Read the card, do only what you were asked for, and write your files into ${folder ?? "that topic's `content/<id>-<slug>/` folder"} — nothing outside it.`,
+          `Never \`source.md\`, never a channel's draft, never the card, never project code.`,
+          memory ? `You keep a memory of this board, below. Follow it — this run does not write it back.` : '',
+          req.notes ? `What the writing run that asked for you wants: ${req.notes}` : '',
+          `Everything you need is in this message: the contract below, your instructions, and the references they selected. Do not go looking for more of them.`,
+          `Don't ask me questions with human-in-the-loop — if the ask cannot be done, write no file and say why in your last message.`,
+        ]
+          .filter(Boolean)
+          .join(' '),
+        contract ? `——— how a write agent works ———\n\n${contract}` : '',
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
         memory ? `——— what you remember ———\n\n${memory}` : '',

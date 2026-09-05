@@ -491,6 +491,9 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   // never a card, so the card format and the memory set are a page about work it may not do.
   // `akb channel` has no --print either, so this is only ever the run's.
   channel: ['channel'],
+  // A write agent gets its own flow, for the same reason a spec agent does: it writes files
+  // in one folder and never a card. `akb write` has no --print, so this is only the run's.
+  write: ['write-agent'],
 }
 
 const guidesFor = (req: AgentRequest): string[] => {

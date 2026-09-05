@@ -21,7 +21,7 @@ import { boardCommand } from './command'
 import { deliveryRunAfter } from './deliveries'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
-import { refineRunsAfter, specRunsAfter } from './follow'
+import { refineRunsAfter, specRunsAfter, writeRunsAfter } from './follow'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './wire'
 import { restartPrompt, resumePrompt } from './prompts'
@@ -46,6 +46,7 @@ import {
   readRefineAsks,
   readSpec,
   readSpecAsks,
+  readWriteAsks,
   setCardStatus,
   titleOf,
   type CardClaim,
@@ -607,7 +608,11 @@ async function followUp(
   try {
     // Started first, then forgotten — so a crash between the two costs a repeated agent at
     // worst, and never a section nobody ever writes.
-    const asked = [...specRunsAfter(readSpecAsks(sessionId)), ...refineRunsAfter(readRefineAsks(sessionId))]
+    const asked = [
+      ...specRunsAfter(readSpecAsks(sessionId)),
+      ...writeRunsAfter(readWriteAsks(sessionId)),
+      ...refineRunsAfter(readRefineAsks(sessionId)),
+    ]
     for (const req of asked) await startRun(join(req))
     clearAsks(sessionId)
     if (carryOn) await startRun(join(carryOn))

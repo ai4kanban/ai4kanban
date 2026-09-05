@@ -27,7 +27,7 @@ import { canonicalSpecAgent } from '../spec-agent-names'
 import type { WriteResult } from '../view/types'
 import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, flowPath, type Flow } from './flows'
 import { agentNames, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
-import { REFINE_ACTIONS } from './types'
+import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentRequest, FlowRuleView } from './types'
 
 const rulePath = (agent: string): string => path.join(RULES, `${agent}.md`)
@@ -120,8 +120,9 @@ const flowForRequest = (req: AgentRequest): Flow | undefined =>
     ? flowByCommand('refine')
     : flowByAction(req.action)
 
-// Whose rule a run reads: the specialist it IS on a spec run, and the role that runs its
-// flow otherwise. `flow` is what a delivery frozen before rules were keyed by agent holds.
+// Whose rule a run reads: the specialist it IS on a `spec` or `write` run, and the role that
+// runs its flow otherwise. `flow` is what a delivery frozen before rules were keyed by agent
+// holds.
 interface RuleOwner {
   name: string
   role?: AgentRole
@@ -129,7 +130,7 @@ interface RuleOwner {
 }
 
 function ownerOf(req: AgentRequest): RuleOwner | null {
-  if (req.action === 'spec') {
+  if (SPECIALIST_ACTIONS.has(req.action)) {
     const name = canonicalSpecAgent(req.specAgent ?? '')
     return name ? { name } : null
   }

@@ -42,6 +42,7 @@ import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumableHarness, resumableLookup, type RunPlan } from './resolve'
 import { runtimeFor } from './runtime'
 import { logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
+import { holdsCard, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
   AgentRequest,
@@ -52,6 +53,7 @@ import type {
   RunStatus,
   RunView,
   SpecAsk,
+  WriteAsk,
 } from './types'
 
 export { logPathOf, readAction, readRuns, withRuns } from './store'
@@ -88,6 +90,7 @@ const VERB: Record<AgentAction, string> = {
   'plan-release': 'planned',
   setup: 'set up',
   spec: 'specified',
+  write: 'written for',
   channel: 'repurposed',
   changelog: 'written up',
   review: 'reviewed',
@@ -421,13 +424,14 @@ function lockedBy(
   cardId: number | null,
   release?: string,
 ): string | undefined {
-  // A spec agent is out of that rule at both ends: it fills one section and never the
-  // plan, so it neither takes the card nor waits for one. Two agents may work a card —
-  // they write different sections — and a card being refined can still have its screen
-  // drawn. Two runs writing one card file at the same moment is the problem #156 owns,
-  // and it is that problem whether or not this rule pretends otherwise.
-  if (cardId !== null && action !== 'spec') {
-    const live = runs.find((r) => r.status === 'running' && r.cardId === cardId && r.action !== 'spec')
+  // A specialist is out of that rule at both ends (`holdsCard`): it fills one section or
+  // writes one file in the draft folder, never the plan, so it neither takes the card nor
+  // waits for one. Two agents may work a card — they write different things — and a card
+  // being refined can still have its screen drawn. Two runs writing one card file at the
+  // same moment is the problem #156 owns, and it is that problem whether or not this rule
+  // pretends otherwise.
+  if (cardId !== null && holdsCard(action)) {
+    const live = runs.find((r) => r.status === 'running' && r.cardId === cardId && holdsCard(r.action))
     if (live) return `#${cardId} is already being ${VERB[live.action]}`
   }
   if (SINGLETON_ACTIONS.has(action)) {
@@ -448,15 +452,16 @@ function lockedBy(
  *  it — or nothing when it is free. The sentence names the card and what that run is doing,
  *  because "try again later" without either is a refusal nobody can act on.
  *
- *  A spec run holds nothing: it fills one section of the card and never the plan, which is
- *  the same rule `lockedBy` follows when it decides whether a run may start.
+ *  A specialist run holds nothing (`holdsCard`): it fills one section of the card, or writes
+ *  one file in its draft folder, and never the plan — the same rule `lockedBy` follows when
+ *  it decides whether a run may start.
  *
  *  Read through `listRuns`, so a run whose process died has already stopped counting as
  *  live. That read takes the record's lock and may reach for the board's, so this is asked
  *  BEFORE the board's own lock is taken, never while it is held. */
 export async function heldByRun(cardId: number): Promise<string | undefined> {
   const live = (await listRuns()).find(
-    (r) => r.status === 'running' && r.cardId === cardId && r.action !== 'spec',
+    (r) => r.status === 'running' && r.cardId === cardId && holdsCard(r.action),
   )
   if (!live) return undefined
   return (
@@ -540,9 +545,9 @@ export function openRun(
     // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs
     // none, and one that mints its own has nothing to record yet.
     logPath: logPathOf(sessionId),
-    // Which spec agent this is, on the one action that has one — so the run list can name
-    // it, and so a resume starts the same agent rather than a different one.
-    specAgent: req.action === 'spec' ? req.specAgent : undefined,
+    // Which agent this is, on the two actions that are one — so the run list can name it,
+    // and so a resume starts the same agent rather than a different one.
+    specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
     // …and which channel, on the one action that has one, so its close knows whose status
     // to move and a resume repurposes for the same channel.
     channel: req.action === 'channel' ? req.channel : undefined,
@@ -681,7 +686,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   // The asks the run being taken over collected come with it. It never got as far as
   // starting them — that is why it is being resumed — and the flow asked once.
   const inherited = readAsks(prev.sessionId)
-  if (inherited.asks.length || inherited.refines.length) writeAsks(sessionId, inherited)
+  if (inherited.asks.length || inherited.writes.length || inherited.refines.length) writeAsks(sessionId, inherited)
   clearAsks(prev.sessionId)
   try {
     fs.unlinkSync(prev.logPath)
@@ -715,6 +720,21 @@ export function askForSpec(sessionId: string, ask: SpecAsk): 'queued' | 'already
   return 'queued'
 }
 
+/** Ask for a `write` agent from inside a writing run (#424). The same handoff a spec ask
+ *  takes, in the same file, started by the same watcher — and in a list of its own: an older
+ *  copy of these rules reading `asks` would start a write agent as a `spec` run.
+ *
+ *  `already` means this run has asked for that agent on that card before; the writer names
+ *  every file it wants in the one note. */
+export function askForWrite(sessionId: string, ask: WriteAsk): 'queued' | 'already' | 'no-run' {
+  if (!peekRun(sessionId)) return 'no-run'
+  const file = readAsks(sessionId)
+  if (file.writes.some((a) => a.specAgent === ask.specAgent && a.cardId === ask.cardId)) return 'already'
+  file.writes.push(ask)
+  writeAsks(sessionId, file)
+  return 'queued'
+}
+
 /** Hand a card to a refinement from inside a run (`akb card refine <id>`). Written down rather
  *  than started, exactly as a spec ask is, and started by this run's watcher at the close —
  *  in the same flow, so it reads as the next step of the job that handed the card over.
@@ -732,6 +752,9 @@ export function askForRefine(sessionId: string, ask: RefineAsk): 'queued' | 'alr
 /** The spec agents this run has been asked for. */
 export const readSpecAsks = (sessionId: string): SpecAsk[] => readAsks(sessionId).asks
 
+/** The write agents this run has been asked for. */
+export const readWriteAsks = (sessionId: string): WriteAsk[] => readAsks(sessionId).writes
+
 /** The cards this run handed to a refinement. */
 export const readRefineAsks = (sessionId: string): RefineAsk[] => readAsks(sessionId).refines
 
@@ -745,19 +768,19 @@ export function clearAsks(sessionId: string): void {
   }
 }
 
-/** Every follow-up one run wrote down. Both lists live in one file, so both are read and
- *  written together — a spec ask must never drop a refine ask.
+/** Every follow-up one run wrote down. The lists live in one file, so all of them are read
+ *  and written together — a spec ask must never drop a refine ask.
  *
  *  Empty rather than thrown when the file is damaged: a run's own ending must not fail on
  *  the follow-up it was going to start. A malformed entry is dropped rather than started. */
-function readAsks(sessionId: string): { asks: SpecAsk[]; refines: RefineAsk[] } {
+function readAsks(sessionId: string): { asks: SpecAsk[]; writes: WriteAsk[]; refines: RefineAsk[] } {
   let data: unknown
   try {
     data = JSON.parse(fs.readFileSync(asksPathOf(sessionId), 'utf8'))
   } catch {
-    return { asks: [], refines: [] }
+    return { asks: [], writes: [], refines: [] }
   }
-  const raw = (data ?? {}) as { asks?: unknown; refines?: unknown }
+  const raw = (data ?? {}) as { asks?: unknown; writes?: unknown; refines?: unknown }
   const asks = (Array.isArray(raw.asks) ? raw.asks : []).flatMap((entry) => {
     const a = entry as Partial<SpecAsk>
     if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
@@ -767,6 +790,15 @@ function readAsks(sessionId: string): { asks: SpecAsk[]; refines: RefineAsk[] } 
       cardId: a.cardId as number,
       notes: typeof a.notes === 'string' ? a.notes : undefined,
       ...(refineEffort ? { refineEffort } : {}),
+    }]
+  })
+  const writes = (Array.isArray(raw.writes) ? raw.writes : []).flatMap((entry) => {
+    const a = entry as Partial<WriteAsk>
+    if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
+    return [{
+      specAgent: a.specAgent,
+      cardId: a.cardId as number,
+      notes: typeof a.notes === 'string' ? a.notes : undefined,
     }]
   })
   const refines = (Array.isArray(raw.refines) ? raw.refines : []).flatMap((entry) => {
@@ -779,13 +811,13 @@ function readAsks(sessionId: string): { asks: SpecAsk[]; refines: RefineAsk[] } 
       ...(effort ? { effort } : {}),
     }]
   })
-  return { asks, refines }
+  return { asks, writes, refines }
 }
 
 const validRefineEffort = (value: unknown): RefineEffort | undefined =>
   value === 'lightweight' || value === 'standard' ? value : undefined
 
-function writeAsks(sessionId: string, file: { asks: SpecAsk[]; refines: RefineAsk[] }): void {
+function writeAsks(sessionId: string, file: { asks: SpecAsk[]; writes: WriteAsk[]; refines: RefineAsk[] }): void {
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
   const tmp = `${asksPathOf(sessionId)}.tmp`
   fs.writeFileSync(tmp, JSON.stringify(file, null, 2) + '\n')

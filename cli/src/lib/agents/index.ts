@@ -20,11 +20,11 @@ import { agentMemoryFile, readAgentMemory } from '../memory'
 import { rel } from '../paths'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import { specAgentCatalog } from './catalog'
-import type { SpecAgent } from './parse'
+import type { AgentKind, SpecAgent } from './parse'
 
 export { specAgentCatalog } from './catalog'
 export { specAgentNames } from '../spec-agent-names'
-export type { SpecAgent } from './parse'
+export type { AgentKind, SpecAgent } from './parse'
 
 /** Every agent on this board, in the board's order. */
 export const specAgents = (): SpecAgent[] => specAgentCatalog().agents
@@ -148,13 +148,33 @@ export function agentMemoryBlock(agent: SpecAgent): string {
 /** The agents on the `spec` hook — the ones `akb spec` runs. An agent on another hook is
  *  still on this board and still drawn in its pane; it is just not something a card's spec
  *  is filled by. */
-export const specHookAgents = (): SpecAgent[] => specAgents().filter((a) => a.kind === 'spec')
+export const specHookAgents = (): SpecAgent[] => hookAgents('spec')
 
-/** The agents a flow may ask for — the ones on the `spec` hook that are on, in the board's
- *  own order. */
-export const enabledSpecAgents = (): SpecAgent[] => {
+/** The agents on the `write` hook — the ones `akb write` runs (#424). Empty on a product
+ *  board by itself: `kind: write` does not parse there (../agents/parse.ts), so nothing here
+ *  needs to ask which solution this is. */
+export const writeHookAgents = (): SpecAgent[] => hookAgents('write')
+
+const hookAgents = (kind: AgentKind): SpecAgent[] => specAgents().filter((a) => a.kind === kind)
+
+/** The agents a flow may ask for — the ones on that hook that are on, in the board's own
+ *  order. */
+export const enabledSpecAgents = (): SpecAgent[] => enabledHookAgents('spec')
+
+/** The same, for the `write` hook. */
+export const enabledWriteAgents = (): SpecAgent[] => enabledHookAgents('write')
+
+function enabledHookAgents(kind: AgentKind): SpecAgent[] {
   const entries = specAgentEntries()
-  return specHookAgents().filter((a) => specAgentEnabled(a.name, entries))
+  return hookAgents(kind).filter((a) => specAgentEnabled(a.name, entries))
+}
+
+/** One agent on the `write` hook, by name. An agent on another hook is on this board but is
+ *  not something the writer can call in, so it is turned away by the same door as a name
+ *  nobody has. */
+export const findWriteAgent = (name: string): SpecAgent | null => {
+  const agent = findSpecAgent(name)
+  return agent?.kind === 'write' ? agent : null
 }
 
 /** The catalog a planning run is shown, so it can decide for itself which — if any — a card
@@ -168,15 +188,33 @@ export const enabledSpecAgents = (): SpecAgent[] => {
  *
  *  Empty when every agent is off — a heading over an empty list reads as a list that failed
  *  to load. */
-export function specAgentSelector(id: number | string): string {
-  const on = enabledSpecAgents()
+export const specAgentSelector = (id: number | string): string =>
+  selector(enabledSpecAgents(), {
+    tag: 'spec-agents',
+    lead: "Specialist agents this board has, each filling one part of a card's spec in a run of its own:",
+    ask: `Review this list once. Ask for an agent only where the card would otherwise be planned by guess in the part that agent owns, and only when that section is missing: \`akb spec <agent> ${id} <short note>\`.`,
+  })
+
+/** The same catalog, for the agents the writer can call in (#424) — the specialists a draft
+ *  needs a file from, such as an image for a post. Worded as the `spec` one is, and empty
+ *  the same way: on a product board there are no `write` agents to list.
+ *
+ *  One ask per agent per card, so the note names every file the writer wants. */
+export const writeAgentSelector = (id: number | string): string =>
+  selector(enabledWriteAgents(), {
+    tag: 'write-agents',
+    lead: "Specialist agents this board has, each writing part of a topic's draft folder in a run of its own:",
+    ask: `Review this list once. Ask for an agent only where the draft needs a file you cannot write yourself, naming every file you want in the one note: \`akb write <agent> ${id} <short note>\`.`,
+  })
+
+function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: string }): string {
   if (!on.length) return ''
   return [
     // Tagged, because this block is a list of other agents' work sitting under an
     // instruction about the card. Without a boundary a run reads "ui-design" as part of its
     // own job.
-    '<spec-agents>',
-    "Specialist agents this board has, each filling one part of a card's spec in a run of its own:",
+    `<${words.tag}>`,
+    words.lead,
     ...on.flatMap((a) => [
       `- \`${a.name}\``,
       `  owns ${a.owns}`,
@@ -185,9 +223,9 @@ export function specAgentSelector(id: number | string): string {
       // user's answer about an agent's section, and the line they append goes in this file.
       ...(a.memory ? [`  remembers ${rel(agentMemoryFile(a.name))}`] : []),
     ]),
-    `Review this list once. Ask for an agent only where the card would otherwise be planned by guess in the part that agent owns, and only when that section is missing: \`akb spec <agent> ${id} <short note>\`.`,
+    words.ask,
     'Asking for none is the usual answer. Do not ask for an agent to review, repeat or check work, and do not wait for one — the board starts it when this run ends.',
-    '</spec-agents>',
+    `</${words.tag}>`,
   ].join('\n')
 }
 
@@ -262,11 +300,16 @@ export function setSpecAgentSetting(name: string, key: string, value: string): {
   return setSpecAgentValue(agent.name, setting.key, save, specAgentNames(agent.name).slice(1))
 }
 
-export const notAnAgent = (name: string): string => {
-  const there = specHookAgents().map((a) => a.name)
+export const notAnAgent = (name: string): string => notOnHook(name, 'spec')
+
+/** The same for the `write` hook (#424). */
+export const notAWriteAgent = (name: string): string => notOnHook(name, 'write')
+
+const notOnHook = (name: string, kind: AgentKind): string => {
+  const there = hookAgents(kind).map((a) => a.name)
   return there.length
-    ? `"${name}" is not a spec agent on this board. It has: ${there.join(', ')}.`
-    : `"${name}" is not a spec agent on this board, and this board has none.`
+    ? `"${name}" is not a ${kind} agent on this board. It has: ${there.join(', ')}.`
+    : `"${name}" is not a ${kind} agent on this board, and this board has none.`
 }
 
 /** Where a switched-off agent goes back on. One place, named the same way everywhere. */
@@ -280,18 +323,44 @@ export const SPEC_AGENT_HOME = 'docs/kanban/agents/<name>/AGENT.md'
  *  A switched-off agent is left out of the list a flow picks from. Typed by a person it is
  *  still named, in one closing line: an agent that vanished with no explanation is a feature
  *  the user thinks broke. */
-export function specAgentList(program: string, forPerson = false): string {
+export const specAgentList = (program: string, forPerson = false): string =>
+  agentList('spec', program, forPerson, {
+    lead: `${program} spec <agent> <id> [note] — put a spec agent on a card.`,
+    blurb: [
+      "A spec agent fills one part of a card's spec. It runs on its own, in its own context:",
+      'it is given the card and your note, it writes one section of that card, and it changes',
+      'nothing else. Ask for one when the card would otherwise be planned by guess.',
+    ],
+    guide: 'spec-agent',
+  })
+
+/** The same for the `write` hook — what `akb write` with no agent named prints (#424). */
+export const writeAgentList = (program: string, forPerson = false): string =>
+  agentList('write', program, forPerson, {
+    lead: `${program} write <agent> <id> [note] — call a write agent in on a topic.`,
+    blurb: [
+      "A write agent writes part of a topic's draft folder. It runs on its own, in its own",
+      'context: it is given the card and your note, it writes the files that note names, and',
+      'it changes nothing else. Ask for one when the draft needs a file you cannot write.',
+    ],
+    guide: 'write-agent',
+  })
+
+function agentList(
+  kind: AgentKind,
+  program: string,
+  forPerson: boolean,
+  words: { lead: string; blurb: string[]; guide: string },
+): string {
   const entries = specAgentEntries()
   const { problems } = specAgentCatalog()
-  const agents = specHookAgents()
+  const agents = hookAgents(kind)
   const on = agents.filter((a) => specAgentEnabled(a.name, entries))
   const off = agents.filter((a) => !specAgentEnabled(a.name, entries))
   return [
-    `${program} spec <agent> <id> [note] — put a spec agent on a card.`,
+    words.lead,
     '',
-    "A spec agent fills one part of a card's spec. It runs on its own, in its own context:",
-    'it is given the card and your note, it writes one section of that card, and it changes',
-    'nothing else. Ask for one when the card would otherwise be planned by guess.',
+    ...words.blurb,
     '',
     'Agents',
     ...(on.length
@@ -303,9 +372,11 @@ export function specAgentList(program: string, forPerson = false): string {
           ...runtimeLine(a, entries, forPerson),
           ...settingLines(a, entries),
         ])
-      : ['', 'Every spec agent on this board is switched off. Ask for none.']),
+      : ['', agents.length
+          ? `Every ${kind} agent on this board is switched off. Ask for none.`
+          : `This board has no ${kind} agent. Ask for none.`]),
     '',
-    `The flow one follows is \`${program} guide spec-agent\`.`,
+    `The flow one follows is \`${program} guide ${words.guide}\`.`,
     ...(forPerson
       ? [`This project adds its own in \`${SPEC_AGENT_HOME}\`.`]
       : []),

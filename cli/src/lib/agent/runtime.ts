@@ -1,8 +1,8 @@
 // Which runtime one run goes on (#343).
 //
-// The board names the runtimes and points each flow and spec agent at one
-// (agent/settings.ts); this is the one place that reads that pointing for a run about to
-// start. What the answer then RUNS as is agent/resolve.ts's, out of the same board file.
+// The board names the runtimes and points each flow and agent at one (agent/settings.ts);
+// this is the one place that reads that pointing for a run about to start. What the answer
+// then RUNS as is agent/resolve.ts's, out of the same board file.
 //
 // Only a flow is named, never a pass: a refine's `clarify`, `resolve` and `writing` passes
 // take refine's runtime. `setup` is always the global one — it is the run that has to work
@@ -11,14 +11,14 @@
 import { specAgentNames } from '../spec-agent-names'
 import { flowByAction } from './flows'
 import { readRuntimes, specAgentEntries, type BoardRuntimes } from './settings'
-import { REFINE_ACTIONS } from './types'
+import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentAction } from './types'
 
 /** What a run has to say about itself for its runtime to be worked out. The same three
  *  fields `agent/rules.ts` reads to hand a run its flow's rule, and read the same way. */
 export interface RuntimeAsk {
   action?: AgentAction
-  /** The agent's name on a `spec` run, and nothing on any other. */
+  /** The agent's name on a `spec` or `write` run, and nothing on any other. */
   specAgent?: string
   /** Set on a pass a refine spawned, absent on a flow a user typed — the one thing that
    *  tells a refine's `resolve` pass from an `akb card resolve` of its own. */
@@ -43,7 +43,8 @@ function namedRuntime(
 ): string | undefined {
   const { action, specAgent } = ask
   if (!action || action === 'setup') return undefined
-  if (action === 'spec') return specAgent ? runtimeOfSpecAgent(specAgent, entries) : undefined
+  // A specialist runs on the runtime its own entry names, whichever hook it is on.
+  if (SPECIALIST_ACTIONS.has(action)) return specAgent ? runtimeOfSpecAgent(specAgent, entries) : undefined
   const command = flowOf(ask, action)
   return command ? runtimes.flows[command] : undefined
 }

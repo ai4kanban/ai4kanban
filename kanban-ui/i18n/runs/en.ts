@@ -20,6 +20,7 @@ const en: RunsCopy = {
     changelog: "changelog",
     setup: "setup",
     spec: "spec",
+    write: "write",
     channel: "channel",
   },
   verb: {
@@ -39,6 +40,7 @@ const en: RunsCopy = {
     changelog: "writing the changelog",
     setup: "setting up",
     spec: "drafting a spec",
+    write: "writing a file",
     channel: "repurposing",
   },
   step: {
@@ -58,6 +60,7 @@ const en: RunsCopy = {
     changelog: "Changelog",
     setup: "Setup",
     spec: "Spec",
+    write: "Write",
     channel: "Channel",
   },
   flow: {

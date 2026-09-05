@@ -49,6 +49,7 @@ import specAgent from '../guide/spec-agent.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
 import validateOnReddit from '../guide/validate-on-reddit.md'
+import writeAgent from '../guide/write-agent.md'
 import writing from '../guide/writing.md'
 
 import marketingBoard from '../guide/marketing/board.md'
@@ -116,6 +117,8 @@ const EXTRA: Record<Solution, Guide[]> = {
   product: [],
   marketing: [
     { name: 'channel', when: "repurpose a topic's draft for one channel", text: marketingChannel },
+    // A product board has no writer to join, so nothing there could ever ask for one.
+    { name: 'write-agent', when: "write part of a topic's draft folder, as the agent asked for it", text: writeAgent },
   ],
 }
 

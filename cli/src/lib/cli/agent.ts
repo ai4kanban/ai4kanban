@@ -44,6 +44,7 @@ import {
   cmdWatch,
 } from '../../commands/run'
 import { cmdSpec } from '../../commands/spec'
+import { cmdWrite } from '../../commands/write'
 import { cmdTelemetry } from '../../commands/telemetry'
 import { cardId, ctxOf, intInRange, oneOf, runAction, withShared, type Command } from './shared'
 import type { AkbCliOptions } from './akb'
@@ -167,6 +168,34 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [agent, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
       await onBoard(this, cli, (p) => cmdSpec({ agent, id, note, ...this.opts() }, p))
+    })
+
+  // ---- a named agent the writer calls in on a topic --------------------------
+
+  withShared(program.command('write'))
+    .argument('[agent]', 'which write agent; left off, the agents this board has are listed')
+    .argument('[id]', 'the topic to call it in on', cardId)
+    .argument('[note...]', 'which files you want from it')
+    .summary("a named agent that writes part of a topic's draft folder")
+    .description(
+      'It is a run of its own: it starts clean, with the card and your note and nothing else, and it ' +
+        'writes files inside `content/<id>-<slug>/` — never `source.md`, never a channel draft, never ' +
+        'the card. A project adds one under docs/kanban/agents/<name>/AGENT.md with `kind: write`. ' +
+        'Asked for from inside a run, it is written down rather than started, and the board starts it ' +
+        'the moment that run ends. Marketing boards only.',
+    )
+    .option('-f, --follow', 'watch its log instead of returning')
+    .option('--notes <text>', 'which files you want, for a caller building a command')
+    // Declared so the refusal can say WHY there is none, rather than "unknown option".
+    .addOption(new Option('--print', 'refused — see below').hideHelp())
+    .addHelpText(
+      'after',
+      '\nThere is no --print: making the file in the conversation that asked for it is the one thing a\n' +
+        'write agent exists not to be.\n',
+    )
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [agent, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
+      await onBoard(this, cli, (p) => cmdWrite({ agent, id, note, ...this.opts() }, p))
     })
 
   // ---- one channel's draft, repurposed from the topic's source --------------

@@ -28,6 +28,10 @@ rule there was learned from an edit the user made.
 - **Where the writing memory says nothing about a channel**, use what that channel's readers
   plainly expect — length, opening, how a link is placed — and leave the lesson to the edit
   the user makes.
+- **Call in a write agent for a file you cannot write**: an image sized for this channel, a
+  chart. `akb write <agent> <id> <note>` — the roster comes with the run. Name every file you
+  want in that one note, link to it from the draft, and finish the draft: the agent runs after
+  this one ends, and one ask per agent is all you get.
 - **Stop on a real blocker**: `akb raw run-blocker <id> --step ".." --cause ".." --unblock ".."`,
   then stop.
 
