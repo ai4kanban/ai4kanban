@@ -117,13 +117,8 @@ export function setCardSchedule(id: number, schedule: CardSchedule | null): Card
   return was
 }
 
-/** Give a card its default one-shot refine when it enters a blocked episode.
- *
- * `wasBlocked` makes cancellation stick: changing one non-empty blocker list into another
- * must not put back a schedule the user removed. Creation, and an empty → non-empty update,
- * pass false. An explicit implement schedule is never replaced. */
-export function scheduleRefineOnBlock(id: number, wasBlocked: boolean): boolean {
-  if (wasBlocked) return false
+/** Ensure a blocked card has a refinement follow-up without replacing an explicit schedule. */
+export function scheduleRefineOnBlock(id: number): boolean {
   const card = findCard(id)
   if (!card || card.openBlockers.length === 0 || card.schedule || !canRefine(card)) return false
   setCardSchedule(id, { action: 'refine', notes: '' })

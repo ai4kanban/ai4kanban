@@ -11,6 +11,7 @@
 import { createHash } from 'node:crypto'
 
 import { allCards, findCard } from '../view/read'
+import { scheduleRefineOnBlock } from '../view/edit'
 import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
@@ -53,15 +54,7 @@ const asMoved = (body: string): string[] =>
     .filter((line) => line.trim() && !MARKER.test(line.trim()))
     .sort()
 
-// One card as a mark: change any of this and the mark changes.
-// `blocked_by` is omitted:
-// entering a blocked episode writes its own refine schedule, and leaving one consumes that
-// schedule (or honors its cancellation), so dependency movement is never inferred here.
-// Every other edit counts; guessing which was substantive would be a second, quieter
-// opinion about the agent session that made it.
-//
-// Hashed, not kept whole: the shared record holds one of these per card between runs, and a
-// board's worth of card bodies in it would make that file unreadable.
+// Blockers have their own follow-up schedule; other edits change the shared claim hash.
 const wroteOf = (card: Card): string =>
   createHash('sha1')
     .update(
@@ -326,6 +319,9 @@ export function refinementRunsAfter(
   before: BoardMarks,
   waitingForSpec = false,
 ): RefinementFollowUp {
+  for (const id of new Set([...changed, ...(run.cardId === null ? [] : [run.cardId])])) {
+    scheduleRefineOnBlock(id)
+  }
   const next =
     waitingForSpec || run.cardId === null
       ? null

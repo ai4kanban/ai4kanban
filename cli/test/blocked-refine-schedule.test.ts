@@ -1,7 +1,3 @@
-// A dependency carries its follow-up on the dependent card. Entering a blocked episode
-// schedules one refine; cancelling it lasts for that episode; removing the blocker alone
-// never earns the old inferred cross-card refine.
-
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -92,7 +88,7 @@ describe('the default refine schedule', () => {
     assert.equal(scheduleOf(2)?.action, 'refine')
   })
 
-  it('stays cancelled while the card remains blocked', async () => {
+  it('restores a missing schedule when a blocked card is updated', async () => {
     writeCard(1)
     writeCard(2)
     writeCard(3)
@@ -101,7 +97,43 @@ describe('the default refine schedule', () => {
 
     await blockedBy(2, '1,3')
 
-    assert.equal(scheduleOf(2), null)
+    assert.equal(scheduleOf(2)?.action, 'refine')
+  })
+
+  it('schedules refinement when user questions are resolved on an already blocked card', async () => {
+    writeCard(1)
+    writeCard(2, {
+      blockedBy: [1],
+      questions: [{ text: '[user] Pick the layout.' }],
+    })
+
+    await move(root, ['update-questions', '2', '--clear'])
+
+    assert.equal(scheduleOf(2)?.action, 'refine')
+  })
+
+  it('restores a missing schedule after resolve and spec finish', () => {
+    for (const action of ['resolve', 'spec'] as const) {
+      writeCard(1)
+      writeCard(2, { blockedBy: [1] })
+      const before = markBoard()
+      const run: RunRecord = {
+        sessionId: `${action}-2`, cardId: 2, action, status: 'done',
+        startedAt: 0, harness: 'test', logPath: '/dev/null',
+      }
+
+      assert.deepEqual(refinementRunsAfter(run, [], before).runs, [])
+      assert.equal(scheduleOf(2)?.action, 'refine')
+    }
+  })
+
+  it('preserves an explicit implementation schedule after a card update', async () => {
+    writeCard(1)
+    writeCard(2, { blockedBy: [1], schedule: { action: 'implement', notes: 'Keep this.' } })
+
+    await move(root, ['update', '2', '--title', 'Updated'])
+
+    assert.deepEqual(scheduleOf(2), { action: 'implement', notes: 'Keep this.' })
   })
 
   it('returns for a new blocked episode', async () => {

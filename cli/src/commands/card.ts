@@ -170,7 +170,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   if (wantedSchedule) {
     setCardSchedule(start, { action: wantedSchedule, notes: '' })
     scheduled = wantedSchedule
-  } else if (scheduleRefineOnBlock(start, false)) {
+  } else if (scheduleRefineOnBlock(start)) {
     scheduled = 'refine'
   }
   say(start)
@@ -218,7 +218,6 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
-  const wasBlocked = meta.blocked_by.length > 0
 
   const changes: string[] = []
   if (flags.title !== undefined) {
@@ -313,7 +312,7 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     stripReadmeRefs({ kind: 'file', rel: curRel })
     addReadmeRef(id, meta.title, curRel)
   }
-  if (flags.blockedBy !== undefined && scheduleRefineOnBlock(id, wasBlocked)) {
+  if (scheduleRefineOnBlock(id)) {
     changes.push('schedule→refine when unblocked')
   }
   say(`updated #${id}: ${changes.join(', ') || '(nothing changed)'}`)
@@ -468,6 +467,7 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
     changes.push('status→todo (open questions)')
   }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  if (scheduleRefineOnBlock(id)) changes.push('schedule→refine when unblocked')
   if (countsForRecord(file)) for (const by of closed) recordFact('question-closed', id, by)
   say(
     `updated #${id} questions: ${changes.join(', ')} (${meta.questions.length} open` +
