@@ -322,6 +322,11 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
     why: text(box.why),
     attempts: typeof box.attempts === 'number' && box.attempts > 0 ? Math.floor(box.attempts) : 0,
     rebasedAt: num(box.rebasedAt),
+    rebasedFrom: text(box.rebasedFrom),
+    rebaseKind:
+      box.rebaseKind === 'disjoint' || box.rebaseKind === 'overlap' || box.rebaseKind === 'conflict'
+        ? box.rebaseKind
+        : undefined,
     commit: text(box.commit),
     onto: text(box.onto),
     overlap: Array.isArray(box.overlap) ? box.overlap.filter((n) => Number.isInteger(n)) : undefined,

@@ -214,7 +214,7 @@ describe('what cancels an approval', () => {
     assert.match(live(delivery.deliveryId).landing?.why ?? '', /held on your approval/)
   })
 
-  it('the base moving requires a new review and cancels approval', async () => {
+  it('the base moving cancels approval even though the rebase keeps its review', async () => {
     const delivery = await reviewed(1, 'card one', 'one\n')
     await advanceLanding()
     approveDelivery(delivery.deliveryId, 'test')
@@ -225,12 +225,8 @@ describe('what cancels an approval', () => {
     git(['add', '-A'])
     git(['commit', '--quiet', '-m', 'someone else'])
 
-    // The rebase invalidates both judgments of the old tree: review runs again first,
-    // then the old-base approval is cancelled.
-    const asked = await advanceLanding()
-    assert.equal(asked?.action, 'review')
-    assert.equal(asked?.id, 1)
-    await passReview(1, 'card one')
+    // The rebase shares no file with the delivery, so it keeps its passed review — but
+    // not an approval of the old base.
     assert.equal(await advanceLanding(), null)
 
     // Nothing landed: the approval went with the base.

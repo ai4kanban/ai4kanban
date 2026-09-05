@@ -841,13 +841,15 @@ repository.
 - **Your working tree follows the branch.** When the target branch is the one you have out,
   the board fast-forwards it in your own checkout, exactly as a `git pull` would. When it is
   not, only the branch moves and your checkout is left alone.
-- **A target branch that moved is rebased onto and reviewed again.** That costs one more
-  review, and it is the only way the tree that was judged is the tree that lands. After
-  three rebases on a branch that keeps moving, the card gets an open question instead.
+- **A target branch that moved is rebased onto, and reviewed only where the two meet.**
+  What arrived on the branch is compared against the files the delivery changes: sharing
+  none, it lands on the review it already passed; sharing one, a focused review judges that
+  intersection first. After three rebases on a branch that keeps moving, the card gets an
+  open question instead.
 - **Two cards touching the same files is a warning, not a block.** Landing goes ahead, and
   the overlap is recorded on the delivery. A real conflict is resolved as new work by an
-  agent that reads both cards, both diffs and the checkout, and its result goes through
-  review from scratch. If it stays unclear, the card gets an open question explaining the
+  agent that reads both cards, both diffs and the checkout, and its resolution gets the same
+  focused review. If it stays unclear, the card gets an open question explaining the
   conflict and its branch is left whole.
 - **A card with an open question waits outside the queue** until it is answered, taking no
   landing slot while it waits.

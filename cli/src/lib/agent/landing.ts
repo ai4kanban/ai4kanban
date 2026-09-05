@@ -2,9 +2,10 @@
 //
 // Review passes and the work is still on the delivery's own branch. Landing is the last
 // step, and it is the BOARD's own work — no run does it. The branch is squashed to one
-// commit, rebased onto the target branch's tip when that has moved, reviewed there, and the
-// target branch is moved to it. A review only authorizes the exact tree it judged: every
-// rebase, including one whose conflict an agent resolved, goes through review again.
+// commit, rebased onto the target branch's tip when that has moved, and the target branch
+// is moved to it. A rebase keeps the verdict the delivery already has when what the target
+// brought in shares no file with it; one that does share a file — a resolved conflict
+// among them — gets a review of that intersection before it lands.
 //
 // One card lands at a time. The slot is held on the delivery record rather than in a lock:
 // a landing can span a whole review run, and the board's own lock is held for the
@@ -331,7 +332,7 @@ function noteQueue(held: Set<string>): void {
 // ---- one pass ---------------------------------------------------------------
 
 /** Move the landing queue on by one step, and hand back the run it wants started — the
- *  conflict resolution and the review of every rebased result.
+ *  agent that resolves a conflict, and the focused review an overlapping rebase owes.
  *
  *  Called by the watcher of every run that closes, by `nextWork()` each tick so a
  *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
@@ -412,8 +413,8 @@ async function landStep(delivery: DeliveryRecord): Promise<Step> {
   }
 
   if (!isAncestor(target, tip, dir)) {
-    // The target branch moved while this card was being built. Replay onto it and carry the
-    // verdict the worktree review already gave.
+    // The target branch moved while this card was being built. Replay onto it, and review
+    // afterwards only what the replay actually put next to the delivery's own work.
     return await replayOntoTarget(delivery, dir, target)
   }
   // The last thing read before the branch moves (#308): the base and the fingerprint the
@@ -474,7 +475,7 @@ function landingRefusal(delivery: DeliveryRecord): string | undefined {
 // ahead, and a real conflict is resolved as new work when the rebase meets one.
 function warnOverlap(delivery: DeliveryRecord): void {
   const dir = worktreeDir(delivery.worktree!)
-  const mine = new Set(changedPaths(delivery.base!, delivery.branch!, dir))
+  const mine = new Set(changedPaths(delivery.base!, delivery.branch!, dir) ?? [])
   if (!mine.size) return
   const clashes: number[] = []
   const shared: string[] = []
@@ -482,7 +483,7 @@ function warnOverlap(delivery: DeliveryRecord): void {
     if (other.deliveryId === delivery.deliveryId || other.status !== 'active') continue
     if (!other.worktree || !other.branch || !other.base) continue
     if (!worktreeExists(other.worktree)) continue
-    const hits = changedPaths(other.base, other.branch, worktreeDir(other.worktree)).filter((f) => mine.has(f))
+    const hits = (changedPaths(other.base, other.branch, worktreeDir(other.worktree)) ?? []).filter((f) => mine.has(f))
     if (!hits.length) continue
     clashes.push(other.cardId)
     shared.push(...hits)
@@ -499,10 +500,27 @@ function warnOverlap(delivery: DeliveryRecord): void {
 
 // ---- the target branch moved ------------------------------------------------
 
-// Rebase the one squash commit onto the target's new tip. The result goes back through
-// review: the target is the current implementation, and a verdict on the old tree cannot
-// authorize the composition Git or a conflict agent made with it. Unless the delivery has
-// AI review off (#416), which has no verdict to carry over either way — `afterRebase`.
+// What the rebase turns out to be — read BEFORE it runs, so a conflict never has to be
+// untangled first. The comparison is by file: what the target brought in since this
+// delivery's base, against what the delivery itself changes. Anything finer is a semantic
+// analysis the board cannot run, and the file intersection is the signal `warnOverlap`
+// already trusts.
+//
+// Git failing to answer is `overlap`. An unreadable comparison sends the rebase to review
+// rather than past it — the one direction that cannot land work nothing has judged.
+function rebaseKind(delivery: DeliveryRecord, dir: string, target: string): 'disjoint' | 'overlap' {
+  const mine = changedPaths(delivery.base!, delivery.branch!, dir)
+  const theirs = changedPaths(delivery.base!, target, dir)
+  if (!mine || !theirs) return 'overlap'
+  const ours = new Set(mine)
+  return theirs.some((file) => ours.has(file)) ? 'overlap' : 'disjoint'
+}
+
+// Rebase the one squash commit onto the target's new tip. Changes in separate files cannot
+// alter the tree review passed, so a disjoint replay carries that verdict on and lands. A
+// rebase that touches a file the delivery also changes gets a focused review of that
+// intersection, and so does a conflict — the resolution is code no review has seen. A
+// delivery with AI review off (#416) has no verdict to carry over either way — `afterRebase`.
 async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: string): Promise<Step> {
   const spent = delivery.landing?.attempts ?? 0
   if (spent >= MAX_LAND_ATTEMPTS) {
@@ -524,49 +542,65 @@ async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: s
     )
     return { done: true }
   }
+  const kind = rebaseKind(delivery, dir, target)
   const rebased = rebaseOnto(dir, target, delivery.base!)
   if ('conflict' in rebased) return startConflict(delivery, target, rebased.conflict)
   if (!rebased.ok) {
     giveUpSlot(delivery, rebased.error)
     return { done: true }
   }
-  return await afterRebase(delivery, target)
+  return await afterRebase(delivery, target, kind)
 }
 
 // The rebase completed. Its target becomes the delivery's base — the same field, so review
-// sees everything this delivery changes against the current implementation. Hold the slot
-// while a fresh review judges that exact tree; opening the run clears the stop.
+// sees everything this delivery changes against the current implementation — and the
+// record keeps the base it came from and which kind of rebase it was, so the reason a
+// review did or did not start is a fact rather than something derived afterwards.
 //
-// With AI review off there is no such run (#416). The delivery keeps the slot and nothing
-// is stopped, so the next landing pass picks the same holder up and carries on against the
+// A disjoint rebase carries the same landing pass straight on to the branch move. Anything
+// else holds the slot behind a stop while a focused review judges the intersection;
+// opening that run clears the stop, so a watcher that dies in between cannot land the
+// verdict from before the rebase.
+//
+// With AI review off there is no such run and nothing is stopped (#416), whatever kind the
+// rebase was: the delivery keeps the slot, and the next landing pass carries on against the
 // new base.
-async function afterRebase(delivery: DeliveryRecord, target: string): Promise<Step> {
+async function afterRebase(
+  delivery: DeliveryRecord,
+  target: string,
+  kind: NonNullable<DeliveryLanding['rebaseKind']>,
+): Promise<Step> {
   const at = Date.now()
   const reviews = aiReviewOn(delivery)
   withStore((store) => {
     const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
     if (!live || live.status !== 'active') return
+    const from = live.base
     live.base = target
     const landing = (live.landing = live.landing ?? { status: 'landing', attempts: 0, at })
     landing.status = 'landing'
     landing.attempts += 1
     landing.rebasedAt = at
+    landing.rebasedFrom = from
+    landing.rebaseKind = kind
     landing.why = undefined
     landing.at = at
-    if (reviews) {
-      reviewOf(live).stopped = {
-        reason: 'landing',
-        why: `${delivery.targetBranch} moved, so the rebased result must be reviewed before it lands`,
-        at,
-      }
+    if (reviews && kind !== 'disjoint') {
+      reviewOf(live).stopped = { reason: 'landing', why: rebaseWhy(delivery, kind), at }
     }
   })
   syncAudit(delivery.deliveryId)
   const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
   if (!live || live.status !== 'active') return { done: true }
   if (!reviews) return {}
+  if (kind === 'disjoint') return await landStep(live)
   return { start: { action: 'review', id: live.cardId, title: live.title } }
 }
+
+const rebaseWhy = (delivery: DeliveryRecord, kind: 'overlap' | 'conflict'): string =>
+  kind === 'conflict'
+    ? `a conflict with ${delivery.targetBranch} was resolved, so the composed result must be reviewed before it lands`
+    : `${delivery.targetBranch} changed files this delivery also changes, so the rebased result must be reviewed before it lands`
 
 // ---- a conflict is new work -------------------------------------------------
 
@@ -588,7 +622,10 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
   const left = conflictedPaths(dir)
   const done = left.length ? { ok: false, why: `${names(left)} ${are(left.length)} still conflicted` } : continueRebase(dir)
   if (done.ok && !rebaseInProgress(dir)) {
-    return await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!)
+    // Always `conflict`, and never a comparison of its own: a conflicted file is one both
+    // sides changed, so a resolved conflict is an overlap by definition — and the
+    // resolution itself is code no review has seen.
+    return await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!, 'conflict')
   }
   abortRebase(dir)
   const why =

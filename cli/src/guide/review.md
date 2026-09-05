@@ -3,9 +3,13 @@
 Review and fix in this run. A successful run with no new question passes; a question appended
 to the card waits for the user's answer.
 
-1. Compare all delivery changes with the approved requirements, run the required checks, and
-   read `## Worth noting after implementation`; do not report a condition the user explicitly
-   accepted there.
+1. Choose the scope:
+   - When the flow marks a **focused post-rebase review**, judge only the named target delta
+     and shared paths, and rerun only the checks those paths affect. The delivery's own
+     design already passed; rely on that pass for everything the rebase did not touch.
+   - Otherwise, compare all delivery changes with the approved requirements, run the required
+     checks, and read `## Worth noting after implementation`; do not report a condition the
+     user explicitly accepted there.
 2. Fix plain mistakes in the delivery's worktree, update focused tests, and rerun the
    affected checks. Resolve implementation details yourself. Drop unrelated implementation
    discoveries after noting them in the run log; never create or update another card from

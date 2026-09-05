@@ -420,7 +420,7 @@ export async function watchRun(sessionId: string): Promise<number> {
       const carryOn = deliveryRunAfter(record)
       // Then the landing queue (#304): a delivery review has just passed takes the slot and
       // lands here, and what it hands back is the run that landing wants — conflict
-      // resolution or review of a rebased result.
+      // resolution, or the focused review an overlapping rebase owes.
       const landing = await advanceLanding()
       await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
       resolve(status === 'done' ? 0 : 1)

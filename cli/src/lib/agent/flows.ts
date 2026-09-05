@@ -93,7 +93,7 @@ export const FLOWS: Flow[] = [
     action: 'conflict',
     argument: '<id>',
     gloss: "resolve the conflict its landing's rebase stopped on",
-    more: ['The board runs this itself; the result is reviewed from scratch.'],
+    more: ['The board runs this itself; the resolution is reviewed before it lands.'],
   },
   {
     command: 'run',

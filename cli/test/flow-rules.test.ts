@@ -267,6 +267,14 @@ describe('the prompt', () => {
     assert.match(guide, /target branch as the authoritative current implementation/)
     assert.match(guide, /Do not create or update cards/)
     assert.match(guide, /Review follows the completed rebase/)
+    assert.match(buildPrompt({ action: 'conflict', id: 1, title: 'card one' }), /reviews your resolution before it lands/)
+  })
+
+  it('gives review a scope step for a focused post-rebase pass', () => {
+    const guide = findGuide('review')!.text
+    assert.match(guide, /focused post-rebase review/)
+    assert.match(guide, /only the named target delta[\s\S]*shared paths/)
+    assert.match(guide, /rerun only the checks those paths affect/)
   })
 
   it('runs post-answer QA in the resolver session', () => {

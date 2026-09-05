@@ -186,10 +186,8 @@ describe('a card with an open question', () => {
     // Answered — the same delivery carries on, with no second click.
     fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
     assert.equal(openQuestions(1), 0)
-    const wants = await advanceLanding()
-    assert.equal(wants?.action, 'review')
-    assert.equal(wants?.id, 1)
-    await passReview(1, 'card one')
+    // The other card landed in a file this one never touched, so the rebase keeps the
+    // review it passed and the same pass lands it.
     assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(held.deliveryId)?.status, 'landed')
     assert.equal(archived(1), true)

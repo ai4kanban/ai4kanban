@@ -73,7 +73,7 @@ export type AgentAction =
   | 'review'
   /** Resolve the conflict a landing's rebase stopped on (#304). It may read both cards,
    *  both diffs and the checkout, it stages the resolution, and the board finishes the
-   *  rebase after it. Its result is reviewed from scratch. */
+   *  rebase after it. Its resolution gets the focused review an overlap owes (#415). */
   | 'conflict'
 
 /** The action names used by refinement passes (`agent/refine.ts`). A pass carries its
@@ -322,6 +322,13 @@ export interface DeliveryLanding {
   attempts: number
   /** When the last rebase finished. */
   rebasedAt?: number
+  /** The base it was rebased from — what the target branch brought in is the diff between
+   *  that commit and the new base. */
+  rebasedFrom?: string
+  /** What the last rebase turned out to be, and so why a review did or did not follow it:
+   *  `disjoint` shares no file with the delivery, `overlap` shares one, `conflict` was
+   *  resolved by an agent. */
+  rebaseKind?: 'disjoint' | 'overlap' | 'conflict'
   /** The squash commit that landed. */
   commit?: string
   /** The target tip it landed onto — the comparison base the landed commit sits on. */

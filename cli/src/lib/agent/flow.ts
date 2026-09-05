@@ -40,10 +40,10 @@ import type { Meta, MoveResult } from '../types'
 import { solution } from '../solution'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
-import { conflictedPaths, worktreeDir } from './worktree'
+import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
 import { activeDelivery } from './deliveries'
-import { aiReviewOn } from './review'
+import { aiReviewOn, owesFocusedReview } from './review'
 import { field, metaLine, numbered } from './facts'
 import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
@@ -243,7 +243,9 @@ function approvedField(cardId: number): string[] {
 
 // The code a delivery has built so far. A small patch is printed in full; a large one gets
 // every changed file and its line counts so review can open only what needs inspection.
-function candidateField(cardId: number): string[] {
+// A focused post-rebase review takes the file list without the patch: what it judges is the
+// intersection named beside it, not the delivery it has already passed.
+function candidateField(cardId: number, includePatch = true): string[] {
   const delivery = activeDelivery(cardId)
   if (!delivery) return []
   if (!delivery.base) {
@@ -255,14 +257,16 @@ function candidateField(cardId: number): string[] {
   const candidate = candidateOf(delivery)
   const stat = candidateStat(candidate)
   const files = candidateFileStats(candidate)
-  const patch = candidatePatch(candidate)
+  const patch = includePatch ? candidatePatch(candidate) : ''
   const command =
     delivery.worktree && delivery.branch
       ? `git diff ${delivery.base.slice(0, 12)} ${delivery.branch}`
       : `git diff ${delivery.base.slice(0, 12)}`
   const shown = files?.length ? ['changed files:', ...files.map((file) => `  ${file}`)] : ['no file changed']
   let diff: string[] = []
-  if (patch === null) diff = ['', 'the diff could not be read']
+  if (!includePatch) {
+    diff = ['', `patch omitted for this focused rebase review; open \`${command}\` only where the target changes interact.`]
+  } else if (patch === null) diff = ['', 'the diff could not be read']
   else if (patch.length > MAX_REVIEW_DIFF) {
     const where = delivery.worktree
       ? `the full patch is \`${command}\``
@@ -274,6 +278,35 @@ function candidateField(cardId: number): string[] {
     ...shown,
     ...diff,
     ...(!delivery.worktree ? ['this is the shared working tree; report changes that do not belong to the delivery.'] : []),
+  ])
+}
+
+// A rebase that put the target's own changes next to the delivery's, in a file both
+// touched (#415). The delivery itself already passed, so the job is how the two interact —
+// and nothing here repeats the approved requirements, the card's steps or its questions.
+//
+// Empty for a disjoint rebase, which starts no review at all, and for a review that has
+// already passed since the rebase — that one is the ordinary full pass.
+function rebaseReviewField(cardId: number): string[] {
+  const delivery = activeDelivery(cardId)
+  const landing = delivery?.landing
+  if (!delivery?.base || !delivery.branch || !delivery.worktree || !landing?.rebasedFrom || !owesFocusedReview(delivery)) {
+    return []
+  }
+  const dir = worktreeDir(delivery.worktree)
+  const arrived = changedPaths(landing.rebasedFrom, delivery.base, dir)
+  const ours = changedPaths(delivery.base, delivery.branch, dir)
+  const theirs = new Set(arrived ?? [])
+  const shared = arrived && ours ? ours.filter((file) => theirs.has(file)) : null
+  const was = landing.rebaseKind === 'conflict' ? 'a conflict an agent resolved' : 'a clean rebase'
+  return field('scope', [
+    `focused post-rebase review after ${was} — this delivery already passed, and that verdict stands.`,
+    `judge how ${delivery.targetBranch} changed since ${landing.rebasedFrom.slice(0, 12)} and how that interacts with the delivery — not the delivery's own design.`,
+    `target delta: \`git diff ${landing.rebasedFrom.slice(0, 12)} ${delivery.base.slice(0, 12)}\`.`,
+    shared?.length
+      ? `shared path${shared.length === 1 ? '' : 's'}: ${shared.join(', ')}.`
+      : 'shared paths could not be read — inspect both diffs.',
+    'rerun only the checks these paths affect; rely on the previous pass for everything else.',
   ])
 }
 
@@ -545,13 +578,21 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // run that wrote it, because a reviewer that reads the implementer's reasoning
     // agrees with it.
     case 'review': {
-      facts.push(...approvedField(req.id!))
-      facts.push(...workspaceField(req.id!))
-      facts.push(...candidateField(req.id!))
-      facts.push(...reviewField(req.id!))
-      facts.push(...stepsField(card!))
-      facts.push(...notesField(card!))
-      facts.push(...questionsField(card!.meta))
+      const focused = rebaseReviewField(req.id!)
+      if (focused.length) {
+        facts.push(...workspaceField(req.id!))
+        facts.push(...focused)
+        facts.push(...candidateField(req.id!, false))
+        facts.push(...reviewField(req.id!))
+      } else {
+        facts.push(...approvedField(req.id!))
+        facts.push(...workspaceField(req.id!))
+        facts.push(...candidateField(req.id!))
+        facts.push(...reviewField(req.id!))
+        facts.push(...stepsField(card!))
+        facts.push(...notesField(card!))
+        facts.push(...questionsField(card!.meta))
+      }
       close.push(
         `finish successfully with no new question when the work is ready — that passes review`,
         `append a question to #${req.id} by \`akb guide update-questions\` only when a genuine user-owned decision blocks landing; then stop`,

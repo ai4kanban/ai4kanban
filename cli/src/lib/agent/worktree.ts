@@ -357,9 +357,13 @@ export const isAncestor = (older: string, newer: string, cwd = REPO_ROOT): boole
 export const stagedPaths = (cwd = REPO_ROOT): string[] =>
   (git(['diff', '--cached', '--name-only', ...outsideBoard()], cwd) ?? '').split('\n').filter(Boolean)
 
-/** The files one delivery's work touches, for the overlap warning. */
-export const changedPaths = (base: string, branch: string, cwd = REPO_ROOT): string[] =>
-  (git(['diff', '--name-only', base, branch, ...outsideBoard()], cwd) ?? '').split('\n').filter(Boolean)
+/** The files between two commits, or null when git would not answer. The two are told
+ *  apart deliberately: a landing decides what to review from this, and an unreadable
+ *  comparison read as an empty one would land work nothing had judged. */
+export const changedPaths = (base: string, branch: string, cwd = REPO_ROOT): string[] | null => {
+  const out = git(['diff', '--name-only', base, branch, ...outsideBoard()], cwd)
+  return out === null ? null : out.split('\n').filter(Boolean)
+}
 
 /** Squash everything this branch has since `base` into ONE commit on top of it.
  *

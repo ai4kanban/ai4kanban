@@ -12,6 +12,7 @@ import { boardText, rel } from '../paths'
 import { agentMemoryBlock, findSpecAgent, specHeading, specAgentInstructions, specAgentSelector } from '../agents'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery } from './deliveries'
+import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { skillCall } from './resolve'
@@ -391,6 +392,18 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // cannot work out for itself — you did not build this, so do not go looking for the
     // run that did.
     case 'review':
+      // A rebase put the target's own changes beside work that already passed (#415). The
+      // ask has to say so, or the run goes looking for approved requirements the flow
+      // deliberately leaves out and judges the delivery a second time.
+      if (owesFocusedReview(activeDelivery(req.id!))) {
+        return [
+          `${kb}. Task ${req.id} ${named} is landing, and its rebase put the target branch's own changes beside a delivery that already passed review.`,
+          `\`${command} delivery review ${req.id} --print\` names the target delta and the paths both changed.`,
+          `You did not build this. Do not read the run that wrote it.`,
+          `Judge only how those changes interact, following \`akb guide review\` — not the delivery's own design, which stands. Fix plain mistakes and rerun the checks those paths affect. If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`,
+          `Don't ask me questions with human-in-the-loop — the card's validated open question is how you defer to me.`,
+        ].join(' ')
+      }
       return [
         `${kb}. Review task ${req.id} ${named} — judge what the delivery in flight on it has built against the card as it was approved, following \`akb guide review\`.`,
         `\`${command} delivery review ${req.id} --print\` supplies the approved requirements, changed-file summary and small diff.`,
@@ -407,7 +420,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Task ${req.id} ${named} is landing, and its rebase onto the target branch stopped on a conflict.`,
         `\`${command} delivery conflict ${req.id} --print\` names the conflicted files, both cards and both diffs.`,
-        `Resolve every conflicted file in the delivery's worktree so both cards' intent survives, \`git add\` each one, and stop there — the board finishes the rebase and lands it, with no review after this run.`,
+        `Resolve every conflicted file in the delivery's worktree so both cards' intent survives, \`git add\` each one, and stop there — the board finishes the rebase, then reviews your resolution before it lands.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'resolve':
