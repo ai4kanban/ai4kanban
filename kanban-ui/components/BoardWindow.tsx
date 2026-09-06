@@ -19,7 +19,6 @@ import { UsageDisclosure } from "./Privacy";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import {
-  GoalNotice,
   leftSetup,
   needsFirstRun,
   SetupFlow,
@@ -155,6 +154,8 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
       openIds={board?.openIds ?? []}
       memoryModules={board?.memoryModules ?? []}
       goalWritten={board?.goalWritten ?? false}
+      goalOffered
+      onGoalSaved={chrome.refresh}
       running={chrome.running}
       onBoardChanged={boardChanged}
       header={
@@ -175,6 +176,8 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
           // A card written while a version is on screen ships in that version.
           createRelease={chrome.release}
           goalWritten={board?.goalWritten ?? false}
+          goalOffered
+          onGoalSaved={chrome.refresh}
           desktop={machine.desktop}
         />
       }
@@ -184,7 +187,7 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
   );
 }
 
-/** The app's own three bands inside the board's body, each drawn where it belongs. */
+/** The app's own two bands inside the board's body, each drawn where it belongs. */
 function BoardStrips({ at, screen, ...chrome }: BoardChrome & { at: StripPlace }) {
   const machine = useAppMachine();
   const flow = useFlow();
@@ -193,9 +196,6 @@ function BoardStrips({ at, screen, ...chrome }: BoardChrome & { at: StripPlace }
   // How this board is being run, when that is worth saying: a newer app inside the app, a
   // pointer to the app in a browser (#175).
   if (at === "head") return <RunningNotice desktop={machine.desktop} />;
-
-  // The goal ask (#53). The board decides when it applies; this is the editor behind it.
-  if (at === "notice") return <GoalNotice onSaved={chrome.refresh} />;
 
   // The way back into an unfinished setup, and — once its questions are answered — the
   // offer to finish the rest here (#172, #173).

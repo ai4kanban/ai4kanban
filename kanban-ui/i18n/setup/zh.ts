@@ -10,7 +10,6 @@ const zh: SetupCopy = {
     exit: "进入看板",
     projectSettled: (name) => name,
     goalWritten: "已填写",
-    goalSkipped: "稍后再填",
   },
   stepTitles: { project: "项目", goal: "目标", agent: "Agent" },
   reading: "正在读取看板…",
@@ -94,8 +93,6 @@ const zh: SetupCopy = {
   done: {
     title: "设置完成",
     blurb: "正在自动完成剩余设置。你可以查看进度，或直接进入看板。",
-    goalFirst: "**请先填写目标。** 剩余设置将以此为依据。",
-    writeGoal: "填写目标",
     finish: "完成设置",
     starting: "启动中…",
     open: "打开看板",
@@ -117,13 +114,6 @@ const zh: SetupCopy = {
     addSkill: "添加 Skill",
     addSkillHint: "添加后 Agent 才能访问看板",
     meter: (done, total) => `设置进度：${done}/${total}`,
-  },
-  goalNotice: {
-    tag: "项目目标",
-    body: "**项目目标缺失或不明确。** 请补充后再规划任务。",
-    write: "填写目标",
-    dismiss: "知道了",
-    dismissHint: "暂时隐藏",
   },
   handover: {
     open: "改用编码 Agent 完成设置",

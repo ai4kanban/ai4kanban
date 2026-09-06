@@ -18,9 +18,11 @@ setup is finished.
 - Only the final `tasks` step may create cards while setup is unfinished.
 - If an older checklist still has an unticked `config` step, keep the scaffolded defaults
   unless the project clearly requires a change, then tick it.
-- Ask the user only for the goal. Classify any other blocking decision with `akb guide
-  update-questions` and put a resulting `[user]` question on the setup questions card;
-  `setup-status` prints its id.
+- Never stop for an answer, the goal included. Classify any blocking decision with
+  `akb guide update-questions` and put a resulting `[user]` question on the setup questions
+  card; `setup-status` prints its id.
+- A missing or empty goal is not a blocker. The steps after it read the repository instead,
+  and none of them writes a goal the user did not give.
 
 ## The first-run conversation
 
@@ -49,9 +51,10 @@ Fill the project name and description in `docs/kanban/config.md`. Then `setup-do
 
 ## `goal`
 
-Ask the user for the long-term outcome and broad priority order. Save their words in
-`docs/kanban/memory/goal.md`, set `reviewed` to `strong`, `good`, or `weak`, then
-`setup-done goal`. If they provide no goal, stop.
+The board app normally completes this step. From a coding agent, ask once for the
+long-term outcome and broad priority order, and save the answer in
+`docs/kanban/memory/goal.md`. Then `setup-done goal` either way — no answer ticks the box
+too, and `goal.md` is left empty. Never write a goal the user did not give.
 
 ## `agent`
 
@@ -60,23 +63,30 @@ the app can select its own Agent later.
 
 ## `decisions`
 
-Write at most five high-level planning decisions not already answered by the goal to
-`docs/kanban/memory/decisions.md` as `**<key>**: <decision>`. Ignore non-blocking content
+Write at most five high-level planning decisions to `docs/kanban/memory/decisions.md` as
+`**<key>**: <decision>`. Take them from the repository scan — README, package files,
+folder structure — and from the goal when there is one. Write only what the scan supports;
+a repository that shows nothing gets no decisions. Ignore non-blocking content
 discrepancies. Then `setup-done decisions`.
 
 ## `modules`
 
 Write at most five user-visible parts to `docs/kanban/modules.md` as
-`<module>: <purpose>`. Run `akb raw init`, then move each module-specific decision to
-that module's `decisions.md`; keep cross-module decisions at project level. Then
+`<module>: <purpose>`, read off the same scan. Write only the parts the repository
+actually shows. Run `akb raw init`, then move each module-specific decision to that
+module's `decisions.md`; keep cross-module decisions at project level. Then
 `setup-done modules`.
 
 ## `tasks`
 
-Choose exactly three clear, non-duplicate foundational tasks from the goal, decisions, and
-modules. Read `akb guide add-task` once and create each as a seed card: metadata plus one
-short opening paragraph. Do not write `## Scope` or `## Todo`, and do not start refinement.
-Then `setup-done tasks`.
+Choose exactly three clear, non-duplicate foundational tasks from the repository scan, the
+decisions, the modules, and the goal when there is one. Read `akb guide add-task` once and
+create each as a seed card: metadata plus one short opening paragraph. Do not write
+`## Scope` or `## Todo`, and do not start refinement. Then `setup-done tasks`.
+
+When the scan found nothing to build from — no README, no package file, nothing in the
+tree — create no card and tick the box anyway. An empty board is the honest answer, and the
+board offers the user the first card itself.
 
 ## Finish
 

@@ -1,4 +1,4 @@
-/** The guided first run, the two notices the board keeps once it is over, and the
+/** The guided first run, the strip the board keeps while setup is unfinished, and the
  *  two screens a board that can't be read falls back to. */
 export type SetupCopy = {
   rail: {
@@ -9,7 +9,6 @@ export type SetupCopy = {
     /** What each step has settled, under its name in the rail. */
     projectSettled: (name: string) => string;
     goalWritten: string;
-    goalSkipped: string;
   };
   /** The rail's short name for each step. The checklist's own names are the
    *  script's and stay as they are. */
@@ -105,9 +104,6 @@ export type SetupCopy = {
   done: {
     title: string;
     blurb: string;
-    /** The goal was left for later and every step left is planned from it. */
-    goalFirst: string;
-    writeGoal: string;
     /** Start the setup run: the board's own strip offers it, and the closing screen
      *  offers it again after one failed. */
     finish: string;
@@ -132,13 +128,6 @@ export type SetupCopy = {
     addSkill: string;
     addSkillHint: string;
     meter: (done: number, total: number) => string;
-  };
-  goalNotice: {
-    tag: string;
-    body: string;
-    write: string;
-    dismiss: string;
-    dismissHint: string;
   };
   handover: {
     open: string;

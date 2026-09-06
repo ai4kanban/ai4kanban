@@ -12,10 +12,10 @@
 //   shell    drawn AROUND the screen — the app's window and top row. It may also draw
 //            something else entirely instead of the board, which is how the guided first run
 //            takes the whole screen.
-//   strips   the app's own bands, drawn INSIDE the body at the three places they belong:
-//            `head` above everything, `notice` under the error strip, `foot` under the
-//            columns. They are the app's because each one leads somewhere only this machine
-//            has — the download page, the goal editor, the setup run.
+//   strips   the app's own bands, drawn INSIDE the body at the two places they belong:
+//            `head` above everything, `foot` under the columns. They are the app's because
+//            each one leads somewhere only this machine has — the download page, the setup
+//            run.
 //
 // A caller that passes neither gets the board and nothing else. A caller that passes no
 // actions gets the same board, read-only: every control that would write is gone rather
@@ -24,12 +24,13 @@
 import { type ComponentType, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
+import { createSheet } from "@/lib/create-open";
 import { filterColumns, hasOwnCards, useReleasePick, type ReleasePick } from "@/lib/release-pick";
 import { useActions, type ReleaseClosed, type ReleaseMade, type StartAnswer, type StripPlace } from "@/lib/screen";
 import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
 import { OpenIdsProvider } from "./open-ids";
 import { SolutionProvider } from "./solution";
-import { QueueView } from "./Queue";
+import { EmptyBoard, QueueView } from "./Queue";
 import { SessionLogOverlay, stoppedShort } from "./agent-shared";
 import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
 
@@ -104,6 +105,11 @@ export function Board({
   // that second half a board whose every card is planned reads the same as a
   // board with no cards at all, and only one of those is worth a note.
   const emptyPick = !hasOwnCards(columns) && hasOwnCards(board?.columns ?? []);
+  // Nothing on the board at all (#437): setup finished without writing a seed card, or every
+  // card has been archived. Not while setup is still running — the run is writing them, and
+  // the strip under the columns already says so — and not while a release is being filled,
+  // which is the same "cards are on their way" said about a version.
+  const noCards = Boolean(board) && !board?.setup && !hasOwnCards(board?.columns ?? []);
 
   // The board comes back with its reason attached rather than thrown (#169): a board whose
   // copy of the rules is missing or too old can't be read at all, and a thrown error from a
@@ -385,12 +391,6 @@ export function Board({
             </div>
           )}
 
-          {/* The goal ask (#53), which rides on nothing: a board long set up can
-              have its goal judged weak again, and that is not setup. It drops out
-              with the next board refresh — the same one that already runs on
-              session finish and tab focus — so it moves as the files do. */}
-          {Strip && board && !board.setup && board.goalNeedsWork && <Strip {...chrome} at="notice" />}
-
           {!board && !error && (
             <div className="p-10 text-nb-ink-soft">{c.reading}</div>
           )}
@@ -464,9 +464,13 @@ export function Board({
             </div>
           )}
 
-          {board && (
+          {board && noCards && !planSessionId ? (
+            // The offer only where a card can actually be written: a read-only caller has
+            // no create sheet to open.
+            <EmptyBoard onCreate={actions ? () => createSheet.open() : undefined} />
+          ) : board ? (
             <QueueView columns={columns} sessions={sessions} onOpenLog={setLogSessionId} />
-          )}
+          ) : null}
 
           {/* Setup left unfinished (#172, #173) — the app's own strip, under the columns
               rather than over them: the cards are what the board is for, and a strip this

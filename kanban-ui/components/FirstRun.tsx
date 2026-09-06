@@ -73,7 +73,8 @@ export function FirstRun({
   onAgentChanged: (agent: AgentInfo) => void;
   /** A box was ticked: re-read the board, and move on. */
   onSaved: () => void;
-  /** The goal is being left for later. It ticks nothing, and the run moves on. */
+  /** The goal is being left for later — an answer (#437): it ticks the step, leaves
+   *  `goal.md` empty, and the run moves on. */
   onSkipGoal: () => void;
   /** This board cannot hold the conversation — rules too old, or an agent that can't
    *  resume a session. The project screen that exists today takes over. */

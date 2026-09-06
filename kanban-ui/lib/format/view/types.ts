@@ -485,11 +485,9 @@ export interface Board {
    *  cards in no release. Counted over every open card — subtasks answer for themselves —
    *  so it is the number `release list` prints. A release with nothing open is absent. */
   releaseCounts: Record<string, number>
-  /** True when the board should ask for a goal: `memory/goal.md` is missing or empty, or
-   *  the agent judged what's in it `weak`. */
-  goalNeedsWork: boolean
   /** True when `memory/goal.md` holds the user's own words, so a goal button has something
-   *  to open. */
+   *  to open. False offers an empty box instead — the goal is optional, and nothing on the
+   *  board asks for one (#437). */
   goalWritten: boolean
   /** The modules the memory panel offers, in the map's order (#130). Empty on a board whose
    *  map names none — then the panel is the project's four files and nothing else. */

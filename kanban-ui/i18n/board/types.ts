@@ -34,6 +34,9 @@ export type BoardCopy = {
     recurring: string;
     /** A column with nothing on this side of the split. */
     empty: string;
+    /** A board holding no card at all (#437) — the panel that stands in for the columns,
+     *  and the offer of the first card. */
+    emptyBoard: { title: string; blurb: string; create: string };
     /** The columns as a swipe, at phone width (#357): what the row is, and the dot that
      *  jumps to one of them. */
     columns: string;

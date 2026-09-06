@@ -56,9 +56,10 @@ export interface TickResult {
 // already done by the time the file is written, `agent` needs a run that reads the repo and
 // thinks, `you` is the user's own. The three `you` steps come first and in one block: they
 // are what only the user knows, and the local UI settles them on its guided first run — the
-// agent picked, then a conversation, then the goal (#172, #280). It reads the owner to
-// decide whether it can ask for a step itself or has to hand it to a coding agent; it never
-// learns the names of the steps.
+// agent picked, then a conversation, then the goal (#172, #280) — where leaving the goal
+// for later is an answer, and ticks the box on an empty `goal.md` (#437). It reads the
+// owner to decide whether it can ask for a step itself or has to hand it to a coding
+// agent; it never learns the names of the steps.
 //
 // `agent` is a step because a board that ticked every box without one can't run anything:
 // the steps below it are agent runs, and so is every button on the board.
@@ -68,7 +69,7 @@ export const SETUP_STEPS: SetupStep[] = [
   { name: 'project', owner: 'you', text: 'Say what this project is, in `docs/kanban/config.md`.' },
   { name: 'goal', owner: 'you', text: 'Write the project goal in `docs/kanban/memory/goal.md`.' },
   { name: 'agent', owner: 'you', text: 'Pick the agent that runs this board, and give it a key.' },
-  { name: 'decisions', owner: 'agent', text: 'Settle `docs/kanban/memory/decisions.md` from the goal.' },
+  { name: 'decisions', owner: 'agent', text: 'Settle `docs/kanban/memory/decisions.md` from what the repository shows.' },
   { name: 'modules', owner: 'agent', text: 'Write `docs/kanban/modules.md`, then move each settled call into its module\'s memory.' },
   { name: 'tasks', owner: 'agent', text: 'Create the first tasks.' },
 ]
@@ -172,10 +173,10 @@ function swapConfigGateForDone(): void {
 
 // ---- the setup questions card ----------------------------------------------
 //
-// Setup never stops to ask the user anything but the goal. Every other call it can't
-// settle is appended, the moment it comes up, to one card the scaffold creates alongside
-// the checklist — created first so it takes the board's first id and sorts on top. The
-// tick that finishes setup removes the card again if nothing ever landed on it.
+// Setup never stops to ask the user anything, the goal included (#437). Every call it
+// can't settle is appended, the moment it comes up, to one card the scaffold creates
+// alongside the checklist — created first so it takes the board's first id and sorts on
+// top. The tick that finishes setup removes the card again if nothing ever landed on it.
 
 export const SETUP_QUESTIONS_SLUG = 'answer-the-questions-setup-couldnt-settle'
 const SETUP_QUESTIONS_TITLE = "Answer the questions setup couldn't settle"

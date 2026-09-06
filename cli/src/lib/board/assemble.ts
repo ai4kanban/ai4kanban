@@ -373,7 +373,6 @@ function boardFrom(read: BoardRead, now = Date.now()): Board {
     releaseCounts: countByRelease(every),
     // The goal and the memory set are the board's own and no screen here draws them; the
     // setup checklist is a run on the machine holding the board.
-    goalNeedsWork: false,
     goalWritten: false,
     memoryModules: [],
     setup: null,

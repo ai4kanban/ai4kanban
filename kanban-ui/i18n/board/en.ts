@@ -31,6 +31,11 @@ const en: BoardCopy = {
     notReady: "Not ready",
     recurring: "Recurring",
     empty: "no open cards",
+    emptyBoard: {
+      title: "The board is empty",
+      blurb: "Write down what you want to do next. The agent takes it from there.",
+      create: "Create the first card",
+    },
     columns: "Columns",
     goToColumn: (title) => `Show ${title}`,
   },

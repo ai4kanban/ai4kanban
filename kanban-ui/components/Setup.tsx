@@ -1,7 +1,7 @@
 "use client";
 
-// The guided first run (#172), and the two notices the board keeps once it is
-// over.
+// The guided first run (#172), and the strip the board keeps while setup is
+// unfinished.
 //
 // Setting a board up used to mean copying a line into a coding agent and hoping.
 // The board asks for what only the user knows itself — which agent does the work,
@@ -27,7 +27,8 @@
 //   • Every answer starts on something sensible — what the agent read off the
 //     repo — so someone in a hurry
 //     can press through and still end up with a working board. The goal is the
-//     exception: it is asked, never drafted.
+//     exception: it is asked, never drafted — and Skip for now is a real answer
+//     (#437), which ticks its box and leaves `goal.md` empty.
 //   • The agent step can't be pressed past. Setup says it is finished by deleting
 //     its checklist, and the steps after this flow are agent runs, so a board that
 //     finished setup without an agent was never set up. That step ends on one
@@ -38,12 +39,13 @@
 // user got, so closing the window and coming back lands on the same screen.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FiCheck, FiChevronUp, FiCopy, FiFlag, FiPlay, FiTerminal, FiX } from "react-icons/fi";
+import { FiCheck, FiChevronUp, FiCopy, FiPlay, FiTerminal } from "react-icons/fi";
 import {
   finishSetupAgentStepAction,
   getSetupDraftAction,
   saveGoalAction,
   saveSetupProjectAction,
+  skipSetupGoalAction,
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -61,7 +63,6 @@ import { Button } from "./button";
 import { configDialog, HarnessPicker } from "./Configuration";
 import { DiscardNewBoard } from "./desktop";
 import { FirstRun } from "./FirstRun";
-import { GoalEditor } from "./Goal";
 import { GuideDrawer } from "./Guide";
 import { Header } from "./Header";
 import { sessionsPanel } from "./sessions";
@@ -96,10 +97,10 @@ export function needsFirstRun(setup: SetupState | null): boolean {
 }
 
 /** Is there anything in the run still worth reopening it for? Any unanswered
- *  step, the skipped goal included — which is why this is a different question
- *  from the one above. The run stops opening ITSELF once the agent is picked and
- *  the project is written, but a goal left for later has to stay one click away,
- *  or skipping it would mean losing the only way back to it until setup ends. */
+ *  step — which is why this is a different question from the one above, which stops
+ *  opening the run ITSELF once the agent is picked and the project is written.
+ *  Skipping the goal answers its step (#437), so it is not one of these: the way back
+ *  to the goal is the header's own entry, on the board, from then on. */
 export function setupHasQuestionsLeft(setup: SetupState | null): boolean {
   return Boolean(setup) && guidedSteps(setup as SetupState).some((s) => !s.done);
 }
@@ -112,12 +113,9 @@ export function setupHasQuestionsLeft(setup: SetupState | null): boolean {
 // over now offer it, with the line to paste beside the offer rather than instead
 // of it.
 //
-// The two things that stand in for the offer, and why:
-//
-//   • a run already going — one at a time, so the second press has nothing to do
-//     but watch the first
-//   • no goal written — nothing after the goal can be planned from a goal nobody
-//     wrote, so a run started there would stop on its first step
+// One thing stands in for the offer: a run already going — one at a time, so the
+// second press has nothing to do but watch the first. A goal nobody wrote does not
+// (#437); the steps that are left read the repository.
 
 /** Start the setup run, holding what the press is doing and what it answered. The
  *  two screens share it because they are the same press in two places. */
@@ -138,14 +136,6 @@ function useFinishSetup(onStart: () => Promise<StartAnswer>) {
     }
   }, [onStart, c]);
   return { start, starting, error };
-}
-
-/** Is the goal still unwritten? Then the offer asks for it instead. A checklist
- *  with no goal box at all — one written by an older version — can't be asked, so
- *  it never stands in the way. */
-function goalMissing(setup: SetupState): boolean {
-  const goal = setup.steps.find((s) => s.name === "goal");
-  return Boolean(goal && !goal.done);
 }
 
 /** The way into a setup run that is already going — shown wherever the offer
@@ -259,9 +249,6 @@ export function SetupFlow({
   });
   const [draft, setDraft] = useState<SetupDraft | null>(null);
   const [readError, setReadError] = useState<string | null>(null);
-  // The goal left for later. Kept for this run only — it changes nothing on disk,
-  // it just stops the flow from parking on a screen the user walked past.
-  const [goalSkipped, setGoalSkipped] = useState(false);
   // What a header control couldn't save — surfaced here, where the user is.
   const [chromeError, setChromeError] = useState<string | null>(null);
   // The user stepped off the conversation onto the screens that exist today (#280), or the
@@ -309,10 +296,17 @@ export function SetupFlow({
       .catch(() => {});
     advance();
   }, [onSaved, advance]);
-  const skipGoal = useCallback(() => {
-    setGoalSkipped(true);
+  // Skip for now is an answer (#437): the box is ticked and `goal.md` is left empty, so the
+  // run that finishes setup starts straight away and nothing comes back to ask again. The
+  // tick lands before the screen moves — the closing screen starts that run on arrival, and
+  // it must not go out on a checklist whose first unticked step is the one just answered.
+  // A tick that failed is bookkeeping, not a reason to hold the user on a question they
+  // have answered, so the screen moves on either way.
+  const skipGoal = useCallback(async () => {
+    await skipSetupGoalAction().catch(() => {});
+    onSaved();
     advance();
-  }, [advance]);
+  }, [advance, onSaved]);
   const backToAgent = useCallback(() => {
     const at = steps.findIndex((s) => s.name === "agent");
     if (at >= 0) setIndex(at);
@@ -376,7 +370,6 @@ export function SetupFlow({
           index={index}
           draft={draft}
           agent={agent}
-          goalSkipped={goalSkipped}
           onGo={setIndex}
           onExit={onExit}
           canDiscard={canDiscard}
@@ -409,13 +402,9 @@ export function SetupFlow({
               {draft && step?.name === "goal" && (
                 <GoalStep
                   initial={draft.goal}
-                  onSkip={() => {
-                    setGoalSkipped(true);
-                    advance();
-                  }}
+                  onSkip={skipGoal}
                   onSaved={(text) => {
                     setDraft({ ...draft, goal: text });
-                    setGoalSkipped(false);
                     onSaved();
                     advance();
                   }}
@@ -440,13 +429,6 @@ export function SetupFlow({
                   runId={setupRunId}
                   failedRunId={failedSetupRunId}
                   onStart={onFinishSetup}
-                  // The goal was left for later, and the run needs it. Back to
-                  // that screen rather than a second goal box here: the one on
-                  // the goal step is the flow's own, and it ticks the box.
-                  onWriteGoal={() => {
-                    const at = steps.findIndex((s) => s.name === "goal");
-                    if (at >= 0) setIndex(at);
-                  }}
                   onExit={onExit}
                 />
               )}
@@ -476,7 +458,6 @@ function StepRail({
   index,
   draft,
   agent,
-  goalSkipped,
   onGo,
   onExit,
   canDiscard,
@@ -485,7 +466,6 @@ function StepRail({
   index: number;
   draft: SetupDraft | null;
   agent: AgentInfo;
-  goalSkipped: boolean;
   onGo: (index: number) => void;
   onExit: () => void;
   /** Whether the folder this board was made in can still be given back. */
@@ -497,10 +477,10 @@ function StepRail({
     if (name === "project") {
       return draft.project.name ? c.rail.projectSettled(draft.project.name) : "";
     }
-    if (name === "goal") {
-      if (draft.goal.trim()) return c.rail.goalWritten;
-      return goalSkipped ? c.rail.goalSkipped : "";
-    }
+    // A skipped goal ticks its box and says nothing beside it (#437): a step answered by
+    // choosing not to is still answered, and a word for it here would be the flow marking
+    // the user down.
+    if (name === "goal") return draft.goal.trim() ? c.rail.goalWritten : "";
     if (name === "agent") {
       return agent.options.find((o) => o.name === agent.name)?.label ?? agent.name;
     }
@@ -773,8 +753,8 @@ function AgentStep({
 // the run works down them, and the way to watch it or leave it going.
 //
 // It starts once. A run that stopped short says so and offers the press again — a screen
-// that restarted a failing run by itself would loop — and a board whose goal was left for
-// later asks for that first, since nothing after the goal can be planned without one.
+// that restarted a failing run by itself would loop. Nothing else holds it: a goal left for
+// later is an answer (#437), and the steps that are left read the repository.
 //
 // The line to paste into a coding agent is not here: the frame's own fold at the foot of
 // every setup screen carries it, and it was the same two elements twice.
@@ -783,19 +763,16 @@ function DoneStep({
   runId,
   failedRunId,
   onStart,
-  onWriteGoal,
   onExit,
 }: {
   setup: SetupState;
   runId: string | null;
   failedRunId: string | null;
   onStart: () => Promise<StartAnswer>;
-  onWriteGoal: () => void;
   onExit: () => void;
 }) {
   const c = useCopy().setup.done;
   const { start, starting, error } = useFinishSetup(onStart);
-  const noGoal = goalMissing(setup);
   // The steps left when this screen opened, held by name so the list ticks in place rather
   // than shrinking away under the reader as the run works down it.
   const [plan] = useState(() => setup.steps.filter((s) => !s.done).map((s) => s.name));
@@ -808,10 +785,10 @@ function DoneStep({
   // Started here, once, on arrival — never again, whatever the answer was.
   const began = useRef(false);
   useEffect(() => {
-    if (began.current || noGoal || runId || failedRunId) return;
+    if (began.current || runId || failedRunId) return;
     began.current = true;
     void start();
-  }, [noGoal, runId, failedRunId, start]);
+  }, [runId, failedRunId, start]);
 
   return (
     <StepBody title={c.title} blurb={c.blurb}>
@@ -840,18 +817,9 @@ function DoneStep({
         </ul>
       )}
 
-      {/* What the run is doing, or the one thing standing in its way. */}
+      {/* What the run is doing. */}
       <div className="mt-5 nb-panel-sm p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
-        {noGoal ? (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
-            <span className="min-w-0 flex-1">
-              <Rich>{c.goalFirst}</Rich>
-            </span>
-            <Button size="sm" className="shrink-0" onClick={onWriteGoal}>
-              {c.writeGoal}
-            </Button>
-          </div>
-        ) : runId ? (
+        {runId ? (
           <WatchingSetup runId={runId} />
         ) : failedRunId || error ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
@@ -884,7 +852,7 @@ function DoneStep({
   );
 }
 
-// ---- the board's own notices -----------------------------------------------
+// ---- the board's own strip -------------------------------------------------
 
 /** The way back into an unfinished setup, on the board itself (#172). A plain
  *  strip under the columns, not a card floating in a corner: the corner card
@@ -911,9 +879,7 @@ export function SetupNotice({
   failedSetupRunId: string | null;
   /** Start one. */
   onFinishSetup: () => Promise<StartAnswer>;
-  /** Reopen the guided run. Absent when there is nothing left in it to ask —
-   *  which is also how this strip knows the goal is written, since the goal is
-   *  the one question of the run that can be walked past. */
+  /** Reopen the guided run. Absent when there is nothing left in it to ask. */
   onResume?: () => void;
 }) {
   const t = useCopy();
@@ -921,8 +887,8 @@ export function SetupNotice({
   const { finish: finishLabel, starting: startingLabel } = t.setup.done;
   const { start, starting, error } = useFinishSetup(onFinishSetup);
   // The offer stands only once the run's own questions are answered. While one is
-  // outstanding it is the goal — nothing after it can be planned — and Continue
-  // setup is the way back to it, so the two would be the same press said twice.
+  // outstanding, Continue setup is the way back to it, so the two would be the same
+  // press said twice.
   const canFinish = !onResume;
   return (
     <div
@@ -986,69 +952,6 @@ export function SetupNotice({
     </div>
   );
 }
-
-/** The goal ask, long after setup (#53, #108): `goal.md` is empty, or an agent
- *  judged what is in it too vague to plan from. It rides on nothing — a board
- *  asking for a goal is not a board in setup — and the ✕ hides it for the
- *  browser session, since a board that otherwise works shouldn't carry a band it
- *  can't put down. */
-export function GoalNotice({ onSaved }: { onSaved: () => void }) {
-  // Start hidden and reveal after mount: sessionStorage doesn't exist during SSR,
-  // so reading it in the first render would mismatch the server's markup.
-  const c = useCopy().setup.goalNotice;
-  const [dismissed, setDismissed] = useState(true);
-  const [editing, setEditing] = useState(false);
-  useEffect(() => {
-    setDismissed(sessionStorage.getItem(GOAL_DISMISS_KEY) === "1");
-  }, []);
-
-  if (dismissed) return null;
-  return (
-    <div
-      className="mx-4 mt-4 nb-panel-sm p-3 text-[13px] sm:mx-6"
-      style={{ background: "var(--color-nb-accent-soft)" }}
-    >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="nb-tag shrink-0">
-          {/* `.nb-tag` sets its own ink, so the one bit of accent goes on the icon. */}
-          <FiFlag className="h-[12px] w-[12px]" style={{ color: "var(--color-nb-accent)" }} aria-hidden />
-          {c.tag}
-        </span>
-        <span className="min-w-0 flex-1 text-nb-ink-soft [&_strong]:text-nb-ink">
-          <Rich>{c.body}</Rich>
-        </span>
-        <Button size="sm" className="shrink-0" onClick={() => setEditing(true)}>
-          {c.write}
-        </Button>
-        <button
-          onClick={() => {
-            sessionStorage.setItem(GOAL_DISMISS_KEY, "1");
-            setDismissed(true);
-          }}
-          aria-label={c.dismiss}
-          title={c.dismissHint}
-          className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/8 hover:text-nb-ink active:scale-90"
-        >
-          <FiX className="h-[14px] w-[14px]" />
-        </button>
-      </div>
-
-      {editing && (
-        <GoalEditor
-          onClose={() => setEditing(false)}
-          onSaved={() => {
-            setEditing(false);
-            // A saved goal is written and `reviewed: pending`, so the re-read
-            // clears this on its own.
-            onSaved();
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-const GOAL_DISMISS_KEY = "kanban-ui.goal-notice-dismissed";
 
 /** Did the user step out of the flow to look at the board? Session-only. */
 export const leftSetup = {

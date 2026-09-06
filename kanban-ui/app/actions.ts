@@ -589,6 +589,14 @@ export async function saveGoalAction(text: string): Promise<WriteResult> {
   return saveGoal(text);
 }
 
+// Leaving the goal for later IS an answer to setup's goal step (#437): the box is ticked and
+// `goal.md` stays empty. Nothing after the goal is planned from it any more, so a step left
+// open would only park the flow on a screen the user has already walked past — and hold up
+// the run that finishes setup.
+export async function skipSetupGoalAction(): Promise<WriteResult> {
+  return finishSetupStep("goal");
+}
+
 // ---- the guided first run (#172) --------------------------------------------
 //
 // Three of setup's steps are the user's own — which agent runs the board, what the project
@@ -631,11 +639,11 @@ export async function finishSetupAgentStepAction(): Promise<WriteResult & { agen
 // be stopped, and the board re-reads itself when it ends. It does every step still unticked,
 // so a run started again after a failure carries on rather than redoing what finished.
 //
-// The two refusals are here rather than in the button, which is drawn from a board read that
-// can be a poll behind: a board someone else has already finished setting up, and a board
-// with no goal — nothing after the goal can be planned from a goal nobody wrote, so a run
-// started there would stop on its first step and read as a failure. The board being busy
-// with another setup run is the CLI's refusal, in the one place that sees every run.
+// One refusal, and it is here rather than in the button, which is drawn from a board read
+// that can be a poll behind: a board someone else has already finished setting up. An
+// unwritten goal is no longer a second one (#437) — the steps left read the repository, so
+// a board whose goal nobody wrote finishes setup like any other. The board being busy with
+// another setup run is the CLI's refusal, in the one place that sees every run.
 export async function startSetupRunAction(): Promise<StartResult> {
   let setup: Awaited<ReturnType<typeof readSetupState>>;
   try {
@@ -644,10 +652,6 @@ export async function startSetupRunAction(): Promise<StartResult> {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
   if (!setup) return { ok: false, error: "this board is already set up" };
-  const goal = setup.steps.find((s) => s.name === "goal");
-  if (goal && !goal.done) {
-    return { ok: false, error: (await machineCopy()).messages.actions.goalFirst };
-  }
   const req: AgentRequest = { action: "setup" };
   return startSession(req, await buildPrompt(req));
 }

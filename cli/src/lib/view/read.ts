@@ -34,7 +34,7 @@ import {
   dueLabel,
 } from '../board/assemble'
 import { revisionOf } from '../board/revision'
-import { goalNeedsWork, goalWritten } from './goal'
+import { goalWritten } from './goal'
 import { readMemoryModules } from './memory'
 import type { ArchiveGroup, Board, Card, CardApproval, CardStatus, SetupState, Subtask } from './types'
 
@@ -375,7 +375,6 @@ export function readBoard(): Board {
     releases: entries.map((e) => e.id),
     releaseGoals,
     releaseCounts: countByRelease(every),
-    goalNeedsWork: goalNeedsWork(),
     goalWritten: goalWritten(),
     memoryModules: readMemoryModules(),
     setup: readSetupState(),

@@ -313,9 +313,16 @@ function MemoryRows({ module, active }: { module: string; active: string | null 
 export function MoreScreen({
   projectRoot,
   goalWritten,
+  goalOffered = false,
+  onGoalSaved,
 }: {
   projectRoot: string;
   goalWritten: boolean;
+  /** Whether this row offers to write a goal that isn't there — the board's own screen
+   *  does, and no other one (#437). */
+  goalOffered?: boolean;
+  /** Re-read the board once a goal written here has saved (#437). */
+  onGoalSaved?: () => void;
 }) {
   const p = useCopy().chrome.phone;
   const c = p.more;
@@ -336,9 +343,10 @@ export function MoreScreen({
       </div>
 
       {/* The two things from the top row that a phone can still do: read what the board is
-          for, and read how it is going. Both open the very dialogs the window opens. */}
+          for — or write it, when it is empty (#437) — and read how it is going. Both open
+          the very dialogs the window opens. */}
       <div className="mt-2 flex flex-col gap-1">
-        <Goal written={goalWritten} row />
+        <Goal written={goalWritten} offer={goalOffered} row onSaved={onGoalSaved} />
         <Insights row />
       </div>
 

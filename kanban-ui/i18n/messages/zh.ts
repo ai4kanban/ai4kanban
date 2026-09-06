@@ -35,7 +35,6 @@ const zh: MessagesCopy = {
   actions: {
     noSuchCard: "这不是本看板上的卡片。",
     emptyChat: "请先写点什么再发送。",
-    goalFirst: "请先写下项目目标——之后每一步都以它为依据来规划",
     noPlan: "这次讨论还没有可以据以写卡片的方案。",
   },
   run: { noProcess: "未能为这次运行启动进程" },

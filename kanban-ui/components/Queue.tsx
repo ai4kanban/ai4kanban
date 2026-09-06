@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { usePhone } from "@/lib/media";
 import type { Card, Column, SessionView } from "@/lib/types";
 import { byQueueOrder } from "@/lib/pick-order";
 import { BoardCard } from "./BoardCard";
+import { Button } from "./button";
 import { runningSessionForCard } from "./sessions";
 
 // The board's one layout (#70, and the kanban view's removal). It answers a
@@ -69,6 +71,38 @@ const bandsFor = (columns: Column[], keep: (card: Card) => boolean): Band[] =>
 // is the screen (SwipedColumns).
 const HALF_W = "w-[min(560px,calc(100vw-2rem))]";
 const NARROW_W = "w-[min(300px,calc(100vw-2rem))]";
+
+/** A board with nothing on it (#437) — setup finished and wrote no seed card, or every card
+ *  has been archived. The columns are three empty lists saying the same thing three times,
+ *  so the body becomes one panel that says it once and offers the first card. A read-only
+ *  caller gets the panel without the offer: `onCreate` is absent there, and a button that
+ *  writes nothing is worse than no button. */
+export function EmptyBoard({ onCreate }: { onCreate?: () => void }) {
+  const c = useCopy().board.queue.emptyBoard;
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center p-4">
+      <div className="nb-panel flex w-full max-w-[460px] flex-col items-center px-10 py-9">
+        {/* Three columns with a card being added to the middle one — the board this panel
+            stands in for, one press from now. */}
+        <svg width="112" height="66" viewBox="0 0 112 66" aria-hidden>
+          <rect x="1" y="12" width="32" height="52" rx="7" fill="var(--color-nb-sheet)" stroke="var(--color-nb-ink)" strokeOpacity="0.14" strokeWidth="1.5" />
+          <rect x="40" y="12" width="32" height="52" rx="7" fill="var(--color-nb-sheet)" stroke="var(--color-nb-ink)" strokeOpacity="0.14" strokeWidth="1.5" />
+          <rect x="79" y="12" width="32" height="52" rx="7" fill="var(--color-nb-sheet)" stroke="var(--color-nb-ink)" strokeOpacity="0.14" strokeWidth="1.5" />
+          <rect x="40" y="1" width="32" height="30" rx="7" fill="var(--color-nb-paper)" stroke="var(--color-nb-ink)" strokeWidth="1.6" />
+          <path d="M56 10v12M50 16h12" stroke="var(--color-nb-accent)" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+        <h2 className="mt-5 text-[19px] font-[800] leading-tight">{c.title}</h2>
+        <p className="mt-2 text-center text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
+        {onCreate && (
+          <Button className="mt-5" onClick={onCreate}>
+            <FiPlus className="text-[15px]" aria-hidden />
+            {c.create}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function QueueView({
   columns,

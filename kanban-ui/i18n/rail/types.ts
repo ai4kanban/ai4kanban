@@ -54,6 +54,9 @@ export type RailCopy = {
   goal: {
     open: string;
     openHint: string;
+    /** The same control on an empty goal: the offer to write one, and never a demand. */
+    write: string;
+    writeHint: string;
     title: string;
     reading: string;
     editTitle: string;

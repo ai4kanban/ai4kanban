@@ -49,6 +49,8 @@ const en: RailCopy = {
   goal: {
     open: "Goal",
     openHint: "What this board is for",
+    write: "Add goal",
+    writeHint: "Say what this board is for — optional, and you can add it any time",
     title: "Goal",
     reading: "Reading goal.md…",
     editTitle: "Write the goal",

@@ -20,9 +20,10 @@
 
 import { useRouter } from "next/navigation";
 import { startPlanningAction } from "@/app/actions";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
+import { useCreateSheetRequest } from "@/lib/create-open";
 import type { SessionView } from "@/lib/types";
 import type { AgentReq } from "./agent-shared";
 import { Button } from "./button";
@@ -49,6 +50,19 @@ export function CreateTask({
   // has no box to go back to — it is said under the button instead. A refused create still
   // goes to the sheet, which is still up.
   const [error, setError] = useState<string | null>(null);
+
+  // The empty board asks for the sheet from the middle of the page (#437) — the first card
+  // is offered where the reader is looking, not by pointing at this button. Only an ask made
+  // while this row was on screen: the store outlives a page change, and a sheet opening by
+  // itself on the page someone navigated to is a box nobody pressed for.
+  const asked = useCreateSheetRequest();
+  const seen = useRef(asked);
+  useEffect(() => {
+    if (!asked || asked === seen.current) return;
+    seen.current = asked;
+    setError(null);
+    setOpen(true);
+  }, [asked]);
 
   // The rail and this screen are never both up. Pressing Chat asks for the board's
   // conversation or a card's — and on the board the sheet is already showing the board's, so

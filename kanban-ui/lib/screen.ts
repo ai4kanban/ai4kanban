@@ -156,7 +156,7 @@ export interface ScreenMachine {
  *  because each one leads somewhere only the machine holding the board has — the download
  *  page, the goal editor, the setup run — so the screens leave a place for them rather than
  *  drawing them. */
-export type StripPlace = "head" | "notice" | "foot";
+export type StripPlace = "head" | "foot";
 
 const ActionsContext = createContext<ScreenActions | null>(null);
 const MachineContext = createContext<ScreenMachine | null>(null);

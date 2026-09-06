@@ -145,7 +145,6 @@ describe('a board, assembled from one Cloud read', () => {
     assert.deepEqual(screen.board!.memoryModules, [])
     assert.equal(screen.board!.setup, null)
     assert.equal(screen.board!.goalWritten, false)
-    assert.equal(screen.board!.goalNeedsWork, false)
     assert.equal(screen.error, null)
     // The workspace, live — there is no copy here to be out of date.
     assert.equal(screen.id, 'ws-1')

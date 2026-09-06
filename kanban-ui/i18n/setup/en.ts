@@ -10,7 +10,6 @@ const en: SetupCopy = {
     exit: "Go to the board",
     projectSettled: (name) => name,
     goalWritten: "Completed",
-    goalSkipped: "Skipped",
   },
   stepTitles: { project: "Project", goal: "Goal", agent: "Agent" },
   reading: "Reading the board…",
@@ -100,9 +99,6 @@ const en: SetupCopy = {
     title: "Setup details complete",
     blurb:
       "The agent is completing the remaining setup. You can view its progress or open the board while it continues.",
-    goalFirst:
-      "**Add a project goal first.** The remaining setup uses it to plan the next steps.",
-    writeGoal: "Add project goal",
     finish: "Finish setup",
     starting: "Starting…",
     open: "Open the board",
@@ -124,13 +120,6 @@ const en: SetupCopy = {
     addSkill: "Add the skill",
     addSkillHint: "Allow the agent to access this board",
     meter: (done, total) => `Setup progress: ${done}/${total}`,
-  },
-  goalNotice: {
-    tag: "Project goal",
-    body: "**The project goal is missing or unclear.** Add a goal before planning new work.",
-    write: "Add project goal",
-    dismiss: "Dismiss",
-    dismissHint: "Hide for now",
   },
   handover: {
     open: "Complete setup in your coding agent",

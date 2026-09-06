@@ -1,71 +1,114 @@
 "use client";
 
 // The project's direction, one click from the board (#128). `docs/kanban/memory/goal.md`
-// is the file every proposal is judged against, and until now the UI only showed it while
-// the agent judged it weak — the moment it read fine it left the board for good. A quiet
-// icon beside the folder path opens the whole file, rendered.
-//
-// Reading only: the goal is written once through the first run's goal step, and
-// after that it is the file on disk (or an agent run) that changes it — the board doesn't
-// offer a second place to edit the same words.
+// is the file a proposal is judged against — optional, and nothing waits on it (#437).
 //
 // It wears the ordinary control of the top row — ink frame, hard shadow, the same object
 // as everything else there — and carries its word: a compass alone said "navigate" and
 // nothing about the goal, so it is a north star with "Goal" beside it. The label goes on a
 // narrow window, like Create task's; the mark stays, since one icon costs nothing.
 //
-// It appears only when there is something to read (`goalWritten`, lib/goal.ts): a missing
-// or empty file has nothing to open, and the guided first run — or the board's goal
-// notice — is what asks for the goal there.
+// One control, two states, both quiet:
+//
+//   • written — the star opens the file, rendered. Reading only: the words are the user's,
+//     and the second place to edit them is the box below.
+//   • empty — the same star, in soft ink, saying Add goal, and it opens that box. This is
+//     the ONLY thing that offers to write a goal (#437). The board carries no band about
+//     it: the goal is optional, so a strip nagging for one would be the board holding
+//     itself up over a file nobody has to write.
+//
+// The offer belongs to the board's own top row (`offer`), the one screen the goal is read
+// off. Everywhere else — a card page, the archive, the guided run that is asking a screen
+// away — the star appears only when there is something to open, as it always did.
+//
+// A marketing board is offered nothing (#407): its install writes no `goal.md` at all,
+// positioning is a `decisions.md` line and the product board's goal is one of its planning
+// sources, so the empty state draws no entry there.
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiChevronRight } from "react-icons/fi";
 import { TbNorthStar } from "react-icons/tb";
 import { getGoalAction, saveGoalAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
+import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { PHONE_ROW } from "./chrome";
 import { Dialog } from "./Dialog";
 import { GuideDrawer } from "./Guide";
 import { Markdown } from "./Markdown";
+import { useSolution } from "./solution";
 
 // Same input rules as the agent dialogs' textarea, taller: the goal is a few
 // paragraphs and a roadmap, not a note.
 const INPUT =
   "min-h-[260px] w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 font-mono text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
 
-export function Goal({ written, row = false }: { written: boolean; row?: boolean }) {
+export function Goal({
+  written,
+  offer = false,
+  row = false,
+  onSaved,
+}: {
+  written: boolean;
+  /** Whether this screen offers to write a goal that isn't there. The board's top row does;
+   *  every other one draws the star only when the file holds something. */
+  offer?: boolean;
+  row?: boolean;
+  /** Re-read the board after the box saves, so the entry turns back into Goal without a
+   *  reload. Absent where nothing behind this button is drawn from the goal. */
+  onSaved?: () => void;
+}) {
   const c = useCopy().rail.goal;
+  const router = useRouter();
   const [open, setOpen] = useState(false);
-  if (!written) return null;
+  const marketing = useSolution() === "marketing";
+  if (!written && (!offer || marketing)) return null;
+  const label = written ? c.open : c.write;
+  const hint = written ? c.openHint : c.writeHint;
   return (
     <>
       {/* `row` is the phone's More screen (#357): the same button, laid out for a width
           where a 28px sticker in a corner is not something a thumb can aim at. */}
       {row ? (
-        <button type="button" className={PHONE_ROW} title={c.openHint} onClick={() => setOpen(true)}>
+        <button type="button" className={PHONE_ROW} title={hint} onClick={() => setOpen(true)}>
           <TbNorthStar className="shrink-0 text-[17px] text-nb-ink-soft" aria-hidden />
-          <span className="min-w-0 flex-1">{c.open}</span>
+          <span className="min-w-0 flex-1">{label}</span>
           <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
         </button>
       ) : (
       <Button
         variant="ghost"
         size="xs"
-        className="shrink-0 font-[700] max-sm:w-7 max-sm:px-0"
-        title={c.openHint}
-        aria-label={c.open}
+        // An empty goal is an offer, not a job: it wears the same frame in soft ink, so it
+        // sits in the row without asking to be pressed.
+        className={cn("shrink-0 font-[700] max-sm:w-7 max-sm:px-0", !written && "text-nb-ink-soft")}
+        title={hint}
+        aria-label={label}
         onClick={() => setOpen(true)}
       >
         <TbNorthStar className="text-[15px]" aria-hidden />
-        <span className="sr-only sm:not-sr-only">{c.open}</span>
+        <span className="sr-only sm:not-sr-only">{label}</span>
       </Button>
       )}
 
-      {open && (
+      {open && written && (
         <Dialog title={c.title} width={720} height="min(660px, 85vh)" flush onClose={() => setOpen(false)}>
           <GoalPanel />
         </Dialog>
+      )}
+      {open && !written && (
+        <GoalEditor
+          onClose={() => setOpen(false)}
+          onSaved={() => {
+            setOpen(false);
+            // The page re-reads itself, for the screens drawn from the server's own read;
+            // `onSaved` is for the board, which holds its read in state and would not
+            // notice a server re-render.
+            router.refresh();
+            onSaved?.();
+          }}
+        />
       )}
     </>
   );
@@ -91,10 +134,10 @@ function GoalPanel() {
   );
 }
 
-// The goal editor the board's goal notice opens (#53, #85) — the second place the goal is
-// typed, with the note about what belongs in the file. The words stay the user's
-// and the judgment stays the agent's: a save marks the goal `reviewed: pending`
-// and leaves the rest of the frontmatter alone (#108).
+// The box behind the header's Add goal, and the first run's own goal step (#53, #85) — the
+// place the goal is typed after setup, with the note about what belongs in the file. The
+// words stay the user's and the judgment stays the agent's: a save marks the goal
+// `reviewed: pending` and leaves the rest of the frontmatter alone (#108).
 export function GoalEditor({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const c = useCopy().rail.goal;
   const { text, setText, error } = useGoalText();

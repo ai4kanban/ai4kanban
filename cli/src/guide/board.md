@@ -140,12 +140,12 @@ a module's folder with the idempotent `akb raw memory-init <module>` command bef
 writing to it. `init` does this for every module already in the module map.
 
 **`goal.md` sits outside the set, in the project-level memory directory only.** It records
-the long-term goal, horizon, and roadmap in the user's words. The agent changes only the
+the long-term goal, horizon, and roadmap in the user's words, and it is optional — an empty
+one holds up nothing. Never write the goal for the user. The agent changes only the
 `reviewed` frontmatter field, whose allowed values are `strong`, `good`, `pending`, and
-`weak`. Use `weak` when the goal is missing, empty, or too vague for evaluating
-proposals. The board sets `pending` when a goal is saved; replace it with an assessment
-the next time you read the goal. Assess it during the `goal` setup step, without
-interrupting the user.
+`weak`. Use `weak` when the goal is missing, empty, or too vague for evaluating proposals.
+The board sets `pending` when a goal is saved; replace it with an assessment the next time
+you read the goal, without interrupting the user.
 
 **`docs/kanban/memory/agents/` is not a module.** It holds one file per spec agent that
 declares `memory: project` — that agent's own, curated by it and appended to by the flow

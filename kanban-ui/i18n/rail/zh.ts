@@ -49,6 +49,8 @@ const zh: RailCopy = {
   goal: {
     open: "目标",
     openHint: "这个看板是为什么而存在的",
+    write: "写下目标",
+    writeHint: "写下这个看板为什么而存在——可选，随时可补",
     title: "目标",
     reading: "正在读取 goal.md…",
     editTitle: "填写目标",

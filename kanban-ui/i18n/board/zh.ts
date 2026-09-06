@@ -27,6 +27,11 @@ const zh: BoardCopy = {
     notReady: "未就绪",
     recurring: "周期任务",
     empty: "没有待办卡片",
+    emptyBoard: {
+      title: "看板还空着",
+      blurb: "写下你接下来想做的事，剩下的交给 Agent。",
+      create: "新建第一张卡片",
+    },
     columns: "列",
     goToColumn: (title) => `显示「${title}」`,
   },

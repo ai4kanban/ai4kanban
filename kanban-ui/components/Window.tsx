@@ -93,6 +93,8 @@ export function Window({
   currentArchive = false,
   memoryModules = [],
   goalWritten = false,
+  goalOffered = false,
+  onGoalSaved,
   running,
   onBoardChanged,
   children,
@@ -113,9 +115,14 @@ export function Window({
    *  does (#130). Empty on a board whose map names none. */
   memoryModules?: MemoryModule[];
   /** Whether `memory/goal.md` holds the user's own words — the phone's More screen offers
-   *  the goal the top row offers at window width (#357), and neither offers a file that
-   *  isn't written. */
+   *  the goal the top row offers at window width (#357), in the same two states: what is
+   *  written, or the quiet offer to write it (#437). */
   goalWritten?: boolean;
+  /** Whether that row offers to write a goal that isn't there — the board's own screen
+   *  does, and no other one (#437). */
+  goalOffered?: boolean;
+  /** Re-read the board once a goal written from that row has saved. */
+  onGoalSaved?: () => void;
   /** The cards an agent is inside, for the rail's pulsing rows. Handed down
    *  rather than polled for here: both pages already watch the registry, and a
    *  fourth poll for one dot would be a poll to say nothing new. */
@@ -244,7 +251,12 @@ export function Window({
     ) : cover === "memory" ? (
       <MemoryScreen active={currentMemory} modules={memoryModules} />
     ) : (
-      <MoreScreen projectRoot={projectRoot} goalWritten={goalWritten} />
+      <MoreScreen
+        projectRoot={projectRoot}
+        goalWritten={goalWritten}
+        goalOffered={goalOffered}
+        onGoalSaved={onGoalSaved}
+      />
     );
   return (
     <BellProvider value={bell}>
