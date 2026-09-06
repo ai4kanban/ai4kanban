@@ -112,6 +112,14 @@ export {
 } from './lib/agent/chat'
 export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
 
+// Discuss (#427): the board's own conversation, talked into one plan file. The screen reads
+// `readDiscuss` for the plan it is writing, the ask standing under the last message and the
+// run turning that plan into cards; the three writers are the answer pressed, the handoff,
+// and letting a finished plan go. The plan file itself is `plans/<id>-<slug>.md`, numbered
+// off next-id by `akb raw plan new` — the one move that allocates an id and writes no card.
+export { readDiscuss, startedPlanning } from './lib/agent/discuss'
+export { clearChatPlan, noteChatMessage } from './lib/agent/chat'
+
 // The board's first-run conversation (#280): the opening turn the board speaks itself, and
 // the reader that turns one reply into the two config answers a screen draws. The screen
 // never parses the agent — it asks here, so the board and the command read one shape.

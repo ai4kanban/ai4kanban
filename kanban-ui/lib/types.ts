@@ -37,6 +37,7 @@ export type {
   CommandAction,
   CommandRequest,
   ConnectionTest,
+  DiscussRead,
   HarnessGap,
   HarnessOption,
   HarnessSetting,

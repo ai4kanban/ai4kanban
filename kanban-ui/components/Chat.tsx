@@ -78,6 +78,12 @@ export function ChatProvider({ rail, children }: { rail: ChatRail; children: Rea
   return <RailContext.Provider value={rail}>{children}</RailContext.Provider>;
 }
 
+/** The conversation this window is showing, for a screen that draws it somewhere other than
+ *  the rail — the Discuss screen (#427). Null outside the window's frame. */
+export function useChatRailHere(): ChatRail | null {
+  return useContext(RailContext);
+}
+
 /** The top row's Chat button, beside Create task. It carries the mark that says a reply
  *  arrived while the rail was folded — an ember dot, and the same thing in words for a
  *  reader who isn't looking at colour. */
@@ -146,7 +152,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
         liveSince={read?.liveSince ?? null}
         stopped={rail.stopped}
         canSend={!!read && !blocked && !answering}
-        onResend={rail.resend}
+        onResend={rail.say}
         onReword={rail.reword}
         // Only once this conversation has actually been read. Landing on a card drops the
         // last one's messages on the spot, and the invitation before the read would be a
@@ -249,8 +255,11 @@ function IconButton({ label, onClick, children }: { label: string; onClick(): vo
 
 /** What has been said, oldest first, with the reply being written at the foot of it. It
  *  follows the newest line down only while the reader is already there — a jump would take
- *  someone reading an older answer away from it mid-sentence. */
-function Transcript({
+ *  someone reading an older answer away from it mid-sentence.
+ *
+ *  Exported for the Discuss screen (#427), which shows this same conversation down the
+ *  middle of a sheet rather than in the rail. */
+export function Transcript({
   messages,
   changes,
   live,
@@ -260,6 +269,8 @@ function Transcript({
   onResend,
   onReword,
   empty,
+  after,
+  fromFoot = false,
 }: {
   messages: ChatMessage[];
   /** Where the model changed (#272), woven in by when it happened. */
@@ -276,6 +287,13 @@ function Transcript({
   onResend(text: string): void;
   onReword(text: string, force?: boolean): boolean;
   empty: React.ReactNode;
+  /** Drawn under the newest line, inside the scroller — the Discuss screen's two answers
+   *  (#427), which stand under the message that asked. */
+  after?: React.ReactNode;
+  /** Grow the exchange up off the foot rather than down from the top (#427). A short
+   *  discussion then sits where the hand is instead of stranded at the top of an empty
+   *  screen — which the rail, a narrow column, never has enough room to be. */
+  fromFoot?: boolean;
 }) {
   const c = useCopy().chat;
   const box = useRef<HTMLDivElement>(null);
@@ -307,7 +325,7 @@ function Transcript({
   useLayoutEffect(() => {
     const el = box.current;
     if (el && stick.current) el.scrollTop = el.scrollHeight;
-  }, [messages, live, stopped]);
+  }, [messages, live, stopped, after]);
 
   const behind = away ? Math.max(0, lines - wasAt.current) : 0;
   const nothing = messages.length === 0 && live === null && stopped === null;
@@ -317,7 +335,7 @@ function Transcript({
       {nothing ? (
         empty
       ) : (
-        <div className="flex flex-col gap-2 pb-2">
+        <div className={`flex flex-col gap-2 pb-2 ${fromFoot ? "min-h-full justify-end" : ""}`}>
           {messages.map((m, i) => (
             <Fragment key={i}>
               {marksBefore(changes, messages, i).map((mark) => (
@@ -347,6 +365,7 @@ function Transcript({
               onReword={onReword}
             />
           )}
+          {after}
         </div>
       )}
     </div>
@@ -920,7 +939,7 @@ function Composer({
  *
  *  Everything offered comes from the command: the agents are the ones that can hold a
  *  conversation, and the model box is the picked agent's own setting. */
-function Pick({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answering: boolean }) {
+export function Pick({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answering: boolean }) {
   const running = pick.agents.find((a) => a.name === pick.harness);
   // The board's agent is somewhere to go back to only while it can hold a conversation at
   // all; where it can't, only the model can be put back.

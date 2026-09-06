@@ -13,6 +13,7 @@ import type {
   ChatReply,
   ChatTarget,
   ChatView,
+  DiscussRead,
   ConnectionTest,
   DeliveryRecord,
   HarnessSetting,
@@ -306,6 +307,9 @@ export interface BoardRules {
       /** The board is speaking, not the user (#280) — sent, but written into no
        *  transcript as something the user said. */
       fromBoard?: boolean;
+      /** The flow this message is part of (#427), in front of the words. Rules from before
+       *  it ignore it, and the conversation is then a plain chat. */
+      guide?: string;
     },
   ): Promise<ChatReply | { error: string }>;
   clearChat?(cardId: ChatTarget): boolean;
@@ -317,6 +321,19 @@ export interface BoardRules {
     harness: string | null,
   ): { ok: true; cleared: boolean; harness: string } | { error: string };
   pickChatModel?(cardId: ChatTarget, model: string | null): { ok: true } | { error: string };
+
+  // Discuss (#427) — the same board conversation, with the plan it is talking into shape.
+  // Optional like the chat itself: a project running rules older than the release that added
+  // them opens the create screen on Add task, and nothing else is missing.
+  readDiscuss?(): Promise<DiscussRead>;
+  /** The run writing this plan's cards has started, so reopening Discuss says it is still
+   *  working rather than offering a second one. */
+  startedPlanning?(sessionId: string): void;
+  /** Let the plan go by hand — the discussion was thrown away under it. */
+  clearChatPlan?(cardId: ChatTarget): void;
+  /** Write one line into the transcript as something the user said, with no turn behind it:
+   *  a pressed answer the board itself acts on. */
+  noteChatMessage?(cardId: ChatTarget, text: string): void;
 
   // the board's first-run conversation (#280): the opening turn the board speaks itself,
   // and the reader that turns one reply into the two answers the project view draws. Both

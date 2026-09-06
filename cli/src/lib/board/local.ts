@@ -47,6 +47,7 @@ import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove } from '../../commands/remove'
 import { cmdRule, type RuleOptions } from '../../commands/rule'
+import { cmdPlan, type PlanOptions } from '../../commands/plan'
 import { cmdRunBlocker, type RunBlockerOptions } from '../../commands/run-blocker'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
 import { cmdValidate } from '../../commands/validate'
@@ -143,6 +144,7 @@ const MOVES: Record<string, RunMove> = {
   'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
   rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
   'run-blocker': ({ args, opts }) => cmdRunBlocker(args[0] ? Number(args[0]) : undefined, as<RunBlockerOptions>(opts)),
+  plan: ({ args, opts }) => cmdPlan(args, as<PlanOptions>(opts)),
   peek: () => {
     const id = readNextId()
     say(String(id))

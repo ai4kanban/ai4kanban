@@ -294,6 +294,21 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('run-blocker', this, id === undefined ? [] : [String(id)], this.opts(), cli)
     })
 
+  move('plan')
+    .argument('<move>', 'new — name the plan this discussion is writing; ask — offer to start planning')
+    .summary("the plan file one discussion is writing")
+    .description(
+      'The Discuss screen writes one file per discussion (#427). `plan new --title "…"` takes the next ' +
+        'id and names `docs/kanban/plans/<id>-<slug>.md` — no card is written and the words in it are ' +
+        'yours to write. `plan ask` says the outcome is settled, which stands Start planning and Not yet ' +
+        "under your last message. Both act on the board's own conversation; follow `akb guide discuss-idea`.",
+    )
+    .option('--title <title>', 'what the plan is called — `plan new` only')
+    .option('--slug <slug>', 'short English slug for the filename, where the title is not English')
+    .action(async function (this: Command, sub: string) {
+      await dispatch('plan', this, [sub], this.opts(), cli)
+    })
+
   move('validate')
     .argument('[id]', ID, cardId)
     .summary('validate card format and report file, line, and repair instructions')

@@ -80,12 +80,16 @@ The header carries seven things:
 - **The release dropdown** — which version the board is showing, and where a release is
   started, filled, or dropped; see **Releases**.
 - **Create task** — opens a full-screen sheet over the board: describe an idea in your own
-  words, and pick what sending does. **Add task** — what it opens on — has the agent write the
-  card. **Build now** sends the sentence straight to a build with no card at all: it asks
-  before it starts, because no card is written, no questions come back, and nothing reviews
-  the work before it reaches your branch. Enter sends, Shift-Enter starts a line, and Esc or
-  the ✕ hands the board back. An unsent draft is kept for the next time you open it, and a
-  start that is refused keeps the sentence there to send again.
+  words, and pick what sending does. **Discuss** — what it opens on, and what a vague idea
+  wants — has the agent ask back until an outcome is agreed, keeps it in one short plan
+  file, and offers to turn it into cards; see **Discuss**. **Add task** is the direct route:
+  the agent writes the card. **Build now** sends the sentence straight to a build with no
+  card at all: it asks before it starts, because no card is written, no questions come back,
+  and nothing reviews the work before it reaches your branch. Enter sends, Shift-Enter starts
+  a line, and Esc or the ✕ hands the board back — a discussion is left where it is. An
+  unsent draft is kept for the next time you open it, and a start that is refused keeps the
+  sentence there to send again. A board with no agent that can hold a conversation is not
+  offered Discuss at all, and opens on Add task.
 - **Runs** — every agent session, live or finished. Open one to read its log. A finished run
   can be continued with a follow-up prompt; that starts a new run. A job with no card shows
   the sentence it was started with where a `#id` would be, and a **Build now** build reads
@@ -96,6 +100,31 @@ The header carries seven things:
 - **Configuration** (the gear) — see below.
 - **Chat** — a conversation about this project that also does the board work, in a rail down
   the right; see below.
+
+### Discuss
+
+A vague idea does not survive one textarea, so **Discuss** turns what you send into a
+conversation instead of a run. It is the board's own chat — the same transcript, agent and
+model as the rail down the right — so a reply typed in either lands in the same discussion.
+It never shows in **Runs** and holds no card.
+
+The agent questions the idea rather than taking your first message as a spec, and once an
+outcome is agreed it writes it to `docs/kanban/plans/<id>-<slug>.md`, rendered as markdown
+in a panel down the right you can drag wider or narrower. The file is the outcome and
+nothing else — the problem and the agreed behavior, 30–50 lines — and it is rewritten as
+the discussion moves. There is no panel until the file exists, and a rewrite never blanks
+it: the panel says the file is moving and keeps the last text on screen. Its path stands
+under the heading, copyable; the board never opens a plan itself.
+
+Once the outcome is settled the agent asks whether to start planning, and **Start planning**
+and **Not yet** stand under that message — or type either instead. Start planning closes the
+screen and starts the run that writes the cards, in the release the board is showing, each
+one naming the plan's path in its `## Source`. A run that writes no cards leaves the plan as
+it was and the offer comes back. Closing the screen mid-discussion loses nothing: reopening
+Discuss comes back to the same conversation and the same plan.
+
+Plans are board content, so they travel with the board and a card that names one keeps
+pointing at something.
 
 ### Reading a card
 
@@ -458,7 +487,8 @@ its name; the same numbers `release list` prints in your terminal. A few more th
 
 - A **group task** shows whenever the root or any subtask is in the release you picked.
 - **Create task** puts the new card in the release on screen, and the sheet says which one
-  under its box. **Build now** ships in no release — it writes no card.
+  under its box. So does **Start planning**: the cards a plan produces ship in it too.
+  **Build now** ships in no release — it writes no card.
 - A release with **nothing open in it says so**, with **No release** one click away. Blockers on
   screen don't count.
 - Your pick is remembered in your browser, per board, and never written to the files — so it

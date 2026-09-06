@@ -43,6 +43,8 @@ export type MessagesCopy = {
     noSuchCard: string;
     emptyChat: string;
     goalFirst: string;
+    /** Start planning was pressed on a discussion that is writing no plan. */
+    noPlan: string;
   };
   run: { noProcess: string };
   chat: { busy: string; sendFailed: string; clearFailed: string; pickFailed: string };

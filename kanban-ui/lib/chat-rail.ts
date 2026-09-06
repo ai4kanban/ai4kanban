@@ -97,10 +97,10 @@ export interface ChatRail {
   /** Why the last send never got off the ground. Cleared by the next one. */
   error: string | null;
   send(): Promise<void>;
-  /** Send a message that was already sent once, again (#269) — a reply that stopped short
-   *  or came back empty. It lands at the foot; the box and what is typed in it are left
-   *  alone. */
-  resend(text: string): void;
+  /** Send one message the box is not holding: a reply sent again (#269), or the Discuss
+   *  screen's own box (#427). It lands at the foot; the box and what is typed in it are
+   *  left alone. `discuss` puts the discussion's flow in front of the words. */
+  say(text: string, discuss?: boolean): void;
   /** Put a message you sent back in the box to edit (#269). Answers false when something
    *  is already typed there and `force` was not given — what is typed is never
    *  overwritten, so the button asks once and calls again. */
@@ -113,6 +113,9 @@ export interface ChatRail {
    *  on; the next message runs on it. */
   pickModel(model: string | null): Promise<void>;
   clear(): Promise<void>;
+  /** This conversation is on screen somewhere else — the Discuss screen (#427) — so the
+   *  button's unread mark has nothing to say about it. Quiet where nothing has been said. */
+  markRead(): void;
   /** The panel the rail is drawn in, so the window can make it draggable. */
   panel: ReturnType<typeof usePanelRef>;
   onLayoutChanged(layout: Layout, meta: LayoutChangedMeta): void;
@@ -375,10 +378,10 @@ export function useChatRail({
   // One message out of the door, whether it came from the box or from a "send again" on a
   // reply that stopped short. The answer is whether it left.
   const post = useCallback(
-    async (text: string) => {
+    async (text: string, discuss = false) => {
       setError(null);
       setHeld(null);
-      const res = await sendChatAction(cardId, text);
+      const res = await sendChatAction(cardId, text, discuss);
       if (!res.ok) setError(res.error ?? c.sendFailed);
       kickRef.current();
       return res.ok;
@@ -397,7 +400,7 @@ export function useChatRail({
 
   // Nothing of the box is touched: a half-typed message survives a "send again", and the
   // exchange above is left as it was — the message lands at the foot.
-  const resend = useCallback((text: string) => void post(text), [post]);
+  const say = useCallback((text: string, discuss?: boolean) => void post(text, discuss), [post]);
 
   const draftRef = useRef(draft);
   draftRef.current = draft;
@@ -452,6 +455,13 @@ export function useChatRail({
     kickRef.current();
   }, [cardId, seen, c]);
 
+  // Read somewhere other than the rail. The Discuss screen shows this same conversation, so
+  // a reply read there must not leave the Chat button marked.
+  const updatedAt = chat?.updatedAt
+  const markRead = useCallback(() => {
+    if (updatedAt !== undefined) seen.mark(updatedAt)
+  }, [updatedAt, seen])
+
   const last = chat?.messages[chat.messages.length - 1];
   const unread = !open && !!chat && last?.role === "agent" && chat.updatedAt > seen.at;
 
@@ -473,8 +483,9 @@ export function useChatRail({
     recall,
     error,
     send,
-    resend,
+    say,
     reword,
+    markRead,
     pickAgent,
     pickModel,
     clear,

@@ -1,0 +1,67 @@
+// The plans a discussion writes (#427).
+//
+// A plan is one file — `docs/kanban/plans/<id>-<slug>.md` — holding the outcome a
+// conversation settled on and nothing else: the problem and the agreed behavior, short
+// enough to read in one screen. It is not a card and the board never opens one; what makes
+// it findable again is the path each card it produced names in its `## Source`.
+//
+// The id comes off `next-id`, so a plan and the cards written from it are one numbering.
+// That is the only thing here that writes the board's shared files, and it writes no card:
+// `akb raw create` is the only move that does, and it always writes one.
+
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { PLANS, boardPath, die, readNextId, writeNextId } from './paths'
+import { slugify } from './validate'
+
+/** One plan file, as a screen draws it. `text` is empty for a path whose file is not there
+ *  — a plan named the instant before it is first written, or one mid-rewrite. */
+export interface PlanFile {
+  /** Where it is, relative to the board folder — the path a card's `## Source` carries. */
+  path: string
+  text: string
+  lines: number
+}
+
+/** That path as an absolute one. Refuses anything that would climb out of `plans/`: the
+ *  path reaches here off a conversation's own file, and a plan is only ever one file in one
+ *  folder. */
+export function planFile(rel: string): string | null {
+  const name = rel.replace(/^plans\//, '')
+  if (!name || name.includes('/') || !name.endsWith('.md')) return null
+  return path.join(PLANS, name)
+}
+
+/** Name the next plan: allocate an id, and answer with the file it goes in. The file itself
+ *  is the agent's to write — a discussion abandoned before an outcome leaves none.
+ *
+ *  `slug` names the file where the title cannot: filenames are ASCII and a title follows the
+ *  board's language, so a card takes one the same way (`akb raw create --slug`). */
+export function newPlan(title: string, slug?: string): { id: number; path: string } {
+  const name = title.trim()
+  if (!name) die('--title must not be empty')
+  const base = slugify(slug !== undefined ? slug : name)
+  const id = readNextId()
+  writeNextId(id + 1)
+  fs.mkdirSync(PLANS, { recursive: true })
+  return { id, path: `plans/${id}-${base}.md` }
+}
+
+/** One plan as it stands, or null when the path is not a plan of this board's. */
+export function readPlan(rel: string): PlanFile | null {
+  const file = planFile(rel)
+  if (!file) return null
+  let text = ''
+  try {
+    text = fs.readFileSync(file, 'utf8')
+  } catch {
+    // Not written yet, or being rewritten this second. Either way the caller draws the
+    // path and whatever it last had, never a blank panel.
+  }
+  return { path: rel, text, lines: text.trim() ? text.trimEnd().split('\n').length : 0 }
+}
+
+/** The plan's path as an agent and a card should spell it — from the project root, so a
+ *  board that is not at `docs/kanban` names the file that is actually there. */
+export const planPathInText = (rel: string): string => `${boardPath()}/${rel}`

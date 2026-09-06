@@ -13,11 +13,13 @@
 // badge, a past session's tail) now lives in the shared Sessions component; this
 // component just starts the session and hands it to the panel.
 //
-// A start that was refused goes back to the sheet rather than to a popover under this
-// button: the sheet is still up, so a message behind it is a message nobody reads — and the
-// sentence has to stay in the box to be sent again.
+// A create or a build that was refused goes back to the sheet rather than to a popover under
+// this button: the sheet is still up, so a message behind it is a message nobody reads — and
+// the sentence has to stay in the box to be sent again. Start planning (#427) is the one that
+// cannot: it closes the sheet first, so its refusal is said under the button.
 
 import { useRouter } from "next/navigation";
+import { startPlanningAction } from "@/app/actions";
 import { useCallback, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
@@ -34,6 +36,10 @@ export function CreateTask({ release = null }: { release?: string | null }) {
   const c = useCopy().board.create;
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  // Start planning closes the sheet before the run is asked for (#427), so a refusal there
+  // has no box to go back to — it is said under the button instead. A refused create still
+  // goes to the sheet, which is still up.
+  const [error, setError] = useState<string | null>(null);
 
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up
@@ -47,7 +53,7 @@ export function CreateTask({ release = null }: { release?: string | null }) {
     [router],
   );
 
-  const { start } = useAgentSessions(onFinish);
+  const { start, watch } = useAgentSessions(onFinish);
 
   // Start a non-blocking session. Creates run side by side — the board lease makes
   // each card's id and index entry atomic — so the button never locks.
@@ -68,6 +74,23 @@ export function CreateTask({ release = null }: { release?: string | null }) {
     [start, c],
   );
 
+  // Start planning (#427): the same handoff Add task makes — the screen closes, the run that
+  // writes the plan's cards starts behind it, and Runs opens on it and tails it from the
+  // first frame. Which plan is the board's own to say, so nothing about it is sent from here.
+  const startPlanning = useCallback(async () => {
+    setOpen(false);
+    const res = await startPlanningAction(release ?? undefined);
+    if (!res.ok) {
+      setError(res.error || c.startFailed);
+      return;
+    }
+    if (!res.sessionId) return;
+    // The server started it, so it is `watch` and not `start` that takes it on — otherwise
+    // the cards it writes would not reach the board until something else re-read it.
+    watch(res.sessionId, "Start planning");
+    sessionsPanel.open(res.sessionId);
+  }, [release, watch, c]);
+
   return (
     <div className="relative flex shrink-0 items-center">
       <Button
@@ -77,11 +100,24 @@ export function CreateTask({ release = null }: { release?: string | null }) {
         size="xs"
         className="shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
         aria-label={c.button}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
       >
         <FiPlus className="text-[15px]" aria-hidden />
         <span className="sr-only sm:not-sr-only">{c.button}</span>
       </Button>
+
+      {error && (
+        <div
+          className="nb-panel-sm absolute right-0 top-full z-30 mt-2 max-w-[300px] cursor-pointer p-2.5 text-[12px]"
+          style={{ background: "var(--color-nb-peach-soft)" }}
+          onClick={() => setError(null)}
+        >
+          {error}
+        </div>
+      )}
 
       {open && (
         <CreateSheet
@@ -98,6 +134,7 @@ export function CreateTask({ release = null }: { release?: string | null }) {
               mode === "build" ? "Build now" : "Create task",
             )
           }
+          onPlan={() => void startPlanning()}
         />
       )}
     </div>

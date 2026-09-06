@@ -39,6 +39,7 @@ const en: MessagesCopy = {
     noSuchCard: "that is not a card on this board.",
     emptyChat: "say something to send.",
     goalFirst: "write the project goal first — every step after it is planned from it",
+    noPlan: "this discussion has no plan to write cards from yet.",
   },
   run: { noProcess: "couldn't start a process for that run" },
   chat: {

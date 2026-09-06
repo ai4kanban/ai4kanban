@@ -29,6 +29,7 @@ import { parseFrontmatter } from '../frontmatter'
 import { pidAlive } from '../lock'
 import { reportChatMessage } from '../machine/usage'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
+import { planFile } from '../plans'
 import { ensureSkillInstalled } from '../skill/install'
 import { languageNote } from './language'
 import {
@@ -48,6 +49,7 @@ import type {
   Chat,
   ChatMessage,
   ChatPick,
+  ChatPlan,
   ChatReply,
   ChatTarget,
   ChatView,
@@ -106,9 +108,22 @@ export function readChat(cardId: ChatTarget): Chat | null {
       typeof raw.pickedHarness === 'string' && raw.pickedHarness ? raw.pickedHarness : undefined,
     pickedModel: typeof raw.pickedModel === 'string' && raw.pickedModel ? raw.pickedModel : undefined,
     modelChanges: changesOf(raw.modelChanges),
+    plan: planOf(raw.plan),
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
+  }
+}
+
+// The plan this conversation is writing (#427). A path is the whole of it; a file that
+// names none, or names one that is not a plan of this board's, reads as no plan at all.
+function planOf(value: unknown): ChatPlan | undefined {
+  const p = value as Partial<ChatPlan> | undefined
+  if (!p || typeof p.path !== 'string' || !planFile(p.path)) return undefined
+  return {
+    path: p.path,
+    ask: p.ask === true ? true : undefined,
+    run: typeof p.run === 'string' && p.run ? p.run : undefined,
   }
 }
 
@@ -155,6 +170,69 @@ export function clearChat(cardId: ChatTarget): boolean {
   } catch {
     return false
   }
+}
+
+// ---- the plan one conversation is writing (#427) ----------------------------
+//
+// Discuss keeps the plan's path here rather than guessing at the newest file in `plans/`:
+// the transcript is the chat rail's too and is never cleared, so nothing else in the file
+// could say which plan the live discussion is writing.
+
+/** The conversation as it stands, or a fresh empty one to hang the plan off. A discussion
+ *  names its plan before the first reply has landed, so there is not always a file yet. */
+function chatOrOpen(cardId: ChatTarget): Chat {
+  const now = Date.now()
+  return readChat(cardId) ?? { cardId, harness: chatAgent().name, messages: [], startedAt: now, updatedAt: now }
+}
+
+function writePlan(cardId: ChatTarget, plan: ChatPlan | undefined): void {
+  const chat = chatOrOpen(cardId)
+  chat.plan = plan
+  chat.updatedAt = Date.now()
+  writeChat(chat)
+}
+
+/** Point one conversation at the plan it is writing. A second call replaces the first: a
+ *  discussion writes one plan at a time, and naming a new one lets the old one go. */
+export function setChatPlan(cardId: ChatTarget, planPath: string): { ok: true } | { error: string } {
+  if (!planFile(planPath)) return { error: `${planPath} is not a plan of this board's.` }
+  writePlan(cardId, { path: planPath })
+  return { ok: true }
+}
+
+/** The outcome is settled: stand the two answers under the last message. Refused where
+ *  there is no plan to start on — the ask is about a file, not about the conversation. */
+export function askChatPlan(cardId: ChatTarget): { ok: true; path: string } | { error: string } {
+  const plan = readChat(cardId)?.plan
+  if (!plan) return { error: 'this conversation is not writing a plan yet.' }
+  writePlan(cardId, { ...plan, ask: true })
+  return { ok: true, path: plan.path }
+}
+
+/** The run that turns this plan into cards has started. The ask is answered by it, so it
+ *  goes; the plan is held until that run has written its cards. */
+export function setChatPlanRun(cardId: ChatTarget, sessionId: string): void {
+  const plan = readChat(cardId)?.plan
+  if (!plan) return
+  writePlan(cardId, { path: plan.path, run: sessionId })
+}
+
+/** Let the plan go — its cards are written, and the next idea starts a file of its own. */
+export function clearChatPlan(cardId: ChatTarget): void {
+  if (readChat(cardId)?.plan) writePlan(cardId, undefined)
+}
+
+/** Write one line into the transcript as something the user said, with no turn behind it.
+ *  It is how a pressed answer reads as an answer given (#427) — the board acts on it, so
+ *  asking the agent to reply to it as well would be one turn spent saying nothing. */
+export function noteChatMessage(cardId: ChatTarget, text: string): void {
+  const words = text.trim()
+  if (!words) return
+  const chat = chatOrOpen(cardId)
+  const now = Date.now()
+  chat.messages.push({ role: 'you', text: words, at: now })
+  chat.updatedAt = now
+  writeChat(chat)
 }
 
 // ---- what can be said right now --------------------------------------------
@@ -420,6 +498,11 @@ export interface SendOptions {
    *  but nothing is written into the transcript as something the user said. It is how a
    *  conversation opens with the agent's turn rather than waiting to be spoken to. */
   fromBoard?: boolean
+  /** The flow this message is part of (#427) — a `akb guide <name>` topic. It rides in
+   *  front of the words, on every turn and not only the first, for the reason the language
+   *  note does: a session told once at the top drifts away from it as it grows. Nothing of
+   *  it is written into the transcript, which holds what the user said. */
+  guide?: string
 }
 
 /** What one turn sends.
@@ -439,14 +522,15 @@ export function chatPrompt(
   message: string,
   /** `harness` is the agent this conversation picked for itself (#272), whose own syntax
    *  the skill call follows; with none it is the board's. */
-  opts: { resuming?: boolean; title?: string; harness?: string } = {},
+  opts: { resuming?: boolean; title?: string; harness?: string; guide?: string } = {},
 ): string {
   const language = languageNote()
+  const flow = guideLine(opts.guide)
   if (opts.resuming) {
     // The first run's later turns carry one more line: the session already holds the
     // instructions, and what a long conversation drifts away from is the answer's shape.
     const reminder = cardId === 'setup' ? SETUP_REMINDER : ''
-    return [language, message, reminder].filter(Boolean).join('\n\n')
+    return [flow, language, message, reminder].filter(Boolean).join('\n\n')
   }
   const title = opts.title ?? (typeof cardId === 'number' ? cardTitle(cardId) : undefined)
   const subject =
@@ -457,7 +541,13 @@ export function chatPrompt(
         : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
           `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
           `unless I name another.`
-  return skillPrompt([subject, language, message].filter(Boolean).join('\n\n'), opts.harness)
+  return skillPrompt([subject, flow, language, message].filter(Boolean).join('\n\n'), opts.harness)
+}
+
+/** The one line that puts a conversation on a flow. The name reaches here from a screen, so
+ *  anything that is not a plain topic name is dropped rather than pasted into a prompt. */
+function guideLine(guide: string | undefined): string {
+  return guide && /^[a-z][a-z0-9-]*$/.test(guide) ? `Follow \`akb guide ${guide}\`.` : ''
 }
 
 // The card's title, off its own file. Read here rather than through `titleOf` in
@@ -510,6 +600,10 @@ export async function sendChatMessage(
     // leaves the conversation holding what the user said. The board's own opening turn is
     // the exception: it was never said by the user, so it is not shown as though it were.
     if (!options.fromBoard) held.messages.push({ role: 'you', text, at: now })
+    // Answering in words answers the ask too (#427): the two buttons stop standing under a
+    // message the conversation has already moved past, and `discuss-idea` asks again once
+    // the outcome moves.
+    if (!options.fromBoard && held.plan?.ask) held.plan = { ...held.plan, ask: undefined }
     held.updatedAt = now
     writeChat(held)
     // Counted here, and only what the user said (#295): the name of the action and nothing
@@ -530,7 +624,7 @@ export async function sendChatMessage(
     if (!plan) {
       return { error: `${agent.label} can't carry on a ${harnessLabel(held.harness)} conversation. Clear it to start fresh.` }
     }
-    const say = { title: options.title, harness: held.pickedHarness }
+    const say = { title: options.title, harness: held.pickedHarness, guide: options.guide }
     const prompt = chatPrompt(cardId, text, { ...say, resuming: Boolean(held.resumeId) })
     // And what to say if that session turns out to be gone (#395): the opening prompt, which
     // carries the skill and what this conversation is about. Without it the thread keeps a
@@ -582,6 +676,10 @@ export async function sendChatMessage(
     // wrote it, and one mark stands for however many picks the wait held.
     const since = readChat(cardId)
     if (since) {
+      // And the plan the reply itself named (#427): `akb raw plan` writes this same file
+      // from inside the turn, so what it left is newer than what this one has held since
+      // the message was sent.
+      held.plan = since.plan
       const kept = held.modelChanges?.length ?? 0
       const marks = since.modelChanges ?? []
       held.pickedModel = since.pickedModel

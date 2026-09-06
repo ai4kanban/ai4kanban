@@ -112,6 +112,10 @@ export interface AgentRequest {
    *  sentence a card-less build is approved to build (#428) — its requirements, its prompt
    *  and its delivery's title all at once. */
   description?: string
+  /** create: the plan this run writes cards from (#427), as a path from the project root.
+   *  The words are in the file, so `description` is left off — a copy pasted into the
+   *  prompt would go stale the moment the discussion rewrote it. */
+  plan?: string
   /** create: the version the new card(s) ship in. plan-release: the version being
    *  planned, and changelog: the version being written up — the whole of what either run
    *  is about, since neither names a card. */
@@ -596,9 +600,24 @@ export interface Chat {
   /** Where the model changed mid-conversation (#272), so a reply can be read against the
    *  model that wrote it. */
   modelChanges?: ModelChange[]
+  /** The plan this conversation is discussing into shape (#427). It is kept here, beside
+   *  the transcript, because the transcript is the chat rail's too and is never cleared —
+   *  so nothing else in the file could say which plan is the live one. */
+  plan?: ChatPlan
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number
+}
+
+/** The plan one conversation is writing (#427). */
+export interface ChatPlan {
+  /** The file, relative to the board folder — `plans/<id>-<slug>.md`. */
+  path: string
+  /** The agent has asked whether to start planning. It stands until an answer is given:
+   *  a press, or the next thing the user says. */
+  ask?: boolean
+  /** The run writing this plan's cards, once one has been started. */
+  run?: string
 }
 
 /** One point in a conversation where the model changed. `model` is the id in effect from
@@ -675,6 +694,22 @@ export interface ChatView {
   blocked?: string
   /** What this conversation runs on, and what it could run on instead (#272). */
   pick: ChatPick
+}
+
+/** The Discuss screen's own read (#427): the plan the board's conversation is writing, the
+ *  ask standing under the last message, and the run turning that plan into cards. The
+ *  transcript itself is the chat's — this is only what Discuss adds to it. */
+export interface DiscussRead {
+  /** The file the discussion is writing, once it has been named — its board-relative path,
+   *  its text, and how long it is. Null before the first agreed outcome, and again once the
+   *  plan's cards are written. Written out rather than imported: this file is copied into
+   *  the board UI and may reach only its siblings. */
+  plan: { path: string; text: string; lines: number } | null
+  /** The agent has asked whether to start planning, and the two answers stand. */
+  ask: boolean
+  /** The run writing this plan's cards: still working, or the one that failed and can be
+   *  started again. Null when none has been started. */
+  run: { sessionId: string; running: boolean } | null
 }
 
 /** What sending one message came back with. */

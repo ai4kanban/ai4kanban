@@ -316,7 +316,11 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ].join(' ')
     case 'create':
       return [
-        `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
+        // A create off a plan (#427) names the file rather than carrying its words: the
+        // plan is a file the user can open, and a copy pasted in here would go stale.
+        req.plan
+          ? `${kb}. Add task(s) from the plan at \`${req.plan}\`. Read it first, and write \`## Source\` naming that path on every card you create.`
+          : `${kb}. Add task(s) from this requirement: "${req.description || ''}".`,
         `Follow \`akb guide add-task\`. Create task only, don't implement it.`,
         "Cover what the requests asks for, DONT OVER DESIGN IT.",
         // The board was showing one release when this was asked for, so the card ships in

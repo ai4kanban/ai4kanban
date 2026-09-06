@@ -97,6 +97,10 @@ export let INDEX_LOCK = ''
 // after the card is archived (lib/agent/deliveries.ts). The live copy is a row in
 // SESSIONS above; this is what outlives the machine it ran on.
 export let DELIVERIES = ''
+// The plans a discussion wrote (#427) — one file per plan, `<id>-<slug>.md`, numbered off
+// next-id like a card. Tracked in git: a card's `## Source` names one, so a board that left
+// its plans behind would carry cards pointing at nothing.
+export let PLANS = ''
 // One rule per agent, in the user's own words, appended to the end of every run that agent
 // does (#306, #420) — `rules/<agent>.md`, named by a role the board ships or a specialist a
 // card asks for. Tracked in git so a team shares them, and inside docs/kanban/, which every
@@ -216,6 +220,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   INDEX_LOCK = path.join(KANBAN, '.index.lock')
   DELIVERIES = path.join(KANBAN, 'deliveries')
   RULES = path.join(KANBAN, 'rules')
+  PLANS = path.join(KANBAN, 'plans')
   AKB_DIR = path.join(REPO_ROOT, '.akb')
   ROOT_GITIGNORE = path.join(REPO_ROOT, '.gitignore')
   return REPO_ROOT

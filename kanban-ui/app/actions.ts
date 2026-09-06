@@ -38,6 +38,7 @@ import {
   setChannelStatus,
 } from "@/lib/board";
 import { type ChatRead, clearChat, pickChatAgent, pickChatModel, readChat, sendChat, stopChat } from "@/lib/chat";
+import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, planToPlanFrom, readDiscuss } from "@/lib/discuss";
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
 import {
   cloudAccount,
@@ -173,6 +174,7 @@ import type {
   ClosePlan,
   CommandState,
   ConnectionTest,
+  DiscussRead,
   DropPlan,
   FillPlan,
   HarnessOption,
@@ -450,13 +452,20 @@ export async function readChatAction(cardId: number | null): Promise<ChatRead> {
   return readChat(target);
 }
 
-export async function sendChatAction(cardId: number | null, message: string): Promise<{ ok: boolean; error?: string }> {
+/** `discuss` says the message was sent from the Discuss screen (#427), which puts the flow
+ *  in front of it. Which flow that is is settled here rather than sent: nothing from a
+ *  browser names a topic that reaches a prompt. */
+export async function sendChatAction(
+  cardId: number | null,
+  message: string,
+  discuss = false,
+): Promise<{ ok: boolean; error?: string }> {
   const target = chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   if (typeof message !== "string" || !message.trim()) {
     return { ok: false, error: (await machineCopy()).messages.actions.emptyChat };
   }
-  return sendChat(target, message.trim());
+  return sendChat(target, message.trim(), { guide: discuss ? DISCUSS_GUIDE : undefined });
 }
 
 /** End the reply being written, keeping what arrived. Quiet when there is none: a reply
@@ -499,6 +508,45 @@ export async function pickChatModelAction(
     return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   }
   return pickChatModel(target, model === null ? null : model.trim());
+}
+
+// ---- Discuss (#427) ---------------------------------------------------------
+//
+// The Discuss screen is the board's own conversation with the plan it is writing beside it.
+// Three moves: read that plan, record an answer the user pressed, and hand the plan to the
+// run that writes its cards.
+
+export async function readDiscussAction(): Promise<DiscussRead & { supported: boolean }> {
+  const [read, supported] = await Promise.all([readDiscuss(), canDiscuss()]);
+  return { ...read, supported };
+}
+
+/** One of the two answers, pressed. Written into the transcript as the user's own words,
+ *  with no turn behind it — the board is what acts on it. */
+export async function noteDiscussAnswerAction(text: string): Promise<void> {
+  if (typeof text !== "string" || !text.trim()) return;
+  await noteAnswer(text.trim());
+}
+
+/**
+ * Start planning: the run that turns the plan into cards.
+ *
+ * The plan's path is read here rather than taken from the browser — the path reaches a
+ * prompt, and the only file this may ever point at is the one the board's own conversation
+ * says it is writing. `release` is what the board was showing, so the cards land in it like
+ * a card written by Add task.
+ */
+export async function startPlanningAction(release?: string): Promise<StartResult> {
+  const plan = await planToPlanFrom();
+  if (!plan) return { ok: false, error: (await machineCopy()).messages.actions.noPlan };
+  const request = await prepareAgentRequest({
+    action: "create",
+    plan,
+    release: typeof release === "string" && release.trim() ? release.trim() : undefined,
+  });
+  const started = await startSession(request, await buildPrompt(request));
+  if (started.ok && started.sessionId) await planningStarted(started.sessionId);
+  return started;
 }
 
 // ---- the first run's own conversation (#280) --------------------------------

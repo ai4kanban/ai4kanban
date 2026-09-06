@@ -53,20 +53,28 @@ export type BoardCopy = {
     /** Shown when the agent wouldn't start and said nothing about why. */
     startFailed: string;
     /** The full-screen sheet the button opens (#426): what it asks, what sending does,
-     *  and the two short lines under the box. */
+     *  and the two short lines under the box. The headline holds across the whole mode
+     *  row — Discuss (#427), Add task, Build now (#428). */
     sheet: {
       headline: string;
       slogan: string;
       placeholder: string;
       /** What the mode row is, read out. */
       modes: string;
-      /** The mode that writes a card — what the screen always opens on. */
+      /** The box once the discussion is going — it takes an answer, not a description. */
+      answer: string;
+      /** The mode that talks the idea through first (#427) — what the screen opens on,
+       *  unless nothing on this board can hold a conversation. */
+      discuss: string;
+      /** The mode that writes a card. */
       addTask: string;
       /** The mode that builds what you typed with no card at all (#428). */
       buildNow: string;
       /** The corner button. Its own word, so a reader isn't told "Add task" twice. */
       send: string;
       keys: string;
+      /** Esc keeps a discussion rather than throwing it away, so it says so. */
+      keysDiscuss: string;
       /** Which version a card written here ships in. Nothing is said with no release on
        *  screen, and nothing in Build now — that mode writes no card to ship. */
       shipsIn: (release: string) => string;
@@ -80,6 +88,24 @@ export type BoardCopy = {
         skips: readonly string[];
         cancel: string;
         confirm: string;
+      };
+      /** The plan the discussion is writing (#427) — the panel down the right, and the
+       *  handoff to the run that turns it into cards. */
+      plan: {
+        label: string;
+        resize: string;
+        copyPath: string;
+        lines: (count: number) => string;
+        /** The agent is rewriting the file. The words on screen are the last ones written. */
+        rewriting: string;
+        /** The two answers under the ask, and the line beside them. */
+        start: string;
+        notYet: string;
+        startHint: string;
+        /** The last run never wrote its cards, so the offer stands again. */
+        tryAgain: string;
+        /** That run is still working — no second one is offered. */
+        planning: string;
       };
     };
   };

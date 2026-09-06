@@ -234,9 +234,10 @@ function stillBlocked(
 export async function sendChat(
   cardId: ChatTarget,
   message: string,
-  /** The board is speaking, not the user (#280): the message is sent, and the transcript
-   *  keeps only the reply. */
-  opts: { fromBoard?: boolean } = {},
+  /** `fromBoard`: the board is speaking, not the user (#280) — the message is sent, and the
+   *  transcript keeps only the reply. `guide`: the flow this message is part of (#427),
+   *  which rides in front of the words and reaches no transcript. */
+  opts: { fromBoard?: boolean; guide?: string } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   let rules;
   try {
@@ -271,6 +272,7 @@ export async function sendChat(
   flight.done = send(cardId, message, {
     title: typeof cardId === "number" ? rules.titleOf(cardId) : undefined,
     fromBoard: opts.fromBoard,
+    guide: opts.guide,
     onText: (chunk) => {
       // Frozen on a stop, so the words on screen are the words that were there when the
       // button was pressed.
