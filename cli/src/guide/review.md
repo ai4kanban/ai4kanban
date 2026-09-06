@@ -8,20 +8,22 @@ to the card waits for the user's answer.
      and shared paths, and rerun only the checks those paths affect. The delivery's own
      design already passed; rely on that pass for everything the rebase did not touch.
    - Otherwise, compare all delivery changes with the approved requirements, run the required
-     checks, and read `## Worth noting after implementation`; do not report a condition the
-     user explicitly accepted there.
+     checks, and read `## Worth noting after implementation`. Do not reopen decisions the
+     card already answers or report a condition the user explicitly accepted.
 2. Fix plain mistakes in the delivery's worktree, update focused tests, and rerun the
    affected checks. Resolve implementation details yourself. Drop unrelated implementation
-   discoveries after noting them in the run log; never create or update another card from
-   review. Do not exhaustively search unaffected code or invent hypothetical issues.
-3. Classify every unresolved decision and later hand-check with `akb guide update-questions`.
-   Research, resolve, or fix anything it does not classify as a `[user]` question or `verify:`.
-4. If the classification leaves a `[user]` question, append it to this card and stop.
-   Append nothing when the work is ready; ending the run successfully passes review.
+   discoveries after noting them in the run log. Do not exhaustively search unaffected code
+   or invent hypothetical issues.
+3. Only when a finding needs a user decision, a human-only check, or a new material decision
+   note, read `akb guide update-questions`. Resolve technical details yourself. Before editing
+   the card, read `akb guide board`; read `akb guide writing` only for a body edit. Never edit
+   frontmatter by hand or change approved requirements to justify a defect.
+4. Append a remaining `[user]` question to this card and stop. Otherwise finish successfully;
+   no card edit is required to pass. Review never creates or updates another card.
 
-Do not reopen anything the card already answers, including
-`## Worth noting after implementation`. Review never creates or updates another card.
-
-Classify answered decisions surfaced by the build with `akb guide update-questions`, then format
-them with `akb guide writing`. Drop separate implementation work; task discovery belongs to an
-explicit planning flow.
+- **Check output**: run each check once and save its full output and exit status. Inspect that
+  output; never rerun a check just to change `grep` or `tail`. Rerun only after affected code
+  changes or when investigating a concrete failure that needs another execution.
+- **Known failures**: reuse verified baseline evidence when the relevant code, tests, and
+  configuration are unchanged. Investigate new or changed failures; do not rediscover an
+  already established unrelated failure.

@@ -473,16 +473,10 @@ interface Flow {
   next: string[]
 }
 
-/** The flows each action is done by. `board` opens every card action, because the card
- *  format, the memory set and the layout are what all of them are written against — the
- *  short note installed in a project no longer carries any of it.
- *
- *  Order matters: the general rules first, then the flow for this one job. */
+/** Guides supplied upfront, general rules before the action's own flow. */
 const GUIDES_FOR: Record<StartableAction, string[]> = {
   implement: ['board', 'implement', 'document-feature'],
-  // Review owns post-implementation decision notes, so it receives their writing contract
-  // rather than trying to reconstruct it from the review flow.
-  review: ['board', 'writing', 'update-questions', 'review'],
+  review: ['review'],
   conflict: ['conflict'],
   run: ['board', 'recurring-task'],
   // QA edits decision prose as it settles and prunes the plan.

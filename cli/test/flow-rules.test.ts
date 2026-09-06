@@ -231,8 +231,8 @@ describe('the prompt', () => {
     assert.doesNotMatch(guide, /Worth noting after implementation/)
   })
 
-  it('loads the writing contract wherever a flow edits decision prose', () => {
-    for (const action of ['clarify', 'resolve', 'edit', 'review'] as const) {
+  it('loads writing upfront for planning and on demand for review', () => {
+    for (const action of ['clarify', 'resolve', 'edit'] as const) {
       startCollecting()
       try {
         const flow = printFlow({ action, id: 1, title: 'card one' })
@@ -245,6 +245,8 @@ describe('the prompt', () => {
     try {
       const flow = printFlow({ action: 'implement', id: 1, title: 'card one' })
       assert.equal((flow.guides as string[]).includes('writing'), false)
+      const review = printFlow({ action: 'review', id: 1, title: 'card one' })
+      assert.deepEqual(review.guides, ['review'])
     } finally {
       stopCollecting()
     }
