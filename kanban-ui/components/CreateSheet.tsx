@@ -339,7 +339,7 @@ function Sheet({
               phrases={c.headlines}
               paused={headlineStopped || text.length > 0}
             />
-            <p className="mt-2 text-center text-[13.5px] text-nb-ink-soft max-md:text-[12.5px]">
+            <p className="mt-2 text-balance text-center text-[13.5px] text-nb-ink-soft max-md:text-[12.5px]">
               {c.slogan}
             </p>
             <div className="mt-6 w-full max-md:mt-5">{composer}</div>
@@ -662,7 +662,7 @@ function Mode({
       disabled={disabled}
       title={title}
       onClick={onPick}
-      className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[7px] px-2 text-[12px] font-[700] uppercase leading-none tracking-[0.02em] transition-colors ${
+      className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[7px] px-2 text-[12px] font-[700] leading-none transition-colors ${
         disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"
       } ${
         on
