@@ -19,15 +19,16 @@ hand-write the frontmatter: `akb raw create`, `update`, `update-verify` and
 
 ## `channels:`
 
-- **Write it the moment the user says which channels, and which of them leads**:
+- **Write it the moment the user says which channels**:
 
   ```text
   akb raw update <id> --channels x,xiaohongshu
   ```
 
-  in the order they picked, **lead channel first**.
-- **The lead channel is the first entry**: the one `source.md` is written for. Every other
-  chosen channel is a repurposing of it, not a second draft.
+  in the order they picked. The order only orders the tab strip and where `+` appends.
+- **No channel leads**: `channels:` is the set of channels the piece goes to — nothing on
+  the card says which post matters most. `source.md` is written for none of them, and every
+  chosen channel's draft is its own repurposing of it.
 - **Never invent a channel**: the four are in `akb guide channel`.
 
 ## The draft is the card

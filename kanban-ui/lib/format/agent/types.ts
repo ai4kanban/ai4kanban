@@ -85,9 +85,19 @@ export type AgentAction =
  *  both are named by an agent rather than run by a role. */
 export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'write'])
 
+/** The actions that write no card at all: the two specialists, and a repurpose, which
+ *  writes one channel's draft file and never the plan (#457). None of them holds the card
+ *  it names, so several may work one card side by side — and the source tab's one action
+ *  starts a repurpose per channel that way.
+ *
+ *  It is not `SPECIALIST_ACTIONS`: that set also picks the agent a run is done by
+ *  (`agent/runner.ts`) and the rule it is handed, and a repurpose is neither named by an
+ *  agent nor given a specialist's flow. */
+const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([...SPECIALIST_ACTIONS, 'channel'])
+
 /** Whether a run of this action holds the card it names. The one answer every lock reads,
- *  so a specialist is exempt everywhere or nowhere. */
-export const holdsCard = (action: AgentAction): boolean => !SPECIALIST_ACTIONS.has(action)
+ *  so a card-free run is exempt everywhere or nowhere. */
+export const holdsCard = (action: AgentAction): boolean => !CARD_FREE_ACTIONS.has(action)
 
 /** The action names used by refinement passes (`agent/refine.ts`). A pass carries its
  *  refine round; `resolve` without one is the standalone flow a user typed. */
@@ -157,8 +167,13 @@ export interface AgentRequest {
    *  the prompt the run is given and the section — or the file — it is allowed to write. */
   specAgent?: string
   /** channel: which channel this run repurposes the topic for — one of the four names
-   *  (`lib/channels.ts`). It decides the file the run writes and the language it writes in. */
+   *  (`lib/channels.ts`). It decides the file the run writes and, unless `language` names
+   *  another, the language it writes in. */
   channel?: string
+  /** channel: the language THIS repurpose is written in (#457), instead of the channel's
+   *  own. Free text, and unset on every repurpose that did not ask for one — nothing on the
+   *  card carries it, because it is an argument to one action rather than a setting. */
+  language?: string
   /** implement: how THIS build commits (#346) — the Implement dialog's tick, and this one
    *  delivery's answer. Absent on every other way in — a terminal `akb card implement`, a queued
    *  build, a resolve that carries on — and those fall back to **Allow automatic Git

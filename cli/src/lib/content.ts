@@ -5,8 +5,8 @@
 // folder is tracked in git and kept after the card is archived: the piece outlives the
 // topic that asked for it.
 //
-// Inside it, one file per draft. `source.md` is the argument, written for the lead channel
-// and never published; `<channel>.md` is that channel's own draft, repurposed from it.
+// Inside it, one file per draft. `source.md` is the argument, written for no channel and
+// never published; `<channel>.md` is that channel's own draft, repurposed from it.
 //
 // It is a function, not a constant, because `KANBAN` is repointed per command (./paths.ts).
 

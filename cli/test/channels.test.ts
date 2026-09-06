@@ -3,9 +3,11 @@
 //
 // What is asked here is the whole of the promise: the order the user picked is what the file
 // keeps, a reorder cannot lose where a piece was published, only the four names are accepted,
-// the field is the marketing solution's alone, a repurpose refuses rather than overwrite a
-// draft the user may have edited, and the `draft` status is stamped by the board once the
-// file is on disk — never claimed by the run that wrote it.
+// the field is the marketing solution's alone, no entry in it leads (#457), a repurpose
+// refuses rather than overwrite a draft the user may have edited, it writes in the language
+// it was asked for, it leaves its card free for the repurposes beside it, and the `draft`
+// status is stamped by the board once the file is on disk — never claimed by the run that
+// wrote it.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -15,8 +17,9 @@ import { after, afterEach, beforeEach, describe, it } from 'node:test'
 
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
-import { markChannelDrafted } from '../src/lib/agent/sessions.ts'
+import { markChannelDrafted, openRun } from '../src/lib/agent/sessions.ts'
 import { parseFrontmatter } from '../src/lib/frontmatter.ts'
+import { setBoardProvider } from '../src/lib/board/index.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { move, refuses, run } from './helpers/board.ts'
 
@@ -51,6 +54,7 @@ function board(which = 'marketing'): void {
   fs.writeFileSync(path.join(todo, 'README.md'), '# The board\n\n## Tasks\n\n- #2 A topic — 2-a-topic.md\n')
   fs.writeFileSync(card, CARD)
   setBoardRoot(root)
+  setBoardProvider(null)
 }
 
 /** The card's channels as anything reading the board sees them. */
@@ -84,7 +88,7 @@ afterEach(() => delete process.env[RUN_ENV])
 after(() => fs.rmSync(root, { recursive: true, force: true }))
 
 describe('the channels a topic goes to', () => {
-  it('keeps the order the user picked, lead first, and writes a bare name for a channel with no draft', async () => {
+  it('keeps the order the user picked, no entry leading, and writes a bare name for a channel with no draft', async () => {
     await move(root, ['update', '2', '--channels', 'xiaohongshu,x'])
     assert.deepEqual(
       channels().map((c) => c.name),
@@ -188,6 +192,35 @@ describe('the run that repurposes one draft', () => {
     assert.match(prompt, /Read docs\/kanban\/content\/2-a-topic\/source\.md/)
     assert.match(prompt, /write docs\/kanban\/content\/2-a-topic\/xiaohongshu\.md, in Chinese/)
     assert.match(buildPrompt({ action: 'channel', id: 2, channel: 'x' }), /x\.md, in English/)
+  })
+
+  it('writes in the language this one was asked for, over the channel’s own', () => {
+    const asked = buildPrompt({ action: 'channel', id: 2, channel: 'xiaohongshu', language: 'English' })
+    assert.match(asked, /xiaohongshu\.md, in English/)
+    assert.doesNotMatch(asked, /in Chinese/)
+    // Blank is not an answer: an empty language leaves the channel's own table deciding.
+    assert.match(buildPrompt({ action: 'channel', id: 2, channel: 'xiaohongshu', language: '  ' }), /in Chinese/)
+  })
+})
+
+describe('a live repurpose', () => {
+  // One action on the source tab starts a run per channel (#457), so a repurpose holds
+  // nothing: it writes one draft file and never the card's plan.
+  const open = (action: 'channel' | 'implement', channel?: string): string => {
+    const opened = openRun({ action, id: 2, title: 'A topic', channel }, 'prompt', [])
+    if ('error' in opened) throw new Error(opened.error)
+    return opened.run.sessionId
+  }
+
+  it('leaves its card free for the repurposes beside it, and for the card’s own runs', () => {
+    open('channel', 'x')
+    assert.doesNotThrow(() => open('channel', 'xiaohongshu'))
+    assert.doesNotThrow(() => open('implement'))
+  })
+
+  it('still refuses a second run of a flow that does hold the card', () => {
+    open('implement')
+    assert.throws(() => open('implement'), /already being implemented/)
   })
 })
 

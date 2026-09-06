@@ -208,11 +208,13 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .summary("repurpose a topic's draft for one channel")
     .description(
       "It is a run of its own: it reads that topic's `source.md` and writes " +
-        '`content/<id>-<slug>/<name>.md` in the channel\'s own language, and changes nothing else. Run ' +
-        'it once `source.md` reads right — nothing follows the write run on its own. A draft already ' +
-        'there is never silently replaced. Marketing boards only.',
+        '`content/<id>-<slug>/<name>.md` in the channel\'s own language — or in `--language`, for this ' +
+        'one repurpose — and changes nothing else. Run it once `source.md` reads right — nothing ' +
+        'follows the write run on its own. A draft already there is never silently replaced. ' +
+        'Marketing boards only.',
     )
     .option('--again', 'replace the draft that is already there')
+    .option('--language <language>', "write this one in this language instead of the channel's own")
     .option('-f, --follow', 'watch its log instead of returning')
     .option('--notes <text>', 'what the run should know, for a caller building a command')
     // Declared so the refusal can say WHY there is none, rather than "unknown option".

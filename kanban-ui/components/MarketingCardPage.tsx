@@ -25,18 +25,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  FiAlertCircle,
   FiArchive,
   FiArrowLeft,
   FiCheck,
+  FiChevronDown,
   FiEdit3,
+  FiGlobe,
   FiMoreHorizontal,
   FiPlus,
+  FiRepeat,
   FiSend,
   FiXCircle,
 } from "react-icons/fi";
 import type { OverTypeInstance } from "overtype";
 import { useCopy } from "@/i18n/use-copy";
-import { useActions } from "@/lib/screen";
+import { useActions, type RepurposeAsk } from "@/lib/screen";
 import type { Card, CardDrafts, CardScreen, SessionView } from "@/lib/types";
 import {
   ActionDialog,
@@ -47,10 +51,9 @@ import {
 import { useBoardHref } from "./board-links";
 import { Button } from "./button";
 import type { CardChrome, CardShell, CardStrips } from "./CardPage";
-import { CHANNEL_NAMES, ChannelDot, ChannelMark, channelLabel } from "./channels";
+import { CHANNEL_NAMES, ChannelDot, ChannelMark, channelLabel, REPURPOSE_LANGUAGES } from "./channels";
 import { useChatRailHere } from "./Chat";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
-import { ConfirmationPopover } from "./confirm-popover";
 import { Dialog } from "./Dialog";
 import { OpenIdsProvider } from "./open-ids";
 import { runningCardIds, useAgentSessions, useOnTabFocus, type StartedSession } from "./sessions";
@@ -220,8 +223,9 @@ function Draft({
   const [dirty, setDirty] = useState(false);
   const [moving, setMoving] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [replace, setReplace] = useState("");
-  const menuRef = useRef<HTMLSpanElement>(null);
+  // Which channels the repurpose panel is open for — every chosen one from the source tab,
+  // one from a channel's own Rewrite. Null is closed.
+  const [asking, setAsking] = useState<string[] | null>(null);
 
   // The card's own conversation is answering — an agent is writing this draft through the
   // rail. It locks the editor exactly as a run does, and the draft is re-read when it ends.
@@ -396,30 +400,42 @@ function Draft({
     if (next === tab) return;
     if (!(await flush())) return;
     onError(null);
+    setAsking(null);
     setTab(next);
   };
 
   // ---- the moves the page makes itself -------------------------------------
 
-  /** Write this channel's draft from the source — `akb channel <name> <id>`, with every
-   *  check that command makes. `again` answers a draft that is already there. */
-  const rewrite = async (again: boolean) => {
-    if (!actions || !channel) return;
-    // What is typed goes to disk first: the run is about to write this same file, and a
-    // save landing after it would put the words back over what the agent wrote.
+  /** Whether that channel has a draft on disk. What the panel warns about, and what says
+   *  whether a run replaces one — the same question `akb channel` asks before it starts. */
+  const isWritten = (name: string) => (read.drafts.find((d) => d.name === name)?.text ?? "").trim() !== "";
+
+  /**
+   * Repurpose, once the panel has been confirmed — `akb channel <name> <id>` per channel,
+   * with every check that command makes, all started together (#457).
+   *
+   * The panel is the ask, so a draft already on disk is started with `again` rather than
+   * refused: it was named as one this will replace before anything ran. A refusal that
+   * still comes back — the file appeared since the pane last read the folder — is said on
+   * the error line, without the sentence telling a terminal which flag to add.
+   */
+  const repurpose = async (targets: string[], ask: RepurposeAsk) => {
+    if (!actions || !targets.length) return;
+    // What is typed goes to disk first: a run is about to write these same files, and a
+    // save landing after one would put the words back over what the agent wrote.
     if (!(await flush())) return;
     setMoving(true);
-    const res = await actions.repurpose(card.id, channel.name, again);
+    const results = await Promise.all(
+      targets.map((name) => actions.repurpose(card.id, name, isWritten(name), ask)),
+    );
     setMoving(false);
-    setReplace("");
-    if (res.ok) {
-      onKick();
-      return onError(null);
-    }
-    // A draft that is already written is a question, not a refusal: the command's own words
-    // are the confirmation's, and answering it runs the same rewrite with `again`.
-    if (res.kind === "draft-exists") return setReplace(withoutFlag(res.error) || c.replaceBody);
-    onError(res.error ?? c.rewriteFailed);
+    const failed = targets.filter((_, i) => !results[i]!.ok);
+    if (results.some((res) => res.ok)) onKick();
+    // Only what failed is left to try again: a second press must not start a second run
+    // over a draft the first press is already writing.
+    setAsking(failed.length ? failed : null);
+    const why = results.find((res) => !res.ok);
+    onError(why ? withoutFlag(why.error) || c.repurpose.failed : null);
   };
 
   const publish = async (url: string) => {
@@ -435,8 +451,8 @@ function Draft({
     router.refresh();
   };
 
-  /** The `+`: one more channel on the end of the list. The lead stays first, and every
-   *  channel already there keeps its status and the URL it went up at. */
+  /** The `+`: one more channel on the end of the list. Every channel already there keeps
+   *  its status and the URL it went up at. */
   const addChannel = async (name: string) => {
     if (!actions) return;
     // The strip is about to move, so this tab's words go to disk first — the same rule
@@ -494,24 +510,12 @@ function Draft({
               {c.publishedCount(published, channels.length)}
             </span>
           ) : null}
-          <span className="relative ml-auto flex shrink-0 items-center" ref={menuRef}>
+          <span className="relative ml-auto flex shrink-0 items-center">
             <PageMenu
-              onRewrite={channel && actions ? () => void rewrite(false) : undefined}
+              onRewrite={channel && actions ? () => setAsking([channel.name]) : undefined}
               onArchive={actions ? onArchive : undefined}
               onReject={actions ? onReject : undefined}
               disabled={locked || moving}
-            />
-            <ConfirmationPopover
-              open={!!replace}
-              anchorRef={menuRef}
-              align="right"
-              title={c.replaceTitle}
-              description={replace}
-              cancelLabel={t.shared.cancel}
-              confirmLabel={c.replaceConfirm}
-              busy={moving}
-              onDismiss={() => setReplace("")}
-              onConfirm={() => void rewrite(true)}
             />
           </span>
         </div>
@@ -533,6 +537,21 @@ function Draft({
           {canAdd && (
             <span className="mb-[3px]">
               <AddChannel names={unchosen} disabled={moving} onPick={(n) => void addChannel(n)} />
+            </span>
+          )}
+          {/* The source tab's one AI move: repurpose into every chosen channel at once. It
+              needs a source to read and a channel to write, so it is drawn only where both
+              are there. */}
+          {tab === SOURCE && written && channels.length > 0 && actions && (
+            <span className="mb-[2px] ml-auto shrink-0">
+              <Button
+                size="xs"
+                disabled={locked || moving}
+                onClick={() => setAsking(channels.map((ch) => ch.name))}
+              >
+                <FiRepeat className="text-[12px]" aria-hidden />
+                {c.repurpose.action}
+              </Button>
             </span>
           )}
           {channel && written && (
@@ -583,7 +602,11 @@ function Draft({
               is always the other way. */}
           {loaded && editor && !written && !locked && actions && (
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2.5 pb-16">
-              <Button className="pointer-events-auto" disabled={moving} onClick={channel ? () => void rewrite(false) : onDraft}>
+              <Button
+                className="pointer-events-auto"
+                disabled={moving}
+                onClick={channel ? () => setAsking([channel.name]) : onDraft}
+              >
                 {channel ? c.rewriteFromSource : c.draft}
               </Button>
               <span className="text-[12.5px] text-nb-ink-soft">{c.orJustWrite}</span>
@@ -596,6 +619,16 @@ function Draft({
           </span>
 
           {editor && rail && !locked && actions && <AskHere editor={editor} onAsk={askHere} />}
+
+          {asking && (
+            <RepurposePanel
+              channels={asking}
+              written={asking.filter(isWritten)}
+              busy={moving}
+              onClose={() => setAsking(null)}
+              onStart={(ask) => void repurpose(asking, ask)}
+            />
+          )}
         </div>
       )}
 
@@ -660,7 +693,7 @@ function Tab({
 }
 
 /** The `+` at the right of the strip: the channels this topic has not chosen. Picking one
- *  appends it — the lead channel stays first — and the strip lands on its tab. */
+ *  appends it to the end of the list, and the strip lands on its tab. */
 function AddChannel({
   names,
   disabled,
@@ -815,6 +848,122 @@ function AskHere({
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * The repurpose panel (#457) — the source tab's one AI move, and what a single channel's
+ * Rewrite opens too.
+ *
+ * It IS the ask: nothing has started while it is open, so it says what is about to happen
+ * before it happens — which channels get a draft for the first time, and which written ones
+ * are replaced, whose edits are the only copy of them there is. Pressing Repurpose is the
+ * answer, and it starts one run per channel, side by side.
+ *
+ * The note and the language belong to this one repurpose. Both start unset: the note is
+ * carried into every run this action starts and remembered nowhere, and an unset language
+ * leaves each channel writing in its own.
+ */
+function RepurposePanel({
+  channels,
+  written,
+  busy,
+  onClose,
+  onStart,
+}: {
+  channels: string[];
+  /** Which of them already have a draft — the ones this replaces. */
+  written: string[];
+  busy: boolean;
+  onClose: () => void;
+  onStart: (ask: RepurposeAsk) => void;
+}) {
+  const t = useCopy();
+  const c = t.card.marketing.repurpose;
+  const [note, setNote] = useState("");
+  const [language, setLanguage] = useState("");
+  const fresh = channels.filter((name) => !written.includes(name));
+  const names = (list: string[]) => list.map(channelLabel).join(c.separator);
+  const start = () => onStart({ note: note.trim() || undefined, language: language || undefined });
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-label={channels.length === 1 ? c.titleOne(channelLabel(channels[0]!)) : c.titleAll}
+      className="nb-panel-sm absolute right-3 top-[9px] z-20 w-[min(356px,calc(100%-24px))] bg-nb-paper p-3.5"
+    >
+      <p className="text-[13px] font-[700] leading-[1.45] text-nb-ink">
+        {channels.length === 1 ? c.titleOne(channelLabel(channels[0]!)) : c.titleAll}
+      </p>
+      {fresh.length > 0 && (
+        <p className="mt-1 text-[12px] leading-[1.6] text-nb-ink-soft">{c.willWrite(names(fresh), fresh.length)}</p>
+      )}
+      <textarea
+        autoFocus
+        rows={2}
+        value={note}
+        placeholder={c.notePlaceholder}
+        onChange={(e) => setNote(e.target.value)}
+        className="mt-2.5 w-full resize-none rounded-[8px] bg-nb-wash px-2.5 py-2 text-[12.5px] leading-[1.6] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+      />
+      <div className="mt-2.5 flex items-center gap-2">
+        <span className="text-[12px] font-[700] text-nb-ink">{c.language}</span>
+        <span className="ml-auto">
+          <LanguagePick value={language} onPick={setLanguage} />
+        </span>
+      </div>
+      {written.length > 0 && (
+        <p className="mt-2.5 flex items-start gap-1.5 rounded-[8px] bg-nb-peach-soft px-2.5 py-2 text-[11.5px] leading-[1.55] text-nb-peach-ink">
+          <FiAlertCircle className="mt-[2px] shrink-0 text-[13px]" aria-hidden />
+          {c.willReplace(names(written), written.length)}
+        </p>
+      )}
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <Button variant="ghost" size="xs" disabled={busy} onClick={onClose}>
+          {t.shared.cancel}
+        </Button>
+        <Button size="xs" disabled={busy} onClick={start}>
+          {busy ? c.starting : c.start}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Which language this one repurpose is written in. The empty value is the channel's own,
+ *  and is what the panel opens on. */
+function LanguagePick({ value, onPick }: { value: string; onPick: (value: string) => void }) {
+  const c = useCopy().card.marketing.repurpose;
+  const label = REPURPOSE_LANGUAGES.find((l) => l.value === value)?.label ?? c.followChannel;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="flex h-[26px] cursor-pointer items-center gap-1 rounded-[8px] border border-nb-ink/20 bg-nb-wash pl-2 pr-1.5 text-[12px] font-[600] text-nb-ink"
+        >
+          <FiGlobe className="text-[12px] text-nb-ink-soft" aria-hidden />
+          {label}
+          <FiChevronDown className="text-[12px] text-nb-ink-soft" aria-hidden />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[168px]">
+        <DropdownMenuItem onSelect={() => onPick("")}>{c.followChannel}</DropdownMenuItem>
+        {REPURPOSE_LANGUAGES.map((l) => (
+          <DropdownMenuItem key={l.value} onSelect={() => onPick(l.value)}>
+            {l.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

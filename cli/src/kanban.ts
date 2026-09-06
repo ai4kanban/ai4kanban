@@ -97,7 +97,7 @@ export { createAgent, deleteAgent, readAgents, saveAgentFile, setAgentRule } fro
 // nothing; choosing the channels is `update --channels`. A product board never draws the
 // page, so nothing here is ever called on one.
 export { readDrafts, repurposeChannel, saveDraft, setChannels, setChannelStatus } from './lib/view/drafts'
-export type { RepurposeResult } from './lib/view/drafts'
+export type { RepurposeAsk, RepurposeResult } from './lib/view/drafts'
 
 // The chat (#240): the board's conversation with its agent, and each card's. A screen
 // drives it through these — `sendChatMessage` streams the reply back through `onText`, so

@@ -13,8 +13,9 @@ channel's draft.
 | `reddit` | English |
 | `xiaohongshu` | Chinese |
 
-A channel is a name and a language, and that is the whole of it. There is no per-channel
-instruction file: what a good draft looks like is `memory/writing.md` and whichever file
+A channel is a name and a language, and that is the whole of it. The table is the default:
+the ask above names another language when this repurpose was started with one. There is no
+per-channel instruction file: what a good draft looks like is `memory/writing.md` and whichever file
 under `memory/writing/` covers this channel's format or language. Read those first — every
 rule there was learned from an edit the user made.
 
@@ -22,8 +23,9 @@ rule there was learned from an edit the user made.
 
 - **The argument is settled**: `source.md` is the piece. Shorten or expand it into this
   channel's shape; do not re-angle it, re-report it, or add a claim it does not make.
-- **Write in the channel's language, do not translate**: a 小红书 draft that reads as a
-  translation of an English piece has failed. Write it as its readers would have written it.
+- **Write in the language this run is asked for, do not translate**: the channel's own
+  unless the ask names another. A 小红书 draft that reads as a translation of an English
+  piece has failed. Write it as its readers would have written it.
 - **Claim only what is settled**: `memory/decisions.md` is what we may say.
 - **Where the writing memory says nothing about a channel**, use what that channel's readers
   plainly expect — length, opening, how a link is placed — and leave the lesson to the edit

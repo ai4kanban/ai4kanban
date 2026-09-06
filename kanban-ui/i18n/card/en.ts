@@ -52,7 +52,6 @@ const en: CardCopy = {
     draft: "Draft",
     rewriteFromSource: "Rewrite from source",
     orJustWrite: "or just start writing",
-    rewriteFailed: "the rewrite could not be started",
     startFailed: "the run could not be started",
     rewriting: "Rewriting",
     publishedCount: (published, total) => `${published} / ${total} published`,
@@ -60,9 +59,24 @@ const en: CardCopy = {
     unsaved: "Unsaved",
     addChannel: "Add a channel",
     addChannelFailed: "the channel could not be added",
-    replaceTitle: "Replace this draft?",
-    replaceBody: "This draft is already written, and your edits to it are the only copy.",
-    replaceConfirm: "Replace it",
+    repurpose: {
+      action: "Repurpose all",
+      titleAll: "Repurpose into each channel",
+      titleOne: (channel) => `Rewrite ${channel}`,
+      willWrite: (channels, count) =>
+        count === 1 ? `${channels} has no draft yet — this writes it.` : `${channels} have no draft yet — this writes them.`,
+      willReplace: (channels, count) =>
+        count === 1
+          ? `${channels}'s draft will be replaced, and your edits to it are the only copy.`
+          : `The drafts for ${channels} will be replaced, and your edits to them are the only copy.`,
+      separator: ", ",
+      notePlaceholder: "Anything to say about this repurpose (optional)…",
+      language: "Language",
+      followChannel: "Follow the channel",
+      start: "Repurpose",
+      starting: "Starting…",
+      failed: "the repurpose could not be started",
+    },
     publish: "Publish",
     publishFailed: "the channel could not be marked published",
     publishTitle: (channel) => `Publish to ${channel}`,

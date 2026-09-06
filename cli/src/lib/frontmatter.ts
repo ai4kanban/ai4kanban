@@ -29,7 +29,7 @@ export function serializeFrontmatter(m: Partial<Meta>, which: Solution = solutio
   out.push(`blocked_by: [${(m.blocked_by || []).join(', ')}]`)
   out.push(`related: [${(m.related || []).join(', ')}]`)
   out.push(`modules: [${(m.modules || []).join(', ')}]`)
-  // The channels a topic goes to, lead first (./channels.ts). Written only when the card
+  // The channels a topic goes to, in the order they were picked (./channels.ts). Written only when the card
   // names some, so every product card — and every topic whose channels question is still
   // open — keeps the frontmatter it always had.
   out.push(...serializeChannels(m.channels))

@@ -31,7 +31,7 @@ export interface Meta {
   blocked_by: number[]
   related: number[]
   modules: string[]
-  /** The channels this topic goes to, lead first (./channels.ts). Empty on every product
+  /** The channels this topic goes to, in the order they were picked (./channels.ts). Empty on every product
    *  card — the field is the marketing solution's. */
   channels: CardChannel[]
   cadence: string

@@ -10,8 +10,9 @@
 //       status: published
 //       url: "https://..."
 //
-// Order is meaning: the FIRST entry is the lead channel, the one `source.md` is written
-// for. Every other chosen channel is a repurposing of it (`akb channel <name> <id>`).
+// The order is the one the user picked them in: it orders the tab strip and where `+`
+// appends, and no channel leads (#457). `source.md` is written for none of them, and every
+// chosen channel's draft is its own repurposing of it (`akb channel <name> <id>`).
 //
 // A channel is a name and a language, and that pair is the whole definition — there is no
 // per-channel instruction file. What makes a draft good is `memory/writing.md` and

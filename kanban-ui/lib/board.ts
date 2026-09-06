@@ -391,17 +391,18 @@ export async function repurposeChannel(
   id: number,
   channel: string,
   again: boolean,
+  ask: { note?: string; language?: string } = {},
 ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
   try {
     const rules = await boardRules();
     if (!rules.repurposeChannel) return { ok: false, error: await tooOldForDrafts() };
-    return await rules.repurposeChannel(id, channel, again);
+    return await rules.repurposeChannel(id, channel, again, ask);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-/** Choose the channels this topic goes to, lead first (#434). The `+` on the card page
+/** Choose the channels this topic goes to (#434). The `+` on the card page
  *  appends one; the whole list is rewritten, and a channel that stays keeps its status and
  *  URL. Rules without it draw no `+`, so this is only ever called where it exists. */
 export async function setChannels(id: number, names: string[]): Promise<{ ok: boolean; error?: string }> {

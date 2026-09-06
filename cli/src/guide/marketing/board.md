@@ -59,13 +59,14 @@ chat, and the few lines at the top of `content/<id>-<slug>/source.md` are what `
 expands.
 
 `akb channel <name> <id>` is a step you take, once `source.md` reads right — one run per
-chosen channel, and nothing starts it for you.
+channel, and the source tab's repurpose starts one for every chosen channel at once.
 
 ## Channels
 
-A topic goes to the channels its card names, in `channels:`. **Order is meaning: the first
-entry is the lead channel**, the one `source.md` is written for. Every chosen channel gets
-its own file, the lead included — `source.md` is the argument, and is never published.
+A topic goes to the channels its card names, in `channels:`. The order is the one you
+picked them in: it orders the tab strip and where `+` appends, and nothing else — no
+channel leads. Every chosen channel gets its own file — `source.md` is the argument,
+written for no channel, and is never published.
 
 | channel | language |
 | --- | --- |
@@ -75,13 +76,15 @@ its own file, the lead included — `source.md` is the argument, and is never pu
 | `xiaohongshu` | Chinese |
 
 A channel is a name and a language, and that is the whole definition — there is no
-instruction file per channel. What makes a draft good is `memory/writing.md` and
-`memory/writing/`, so a rule learned on one channel reaches every channel it fits.
+instruction file per channel. The table is the default: `akb channel --language <language>`
+writes one repurpose in another language instead, and changes nothing on the card. What
+makes a draft good is `memory/writing.md` and `memory/writing/`, so a rule learned on one
+channel reaches every channel it fits.
 
 Two moves write the field, and nothing else touches it:
 
 ```text
-akb raw update <id> --channels x,xiaohongshu       # chosen, lead first
+akb raw update <id> --channels x,xiaohongshu       # chosen, in the order you picked
 akb raw channel-status <id> x published --url ..   # move one channel along
 ```
 

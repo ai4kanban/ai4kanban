@@ -892,15 +892,22 @@ export async function saveDraftAction(id: number, name: string, text: string): P
 
 // Repurpose the topic's source into one channel's draft — the CLI's `channel` command, so
 // the button gets every check a terminal gets. `again` is the answer to a draft that is
-// already written, which the pane asks for rather than refusing.
+// already written, which the pane asks for rather than refusing. `ask` is the note and the
+// language typed with this one repurpose (#457); both are optional and neither is stored.
 export async function repurposeChannelAction(
   id: number,
   channel: string,
   again = false,
+  ask: { note?: string; language?: string } = {},
 ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
   if (!Number.isInteger(id)) return { ok: false, error: "a repurpose names the topic by number" };
   if (typeof channel !== "string" || !channel) return { ok: false, error: "a repurpose names a channel" };
-  return repurposeChannel(id, channel, again === true);
+  const note = typeof ask?.note === "string" ? ask.note.trim() : "";
+  const language = typeof ask?.language === "string" ? ask.language.trim() : "";
+  return repurposeChannel(id, channel, again === true, {
+    note: note || undefined,
+    language: language || undefined,
+  });
 }
 
 // Mark one channel published and record where the piece went up (#411). It posts nothing:
@@ -919,7 +926,7 @@ export async function setChannelStatusAction(
   return setChannelStatus(id, channel, status, typeof url === "string" ? url : "");
 }
 
-// Choose the channels this topic goes to, lead first (#434) — the card page's `+`, which
+// Choose the channels this topic goes to (#434) — the card page's `+`, which
 // appends one to the list the card already carries. Reused from `update --channels`, so a
 // channel that stays keeps its status and the URL it was published at.
 export async function setChannelsAction(id: number, names: string[]): Promise<{ ok: boolean; error?: string }> {

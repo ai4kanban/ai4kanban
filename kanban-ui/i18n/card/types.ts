@@ -73,7 +73,6 @@ export type CardCopy = {
     draft: string;
     rewriteFromSource: string;
     orJustWrite: string;
-    rewriteFailed: string;
     startFailed: string;
     /** An agent is writing this card — a run, or its own conversation. */
     rewriting: string;
@@ -85,11 +84,30 @@ export type CardCopy = {
     /** The `+` at the right of the tab strip. */
     addChannel: string;
     addChannelFailed: string;
-    /** Rewriting over a draft that is already there. The body is the board's own sentence,
-     *  so only the title and the confirm are here. */
-    replaceTitle: string;
-    replaceBody: string;
-    replaceConfirm: string;
+    /** The repurpose panel (#457) — the one AI move the source tab has, and the same panel
+     *  a single channel's Rewrite opens. It is the ask: nothing starts until it is
+     *  confirmed, so what it says is what is about to happen. */
+    repurpose: {
+      /** The strip's button, and the panel's title in each of its two shapes. */
+      action: string;
+      titleAll: string;
+      titleOne: (channel: string) => string;
+      /** What this repurpose does: the channels it writes for the first time, and the
+       *  drafts it replaces — whose edits are the only copy there is. */
+      willWrite: (channels: string, count: number) => string;
+      willReplace: (channels: string, count: number) => string;
+      /** What two channel names are strung together with. */
+      separator: string;
+      /** The idea you had while asking, carried into every run this starts. Optional. */
+      notePlaceholder: string;
+      /** The language this one piece is written in. Unset means the channel's own. */
+      language: string;
+      followChannel: string;
+      /** The confirm, and what it says while the runs are starting. */
+      start: string;
+      starting: string;
+      failed: string;
+    };
     /** Publish asks where the piece went up before it marks the channel. */
     publish: string;
     publishFailed: string;

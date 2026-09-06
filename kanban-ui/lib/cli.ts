@@ -252,12 +252,17 @@ export interface BoardRules {
   // gets — the channel is chosen, `source.md` is there, an existing draft needs `again`. It
   // hands the refusal's own `kind` back, which is what turns `draft-exists` into a
   // confirmation rather than a dead end.
+  //
+  // `ask` is one more optional argument, the way `again` already is (#457): rules older than
+  // the release that added it repurpose without the note and the language rather than
+  // refusing.
   readDrafts?(id: number): CardDrafts;
   saveDraft?(id: number, name: string, text: string): CardDrafts;
   repurposeChannel?(
     id: number,
     channel: string,
     again?: boolean,
+    ask?: { note?: string; language?: string },
   ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }>;
   setChannelStatus?(
     id: number,
@@ -265,7 +270,7 @@ export interface BoardRules {
     status: ChannelStatus,
     url?: string,
   ): Promise<{ ok: boolean; error?: string }>;
-  /** Choose the channels this topic goes to (#434), lead first — `update --channels`, so a
+  /** Choose the channels this topic goes to (#434) — `update --channels`, so a
    *  channel that stays keeps its status and its URL. Optional on its own: rules with the
    *  drafts above but not this one draw the page without its `+`. */
   setChannels?(id: number, names: string[]): Promise<{ ok: boolean; error?: string }>;

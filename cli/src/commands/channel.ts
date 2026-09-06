@@ -16,7 +16,7 @@ import { titleOf } from '../lib/agent/sessions'
 import { startRun } from '../lib/agent/start'
 import type { AgentRequest } from '../lib/agent/types'
 import { locate } from '../lib/cards'
-import { CHANNELS, CHANNEL_NAMES, channelLanguage } from '../lib/channels'
+import { CHANNELS, CHANNEL_NAMES } from '../lib/channels'
 import { draftFile, SOURCE } from '../lib/content'
 import { parseFrontmatter } from '../lib/frontmatter'
 import { say } from '../lib/io'
@@ -34,6 +34,9 @@ export interface ChannelOptions {
   again?: boolean
   follow?: boolean
   print?: boolean
+  /** Write this one repurpose in this language instead of the channel's own (#457). Free
+   *  text — it is a word the run reads, not a name the board knows. */
+  language?: string
 }
 
 export async function cmdChannel(opts: ChannelOptions, program = 'akb'): Promise<MoveResult> {
@@ -87,7 +90,7 @@ export async function cmdChannel(opts: ChannelOptions, program = 'akb'): Promise
   if (!meta?.channels.some((c) => c.name === name)) {
     die(
       `#${id} does not go to ${name} — its channels are ${meta?.channels.map((c) => c.name).join(', ') || '(none chosen)'}. ` +
-        `Add it with \`${program} raw update ${id} --channels <names>\`, lead channel first.`,
+        `Add it with \`${program} raw update ${id} --channels <names>\`.`,
       { kind: 'channel-not-chosen', id, channel: name },
     )
   }
@@ -111,7 +114,8 @@ export async function cmdChannel(opts: ChannelOptions, program = 'akb'): Promise
   }
 
   const notes = noteOf(opts.note ?? [], opts.notes, opts.again === true)
-  const req: AgentRequest = { action: 'channel', id, title: titleOf(id), channel: name, notes }
+  const language = opts.language?.trim() || undefined
+  const req: AgentRequest = { action: 'channel', id, title: titleOf(id), channel: name, notes, language }
   const started = await startRun(req)
   if ('error' in started) die(started.error, { kind: 'run-refused', action: 'channel' })
   const { run, spawned } = started
@@ -133,9 +137,11 @@ function channelList(program: string): string {
     'Channels',
     ...CHANNELS.map((c) => `  ${c.name.padEnd(width - 2)}${c.language}`),
     '',
-    `A topic goes to the channels its card names — \`${program} raw update <id> --channels <names>\`, lead`,
-    'channel first. What makes a draft good is `memory/writing.md` and `memory/writing/`, so a rule',
-    'learned on one channel reaches every channel it fits.',
+    `A topic goes to the channels its card names — \`${program} raw update <id> --channels <names>\`, in the`,
+    'order you picked them, and no channel leads. What makes a draft good is `memory/writing.md` and',
+    '`memory/writing/`, so a rule learned on one channel reaches every channel it fits.',
+    '',
+    '`--language <language>` writes one repurpose in that language instead of the channel\'s own.',
   ].join('\n')
 }
 

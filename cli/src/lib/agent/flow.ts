@@ -28,7 +28,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { idPrefix, locate } from '../cards'
-import { channelLanguage } from '../channels'
 import { draftFile, SOURCE } from '../content'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
@@ -45,7 +44,7 @@ import { boardCommandFor } from './command'
 import { deliveryFor } from './deliveries'
 import { aiReviewOn, owesFocusedReview } from './review'
 import { field, metaLine, numbered } from './facts'
-import { translating } from './language'
+import { languageName, translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { setupInstruction } from './resolve'
@@ -334,19 +333,18 @@ function workspaceField(delivery: DeliveryRecord | undefined): string[] {
   ])
 }
 
-// The file a marketing build writes: `content/<id>-<slug>/source.md` (#407, #409), and the
-// channel it is written for — the first entry in the card's `channels:`. The card carries
-// no brief (#435): the few lines already at the top of that file are the brief, and they
-// name the lead channel on a topic whose `channels:` is still empty. Nothing on a product
-// board, which delivers a diff.
+// The file a marketing build writes: `content/<id>-<slug>/source.md` (#407, #409). It
+// belongs to no channel (#457): it is the argument, in the board's language, and every
+// chosen channel's own draft is a later `akb channel` pass — so `channels:` tells this run
+// nothing, and a card that names none still drafts. The card carries no brief (#435): the
+// few lines already at the top of that file are the brief. Nothing on a product board,
+// which delivers a diff.
 function draftField(card: CardFacts): string[] {
   if (solution() !== 'marketing') return []
-  const lead = card.meta.channels[0]
   return field('draft', [
     `expand ${rel(draftFile(card.file, SOURCE))} in place — its opening lines are the brief, and they are the only brief there is.`,
-    lead
-      ? `it is written for ${lead.name}, this topic's lead channel, in ${channelLanguage(lead.name)} — every other chosen channel is repurposed from it by \`akb channel\`.`
-      : `this card names no channels yet, so write it for the lead channel those opening lines name.`,
+    `it belongs to no channel: it is the argument, not a post — write it in ${languageName()}, give it no channel's length or shape, and it is never published.`,
+    `each chosen channel's own draft is a later \`akb channel\` pass, so write none of them here.`,
     'there is no branch and no worktree: the draft is the delivery, and the user editing it is the review.',
   ])
 }

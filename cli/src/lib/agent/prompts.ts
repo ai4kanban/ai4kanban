@@ -454,10 +454,14 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'channel': {
       const name = req.channel ?? ''
       const files = draftPaths(req.id, name)
+      // The language this one asks for beats the channel's own (#457). It is said once,
+      // here, rather than left to the flow: the run is handed the language the way it is
+      // handed the two paths, and an unset one reads exactly as it always did.
+      const language = req.language?.trim() || channelLanguage(name)
       return [
         `${kb}. Repurpose task ${req.id} ${named} for ${name} following \`akb guide channel\`.`,
-        files ? `Read ${files.source} and write ${files.target}, in ${channelLanguage(name)}.` : '',
-        `One pass: shorten or expand the piece into that channel's shape and language, and stop.`,
+        files ? `Read ${files.source} and write ${files.target}, in ${language}.` : '',
+        `One pass: shorten or expand the piece into that channel's shape, in that language, and stop.`,
         `Write that one file and nothing else — not the card, not \`source.md\`, and not another channel's draft.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
         `Don't ask me questions with human-in-the-loop — the review is me editing the draft.`,

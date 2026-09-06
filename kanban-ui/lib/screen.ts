@@ -111,13 +111,22 @@ export interface ScreenActions {
   readDrafts(id: number): Promise<CardDrafts>;
   saveDraft(id: number, name: string, text: string): Promise<CardDrafts>;
   /** The CLI's `channel` command, with every check it makes. `again` answers a draft that
-   *  is already written; `kind` names the refusal, so `draft-exists` becomes a confirm. */
-  repurpose(id: number, channel: string, again: boolean): Promise<RepurposeAnswer>;
+   *  is already written; `kind` names the refusal, so `draft-exists` becomes a confirm.
+   *  `ask` is what was typed with this one repurpose, and is unset by default. */
+  repurpose(id: number, channel: string, again: boolean, ask?: RepurposeAsk): Promise<RepurposeAnswer>;
   /** Move one channel along and record where the piece went up. It posts nothing. */
   setChannelStatus(id: number, channel: string, status: ChannelStatus, url: string): Promise<WriteResult>;
-  /** Choose the channels this topic goes to, lead first — the page's `+` appends one. A
+  /** Choose the channels this topic goes to — the page's `+` appends one. A
    *  channel that stays keeps its status and the URL it went up at. */
   setChannels(id: number, names: string[]): Promise<WriteResult>;
+}
+
+/** What one repurpose is asked with, beside the channel (#457): the idea the user had while
+ *  asking, and a language for this one piece instead of the channel's own. Both unset by
+ *  default, and neither is kept anywhere — they are arguments to one action. */
+export interface RepurposeAsk {
+  note?: string;
+  language?: string;
 }
 
 /** A repurpose that started, or the reason it did not. */

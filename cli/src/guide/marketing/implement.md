@@ -7,9 +7,10 @@ there, holding a few lines of brief: the angle, who it is for, what it may not c
 where the topic came from. **Expand that file in place** — the brief is the opening of the
 piece, not a page to write over.
 
-It is written for the card's **lead channel** — the first entry in its `channels:`, or, on
-a card that names none, the channel the brief names. There is no branch, no worktree and no
-diff to review — the review is the user editing the draft.
+It is written for **no channel** — it is the argument, not a post. No channel's length or
+shape belongs in it, and a channel's own language arrives at the repurpose: write it in the
+board's language. There is no branch, no worktree and no diff to review — the review is the
+user editing the draft.
 
 - **Read the voice first**: `memory/writing.md`, then whichever file under `memory/writing/`
   covers this format or language. Every rule there was learned from an edit the user made;
@@ -28,5 +29,4 @@ diff to review — the review is the user editing the draft.
   run. Name every file you want in that one note, link to it from the draft, and finish the
   draft: the agent runs after this one ends, and one ask per agent is all you get.
 - **Repurposing is a later pass**: `akb channel <name> <id>` writes each chosen channel's
-  own draft from this one, including the lead channel's. Do not write any of them here, and
-  do not touch `channels:`.
+  own draft from this one. Do not write any of them here, and do not touch `channels:`.

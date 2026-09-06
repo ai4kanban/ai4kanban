@@ -82,6 +82,14 @@ export interface RepurposeResult {
   kind?: string
 }
 
+/** What one repurpose is asked with, beside the channel (#457): the idea the user had while
+ *  asking, and a language for this one piece. Both unset by default, and neither is kept
+ *  anywhere — they are arguments to one action, not settings on the card. */
+export interface RepurposeAsk {
+  note?: string
+  language?: string
+}
+
 /**
  * Start the repurpose run for one channel — `akb channel <name> <id>`, and every check it
  * makes: the board is `marketing`, the name is a channel, the card chose it, `source.md`
@@ -90,9 +98,14 @@ export interface RepurposeResult {
  * It is the command itself and not a run started straight from the request, because those
  * checks are the point of the button: a second copy of them here would drift.
  */
-export async function repurposeChannel(id: number, channel: string, again = false): Promise<RepurposeResult> {
+export async function repurposeChannel(
+  id: number,
+  channel: string,
+  again = false,
+  ask: RepurposeAsk = {},
+): Promise<RepurposeResult> {
   try {
-    const res = await cmdChannel({ channel, id, again })
+    const res = await cmdChannel({ channel, id, again, notes: ask.note, language: ask.language })
     const sessionId = typeof res.sessionId === 'string' ? res.sessionId : undefined
     return sessionId ? { ok: true, sessionId } : { ok: false, error: 'the repurpose did not start' }
   } catch (e) {
@@ -111,9 +124,9 @@ export function setChannelStatus(id: number, channel: string, status: ChannelSta
 }
 
 /** Choose the channels this topic goes to — `update --channels`, so the same rules apply:
- *  the whole list is rewritten, the first entry is the lead channel, and a channel that
- *  stays keeps the status and URL it already had. The page's `+` appends one; taking one
- *  off is still a terminal's job. */
+ *  the whole list is rewritten, no entry leads, and a channel that stays keeps the status
+ *  and URL it already had. The page's `+` appends one; taking one off is still a
+ *  terminal's job. */
 export function setChannels(id: number, names: string[]) {
   return withLease({ card: id }, (env) =>
     board().runMove('update', { args: [String(id)], opts: { channels: names } }, env),

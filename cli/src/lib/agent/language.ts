@@ -34,3 +34,9 @@ export function languageNote(language: Language = readLanguage()): string {
     `This governs the board's prose alone: code, comments, commit messages and the repository's own documents follow the repository, not me. \`akb guide board\` carries the rule in full.`,
   ].join(' ')
 }
+
+/** What this board is read in, named. For the run that has to write prose in it rather
+ *  than be told a rule about it — the source draft, which belongs to no channel. */
+export function languageName(language: Language = readLanguage()): string {
+  return LANGUAGE_NAMES[language]
+}

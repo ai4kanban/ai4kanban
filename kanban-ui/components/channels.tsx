@@ -43,6 +43,15 @@ export const CHANNEL_NAMES = Object.keys(MARK);
  *  every language — a product name is not copy. */
 export const channelLabel = (name: string): string => MARK[name]?.label ?? name;
 
+/** The languages one repurpose can be asked for instead of the channel's own (#457). The
+ *  value is the word `akb channel --language` is given, which is the board's own spelling
+ *  (`cli/src/lib/channels.ts`); the label is that language in its own script, the way a
+ *  switcher shows one. Leaving it unset is the channel's own language, and is the default. */
+export const REPURPOSE_LANGUAGES: { value: string; label: string }[] = [
+  { value: "English", label: "English" },
+  { value: "Chinese", label: "中文" },
+];
+
 /** How far this channel has got, in words. */
 export function useChannelWord(): (status: ChannelStatus | "") => string {
   const c = useCopy().shared.channelStatus;
