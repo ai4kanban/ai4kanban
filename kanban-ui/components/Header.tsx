@@ -241,7 +241,7 @@ export function Header({
             <BellButton />
           </ToolCluster>
         </span>
-        <CreateTask release={createRelease} />
+        <CreateTask release={createRelease} projectRoot={projectRoot} />
       </div>
     </header>
   );

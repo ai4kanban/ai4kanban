@@ -10,9 +10,10 @@
 // have to carry at every width.
 //
 // Three modes share the one box. **Discuss** (#427) is the board's own conversation
-// (`akb chat`, lib/chat-rail.ts) — the same transcript, agent and model as the chat rail, so
-// a reply typed here and one typed in the rail are one exchange. It is what the screen opens
-// on: a vague idea does not survive one textarea. **Add task** starts today's create run and
+// (`akb chat`, lib/chat-rail.ts) — the same transcript, agent and model as the chat rail on
+// the board, so a reply typed here and one typed there are one exchange. It is the BOARD's
+// conversation on a card's page too: Create task is a new task, not this card. It is what
+// the screen opens on: a vague idea does not survive one textarea. **Add task** starts today's create run and
 // leaves. **Build now** (#428) sends the sentence straight to a build with no card at all —
 // it skips every step the board exists for, so it names them in a guard off Send and starts
 // nothing until that is confirmed.
@@ -37,7 +38,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
 import { PLAN_MAX, PLAN_MIN, PLAN_W, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
-import type { ChatRail } from "@/lib/chat-rail";
+import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { Button } from "./button";
 import { Transcript, Pick, useChatRailHere } from "./Chat";
 import { HAIRLINE } from "./chrome";
@@ -58,14 +59,12 @@ const PANE_CLIP = { overflow: "hidden" } as const;
  *  it; `build` writes none (#428). */
 export type CreateMode = "discuss" | "card" | "build";
 
-export function CreateSheet({
-  release,
-  onClose,
-  onSend,
-  onPlan,
-}: {
+interface Props {
   /** The version the board is showing (#104), which a card written here ships in. */
   release: string | null;
+  /** Which board this is — what the board's conversation is read against when the window
+   *  is not already holding it. */
+  projectRoot: string;
   onClose: () => void;
   /** Start the run, and say whether it started. Never called in Discuss — that mode sends to
    *  the conversation. A refusal — uncommitted changes, another build already working in this
@@ -74,13 +73,34 @@ export function CreateSheet({
   onSend: (description: string, mode: CreateMode) => Promise<{ ok: boolean; error?: string }>;
   /** Start planning: close and start the run that writes the plan's cards. */
   onPlan: () => void;
-}) {
+}
+
+// Discuss is the BOARD's conversation, whatever page Create task was pressed on (#427). On
+// the board the window is already holding that one, so the sheet takes it — reading here is
+// then what clears the top row's mark. A card page's rail holds that CARD's conversation
+// instead, which is not what this screen is for, so there the sheet reads the board's own
+// for as long as it is up.
+export function CreateSheet(props: Props) {
+  const here = useChatRailHere();
+  if (here && here.cardId === null) return <Sheet {...props} rail={here} />;
+  return <SheetOnBoardChat {...props} />;
+}
+
+function SheetOnBoardChat(props: Props) {
+  const rail = useChatRail({ projectRoot: props.projectRoot, cardId: null });
+  return <Sheet {...props} rail={rail} />;
+}
+
+function Sheet({
+  release,
+  onClose,
+  onSend,
+  onPlan,
+  rail,
+}: Props & { rail: ChatRail }) {
   const c = useCopy().board.create.sheet;
   const startFailed = useCopy().board.create.startFailed;
   const close = useCopy().shared.close;
-  // The board's own conversation, as the window already holds it — so Discuss and the chat
-  // rail are one exchange and not two.
-  const rail = useChatRailHere();
   const plan = usePlanPanel();
   // The same draft key the dialog used, so text typed and not sent is kept the way it
   // always was — and a draft written before this screen existed is still here. One box for
@@ -109,11 +129,11 @@ export function CreateSheet({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, guarding]);
 
-  const read = rail?.read ?? null;
+  const read = rail.read;
   // Nothing on this board can hold a conversation at all — no agent that can, or rules older
   // than Discuss. It is not offered then, and never opened on: a mode nothing can answer is
   // worse than no mode.
-  const canDiscuss = !!rail && plan.supported && read?.canChat !== false;
+  const canDiscuss = plan.supported && read?.canChat !== false;
   // "Cannot" is only an answer once BOTH reads have landed. Either one arriving alone says
   // nothing yet, and demoting the screen on it would put every board on Add task for the
   // beat the other read takes — and leave it there.
@@ -121,17 +141,17 @@ export function CreateSheet({
   useEffect(() => {
     if (settled && !canDiscuss) setMode((was) => (was === "discuss" ? "card" : was));
   }, [settled, canDiscuss]);
-  const discussing = mode === "discuss" && !!rail && canDiscuss;
+  const discussing = mode === "discuss" && canDiscuss;
   // Discuss is lit before either read has landed, so until they have, sending would quietly
   // start an Add task run under it. The box waits out that beat instead.
   const waiting = mode === "discuss" && !settled;
 
   // This conversation is on screen here, so a reply read here must not leave the top row's
   // Chat button marked (#427).
-  const markRead = rail?.markRead;
+  const markRead = rail.markRead;
   const at = read?.chat?.updatedAt;
   useEffect(() => {
-    if (discussing && at !== undefined) markRead?.();
+    if (discussing && at !== undefined) markRead();
   }, [discussing, at, markRead]);
 
   if (!mounted) return null;
@@ -412,33 +432,47 @@ function Composer({
             onConfirm={onGuardConfirm}
           />
         }
-        // The mode row: one chip per thing sending can do, the picked one filled — and, in
-        // Discuss, what will answer. It grows to the right, so the box, the button and the
-        // headline never move.
+        // The foot row, read left to right as two answers to two different questions: what
+        // sending does, and — in Discuss — who answers it. So they sit at opposite ends,
+        // the modes at the box's own left margin and the agent hard against Send, rather
+        // than running together into one line of controls with a hole after it.
         foot={
-          <span role="radiogroup" aria-label={c.modes} className="flex items-center gap-1">
-            <Mode
-              on={mode === "discuss"}
-              icon={<FiMessageSquare className="text-[12px]" aria-hidden />}
-              label={c.discuss}
-              disabled={!canDiscuss}
-              title={canDiscuss ? undefined : discussBlocked}
-              onPick={() => onPick("discuss")}
-            />
-            <Mode
-              on={mode === "card"}
-              icon={<FiPlus className="text-[12px]" aria-hidden />}
-              label={c.addTask}
-              onPick={() => onPick("card")}
-            />
-            <Mode
-              on={mode === "build"}
-              icon={<FiZap className="text-[12px]" aria-hidden />}
-              label={c.buildNow}
-              onPick={() => onPick("build")}
-            />
-            {rail && pick && <Pick rail={rail} pick={pick} answering={answering} />}
-          </span>
+          <>
+            {/* One segmented control with one answer, on a track of its own: three bare
+                labels beside a filled one read as a pill and two stray links. */}
+            <span
+              role="radiogroup"
+              aria-label={c.modes}
+              className="flex shrink-0 items-center gap-[3px] rounded-[9px] p-[3px]"
+              style={{ background: TRACK }}
+            >
+              <Mode
+                on={mode === "discuss"}
+                icon={<FiMessageSquare className="text-[12px]" aria-hidden />}
+                label={c.discuss}
+                disabled={!canDiscuss}
+                title={canDiscuss ? undefined : discussBlocked}
+                onPick={() => onPick("discuss")}
+              />
+              <Mode
+                on={mode === "card"}
+                icon={<FiPlus className="text-[12px]" aria-hidden />}
+                label={c.addTask}
+                onPick={() => onPick("card")}
+              />
+              <Mode
+                on={mode === "build"}
+                icon={<FiZap className="text-[12px]" aria-hidden />}
+                label={c.buildNow}
+                onPick={() => onPick("build")}
+              />
+            </span>
+            {rail && pick && (
+              <span className="ml-auto flex min-w-0 items-center gap-1.5">
+                <Pick rail={rail} pick={pick} answering={answering} />
+              </span>
+            )}
+          </>
         }
         hint={
           // The keys on the left and, opposite them, what this mode leaves behind: that the
@@ -468,6 +502,10 @@ function Composer({
   );
 }
 
+/** What the mode row sits on. A step of ink rather than the wash fill: the wash is a shade
+ *  off paper, and a track you have to look for does not group the three chips on it. */
+const TRACK = "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)";
+
 // One chip in the mode row. The picked one is filled and the rest are quiet text: the row
 // has to read as one control with one answer, not as a line of buttons. A mode nothing on
 // this board can answer is shown down, and says why.
@@ -494,12 +532,12 @@ function Mode({
       disabled={disabled}
       title={title}
       onClick={onPick}
-      className={`inline-flex items-center gap-1.5 rounded-[7px] px-2.5 py-[5px] text-[12px] font-[700] uppercase leading-none tracking-[0.04em] transition-colors ${
+      className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[7px] px-2 text-[12px] font-[700] uppercase leading-none tracking-[0.02em] transition-colors ${
         disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"
       } ${
         on
           ? "bg-nb-accent-soft text-nb-accent-deep"
-          : "text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
+          : "text-nb-ink-soft hover:text-nb-ink"
       }`}
     >
       {icon}

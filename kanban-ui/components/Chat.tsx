@@ -1087,8 +1087,10 @@ function ModelPick({ rail, pick, agentModel }: { rail: ChatRail; pick: ChatPick;
         placeholder={c.modelDefault}
         aria-label={c.modelPick}
         title={c.modelPick}
-        // A model id's own width, and it gives way before the row does.
-        className="w-[124px] min-w-0 shrink bg-transparent font-mono text-[12px] text-nb-ink placeholder:font-sans placeholder:text-nb-ink-soft/70 focus:outline-none"
+        // The width of the id it is holding, not of the longest one there could be — a fixed
+        // box leaves a hole between a short id and the caret. Floored so an empty box is
+        // still a box, capped so a long id gives way before the row does.
+        className="min-w-[72px] max-w-[168px] shrink bg-transparent font-mono text-[12px] text-nb-ink field-sizing-content placeholder:font-sans placeholder:text-nb-ink-soft/70 focus:outline-none"
       />
       {pick.recent.length > 0 && (
         <DropdownMenu>

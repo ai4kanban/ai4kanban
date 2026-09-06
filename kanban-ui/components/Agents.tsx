@@ -301,7 +301,7 @@ function Tile({
     <div
       // No frame: the tile is a plate on the pane, and the ember wash is what says which one
       // is open.
-      className={`relative rounded-[12px] ${held ? "bg-nb-accent-soft" : "bg-nb-wash"}`}
+      className={`relative rounded-[12px] ${held ? "bg-nb-accent-soft" : "bg-nb-sheet"}`}
     >
       {agent.switchable && (
         <span className="absolute right-[7px] top-[7px] z-10 scale-[0.62] origin-top-right">
@@ -357,7 +357,7 @@ function NewTile({
   };
 
   return (
-    <div className="flex min-h-[108px] flex-col rounded-[12px] bg-nb-wash px-2 pb-1.5 pt-[7px]">
+    <div className="flex min-h-[108px] flex-col rounded-[12px] bg-nb-sheet px-2 pb-1.5 pt-[7px]">
       <span className={`${CAPTION} text-[10px] tracking-[0.08em] text-nb-ink-soft`}>{c.newAgent}</span>
       <input
         autoFocus

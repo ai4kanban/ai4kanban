@@ -728,11 +728,12 @@ export function HarnessPicker({
         title={
           notHere ? c.notHere(option.binary) : signedOut ? c.loggedOutHere(option.binary) : undefined
         }
-        // One fill per card and no frame: a faint ink plate, the ember wash when it is the
-        // picked one. The fill is what marks the pick now, so it has to be the ember one —
-        // a hairline is not what tells them apart any more.
+        // One fill per card and no frame: the same sheet every group's card in the dialog
+        // sits on, the ember wash when it is the picked one. The fill is what marks the pick
+        // now, so it has to be the ember one — a hairline is not what tells them apart any
+        // more.
         className={`flex cursor-pointer flex-col items-center gap-2 rounded-[12px] px-2 pb-2.5 pt-4 transition-colors duration-100 disabled:cursor-wait ${
-          on ? "bg-nb-accent-soft" : "bg-nb-wash hover:bg-nb-canvas"
+          on ? "bg-nb-accent-soft" : "bg-nb-sheet hover:bg-nb-wash"
         }`}
       >
         <span

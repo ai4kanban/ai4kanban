@@ -32,7 +32,15 @@ import { sessionsPanel, useAgentSessions } from "./sessions";
 // `release` is the version the board is showing (#104), or null for the whole
 // board. A card written while one release is on screen ships in it, so it doesn't
 // vanish the moment it is written.
-export function CreateTask({ release = null }: { release?: string | null }) {
+export function CreateTask({
+  release = null,
+  projectRoot,
+}: {
+  release?: string | null;
+  /** Which board this is — the sheet's Discuss reads the board's own conversation, which on
+   *  a card's page is not the one the window is holding. */
+  projectRoot: string;
+}) {
   const c = useCopy().board.create;
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -122,6 +130,7 @@ export function CreateTask({ release = null }: { release?: string | null }) {
       {open && (
         <CreateSheet
           release={release}
+          projectRoot={projectRoot}
           onClose={() => setOpen(false)}
           onSend={(description, mode) =>
             startSession(

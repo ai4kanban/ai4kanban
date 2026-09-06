@@ -93,13 +93,16 @@ export function MessageBox({
           autoFocus={autoFocus}
           placeholder={placeholder}
           aria-label={label}
-          className="w-full resize-none bg-transparent px-1.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60"
+          className="w-full resize-none bg-transparent px-2.5 pb-2 pt-1 text-[13px] leading-[1.5] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none disabled:opacity-60"
         />
-        <div className="flex items-center gap-1.5">
-          {foot}
+        {/* One rung, 28px tall end to end: what the owner puts on the left, the corner
+            button on the right, and no gap of its own in between — the foot decides what
+            sits where by pushing its own last piece over. */}
+        <div className="flex h-7 items-center gap-1.5">
+          <span className="flex min-w-0 flex-1 items-center gap-1.5">{foot}</span>
           {/* One button in this corner, not two: on a reply this server owns it IS Stop,
               and everywhere else it is a Send. */}
-          <span ref={sendRef} className="relative ml-auto flex">
+          <span ref={sendRef} className="relative flex shrink-0">
             <Button
               size="xs"
               disabled={stop ? false : !canSend}
@@ -117,7 +120,9 @@ export function MessageBox({
           </span>
         </div>
       </div>
-      <div className="mt-1 px-1 text-[11px] text-nb-ink-soft">{hint}</div>
+      {/* Lined up with the box's own inner margin, so the hint reads as a foot note under
+          the control rather than a stray line under the page. */}
+      <div className="mt-1.5 px-1.5 text-[11px] text-nb-ink-soft">{hint}</div>
     </>
   );
 }

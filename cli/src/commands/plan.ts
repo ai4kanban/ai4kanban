@@ -32,7 +32,7 @@ function planNew(opts: PlanOptions): MoveResult {
   const held = setChatPlan(null, plan.path)
   if ('error' in held) die(held.error)
   say(planPathInText(plan.path))
-  say(`  #${plan.id} is this plan's — write the file yourself, 30–50 lines, and rewrite it as the discussion moves`)
+  say(`  #${plan.id} is this plan's — write a short outcome-focused plan and revise it as the discussion moves`)
   return { id: plan.id, file: planPathInText(plan.path), path: plan.path }
 }
 

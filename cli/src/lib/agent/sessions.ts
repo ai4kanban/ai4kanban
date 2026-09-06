@@ -18,6 +18,7 @@ import type { CloudEventState } from '../cloud/events'
 import { reportCloudRunEnd } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
 import { dropRunCard, recordCardRun, runBoardMove, setCardStatusOn, takeRunCard } from '../board'
+import { cardFile } from '../board/revision'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
 import { pidAlive } from '../lock'
 import { reportRun } from '../machine/usage'
@@ -236,12 +237,13 @@ export async function markChannelDrafted(cardId: number, channel: string): Promi
 }
 
 /** The card's stage and whether it has open questions, or null when there is no such card.
- *  Read straight off the file: this is the same board every move writes. */
+ *  Read straight off the file: this is the same board every move writes. A group root is its
+ *  folder's `root.md`, which is what `cardFile` resolves. */
 function cardNow(cardId: number): { status: string; questions: number; title: string } | null {
   try {
-    const found = locate(cardId)
-    if (!found) return null
-    const { meta } = parseFrontmatter(fs.readFileSync(found.target, 'utf8'))
+    const file = cardFile(cardId)
+    if (!file) return null
+    const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
     if (!meta) return null
     return { status: meta.status || 'todo', questions: meta.questions.length, title: meta.title }
   } catch {
