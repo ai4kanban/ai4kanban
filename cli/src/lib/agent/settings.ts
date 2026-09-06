@@ -13,19 +13,24 @@
 //
 //   "harness": "claude-code",
 //   "harnessSettings": {
-//     "claude-code": { "model": "claude-opus-5", "command": "claude -p" },
-//     "codex": { "model": "gpt-5.1-codex" }
+//     "claude-code": { "baseUrl": "https://…", "command": "claude -p" },
+//     "codex": { "provider": "api" }
 //   },
+//   "agentHarness": { "builder": "codex" },
 //   "specAgents": {
 //     "technology-selection": false,
 //     "ui-design": { "enabled": false, "mockupStyle": "ascii" }
 //   }
 //
-// `harness` is the name of the agent that runs, and nothing else. Every agent keeps its
-// own settings in `harnessSettings`, under its own name, whether or not it is the one
-// picked — so switching agents changes which block is read and throws nothing away. Inside
-// a block, `command` is an optional override for a custom binary or extra flags,
-// hand-edited in the file; every other key is one of the settings that agent declares.
+// `harness` is the board's default connector — what an agent that picked none runs.
+// `agentHarness` is where an agent picks another. Every connector keeps its own settings in
+// `harnessSettings`, under its own name, whether or not anything runs it — so switching
+// connectors changes which block is read and throws nothing away. Inside a block, `command`
+// is an optional override for a custom binary or extra flags, hand-edited in the file; every
+// other key is one of the settings that connector declares.
+//
+// What a connector is set to here is how to REACH it — provider, endpoint, extra arguments.
+// Which model an agent runs is the agent's, and per machine (./local.ts).
 //
 // A key no setting declares is left exactly where it is: this is the user's file, and
 // nothing here rewrites a line they wrote.
@@ -73,18 +78,19 @@ export function pickedHarnessName(configured: unknown): string {
   return (harnessByName(asked) ?? DEFAULT_HARNESS).name
 }
 
-/** Save the agent the GLOBAL runtime runs — one name, and nothing else moves. Every agent's
+/** Save the board's DEFAULT connector — one name, and nothing else moves. Every connector's
  *  settings already live under its own name, so switching writes no setting, reads none, and
- *  loses none: the agent you leave keeps its model, its endpoint and its `command` override
- *  exactly as they were, and picking it again brings them all back. */
+ *  loses none: the one you leave keeps its endpoint and its `command` override exactly as
+ *  they were, and picking it again brings them back. */
 export function setHarness(name: string): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
     cfg.harness = name
   })
 }
 
-/** Save one of the settings the picked agent declares — Claude Code's `model` writes
- *  `harnessSettings.claude-code.model`. Writes that one key in that one agent's block and
+/** Save one of the settings a connector declares — Claude Code's `baseUrl` writes
+ *  `harnessSettings.claude-code.baseUrl`. `harness` names which connector's block is written;
+ *  with none it is the board's default one. Writes that one key in that one agent's block and
  *  nothing else: a hand-edited `command`, that agent's other settings, every other agent's
  *  block and any key no setting declares all survive untouched.
  *
@@ -96,9 +102,9 @@ export function setHarness(name: string): { ok: boolean; error?: string } {
  *  The value is never checked here. Model ids change faster than we ship, so the agent is
  *  the only validator: a bad one makes the run exit non-zero and the reason is in its log.
  *  That the key is one the picked agent declares IS checked, by the command above this. */
-export function setHarnessSetting(key: string, value: string): { ok: boolean; error?: string } {
+export function setHarnessSetting(key: string, value: string, harness?: string): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
-    const name = pickedHarnessName(cfg.harness)
+    const name = harness || pickedHarnessName(cfg.harness)
     const blocks = { ...configBlock(cfg.harnessSettings) }
     const block = { ...configBlock(blocks[name]) }
     const next = value.trim()
@@ -277,8 +283,8 @@ export function setSilenceMinutes(minutes: number): { ok: boolean; error?: strin
 //     "ui-design": { "enabled": false, "output": "agent", "mockupStyle": "ascii" }
 //   }
 //
-// `enabled`, `runtime` and `output` are the entry's own keys — the board's three answers
-// about an agent — and every other key is one of the settings that agent declares.
+// `enabled` and `output` are the entry's own keys — the board's two answers about an
+// agent — and every other key is one of the settings that agent declares.
 //
 // An agent the file doesn't name is on, with every setting at its default. A plain boolean
 // is the switch on its own — the shape written before settings existed, read the same way
@@ -297,16 +303,15 @@ export interface SpecAgentEntry {
    *  in from the agent's own defaults is `lib/agents/`'s, which is the only side
    *  that knows what an agent offers. */
   values: Record<string, string>
-  /** The runtime this agent runs on (#343). A reserved key in the entry, never one of the
-   *  values above — an agent that declared a `runtime` setting would otherwise fight it. */
-  runtime?: string
-  /** Who this agent's output is for (#445), when somebody has said. Reserved for the same
-   *  reason as `runtime`: the setting is the board's, not one the agent declares. */
+  /** Who this agent's output is for (#445), when somebody has said. A reserved key in the
+   *  entry, never one of the values above — an agent that declared an `output` setting
+   *  would otherwise fight it. */
   output?: string
 }
 
 // One entry as the file holds it. Null for a shape we can't read, which the callers take as
-// "nothing saved for this agent".
+// "nothing saved for this agent". `runtime` is read and dropped: a board written before #443
+// has one, and the agent it pointed at runs the board's harness now.
 const RESERVED_SPEC_KEYS = ['enabled', 'runtime', 'output']
 
 function parseSpecEntry(value: unknown): SpecAgentEntry | null {
@@ -317,9 +322,8 @@ function parseSpecEntry(value: unknown): SpecAgentEntry | null {
   for (const [key, v] of Object.entries(raw)) {
     if (!RESERVED_SPEC_KEYS.includes(key) && typeof v === 'string') values[key] = v
   }
-  const runtime = typeof raw.runtime === 'string' ? raw.runtime.trim() : ''
   const output = typeof raw.output === 'string' ? raw.output.trim() : ''
-  return { enabled: raw.enabled !== false, values, ...(runtime ? { runtime } : {}), ...(output ? { output } : {}) }
+  return { enabled: raw.enabled !== false, values, ...(output ? { output } : {}) }
 }
 
 // One agent's entry under its current name or a name it used to have. The first name that
@@ -381,9 +385,9 @@ export function setSpecAgentValue(
   })
 }
 
-/** Save who one spec agent's output is for (#445), leaving its switch, its runtime and its
- *  own values alone. An empty value drops the key, which is how it goes back to the default
- *  its `AGENT.md` starts it at.
+/** Save who one spec agent's output is for (#445), leaving its switch and its own values
+ *  alone. An empty value drops the key, which is how it goes back to the default its
+ *  `AGENT.md` starts it at.
  *
  *  That the word is one the board offers is checked by the caller above this
  *  (`lib/agents/`), the way an agent's own settings are. */
@@ -398,9 +402,9 @@ export function setSpecAgentOutput(
   )
 }
 
-/** Drop one spec agent's entry entirely — its switch, its runtime and every value it had
- *  picked. Called when the agent itself is deleted: a settings block for an agent nobody
- *  has is a line the user can neither read nor reach. */
+/** Drop one spec agent's entry entirely — its switch, who its output is for and every value
+ *  it had picked. Called when the agent itself is deleted: a settings block for an agent
+ *  nobody has is a line the user can neither read nor reach. */
 export function forgetSpecAgent(name: string, legacyNames: string[] = []): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
     const block = { ...configBlock(cfg.specAgents) }
@@ -426,7 +430,6 @@ function writeSpecAgentEntry(
     delete block[name]
     const body = {
       ...(entry.enabled ? {} : { enabled: false }),
-      ...(entry.runtime ? { runtime: entry.runtime } : {}),
       ...(entry.output ? { output: entry.output } : {}),
       ...entry.values,
     }
@@ -586,361 +589,67 @@ export function setSecret(name: string, value: string): { ok: boolean; error?: s
   }
 }
 
-// ---- the runtimes, and what each one runs as (#343) -------------------------
+// ---- which harness each agent runs (#443) -----------------------------------
 //
 //   "harness": "claude-code",
-//   "harnessSettings": { "claude-code": { "model": "claude-opus-5" } },
-//   "runtimes": {
-//     "names": ["default", "cheap"],
-//     "global": "default",
-//     "flows": { "implement": "cheap" },
-//     "agents": { "cheap": { "harness": "codex", "settings": { "model": "gpt-5.1-codex" } } }
-//   },
-//   "specAgents": { "ui-design": { "runtime": "cheap", "mockupStyle": "ascii" } }
+//   "harnessSettings": { "claude-code": { "baseUrl": "https://…" } },
+//   "agentHarness": { "builder": "codex" }
 //
-// A runtime is a name and the agent it runs as. All of it is the BOARD's, in this one file,
-// so every checkout of the repository runs the same thing and there is exactly one place to
-// look. Nothing about a run is a computer's own answer.
+// Every agent the board has — the roles it ships and the specialists a card asks for — picks
+// the harness it runs on, in one table keyed by the agent's name. An agent the table doesn't
+// name runs `harness`, the board's default. All of it is the BOARD's, in this one file, so
+// every checkout of the repository runs each agent on the same tool.
 //
-// One place per runtime, and this is where that is enforced: the GLOBAL runtime's agent is
-// `harness` and `harnessSettings` above — the keys a board has always had — and every other
-// runtime's is an entry under `agents`. A name never appears in both, so no two answers can
-// disagree about what a runtime runs.
+// `harnessSettings` is what a harness is set to — how to reach that CLI, and nothing about
+// which model. The model settings are the AGENT's and live per machine (./local.ts), so the
+// two never key the same value twice.
 //
-// `harnessSettings` is keyed by AGENT and `agents[name].settings` by RUNTIME, and a runtime
-// reads both: the agent's block is the board's default for that tool, and the runtime's own
-// entry overrides it key by key (agent/resolve.ts). So two runtimes on Codex share a model
-// unless one of them says otherwise.
-//
-// `flows` is keyed by the command a user types — `revise`, not the `edit` the board keeps
-// that action under — which is the same key a flow's rule file uses.
-//
-// A board written before this names none. Then there is one runtime, DEFAULT_RUNTIME, every
-// flow is on it, and it runs whatever `harness` and `harnessSettings` already say — so
-// nothing about such a board reads differently.
+// A board written before this names none, and then every agent runs `harness` — which is what
+// every flow already ran. A `runtimes` block left by an older release is ignored: the agents
+// it pointed at fall back to the board's harness, and Configuration → Agents is where they
+// are pointed again.
 
-/** The one runtime a board that names none has. */
-export const DEFAULT_RUNTIME = 'default'
-
-// What a name has to look like: a short word a person recognises, with no space in it — it
-// is typed as one argument and printed in a column.
-const RUNTIME_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/
-
-export const runtimeNameError = (name: string): string | null =>
-  RUNTIME_NAME.test(name)
-    ? null
-    : `"${name}" can't be a runtime name — up to 32 letters, digits, ".", "-" or "_", starting with a letter or digit.`
-
-/** What one runtime runs as: an agent, and that agent's settings for this runtime alone. */
-export interface RuntimeAgent {
-  harness: string
-  /** Keyed by the setting's key, the same keys `harnessSettings` uses — plus `command`, the
-   *  hand-written override for a custom binary. Only what this runtime says itself; the
-   *  agent's own block fills in the rest. */
-  settings: Record<string, string>
-}
-
-/** The runtimes a board names, and what each one runs as. */
-export interface BoardRuntimes {
-  /** Every runtime, in the order the board holds them. Never empty: a board that names
-   *  none reads as the one `DEFAULT_RUNTIME`. */
-  names: string[]
-  /** The one a flow that names none runs on. Always one of `names`. */
-  global: string
-  /** The runtime each flow names, keyed by `FLOWS[].command` — only the flows that name
-   *  one. */
-  flows: Record<string, string>
-  /** What each NON-GLOBAL runtime runs as. The global one is never in here: its answer is
-   *  the board's own `harness` and `harnessSettings`, so no runtime has two homes. */
-  agents: Record<string, RuntimeAgent>
-  /** False when the board names no runtimes at all — a board written before they existed. */
-  named: boolean
-}
-
-// One list of names out of the file, deduplicated and in order. Anything that isn't a
-// readable name is dropped rather than refused: this file is hand-editable, and one bad line
-// is not a reason to run the whole board on nothing.
-function nameList(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  const out: string[] = []
-  for (const item of value) {
-    const name = typeof item === 'string' ? item.trim() : ''
-    if (name && !runtimeNameError(name) && !out.includes(name)) out.push(name)
+/** Which harness each agent runs, by agent name — only the agents the file names. */
+export function readAgentHarness(cfg: Record<string, unknown> = safeConfig()): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [agent, value] of Object.entries(configBlock(cfg.agentHarness))) {
+    const name = typeof value === 'string' ? value.trim() : ''
+    if (name) out[agent] = name
   }
   return out
 }
 
-/** The runtime block, read. A malformed entry, or one naming a runtime the board doesn't
- *  hold, reads as the global runtime — the same answer a missing entry gives, so a
- *  misspelled name costs a pick and never a run. */
-export function readRuntimes(cfg: Record<string, unknown> = safeConfig()): BoardRuntimes {
-  const block = configBlock(cfg.runtimes)
-  const names = nameList(block.names)
-  if (!names.length) {
-    return { names: [DEFAULT_RUNTIME], global: DEFAULT_RUNTIME, flows: {}, agents: {}, named: false }
+/** The harness one agent runs, under its current name or one it used to have, or nothing when
+ *  it names none — then it runs the board's own `harness`. */
+export function harnessOfAgent(
+  names: string[],
+  table: Record<string, string> = readAgentHarness(),
+): string | undefined {
+  for (const name of names) {
+    if (table[name]) return table[name]
   }
-  const asked = typeof block.global === 'string' ? block.global.trim() : ''
-  const global = names.includes(asked) ? asked : names[0]!
-  const flows: Record<string, string> = {}
-  for (const [command, value] of Object.entries(configBlock(block.flows))) {
-    const name = typeof value === 'string' ? value.trim() : ''
-    if (names.includes(name)) flows[command] = name
-  }
-  // An entry is only ever read for a runtime the board still holds, and never for the global
-  // one — that one's agent is `harness` above, and a stale entry left under its name must
-  // not become a second answer. Anything unreadable is dropped rather than refused, the same
-  // treatment the names get.
-  const agents: Record<string, RuntimeAgent> = {}
-  for (const [runtime, value] of Object.entries(configBlock(block.agents))) {
-    if (runtime === global || !names.includes(runtime)) continue
-    const parsed = parseRuntimeAgent(value)
-    if (parsed) agents[runtime] = parsed
-  }
-  return { names, global, flows, agents, named: true }
+  return undefined
 }
 
-// One `agents` entry, read. Null for a shape nothing can be made of, which reads as a
-// runtime that says nothing of its own and so runs the board's harness.
-function parseRuntimeAgent(value: unknown): RuntimeAgent | null {
-  const raw = configBlock(value)
-  const harness = typeof raw.harness === 'string' ? raw.harness.trim() : ''
-  if (!harness) return null
-  const settings: Record<string, string> = {}
-  for (const [key, v] of Object.entries(configBlock(raw.settings))) {
-    if (typeof v === 'string' && v.trim()) settings[key] = v.trim()
-  }
-  return { harness, settings }
-}
-
-// Every write rewrites the whole block, because its keys are one answer: a name that goes
-// has to leave the flows pointing at it. The block is dropped entirely when it says no more
-// than a board that never had one.
-function writeRuntimeBlock(cfg: Record<string, unknown>, next: BoardRuntimes): void {
-  const flows = Object.fromEntries(Object.entries(next.flows).filter(([, name]) => next.names.includes(name)))
-  // The global runtime is never written here, whatever it was handed: its agent is the
-  // board's own `harness`, and an entry under its name would be a second answer.
-  const agents = Object.fromEntries(
-    Object.entries(next.agents).filter(
-      ([runtime, agent]) => agent.harness && runtime !== next.global && next.names.includes(runtime),
-    ),
-  )
-  const plain =
-    next.names.length === 1 &&
-    next.names[0] === DEFAULT_RUNTIME &&
-    !Object.keys(flows).length &&
-    !Object.keys(agents).length
-  if (plain) delete cfg.runtimes
-  else {
-    cfg.runtimes = {
-      names: next.names,
-      global: next.global,
-      ...(Object.keys(flows).length ? { flows } : {}),
-      ...(Object.keys(agents).length ? { agents } : {}),
-    }
-  }
-}
-
-function writeRuntimes(change: (current: BoardRuntimes) => BoardRuntimes): { ok: boolean; error?: string } {
-  return writeConfig((cfg) => writeRuntimeBlock(cfg, change(readRuntimes(cfg))))
-}
-
-// Repoint every spec agent that names one runtime at another, or clear the pointer with an
-// empty `to`. The flows live in the runtime block above and move with it; a spec agent's
-// runtime is a key inside its own entry, so it has to be walked separately.
-function moveSpecAgentRuntimes(cfg: Record<string, unknown>, from: string, to: string): void {
-  const block = { ...configBlock(cfg.specAgents) }
-  let touched = false
-  for (const [name, value] of Object.entries(block)) {
-    if (parseSpecEntry(value)?.runtime !== from) continue
-    const body = { ...(value as Record<string, unknown>) }
-    if (to) body.runtime = to
-    else delete body.runtime
-    // Back to nothing saved at all when the pointer was the whole entry: only what somebody
-    // changed is written down.
-    if (Object.keys(body).length) block[name] = body
-    else delete block[name]
-    touched = true
-  }
-  if (!touched) return
-  if (Object.keys(block).length) cfg.specAgents = block
-  else delete cfg.specAgents
-}
-
-/** Add a runtime. Adding the first one to a board that named none keeps the global where it
- *  was, so every flow goes on running what it ran before. */
-export function addRuntime(name: string): { ok: boolean; error?: string } {
-  const bad = runtimeNameError(name)
-  if (bad) return { ok: false, error: bad }
-  return writeRuntimes((now) => ({
-    ...now,
-    names: now.names.includes(name) ? now.names : [...now.names, name],
-  }))
-}
-
-/** Drop a runtime. Every flow and spec agent that named it falls back to the global one
- *  rather than the removal being refused. The global runtime itself is refused — point the
- *  global at another one first, so a board is never left with nothing global on it. */
-export function removeRuntime(name: string): { ok: boolean; error?: string } {
-  const now = readRuntimes()
-  if (!now.names.includes(name)) return { ok: false, error: unknownRuntime(name, now) }
-  if (name === now.global) {
-    return {
-      ok: false,
-      error: `"${name}" is the board's global runtime. Point the global at another one first: \`akb agent runtime global <name>\`.`,
-    }
-  }
-  return writeConfig((cfg) => {
-    const current = readRuntimes(cfg)
-    const agents = { ...current.agents }
-    // What it ran as goes with it. Re-adding the name later starts from the board's harness,
-    // which is the same place a brand new runtime starts from.
-    delete agents[name]
-    writeRuntimeBlock(cfg, {
-      ...current,
-      names: current.names.filter((n) => n !== name),
-      flows: Object.fromEntries(Object.entries(current.flows).filter(([, on]) => on !== name)),
-      agents,
-    })
-    // The spec agents that named it go back to the global one too, and their pointers are
-    // CLEARED rather than left: re-adding the name later must not quietly put them back on
-    // a runtime that has since been given another agent.
-    moveSpecAgentRuntimes(cfg, name, '')
-  })
-}
-
-/** Rename a runtime, carrying everything the board holds under the old name: what it runs
- *  as, the flows and the spec agents that named it, and the global pointer when it was the
- *  global one. One name changes and nothing else does. */
-export function renameRuntime(from: string, to: string): { ok: boolean; error?: string } {
-  const now = readRuntimes()
-  if (!now.named) {
-    return { ok: false, error: `this board names no runtimes yet. Add one first: \`akb agent runtime add ${to}\`.` }
-  }
-  if (!now.names.includes(from)) return { ok: false, error: unknownRuntime(from, now) }
-  if (from === to) return { ok: true }
-  const bad = runtimeNameError(to)
-  if (bad) return { ok: false, error: bad }
-  if (now.names.includes(to)) return { ok: false, error: `this board already has a runtime called "${to}".` }
-  return writeConfig((cfg) => {
-    const current = readRuntimes(cfg)
-    writeRuntimeBlock(cfg, {
-      ...current,
-      names: current.names.map((n) => (n === from ? to : n)),
-      global: current.global === from ? to : current.global,
-      flows: Object.fromEntries(Object.entries(current.flows).map(([command, on]) => [command, on === from ? to : on])),
-      // What it runs as travels with the name, so a rename is a rename and never a reset.
-      agents: Object.fromEntries(
-        Object.entries(current.agents).map(([runtime, agent]) => [runtime === from ? to : runtime, agent]),
-      ),
-    })
-    moveSpecAgentRuntimes(cfg, from, to)
-  })
-}
-
-/** Make one of the runtimes the board's global one.
- *
- *  The global runtime's agent is `harness`, so this swaps two homes rather than moving a
- *  pointer: the runtime standing down gets an entry of its own, and the one standing up has
- *  its entry folded into `harness` and `harnessSettings`. Both go on running exactly what
- *  they ran. The one thing that travels is the new global's own settings, which land in its
- *  agent's block — the board's default for that tool — so another runtime on the same agent
- *  and saying nothing of its own now reads them too. */
-export function setGlobalRuntime(name: string): { ok: boolean; error?: string } {
-  const now = readRuntimes()
-  if (!now.names.includes(name)) return { ok: false, error: unknownRuntime(name, now) }
-  if (name === now.global) return { ok: true }
-  return writeConfig((cfg) => {
-    const current = readRuntimes(cfg)
-    const standingUp = current.agents[name]
-    const agents = { ...current.agents }
-    delete agents[name]
-    // The old global keeps the board's harness; its settings are that agent's block, which
-    // is not moving, so the entry names the agent and nothing else.
-    agents[current.global] = { harness: pickedHarnessName(cfg.harness), settings: {} }
-    if (standingUp) {
-      cfg.harness = standingUp.harness
-      if (Object.keys(standingUp.settings).length) {
-        const blocks = { ...configBlock(cfg.harnessSettings) }
-        blocks[standingUp.harness] = { ...configBlock(blocks[standingUp.harness]), ...standingUp.settings }
-        cfg.harnessSettings = blocks
-      }
-    }
-    writeRuntimeBlock(cfg, { ...current, global: name, agents })
-  })
-}
-
-/** Save the agent one runtime runs as. The global one writes the board's own `harness`;
- *  every other writes its entry. Its settings are dropped with the switch — a Claude Code
- *  model id means nothing to Codex — and kept when the agent is the one it already had, so
- *  re-picking is never a way to lose them. */
-export function setRuntimeHarness(runtime: string, harness: string): { ok: boolean; error?: string } {
-  const now = readRuntimes()
-  if (!now.names.includes(runtime)) return { ok: false, error: unknownRuntime(runtime, now) }
-  if (runtime === now.global) return setHarness(harness)
-  return writeRuntimes((current) => {
-    const held = current.agents[runtime]
-    return {
-      ...current,
-      agents: {
-        ...current.agents,
-        [runtime]: { harness, settings: held?.harness === harness ? held.settings : {} },
-      },
-    }
-  })
-}
-
-/** Save one of a runtime's settings. The global one writes the agent's own block, which is
- *  the board's default for that tool; every other runtime writes an override of its own. An
- *  empty value drops the key, which is how a setting goes back to what it inherits. */
-export function setRuntimeSetting(runtime: string, key: string, value: string): { ok: boolean; error?: string } {
-  const now = readRuntimes()
-  if (!now.names.includes(runtime)) return { ok: false, error: unknownRuntime(runtime, now) }
-  if (runtime === now.global) return setHarnessSetting(key, value)
-  const held = now.agents[runtime]
-  if (!held) {
-    return { ok: false, error: `"${runtime}" runs the board's agent. Give it one of its own first: \`akb agent bind ${runtime} <agent>\`.` }
-  }
-  return writeRuntimes((current) => {
-    const entry = current.agents[runtime]
-    if (!entry) return current
-    const settings = { ...entry.settings }
-    const next = value.trim()
-    if (next) settings[key] = next
-    else delete settings[key]
-    return { ...current, agents: { ...current.agents, [runtime]: { ...entry, settings } } }
-  })
-}
-
-/** Point one flow at a runtime, or back at the global one with an empty name. That the
- *  command names a flow is the caller's to check (`commands/agent.ts`), which is the side
- *  holding `FLOWS`. */
-export function setFlowRuntime(command: string, name: string): { ok: boolean; error?: string } {
-  const now = readRuntimes()
-  if (name && !now.names.includes(name)) return { ok: false, error: unknownRuntime(name, now) }
-  return writeRuntimes((current) => {
-    const flows = { ...current.flows }
-    if (name) flows[command] = name
-    else delete flows[command]
-    return { ...current, flows }
-  })
-}
-
-/** Point one spec agent at a runtime, or back at the global one with an empty name. Its
- *  switch and its settings are left exactly as they were. */
-export function setSpecAgentRuntime(
-  name: string,
-  runtime: string,
+/** Save the harness one agent runs, or put it back on the board's default with an empty
+ *  name. Nothing else moves: what that agent picked for each harness is kept per machine
+ *  under its own name, so switching a tool and switching back loses no model. */
+export function setAgentHarness(
+  agent: string,
+  harness: string,
   legacyNames: string[] = [],
 ): { ok: boolean; error?: string } {
-  const now = readRuntimes()
-  if (runtime && !now.names.includes(runtime)) return { ok: false, error: unknownRuntime(runtime, now) }
-  return writeSpecAgentEntry(name, legacyNames, (entry) => {
-    const next = { ...entry }
-    if (runtime) next.runtime = runtime
-    else delete next.runtime
-    return next
+  return writeConfig((cfg) => {
+    const block = { ...configBlock(cfg.agentHarness) }
+    for (const legacy of legacyNames) delete block[legacy]
+    if (harness) block[agent] = harness
+    else delete block[agent]
+    if (Object.keys(block).length) cfg.agentHarness = block
+    else delete cfg.agentHarness
   })
 }
 
-export const unknownRuntime = (name: string, runtimes = readRuntimes()): string =>
-  `no runtime called "${name}" on this board. It has: ${runtimes.names.join(', ')}.`
+/** Drop one agent's harness pick. Called when the agent itself is deleted. */
+export function forgetAgentHarness(agent: string, legacyNames: string[] = []): { ok: boolean; error?: string } {
+  return setAgentHarness(agent, '', legacyNames)
+}

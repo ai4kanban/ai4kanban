@@ -218,9 +218,8 @@ export async function pickChatModel(
  *  both outlast either. The board checks those two first, so its own wording is the right
  *  wording for either.
  *
- *  Matched by label: `view.agent` is the agent that answers HERE, which on a board with
- *  runtimes is this computer's binding rather than the board's own name (#343), and it is
- *  that one the board holds a conversation against. */
+ *  Matched by label: `view.agent` is the connector that answers HERE, and it is that one the
+ *  board holds a conversation against. */
 function stillBlocked(
   view: {
     canChat: boolean;

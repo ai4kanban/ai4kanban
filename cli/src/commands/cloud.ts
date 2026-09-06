@@ -69,9 +69,6 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
       say(`  ${board.name} — ${watching}`)
       say(`    ${board.path}`)
       say(`    ${serverLine(server, machine?.name ?? '')}`)
-      // And what that machine runs the board's runtimes as (#345). A board that names none
-      // reports none, and so does a Cloud too old to hold them: both print nothing extra.
-      for (const line of runtimeLines(server)) say(`      ${line}`)
     }
   }
   return { cloud: account, boards }
@@ -166,15 +163,6 @@ function serverLine(server: CloudServer | undefined, here: string): string {
   if (!server) return 'no machine runs its approvals, so an approval taken elsewhere waits'
   const holder = server.machineName || 'an unnamed machine'
   return holder === here ? 'approvals run on this machine' : `approvals run on ${holder}`
-}
-
-/** One line per runtime the board names: what that machine runs it as. A model is named only
- *  where that machine set one — a runtime on the agent's own default has no name to print. */
-function runtimeLines(server: CloudServer | undefined): string[] {
-  return (server?.runtimes ?? []).map((runtime) => {
-    const what = runtime.model ? `${runtime.harness}, ${runtime.model}` : runtime.harness
-    return `${runtime.name.padEnd(12)} ${what}${runtime.fallback ? ' (not bound)' : ''}`
-  })
 }
 
 function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: string): string[] {

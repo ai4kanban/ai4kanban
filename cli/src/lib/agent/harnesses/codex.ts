@@ -155,6 +155,7 @@ export const CODEX: Harness = {
     },
     {
       key: 'model',
+      agentOwned: true,
       label: 'Model',
       kind: 'text',
       placeholder: 'gpt-5.1-codex',
@@ -169,6 +170,7 @@ export const CODEX: Harness = {
     // a level and never judges one: these are the ones Codex's own model list names today.
     {
       key: 'reasoning',
+      agentOwned: true,
       label: 'Reasoning effort',
       kind: 'select',
       choices: [

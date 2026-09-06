@@ -107,6 +107,7 @@ export const DSH: Harness = {
       // No `models()`: dsh keeps no model list on disk, so this box is offered what the
       // board has already run under it and nothing else (agent/resolve.ts).
       key: 'model',
+      agentOwned: true,
       label: 'Model',
       kind: 'text',
       placeholder: 'deepseek-v4-flash',

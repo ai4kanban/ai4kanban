@@ -75,6 +75,11 @@ export let LOCK = ''
 // The local UI has written this file since it existed; the CLI reads and writes the same
 // one, because renaming it would break every board that has one for nothing a user sees.
 export let UI_CONFIG = ''
+// What each agent runs its model as, on THIS computer (#443). The harness an agent runs is
+// the board's, in ui.config.json; the model and the reasoning level under it are this
+// machine's, so a checkout on another computer picks its own. Dotted and ignored, the same
+// treatment .env gets.
+export let LOCAL_CONFIG = ''
 // The board's one place for API keys. Kept out of git by the board's own .gitignore.
 export let ENV_FILE = ''
 // The one record of what is running — every process reads and writes it, so a run started
@@ -212,6 +217,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   GOAL = path.join(MEMORY, 'goal.md')
   LOCK = path.join(KANBAN, '.lock')
   UI_CONFIG = path.join(KANBAN, 'ui.config.json')
+  LOCAL_CONFIG = path.join(KANBAN, '.local.json')
   ENV_FILE = path.join(KANBAN, '.env')
   SESSIONS = path.join(KANBAN, '.sessions.json')
   SESSIONS_DIR = path.join(KANBAN, '.sessions')

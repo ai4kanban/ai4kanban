@@ -26,7 +26,7 @@ import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { skillCall } from './resolve'
-import { runtimeFor } from './runtime'
+import { agentForRun } from './runner'
 import { migrateFlowRules, ruleBlock } from './rules'
 import type { AgentAction, AgentRequest } from './types'
 
@@ -234,10 +234,10 @@ function deliveryAim(
 }
 
 function actionPrompt(req: AgentRequest, command: string, notes: string[]): string {
-  // How this agent calls the skill — the only part of a prompt that follows the agent. It
-  // is the agent THIS run's runtime resolves to here (#343), not the board's global one: a
+  // How this agent calls the skill — the only part of a prompt that follows the connector.
+  // It is the connector THIS run's agent runs (#443), not the board's default one: a
   // `/kanban` sent to Codex is plain chat text and the skill never loads.
-  const kb = skillCall(runtimeFor(req))
+  const kb = skillCall(agentForRun(req))
   const tag = req.id ? `#${req.id}` : ''
   const named = req.title ? `${tag} ("${req.title}")` : tag
   // Retired (#438): nothing starts a propose any more, so there is no ask left to write.

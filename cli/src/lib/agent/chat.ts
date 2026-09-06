@@ -60,6 +60,10 @@ import type {
   TokenUsage,
 } from './types'
 
+// Whose connector and model a conversation runs on (#443). A chat about a card is planning
+// work, so it follows the planner — the one role every board has, on either solution.
+const CHAT_AGENT = 'planner'
+
 /** A conversation's file is named by what it is about, so the board's conversation, the
  *  first run's and each card's are separate by construction and one can never be read as
  *  another's. */
@@ -757,8 +761,8 @@ export async function sendChatMessage(
     }
     // A fresh session, or one more turn into the session the last message left open.
     const plan = held.resumeId
-      ? planResume(held.harness, held.resumeId, REPO_ROOT, undefined, own)
-      : planRun(randomUUID(), REPO_ROOT, undefined, own)
+      ? planResume(held.harness, held.resumeId, REPO_ROOT, CHAT_AGENT, own)
+      : planRun(randomUUID(), REPO_ROOT, CHAT_AGENT, own)
     if (!plan) {
       return { error: `${agent.label} can't carry on a ${harnessLabel(held.harness)} conversation. Clear it to start fresh.` }
     }

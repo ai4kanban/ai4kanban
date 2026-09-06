@@ -24,6 +24,7 @@ import {
 } from './harnesses'
 import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
+import { roleForFlow } from './roles'
 import { commandBinary, pathLookup } from './installed'
 import { languageNote } from './language'
 import {
@@ -33,20 +34,21 @@ import {
   providerSetting,
   shownForProvider,
 } from './providers'
-import { runtimeOfFlow } from './runtime'
-import { configBlock, readEnvFile, readRuntimes, safeConfig, type BoardRuntimes } from './settings'
-import type { AgentInfo, ChatAgent, ChatPickAgent, HarnessSetting, Provider, RuntimeView } from './types'
+import { localAgentValues } from './local'
+import { specAgentNames } from '../spec-agent-names'
+import { configBlock, harnessOfAgent, readAgentHarness, readEnvFile, safeConfig } from './settings'
+import type { AgentInfo, ChatAgent, ChatPickAgent, HarnessSetting, HarnessRun, Provider } from './types'
 
 interface ResolvedHarness {
   harness: Harness
   command: string
   isDefault: boolean
-  /** The runtime this run was asked for — the board's global one when nothing named
-   *  another (#343). */
-  runtime: string
-  /** The agent the runtime's own entry named, when it isn't the one that ran: the board
+  /** The agent this run belongs to — a role, or a specialist by name (#443). Empty for a
+   *  read that names none, which resolves the board's default connector. */
+  agent: string
+  /** The connector the agent's own pick named, when it isn't the one that ran: the board
    *  holds a name this build doesn't ship, so the run fell back. */
-  unknownRuntimeHarness?: string
+  unknownAgentHarness?: string
   /** What each declared setting is set to, keyed by its key. A setting the file doesn't
    *  carry is absent, meaning the agent's own default. A `secret` is never in here — its
    *  value lives in docs/kanban/.env and is never read back. */
@@ -150,40 +152,37 @@ export function readBlock(
 
 /** What a run is asked for, before anything is read. */
 export interface HarnessAsk {
-  /** The runtime it goes on (agent/runtime.ts). Absent means the board's global one. */
-  runtime?: string
-  /** The harness a run already committed to — a resume continues the conversation the agent
+  /** The agent doing the run (agent/runner.ts) — a role, or a specialist by name. Absent
+   *  means the board's default connector, with no agent's own model under it. */
+  agent?: string
+  /** The connector a run already committed to — a resume continues the conversation the agent
    *  that started it opened, and a plan being reopened spawns exactly what it planned. */
   pin?: string
-  /** Settings that win over the board's for this one spawn — a conversation's own model
-   *  (#272). Same shape and same precedence as a runtime's own overrides, and saved
-   *  nowhere: the board's settings are untouched. */
+  /** Settings that win over the saved ones for this one spawn — a conversation's own model
+   *  (#272). Saved nowhere: the board's settings and this machine's are untouched. */
   settings?: Record<string, string>
 }
 
 function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const cfg = safeConfig()
   const staleCommand = typeof cfg.command === 'string' && cfg.command.trim() ? true : undefined
-  const runtimes = readRuntimes(cfg)
-  const runtime = ask.runtime && runtimes.names.includes(ask.runtime) ? ask.runtime : runtimes.global
-  // What this runtime runs as, from the board and nowhere else: its own entry, or — for the
-  // global runtime, and for one whose entry says nothing — the board's own `harness`
-  // (agent/settings.ts). `readRuntimes` never hands back an entry for the global runtime, so
-  // exactly one of the two answers exists for any name.
-  const entry = runtimes.agents[runtime]
-  // `pin` wins over the board: a run already committed to an agent spawns that agent,
+  const agent = ask.agent ?? ''
+  // Which connector this agent runs, from the board and nowhere else: its own pick, or the
+  // board's default when it made none (agent/settings.ts).
+  const picked = agent ? harnessOfAgent(specAgentNames(agent), readAgentHarness(cfg)) : undefined
+  // `pin` wins over the board: a run already committed to a connector spawns that connector,
   // whatever the settings have been changed to since.
-  const asked = ask.pin ?? entry?.harness ?? (typeof cfg.harness === 'string' ? cfg.harness.trim() : '')
+  const asked = ask.pin ?? picked ?? (typeof cfg.harness === 'string' ? cfg.harness.trim() : '')
   const known = harnessByName(asked)
   const harness = known ?? DEFAULT_HARNESS
-  const unknownRuntimeHarness = entry && !ask.pin && !harnessByName(entry.harness) ? entry.harness : undefined
-  // What the harness that RAN is set to: its own block on the board — the default for that
-  // tool everywhere — with this runtime's own overrides on top, key by key. A name we don't
-  // ship runs the default, and the default's settings are the default's, so an entry that
-  // named another agent adds nothing.
+  const unknownAgentHarness = picked && !ask.pin && !harnessByName(picked) ? picked : undefined
+  // What the connector that RAN is set to, out of two files: how to reach it is the board's,
+  // in its own block under `harnessSettings`; which model to run is this agent's, on this
+  // computer (agent/local.ts). A connector name we don't ship runs the default, and then it
+  // is the default's own settings that are read.
   const block: Record<string, unknown> = {
     ...configBlock(configBlock(cfg.harnessSettings)[harness.name]),
-    ...(entry?.harness === harness.name ? entry.settings : {}),
+    ...localAgentValues(agent, harness.name),
     // Last, so one conversation's own model wins over both (#272).
     ...(ask.settings ?? {}),
   }
@@ -193,8 +192,8 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
     harness,
     command,
     isDefault: !known,
-    runtime,
-    unknownRuntimeHarness,
+    agent,
+    unknownAgentHarness,
     values,
     secretsSet,
     ignored,
@@ -203,28 +202,28 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   }
 }
 
-/** The line the board owes a run's log when the runtime it was asked for is not what it ran
- *  as. One case is left: the board names an agent this version doesn't ship. Null otherwise,
- *  which is every ordinary run. */
-export function runtimeNote(resolved: {
-  runtime: string
-  unknownRuntimeHarness?: string
+/** The line the board owes a run's log when the agent's own pick is not what it ran as. One
+ *  case: the board names a connector this version doesn't ship. Null otherwise, which is
+ *  every ordinary run. */
+export function harnessNote(resolved: {
+  agent: string
+  unknownAgentHarness?: string
   harness: Harness
 }): string | null {
-  const { runtime, unknownRuntimeHarness, harness } = resolved
-  if (!unknownRuntimeHarness) return null
-  return `runtime "${runtime}" is set to "${unknownRuntimeHarness}", which this version doesn't run — running ${harness.label}.`
+  const { agent, unknownAgentHarness, harness } = resolved
+  if (!unknownAgentHarness) return null
+  return `${agent} is set to run on "${unknownAgentHarness}", which this version doesn't run — running ${harness.label}.`
 }
 
-/** The settings the agent behind one runtime declares — the only keys that may be saved
- *  against it. With no runtime named it is the board's global one. */
+/** The settings the connector behind one agent declares — the only keys that may be saved
+ *  against it. With no agent named it is the board's default connector. */
 export function activeSettings(ask: HarnessAsk = {}): HarnessSetting[] {
   return resolveHarness(ask).harness.settings
 }
 
-/** The agent one runtime resolves to here — its name, and the settings it takes. */
-export function runtimeHarness(runtime?: string): { name: string; label: string; settings: HarnessSetting[] } {
-  const { harness } = resolveHarness({ runtime })
+/** What one agent runs here: the connector's name and label, and the settings it takes. */
+export function agentHarness(agent?: string): { name: string; label: string; settings: HarnessSetting[] } {
+  const { harness } = resolveHarness({ agent })
   return { name: harness.name, label: harness.label, settings: harness.settings }
 }
 
@@ -249,7 +248,7 @@ export function settingSaveError(key: string, value: string, ask: HarnessAsk = {
   if (key === list.key) {
     const provider = list.providers?.find((p) => p.id === value)
     if (!provider) return `"${value}" isn't one of the ${list.label.toLowerCase()} choices`
-    const missing = missingRequired(provider, filled)
+    const missing = missingHere(harness, provider, filled)
     if (missing.length) {
       const names = missing.map((k) => `"${label(k)}"`).join(' and ')
       return `${provider.label} needs ${names}. Fill it in and save it, then pick this provider.`
@@ -378,9 +377,9 @@ function ownedVars(harness: Harness): string[] {
 export interface RunPlan {
   /** The agent's name, stamped onto the run. */
   harness: string
-  /** The runtime it was resolved through, stamped onto the run beside the agent (#343).
-   *  Absent on a plan written before runtimes existed. */
-  runtime?: string
+  /** The agent this run belongs to — a role, or a specialist by name (#443). Absent on a
+   *  run that belongs to no agent, and on a plan written before agents picked a connector. */
+  agent?: string
   /** The full argv to spawn, in one fixed order: the configured command, then its
    *  settings' flags, then the agent's own. The prompt is appended as a final argv entry
    *  when the run spawns. The agent goes LAST because what it adds may be a subcommand
@@ -420,30 +419,30 @@ export interface ActiveRun extends RunPlan {
   images?: ImageInput
 }
 
-/** Work out how to start a fresh run on one runtime. `cwd` is the folder it works in —
- *  the project, or a delivery's own worktree (#303) — and `runtime` is the one this run's
- *  flow goes on (agent/runtime.ts), the board's global one when nothing names another.
- *  `note` is the line the board owes the run's log when the runtime isn't what it ran as. */
+/** Work out how to start a fresh run. `cwd` is the folder it works in — the project, or a
+ *  delivery's own worktree (#303) — and `agent` is the one doing the run
+ *  (agent/runner.ts), whose connector and model it spawns on. `note` is the line the board
+ *  owes the run's log when that connector isn't what it ran as. */
 export function planRun(
   sessionId: string,
   cwd = REPO_ROOT,
-  runtime?: string,
-  /** The agent and the settings this one spawn takes over the board's — a conversation's
-   *  own pick (#272). Empty for every ordinary run. */
-  own: Omit<HarnessAsk, 'runtime'> = {},
+  agent?: string,
+  /** The connector and the settings this one spawn takes over the saved ones — a
+   *  conversation's own pick (#272). Empty for every ordinary run. */
+  own: Omit<HarnessAsk, 'agent'> = {},
 ): RunPlan & { note: string | null } {
-  const resolved = resolveHarness({ runtime, ...own })
+  const resolved = resolveHarness({ agent, ...own })
   const { harness, command } = resolved
   const argv = command.split(/\s+/).filter(Boolean)
   return {
     harness: harness.name,
-    runtime: resolved.runtime,
+    ...(agent ? { agent } : {}),
     argv: [...argv, ...settingArgs(resolved), ...harness.extraArgs(argv, sessionId, cwd)],
     resumeId: harness.adoptsSessionId ? sessionId : null,
     install: harness.install,
     cwd,
     ...(own.settings ? { settings: own.settings } : {}),
-    note: runtimeNote(resolved),
+    note: harnessNote(resolved),
   }
 }
 
@@ -451,29 +450,27 @@ export function planRun(
  *  command, same env, same parser — only the flags differ, and the prompt is the "carry
  *  on" one rather than a card action's.
  *
- *  Null when this can't be done: the agent doesn't resume at all, or the run being resumed
- *  belongs to another agent. That last rule is why the name is checked — resuming a Claude
- *  Code conversation with a different CLI would hand it an id that means nothing there. */
+ *  A resume spawns the connector the run itself went on, whatever that agent has been
+ *  pointed at since (#443): handing a Claude Code conversation's id to another CLI would mean
+ *  nothing there. Null when that connector is one this build doesn't run, or can't resume. */
 export function planResume(
   harnessName: string,
   resumeId: string,
   cwd = REPO_ROOT,
-  runtime?: string,
-  /** As `planRun`: what this one spawn takes over the board's. A conversation that picked
-   *  its own agent pins it here, so the name check below passes on a board since switched
-   *  to another agent (#272). */
-  own: Omit<HarnessAsk, 'runtime'> = {},
+  agent?: string,
+  /** As `planRun`: what this one spawn takes over the saved settings (#272). */
+  own: Omit<HarnessAsk, 'agent'> = {},
 ): RunPlan | null {
-  const resolved = resolveHarness({ runtime, ...own })
+  if (!harnessByName(harnessName)) return null
+  // `pin` LAST, over `own`'s: a conversation that picked a connector for itself (#272) still
+  // has to be picked up by the one that opened this session, and only its settings carry.
+  const resolved = resolveHarness({ agent, ...own, pin: harnessName })
   const { harness, command } = resolved
-  // A resume stays on the agent it started on, so it is offered only while that is still
-  // what its runtime resolves to here: handing a Claude Code conversation's id to another
-  // CLI would mean nothing there.
-  if (!harness.resumes || harness.name !== harnessName) return null
+  if (!harness.resumes) return null
   const argv = command.split(/\s+/).filter(Boolean)
   return {
     harness: harness.name,
-    runtime: resolved.runtime,
+    ...(agent ? { agent } : {}),
     argv: [...argv, ...settingArgs(resolved), ...harness.resumeArgs(argv, resumeId, cwd)],
     // The resumed turn runs under the id it resumed, so this run can be resumed again by
     // the same id — a failure two turns deep is still recoverable.
@@ -488,7 +485,7 @@ export function planResume(
  *  because a plan is written to the board and an API key is not: the keys are read out of
  *  docs/kanban/.env here, into the child's environment and nowhere else. */
 export function openPlan(plan: RunPlan): ActiveRun {
-  const resolved = resolveHarness({ runtime: plan.runtime, pin: plan.harness, settings: plan.settings })
+  const resolved = resolveHarness({ agent: plan.agent, pin: plan.harness, settings: plan.settings })
   const { harness } = resolved
   return {
     ...plan,
@@ -519,24 +516,19 @@ function effectiveValues(resolved: ResolvedHarness): Record<string, string> {
   return out
 }
 
-/** The name of the agent a run on this runtime can be resumed under right now — what that
- *  runtime resolves to here, if it resumes at all. A run offers Resume only when it ran
- *  under this same name, so a runtime rebound to another tool stops offering it. */
-export function resumableHarness(runtime?: string): string | null {
-  const { harness } = resolveHarness({ runtime })
-  return harness.resumes ? harness.name : null
+/** True when a run that went on this connector can be picked up again — this build still
+ *  ships it and its CLI resumes. It is the run's OWN connector that is asked about, never
+ *  what its agent is set to now, so re-pointing an agent leaves finished runs resumable
+ *  (#443). */
+export function resumesUnder(harnessName: string | undefined): boolean {
+  const harness = harnessByName(harnessName)
+  return !!harness && harness.resumes
 }
 
-/** The same answer for a whole list of runs, reading the settings once per runtime rather
- *  than once per run. */
-export function resumableLookup(): (runtime?: string) => string | null {
-  const seen = new Map<string, string | null>()
-  return (runtime) => {
-    const key = runtime ?? ''
-    if (!seen.has(key)) seen.set(key, resumableHarness(runtime))
-    return seen.get(key) ?? null
-  }
-}
+/** Whose settings a conversation and the setup line are read under (#443). A chat about a
+ *  card is planning work, and so is setup, so both follow the planner — the one role every
+ *  board has, on either solution. */
+const PLANNER = 'planner'
 
 /** Which agent this board's conversations are held with, and whether it can hold one.
  *
@@ -546,7 +538,7 @@ export function resumableLookup(): (runtime?: string) => string | null {
  *  the day the two drifted apart. An agent that can't is turned away by this alone, and the
  *  refusal names the ones that can. */
 export function chatAgent(pin?: string): ChatAgent {
-  const { harness } = resolveHarness({ pin })
+  const { harness } = resolveHarness({ agent: PLANNER, pin })
   return {
     name: harness.name,
     label: harness.label,
@@ -566,7 +558,7 @@ export function chatAgent(pin?: string): ChatAgent {
 export function chatPickAgents(): ChatPickAgent[] {
   const onPath = pathLookup()
   return HARNESSES.filter((h) => h.resumes).map((option) => {
-    const resolved = resolveHarness({ pin: option.name })
+    const resolved = resolveHarness({ agent: PLANNER, pin: option.name })
     return {
       name: option.name,
       label: option.label,
@@ -581,17 +573,18 @@ export function chatPickAgents(): ChatPickAgent[] {
   })
 }
 
-/** How the agent one conversation runs takes a picture on disk (#441) — `pin` is the agent
- *  it picked for itself, with none it is the board's. Undefined for one that can't see a
- *  picture at all, which is the answer a paste is turned away on. */
+/** How the connector one conversation runs takes a picture on disk (#441) — `pin` is the one
+ *  it picked for itself, with none the planner's, which is what a chat spawns (#443).
+ *  Undefined for one that can't see a picture at all, which is the answer a paste is turned
+ *  away on. */
 export function harnessImages(pin?: string): ImageInput | undefined {
-  return resolveHarness({ pin }).harness.images
+  return resolveHarness({ agent: PLANNER, pin }).harness.images
 }
 
-/** The board's own model for one agent — where a conversation on it starts, and what one
- *  click puts it back to. */
+/** The model a conversation on one connector starts from — the planner's own, since a chat
+ *  about a card is planning work — and what one click puts it back to. */
 export function harnessModel(name?: string): string {
-  return resolveHarness({ pin: name }).values.model ?? ''
+  return resolveHarness({ agent: PLANNER, pin: name }).values.model ?? ''
 }
 
 /** The label an agent name reads as, for saying which agent a conversation belongs to. */
@@ -607,18 +600,18 @@ export function adoptsSessionId(harnessName: string): boolean {
   return !!harness && harness.resumes && harness.adoptsSessionId
 }
 
-/** How a fresh prompt calls the skill under the agent one runtime resolves to — `/kanban`
- *  for Claude Code, `$kanban` for Codex, or a sentence when the harness has no direct
- *  syntax. With no runtime named it is the board's global one. */
-export function skillCall(runtime?: string): string {
-  return resolveHarness({ runtime }).harness.skillCall
+/** How a fresh prompt calls the skill under the connector one agent runs — `/kanban` for
+ *  Claude Code, `$kanban` for Codex, or a sentence when the connector has no direct syntax.
+ *  With no agent named it is the board's default connector. */
+export function skillCall(agent?: string): string {
+  return resolveHarness({ agent }).harness.skillCall
 }
 
 /** Invoke the skill with one user's words and no extra prompt. `pin` is the agent a
  *  conversation picked for itself (#272), whose own syntax the call then follows; with none
  *  it is the board's. */
 export function skillPrompt(message: string, pin?: string): string {
-  const call = resolveHarness({ pin }).harness.skillCall
+  const call = resolveHarness({ agent: PLANNER, pin }).harness.skillCall
   return call === SKILL_SENTENCE ? `${call}: ${message}` : `${call} ${message}`
 }
 
@@ -633,7 +626,7 @@ export function skillPrompt(message: string, pin?: string): string {
  *  It carries the board's language itself (#337): a pasted line never goes through the ask,
  *  and setup is where a board's first cards and memory notes are written. */
 export function setupInstruction(): string {
-  return [`${skillCall()}. Set up this board — follow docs/kanban/setup-checklist.md.`, languageNote()]
+  return [`${skillCall(PLANNER)}. Set up this board — follow docs/kanban/setup-checklist.md.`, languageNote()]
     .filter(Boolean)
     .join(' ')
 }
@@ -685,24 +678,22 @@ function withModels(harness: Harness, settings: HarnessSetting[], ran: string[])
   return settings.map((setting) => (setting.key === MODEL_KEY ? { ...setting, suggestions } : setting))
 }
 
-/** Which agent runs the board, what it is set to, and everything a front end needs to
- *  offer the rest — including the settings each agent it could switch to takes, so nothing
- *  outside this package keeps its own list. */
+/** Which connector runs the board by default, what each one is set to, and which agent runs
+ *  each flow — everything a front end needs to draw Configuration without keeping a list of
+ *  its own. */
 export function agentInfo(): AgentInfo {
-  // The global runtime's answer, which is the board's own `harness` and `harnessSettings` —
-  // the fields `akb agent use` and `akb agent set` read and write. Every other runtime is in
-  // `runtimes` below, resolved the same way.
+  // The board's DEFAULT connector — the `harness` and `harnessSettings` `akb agent use` and
+  // `akb agent set` write, and what an agent that picked none runs.
   const { harness, command, isDefault, values, secretsSet, ignored, unknownName, staleCommand } =
     resolveHarness()
-  // Which of the agents this machine could actually run, asked once for the whole list: one
-  // read of the PATH, then every agent answered out of it. It happens on every read of the
-  // setting rather than once at startup, so a CLI installed while the board was open counts
+  // Which of the connectors this machine could actually run, asked once for the whole list:
+  // one read of the PATH, then every connector answered out of it. It happens on every read of
+  // the setting rather than once at startup, so a CLI installed while the board was open counts
   // the next time anything asks.
   const cfg = safeConfig()
-  const runtimes = readRuntimes(cfg)
-  const harnessOf = harnessLookup()
   const onPath = pathLookup()
   const ran = modelsRun()
+  const harnessOf = harnessLookup()
   return {
     name: harness.name,
     command,
@@ -712,21 +703,24 @@ export function agentInfo(): AgentInfo {
     // nothing, and a user who forgot theirs makes a new one.
     secretsSet,
     ignored,
-    // Every agent's settings go down, not just the active one's: picking another draws its
-    // own list right away, with nothing filled in, without asking again. So does whether
-    // this machine can run it, and the command that installs it if it can't — a picker
-    // offering an agent that isn't here sends the user to a run that dies on the spawn.
+    // Every connector's settings go down, not just the running one's: picking another draws
+    // its own list right away, without asking again. So does what it is already set to,
+    // whether this machine can run it, and the command that installs it if it can't — a
+    // picker offering a connector that isn't here sends the user to a run that dies on the
+    // spawn.
     //
-    // `command` stays the harness's own, never the override: it is what a front end
+    // `command` stays the connector's own, never the override: it is what a front end
     // compares against to notice there IS an override. What the override changes is which
     // binary gets looked up, and that is `binary`.
     //
     // The gaps go down with them (`agent/capabilities.ts`) so a picker can say what a switch
-    // costs before it is made — not all of these agents report a price, name their model or
-    // let go of a card when they are rate-limited, and none of that shows up until a run.
+    // costs before it is made — not all of these connectors report a price, name their model
+    // or let go of a card when they are rate-limited, and none of that shows up until a run.
     options: HARNESSES.map((option) => {
       const { name, label, icon, command: cmd, settings, install } = option
-      const runs = commandOf(configBlock(configBlock(cfg.harnessSettings)[option.name]), option)
+      const block = configBlock(configBlock(cfg.harnessSettings)[option.name])
+      const runs = commandOf(block, option)
+      const read = readBlock(option, block, runs.split(/\s+/).filter(Boolean))
       return {
         name,
         label,
@@ -737,26 +731,48 @@ export function agentInfo(): AgentInfo {
         installed: onPath(runs),
         install,
         gaps: harnessGaps(option),
+        runs,
+        values: read.values,
+        secretsSet: read.secretsSet,
+        ignored: read.ignored,
       }
     }),
-    // The runtimes and what runs on which, worked out here so no screen and no second
-    // command keeps a list that could say something else. The spec agents' own runtimes ride
-    // on the spec agent list instead (`readSpecAgents`), which is the list they are drawn
-    // from.
-    runtimes: runtimeViews(runtimes),
-    namedRuntimes: runtimes.named,
-    globalRuntime: runtimes.global,
     // The name a screen shows this computer by. The hostname alone — reading it mints no
     // identity (machine/identity.ts).
     machine: machineName(),
+    // Which agent runs each flow, and what that agent runs here — worked out once so no
+    // screen and no second command keeps a list that could say something else.
     flows: FLOWS.map((flow) => {
-      // `setup` always runs the global one: it is the run that has to work on a board
-      // nobody has configured yet.
-      const on = flow.command === 'setup' ? runtimes.global : runtimeOfFlow(flow.command, runtimes)
-      return { command: flow.command, path: flowPath(flow), runtime: on, harness: harnessOf(on) }
+      const agent = roleForFlow(flow.command)?.name ?? ''
+      return { command: flow.command, path: flowPath(flow), agent, harness: harnessOf(agent) }
     }),
     unknownName,
     staleCommand,
+  }
+}
+
+/** What one agent runs here, and whether that is its own pick or the board's default (#443).
+ *  The one answer the Agents pane and `akb agent` both draw. */
+export function agentRun(agent: string, table = readAgentHarness()): HarnessRun {
+  const picked = harnessOfAgent(specAgentNames(agent), table)
+  const resolved = resolveHarness({ agent })
+  return {
+    harness: resolved.harness.name,
+    own: !!picked,
+    // Set only when the board names a connector this build can't run: the fields around it
+    // are the connector that WOULD run, so a pane can say the saved name stopped working
+    // without drawing one connector's values under another's labels.
+    ...(resolved.unknownAgentHarness ? { unknownHarness: resolved.unknownAgentHarness } : {}),
+    settings: withModels(
+      resolved.harness,
+      resolved.harness.settings.filter((setting) => setting.agentOwned),
+      modelsRun().get(resolved.harness.name) ?? [],
+    ),
+    values: Object.fromEntries(
+      resolved.harness.settings
+        .filter((setting) => setting.agentOwned && resolved.values[setting.key])
+        .map((setting) => [setting.key, resolved.values[setting.key]!]),
+    ),
   }
 }
 
@@ -779,45 +795,35 @@ export function runnableAgents(): string[] {
     if (!onPath(command)) continue
     const { values, secretsSet } = readBlock(harness, block, command.split(/\s+/).filter(Boolean))
     const filled = isFilled(harness, values, secretsSet)
-    if (missingRequired(activeProviderOf({ harness, values, secretsSet }), filled).length) continue
+    if (missingHere(harness, activeProviderOf({ harness, values, secretsSet }), filled).length) continue
     names.push(harness.name)
   }
   return names
 }
 
-/** What each runtime resolves to here, read once per runtime rather than once per flow —
- *  fourteen flows on two runtimes are two reads, not fourteen. */
-function harnessLookup(): (runtime: string) => string {
-  const seen = new Map<string, string>()
-  return (runtime) => {
-    const held = seen.get(runtime)
-    if (held !== undefined) return held
-    const name = resolveHarness({ runtime }).harness.name
-    seen.set(runtime, name)
-    return name
-  }
+/** What a connector's picked provider is still missing, asked of the CONNECTOR's own
+ *  settings. A key that picks a model is left out: those belong to the agent and are set per
+ *  machine (#443), so a connector is never called unreachable for one nobody has typed yet —
+ *  a missing model fails the run itself, and the log says so. */
+export function missingHere(
+  harness: Harness,
+  provider: Provider | undefined,
+  filled: (key: string) => boolean,
+): string[] {
+  return missingRequired(provider, filled).filter(
+    (key) => !harness.settings.some((s) => s.key === key && s.agentOwned),
+  )
 }
 
-/** Every runtime the board names and everything a pane needs to draw or change one — the
- *  agent it runs, what that agent is set to, and the command behind it. One read for the
- *  whole list, so no screen keeps a second answer of its own (#344). */
-export function runtimeViews(runtimes: BoardRuntimes = readRuntimes()): RuntimeView[] {
-  return runtimes.names.map((name) => {
-    const resolved = resolveHarness({ runtime: name })
-    const model = resolved.values.model ?? ''
-    return {
-      name,
-      global: name === runtimes.global,
-      harness: resolved.harness.name,
-      ...(model ? { model } : {}),
-      // Set only when the board names an agent this build can't run: the fields below are
-      // the agent that RAN, so a pane can say the saved name stopped working without
-      // drawing one agent's values under another's labels.
-      ...(resolved.unknownRuntimeHarness ? { unknownHarness: resolved.unknownRuntimeHarness } : {}),
-      command: resolved.command,
-      values: resolved.values,
-      secretsSet: resolved.secretsSet,
-      ignored: resolved.ignored,
-    }
-  })
+/** What each agent runs here, read once per agent rather than once per flow — fourteen flows
+ *  across three roles are three reads, not fourteen. */
+function harnessLookup(): (agent: string) => string {
+  const seen = new Map<string, string>()
+  return (agent) => {
+    const held = seen.get(agent)
+    if (held !== undefined) return held
+    const name = resolveHarness({ agent }).harness.name
+    seen.set(agent, name)
+    return name
+  }
 }

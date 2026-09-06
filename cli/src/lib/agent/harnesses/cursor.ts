@@ -57,6 +57,7 @@ export const CURSOR: Harness = {
       // one it is currently set to — so this box is offered what the board has already run
       // under Cursor and nothing else (agent/resolve.ts).
       key: 'model',
+      agentOwned: true,
       label: 'Model',
       kind: 'text',
       placeholder: 'sonnet-4-thinking',

@@ -162,9 +162,9 @@ refines, reaches ready again, and is judged again.
 
 The gate runs one card at a time, in the order **"what's next?"** would name them, and it
 never takes a card that is blocked, recurring, a group's main card, or already in flight. It
-has a runtime of its own under the switch, so the judgment can run on a stronger model than
-the builds it lets through. A gate run that fails or is stopped changes nothing: the card
-stays where it is. Turning the switch on does not go back over the cards already sitting at
+runs on the planner's own tool and model, set in Configuration → Agents, so the judgment can
+run on a stronger model than the builds it lets through. A gate run that fails or is stopped
+changes nothing: the card stays where it is. Turning the switch on does not go back over the cards already sitting at
 ready — those are still yours to press.
 
 In a terminal it is `akb card gate 4`, which asks the same question about one card.

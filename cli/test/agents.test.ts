@@ -687,12 +687,13 @@ describe("who a spec agent's output is for", () => {
     assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'human')
   })
 
-  it("leaves the switch, the runtime and the agent's own values beside it", () => {
+  // A `runtime` left by a board written before #443 goes: named runtimes are gone, and the
+  // agent it pointed at runs the connector the board gives it now.
+  it("leaves the switch and the agent's own values beside it, and drops a stale runtime", () => {
     board({ specAgents: { 'ui-design': { enabled: false, runtime: 'cheap', mockupStyle: 'ascii' } } })
     assert.equal(setSpecAgentSetting('ui-design', 'output', 'agent').ok, true)
     assert.deepEqual(saved()['ui-design'], {
       enabled: false,
-      runtime: 'cheap',
       output: 'agent',
       mockupStyle: 'ascii',
     })

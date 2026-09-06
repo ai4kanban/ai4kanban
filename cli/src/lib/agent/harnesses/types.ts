@@ -9,12 +9,11 @@
 import type { RunClient, StreamRenderer } from '../wire'
 import type { HarnessOption, HarnessSetting } from '../types'
 
-// A harness declares everything about itself but the three things it is never asked
-// directly. Two only this machine can answer — whether its CLI is here, and which binary
-// was looked for — and are worked out per read, against the PATH and the user's own
-// `command` override (agent/installed.ts). The third is `gaps`, which is a reading of the
-// fields below rather than a claim of its own (agent/capabilities.ts): a connector says what
-// it does, and what it lacks follows. All three are joined on in `agentInfo`.
+// A harness declares everything about itself but what only a board and a machine can answer:
+// whether its CLI is here and which binary was looked for (agent/installed.ts), what it is
+// already set to and the command carrying those settings (agent/settings.ts), and `gaps`,
+// which is a reading of the fields below rather than a claim of its own
+// (agent/capabilities.ts). All of them are joined on in `agentInfo`.
 /** How a connector's CLI is asked whether anybody is logged into it (#392).
  *
  *  Declared only by a connector whose runs turn on that CLI's own login. One that always
@@ -50,7 +49,8 @@ export interface LoginProbe {
  *  wrong `args` fails the run on an unexpected argument. */
 export type ImageInput = { as: 'message' } | { as: 'args'; args(file: string): string[] }
 
-export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'gaps'> {
+export interface Harness
+  extends Omit<HarnessOption, 'binary' | 'installed' | 'gaps' | 'runs' | 'values' | 'secretsSet' | 'ignored'> {
   /** The flags to append to the configured argv. `argv` is what the user's command
    *  already carries, so a harness never overrides a flag the user set by hand.
    *  `sessionId` is the id we generated up front — a harness that can't pin an id

@@ -27,47 +27,29 @@ export type ConfigurationCopy = {
     privacy: string;
     language: string;
   };
-  /** Configuration → Runtimes (#344): the runtimes the board names and what each one runs
-   *  as, all of it in docs/kanban/ui.config.json. The harness block below draws one
-   *  runtime's agent — and, on a board that names no runtimes, the board's own. */
+  /** Configuration → Runtime (#443): one row per connector the board can run, grouped by
+   *  whether this machine has it. The harness block below draws one connector's own
+   *  settings — how to reach it, never which model. */
   runtimes: {
-    /** Over the runtime list. */
-    listCaption: string;
-    /** The badge on the runtime a flow that names none runs on. */
-    global: string;
-    /** What that runtime runs as, in words. The row itself draws the agent as its own mark,
-     *  so this is what that mark is titled with. */
-    runs: (harness: string, model: string) => string;
-    /** The one case a row says out loud: the agent the board holds for it isn't one this
-     *  build can run. */
-    unknownAgent: (agent: string) => string;
-    /** Naming a new runtime. */
-    add: string;
-    addBlurb: string;
-    namePlaceholder: string;
-    save: string;
-    cancel: string;
-    rename: string;
-    makeGlobal: string;
-    remove: string;
-    /** Before a removal: what it moves, and where that assignment is changed. */
-    removeTitle: (runtime: string) => string;
-    removeBlurb: string;
-    removeMoves: (names: string, globalRuntime: string) => string;
-    removeNothing: string;
-    /** The one removal that is refused. */
-    removeGlobal: (runtime: string) => string;
-    confirmRemove: string;
-    /** Said where a key box is drawn on a runtime: keys live in docs/kanban/.env, so two
-     *  runtimes on one agent share one. */
+    /** Over the connectors this machine has, and over the ones it hasn't. */
+    installed: string;
+    notInstalled: string;
+    /** The badge on the connector an agent that picked none runs. */
+    boardDefault: string;
+    /** What a folded row says on its right: the provider in effect, or the connector's own
+     *  default when nothing picked one. */
+    ownDefault: string;
+    /** That connector's CLI is here and nobody is logged into it. */
+    loggedOut: string;
+    makeDefault: string;
+    /** Under the two lists: where a model is picked instead. */
+    footer: string;
     keyIsBoards: string;
-    addFailed: string;
-    removeFailed: (runtime: string) => string;
-    renameFailed: (runtime: string) => string;
-    globalFailed: (runtime: string) => string;
+    defaultFailed: (harness: string) => string;
   };
-  /** The harness picker, drawn on a runtime and — on a board that names none — as the
-   *  Runtimes pane itself. Its heading is `runtimes` above. */
+  /** The harness picker: the grid setup and the first run pick the board's default on, and
+   *  the fields an open Runtime row draws for one connector. Its heading is `runtimes`
+   *  above. */
   harness: {
     /** Over the agents this machine can run, and over the ones it can't. The second caption
      *  is the whole of that answer — no card carries it. */
@@ -145,6 +127,15 @@ export type ConfigurationCopy = {
     flipFailedOff: (agent: string) => string;
 
     /** The page under the grid. */
+    /** What this agent runs (#443): the connector, then the model settings under it. */
+    runtime: string;
+    /** The connector list's first entry — an agent that picked none runs the board's. */
+    boardDefault: (harness: string) => string;
+    /** Under the row: where the pick lands, and where the model does. */
+    runtimeBlurb: string;
+    /** The connector the board holds for this agent isn't one this build can run. */
+    unknownHarness: (harness: string) => string;
+    harnessFailed: (agent: string) => string;
     /** Before a specialist's own trigger, on its page. */
     runsWhen: string;
     yours: string;
@@ -203,12 +194,6 @@ export type ConfigurationCopy = {
       body: string;
       failedOn: string;
       failedOff: string;
-      /** The runtime picker under the row: its label, the "follow the board's" choice, and
-       *  the line saying how far the pick reaches. */
-      runtime: string;
-      followGlobal: string;
-      runtimeScope: string;
-      runtimeFailed: string;
     };
     commits: { title: string; body: string; failedOn: string; failedOff: string };
     approval: { title: string; body: string; failedOn: string; failedOff: string };
@@ -496,10 +481,6 @@ export type ConfigurationCopy = {
       /** Only read out loud: the switch. */
       switchOn: string;
       switchOff: string;
-      /** Above what that machine runs the board's runtimes as (#345). */
-      runsAs: string;
-      /** Beside a runtime that machine set no agent for, so it falls back. */
-      notSet: string;
     };
     /** This board's own settings — the one open release it watches, and the machine
      *  that runs its work. On as soon as this machine is signed in. */

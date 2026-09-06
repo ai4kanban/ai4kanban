@@ -1167,7 +1167,7 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**General**, **Runtimes**, **Agents** and **Notifications**. Settings live in
+**General**, **Runtime**, **Agents** and **Notifications**. Settings live in
 `docs/kanban/ui.config.json`, next to your board, so `npx` always serves the latest UI and an update
 never touches them. Everything the dialog holds writes itself there, with three exceptions: a key
 goes to `docs/kanban/.env`, and the language and the Cloud sign-in settle this machine rather than
@@ -1195,9 +1195,9 @@ starts at all; the three under it decide how one is built.
   card it fails gets one `[user]` question, which takes it back to `todo`. It takes one card at a
   time, in `akb guide next-card`'s order, and never a card that is blocked, recurring, a group root,
   in flight, or already resting at ready when you flipped the switch. A gate run that fails or is
-  stopped changes nothing at all. Under the switch is the gate's own runtime, so the judgment can
-  run on a stronger model than the builds it lets through; `akb card gate <id>` is the same run by
-  hand.
+  stopped changes nothing at all. It runs on the Planner's own tool and model, set in
+  **Configuration → Agents**, so the judgment can run on a stronger model than the builds it lets
+  through; `akb card gate <id>` is the same run by hand.
 
 **Automatic Git commits**, on by default. It is the side each Implement opens on, not the only
 way to change it: the dialog's **Build this on a branch of its own** turns one build round and
@@ -1224,41 +1224,23 @@ a card — the Implement dialog does not ask per click, and **Build now** is nev
 - **Off** — the build is the last agent to read the code, and the delivery goes straight to
   landing. See **Turning AI review off** below.
 
-### Runtimes, and the harness behind one
+### Runtime — the coding tools this board can run
 
-**Runtimes** is the runtimes the board names and the coding tool each one runs — all of it the
-board's, so everyone on the repository reads the same answers and nothing has to be set up per
-machine. A board that names no runtimes has no list: the pane is the board's own agent and its
-settings, with **Add runtime** under them, and adding the first one is what turns it into a list.
-Adding it keeps `default` beside the new name and stays global on it, so every flow goes on running
-exactly what it ran before.
+**Runtime** is the coding tools themselves, one row each, in two groups: the ones this machine has,
+then the ones it hasn't. A folded row says what that tool is set to reach — the provider in effect,
+or the CLI's own default — and the one it can't do anything about, that its CLI is installed but
+nobody is logged into it. The board's default wears a badge.
 
-The list sets nothing. One row per runtime: its name, and the agent it runs. A runtime whose saved
-agent is one this build can't run says so and names what ran instead. Pressing a row opens it.
+Pressing a row opens it onto how to REACH that tool: its provider, its endpoint, its extra
+arguments, and **Test**, which spawns that tool and no other. Beside them, **Make board default** —
+what an agent that picked none runs.
 
-There, the agent is what can be pressed: the square agent cards, that agent's own settings, and
-**Test** — which spawns that runtime and not the board's global one. Above them are the board's
-three moves:
+Which model runs is **not** here. That belongs to the agent doing the work and is picked on the
+**Agents** pane; this pane is the tool and the tool alone. A key is not held with the rest either:
+it writes `docs/kanban/.env`, which git does not carry, so every agent on one tool shares one key
+and the box says so.
 
-- **Rename** carries everything held under the old name: the flows and spec agents that named it,
-  and the agent it runs.
-- **Make global** points the board's global runtime here — what a flow that names none runs on. The
-  two runtimes swap homes and both go on running exactly what they ran.
-- **Remove** names the flows and spec agents it moves onto the global runtime first, and clears their
-  pointers so re-adding the name never puts them back. What it ran as goes with it. Removing the
-  global runtime is refused.
-
-Which runtime a flow or spec agent uses is **not** set here — `akb agent runtime for <what> <name>`
-is where that lives, and a removal says so.
-
-A key is the one setting that is not held beside the runtime: it writes `docs/kanban/.env`, which git
-does not carry, so two runtimes on one agent share one key and the box says so. A runtime's settings
-are judged by the agent *it* runs, so a runtime on Codex offers and accepts Codex's settings while
-the board's global agent is something else.
-
-A board whose `akb` is too old to answer draws the agent pane alone.
-
-Eight harnesses ship:
+Eight coding tools ship:
 
 | Agent | It spawns | Settings | Key | Cost | Model name |
 | --- | --- | --- | --- | --- | --- |
@@ -1516,13 +1498,11 @@ in the file, so switching agents or providers never touches any of them.
       "model": "gpt-5.1-codex"
     }
   },
-  "runtimes": {
-    "names": ["default", "cheap"],
-    "global": "default",
-    "flows": { "implement": "cheap", "gate": "default" }
+  "agentHarness": {
+    "builder": "codex"
   },
   "specAgents": {
-    "ui-design": { "runtime": "cheap", "mockupStyle": "ascii" }
+    "ui-design": { "mockupStyle": "ascii" }
   }
 }
 ```
@@ -1541,20 +1521,22 @@ only written when you turn it **on**, so a missing key means off, which is the d
 missing key means on, and so does a file that will not parse: an unreadable setting must not be
 the reason something landed unreviewed.
 
-`harness` is the agent that runs: `claude-code` (the default), `codex`, `cursor`, `opencode`,
-`kimi`, `dsh` or `zcode`. The name decides everything about how that agent runs — the command, the
-flags that make it stream into the live log, the env vars, the flags **Resume** uses, and how a prompt calls the skill.
-If the file names an agent this UI doesn't know, Claude Code runs and the dialog says so.
+`harness` is the board's **default** coding tool: `claude-code` (the default), `codex`, `cursor`,
+`opencode`, `kimi`, `dsh` or `zcode`. The name decides everything about how that tool runs — the
+command, the flags that make it stream into the live log, the env vars, the flags **Resume** uses,
+and how a prompt calls the skill. If the file names one this UI doesn't know, Claude Code runs and
+the dialog says so.
 
-`harnessSettings` holds every agent's settings under its own name, whether or not it is the one
-running, and only the running agent's block is read. Switching agents changes `harness` and touches
-nothing else, so trying Codex for an afternoon leaves your Claude Code model, provider and endpoint
-waiting where you left them. Inside a block, each key is one of the settings that agent takes — the
-same ones the dialog draws, under the agent's own name for it — OpenCode's reasoning effort is
-`variant`, not `reasoning`. Nothing here is checked: a wrong model id makes the run exit right away
-with the reason in its log, and a reasoning level the agent doesn't know makes it say so and run at
-its own default. A key no agent declares is left exactly where it is, and saving in the dialog writes
-the one setting you changed and touches nothing else in the file.
+`harnessSettings` holds how to REACH each tool, under its own name, whether or not anything runs it.
+Switching the default changes `harness` and touches nothing else, so trying Codex for an afternoon
+leaves your Claude Code provider and endpoint waiting where you left them. Inside a block, each key
+is one of the settings that tool takes — the same ones the dialog draws. The settings that pick a
+**model** are not in here: those belong to the agent running and live in `docs/kanban/.local.json`
+(see below). Nothing here is checked: a wrong value makes the run exit right away with the reason in
+its log. A key no tool declares is left exactly where it is, and saving in the dialog writes the one
+setting you changed and touches nothing else in the file.
+
+`agentHarness` is which tool each agent runs — see **Which coding tool each agent runs** below.
 
 `specAgents` holds what you have changed about a spec agent, under its name: `enabled: false`
 when you switched it off, and one key per setting you picked something other than its default
@@ -1590,58 +1572,51 @@ own arguments open a subcommand still takes everything after it. Unlike `model` 
 of whatever the command is.
 
 Each run reads the settings once, when it starts, so flipping the picker while an agent is working
-changes what the next run spawns. Each run also records the agent it ran under, so **Resume** only
-ever offers to continue a run the agent you have picked can actually reach.
+changes what the next run spawns. Each run also records the tool it ran under, and **Resume** spawns
+that one — re-pointing an agent since does not take the offer away, because a conversation can only
+be picked up by the CLI that opened it.
 
-### A runtime, so different flows run different tools
+### Which coding tool each agent runs
 
-`harness` above pins the whole team to one coding tool. A **runtime** puts a name in front of it, and
-splits the answer in two: the board says which runtimes there are and which one each flow and spec
-agent runs on, and **each computer says what those names run as there**.
-
-`runtimes` is the board's half, and it travels with the repository:
-
-- `names` — every runtime, each a short word a person recognises.
-- `global` — the one a flow that names none runs on.
-- `flows` — the runtime a flow names, keyed by the command you type: `revise`, not the `edit` the
-  board keeps that action under. A spec agent names its own the same way, as a `runtime` key inside
-  its `specAgents` entry — a reserved key, never one of that agent's settings.
-
-`setup` always runs the global one: it is the run that has to work on a board nobody has configured
-yet. A pass a flow spawns runs that flow's runtime — a refine's clarify, resolve and writing passes
-take refine's, while an `akb card resolve` you type keeps the `resolve` flow's — and only a flow is named,
-never a pass.
-
-**What each runtime runs as is the board's too**, in the same file. One place per runtime: the
-global one is `harness` and `harnessSettings`, the keys a board has always had, and every other
-runtime is an entry under `runtimes.agents`:
+`harness` above is the board's **default** — what an agent that picked none runs. `agentHarness` is
+where one picks another, keyed by the agent's name:
 
 ```json
-"runtimes": {
-  "names": ["default", "cheap"],
-  "global": "default",
-  "agents": { "cheap": { "harness": "codex", "settings": { "model": "gpt-5.1-codex" } } }
-}
+"agentHarness": { "builder": "codex", "ui-design": "codex" }
 ```
 
-A name is never in both, so nothing can disagree about what a runtime runs. API keys are never in
-here: they stay in `docs/kanban/.env`, under the variable each agent declares, which is the one file
-git does not carry.
+The roles the board ships and the specialists a card asks for are one table: `builder`, `planner`,
+`reviewer`, `writer` and any agent name in `docs/kanban/agents/`. It travels with the repository, so
+every checkout runs each agent on the same tool. A name this build doesn't ship falls back to
+`harness` and the run's log says so; a tool whose CLI simply isn't installed here does **not** fall
+back — the run fails with the install command in its log.
 
-What a run ends up on: its runtime's own entry, or `harness` when it has none — so a runtime nobody
-has set runs the board's agent and a fresh clone works with no local setup at all. Its settings are
-that agent's `harnessSettings` block with the runtime's own overrides on top, key by key. An entry
-naming an agent this build doesn't ship falls back to `harness`, and the run's log says so; an agent
-whose CLI simply isn't installed here does **not** fall back — the run fails with the install command
-in its log.
+Which agent does a run: a flow is run by the role that owns it, and a `spec` or `write` run by the
+specialist it names. A pass a flow spawns belongs to that flow's role — a refine's clarify, resolve
+and writing passes are the planner's, and so is an `akb card resolve` you type.
 
-A board written before runtimes existed has no `runtimes` key, and reads exactly as it always did:
-one runtime, every flow on it, running whatever `harness` and `harnessSettings` already say.
+**The model is not in this file.** It is the agent's, and it stays on this computer, in
+`docs/kanban/.local.json`:
 
-It is all read and written from a terminal too — `akb agent runtimes` prints the runtimes and what
-each flow and spec agent runs on, `akb agent runtime add|remove|rename|global|for` changes the names
-and the pointers, and `akb agent bind <runtime> <agent>` changes what one runs as. `akb agent test
-<runtime>` spawns it. Everything but `runtime for` is also in **Configuration → Runtimes** above.
+```json
+{ "agents": { "builder": { "codex": { "model": "gpt-5.1-codex", "reasoning": "high" } } } }
+```
+
+Keyed by agent first and by tool second, so switching an agent to another tool and back finds its
+model where it left it. Which settings land here rather than in `ui.config.json` is each tool's own
+answer — the ones that pick a model — so a new connector says it once, in its own file. Dotted and
+in `docs/kanban/.gitignore`, the same treatment `.env` and `.sessions.json` get: a model id is worth
+nothing on a machine whose CLI never logged into that provider.
+
+A board written before this has neither key, and every agent runs `harness` — which is what every
+flow already ran. A `runtimes` block left by an older release is ignored, and `akb update` moves the
+models it held into `.local.json` under every agent, so runs on this computer go on using exactly
+the model they used before.
+
+It is all read and written from a terminal too — `akb agent` prints every agent and what it runs,
+`akb agent use <tool>` sets the board's default, `akb agent bind <agent> <tool>` gives one its own,
+`akb agent set --agent <agent> model <id>` sets its model, and `akb agent test <tool>` spawns one.
+The same answers are in **Configuration → Agents** and **Configuration → Runtime** above.
 
 ### The agents
 
@@ -1657,9 +1632,22 @@ ships, then the ones this project added.
   library it leans on. Each runs on its own and writes one section of that card and nothing else.
   There is no way to put one on a card by hand: that is what the board does for you.
 
-Selecting a character opens its page under the grid — its rule, what it remembers, its settings, and,
-for a specialist you added, its own `AGENT.md`. One page is open at a time; selecting the open
-character closes it, and the pane opens with none.
+Selecting a character opens its page under the grid — what it runs on, its rule, what it remembers,
+its settings, and, for a specialist you added, its own `AGENT.md`. One page is open at a time;
+selecting the open character closes it, and the pane opens with none.
+
+#### What one agent runs on
+
+Above the box that trains it: the coding tool this agent runs, then the model and reasoning effort
+under it. Which of those boxes appear is the tool's own answer, so a tool that takes a reasoning
+level draws one and a tool that doesn't draws nothing.
+
+The **tool** is the board's, in `docs/kanban/ui.config.json`, so every checkout runs this agent on
+the same one; leave it on **Board default** and it runs what **Configuration → Runtime** marks. The
+**model** stays on this computer, in `docs/kanban/.local.json`, so a checkout on another machine
+keeps the tool and picks its own model — which is why the planner can think on a stronger model than
+the builder writes with, without anyone else on the repository inheriting a model id their CLI has
+never been logged into.
 
 Every name and line comes out of the board's own roster, so this pane and `akb spec` can never say
 different things. Anything wrong with an agent this board found — an `AGENT.md` that doesn't parse, a

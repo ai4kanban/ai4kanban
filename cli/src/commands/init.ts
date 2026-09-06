@@ -15,6 +15,7 @@ import { solution, type Solution } from '../lib/solution'
 import { say } from '../lib/io'
 import { LOCK_IGNORE_LINE } from '../lib/lock'
 import { CHAT_IGNORE_LINE } from '../lib/agent/chat'
+import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
 import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
 import { writeReleasesIfMissing } from '../lib/releases'
@@ -104,6 +105,7 @@ function writeModulesIfMissing() {
 // it twice.
 const IGNORE_RULES = [
   { line: '.env', comment: "# The board's API keys — never commit them." },
+  { line: LOCAL_IGNORE_LINE, comment: "# The model each agent runs — this computer's answer, not the repo's." },
   { line: LOCK_IGNORE_LINE, comment: '# The write lock, held for as long as one command takes.' },
   ...RUN_IGNORE_LINES,
   CHAT_IGNORE_LINE,

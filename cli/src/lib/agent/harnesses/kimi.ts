@@ -113,6 +113,7 @@ export const KIMI: Harness = {
       // this file leaves open. So this box is offered what the board has already run under
       // Kimi and nothing else (agent/resolve.ts).
       key: 'model',
+      agentOwned: true,
       label: 'Model',
       kind: 'text',
       placeholder: 'kimi-for-coding',
@@ -124,6 +125,7 @@ export const KIMI: Harness = {
     // rather than as a flag, because its CLI takes none of them on the command line.
     {
       key: 'modelName',
+      agentOwned: true,
       label: 'Model id',
       kind: 'text',
       env: 'KIMI_MODEL_NAME',

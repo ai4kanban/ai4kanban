@@ -131,6 +131,7 @@ export const CLAUDE_CODE: Harness = {
     // override that already names that flag wins.
     {
       key: 'model',
+      agentOwned: true,
       label: 'Model',
       kind: 'text',
       placeholder: 'claude-opus-5',
@@ -150,6 +151,7 @@ export const CLAUDE_CODE: Harness = {
     // warning lands in the run's log, where the user reads it.
     {
       key: 'reasoning',
+      agentOwned: true,
       label: 'Reasoning effort',
       kind: 'select',
       choices: [

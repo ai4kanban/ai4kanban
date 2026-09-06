@@ -71,7 +71,6 @@ import { LarkMark, SlackMark } from "./brands";
 import { Button } from "./button";
 import {
   Alert,
-  CAPTION,
   FLAT_CONTROL,
   Group,
   Loading,
@@ -968,33 +967,6 @@ function ServerRow({
     <Row
       label={c.title}
       hint={elsewhere ? <Rich>{c.heldBy(server.machineName)}</Rich> : c.blurb}
-      // What that machine runs the board's runtimes as (#345). A board that names no
-      // runtimes reports none, and this whole block is then absent.
-      below={
-        server.runtimes.length > 0 && (
-          <>
-            <p className={`${CAPTION} text-nb-ink-soft`}>{c.runsAs}</p>
-            <ul className="mt-1 space-y-[2px]">
-              {server.runtimes.map((runtime) => (
-                <li
-                  key={runtime.name}
-                  className="flex items-baseline gap-2 font-mono text-[11.5px] leading-[17px]"
-                >
-                  <span className="w-[104px] shrink-0 truncate font-[700] text-nb-ink">
-                    {runtime.name}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-nb-ink-soft">
-                    {runtime.model ? `${runtime.harness}, ${runtime.model}` : runtime.harness}
-                  </span>
-                  {runtime.fallback && (
-                    <span className="shrink-0 text-nb-ink-soft">{c.notSet}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </>
-        )
-      }
     >
       {elsewhere ? (
         <button

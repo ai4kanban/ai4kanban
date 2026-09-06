@@ -1,8 +1,8 @@
 // What a spec agent is called, and what it used to be called.
 //
 // Its own file, with no imports, because two sides need it and neither can import the
-// other: `lib/agents/` is the catalog, and `lib/agent/runtime.ts` reads one agent's saved
-// runtime out of the board's file before any of that catalog is loaded.
+// other: `lib/agents/` is the catalog, and `lib/agent/resolve.ts` reads one agent's saved
+// harness out of the board's file before any of that catalog is loaded.
 
 const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   'recommend-tech-stack': 'technology-selection',

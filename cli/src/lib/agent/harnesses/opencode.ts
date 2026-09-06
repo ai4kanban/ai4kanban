@@ -59,6 +59,7 @@ export const OPENCODE: Harness = {
   settings: [
     {
       key: 'model',
+      agentOwned: true,
       label: 'Model',
       kind: 'text',
       placeholder: 'anthropic/claude-opus-5',
@@ -73,6 +74,7 @@ export const OPENCODE: Harness = {
     // shipped.
     {
       key: 'variant',
+      agentOwned: true,
       label: 'Reasoning effort',
       kind: 'text',
       placeholder: 'high',

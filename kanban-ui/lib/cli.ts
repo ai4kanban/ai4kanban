@@ -379,31 +379,29 @@ export interface BoardRules {
    *  it draws a picker. Optional: rules from before it answer nothing, and the first run then
    *  opens on the picker exactly as it always did. */
   runnableAgents?(): string[];
-  /** `ask` names the runtime the settings are read against (#343): the board's global one
-   *  by default, or the agent that runtime runs. A copy of the rules from before runtimes
-   *  ignores it and answers for the board's, which is what it always did. */
-  activeSettings(ask?: { runtime?: string }): HarnessSetting[];
-  settingSaveError(key: string, value: string, ask?: { runtime?: string }): string | null;
+  /** `ask` names whose settings are read (#443): `pin` one connector, `agent` one agent —
+   *  and with neither, the board's default connector. A copy of the rules from before this
+   *  ignores both and answers for the board's, which is what it always did. */
+  activeSettings(ask?: { pin?: string; agent?: string }): HarnessSetting[];
+  settingSaveError(key: string, value: string, ask?: { pin?: string; agent?: string }): string | null;
   setupInstruction(): string;
   setHarness(name: string): WriteResult;
-  setHarnessSetting(key: string, value: string): WriteResult;
+  /** `harness` names whose block is written; with none it is the board's default (#443). */
+  setHarnessSetting(key: string, value: string, harness?: string): WriteResult;
   setSecret(name: string, value: string): WriteResult;
-  /** Named a runtime, the test spawns what THAT runtime runs as (#343). */
-  testConnection(runtime?: string): Promise<ConnectionTest>;
+  /** Named a connector, the test spawns THAT one (#443). */
+  testConnection(harness?: string): Promise<ConnectionTest>;
 
-  // the runtimes (#343, #344) — the board names them and says what each one runs as, all of
-  // it in docs/kanban/ui.config.json. Optional: a project can be running rules older than
-  // the release that added them, and Configuration → Runtimes then draws the board's own
-  // agent alone.
-  addRuntime?(name: string): WriteResult;
-  removeRuntime?(name: string): WriteResult;
-  renameRuntime?(from: string, to: string): WriteResult;
-  setGlobalRuntime?(name: string): WriteResult;
-  setRuntimeHarness?(runtime: string, harness: string): WriteResult;
-  setRuntimeSetting?(runtime: string, key: string, value: string): WriteResult;
-  /** Point one flow at a runtime, or back at the board's global one with an empty name
-   *  (#343). Keyed by the flow's own command name, never the line a user types. */
-  setFlowRuntime?(command: string, runtime: string): WriteResult;
+  // which connector each agent runs, and the model under it (#443). The pick is the board's,
+  // in docs/kanban/ui.config.json; the model is this computer's, in docs/kanban/.local.json.
+  // Optional: a project can be running rules older than the release that added them, and
+  // Configuration → Agents then draws no runtime row.
+  /** Give one agent a connector of its own, or put it back on the board's default with "". */
+  setAgentHarness?(agent: string, harness: string, legacyNames?: string[]): WriteResult;
+  /** Save one of an agent's model settings, against the connector it runs. */
+  setLocalAgentValue?(agent: string, harness: string, key: string, value: string): WriteResult;
+  /** What one agent runs here — its connector's name, label and settings. */
+  agentHarness?(agent?: string): { name: string; label: string; settings: HarnessSetting[] };
 
   // the board, read
   readBoard(): Promise<Board>;

@@ -94,15 +94,7 @@ import {
   setUsageReporting,
   usageReporting,
 } from "@/lib/telemetry";
-import {
-  addRuntime,
-  setRuntimeHarness,
-  removeRuntime,
-  renameRuntime,
-  setRuntimeSetting,
-  setGlobalRuntime,
-  setFlowRuntime,
-} from "@/lib/runtimes";
+import { setAgentHarness, setAgentSetting } from "@/lib/agent-harness";
 import {
   boardNotifications,
   cancelCloudRequest,
@@ -160,7 +152,7 @@ import {
   type StartResult,
   stopSession,
 } from "@/lib/registry";
-import type { BoardEntry } from "@/lib/cli";
+import { boardRules, type BoardEntry } from "@/lib/cli";
 import { setSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import {
@@ -1038,41 +1030,6 @@ export async function setReadyGateAction(on: boolean): Promise<WriteResult> {
   return setReadyGate(on);
 }
 
-/** What the gate row's runtime picker draws: the board's runtimes, which one the `gate`
- *  flow names, and what that resolves to. All of it off the board's own answer, so the row
- *  keeps no list of its own. A board that names no runtimes has nothing to pick between and
- *  says so with `named: false`. */
-export async function gateRuntimeAction(): Promise<{
-  named: boolean;
-  names: string[];
-  global: string;
-  /** The runtime the flow names, or "" when it follows the global one. */
-  runtime: string;
-  /** The agent that runtime resolves to here — the mono word beside the name. */
-  harness: string;
-}> {
-  const blank = { named: false, names: [], global: "", runtime: "", harness: "" };
-  try {
-    const info = await agentInfo();
-    const flow = info.flows.find((f) => f.command === "gate");
-    return {
-      named: info.namedRuntimes,
-      names: info.runtimes.map((r) => r.name),
-      global: info.globalRuntime,
-      runtime: flow && flow.runtime !== info.globalRuntime ? flow.runtime : "",
-      harness: flow?.harness ?? "",
-    };
-  } catch {
-    // No rules to ask. The switch above still works; the picker just has nothing to offer.
-    return blank;
-  }
-}
-
-export async function setGateRuntimeAction(runtime: string): Promise<WriteResult> {
-  if (typeof runtime !== "string") return { ok: false, error: "a runtime is saved as text" };
-  return setFlowRuntime("gate", runtime.trim());
-}
-
 // **End a silent run after** (#394) — how many minutes a run may say nothing before the
 // board ends it. Same file as the two above, so the Delivery switches and this box are one
 // read when the pane opens.
@@ -1151,12 +1108,22 @@ export async function runnableAgentsAction(): Promise<string[]> {
 // text setting is never validated here — the agent is the only validator, and a bad id
 // shows up as a failed run with the reason in its log. Empty clears the setting, and the
 // agent runs its own default.
-export async function setHarnessSettingAction(key: string, value: string): Promise<WriteResult> {
+export async function setHarnessSettingAction(
+  key: string,
+  value: string,
+  harness?: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
   if (typeof key !== "string" || typeof value !== "string") {
     return { ok: false, error: "a setting is saved as text" };
   }
-  const setting = (await activeSettings()).find((s) => s.key === key);
-  if (!setting) return { ok: false, error: `the agent you picked has no "${key}" setting` };
+  const on = typeof harness === "string" && harness ? harness : undefined;
+  const setting = (await activeSettings(on)).find((s) => s.key === key);
+  if (!setting) return { ok: false, error: `that connector has no "${key}" setting` };
+  // A model belongs to the agent running it, and is saved per machine — never into the
+  // connector's block, which the repository carries (#443).
+  if (setting.agentOwned) {
+    return { ok: false, error: `"${setting.label}" is one agent's model — it saves on the Agents pane` };
+  }
   // A key never goes near ui.config.json — it has its own action and its own file (#94).
   // Refused here rather than quietly rerouted: a client sending a key down this path has a
   // bug, and the file it would land in is committed.
@@ -1171,9 +1138,9 @@ export async function setHarnessSettingAction(key: string, value: string): Promi
   // provider we ship, one whose base URL is still empty, and a base URL emptied while that
   // pick is live are all refused here — so whatever a client does, the file never says a
   // run goes somewhere it can't go.
-  const wrong = await settingSaveError(key, next);
+  const wrong = await settingSaveError(key, next, on);
   if (wrong) return { ok: false, error: wrong };
-  return setHarnessSetting(key, next);
+  return withAgent(() => setHarnessSetting(key, next, on));
 }
 
 // Save one of the picked agent's keys (#94) to docs/kanban/.env — the board's one place for
@@ -1185,15 +1152,20 @@ export async function setHarnessSettingAction(key: string, value: string): Promi
 // back into the browser. The setting has to be one the picked agent declares as a secret,
 // so a field left focused while switching agents can't write a key the new agent never
 // asked for.
-export async function setHarnessSecretAction(key: string, value: string): Promise<WriteResult> {
+export async function setHarnessSecretAction(
+  key: string,
+  value: string,
+  harness?: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
   if (typeof key !== "string" || typeof value !== "string") {
     return { ok: false, error: "a key is saved as text" };
   }
-  const setting = (await activeSettings()).find((s) => s.key === key);
+  const on = typeof harness === "string" && harness ? harness : undefined;
+  const setting = (await activeSettings(on)).find((s) => s.key === key);
   if (!setting || setting.kind !== "secret" || !setting.env) {
-    return { ok: false, error: `the agent you picked has no "${key}" key` };
+    return { ok: false, error: `that connector has no "${key}" key` };
   }
-  return setSecret(setting.env, value);
+  return withAgent(() => setSecret(setting.env!, value));
 }
 
 // Send one small chat through the setup that is saved right now and say whether it worked
@@ -1205,135 +1177,73 @@ export async function setHarnessSecretAction(key: string, value: string): Promis
 //
 // It touches no card, holds no lock and starts no session. It never throws either: every
 // way it can go wrong is a result the panel shows.
-export async function testConnectionAction(runtime?: string): Promise<ConnectionTest> {
-  // Named a runtime, it spawns what THAT runtime resolves to here (#344) — the runtime whose
-  // pane the button is on, never the board's global one.
-  return testConnection(typeof runtime === "string" && runtime ? runtime : undefined);
+export async function testConnectionAction(harness?: string): Promise<ConnectionTest> {
+  // Named a connector, it spawns that one (#443) — the row the button is on, never the
+  // board's default.
+  return testConnection(typeof harness === "string" && harness ? harness : undefined);
 }
 
-// --- the runtimes (#344) ------------------------------------------------------
-// Configuration → Runtimes. One file holds all of it: the board names its runtimes in
-// docs/kanban/ui.config.json and says what each one runs as, right beside the names. Every
-// write here goes through the CLI, so a terminal `akb agent` and this pane are one writer
-// with one set of rules.
-//
-// Each one answers with the whole agent setting as it now reads, because a runtime move
-// changes more than the row it was made on: a removal moves the flows that named it, a
-// rename carries them, and a bind changes what the list says the runtime runs as.
+// --- which connector each agent runs (#443) -----------------------------------
+// Configuration → Agents. The PICK is the board's, in docs/kanban/ui.config.json, so every
+// checkout runs each agent on the same tool; the MODEL under it is this computer's, in
+// docs/kanban/.local.json. Every write goes through the CLI, so a terminal `akb agent` and
+// this pane are one writer with one set of rules.
 
-/** What one runtime is named by, before it is removed — the flows and spec agents that would
- *  be moved onto the board's global one. Both lists come from the board's own answer, so the
- *  pane keeps no list of its own. */
-export async function runtimeUsersAction(
-  name: string,
-): Promise<{ flows: string[]; specAgents: string[] }> {
-  const blank = { flows: [], specAgents: [] };
-  if (typeof name !== "string" || !name) return blank;
-  try {
-    const info = await agentInfo();
-    const agents = await specAgents().catch(() => []);
-    return {
-      flows: info.flows.filter((f) => f.runtime === name).map((f) => f.path),
-      specAgents: (agents ?? []).filter((a) => a.runtime === name).map((a) => a.name),
-    };
-  } catch {
-    // Nothing to read them with. The removal itself still says whether it worked, and a
-    // warning that can't be built is not a reason to refuse one.
-    return blank;
-  }
-}
-
-export async function addRuntimeAction(name: string): Promise<WriteResult & { agent?: AgentInfo }> {
-  return runtimeMove(() => addRuntime(String(name ?? "").trim()));
-}
-
-export async function removeRuntimeAction(
-  name: string,
-): Promise<WriteResult & { agent?: AgentInfo }> {
-  return runtimeMove(() => removeRuntime(String(name ?? "").trim()));
-}
-
-export async function renameRuntimeAction(
-  from: string,
-  to: string,
-): Promise<WriteResult & { agent?: AgentInfo }> {
-  return runtimeMove(() => renameRuntime(String(from ?? "").trim(), String(to ?? "").trim()));
-}
-
-export async function setGlobalRuntimeAction(
-  name: string,
-): Promise<WriteResult & { agent?: AgentInfo }> {
-  return runtimeMove(() => setGlobalRuntime(String(name ?? "").trim()));
-}
-
-/** Save the agent one runtime runs. The name is checked against the agents this build
- *  ships, so a stale client can't save one nothing can spawn. */
-export async function bindRuntimeAction(
-  runtime: string,
+/** Give one agent a connector of its own, or put it back on the board's default with "". The
+ *  name is checked against the connectors this build ships, so a stale client can't save one
+ *  nothing can spawn. */
+export async function setAgentHarnessAction(
+  agent: string,
   harness: string,
 ): Promise<WriteResult & { agent?: AgentInfo }> {
-  if (typeof runtime !== "string" || typeof harness !== "string") {
-    return { ok: false, error: "a runtime and an agent are saved as text" };
+  if (typeof agent !== "string" || !agent || typeof harness !== "string") {
+    return { ok: false, error: "an agent and a connector are saved as text" };
   }
-  const info = await agentInfo().catch(() => null);
-  if (!info?.runtimes.some((r) => r.name === runtime)) {
-    return { ok: false, error: `no runtime called "${runtime}" on this board` };
+  if (harness) {
+    const info = await agentInfo().catch(() => null);
+    // The connectors this build runs are the CLI's list, not a copy kept here.
+    if (!info?.options.some((o) => o.name === harness)) {
+      return { ok: false, error: `unknown connector "${harness}"` };
+    }
   }
-  // The agents this build runs are the CLI's list, not a copy kept here.
-  if (!info.options.some((o) => o.name === harness)) {
-    return { ok: false, error: `unknown agent "${harness}"` };
-  }
-  return runtimeMove(() => setRuntimeHarness(runtime, harness));
+  return withAgent(() => setAgentHarness(agent, harness));
 }
 
-/** Save one of that runtime's settings. Judged against the agent THAT runtime runs, never
- *  the board's global one — a value Codex refuses must not be saved against Claude Code's
- *  rules. */
-export async function setRuntimeSettingAction(
-  runtime: string,
+/** Save one of an agent's model settings — checked against the connector THAT AGENT runs,
+ *  never the board's default, so a value Codex refuses is never saved against Claude Code's
+ *  rules. A key is refused: those are the connector's, in docs/kanban/.env. */
+export async function setAgentSettingAction(
+  agent: string,
   key: string,
   value: string,
 ): Promise<WriteResult & { agent?: AgentInfo }> {
-  if (typeof runtime !== "string" || typeof key !== "string" || typeof value !== "string") {
+  if (typeof agent !== "string" || !agent || typeof key !== "string" || typeof value !== "string") {
     return { ok: false, error: "a setting is saved as text" };
   }
-  const setting = (await activeSettings(runtime)).find((s) => s.key === key);
-  if (!setting) return { ok: false, error: `that runtime's agent has no "${key}" setting` };
-  // A key never goes near ui.config.json: the board has exactly one place for one, and it is
-  // the file git does not carry (#94).
-  if (setting.kind === "secret") {
-    return { ok: false, error: `"${setting.label}" is a key — it saves to docs/kanban/.env` };
+  const on = await agentHarnessName(agent);
+  const setting = (await activeSettings(on)).find((s) => s.key === key);
+  if (!setting || !setting.agentOwned) {
+    return { ok: false, error: `that agent's connector has no "${key}" model setting` };
   }
   const next = value.trim();
   if (setting.kind === "select" && next && !setting.choices?.some((c) => c.value === next)) {
     return { ok: false, error: `"${next}" isn't one of the ${setting.label} choices` };
   }
-  const wrong = await settingSaveError(key, next, runtime);
+  const wrong = await settingSaveError(key, next, on);
   if (wrong) return { ok: false, error: wrong };
-  return runtimeMove(() => setRuntimeSetting(runtime, key, next));
+  return withAgent(() => setAgentSetting(agent, key, next));
 }
 
-/** Save one of that runtime's keys. It goes to docs/kanban/.env exactly as the board's own
- *  does, so two runtimes on one agent share one key — the config file is committed and a key
- *  was never in it. */
-export async function setRuntimeSecretAction(
-  runtime: string,
-  key: string,
-  value: string,
-): Promise<WriteResult & { agent?: AgentInfo }> {
-  if (typeof runtime !== "string" || typeof key !== "string" || typeof value !== "string") {
-    return { ok: false, error: "a key is saved as text" };
-  }
-  const setting = (await activeSettings(runtime)).find((s) => s.key === key);
-  if (!setting || setting.kind !== "secret" || !setting.env) {
-    return { ok: false, error: `that runtime's agent has no "${key}" key` };
-  }
-  return runtimeMove(() => setSecret(setting.env!, value));
+// What one agent runs here, out of the board's own answer — so this file keeps no second
+// reading of a pick it would then have to hold in step.
+async function agentHarnessName(agent: string): Promise<string | undefined> {
+  const rules = await boardRules().catch(() => null);
+  return rules?.agentHarness?.(agent).name;
 }
 
-// One move, and the whole setting as it now reads. A failure answers with the reason and no
-// setting, so the pane puts the row it moved back exactly as it was.
-async function runtimeMove(
+// One move, and the whole connector setting as it now reads. A failure answers with the
+// reason and no setting, so the pane puts the row it moved back exactly as it was.
+async function withAgent(
   move: () => Promise<WriteResult>,
 ): Promise<WriteResult & { agent?: AgentInfo }> {
   try {
@@ -1938,7 +1848,7 @@ export async function boardNotificationsAction(): Promise<BoardNotifications> {
       release: "",
       releases: [],
       signedIn: false,
-      server: { attached: false, here: false, machineName: "", thisMachine: "", runtimes: [] },
+      server: { attached: false, here: false, machineName: "", thisMachine: "" },
     };
   }
 }

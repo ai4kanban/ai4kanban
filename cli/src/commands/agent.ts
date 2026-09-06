@@ -1,39 +1,31 @@
-// Which agent runs the board, and everything it is set to.
+// Which connector runs the board, which one each agent runs, and everything they are set to.
 //
-// A run never reads the terminal's environment for any of this — it reads these settings,
-// so a run started in a shell with an old export in it goes exactly where the board says.
-// The same commands change them, so nothing has to open a browser to pick an agent, and a
-// front end can offer the agents and their settings without keeping a list of its own.
+// A run never reads the terminal's environment for any of this — it reads these settings, so
+// a run started in a shell with an old export in it goes exactly where the board says. The
+// same commands change them, so nothing has to open a browser to pick a connector, and a
+// front end can offer the connectors and their settings without keeping a list of its own.
 //
-// All of it is the BOARD's, in docs/kanban/ui.config.json (#343): the runtimes it names,
-// what each one runs as, and which one each flow and spec agent goes on. So it travels with
-// the repository and a fresh clone runs what everyone else runs, with nothing to set up per
-// machine. `akb agent use` and `akb agent set` write the global runtime's agent — the
-// `harness` and `harnessSettings` a board has always had — and `akb agent bind` writes any
-// other runtime's.
+// Two files, and the split is the whole idea (#443):
+//
+//   docs/kanban/ui.config.json  the board's — which connector each agent runs, and how to
+//                               reach each connector. It travels with the repository, so a
+//                               fresh clone runs every agent on the same tool.
+//   docs/kanban/.local.json     this computer's — the model each agent runs. A model id is
+//                               worth nothing on a machine whose CLI never logged into that
+//                               provider, so it is picked once per machine.
+//
+// `akb agent use` and `akb agent set` write the board's default connector; `akb agent bind`
+// gives one agent a connector of its own, and `akb agent set --agent` its own model.
 
-import { FLOWS } from '../lib/agent/flows'
 import { providerSetting } from '../lib/agent/providers'
-import { activeSettings, agentInfo, runtimeHarness, settingSaveError } from '../lib/agent/resolve'
-import {
-  addRuntime,
-  readRuntimes,
-  removeRuntime,
-  renameRuntime,
-  setFlowRuntime,
-  setGlobalRuntime,
-  setHarness,
-  setHarnessSetting,
-  setRuntimeHarness,
-  setRuntimeSetting,
-  setSecret,
-  setSpecAgentRuntime,
-  unknownRuntime,
-} from '../lib/agent/settings'
+import { activeSettings, agentHarness, agentInfo, agentRun, settingSaveError } from '../lib/agent/resolve'
+import { agentNames, agentRoster } from '../lib/agent/roles'
+import { setLocalAgentValue } from '../lib/agent/local'
+import { setAgentHarness, setHarness, setHarnessSetting, setSecret } from '../lib/agent/settings'
 import { testConnection } from '../lib/agent/test'
 import { HARNESSES, RAW_ARGS_KEY } from '../lib/agent/harnesses'
 import type { HarnessSetting } from '../lib/agent/types'
-import { findSpecAgent, readSpecAgents, specAgentNames, specAgentNamesOnBoard } from '../lib/agents'
+import { specAgentNames } from '../lib/agents'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import { finishSetupStep } from '../lib/view/api'
@@ -54,29 +46,26 @@ export async function cmdAgent(args: string[]): Promise<MoveResult> {
       return useAgent(rest)
     case 'set':
       return setSetting(rest)
-    case 'runtimes':
-      return showRuntimes()
-    case 'runtime':
-      return runtimeCommand(rest)
     case 'bind':
-      return bindCommand(rest)
+      return bindAgent(rest)
     case 'test':
       return await testAgent(rest)
     default:
-      die(
-        `unknown agent command "${word}" — try \`akb agent\`, or one of use, set, list, runtimes, runtime, bind, test`,
-        { kind: 'unknown-move', move: word },
-      )
+      die(`unknown agent command "${word}" — try \`akb agent\`, or one of use, set, list, bind, test`, {
+        kind: 'unknown-move',
+        move: word,
+      })
   }
 }
 
-// What runs, and how it is set up — the whole of the answer in one screen.
+// What runs, and how it is set up — the whole of the answer in one screen: the board's
+// default connector and its settings, then every agent and what it runs.
 function showAgent(): MoveResult {
   const info = agentInfo()
   const harness = HARNESSES.find((h) => h.name === info.name)
   say(`${harness?.label ?? info.name}${info.isDefault ? ' (the default — nothing is picked)' : ''}`)
   say(`  command  ${info.command}`)
-  for (const setting of harness?.settings ?? []) {
+  for (const setting of harness?.settings.filter((s) => !s.agentOwned) ?? []) {
     say(`  ${setting.key.padEnd(8)} ${valueOf(setting, info.values, info.secretsSet)}${
       info.ignored.includes(setting.key) ? '   (not in effect — the command already names it)' : ''
     }`)
@@ -86,7 +75,7 @@ function showAgent(): MoveResult {
   // flag, and this one never does.
   say(`  \`${RAW_ARGS_KEY}\` goes after the settings' flags and before the agent's own, and a`)
   say(`  "command" override never turns it off.`)
-  sayRuntimes(info)
+  const agents = sayAgents()
   if (info.unknownName) {
     say('')
     say(`Your ui.config.json asks for "${info.unknownName}", which this version doesn't run.`)
@@ -95,25 +84,29 @@ function showAgent(): MoveResult {
   if (info.staleCommand) {
     say('')
     say(`Your ui.config.json still holds a top-level "command". Nothing reads it — each`)
-    say(`agent's own block carries its command now.`)
+    say(`connector's own block carries its command now.`)
   }
-  return { agent: info }
+  return { agent: info, agents }
 }
 
-// The runtime layer, under the agent above — and only when the board names more than one.
-// With one runtime everything is on it, and a column repeating the same word for every flow
-// says nothing the line above it didn't.
-function sayRuntimes(info: ReturnType<typeof agentInfo>): void {
-  if (info.runtimes.length < 2) return
+// Every agent on this board and what it runs: the connector, then the model under it. A
+// connector shown in brackets is the board's default rather than that agent's own pick.
+function sayAgents(): { name: string; harness: string; own: boolean; model: string }[] {
+  const rows = agentRoster().map((entry) => {
+    const runs = agentRun(entry.name)
+    return { name: entry.name, harness: runs.harness, own: runs.own, model: runs.values.model ?? '' }
+  })
   say('')
-  say(`The agent above is what a runtime nobody bound on this computer runs as.`)
-  say(`Global runtime: ${info.globalRuntime}`)
-  const off = info.flows.filter((f) => f.runtime !== info.globalRuntime)
-  for (const flow of off) say(`  ${flow.path.padEnd(20)} ${flow.runtime} — ${flow.harness} here`)
-  for (const agent of readSpecAgents().filter((a) => a.runtime !== info.globalRuntime)) {
-    say(`  ${agent.name.padEnd(20)} ${agent.runtime} — ${agent.harness} here`)
+  say('Agents')
+  for (const row of rows) {
+    const what = row.own ? row.harness : `(${row.harness})`
+    say(`  ${row.name.padEnd(22)} ${what.padEnd(16)} ${row.model || "the connector's own model"}`)
   }
-  say(`\`akb agent runtimes\` is the whole of it.`)
+  say('')
+  say('A connector in brackets is the board\'s default — that agent picked none.')
+  say('`akb agent bind <agent> <connector>` gives one its own; `akb agent set --agent <agent> model <id>`')
+  say('sets the model it runs here, on this computer only.')
+  return rows
 }
 
 // How one setting reads on the screen. A key is never read back — set or not set is the
@@ -131,9 +124,9 @@ function valueOf(
   return provider ? `${provider.id} — ${provider.label}` : value
 }
 
-// Every agent this build can run, and the settings each one takes. Written for a front end
-// reading `--json`: it is what lets one offer the agents and their fields without ever
-// learning an agent's name.
+// Every connector this build can run, and the settings each one takes. Written for a front
+// end reading `--json`: it is what lets one offer the connectors and their fields without
+// ever learning a connector's name.
 function listAgents(): MoveResult {
   const info = agentInfo()
   for (const option of info.options) {
@@ -147,13 +140,23 @@ function listAgents(): MoveResult {
     if (option.gaps.length) say(`    lacks: ${option.gaps.map((g) => g.label.toLowerCase()).join('; ')}`)
   }
   say('')
-  say('The one marked * is what runs. Switch with `akb agent use <name>`.')
+  say("The one marked * is the board's default. Switch with `akb agent use <name>`.")
   return { agents: info.options, picked: info.name }
 }
 
 function useAgent(args: string[]): MoveResult {
   const name = args[0]?.trim()
   if (!name) die('name an agent: akb agent use claude-code', { kind: 'needs-input' })
+  const harness = knownHarness(name)
+  const res = setHarness(harness.name)
+  if (!res.ok) die(res.error ?? 'the setting could not be saved', { kind: 'save-failed' })
+  say(`${harness.label} is the board's default — every agent that picked none runs it.`)
+  // Switching never throws a setting away: every connector's settings live under its own
+  // name, so what this one was last set to comes back with it.
+  return showAgent()
+}
+
+function knownHarness(name: string) {
   const harness = HARNESSES.find((h) => h.name === name)
   if (!harness) {
     die(`no agent called "${name}". \`akb agent list\` says what this version runs.`, {
@@ -161,59 +164,96 @@ function useAgent(args: string[]): MoveResult {
       agent: name,
     })
   }
-  const res = setHarness(harness.name)
-  if (!res.ok) die(res.error ?? 'the setting could not be saved', { kind: 'save-failed' })
-  say(`${harness.label} now runs the board.`)
-  // Switching never throws a setting away: every agent's settings live under its own name,
-  // so what this one was last set to comes back with it.
-  return showAgent()
+  return harness
 }
 
-// One setting, or one key. Which of the two it is comes from the agent's own declaration —
-// a key goes to docs/kanban/.env and nowhere else, and is never echoed back.
+// The agent a `--agent <name>` flag names, checked against this board's roster.
+function namedAgent(args: string[]): { agent?: string; rest: string[] } {
+  const at = args.indexOf('--agent')
+  if (at < 0) return { rest: args }
+  const name = args[at + 1]?.trim() ?? ''
+  if (!name) die(`name an agent: ${agentNames().join(', ')}`, { kind: 'needs-input' })
+  if (!agentNames().includes(name)) {
+    die(`"${name}" is not an agent on this board. It has: ${agentNames().join(', ')}.`, {
+      kind: 'unknown-agent',
+      agent: name,
+    })
+  }
+  return { agent: name, rest: [...args.slice(0, at), ...args.slice(at + 2)] }
+}
+
+// One setting, one model, or one key. Which of the three it is comes from the connector's own
+// declaration: a key goes to docs/kanban/.env and nowhere else and is never echoed back, a
+// setting that picks a model belongs to one agent and lands in docs/kanban/.local.json, and
+// everything else is how to reach the connector and lands in ui.config.json.
 //
-// With no value the setting is cleared and the agent runs its own default. Reading a key
+// With no value the setting is cleared and the connector runs its own default. Reading a key
 // back is never offered: a user who forgot theirs makes a new one.
 function setSetting(args: string[]): MoveResult {
-  const key = args[0]?.trim() ?? ''
-  const setting = activeSettings().find((s) => s.key === key)
+  const { agent, rest } = namedAgent(args)
+  const settings = activeSettings(agent ? { agent } : undefined)
+  const key = rest[0]?.trim() ?? ''
+  const setting = settings.find((s) => s.key === key)
   if (!setting) {
-    const keys = activeSettings().map((s) => s.key)
-    die(`the agent you run has no "${key}" setting. It takes: ${keys.join(', ') || '(none)'}`, {
+    const keys = settings.map((s) => s.key)
+    const whose = agent ? `\`${agent}\` runs a connector with` : 'the connector you run has'
+    die(`${whose} no "${key}" setting. It takes: ${keys.join(', ') || '(none)'}`, {
       kind: 'unknown-setting',
       setting: key,
     })
   }
-  const value = args.slice(1).join(' ').trim()
+  const value = rest.slice(1).join(' ').trim()
 
   if (setting.kind === 'secret') {
+    // A key is the board's one place, whichever agent asked: docs/kanban/.env is per machine
+    // already, and two agents on one connector share the login it holds.
     const res = setSecret(setting.env!, value)
     if (!res.ok) die(res.error ?? 'the key could not be saved', { kind: 'save-failed' })
     say(value ? `${setting.label} saved to docs/kanban/.env.` : `${setting.label} cleared.`)
     return { setting: key, set: Boolean(value) }
   }
 
-  const wrong = checkSetting(setting, value)
+  const wrong = checkSetting(setting, value, agent)
   if (wrong) die(wrong, { kind: 'bad-value' })
 
-  const res = setHarnessSetting(key, value)
+  // A model belongs to the agent running it, so it needs one named — and it is saved against
+  // the connector that agent runs, so switching tools and back finds it again.
+  if (setting.agentOwned) {
+    if (!agent) {
+      die(`"${key}" is the model one agent runs, so name it: \`akb agent set --agent <agent> ${key} <value>\`. This board has: ${agentNames().join(', ')}.`, {
+        kind: 'needs-input',
+      })
+    }
+    const harness = agentHarness(agent)
+    const res = setLocalAgentValue(agent, harness.name, key, value)
+    if (!res.ok) die(res.error ?? 'the setting could not be saved', { kind: 'save-failed' })
+    say(
+      value
+        ? `\`${agent}\` runs ${harness.label} with ${setting.label} "${value}", on this computer.`
+        : `${setting.label} cleared for \`${agent}\` — ${harness.label} runs its own default.`,
+    )
+    return { agent, setting: key, value }
+  }
+
+  // Everything else is how to reach the connector, and is the board's. Named an agent, it is
+  // that agent's connector whose block is written — never the board's default, or a value
+  // Codex refuses would be saved against Claude Code's.
+  const res = setHarnessSetting(key, value, agent ? agentHarness(agent).name : undefined)
   if (!res.ok) die(res.error ?? 'the setting could not be saved', { kind: 'save-failed' })
   say(value ? `${setting.label} is now "${value}".` : `${setting.label} cleared — the agent's own default runs.`)
   return { setting: key, value }
 }
 
-// Why this value can't be saved for this setting, or null when it can. `ask` names the
-// harness the rules are read against: the board's own for `akb agent set`, and the one a
-// runtime is bound to for `akb agent bind … set` — a value Codex refuses must not be saved
-// against Claude Code's rules (#343).
-function checkSetting(setting: HarnessSetting, value: string, runtime?: string): string | null {
+// Why this value can't be saved for this setting, or null when it can. `agent` names whose
+// connector the rules are read against: the board's default with none.
+function checkSetting(setting: HarnessSetting, value: string, agent?: string): string | null {
   // A list must be given one of its own choices; a box takes free text, because model ids
   // change between agent releases and the agent is the only validator worth having.
   if (setting.kind === 'select' && value && !setting.choices?.some((c) => c.value === value)) {
     const choices = setting.choices?.map((c) => c.value || '(empty)').join(', ')
     return `"${value}" isn't one of the ${setting.label} choices: ${choices}`
   }
-  const ask = runtime ? { runtime } : undefined
+  const ask = agent ? { agent } : undefined
   if (setting.kind === 'provider' && !value) {
     const list = providerSetting(activeSettings(ask))
     return `a run always goes through a provider, so this one can't be cleared. Pick one: ${
@@ -226,195 +266,39 @@ function checkSetting(setting: HarnessSetting, value: string, runtime?: string):
   return settingSaveError(setting.key, value, ask)
 }
 
-// ---- the runtimes (#343) ---------------------------------------------------
+// ---- what one agent runs (#443) --------------------------------------------
 
-/** Every runtime, what it runs as, and what each flow and spec agent is on. */
-function showRuntimes(): MoveResult {
-  const info = agentInfo()
-  for (const runtime of info.runtimes) {
-    const stale = runtime.unknownHarness ? `   (set to "${runtime.unknownHarness}", which this version doesn't run)` : ''
-    say(`${runtime.global ? '*' : ' '} ${runtime.name.padEnd(12)} ${runtime.harness}${stale}`)
-    for (const [key, value] of Object.entries(runtime.values)) say(`    ${key}: ${value}`)
-  }
-  say('')
-  say('Runs on')
-  for (const flow of info.flows) say(`  ${flow.path.padEnd(20)} ${flow.runtime} — ${flow.harness}`)
-  for (const agent of readSpecAgents()) {
-    say(`  ${agent.name.padEnd(20)} ${agent.runtime} — ${agent.harness}`)
-  }
-  say('')
-  say('The one marked * is the board\'s global runtime — what a flow that names none runs on.')
-  say('All of it is the board\'s, so every checkout runs the same thing.')
-  return { runtimes: info.runtimes, globalRuntime: info.globalRuntime, flows: info.flows }
-}
-
-function runtimeCommand(args: string[]): MoveResult {
-  const [word, ...rest] = args
-  switch (word) {
-    case undefined:
-      return showRuntimes()
-    case 'add':
-      return addOne(rest[0]?.trim() ?? '')
-    case 'remove':
-      return removeOne(rest[0]?.trim() ?? '')
-    case 'rename':
-      return renameOne(rest[0]?.trim() ?? '', rest[1]?.trim() ?? '')
-    case 'global':
-      return globalOne(rest[0]?.trim() ?? '')
-    case 'for':
-      return runtimeFor(rest)
-    default:
-      die(`unknown runtime command "${word}" — try one of add, remove, rename, global, for`, {
-        kind: 'unknown-move',
-        move: word,
-      })
-  }
-}
-
-function addOne(name: string): MoveResult {
-  if (!name) die('name a runtime: akb agent runtime add cheap', { kind: 'needs-input' })
-  const res = addRuntime(name)
-  if (!res.ok) die(res.error ?? 'the runtime could not be saved', { kind: 'save-failed' })
-  say(`"${name}" is a runtime on this board. It runs the board's agent until you give it one`)
-  say(`of its own: \`akb agent bind ${name} <agent>\`.`)
-  return { runtime: name }
-}
-
-function removeOne(name: string): MoveResult {
-  if (!name) die('name a runtime: akb agent runtime remove cheap', { kind: 'needs-input' })
-  const res = removeRuntime(name)
-  if (!res.ok) die(res.error ?? 'the runtime could not be removed', { kind: 'bad-value' })
-  say(`"${name}" is gone. Whatever named it runs the global runtime now.`)
-  return { runtime: name, removed: true }
-}
-
-// Rename a runtime. Everything the board holds under the old name moves whole — what it runs
-// as, the flows, the spec agents and the global pointer — so only the name changes.
-function renameOne(from: string, to: string): MoveResult {
-  if (!from || !to) die('name a runtime and its new name: akb agent runtime rename cheap plan', { kind: 'needs-input' })
-  const res = renameRuntime(from, to)
-  if (!res.ok) die(res.error ?? 'the runtime could not be renamed', { kind: 'bad-value' })
-  say(`"${from}" is now "${to}". Everything that named it came with it, and it still runs ${runtimeHarness(to).label}.`)
-  return { runtime: to, renamedFrom: from }
-}
-
-function globalOne(name: string): MoveResult {
-  if (!name) die('name a runtime: akb agent runtime global default', { kind: 'needs-input' })
-  const res = setGlobalRuntime(name)
-  if (!res.ok) die(res.error ?? 'the runtime could not be saved', { kind: 'bad-value' })
-  say(`"${name}" is the board's global runtime — every flow that names none runs on it.`)
-  return { globalRuntime: name }
-}
-
-// Point one flow or one spec agent at a runtime. "-" puts it back on the global one.
-function runtimeFor(args: string[]): MoveResult {
-  const what = args[0]?.trim() ?? ''
-  const asked = args[1]?.trim() ?? ''
-  if (!what || !asked) {
-    die('name a flow or spec agent and a runtime: akb agent runtime for implement cheap', {
-      kind: 'needs-input',
-    })
-  }
-  const runtime = asked === '-' ? '' : asked
-  const runtimes = readRuntimes()
-  if (runtime && !runtimes.names.includes(runtime)) die(unknownRuntime(runtime, runtimes), { kind: 'bad-value' })
-
-  const flow = FLOWS.find((f) => f.command === what)
-  const agent = flow ? null : findSpecAgent(what)
-  if (!flow && !agent) {
-    die(
-      `"${what}" is neither a flow nor a spec agent. Flows: ${FLOWS.map((f) => f.command).join(', ')}. ` +
-        `Spec agents: ${specAgentNamesOnBoard().join(', ')}.`,
-      { kind: 'bad-value' },
-    )
-  }
-  // `setup` is the one flow a runtime can't move: it is the run that has to work on a board
-  // nobody has configured yet. Refused rather than written down and ignored — a file saying
-  // something no run reads is worse than a no.
-  if (flow?.command === 'setup' && runtime) {
-    die('`setup` always runs the global runtime — it is the run that has to work on a board nobody has configured yet.', {
-      kind: 'bad-value',
-    })
-  }
-  const res = flow
-    ? setFlowRuntime(flow.command, runtime)
-    : setSpecAgentRuntime(agent!.name, runtime, specAgentNames(agent!.name).slice(1))
-  if (!res.ok) die(res.error ?? 'the runtime could not be saved', { kind: 'save-failed' })
-
-  const name = flow?.command ?? agent!.name
-  const on = runtime || readRuntimes().global
-  say(`\`${name}\` runs on "${on}"${runtime ? '' : ' — the global runtime'}, which is ${runtimeHarness(on).label} here.`)
-  return { flow: flow?.command, specAgent: agent?.name, runtime: on }
-}
-
-// ---- what one runtime runs as ----------------------------------------------
-
-function bindCommand(args: string[]): MoveResult {
-  const runtime = args[0]?.trim() ?? ''
-  if (!runtime) {
-    die('name a runtime: akb agent bind <runtime> <agent>', { kind: 'needs-input' })
-  }
-  const runtimes = readRuntimes()
-  if (!runtimes.names.includes(runtime)) die(unknownRuntime(runtime, runtimes), { kind: 'bad-value' })
-  if (args[1] === 'set') return bindSetting(runtime, args.slice(2))
-
-  const name = args[1]?.trim() ?? ''
-  if (!name) die(`name an agent: akb agent bind ${runtime} claude-code`, { kind: 'needs-input' })
-  const harness = HARNESSES.find((h) => h.name === name)
-  if (!harness) {
-    die(`no agent called "${name}". \`akb agent list\` says what this version runs.`, {
+/** Give one agent a connector of its own, or put it back on the board's default with "-".
+ *  What it picked for each connector is kept under that connector's name, so switching and
+ *  switching back never loses a model. */
+function bindAgent(args: string[]): MoveResult {
+  const agent = args[0]?.trim() ?? ''
+  if (!agent) die(`name an agent: akb agent bind <agent> <connector>. This board has: ${agentNames().join(', ')}.`, { kind: 'needs-input' })
+  if (!agentNames().includes(agent)) {
+    die(`"${agent}" is not an agent on this board. It has: ${agentNames().join(', ')}.`, {
       kind: 'unknown-agent',
-      agent: name,
+      agent,
     })
   }
-  const res = setRuntimeHarness(runtime, harness.name)
-  if (!res.ok) die(res.error ?? 'the agent could not be saved', { kind: 'save-failed' })
-  say(
-    runtime === runtimes.global
-      ? `"${runtime}" is the board's global runtime, so the board now runs ${harness.label}.`
-      : `"${runtime}" runs ${harness.label}, on this board and every checkout of it.`,
-  )
-  return { runtime, harness: harness.name }
+  const asked = args[1]?.trim() ?? ''
+  if (!asked) die(`name a connector: akb agent bind ${agent} claude-code, or "-" for the board's default`, { kind: 'needs-input' })
+  const legacy = specAgentNames(agent).slice(1)
+  if (asked === '-') {
+    const res = setAgentHarness(agent, '', legacy)
+    if (!res.ok) die(res.error ?? 'the connector could not be saved', { kind: 'save-failed' })
+    say(`\`${agent}\` runs the board's default connector — ${agentHarness(agent).label} here.`)
+    return { agent, harness: '' }
+  }
+  const harness = knownHarness(asked)
+  const res = setAgentHarness(agent, harness.name, legacy)
+  if (!res.ok) die(res.error ?? 'the connector could not be saved', { kind: 'save-failed' })
+  say(`\`${agent}\` runs ${harness.label}, on this board and every checkout of it.`)
+  const model = agentRun(agent).values.model ?? ''
+  say(model ? `Its model here is "${model}".` : `Give it a model: \`akb agent set --agent ${agent} model <id>\`.`)
+  return { agent, harness: harness.name }
 }
 
-// One of that runtime's settings. Checked against the agent THAT RUNTIME runs, never the
-// board's — a value Codex refuses would otherwise be saved against Claude Code's rules.
-function bindSetting(runtime: string, args: string[]): MoveResult {
-  const settings = activeSettings({ runtime })
-  const key = args[0]?.trim() ?? ''
-  if (!key) {
-    die(`name a setting: akb agent runtime set ${runtime} <${settings.map((s) => s.key).join('|')}> <value>`, {
-      kind: 'needs-input',
-    })
-  }
-  const setting = settings.find((s) => s.key === key)
-  if (!setting) {
-    die(`${runtimeHarness(runtime).label} has no "${key}" setting. It takes: ${settings.map((s) => s.key).join(', ') || '(none)'}`, {
-      kind: 'unknown-setting',
-      setting: key,
-    })
-  }
-  // A key never goes in the config: it stays in docs/kanban/.env, under the variable name
-  // that setting declares, because this file is the one the repository carries.
-  if (setting.kind === 'secret') {
-    die(`${setting.label} is a key — it lives in docs/kanban/.env, never in ui.config.json. Save it with \`akb agent set ${key} <value>\`.`, {
-      kind: 'bad-value',
-    })
-  }
-  const value = args.slice(1).join(' ').trim()
-  const wrong = checkSetting(setting, value, runtime)
-  if (wrong) die(wrong, { kind: 'bad-value' })
-
-  const res = setRuntimeSetting(runtime, key, value)
-  if (!res.ok) die(res.error ?? 'the setting could not be saved', { kind: 'save-failed' })
-  const label = runtimeHarness(runtime).label
-  say(
-    value
-      ? `"${runtime}" runs ${label} with ${setting.label} "${value}".`
-      : `${setting.label} cleared for "${runtime}" — it runs what ${label} is set to on this board.`,
-  )
-  return { runtime, setting: key, value }
-}
+// ---- the test --------------------------------------------------------------
 
 // A test that passed is what settles setup's `agent` step — the same rule the local UI
 // works by, so a board set up from a terminal finishes the same way as one set up from the
@@ -438,21 +322,19 @@ async function tickAgentStep(): Promise<{ setupStep?: string }> {
   return { setupStep: 'agent' }
 }
 
-// One small chat through the setup as it stands, so a broken agent is found here rather
-// than on the first card run that fails. Named a runtime, it spawns what THAT runtime
-// resolves to here; named none, the board's global one — which is the one setup's own step
-// is about, so only that form ticks the box.
+// One small chat through the setup as it stands, so a broken connector is found here rather
+// than on the first card run that fails. Named a connector, it spawns that one; named none,
+// the board's default — which is the one setup's own step is about, so only that form ticks
+// the box.
 async function testAgent(args: string[]): Promise<MoveResult> {
-  const runtime = args[0]?.trim() ?? ''
-  const runtimes = readRuntimes()
-  if (runtime && !runtimes.names.includes(runtime)) die(unknownRuntime(runtime, runtimes), { kind: 'bad-value' })
-  const on = runtime || runtimes.global
-  const harness = runtimeHarness(on)
-  say(`testing "${on}" — ${harness.label} …`)
-  const res = await testConnection(runtime || undefined)
+  const asked = args[0]?.trim() ?? ''
+  const harness = asked ? knownHarness(asked) : undefined
+  const label = harness?.label ?? agentInfo().name
+  say(`testing ${label} …`)
+  const res = await testConnection(harness?.name)
   if (res.ok) {
     say(`it answered in ${(res.ms / 1000).toFixed(1)}s. The board can run it.`)
-    return { test: res, runtime: on, harness: harness.name, ...(runtime ? {} : await tickAgentStep()) }
+    return { test: res, harness: res.harness, ...(harness ? {} : await tickAgentStep()) }
   }
   if (res.missing) {
     say(`${res.missing} isn't installed, or isn't on this terminal's PATH.`)

@@ -182,6 +182,33 @@ describe('how one reaches the agent', () => {
     const argv = JSON.parse(fs.readFileSync(seen, 'utf8')) as string[]
     assert.ok(argv.includes(`--file=${chatImageFile(null, name)}`))
   })
+
+  it('follows the connector the chat actually spawns, not the board’s default', async () => {
+    // A chat runs the planner's connector (#443). Here that is Claude Code, which reads a
+    // path out of the words, while the board's default is Codex, which takes a flag —
+    // reading the default instead sends the message with the pictures named nowhere.
+    const agent = path.join(root, 'agent.mjs')
+    const seen = path.join(root, 'argv.json')
+    fs.writeFileSync(
+      agent,
+      `import fs from 'node:fs'\n` +
+        `fs.writeFileSync(${JSON.stringify(seen)}, JSON.stringify(process.argv.slice(2)))\n`,
+    )
+    fs.writeFileSync(
+      path.join(root, 'docs', 'kanban', 'ui.config.json'),
+      JSON.stringify({
+        harness: 'codex',
+        agentHarness: { planner: 'claude-code' },
+        harnessSettings: { 'claude-code': { command: `node ${agent}` } },
+      }),
+    )
+    setBoardRoot(root)
+    const name = paste()
+    await sendChatMessage(null, 'what is this?', { images: [name] })
+    const argv = JSON.parse(fs.readFileSync(seen, 'utf8')) as string[]
+    assert.ok(!argv.some((tok) => tok.startsWith('--image')))
+    assert.ok(argv[argv.length - 1]!.includes(chatImageFile(null, name)!))
+  })
 })
 
 describe('what the words say about them', () => {

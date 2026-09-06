@@ -47,7 +47,7 @@ function toView(
     model: run.model,
     input: run.input,
     harness: run.harness,
-    runtime: run.runtime,
+    agent: run.agent,
     canResume: run.canResume,
     resumedFrom: run.resumedFrom,
     ok: run.ok,

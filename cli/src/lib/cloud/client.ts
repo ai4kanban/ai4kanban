@@ -12,7 +12,7 @@ import type { CardPayload, DeliveryPayload, DocumentPayload, EventPayload } from
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
 import type { CloudEvent, CloudEventAnswer, CloudEventState } from './events'
 import type { CloudRequest } from './requests'
-import type { CloudServer, ServerRuntime } from './servers'
+import type { CloudServer } from './servers'
 import { accessToken } from './session'
 import type {
   LarkChat,
@@ -138,17 +138,19 @@ export const recordOutcome = (
 
 // ---- the board's server, and the requests it claims (#318) ------------------
 
-/** Register this machine as the board's one server, and say what it runs the board's
- *  runtimes as (#345). `takeOver` is the user moving the board to the machine in front of
- *  them; without it a second machine is refused and told which one holds it. */
+/** Register this machine as the board's one server. `takeOver` is the user moving the board
+ *  to the machine in front of them; without it a second machine is refused and told which one
+ *  holds it.
+ *
+ *  `runtimes` stays on the wire and is always empty: the service still holds the field, and
+ *  nothing names a runtime any more (#443). */
 export const attachServer = (
   boardId: string,
   machineId: string,
   machineName: string,
   takeOver = false,
-  runtimes: ServerRuntime[] = [],
 ): Promise<CloudCall<{ server: CloudServer }>> =>
-  send('POST', `/v1/boards/${encodeURIComponent(boardId)}/server`, { machineId, machineName, takeOver, runtimes })
+  send('POST', `/v1/boards/${encodeURIComponent(boardId)}/server`, { machineId, machineName, takeOver, runtimes: [] })
 
 /** Stop this machine running that board's work. Nothing local is touched. */
 export const detachServer = (boardId: string, machineId: string): Promise<CloudCall<{ server: CloudServer | null }>> =>
@@ -313,12 +315,11 @@ export const registerWorkspaceNode = (
   workspaceId: string,
   machineId: string,
   machineName: string,
-  runtimes: ServerRuntime[] = [],
 ): Promise<CloudCall<{ node: WireNode }>> =>
   send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/nodes`, {
     machineId,
     machineName,
-    runtimes,
+    runtimes: [],
   })
 
 /** The machines registered to this workspace — what the owner controls list. */
@@ -501,7 +502,6 @@ export interface WireNode {
   name: string
   machineId: string
   machineName: string
-  runtimes: ServerRuntime[]
   accountId: string | null
   handle: string
   leaseExpiresAt: string | null

@@ -12,9 +12,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { agentRun } from '../agent/resolve'
 import { agentRoster, ROLE_NAMES } from '../agent/roles'
 import { readRule } from '../agent/rules'
-import { forgetSpecAgent, specAgentEntries } from '../agent/settings'
+import { forgetLocalAgent } from '../agent/local'
+import { forgetAgentHarness, forgetSpecAgent, readAgentHarness, specAgentEntries } from '../agent/settings'
 import type { AgentView } from '../agent/types'
 import { agentMemoryFile } from '../memory'
 import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
@@ -32,6 +34,7 @@ export function readAgents(): { agents: AgentView[]; problems: string[] } {
   const { agents: specialists, problems } = specAgentCatalog()
   const entries = specAgentEntries()
   const byName = new Map(specialists.map((agent) => [agent.name, agent]))
+  const table = readAgentHarness()
   const agents = agentRoster().map((entry): AgentView => {
     const agent = byName.get(entry.name)
     return {
@@ -48,6 +51,9 @@ export function readAgents(): { agents: AgentView[]; problems: string[] } {
       memory: entry.memory,
       settings: agent ? agentSettingsView(agent) : [],
       values: agent ? specAgentSettings(agent, entries).values : {},
+      // What this agent runs, and the model under it (#443) — the connector out of the
+      // board's file, the model out of this machine's, both read the way a run reads them.
+      runs: agentRun(entry.name, table),
       // A bundled agent's file ships inside the command, so there is nothing on disk to
       // point at or write back and its page shows no box.
       ...(agent && !agent.builtIn && agent.dir
@@ -153,6 +159,8 @@ export function deleteAgent(name: string): WriteResult & { removed?: string[] } 
   // Last, and never fatal: the folder is gone, so the agent is gone whatever the config
   // says, and refusing here would leave the pane reporting a failure it cannot undo.
   forgetSpecAgent(name)
+  forgetAgentHarness(name)
+  forgetLocalAgent(name)
   return { ok: true, removed }
 }
 

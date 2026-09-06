@@ -158,22 +158,13 @@ export { testConnection } from './lib/agent/test'
 // starts.
 export { loggedOutAgents } from './lib/agent/login'
 
-// The runtimes (#343): the board names them, says what each one runs as, and points each
-// flow and spec agent at one — all of it in docs/kanban/ui.config.json. `agentInfo` already
-// carries the answer for every runtime and every flow, and `readSpecSkills` for every agent,
-// so a screen offering these keeps no list of its own — these are only the writers.
-export {
-  addRuntime,
-  readRuntimes,
-  removeRuntime,
-  renameRuntime,
-  setFlowRuntime,
-  setGlobalRuntime,
-  setRuntimeHarness,
-  setRuntimeSetting,
-  setSpecAgentRuntime,
-} from './lib/agent/settings'
-export type { BoardRuntimes, RuntimeAgent } from './lib/agent/settings'
+// Which connector each agent runs (#443). The pick is the board's, in
+// docs/kanban/ui.config.json; the model under it is this machine's, in
+// docs/kanban/.local.json. `readAgents` already carries both for every agent, so a screen
+// keeps no list of its own — these are only the writers.
+export { setAgentHarness } from './lib/agent/settings'
+export { setLocalAgentValue } from './lib/agent/local'
+export { agentHarness } from './lib/agent/resolve'
 export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
 // Which boards this project holds, and what each one's work is called (#407). The folder
 // chip's badge is drawn from these: one board gets a label, two get a switcher.

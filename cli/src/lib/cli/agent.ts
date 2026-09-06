@@ -514,15 +514,15 @@ function argNote(arg: string, flow: Flow): string {
 
 const sentence = (text: string): string => (/[.!?]$/.test(text) ? text : `${text}.`)
 
-// ---- the agent, and the runtimes it runs on -------------------------------------------
+// ---- the connectors, and which one each agent runs -------------------------------------
 
 function declareAgent(program: Command, cli: AgentCliOptions): void {
   const agent = withShared(program.command('agent'))
     .summary('what runs the board, and how it is set up')
     .description(
-      "All of it is the BOARD's, in docs/kanban/ui.config.json, so it travels with the repository and a " +
-        'fresh clone runs what everyone else runs with nothing to set up per machine. A run never reads ' +
-        "the terminal's environment for any of this.",
+      "Which connector each agent runs is the BOARD's, in docs/kanban/ui.config.json, so it travels with " +
+        'the repository. The model each agent runs is THIS COMPUTER\'s, in docs/kanban/.local.json, which ' +
+        'git never carries. A run never reads the terminal\'s environment for any of it.',
     )
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdAgent(['show']))
@@ -531,112 +531,51 @@ function declareAgent(program: Command, cli: AgentCliOptions): void {
   const word = (name: string) => withShared(agent.command(name))
 
   word('list')
-    .summary('the agents it can run, and what each one takes')
+    .summary('the connectors it can run, and what each one takes')
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdAgent(['list']))
     })
 
   word('use')
-    .argument('<name>', 'an agent from `agent list`')
-    .summary('pick one')
-    .description('Switching never throws a setting away: every agent’s settings live under its own name.')
+    .argument('<name>', 'a connector from `agent list`')
+    .summary('the board’s default — what an agent that picked none runs')
+    .description('Switching never throws a setting away: every connector’s settings live under its own name.')
     .action(async function (this: Command, name: string) {
       await onBoard(this, cli, () => cmdAgent(['use', name]))
     })
 
-  word('set')
-    .argument('<key>', 'a setting the picked agent takes — `agent` lists them')
-    .argument('[value...]', 'the value; left off, the setting is cleared and the agent’s own default runs')
-    .summary('one of the picked agent’s settings, or its key')
+  word('bind')
+    .argument('<agent>', 'one of this board’s agents — `agent` lists them')
+    .argument('<connector>', 'a connector from `agent list`; "-" puts it back on the board’s default')
+    .summary('give one agent a connector of its own')
     .description(
-      'A key goes to docs/kanban/.env and nowhere else, and is never echoed back. Give the user the line ' +
-        'and let them type it: a key an agent types lands in its transcript and in the shell history.',
+      'The pick is the board’s, so every checkout runs that agent on the same tool. What it picked for ' +
+        'each connector is kept under that connector’s name, so switching and switching back loses no model.',
+    )
+    .action(async function (this: Command, name: string, harness: string) {
+      await onBoard(this, cli, () => cmdAgent(['bind', name, harness]))
+    })
+
+  word('set')
+    .argument('<key>', 'a setting the connector takes — `agent` lists them')
+    .argument('[value...]', 'the value; left off, the setting is cleared and the connector’s own default runs')
+    .option('--agent <name>', 'whose setting this is; a model always needs one')
+    .summary('one connector setting, one agent’s model, or a key')
+    .description(
+      'A setting that picks a model belongs to one agent and is saved on this computer alone, so it needs ' +
+        '`--agent`. Everything else is how to reach the connector and is the board’s. A key goes to ' +
+        'docs/kanban/.env and nowhere else, and is never echoed back: give the user the line and let them ' +
+        'type it — a key an agent types lands in its transcript and in the shell history.',
     )
     .action(async function (this: Command, key: string, value: string[]) {
-      await onBoard(this, cli, () => cmdAgent(['set', key, ...value]))
+      const named = this.opts<{ agent?: string }>().agent
+      await onBoard(this, cli, () => cmdAgent(['set', ...(named ? ['--agent', named] : []), key, ...value]))
     })
 
   word('test')
-    .argument('[runtime]', 'which runtime to test; left off, the board’s global one')
+    .argument('[connector]', 'which connector to test; left off, the board’s default')
     .summary('one small chat, to see the setup works')
-    .action(async function (this: Command, runtime: string | undefined) {
-      await onBoard(this, cli, () => cmdAgent(['test', ...(runtime ? [runtime] : [])]))
-    })
-
-  word('runtimes')
-    .summary('the runtimes, and what each flow and spec agent is on')
-    .action(async function (this: Command) {
-      await onBoard(this, cli, () => cmdAgent(['runtimes']))
-    })
-
-  const runtime = withShared(agent.command('runtime'))
-    .summary('a runtime, so different flows run different tools')
-    .description(
-      "All of it is the board's, in docs/kanban/ui.config.json. The global runtime runs `agent use`'s " +
-        'pick; a runtime with nothing of its own runs it too.',
-    )
-    .action(async function (this: Command) {
-      await onBoard(this, cli, () => cmdAgent(['runtimes']))
-    })
-
-  const verb = (name: string) => withShared(runtime.command(name))
-
-  verb('add')
-    .argument('<name>')
-    .summary('name one')
-    .action(async function (this: Command, name: string) {
-      await onBoard(this, cli, () => cmdAgent(['runtime', 'add', name]))
-    })
-
-  verb('remove')
-    .argument('<name>')
-    .summary('drop it; whatever named it runs the global one')
-    .action(async function (this: Command, name: string) {
-      await onBoard(this, cli, () => cmdAgent(['runtime', 'remove', name]))
-    })
-
-  verb('rename')
-    .argument('<old>')
-    .argument('<new>')
-    .summary('rename it, carrying everything that named it and what it runs as')
-    .action(async function (this: Command, from: string, to: string) {
-      await onBoard(this, cli, () => cmdAgent(['runtime', 'rename', from, to]))
-    })
-
-  verb('global')
-    .argument('<name>')
-    .summary('the one a flow that names none runs on')
-    .action(async function (this: Command, name: string) {
-      await onBoard(this, cli, () => cmdAgent(['runtime', 'global', name]))
-    })
-
-  verb('for')
-    .argument('<what>', 'a flow or a spec agent')
-    .argument('<runtime>', 'the runtime to put it on; "-" puts it back on the global one')
-    .summary('point one flow or spec agent at a runtime')
-    .action(async function (this: Command, what: string, name: string) {
-      await onBoard(this, cli, () => cmdAgent(['runtime', 'for', what, name]))
-    })
-
-  verb('set')
-    .argument('<runtime>')
-    .argument('<key>', 'a setting the agent THAT RUNTIME runs takes')
-    .argument('[value...]', 'the value; left off, it runs what that agent is set to on this board')
-    .summary('one of that runtime’s own settings')
-    .description(
-      'Checked against the agent that runtime runs, never the board’s — a value Codex refuses must not ' +
-        'be saved against Claude Code’s rules. A key is never one of these: it lives in ' +
-        'docs/kanban/.env, so `agent set` is where it goes.',
-    )
-    .action(async function (this: Command, name: string, key: string, value: string[]) {
-      await onBoard(this, cli, () => cmdAgent(['bind', name, 'set', key, ...value]))
-    })
-
-  withShared(agent.command('bind'))
-    .argument('<runtime>')
-    .argument('<agent>', 'an agent from `agent list`')
-    .summary('what that runtime runs as')
-    .action(async function (this: Command, name: string, harness: string) {
-      await onBoard(this, cli, () => cmdAgent(['bind', name, harness]))
+    .action(async function (this: Command, harness: string | undefined) {
+      await onBoard(this, cli, () => cmdAgent(['test', ...(harness ? [harness] : [])]))
     })
 }

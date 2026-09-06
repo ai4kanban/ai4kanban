@@ -11,8 +11,7 @@
 // file is the board's side: which agents may run, what each one is set to, and the text one
 // run is finally handed.
 
-import { runtimeFor } from '../agent/runtime'
-import { runtimeHarness } from '../agent/resolve'
+import { agentRun } from '../agent/resolve'
 import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from '../agent/settings'
 import type { SpecAgentEntry } from '../agent/settings'
 import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
@@ -279,22 +278,12 @@ export function readSpecAgents(): SpecAgentView[] {
     owns: agent.owns,
     description: agent.description,
     enabled: specAgentEnabled(agent.name, entries),
-    // Which runtime this agent runs on, and what that is here (#343) — so the list a screen
-    // draws is the same answer a run would get, and no UI works one out.
-    ...specAgentRun(agent.name, entries),
+    // Which connector this agent runs here (#443) — so the list a screen draws is the same
+    // answer a run would get, and no UI works one out.
+    harness: agentRun(agent.name).harness,
     settings: agentSettingsView(agent),
     values: specAgentSettings(agent, entries).values,
   }))
-}
-
-/** What one spec agent runs on: the runtime it names — the board's global one when it names
- *  none — and what that runtime runs as. */
-export function specAgentRun(
-  name: string,
-  entries = specAgentEntries(),
-): { runtime: string; harness: string } {
-  const runtime = runtimeFor({ action: 'spec', specAgent: name }, undefined, entries)
-  return { runtime, harness: runtimeHarness(runtime).name }
 }
 
 /** Switch one agent on or off. The name is checked against the agents this board has, so
@@ -331,7 +320,7 @@ export function setSpecAgentSetting(name: string, key: string, value: string): {
   // the key, so the file never records a pick nobody made.
   const save = !picked || picked === setting.default ? '' : picked
   const legacy = specAgentNames(agent.name).slice(1)
-  // The board's own row is the entry's own key, beside `enabled` and `runtime`, so it is
+  // The board's own row is the entry's own key, beside `enabled`, so it is
   // never written among the values the agent declares.
   if (setting.key === OUTPUT_KEY) return setSpecAgentOutput(agent.name, save, legacy)
   return setSpecAgentValue(agent.name, setting.key, save, legacy)
@@ -406,7 +395,7 @@ function agentList(
           `  ${a.name}`,
           `    owns ${a.owns}`,
           `    ${a.description}`,
-          ...runtimeLine(a, entries, forPerson),
+          ...harnessLine(a, forPerson),
           ...settingLines(a, entries),
         ])
       : ['', agents.length
@@ -445,13 +434,12 @@ function settingLines(agent: SpecAgent, entries: Record<string, SpecAgentEntry>)
   })
 }
 
-// Which runtime this agent runs on, and what that is here (#343) — the same answer the board
-// UI's Agents section draws, so a terminal never says something else.
+// Which connector this agent runs here (#443) — the same answer the board UI's Agents section
+// draws, so a terminal never says something else.
 //
 // Only for a person. A run reading this list is picking which agents a card needs, and what
 // tool each one spawns as is nothing it can act on.
-function runtimeLine(agent: SpecAgent, entries: Record<string, SpecAgentEntry>, forPerson: boolean): string[] {
+function harnessLine(agent: SpecAgent, forPerson: boolean): string[] {
   if (!forPerson) return []
-  const { runtime, harness } = specAgentRun(agent.name, entries)
-  return [`    Runtime: ${runtime} — ${harness} here`]
+  return [`    Runs on: ${agentRun(agent.name).harness}`]
 }

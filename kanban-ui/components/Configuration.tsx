@@ -3,10 +3,10 @@
 // The board's one configuration home (#41), opened from a quiet gear button in
 // the header. A sidebar on its left names the sections — General (the coding-agent
 // setup #174, how a delivery is built #303/#308, and the language this machine
-// reads in #334), Runtimes (the coding tools the board runs work on, #68/#344, and
-// the settings each declares, #93), Agents (the spec agents that fill part of a
-// card's spec, the rule each agent carries and the AGENT.md of one you add, #191/
-// #306/#420/#422) and Notifications (#326).
+// reads in #334), Runtime (the coding tools the board can run and how to reach
+// each one, #68/#93/#443), Agents (the spec agents that fill part of a card's
+// spec, the connector and model each agent runs #443, the rule each one carries
+// and the AGENT.md of one you add, #191/#306/#420/#422) and Notifications (#326).
 // The sidebar is how the dialog grows: a new group of settings is one more entry
 // there with a pane of its own, and the harness's growing field list (the model,
 // the reasoning level #97, #95's provider and base URL) never squeezes what joins
@@ -29,15 +29,12 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
 import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
-  bindRuntimeAction,
   hasWorkspaceAction,
   installedAgentsAction,
   loggedOutAgentsAction,
   setHarnessAction,
   setHarnessSecretAction,
   setHarnessSettingAction,
-  setRuntimeSecretAction,
-  setRuntimeSettingAction,
   testConnectionAction,
 } from "@/app/actions";
 import type { ConfigurationCopy } from "@/i18n/configuration/types";
@@ -55,7 +52,6 @@ import type {
   HarnessGap,
   HarnessOption,
   HarnessSetting,
-  RuntimeView,
   WriteResult,
 } from "@/lib/types";
 import { TOOL_BTN } from "./chrome";
@@ -254,9 +250,8 @@ export function Configuration({
                 on screen — the setup group spawns a process to ask what `akb` on the PATH
                 is, and that answer should be the one from a moment ago. */}
             {section === "general" && <GeneralPanel onError={onError} />}
-            {/* The runtimes (#344) — the names the BOARD runs its work under, and what THIS
-                COMPUTER runs each of them as (#68, #93, #343). A board that names none gets
-                today's harness pane, which is the board's own answer.
+            {/* The connectors this board can run (#443) — one row each, and under an open
+                row how to REACH that one. Which model runs is the agent's, on the pane below.
 
                 Always mounted, unlike the panes below it: every box in here holds optimistic
                 state seeded from the server's first paint, and unmounting on a section switch
@@ -269,7 +264,7 @@ export function Configuration({
                 added, its own AGENT.md. Mounted only while it is the section on screen: it
                 asks the board for its roster when it draws, and that roster carries the
                 switches and the rules as they read right now. */}
-            {section === "agents" && <AgentsPanel onError={onError} />}
+            {section === "agents" && <AgentsPanel info={agent} onError={onError} />}
             {/* The Cloud sign-in (#326) — the account this MACHINE acts as, not a setting of
                 this board. Mounted only while it is the section on screen: it asks the
                 service who is signed in, over the network. */}
@@ -346,13 +341,15 @@ export interface RunTest {
   current: (() => Promise<ConnectionTest | null>) | null;
 }
 
-/** What a picker in bind mode sets: one runtime, on THIS computer (#344). */
-export interface BindTarget {
-  runtime: string;
-  /** That runtime as the command reads it now — the seed every field starts from. */
-  view: RuntimeView;
-  /** Told the whole setting after each save, so the pane behind redraws its row and its
-   *  fallback line without a read of its own. */
+/** What a picker in fields-only mode sets: one connector's own settings (#443), whether or
+ *  not it is the board's default. */
+export interface HarnessTarget {
+  /** The connector whose block is written. */
+  harness: string;
+  /** That connector as the command reads it now — the seed every field starts from. */
+  option: HarnessOption;
+  /** Told the whole setting after each save, so the pane behind redraws its row without a
+   *  read of its own. */
   onSaved: (agent: AgentInfo) => void;
 }
 
@@ -370,12 +367,10 @@ export function HarnessPicker({
   onTested?: (result: ConnectionTest | null) => void;
   /** Filled in with the pane's own Test, so a screen outside it can run one (#280). */
   runTest?: RunTest;
-  /** Set what one RUNTIME runs as, instead of the board's global agent (#344). Everything
-   *  drawn is the same — the same grid, the same declared settings, the same Test — and only
-   *  where a save lands differs: that runtime's entry rather than the board's own `harness`.
-   *  Both are `docs/kanban/ui.config.json`; a key goes to `docs/kanban/.env` either way,
-   *  because that is the file git does not carry. */
-  bind?: BindTarget;
+  /** Draw ONE connector's settings instead of the grid that picks the board's default
+   *  (#443) — what Configuration → Runtime opens under each row. The fields are the same and
+   *  land in the same `docs/kanban/ui.config.json`; only the block written differs. */
+  bind?: HarnessTarget;
 }) {
   // The agent setting as the file now reads it. It starts as the server's first
   // paint and is replaced by what a switch writes back, so the override note and
@@ -384,12 +379,12 @@ export function HarnessPicker({
   const c = useCopy().configuration.harness;
   const cr = useCopy().configuration.runtimes;
   const rules = useRulesText();
-  // What this picker is set to right now: the board's own answer, or one runtime's binding
-  // on this computer. Read once, here, so every piece of state below is seeded the same way
-  // whichever of the two it is.
+  // What this picker is set to right now: the board's default connector, or the one row this
+  // pane draws the settings of. Read once, here, so every piece of state below is seeded the
+  // same way whichever of the two it is.
   const seed = (
     info: AgentInfo,
-    view?: RuntimeView,
+    option?: HarnessOption,
   ): {
     active: string;
     command: string;
@@ -399,11 +394,11 @@ export function HarnessPicker({
   } =>
     bind
       ? {
-          active: view?.harness ?? "",
-          command: view?.command ?? "",
-          values: view?.values ?? {},
-          secretsSet: view?.secretsSet ?? [],
-          ignored: view?.ignored ?? [],
+          active: bind.harness,
+          command: option?.runs ?? "",
+          values: option?.values ?? {},
+          secretsSet: option?.secretsSet ?? [],
+          ignored: option?.ignored ?? [],
         }
       : {
           active: info.name,
@@ -412,12 +407,12 @@ export function HarnessPicker({
           secretsSet: info.secretsSet,
           ignored: info.ignored,
         };
-  const start = seed(agent, bind?.view);
+  const start = seed(agent, bind?.option);
   const [info, setInfo] = useState(agent);
-  // The runtime as the command now reads it. Never held here: every save tells the pane
-  // behind (`onSaved`), which hands it straight back down — so a board move made on that
-  // pane, `Make global`, reaches the fallback line and the Test label too.
-  const view = bind?.view;
+  // The connector as the command now reads it. Never held here: every save tells the pane
+  // behind (`onSaved`), which hands it straight back down — so making this connector the
+  // board's default reaches the row's badge too.
+  const view = bind?.option;
   // The agents to offer, and which of them this machine can run (#207). Kept apart from
   // `info` because it is the one part of the setting that changes without anybody saving
   // anything: installing a CLI in a terminal makes an agent runnable, and the picker
@@ -503,7 +498,7 @@ export function HarnessPicker({
   const settle = (fresh: AgentInfo) => {
     setInfo(fresh);
     setOptions(fresh.options);
-    const next = bind ? fresh.runtimes.find((r) => r.name === bind.runtime) : undefined;
+    const next = bind ? fresh.options.find((o) => o.name === bind.harness) : undefined;
     const now = seed(fresh, next);
     setActive(now.active);
     setValues(now.values);
@@ -521,6 +516,9 @@ export function HarnessPicker({
 
   const activeOption = options.find((o) => o.name === active);
   const settings = activeOption?.settings ?? [];
+  // Only how to REACH this connector is set here. The settings that pick a model belong to
+  // the agent running it and are set on the Agents pane, per machine (#443).
+  const connectorSettings = settings.filter((setting) => !setting.agentOwned);
 
   // What "filled in" means on this side: a key is filled when the server says
   // the file holds it, anything else when the box has something in it. The
@@ -543,10 +541,11 @@ export function HarnessPicker({
         filled,
       ).map((key) => rules(settings.find((s) => s.key === key)?.label ?? key));
 
-  // Shut until someone opens it, whatever the file already holds. Every field behind the
-  // fold has a working default, so the pane's one real question is which agent — and a fold
-  // that opened itself on a saved model put four fields above the answer.
-  const showAdvanced = advanced ?? false;
+  // Shut until someone opens it on the grid that picks the board's default: every field
+  // behind it has a working default, so that pane's one real question is which connector.
+  // Open on a Runtime row, where the row itself IS the disclosure and what is behind it is
+  // the whole reason the row was pressed.
+  const showAdvanced = advanced ?? !!bind;
 
   const pick = async (option: HarnessOption) => {
     if (saving || option.name === active) return;
@@ -573,9 +572,7 @@ export function HarnessPicker({
       setSecretsSet(prev.secretsSet);
     };
     try {
-      const res = bind
-        ? await bindRuntimeAction(bind.runtime, option.name)
-        : await setHarnessAction(option.name);
+      const res = await setHarnessAction(option.name);
       if (!res.ok || !res.agent) {
         revert();
         onError?.(res.error || c.saveFailed);
@@ -603,9 +600,11 @@ export function HarnessPicker({
     if (saving) return false;
     setSaving(true);
     try {
-      const res: WriteResult & { agent?: AgentInfo } = bind
-        ? await setRuntimeSecretAction(bind.runtime, setting.key, next)
-        : await setHarnessSecretAction(setting.key, next);
+      const res: WriteResult & { agent?: AgentInfo } = await setHarnessSecretAction(
+        setting.key,
+        next,
+        bind?.harness,
+      );
       if (!res.ok) {
         onError?.(res.error || c.saveSecretFailed(rules(setting.label).toLowerCase()));
         return false;
@@ -632,9 +631,11 @@ export function HarnessPicker({
     const put = (v: string) => setValues((all) => ({ ...all, [setting.key]: v }));
     setSaving(true);
     try {
-      const res: WriteResult & { agent?: AgentInfo } = bind
-        ? await setRuntimeSettingAction(bind.runtime, setting.key, value)
-        : await setHarnessSettingAction(setting.key, value);
+      const res: WriteResult & { agent?: AgentInfo } = await setHarnessSettingAction(
+        setting.key,
+        value,
+        bind?.harness,
+      );
       if (res.ok) {
         put(value);
         setSaved((all) => ({ ...all, [setting.key]: value }));
@@ -691,17 +692,16 @@ export function HarnessPicker({
   };
 
   // A hand-edited `command` override is the one thing worth a note under the cards — it's
-  // what actually runs, and it's invisible otherwise. The saved pick is the board's harness,
-  // or the harness this computer bound this runtime to.
-  const savedActive = bind ? (view?.harness ?? "") : info.name;
-  const savedCommand = bind ? (view?.command ?? "") : info.command;
+  // what actually runs, and it's invisible otherwise.
+  const savedActive = bind ? bind.harness : info.name;
+  const savedCommand = bind ? (view?.runs ?? "") : info.command;
   const overridden = Boolean(savedCommand) && savedCommand !== options.find((o) => o.name === savedActive)?.command;
 
   const labelOf = (name: string) => options.find((o) => o.name === name)?.label ?? name;
 
-  // What Test is about to spawn. One answer everywhere now: the agent on the grid is the
-  // agent the board saved for this runtime, and a run resolves that same entry.
-  const spawns = active || view?.harness || "";
+  // What Test is about to spawn: the connector on the grid, or the one row this pane is
+  // drawing the settings of.
+  const spawns = active || bind?.harness || "";
   const testLabel = labelOf(spawns);
 
   // Which agents this machine can run, and which it can't. `=== false` on purpose: a board
@@ -826,10 +826,14 @@ export function HarnessPicker({
           an endpoint, the key for a provider that takes one, neither for the
           subscription. A field that isn't drawn doesn't reach a run either, so
           what you see here is what the agent is given. */}
-      {activeOption.settings.length > 0 && (
-        <Advanced open={showAdvanced} onToggle={() => setAdvanced(!showAdvanced)}>
+      {connectorSettings.length > 0 && (
+        <Fields
+          fold={!bind}
+          open={showAdvanced}
+          onToggle={() => setAdvanced(!showAdvanced)}
+        >
           <div className="flex flex-col gap-5">
-            {activeOption.settings
+            {connectorSettings
               .filter((setting) => shownForProvider(activeOption.settings, setting.key, picked))
               .map((setting) =>
                 // The provider list is its own kind of field (#95): picking one
@@ -850,7 +854,7 @@ export function HarnessPicker({
                   <SecretField
                     key={setting.key}
                     setting={setting}
-                    note={bind ? cr.keyIsBoards : undefined}
+                    note={cr.keyIsBoards}
                     isSet={secretsSet.includes(setting.key)}
                     disabled={saving}
                     onSave={async (v) => {
@@ -872,7 +876,7 @@ export function HarnessPicker({
                 ),
               )}
           </div>
-        </Advanced>
+        </Fields>
       )}
     </div>
   );
@@ -890,17 +894,28 @@ export function HarnessPicker({
   // at the foot, under the button that started it.
   const tester = (
     <ConnectionTester
-      key={`${bind?.runtime ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
+      key={`${bind?.harness ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
       agentLabel={testLabel}
       expected={spawns}
       labelOf={labelOf}
-      runtime={bind?.runtime}
+      harness={bind?.harness}
       unsavedPick={Boolean(pending)}
       disabled={saving}
       onResult={onTested}
       runTest={runTest}
     />
   );
+
+  // One connector's own settings, with no grid over them (#443): Configuration → Runtime
+  // opens this under the row, and which connector it is was decided by the row.
+  if (bind) {
+    return (
+      <div className="flex flex-col gap-3">
+        {detail}
+        <div>{tester}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -935,7 +950,7 @@ export function HarnessPicker({
       {/* Never move a user to another agent silently: when the config asks for a
           harness we don't ship, or still carries the pre-#68 `command` key that
           nothing reads, the dialog says which agent is actually running. */}
-      {!bind && (info.unknownName || info.staleCommand) && (
+      {(info.unknownName || info.staleCommand) && (
         <Note icon={<FiAlertCircle />}>
           {info.unknownName
             ? c.unknown(
@@ -978,9 +993,33 @@ function AgentGrid({
   );
 }
 
-// The agent's own settings, folded. Everything in here has a default that works — the fold
-// is what says so, and what keeps a pane whose only real question is "which agent" from
-// opening on four fields nobody should have to answer.
+// One connector's settings, behind a fold or not.
+//
+// On the grid that picks the board's default, folded: everything in here has a default that
+// works, the fold is what says so, and it keeps a pane whose only real question is "which
+// connector" from opening on four fields nobody should have to answer.
+//
+// On a Runtime row, plain — the row is already the disclosure, and a second one inside it
+// hides the very thing the row was pressed for.
+function Fields({
+  fold,
+  open,
+  onToggle,
+  children,
+}: {
+  fold: boolean;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  if (!fold) return <div className="mt-1">{children}</div>;
+  return (
+    <Advanced open={open} onToggle={onToggle}>
+      {children}
+    </Advanced>
+  );
+}
+
 function Advanced({
   open,
   onToggle,
@@ -1074,7 +1113,7 @@ function ConnectionTester({
   agentLabel,
   expected,
   labelOf,
-  runtime,
+  harness,
   unsavedPick,
   disabled,
   onResult,
@@ -1086,9 +1125,9 @@ function ConnectionTester({
    *  keep to itself. */
   expected: string;
   labelOf: (harness: string) => string;
-  /** The runtime to spawn (#344). Absent tests the board's global one, which is what
-   *  setup's own step is about. */
-  runtime?: string;
+  /** The connector to spawn (#443). Absent tests the board's default, which is what setup's
+   *  own step is about. */
+  harness?: string;
   // A provider is picked but not written yet, so the saved setup isn't the one
   // on screen and a test now would answer a question nobody asked.
   unsavedPick: boolean;
@@ -1123,7 +1162,7 @@ function ConnectionTester({
     setResult(null);
     let answer: ConnectionTest;
     try {
-      answer = await testConnectionAction(runtime);
+      answer = await testConnectionAction(harness);
     } catch (e) {
       // The action doesn't throw for anything the test itself hit — this is the
       // call not getting there (the server went away mid-test). Shown the same
@@ -1371,8 +1410,8 @@ function SecretField({
   onSave,
 }: {
   setting: HarnessSetting;
-  /** One more line under the help — on a runtime, that the key is the BOARD's and shared
-   *  by every runtime on this harness (#344). */
+  /** One more line under the help: the key is the BOARD's, in the one file git does not
+   *  carry, and shared by every agent on this connector (#443). */
   note?: string;
   // Whether docs/kanban/.env holds this key right now — the whole of what the
   // server tells us about a saved one. A key written into that file by hand

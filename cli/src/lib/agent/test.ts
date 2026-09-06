@@ -70,12 +70,12 @@ function said(events: string, result: string | undefined, stderr: string): strin
 
 /** Send one small chat through the saved setup and say whether it worked. Never rejects:
  *  every way this can go wrong is a result worth showing. */
-export function testConnection(runtime?: string): Promise<ConnectionTest> {
+export function testConnection(harness?: string): Promise<ConnectionTest> {
   // The same single read a run does, so the test can't be testing one setup while the next
-  // run uses another. The id is thrown away with the run — nothing tracks this. `runtime`
-  // points it at one runtime (#343); with none named it is the board's global one, which is
-  // what setup's own step tests.
-  const run = openPlan(planRun(randomUUID(), REPO_ROOT, runtime))
+  // run uses another. The id is thrown away with the run — nothing tracks this. `harness`
+  // names the connector to spawn (#443); with none named it is the board's default one,
+  // which is what setup's own step tests.
+  const run = openPlan(planRun(randomUUID(), REPO_ROOT, undefined, harness ? { pin: harness } : {}))
   const startedAt = Date.now()
   const [cmd, ...args] = run.argv
   // The same two shapes a run has (agent/watch.ts): a command that prints is handed the
@@ -93,14 +93,13 @@ export function testConnection(runtime?: string): Promise<ConnectionTest> {
     // to stop.
     let stopTimer = () => {}
 
-    // Every answer carries what it was about. The caller named a runtime at most; which
-    // agent that resolved to here is this end's answer, and a screen that doesn't hear it
-    // can only report the agent it happens to be drawing.
+    // Every answer carries what it was about — which connector actually answered, so a
+    // screen can never report the result under the name of another.
     const done = (res: Omit<ConnectionTest, 'ms'>) => {
       if (settled) return
       settled = true
       stopTimer()
-      resolve({ ...res, harness: run.harness, runtime: run.runtime, ms: Date.now() - startedAt })
+      resolve({ ...res, harness: run.harness, ms: Date.now() - startedAt })
     }
 
     // The one failure the board explains in its own words, because the raw error ("spawn

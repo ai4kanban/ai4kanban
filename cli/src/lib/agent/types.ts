@@ -238,9 +238,9 @@ export interface RunRecord {
   /** The harness this run ran under, recorded when it starts, so a finished run keeps
    *  showing the agent that ran IT — changing the setting later can't rewrite history. */
   harness: string
-  /** The runtime it was resolved through (#343), recorded for the same reason. Absent on a
-   *  run written before runtimes existed. */
-  runtime?: string
+  /** The agent it was run by — a role, or a specialist by name (#443). Absent on a run that
+   *  belongs to no agent, and on one written before agents picked a connector. */
+  agent?: string
   /** The run's SECOND id: the one that harness's own CLI resumes by. Set only when it
    *  isn't ours to know — the harness minted its own mid-run, or this run continues an
    *  earlier conversation and inherited that one's id. */
@@ -847,6 +847,14 @@ export interface HarnessSetting {
   /** The line to show instead of `help` when a hand-written `command` already names one
    *  of `flags`: the override wins, so the field isn't in effect. */
   overriddenHelp?: string
+  /** True for a setting that PICKS A MODEL (#443). Those belong to the agent running rather
+   *  than to the connector, so each agent sets its own and the value stays on this computer,
+   *  in `docs/kanban/.local.json`. Everything else is how to reach the CLI, is the board's,
+   *  and is committed with `ui.config.json`.
+   *
+   *  Declared by the connector so adding one is one line in its own file — nothing outside
+   *  `agent/harnesses/` keeps a list of which keys are which. */
+  agentOwned?: boolean
 }
 
 /** One thing this connector can't do that another one can (`agent/capabilities.ts`). The
@@ -884,6 +892,18 @@ export interface HarnessOption {
    *  read. Empty for a connector that lacks nothing. A screen offering the agents shows
    *  these where the pick is made, so what a switch costs is read before it is paid. */
   gaps: HarnessGap[]
+  /** The command a run would spawn: this connector's own, or the `command` override its
+   *  block carries. */
+  runs: string
+  /** What this connector's own block is set to — how to reach it, never which model. A
+   *  `secret` is never in here. */
+  values: Record<string, string>
+  /** The keys of its `secret` settings docs/kanban/.env holds right now. Set or not set, and
+   *  nothing more. */
+  secretsSet: string[]
+  /** The keys whose flag the `command` override already names, so the override wins and the
+   *  setting is never appended. */
+  ignored: string[]
 }
 
 /** One agent this machine has whose own CLI says nobody is logged into it (#392). Worked out
@@ -901,79 +921,63 @@ export interface LoggedOutAgent {
   login: string
 }
 
-/** One runtime as a reader is told about it, and everything a pane needs to change one. All
- *  of it is the board's answer, out of docs/kanban/ui.config.json — no machine holds a
- *  runtime setting of its own, so every checkout reads this same list. */
-export interface RuntimeView {
-  name: string
-  /** True for the one a flow that names none runs on. */
-  global: boolean
-  /** The agent it runs. The board's own `harness` for the global runtime, this runtime's own
-   *  entry for any other. */
+/** What one agent runs (#443): the connector, and the settings that pick a model on it. The
+ *  connector is the board's answer, out of docs/kanban/ui.config.json; the values are this
+ *  machine's, out of docs/kanban/.local.json. */
+export interface HarnessRun {
+  /** The connector it runs — its own pick, or the board's default when it made none. */
   harness: string
-  /** The model that agent is set to. Absent where nothing set one, so it runs its own
-   *  default — there is no name for that default to give. */
-  model?: string
-  /** The agent name the board holds for this runtime, when it is one this build can't run.
-   *  The fields here are the agent that RAN instead. */
+  /** True when that is the agent's own pick rather than the board's default. */
+  own: boolean
+  /** The connector name the board holds for this agent, when it is one this build can't run.
+   *  The fields around it are the connector that would run instead. */
   unknownHarness?: string
-  /** The command a run would spawn: the agent's own, or the `command` override set for this
-   *  runtime. */
-  command: string
-  /** What that agent's settings are set to for this runtime — its own block on the board
-   *  with this runtime's overrides on top. A `secret` is never in here. */
+  /** The settings that pick a model on that connector, in the order a dialog draws them. */
+  settings: HarnessSetting[]
+  /** What each of those is set to on this computer. A key nobody set is absent, meaning the
+   *  connector's own default. */
   values: Record<string, string>
-  /** The keys of that agent's `secret` settings docs/kanban/.env holds right now. The file is
-   *  the board's, so two runtimes on one agent share one key. */
-  secretsSet: string[]
-  /** The keys whose flag the `command` override already names, so the override wins and the
-   *  setting is never appended. */
-  ignored: string[]
 }
 
-/** What one flow runs on: the runtime it names, and what that resolves to here. Keyed by
- *  the command a user types, which is the same key a flow's rule file uses. */
-export interface FlowRuntime {
-  /** The flow's name — what `agent runtime for` is given, and what the setting is keyed by. */
+/** Which agent runs one flow, and what that agent runs here. Keyed by the command a user
+ *  types, which is the same key a flow's rule file uses. */
+export interface FlowAgent {
+  /** The flow's name — what the rule file is keyed by. */
   command: string
   /** The line a user types: `card refine`. What a screen shows. */
   path: string
-  runtime: string
+  /** The role that runs it. */
+  agent: string
+  /** The connector that role runs here. */
   harness: string
 }
 
-/** Which agent runs the board, what it is set to, and what it could be switched to. */
+/** The board's default connector, every connector it could run, and which agent runs each
+ *  flow. */
 export interface AgentInfo {
+  /** The board's default connector — what an agent that picked none runs. */
   name: string
-  /** The resolved command every run spawns — the harness's default, or the `command`
-   *  override from the config file. */
+  /** The command it spawns — its own default, or the `command` override from the config
+   *  file. */
   command: string
-  /** True when the config names no agent at all, so we run the default. */
+  /** True when the config names no connector at all, so we run the default. */
   isDefault: boolean
-  /** What the active harness's settings are set to. A `secret` is never in here. */
+  /** What that connector's settings are set to. A `secret` is never in here. */
   values: Record<string, string>
   /** The keys of the `secret` settings docs/kanban/.env holds right now — set or not
    *  set, and nothing more. The value never leaves this machine. */
   secretsSet: string[]
   /** The keys whose flag the `command` override already names, so the override wins. */
   ignored: string[]
-  /** Every agent the board can run, with the settings each one takes. */
+  /** Every connector the board can run, with the settings each one takes and what it is
+   *  already set to. */
   options: HarnessOption[]
-  /** The board's runtimes, and what each one runs as (#343). A board that names none has the
-   *  one, running whatever `harness` and `harnessSettings` already say. */
-  runtimes: RuntimeView[]
-  /** False when the board names no runtimes at all — one written before they existed. Then
-   *  `runtimes` holds the one every flow is on, which IS the harness above, and a screen
-   *  offering them says so rather than putting a name on screen the board doesn't hold. */
-  namedRuntimes: boolean
-  /** The name of the runtime a flow that names none runs on. */
-  globalRuntime: string
-  /** What a person recognises this computer by — its hostname. Nothing about a runtime is
-   *  this machine's, so this is only ever a label a screen shows. */
+  /** What a person recognises this computer by — its hostname. Only ever a label a screen
+   *  shows. */
   machine: string
-  /** What each flow runs on — every flow, in the order `FLOWS` lists them, so no screen
-   *  keeps a list of its own. The spec agents are on the spec agent list instead. */
-  flows: FlowRuntime[]
+  /** Which agent runs each flow, and what that agent runs here — every flow, in the order
+   *  `FLOWS` lists them, so no screen keeps a list of its own. */
+  flows: FlowAgent[]
   /** The agent name the config asked for, when we don't ship it. We run the default and
    *  say so — never move the user to another agent silently. */
   unknownName?: string
@@ -1015,8 +1019,8 @@ export const isSpecOutput = (value: unknown): value is SpecOutput =>
  *  A spec agent's settings ARE its configuration, declared in its own `AGENT.md`
  *  frontmatter, so a new agent brings its own with it and no screen has to learn its name. */
 export interface SpecAgentSetting {
-  /** The key it saves under inside that agent's entry in ui.config.json. `enabled`,
-   *  `runtime` and `output` are the entry's own keys, so no setting may take one. */
+  /** The key it saves under inside that agent's entry in ui.config.json. `enabled` and
+   *  `output` are the entry's own keys, so no setting may take one. */
   key: string
   label: string
   help?: string
@@ -1050,9 +1054,7 @@ export interface SpecAgentView {
   /** What each of those settings is set to right now, by key. Every setting is in here — one
    *  nobody picked carries its own default, so a screen never has to work one out. */
   values: Record<string, string>
-  /** The runtime this agent runs on (#343) — the board's global one when it names none. */
-  runtime: string
-  /** What that runtime resolves to on this computer. */
+  /** The connector this agent runs (#443) — the board's default when it picked none. */
   harness: string
 }
 
@@ -1081,6 +1083,9 @@ export interface AgentView {
   memory: string[]
   settings: SpecAgentSettingView[]
   values: Record<string, string>
+  /** What this agent runs, and the model settings under it (#443) — the connector is the
+   *  board's, the model is this computer's. */
+  runs: HarnessRun
   /** A project agent's whole `AGENT.md`, frontmatter included — what its page writes
    *  through. Absent on a bundled agent, whose file ships inside the command. */
   file?: AgentFileView
@@ -1108,12 +1113,9 @@ export interface ConnectionTest {
   install?: string
   /** The test gave up on its own after the time limit. */
   timedOut?: boolean
-  /** What was actually spawned, and the runtime it resolved through — never what the screen
-   *  asked for. A pane drawing the board's own answer can be showing one agent while this
-   *  computer's binding runs another, and a result that doesn't say which is a result that
-   *  can be read as being about the wrong one. */
+  /** What was actually spawned — never what the screen asked for. A result that doesn't say
+   *  which connector answered can be read as being about the wrong one. */
   harness?: string
-  runtime?: string
 }
 
 /** What the first-run conversation came back with (#280) — the board's two config answers

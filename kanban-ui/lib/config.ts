@@ -10,8 +10,12 @@ export async function setHarness(name: string): Promise<{ ok: boolean; error?: s
   return (await boardRules()).setHarness(name);
 }
 
-export async function setHarnessSetting(key: string, value: string): Promise<{ ok: boolean; error?: string }> {
-  return (await boardRules()).setHarnessSetting(key, value);
+export async function setHarnessSetting(
+  key: string,
+  value: string,
+  harness?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  return (await boardRules()).setHarnessSetting(key, value, harness);
 }
 
 // --- auto-delivery (#303) ----------------------------------------------------

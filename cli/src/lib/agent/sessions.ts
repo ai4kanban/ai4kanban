@@ -40,8 +40,8 @@ import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from '
 import { repairLanding } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
-import { adoptsSessionId, planResume, planRun, resumableHarness, resumableLookup, type RunPlan } from './resolve'
-import { runtimeFor } from './runtime'
+import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
+import { agentForRun } from './runner'
 import { logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { holdsCard, SPECIALIST_ACTIONS } from './types'
 import type {
@@ -347,15 +347,14 @@ function resumeIdOf(r: RunRecord): string | undefined {
 const canPickUp = (r: RunRecord): boolean =>
   r.status === 'error' || r.status === 'interrupted' || r.status === 'stopped'
 
-function toView(r: RunRecord, resumable: string | null): RunView {
+function toView(r: RunRecord): RunView {
   return {
     ...r,
     durationMs: r.status !== 'running' && r.endedAt ? r.endedAt - r.startedAt : undefined,
-    // The Resume offer, and everything it needs to be honest: the run stopped short, we
-    // know the id to continue by, and the agent that ran it is still the one the board
-    // runs — resuming a Claude Code conversation under another agent would hand it an id
-    // that means nothing there.
-    canResume: canPickUp(r) && !!resumeIdOf(r) && !!resumable && r.harness === resumable,
+    // The Resume offer, and everything it needs to be honest: the run stopped short, we know
+    // the id to continue by, and the connector it ran on still resumes here. Its OWN
+    // connector — re-pointing its agent since does not take the offer away (#443).
+    canResume: canPickUp(r) && !!resumeIdOf(r) && resumesUnder(r.harness),
   }
 }
 
@@ -374,8 +373,7 @@ export async function listRuns(): Promise<RunView[]> {
   // permanent record is the only place that ending is written down.
   for (const run of restore) await restoreCardStatus(run)
   for (const run of reaped) await settleDelivery(run)
-  const resumable = resumableLookup() // one settings read per runtime, not per run
-  return runs.map((r) => toView(r, resumable(r.runtime)))
+  return runs.map((r) => toView(r))
 }
 
 /** One run by id, or by any prefix of one that names exactly one run. `last` is the newest
@@ -402,7 +400,7 @@ export async function getRun(id: string, bytes?: number): Promise<RunView | null
   for (const run of restore) await restoreCardStatus(run)
   const found = findRun(runs, id)
   if (!found) return null
-  const view = toView(found, resumableHarness(found.runtime))
+  const view = toView(found)
   const raw = readLogTail(found.logPath, bytes) ?? ''
   const { tail, result, durationMs, costUsd, model, usage } = splitLog(raw)
   view.tail = tail
@@ -545,11 +543,11 @@ export function openRun(
   // the start — not later, when the agent finally spawns (an index action waits its turn
   // first, and the picker may well have been flipped by then). A run therefore always uses
   // one agent end to end: its command, its flags, and the name recorded against it.
-  // Which runtime this run goes on — its flow's, or the spec agent's on a spec run (#343).
-  // Read here, with everything else, so a change made mid-run reaches the next run and not
-  // this one.
-  const plan = planRun(sessionId, cwd, runtimeFor(req))
-  // What the runtime resolved to, when the board names an agent this version can't run. It
+  // Which agent does this run — its flow's role, or the specialist itself on a spec run
+  // (#443). Read here, with everything else, so a change made mid-run reaches the next run
+  // and not this one.
+  const plan = planRun(sessionId, cwd, agentForRun(req))
+  // What that agent resolved to, when the board names a connector this version can't run. It
   // goes in the log rather than being swallowed: a run on another tool than the one asked
   // for is the first thing to check when its output looks wrong.
   if (plan.note) notes = [...notes, plan.note]
@@ -561,7 +559,7 @@ export function openRun(
     startedAt: Date.now(),
     input: runInput(req),
     harness: plan.harness,
-    runtime: plan.runtime,
+    agent: plan.agent,
     // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs
     // none, and one that mints its own has nothing to record yet.
     logPath: logPathOf(sessionId),
@@ -649,12 +647,12 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   // Resumed where the run it continues worked: a delivery's own worktree, or the project
   // itself.
   const resuming = prev.deliveryId ? findDelivery(prev.deliveryId) : undefined
-  // The same runtime the run being continued went on, so a resume stays on what it started
-  // on. It is offered only while that runtime still resolves to that agent here.
-  const plan = planResume(prev.harness, resumeId, deliveryCwd(resuming ?? {}), prev.runtime)
+  // The connector the run being continued went on, whatever its agent has been pointed at
+  // since: a conversation can only be picked up by the CLI that opened it (#443).
+  const plan = planResume(prev.harness, resumeId, deliveryCwd(resuming ?? {}), prev.agent)
   if (!plan) {
     return {
-      error: `the runtime this run went on no longer runs ${prev.harness || 'the agent that started it'} here, so its conversation can't be continued`,
+      error: `this version can't continue a conversation ${prev.harness || 'the agent that started it'} opened`,
     }
   }
 
@@ -673,7 +671,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     // No `input`: the note the user typed is already in the conversation being resumed —
     // repeating it would read as a second instruction they never gave.
     harness: plan.harness,
-    runtime: plan.runtime,
+    agent: plan.agent,
     resumeId: plan.resumeId ?? undefined,
     resumedFrom: prev.sessionId,
     formatRepair: prev.formatRepair ? { ...prev.formatRepair, attempt: prev.formatRepair.attempt + 1 } : undefined,

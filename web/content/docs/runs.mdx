@@ -1,10 +1,10 @@
 ---
 title: "Runs, and the tool behind them"
 title_tag: "AI4Kanban runs — watch one, stop it, resume it, and pick what it runs on"
-description: "A run is an agent working on its own: what to say to watch, stop or resume one, and how runtimes point a flow at a different agent or model."
-lead: "A run is an agent working on its own — it survives a closed terminal, keeps its own log, and can be stopped. Here's how you drive one, and how you pick what it runs on."
+description: "A run is an agent working on its own: what to say to watch, stop or resume one, and how each agent picks the coding tool and model it runs."
+lead: "A run is an agent working on its own — it survives a closed terminal, keeps its own log, and can be stopped. Here's how you drive one, and how each agent picks what it runs on."
 last_updated: "September 4, 2026"
-nav_label: "Runs and runtimes"
+nav_label: "Runs and agents"
 icon: "terminal"
 ---
 
@@ -29,27 +29,29 @@ When an ask can't run, the answer names the one line that fixes it — `akb inst
 with no board, `npm install -g ai4kanban@latest` for an `akb` that is behind, `akb agent test` for
 an agent that isn't installed, `akb agent` for a key or provider that isn't set.
 
-## Which tool each flow runs on
+## Which tool each agent runs on
 
-A **runtime** is a name the board holds — `default`, `cheap` — and every flow and spec agent runs
-on one: the global one unless it names another. What each runtime spawns is the board's answer
-too, in `docs/kanban/ui.config.json` beside the names, so every checkout of the repository runs
-the same thing with nothing to set up per machine.
+Every run belongs to one agent: a flow is run by the role that owns it — planner, builder,
+reviewer, or writer on a marketing board — and a spec run by the specialist it names. Each of
+them picks the coding tool it runs, so the planner can think on a stronger model than the builder
+writes with.
 
 ```bash
-akb agent runtimes                     # the runtimes, and what each flow and agent is on
-akb agent runtime add cheap            # name one
-akb agent runtime for implement cheap  # point a flow — or a spec agent — at it
-akb agent bind cheap codex             # what it runs as
-akb agent runtime set cheap model gpt-5.1-codex
+akb agent                              # every agent, what it runs, and the model under it
+akb agent use claude-code              # the board's default — what an agent that picked none runs
+akb agent bind builder codex           # give one agent a tool of its own
+akb agent set --agent builder model gpt-5.1-codex
 ```
 
-A runtime with nothing of its own runs `akb agent use`'s pick, which is the global runtime's
-agent — so a new name works before anyone sets it. A runtime's settings start from that agent's
-own block and override it key by key.
+The pick travels with the repository, in `docs/kanban/ui.config.json`, so every checkout runs each
+agent on the same tool. The **model** does not: it is saved in `docs/kanban/.local.json`, which git
+does not carry, because a model id is worth nothing on a machine whose CLI never logged into that
+provider. Clone the repo somewhere else and each agent keeps its tool and picks its own model
+there.
 
-**Configuration → Runtimes** is the same thing with the answers on screen: one row per runtime,
-opening onto the agent it runs and everything that agent is set to.
+**Configuration → Agents** is the same thing on screen: open an agent and its runtime row sits
+above the box that trains it. **Configuration → Runtime** is the tools themselves — one row per
+coding agent, opening onto how to reach that one and a **Test** that says whether it answers.
 
-Which agent to put behind a runtime — what each of the eight reports back, what a run may touch,
+Which tool to put behind an agent — what each of the eight reports back, what a run may touch,
 and the settings each takes — is [What each coding agent can do](/docs/connectors).

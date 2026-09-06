@@ -17,9 +17,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 
+import { moveModelsLocal } from '../lib/agent/local'
+import { HARNESSES } from '../lib/agent/harnesses'
+import { agentNames } from '../lib/agent/roles'
 import { runBoard } from '../lib/board-cli'
 import { missingConfigKeys } from '../lib/config-template'
 import { BoardError, say } from '../lib/io'
+import { setBoardRoot } from '../lib/paths'
 import { installSkill, readCommandState, readSkillState } from '../lib/skill/install'
 import { readCommitHook, sayCommitHook } from '../lib/skill/hook'
 import type { SkillFolder } from '../lib/skill/types'
@@ -355,11 +359,39 @@ async function repairBoard(root: string, report: Report): Promise<void> {
   moveLegacyMemory(board, report)
   report.sayDid()
   // `init` on an existing board is the repair step: it adds what an older version never
-  // wrote and never touches a file that's already filled in.
+  // wrote and never touches a file that's already filled in. It also writes the ignore line
+  // the move below needs, so it goes first.
   await boardMove(root, ['init'])
+  moveModels(root, board, report)
   dropModuleGoals(board, report)
   checkConfig(board, report)
   checkModules(board, report)
+}
+
+// A model used to be the board's — one per connector in `ui.config.json`, committed and
+// shared by every checkout. It is the AGENT's now, and per machine (#443), so an update moves
+// what this board already had into `docs/kanban/.local.json` under every agent: runs on THIS
+// computer go on using exactly the model they used before, and the other checkouts start
+// empty and pick their own.
+//
+// The one write in the whole board that rewrites the user's `ui.config.json`, and it happens
+// once: the keys are gone afterwards, so a second update finds nothing to move.
+function moveModels(root: string, board: string, report: Report): void {
+  const owned = (harness: string, key: string): boolean =>
+    !!HARNESSES.find((h) => h.name === harness)?.settings.some((s) => s.key === key && s.agentOwned)
+  try {
+    // Point this process at the board being repaired before asking it who its agents are:
+    // `akb update --dir X` repairs a board this process did not resolve on its own, and the
+    // roster follows the board's solution and its own `agents/` folder.
+    setBoardRoot(root)
+    const line = moveModelsLocal(board, agentNames(), owned)
+    if (line) report.did.push(line)
+  } catch (err) {
+    report.notes.push(
+      `couldn't move the models out of docs/kanban/ui.config.json into .local.json (${err instanceof Error ? err.message : String(err)}) —` +
+        " set each agent's model in Configuration → Agents",
+    )
+  }
 }
 
 // An older layout kept the memory set at the board root. Move each file into `memory/`.

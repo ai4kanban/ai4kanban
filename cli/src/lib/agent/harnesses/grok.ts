@@ -72,6 +72,7 @@ export const GROK: Harness = {
     // the session it just opened (agent/wire/acp.ts).
     {
       key: 'model',
+      agentOwned: true,
       label: 'Model',
       kind: 'text',
       placeholder: 'grok-4.6',

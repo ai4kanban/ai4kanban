@@ -39,25 +39,43 @@ import {
   createAgentAction,
   deleteAgentAction,
   saveAgentFileAction,
+  setAgentHarnessAction,
   setAgentRuleAction,
+  setAgentSettingAction,
   setSpecAgentAction,
   setSpecAgentSettingAction,
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
-import type { AgentView, SpecAgentSettingView } from "@/lib/types";
+import type {
+  AgentInfo,
+  AgentView,
+  HarnessSetting,
+  SpecAgentSettingView,
+} from "@/lib/types";
+import { AgentMark } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
 import {
   CAPTION,
   DANGER_BTN,
+  FLAT_CONTROL,
   Group,
   Loading,
   Note,
   QUIET_BTN,
   Switch,
 } from "./settings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
-export function AgentsPanel({ onError }: { onError?: (msg: string) => void }) {
+export function AgentsPanel({
+  info,
+  onError,
+}: {
+  /** The connectors this board can run, and which one is its default (#443) — what the
+   *  runtime row on an agent's page offers. */
+  info: AgentInfo;
+  onError?: (msg: string) => void;
+}) {
   const c = useCopy().configuration.agents;
   const [agents, setAgents] = useState<AgentView[] | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
@@ -232,6 +250,52 @@ export function AgentsPanel({ onError }: { onError?: (msg: string) => void }) {
     }
   };
 
+  // Which connector this agent runs (#443) — the board's answer, so every checkout runs it
+  // on the same tool. The roster is read again rather than patched: switching connectors
+  // changes which model block is in effect, and that is the board's answer too.
+  const bind = async (agent: AgentView, harness: string) => {
+    const token = `${agent.name}/runtime`;
+    setSaving((names) => [...names, token]);
+    try {
+      const res = await setAgentHarnessAction(agent.name, harness);
+      if (!res.ok) {
+        onError?.(res.error || c.harnessFailed(agentTitle(agent.name)));
+        return;
+      }
+      await load();
+    } finally {
+      setSaving((names) => names.filter((n) => n !== token));
+    }
+  };
+
+  // And the model under it, which is this computer's alone. On screen at once, saved behind
+  // it, and put back if the save fails — the switch's own behaviour.
+  const setModel = async (agent: AgentView, key: string, value: string) => {
+    const was = agent.runs.values[key] ?? "";
+    if (value === was) return;
+    const put = (v: string) =>
+      setAgents(
+        (all) =>
+          all?.map((a) =>
+            a.name === agent.name
+              ? { ...a, runs: { ...a.runs, values: { ...a.runs.values, [key]: v } } }
+              : a,
+          ) ?? all,
+      );
+    const token = `${agent.name}/runs/${key}`;
+    put(value);
+    setSaving((names) => [...names, token]);
+    try {
+      const res = await setAgentSettingAction(agent.name, key, value);
+      if (!res.ok) {
+        put(was);
+        onError?.(res.error || c.saveFailed(agentTitle(agent.name)));
+      }
+    } finally {
+      setSaving((names) => names.filter((n) => n !== token));
+    }
+  };
+
   // Opening the new tile leaves the page that is open, so a refused `AGENT.md` holds the
   // selection here the way selecting another character does.
   const openAdd = async () => {
@@ -348,6 +412,9 @@ export function AgentsPanel({ onError }: { onError?: (msg: string) => void }) {
               }
               onLeave={() => void leave.current(agent.name)}
               onPick={(key, value) => void pick(agent, key, value)}
+              info={info}
+              onHarness={(harness) => void bind(agent, harness)}
+              onModel={(key, value) => void setModel(agent, key, value)}
               onDelete={() => remove(agent.name)}
               deleting={saving.includes(agent.name)}
               busy={(key) => saving.includes(`${agent.name}/${key}`)}
@@ -525,6 +592,7 @@ function NewTile({
 // setting in this dialog already behaves.
 function Page({
   agent,
+  info,
   rule,
   file,
   saved,
@@ -535,11 +603,14 @@ function Page({
   onFile,
   onLeave,
   onPick,
+  onHarness,
+  onModel,
   onDelete,
   deleting,
   busy,
 }: {
   agent: AgentView;
+  info: AgentInfo;
   rule: string;
   file: string | undefined;
   saved: boolean;
@@ -551,6 +622,10 @@ function Page({
   onFile: (text: string) => void;
   onLeave: () => void;
   onPick: (key: string, value: string) => void;
+  /** Give this agent a connector of its own, or "" to put it back on the board's default. */
+  onHarness: (harness: string) => void;
+  /** One of its model settings, on this computer. */
+  onModel: (key: string, value: string) => void;
   onDelete: () => Promise<void>;
   /** The delete is in flight. */
   deleting: boolean;
@@ -645,6 +720,25 @@ function Page({
         )}
       </div>
 
+      {/* What this agent runs (#443): the connector, from the board's file, then the model
+          settings under it, from this computer's. Above the box that trains it — it is the
+          first thing about an agent you set, and the last thing you change.
+
+          Absent on rules older than the release that added it: the row is left out rather
+          than drawn empty with buttons that could only fail. */}
+      {agent.runs && (
+        <div className="mb-3">
+          <Cap>{c.runtime}</Cap>
+          <RunRow
+            agent={agent}
+            info={info}
+            busy={busy}
+            onHarness={onHarness}
+            onModel={onModel}
+          />
+        </div>
+      )}
+
       <div className="flex items-start gap-4 max-sm:flex-col">
         {beside && (
           <div className="min-w-0 flex-1">
@@ -734,6 +828,167 @@ function Page({
         )}
       </div>
     </div>
+  );
+}
+
+// --- what one agent runs (#443) ----------------------------------------------
+
+// One line: the connector, then the settings that pick a model on it. The connector is the
+// BOARD's — every checkout runs this agent on the same tool — and the model is this
+// computer's, because a model id is worth nothing on a machine whose CLI never logged into
+// that provider.
+//
+// Which settings appear is the connector's own answer, so a connector that takes a reasoning
+// level draws one and a connector that doesn't draws nothing. An agent that picked no
+// connector reads as the board's default, which is the list's first entry rather than a
+// blank.
+function RunRow({
+  agent,
+  info,
+  busy,
+  onHarness,
+  onModel,
+}: {
+  agent: AgentView;
+  info: AgentInfo;
+  busy: (key: string) => boolean;
+  onHarness: (harness: string) => void;
+  onModel: (key: string, value: string) => void;
+}) {
+  const c = useCopy().configuration.agents;
+  // Radix refuses an empty-string item value, so "the board's default" wears a stand-in
+  // inside the select and is mapped back to "" on the way out.
+  const NONE = "—board—";
+  const boardLabel =
+    info.options.find((o) => o.name === info.name)?.label ?? info.name;
+  const moving = busy("runtime");
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={agent.runs.own ? agent.runs.harness : NONE}
+          disabled={moving}
+          onValueChange={(v) => onHarness(v === NONE ? "" : v)}
+        >
+          <SelectTrigger
+            aria-label={c.runtime}
+            className={`${FLAT_CONTROL} h-[34px] w-[190px] shrink-0 disabled:cursor-wait`}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NONE}>{c.boardDefault(boardLabel)}</SelectItem>
+            {info.options.map((option) => (
+              <SelectItem key={option.name} value={option.name}>
+                <span className="flex items-center gap-1.5">
+                  <AgentMark src={option.icon} size={13} />
+                  {option.label}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {agent.runs.settings.map((setting) => (
+          <ModelField
+            key={setting.key}
+            setting={setting}
+            value={agent.runs.values[setting.key] ?? ""}
+            busy={moving || busy(`runs/${setting.key}`)}
+            onSave={(value) => onModel(setting.key, value)}
+          />
+        ))}
+      </div>
+
+      <p className="mt-1.5 text-[11.5px] leading-snug text-nb-ink-soft">
+        {agent.runs.unknownHarness
+          ? c.unknownHarness(agent.runs.unknownHarness)
+          : c.runtimeBlurb}
+      </p>
+    </div>
+  );
+}
+
+// One of those settings. A list where the connector declares its own choices — a reasoning
+// level is that CLI's own vocabulary and can't go stale — and free text where it doesn't: a
+// model id changes faster than we ship, and a list written here would block one the agent
+// already runs. What the box offers under it is what that CLI knows on this machine.
+function ModelField({
+  setting,
+  value,
+  busy,
+  onSave,
+}: {
+  setting: HarnessSetting;
+  value: string;
+  busy: boolean;
+  onSave: (value: string) => void;
+}) {
+  const [text, setText] = useState(value);
+  // Reseeded when the saved value moves under it — switching connectors brings that
+  // connector's own model back.
+  const [was, setWas] = useState(value);
+  if (was !== value) {
+    setWas(value);
+    setText(value);
+  }
+
+  const EMPTY = "—empty—";
+  const listId = `agent-model-${setting.key}`;
+
+  if (setting.kind === "select") {
+    return (
+      <Select
+        value={value || EMPTY}
+        disabled={busy}
+        onValueChange={(v) => onSave(v === EMPTY ? "" : v)}
+      >
+        <SelectTrigger
+          aria-label={setting.label}
+          className={`${FLAT_CONTROL} h-[34px] w-[170px] shrink-0 disabled:cursor-wait`}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {(setting.choices ?? []).map((choice) => (
+            <SelectItem key={choice.value} value={choice.value || EMPTY}>
+              {choice.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  return (
+    <>
+      <input
+        type="text"
+        value={text}
+        disabled={busy}
+        list={setting.suggestions?.length ? listId : undefined}
+        placeholder={setting.placeholder ?? setting.label}
+        spellCheck={false}
+        autoComplete="off"
+        aria-label={setting.label}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => onSave(text.trim())}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onSave(text.trim());
+        }}
+        // CONTROL's own fill and focus ring, minus its `w-full` — these three sit on one
+        // line, so each carries a width of its own.
+        className="w-[230px] shrink-0 rounded-[10px] bg-nb-wash px-3 py-1.5 font-mono text-[12.5px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
+      />
+      {setting.suggestions?.length ? (
+        <datalist id={listId}>
+          {setting.suggestions.map((id) => (
+            <option key={id} value={id} />
+          ))}
+        </datalist>
+      ) : null}
+    </>
   );
 }
 

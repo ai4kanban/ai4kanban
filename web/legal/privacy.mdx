@@ -163,11 +163,12 @@ A board on Cloud is an identifier that means nothing outside Cloud, and **a name
 
 ### What a board's machine record holds
 
-A board runs its work on a computer, so that computer registers itself with Cloud — otherwise an approval you press in Slack or Lark has nowhere to run. A workspace holds one record for each machine the people in it open it from, and the record names **the account that registered it**, so everyone in the workspace can tell one machine from another. The record holds three things and no more:
+A board runs its work on a computer, so that computer registers itself with Cloud — otherwise an approval you press in Slack or Lark has nowhere to run. A workspace holds one record for each machine the people in it open it from, and the record names **the account that registered it**, so everyone in the workspace can tell one machine from another. The record holds two things and no more:
 
 - **A machine identifier** the computer generated for itself. It is tied to no account and to nothing about your hardware, and it means nothing outside Cloud.
 - **The name that computer calls itself** — its hostname, so you can tell one of your machines from another. Never an address.
-- **What it runs the board's runtimes as** — for each runtime your board names, the **name of the coding agent** that computer runs it with, and the **name of the model** you set for it where you set one. Names only: never a key, never the arguments or the path a command runs under, and never the folder your board is in.
+
+**Which coding agent and which model a board runs is never sent.** It stays in your repository and on your computer.
 
 **Nothing in the preview deletes this record.** Turning Cloud off for a board stops that machine reaching Cloud and forgets the board on the machine; the record stays. Moving the board to another machine retires the old computer's record rather than deleting it, so a job that machine started and never finished can still be accounted for. Every machine record a board ever registered is kept until we remove it by hand — see **Removing your Cloud records** below.
 
@@ -328,7 +329,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **A board's Cloud id and its name** — kept until we remove them by hand. Turning Cloud off for a board, moving it to another machine, and signing out delete nothing.
 - **Events and actions** — kept while the event is unresolved, then deleted 30 days after it reaches a final outcome, together with the decision recorded against it, its answers, its outcome, and any message it was delivered as.
 - **Which message in a chat is a task's** — the board, the task number, the chat, and the chat's own identifier for that message. Kept while the task has any event on Cloud, and deleted with the last of them.
-- **A board's machine record** — the machine identifier, the hostname, and the runtimes described above, kept until we remove them by hand. Every machine a board registered keeps its record, including one the board has moved away from.
+- **A board's machine record** — the machine identifier and the hostname described above, kept until we remove them by hand. Every machine a board registered keeps its record, including one the board has moved away from.
 - **Your Slack and Lark connections** — kept until you disconnect them, which deletes each one at once, or until we remove your records.
 - **The API's own request log** — retained by Cloudflare under Cloudflare's policy. It carries no board content, no handle, and no email address.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.

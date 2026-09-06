@@ -62,6 +62,7 @@ export const ZCODE: Harness = {
     // bare id uses the one the session opened on.
     {
       key: 'model',
+      agentOwned: true,
       label: 'Model',
       kind: 'text',
       placeholder: 'glm-5.3',

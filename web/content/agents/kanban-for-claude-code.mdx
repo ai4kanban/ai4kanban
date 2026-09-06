@@ -92,13 +92,13 @@ No. AI4Kanban launches the Claude Code CLI already installed on your machine. Yo
 
 [Claude Code loads those extensions at different points in a session](https://code.claude.com/docs/en/features-overview). AI4Kanban invokes its `/kanban` skill directly and adds the current card plus the relevant project memory. It does not require an MCP server of its own.
 
-Choose the login already used by your Claude CLI, an Anthropic API key, or an Anthropic-compatible endpoint. Named runtimes can use different models and reasoning effort for task preparation, implementation, review, and specialist work. Empty fields keep Claude Code's defaults.
+Choose the login already used by your Claude CLI, an Anthropic API key, or an Anthropic-compatible endpoint once, for Claude Code itself. Then each agent on the board — planner, builder, reviewer, and each specialist — picks the model and reasoning effort it runs, so task preparation can think harder than implementation writes. Empty fields keep Claude Code's defaults.
 
 <Shot
-  src="configuration-runtimes-v1"
+  src="configuration-agents-v1"
   wash="emberMint"
-  alt="AI4Kanban configures a Claude Code provider, model, reasoning effort, and extra arguments"
-  caption="AI4Kanban uses the installed Claude CLI and keeps provider, model, effort, and extra arguments explicit."
+  alt="AI4Kanban's Agents pane, with the builder set to Claude Code and its own model and reasoning effort"
+  caption="Each agent picks the coding tool and model it runs. The tool travels with the repository; the model stays on this computer."
 />
 
 Claude Code also keeps its existing permission rules. AI4Kanban does not silently bypass them. A denied tool call appears in the run log so you can change the task, the repository, or Claude Code's permission settings deliberately.
@@ -141,7 +141,7 @@ Both work. Use the login already held by your Claude CLI, an Anthropic API key, 
 
 <FAQItem question="Can I choose the Claude model for different kinds of work?">
 
-Yes. Create named Claude Code runtimes with their own model and reasoning effort, then assign them to task preparation, implementation, review, or specialist work. Tests run during implementation and review rather than in a separate testing stage. Empty settings keep Claude Code's defaults.
+Yes. Give the planner, the builder, the reviewer, and each specialist their own Claude model and reasoning effort on the Agents pane. Tests run during implementation and review rather than in a separate testing stage. Empty settings keep Claude Code's defaults.
 
 </FAQItem>
 
@@ -183,7 +183,7 @@ Clicking **Implement** authorizes automatic commits, 1 reviewed squash commit on
 
 <FAQItem question="Can I use the same AI4Kanban board with another coding agent later?">
 
-Yes. AI4Kanban cards, dependencies, requirements, and project memory are agent-independent. Pick Codex, Cursor, OpenCode, or another supported runtime for new work. A resumable Claude Code conversation remains tied to Claude Code.
+Yes. AI4Kanban cards, dependencies, requirements, and project memory are agent-independent. Pick Codex, Cursor, OpenCode, or another supported coding agent for new work — for the whole board, or for one agent on it. A resumable Claude Code conversation remains tied to Claude Code.
 
 </FAQItem>
 
