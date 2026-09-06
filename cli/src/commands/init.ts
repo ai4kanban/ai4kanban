@@ -15,6 +15,7 @@ import { solution, type Solution } from '../lib/solution'
 import { say } from '../lib/io'
 import { LOCK_IGNORE_LINE } from '../lib/lock'
 import { CHAT_IGNORE_LINE } from '../lib/agent/chat'
+import { COMMENT_IGNORE_LINE } from '../lib/comments'
 import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
 import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
@@ -109,6 +110,7 @@ const IGNORE_RULES = [
   { line: LOCK_IGNORE_LINE, comment: '# The write lock, held for as long as one command takes.' },
   ...RUN_IGNORE_LINES,
   CHAT_IGNORE_LINE,
+  COMMENT_IGNORE_LINE,
   { line: MOCKUP_IGNORE_LINE, comment: '# Drawings of the screens cards change — redrawn, never read back from git.' },
 ]
 

@@ -10,7 +10,7 @@ import { agentMemoryFile } from '../memory'
 import { channelLanguage } from '../channels'
 import { draftDir, draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
-import { boardText, rel } from '../paths'
+import { COMMENTS, boardText, rel } from '../paths'
 import {
   agentMemoryBlock,
   findSpecAgent,
@@ -93,6 +93,7 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'archive',
   'spec',
   'channel',
+  'polish',
   'review',
   'conflict',
 ])
@@ -194,6 +195,16 @@ function draftPaths(cardId: number | undefined, channel: string): { source: stri
   const found = cardId === undefined ? null : locate(cardId)
   if (!found || found.kind !== 'file') return null
   return { source: rel(draftFile(found.target, SOURCE)), target: rel(draftFile(found.target, channel)) }
+}
+
+// The one file a polish works over, and the batch of comments it answers, as paths from the
+// project root (#458). Named outright rather than described: the run reads the comments off
+// disk, the way a repurpose reads `source.md`, and a run left to work its own paths out is a
+// run that polishes a file nobody is looking at.
+function polishPaths(cardId: number | undefined, draft: string): { file: string; comments: string } | null {
+  const found = cardId === undefined ? null : locate(cardId)
+  if (!found || found.kind !== 'file') return null
+  return { file: rel(draftFile(found.target, draft)), comments: rel(path.join(COMMENTS, `${cardId}.json`)) }
 }
 
 // The folder a `write` agent may write in, resolved here rather than described: `akb write`
@@ -466,6 +477,25 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Write that one file and nothing else — not the card, not \`source.md\`, and not another channel's draft.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
         `Don't ask me questions with human-in-the-loop — the review is me editing the draft.`,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    }
+    // One pass over one draft, answering the comments left on it (#458). The batch is named
+    // rather than pasted in: a comment is edited and deleted right up to Submit, and words
+    // copied into this message would be the ones that were there when the run was written
+    // down. Nothing here says what the draft argues, for the reason a repurpose doesn't.
+    case 'polish': {
+      const name = req.draft ?? ''
+      const files = polishPaths(req.id, name)
+      return [
+        `${kb}. Polish the \`${name}\` draft of task ${req.id} ${named} following \`akb guide polish\`.`,
+        files
+          ? `Read ${files.file} and the comments under \`"${name}"\` in ${files.comments}, then rewrite ${files.file}.`
+          : '',
+        `Work every comment in that batch into one pass over the draft, and stop.`,
+        `Write that one file and nothing else — not the card, not another draft, and not the comments file: the board clears the batch when this run ends.`,
+        `Don't ask me questions with human-in-the-loop — the review is me reading the polished draft.`,
       ]
         .filter(Boolean)
         .join(' ')

@@ -118,6 +118,24 @@ export interface CardChannel {
   url: string
 }
 
+/** One remark left on a passage of a draft (#458), waiting for the polish that answers it.
+ *
+ *  The QUOTE is the anchor: `from`/`to` are where the passage sat when the comment was
+ *  left, and a reader re-finds the quote from there — so an edit elsewhere in the draft
+ *  leaves the comment where it belongs. A comment whose passage is gone keeps its words,
+ *  loses its marks, and still goes to the polish. */
+export interface DraftComment {
+  /** This comment's own key, so edit and delete name one and not a position. */
+  id: string
+  /** The passage commented on, exactly as it read then. */
+  quote: string
+  from: number
+  to: number
+  /** What the user wants done with that passage. */
+  words: string
+  at: number
+}
+
 /** One file under `content/<id>-<slug>/` (#411): `source`, or a channel's name. `text` is
  *  the whole draft — they are a screenful of prose each — and `path` is what the pane names
  *  under the editor, relative to the project. */
@@ -125,6 +143,9 @@ export interface CardDraft {
   name: string
   path: string
   text: string
+  /** The comments left on this draft and not yet polished (#458), oldest first. Absent on
+   *  rules older than that move. */
+  comments?: DraftComment[]
 }
 
 /** Which drafts a card has, and each one whole. `dir` is the folder they live in, named
@@ -139,6 +160,9 @@ export interface CardDrafts {
   /** Whether this copy of the rules can write `channels:` (#434) — what the page's `+`
    *  needs. Absent on rules older than that move, and the `+` is then not drawn. */
   canSetChannels?: boolean
+  /** Whether this copy of the rules carries the comment moves (#458). Absent on rules older
+   *  than them, and the page then offers nothing to comment with. */
+  canComment?: boolean
 }
 
 /** A group root's subtask, as shown on the root's page. Light meta only — clicking through

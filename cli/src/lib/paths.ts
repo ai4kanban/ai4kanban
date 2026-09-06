@@ -60,6 +60,10 @@ export let LEGACY_AGENTS = ''
 // question comes back, so it is never something the repo carries or a teammate pulls.
 export let MOCKUPS = ''
 export const MOCKUP_IGNORE_LINE = '.mockups/'
+// The comments left on a topic's drafts, waiting to be polished (#458) — one file per card.
+// Dotted and ignored like `.chats/`: a batch is consumed by the next polish and then gone,
+// so it is this machine's working state and never the repository's.
+export let COMMENTS = ''
 // All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
 // itself, each module's set in a subfolder named after the module.
 export let MEMORY = ''
@@ -212,6 +216,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   AGENTS = path.join(KANBAN, 'agents')
   LEGACY_AGENTS = path.join(KANBAN, 'skills')
   MOCKUPS = path.join(KANBAN, '.mockups')
+  COMMENTS = path.join(KANBAN, '.comments')
   MEMORY = path.join(KANBAN, 'memory')
   AGENT_MEMORY = path.join(MEMORY, 'agents')
   GOAL = path.join(MEMORY, 'goal.md')

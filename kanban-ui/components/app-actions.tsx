@@ -20,15 +20,19 @@ import {
   cancelCloudRequestAction,
   cardOnBoardAction,
   closeReleaseAction,
+  commentOnDraftAction,
   createReleaseAction,
   discardDeliveryAction,
+  dropDraftCommentAction,
   dropReleaseAction,
   dropVerifyAction,
+  editDraftCommentAction,
   getBoard,
   getSessionAction,
   listSessionsAction,
   patchCardAction,
   planReleaseAction,
+  polishDraftAction,
   readDraftsAction,
   repurposeChannelAction,
   resumeCloudRequestAction,
@@ -76,6 +80,11 @@ export const appActions: ScreenActions = {
   repurpose: repurposeChannelAction,
   setChannelStatus: setChannelStatusAction,
   setChannels: setChannelsAction,
+
+  commentOnDraft: commentOnDraftAction,
+  editDraftComment: editDraftCommentAction,
+  dropDraftComment: dropDraftCommentAction,
+  polishDraft: polishDraftAction,
 };
 
 export function AppActions({ children }: { children: React.ReactNode }) {

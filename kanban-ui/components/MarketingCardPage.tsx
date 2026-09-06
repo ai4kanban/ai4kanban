@@ -3,10 +3,16 @@
 // ---- a marketing card's own page (#434) -------------------------------------
 //
 // A marketing card IS its draft, so the page is the editor: a title row, a tab strip over
-// `source` and each chosen channel, and an OverType instance filling everything under them.
-// Nothing else — no Implement / Edit / Resolve, no questions panel, no Priority / ROI /
-// Release, no run log. Whatever is left to say to the agent is said in the chat rail the
-// window already draws, which is why this page draws no box of its own.
+// `source` and each chosen channel, an OverType instance filling everything under them, and
+// — once there is one — the comments left on that draft along the foot (#458). Nothing else
+// — no Implement / Edit / Resolve, no questions panel, no Priority / ROI / Release, no run
+// log. Whatever is left to say to the agent is said in the chat rail the window already
+// draws, which is why this page draws no box of its own.
+//
+// A comment is SAVED on its passage, not sent: a read-through that finds six things is one
+// polish over the file rather than six rewrites of it, each unaware of the other five. The
+// comments live beside the board (`docs/kanban/.comments/<id>.json`) and never inside the
+// draft, and the board clears the batch when the polish it went to ends.
 //
 // It is a page of its own rather than a branch of `CardPage`, so the two boards' pages are
 // free to be different shapes; the cost is that the top row, the rail wiring and the run
@@ -40,8 +46,8 @@ import {
 } from "react-icons/fi";
 import type { OverTypeInstance } from "overtype";
 import { useCopy } from "@/i18n/use-copy";
-import { useActions, type RepurposeAsk } from "@/lib/screen";
-import type { Card, CardDrafts, CardScreen, SessionView } from "@/lib/types";
+import { useActions, type DraftPassage, type RepurposeAsk } from "@/lib/screen";
+import type { Card, CardDrafts, CardScreen, DraftComment, SessionView } from "@/lib/types";
 import {
   ActionDialog,
   DialogButtons,
@@ -55,6 +61,7 @@ import { CHANNEL_NAMES, ChannelDot, ChannelMark, channelLabel, REPURPOSE_LANGUAG
 import { useChatRailHere } from "./Chat";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { Dialog } from "./Dialog";
+import { DraftComments, LeaveComment, useCommentMarks } from "./DraftComments";
 import { OpenIdsProvider } from "./open-ids";
 import { runningCardIds, useAgentSessions, useOnTabFocus, type StartedSession } from "./sessions";
 import {
@@ -109,6 +116,12 @@ export function MarketingCardPage({
   );
   const { sessions, start, kick } = useAgentSessions(onFinish);
   const running = runningCardIds(sessions);
+  // Which run is in flight matters to the comment list alone: every run locks the editor,
+  // but only a polish is working through a batch — and only the one on the tab being read
+  // is working through the batch on screen (#458).
+  const polishingDraft = sessions.find(
+    (r) => r.status === "running" && r.cardId === card.id && r.action === "polish",
+  )?.draft;
 
   // A run on this card just ended — a Draft or a Rewrite wrote its file, and this is how it
   // reaches the editor with nothing to poll.
@@ -163,6 +176,7 @@ export function MarketingCardPage({
             card={card}
             boardHref={boardHref}
             busy={running.has(card.id)}
+            polishingDraft={polishingDraft}
             reload={runsSettled}
             error={error}
             onError={setError}
@@ -185,6 +199,7 @@ function Draft({
   card,
   boardHref,
   busy,
+  polishingDraft,
   reload,
   error,
   onError,
@@ -197,6 +212,9 @@ function Draft({
   boardHref: string;
   /** A run on this card is live — the editor is not the user's while one is. */
   busy: boolean;
+  /** The draft a polish is running over, when one is (#458) — the batch on screen only when
+   *  it is the tab being read. */
+  polishingDraft?: string;
   /** Bumped whenever a run on this card finishes, which is when the draft is re-read. */
   reload: number;
   error: string | null;
@@ -226,6 +244,9 @@ function Draft({
   // Which channels the repurpose panel is open for — every chosen one from the source tab,
   // one from a channel's own Rewrite. Null is closed.
   const [asking, setAsking] = useState<string[] | null>(null);
+  // This tab's comments (#458). Seeded from the read below and answered by each write, so
+  // the list moves with the click and the next read reconciles it.
+  const [comments, setComments] = useState<DraftComment[]>([]);
 
   // The card's own conversation is answering — an agent is writing this draft through the
   // rail. It locks the editor exactly as a run does, and the draft is re-read when it ends.
@@ -315,6 +336,13 @@ function Draft({
   const typedRef = useRef(typed);
   typedRef.current = typed;
 
+  // The comment marks. OverType replaces its preview's HTML on every render, so they are
+  // drawn again from here — through a ref, since the instance below is built once and its
+  // options never see a later render's values.
+  const repaint = useCommentMarks(editor, comments);
+  const repaintRef = useRef(repaint);
+  repaintRef.current = repaint;
+
   useEffect(() => {
     let killed = false;
     let made: OverTypeInstance | null = null;
@@ -330,6 +358,7 @@ function Draft({
         lineHeight: 1.85,
         padding: "24px 32px",
         onChange: (value) => typedRef.current(value),
+        onRender: () => repaintRef.current(),
       })[0]!;
       setEditor(made);
     })();
@@ -365,6 +394,12 @@ function Draft({
     setText(disk);
   }, [read, tab, editor]);
 
+  // The batch belongs to the draft on screen: the strip moving is a different set of
+  // comments, and a run that ended has already had its own cleared by the board.
+  useEffect(() => {
+    setComments(read.drafts.find((d) => d.name === tab)?.comments ?? []);
+  }, [read, tab]);
+
   // ---- the strip -----------------------------------------------------------
 
   // A channel just chosen is on screen before the card has been re-read, so the fallback
@@ -392,6 +427,10 @@ function Draft({
   const unchosen = CHANNEL_NAMES.filter((name) => !channels.some((ch) => ch.name === name));
   // The `+` is drawn only where the board's rules carry the move behind it.
   const canAdd = !!actions && !!read.canSetChannels && unchosen.length > 0;
+  // And the comment box and its list only where the rules carry those moves (#458). A board
+  // running older rules keeps its editor, its tabs and its repurpose, and simply offers
+  // nothing to comment with.
+  const canComment = !!actions && !!read.canComment;
   const published = channels.filter((ch) => ch.status === "published").length;
 
   /** Move the strip, once what is typed is on disk. A write that refused keeps the tab it
@@ -468,12 +507,49 @@ function Draft({
     router.refresh();
   };
 
-  /** "改这段": the passage, where it sits in the file, and what to do with it — said into
-   *  this card's own conversation, which is the one the rail is already showing. */
-  const askHere = (from: number, to: number, selected: string, instruction: string) => {
-    if (!rail) return;
-    rail.say(c.ask.message(path, from, to, selected, instruction));
-    if (!rail.open) rail.toggle();
+  // ---- the comments on this draft (#458) -----------------------------------
+  //
+  // Each write answers with the batch as it now reads, so the list moves with the click.
+  // Nothing here touches the draft: a comment is beside the file, never inside it.
+
+  const leaveComment = async (passage: DraftPassage) => {
+    if (!actions) return;
+    const res = await actions.commentOnDraft(card.id, tab, passage);
+    if (res.error) return onError(res.error);
+    onError(null);
+    setComments(res.comments);
+  };
+
+  const editComment = async (commentId: string, words: string) => {
+    if (!actions) return;
+    const res = await actions.editDraftComment(card.id, tab, commentId, words);
+    if (res.error) return onError(res.error);
+    onError(null);
+    setComments(res.comments);
+  };
+
+  const dropComment = async (commentId: string) => {
+    if (!actions) return;
+    const res = await actions.dropDraftComment(card.id, tab, commentId);
+    if (res.error) return onError(res.error);
+    onError(null);
+    setComments(res.comments);
+  };
+
+  /** Submit the batch: one polish over this draft, with every comment on it. The board
+   *  clears them when the run ends `done`, so nothing is cleared here — a polish that
+   *  failed leaves the batch to submit again. */
+  const submitComments = async () => {
+    if (!actions || !comments.length) return;
+    // What is typed goes to disk first: the run is about to write this same file, and a
+    // save landing after it would put the words back over what the polish wrote.
+    if (!(await flush())) return;
+    setMoving(true);
+    const res = await actions.polishDraft(card.id, tab);
+    setMoving(false);
+    if (!res.ok) return onError(res.error ?? c.comment.failed);
+    onError(null);
+    onKick();
   };
 
   return (
@@ -618,7 +694,11 @@ function Draft({
             {path} · {saving ? t.shared.saving : dirty ? c.unsaved : c.saved}
           </span>
 
-          {editor && rail && !locked && actions && <AskHere editor={editor} onAsk={askHere} />}
+          {/* The one thing a selection does: leave a comment on it. It is drawn only where
+              the board's rules carry the move behind it. */}
+          {editor && !locked && canComment && (
+            <LeaveComment editor={editor} onLeave={(passage) => void leaveComment(passage)} />
+          )}
 
           {asking && (
             <RepurposePanel
@@ -630,6 +710,20 @@ function Draft({
             />
           )}
         </div>
+      )}
+
+      {/* What has been said about this draft and not yet answered. Drawn only where there is
+          something in it — an empty band under every draft would be a standing reminder of a
+          feature rather than a place things are. */}
+      {canComment && (
+        <DraftComments
+          comments={comments}
+          polishing={polishingDraft === tab}
+          disabled={locked || moving}
+          onEdit={(commentId, words) => void editComment(commentId, words)}
+          onDrop={(commentId) => void dropComment(commentId)}
+          onSubmit={() => void submitComments()}
+        />
       )}
 
       {publishing && channel && (
@@ -784,70 +878,6 @@ function PageMenu({
         )}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-/**
- * "改这段" — one passage, changed where it stands.
- *
- * It appears while a selection is live in the editor and sends the selected text, its
- * offsets in the file and the instruction into this card's own conversation; the agent
- * changes that passage in the file, and the editor re-reads when the reply lands. The
- * offsets are the textarea's own `selectionStart`/`selectionEnd` — which, because OverType
- * edits the file itself, ARE offsets into the file.
- *
- * It stands at the foot of the editor rather than beside the selection: a textarea gives no
- * coordinates for a range, and every way of guessing them is wrong on a wrapped line.
- */
-function AskHere({
-  editor,
-  onAsk,
-}: {
-  editor: OverTypeInstance;
-  onAsk: (from: number, to: number, selected: string, instruction: string) => void;
-}) {
-  const c = useCopy().card.marketing;
-  const [picked, setPicked] = useState<{ from: number; to: number; text: string } | null>(null);
-  const [instruction, setInstruction] = useState("");
-  // Typing in the input takes focus off the textarea, which is itself a selection change —
-  // so what was selected is read while the editor still holds it, and kept here.
-  const box = editor.textarea;
-  useEffect(() => {
-    const check = () => {
-      if (document.activeElement !== box) return;
-      const { selectionStart: from, selectionEnd: to, value } = box;
-      setPicked(from === to ? null : { from, to, text: value.slice(from, to) });
-    };
-    document.addEventListener("selectionchange", check);
-    return () => document.removeEventListener("selectionchange", check);
-  }, [box]);
-
-  if (!picked) return null;
-  const send = () => {
-    if (!instruction.trim()) return;
-    onAsk(picked.from, picked.to, picked.text, instruction.trim());
-    setInstruction("");
-    setPicked(null);
-  };
-  return (
-    <div className="absolute inset-x-0 bottom-9 flex justify-center px-8">
-      <div className="flex w-full max-w-[420px] items-center gap-1.5 rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_0_var(--color-nb-ink)]">
-        <input
-          autoFocus
-          value={instruction}
-          placeholder={c.ask.placeholder}
-          onChange={(e) => setInstruction(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") send();
-            if (e.key === "Escape") setPicked(null);
-          }}
-          className="min-w-0 flex-1 bg-transparent px-2 text-[13px] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none"
-        />
-        <Button size="xs" aria-label={c.ask.send} disabled={!instruction.trim()} onClick={send}>
-          <FiSend className="text-[12px]" aria-hidden />
-        </Button>
-      </div>
-    </div>
   );
 }
 

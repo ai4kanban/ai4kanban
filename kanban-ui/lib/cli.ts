@@ -48,6 +48,7 @@ import type {
   ClosePlan,
   DeliveryDiff,
   DeliveryPlan,
+  DraftComment,
   DropPlan,
   FillPlan,
   MemoryFile,
@@ -274,6 +275,21 @@ export interface BoardRules {
    *  channel that stays keeps its status and its URL. Optional on its own: rules with the
    *  drafts above but not this one draw the page without its `+`. */
   setChannels?(id: number, names: string[]): Promise<{ ok: boolean; error?: string }>;
+
+  // the comments left on one draft, and the polish they go to (#458). Optional together and
+  // separately from the drafts above: rules with the editor but not these draw it with
+  // nothing to comment with, which is what `CardDrafts.canComment` says. Each write answers
+  // with that draft's batch as it now reads.
+  commentOnDraft?(
+    id: number,
+    draft: string,
+    passage: { quote: string; from: number; to: number; words: string },
+  ): DraftComment[];
+  editDraftComment?(id: number, draft: string, commentId: string, words: string): DraftComment[];
+  dropDraftComment?(id: number, draft: string, commentId: string): DraftComment[];
+  /** Submit the batch — one `polish` run over that one draft. The board clears the comments
+   *  when it ends `done`, so nothing here does. */
+  polishDraft?(id: number, draft: string): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }>;
 
   /** What this board's work IS (#407) — `product` or `marketing`. Optional: a copy of the
    *  rules older than the release that added solutions has only ever run product boards. */

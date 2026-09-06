@@ -37,6 +37,7 @@ function toView(
   return {
     sessionId: run.sessionId,
     cardId: run.cardId,
+    draft: run.draft,
     action: run.action as SessionView["action"],
     status: run.status,
     startedAt: run.startedAt,

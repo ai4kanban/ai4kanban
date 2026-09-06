@@ -23,8 +23,12 @@ import {
 import {
   boardScreen,
   boardsHere,
+  commentOnDraft,
   readSolution,
   cardStillThere,
+  dropDraftComment,
+  editDraftComment,
+  polishDraft,
   refreshBoard,
   readDrafts,
   readGoalText,
@@ -181,6 +185,7 @@ import type {
   CloudMove,
   ClosePlan,
   CommandState,
+  CommentBatch,
   ConnectionTest,
   DiscussRead,
   DropPlan,
@@ -935,6 +940,58 @@ export async function setChannelsAction(id: number, names: string[]): Promise<{ 
     return { ok: false, error: "the channels are a list of names" };
   }
   return setChannels(id, names);
+}
+
+// The comments left on one draft (#458). A comment is saved on its passage rather than
+// sent, so a whole read-through goes to one polish instead of costing a rewrite per remark.
+// Each write answers with that draft's batch as it now reads.
+export async function commentOnDraftAction(
+  id: number,
+  draft: string,
+  passage: { quote: string; from: number; to: number; words: string },
+): Promise<CommentBatch> {
+  if (!Number.isInteger(id)) return { comments: [], error: "a comment is left by card number" };
+  if (typeof draft !== "string" || !draft) return { comments: [], error: "a comment is left on a named draft" };
+  const quote = typeof passage?.quote === "string" ? passage.quote : "";
+  const words = typeof passage?.words === "string" ? passage.words : "";
+  if (!quote) return { comments: [], error: "a comment is left on a passage" };
+  if (!words.trim()) return { comments: [], error: "a comment says what to do with the passage" };
+  const from = Number.isInteger(passage?.from) ? passage.from : 0;
+  const to = Number.isInteger(passage?.to) ? passage.to : 0;
+  return commentOnDraft(id, draft, { quote, from, to, words });
+}
+
+export async function editDraftCommentAction(
+  id: number,
+  draft: string,
+  commentId: string,
+  words: string,
+): Promise<CommentBatch> {
+  if (!Number.isInteger(id)) return { comments: [], error: "a comment is edited by card number" };
+  if (typeof draft !== "string" || !draft) return { comments: [], error: "a comment is left on a named draft" };
+  if (typeof commentId !== "string" || !commentId) return { comments: [], error: "a comment is named" };
+  if (typeof words !== "string" || !words.trim()) {
+    return { comments: [], error: "a comment says what to do with the passage" };
+  }
+  return editDraftComment(id, draft, commentId, words);
+}
+
+export async function dropDraftCommentAction(id: number, draft: string, commentId: string): Promise<CommentBatch> {
+  if (!Number.isInteger(id)) return { comments: [], error: "a comment is dropped by card number" };
+  if (typeof draft !== "string" || !draft) return { comments: [], error: "a comment is left on a named draft" };
+  if (typeof commentId !== "string" || !commentId) return { comments: [], error: "a comment is named" };
+  return dropDraftComment(id, draft, commentId);
+}
+
+// Submit the batch — one `polish` run over that one draft. The board clears the comments
+// when the run ends `done`, so a run that failed leaves them to submit again.
+export async function polishDraftAction(
+  id: number,
+  draft: string,
+): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
+  if (!Number.isInteger(id)) return { ok: false, error: "a polish names the topic by number" };
+  if (typeof draft !== "string" || !draft) return { ok: false, error: "a polish names a draft" };
+  return polishDraft(id, draft);
 }
 
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once

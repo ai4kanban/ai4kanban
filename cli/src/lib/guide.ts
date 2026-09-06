@@ -59,6 +59,7 @@ import marketingBoard from '../guide/marketing/board.md'
 import marketingChannel from '../guide/marketing/channel.md'
 import marketingExtractIdeas from '../guide/marketing/extract-ideas.md'
 import marketingImplement from '../guide/marketing/implement.md'
+import marketingPolish from '../guide/marketing/polish.md'
 import marketingPruneMemory from '../guide/marketing/prune-memory.md'
 import marketingWriting from '../guide/marketing/writing.md'
 
@@ -134,6 +135,7 @@ const EXTRA: Record<Solution, Guide[]> = {
   product: [],
   marketing: [
     { name: 'channel', when: "repurpose a topic's draft for one channel", text: marketingChannel },
+    { name: 'polish', when: 'work a batch of comments into one pass over a draft', text: marketingPolish },
     // A product board has no writer to join, so nothing there could ever ask for one.
     { name: 'write-agent', when: "write part of a topic's draft folder, as the agent asked for it", text: writeAgent },
   ],

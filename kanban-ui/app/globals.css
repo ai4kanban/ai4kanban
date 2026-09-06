@@ -589,3 +589,34 @@ body.a4k-inset .a4k-nav-edge {
 .nb-fold > summary::-webkit-details-marker {
   display: none;
 }
+
+/* A commented line in a marketing draft's editor (#458). OverType rewrites its preview's
+   HTML on every render, so the marks are classes and data attributes put back afterwards
+   rather than nodes kept around — and they are written `!important`, one class deeper than
+   the library's own `.overtype-preview div` reset, which pins every line `position: static`
+   and would otherwise leave the number with nothing to sit against.
+   The wash and the number only; the passage itself is not underlined, because a sub-line
+   mark would mean splitting generated markdown HTML on every keystroke. */
+.overtype-wrapper .overtype-preview .a4k-commented {
+  position: relative !important;
+  background: var(--color-nb-accent-wash) !important;
+  box-shadow: inset 2px 0 0 0 var(--color-nb-accent-soft) !important;
+}
+/* The comment's number, in the margin beside the line it starts on. Absolutely placed, so
+   it never moves a character of the draft out of line with the textarea underneath. */
+.overtype-wrapper .overtype-preview .a4k-commented[data-comment]::before {
+  content: attr(data-comment);
+  position: absolute;
+  left: -26px;
+  top: 1px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--color-nb-accent-soft);
+  color: var(--color-nb-accent-deep);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+}

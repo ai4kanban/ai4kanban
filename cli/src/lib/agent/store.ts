@@ -136,6 +136,7 @@ export function readStore(): Store {
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
       channel: typeof entry.channel === 'string' && entry.channel ? entry.channel : undefined,
+      draft: typeof entry.draft === 'string' && entry.draft ? entry.draft : undefined,
       refineRound:
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
           ? entry.refineRound

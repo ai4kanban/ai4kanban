@@ -83,11 +83,17 @@ const en: CardCopy = {
     publishIntro: "This records where the piece went up. It posts nothing.",
     publishUrlPlaceholder: "https://…",
     publishConfirm: "Mark published",
-    ask: {
-      placeholder: "Change this passage…",
-      send: "Send",
-      message: (file, from, to, selected, instruction) =>
-        `Change one passage of \`${file}\`, characters ${from}–${to}:\n\n> ${selected}\n\n${instruction}\n\nRewrite only that passage in the file. Leave every other byte of it alone.`,
+    comment: {
+      placeholder: "What should change here?",
+      leave: "Comment",
+      heading: "Comments",
+      edit: "Edit",
+      drop: "Delete",
+      save: "Save",
+      hint: "Submitting locks the draft until it comes back",
+      submit: (n) => (n === 1 ? "Submit 1 comment" : `Submit ${n} comments`),
+      polishing: (n) => (n === 1 ? "Working through 1 comment" : `Working through ${n} comments together`),
+      failed: "the polish could not be started",
     },
   },
   delivery: {

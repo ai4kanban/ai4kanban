@@ -99,6 +99,12 @@ export { createAgent, deleteAgent, readAgents, saveAgentFile, setAgentRule } fro
 export { readDrafts, repurposeChannel, saveDraft, setChannels, setChannelStatus } from './lib/view/drafts'
 export type { RepurposeAsk, RepurposeResult } from './lib/view/drafts'
 
+// The comments a reader leaves on one draft, and the polish they are submitted to (#458).
+// A comment is saved on its passage rather than sent, so a whole read-through costs one
+// pass over the file instead of one rewrite per remark. The batch lives beside the board
+// and out of git; the board clears it when the polish it went to ends `done`.
+export { commentOnDraft, dropDraftComment, editDraftComment, polishDraft } from './lib/view/drafts'
+
 // The chat (#240): the board's conversation with its agent, and each card's. A screen
 // drives it through these — `sendChatMessage` streams the reply back through `onText`, so
 // a chat in the app and a chat in a terminal are the same conversation, held by the same

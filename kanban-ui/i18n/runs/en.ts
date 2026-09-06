@@ -24,6 +24,7 @@ const en: RunsCopy = {
     spec: "spec",
     write: "write",
     channel: "channel",
+    polish: "polish",
   },
   verb: {
     implement: "implementing",
@@ -46,6 +47,7 @@ const en: RunsCopy = {
     spec: "drafting a spec",
     write: "writing a file",
     channel: "repurposing",
+    polish: "polishing",
   },
   step: {
     implement: "Implement",
@@ -68,6 +70,7 @@ const en: RunsCopy = {
     spec: "Spec",
     write: "Write",
     channel: "Channel",
+    polish: "Polish",
   },
   flow: {
     edit: "Revise",

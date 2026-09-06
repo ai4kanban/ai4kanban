@@ -69,6 +69,11 @@ export type AgentAction =
    *  `channel`, starts clean, and writes one file under `content/<id>-<slug>/` — no card,
    *  no other channel's draft, and no second pass. Marketing boards only. */
   | 'channel'
+  /** One pass over one draft, answering every comment left on it (#458). It is named by
+   *  `draft`, starts clean, and writes that one file under `content/<id>-<slug>/` — the
+   *  comments are read off disk and cleared by the board when the run ends `done`.
+   *  Marketing boards only. */
+  | 'polish'
   /** Write one closed version's changelog (#232) — a few plain lines saying what the
    *  version changed, from the goal and the cards the close wrote down. It touches no
    *  card, so it carries a release id, and the close that made the record starts it. */
@@ -180,6 +185,9 @@ export interface AgentRequest {
    *  own. Free text, and unset on every repurpose that did not ask for one — nothing on the
    *  card carries it, because it is an argument to one action rather than a setting. */
   language?: string
+  /** polish: which draft this run works over (#458) — `source` or a channel's name. It
+   *  decides the file the run writes and the batch of comments it answers. */
+  draft?: string
   /** implement: how THIS build commits (#346) — the Implement dialog's tick, and this one
    *  delivery's answer. Absent on every other way in — a terminal `akb card implement`, a queued
    *  build, a resolve that carries on — and those fall back to **Allow automatic Git
@@ -195,7 +203,7 @@ export type StartableAction = Exclude<AgentAction, 'propose'>
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<StartableAction, 'clarify' | 'writing' | 'spec' | 'channel' | 'write'>
+  | Exclude<StartableAction, 'clarify' | 'writing' | 'spec' | 'channel' | 'polish' | 'write'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -286,6 +294,9 @@ export interface RunRecord {
   /** Which channel this run repurposes for, on a `channel` run — kept for the same reasons,
    *  and so its close knows which channel's status to move to `draft`. */
   channel?: string
+  /** Which draft a `polish` run works over (#458) — kept so its close knows whose batch of
+   *  comments to clear, and so a resume polishes the same draft. */
+  draft?: string
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
   /** The QA guide this refinement uses across its sessions and resume. */

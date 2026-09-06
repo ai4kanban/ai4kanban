@@ -15,6 +15,7 @@ import type { Readable, Writable } from 'node:stream'
 import fs from 'node:fs'
 
 import { boardImage, carryRunEdits, holdRunCard, rereadRunCard } from '../board'
+import { clearComments } from '../comments'
 import { rel, TODO, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-contract'
@@ -391,6 +392,16 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           // The draft is on disk either way; `akb raw channel-status` is one command away.
         }
       }
+      // A polish that finished takes its batch with it (#458). The board clears it, not the
+      // run: the polished draft is the answer, and a run that failed, was stopped or was cut
+      // off leaves the comments where they were, to submit again.
+      if (status === 'done' && record.action === 'polish' && record.cardId !== null && record.draft) {
+        try {
+          clearComments(record.cardId, record.draft)
+        } catch {
+          // The draft is written either way, and the batch is one Submit from being redone.
+        }
+      }
       // What this run changed, taken now and taken once (agent/refine.ts). Every ending
       // claims, a failure included: a half-written card is not a card to refine, but leaving
       // its edits unclaimed would hand them to whichever run closes next.
@@ -733,6 +744,7 @@ function requestOf(record: RunRecord): AgentRequest {
     title: titleOf(id),
     specAgent: record.specAgent,
     channel: record.channel,
+    draft: record.draft,
     refineRound: record.refineRound,
     refineEffort: record.refineEffort,
     flowId: record.flowId,

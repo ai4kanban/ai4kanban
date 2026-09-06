@@ -1,5 +1,5 @@
 // The Markdown editor the marketing card page is built on (#434). `overtype` ships no
-// types of its own, so what this page uses is declared here — the constructor, and the four
+// types of its own, so what this page uses is declared here — the constructor, and the
 // instance members the page touches. The library is a plain class, not a React component:
 // `components/MarketingCardPage.tsx` mounts and destroys it in an effect.
 
@@ -16,11 +16,17 @@ declare module "overtype" {
      *  while an agent is writing. */
     textareaProps?: Record<string, unknown>;
     onChange?(value: string, instance: OverTypeInstance): void;
+    /** Fired after every render of the preview layer, whose HTML is rewritten wholesale
+     *  each time — so the comment marks a draft carries are put back from here (#458). */
+    onRender?(preview: HTMLElement, mode: string, instance: OverTypeInstance): void;
   }
 
   export interface OverTypeInstance {
+    /** The preview layer: one element per source line, except that consecutive list lines
+     *  collapse into one `<ul>`/`<ol>` and a fenced block's body into one `<pre>`. */
+    preview: HTMLElement;
     /** The textarea the user actually types in. Its `selectionStart`/`selectionEnd` are
-     *  offsets into the file itself, which is what "改这段" sends with the selected text. */
+     *  offsets into the file itself, which is what a comment records with its passage. */
     textarea: HTMLTextAreaElement;
     getValue(): string;
     setValue(markdown: string): void;

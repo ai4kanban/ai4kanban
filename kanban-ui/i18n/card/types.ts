@@ -115,12 +115,24 @@ export type CardCopy = {
     publishIntro: string;
     publishUrlPlaceholder: string;
     publishConfirm: string;
-    /** One selected passage, handed to this card's own conversation. `message` is what the
-     *  agent is sent: the file, where the passage sits in it, the passage, and the ask. */
-    ask: {
+    /** Commenting on a passage, and the batch of comments that goes to one polish (#458).
+     *  A comment is saved on its lines, not sent — the whole read-through is submitted at
+     *  once — so nothing here is worded as a message to an agent. */
+    comment: {
+      /** The box that floats up while a passage is selected. */
       placeholder: string;
-      send: string;
-      message: (file: string, from: number, to: number, selected: string, instruction: string) => string;
+      leave: string;
+      /** The list under the editor: its heading, and the two things a row offers. */
+      heading: string;
+      edit: string;
+      drop: string;
+      save: string;
+      /** The line beside Submit, and the button itself with the batch's count. */
+      hint: string;
+      submit: (n: number) => string;
+      /** While the polish is running, in Submit's place. */
+      polishing: (n: number) => string;
+      failed: string;
     };
   };
   delivery: {

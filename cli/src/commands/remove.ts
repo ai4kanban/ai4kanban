@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { clearChat } from '../lib/agent/chat'
+import { dropComments } from '../lib/comments'
 import { heldByDelivery } from '../lib/agent/deliveries'
 import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
@@ -108,6 +109,12 @@ function dropMockups(ids: number[]): { dir: string; files: number }[] {
 // its CLI keeps it, and nothing on this board holds its id any more.
 function dropChats(ids: number[]): number[] {
   return ids.filter((id) => clearChat(id))
+}
+
+// And the comments waiting on its drafts (#458). A batch is an ask for a polish that will
+// never run now, and it was never in git — so this is the end of them.
+function dropDraftComments(ids: number[]): number[] {
+  return ids.filter((id) => dropComments(id))
 }
 
 // ---- find prose mentions of a leaving id -----------------------------------
@@ -273,6 +280,7 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   const unlinked = dropCrossRefs(id)
   const droppedMockups = dropMockups(mockupIds)
   const droppedChats = dropChats(mockupIds)
+  const droppedComments = dropDraftComments(mockupIds)
   bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
   if (dest) say(`archived #${id}: moved ${what} → ${rel(dest)}${found.kind === 'group' ? '/' : ''}`)
@@ -285,6 +293,7 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
     say(`  deleted ${m.dir}/ — ${m.files} mockup file(s)`)
   }
   for (const chatId of droppedChats) say(`  forgot the conversation about #${chatId}`)
+  for (const commentId of droppedComments) say(`  dropped the comments left on #${commentId}'s drafts`)
   // The group closes with its last subtask (#299). Taken before the mentions below, so a
   // sentence in a root that left with this card is never handed over to be rewritten.
   const closed = groupRoot ? closeGroup(groupRoot) : null
@@ -305,6 +314,7 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
     also_removed: alsoRemoved,
     mockups_removed: droppedMockups.map((m) => m.dir),
     chats_removed: droppedChats,
+    comments_removed: droppedComments,
     // The group this card's departure closed, or the rule that kept a finished-looking root
     // on the board (#299). Null when the card was in no group, or its group is still open.
     group_close: closed,

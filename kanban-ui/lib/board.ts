@@ -15,6 +15,7 @@ import type {
   ChannelStatus,
   DeliveryDiff,
   DeliveryPlan,
+  DraftComment,
   MemoryFile,
   MetricsResult,
   ScoreResult,
@@ -426,6 +427,69 @@ export async function setChannelStatus(
     const rules = await boardRules();
     if (!rules.setChannelStatus) return { ok: false, error: await tooOldForDrafts() };
     return await rules.setChannelStatus(id, channel, status, url);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- the comments left on a draft, and the polish they go to (#458) ---------
+// A board whose rules predate them draws no comment control at all — `canComment` on the
+// read is absent, so the page offers nothing to comment with and none of these is reached.
+// They still answer, with the same line the drafts block says, for a page that asked anyway.
+
+export async function commentOnDraft(
+  id: number,
+  draft: string,
+  passage: { quote: string; from: number; to: number; words: string },
+): Promise<{ comments: DraftComment[]; error?: string }> {
+  try {
+    const rules = await boardRules();
+    if (!rules.commentOnDraft) return { comments: [], error: await tooOldForDrafts() };
+    return { comments: rules.commentOnDraft(id, draft, passage) };
+  } catch (e) {
+    return { comments: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function editDraftComment(
+  id: number,
+  draft: string,
+  commentId: string,
+  words: string,
+): Promise<{ comments: DraftComment[]; error?: string }> {
+  try {
+    const rules = await boardRules();
+    if (!rules.editDraftComment) return { comments: [], error: await tooOldForDrafts() };
+    return { comments: rules.editDraftComment(id, draft, commentId, words) };
+  } catch (e) {
+    return { comments: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function dropDraftComment(
+  id: number,
+  draft: string,
+  commentId: string,
+): Promise<{ comments: DraftComment[]; error?: string }> {
+  try {
+    const rules = await boardRules();
+    if (!rules.dropDraftComment) return { comments: [], error: await tooOldForDrafts() };
+    return { comments: rules.dropDraftComment(id, draft, commentId) };
+  } catch (e) {
+    return { comments: [], error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Submit the batch: one `polish` run over that draft. The board clears the comments when
+ *  it ends `done`, so a run that failed leaves them to submit again. */
+export async function polishDraft(
+  id: number,
+  draft: string,
+): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
+  try {
+    const rules = await boardRules();
+    if (!rules.polishDraft) return { ok: false, error: await tooOldForDrafts() };
+    return await rules.polishDraft(id, draft);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

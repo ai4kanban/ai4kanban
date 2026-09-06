@@ -27,6 +27,7 @@ import type {
   CardDrafts,
   CardPatch,
   ChannelStatus,
+  CommentBatch,
   CloudEventAnswer,
   CommandRequest,
   ScheduledAction,
@@ -119,6 +120,27 @@ export interface ScreenActions {
   /** Choose the channels this topic goes to — the page's `+` appends one. A
    *  channel that stays keeps its status and the URL it went up at. */
   setChannels(id: number, names: string[]): Promise<WriteResult>;
+
+  // ---- the comments on one draft, and the polish they go to (#458) ---------
+  // Only ever called where `CardDrafts.canComment` said yes: a board whose rules predate
+  // the move draws no comment control, so the page never reaches these.
+  /** Leave one comment on a passage. `from`/`to` are where it was selected — kept as the
+   *  place the quote is looked for next time, since the quote is the anchor. */
+  commentOnDraft(id: number, draft: string, passage: DraftPassage): Promise<CommentBatch>;
+  /** Change what one comment asks for. Its passage stays. */
+  editDraftComment(id: number, draft: string, commentId: string, words: string): Promise<CommentBatch>;
+  dropDraftComment(id: number, draft: string, commentId: string): Promise<CommentBatch>;
+  /** Submit the batch: one `polish` run over that draft. The board clears the comments when
+   *  it ends `done`, so a run that failed leaves them to submit again. */
+  polishDraft(id: number, draft: string): Promise<RepurposeAnswer>;
+}
+
+/** The passage a comment is left on: the words, and where they sat when it was left. */
+export interface DraftPassage {
+  quote: string;
+  from: number;
+  to: number;
+  words: string;
 }
 
 /** What one repurpose is asked with, beside the channel (#457): the idea the user had while

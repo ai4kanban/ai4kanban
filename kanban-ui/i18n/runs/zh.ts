@@ -24,6 +24,7 @@ const zh: RunsCopy = {
     spec: "补充规格",
     write: "配套文件",
     channel: "渠道改写",
+    polish: "润色",
   },
   verb: {
     implement: "开发",
@@ -46,6 +47,7 @@ const zh: RunsCopy = {
     spec: "补充规格",
     write: "撰写配套文件",
     channel: "渠道改写",
+    polish: "正在润色",
   },
   step: {
     implement: "开发",
@@ -68,6 +70,7 @@ const zh: RunsCopy = {
     spec: "补充规格",
     write: "配套文件",
     channel: "渠道改写",
+    polish: "润色",
   },
   flow: {
     edit: "修订",

@@ -12,7 +12,8 @@
 //
 // The set is per solution. A `product` board builds code, so it has a Builder; a
 // `marketing` board writes drafts, so the same flows belong to a Writer, which also runs
-// the repurpose `akb channel` starts. Planner and Reviewer are the same work either way.
+// the repurpose `akb channel` starts and the polish a batch of comments asks for. Planner
+// and Reviewer are the same work either way.
 
 import path from 'node:path'
 
@@ -34,9 +35,10 @@ export interface AgentRole {
   switchable?: true
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
-  /** The flows it runs, by flow name (./flows.ts). `channel` is in the writer's list and is
-   *  not one of them: it is an action `akb channel` starts, and it is still the writer's
-   *  work, so the writer's rule reaches it. */
+  /** The flows it runs, by flow name (./flows.ts). `channel` and `polish` are in the
+   *  writer's list and are not among them: neither is a flow a person types — one is what
+   *  `akb channel` starts, the other what Submit on the card page starts — and both are the
+   *  writer's work, so the writer's rule reaches them. */
   flows: string[]
   /** The memory files it owns, board-relative. Nothing moves — these are the files its own
    *  flows already write, listed so a roster can say what a role remembers. */
@@ -106,8 +108,8 @@ const MARKETING_ROLES: AgentRole[] = [
   },
   {
     name: 'writer',
-    gloss: 'writes the drafts and repurposes them',
-    flows: ['implement', 'conflict', 'run', 'channel'],
+    gloss: 'writes the drafts, repurposes them and polishes them',
+    flows: ['implement', 'conflict', 'run', 'channel', 'polish'],
     memory: ['memory/writing.md', 'memory/writing/'],
   },
   REVIEWER,

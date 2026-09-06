@@ -81,11 +81,17 @@ const zh: CardCopy = {
     publishIntro: "这只记录发布地址，不会代为发帖。",
     publishUrlPlaceholder: "https://…",
     publishConfirm: "标记为已发布",
-    ask: {
-      placeholder: "改这段…",
-      send: "发送",
-      message: (file, from, to, selected, instruction) =>
-        `改 \`${file}\` 里的这一段，第 ${from}–${to} 个字符：\n\n> ${selected}\n\n${instruction}\n\n只改这一段，文件其余部分一个字节都不要动。`,
+    comment: {
+      placeholder: "这段要怎么改？",
+      leave: "记下",
+      heading: "意见",
+      edit: "改写",
+      drop: "删除",
+      save: "保存",
+      hint: "提交后稿子会锁上，直到改完",
+      submit: (n) => `提交 ${n} 条意见`,
+      polishing: (n) => `正在一起改这 ${n} 条`,
+      failed: "未能启动这次润色",
     },
   },
   delivery: {

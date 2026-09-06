@@ -111,9 +111,10 @@ function ownerOf(req: AgentRequest): RuleOwner | null {
     const name = canonicalSpecAgent(req.specAgent ?? '')
     return name ? { name } : null
   }
-  // `akb channel` is the writer's work and is not a flow a person types under `akb card`,
-  // so it names itself here.
-  const flow = req.action === 'channel' ? 'channel' : flowForRequest(req)?.command
+  // `akb channel` and the card page's polish are the writer's work and neither is a flow a
+  // person types under `akb card`, so each names itself here.
+  const flow =
+    req.action === 'channel' || req.action === 'polish' ? req.action : flowForRequest(req)?.command
   const role = roleForFlow(flow ?? '')
   return role ? { name: role.name, role, flow } : null
 }

@@ -16,13 +16,14 @@
 //                       `<html lang>` tag the layout wears — and what this machine has
 //                       answered about usage reporting (#293)
 //
-// What IS declared here is the one shape the CLI has no opinion about: `SessionView`, a run
-// as the browser reads it. The record the CLI keeps carries a couple of fields the UI has
-// no use for and holds its log under another name; lib/registry.ts is where one becomes the
-// other.
+// What IS declared here are the shapes the CLI has no opinion about. `SessionView` is a run
+// as the browser reads it: the record the CLI keeps carries a couple of fields the UI has
+// no use for and holds its log under another name, and lib/registry.ts is where one becomes
+// the other. `CommentBatch` is what a comment write answers with — the CLI hands back the
+// list, and the wrapper adds the one line a board too old to carry the move can say.
 
 import type { AgentAction, DeliveryStatus, ExecutionBlocker, ReviewTrigger, TokenUsage } from "./format/agent/types";
-import type { CardDeliveryState } from "./format/view/types";
+import type { CardDeliveryState, DraftComment } from "./format/view/types";
 
 export type {
   AgentAction,
@@ -82,6 +83,7 @@ export type {
   Column,
   DeliveryDiff,
   DeliveryPlan,
+  DraftComment,
   DropPlan,
   FillPlan,
   FillSkip,
@@ -169,6 +171,14 @@ export const ALL_RELEASES = "*";
 export type { Language, UsageReporting } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
 
+/** One draft's comments after a write, or the reason there are none to show (#458) — a
+ *  board whose rules predate the move, which is also the board that draws no comment
+ *  control at all. */
+export interface CommentBatch {
+  comments: DraftComment[];
+  error?: string;
+}
+
 /** A running or finished agent run, as the UI sees it when it polls the server. One shared
  *  picture across every tab. */
 export interface SessionView {
@@ -187,6 +197,10 @@ export interface SessionView {
   /** The card this run touches, or null for a run that names none (create, propose,
    *  plan-release). */
   cardId: number | null;
+  /** Which draft a `polish` run is working over (#458), and nothing on any other run. The
+   *  card page's comment list reads it: every run locks the editor, but only the polish on
+   *  THIS tab is the one working through the batch on screen. */
+  draft?: string;
   action: AgentAction;
   /** `interrupted` is its own terminal state: the run was cut off — the server died mid-run
    *  and the agent ended out of our sight — so it neither passed nor reported a failure. It

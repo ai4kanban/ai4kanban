@@ -94,6 +94,7 @@ const VERB: Record<AgentAction, string> = {
   spec: 'specified',
   write: 'written for',
   channel: 'repurposed',
+  polish: 'polished',
   changelog: 'written up',
   review: 'reviewed',
   conflict: 'unblocked',
@@ -570,6 +571,9 @@ export function openRun(
     // …and which channel, on the one action that has one, so its close knows whose status
     // to move and a resume repurposes for the same channel.
     channel: req.action === 'channel' ? req.channel : undefined,
+    // …and which draft, on the one that polishes one, so its close knows whose comments to
+    // clear and a resume works over the same file.
+    draft: req.action === 'polish' ? req.draft : undefined,
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round: it already applies the answers and runs QA in this session.
     refineRound: req.refineRound,
