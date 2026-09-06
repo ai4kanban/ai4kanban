@@ -53,6 +53,9 @@ export const CURSOR: Harness = {
   // flag of its own (`claude-opus-4-8[effort=high]`), so there is no separate box for it.
   settings: [
     {
+      // No `models()`: cursor-agent keeps no list of its models anywhere on disk — only the
+      // one it is currently set to — so this box is offered what the board has already run
+      // under Cursor and nothing else (agent/resolve.ts).
       key: 'model',
       label: 'Model',
       kind: 'text',

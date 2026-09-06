@@ -1,4 +1,5 @@
 import { createZcodeClient } from '../wire'
+import { home, modelsIn, obj } from './models'
 import { SKILL_SENTENCE, type Harness } from './types'
 
 // The environment every ZCode run starts under.
@@ -54,11 +55,11 @@ export const ZCODE: Harness = {
   // command's own config never points at, so a run signed in that way asks for a `zai` key
   // the user never chose and stops (#282).
   settings: [
-    // Free text, for the same reason the others' are: model ids change between releases
-    // and a stale list would block one the agent already runs. It carries no flag — ZCode
-    // has none — so this reaches the run inside the conversation instead, on the session
-    // it just opened (agent/wire/zcode.ts). `zai/glm-5.3` names a provider too; a bare id uses
-    // the one the session opened on.
+    // A box with `models()` below under it, free text for the same reason the others' are:
+    // a list that hasn't heard of a model must not be able to block it. It carries no flag —
+    // ZCode has none — so this reaches the run inside the conversation instead, on the
+    // session it just opened (agent/wire/zcode.ts). `zai/glm-5.3` names a provider too; a
+    // bare id uses the one the session opened on.
     {
       key: 'model',
       label: 'Model',
@@ -80,6 +81,17 @@ export const ZCODE: Harness = {
       help: 'From Z.ai, or BigModel for the same plan. A `zcode login` is not enough — a run signs in with this key. Saved to docs/kanban/.env (kept out of git), never shown back.',
     },
   ],
+
+  // The models ZCode's own config names, from every provider in it. Bare ids and not
+  // `provider/model`: the same GLM models are listed under each of its providers, and a bare
+  // id runs on the one the session opened with — which is the provider the key above chose.
+  models() {
+    return modelsIn(home('.zcode', 'v2', 'config.json'), (data) =>
+      Object.values(obj(obj(data).provider)).flatMap((provider) =>
+        Object.keys(obj(obj(provider).models)),
+      ),
+    )
+  },
 
   // Everything that could send ZCode somewhere the board didn't ask for. The Anthropic pair
   // is the one that matters: ZCode's Z.AI provider reads both, so a key or a base URL

@@ -58,6 +58,13 @@ const en: BoardCopy = {
       keysDiscuss: "Enter sends · Shift-Enter for a new line · Esc closes and keeps the discussion",
       shipsIn: (release) => `Ships in ${release}`,
       builds: "Builds it straight away — no card",
+      newIdea: "New idea",
+      newIdeaGuard: {
+        title: "Start a new idea?",
+        drops: ["This discussion", "The plan it wrote"],
+        cancel: "Keep it",
+        confirm: "Start new",
+      },
       guard: {
         title: "Build it now, with no card?",
         skips: [
@@ -70,9 +77,9 @@ const en: BoardCopy = {
       },
       plan: {
         label: "Plan",
-        resize: "Resize the plan",
+        enlarge: "Enlarge the plan",
+        shrink: "Shrink the plan",
         copyPath: "Copy the path",
-        lines: (count) => `${count} lines`,
         rewriting: "Rewriting",
         start: "Start planning",
         notYet: "Not yet",

@@ -108,6 +108,10 @@ export const KIMI: Harness = {
     // ids and aliases change between releases, and a stale list would block one the agent
     // already runs.
     {
+      // No `models()`: what `-m` takes is an alias out of the user's own kimi config, and
+      // nobody here has that file to read the shape of — the same gap the note at the top of
+      // this file leaves open. So this box is offered what the board has already run under
+      // Kimi and nothing else (agent/resolve.ts).
       key: 'model',
       label: 'Model',
       kind: 'text',

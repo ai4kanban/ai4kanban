@@ -54,6 +54,13 @@ const zh: BoardCopy = {
       keysDiscuss: "Enter 发送 · Shift-Enter 换行 · Esc 关闭并保留这次讨论",
       shipsIn: (release) => `将在 ${release} 中交付`,
       builds: "立即开做，不写卡片",
+      newIdea: "新想法",
+      newIdeaGuard: {
+        title: "开始一个新想法？",
+        drops: ["这次讨论", "它写出的方案"],
+        cancel: "保留",
+        confirm: "开始新的",
+      },
       guard: {
         title: "不写卡片，直接开做？",
         skips: ["不会写卡片", "不会反问，也没有方案可看", "代码进入你的分支前没有任何评审"],
@@ -62,9 +69,9 @@ const zh: BoardCopy = {
       },
       plan: {
         label: "方案",
-        resize: "调整方案宽度",
+        enlarge: "放大方案",
+        shrink: "还原方案",
         copyPath: "复制路径",
-        lines: (count) => `${count} 行`,
         rewriting: "正在改写",
         start: "开始规划",
         notYet: "先不用",

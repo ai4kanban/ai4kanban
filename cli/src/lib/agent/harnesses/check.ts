@@ -6,7 +6,7 @@
 // setting that quietly overwrites an override, or a picker promising a number the runs
 // panel shows a blank for.
 
-import type { Harness } from './types'
+import { MODEL_KEY, type Harness } from './types'
 
 // The one key a harness's own block already uses: `command`, the hand-written override for
 // its binary and flags. A setting saves beside it, so a setting by that name would fight
@@ -53,6 +53,12 @@ export function checkHarnesses(harnesses: Harness[]): void {
       if (probe.ready('') || probe.loggedOut('')) {
         throw new Error(`harness "${harness.name}": its login probe reads empty output as an answer — a probe that couldn't run has to say nothing`)
       }
+    }
+    // Model ids with no box to offer them in. The ids reach the settings through the key
+    // `model` (agent/resolve.ts), so a connector that reads a list and spells its box
+    // something else would read that file on every settings read and show nobody the answer.
+    if (harness.models && !harness.settings.some((setting) => setting.key === MODEL_KEY)) {
+      throw new Error(`harness "${harness.name}": it reads a model list but declares no "${MODEL_KEY}" setting to offer it in`)
     }
     const seen = new Set<string>()
     const seenEnv = new Set<string>()

@@ -93,6 +93,9 @@ export type ConfigurationCopy = {
     waitingFor: (boxes: string) => string;
     /** A value hand-written into the config that isn't one of the choices. */
     fromConfig: (value: string) => string;
+    /** Read out loud on the button that opens a box's list of what this machine knows —
+     *  the models the picked agent's own CLI names here. */
+    suggestions: string;
     /** The words the board's rules hand down with each agent — a setting's label and help,
      *  the providers on its list, what it can't do — all of them English. A language that
      *  isn't English maps them here, keyed by what the rules say. What isn't in the map

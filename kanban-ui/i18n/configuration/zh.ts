@@ -67,6 +67,7 @@ const zh: ConfigurationCopy = {
       "你的 ui.config.json 里还留着旧的顶层 \"command\" 字段。没有任何地方会读它——实际运行的是上面这个 Agent。你可以删掉这个字段；那是你的文件，这里不会去动它。",
     waitingFor: (boxes) => `尚未保存——把下面的${boxes}填好，这个选择会自动保存。`,
     fromConfig: (value) => `${value}（来自你的 ui.config.json）`,
+    suggestions: "显示模型",
     // 看板流程随每个 Agent 交给界面的英文原文，按原文作键。产品名、命令、路径保持英文。
     // 与英文一字不差才会命中：改动 cli/src/lib/agent/ 里的措辞，这里要跟着改。
     rulesText: {

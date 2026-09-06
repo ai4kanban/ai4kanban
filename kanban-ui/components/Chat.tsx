@@ -33,7 +33,6 @@ import {
   FiChevronDown,
   FiChevronRight,
   FiCopy,
-  FiCornerUpLeft,
   FiEdit3,
   FiMessageSquare,
   FiRefreshCw,
@@ -52,11 +51,11 @@ import { MessageBox } from "./composer";
 import { AgentMark } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
+import { ModelRow } from "./model-row";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
@@ -270,7 +269,6 @@ export function Transcript({
   onReword,
   empty,
   after,
-  fromFoot = false,
 }: {
   messages: ChatMessage[];
   /** Where the model changed (#272), woven in by when it happened. */
@@ -290,10 +288,6 @@ export function Transcript({
   /** Drawn under the newest line, inside the scroller — the Discuss screen's two answers
    *  (#427), which stand under the message that asked. */
   after?: React.ReactNode;
-  /** Grow the exchange up off the foot rather than down from the top (#427). A short
-   *  discussion then sits where the hand is instead of stranded at the top of an empty
-   *  screen — which the rail, a narrow column, never has enough room to be. */
-  fromFoot?: boolean;
 }) {
   const c = useCopy().chat;
   const box = useRef<HTMLDivElement>(null);
@@ -335,7 +329,7 @@ export function Transcript({
       {nothing ? (
         empty
       ) : (
-        <div className={`flex flex-col gap-2 pb-2 ${fromFoot ? "min-h-full justify-end" : ""}`}>
+        <div className="flex flex-col gap-2 pb-2">
           {messages.map((m, i) => (
             <Fragment key={i}>
               {marksBefore(changes, messages, i).map((mark) => (
@@ -934,16 +928,13 @@ function Composer({
 }
 
 /** What this conversation runs on (#272), on the box's own bottom row: the agent as its
- *  mark, the model beside it, and the way back to the board's pair. It is this
- *  conversation's alone — the board's settings are untouched and no other chat moves.
+ *  mark and the model beside it. It is this conversation's alone — the board's settings
+ *  are untouched and no other chat moves.
  *
  *  Everything offered comes from the command: the agents are the ones that can hold a
  *  conversation, and the model box is the picked agent's own setting. */
 export function Pick({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answering: boolean }) {
   const running = pick.agents.find((a) => a.name === pick.harness);
-  // The board's agent is somewhere to go back to only while it can hold a conversation at
-  // all; where it can't, only the model can be put back.
-  const canGoBack = pick.ownModel || (pick.ownAgent && pick.agents.some((a) => a.name === pick.boardHarness));
   return (
     <>
       {/* One pill, two segments and no seam: they are the same setting read left to right. */}
@@ -954,7 +945,6 @@ export function Pick({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick
         {/* No box where the agent has no model setting to fill in. */}
         {running?.takesModel && <ModelPick rail={rail} pick={pick} agentModel={running.model} />}
       </span>
-      {canGoBack && <ToBoard rail={rail} pick={pick} answering={answering} />}
     </>
   );
 }
@@ -1041,8 +1031,9 @@ function AgentPick({
 }
 
 /** The model beside it: free text, because ids change between agent releases and a list of
- *  our own would go stale. The caret offers what has been typed for this agent lately —
- *  a shortcut, never a list of what exists. */
+ *  our own would go stale. The caret offers the same ids the settings pane does — what this
+ *  agent's CLI knows on this machine, what the board has run, what has been typed here — as
+ *  a shortcut, never as a list of what exists. */
 function ModelPick({ rail, pick, agentModel }: { rail: ChatRail; pick: ChatPick; agentModel: string }) {
   const c = useCopy().chat;
   const [typed, setTyped] = useState(pick.model);
@@ -1097,15 +1088,20 @@ function ModelPick({ rail, pick, agentModel }: { rail: ChatRail; pick: ChatPick;
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              title={c.usedLately}
-              aria-label={c.usedLately}
+              title={c.modelList}
+              aria-label={c.modelList}
               className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[6px] hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
             >
               <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end" className="min-w-[210px]">
-            <DropdownMenuLabel>{c.usedLately}</DropdownMenuLabel>
+          {/* Scrolls: this is the machine's whole list now, and one agent's runs to a
+              hundred-odd ids. */}
+          <DropdownMenuContent
+            side="top"
+            align="end"
+            className="max-h-[280px] min-w-[210px] overflow-y-auto"
+          >
             {pick.recent.map((id) => (
               <DropdownMenuItem
                 key={id}
@@ -1115,71 +1111,13 @@ function ModelPick({ rail, pick, agentModel }: { rail: ChatRail; pick: ChatPick;
                   commit(id);
                 }}
               >
-                <span className="w-[13px] shrink-0">
-                  {id === pick.model && <FiCheck size={12} className="text-nb-accent" aria-hidden />}
-                </span>
-                <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] font-[400]">{id}</span>
-                {id === agentModel && (
-                  <span className="shrink-0 text-[10.5px] font-[400] text-nb-ink-soft">{c.boardsOwn}</span>
-                )}
+                <ModelRow id={id} picked={id === pick.model} tag={id === agentModel ? c.boardsOwn : undefined} />
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
     </span>
-  );
-}
-
-/** The way back to the board's pair, there only while one of them differs. Free when the
- *  model is what differs; an agent switch like any other when the agent is. */
-function ToBoard({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answering: boolean }) {
-  const c = useCopy().chat;
-  const [confirming, setConfirming] = useState(false);
-  useEffect(() => {
-    if (!confirming) return;
-    const timer = setTimeout(() => setConfirming(false), CONFIRM_MS);
-    return () => clearTimeout(timer);
-  }, [confirming]);
-  const board = pick.agents.find((a) => a.name === pick.boardHarness);
-  const label = c.toBoard(board?.label ?? pick.boardHarness, pick.boardModel || c.modelDefault);
-  const has = (rail.read?.chat?.messages.length ?? 0) > 0;
-  const switches = pick.ownAgent;
-
-  if (confirming) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setConfirming(false);
-          void rail.pickAgent(null);
-        }}
-        title={c.switchCost}
-        className="h-[28px] shrink-0 cursor-pointer rounded-[7px] px-1.5 text-[10.5px] font-[700] uppercase tracking-[0.04em]"
-        style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
-      >
-        {c.switchConfirm}
-      </button>
-    );
-  }
-  return (
-    <button
-      type="button"
-      title={switches && answering ? c.switchWaits : label}
-      aria-label={label}
-      disabled={switches && answering}
-      onClick={() => {
-        if (!switches) {
-          void rail.pickModel(null);
-          return;
-        }
-        if (has) setConfirming(true);
-        else void rail.pickAgent(null);
-      }}
-      className="grid size-[28px] shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink opacity-55 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] hover:opacity-100 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent"
-    >
-      <FiCornerUpLeft size={14} aria-hidden />
-    </button>
   );
 }
 

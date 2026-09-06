@@ -70,6 +70,7 @@ const en: ConfigurationCopy = {
       'Your ui.config.json still has the old top-level "command" key. Nothing reads it — the agent above is what runs. You can delete the key; it\'s your file, so nothing here touches it.',
     waitingFor: (boxes) => `Not saved yet — fill in the ${boxes} below and this pick saves itself.`,
     fromConfig: (value) => `${value} (from your ui.config.json)`,
+    suggestions: "Show models",
     // The rules already say all of this in English.
     rulesText: {},
     secret: {

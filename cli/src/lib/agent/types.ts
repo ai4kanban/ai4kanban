@@ -802,6 +802,11 @@ export interface HarnessSetting {
   kind: 'text' | 'select' | 'secret' | 'provider'
   placeholder?: string
   choices?: SettingChoice[]
+  /** Values to offer under a `text` box, filled in per machine as the settings are read —
+   *  the model ids this agent's own CLI knows about here (`agent/harnesses/models.ts`).
+   *  Unlike `choices` it decides nothing: the box stays free text, nothing is checked
+   *  against it, and an agent with no list to read draws the box it always drew. */
+  suggestions?: string[]
   providers?: Provider[]
   defaultProvider?: string
   /** The environment variable this setting's value reaches the run under. For a `secret`

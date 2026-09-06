@@ -1,4 +1,6 @@
+import { join } from 'node:path'
 import { createOpencodeStreamRenderer } from '../wire'
+import { home, modelsIn, obj } from './models'
 import { namesFlag, SKILL_SENTENCE, type Harness } from './types'
 
 // The two flags every `opencode run` wants, added only when the user's own `command` hasn't
@@ -60,6 +62,7 @@ export const OPENCODE: Harness = {
       label: 'Model',
       kind: 'text',
       placeholder: 'anthropic/claude-opus-5',
+      // `models()` below fills the list under it; free text is what it stays.
       flags: ['--model', '-m'],
       help: "Written as provider/model. Empty runs the agent's default. A wrong id fails the run; the log says why.",
       overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a model, and that wins.`,
@@ -78,6 +81,25 @@ export const OPENCODE: Harness = {
       overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a variant, and that wins.`,
     },
   ],
+
+  // OpenCode caches the whole models.dev catalogue — two hundred-odd providers, thousands of
+  // models, nearly all of them unreachable from this machine. What is offered is cut down to
+  // the providers `opencode auth login` has saved a login for, which is the same cut
+  // OpenCode's own picker makes, and each id is qualified the way `--model` takes it.
+  models() {
+    const cache = process.env.XDG_CACHE_HOME || home('.cache')
+    const data = process.env.XDG_DATA_HOME || home('.local', 'share')
+    const mine = modelsIn(join(data, 'opencode', 'auth.json'), (auth) => Object.keys(obj(auth)))
+    if (!mine.length) return []
+    return modelsIn(
+      join(cache, 'opencode', 'models.json'),
+      (catalogue) =>
+        mine.flatMap((provider) =>
+          Object.keys(obj(obj(obj(catalogue)[provider]).models)).map((model) => `${provider}/${model}`),
+        ),
+      mine.join(' '),
+    )
+  },
 
   env: () => ({ ...process.env }),
 

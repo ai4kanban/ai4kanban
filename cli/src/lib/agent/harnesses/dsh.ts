@@ -104,6 +104,8 @@ export const DSH: Harness = {
     // ACP session picks its model once it is open, so this reaches the run inside the
     // conversation instead (agent/wire/acp.ts).
     {
+      // No `models()`: dsh keeps no model list on disk, so this box is offered what the
+      // board has already run under it and nothing else (agent/resolve.ts).
       key: 'model',
       label: 'Model',
       kind: 'text',

@@ -1,4 +1,5 @@
 import { createAcpClient } from '../wire'
+import { home, modelsIn, obj } from './models'
 import { SKILL_SENTENCE, type Harness } from './types'
 
 // The fence a Grok run works behind, and the only place it can be said.
@@ -64,11 +65,11 @@ export const GROK: Harness = {
   // set up with grok has a login in `~/.grok` and a default model in its own
   // `~/.grok/config.toml`, and a board run uses exactly what `grok` would.
   settings: [
-    // Free text, for the same reason the others' are: model ids change between releases and
-    // a stale list would block one the agent already runs. It carries no flag — grok's own
-    // `-m` sits BEFORE the subcommand and `extraArgs` is appended after it — so this reaches
-    // the run inside the conversation instead, as ACP's `session/set_model` on the session it
-    // just opened (agent/wire/acp.ts).
+    // A box with `models()` below under it, free text for the same reason the others' are:
+    // a list that hasn't heard of a model must not be able to block it. It carries no flag —
+    // grok's own `-m` sits BEFORE the subcommand and `extraArgs` is appended after it — so
+    // this reaches the run inside the conversation instead, as ACP's `session/set_model` on
+    // the session it just opened (agent/wire/acp.ts).
     {
       key: 'model',
       label: 'Model',
@@ -88,6 +89,14 @@ export const GROK: Harness = {
       help: 'Used when `grok login` has not been run — a saved login outranks it. Saved to docs/kanban/.env (kept out of git), never shown back.',
     },
   ],
+
+  // The models xAI's own proxy told grok about, cached in `~/.grok/models_cache.json` and
+  // keyed by id. The list is the login's: a machine signed in with a session sees the
+  // subscription's models, one on a key sees the key's, and the board reads whichever is
+  // there rather than deciding.
+  models() {
+    return modelsIn(home('.grok', 'models_cache.json'), (data) => Object.keys(obj(obj(data).models)))
+  },
 
   // Everything that could send a Grok run to a provider the user didn't pick: where the
   // requests go, the second name the key answers to, and the three that decide who issues

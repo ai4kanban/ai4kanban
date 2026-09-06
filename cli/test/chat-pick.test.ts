@@ -49,12 +49,24 @@ const said = (harness = 'claude-code', extra: Record<string, unknown> = {}): voi
 const held = (): Record<string, unknown> =>
   JSON.parse(fs.readFileSync(path.join(root, 'docs', 'kanban', 'ui.config.json'), 'utf8'))
 
+// The model list a pick offers is partly read off the agent CLIs' own files under $HOME
+// (agent/harnesses/models.ts), so the home is a scratch one too — otherwise what this asserts
+// would be whatever the machine running it happens to have installed.
+let home = ''
+let realHome: string | undefined
+
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-chat-pick-'))
+  home = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-chat-home-'))
+  realHome = process.env.HOME
+  process.env.HOME = home
 })
 
 afterEach(() => {
+  if (realHome === undefined) delete process.env.HOME
+  else process.env.HOME = realHome
   fs.rmSync(root, { recursive: true, force: true })
+  fs.rmSync(home, { recursive: true, force: true })
 })
 
 describe('a conversation that never picked', () => {
@@ -117,11 +129,13 @@ describe("a conversation's own model", () => {
     assert.equal(pick.ownModel, false)
   })
 
-  it("offers the ids typed here lately, the board's among them", () => {
+  it("offers the settings pane's own list, with what was typed here and the board's among them", () => {
     config(BOARD)
     pickChatModel(null, 'claude-opus-5')
     const { recent } = readChatView(null).pick
-    assert.deepEqual(recent, ['claude-opus-5', 'claude-sonnet-5'])
+    // Claude Code's aliases first, because that is the list the settings pane draws and the
+    // two must not disagree. Then the id typed here, then the board's own — each once.
+    assert.deepEqual(recent, ['opus', 'sonnet', 'haiku', 'fable', 'claude-opus-5', 'claude-sonnet-5'])
   })
 
   it("is another conversation's business alone", () => {

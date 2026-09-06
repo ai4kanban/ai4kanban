@@ -5,9 +5,10 @@
 // row saying what sending does.
 //
 // It replaces the BOARD, not the window: it is drawn on the body's own paper, so the top row
-// and the rail stay where they are and the reader keeps their place. It is an action, not a
-// place — Esc or the ✕ hands the board back, rather than becoming a tab the header would
-// have to carry at every width.
+// stays where it is and the reader keeps their place. It is an action, not a place — Esc or
+// the ✕ hands the board back, rather than becoming a tab the header would have to carry at
+// every width. The chat rail is the one thing it does put away: this screen holds the board's
+// own conversation, so a rail beside it is that exchange drawn twice (components/CreateTask.tsx).
 //
 // Three modes share the one box. **Discuss** (#427) is the board's own conversation
 // (`akb chat`, lib/chat-rail.ts) — the same transcript, agent and model as the chat rail on
@@ -19,25 +20,47 @@
 // nothing until that is confirmed.
 //
 // What Discuss adds beside the conversation is the plan the agent is writing
-// (`docs/kanban/plans/<id>-<slug>.md`, lib/plan-panel.ts): a panel down the right, dragged
-// wider or narrower, covering the conversation on a window too narrow for both. Once the
-// outcome is settled the agent offers to start planning, and pressing it closes the screen
-// and starts the run that writes the cards.
+// (`docs/kanban/plans/<id>-<slug>.md`, lib/plan-panel.ts): a card on the right, standing
+// beside the exchange where there is room and lying over it where there is not. It is a card
+// and not a second column on purpose — the plan is not a place beside the conversation, it
+// is what the conversation has produced so far, so it is drawn as content on the paper
+// rather than as chrome the sheet is split into. Once the outcome is settled the agent
+// offers to start planning, and pressing it closes the screen and starts the run that writes
+// the cards.
+//
+// The board holds ONE conversation, so a second idea typed into the first is the first
+// idea's plan being rewritten. **New idea** is the way out: it drops the transcript, which
+// takes the plan with it (the plan hangs off the conversation's own file), and the screen is
+// the empty one again. It is the only thing on this screen that throws work away, so it asks
+// first — the same guard Build now uses, naming what goes — and it is not offered while a
+// reply or a planning run is in flight. Only one guard is ever open, so Esc always has one
+// answer: put the guard down, then the plan, then the screen.
 //
 // The box is the chat rail's own (components/composer.tsx), so Enter sends and Shift-Enter
 // starts a line here exactly as it does there. What the rail keeps is the rail's: the walk
 // back through what it has sent, its Stop, and the Esc that ends a reply — here Esc closes
 // the sheet and leaves the discussion, and any reply still being written, where they are.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiCopy, FiCheck, FiFileText, FiMessageSquare, FiPlus, FiX, FiZap } from "react-icons/fi";
+import {
+  FiCopy,
+  FiCheck,
+  FiEdit,
+  FiFileText,
+  FiMaximize2,
+  FiMessageSquare,
+  FiMinimize2,
+  FiPlus,
+  FiX,
+  FiZap,
+} from "react-icons/fi";
 import { noteDiscussAnswerAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
-import { PLAN_MAX, PLAN_MIN, PLAN_W, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
+import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { Button } from "./button";
 import { Transcript, Pick, useChatRailHere } from "./Chat";
@@ -46,14 +69,20 @@ import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
 import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
-/** How wide the conversation reads, whatever the window is. The plan takes the room to the
- *  right of it, so widening the panel moves the column rather than squeezing it. */
-const COLUMN = "w-full max-w-[600px]";
+/** How wide the conversation reads, whatever the window is. Standing the plan beside it
+ *  narrows the room the column is centred in, so the transcript and the box below it move
+ *  together and the screen keeps one centre line. */
+const COLUMN_MAX = "max-w-[600px]";
+/** The card's own padding — the paper the plan's words stand on inside it. */
+const PLAN_PAD = 28;
+const COLUMN = `w-full ${COLUMN_MAX}`;
 
-/** The library's panels are `overflow: auto`; both of these scroll inside themselves. */
-const PANE_CLIP = { overflow: "hidden" } as const;
+/** What the conversation keeps off the sheet's edges, so a narrow window never runs the
+ *  words into the frame. The transcript's own scroller already holds half of it
+ *  (components/Chat.tsx), so its wrapper adds the other half and the two land on one edge. */
+const GUTTER = "px-5";
+const GUTTER_HALF = "px-2.5";
 
 /** What sending does. `discuss` talks it through first (#427); `card` writes one and refines
  *  it; `build` writes none (#428). */
@@ -110,7 +139,8 @@ function Sheet({
   // Discuss is what a vague idea wants, so it is what the screen opens on. Build now never
   // is: a build with no card is the deliberate one.
   const [mode, setMode] = useState<CreateMode>("discuss");
-  const [guarding, setGuarding] = useState(false);
+  // Which "are you sure?" is open, if any. One at a time, so Esc has one answer.
+  const [guard, setGuard] = useState<null | "build" | "new">(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sendRef = useRef<HTMLSpanElement>(null);
@@ -119,15 +149,20 @@ function Sheet({
   useEffect(() => setMounted(true), []);
 
   // While the sheet is up it is the layer Esc answers, and the rail is not (#267). The
-  // guard takes it back off the sheet while it is open, so Esc dismisses the guard first.
+  // guard takes it back off the sheet while it is open, so Esc dismisses the guard first —
+  // and an enlarged plan is a layer of its own the same way, put down before the screen is.
   useOverRail();
+  const full = plan.full;
+  const toggleFull = plan.toggleFull;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !guarding) onClose();
+      if (e.key !== "Escape" || guard) return;
+      if (full) toggleFull();
+      else onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, guarding]);
+  }, [onClose, guard, full, toggleFull]);
 
   const read = rail.read;
   // Nothing on this board can hold a conversation at all — no agent that can, or rules older
@@ -160,11 +195,28 @@ function Sheet({
   // A discussion with something in it is drawn as a conversation; one with nothing said is
   // still the empty screen the headline sits on.
   const talking = discussing && (messages.length > 0 || rail.live !== null || rail.stopped !== null);
+  // Where the card goes: beside the conversation where the sheet has room for both, over it
+  // where it has not — and enlarged, over it at any width, taking the sheet.
+  const beside = plan.open && plan.beside && !plan.full;
+  const over = plan.open && !beside;
+  // Leaving this discussion for the next one. Only where there is something to leave, and
+  // never mid-flight: clearing under a reply lands it in a fresh file, and clearing under a
+  // planning run takes away the only line saying that run is going.
+  const busy = rail.answering || plan.read?.run?.running === true;
+  const canStartNew = discussing && !busy && (messages.length > 0 || plan.shown);
+  const startNew = async () => {
+    setGuard(null);
+    setError(null);
+    // The transcript's file is where the plan is held, so dropping it lets both go — the
+    // read after it is what empties the card.
+    await rail.clear();
+    plan.refresh();
+  };
 
   const send = async (picked: CreateMode) => {
     const words = text.trim();
     if (!words || sending || waiting) return;
-    setGuarding(false);
+    setGuard(null);
     setError(null);
     if (picked === "discuss") {
       if (!discussing) return;
@@ -186,13 +238,13 @@ function Sheet({
   // mode closes it: the guard belongs to the mode, not to the press.
   const pressSend = () => {
     if (!text.trim() || waiting) return;
-    if (mode === "build") setGuarding(true);
+    if (mode === "build") setGuard("build");
     else void send(mode);
   };
 
   const pick = (picked: CreateMode) => {
     setMode(picked);
-    setGuarding(false);
+    setGuard(null);
     setError(null);
   };
 
@@ -210,8 +262,8 @@ function Sheet({
       onText={setText}
       onSend={pressSend}
       sendRef={sendRef}
-      guarding={guarding}
-      onGuardDismiss={() => setGuarding(false)}
+      guarding={guard === "build"}
+      onGuardDismiss={() => setGuard(null)}
       onGuardConfirm={() => void send("build")}
       error={error}
     />
@@ -224,24 +276,41 @@ function Sheet({
       ref={plan.measure}
       className={`${body ? "absolute" : "fixed"} inset-0 z-20 flex flex-col bg-nb-paper`}
     >
-      <div className="flex shrink-0 items-center justify-end gap-1.5 p-2">
-        {/* Narrow only. There the plan is a cover, so one pill puts it up and takes it away
-            again — the job the top row's Chat button does for the rail. */}
-        {plan.shown && plan.overlay && (
-          <button
-            type="button"
-            onClick={plan.toggleCover}
-            aria-pressed={plan.covering}
-            className="inline-flex h-[26px] cursor-pointer items-center gap-1.5 rounded-[8px] px-2.5 text-[12.5px] font-[700]"
+      {/* Both of these are the app's own press-down button, not quiet text. They arrive
+          mid-discussion on a screen that is otherwise all conversation, and a chip a shade
+          off paper is one nobody finds: the plan the agent has just written is the thing to
+          read next, and New idea is the only way back to an empty screen. */}
+      <div className="flex shrink-0 items-center justify-end gap-2 p-2">
+        {canStartNew && (
+          <NewIdea
+            open={guard === "new"}
+            onOpen={() => setGuard("new")}
+            onDismiss={() => setGuard(null)}
+            onStart={() => void startNew()}
+          />
+        )}
+        {/* Whether the card is up, which is the screen's own business. Its size is not —
+            that is the card's, and lives on the card (PlanCard). Lit while it is up, the way
+            a mode chip is: this is a toggle, and a toggle has to say which way it is. */}
+        {plan.shown && (
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={plan.toggle}
+            aria-pressed={plan.open}
             style={
-              plan.covering
-                ? { background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }
-                : { color: "var(--color-nb-ink-soft)" }
+              plan.open
+                ? {
+                    background: "var(--color-nb-accent-soft)",
+                    color: "var(--color-nb-accent-deep)",
+                    borderColor: "var(--color-nb-accent-deep)",
+                  }
+                : undefined
             }
           >
             <FiFileText size={13} aria-hidden />
             {c.plan.label}
-          </button>
+          </Button>
         )}
         <button
           onClick={onClose}
@@ -253,63 +322,41 @@ function Sheet({
       </div>
 
       {talking ? (
-        <div className="min-h-0 flex-1">
-          <ResizablePanelGroup orientation="horizontal" onLayoutChanged={plan.onLayoutChanged}>
-            <ResizablePanel id="discuss" style={PANE_CLIP}>
-              <div className="flex h-full min-h-0 flex-col">
-                {/* The cover lies over the exchange and stops at the box: this screen is a
-                    conversation being answered, and reading the plan is what you do in order
-                    to reply. */}
-                <div className="relative flex min-h-0 flex-1 justify-center">
-                  <div className={`flex min-h-0 flex-col ${COLUMN}`}>
-                    <Transcript
-                      messages={messages}
-                      changes={read?.chat?.modelChanges}
-                      live={rail.live}
-                      liveSince={read?.liveSince ?? null}
-                      stopped={rail.stopped}
-                      canSend={!!read && !read.blocked && !rail.answering}
-                      onResend={rail.say}
-                      onReword={rail.reword}
-                      empty={null}
-                      after={<Handoff plan={plan} rail={rail} onPlan={onPlan} />}
-                      fromFoot
-                    />
-                  </div>
-                  {plan.covering && (
-                    <div
-                      className="absolute inset-y-0 right-0 w-[min(440px,100%)] bg-nb-cream"
-                      style={{ borderLeft: "1.5px solid var(--color-nb-ink)" }}
-                    >
-                      <PlanPane plan={plan} fade />
-                    </div>
-                  )}
-                </div>
-                {/* The box keeps its place and its full width under the cover: this screen
-                    is a conversation being answered, and a cover that took the box away
-                    would make you put the plan down to say anything. */}
-                <div className="flex shrink-0 justify-center px-5 pb-6 pt-3">
-                  <div className={COLUMN}>{composer}</div>
-                </div>
+        <div className="relative min-h-0 flex-1">
+          {/* Beside the card the conversation gives up the room the card stands in — the
+              transcript and the box both, so the two keep the one centre line they had
+              before it arrived. Over it they keep the whole sheet and the card lies on top. */}
+          <div
+            className="flex h-full min-h-0 flex-col"
+            style={beside ? { paddingRight: plan.space } : undefined}
+          >
+            <div className={`relative flex min-h-0 flex-1 justify-center ${GUTTER_HALF}`}>
+              <div className={`flex min-h-0 flex-col ${COLUMN}`}>
+                <Transcript
+                  messages={messages}
+                  changes={read?.chat?.modelChanges}
+                  live={rail.live}
+                  liveSince={read?.liveSince ?? null}
+                  stopped={rail.stopped}
+                  canSend={!!read && !read.blocked && !rail.answering}
+                  onResend={rail.say}
+                  onReword={rail.reword}
+                  empty={null}
+                  after={<Handoff plan={plan} rail={rail} onPlan={onPlan} />}
+                />
               </div>
-            </ResizablePanel>
-            {plan.shown && !plan.overlay && (
-              <>
-                <ResizableHandle aria-label={c.plan.resize} onDoubleClick={plan.onDoubleClick} />
-                <ResizablePanel
-                  id="plan"
-                  panelRef={plan.panel}
-                  defaultSize={PLAN_W}
-                  minSize={PLAN_MIN}
-                  maxSize={PLAN_MAX}
-                  groupResizeBehavior="preserve-pixel-size"
-                  style={PANE_CLIP}
-                >
-                  <PlanPane plan={plan} />
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
+              {/* Over the exchange, the card stops at the box — enlarged too: this screen is
+                  a conversation being answered, and a card that took the box away would make
+                  you put the plan down to say anything. */}
+              {over && <PlanCard plan={plan} />}
+            </div>
+            <div className={`flex shrink-0 justify-center pb-6 pt-3 ${GUTTER}`}>
+              <div className={COLUMN}>{composer}</div>
+            </div>
+          </div>
+          {/* Beside it, the card runs the height of the screen and its foot sits on the
+              box's own — one baseline across the bottom of the sheet. */}
+          {beside && <PlanCard plan={plan} tall />}
         </div>
       ) : (
         // Centred, then lifted by the foot padding: optically centred sits a little above
@@ -328,6 +375,58 @@ function Sheet({
       )}
     </div>,
     body ?? document.body,
+  );
+}
+
+/** Leaving this discussion for the next one. The board holds one conversation, so without
+ *  this a second idea is typed into the first and the agent rewrites the first idea's plan.
+ *
+ *  It is the only press on this screen that throws work away, so it opens the guard rather
+ *  than doing it: the same panel Build now hangs off Send, naming what goes, with Keep it
+ *  and Start new side by side. Pressing the button is never the answer — choosing is. */
+function NewIdea({
+  open,
+  onOpen,
+  onDismiss,
+  onStart,
+}: {
+  open: boolean;
+  onOpen: () => void;
+  onDismiss: () => void;
+  onStart: () => void;
+}) {
+  const c = useCopy().board.create.sheet;
+  // The panel hangs off this, and an outside click is measured against it — so it lives
+  // inside, the way the composer's guard lives inside the Send box (components/composer.tsx).
+  const anchor = useRef<HTMLSpanElement>(null);
+  return (
+    <span ref={anchor} className="relative flex">
+      <Button variant="ghost" size="xs" aria-expanded={open} onClick={open ? onDismiss : onOpen}>
+        <FiEdit size={13} aria-hidden />
+        {c.newIdea}
+      </Button>
+      <ConfirmationPopover
+        open={open}
+        anchorRef={anchor}
+        align="right"
+        title={c.newIdeaGuard.title}
+        description={
+          <span className="flex flex-col gap-1">
+            {c.newIdeaGuard.drops.map((line) => (
+              <span key={line} className="flex items-start gap-1.5">
+                <FiX className="mt-[3px] shrink-0 text-[11px] text-nb-peach-ink" aria-hidden />
+                <span>{line}</span>
+              </span>
+            ))}
+          </span>
+        }
+        cancelLabel={c.newIdeaGuard.cancel}
+        confirmLabel={c.newIdeaGuard.confirm}
+        busy={false}
+        onDismiss={onDismiss}
+        onConfirm={onStart}
+      />
+    </span>
   );
 }
 
@@ -591,55 +690,119 @@ function Handoff({ plan, rail, onPlan }: { plan: PlanPanel; rail: ChatRail; onPl
   );
 }
 
-/** The plan, down the right of the sheet: the file the discussion is writing, as markdown on
- *  the board's own cream.
+/** The plan, as a card on the sheet's paper: the file the discussion is writing, in markdown
+ *  on the board's own cream.
  *
- *  A rewrite never blanks it, greys it or spins — the caption says the file is moving, and
- *  every word under it is the last thing written. */
-function PlanPane({ plan, fade = false }: { plan: PlanPanel; fade?: boolean }) {
+ *  A card, not a panel: inset on the paper with a surface of its own, rather than run to the
+ *  sheet's edges the way the window draws a rail — because the plan is not a second place
+ *  beside the conversation, it is what this conversation has made. No outer border: the cream
+ *  off the paper is edge enough, and a ruled box around a document is a frame nobody asked
+ *  for. No close of its own either: the pill in the top row is what puts it away.
+ *
+ *  Two sizes. Standing BESIDE the conversation it is a column on the right; ENLARGED it steps
+ *  into the middle of the screen as a page, at the width a plan reads at and no wider — the
+ *  frame is the measure, because a border with a column of words floating inside it is a tray,
+ *  not a page. Centred there it covers the conversation whole, so nothing is left half-read.
+ *  On a sheet with no room to stand beside, the card lies over the exchange at the
+ *  conversation's own column.
+ *
+ *  What the card says about itself sits at its foot — the path, and whether the file is
+ *  moving. Its SIZE is not that: it floats in the top corner, under the pointer only.
+ *
+ *  A rewrite never blanks it, greys it or spins: the foot says the file is moving, and every
+ *  word above is the last thing written. */
+function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
   const c = useCopy().board.create.sheet.plan;
   const read = plan.read;
-  const lines = plan.text.trim() ? plan.text.trimEnd().split("\n").length : 0;
+  const full = plan.full;
+  const { box, more } = usePlanScroll(plan.text, full, tall);
   return (
-    <section aria-label={c.label} className="flex h-full flex-col bg-nb-cream">
-      <div className="shrink-0 px-5 pb-3 pt-5">
-        <div className="flex items-center">
-          <span className="text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-ink-soft">
-            {c.label}
-          </span>
-          <span className="ml-auto flex items-center gap-1.5">
-            {plan.writing ? (
-              <>
-                <span aria-hidden className="size-[7px] rounded-full bg-nb-accent" />
-                <span className="text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-accent-deep">
-                  {c.rewriting}
-                </span>
-              </>
-            ) : (
-              <span className="text-[11.5px] text-nb-ink-soft">{c.lines(lines)}</span>
-            )}
-          </span>
-        </div>
-        {/* The only way out of the app: the path, copied. The board never opens a plan. */}
-        {read?.plan && <PlanPath path={read.plan.path} />}
-      </div>
-      <div className="h-px shrink-0" style={{ background: HAIRLINE }} />
+    <section
+      aria-label={c.label}
+      className={`group absolute top-0 z-10 mx-auto flex flex-col overflow-hidden rounded-[14px] bg-nb-cream ${
+        tall ? "bottom-6" : "bottom-0"
+      } ${!tall && !full ? COLUMN_MAX : ""}`}
+      style={
+        tall
+          ? { right: PLAN_INSET, width: plan.width }
+          : full
+            ? {
+                left: 0,
+                right: 0,
+                width: PLAN_READ + PLAN_PAD * 2,
+                maxWidth: `calc(100% - ${PLAN_INSET * 2}px)`,
+              }
+            : { left: PLAN_INSET, right: PLAN_INSET }
+      }
+    >
+      {/* The card's size, in the card's own corner, and only under the pointer: a document
+          reading a plan should be a document until you reach for it. Only where the two sizes
+          differ — on a sheet too narrow to stand the card beside the conversation it is at its
+          column already, and an Enlarge that changes nothing is a button that lies. Faded
+          rather than unmounted, so it is still there to tab to. */}
+      {plan.beside && (
+        <button
+          type="button"
+          onClick={plan.toggleFull}
+          title={full ? c.shrink : c.enlarge}
+          aria-label={full ? c.shrink : c.enlarge}
+          className="absolute right-3 top-3 z-10 grid size-9 cursor-pointer place-items-center rounded-[9px] bg-nb-cream/90 text-nb-ink-soft opacity-0 backdrop-blur-[2px] transition-[opacity,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink focus-visible:opacity-100 group-hover:opacity-100"
+          style={{ border: `1px solid ${HAIRLINE}` }}
+        >
+          {full ? <FiMinimize2 size={17} aria-hidden /> : <FiMaximize2 size={17} aria-hidden />}
+        </button>
+      )}
       <div className="relative min-h-0 flex-1">
-        <div className="h-full overflow-y-auto px-5 py-5">
+        <div
+          ref={box}
+          onScroll={more.check}
+          className="h-full overflow-y-auto"
+          style={{ padding: PLAN_PAD }}
+        >
           <Markdown body={plan.text} />
         </div>
-        {/* The plan runs past the cover's foot, so the last line fades rather than being
-            sliced — the file is longer than the room, not damaged. */}
-        {fade && (
+        {/* Only while the plan runs past the card's foot, so the last line fades rather than
+            being sliced — and the real last line is never left under a veil. */}
+        {more.on && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-14"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-10"
             style={{ background: "linear-gradient(rgba(247,247,244,0), var(--color-nb-cream))" }}
           />
         )}
       </div>
+      {/* The foot, and all the card says about itself. No head: the pill in the top row
+          already names it, and the plan's own title is the next line down. */}
+      <div className="shrink-0" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
+        <div className="flex items-center gap-2 py-2" style={{ paddingInline: PLAN_PAD }}>
+          {/* The only way out of the app: the path, copied. The board never opens a plan. */}
+          {read?.plan && <PlanPath path={read.plan.path} />}
+          {plan.writing && (
+            <span className="flex shrink-0 items-center gap-1.5">
+              <span aria-hidden className="size-[7px] rounded-full bg-nb-accent" />
+              <span className="text-[11px] font-[700] uppercase tracking-[0.06em] text-nb-accent-deep">
+                {c.rewriting}
+              </span>
+            </span>
+          )}
+        </div>
+      </div>
     </section>
   );
+}
+
+/** Whether the plan runs past the foot of the card — what the fade is drawn for. Re-measured
+ *  on scroll and whenever the words or the card's size change, so a plan that fits shows no
+ *  veil over its own last line. */
+function usePlanScroll(text: string, full: boolean, tall: boolean) {
+  const box = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(false);
+  const check = useCallback(() => {
+    const el = box.current;
+    if (el) setOn(el.scrollHeight - el.scrollTop - el.clientHeight > 2);
+  }, []);
+  useEffect(check, [check, text, full, tall]);
+  return { box, more: { on, check } };
 }
 
 /** The file's path, copyable. Truncated from the LEFT — the folder is the same for every
@@ -648,7 +811,7 @@ function PlanPath({ path }: { path: string }) {
   const c = useCopy().board.create.sheet.plan;
   const { copied, copy } = useCopyText();
   return (
-    <div className="mt-1.5 flex items-center gap-1.5">
+    <div className="flex min-w-0 flex-1 items-center gap-1.5">
       <span
         title={path}
         className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-nb-ink-soft"

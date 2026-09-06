@@ -76,9 +76,9 @@ export type ChatCopy = {
   /** An agent whose CLI isn't on this machine. */
   notInstalled: string;
   /** The way back to the board's pair, shown only while one of them differs. */
-  toBoard: (agent: string, model: string) => string;
-  /** Above the ids typed for this agent lately. */
-  usedLately: string;
+  /** Read out loud on the caret that opens the ids this machine knows for this agent — the
+   *  same list the settings pane offers. */
+  modelList: string;
   /** What switching the agent costs, under the list — and the ask-once the button becomes
    *  when there is a conversation to lose. */
   switchCost: string;

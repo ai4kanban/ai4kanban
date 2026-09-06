@@ -20,12 +20,13 @@
 
 import { useRouter } from "next/navigation";
 import { startPlanningAction } from "@/app/actions";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { SessionView } from "@/lib/types";
 import type { AgentReq } from "./agent-shared";
 import { Button } from "./button";
+import { useChatRailHere } from "./Chat";
 import { CreateSheet } from "./CreateSheet";
 import { sessionsPanel, useAgentSessions } from "./sessions";
 
@@ -48,6 +49,21 @@ export function CreateTask({
   // has no box to go back to — it is said under the button instead. A refused create still
   // goes to the sheet, which is still up.
   const [error, setError] = useState<string | null>(null);
+
+  // The rail and this screen are never both up. Pressing Chat asks for the board's
+  // conversation or a card's — and on the board the sheet is already showing the board's, so
+  // both up is one exchange drawn twice, in two boxes that answer each other. Opening either
+  // folds the other, the way the chat rail and the bell already treat each other
+  // (components/Window.tsx).
+  const rail = useChatRailHere();
+  const railOpen = rail?.open === true;
+  const foldRail = rail?.fold;
+  useEffect(() => {
+    if (railOpen) setOpen(false);
+  }, [railOpen]);
+  useEffect(() => {
+    if (open) foldRail?.();
+  }, [open, foldRail]);
 
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up

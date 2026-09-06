@@ -59,6 +59,15 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'g
    *  whole of its configuration: a run appends the ones that carry a flag, and the file
    *  keeps them in this harness's own block under `harnessSettings`. */
   settings: HarnessSetting[]
+  /** The model ids to offer under this connector's Model box, read off its CLI's own files
+   *  on this machine (`agent/models.ts`) — most of these CLIs cache a current list, so what
+   *  is offered follows the provider rather than this build.
+   *
+   *  A hint and never a limit: the box takes free text either way and nothing is checked
+   *  against this, so a model missing from the list is still one keystroke away. Left out by
+   *  a CLI that publishes no list — then the box is offered whatever this board has already
+   *  run under that agent, and nothing else. */
+  models?(): string[]
   /** Every variable that could send this connector to a provider the user didn't pick.
    *  All of them are dropped from a run's environment, and then the picked provider sets
    *  the ones it needs — so what the settings say is where the run goes, and an export
@@ -174,6 +183,11 @@ export function namesFlag(argv: string[], flags: string[]): boolean {
 
 /** The key the raw arguments save under, in the harness's own block. */
 export const RAW_ARGS_KEY = 'args'
+
+/** The key every connector's Model box saves under. Named here because it is the one
+ *  setting the board itself fills anything into — `models()`'s ids reach the box through
+ *  it (agent/resolve.ts). */
+export const MODEL_KEY = 'model'
 
 export const RAW_ARGS: HarnessSetting = {
   key: RAW_ARGS_KEY,

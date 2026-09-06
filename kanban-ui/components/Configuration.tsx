@@ -64,6 +64,7 @@ import { CloudPanel } from "./Cloud";
 import { Dialog } from "./Dialog";
 import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
+import { MODEL_ROW, ModelRow } from "./model-row";
 import { CAPTION, CONTROL, FLAT_CONTROL, Note, QUIET_BTN } from "./settings";
 import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -1564,22 +1565,191 @@ function SettingField({
           </SelectContent>
         </Select>
       ) : (
-        <input
+        <SuggestBox
           id={id}
-          type="text"
+          setting={setting}
           value={value}
           disabled={disabled}
-          placeholder={setting.placeholder}
-          spellCheck={false}
-          autoComplete="off"
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={(e) => onSave(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") e.currentTarget.blur();
-          }}
-          className={CONTROL}
+          onChange={onChange}
+          onSave={onSave}
         />
       )}
     </Field>
+  );
+}
+
+// A box to type in, with the values this machine already knows under it — today only the
+// Model box, whose ids the CLI reads off the agent's own files as it reads the settings
+// (agent/harnesses/models.ts).
+//
+// It suggests and never limits. Typing is untouched, whatever is typed is what gets saved,
+// and nothing is checked against the list: a model released this morning must not be harder
+// to set because a cache hasn't heard of it. A setting with nothing to offer draws the plain
+// input it always did, and this whole component is out of the way.
+function SuggestBox({
+  id,
+  setting,
+  value,
+  disabled,
+  onChange,
+  onSave,
+}: {
+  id: string;
+  setting: HarnessSetting;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+  onSave: (value: string) => void;
+}) {
+  const c = useCopy().configuration.harness;
+  const all = setting.suggestions ?? [];
+  const [open, setOpen] = useState(false);
+  // Which row the arrow keys are on, -1 for none — then Enter saves what is typed instead of
+  // picking, which is what a box with an id nobody suggested has to do.
+  const [active, setActive] = useState(-1);
+  const box = useRef<HTMLDivElement>(null);
+
+  // Typing narrows the list. A value that IS one of the ids is the exception: filtering
+  // would leave one row repeating the box, so the whole list stays up and switching to a
+  // neighbour is one arrow key.
+  const typed = value.trim().toLowerCase();
+  const shown =
+    !typed || all.some((one) => one.toLowerCase() === typed)
+      ? all
+      : all.filter((one) => one.toLowerCase().includes(typed));
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", away);
+    return () => document.removeEventListener("mousedown", away);
+  }, [open]);
+
+  const close = () => {
+    setOpen(false);
+    setActive(-1);
+  };
+  const pick = (picked: string) => {
+    onChange(picked);
+    onSave(picked);
+    close();
+  };
+  const move = (by: number) => {
+    if (!shown.length) return;
+    setOpen(true);
+    setActive((at) => Math.min(shown.length - 1, Math.max(0, at + by)));
+  };
+
+  if (!all.length) {
+    return (
+      <input
+        id={id}
+        type="text"
+        value={value}
+        disabled={disabled}
+        placeholder={setting.placeholder}
+        spellCheck={false}
+        autoComplete="off"
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => onSave(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+        className={CONTROL}
+      />
+    );
+  }
+
+  return (
+    <div ref={box} className="relative">
+      <input
+        id={id}
+        type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={`${id}-list`}
+        aria-autocomplete="list"
+        aria-activedescendant={open && active >= 0 ? `${id}-option-${active}` : undefined}
+        value={value}
+        disabled={disabled}
+        placeholder={setting.placeholder}
+        spellCheck={false}
+        autoComplete="off"
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+          setActive(-1);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={(e) => onSave(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            move(open ? 1 : 0);
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            move(-1);
+          } else if (e.key === "Enter") {
+            if (open && active >= 0 && shown[active]) {
+              e.preventDefault();
+              pick(shown[active]);
+            } else {
+              close();
+              e.currentTarget.blur();
+            }
+          } else if (e.key === "Escape" && open) {
+            // The dialog closes on Escape from a window listener. Closing just this list is
+            // what a native picker does, so the key stops here.
+            e.stopPropagation();
+            close();
+          } else if (e.key === "Tab") {
+            close();
+          }
+        }}
+        className={`${CONTROL} pr-9`}
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        disabled={disabled}
+        aria-label={c.suggestions}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          setOpen((was) => !was);
+          setActive(-1);
+        }}
+        className="absolute right-1 top-1/2 flex -translate-y-1/2 cursor-pointer items-center rounded-[8px] p-1.5 text-nb-ink-soft transition-colors hover:text-nb-ink disabled:cursor-wait"
+      >
+        <FiChevronDown size={15} className={open ? "rotate-180 transition-transform" : "transition-transform"} />
+      </button>
+      {open && shown.length > 0 && (
+        <ul
+          id={`${id}-list`}
+          role="listbox"
+          className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 max-h-56 overflow-y-auto rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1 shadow-[3px_3px_0_0_var(--color-nb-ink)]"
+        >
+          {shown.map((one, at) => (
+            <li key={one}>
+              <button
+                id={`${id}-option-${at}`}
+                type="button"
+                role="option"
+                aria-selected={one === value}
+                // Keeps the focus in the box, so the pick lands before a blur saves what was
+                // half-typed.
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseEnter={() => setActive(at)}
+                onClick={() => pick(one)}
+                className={`${MODEL_ROW} ${at === active ? "bg-nb-wash" : ""}`}
+              >
+                <ModelRow id={one} picked={one === value} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

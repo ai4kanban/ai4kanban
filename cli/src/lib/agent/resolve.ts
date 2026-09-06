@@ -14,11 +14,14 @@ import {
   HARNESSES,
   type Harness,
   DEFAULT_HARNESS,
+  MODEL_KEY,
   RAW_ARGS_KEY,
   SKILL_SENTENCE,
   harnessByName,
   namesFlag,
+  uniqueIds,
 } from './harnesses'
+import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
 import { commandBinary, pathLookup } from './installed'
 import { languageNote } from './language'
@@ -619,6 +622,53 @@ export function setupInstruction(): string {
     .join(' ')
 }
 
+// ---- what the Model box offers ---------------------------------------------
+//
+// The board ships no list of models and never will: one written into this build would be
+// wrong the day a provider releases something, and the box has always been free text for
+// that reason. What it offers instead is read per machine — the list the agent's own CLI
+// keeps (`models` on Harness), and the models this board has actually run.
+//
+// Neither decides anything. The box stays free text, nothing is checked against these, and
+// an agent with nothing to read draws the box it always drew.
+
+/** The models each agent on this board has run, newest first. The only source for a CLI
+ *  that publishes no list of its own, and after one run it is the answer a user most often
+ *  wants back. Every id here is one that agent really took. */
+function modelsRun(): Map<string, string[]> {
+  const ran = new Map<string, string[]>()
+  const { runs } = readStore()
+  for (let i = runs.length - 1; i >= 0; i--) {
+    const run = runs[i]!
+    if (!run.harness || !run.model) continue
+    const seen = ran.get(run.harness) ?? []
+    if (!seen.includes(run.model)) seen.push(run.model)
+    ran.set(run.harness, seen)
+  }
+  return ran
+}
+
+/** Every model id worth offering for an agent: what its CLI knows here, in that CLI's own
+ *  order, then anything this board has run that the list left out.
+ *
+ *  One list, wherever a model is picked — the settings pane and a chat's own row both draw
+ *  this. Two shortcuts disagreeing about what this machine can run is worse than either of
+ *  them being short. */
+export function modelsKnown(harness: string): string[] {
+  return mergeModels(harnessByName(harness), modelsRun().get(harness) ?? [])
+}
+
+function mergeModels(harness: Harness | undefined, ran: string[]): string[] {
+  return uniqueIds([...(harness?.models?.() ?? []), ...ran])
+}
+
+/** A connector's settings with its Model box's list filled in. */
+function withModels(harness: Harness, settings: HarnessSetting[], ran: string[]): HarnessSetting[] {
+  const suggestions = mergeModels(harness, ran)
+  if (!suggestions.length) return settings
+  return settings.map((setting) => (setting.key === MODEL_KEY ? { ...setting, suggestions } : setting))
+}
+
 /** Which agent runs the board, what it is set to, and everything a front end needs to
  *  offer the rest — including the settings each agent it could switch to takes, so nothing
  *  outside this package keeps its own list. */
@@ -636,6 +686,7 @@ export function agentInfo(): AgentInfo {
   const runtimes = readRuntimes(cfg)
   const harnessOf = harnessLookup()
   const onPath = pathLookup()
+  const ran = modelsRun()
   return {
     name: harness.name,
     command,
@@ -665,7 +716,7 @@ export function agentInfo(): AgentInfo {
         label,
         icon,
         command: cmd,
-        settings,
+        settings: withModels(option, settings, ran.get(name) ?? []),
         binary: commandBinary(runs),
         installed: onPath(runs),
         install,

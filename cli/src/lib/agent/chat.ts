@@ -31,12 +31,14 @@ import { reportChatMessage } from '../machine/usage'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { planFile } from '../plans'
 import { ensureSkillInstalled } from '../skill/install'
+import { uniqueIds } from './harnesses'
 import { languageNote } from './language'
 import {
   chatAgent,
   chatPickAgents,
   harnessLabel,
   harnessModel,
+  modelsKnown,
   openPlan,
   planResume,
   planRun,
@@ -379,11 +381,15 @@ export function pickChatModel(cardId: ChatTarget, model: string | null): { ok: t
   return { ok: true }
 }
 
-// ---- the ids typed lately --------------------------------------------------
+// ---- the ids a conversation is offered -------------------------------------
 //
-// Model ids are free text, and stay free text: this is a shortcut back to one that has been
-// typed here before, never a list of what exists. It lives beside the transcripts, on this
-// machine and out of git, because what has been tried here is nobody else's business.
+// The same list the settings pane offers (`modelsKnown` in agent/resolve.ts) — what this
+// agent's own CLI knows on this machine, and what this board has run under it — plus the ids
+// typed into a chat box, which is the one place a model is named that never becomes a run.
+//
+// Model ids are free text and stay free text: all of this is a shortcut, never a list of what
+// exists. What was typed here lives beside the transcripts, on this machine and out of git,
+// because what has been tried here is nobody else's business.
 
 const RECENT_FILE = (): string => path.join(CHATS_DIR, 'models.json')
 const RECENT_KEPT = 8
@@ -413,12 +419,11 @@ function rememberModel(harness: string, model: string): void {
   }
 }
 
-/** What has been typed for this agent lately, newest first, with the board's own model in
- *  the list wherever it isn't already: it is where a conversation starts, so it is always
- *  one of the ids worth one click. */
+/** Every id this conversation offers, in the settings pane's own order: what the agent's CLI
+ *  knows, then what has been run or typed, then the board's own model wherever it is not
+ *  already there — a conversation starts on it, so it is always worth one click. */
 function recentModels(harness: string, boardModel: string): string[] {
-  const ids = readRecent()[harness] ?? []
-  return boardModel && !ids.includes(boardModel) ? [...ids, boardModel] : ids
+  return uniqueIds([...modelsKnown(harness), ...(readRecent()[harness] ?? []), boardModel])
 }
 
 // ---- one at a time on one conversation -------------------------------------

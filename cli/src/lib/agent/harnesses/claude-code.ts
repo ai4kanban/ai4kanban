@@ -1,5 +1,11 @@
 import { createStreamRenderer } from '../wire'
+import { arr, home, modelsIn, obj, str } from './models'
 import type { Harness } from './types'
+
+// The families `--model` names, each meaning the latest model in it. Claude Code's own
+// `--model` help is where these come from, and they are the only model names here that
+// can't go out of date.
+const MODEL_ALIASES = ['opus', 'sonnet', 'haiku', 'fable']
 
 // `claude -p` in its default text mode prints nothing until the session ends, so a live
 // tail would stay empty the whole time. Ask claude to stream NDJSON events instead
@@ -119,9 +125,10 @@ export const CLAUDE_CODE: Harness = {
       placeholder: 'sk-ant-…',
       help: 'Saved to docs/kanban/.env (kept out of git), never shown back.',
     },
-    // The model is free text rather than a list — model ids change between agent releases,
-    // and a stale list would block a model the agent already runs. `--model` is the one
-    // flag its CLI takes for it; an override that already names that flag wins.
+    // A box, with `models()` below offering what this machine knows under it. Free text is
+    // what it stays: ids change between agent releases, and a list that hasn't heard of one
+    // must not be able to block it. `--model` is the one flag its CLI takes for it; an
+    // override that already names that flag wins.
     {
       key: 'model',
       label: 'Model',
@@ -158,6 +165,22 @@ export const CLAUDE_CODE: Harness = {
       overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names an effort level, and that wins.`,
     },
   ],
+
+  // The aliases lead, because they are the answer to this whole question: `claude --model`
+  // takes `opus`, `sonnet`, `haiku` or `fable` for the latest model of that family, so a
+  // board set to one is on the new model the day it ships and nobody edits anything.
+  //
+  // After them, whatever else this login may use. Claude Code asks its own server which
+  // models the account has beyond the built-in ones and keeps the answer in ~/.claude.json,
+  // so the extra a subscription unlocks is offered here without the board knowing its name.
+  models() {
+    return [
+      ...MODEL_ALIASES,
+      ...modelsIn(home('.claude.json'), (data) =>
+        arr(obj(data).additionalModelOptionsCache).map((option) => str(obj(option).value)),
+      ),
+    ]
+  },
 
   // Everything that could send Claude Code somewhere the pick didn't ask for. Each of
   // these is dropped from every run, and then the picked provider sets what it needs — so

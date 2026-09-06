@@ -1,33 +1,49 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 import { readDiscussAction } from "@/app/actions";
 import type { DiscussRead } from "./types";
 
-// The plan panel down the right of the Discuss screen (#427): the file the conversation is
-// writing, how wide the panel has been dragged, and whether there is room to stand it beside
-// the conversation at all.
+// The plan card on the Discuss screen (#427): the file the conversation is writing, whether
+// it is up, and whether the sheet has room to stand it beside the conversation.
 //
-// It is the chat rail's own shape, and deliberately its own numbers (lib/chat-rail.ts): a
-// pixel width remembered across reloads, and the same line under which a side panel stops
-// being a panel and covers what it is beside. One behavior, whichever side.
+// It is a CARD, not a rail. The window's rails are chrome — edge to edge, no surface of their
+// own (components/Chat.tsx) — and a plan is not chrome: it is a file this conversation
+// produced, so it is drawn the way this app draws content, inset on the paper with a border
+// of its own. That is also why it has no drag: the two sizes are a button in the card's own
+// corner, and whether it is up at all is the pill in the sheet's top row.
 //
 // Nothing here holds the plan. The file is on disk and the path is on the conversation, so
 // closing the sheet mid-discussion loses none of it; this only reads.
 
-const WIDTH_KEY = "kanban-ui.plan-width";
+/** The card's margin off the sheet's edge — the conversation's own gutter
+ *  (components/CreateSheet.tsx), so a card over the exchange sits on the same edges as the
+ *  box below it. */
+export const PLAN_INSET = 20;
 
-/** What the panel opens at, and how far the drag goes. Wider than the chat rail's: a plan is
- *  read as a document, not followed a line at a time. */
-export const PLAN_W = 440;
-export const PLAN_MIN = 360;
-export const PLAN_MAX = 640;
+/** How wide the card stands beside the conversation. The conversation is served first, at
+ *  its full reading column, and the plan takes what is left between these two: on a wide
+ *  window that is most of the sheet's right half, which is what a document wants. */
+const PLAN_MIN = 440;
+const PLAN_MAX = 720;
+/** The paper between the two, and what the conversation needs — its column and its gutters
+ *  (COLUMN and GUTTER in components/CreateSheet.tsx). */
+const PLAN_GAP = 32;
+const CONVERSATION = 600 + 20 * 2;
 
-/** Under this many pixels the sheet cannot hold the reading column and the plan side by
- *  side, so the plan covers the conversation instead — the chat rail's 60rem, in the unit
- *  an element can be measured in. It is the SHEET that is measured, not the window: the
- *  sheet is drawn on the body (components/Window.tsx), so the rail and the chat beside it
- *  are room the window counts and the sheet does not have. */
-const OVERLAY_UNDER = 960;
+function cardWidth(sheet: number): number {
+  const spare = sheet - CONVERSATION - PLAN_GAP - PLAN_INSET;
+  return Math.round(Math.min(PLAN_MAX, Math.max(PLAN_MIN, spare)));
+}
+
+/** How wide the plan reads once the card is enlarged — the width of the ENLARGED CARD itself,
+ *  less its padding. A line of a document that runs the width of a window is a line nobody
+ *  finishes, and a card wider than the words it holds is a tray, not a page. */
+export const PLAN_READ = 840;
+
+/** From this many pixels the sheet can hold both, so the conversation narrows and the card
+ *  stands beside it. Under it the card lies over the exchange instead. It is the SHEET that
+ *  is measured, not the window: the sheet is drawn on the body (components/Window.tsx), so
+ *  the rail and the chat beside it are room the window counts and the sheet does not have. */
+const BESIDE_FROM = 1024;
 
 /** How often the plan is re-read while the screen is up. The agent rewrites the file mid
  *  reply, so this is quick enough to feel live and slow enough to cost nothing. */
@@ -39,38 +55,47 @@ export interface PlanPanel {
   /** These rules can hold a discussion at all. False puts the create screen on Add task. */
   supported: boolean;
   /** The plan's words: the last text read for this file, so a rewrite never blanks the
-   *  panel. Empty before the file is first written. */
+   *  card. Empty before the file is first written. */
   text: string;
   /** The file is moving — the conversation names a plan and there is nothing to read at
    *  that path this second. The words above are the last ones written. */
   writing: boolean;
-  /** There is a panel to draw: a plan whose file has been written at least once. */
+  /** There is a plan to show: a file that has been written at least once. */
   shown: boolean;
-  /** The sheet is too narrow for the plan to stand beside the conversation. */
-  overlay: boolean;
+  /** The card is up. It comes up on its own the moment there is a plan — that the plan is
+   *  being written is the thing this screen is for. */
+  open: boolean;
+  toggle(): void;
+  /** The card has been enlarged: it leaves the right column and stands in the middle of the
+   *  sheet, down to the box, at the width a plan reads at (PLAN_READ). Centred there it covers
+   *  the conversation whole. Only ever true where there is a smaller size to go back to: under
+   *  `beside` the card is at that width already, and an Enlarge that changes nothing is a
+   *  button that lies. */
+  full: boolean;
+  toggleFull(): void;
+  /** There is room to stand the card beside the conversation. Without it the card takes the
+   *  sheet: half a column of sliced sentences beside a plan is worse than no column. */
+  beside: boolean;
+  /** How wide the card stands there, and the room the conversation gives up for it — the
+   *  card, the paper between them, and the card's margin off the sheet's edge. */
+  width: number;
+  space: number;
   /** Put on the sheet's own box — what that width is read from. */
   measure(el: HTMLElement | null): void;
-  /** On a narrow window: the plan is covering the conversation right now. */
-  covering: boolean;
-  toggleCover(): void;
   /** Re-read now rather than waiting out the tick — after a send, or after an answer. */
   refresh(): void;
-  panel: ReturnType<typeof usePanelRef>;
-  onLayoutChanged(layout: Layout, meta: LayoutChangedMeta): void;
-  onDoubleClick(): void;
 }
 
 export function usePlanPanel(): PlanPanel {
   const [read, setRead] = useState<DiscussRead | null>(null);
   const [supported, setSupported] = useState(false);
   // The last words read for the file on screen, and which file they are. A rewrite empties
-  // the file for an instant; keeping both is what lets the panel say so and go on showing
+  // the file for an instant; keeping both is what lets the card say so and go on showing
   // the plan, rather than blinking to nothing and back.
   const [held, setHeld] = useState<{ path: string; text: string } | null>(null);
-  const [covering, setCovering] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const [full, setFull] = useState(false);
   const { measure, width } = useSheetWidth();
-  const overlay = width > 0 && width < OVERLAY_UNDER;
-  const { panel, onLayoutChanged, onDoubleClick } = useWidth();
   const kickRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -86,7 +111,7 @@ export function usePlanPanel(): PlanPanel {
         setSupported(next.supported);
         setRead(next);
         // Only real words are held. An empty read is a file mid-rewrite, and forgetting it
-        // here is exactly the blank the panel must never show.
+        // here is exactly the blank the card must never show.
         if (next.plan?.text.trim()) setHeld({ path: next.plan.path, text: next.plan.text });
         else if (!next.plan) setHeld(null);
       } catch {
@@ -112,12 +137,15 @@ export function usePlanPanel(): PlanPanel {
     // screen's: nothing to start and stop, and nothing left polling behind a shut sheet.
   }, []);
 
+  const beside = width === 0 || width >= BESIDE_FROM;
+  const card = cardWidth(width);
   const plan = read?.plan ?? null;
   const words = held && plan && held.path === plan.path ? held.text : "";
   const text = plan?.text.trim() ? plan.text : words;
   const shown = !!plan && !!text;
   const refresh = useCallback(() => kickRef.current(), []);
-  const toggleCover = useCallback(() => setCovering((was) => !was), []);
+  const toggle = useCallback(() => setHidden((was) => !was), []);
+  const toggleFull = useCallback(() => setFull((was) => !was), []);
 
   return {
     read,
@@ -125,20 +153,21 @@ export function usePlanPanel(): PlanPanel {
     text,
     writing: !!plan && !plan.text.trim() && !!words,
     shown,
-    overlay,
+    open: shown && !hidden,
+    toggle,
+    full: shown && !hidden && beside && full,
+    toggleFull,
+    beside,
+    width: card,
+    space: card + PLAN_GAP + PLAN_INSET,
     measure,
-    covering: covering && overlay && shown,
-    toggleCover,
     refresh,
-    panel,
-    onLayoutChanged,
-    onDoubleClick,
   };
 }
 
-// How wide the sheet itself is. Zero until the first read lands, which reads as wide
-// enough: side by side is the shape this screen settles in, and a frame of cover on the way
-// there is a flash nobody asked for.
+// How wide the sheet itself is. Zero until the first read lands, which is read as room:
+// beside is the shape this screen settles in, and a frame of the card lying over the
+// conversation on the way there is a flash nobody asked for.
 function useSheetWidth(): { measure: (el: HTMLElement | null) => void; width: number } {
   const [width, setWidth] = useState(0);
   const watching = useRef<ResizeObserver | null>(null);
@@ -153,41 +182,4 @@ function useSheetWidth(): { measure: (el: HTMLElement | null) => void; width: nu
   }, []);
   useEffect(() => () => watching.current?.disconnect(), []);
   return { measure, width };
-}
-
-// How wide the panel has been dragged, remembered across reloads — the chat rail's rule
-// (lib/chat-rail.ts): pixels rather than a share of the window, applied after mount, and
-// only a real drag written down.
-function useWidth() {
-  const panel = usePanelRef();
-  useEffect(() => {
-    let saved = 0;
-    try {
-      saved = Number(window.localStorage.getItem(WIDTH_KEY));
-    } catch {
-      // storage unavailable — open at the default
-    }
-    if (saved > 0) panel.current?.resize(saved);
-  }, [panel]);
-
-  const onLayoutChanged = useCallback(
-    (_layout: Layout, meta: LayoutChangedMeta) => {
-      if (!meta.isUserInteraction) return;
-      requestAnimationFrame(() => {
-        const px = panel.current?.getSize().inPixels;
-        if (px) save(px);
-      });
-    },
-    [panel],
-  );
-  const onDoubleClick = useCallback(() => save(PLAN_W), []);
-  return { panel, onLayoutChanged, onDoubleClick };
-}
-
-function save(px: number) {
-  try {
-    window.localStorage.setItem(WIDTH_KEY, String(Math.round(px)));
-  } catch {
-    // storage unavailable — the width lasts as long as the window does
-  }
 }

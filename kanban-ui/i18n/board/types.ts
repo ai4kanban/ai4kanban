@@ -81,6 +81,17 @@ export type BoardCopy = {
       /** What Build now says instead: it skips every step the board is for, so it names
        *  them before the run starts (#428). */
       builds: string;
+      /** Leaving one discussion for the next. The board holds one conversation, so this is
+       *  the only way a second idea starts on an empty screen. */
+      newIdea: string;
+      /** It throws work away, so it asks first — the same guard Build now uses. */
+      newIdeaGuard: {
+        title: string;
+        /** One line per thing that goes. */
+        drops: readonly string[];
+        cancel: string;
+        confirm: string;
+      };
       /** The guard Send opens in Build now. Nothing starts until it is confirmed. */
       guard: {
         title: string;
@@ -93,9 +104,10 @@ export type BoardCopy = {
        *  handoff to the run that turns it into cards. */
       plan: {
         label: string;
-        resize: string;
+        /** The card's own size — it takes the sheet, or stands where it was. */
+        enlarge: string;
+        shrink: string;
         copyPath: string;
-        lines: (count: number) => string;
         /** The agent is rewriting the file. The words on screen are the last ones written. */
         rewriting: string;
         /** The two answers under the ask, and the line beside them. */

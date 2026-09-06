@@ -1,4 +1,5 @@
 import { createCodexStreamRenderer } from '../wire'
+import { arr, home, modelsIn, num, obj, str } from './models'
 import { namesFlag, type Harness } from './types'
 
 // The two flags every `codex exec` run wants, added only when the user's own `command`
@@ -157,6 +158,7 @@ export const CODEX: Harness = {
       label: 'Model',
       kind: 'text',
       placeholder: 'gpt-5.1-codex',
+      // `models()` below fills the list under it; free text is what it stays.
       flags: ['--model', '-m'],
       help: "Empty runs the agent's default. A wrong id fails the run; the log says why.",
       overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names a model, and that wins.`,
@@ -176,6 +178,7 @@ export const CODEX: Harness = {
         { value: 'high', label: 'High' },
         { value: 'xhigh', label: 'Extra high (xhigh)' },
         { value: 'max', label: 'Max' },
+        { value: 'ultra', label: 'Ultra' },
       ],
       flags: ['model_reasoning_effort'],
       configFlag: '-c',
@@ -183,6 +186,23 @@ export const CODEX: Harness = {
       overriddenHelp: `Not in effect: this agent's "command" in your ui.config.json already names an effort level, and that wins.`,
     },
   ],
+
+  // Codex's own model list, which it fetches from its server and caches — the refresh whose
+  // stderr chatter `quietStderr` below drops. So the board reads the file instead of keeping
+  // a list of its own, and a model OpenAI shipped this morning is offered this morning.
+  //
+  // `visibility` is Codex's word for a model it does not put on its own picker (a reserve
+  // capacity slug, the model its automatic reviews run on). Those are hidden here too —
+  // still typeable, like anything else. `priority` is the order Codex itself lists them in.
+  models() {
+    return modelsIn(home('.codex', 'models_cache.json'), (data) =>
+      arr(obj(data).models)
+        .map(obj)
+        .filter((model) => str(model.visibility) !== 'hide')
+        .sort((a, b) => num(a.priority) - num(b.priority))
+        .map((model) => str(model.slug)),
+    )
+  },
 
   // Nothing extra. Claude Code gets CLAUDE_CODE_MAX_RETRIES=0 so a rate limit fails at
   // once and frees the card; Codex has no equivalent switch, so a rate-limited Codex run
