@@ -490,7 +490,10 @@ export function openPlan(plan: RunPlan): ActiveRun {
   return {
     ...plan,
     env: runEnv(resolved, plan.cwd ?? REPO_ROOT),
-    renderer: harness.renderer?.(plan.cwd ?? REPO_ROOT),
+    // The folder and the binary: what a renderer needs to go looking for what the stream
+    // left out (agent/harnesses/types.ts). argv's first word is the command's own binary,
+    // the same one the spawn resolves and an ENOENT names.
+    renderer: harness.renderer?.(plan.cwd ?? REPO_ROOT, plan.argv[0]),
     // The client is handed the settings that are actually in effect — the same ones that
     // would have reached the run as flags, minus whatever the picked provider doesn't
     // need — because for a connector that talks, a setting is something the conversation

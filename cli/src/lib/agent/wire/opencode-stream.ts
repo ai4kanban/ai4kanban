@@ -15,11 +15,13 @@
 // `sessionID` rides on every event, and `opencode run --session <id>` takes it,
 // so an OpenCode run is resumable from its first event.
 //
-// No model: OpenCode names the model only in its formatted output, never in the
-// JSON stream, so a run on it names none rather than one the board made up from
-// the Model box.
+// The model is the one thing no event carries — not `step_start`, not
+// `step_finish` — so it is asked for once the stream has ended, out of the
+// session OpenCode just wrote (./opencode-session.ts). Asked, not assumed: the
+// Model box is an input and most people leave it empty.
 
 import { argHint, num, obj, str } from './json'
+import { opencodeSessionModel } from './opencode-session'
 import { createLineReader, frame, type StreamRenderer } from './stream'
 import type { TokenUsage } from '../types'
 
@@ -49,11 +51,16 @@ function dispatchedInBackground(input: unknown): boolean {
   return obj(input).run_in_background === true
 }
 
-export function createOpencodeStreamRenderer(): StreamRenderer {
+export function createOpencodeStreamRenderer(cwd?: string, binary?: string): StreamRenderer {
   let final: string | undefined
   let sessionId: string | undefined
   let cost = 0
   const total: TokenUsage = { input: 0, cacheCreation: 0, cacheRead: 0, output: 0 }
+  // The model, and the two flags that keep the lookup to one spawn: `ended` is set by the
+  // flush that closes the stream, `asked` by the answer — including an answer of nothing.
+  let ended = false
+  let asked = false
+  let model: string | undefined
 
   const renderLine = (line: string): string => {
     if (!line.trim()) return ''
@@ -109,8 +116,14 @@ export function createOpencodeStreamRenderer(): StreamRenderer {
     }
   }
 
+  const reader = createLineReader(renderLine)
+
   return {
-    ...createLineReader(renderLine),
+    push: reader.push,
+    flush: () => {
+      ended = true
+      return reader.flush()
+    },
     result: () => final,
     // A free model reports a cost of 0, which is a real answer and not one worth
     // printing — the UI shows a price only when the run was charged for one.
@@ -119,7 +132,15 @@ export function createOpencodeStreamRenderer(): StreamRenderer {
       const sum = total.input + total.cacheCreation + total.cacheRead + total.output
       return sum > 0 ? { ...total } : undefined
     },
-    // No model on purpose — see the note at the top.
+    // Once, and only after the last line is in: the runner asks on every chunk while the
+    // stream runs, and this one costs a spawn (./opencode-session.ts).
+    model: () => {
+      if (ended && !asked) {
+        asked = true
+        if (sessionId) model = opencodeSessionModel(binary, sessionId, cwd)
+      }
+      return model
+    },
     resumeId: () => sessionId,
   }
 }

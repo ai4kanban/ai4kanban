@@ -105,16 +105,27 @@ export const OPENCODE: Harness = {
 
   env: () => ({ ...process.env }),
 
-  // Each step reports what it cost and what it spent. The model is named only in the
-  // formatted output the board doesn't read, so a run under it names none.
-  reports: ['cost', 'tokens'],
+  // Each step reports what it cost and what it spent; the model comes from the session
+  // afterwards, because no event carries one (agent/wire/opencode-session.ts).
+  //
+  // A blank cost is a real answer, not a gap. OpenCode prices a step off the models.dev
+  // catalogue, which rates a Coding Plan's models at zero — a plan is a quota rather than a
+  // per-token bill. Every GLM model that IS billed per token is priced there already, under
+  // the provider billing for it, so the board keeps no rates of its own for them.
+  reports: ['cost', 'tokens', 'model'],
 
+  // OpenCode retries a 429 itself — five times, backing off to about a minute in all — and
+  // then ends the run non-zero. No flag or variable turns that off, so the card is held for
+  // that minute the way Kimi's is, which is what `false` says here.
   stopsOnRateLimit: false,
 
   renderer: createOpencodeStreamRenderer,
 
   // OpenCode names its own session; the id rides on every event and the record saves it
-  // from the first one.
+  // from the first one. There is no pinning it up front the way Claude Code's
+  // `--session-id` does: `--session` continues a session that already exists and answers an
+  // id of our own with "Session not found", so a run that dies before its first event
+  // leaves nothing to resume by.
   adoptsSessionId: false,
 
   // `opencode run --file=<FILE>` attaches one file to the message, repeated per file. The
@@ -122,8 +133,11 @@ export const OPENCODE: Harness = {
   // swallow the prompt that follows it as a second file.
   images: { as: 'args', args: (file) => [`--file=${file}`] },
 
-  // OpenCode has no slash or `$` skill syntax at all — its model picks a skill itself — so
-  // the prompt asks for the skill in a sentence.
+  // OpenCode has no slash or `$` skill syntax in a sent message — its slash menu is the
+  // TUI's own, and `opencode run` takes a command as `--command` rather than off the front
+  // of the prompt — so the prompt asks for the skill in a sentence. It scans
+  // `.agents/skills/` and `.claude/skills/` at both the home and project tiers, which is
+  // where an install already writes, so its model finds the board's rules by itself.
   skillCall: SKILL_SENTENCE,
 
   // `opencode auth list` ends on a count of what `opencode auth login` has saved — "0

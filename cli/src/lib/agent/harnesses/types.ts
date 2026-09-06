@@ -100,8 +100,12 @@ export interface Harness
    *  `cwd` is the folder the run works in, for a renderer that has to go looking on disk
    *  for what the stream leaves out — Kimi files its sessions by working folder, so that
    *  is the only way to find the one a crashed run opened (agent/wire/kimi-session.ts).
-   *  Every other renderer ignores it. */
-  renderer?(cwd: string): StreamRenderer
+   *
+   *  `binary` is the first word of this run's command line, for a renderer that has to ASK
+   *  that CLI instead: OpenCode's events name no model and `opencode export` does
+   *  (agent/wire/opencode-session.ts). Left out by the one call that has no run behind it —
+   *  ./check's load-time probe — so a renderer treats it as it does a missing file. */
+  renderer?(cwd: string, binary?: string): StreamRenderer
   /** True for a stderr line that is this CLI's own housekeeping — chatter about its caches
    *  and background refreshes, printed on nearly every turn, that says nothing about the
    *  work and nothing a user could act on.

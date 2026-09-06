@@ -3,7 +3,7 @@ title: "What each coding agent can do"
 title_tag: "AI4Kanban coding agents — Claude Code, Codex, Cursor, OpenCode, Kimi, DeepSeek, ZCode, Grok"
 description: "The board runs your work through one coding agent. What each of the eight reports back while it works, what a run may touch, and the settings each one takes."
 lead: "The board runs your work through one coding agent — Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode or Grok Build. All eight do the work; what differs is what they report back."
-last_updated: "September 3, 2026"
+last_updated: "September 7, 2026"
 nav_label: "Coding agents"
 icon: "cpu"
 ---
@@ -34,7 +34,7 @@ takes either a `grok login` or the key box, so none of those four is asked.
 | Early-crash resume | ✓ | — | — | — | — | — | — | — |
 | Run cost | ✓ | ✓ | — | ✓ | — | ✓ | — | ✓ |
 | Token counts | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Model name | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| Model name | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Rate-limit exit | ✓ | — | — | — | — | — | — | — |
 | Direct skill call | ✓ | ✓ | — | — | — | — | — | — |
 
@@ -56,7 +56,8 @@ one, and the run's tokens at the model's published rate where the board does. Co
 nothing, so the board prices it — and shows no cost for a model whose rates it doesn't
 know, which is any local model and most gateways. A run on a subscription still shows a
 number, though nothing was charged for it. Kimi Code shows none at all: its output prices
-nothing and the board knows no rates for its models.
+nothing and the board knows no rates for its models. OpenCode shows none on a coding plan —
+a plan is a quota rather than a per-token bill, so there is no price to put there.
 
 **Rate-limit exit** — Claude Code ends a rate-limited run and frees the card. The others
 wait the limit out, holding the card. Stop the run yourself to get the card back, or let
@@ -120,6 +121,10 @@ and both go blank.
 Kimi Code's model and token counts come off disk for the same reason, out of the session under
 `~/.kimi-code` — or `KIMI_CODE_HOME`, if you moved it. A board that can't read that folder
 shows the run's duration alone.
+
+OpenCode's model is asked of `opencode export` once the run has finished, because its own
+events name none. A `command` whose first word isn't an `opencode` — an `npx`, a wrapper of
+your own — isn't asked, and the model goes blank.
 
 ### Kimi Code
 
