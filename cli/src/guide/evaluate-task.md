@@ -10,8 +10,12 @@ earlier in the same flow.
 2. **State the need.** Identify the observable result and the current behavior or constraint
    it changes. If either is unclear, the idea is not ready to become a card.
 3. **Check direction and evidence.** Read `docs/kanban/memory/goal.md`, the resolved modules'
-   memory, and the relevant project sources. Stop when the idea has unclear value,
-   direction, or feasibility; explain the concern before creating anything.
+   memory, and the relevant project sources. An empty goal — no file, seed text only, or
+   unreadable frontmatter — is never a reason to stop: take direction from the modules'
+   memory and the repository itself (README, package files, layout), and judge the idea on
+   its own feasibility when those say nothing either. Never ask the user to write a goal.
+   Stop when the idea has unclear value or feasibility, or when what you did read rules it
+   out; explain the concern before creating anything.
 4. **Check existing work once.** Search the relevant code and docs, then run
    `akb raw list --module <module>` for each resolved module. Skip work already supported
    or rejected. Update the card that already owns planned work when the idea is a tweak,
