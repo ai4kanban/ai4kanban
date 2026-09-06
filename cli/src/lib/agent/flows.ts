@@ -132,6 +132,20 @@ export const FLOWS: Flow[] = [
     gloss: "apply the user's answers to its open questions",
     options: [{ flags: '--and-implement', description: 'carry straight on into the build' }],
   },
+  // The decider's one flow (#447). It is `resolve` with the choosing done for the user, so
+  // it takes the same argument and no options of its own — what it may write is the answers
+  // and nothing else.
+  {
+    command: 'decide',
+    group: 'card',
+    action: 'decide',
+    argument: '<id>',
+    gloss: "answer the card's open questions for the user",
+    more: [
+      'The board runs this itself when the decider is switched on (Configuration → Agents); type it to ' +
+        'have it answer one card whether or not the switch is on.',
+    ],
+  },
   {
     command: 'revise',
     group: 'card',
@@ -229,6 +243,7 @@ const GONE: Record<Solution, Record<string, string>> = {
   marketing: {
     refine: "a topic carries no questions to sharpen, and its angle is settled in the card's own chat",
     resolve: "a topic carries no questions to answer, and its angle is settled in the card's own chat",
+    decide: "a topic carries no questions to answer for you, and its angle is settled in the card's own chat",
     gate: 'a topic carries no questions to turn one down with, and a piece is written when the user asks for it',
     'plan-release': 'a topic ships to channels, not to a version, and this board plans none',
     changelog: 'a topic ships to channels, not to a version, and this board plans none',

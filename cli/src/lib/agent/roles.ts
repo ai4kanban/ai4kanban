@@ -28,6 +28,10 @@ import type { AgentKind } from '../agents/parse'
 export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
+  /** Whether this role can be switched off (#447). Almost none can: a board without a
+   *  planner plans nothing. The decider is the exception — it runs a flow of the board's,
+   *  so it is a role, and it answers for the user, so it has to be switchable. */
+  switchable?: true
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
   /** The flows it runs, by flow name (./flows.ts). `channel` is in the writer's list and is
@@ -57,6 +61,17 @@ const PRODUCT_PLANNER_FLOWS = [
 
 const MARKETING_PLANNER_FLOWS = ['create', 'revise', 'archive', 'reject', 'setup']
 
+// The one role the board ships switched OFF (#447). It runs `decide` — the flow that
+// answers a card's `[user]` questions instead of stopping for them — and it owns no memory:
+// what it chooses stays on the card it chose it on, never in a `decisions.md`.
+const DECIDER: AgentRole = {
+  name: 'decider',
+  gloss: 'answers the questions waiting on you',
+  flows: ['decide'],
+  memory: [],
+  switchable: true,
+}
+
 const REVIEWER: AgentRole = {
   name: 'reviewer',
   gloss: 'checks what was built',
@@ -78,6 +93,8 @@ const PRODUCT_ROLES: AgentRole[] = [
     memory: ['memory/readme.md', 'memory/redesign.md', 'modules.md'],
   },
   REVIEWER,
+  // Last, and only on a product board: a marketing topic carries no questions to answer.
+  DECIDER,
 ]
 
 const MARKETING_ROLES: AgentRole[] = [
@@ -133,6 +150,9 @@ export interface RosterEntry {
   kind: 'role' | AgentKind
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
+  /** Whether this entry can be switched off. Every specialist can; of the roles, only the
+   *  decider (#447). */
+  switchable: boolean
   /** A role's flows. Empty on a specialist: it is asked for by name, never by a flow. */
   flows: string[]
   /** The memory files it owns, repo-relative — a role's are the files its own flows already
@@ -154,6 +174,7 @@ export function agentRoster(): RosterEntry[] {
       when: said.description,
       kind: agent.kind,
       builtIn: agent.builtIn,
+      switchable: true,
       flows: [],
       memory: agent.memory ? [rel(agentMemoryFile(agent.name))] : [],
     }
@@ -165,6 +186,7 @@ export function agentRoster(): RosterEntry[] {
       when: '',
       kind: 'role' as const,
       builtIn: true,
+      switchable: role.switchable === true,
       flows: role.flows,
       memory: role.memory.map((file) => rel(path.join(KANBAN, file))),
     })),

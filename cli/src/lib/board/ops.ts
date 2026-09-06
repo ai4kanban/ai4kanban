@@ -72,6 +72,7 @@ const CARD_MOVES = new Set([
   'update',
   'update-questions',
   'update-verify',
+  'update-decided',
   'schedule',
   'channel-status',
   'tag',

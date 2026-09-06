@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "September 5, 2026"
+last_updated: "September 7, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -14,7 +14,8 @@ settings, and — for one you added — its own instructions.
 
 There are two kinds.
 
-**Roles** are the agents the board's own flows are run by. You do not add or remove one:
+**Roles** are the agents the board's own flows are run by. You do not add or remove one, and only
+one of them can be switched off:
 
 - **Planner** — plans and refines cards. It runs create, refine, resolve, revise, the release
   plan, the changelog, archive and reject. On a marketing board it runs four of those: a topic
@@ -23,6 +24,8 @@ There are two kinds.
 - **Builder** — builds cards and lands them: implement, conflict, run. On a marketing board a
   **Writer** takes its place, and also runs `akb channel`.
 - **Reviewer** — checks what was built.
+- **Decider** — answers the questions on a card that are waiting on you. Off by default, and the
+  one role you can switch off. Product boards only: a topic carries no questions.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
 while a card is being planned — never while it is being built — writes one named section of that
@@ -50,7 +53,36 @@ screen nor a library goes through all of those without a spec run, and nothing t
 
 When you do want one: **"put the ui-design agent on #4"**, or `akb spec ui-design 4`. Pausing one
 and setting what it produces are both on its page in **Configuration → Agents**; a role is always
-on, because a board without a planner plans nothing.
+on except the Decider, because a board without a planner plans nothing.
+
+## Let the Decider answer for you
+
+A card that reaches the end of its planning with nothing but `[user]` questions on it stops and
+waits for you. So does a delivery a review sends back with a question. **Decider** is the switch
+that removes both waits: it answers those questions in your place and the card carries on.
+
+Switch it on in **Configuration → Agents**, in the **Optional** group. It asks once before it goes
+on, because it is the most expensive switch on the board:
+
+> **While this is on, nothing stops for you.** An idea runs all the way to landed without asking
+> you — a wrong direction included. What it chose, you read afterwards on the card.
+
+It answers from the project's goal, each of the card's modules' `decisions.md`, and the
+recommendation each question carries — in that order. When none of those settles a question it
+takes the recommendation anyway: every recommended option on a multi-choice question, the first
+option when nothing is recommended, and its own answer on a question with no options. It never
+hands a card back.
+
+What it chose stays on the card, in a `decided:` list — the question, the option it took, and the
+file it went on. The board marks such a card and **What Decider chose for you** on the card page
+lists them one by one, with the ones it took blind called out. None of it becomes a lasting
+decision: your `memory/<module>/decisions.md` files are answers *you* gave, and the Decider writes
+to none of them.
+
+Switching it off puts every card still carrying questions back to waiting on you. A card it
+already answered and the board already built does not come back. Switching it on changes nothing
+that is already stopped — those cards move on their next refine, or when you type
+`akb card decide <id>`, which runs it on one card whether or not the switch is on.
 
 ## Give an agent a rule
 

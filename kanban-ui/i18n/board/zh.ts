@@ -43,6 +43,7 @@ const zh: BoardCopy = {
     needsYouOne: "1 个待你决定",
     needsYouMany: (n) => `${n} 个待你决定`,
     verify: (n) => `${n} 项需人工验收`,
+    decided: (n) => `Decider 代你答了 ${n} 题`,
   },
   create: {
     button: "新建任务",

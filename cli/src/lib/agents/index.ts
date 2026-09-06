@@ -12,7 +12,8 @@
 // run is finally handed.
 
 import { agentRun } from '../agent/resolve'
-import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from '../agent/settings'
+import { setDecider, setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from '../agent/settings'
+import { roleNamed } from '../agent/roles'
 import type { SpecAgentEntry } from '../agent/settings'
 import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
 import { readLanguage } from '../machine/settings'
@@ -291,6 +292,13 @@ export function readSpecAgents(): SpecAgentView[] {
  *  survives the flip either way: losing a pick by switching an agent off and on would be a
  *  surprise. */
 export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; error?: string } {
+  // A switchable ROLE keeps its answer in the board's own settings rather than in
+  // `specAgents` (#447) — it is not a file this project added, so there is no entry to write.
+  const role = roleNamed(name)
+  if (role) {
+    if (!role.switchable) return { ok: false, error: `\`${name}\` is one of the roles the board runs on, so it can't be switched off.` }
+    return setDecider(on)
+  }
   const agent = findSpecAgent(name)
   if (!agent) return { ok: false, error: notAnAgent(name) }
   return setSpecAgentSwitch(agent.name, on, specAgentNames(agent.name).slice(1))

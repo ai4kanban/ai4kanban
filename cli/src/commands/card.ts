@@ -16,6 +16,7 @@ import { flowRefusal } from '../lib/agent/flows'
 import { carriesField, solution } from '../lib/solution'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
+import { readDecidedOp, type DecidedInput } from '../lib/decided'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
 import { CADENCE_FORMS, formatCadence, parseCadence } from '../lib/cadence'
 import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
@@ -551,6 +552,36 @@ export function cmdUpdateVerify(id: number, input: VerifyOpsInput): MoveResult {
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   say(`updated #${id} verify: ${changes.join(', ')} (${meta.verify.length} to check by hand)`)
   return { id, changes, verify: meta.verify.length, file: rel(file) }
+}
+
+// Patch what the decider answered for the user (#447) — the record it leaves as it takes a
+// question off the card. One op per call, unlike `update-verify`: an entry is three fields
+// that only mean anything together, so there is no list of them to apply in the order typed.
+//
+// Nothing here touches the card's status or its questions. Dropping the question it answers
+// is `update-questions --drop`, in the same pass — this only writes the record of the choice.
+export function cmdUpdateDecided(id: number, input: DecidedInput): MoveResult {
+  const found = locate(id)
+  if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
+  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
+  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
+  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
+
+  const op = readDecidedOp(input, meta.decided.length)
+  let change: string
+  if (op.kind === 'clear') {
+    meta.decided = []
+    change = 'cleared'
+  } else if (op.kind === 'drop') {
+    meta.decided = meta.decided.filter((_, i) => !op.ns.includes(i + 1))
+    change = `dropped ${op.ns.join(',')}`
+  } else {
+    meta.decided.push(op.entry)
+    change = 'appended'
+  }
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
+  say(`updated #${id} decided: ${change} (${meta.decided.length} answered for you)`)
+  return { id, change, decided: meta.decided.length, file: rel(file) }
 }
 
 // Set (or clear) the tag on open questions, so the refine loop can hand a

@@ -226,6 +226,19 @@ const zh: ConfigurationCopy = {
         gloss: "评审构建结果，并修复发现的问题。",
         rule: "会附加到每一次评审的末尾——例如「卡片没写到的依赖一律打回」。",
       },
+      decider: {
+        gloss: "替你回答卡片上等你决定的问题。",
+        rule: "会附加到 Decider 每次作答的末尾——例如「拿不准就选改动最小的那个」。",
+      },
+    },
+    decider: {
+      when: "卡片上只剩等你决定的问题时，包括评审把交付打回后留下的。",
+      costTitle: "开着的时候，卡片一处都不停",
+      cost: "一个想法会一路做到落地，中途不问你——方向错了也一样。它做了哪些选择，事后在卡片上看。",
+      note: "按项目目标、模块的 decisions.md 和每题的推荐项作答，都定不下来就取推荐项。",
+      confirmTitle: "打开 Decider？",
+      confirmBody: "从现在起，等你决定的问题由它作答，卡片不再停下来。随时可以关掉——已经做下去的卡不会退回。",
+      turnOn: "打开",
     },
     specialistRule: {
       spec: (agent) => `会附加到卡片打磨期间 ${agent} 每次运行的末尾——例如「遵循 app/globals.css 里的设计变量」。`,

@@ -77,9 +77,11 @@ describe('the roles', () => {
     solution('product')
     assert.deepEqual(
       roles().map((r) => r.name),
-      ['planner', 'builder', 'reviewer'],
+      ['planner', 'builder', 'reviewer', 'decider'],
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
+    // The decider is the product board's alone: a topic carries no questions to answer.
+    assert.equal(roleForFlow('decide')!.name, 'decider')
     // `akb channel` is the writer's and exists nowhere else.
     assert.equal(roleForFlow('channel'), undefined)
 
@@ -90,6 +92,7 @@ describe('the roles', () => {
     )
     assert.equal(roleForFlow('implement')!.name, 'writer')
     assert.equal(roleForFlow('channel')!.name, 'writer')
+    assert.equal(roleForFlow('decide'), undefined)
   })
 
   it('says what each role remembers, in files that are the board it is on', () => {
@@ -111,22 +114,27 @@ describe('the roles', () => {
         .join('\n')
         .concat('\n'),
     )
-    assert.deepEqual(agentNames(), ['planner', 'builder', 'reviewer', 'technology-selection', 'ui-design'])
+    assert.deepEqual(agentNames(), ['planner', 'builder', 'reviewer', 'decider', 'technology-selection', 'ui-design'])
     assert.match(specAgentProblems().join('\n'), /`builder` is one of the roles the board ships/)
   })
 
   it('rosters the roles first, then the specialists the command ships', () => {
     solution('product')
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 3), ['planner', 'builder', 'reviewer'])
-    assert.deepEqual(names.slice(3), ['technology-selection', 'ui-design'])
+    assert.deepEqual(names.slice(0, 4), ['planner', 'builder', 'reviewer', 'decider'])
+    assert.deepEqual(names.slice(4), ['technology-selection', 'ui-design'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      ['role', 'role', 'role', 'spec', 'spec'],
+      ['role', 'role', 'role', 'role', 'spec', 'spec'],
     )
     // A role says which flows it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[3]!.flows, [])
+    assert.deepEqual(agentRoster()[4]!.flows, [])
+    // Only one role can be switched off, and it is the decider (#447).
+    assert.deepEqual(
+      agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => a.name),
+      ['decider'],
+    )
   })
 })
 

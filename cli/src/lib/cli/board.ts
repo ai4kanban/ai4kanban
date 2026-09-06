@@ -265,6 +265,25 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('update-verify', this, [String(id)], { ops: verifyOps }, cli)
     })
 
+  move('update-decided')
+    .argument('<id>', ID, cardId)
+    .summary('record one question the decider answered for the user')
+    .description(
+      'Patch the `decided:` list — what the decider chose on this card, one entry per question it ' +
+        'answered. An entry is the question, the option it picked, and the file it went on; leave ' +
+        '`--from` off when nothing settled it and it took the recommendation. One op per call. It is a ' +
+        'RECORD, not a question: nothing waits on it, and dropping the question it answers is ' +
+        '`update-questions --drop` in the same pass.',
+    )
+    .option('--question <text>', 'the question it answered')
+    .option('--chose <text>', 'the option it picked, or the answer it wrote')
+    .option('--from <file>', 'the board-relative file it went on; left off, it took the recommendation')
+    .option('--drop <positions>', 'remove entries by 1-based position, e.g. 1 or 1,3')
+    .option('--clear', 'remove them all')
+    .action(async function (this: Command, id: number) {
+      await dispatch('update-decided', this, [String(id)], this.opts(), cli)
+    })
+
   move('schedule')
     .argument('<id>', ID, cardId)
     .summary('hand a run to the board, to start by itself')

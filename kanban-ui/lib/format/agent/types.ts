@@ -50,6 +50,12 @@ export type AgentAction =
    *  the board starts the build; when the answer is no it appends one `[user]` question,
    *  which takes the card back to `todo`. Only runs while the gate is switched on. */
   | 'gate'
+  /** Answer a card's `[user]` questions in the user's place (#447) — the decider's one
+   *  flow. It reads the project's goal, the modules' `decisions.md` and each question's own
+   *  recommendation, applies its answers to the card exactly as `resolve` does, and records
+   *  what it chose in `decided:`. It never hands the card back and it writes no lasting
+   *  decision. The board starts one only while the decider is switched on. */
+  | 'decide'
   /** Finish setting the board up — every step still unticked on
    *  `docs/kanban/setup-checklist.md`, in one run. It names no card and no release: the
    *  checklist is the plan, and the run starts at its first unticked box, so a run started

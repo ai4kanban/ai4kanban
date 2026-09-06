@@ -181,6 +181,12 @@ const en: CardCopy = {
     pageTitle: (id) => `Resolve #${id}`,
     pageBlurb: "Answer what this card is waiting on. Anything you leave blank stays open.",
   },
+  decided: {
+    heading: "what decider chose for you",
+    note: "These answers stay on this card. Nothing went into the project's lasting decisions.",
+    from: "From",
+    blind: "Nothing to go on — took the recommendation",
+  },
   handChecks: {
     heading: "check by hand",
     crossOff: "Cross it off",

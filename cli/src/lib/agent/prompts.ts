@@ -88,6 +88,7 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'run',
   'clarify',
   'resolve',
+  'decide',
   'writing',
   'archive',
   'spec',
@@ -528,6 +529,16 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join(' ')
+    // The decider answering for the user (#447). It is `resolve` with the choosing done
+    // here, so the ask names the same job and adds the two rules that make it a decide: it
+    // never hands the card back, and nothing it chooses becomes a lasting decision.
+    case 'decide':
+      return [
+        `${kb}. Answer the open questions on task ${req.id} ${named} in my place, following \`akb guide decide\`.`,
+        `You are standing in for me: leave no \`[user]\` question open, and do not hand the card back.`,
+        `Record every choice with \`${command} raw update-decided\`, and write no lasting decision anywhere.`,
+        `Don't ask me questions with human-in-the-loop, and raise no new question.`,
+      ].join(' ')
     // The ready gate (#440). It is a verdict, not a pass over the card: the whole of what it
     // may write is one `[user]` question, and finishing with the card untouched IS the other
     // answer. Nothing here says what the card should say — that is `akb guide writing`, which

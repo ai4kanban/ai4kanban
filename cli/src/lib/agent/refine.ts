@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto'
 
 import { allCards, findCard } from '../view/read'
 import { scheduleRefineOnBlock } from '../view/edit'
+import { decideRunAfter } from './decide'
 import { flowRefusal } from './flows'
 import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
@@ -177,7 +178,10 @@ function afterQa(
 ): AgentRequest | 'incomplete' | null {
   if (!card || card.openBlockers.length > 0) return null
   if (card.questions.some((q) => parseQuestion(q.text).tag !== 'user')) return 'incomplete'
-  if (card.questions.length > 0 || refinementStep(card) === 'done') return null
+  // QA converged and left only the user's calls. That is where the card stops — unless the
+  // decider is on (#447), and then one run answers them instead of the user.
+  if (card.questions.length > 0) return decideRunAfter(card.id)
+  if (refinementStep(card) === 'done') return null
   return {
     action: 'writing',
     id: card.id,
@@ -243,6 +247,9 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   'edit',
   'clarify',
   'resolve',
+  // A decide is a resolve with the choosing done for the user (#447): it settled the card's
+  // questions in its own session, so the card it answered is not one to refine again.
+  'decide',
   'writing',
   'spec',
   'channel',
@@ -332,7 +339,8 @@ export function refinementRunsAfter(
   const next =
     waitingForSpec || run.cardId === null
       ? null
-      : (run.action === 'resolve' || run.action === 'edit') && run.refineRound === undefined
+      : (run.action === 'resolve' || run.action === 'edit' || run.action === 'decide') &&
+          run.refineRound === undefined
         ? afterQa(currentCard(run.cardId), 0, run.flowId, run.refineEffort)
         : run.refineRound === undefined
           ? null

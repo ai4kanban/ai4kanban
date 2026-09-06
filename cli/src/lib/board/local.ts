@@ -31,6 +31,7 @@ import {
   cmdSchedule,
   cmdTag,
   cmdUpdate,
+  cmdUpdateDecided,
   cmdUpdateQuestions,
   cmdUpdateVerify,
   type ChannelStatusOptions,
@@ -41,6 +42,7 @@ import {
   type VerifyOpsInput,
 } from '../../commands/card'
 import { cmdInit, cmdMemoryInit } from '../../commands/init'
+import type { DecidedInput } from '../decided'
 import type { Solution } from '../solution'
 import { cmdList, type ListOptions } from '../../commands/list'
 import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
@@ -131,6 +133,7 @@ const MOVES: Record<string, RunMove> = {
   update: ({ args, opts }) => cmdUpdate(Number(args[0]), as<UpdateOptions>(opts)),
   'update-questions': ({ args, opts }) => cmdUpdateQuestions(Number(args[0]), as<QuestionOpsInput>(opts)),
   'update-verify': ({ args, opts }) => cmdUpdateVerify(Number(args[0]), as<VerifyOpsInput>(opts)),
+  'update-decided': ({ args, opts }) => cmdUpdateDecided(Number(args[0]), as<DecidedInput>(opts)),
   schedule: ({ args, opts }) => cmdSchedule(Number(args[0]), as<ScheduleOptions>(opts)),
   'channel-status': ({ args, opts }) =>
     cmdChannelStatus(Number(args[0]), args[1] ?? '', args[2] ?? '', as<ChannelStatusOptions>(opts)),

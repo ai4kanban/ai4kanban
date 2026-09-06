@@ -9,7 +9,7 @@
 // Declared with the shapes a reader is handed (./view/types.ts), because a question is one
 // of the few things both sides of the board see — the writers here, and every front end.
 export type { Question, QuestionMode } from './view/types'
-import type { CardChannel, CardSchedule, Question } from './view/types'
+import type { CardChannel, CardDecision, CardSchedule, Question } from './view/types'
 
 // A question still being built out of the flags that describe it.
 export interface QuestionDraft {
@@ -46,6 +46,9 @@ export interface Meta {
   /** The hand-checks a finished build left for the user — a note to read, never a question
    *  to answer (./verify.ts). */
   verify: string[]
+  /** What the decider answered on this card for the user (#447) — one entry per question it
+   *  took off the card (./decided.ts). Empty on every card it never ran on. */
+  decided: CardDecision[]
 }
 
 // Where a card sits on the board: one file, or a folder holding a group's root.md.

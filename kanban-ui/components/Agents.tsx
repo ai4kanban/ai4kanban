@@ -67,6 +67,12 @@ import {
 } from "./settings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
+// The one agent on this board whose switch stops the board asking you anything (#447). Its
+// page carries a red strip saying what that costs, and turning it ON asks once. Named here
+// because there is exactly one: a second would be a shape in the roster, not a name in a
+// component.
+const COSTLY = "decider";
+
 export function AgentsPanel({
   info,
   onError,
@@ -466,6 +472,9 @@ function Tile({
   const c = useCopy().configuration.agents;
   const title = agentTitle(agent.name);
   const off = !agent.enabled;
+  const anchor = useRef<HTMLSpanElement>(null);
+  const [asking, setAsking] = useState(false);
+  const asks = agent.name === COSTLY;
   return (
     <div
       // No frame: the tile is a plate on the pane, and the ember wash is what says which one
@@ -473,13 +482,37 @@ function Tile({
       className={`relative rounded-[12px] ${held ? "bg-nb-accent-soft" : "bg-nb-sheet"}`}
     >
       {agent.switchable && (
-        <span className="absolute right-[7px] top-[7px] z-10 scale-[0.62] origin-top-right">
-          <Switch
-            on={agent.enabled}
-            busy={busy}
-            label={(agent.enabled ? c.switchOn : c.switchOff)(title)}
-            onFlip={onFlip}
-          />
+        <span ref={anchor} className="absolute right-[7px] top-[7px] z-10">
+          <span className="block scale-[0.62] origin-top-right">
+            <Switch
+              on={agent.enabled}
+              busy={busy}
+              label={(agent.enabled ? c.switchOn : c.switchOff)(title)}
+              // Switching the costly one ON asks once; switching it off, and every other
+              // switch either way, goes straight through.
+              onFlip={async (next) => {
+                if (!asks || !next) return onFlip(next);
+                setAsking(true);
+              }}
+            />
+          </span>
+          {asks && (
+            <ConfirmationPopover
+              open={asking}
+              anchorRef={anchor}
+              confirm="filled"
+              title={c.decider.confirmTitle}
+              description={c.decider.confirmBody}
+              cancelLabel={c.cancel}
+              confirmLabel={c.decider.turnOn}
+              busy={busy}
+              onDismiss={() => setAsking(false)}
+              onConfirm={() => {
+                setAsking(false);
+                void onFlip(true);
+              }}
+            />
+          )}
         </span>
       )}
       <button
@@ -682,10 +715,10 @@ function Page({
           </div>
           {/* A specialist is asked for by its own trigger, so the page says when — a role is
             called by its flows and has nothing to say here. */}
-          {agent.when && (
+          {(agent.when || agent.name === COSTLY) && (
             <p className="mt-0.5 max-w-[80ch] text-[11.5px] leading-snug text-nb-ink-soft">
               <span className="font-[700]">{c.runsWhen}</span>{" "}
-              {clause(agent.when.replace(/^use when\s+/i, ""))}
+              {agent.when ? clause(agent.when.replace(/^use when\s+/i, "")) : c.decider.when}
             </p>
           )}
         </div>
@@ -719,6 +752,20 @@ function Page({
           </span>
         )}
       </div>
+
+      {/* The one switch that stops nothing for you (#447), so its page says what that costs
+          before the box that trains it — the only peach strip in this dialog. */}
+      {agent.name === COSTLY && (
+        <p className="mb-3 flex items-start gap-2.5 rounded-[10px] bg-nb-peach-soft px-3.5 py-3">
+          <FiAlertCircle className="mt-[2px] shrink-0 text-nb-peach-ink" aria-hidden />
+          <span className="min-w-0">
+            <span className="block text-[12.5px] font-[800] text-nb-peach-ink">
+              {c.decider.costTitle}
+            </span>
+            <span className="mt-1 block text-[12px] leading-relaxed">{c.decider.cost}</span>
+          </span>
+        </p>
+      )}
 
       {/* What this agent runs (#443): the connector, from the board's file, then the model
           settings under it, from this computer's. Above the box that trains it — it is the
@@ -767,6 +814,12 @@ function Page({
                   className="h-[64px] w-full resize-none rounded-[10px] bg-nb-wash px-3 py-2 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
                 />
               </>
+            )}
+
+            {agent.name === COSTLY && (
+              <p className="mt-2.5 max-w-[74ch] text-[11.5px] leading-relaxed text-nb-ink-soft">
+                {c.decider.note}
+              </p>
             )}
 
             {agent.memory.length > 0 && (

@@ -138,10 +138,12 @@ export { runnableAgents } from './lib/agent/resolve'
 export {
   aiReviewEnabled,
   autoCommitAllowed,
+  deciderOn,
   diffApprovalRequired,
   readyGateOn,
   setAiReview,
   setAutoCommit,
+  setDecider,
   setDiffApproval,
   setHarness,
   setHarnessSetting,

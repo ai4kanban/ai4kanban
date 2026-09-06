@@ -52,6 +52,20 @@ export type OptionsQuestion = Question & Required<Pick<Question, 'mode' | 'optio
  *  freshly raised and not yet triaged; an answered question leaves the list entirely. */
 export type QuestionTag = 'user'
 
+/** One question the decider answered for the user (#447) — what it was asked, what it
+ *  picked, and what it went on. `from` is a board-relative file (a module's `decisions.md`,
+ *  `memory/goal.md`); empty means nothing settled it and it took the recommendation.
+ *
+ *  A record, not a question: the question itself is dropped once it is answered, and this
+ *  list is what the card keeps of the choice. Nothing here waits on anybody. */
+export interface CardDecision {
+  question: string
+  /** The option it picked, or the answer it wrote on a question with no options. */
+  chose: string
+  /** The file it went on, board-relative. Empty when it took the recommendation blind. */
+  from: string
+}
+
 /** A pointer to another card — just enough to draw a link. */
 export interface CardRef {
   id: number
@@ -243,6 +257,10 @@ export interface CardDeliveryState {
    *  answer, the resolve or the commit — so the card page says so, and Resolve stays live
    *  while every other held control is off. */
   paused: boolean
+  /** The decider is answering these questions instead of the user (#447). The questions are
+   *  still open and answering one by hand still works — nothing is being ASKED of the user,
+   *  which is why `paused` is false while this is true. */
+  deciding?: boolean
 }
 
 /** A delivery's landing, as the card page reads it (#304). The states are the delivery
@@ -322,6 +340,9 @@ export interface Card {
    *  each, left by the build. A note to read, not a question: nothing here waits on an
    *  answer, and nothing here holds the card back. Empty on most cards. */
   verify: string[]
+  /** What the decider answered on this card for the user (#447), one entry per question.
+   *  Empty on every card it never touched, which is every card while the switch is off. */
+  decided: CardDecision[]
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
   /** The channels this topic goes to, in the order the user picked — the first is the lead

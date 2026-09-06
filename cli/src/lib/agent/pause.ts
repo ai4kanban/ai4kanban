@@ -52,6 +52,10 @@ export interface DeliveryState {
   /** True while it waits on the user. There is nothing to press — what continues it is the
    *  answer, the commit, or the resolve. */
   paused: boolean
+  /** The decider is answering these questions instead of the user (#447), so nothing is
+   *  being asked of them and `paused` is false. The questions are still open, and answering
+   *  one by hand still works — which is why the hold lets a resolve through on this too. */
+  deciding?: boolean
 }
 
 /** The fixed opening words landing writes on the two holds this file also words itself
@@ -101,7 +105,14 @@ export function answeredStop(delivery: DeliveryRecord, questions: number): boole
  *
  *  The questions are passed in rather than read here: this file is asked from inside the
  *  record's lock as well as from a card read, and reading a card file is the caller's job. */
-export function deliveryState(delivery: DeliveryRecord, questions: number): DeliveryState {
+export function deliveryState(
+  delivery: DeliveryRecord,
+  questions: number,
+  /** The decider would answer this card's questions (#447) — read by the caller, which is
+   *  the side that can. It changes only the two waits it can answer, `stopped` and `held`:
+   *  an approval, a commit and a landing refusal are none of its business. */
+  deciding = false,
+): DeliveryState {
   const landing = delivery.landing
   if (landing?.status === 'landed') {
     const commit = landing.commit?.slice(0, 7)
@@ -118,6 +129,17 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
   const stopped = delivery.review?.stopped
   const answered = answeredStop(delivery, questions)
   if (stopped && !answered) {
+    // The decider is answering it, so nobody is being asked anything: the label, the line
+    // and `paused` all say the board is still moving (#447).
+    if (deciding && questions && delivery.cardId !== null) {
+      return {
+        stage: 'stopped',
+        label: 'Decider is answering',
+        line: `${upper(end(stopped.why))} Decider is answering it for you, and the work goes back through review once it has.`,
+        paused: false,
+        deciding: true,
+      }
+    }
     return {
       stage: 'stopped',
       label: 'Waiting on you',
@@ -168,6 +190,15 @@ export function deliveryState(delivery: DeliveryRecord, questions: number): Deli
   // A delivery only holds at landing once it has one: review has passed it and it has
   // queued. Before that the questions are a warning the user already answered for.
   if (questions > 0 && landing) {
+    if (deciding) {
+      return {
+        stage: 'held',
+        label: 'Decider is answering',
+        line: `Landing waits on this card's ${count(questions)} — Decider is answering ${questions === 1 ? 'it' : 'them'} for you, and it carries on.`,
+        paused: false,
+        deciding: true,
+      }
+    }
     return {
       stage: 'held',
       label: 'Held at landing',

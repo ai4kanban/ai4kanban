@@ -70,7 +70,7 @@ export function validateSpec(file: string, text: string): ContractError[] {
       add(value.line, key, `Invalid ${key} ${JSON.stringify(value.value)}. Expected ${allowed.join(', ')}; use akb raw update.`)
     }
   }
-  for (const key of ['blocked_by', 'related', 'modules', 'questions', 'verify']) {
+  for (const key of ['blocked_by', 'related', 'modules', 'questions', 'verify', 'decided']) {
     const field = fields.get(key)
     if (!field) continue
     if (field.value !== '' && !/^\[.*\]$/.test(field.value)) {

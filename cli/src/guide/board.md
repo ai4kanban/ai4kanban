@@ -22,10 +22,10 @@ docs/kanban/
 │                   exactly as it was approved for it, and how it ended. Tracked in git,
 │                   kept after the card is archived; nobody edits one by hand
 ├── rules/          one rule per agent, in the user's own words — `<agent>.md`: a role the
-│                   board ships (`planner`, `builder`, `reviewer`) or a spec agent. It is
-│                   appended to the end of every run that agent does, so every flow it runs
-│                   reads it. Tracked in git; a missing or empty file means the run goes
-│                   unchanged. Written from the board UI or `akb raw rule`, not by hand
+│                   board ships (`planner`, `builder`, `reviewer`, `decider`) or a spec
+│                   agent. It is appended to the end of every run that agent does, so every
+│                   flow it runs reads it. Tracked in git; a missing or empty file means the
+│                   run goes unchanged. Written from the board UI or `akb raw rule`
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user
 ├── releases.md     the open releases, in the order they ship — one line each

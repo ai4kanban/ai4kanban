@@ -25,6 +25,7 @@ import { recordCloudDeliveryState } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
 import { DELIVERIES, rel } from '../paths'
 import { candidateBase } from './candidate'
+import { decideRunAfter, decidingOn } from './decide'
 import { boardCommand } from './command'
 import {
   commitDeliveryWork,
@@ -517,7 +518,7 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
  *  `next` on the record, so the delivery still says what it was about to do and
  *  `akb delivery review <id>` puts it back in motion. */
 export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
-  if (run.deliveryId) return takeNext(run.deliveryId)
+  if (run.deliveryId) return takeNext(run.deliveryId) ?? decideAfterDelivery(run.cardId)
   // A run that is not the delivery's own can still be the thing it was waiting for:
   // `resolve` is how the question a stopped review left gets answered, and the hold lets it
   // through for exactly that (`heldByDelivery`). It joins no delivery, so nothing here was
@@ -533,7 +534,31 @@ export function deliveryRunAfter(run: RunRecord): AgentRequest | null {
   //
   // A run with no card answers no stop either: a card-less delivery has no questions to
   // settle, and its own `next` is taken above.
-  return run.cardId === null ? null : answeredReview(run.cardId)
+  return run.cardId === null ? null : (answeredReview(run.cardId) ?? decideAfterDelivery(run.cardId))
+}
+
+/** The decide run this close owes, when it left a delivery waiting on the card's `[user]`
+ *  questions and the decider is switched on (#447) — the second of the decider's two
+ *  triggers, the other being QA converging (`refine.ts`).
+ *
+ *  Both holds count and for one reason: a review that sent the delivery back and a landing
+ *  that will not go until the questions are answered are the same wait, and the decider is
+ *  what answers it. It joins no delivery — once its answers clear the card, `answeredReview`
+ *  at ITS close is what hands the delivery on. */
+function decideAfterDelivery(cardId: number | null): AgentRequest | null {
+  if (cardId === null) return null
+  const state = deliveryStateOf(cardId)
+  if (!state || (state.stage !== 'stopped' && state.stage !== 'held')) return null
+  return decideRunAfter(cardId)
+}
+
+/** True while the delivery on this card is stopped on questions somebody may still answer —
+ *  the user, or the decider on their behalf. What the hold lets `resolve` and `decide`
+ *  through on: both rewrite questions and never the approved copy, so the delivery is
+ *  building exactly what it was building before. */
+export function deliveryAcceptsAnswers(cardId: number): boolean {
+  const state = deliveryStateOf(cardId)
+  return !!state && (state.paused || state.deciding === true)
 }
 
 /** The review this card's delivery is owed now that its question has been answered — or
@@ -704,7 +729,7 @@ export function insideDelivery(cardId: number): boolean {
  *  free. Derived on every read from the card's questions and the delivery's own records. */
 export function deliveryStateOf(cardId: number): DeliveryState | undefined {
   const delivery = activeDelivery(cardId)
-  return delivery && deliveryState(delivery, openQuestions(cardId))
+  return delivery && deliveryState(delivery, openQuestions(cardId), decidingOn(cardId))
 }
 
 /** The same by delivery id — what a build with no card is read by (#428). Its flow in Runs
@@ -712,7 +737,9 @@ export function deliveryStateOf(cardId: number): DeliveryState | undefined {
 export function deliveryPause(deliveryId: string): DeliveryState | undefined {
   const delivery = findDelivery(deliveryId)
   if (!delivery) return undefined
-  return deliveryState(delivery, delivery.cardId === null ? 0 : openQuestions(delivery.cardId))
+  return delivery.cardId === null
+    ? deliveryState(delivery, 0, false)
+    : deliveryState(delivery, openQuestions(delivery.cardId), decidingOn(delivery.cardId))
 }
 
 /** The one line saying what the delivery in flight is waiting on, while it waits on the
@@ -737,7 +764,7 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   if (!delivery) return undefined
   if (insideDelivery(cardId)) return undefined
   const cmd = program ?? boardCommand()
-  const state = deliveryState(delivery, openQuestions(cardId))
+  const state = deliveryState(delivery, openQuestions(cardId), decidingOn(cardId))
   // What answers the wait: an approval on an approval hold (#308), the card's own questions
   // everywhere else. Naming the wrong one is a refusal nobody can act on.
   const answer =
@@ -749,8 +776,13 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
   const doing = state.paused
     ? `is waiting on you on #${cardId} — ${state.line} — so the board won't change the card. ` +
       `${answer} Or take the card back with `
-    : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
-      `so the board won't change it. Take the card back with `
+    : state.deciding
+      ? // The decider is answering its questions (#447), so nothing is asked of the user —
+        // but the card is no more this move's to rewrite than it was before.
+        `is waiting on an answer on #${cardId} — ${state.line} — so the board won't change the card. ` +
+        `Take the card back with `
+      : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
+        `so the board won't change it. Take the card back with `
   // Two ways out, and they differ in what they leave behind: Discard throws the delivery's
   // worktree away with it, `cancel` ends it and leaves the work on disk.
   return (

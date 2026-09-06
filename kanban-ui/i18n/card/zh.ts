@@ -178,6 +178,12 @@ const zh: CardCopy = {
     pageTitle: (id) => `答复 #${id}`,
     pageBlurb: "回答这张卡片正在等待的问题。留空的问题保持待澄清。",
   },
+  decided: {
+    heading: "Decider 替你做的选择",
+    note: "这些答案只在这张卡片上，没有写进项目的长期决定。",
+    from: "依据",
+    blind: "没有依据——取了推荐项",
+  },
   handChecks: {
     heading: "人工验收",
     crossOff: "标记完成",

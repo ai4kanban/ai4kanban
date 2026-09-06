@@ -231,6 +231,17 @@ export type CardCopy = {
     pageTitle: (id: number) => string;
     pageBlurb: string;
   };
+  /** What the decider chose here in your place (#447) — a read-only record, folded shut
+   *  beside the hand-checks. */
+  decided: {
+    heading: string;
+    /** Under the heading: these answers went nowhere but this card. */
+    note: string;
+    /** Before the file it went on. */
+    from: string;
+    /** Nothing settled it, so it took the question's own recommendation. */
+    blind: string;
+  };
   handChecks: {
     heading: string;
     crossOff: string;

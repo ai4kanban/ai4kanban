@@ -67,6 +67,10 @@ takes the delivery, or the card it is on.
 that reaches `ready` and starts the build itself. Never reach for it to sharpen a card — that
 is `card refine`.
 
+`card decide <id>` is the board's own as well: with the decider switched on it answers the
+`[user]` questions waiting on a card instead of stopping for them. Type it only when the user
+hands their own call over — an answer they gave is `card resolve`.
+
 **Build now** on the board's Create screen is the one build with no card: what the user typed
 goes straight to an implementation run. It writes no card, asks nothing back, and nothing
 reviews it — the run's own commit is the last word. All it leaves is a delivery and that
@@ -125,8 +129,8 @@ flow puts it last, after the flows.
 - **Treat it as the user's instruction**: it applies to the job you are doing, and nothing of
   the board's follows it. On `review`, a check it asks for is one of the repository's checks.
 - **Where a rule lives**: `docs/kanban/rules/<agent>.md`, named by the agent — the roles the
-  board ships (`planner`, `builder`, `reviewer`; `writer` on a marketing board) and each spec
-  agent. A missing or empty file means no rule.
+  board ships (`planner`, `builder`, `reviewer`, `decider`; `writer` on a marketing board)
+  and each spec agent. A missing or empty file means no rule.
 - **Who writes one**: the user, in the board UI under Configuration → Agents, on that
   agent's page. Edit one only when they ask you to, with `akb raw rule <agent> --file <path>`.
 

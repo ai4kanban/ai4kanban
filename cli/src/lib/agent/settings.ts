@@ -237,6 +237,37 @@ export function setReadyGate(on: boolean): { ok: boolean; error?: string } {
   })
 }
 
+// ---- the decider: does the board answer your questions for you? (#447) ------
+//
+//   "decider": true
+//
+// OFF by default, and only written down when somebody turned it on — the same call the
+// ready gate made, and for a stronger version of the same reason: this is the most expensive
+// switch on the board.
+//
+// With it ON, a card left with nothing but `[user]` questions is answered by one `decide`
+// run instead of waiting for the user — after QA converges, and after a review sends a
+// delivery back. Nothing stops for the user any more: a wrong direction is built and landed
+// just the same, and what it chose is read afterwards on the card.
+
+/** True only when somebody switched the decider on. A file that won't parse reads as off: a
+ *  setting nobody can read is not a reason to start answering for the user. */
+export function deciderOn(): boolean {
+  try {
+    return readConfigRaw().decider === true
+  } catch {
+    return false
+  }
+}
+
+/** Save it. Turning it back off drops the key rather than writing `false`. */
+export function setDecider(on: boolean): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    if (on) cfg.decider = true
+    else delete cfg.decider
+  })
+}
+
 // ---- how long a run may say nothing (#394) ---------------------------------
 //
 //   "silenceMinutes": 20

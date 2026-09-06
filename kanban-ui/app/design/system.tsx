@@ -274,6 +274,7 @@ const CARD: Card = {
   related: [],
   questions: [{ text: "[user] Does /design ship in the desktop app, or stay a dev-only route?" }],
   verify: ["open /design in the desktop app and check every specimen still draws"],
+  decided: [],
   modules: ["board"],
   channels: [],
   last_run: "",

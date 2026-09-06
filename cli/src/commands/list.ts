@@ -32,6 +32,7 @@ interface Row {
   cadence: string
   questions: Question[]
   verify: string[]
+  decided: number
   summary: string
 }
 
@@ -82,6 +83,7 @@ function openRows(): Row[] {
       cadence: (meta && meta.cadence) || '',
       questions: (meta && meta.questions) || [],
       verify: (meta && meta.verify) || [],
+      decided: (meta && meta.decided.length) || 0,
       summary: summaryLine(body),
     })
   }
@@ -129,6 +131,7 @@ export function cmdList(opts: ListOptions): MoveResult {
     if (r.blocked_by.length) meta.push(`blocked by ${r.blocked_by.map((n) => `#${n}`).join(', ')}`)
     if (r.questions.length) meta.push(plural(r.questions.length, 'open question'))
     if (r.verify.length) meta.push(`${r.verify.length} to check by hand`)
+    if (r.decided) meta.push(`${r.decided} answered for you`)
     say('')
     say(`#${r.id} ${r.title}  (${rel(r.file)})`)
     say(`    ${meta.join(' · ')}`)

@@ -26,6 +26,7 @@ import addTask from '../guide/add-task.md'
 import board from '../guide/board.md'
 import changelog from '../guide/changelog.md'
 import conflict from '../guide/conflict.md'
+import decide from '../guide/decide.md'
 import discussIdea from '../guide/discuss-idea.md'
 import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
@@ -87,6 +88,7 @@ export const GUIDES: Guide[] = [
   { name: 'qa-lightweight', when: 'check one clear, localized task with a short evidence walk', text: qaLightweight },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
   { name: 'resolve', when: "apply the user's answers to a card's open questions", text: resolve },
+  { name: 'decide', when: "answer a card's open questions in the user's place", text: decide },
   { name: 'reject', when: 'drop a card, and write down why', text: reject },
   { name: 'review', when: "review and fix a delivery against the approved requirements", text: review },
   { name: 'conflict', when: "resolve the conflict in a delivery's landing rebase", text: conflict },
@@ -123,7 +125,7 @@ const OVERRIDES: Record<Solution, Record<string, string>> = {
  *  reads. */
 const GONE: Record<Solution, readonly string[]> = {
   product: [],
-  marketing: ['refine', 'resolve', 'gate', 'plan-release', 'changelog', 'qa-loop', 'qa-lightweight', 'releases'],
+  marketing: ['refine', 'resolve', 'decide', 'gate', 'plan-release', 'changelog', 'qa-loop', 'qa-lightweight', 'releases'],
 }
 
 /** The flows one solution has that the other has no use for. Not an override: a `channel`

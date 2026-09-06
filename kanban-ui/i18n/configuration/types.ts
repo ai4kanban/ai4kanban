@@ -4,7 +4,7 @@
 /** The roles the board ships — the agents its own flows are run by, on either solution.
  *  Closed, because the command ships them; a specialist is a file and carries its own
  *  words. */
-export type AgentRoleName = "planner" | "builder" | "writer" | "reviewer";
+export type AgentRoleName = "planner" | "builder" | "writer" | "reviewer" | "decider";
 
 export type ConfigurationCopy = {
   open: string;
@@ -150,6 +150,21 @@ export type ConfigurationCopy = {
      *  ships the roles, so the pane can carry their words; a specialist says both in its
      *  own `AGENT.md`, which is the only place a project can write them. */
     roles: Record<AgentRoleName, { gloss: string; rule: string }>;
+    /** The decider (#447) — the one switch on this board that stops nothing for you, so its
+     *  page carries what that costs and its switch asks once before it goes on. */
+    decider: {
+      /** When the board starts one, under the gloss. */
+      when: string;
+      /** The red strip: what it costs while it is on. */
+      costTitle: string;
+      cost: string;
+      /** How it chooses, under the instructions box. */
+      note: string;
+      /** The one confirmation, hanging off the switch. */
+      confirmTitle: string;
+      confirmBody: string;
+      turnOn: string;
+    };
     /** The same box for a specialist, by the hook it plugs into. */
     specialistRule: {
       spec: (agent: string) => string;

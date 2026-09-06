@@ -5,7 +5,7 @@
 // run's id and exits — the run outlives it — so the same run can be followed, stopped or
 // continued from anywhere, by anyone, including a process that never saw it start.
 
-import { activeDelivery, deliveryWaiting, heldByDelivery } from '../lib/agent/deliveries'
+import { activeDelivery, deliveryAcceptsAnswers, heldByDelivery } from '../lib/agent/deliveries'
 import { flowRefusal } from '../lib/agent/flows'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { readLogTail, splitLog } from '../lib/agent/log'
@@ -125,15 +125,19 @@ function queueRefine(inside: string, req: CommandRequest): MoveResult {
 //
 // The hold is the board's, not one screen's: the card page turns the same five controls off
 // (kanban-ui/components/CardPage.tsx), and a run of the delivery itself passes both.
-const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'reject', 'archive'])
+const HELD_BY_DELIVERY = new Set<CommandAction>(['edit', 'refine', 'resolve', 'decide', 'reject', 'archive'])
+
+// The two that answer a delivery's own question rather than rewriting the card under it.
+const ANSWERS_THE_HOLD = new Set<CommandAction>(['resolve', 'decide'])
 
 function sayIfHeld(req: CommandRequest, program: string): void {
   if (!HELD_BY_DELIVERY.has(req.action) || req.id === undefined) return
   // One way through: a delivery whose review stopped is waiting on a question it put on
   // this card, so answering that question is the very thing the hold would otherwise
   // block. Resolve rewrites questions and never the approved copy, so the delivery is
-  // building exactly what it was building before (#302).
-  if (req.action === 'resolve' && deliveryWaiting(req.id)) return
+  // building exactly what it was building before (#302) — and a decide is the same move
+  // with the choosing done for the user (#447), so it takes the same way through.
+  if (ANSWERS_THE_HOLD.has(req.action) && deliveryAcceptsAnswers(req.id)) return
   const held = heldByDelivery(req.id, program)
   if (held) die(held, { kind: 'run-refused', action: req.action })
 }

@@ -482,6 +482,9 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // Apply the user's answers first, then validate the resulting plan to convergence in the
   // same session. The watcher may start writing afterwards, but never another QA session.
   resolve: ['board', 'writing', 'resolve', 'update-questions', 'qa-lightweight'],
+  // The decider does `resolve`'s job with the choosing done for the user (#447), so it gets
+  // `resolve`'s own set — plus the page that says how it chooses and what it must not write.
+  decide: ['board', 'writing', 'resolve', 'decide', 'update-questions', 'qa-lightweight'],
   // The dedicated writing pass gets that guide alone: it writes a body and nothing else.
   writing: ['writing'],
   // The ready gate judges a card against the standard it was written to, so it reads that
@@ -689,6 +692,23 @@ function buildFlow(req: AgentRequest, program: string): Flow {
           : req.andImplement
             ? `${self} card implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
             : `${self} card implement ${req.id} --print — once every question is settled`,
+      )
+      break
+    }
+    // The decider answering in the user's place (#447). It reads the same two things a
+    // resolve does — the questions, and the decisions already made — but the memory is what
+    // it CHOOSES from rather than what it writes to, and the close says so.
+    case 'decide': {
+      facts.push(...questionsField(card!.meta))
+      facts.push(...field('goal', rel(GOAL)))
+      facts.push(...field('memory', memoryFiles(card!.meta.modules, 'decisions.md')))
+      close.push(
+        `${raw} update-decided ${req.id} --question ".." --chose ".." [--from ".."] — one call per question, before you drop it`,
+        `${raw} update-questions ${req.id} --drop <n> — every \`[user]\` question goes, and the card leaves this run with none`,
+        'write no lasting decision: nothing you chose belongs in a `decisions.md` or in a spec agent\'s memory',
+      )
+      next.push(
+        `${self} card implement ${req.id} --print — once every question is answered`,
       )
       break
     }

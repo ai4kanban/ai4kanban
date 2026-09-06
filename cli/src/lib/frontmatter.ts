@@ -8,6 +8,7 @@ import { yamlScalar, unquote } from './yaml'
 import { normalizeChannels, parseChannelsBlock, serializeChannels } from './channels'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
 import { normalizeVerify } from './verify'
+import { normalizeDecided, parseDecidedBlock, serializeDecided } from './decided'
 import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
 import { carriesField, solution, type Solution } from './solution'
 import type { Meta, Question } from './types'
@@ -74,6 +75,9 @@ export function serializeFrontmatter(m: Partial<Meta>, which: Solution = solutio
     out.push('verify:')
     for (const line of m.verify) out.push(`  - ${yamlScalar(line)}`)
   }
+  // What the decider answered for the user (./decided.ts). Written only when it has answered
+  // something, so every card it never ran on keeps the frontmatter it always had.
+  out.push(...serializeDecided(m.decided))
   out.push('---')
   return out.join('\n')
 }
@@ -125,6 +129,21 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
       }
       continue
     }
+    // `decided:` is a block of its own too — one entry per question the decider answered,
+    // each carrying the question, the choice and what it went on.
+    if (key === 'decided') {
+      if (val === '') {
+        const block: string[] = []
+        while (j + 1 < fm.length && /^\s/.test(fm[j + 1]!) && fm[j + 1]!.trim() !== '') {
+          block.push(fm[j + 1]!)
+          j++
+        }
+        meta.decided = parseDecidedBlock(block)
+      } else {
+        meta.decided = []
+      }
+      continue
+    }
     // `schedule:` is the other block field — an action and its notes, indented under it.
     if (key === 'schedule') {
       if (val === '') {
@@ -169,6 +188,9 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // The hand-checks, as plain lines. A card written before this field has none, and a line
   // blanked by hand drops out rather than showing as an empty bullet.
   meta.verify = normalizeVerify(meta.verify)
+  // What the decider answered for the user. A card written before this field has none, and a
+  // half-written entry drops out rather than reading as a choice.
+  meta.decided = normalizeDecided(meta.decided)
   // The release the card ships in. Missing, empty or damaged reads as no release, so a
   // card written before this field — or one whose line was blanked by hand — still opens.
   meta.release = normalizeRelease(meta.release)

@@ -16,6 +16,7 @@ import {
   FiHelpCircle,
   FiMoreHorizontal,
   FiPlay,
+  FiSkipForward,
   FiTrash2,
   FiX,
   FiXCircle,
@@ -25,6 +26,7 @@ import {
   NO_RELEASE,
   type Card,
   type CardApproval,
+  type CardDecision,
   type CardDelivery,
   type CardDeliveryStage,
   type CardFinished,
@@ -231,6 +233,64 @@ function HandChecks({
           {note}
         </p>
       )}
+    </Fold>
+  );
+}
+
+// ---- what the decider chose for you (#447) ----------------------------------
+//
+// A record, not a control: the questions these answer are gone, and nothing here can be
+// changed. One row per question — what it was asked, what it took, and what it went on.
+//
+// A row with no basis is the one worth spotting: nothing in the goal or in a module's
+// decisions settled it, so it took the question's own recommendation. That line wears the
+// peach ink the rest of the page uses for a cost, so a card full of blind picks reads as one
+// at a glance.
+//
+// It opens shut, the same fold the hand-checks wear and beside them: both are notes on work
+// already done, at the foot of a page whose top is what you decide on.
+function DeciderChoices({ decided }: { decided: CardDecision[] }) {
+  const c = useCopy().card.decided;
+  const [open, setOpen] = useState(false);
+  if (decided.length === 0) return null;
+  return (
+    <Fold
+      className="nb-section bg-nb-sheet"
+      open={open}
+      onToggle={setOpen}
+      label={
+        <>
+          <FiSkipForward aria-hidden style={{ color: "var(--color-nb-sky-ink)" }} />
+          <span>{c.heading}</span>
+          <span className="tabular-nums">{decided.length}</span>
+        </>
+      }
+    >
+      <p className="mb-3 text-[12px] leading-[18px] text-nb-ink-soft">{c.note}</p>
+      <ul className="flex flex-col gap-3">
+        {decided.map((d) => (
+          <li key={d.question} className="flex flex-col">
+            <span className="text-[13px] leading-[19px]">{d.question}</span>
+            <span className="mt-1 flex items-baseline gap-2 text-[12.5px] font-[700] leading-[18px] text-nb-accent-deep">
+              <FiCheckCircle className="relative top-[2px] shrink-0" aria-hidden />
+              <span className="min-w-0">{d.chose}</span>
+            </span>
+            <span
+              className={`mt-[3px] pl-[20px] text-[11px] leading-[15px] ${
+                d.from ? "text-nb-ink-soft" : "font-[700] text-nb-peach-ink"
+              }`}
+            >
+              {d.from ? (
+                <>
+                  {c.from} <span className="font-mono">{d.from}</span>
+                </>
+              ) : (
+                c.blind
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
     </Fold>
   );
 }
@@ -1242,7 +1302,7 @@ export function CardPage({
   // Resolve stays live whenever the delivery is waiting on the user (#307) — a hold nothing
   // lets you answer is a dead end — while every other held control is off. The CLI makes
   // exactly the same exception.
-  const answerable = !!delivery?.state.paused;
+  const answerable = !!delivery?.state.paused || !!delivery?.state.deciding;
   // A delivery that is only building — waiting on nothing, holding nothing up. The one stage
   // with nothing to say beyond the pill already saying it.
   const justBuilding = delivery?.state.stage === "working";
@@ -2018,6 +2078,7 @@ export function CardPage({
 
               {/* Last on the page, under the body and its agent half: every line here is a
                   note on work already done, so it comes after what the card is. */}
+              <DeciderChoices decided={card.decided} />
               <HandChecks cardId={card.id} revision={card.revision} verify={card.verify} busy={busy} />
             </div>
           </main>
