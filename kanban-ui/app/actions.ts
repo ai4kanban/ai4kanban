@@ -308,6 +308,9 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
     throw new Error("a changelog needs a version id");
   }
   const { cloudRevision, cloudAnswers, ...request } = req;
+  // **Review again** is the one review a person clicks for, so it says so (#417). Every
+  // other review a delivery takes is started by the board, never through here.
+  if (request.action === "review") request.trigger = "asked";
   const runnable = await prepareAgentRequest(request);
   const started = await startSession(runnable, await buildPrompt(runnable));
   // The card page acts on the spot, exactly as it always has, and the same durable action

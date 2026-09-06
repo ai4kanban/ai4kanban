@@ -224,6 +224,9 @@ function readRequest(
         id: delivery.cardId ?? undefined,
         deliveryId: delivery.deliveryId,
         title: delivery.title,
+        // A review typed by hand is one the user asked for (#417) — including the one that
+        // restarts a delivery whose watcher died, which they still asked for by typing it.
+        ...(action === 'review' ? { trigger: 'asked' as const } : {}),
       },
       follow,
       print,

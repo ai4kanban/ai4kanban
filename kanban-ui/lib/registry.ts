@@ -61,6 +61,12 @@ function toView(
     // carries the same id, so the panel can show the job rather than its sessions. A run
     // under an older rules build carries none and stands on its own, as it did before.
     flow: run.flowId ? { id: run.flowId, round: run.refineRound ?? 1 } : undefined,
+    // The delivery this run was recorded under, kept apart from the record found for it
+    // below: the live copy prunes an ended delivery long before it prunes that delivery's
+    // runs, and grouping a job needs the id whether or not the row is still there (#417).
+    deliveryId: run.deliveryId,
+    // And why a review after the first started (#417) — the step row's own footnote.
+    trigger: run.trigger,
     // The DELIVERY this session belonged to, and how that delivery ended (#301). A session
     // the user stopped inside a cancelled delivery has to read "cancelled": "stopped" would
     // describe the session and hide what happened to the job it was part of.

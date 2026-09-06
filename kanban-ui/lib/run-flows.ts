@@ -9,12 +9,19 @@
 //
 // A job that took one session is still a flow — a flow of one, drawn as the single row it
 // always was.
+//
+// A DELIVERY is a job the same way, and it is the stronger fact (#417): its runs are handed
+// back by whichever watcher happened to be closing, so the stored `flowId` on one of them
+// can be another card's. Every run that belongs to a delivery is therefore grouped by the
+// delivery it names — which also redraws runs recorded before that was true, without any
+// record being rewritten.
 
 import type { RunsCopy } from "@/i18n/runs/types";
-import type { AgentAction, SessionView } from "./types";
+import type { AgentAction, ReviewTrigger, SessionView } from "./types";
 
 export interface RunFlow {
-  /** The flow's id — or the session's own, for a run recorded before flows. */
+  /** The flow's id — the delivery's when its sessions belong to one, the stored flow id
+   *  otherwise, or the session's own for a run recorded before flows. */
   id: string;
   cardId: number | null;
   /** Its sessions, oldest first — the order they ran in. */
@@ -33,7 +40,7 @@ export function runFlows(sessions: SessionView[]): RunFlow[] {
   const byId = new Map<string, RunFlow>();
   const flows: RunFlow[] = [];
   for (const s of [...sessions].sort((a, b) => a.startedAt - b.startedAt)) {
-    const id = s.flow?.id ?? s.sessionId;
+    const id = groupOf(s);
     const found = byId.get(id);
     if (found) {
       found.sessions.push(s);
@@ -54,8 +61,14 @@ export function runFlows(sessions: SessionView[]): RunFlow[] {
   return flows.sort((a, b) => b.latest.startedAt - a.latest.startedAt);
 }
 
-/** The words the two labels below are said in — `runs` out of the copy module. */
-export type RunLabels = Pick<RunsCopy, "step" | "flow">;
+/** The job one session belongs to. The delivery wins where there is one: a run of a
+ *  delivery is that delivery's work whatever flow the watcher that started it was in. A run
+ *  naming no delivery keeps its stored flow, so everything recorded before this — a
+ *  refinement among them — is drawn exactly where it always was. */
+const groupOf = (s: SessionView): string => s.deliveryId ?? s.flow?.id ?? s.sessionId;
+
+/** The words the labels below are said in — `runs` out of the copy module. */
+export type RunLabels = Pick<RunsCopy, "step" | "flow" | "trigger">;
 
 /** The flow one session belongs to. */
 export function flowOf(flows: RunFlow[], sessionId: string | null): RunFlow | null {
@@ -68,6 +81,12 @@ export function flowOf(flows: RunFlow[], sessionId: string | null): RunFlow | nu
 export function stepLabel(action: AgentAction, copy: RunLabels): string {
   return copy.step[action];
 }
+
+/** Why a review after the first one started (#417), in words — nothing for the first
+ *  review after a build, which is the default, and nothing for a trigger this build has no
+ *  word for: a start site shipped later says its own reason without touching the display. */
+export const triggerLabel = (trigger: ReviewTrigger | undefined, copy: RunLabels): string =>
+  (trigger && copy.trigger[trigger]) || "";
 
 /** The flow's own name — the command a user would have typed for it, which is the session
  *  it opened with. What came after is what the job went on to do, not what it is. */

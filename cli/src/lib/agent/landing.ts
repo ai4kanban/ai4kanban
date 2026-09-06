@@ -604,7 +604,18 @@ async function afterRebase(
   if (!live || live.status !== 'active') return { done: true }
   if (!reviews) return {}
   if (kind === 'disjoint') return await landStep(live)
-  return { start: { action: 'review', id: live.cardId ?? undefined, deliveryId: live.deliveryId, title: live.title } }
+  // Why this review is happening, said now rather than read back off the landing later: a
+  // second rebase overwrites `rebaseKind`, and the review the first one owed would then
+  // read as the second one's (#417).
+  return {
+    start: {
+      action: 'review',
+      id: live.cardId ?? undefined,
+      deliveryId: live.deliveryId,
+      title: live.title,
+      trigger: kind === 'conflict' ? 'conflict' : 'rebase',
+    },
+  }
 }
 
 const rebaseWhy = (delivery: DeliveryRecord, kind: 'overlap' | 'conflict'): string =>

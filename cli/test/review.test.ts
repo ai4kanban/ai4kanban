@@ -254,9 +254,12 @@ describe('stopping for the user', () => {
     await ask(['--drop', '1'])
     assert.equal(deliveryWaiting(5), undefined)
     // The request names the delivery as well as the card: that is what a build with no card
-    // is found by, and a carded one carries it just the same (#428).
+    // is found by, and a carded one carries it just the same (#428). It also names why the
+    // review is happening, since it is not the first one (#417).
     const owed = activeDelivery(5)!.deliveryId
-    assert.deepEqual(answeredWork(), [{ action: 'review', id: 5, deliveryId: owed, title: 'A card' }])
+    assert.deepEqual(answeredWork(), [
+      { action: 'review', id: 5, deliveryId: owed, title: 'A card', trigger: 'answered' },
+    ])
     // A card with a run already on it is left for the next pass.
     assert.deepEqual(answeredWork(new Set([5])), [])
 
@@ -264,7 +267,7 @@ describe('stopping for the user', () => {
     const answering = session('resolve')
     withStore((store) => void store.runs.push(answering))
     const carry = deliveryRunAfter(await close(answering))
-    assert.deepEqual(carry, { action: 'review', id: 5, deliveryId: owed, title: 'A card' })
+    assert.deepEqual(carry, { action: 'review', id: 5, deliveryId: owed, title: 'A card', trigger: 'answered' })
   })
 
   // The watcher asks with the row it claimed the card with — read before the run spawned,
@@ -291,6 +294,7 @@ describe('stopping for the user', () => {
       id: 5,
       deliveryId: activeDelivery(5)!.deliveryId,
       title: 'A card',
+      trigger: 'answered',
     })
   })
 
@@ -338,5 +342,41 @@ describe('stopping for the user', () => {
     await close(carryOn(built))
     assert.equal(activeDelivery(5)?.review?.stopped, undefined)
     assert.equal(activeDelivery(5)?.review?.rounds.at(-1)?.verdict, 'pass')
+  })
+})
+
+// #417. A delivery's runs are handed back by whichever watcher happened to be closing, so
+// the flow one of them arrives carrying can be another card's. The delivery is the job.
+describe('one delivery, one job', () => {
+  it('groups every run of a delivery under the delivery, whatever flow it arrived with', async () => {
+    const built = build()
+    const id = activeDelivery(5)!.deliveryId
+    assert.equal(built.flowId, id)
+    await close(built)
+
+    // A review handed over by the watcher of an unrelated run, carrying that run's flow.
+    const review = session('review', { flowId: 'another-card-flow' })
+    withStore((store) => {
+      store.runs.push(review)
+      joinActive(store, review, 'review')
+    })
+    assert.equal(readStore().runs.find((r) => r.sessionId === review.sessionId)!.flowId, id)
+  })
+
+  it("keeps a review's trigger on the delivery's permanent record", async () => {
+    const built = build()
+    const id = activeDelivery(5)!.deliveryId
+    await close(built)
+    const review = session('review', { trigger: 'rebase' })
+    withStore((store) => {
+      store.runs.push(review)
+      joinActive(store, review, 'review')
+    })
+    await close(review)
+
+    const sessions = readAudit(id).sessions as { sessionId: string; trigger?: string }[]
+    assert.equal(sessions.find((s) => s.sessionId === review.sessionId)?.trigger, 'rebase')
+    // The first review after a build is the default and names none.
+    assert.equal(sessions.find((s) => s.sessionId === built.sessionId)?.trigger, undefined)
   })
 })

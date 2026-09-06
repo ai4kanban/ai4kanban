@@ -16,7 +16,7 @@ import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useOverRail } from "@/lib/over-rail";
 import { useActions, type ScreenActions, type StartAnswer } from "@/lib/screen";
-import { flowLabel, flowOf, flowSaid, runFlows, stepLabel, type RunFlow } from "@/lib/run-flows";
+import { flowLabel, flowOf, flowSaid, runFlows, stepLabel, triggerLabel, type RunFlow } from "@/lib/run-flows";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
 import { TOOL_BTN } from "./chrome";
@@ -382,6 +382,7 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
           {steps.map((s, i) => {
             const active = s.sessionId === selectedId;
             const last = i === steps.length - 1;
+            const why = triggerLabel(s.trigger, t.runs);
             return (
               <button
                 key={s.sessionId}
@@ -403,6 +404,10 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
                 <span className={`text-[11.5px] ${active ? "font-[700] text-nb-ink" : "text-nb-ink-soft"}`}>
                   {stepLabel(s.action, t.runs)}
                 </span>
+                {/* Why this review is happening, when it isn't the first after a build
+                    (#417). The step keeps its own label and this sits beside it, so the row
+                    reads as one sentence instead of saying "review" twice. */}
+                {!!why && <span className="text-[10.5px] text-nb-ink-soft">· {why}</span>}
                 {/* A job can range over several cards — a create writes three and refines
                     each. The step says which one, when it isn't the job's own. */}
                 {s.cardId !== null && s.cardId !== flow.cardId && (

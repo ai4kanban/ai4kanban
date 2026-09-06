@@ -96,6 +96,23 @@ export const REFINE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'writing',
 ])
 
+/** Why a review after the first one started (#417). The first review after a build is the
+ *  default and names none; every one after it does.
+ *
+ *  It is recorded on the run when it starts, never derived later: a second rebase would
+ *  otherwise relabel the review the first one owed. A start site added later names its own
+ *  reason here, and the runs panel draws whatever it finds a word for. */
+export type ReviewTrigger =
+  /** The target branch changed files this delivery also changes. */
+  | 'rebase'
+  /** A conflict with the target branch was resolved, and the result is code nothing
+   *  has judged. */
+  | 'conflict'
+  /** The user answered the question the review stopped on. */
+  | 'answered'
+  /** The user asked for another look. */
+  | 'asked'
+
 /** Everything one run is asked for. What the user typed rides along so the run list can
  *  show it beside the log. */
 export interface AgentRequest {
@@ -129,8 +146,13 @@ export interface AgentRequest {
   /** The one QA guide this refinement's clarify session loads. */
   refineEffort?: RefineEffort
   /** The flow this run belongs to. Absent on the run that opens one — it is given an id
-   *  when it is written down, and every session it goes on to start inherits that id. */
+   *  when it is written down, and every session it goes on to start inherits that id. A
+   *  run that joins a delivery takes the delivery's id instead, whatever is asked for
+   *  here (#417). */
   flowId?: string
+  /** review: why this one started, when it is not the first after a build (#417). Given by
+   *  whoever starts it, never worked out afterwards. */
+  trigger?: ReviewTrigger
   /** spec and write: which agent this run is — a name from the board's catalog
    *  (`lib/agents/`). The key keeps the older spelling: it is written into every run
    *  record, and a rename would strand the runs already in flight. It decides
@@ -250,11 +272,18 @@ export interface RunRecord {
    *  every session it went on to start: a refinement's passes, the spec agents a create
    *  asked for, the review that follows a build. It is what lets the runs panel show one
    *  job instead of six unrelated rows. A run recorded before flows carries none and
-   *  stands on its own. */
+   *  stands on its own.
+   *
+   *  A run inside a delivery takes the DELIVERY's id (#417), whoever handed it back: the
+   *  job is the delivery, so its runs group under it however many watchers started them,
+   *  and a refinement one of them starts inherits that id and stays with the job. */
   flowId?: string
   /** The delivery this run belongs to, when it belongs to one. Only an `implement` run
    *  does today; a refine, a resolve or a propose stands alone and carries none. */
   deliveryId?: string
+  /** On a review after the first: why it started (#417). Written when the run is written
+   *  down, carried through a resume, and kept on the delivery's permanent record. */
+  trigger?: ReviewTrigger
 }
 
 // ---- a delivery: everything one Implement click starts ---------------------

@@ -69,6 +69,9 @@ interface DeliverySessionEntry {
   model?: string
   costUsd?: number
   resumedFrom?: string
+  /** On a review after the first: why it started (#417). Kept here so the reason outlives
+   *  the live record's window, which forgets a run long before the delivery is history. */
+  trigger?: string
   log: string
 }
 
@@ -97,6 +100,7 @@ export function writeAudit(delivery: DeliveryRecord, runs: RunRecord[]): void {
         model: run.model,
         costUsd: run.costUsd,
         resumedFrom: run.resumedFrom,
+        trigger: run.trigger,
         log: rel(run.logPath),
       },
     ]
@@ -332,7 +336,7 @@ export function joinDelivery(
   }
   delivery.sessions.push(run.sessionId)
   delivery.steps.push({ step, at: run.startedAt })
-  run.deliveryId = delivery.deliveryId
+  joinFlow(run, delivery)
   // The permanent record exists from the delivery's first moment, not from its first
   // ending: a delivery whose machine died in its first minute still left one behind.
   writeAudit(delivery, store.runs)
@@ -368,9 +372,22 @@ export function joinActive(
   delivery.sessions.push(run.sessionId)
   delivery.steps.push({ step, at: run.startedAt })
   if (delivery.review?.stopped) delivery.review.stopped = undefined
-  run.deliveryId = delivery.deliveryId
+  joinFlow(run, delivery)
   writeAudit(delivery, store.runs)
   return delivery
+}
+
+/** Tie one run to the delivery it just joined — and to the delivery's own job (#417).
+ *
+ *  The flow id IS the delivery id, whatever the run was asked to join: a run of a delivery
+ *  is handed back by whichever watcher happened to be closing, and taking that run's flow
+ *  drew the job under someone else's card. The delivery is the job, so its id is the group,
+ *  and a fresh delivery — the one a supersede starts — is a fresh group by construction.
+ *  A refinement one of these runs goes on to start inherits the id and stays with the job
+ *  long after the run that opened it has aged out of the live record. */
+function joinFlow(run: RunRecord, delivery: DeliveryRecord): void {
+  run.deliveryId = delivery.deliveryId
+  run.flowId = delivery.deliveryId
 }
 
 /** End a delivery, and say how. Nothing happens to one that has already ended: a cancel
@@ -530,7 +547,7 @@ export function answeredReview(cardId: number): AgentRequest | null {
   const delivery = activeDelivery(cardId)
   if (!delivery || delivery.next) return null
   if (!answeredStop(delivery, openQuestions(cardId))) return null
-  return { action: 'review', id: cardId, deliveryId: delivery.deliveryId, title: delivery.title }
+  return { action: 'review', id: cardId, deliveryId: delivery.deliveryId, title: delivery.title, trigger: 'answered' }
 }
 
 /** The same for every delivery on the board, which is what the tick asks (`view/dispatch`).

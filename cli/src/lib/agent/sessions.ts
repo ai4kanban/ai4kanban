@@ -576,8 +576,12 @@ export function openRun(
     // copies the id onto every session that run goes on to start — a refinement's passes,
     // the spec agents it asked for, the review after a build. So one job is one thing in
     // the record however many sessions it takes, and a second run on the same card is
-    // never mistaken for a continuation of the first.
+    // never mistaken for a continuation of the first. A run that joins a delivery below
+    // takes the delivery's id over this one (#417).
     flowId: req.flowId ?? randomUUID(),
+    // Why this review is happening, when whoever started it said (#417). The first review
+    // after a build names none: it is the default, and the row says so by saying nothing.
+    trigger: req.action === 'review' ? req.trigger : undefined,
   }
   const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
     const locked = lockedBy(store.runs, req.action, cardId, req.release)
@@ -678,6 +682,9 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     // The same refinement carried on, not a second one — the way a resume re-joins the
     // delivery it continues rather than opening another.
     flowId: prev.flowId,
+    // And the same review, so resuming one does not turn it into a review with no reason
+    // for existing (#417).
+    trigger: prev.trigger,
   }
   const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
     const all = store.runs
@@ -693,6 +700,9 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
       delivery.sessions.push(record.sessionId)
       delivery.steps.push({ step: 'resume', at: record.startedAt })
       record.deliveryId = delivery.deliveryId
+      // Under the delivery's own group, which is where the run it continues belongs —
+      // including one recorded before the group followed the delivery (#417).
+      record.flowId = delivery.deliveryId
     }
     // The new run has the conversation now, so the old record goes — after every refusal
     // above, never before one. A resume that couldn't start leaves the run it would have

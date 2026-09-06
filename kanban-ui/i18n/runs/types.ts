@@ -1,4 +1,4 @@
-import type { AgentAction } from "@/lib/types";
+import type { AgentAction, ReviewTrigger } from "@/lib/types";
 
 /** Agent runs: the badge a busy card wears, the run log, the runs panel, and the
  *  dialogs that start a run. */
@@ -13,6 +13,9 @@ export type RunsCopy = {
   /** The whole job's name, where it differs from the step's: a refine's steps are
    *  `clarify` and `writing`, but the job a person started is "Refine". */
   flow: Partial<Record<AgentAction, string>>;
+  /** Why a review after the first one started (#417), beside that step's own label. Keyed
+   *  by the trigger the run records; a trigger with no word here shows nothing. */
+  trigger: Partial<Record<ReviewTrigger, string>>;
   badge: {
     running: string;
     watch: string;

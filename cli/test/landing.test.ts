@@ -314,6 +314,8 @@ describe('a target branch that moved', () => {
     assert.equal(wants?.action, 'review')
     assert.equal(wants?.id, 2)
     assert.equal(landingOf(second.deliveryId)?.rebaseKind, 'overlap')
+    // And it says why it is happening, so the panel can tell it from the first review (#417).
+    assert.equal(wants?.trigger, 'rebase')
 
     // And the review is briefed on the intersection, not on the delivery all over again.
     const sink = startCollecting()
@@ -475,10 +477,12 @@ describe('a conflict', () => {
     git(['add', 'shared.txt'], dir)
     await end(session)
 
-    // The board finishes the rebase, then reviews the composed tree before landing it.
+    // The board finishes the rebase, then reviews the composed tree before landing it. A
+    // resolved conflict names itself rather than reading as an ordinary rebase (#417).
     const wants = await advanceLanding()
     assert.equal(wants?.action, 'review')
     assert.equal(wants?.id, 2)
+    assert.equal(wants?.trigger, 'conflict')
     assert.equal(rebaseInProgress(dir), false)
     await passReview(2, 'card two')
     assert.equal(await advanceLanding(), null)

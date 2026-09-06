@@ -68,6 +68,12 @@ const en: RunsCopy = {
     clarify: "Refine",
     writing: "Refine",
   },
+  trigger: {
+    rebase: "after rebase",
+    conflict: "after a conflict",
+    answered: "after your answer",
+    asked: "you asked",
+  },
   badge: {
     running: "running",
     watch: "watch the run log",

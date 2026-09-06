@@ -33,6 +33,7 @@ import type {
   ExecutionBlocker,
   LandingStatus,
   ReviewStopReason,
+  ReviewTrigger,
   ReviewVerdict,
   RunRecord,
   RunStatus,
@@ -46,6 +47,11 @@ const KEEP_RUNS = 100
 // the live copy, and the permanent one is the file under docs/kanban/deliveries/, which is
 // tracked in git and never pruned.
 const KEEP_DELIVERIES = 30
+
+// The triggers a review's record may carry (#417). A word this build does not know is
+// dropped rather than kept: the panel has nothing to say for it, and a run recorded before
+// triggers existed reads the same way.
+const TRIGGERS: ReadonlySet<ReviewTrigger> = new Set<ReviewTrigger>(['rebase', 'conflict', 'answered', 'asked'])
 
 /** Where a run's log is written, from its id alone. */
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
@@ -140,6 +146,7 @@ export function readStore(): Store {
           : undefined,
       flowId: typeof entry.flowId === 'string' && entry.flowId ? entry.flowId : undefined,
       deliveryId: typeof entry.deliveryId === 'string' && entry.deliveryId ? entry.deliveryId : undefined,
+      trigger: TRIGGERS.has(entry.trigger as ReviewTrigger) ? (entry.trigger as ReviewTrigger) : undefined,
     })
   }
   runs.sort((a, b) => a.startedAt - b.startedAt)
