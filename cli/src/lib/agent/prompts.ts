@@ -27,7 +27,7 @@ import { languageNote } from './language'
 import { skillCall } from './resolve'
 import { runtimeFor } from './runtime'
 import { migrateFlowRules, ruleBlock } from './rules'
-import { PROPOSE_DEFAULT, PROPOSE_MAX, type AgentAction, type AgentRequest, type Boldness } from './types'
+import type { AgentAction, AgentRequest } from './types'
 
 // What a resumed run says. The coding agent's own session is already there — the card, the
 // work done, the error it died on — so this is the "continue" you would type in the
@@ -120,23 +120,6 @@ export function restartPrompt(req: AgentRequest, deliveryId?: string): string | 
   return [RESTART_LEAD, buildPrompt(req)].join('\n\n')
 }
 
-// What each boldness level tells a propose run. The rule lives in the flow ("Boldness" in
-// `akb guide propose`); these lines name the level and gloss it in one clause, so the
-// agent doesn't have to guess what the user meant by the word. `normal` is the flow's
-// default size, so it adds nothing.
-const BOLDNESS_LINE: Record<Boldness, string> = {
-  safe: `Boldness: **safe** (see "Boldness" in \`akb guide propose\`) — small moves that polish or fill gaps in what already works.`,
-  normal: '',
-  bold: `Boldness: **bold** (see "Boldness" in \`akb guide propose\`) — each task is a big leap: a capability the module doesn't have at all, still sized so one run finishes it.`,
-}
-
-// The count a propose run is asked for, made safe: a whole number between 1 and the cap,
-// PROPOSE_DEFAULT when nothing (or nonsense) came in.
-function clampCount(count: number | undefined): number {
-  if (!Number.isFinite(count)) return PROPOSE_DEFAULT
-  return Math.min(PROPOSE_MAX, Math.max(1, Math.round(count as number)))
-}
-
 // Nothing here asks a run to refine the card afterwards. A command does one job and stops;
 // the refinement sessions that follow are started once it ends (`refine.ts`), so each has
 // its own log and can be stopped on its own.
@@ -144,8 +127,8 @@ function clampCount(count: number | undefined): number {
 // Every action that revises a card revises the CARD — the revision request says what the
 // text should say, not "go build it". Without this line an agent reads a request like
 // "make it handle empty input" as the work itself and writes code. A request that explicitly
-// asks for implementation still gets it. Not on create/propose (they carry their own
-// "create only" line) and not on a resolve asked to carry on and implement.
+// asks for implementation still gets it. Not on create (it carries its own "create only"
+// line) and not on a resolve asked to carry on and implement.
 const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, don't implement it.)`
 
 /** The words one run is given, WITHOUT this board's own rule for the flow.
@@ -256,6 +239,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
   const kb = skillCall(runtimeFor(req))
   const tag = req.id ? `#${req.id}` : ''
   const named = req.title ? `${tag} ("${req.title}")` : tag
+  // Retired (#438): nothing starts a propose any more, so there is no ask left to write.
+  if (req.action === 'propose') return ''
   switch (req.action) {
     // A build with no card (#428): the typed sentence IS the requirement, so it is quoted
     // here rather than pointed at. Nothing about the board follows — there is no card to
@@ -331,23 +316,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join(' ')
-    case 'propose': {
-      // How many cards this run writes. The flow has its own default and cap ("How many"
-      // in `akb guide propose`); this clamps whatever came in so a hand-made request
-      // can't ask for fifty cards.
-      const n = clampCount(req.count)
-      return [
-        `${kb}. Propose ${n} new task${n === 1 ? '' : 's'} following \`akb guide propose\`.`,
-        req.module
-          ? `Focus on the "${req.module}" module — read its memory set and write every one of them inside it.`
-          : `Pick one focus module yourself (per \`akb guide propose\`) and write every one of them inside it.`,
-        BOLDNESS_LINE[req.boldness ?? 'normal'],
-        `Create the cards only, don't implement them.`,
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
-      ]
-        .filter(Boolean)
-        .join(' ')
-    }
     // Plan one release against its goal. The run reads the goal off the release's own line,
     // moves in the open cards that ship it, and writes the cards the goal needs that the
     // board hasn't got — deciding all of it on its own, and saying in its log what it

@@ -35,7 +35,6 @@ import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
 import nextCard from '../guide/next-card.md'
 import planRelease from '../guide/plan-release.md'
-import propose from '../guide/propose.md'
 import pruneMemory from '../guide/prune-memory.md'
 import qaLightweight from '../guide/qa-lightweight.md'
 import qaLoop from '../guide/qa-loop.md'
@@ -78,7 +77,6 @@ export const GUIDES: Guide[] = [
   { name: 'discuss-idea', when: 'talk a vague idea into a short plan file, then hand it to planning', text: discussIdea },
   { name: 'next-card', when: 'name which cards already on the board to build now', text: nextCard },
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
-  { name: 'propose', when: 'find the work the board is missing and write it', text: propose },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
   { name: 'update-questions', when: 'classify open questions, answered decisions, and human checks', text: updateQuestions },
   { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },

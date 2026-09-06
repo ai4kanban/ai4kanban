@@ -2,7 +2,7 @@
 // decides which run comes next and when the loop stops.
 //
 // A run that ends can also leave OTHER cards worth refining — a review that writes a
-// follow-up card, a propose that writes several. Which ones those are is settled by
+// follow-up card, a release plan that writes several. Which ones those are is settled by
 // `claimChanges` and nothing else, under one rule: a change belongs to exactly one run.
 // Several runs are up at once on this board, and their windows overlap, so a run that
 // merely diffed the board against its own start would inherit whatever its neighbours

@@ -130,7 +130,7 @@ export function readGoalText(): string {
  *  setting `reviewed: pending` — the goal is written, and nobody has judged this version of
  *  it yet. That is what stops the board asking for a goal the moment it is written: no
  *  agent runs on a save, so waiting for a judgment here would nag the user for work they
- *  just did. The next propose run judges it. */
+ *  just did. The next run to read the goal judges it. */
 export function writeGoalText(text: string): void {
   const before = goalFile()
   const kept = before ? before.text.slice(0, before.text.length - readGoalBody(before.text).body.length) : ''

@@ -118,7 +118,7 @@ const en: ConfigurationCopy = {
     roles: {
       planner: {
         gloss: "Writes and refines your cards.",
-        rule: 'Added to the end of every Propose, Create, Refine, Revise, Plan release, Changelog and Archive run — "always leave the open questions as a numbered list".',
+        rule: 'Added to the end of every Create, Refine, Revise, Plan release, Changelog and Archive run — "always leave the open questions as a numbered list".',
       },
       builder: {
         gloss: "Builds a card and lands it.",

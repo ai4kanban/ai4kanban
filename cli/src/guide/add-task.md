@@ -5,7 +5,8 @@ Use this guide whenever work may become a card. If setup is unfinished, stop and
 
 ## Route
 
-- No task idea supplied → `akb guide propose`.
+- No task idea supplied → `akb guide extract-ideas`, reading the **Planning sources** in
+  `docs/kanban/config.md` as the source.
 - Source material supplied for extracting ideas → `akb guide extract-ideas`.
 - Repeating work → follow `akb guide recurring-task`; do not continue with the one-shot
   card flow below.

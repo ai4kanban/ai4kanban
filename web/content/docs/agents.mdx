@@ -16,8 +16,8 @@ There are two kinds.
 
 **Roles** are the agents the board's own flows are run by. You do not add or remove one:
 
-- **Planner** — plans and refines cards. It runs propose, create, refine, resolve, revise, the
-  release plan, the changelog, archive and reject.
+- **Planner** — plans and refines cards. It runs create, refine, resolve, revise, the release
+  plan, the changelog, archive and reject.
 - **Builder** — builds cards and lands them: implement, conflict, run. On a marketing board a
   **Writer** takes its place, and also runs `akb channel`.
 - **Reviewer** — checks what was built.
@@ -43,7 +43,7 @@ is done. When the answer is a pick only you can make, it leaves an open question
 
 You rarely ask for one yourself — the flow working the card asks when the card needs it, after a
 card is added, after a refine or revise that moved the screen or the library, and never from a
-propose or a release plan (each card's own refine asks instead). A card that needs neither a
+release plan (each card's own refine asks instead). A card that needs neither a
 screen nor a library goes through all of those without a spec run, and nothing tells you it did.
 
 When you do want one: **"put the ui-design agent on #4"**, or `akb spec ui-design 4`. Pausing one

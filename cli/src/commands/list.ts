@@ -2,7 +2,7 @@
 //
 // The open board at a glance, one block per card — id, title, meta, summary line,
 // and the file to read for the rest. `--module <m>` narrows it to the cards tagged
-// with one module, which is how a propose run sees where a module already has
+// with one module, which is how an extract-ideas run sees where a module already has
 // effort without grepping frontmatter by hand.
 
 import fs from 'node:fs'

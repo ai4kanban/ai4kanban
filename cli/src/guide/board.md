@@ -144,8 +144,8 @@ the long-term goal, horizon, and roadmap in the user's words. The agent changes 
 `reviewed` frontmatter field, whose allowed values are `strong`, `good`, `pending`, and
 `weak`. Use `weak` when the goal is missing, empty, or too vague for evaluating
 proposals. The board sets `pending` when a goal is saved; replace it with an assessment
-the next time you read the goal. Assess it during the `goal` setup step and every propose
-run without interrupting the user.
+the next time you read the goal. Assess it during the `goal` setup step, without
+interrupting the user.
 
 **`docs/kanban/memory/agents/` is not a module.** It holds one file per spec agent that
 declares `memory: project` — that agent's own, curated by it and appended to by the flow

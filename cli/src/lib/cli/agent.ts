@@ -12,7 +12,7 @@
 //   run <verb>          the agent processes
 //   release <verb>      a version being planned
 //
-// A command that acts on nothing yet is typed bare — `create`, `propose`, `setup`.
+// A command that acts on nothing yet is typed bare — `create`, `setup`.
 //
 // The flow commands are not written out here. They come from the board's own list of flows
 // (../agent/flows.ts), which the dispatcher reads too — so a flow shipped later is a command

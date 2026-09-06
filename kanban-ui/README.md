@@ -204,9 +204,9 @@ written, and where it names a card the name is a link to that card's page.
 - **It changes the board.** Once you have settled a change, it makes it — writes a card,
   rewords one, answers its open questions, puts it in a release or takes it out, archives it,
   drops it. Straight away, with no "shall I?" first, and it says what it did.
-- **Work goes to a run.** Building a card, sharpening a vague one, proposing tasks, filling a
-  release — it starts a run and that run joins the runs panel like any other, with its log,
-  its Stop and its Resume. It never writes your project's code itself.
+- **Work goes to a run.** Building a card, sharpening a vague one, filling a release — it
+  starts a run and that run joins the runs panel like any other, with its log, its Stop and
+  its Resume. It never writes your project's code itself.
 - **The board keeps up.** A card it changes moves on the board while the reply is still
   arriving. Archive or drop the card whose page you are on and the app goes back to the board.
 - **A card a run has is off limits.** The change is refused, and the refusal names the card
@@ -1055,7 +1055,7 @@ the blocker and offers both ways on — **Refine anyway** now, or **Schedule** i
 the card as a run of its own, with its own log, stoppable like anything else.
 
 - **A run that wrote or changed a card gets a refine on it.** Add a card, change one, answer its
-  questions, propose, fill a release — each card that run touched comes back refined, one run per
+  questions, fill a release — each card that run touched comes back refined, one run per
   card. Ask for three cards and three refines follow.
 - **A blocked rough card carries the refine it will run once free.** Finishing or rejecting its
   last blocker makes that saved schedule eligible; no watcher infers the transition afterward.

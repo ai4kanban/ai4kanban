@@ -311,7 +311,7 @@ export function cmdMemoryInit(module: string | undefined): MoveResult {
 //     text the user would have to delete before writing their own,
 //   - a goal with words in it gets `reviewed: pending` unless the agent already judged it
 //     `good` or `strong`, so an upgrade never leaves an already-written goal asking to be
-//     written. The next propose run re-judges it,
+//     written. The next run to read the goal re-judges it,
 //   - a goal with nothing in it gets `reviewed: weak`, which is what a missing field
 //     already reads as.
 //

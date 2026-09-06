@@ -63,17 +63,16 @@ export { logPathOf, readAction, readRuns, withRuns } from './store'
 // batch, and so wait for one another. A single card write does NOT belong here: `raw
 // create` allocates the id and writes all three under the board lease, so two of them
 // interleave safely. What needs the whole run serialized is a run that writes several
-// cards off one read of the board — propose, plan-release, setup — plus archive/reject and
-// a recurring run's close, which reconcile the index against the board they read.
-const INDEX_ACTIONS = new Set<AgentAction>(['propose', 'archive', 'reject', 'run', 'plan-release', 'setup'])
+// cards off one read of the board — plan-release, setup — plus archive/reject and a
+// recurring run's close, which reconcile the index against the board they read.
+const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-release', 'setup'])
 
 // Actions that may run only one at a time across the whole board. None has a card id, so
 // the per-card rule can't catch a duplicate, and each reads the whole board to decide what
-// to write: two proposes pick the same ideas, two plan-releases write the same missing
-// cards, and two setups work down the same checklist side by side. A create is not one of
-// them — it writes the one card it was handed, and its id and index entry are the board
-// lease's problem, not this lock's.
-const SINGLETON_ACTIONS = new Set<AgentAction>(['propose', 'plan-release', 'setup'])
+// to write: two plan-releases write the same missing cards, and two setups work down the
+// same checklist side by side. A create is not one of them — it writes the one card it was
+// handed, and its id and index entry are the board lease's problem, not this lock's.
+const SINGLETON_ACTIONS = new Set<AgentAction>(['plan-release', 'setup'])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
 // implemented".
@@ -420,7 +419,7 @@ export async function getRun(id: string, bytes?: number): Promise<RunView | null
 // ---- starting --------------------------------------------------------------
 
 // The locks every new run passes, whether it's a fresh action or a resumed one: one live
-// run per card, and one live create/propose/plan-release across the whole board. Checked
+// run per card, and one live plan-release across the whole board. Checked
 // with the record's lock held, so two processes can't both slip past.
 function lockedBy(
   runs: RunRecord[],
@@ -1090,9 +1089,9 @@ function dropSpec(sessionId: string): void {
  *  time across every process on this board. */
 export const needsIndexLock = (action: AgentAction): boolean => INDEX_ACTIONS.has(action)
 
-// How long a queued run waits for its turn before giving up. A propose or a plan-release
-// ahead of it is a real agent run, so this is measured in the length of one of those, not
-// in the milliseconds a board write takes.
+// How long a queued run waits for its turn before giving up. A plan-release ahead of it is
+// a real agent run, so this is measured in the length of one of those, not in the
+// milliseconds a board write takes.
 const INDEX_WAIT_MS = 60 * 60_000
 const INDEX_POLL_MS = 500
 

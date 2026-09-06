@@ -5,15 +5,6 @@
 // very same objects, handed over by `akb agent list --json`, so a front end never keeps
 // its own list of agents or of the settings each one takes.
 
-/** How many tasks a propose run writes when nobody says, and the most it will ever write.
- *  The cap is the flow's ("How many" in `akb guide propose`). */
-export const PROPOSE_DEFAULT = 3
-export const PROPOSE_MAX = 10
-
-/** How big a swing a propose run takes. The levels are the skill's
- *  (`akb guide propose`, "Boldness"); this is only the name a run sends. */
-export type Boldness = 'safe' | 'normal' | 'bold'
-
 /** How much planning QA one refinement needs. */
 export type RefineEffort = 'lightweight' | 'standard'
 
@@ -38,6 +29,8 @@ export type AgentAction =
   | 'archive'
   | 'edit'
   | 'create'
+  /** Retired (#438). No flow starts one; it stays here so the propose runs already
+   *  recorded still read back as what they were. */
   | 'propose'
   /** Fill one release with the open cards that ship its goal, and write the ones the goal
    *  needs that the board is missing. It touches no single card, so it carries a release
@@ -137,9 +130,6 @@ export interface AgentRequest {
    *  planned, and changelog: the version being written up — the whole of what either run
    *  is about, since neither names a card. */
   release?: string
-  module?: string // propose: the focus module (a name from modules.md)
-  count?: number // propose: how many tasks to write (1–PROPOSE_MAX)
-  boldness?: Boldness // propose: how big a swing the tasks take
   andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
@@ -171,9 +161,12 @@ export interface AgentRequest {
   aiReview?: boolean
 }
 
+/** Every action a run can still be started with — everything but the retired ones. */
+export type StartableAction = Exclude<AgentAction, 'propose'>
+
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<AgentAction, 'clarify' | 'writing' | 'spec' | 'channel' | 'write'>
+  | Exclude<StartableAction, 'clarify' | 'writing' | 'spec' | 'channel' | 'write'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -279,7 +272,7 @@ export interface RunRecord {
    *  and a refinement one of them starts inherits that id and stays with the job. */
   flowId?: string
   /** The delivery this run belongs to, when it belongs to one. Only an `implement` run
-   *  does today; a refine, a resolve or a propose stands alone and carries none. */
+   *  does today; a refine or a resolve stands alone and carries none. */
   deliveryId?: string
   /** On a review after the first: why it started (#417). Written when the run is written
    *  down, carried through a resume, and kept on the delivery's permanent record. */

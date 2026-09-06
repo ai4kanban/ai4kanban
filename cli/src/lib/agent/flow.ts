@@ -49,7 +49,7 @@ import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { setupInstruction } from './resolve'
-import type { AgentAction, AgentRequest, DeliveryRecord } from './types'
+import type { AgentAction, AgentRequest, DeliveryRecord, StartableAction } from './types'
 
 // The run id an agent works under. It lives in agent/env.ts, which imports nothing, so
 // the delivery lock can ask the same question without pulling this module in behind it.
@@ -161,9 +161,9 @@ function memoryFiles(modules: string[], name: string): string[] {
 }
 
 // The jobs `akb guide board` tells to read the project's settings before they start:
-// proposing, adding, refining. For those it is a certain read, and a certain read costs
-// less printed here than fetched in a round of its own.
-const CONFIG_FOR = new Set<AgentAction>(['propose', 'create'])
+// adding and refining. For those it is a certain read, and a certain read costs less
+// printed here than fetched in a round of its own.
+const CONFIG_FOR = new Set<AgentAction>(['create'])
 
 // The settings file as it stands, or null when the board has none.
 function configText(): string | null {
@@ -456,7 +456,7 @@ interface Flow {
  *  short note installed in a project no longer carries any of it.
  *
  *  Order matters: the general rules first, then the flow for this one job. */
-const GUIDES_FOR: Record<AgentAction, string[]> = {
+const GUIDES_FOR: Record<StartableAction, string[]> = {
   implement: ['board', 'implement', 'document-feature'],
   // Review owns post-implementation decision notes, so it receives their writing contract
   // rather than trying to reconstruct it from the review flow.
@@ -474,7 +474,6 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   // in the same session. Writing may follow, but never another QA session.
   edit: ['writing', 'revise', 'update-questions', 'qa-lightweight'],
   create: ['board', 'evaluate-task', 'add-task'],
-  propose: ['board', 'propose', 'evaluate-task', 'add-task'],
   'plan-release': ['board', 'releases', 'plan-release', 'evaluate-task', 'add-task'],
   // A changelog run gets its own flow and NOT `board`: it writes no card, so the card
   // format, the memory set and the tracks are a page of rules about work it cannot do.
@@ -496,6 +495,9 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
 }
 
 const guidesFor = (req: AgentRequest): string[] => {
+  // A retired action is only ever read back off an old record (#438) — nothing starts one,
+  // and there is no flow left to print for it.
+  if (req.action === 'propose') return []
   if (req.action !== 'clarify') return GUIDES_FOR[req.action]
   const qa = req.refineEffort === 'lightweight' ? 'qa-lightweight' : 'qa-loop'
   return ['writing', 'update-questions', qa]
@@ -702,7 +704,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       break
     }
     case 'create':
-    case 'propose':
     case 'plan-release': {
       facts.push(...field('modules', (moduleNames() ?? []).join(', ') || `(none — ${rel(MODULES_MD)})`))
       if (req.action === 'plan-release') {
@@ -714,7 +715,6 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         const releases = readReleaseEntries().map((e) => e.id)
         facts.push(...field('releases', releases.join(', ') || '(none open)'))
       }
-      if (req.action === 'propose') facts.push(...field('goal', rel(GOAL)), ...field('memory', rel(MEMORY)))
       close.push(
         // `--slug` only on a board that isn't English (#337): a non-English title slugifies
         // to nothing, and every card would be named `<id>-task.md`.

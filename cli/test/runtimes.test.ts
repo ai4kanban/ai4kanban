@@ -58,7 +58,7 @@ afterEach(() => {
 describe('a board that names no runtimes', () => {
   it('runs every flow on what `harness` and `harnessSettings` already say', () => {
     config({ harness: 'codex', harnessSettings: { codex: { model: 'gpt-5.1-codex' } } })
-    for (const action of ['implement', 'review', 'clarify', 'setup', 'propose'] as const) {
+    for (const action of ['implement', 'review', 'clarify', 'setup', 'create'] as const) {
       const run = plan({ action })
       assert.equal(run.harness, 'codex')
       assert.ok(run.argv.includes('gpt-5.1-codex'))

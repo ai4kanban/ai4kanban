@@ -18,15 +18,13 @@ import {
   titleOf,
 } from '../lib/agent/sessions'
 import { startResume, startRun } from '../lib/agent/start'
-import {
-  PROPOSE_MAX,
-  type AgentRequest,
-  type CommandAction,
-  type CommandRequest,
-  type DeliveryRecord,
-  type Boldness,
-  type RefineEffort,
-  type RunView,
+import type {
+  AgentRequest,
+  CommandAction,
+  CommandRequest,
+  DeliveryRecord,
+  RefineEffort,
+  RunView,
 } from '../lib/agent/types'
 import { say } from '../lib/io'
 import { die, BOARD_FLAG } from '../lib/paths'
@@ -166,17 +164,14 @@ export interface StartOptions {
   print?: boolean
   follow?: boolean
   release?: string
-  module?: string
-  count?: number
-  boldness?: Boldness
   effort?: RefineEffort
   andImplement?: boolean
 }
 
 // Turn what was typed into the request the run is started from. The command line has been
-// read already: which words are actions, which values `--boldness` accepts, whether
-// `--count` is a number in range and that `--print` and `--follow` cannot both be given are
-// all its command's own checks. What is left here is the shape of the request.
+// read already: which words are actions, which values each option accepts, and that
+// `--print` and `--follow` cannot both be given are all its command's own checks. What is
+// left here is the shape of the request.
 function readRequest(
   action: CommandAction,
   args: unknown[],
@@ -190,13 +185,10 @@ function readRequest(
     return text.trim() || undefined
   }
 
-  // The five actions that name no card. Three name nothing at all; planning a release and
+  // The four actions that name no card. Two name nothing at all; planning a release and
   // writing one up each name a version.
   if (action === 'create') {
     return { req: { action, description: words(0)!, release: opts.release }, follow, print }
-  }
-  if (action === 'propose') {
-    return { req: { action, module: opts.module, count: opts.count, boldness: opts.boldness }, follow, print }
   }
   if (action === 'plan-release') {
     return { req: { action, release: words(0)! }, follow, print }

@@ -130,7 +130,7 @@ After setup, work from the desktop app or ask the coding agent directly:
 
 ```text
 what's next?
-propose new tasks
+what are we missing?
 refine #4
 review the board
 implement #4

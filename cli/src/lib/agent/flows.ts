@@ -19,9 +19,9 @@
 //
 // `group` and `verb` are the line a person types. A flow with a group is typed under that
 // noun (`akb card refine`); one without is typed bare, because it acts on nothing that
-// exists yet — `create`, `propose`, `setup`.
+// exists yet — `create`, `setup`.
 
-import { PROPOSE_MAX, type AgentAction, type CommandAction } from './types'
+import type { AgentAction, CommandAction } from './types'
 
 /** The nouns the commands are grouped under. A flow acts on one of these, or on nothing
  *  yet — see `Flow.group`. */
@@ -136,21 +136,6 @@ export const FLOWS: Flow[] = [
     options: [{ flags: '--release <version>', description: 'the version the new cards ship in' }],
   },
   {
-    command: 'propose',
-    action: 'propose',
-    argument: '',
-    gloss: 'write the next tasks',
-    options: [
-      { flags: '-m, --module <name>', description: 'only look at that part of the project' },
-      { flags: '-n, --count <n>', description: 'how many to write', range: [1, PROPOSE_MAX] },
-      {
-        flags: '--boldness <level>',
-        description: 'how far from the beaten path: safe | normal | bold',
-        choices: ['safe', 'normal', 'bold'],
-      },
-    ],
-  },
-  {
     command: 'plan-release',
     group: 'release',
     verb: 'plan',
@@ -198,7 +183,7 @@ export const RUN_COMMANDS: Record<string, CommandAction> = Object.fromEntries(
 export const flowVerb = (flow: Flow): string => flow.verb ?? flow.command
 
 /** The line a person types, without the command's own name — `card refine`, `release plan`,
- *  `propose`. What every message and every doc spells. */
+ *  `create`. What every message and every doc spells. */
 export const flowPath = (flow: Flow): string => (flow.group ? `${flow.group} ${flowVerb(flow)}` : flowVerb(flow))
 
 /** The same, by flow name, for the places that hold one — a rule file, a runtime setting. */

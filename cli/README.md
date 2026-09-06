@@ -115,7 +115,6 @@ akb delivery review 12                 # judge the delivery in flight on it agai
 akb card refine 12                 # sharpen it; defaults to standard QA
 akb card refine 12 --effort lightweight --print  # use the chosen effort inline
 akb create "add dark mode"    # write the card(s) for it
-akb propose                   # write the next tasks
 akb card archive 12                # finish it
 ```
 
@@ -209,7 +208,7 @@ akb guide plan-release        # fill a release from its goal
 A printed flow already carries the ones its action needs, in full, so this is for the rest.
 
 A run that writes or changes a card is followed by `akb card refine` on that card, as a run of its
-own — so `akb create`, `akb card revise`, `akb card resolve`, `akb propose` and `akb release plan` all
+own — so `akb create`, `akb card revise`, `akb card resolve` and `akb release plan` all
 come back with their cards refined. Archiving or rejecting a card does the same for every card
 it was blocking that now has nothing left in its way.
 

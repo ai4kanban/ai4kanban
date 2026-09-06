@@ -97,7 +97,7 @@ describe('the files', () => {
   it('is named by the agent, so every flow it runs reads one file (#420)', async () => {
     setAgentRule('planner', 'Say what changed.')
     assert.equal(fs.readFileSync(path.join(RULES, 'planner.md'), 'utf8').trim(), 'Say what changed.')
-    for (const action of ['edit', 'propose', 'resolve'] as const) {
+    for (const action of ['edit', 'create', 'resolve'] as const) {
       assert.equal(ruleFor({ action, id: 1 }), 'Say what changed.', action)
       assert.equal(fs.existsSync(path.join(RULES, `${action}.md`)), false, action)
     }
@@ -421,7 +421,7 @@ describe('the prompt', () => {
       { action: 'writing' as const, id: 1, refineRound: 2 },
       { action: 'resolve' as const, id: 1 },
       { action: 'edit' as const, id: 1, notes: 'Use A.' },
-      { action: 'propose' as const },
+      { action: 'create' as const, description: 'a new card' },
     ]) {
       const prompt = buildPrompt(req)
       assert.match(prompt, /data model/, req.action)
@@ -532,7 +532,7 @@ describe("the board's language", () => {
   })
 
   it('says nothing at all on an English machine', () => {
-    for (const action of ['implement', 'review', 'create', 'propose', 'changelog'] as const) {
+    for (const action of ['implement', 'review', 'create', 'changelog'] as const) {
       assert.doesNotMatch(buildPrompt({ action, id: 1, title: 'card one', release: '0.1.0' }), /board's prose/)
     }
     assert.equal(chatPrompt(1, 'and the other one?', { resuming: true }), 'and the other one?')
@@ -543,7 +543,7 @@ describe("the board's language", () => {
     const printed = (): string => {
       const sink = startCollecting()
       try {
-        printFlow({ action: 'propose' })
+        printFlow({ action: 'create' })
         return sink.out.join('\n')
       } finally {
         stopCollecting()

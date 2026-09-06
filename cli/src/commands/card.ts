@@ -122,7 +122,7 @@ function createSchedule(action: ScheduledAction, recurring: boolean, questions: 
 }
 
 // Where a card came from. `--proposed` is what the flows that go looking for work pass —
-// propose, extract-ideas, plan-release; every other way of adding a card is a person
+// extract-ideas, plan-release; every other way of adding a card is a person
 // asking for it. Kept for the board's own score (lib/record.ts), not shown on the card.
 const originOf = (opts: CreateOptions): Origin => (opts.proposed ? 'proposed' : 'asked')
 

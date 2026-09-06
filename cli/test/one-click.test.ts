@@ -415,7 +415,7 @@ describe('claiming the card for a run', () => {
   })
 
   it('claims nothing for a run with no card of its own', async () => {
-    const opened = run('propose', 0, '')
+    const opened = run('plan-release', 0, '')
     assert.equal(claimCard(peekRun(opened)!), undefined)
   })
 })

@@ -52,8 +52,6 @@ arguments are the same with or without `--print`.
 - **`create "<what you want>"`**: turn something the user just said into card(s) — "add a
   task for…". `--release <version>` files them in a release. For repeating work, read
   `akb guide recurring-task`.
-- **`propose [--module m] [--count n] [--boldness safe|normal|bold]`**: the user wants new
-  work found for them — "what are we missing", "propose some tasks", "find me work".
 - **`release plan <version>`**: fill a release from its goal — "plan v0.7".
 - **`release changelog <version>`**: rewrite a closed version's changelog — "write the
   changelog for v0.7 again". The close starts it once by itself, so this is only for a second
@@ -77,6 +75,13 @@ Each action's full flow comes back from `--print`, so don't work one out from th
 "what's next", "what should I build next", "what to build next" — the user wants a pick from
 the cards the board already has, not new ones. Print `akb guide next-card` and follow it. It
 is a flow, not an action: no run starts and nothing on the board changes.
+
+## Find the work the board is missing
+
+"what are we missing", "find me work", or any source to mine — an article, a report,
+feedback. Print `akb guide extract-ideas` and follow it. Named no source, it reads the
+**Planning sources** in `docs/kanban/config.md`. It is a flow, not an action: no run starts,
+and it writes each surviving idea as a card itself.
 
 ## Keep a card minimal
 

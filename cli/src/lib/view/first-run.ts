@@ -58,7 +58,7 @@ export function readSetupDraft(): SetupDraft {
 }
 
 /** The module names from `docs/kanban/modules.md` — the bolded name at the front of each
- *  `- **name** — …` line. That is what `--modules` takes and what a propose run focuses on.
+ *  `- **name** — …` line. That is what `--modules` takes and what an idea is routed to.
  *  A missing or empty map reads as no modules. */
 export function readModules(): string[] {
   let text: string

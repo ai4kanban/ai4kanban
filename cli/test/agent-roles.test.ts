@@ -139,7 +139,7 @@ describe("the one-time move onto the agents", () => {
     rule('implement', 'Install dependencies first.')
     assert.equal(readRule('builder'), 'Install dependencies first.')
     assert.deepEqual(migrateFlowRules(), [])
-    assert.deepEqual(buildRun({ action: 'propose' }).notes, [])
+    assert.deepEqual(buildRun({ action: 'create', description: 'a new card' }).notes, [])
   })
 
   it("keeps a rule the agent already had in front of the flows'", () => {

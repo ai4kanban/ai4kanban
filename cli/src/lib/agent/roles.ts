@@ -42,7 +42,6 @@ export interface AgentRole {
 // Planning is the same work on either solution: the flows that write a card, settle it and
 // close it out.
 const PLANNER_FLOWS = [
-  'propose',
   'create',
   'refine',
   'resolve',
