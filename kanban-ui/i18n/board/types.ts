@@ -89,6 +89,8 @@ export type BoardCopy = {
         title: string;
         /** One line per thing that goes. */
         drops: readonly string[];
+        /** Said only while the planning run is going: what clearing does NOT stop. */
+        keeps: string;
         cancel: string;
         confirm: string;
       };

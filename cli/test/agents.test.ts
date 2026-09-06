@@ -16,6 +16,8 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import {
+  agentLines,
+  agentSettingsView,
   findSpecAgent,
   readSpecAgents,
   setSpecAgentSetting,
@@ -103,6 +105,120 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(root, { recursive: true, force: true })
+})
+
+describe("what an agent says to a reader who doesn't read English", () => {
+  it('takes each line from `akb.i18n`, falls back per line, and never changes what a run is given', () => {
+    project('api-contract', {
+      'AGENT.md': [
+        '---',
+        'name: api-contract',
+        'description: Use when a card changes an endpoint other software calls.',
+        'akb:',
+        '  kind: spec',
+        '  owns: the request and response shape a card changes',
+        '  i18n:',
+        '    zh:',
+        '      owns: 卡片改动的请求与响应结构',
+        '---',
+        '',
+        'You settle the wire contract a card changes.',
+        '',
+      ].join('\n'),
+    })
+    const agent = findSpecAgent('api-contract')!
+    assert.ok(agent)
+
+    const zh = agentLines(agent, 'zh')
+    assert.equal(zh.owns, '卡片改动的请求与响应结构')
+    // Only `owns` was translated, so the other line stays the English the file declares
+    // rather than going blank.
+    assert.equal(zh.description, agent.description)
+    assert.deepEqual(agentLines(agent, 'en'), { description: agent.description, owns: agent.owns })
+
+    // The block is drawn, never run: what a spec run is handed is the English pair and the
+    // instructions under the frontmatter.
+    assert.match(agent.owns, /request and response/)
+    assert.equal(agent.body.includes('i18n'), false)
+  })
+
+  it('ships both bundled agents with their Chinese lines', () => {
+    for (const name of ['ui-design', 'technology-selection']) {
+      const said = agentLines(findSpecAgent(name)!, 'zh')
+      assert.match(said.description, /[\u4e00-\u9fa5]/, name)
+      assert.match(said.owns, /[\u4e00-\u9fa5]/, name)
+    }
+  })
+
+  it('translates the words a setting is drawn by, and nothing a run picks by', () => {
+    const agent = findSpecAgent('ui-design')!
+    const [setting] = agentSettingsView(agent, 'zh')
+    assert.ok(setting)
+    assert.match(setting.label, /[\u4e00-\u9fa5]/)
+    for (const choice of setting.choices) {
+      assert.match(choice.label, /[\u4e00-\u9fa5]/, choice.value)
+      assert.match(choice.cost, /[\u4e00-\u9fa5]/, choice.value)
+    }
+    // The values and the default are what a run reads the reference by, so a translation
+    // leaves them exactly as the file declares them.
+    assert.deepEqual(
+      setting.choices.map((c) => c.value),
+      agent.settings[0]!.choices.map((c) => c.value),
+    )
+    assert.equal(setting.default, agent.settings[0]!.default)
+    assert.deepEqual(agentSettingsView(agent, 'en')[0]!.choices[0]!.label, agent.settings[0]!.choices[0]!.label)
+  })
+
+  it('falls back per word when a setting is only half translated', () => {
+    project('api-contract', {
+      'references/openapi.md': 'A schema fragment.',
+      'references/prose.md': 'A paragraph.',
+      'AGENT.md': [
+        '---',
+        'name: api-contract',
+        'description: Use when a card changes an endpoint other software calls.',
+        'akb:',
+        '  kind: spec',
+        '  owns: the request and response shape a card changes',
+        '  i18n:',
+        '    zh:',
+        '      settings:',
+        '        style:',
+        '          label: \u5951\u7ea6\u683c\u5f0f',
+        '          choices:',
+        '            openapi:',
+        '              cost: \u6bcf\u4e2a\u63a5\u53e3\u4e00\u6bb5 schema\uff0c\u7cbe\u786e\u4f46\u8bfb\u8d77\u6765\u957f',
+        '  settings:',
+        '    - key: style',
+        '      label: Contract style',
+        '      help: How precise the contract is.',
+        '      default: openapi',
+        '      choices:',
+        '        - value: openapi',
+        '          label: OpenAPI',
+        '          cost: a schema fragment per endpoint',
+        '          reference: references/openapi.md',
+        '        - value: prose',
+        '          label: Prose',
+        '          cost: a paragraph per endpoint',
+        '          reference: references/prose.md',
+        '---',
+        '',
+        'You settle the wire contract a card changes.',
+        '',
+      ].join('\n'),
+    })
+    const [setting] = agentSettingsView(findSpecAgent('api-contract')!, 'zh')
+    assert.ok(setting)
+    assert.equal(setting.label, '\u5951\u7ea6\u683c\u5f0f')
+    // Nothing was said about the help line or the second choice, so both stay English
+    // rather than going blank.
+    assert.equal(setting.help, 'How precise the contract is.')
+    assert.equal(setting.choices[0]!.label, 'OpenAPI')
+    assert.equal(setting.choices[0]!.cost, '\u6bcf\u4e2a\u63a5\u53e3\u4e00\u6bb5 schema\uff0c\u7cbe\u786e\u4f46\u8bfb\u8d77\u6765\u957f')
+    assert.equal(setting.choices[1]!.label, 'Prose')
+    assert.equal(setting.choices[1]!.cost, 'a paragraph per endpoint')
+  })
 })
 
 describe('the agents this command ships', () => {
@@ -426,10 +542,16 @@ describe('the memory an agent declares', () => {
     assert.match(problems.join('\n'), /`akb.memory: user` — `project` is the only scope/)
   })
 
-  it('marks in the roster which agents remember, and where', () => {
+  // The mark, and not the path: where the file is is the same for every agent, so the
+  // flow that writes one is told once in `akb guide update-questions` rather than in
+  // every roster this block goes into.
+  it('marks in the roster which agents remember, without naming a file', () => {
     const catalog = specAgentSelector(12)
-    assert.match(catalog, /remembers docs\/kanban\/memory\/agents\/ui-design\.md/)
-    assert.doesNotMatch(catalog, /remembers.*technology-selection/)
+    const entry = (name: string): string =>
+      catalog.split(/^- /m).find((part) => part.startsWith(`\`${name}\``)) ?? ''
+    assert.match(entry('ui-design'), /^ {2}remembers$/m)
+    assert.doesNotMatch(entry('technology-selection'), /remembers/)
+    assert.doesNotMatch(catalog, /memory\/agents/)
   })
 })
 

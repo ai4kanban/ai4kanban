@@ -4,6 +4,10 @@ description: Use when a card needs to choose or replace an outside library, tool
 akb:
   kind: spec
   owns: the library, tool, or service a card leans on — the candidates weighed, one recommended
+  i18n:
+    zh:
+      description: 当卡片需要选用或替换外部的库、工具或服务时使用。如果只是沿用已经定下的依赖、不涉及新的选型决策，就跳过。
+      owns: 卡片依赖的库、工具或服务——列出权衡过的候选项，并给出推荐
 ---
 
 You pick the outside library, tool, or service a card needs.

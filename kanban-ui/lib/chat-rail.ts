@@ -101,10 +101,6 @@ export interface ChatRail {
    *  screen's own box (#427). It lands at the foot; the box and what is typed in it are
    *  left alone. `discuss` puts the discussion's flow in front of the words. */
   say(text: string, discuss?: boolean): void;
-  /** Put a message you sent back in the box to edit (#269). Answers false when something
-   *  is already typed there and `force` was not given — what is typed is never
-   *  overwritten, so the button asks once and calls again. */
-  reword(text: string, force?: boolean): boolean;
   /** Run this conversation on another agent (#272), or on the board's again with `null`.
    *  It starts the conversation over — the caller asks first when there is something to
    *  lose. */
@@ -402,22 +398,6 @@ export function useChatRail({
   // exchange above is left as it was — the message lands at the foot.
   const say = useCallback((text: string, discuss?: boolean) => void post(text, discuss), [post]);
 
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
-  const reword = useCallback((text: string, force?: boolean) => {
-    if (!force && draftRef.current.trim() !== "") return false;
-    setDraft(text);
-    setWalked(null);
-    // After the paint, so the caret lands past words the box does not have yet.
-    requestAnimationFrame(() => {
-      const box = chatBox();
-      if (!box) return;
-      box.focus();
-      box.setSelectionRange(box.value.length, box.value.length);
-    });
-    return true;
-  }, []);
-
   const pickAgent = useCallback(
     async (harness: string | null) => {
       setError(null);
@@ -484,7 +464,6 @@ export function useChatRail({
     error,
     send,
     say,
-    reword,
     markRead,
     pickAgent,
     pickModel,
@@ -499,11 +478,6 @@ export function useChatRail({
  *  `data-chat-box` in components/Chat.tsx. */
 function isChatBox(target: EventTarget | null): boolean {
   return (target as HTMLElement | null)?.hasAttribute?.("data-chat-box") === true;
-}
-
-/** That same box, to put reworded words in front of the caret. */
-function chatBox(): HTMLTextAreaElement | null {
-  return document.querySelector<HTMLTextAreaElement>("textarea[data-chat-box]");
 }
 
 /** The key belongs to whatever is being typed in — the card rail's search, a name box —

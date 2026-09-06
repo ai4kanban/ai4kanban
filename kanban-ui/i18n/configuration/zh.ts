@@ -201,15 +201,12 @@ const zh: ConfigurationCopy = {
     },
   },
   agents: {
-    title: "Agent",
-    blurb:
-      "这个看板上的所有成员。角色负责运行看板自带的流程；专项 Agent 在卡片规划期间补充其中一部分。选中一个即可为它写规则。",
+    always: "始终启用",
+    optional: "可选",
+    blurb: "选中一个 Agent 即可设置。",
     loading: "正在加载 Agent…",
     tooOld: "这个项目里的运行规则太旧，无法列出它的 Agent。请升级命令后重新打开这个对话框。",
     problems: "这个看板上的问题：",
-    alwaysOn: "始终启用",
-    enabled: "已启用",
-    paused: "已暂停",
     open: (agent) => `${agent}——展开`,
     switchOn: (agent) => `${agent}——已启用`,
     switchOff: (agent) => `${agent}——已暂停`,
@@ -218,13 +215,34 @@ const zh: ConfigurationCopy = {
 
     runsWhen: "触发时机",
     yours: "你添加的",
-    rule: "你的规则",
-    ruleLabel: (agent) => `${agent} 的规则`,
-    rulePlaceholder: (agent) => `没有规则。${agent} 的每次运行读到的就是看板自带的内容。`,
+    rule: "你的要求",
+    ruleLabel: (agent) => `${agent} 的要求`,
+    rulePlaceholder: (agent) => `会附加到 ${agent} 每次运行的末尾——例如「合入前先跑 pnpm test」。`,
+    roles: {
+      planner: {
+        gloss: "撰写并打磨你的卡片。",
+        rule: "会附加到每一次提案、新建、澄清、修订、规划版本、更新日志和归档运行的末尾——例如「未决问题一律用编号列表列出」。",
+      },
+      builder: {
+        gloss: "构建卡片并合入。",
+        rule: "会附加到每一次开发、解冲突和执行运行的末尾——例如「用 pnpm 安装依赖，合入前先跑 pnpm test」。",
+      },
+      writer: {
+        gloss: "撰写稿件，并做多渠道改写。",
+        rule: "会附加到它写的每一篇稿件和每一次渠道改写的末尾——例如「不要用感叹号，也不要用提问开头」。",
+      },
+      reviewer: {
+        gloss: "评审构建结果，并修复发现的问题。",
+        rule: "会附加到每一次评审的末尾——例如「卡片没写到的依赖一律打回」。",
+      },
+    },
+    specialistRule: {
+      spec: (agent) => `会附加到卡片打磨期间 ${agent} 每次运行的末尾——例如「遵循 app/globals.css 里的设计变量」。`,
+      write: (agent) => `会附加到 ${agent} 参与的每一篇稿件的末尾——例如「每个小标题不超过六个字」。`,
+    },
     saved: "已保存",
-    ruleFailed: (agent) => `${agent} 的规则保存失败`,
+    ruleFailed: (agent) => `${agent} 的要求保存失败`,
     remembers: "记忆文件",
-    readOnly: "只读",
     file: "AGENT.md",
     fileLabel: (agent) => `${agent} 的 AGENT.md`,
     notSaved: "未保存——",
@@ -240,6 +258,11 @@ const zh: ConfigurationCopy = {
     nameHint: "小写字母，用短横线连接",
     create: "创建",
     cancel: "取消",
+
+    delete: "删除",
+    deleteTitle: (agent) => `删除 ${agent}？`,
+    deleteBlurb: "它的 AGENT.md、你为它写的要求和它记下的内容都会被删除。",
+    deleteFailed: (agent) => `未能删除 ${agent}`,
   },
   delivery: {
     frozen: "改动只对之后开始的交付生效。",

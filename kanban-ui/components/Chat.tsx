@@ -152,7 +152,6 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
         stopped={rail.stopped}
         canSend={!!read && !blocked && !answering}
         onResend={rail.say}
-        onReword={rail.reword}
         // Only once this conversation has actually been read. Landing on a card drops the
         // last one's messages on the spot, and the invitation before the read would be a
         // beat of "nothing has been said" on a card that has plenty.
@@ -266,7 +265,6 @@ export function Transcript({
   stopped,
   canSend,
   onResend,
-  onReword,
   empty,
   after,
 }: {
@@ -283,7 +281,6 @@ export function Transcript({
   /** Both held steady by the rail: a message is drawn once and held across the polls,
    *  and a fresh callback every render would draw every one of them again. */
   onResend(text: string): void;
-  onReword(text: string, force?: boolean): boolean;
   empty: React.ReactNode;
   /** Drawn under the newest line, inside the scroller — the Discuss screen's two answers
    *  (#427), which stand under the message that asked. */
@@ -340,7 +337,6 @@ export function Transcript({
                 sent={m.role === "agent" ? sentBefore(messages, i) : null}
                 canSend={canSend}
                 onResend={onResend}
-                onReword={onReword}
               />
             </Fragment>
           ))}
@@ -356,7 +352,6 @@ export function Transcript({
               sent={sentBefore(messages, messages.length)}
               canSend={canSend}
               onResend={onResend}
-              onReword={onReword}
             />
           )}
           {after}
@@ -406,25 +401,46 @@ const Said = memo(
     sent,
     canSend,
     onResend,
-    onReword,
   }: {
     message: ChatMessage;
     /** The message this reply answered — what "send again" sends again (#269). */
     sent: string | null;
     canSend: boolean;
     onResend(text: string): void;
-    onReword(text: string, force?: boolean): boolean;
   }) {
     const c = useCopy().chat;
     const log = useCopy().runs.log;
+    const [editing, setEditing] = useState(false);
     if (message.role === "you") {
+      if (editing) {
+        return (
+          <EditSent
+            text={message.text}
+            canSend={canSend}
+            onSend={(words) => {
+              setEditing(false);
+              onResend(words);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        );
+      }
       return (
         <div className="group ml-6 mt-3 first:mt-0">
           <div className="whitespace-pre-wrap rounded-[10px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]">
             {message.text}
           </div>
           <div className={`mt-0.5 ${ACTIONS}`}>
-            <Reword text={message.text} onReword={onReword} />
+            <button
+              type="button"
+              className={ACTION}
+              title={c.rewordHint}
+              aria-label={c.rewordHint}
+              onClick={() => setEditing(true)}
+            >
+              <FiEdit3 size={11} aria-hidden />
+              {c.reword}
+            </button>
           </div>
         </div>
       );
@@ -485,8 +501,7 @@ const Said = memo(
     before.message.usage === now.message.usage &&
     before.sent === now.sent &&
     before.canSend === now.canSend &&
-    before.onResend === now.onResend &&
-    before.onReword === now.onReword,
+    before.onResend === now.onResend,
 );
 
 /** The row of things you can do with a message. Not there at rest, so a long exchange reads
@@ -520,45 +535,65 @@ function CopyReply({ text }: { text: string }) {
   );
 }
 
-/** A message you sent, back in the box to edit. What is already typed there is never
- *  overwritten: the button asks once first, the way the header's bin does. */
-function Reword({ text, onReword }: { text: string; onReword(text: string, force?: boolean): boolean }) {
-  const c = useCopy().chat;
-  const [confirming, setConfirming] = useState(false);
+/** A message you sent, edited where it stands. The bubble becomes the box; Send puts the
+ *  new words at the foot as a message, Esc puts the bubble back. Nothing typed in the
+ *  composer is touched. */
+function EditSent({
+  text,
+  canSend,
+  onSend,
+  onCancel,
+}: {
+  text: string;
+  canSend: boolean;
+  onSend(text: string): void;
+  onCancel(): void;
+}) {
+  const c = useCopy();
+  const [draft, setDraft] = useState(text);
+  const box = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
-    if (!confirming) return;
-    const timer = setTimeout(() => setConfirming(false), CONFIRM_MS);
-    return () => clearTimeout(timer);
-  }, [confirming]);
-
-  if (confirming) {
-    return (
-      <button
-        type="button"
-        className={ACTION}
-        style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
-        onClick={() => {
-          setConfirming(false);
-          onReword(text, true);
-        }}
-      >
-        {c.rewordConfirm}
-      </button>
-    );
-  }
+    const el = box.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, []);
+  // As tall as the words, the way the bubble was.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
+  const words = draft.trim();
+  const ready = words !== "" && canSend;
   return (
-    <button
-      type="button"
-      className={ACTION}
-      title={c.rewordHint}
-      aria-label={c.rewordHint}
-      onClick={() => {
-        if (!onReword(text)) setConfirming(true);
-      }}
-    >
-      <FiEdit3 size={11} aria-hidden />
-      {c.reword}
-    </button>
+    <div className="ml-6 mt-3 first:mt-0">
+      <textarea
+        ref={box}
+        value={draft}
+        rows={1}
+        aria-label={c.chat.rewordHint}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          // Esc is this box's alone: the rail and the sheet both listen for it on the window.
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            onCancel();
+          }
+        }}
+        className="block w-full resize-none overflow-hidden rounded-[10px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none"
+      />
+      <div className="mt-1 flex items-center justify-end gap-1">
+        <Button variant="ghost" size="xs" onClick={onCancel}>
+          {c.shared.cancel}
+        </Button>
+        <Button size="xs" disabled={!ready} onClick={() => onSend(words)}>
+          {c.chat.send}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -864,8 +899,8 @@ function Empty({ cardId, hopeless }: { cardId: number | null; hopeless?: string 
   );
 }
 
-/** The box at the foot. Enter sends and Shift-Enter starts a line, which is what anyone who
- *  has used a chat expects; the button is there for anyone who hasn't.
+/** The box at the foot. Enter starts a line, the same as any text box; nothing leaves until
+ *  the send button is pressed.
  *
  *  It stays live while a reply is coming (#268), so a thought that arrives mid-reply goes
  *  into the box instead of being held in the user's head. Only sending waits — nothing
@@ -916,11 +951,12 @@ function Composer({
         // alone (#272). Nothing here while the rules are too old to answer.
         foot={pick ? <Pick rail={rail} pick={pick} answering={answering} /> : undefined}
         hint={
-          // One short line: the one thing that matters right then. Esc only where it
-          // reaches — a terminal's reply is ended in that terminal.
-          <span className="block truncate">
-            {answering ? (ours ? c.sendingWaitsEsc : c.sendingWaits) : c.keys}
-          </span>
+          // One short line, and only while a reply is coming — there is nothing to say
+          // about an idle box. Esc only where it reaches: a terminal's reply is ended in
+          // that terminal.
+          answering ? (
+            <span className="block truncate">{ours ? c.sendingWaitsEsc : c.sendingWaits}</span>
+          ) : undefined
         }
       />
     </div>

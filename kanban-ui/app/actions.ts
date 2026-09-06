@@ -151,6 +151,7 @@ import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/ski
 import {
   agents as boardAgents,
   createAgent,
+  deleteAgent,
   saveAgentFile,
   setAgentRule,
   setSpecAgentEnabled,
@@ -1325,6 +1326,17 @@ export async function saveAgentFileAction(name: string, text: string): Promise<W
   }
   try {
     return await saveAgentFile(name, text);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Delete one project agent, with everything the board kept for it. The board refuses a
+ *  role and a bundled agent, so a stale client can't delete what it doesn't own. */
+export async function deleteAgentAction(name: string): Promise<WriteResult> {
+  if (typeof name !== "string") return { ok: false, error: "an agent is deleted by name" };
+  try {
+    return await deleteAgent(name);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

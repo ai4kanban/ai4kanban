@@ -227,6 +227,9 @@ export interface BoardProvider {
   /** Replace one project agent's `AGENT.md`, whole. Read the way the catalog reads an
    *  agent, so a text it would refuse never reaches the file. */
   saveAgentFile(name: string, text: string, env: OpEnvelope): Promise<OpResult>
+  /** Delete one agent this project added, with everything the board kept for it — its
+   *  folder, its rule, its memory and its settings. Reports what it removed, board-relative. */
+  deleteAgent(name: string, env: OpEnvelope): Promise<OpResult<{ removed: string[] }>>
   /** The rules a delivery freezes when it starts, keyed by the agent that carries each —
    *  read once, the way it reads the card it was approved to build. Editing a rule afterwards
    *  changes the next delivery, never one in flight. */

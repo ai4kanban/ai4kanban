@@ -2,7 +2,7 @@
 
 // The message box (#272), shared by the chat rail and the Create sheet (#426): what is
 // typed, the row under it that says what sending does, and the button that sends it.
-// One box with one set of rules — Enter sends, Shift-Enter starts a line — so there is
+// One box with one set of rules — Enter starts a line, the button sends — so there is
 // never a second box with rules of its own.
 //
 // What each owner adds is what sits on the foot row and which keys it takes back. The
@@ -42,14 +42,14 @@ export function MessageBox({
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
-  /** Enter and the corner button both come to nothing until this is true. */
+  /** The corner button comes to nothing until this is true. */
   canSend: boolean;
   placeholder: string;
   /** What the box is called when it is read out. */
   label: string;
   sendLabel: string;
-  /** The one short line under the box: the thing that matters right then. */
-  hint: React.ReactNode;
+  /** The one short line under the box: the thing that matters right then, or nothing. */
+  hint?: React.ReactNode;
   /** The foot row, left of the corner button — the rail's agent pick, the sheet's mode row. */
   foot?: React.ReactNode;
   /** A confirmation hung off the corner button — the sheet's Build now guard (#428). It is
@@ -80,11 +80,6 @@ export function MessageBox({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              if (canSend) onSend();
-              return;
-            }
             const arrow = e.key === "ArrowUp" || e.key === "ArrowDown";
             if (arrow && onArrow?.(e.key === "ArrowUp")) e.preventDefault();
           }}
@@ -122,7 +117,7 @@ export function MessageBox({
       </div>
       {/* Lined up with the box's own inner margin, so the hint reads as a foot note under
           the control rather than a stray line under the page. */}
-      <div className="mt-1.5 px-1.5 text-[11px] text-nb-ink-soft">{hint}</div>
+      {hint ? <div className="mt-1.5 px-1.5 text-[11px] text-nb-ink-soft">{hint}</div> : null}
     </>
   );
 }

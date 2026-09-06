@@ -1,6 +1,11 @@
 /** The Configuration dialog: its sidebar and every pane in it. The settings a
  *  harness declares — their labels, help and choices — are the board's own rules
  *  and never enter this file. */
+/** The roles the board ships — the agents its own flows are run by, on either solution.
+ *  Closed, because the command ships them; a specialist is a file and carries its own
+ *  words. */
+export type AgentRoleName = "planner" | "builder" | "writer" | "reviewer";
+
 export type ConfigurationCopy = {
   open: string;
   title: string;
@@ -122,17 +127,16 @@ export type ConfigurationCopy = {
    *  and the page one opens — its rule, what it remembers, its settings, and a project
    *  agent's own `AGENT.md`. */
   agents: {
-    title: string;
+    /** The two sections the grid is split into: the agents the board's own flows are run
+     *  by, which are never switched off, and the ones a project switches on. */
+    always: string;
+    optional: string;
     blurb: string;
     loading: string;
     tooOld: string;
     /** One line per problem the board reports about its agents — a malformed AGENT.md, a
      *  name twice over, a folder still where agents used to live. */
     problems: string;
-    /** A tile's state line. A role runs the board's own flows, so it is always on. */
-    alwaysOn: string;
-    enabled: string;
-    paused: string;
     /** Only read out loud: the tile that opens an agent's page, and its switch. */
     open: (agent: string) => string;
     switchOn: (agent: string) => string;
@@ -144,13 +148,25 @@ export type ConfigurationCopy = {
     /** Before a specialist's own trigger, on its page. */
     runsWhen: string;
     yours: string;
+    /** Words appended to the end of every run this agent does. Only a bundled agent has
+     *  one: an agent this project added is its own AGENT.md, written right here. */
     rule: string;
     ruleLabel: (agent: string) => string;
+    /** A role the pane does not know — one shipped after this copy was written. */
     rulePlaceholder: (agent: string) => string;
+    /** A role's own line, and the box that trains it saying WHERE the words land: which
+     *  runs on this board actually read them, in the names the Runs screen uses. The board
+     *  ships the roles, so the pane can carry their words; a specialist says both in its
+     *  own `AGENT.md`, which is the only place a project can write them. */
+    roles: Record<AgentRoleName, { gloss: string; rule: string }>;
+    /** The same box for a specialist, by the hook it plugs into. */
+    specialistRule: {
+      spec: (agent: string) => string;
+      write: (agent: string) => string;
+    };
     saved: string;
     ruleFailed: (agent: string) => string;
     remembers: string;
-    readOnly: string;
     file: string;
     fileLabel: (agent: string) => string;
     /** Before the board's own reason a save was refused. */
@@ -169,6 +185,13 @@ export type ConfigurationCopy = {
     nameHint: string;
     create: string;
     cancel: string;
+
+    /** Delete a specialist this project added. Only ever offered on an agent that has a
+     *  folder on this board — a role and a bundled agent are not the board's to remove. */
+    delete: string;
+    deleteTitle: (agent: string) => string;
+    deleteBlurb: string;
+    deleteFailed: (agent: string) => string;
   };
   delivery: {
     /** A change only reaches deliveries started afterwards. Said once, under all three. */

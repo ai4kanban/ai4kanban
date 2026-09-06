@@ -32,12 +32,14 @@
 // idea's plan being rewritten. **New idea** is the way out: it drops the transcript, which
 // takes the plan with it (the plan hangs off the conversation's own file), and the screen is
 // the empty one again. It is the only thing on this screen that throws work away, so it asks
-// first — the same guard Build now uses, naming what goes — and it is not offered while a
-// reply or a planning run is in flight. Only one guard is ever open, so Esc always has one
-// answer: put the guard down, then the plan, then the screen.
+// first — the same guard Build now uses, naming what goes — and it waits only on a reply in
+// flight. A planning run does not hold it: that run has its own session and the plan's path
+// already, so the discussion can be cleared out from under it and the cards still arrive.
+// Only one guard is ever open, so Esc always has one answer: put the guard down, then the
+// plan, then the screen.
 //
-// The box is the chat rail's own (components/composer.tsx), so Enter sends and Shift-Enter
-// starts a line here exactly as it does there. What the rail keeps is the rail's: the walk
+// The box is the chat rail's own (components/composer.tsx), so Enter starts a line and only
+// the send button sends, exactly as it does there. What the rail keeps is the rail's: the walk
 // back through what it has sent, its Stop, and the Esc that ends a reply — here Esc closes
 // the sheet and leaves the discussion, and any reply still being written, where they are.
 
@@ -165,6 +167,9 @@ function Sheet({
   }, [onClose, guard, full, toggleFull]);
 
   const read = rail.read;
+  // Send again and an edited message go the way the box's own words do: as discussion.
+  const say = rail.say;
+  const sayInDiscussion = useCallback((words: string) => say(words, true), [say]);
   // Nothing on this board can hold a conversation at all — no agent that can, or rules older
   // than Discuss. It is not offered then, and never opened on: a mode nothing can answer is
   // worse than no mode.
@@ -200,10 +205,12 @@ function Sheet({
   const beside = plan.open && plan.beside && !plan.full;
   const over = plan.open && !beside;
   // Leaving this discussion for the next one. Only where there is something to leave, and
-  // never mid-flight: clearing under a reply lands it in a fresh file, and clearing under a
-  // planning run takes away the only line saying that run is going.
-  const busy = rail.answering || plan.read?.run?.running === true;
-  const canStartNew = discussing && !busy && (messages.length > 0 || plan.shown);
+  // not under a reply — that would land it in a fresh file. A planning run is no reason to
+  // wait: it was handed the plan when it started and reads nothing from here, so the
+  // discussion it came out of is finished business. The guard says the run keeps going, and
+  // Runs is where it is watched.
+  const planning = plan.read?.run?.running === true;
+  const canStartNew = discussing && !rail.answering && (messages.length > 0 || plan.shown);
   const startNew = async () => {
     setGuard(null);
     setError(null);
@@ -284,6 +291,7 @@ function Sheet({
         {canStartNew && (
           <NewIdea
             open={guard === "new"}
+            planning={planning}
             onOpen={() => setGuard("new")}
             onDismiss={() => setGuard(null)}
             onStart={() => void startNew()}
@@ -339,8 +347,7 @@ function Sheet({
                   liveSince={read?.liveSince ?? null}
                   stopped={rail.stopped}
                   canSend={!!read && !read.blocked && !rail.answering}
-                  onResend={rail.say}
-                  onReword={rail.reword}
+                  onResend={sayInDiscussion}
                   empty={null}
                   after={<Handoff plan={plan} rail={rail} onPlan={onPlan} />}
                 />
@@ -350,7 +357,7 @@ function Sheet({
                   you put the plan down to say anything. */}
               {over && <PlanCard plan={plan} />}
             </div>
-            <div className={`flex shrink-0 justify-center pb-6 pt-3 ${GUTTER}`}>
+            <div className={`flex shrink-0 justify-center pb-6 pt-7 ${GUTTER}`}>
               <div className={COLUMN}>{composer}</div>
             </div>
           </div>
@@ -383,14 +390,20 @@ function Sheet({
  *
  *  It is the only press on this screen that throws work away, so it opens the guard rather
  *  than doing it: the same panel Build now hangs off Send, naming what goes, with Keep it
- *  and Start new side by side. Pressing the button is never the answer — choosing is. */
+ *  and Start new side by side. Pressing the button is never the answer — choosing is.
+ *
+ *  Under a planning run it is offered all the same, with one line more: that run is its own
+ *  session and nothing here stops it. */
 function NewIdea({
   open,
+  planning,
   onOpen,
   onDismiss,
   onStart,
 }: {
   open: boolean;
+  /** The run writing this plan's cards is going — the guard says it survives. */
+  planning: boolean;
   onOpen: () => void;
   onDismiss: () => void;
   onStart: () => void;
@@ -418,6 +431,12 @@ function NewIdea({
                 <span>{line}</span>
               </span>
             ))}
+            {planning && (
+              <span className="flex items-start gap-1.5">
+                <FiCheck className="mt-[3px] shrink-0 text-[11px] text-nb-ink-soft" aria-hidden />
+                <span>{c.newIdeaGuard.keeps}</span>
+              </span>
+            )}
           </span>
         }
         cancelLabel={c.newIdeaGuard.cancel}

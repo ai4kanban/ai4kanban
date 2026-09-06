@@ -343,6 +343,18 @@ export function setSpecAgentValue(
   })
 }
 
+/** Drop one spec agent's entry entirely — its switch, its runtime and every value it had
+ *  picked. Called when the agent itself is deleted: a settings block for an agent nobody
+ *  has is a line the user can neither read nor reach. */
+export function forgetSpecAgent(name: string, legacyNames: string[] = []): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    const block = { ...configBlock(cfg.specAgents) }
+    for (const key of [name, ...legacyNames]) delete block[key]
+    if (Object.keys(block).length) cfg.specAgents = block
+    else delete cfg.specAgents
+  })
+}
+
 // Read one agent's entry, change it, and write it back in the file's own shape: nothing at
 // all when the agent is on with nothing picked, a plain boolean for a switch on its own,
 // and the object only when there is something to keep. A name the agent used to have goes,

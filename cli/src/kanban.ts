@@ -88,7 +88,7 @@ export { refinementRequest } from './lib/agent/refine'
 // agent's own file. They ship together, so a UI that finds the roster read finds all four.
 // They are board operations like every other write (#315), so a Cloud board reads and
 // writes its team where the board is and both clients call the same thing.
-export { createAgent, readAgents, saveAgentFile, setAgentRule } from './lib/view/api'
+export { createAgent, deleteAgent, readAgents, saveAgentFile, setAgentRule } from './lib/view/api'
 
 // A marketing card's drafts and its channels (#411) — what the board UI's drafts block is
 // drawn from and acts through. Reading and writing a draft is a file under

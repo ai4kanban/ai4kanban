@@ -241,6 +241,7 @@ export interface BoardRules {
   setAgentRule?(agent: string, text: string): Promise<WriteResult>;
   createAgent?(name: string): Promise<WriteResult & { agent?: string }>;
   saveAgentFile?(name: string, text: string): Promise<WriteResult>;
+  deleteAgent?(name: string): Promise<WriteResult & { removed?: string[] }>;
 
   // a marketing card's drafts and its channels (#411) — what the card page's drafts block
   // draws and acts through. Optional the way the flow rules are: a board running rules older

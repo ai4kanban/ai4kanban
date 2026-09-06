@@ -48,9 +48,6 @@ export type ChatCopy = {
   againHint: string;
   reword: string;
   rewordHint: string;
-  /** What the Reword button becomes when something is already typed in the box — the
-   *  header bin's ask-once, in the same shape. */
-  rewordConfirm: string;
   /** Who said what, in a conversation copied out as markdown. */
   youSaid: string;
   agentSaid: string;
@@ -87,5 +84,4 @@ export type ChatCopy = {
   switchWaits: string;
   /** Where the model changed, drawn in the conversation. */
   modelChanged: (model: string) => string;
-  keys: string;
 };

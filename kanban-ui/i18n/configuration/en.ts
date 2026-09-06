@@ -97,16 +97,13 @@ const en: ConfigurationCopy = {
     },
   },
   agents: {
-    title: "Agents",
-    blurb:
-      "Everyone working on this board. A role runs the board's own flows; a specialist fills one part of a card while it is being planned. Select one to write its rule.",
+    always: "Always on",
+    optional: "Optional",
+    blurb: "Select an agent to set it up.",
     loading: "Loading agents…",
     tooOld:
       "The board's rules in this project are too old to list its agents. Update the command and reopen this dialog.",
     problems: "Problems on this board:",
-    alwaysOn: "Always on",
-    enabled: "Enabled",
-    paused: "Paused",
     open: (agent) => `${agent} — open`,
     switchOn: (agent) => `${agent} — enabled`,
     switchOff: (agent) => `${agent} — paused`,
@@ -115,13 +112,34 @@ const en: ConfigurationCopy = {
 
     runsWhen: "Runs when",
     yours: "Yours",
-    rule: "Your rule",
-    ruleLabel: (agent) => `Rule for ${agent}`,
-    rulePlaceholder: (agent) => `No rule. Every run ${agent} does reads what the board ships, and nothing more.`,
+    rule: "Your instructions",
+    ruleLabel: (agent) => `Instructions for ${agent}`,
+    rulePlaceholder: (agent) => `Added to the end of every run ${agent} does — "run pnpm test before landing".`,
+    roles: {
+      planner: {
+        gloss: "Writes and refines your cards.",
+        rule: 'Added to the end of every Propose, Create, Refine, Revise, Plan release, Changelog and Archive run — "always leave the open questions as a numbered list".',
+      },
+      builder: {
+        gloss: "Builds a card and lands it.",
+        rule: 'Added to the end of every Implement, Conflict and Run — "install with pnpm, and run pnpm test before landing".',
+      },
+      writer: {
+        gloss: "Writes the drafts and repurposes them.",
+        rule: 'Added to the end of every draft it writes and every Channel repurpose — "no exclamation marks, and never open with a question".',
+      },
+      reviewer: {
+        gloss: "Reviews a finished build and fixes what it finds.",
+        rule: 'Added to the end of every Review — "reject any dependency the card did not name".',
+      },
+    },
+    specialistRule: {
+      spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,
+      write: (agent) => `Added to the end of every draft ${agent} joins — "keep every heading under six words".`,
+    },
     saved: "Saved",
-    ruleFailed: (agent) => `couldn't save ${agent}'s rule`,
+    ruleFailed: (agent) => `couldn't save ${agent}'s instructions`,
     remembers: "Remembers",
-    readOnly: "Read-only",
     file: "AGENT.md",
     fileLabel: (agent) => `${agent}'s AGENT.md`,
     notSaved: "Not saved —",
@@ -137,6 +155,11 @@ const en: ConfigurationCopy = {
     nameHint: "lowercase, dashes",
     create: "Create",
     cancel: "Cancel",
+
+    delete: "Delete",
+    deleteTitle: (agent) => `Delete ${agent}?`,
+    deleteBlurb: "Its AGENT.md, your instructions for it and what it remembered are removed.",
+    deleteFailed: (agent) => `couldn't delete ${agent}`,
   },
   delivery: {
     frozen: "A change applies to deliveries started afterwards.",

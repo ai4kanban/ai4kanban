@@ -42,8 +42,7 @@ const zh: ChatCopy = {
   again: "重新发送",
   againHint: "重新发送这条消息",
   reword: "改写",
-  rewordHint: "把这些内容放回输入框中修改",
-  rewordConfirm: "覆盖已输入的内容",
+  rewordHint: "修改后重新发送",
   youSaid: "你",
   agentSaid: "Agent",
   ask: "提问，或说出你想改什么",
@@ -64,7 +63,6 @@ const zh: ChatCopy = {
   switchConfirm: "重新开始",
   switchWaits: "切换需等回复结束",
   modelChanged: (model) => `模型 → ${model}`,
-  keys: "Enter 发送 · Shift-Enter 换行",
 };
 
 export default zh;

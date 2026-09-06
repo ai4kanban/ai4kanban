@@ -234,6 +234,12 @@ export async function saveAgentFile(name: string, text: string, opts?: WriteOpti
   return flat(await envelopeFor({ board: true }, opts, (env) => board().saveAgentFile(name, text, env)))
 }
 
+/** Delete one agent this project added, with the rule, the memory and the settings the
+ *  board kept for it. A role and a bundled agent are refused: neither is this board's. */
+export async function deleteAgent(name: string, opts?: WriteOptions): Promise<WriteResult & { removed?: string[] }> {
+  return flat<{ removed: string[] }>(await envelopeFor({ board: true }, opts, (env) => board().deleteAgent(name, env)))
+}
+
 // ---- the goal and setup ----------------------------------------------------
 
 /**

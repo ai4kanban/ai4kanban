@@ -4,20 +4,33 @@ description: Use whenever a card designs or changes a user-facing feature, inclu
 akb:
   kind: spec
   owns: the screen a card changes — one layout drawn by default, alternatives only when requested
+  i18n:
+    zh:
+      description: 当卡片要设计或改动任何面向用户的功能时使用，包括页面、布局、交互和流程。只有极小的改动才跳过，例如错别字，或不涉及任何设计决策的单个间距修正。计划写得详细、或已有现成组件，都不是跳过的理由。
+      owns: 卡片改动的那块界面——默认只画一版布局，只有你明确要求时才给备选方案
+      settings:
+        mockupStyle:
+          label: 原型样式
+          choices:
+            full:
+              label: 渲染页面
+              cost: 与产品同款样式，画得慢
+            ascii:
+              label: 字符草图
+              cost: 纯文本，写在卡片里，画得快
   memory: project
   settings:
     - key: mockupStyle
       label: Mockup style
-      help: "What one layout option is: a screen the board renders, or a drawing in plain text."
       default: full
       choices:
         - value: full
           label: Rendered screen
-          cost: a `.tsx` or `.html` file per option, styled like the product — a long run, and the board draws it
+          cost: styled like the product, slow to draw
           reference: references/rendered-screen.md
         - value: ascii
           label: ASCII drawing
-          cost: a plain-text drawing per option, written into the card itself — a short run, and no product styling
+          cost: plain text in the card, quick to draw
           reference: references/ascii-drawing.md
 ---
 

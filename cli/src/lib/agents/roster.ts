@@ -14,15 +14,15 @@ import path from 'node:path'
 
 import { agentRoster, ROLE_NAMES } from '../agent/roles'
 import { readRule } from '../agent/rules'
-import { specAgentEntries } from '../agent/settings'
+import { forgetSpecAgent, specAgentEntries } from '../agent/settings'
 import type { AgentView } from '../agent/types'
-import { AGENTS, LEGACY_AGENTS, rel } from '../paths'
+import { agentMemoryFile } from '../memory'
+import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
 import { solution } from '../solution'
 import type { WriteResult } from '../view/types'
 import { agentFileReader, specAgentCatalog } from './catalog'
-import { specAgentEnabled, specAgentSettings } from './index'
+import { agentSettingsView, specAgentEnabled, specAgentSettings } from './index'
 import { AGENT_NAME, parseSpecAgent } from './parse'
-import type { SpecAgent } from './parse'
 
 const AGENT_FILE = 'AGENT.md'
 
@@ -46,7 +46,7 @@ export function readAgents(): { agents: AgentView[]; problems: string[] } {
       enabled: entry.kind === 'role' || specAgentEnabled(entry.name, entries),
       rule: readRule(entry.name),
       memory: entry.memory,
-      settings: agent ? settingsView(agent) : [],
+      settings: agent ? agentSettingsView(agent) : [],
       values: agent ? specAgentSettings(agent, entries).values : {},
       // A bundled agent's file ships inside the command, so there is nothing on disk to
       // point at or write back and its page shows no box.
@@ -57,17 +57,6 @@ export function readAgents(): { agents: AgentView[]; problems: string[] } {
   })
   return { agents, problems }
 }
-
-// The settings an agent declares, as a dialog draws them — the same shape the spec agents'
-// own list carries, minus the reference each choice loads, which is the run's business.
-const settingsView = (agent: SpecAgent): AgentView['settings'] =>
-  agent.settings.map((setting) => ({
-    key: setting.key,
-    label: setting.label,
-    ...(setting.help ? { help: setting.help } : {}),
-    choices: setting.choices.map((c) => ({ value: c.value, label: c.label, cost: c.cost })),
-    default: setting.default,
-  }))
 
 // ---- adding one -------------------------------------------------------------
 
@@ -121,12 +110,50 @@ function agentTemplate(name: string): string {
     'akb:',
     `  kind: ${kind}`,
     `  owns: ${owns}`,
+    '  # i18n:                    # what the two lines above say to a reader in another',
+    '  #   zh:                    # language. Drawn only — every run is given the English.',
+    '  #     description:',
+    '  #     owns:',
     '---',
     '',
     `Unwritten. Write what \`${name}\` does here: what it is given, what it produces, and`,
     'what it must leave alone. It is read fresh on every run.',
     '',
   ].join('\n')
+}
+
+// ---- removing one -----------------------------------------------------------
+
+/** Delete one project agent, and everything the board kept for it: its folder, the rule
+ *  written for it, what it remembered, and its entry in `ui.config.json`.
+ *
+ *  Only an agent this project added. A role runs the board's own flows and a bundled agent
+ *  ships inside the command — neither has a folder here to remove, and an entry in the
+ *  config would come straight back on the next read.
+ *
+ *  Everything it leaves is reported board-relative, so the pane can say what went rather
+ *  than only that something did. A file already gone is not an error: the point of the move
+ *  is that none of them are there afterwards. */
+export function deleteAgent(name: string): WriteResult & { removed?: string[] } {
+  const agent = specAgentCatalog().agents.find((a) => a.name === name)
+  if (!agent) return { ok: false, error: `"${name}" is not an agent on this board.` }
+  if (agent.builtIn || !agent.dir) {
+    return { ok: false, error: `\`${name}\` ships inside the command, so it is not this board's to delete.` }
+  }
+  const removed: string[] = []
+  try {
+    for (const file of [agent.dir, path.join(RULES, `${name}.md`), agentMemoryFile(name)]) {
+      if (!fs.existsSync(file)) continue
+      fs.rmSync(file, { recursive: true, force: true })
+      removed.push(rel(file))
+    }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+  }
+  // Last, and never fatal: the folder is gone, so the agent is gone whatever the config
+  // says, and refusing here would leave the pane reporting a failure it cannot undo.
+  forgetSpecAgent(name)
+  return { ok: true, removed }
 }
 
 // ---- writing one ------------------------------------------------------------

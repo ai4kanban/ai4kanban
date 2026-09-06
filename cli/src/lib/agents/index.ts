@@ -15,9 +15,10 @@ import { runtimeFor } from '../agent/runtime'
 import { runtimeHarness } from '../agent/resolve'
 import { specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from '../agent/settings'
 import type { SpecAgentEntry } from '../agent/settings'
-import type { SpecAgentView } from '../agent/types'
-import { agentMemoryFile, readAgentMemory } from '../memory'
-import { rel } from '../paths'
+import type { SpecAgentSettingView, SpecAgentView } from '../agent/types'
+import { readLanguage } from '../machine/settings'
+import type { Language } from '../machine/types'
+import { readAgentMemory } from '../memory'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import { specAgentCatalog } from './catalog'
 import type { AgentKind, SpecAgent } from './parse'
@@ -28,6 +29,40 @@ export type { AgentKind, SpecAgent } from './parse'
 
 /** Every agent on this board, in the board's order. */
 export const specAgents = (): SpecAgent[] => specAgentCatalog().agents
+
+/** An agent's two user-facing lines in the language this machine reads (#334), falling back
+ *  to the English its file declares. Only ever DRAWN — every run is handed the English pair,
+ *  so a board reads in one language and its agents are asked in another. */
+export function agentLines(agent: SpecAgent, language: Language = readLanguage()): { description: string; owns: string } {
+  const said = agent.i18n[language]
+  return { description: said?.description || agent.description, owns: said?.owns || agent.owns }
+}
+
+/** The settings an agent declares, as a screen reads them: the words in the language this
+ *  machine reads (#334), and never the reference a choice loads — that is the run's business.
+ *
+ *  Drawn only, like the two lines above. A run is handed the English, so the reference it
+ *  loads is picked by the choice's `value`, which no translation touches. */
+export function agentSettingsView(
+  agent: SpecAgent,
+  language: Language = readLanguage(),
+): SpecAgentSettingView[] {
+  const said = agent.i18n[language]?.settings ?? {}
+  return agent.settings.map((setting) => {
+    const spoken = said[setting.key]
+    const help = spoken?.help || setting.help
+    return {
+      key: setting.key,
+      label: spoken?.label || setting.label,
+      ...(help ? { help } : {}),
+      choices: setting.choices.map((c) => {
+        const words = spoken?.choices?.[c.value]
+        return { value: c.value, label: words?.label || c.label, cost: words?.cost || c.cost }
+      }),
+      default: setting.default,
+    }
+  })
+}
 
 /** Everything wrong with the agents on this board — a malformed `AGENT.md`, a name already
  *  taken, a folder still in the place agents used to live. Shown wherever the agents are
@@ -209,9 +244,12 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
       `- \`${a.name}\``,
       `  owns ${a.owns}`,
       `  ${a.description}`,
-      // Which of them remember, and where (#421). These flows are the ones that hear the
-      // user's answer about an agent's section, and the line they append goes in this file.
-      ...(a.memory ? [`  remembers ${rel(agentMemoryFile(a.name))}`] : []),
+      // Which of them remember (#421). These flows are the ones that hear the user's answer
+      // about an agent's section, and the line they append goes in that agent's memory
+      // file. The mark alone: only some agents declare a memory, and that is not derivable,
+      // while WHERE the file is always is — `akb guide update-questions` states it once
+      // rather than this block repeating a path per agent in every run.
+      ...(a.memory ? ['  remembers'] : []),
     ]),
     words.ask,
     'Skip only when the trigger does not match or the agent’s existing output covers the current scope. Your own plan does not count as the agent’s output. After requesting agents, stop; the board starts them when this run ends and resumes this workflow afterward.',
@@ -232,13 +270,7 @@ export function readSpecAgents(): SpecAgentView[] {
     // Which runtime this agent runs on, and what that is here (#343) — so the list a screen
     // draws is the same answer a run would get, and no UI works one out.
     ...specAgentRun(agent.name, entries),
-    settings: agent.settings.map((setting) => ({
-      key: setting.key,
-      label: setting.label,
-      ...(setting.help ? { help: setting.help } : {}),
-      choices: setting.choices.map((c) => ({ value: c.value, label: c.label, cost: c.cost })),
-      default: setting.default,
-    })),
+    settings: agentSettingsView(agent),
     values: specAgentSettings(agent, entries).values,
   }))
 }

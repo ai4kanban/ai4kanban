@@ -17,6 +17,7 @@
 import path from 'node:path'
 
 import { specAgentCatalog } from '../agents/catalog'
+import { agentLines } from '../agents'
 import { agentMemoryFile } from '../memory'
 import { KANBAN, rel } from '../paths'
 import { solution } from '../solution'
@@ -140,15 +141,20 @@ export interface RosterEntry {
  *  the command ships, then the ones the project added. One list, so `akb raw rule` and the
  *  Agents pane name the same team. */
 export function agentRoster(): RosterEntry[] {
-  const specialists = specAgentCatalog().agents.map((agent) => ({
-    name: agent.name,
-    gloss: agent.owns,
-    when: agent.description,
-    kind: agent.kind,
-    builtIn: agent.builtIn,
-    flows: [],
-    memory: agent.memory ? [rel(agentMemoryFile(agent.name))] : [],
-  }))
+  // A specialist's two lines are the ones its own file declares, in the language this
+  // machine reads — an agent is user-facing, and its `akb.i18n` block is where it says so.
+  const specialists = specAgentCatalog().agents.map((agent) => {
+    const said = agentLines(agent)
+    return {
+      name: agent.name,
+      gloss: said.owns,
+      when: said.description,
+      kind: agent.kind,
+      builtIn: agent.builtIn,
+      flows: [],
+      memory: agent.memory ? [rel(agentMemoryFile(agent.name))] : [],
+    }
+  })
   return [
     ...roles().map((role) => ({
       name: role.name,

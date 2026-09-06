@@ -75,7 +75,7 @@ import { nextWork as dispatchNextWork } from '../view/dispatch'
 import { addVerifyLine, dropVerifyLine, patchCard as patchCardWrite, setCardSchedule } from '../view/edit'
 import { readModules, readSetupDraft, saveProject as saveProjectWrite } from '../view/first-run'
 import { deliveryRules, setAgentRule } from '../agent/rules'
-import { createAgent, readAgents, saveAgentFile } from '../agents/roster'
+import { createAgent, deleteAgent, readAgents, saveAgentFile } from '../agents/roster'
 import { readGoalText, writeGoalText } from '../view/goal'
 import { readMemoryFile, readMemoryModules, writeMemoryFile } from '../view/memory'
 import { readMetricsView } from '../view/metrics'
@@ -469,6 +469,13 @@ export function localBoard(): BoardProvider {
         const res = saveAgentFile(name, text)
         if (!res.ok) throw new Error(res.error)
         return {}
+      }),
+
+    deleteAgent: (name, env) =>
+      mutate({ board: true }, env, () => {
+        const res = deleteAgent(name)
+        if (!res.ok) throw new Error(res.error)
+        return { removed: res.removed ?? [] }
       }),
 
     deliveryRules: () => Promise.resolve(deliveryRules()),

@@ -85,8 +85,8 @@ The header carries seven things:
   file, and offers to turn it into cards; see **Discuss**. **Add task** is the direct route:
   the agent writes the card. **Build now** sends the sentence straight to a build with no
   card at all: it asks before it starts, because no card is written, no questions come back,
-  and nothing reviews the work before it reaches your branch. Enter sends, Shift-Enter starts
-  a line, and Esc or the ✕ hands the board back — a discussion is left where it is. An
+  and nothing reviews the work before it reaches your branch. Enter starts a line and the
+  send button sends; Esc or the ✕ hands the board back — a discussion is left where it is. An
   unsent draft is kept for the next time you open it, and a start that is refused keeps the
   sentence there to send again. A board with no agent that can hold a conversation is not
   offered Discuss at all, and opens on Add task.

@@ -91,3 +91,11 @@ export async function saveAgentFile(name: string, text: string): Promise<WriteRe
   if (!rules.saveAgentFile) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
   return await rules.saveAgentFile(name, text);
 }
+
+/** Delete one agent this project added, with the rule, the memory and the settings the
+ *  board kept for it. Only a project agent: a role and a bundled agent are the board's. */
+export async function deleteAgent(name: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.deleteAgent) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
+  return await rules.deleteAgent(name);
+}

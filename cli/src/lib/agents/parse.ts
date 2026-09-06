@@ -13,6 +13,10 @@ export interface SpecAgent {
   description: string
   /** The part of a card's spec it owns. */
   owns: string
+  /** What its two user-facing lines say in another language, by language tag (#334). Only
+   *  ever DRAWN: every run is given the English pair above, so a translation can never
+   *  change what an agent is asked to do, and the block never reaches a prompt. */
+  i18n: Record<string, AgentLines>
   /** The hook it plugs into. */
   kind: AgentKind
   /** The scope it remembers in, or null when it declares none and starts every run fresh. */
@@ -31,6 +35,23 @@ export interface SpecAgent {
    *  so there is nothing on disk to point at or write back. */
   dir?: string
   text?: string
+}
+
+/** An agent's user-facing words, as one language says them. */
+export interface AgentLines {
+  description?: string
+  owns?: string
+  /** What its settings say here, by setting key. */
+  settings?: Record<string, SettingLines>
+}
+
+/** One setting's user-facing words in another language. Keyed by the setting's own `key` and
+ *  each choice's own `value`, so a translation never restates the shape — anything it leaves
+ *  out falls back to the English the setting declares. */
+export interface SettingLines {
+  label?: string
+  help?: string
+  choices?: Record<string, { label?: string; cost?: string }>
 }
 
 /** The hooks an agent may plug into: `spec` fills one part of a card's spec, `write` joins
@@ -106,8 +127,70 @@ export function parseSpecAgent(
   if (!instructions) return bad(`\`${name}\` has frontmatter but no instructions under it`)
 
   return {
-    agent: { name, description, owns, kind: declaredKind, memory, settings, body: instructions, from, builtIn, file },
+    agent: {
+      name,
+      description,
+      owns,
+      i18n: readTranslations(akb.i18n),
+      kind: declaredKind,
+      memory,
+      settings,
+      body: instructions,
+      from,
+      builtIn,
+      file,
+    },
   }
+}
+
+// The `akb.i18n` block: one entry per language tag, each saying either of the two lines. A
+// tag with nothing readable under it is dropped rather than refused — a translation is
+// drawn, so a typo in one is never a reason to take an agent off the board.
+function readTranslations(raw: YamlValue | undefined): Record<string, AgentLines> {
+  const block = map(raw)
+  if (!block) return {}
+  const out: Record<string, AgentLines> = {}
+  for (const [tag, value] of Object.entries(block)) {
+    const said = map(value)
+    if (!said) continue
+    const settings = readSettingTranslations(said.settings)
+    const lines: AgentLines = {
+      ...(str(said.description) ? { description: str(said.description) } : {}),
+      ...(str(said.owns) ? { owns: str(said.owns) } : {}),
+      ...(Object.keys(settings).length ? { settings } : {}),
+    }
+    if (Object.keys(lines).length) out[tag] = lines
+  }
+  return out
+}
+
+// The `settings` block under one language: `<key>: { label, help, choices: { <value>: {…} } }`.
+// Dropped rather than refused, like the lines above — a translation is only ever drawn.
+function readSettingTranslations(raw: YamlValue | undefined): Record<string, SettingLines> {
+  const block = map(raw)
+  if (!block) return {}
+  const out: Record<string, SettingLines> = {}
+  for (const [key, value] of Object.entries(block)) {
+    const said = map(value)
+    if (!said) continue
+    const choices: Record<string, { label?: string; cost?: string }> = {}
+    for (const [choice, words] of Object.entries(map(said.choices) ?? {})) {
+      const spoken = map(words)
+      if (!spoken) continue
+      const lines = {
+        ...(str(spoken.label) ? { label: str(spoken.label) } : {}),
+        ...(str(spoken.cost) ? { cost: str(spoken.cost) } : {}),
+      }
+      if (Object.keys(lines).length) choices[choice] = lines
+    }
+    const setting: SettingLines = {
+      ...(str(said.label) ? { label: str(said.label) } : {}),
+      ...(str(said.help) ? { help: str(said.help) } : {}),
+      ...(Object.keys(choices).length ? { choices } : {}),
+    }
+    if (Object.keys(setting).length) out[key] = setting
+  }
+  return out
 }
 
 const isKind = (value: string): value is AgentKind => (AGENT_KINDS as readonly string[]).includes(value)

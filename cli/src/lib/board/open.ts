@@ -183,6 +183,7 @@ function refusing(error: string): import('./contract').BoardProvider {
     saveAgentRule: refused,
     createAgent: refused,
     saveAgentFile: refused,
+    deleteAgent: refused,
     deliveryRules: () => Promise.resolve({}),
     recordRun: refused,
     listDeliveries: () => Promise.resolve([]),

@@ -158,6 +158,27 @@ describe('the team, as a contract read and write', () => {
     }
   })
 
+  it('deletes a specialist with everything the board kept for it, and refuses the board\'s own', async () => {
+    await onBoard((env) => board().createAgent('api-contract', env))
+    await onBoard((env) => board().saveAgentRule('api-contract', 'Name every field.', env))
+    const dir = path.join(kanban, 'agents', 'api-contract')
+    const rule = path.join(kanban, 'rules', 'api-contract.md')
+    assert.ok(fs.existsSync(rule))
+
+    const gone = await onBoard((env) => board().deleteAgent('api-contract', env))
+    assert.ok(gone.ok)
+    assert.equal(fs.existsSync(dir), false)
+    assert.equal(fs.existsSync(rule), false)
+    const { agents } = await board().readAgents()
+    assert.equal(agents.some((a) => a.name === 'api-contract'), false)
+
+    // A role runs the board's own flows and a bundled agent ships inside the command, so
+    // neither has a folder here to remove.
+    for (const theirs of ['builder', 'ui-design', 'api-contract']) {
+      assert.equal((await onBoard((env) => board().deleteAgent(theirs, env))).ok, false, theirs)
+    }
+  })
+
   it("refuses an AGENT.md the catalog would not read, and keeps the file it had", async () => {
     await onBoard((env) => board().createAgent('api-contract', env))
     const file = path.join(kanban, 'agents', 'api-contract', 'AGENT.md')

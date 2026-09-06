@@ -47,8 +47,7 @@ const en: ChatCopy = {
   again: "Send again",
   againHint: "Send this message again",
   reword: "Reword",
-  rewordHint: "Put these words back in the box to edit",
-  rewordConfirm: "Replace what's typed",
+  rewordHint: "Edit and send again",
   youSaid: "You",
   agentSaid: "Agent",
   ask: "Ask, or say what to change",
@@ -69,7 +68,6 @@ const en: ChatCopy = {
   switchConfirm: "Start over",
   switchWaits: "Switching waits for the reply",
   modelChanged: (model) => `model → ${model}`,
-  keys: "Enter sends · Shift-Enter starts a line",
 };
 
 export default en;

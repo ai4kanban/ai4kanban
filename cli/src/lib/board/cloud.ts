@@ -793,6 +793,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     saveAgentRule: (agent, text, env) => through({ board: true }, env, (e) => local.saveAgentRule(agent, text, e)),
     createAgent: (name, env) => through({ board: true }, env, (e) => local.createAgent(name, e)),
     saveAgentFile: (name, text, env) => through({ board: true }, env, (e) => local.saveAgentFile(name, text, e)),
+    deleteAgent: (name, env) => through({ board: true }, env, (e) => local.deleteAgent(name, e)),
     deliveryRules: () => local.deliveryRules(),
 
     // ---- history ------------------------------------------------------------

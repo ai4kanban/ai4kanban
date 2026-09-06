@@ -128,8 +128,37 @@ into; `kind: write` joins the writer on a marketing board and is refused anywher
 is loaded into the run — the instructions for the option nobody picked are never read. `akb spec`
 lists the agents this board can use and, under them, anything wrong with one it found.
 
-The pane adds an agent and never removes one: a name typed wrong is switched off like any other,
-and an `AGENT.md` broken by hand is a problem line you repair in an editor.
+**Delete** on an agent's page removes it and everything the board kept for it — the folder, the
+instructions you wrote for it, what it remembered, and its switch. Only an agent this project
+added: the roles and the two the command ships are not yours to remove, and have no Delete.
+
+## Say it in your own language
+
+`description`, `owns` and the words its settings are drawn by are read by people, not only by the
+board, so an agent can carry them in another language under `akb.i18n`:
+
+```yaml
+akb:
+  kind: spec
+  owns: the request and response shape a card changes
+  i18n:
+    zh:
+      description: 当卡片改动其他软件会调用的接口时使用。
+      owns: 卡片改动的请求与响应结构
+      settings:
+        style:
+          label: 契约格式
+          choices:
+            openapi:
+              label: OpenAPI
+              cost: 每个接口一段 schema——精确，但读起来长
+```
+
+Say only what you want translated: anything you leave out keeps the English the agent declares.
+Whichever language your machine is set to is what the Agents pane draws. Every run is handed the
+English lines whatever you add here, so a translation can never change what an agent is asked to
+do. The roles the board ships — Planner, Builder, Writer, Reviewer — are translated with the rest
+of the product and carry no block of their own.
 
 Agents used to live in `docs/kanban/skills/<name>/SKILL.md`. That folder still works for one
 release, and every agent found there is listed with a line telling you to move it.
