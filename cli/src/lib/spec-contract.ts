@@ -4,6 +4,7 @@ import path from 'node:path'
 import { idPrefix, walkMd } from './cards'
 import { parseFrontmatter } from './frontmatter'
 import { rel, TODO } from './paths'
+import { carriesField, solution } from './solution'
 import { LEVELS, STATUSES } from './validate'
 
 export interface ContractError {
@@ -40,6 +41,9 @@ export function validateSpec(file: string, text: string): ContractError[] {
     add(1, 'frontmatter', 'Expected a leading --- frontmatter block and its closing ---. Restore both delimiters.')
     return errors
   }
+  // Read once: this runs per card, and every board-wide validate would otherwise re-read
+  // `config.md` for each field it checks.
+  const which = solution()
   const fields = new Map<string, { line: number; value: string }>()
   for (let i = 1; i < end; i++) {
     const line = lines[i]!
@@ -51,6 +55,10 @@ export function validateSpec(file: string, text: string): ContractError[] {
     fields.set(key, { line: i + 1, value: match[2]! })
   }
   for (const key of ['title', 'priority', 'roi', 'status', 'release', 'blocked_by', 'related', 'modules', 'questions']) {
+    // A field this board's cards do not carry is not a field to miss (#435). What a card
+    // still carries is checked below exactly as before, so a value damaged by hand is
+    // caught whether or not the board asks for the field.
+    if (!carriesField(key, which)) continue
     if (!fields.has(key)) add(1, 'missing-field', `Missing ${key}: in frontmatter. Restore it with the board's metadata commands.`)
   }
   const { meta } = parseFrontmatter(text)
@@ -105,7 +113,17 @@ export function validateSpec(file: string, text: string): ContractError[] {
   if (fence) add(fence.line, 'code-fence', `Unclosed code block. Close it with ${fence.char.repeat(fence.length)} on its own line.`)
   if (comment) add(lines.length, 'comment', 'Unclosed HTML comment. Add --> so the rest of the card remains visible.')
   const recurring = file.split(path.sep).includes('recurring')
-  const required = recurring ? ['Process'] : ['Worth noting', 'Scope', 'Todo', 'Decided by the agent']
+  // A marketing topic card has no body to hold to a shape (#435): the piece is the
+  // deliverable and it lives under `content/`, so the card is a title and its fields, and
+  // an empty body is the ordinary card. What it drops is the SHAPE — which sections there
+  // must be, which half each sits in, their order, and the `## Todo` checkboxes. What holds
+  // on every card either way is what a reader would trip over: no H1, closed fences and
+  // comments, no section written twice, a well-formed `<Mockup>` tag.
+  //
+  // A recurring job is the same job on either board — `run` reads it through its
+  // `## Process` — so a card under `recurring/` keeps every rule.
+  const topic = which === 'marketing' && !recurring
+  const required = topic ? [] : recurring ? ['Process'] : ['Worth noting', 'Scope', 'Todo', 'Decided by the agent']
   const human = ['Worth noting', 'Worth noting after implementation']
   const agent = ['Today', 'Scope', 'Scope out', 'Todo', 'Decided by the agent', 'Source']
   const allowed = recurring ? ['Run state', 'Process', 'Source'] : [...human, ...agent]
@@ -115,8 +133,8 @@ export function validateSpec(file: string, text: string): ContractError[] {
     const specialist = /^By `[a-z0-9]+(?:-[a-z0-9]+)*` (agent|skill)$/.test(heading.title)
     if (seen.has(heading.title)) add(heading.line, 'duplicate-section', `Duplicate ## ${heading.title}. Merge the content into one section.`)
     seen.add(heading.title)
-    if (!allowed.includes(heading.title) && !specialist) add(heading.line, 'section-name', `Unknown ## ${heading.title}. Use ${allowed.map((s) => `## ${s}`).join(', ')}, or ## By \`<agent-name>\` agent. Use ### for a subheading.`)
-    if (!recurring && markers.length === 1) {
+    if (!topic && !allowed.includes(heading.title) && !specialist) add(heading.line, 'section-name', `Unknown ## ${heading.title}. Use ${allowed.map((s) => `## ${s}`).join(', ')}, or ## By \`<agent-name>\` agent. Use ### for a subheading.`)
+    if (!topic && !recurring && markers.length === 1) {
       const before = heading.line < markers[0]!
       if ((human.includes(heading.title) && !before) || (agent.includes(heading.title) && before)) add(heading.line, 'section-half', `Move ## ${heading.title} ${human.includes(heading.title) ? 'above' : 'below'} <!-- agent -->.`)
       const order = human.includes(heading.title) ? human.indexOf(heading.title) : specialist ? (before ? 2 : 8) : agent.includes(heading.title) ? 3 + agent.indexOf(heading.title) : -1
@@ -127,8 +145,8 @@ export function validateSpec(file: string, text: string): ContractError[] {
     }
   }
   for (const title of required) if (!seen.has(title)) add(end + 2, 'missing-section', `Missing ## ${title}. Restore that section; keep its title in English.`)
-  if (!recurring && markers.length !== 1) add(markers[1] ?? end + 2, 'boundary', `Found ${markers.length} <!-- agent --> boundaries; expected exactly one, between the human and agent sections.`)
-  const todo = headings.find((h) => h.title === 'Todo')
+  if (!topic && !recurring && markers.length !== 1) add(markers[1] ?? end + 2, 'boundary', `Found ${markers.length} <!-- agent --> boundaries; expected exactly one, between the human and agent sections.`)
+  const todo = topic ? undefined : headings.find((h) => h.title === 'Todo')
   if (todo) {
     const next = headings.find((h) => h.line > todo.line)?.line ?? lines.length + 1
     if (!visible.slice(todo.line, next - 1).some((line) => /^\s*[-*+]\s*\[[ xX]?\]/.test(line))) add(todo.line, 'todos', '## Todo needs at least one checkbox step, for example - [ ] Implement the requested behavior.')

@@ -6,6 +6,7 @@
 // continued from anywhere, by anyone, including a process that never saw it start.
 
 import { activeDelivery, deliveryWaiting, heldByDelivery } from '../lib/agent/deliveries'
+import { flowRefusal } from '../lib/agent/flows'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import { refinementRequest, startRefinement } from '../lib/agent/refine'
@@ -52,6 +53,11 @@ export async function cmdStartRun(
   opts: StartOptions,
   program = 'akb',
 ): Promise<MoveResult> {
+  // A flow this board's solution has no place for (#435). Refused before anything is read
+  // off the card: there is nothing behind the command, whatever it was pointed at. Every
+  // flow that can be refused is named the same as the action it starts.
+  const gone = flowRefusal(action, program)
+  if (gone) die(gone, { kind: 'run-refused', action })
   const { req, follow, print } = readRequest(action, args, opts)
   const runnable = action === 'refine' ? refinementRequest(req) : (req as AgentRequest)
   if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })

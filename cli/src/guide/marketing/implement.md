@@ -2,10 +2,14 @@
 
 Write the approved topic's draft. Do not add, rewrite, or tag questions on the card.
 
-The deliverable is one file: `docs/kanban/content/<id>-<slug>/source.md`, written for the
-card's **lead channel** — the first entry in its `channels:`, or, on a card that names none,
-the lead channel its `## Scope` names. There is no branch, no worktree and no diff to
-review — the review is the user editing the draft.
+The deliverable is one file: `docs/kanban/content/<id>-<slug>/source.md`. It is already
+there, holding a few lines of brief: the angle, who it is for, what it may not claim, and
+where the topic came from. **Expand that file in place** — the brief is the opening of the
+piece, not a page to write over.
+
+It is written for the card's **lead channel** — the first entry in its `channels:`, or, on
+a card that names none, the channel the brief names. There is no branch, no worktree and no
+diff to review — the review is the user editing the draft.
 
 - **Read the voice first**: `memory/writing.md`, then whichever file under `memory/writing/`
   covers this format or language. Every rule there was learned from an edit the user made;
@@ -13,8 +17,9 @@ review — the review is the user editing the draft.
 - **Read what has been said**: `memory/published.md` for what is already out, and
   `memory/decisions.md` for what we may claim. Never claim something the board has not
   settled.
-- **Write the whole piece**, not an outline. The card's `## Scope` is the brief; the angle,
-  the hook and the audience are already settled on it.
+- **Write the whole piece**, not an outline. The brief at the top of `source.md` is the
+  whole requirement: the angle, the hook and the audience are settled there, and the card
+  itself says only the title and the channels.
 - **Stop on a real blocker**: when the work cannot safely continue, run
   `akb raw run-blocker <id> --step ".." --cause ".." --unblock ".."`, then stop.
 - Do not replace or contradict what the card says.

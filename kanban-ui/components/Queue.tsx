@@ -9,6 +9,7 @@ import { byQueueOrder } from "@/lib/pick-order";
 import { BoardCard } from "./BoardCard";
 import { Button } from "./button";
 import { runningSessionForCard } from "./sessions";
+import { useSolution } from "./solution";
 
 // The board's one layout (#70, and the kanban view's removal). It answers a
 // single question — what can I start now? — by splitting every open card into
@@ -18,6 +19,9 @@ import { runningSessionForCard } from "./sessions";
 // group roots included: a group root shows while its subtasks stay on its own
 // page, and a blocker splits by status like any other card. The split only
 // regroups the same cards.
+//
+// A marketing board has no split to make (#435): a topic never reaches `ready`, so the two
+// halves become one card column beside Recurring.
 //
 // That is why it takes the board's `columns` rather than the board: the release
 // dropdown (#104) hides cards before this draws them, so what the columns hold
@@ -46,6 +50,17 @@ import { runningSessionForCard } from "./sessions";
 // Exported because a card page has to name the column it came from (#357), and there is
 // only one answer to which column a card is in.
 export const isReadyHalf = (card: Card) => card.status === "ready" || card.status === "implementing";
+
+/** Which column a card is in. `topics` is the marketing board's one card column (#435):
+ *  a topic never reaches `ready` — there is no refine to take it there — so the two halves
+ *  would be one full column and one permanently empty one. Recurring stands apart on both.
+ *
+ *  Exported because a card page has to name the column it came from (#357), and there is
+ *  one answer to which column a card is in. */
+export type ColumnKey = "ready" | "notReady" | "recurring" | "topics";
+
+export const columnOf = (card: Card, marketing: boolean): ColumnKey =>
+  card.recurring ? "recurring" : marketing ? "topics" : isReadyHalf(card) ? "ready" : "notReady";
 
 /** One module's cards within a column. Empty bands are dropped before drawing —
  *  a module with nothing on this side of the split has nothing to say. */
@@ -115,16 +130,18 @@ export function QueueView({
 }) {
   const c = useCopy().board.queue;
   const phone = usePhone();
+  const marketing = useSolution() === "marketing";
   // A recurring card is pulled out before the split, not sorted by it: it is a
   // job on a cadence, never finished and never "ready to build", so leaving it
   // in would park every one of them at the bottom of Not ready — a pile of work
   // that is not late, next to work that is.
-  const isRecurring = (c: Card) => c.recurring;
-  const ready = bandsFor(columns, (c) => !isRecurring(c) && isReadyHalf(c));
-  const notReady = bandsFor(columns, (c) => !isRecurring(c) && !isReadyHalf(c));
+  const inColumn = (key: ColumnKey) => (card: Card) => columnOf(card, marketing) === key;
+  const ready = bandsFor(columns, inColumn("ready"));
+  const notReady = bandsFor(columns, inColumn("notReady"));
+  const topics = bandsFor(columns, inColumn("topics"));
   const recurring = columns
     .flatMap((col) => col.cards)
-    .filter(isRecurring)
+    .filter(inColumn("recurring"))
     .sort(byQueueOrder);
 
   // The ready column carries two numbers, because only the first is work waiting
@@ -133,6 +150,10 @@ export function QueueView({
   const readyCount = readyCards.filter((c) => c.status === "ready").length;
   const implementingCount = readyCards.length - readyCount;
   const notReadyCount = notReady.reduce((n, b) => n + b.cards.length, 0);
+  // The one card column, on a marketing board. Same two numbers, and the same reason for
+  // them: a topic being written needs nothing from you.
+  const topicCards = topics.flatMap((b) => b.cards);
+  const writingCount = topicCards.filter((c) => c.status === "implementing").length;
 
   // Every column, once — the same list the window lays side by side and the phone pages
   // through, so neither shape can grow a column the other doesn't have.
@@ -144,24 +165,32 @@ export function QueueView({
   // surface the column has left. Absent when nothing recurs: an empty column teaching a
   // feature nobody on this board uses is just noise.
   const cols: QueueCol[] = [
-    {
-      key: "ready",
-      title: c.ready,
-      count: c.readyCount(readyCount, implementingCount),
-      width: HALF_W,
-      body: (
-        <Bands bands={ready} sessions={sessions} onOpenLog={onOpenLog} />
-      ),
-    },
-    {
-      key: "notReady",
-      title: c.notReady,
-      count: `${notReadyCount}`,
-      width: HALF_W,
-      body: (
-        <Bands bands={notReady} sessions={sessions} onOpenLog={onOpenLog} />
-      ),
-    },
+    ...(marketing
+      ? [
+          {
+            key: "topics",
+            title: c.topics,
+            count: c.topicsCount(topicCards.length, writingCount),
+            width: HALF_W,
+            body: <Bands bands={topics} sessions={sessions} onOpenLog={onOpenLog} />,
+          } satisfies QueueCol,
+        ]
+      : [
+          {
+            key: "ready",
+            title: c.ready,
+            count: c.readyCount(readyCount, implementingCount),
+            width: HALF_W,
+            body: <Bands bands={ready} sessions={sessions} onOpenLog={onOpenLog} />,
+          } satisfies QueueCol,
+          {
+            key: "notReady",
+            title: c.notReady,
+            count: `${notReadyCount}`,
+            width: HALF_W,
+            body: <Bands bands={notReady} sessions={sessions} onOpenLog={onOpenLog} />,
+          } satisfies QueueCol,
+        ]),
     ...(recurring.length > 0
       ? [
           {

@@ -139,8 +139,11 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     )
     .requiredOption('--title <title>', 'what the card is called')
     .option('--recurring', 'a job that repeats: it goes in recurring/ and gets a Run state + Process body')
-    .option('--priority <level>', `how much it matters: ${LEVELS.join(' | ')}`, oneOf(LEVELS), 'med')
-    .option('--roi <level>', `what it is worth: ${LEVELS.join(' | ')}`, oneOf(LEVELS), 'med')
+    // No default here, so a typed flag can be told from an untyped one: a marketing board
+    // refuses these outright (#435), and it can only do that if it sees who wrote them.
+    // `create` falls back to `med` itself.
+    .option('--priority <level>', `how much it matters: ${LEVELS.join(' | ')} (default: med)`, oneOf(LEVELS))
+    .option('--roi <level>', `what it is worth: ${LEVELS.join(' | ')} (default: med)`, oneOf(LEVELS))
     .option('--release <version>', 'the version it ships in. Left off, the card is wanted, not promised to one')
     .option('--blocked-by <ids>', 'ids of open cards this one waits on', collectList)
     .option('--related <ids>', 'ids of open cards this one relates to', collectList)

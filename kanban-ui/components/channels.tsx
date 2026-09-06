@@ -92,16 +92,16 @@ export function ChannelDot({ status, size = 7 }: { status: ChannelStatus | ""; s
 }
 
 /**
- * The channels this topic goes to, each with its status — the one row a marketing card's
- * face adds. It displaces nothing: everything the kernel draws on a face stays where a
- * product card puts it, and this sits between the title and the ranking row.
+ * The channels this topic goes to, each with its status — the row a marketing card's face
+ * wears at its foot, where a product card wears its ranking (#435). A topic is picked by
+ * hand rather than ranked, so nothing is displaced.
  */
 export function ChannelRow({ channels }: { channels: CardChannel[] }) {
   const word = useChannelWord();
   const c = useCopy().shared;
   if (channels.length === 0) return null;
   return (
-    <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+    <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5">
       {channels.map((ch) => (
         <span
           key={ch.name}

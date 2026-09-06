@@ -18,6 +18,7 @@ import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
 import { repointReadmeLink } from '../readme'
 import { setSubtreeRelease, validRelease } from '../releases'
 import { RECURRING } from '../recurring'
+import { flowRefusal } from '../agent/flows'
 import { normalizeSchedule } from '../schedule'
 import { LEVELS, normalizeRelease } from '../validate'
 import { findCard } from './read'
@@ -103,6 +104,9 @@ export function setCardSchedule(id: number, schedule: CardSchedule | null): Card
   // The board's own rule, read off the whole board — whether the action would still move
   // this card depends on what else is open, not on this file alone.
   if (wanted) {
+    // A flow this board's solution has no place for is not a flow to queue either (#435).
+    const gone = flowRefusal(wanted.action)
+    if (gone) die(gone, { kind: 'cannot-schedule', id })
     const card = findCard(id)
     if (!card) die(`no open card #${id}`, { kind: 'card-not-found', id })
     const refusal = scheduleRefusal(card, wanted.action)
@@ -119,6 +123,7 @@ export function setCardSchedule(id: number, schedule: CardSchedule | null): Card
 
 /** Ensure a blocked card has a refinement follow-up without replacing an explicit schedule. */
 export function scheduleRefineOnBlock(id: number): boolean {
+  if (flowRefusal('refine')) return false
   const card = findCard(id)
   if (!card || card.openBlockers.length === 0 || card.schedule || !canRefine(card)) return false
   setCardSchedule(id, { action: 'refine', notes: '' })

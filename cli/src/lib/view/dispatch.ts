@@ -18,6 +18,7 @@
 import { nextDue } from '../cadence'
 import { answeredWork } from '../agent/deliveries'
 import { advanceLanding } from '../agent/landing'
+import { flowRefusal } from '../agent/flows'
 import { refinementStep } from '../agent/refine'
 import { listRuns } from '../agent/sessions'
 import type { AgentRequest, RunView } from '../agent/types'
@@ -103,7 +104,11 @@ const scheduledRequest = (card: Card): AgentRequest => ({
  * a start, so it never uses up the tick.
  */
 async function dueScheduled(cards: Card[], busy: Set<number>, clearMark: ClearMark): Promise<AgentRequest | null> {
-  const ready = cards.filter((c) => c.schedule && !busy.has(c.id) && c.openBlockers.length === 0)
+  // A mark naming a flow this board has no place for is one somebody wrote by hand (#435) —
+  // nothing here can write it. It is left alone rather than started or dropped.
+  const ready = cards.filter(
+    (c) => c.schedule && !flowRefusal(c.schedule.action) && !busy.has(c.id) && c.openBlockers.length === 0,
+  )
   if (ready.length === 0) return null
   let request: AgentRequest | null = null
   for (const card of ready.sort(byDispatchOrder)) {

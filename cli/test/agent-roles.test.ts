@@ -11,7 +11,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { FLOWS } from '../src/lib/agent/flows.ts'
+import { FLOWS, flowRefusal } from '../src/lib/agent/flows.ts'
 import { buildRun } from '../src/lib/agent/prompts.ts'
 import { agentNames, agentRoster, roleForFlow, roles } from '../src/lib/agent/roles.ts'
 import { migrateFlowRules, readRule, ruleFor } from '../src/lib/agent/rules.ts'
@@ -48,14 +48,29 @@ afterEach(() => {
 })
 
 describe('the roles', () => {
-  it('gives every flow the board can start exactly one agent', () => {
+  it('gives every flow the board can start exactly one agent, and the rest none', () => {
     for (const name of ['product', 'marketing']) {
       solution(name)
       for (const flow of FLOWS) {
         const owners = roles().filter((role) => role.flows.includes(flow.command))
-        assert.equal(owners.length, 1, `${name}: ${flow.command} is run by ${owners.length} agents`)
+        // A flow this solution refuses is a flow nothing runs, so no role claims it (#435).
+        const wanted = flowRefusal(flow.command) ? 0 : 1
+        assert.equal(owners.length, wanted, `${name}: ${flow.command} is run by ${owners.length} agents`)
       }
     }
+  })
+
+  it('leaves the four flows a marketing board has not off its planner', () => {
+    solution('product')
+    for (const flow of ['refine', 'resolve', 'plan-release', 'changelog']) {
+      assert.equal(roleForFlow(flow)!.name, 'planner')
+    }
+    solution('marketing')
+    for (const flow of ['refine', 'resolve', 'plan-release', 'changelog']) {
+      assert.equal(roleForFlow(flow), undefined)
+      assert.match(flowRefusal(flow)!, /is not a `marketing` flow/)
+    }
+    assert.equal(roleForFlow('create')!.name, 'planner')
   })
 
   it('names the writer on a marketing board and the builder on a product one', () => {

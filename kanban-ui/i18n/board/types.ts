@@ -31,6 +31,10 @@ export type BoardCopy = {
     /** The ready column's two numbers: work waiting on you, and work already going. */
     readyCount: (ready: number, implementing: number) => string;
     notReady: string;
+    /** The one card column a marketing board has (#435), and its two numbers: every topic
+     *  on it, and how many of them are being written. */
+    topics: string;
+    topicsCount: (total: number, writing: number) => string;
     recurring: string;
     /** A column with nothing on this side of the split. */
     empty: string;

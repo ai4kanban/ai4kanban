@@ -35,7 +35,7 @@ import {
   syncAudit,
 } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
-import { deliversWithGit } from '../solution'
+import { deliversWithGit, solution } from '../solution'
 import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
 import { repairLanding } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
@@ -300,7 +300,10 @@ async function releaseCard(delivery: DeliveryRecord): Promise<void> {
   if (delivery.cardId === null) return
   const card = cardNow(delivery.cardId)
   if (card?.status !== 'implementing') return
-  await setCardStatus(delivery.cardId, card.questions > 0 ? 'todo' : delivery.priorStatus ?? 'ready')
+  // `ready` is the stage a refine takes a card to, and a board with no refine has no such
+  // stage (#435) — a topic goes back to `todo`, which is where every topic waits.
+  const idle = solution() === 'marketing' ? 'todo' : delivery.priorStatus ?? 'ready'
+  await setCardStatus(delivery.cardId, card.questions > 0 ? 'todo' : idle)
 }
 
 // Recording a recurring run is the board's own bookkeeping, not part of the job the card

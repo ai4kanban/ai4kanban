@@ -12,7 +12,8 @@ import { bumpMetric } from '../lib/metrics'
 import { countsForRecord, recordFact, type Answerer, type Origin } from '../lib/record'
 import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
 import { CHANNEL_NAMES, CHANNEL_STATUSES, asChannelStatus, chooseChannels } from '../lib/channels'
-import { solution } from '../lib/solution'
+import { flowRefusal } from '../lib/agent/flows'
+import { carriesField, solution } from '../lib/solution'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
@@ -68,6 +69,14 @@ function recurringBody() {
   ].join('\n')
 }
 
+// A field this board's cards do not carry (../lib/solution.ts). The flag is refused rather
+// than dropped: a value the board silently ignores is a value the caller thinks it wrote.
+// `why` is the one clause saying what that solution does instead.
+function refuseGoneField(field: string, why: string, flag = `--${field}`): void {
+  if (carriesField(field)) return
+  die(`${flag} is not a \`${solution()}\` card's — ${why}.`, { kind: 'wrong-solution', solution: solution() })
+}
+
 // How often a recurring card repeats, as `--cadence` gives it: one of the forms in
 // lib/cadence.ts, written back in that module's own spelling so every card reads the
 // same. An empty value is "no cadence" — the card goes back to running only when a
@@ -86,8 +95,8 @@ export interface CreateOptions {
   title: string
   /** `--recurring`: the card goes in the reserved `recurring/` folder and repeats. */
   recurring?: boolean
-  priority: string
-  roi: string
+  priority?: string
+  roi?: string
   release?: string
   blockedBy?: string[]
   related?: string[]
@@ -110,6 +119,10 @@ export interface CreateOptions {
 // Which words are actions is the command's own check; what is left here is the two ways a
 // perfectly-spelled one would still never fire.
 function createSchedule(action: ScheduledAction, recurring: boolean, questions: Question[]): ScheduledAction {
+  // A flow this board's solution has no place for (#435). Read here rather than left to
+  // `setCardSchedule`, which runs after the id is taken and would leave a card behind.
+  const gone = flowRefusal(action)
+  if (gone) die(gone, { kind: 'wrong-solution', solution: solution() })
   if (recurring) die('--schedule is not for a recurring card: its cadence is its schedule.')
   if (
     action === 'refine' &&
@@ -132,7 +145,12 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   const title = opts.title.trim()
   if (!title) die('--title must not be empty')
   const recurring = opts.recurring === true
-  const { priority, roi } = opts
+  if (opts.priority !== undefined) refuseGoneField('priority', 'its topics are picked by hand, not ranked')
+  if (opts.roi !== undefined) refuseGoneField('roi', 'its topics are picked by hand, not ranked')
+  if (opts.release !== undefined) refuseGoneField('release', 'a topic ships to channels, not to a version')
+  if ((opts.asked ?? []).length) refuseGoneField('questions', "a topic's open choices are talked through in its chat", '--question')
+  const priority = opts.priority ?? 'med'
+  const roi = opts.roi ?? 'med'
   // No --release means no release: the card is wanted, not promised to a version. Any
   // other value has to name a release on the list — a typo must not invent a version.
   const release = validRelease(normalizeRelease(opts.release))
@@ -158,7 +176,11 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   writeNextId(start + 1)
   bumpMetric('created')
   const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, cadence, questions }
-  const body = opts.body === false ? '' : recurring ? recurringBody() : defaultBody()
+  // A marketing topic card carries no body: the piece is the deliverable, and it lives in
+  // `content/<id>-<slug>/` (#435). A recurring job is the same job on either board, so it
+  // still gets its `## Process`.
+  const scaffolded = opts.body !== false && (recurring || solution() !== 'marketing')
+  const body = !scaffolded ? '' : recurring ? recurringBody() : defaultBody()
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   if (countsForRecord(file)) recordFact('card-created', start, originOf(opts))
   // A recurring card is a job, not one of the open tasks — it never archives and the index
@@ -174,9 +196,12 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
     scheduled = 'refine'
   }
   say(start)
-  say(`  wrote ${rel(file)} — frontmatter is set; fill the body with your editor, leave the frontmatter to the script`)
+  say(
+    `  wrote ${rel(file)} — frontmatter is set` +
+      (scaffolded ? '; fill the body with your editor, leave the frontmatter to the script' : ''),
+  )
   if (scheduled) say(`  ${scheduleReceipt(start, scheduled)}`)
-  if (!recurring && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
+  if (scaffolded && !recurring && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
   if (indexed) say(`  indexed under "## ${TASKS_HEADING}"`)
   reconcileBoard()
   return { id: start, ids: [start], title, file: rel(file), indexed, schedule: scheduled }
@@ -227,19 +252,30 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     changes.push('title')
   }
   if (flags.priority !== undefined) {
+    refuseGoneField('priority', 'its topics are picked by hand, not ranked')
     meta.priority = flags.priority
     changes.push('priority')
   }
   if (flags.roi !== undefined) {
+    refuseGoneField('roi', 'its topics are picked by hand, not ranked')
     meta.roi = flags.roi
     changes.push('roi')
   }
   if (flags.status !== undefined) {
+    // `ready` is the stage a refine takes a card to, and a marketing board has no refine
+    // (#435): its cards go straight from `todo` to `implementing`.
+    if (flags.status === 'ready' && solution() === 'marketing') {
+      die(`--status ready is not a \`marketing\` card's — a topic goes from todo to implementing; press Implement on it.`, {
+        kind: 'wrong-solution',
+        solution: solution(),
+      })
+    }
     meta.status = flags.status
     changes.push('status')
   }
   // `--release ""` — an empty value — takes the card back out of a version.
   if (flags.release !== undefined) {
+    refuseGoneField('release', 'a topic ships to channels, not to a version')
     meta.release = validRelease(normalizeRelease(flags.release))
     changes.push(`release→${meta.release || '(none)'}`)
   }
@@ -413,6 +449,12 @@ export function cmdChannelStatus(
 // options that weren't re-typed). Ops apply in the order they were typed, and a
 // position is read against the list as it stands when its op runs.
 export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveResult {
+  if (!carriesField('questions')) {
+    die(
+      `\`update-questions\` is not a \`${solution()}\` move — a topic's open choices are talked through in its chat, not filed on the card.`,
+      { kind: 'wrong-solution', solution: solution() },
+    )
+  }
   const ops = readQuestionOps(input.ops ?? [])
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })

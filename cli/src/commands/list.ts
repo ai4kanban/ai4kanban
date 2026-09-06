@@ -10,6 +10,7 @@ import path from 'node:path'
 
 import { die, rel, TODO, MODULES_MD } from '../lib/paths'
 import { say } from '../lib/io'
+import { carriesField } from '../lib/solution'
 import { moduleNames } from '../lib/validate'
 import { parseFrontmatter } from '../lib/frontmatter'
 import { walkMd, idPrefix } from '../lib/cards'
@@ -35,6 +36,12 @@ interface Row {
 }
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
+
+// How a card ranks. `med` stands in for a product card whose line was damaged by hand; a
+// marketing card carries neither field (#435), and nothing stands in for a field it never
+// had.
+const level = (value: string | undefined, field: string): string =>
+  carriesField(field) ? value || 'med' : ''
 
 // The card's opening paragraph — the body's first non-heading text, unwrapped
 // (bodies hard-wrap, so one paragraph spans several file lines). The body template
@@ -67,8 +74,8 @@ function openRows(): Row[] {
       isRoot,
       title: (meta && meta.title) || base.replace(/^\d+-/, '').replace(/\.md$/, ''),
       status: (meta && meta.status) || 'todo',
-      priority: (meta && meta.priority) || 'med',
-      roi: (meta && meta.roi) || 'med',
+      priority: level(meta?.priority, 'priority'),
+      roi: level(meta?.roi, 'roi'),
       release: (meta && meta.release) || '',
       blocked_by: (meta && meta.blocked_by) || [],
       modules: (meta && meta.modules) || [],
@@ -111,7 +118,11 @@ export function cmdList(opts: ListOptions): MoveResult {
 
   say(`${plural(rows.length, 'open card')} ${scope}:`)
   for (const r of rows) {
-    const meta = [r.status, `priority ${r.priority}`, `roi ${r.roi}`]
+    // A card on a board whose cards do not rank has neither (#435) — no word for it, and
+    // no `med` stood in for the value it never had.
+    const meta = [r.status]
+    if (carriesField('priority')) meta.push(`priority ${r.priority}`)
+    if (carriesField('roi')) meta.push(`roi ${r.roi}`)
     if (r.isRoot) meta.push('group root')
     if (r.release) meta.push(`release ${r.release}`)
     if (r.cadence) meta.push(`every ${r.cadence}`)

@@ -48,10 +48,15 @@ sources — the product board's goal and what shipped, the site docs, and this b
 ## The loop
 
 ```
-create ─▶ refine ─▶ implement ─▶ you edit ─▶ channel ─▶ you edit ─▶ publish ─▶ archive
- topic     brief     source.md               <channel>.md            published.md
-                                                                   + writing lessons
+create ─▶ implement ─▶ you edit ─▶ channel ─▶ you edit ─▶ publish ─▶ archive
+ topic     source.md               <channel>.md            published.md
+                                                          + writing lessons
 ```
+
+A card is a title, its channels and its draft — there is no brief on the card and no
+refining pass over it. The angle, the audience and the hook are settled in the card's own
+chat, and the few lines at the top of `content/<id>-<slug>/source.md` are what `implement`
+expands.
 
 `akb channel <name> <id>` is a step you take, once `source.md` reads right — one run per
 chosen channel, and nothing starts it for you.
@@ -89,8 +94,8 @@ reused; only `akb raw create` allocates them.
 
 ## Never hand-write a card's frontmatter
 
-`akb raw create`, `update`, `update-questions`, `update-verify` and `schedule` manage the
-metadata. Edit only the card's **body** by hand. `akb raw help` lists every move.
+`akb raw create`, `update`, `update-verify` and `channel-status` manage the metadata.
+`akb raw help` lists every move.
 
 ## The memory set
 

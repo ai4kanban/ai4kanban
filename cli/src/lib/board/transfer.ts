@@ -31,6 +31,7 @@ import type { DeliveryRecord } from '../agent/types'
 import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
 import { DELIVERIES, KANBAN, readNextId } from '../paths'
 import { EVENTS, recordFile } from '../record'
+import { solutionIn } from '../solution'
 import type { Meta } from '../types'
 import { revisionOf } from './revision'
 
@@ -330,8 +331,9 @@ export function portableDelivery(record: DeliveryRecord): Record<string, unknown
  * which `akb --dir <root>` opens as a Local board.
  *
  * A card is written through the board's own `serializeFrontmatter`, so what lands is a card
- * file the board itself would have written. Everything else is written to the path it
- * travelled under.
+ * file the board itself would have written — for the board it lands IN: the solution comes
+ * off the `config.md` in this payload, not off the board this process happens to be on
+ * (#435). Everything else is written to the path it travelled under.
  *
  * The trail is deliberately not written back: `record.csv` travels as a document and comes
  * back exactly as it was, while the workspace's own trail is a record of what happened in
@@ -345,11 +347,12 @@ export function unpackBoard(payload: BoardPayload, root: string): { cards: numbe
   const kanban = path.join(root, 'docs', 'kanban')
   fs.mkdirSync(kanban, { recursive: true })
   const written = { cards: 0, documents: 0, deliveries: 0 }
+  const which = solutionIn(payload.documents.find((doc) => doc.path === 'config.md')?.body ?? '')
 
   for (const card of payload.cards) {
     const file = inside(kanban, card.path)
     if (!file) continue
-    write(file, `${serializeFrontmatter(card.meta)}\n${card.body}`)
+    write(file, `${serializeFrontmatter(card.meta, which)}\n${card.body}`)
     written.cards++
   }
   for (const doc of payload.documents) {

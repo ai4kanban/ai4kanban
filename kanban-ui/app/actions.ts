@@ -23,6 +23,7 @@ import {
 import {
   boardScreen,
   boardsHere,
+  readSolution,
   cardStillThere,
   refreshBoard,
   readDrafts,
@@ -290,6 +291,10 @@ const ACTIONS = new Set([
 // up.
 const CARDLESS = new Set(["create", "plan-release", "changelog", "setup"]);
 
+// Of those, the ones a marketing board has not (#435). Refused rather than left off the set
+// above, because which board this is is only known once it has been read.
+const GONE_ON_MARKETING = new Set(["refine", "resolve", "plan-release", "changelog"]);
+
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
 // progress and outcome.
@@ -297,6 +302,12 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   // A tab left open across the upgrade that made refine the loop still posts the old name.
   if (req && (req.action as string) === "auto-refine") req = { ...req, action: "refine" };
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
+  // The four a marketing board has no place for (#435): its cards carry no questions to
+  // sharpen or answer, and it plans no versions. The CLI refuses them too — this is so a
+  // button that could never work never reaches one.
+  if (GONE_ON_MARKETING.has(req.action) && (await readSolution()) === "marketing") {
+    throw new Error(`a marketing board has no ${req.action}`);
+  }
   // **Build now** is the one implement with no card (#428): the typed sentence is the whole
   // requirement, so it stands in for the id an implement usually names.
   const buildNow = req.action === "implement" && !!req.description?.trim();

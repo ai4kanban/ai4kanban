@@ -81,7 +81,7 @@ async function screenBoard(): Promise<ScreenBoard> {
 
 /** What this board's work is. Anything unreadable — no rules, rules older than solutions, a
  *  board that names one nobody has — answers `product`. */
-async function readSolution(): Promise<Solution> {
+export async function readSolution(): Promise<Solution> {
   try {
     const named = (await boardRules()).solution?.() ?? "";
     return (SOLUTIONS as readonly string[]).includes(named) ? (named as Solution) : "product";

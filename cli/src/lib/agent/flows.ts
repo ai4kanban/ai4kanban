@@ -21,6 +21,7 @@
 // noun (`akb card refine`); one without is typed bare, because it acts on nothing that
 // exists yet — `create`, `setup`.
 
+import { solution, type Solution } from '../solution'
 import type { AgentAction, CommandAction } from './types'
 
 /** The nouns the commands are grouped under. A flow acts on one of these, or on nothing
@@ -204,3 +205,27 @@ export const flowByAction = (action: AgentAction): Flow | undefined => {
  *  was approved to build, and their runs are the ones that may not be working in the
  *  project folder. */
 export const DELIVERY_FLOWS = new Set<AgentAction>(['implement', 'review', 'conflict'])
+
+// ---- the flows one solution has no place for (#435) -------------------------
+//
+// Refused rather than taken out of the command tree: the tree is built from FLOWS before
+// anything has opened a board (../cli/agent.ts), so `akb card refine 3` is still a command
+// this program knows — it just says, on a marketing board, why there is nothing behind it.
+
+const GONE: Record<Solution, Record<string, string>> = {
+  product: {},
+  marketing: {
+    refine: "a topic carries no questions to sharpen, and its angle is settled in the card's own chat",
+    resolve: "a topic carries no questions to answer, and its angle is settled in the card's own chat",
+    'plan-release': 'a topic ships to channels, not to a version, and this board plans none',
+    changelog: 'a topic ships to channels, not to a version, and this board plans none',
+  },
+}
+
+/** Why this board has no such flow, or null when it has one. */
+export function flowRefusal(command: string, program = 'akb'): string | null {
+  const why = GONE[solution()][command]
+  if (!why) return null
+  const flow = flowByCommand(command)
+  return `\`${program} ${flow ? flowPath(flow) : command}\` is not a \`${solution()}\` flow — ${why}.`
+}

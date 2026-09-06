@@ -37,7 +37,7 @@ import { die, rel, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_RO
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
-import { solution } from '../solution'
+import { carriesField, solution } from '../solution'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
@@ -189,9 +189,15 @@ const indent = (line: string): string =>
     .map((l) => (l.trim() ? `  ${l}` : ''))
     .join('\n')
 
+// Whether a card on this board carries a body at all. A marketing topic card does not: the
+// piece is the deliverable and it lives under `content/` (#435), so there is no plan on the
+// card to work through, tick or count.
+const cardCarriesBody = (): boolean => solution() !== 'marketing'
+
 // What is left of the plan. The remaining boxes are the job; the ticked ones are history and
 // are counted rather than listed, so nobody re-does them.
 function stepsField(card: CardFacts): string[] {
+  if (!cardCarriesBody()) return []
   if (!card.steps.length) {
     return field('steps', card.ticked ? `none left — all ${card.ticked} ticked` : 'the card has no ## Todo yet')
   }
@@ -204,6 +210,7 @@ function stepsField(card: CardFacts): string[] {
 // The same plan, counted rather than listed — for a job that isn't working through the
 // steps and only needs to know whether any are left.
 function stepsCount(card: CardFacts): string[] {
+  if (!cardCarriesBody()) return []
   if (!card.steps.length) return field('steps', `all ${card.ticked} ticked`)
   return field(
     'steps',
@@ -328,21 +335,36 @@ function workspaceField(delivery: DeliveryRecord | undefined): string[] {
 }
 
 // The file a marketing build writes: `content/<id>-<slug>/source.md` (#407, #409), and the
-// channel it is written for — the first entry in the card's `channels:`. A card whose
-// channels question is still unanswered falls back to the lead channel its `## Scope`
-// names, so the topics written before the field keep working. Nothing on a product board,
-// which delivers a diff.
+// channel it is written for — the first entry in the card's `channels:`. The card carries
+// no brief (#435): the few lines already at the top of that file are the brief, and they
+// name the lead channel on a topic whose `channels:` is still empty. Nothing on a product
+// board, which delivers a diff.
 function draftField(card: CardFacts): string[] {
   if (solution() !== 'marketing') return []
   const lead = card.meta.channels[0]
   return field('draft', [
-    `write the piece in ${rel(draftFile(card.file, SOURCE))} — make the folder if it isn't there.`,
+    `expand ${rel(draftFile(card.file, SOURCE))} in place — its opening lines are the brief, and they are the only brief there is.`,
     lead
       ? `it is written for ${lead.name}, this topic's lead channel, in ${channelLanguage(lead.name)} — every other chosen channel is repurposed from it by \`akb channel\`.`
-      : `this card names no channels yet, so write it for the lead channel its ## Scope names.`,
+      : `this card names no channels yet, so write it for the lead channel those opening lines name.`,
     'there is no branch and no worktree: the draft is the delivery, and the user editing it is the review.',
   ])
 }
+
+// The `update` flags a card on this board takes — the four a marketing card has no field
+// for are left out rather than named and refused (#435).
+const editableFields = (): string =>
+  ['--title', '--priority', '--roi', '--release', '--modules', '--blocked-by', '--related']
+    .filter((flag) => carriesField(flag.replace(/^--/, '')))
+    .join('|')
+
+// What to do with the body a card was created with. A marketing topic card is created with
+// none — the piece is the deliverable, under `content/` — so there is no scaffold to fill
+// and nothing to say about section titles.
+const bodyScaffoldClose = (lead = 'fill the existing'): string[] =>
+  solution() === 'marketing'
+    ? []
+    : [`${lead} body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place`]
 
 // Where review stands on this delivery.
 function reviewField(delivery: DeliveryRecord | undefined): string[] {
@@ -565,14 +587,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       const reviewed = !!delivery && aiReviewOn(delivery)
       close.push(
         ...committingClose(delivery),
-        'tick each box in ## Todo as you finish it — they are the record of what was built',
+        ...(cardCarriesBody() ? ['tick each box in ## Todo as you finish it — they are the record of what was built'] : []),
         `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         delivery
           ? reviewed
             ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
             : `leave the card on the board — the board archives the card itself once the delivery has landed`
-          : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
+          : `${raw} archive ${req.id} — once ${cardCarriesBody() ? "every box is ticked and the card's goal is met" : "the card's goal is met"}`,
       )
       if (card.meta.questions.length) {
         next.push(
@@ -698,8 +720,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ]),
       )
       close.push(
-        `${raw} update ${req.id} [--title|--priority|--roi|--release|--modules|--blocked-by|--related] — the fields are the command's, never hand-written`,
-        'fill the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
+        `${raw} update ${req.id} [${editableFields()}] — the fields are the command's, never hand-written`,
+        ...bodyScaffoldClose(),
       )
       break
     }
@@ -711,7 +733,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         facts.push(
           ...field('release', entry ? `${entry.id} — ${entry.goal || '(no goal on its line)'}` : `${req.release} — not on the release list`),
         )
-      } else {
+      } else if (carriesField('release')) {
         const releases = readReleaseEntries().map((e) => e.id)
         facts.push(...field('releases', releases.join(', ') || '(none open)'))
       }
@@ -719,7 +741,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         // `--slug` only on a board that isn't English (#337): a non-English title slugifies
         // to nothing, and every card would be named `<id>-task.md`.
         `${raw} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''}${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
-        'then fill only the existing body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place',
+        ...bodyScaffoldClose('then fill only the existing'),
       )
       break
     }

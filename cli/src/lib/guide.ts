@@ -52,8 +52,10 @@ import validateOnReddit from '../guide/validate-on-reddit.md'
 import writeAgent from '../guide/write-agent.md'
 import writing from '../guide/writing.md'
 
+import marketingAddTask from '../guide/marketing/add-task.md'
 import marketingBoard from '../guide/marketing/board.md'
 import marketingChannel from '../guide/marketing/channel.md'
+import marketingExtractIdeas from '../guide/marketing/extract-ideas.md'
 import marketingImplement from '../guide/marketing/implement.md'
 import marketingPruneMemory from '../guide/marketing/prune-memory.md'
 import marketingWriting from '../guide/marketing/writing.md'
@@ -104,11 +106,22 @@ export const GUIDES: Guide[] = [
 const OVERRIDES: Record<Solution, Record<string, string>> = {
   product: {},
   marketing: {
+    'add-task': marketingAddTask,
     board: marketingBoard,
+    'extract-ideas': marketingExtractIdeas,
     implement: marketingImplement,
     'prune-memory': marketingPruneMemory,
     writing: marketingWriting,
   },
+}
+
+/** The flows one solution has no use for. Not an override either: a page about refining a
+ *  card's questions, on a board whose cards carry none, is a page about work it cannot do
+ *  (#435). Everything here is either a flow that board refuses, or a page only such a flow
+ *  reads. */
+const GONE: Record<Solution, readonly string[]> = {
+  product: [],
+  marketing: ['refine', 'resolve', 'plan-release', 'changelog', 'qa-loop', 'qa-lightweight', 'releases'],
 }
 
 /** The flows one solution has that the other has no use for. Not an override: a `channel`
@@ -126,7 +139,10 @@ const EXTRA: Record<Solution, Guide[]> = {
  *  solution has of its own. */
 function guidesHere(): Guide[] {
   const which = solution()
-  return [...GUIDES.map((g) => ({ ...g, text: OVERRIDES[which][g.name] ?? g.text })), ...EXTRA[which]]
+  return [
+    ...GUIDES.filter((g) => !GONE[which].includes(g.name)).map((g) => ({ ...g, text: OVERRIDES[which][g.name] ?? g.text })),
+    ...EXTRA[which],
+  ]
 }
 
 /** The names this board answers to — its solution's, so a topic it has no use for is not

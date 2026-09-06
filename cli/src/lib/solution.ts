@@ -23,11 +23,17 @@ const LINE = /^- \*\*Solution\*\*\s*[—-]\s*([a-z-]+)/m
 
 const isSolution = (name: string): name is Solution => (SOLUTIONS as readonly string[]).includes(name)
 
+/** The solution one `config.md` names. Its own text, so a board being written into another
+ *  folder is read from the copy that travelled with it rather than from this process's. */
+export function solutionIn(config: string): Solution {
+  const found = LINE.exec(config)?.[1]
+  return found && isSolution(found) ? found : 'product'
+}
+
 /** This board's solution, read from its `config.md`. */
 export function solution(): Solution {
   if (!fs.existsSync(CONFIG)) return 'product'
-  const found = LINE.exec(fs.readFileSync(CONFIG, 'utf8'))?.[1]
-  return found && isSolution(found) ? found : 'product'
+  return solutionIn(fs.readFileSync(CONFIG, 'utf8'))
 }
 
 /** The word the UI puts on the board's badge — the WORK, not the folder and not the
@@ -41,3 +47,16 @@ export const SOLUTION_WORK: Record<Solution, { long: string; short: string }> = 
  *  the diff and a landing. False on `marketing`, where the deliverable is a file the user
  *  edits and the review is that edit (#407). */
 export const deliversWithGit = (): boolean => solution() !== 'marketing'
+
+/** The frontmatter fields one solution's cards do not carry. A marketing card is a topic:
+ *  it is picked by hand rather than ranked, it ships to channels rather than to a version,
+ *  and its open choices are talked through in the card's chat, not filed as questions
+ *  (#435). Nothing writes them, `validate` does not ask for them, and no screen draws them. */
+const FIELDS_GONE: Record<Solution, readonly string[]> = {
+  product: [],
+  marketing: ['priority', 'roi', 'release', 'questions'],
+}
+
+/** Whether a card on `which` carries that frontmatter field. */
+export const carriesField = (field: string, which: Solution = solution()): boolean =>
+  !FIELDS_GONE[which].includes(field)

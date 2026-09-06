@@ -14,6 +14,7 @@ import { LogoMark } from "./Logo";
 import { BellButton } from "./Notifications";
 import { ReleasePicker } from "./ReleasePicker";
 import { Sessions } from "./sessions";
+import { useSolution } from "./solution";
 
 // The window's top row (components/Window.tsx draws the rest of it), shared by
 // the board and the card detail page and identical on both: the mark leads home,
@@ -37,6 +38,9 @@ import { Sessions } from "./sessions";
 // The Chat button (#242) sits beside Create task and folds the chat rail down the right of
 // the window. It draws nothing of its own — the rail's state lives in the window
 // (components/Window.tsx), which is what keeps one chat on screen whichever page is up.
+//
+// It is off a marketing board entirely (#435): a topic ships to channels, not to a
+// version, and that board plans none.
 //
 // The release dropdown (#104) is the one thing that isn't on both pages, on
 // board-only terms: it says which version the columns are
@@ -161,6 +165,7 @@ export function Header({
   desktop?: boolean;
 }) {
   const c = useCopy();
+  const marketing = useSolution() === "marketing";
   return (
     // `data-titlebar` is what the app on macOS hangs the window's own title bar
     // off (app/globals.css): the window is drawn without one, so this row is it
@@ -216,7 +221,7 @@ export function Header({
           <GitHubLink />
           <Goal written={goalWritten} offer={goalOffered} onSaved={onGoalSaved} />
         </span>
-        {onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
+        {!marketing && onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
           <ReleasePicker
             releases={releases}
             goals={releaseGoals}

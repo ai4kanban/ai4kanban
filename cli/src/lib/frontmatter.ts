@@ -9,17 +9,23 @@ import { normalizeChannels, parseChannelsBlock, serializeChannels } from './chan
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
 import { normalizeVerify } from './verify'
 import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
+import { carriesField, solution, type Solution } from './solution'
 import type { Meta, Question } from './types'
 
 // Takes a partial meta on purpose: a card being written names only the fields it has,
 // the way the old JS did, and the missing ones fall to their empty forms below.
-export function serializeFrontmatter(m: Partial<Meta>): string {
+//
+// `which` is the solution the card is being written FOR, and defaults to this board's. It
+// is passed only by `unpackBoard`, which writes a board into another folder: that board's
+// fields are the ones its own `config.md` names, not this process's (#435).
+export function serializeFrontmatter(m: Partial<Meta>, which: Solution = solution()): string {
+  const has = (field: string) => carriesField(field, which)
   const out = ['---']
   out.push(`title: ${yamlScalar(m.title)}`)
-  out.push(`priority: ${m.priority}`)
-  out.push(`roi: ${m.roi}`)
+  if (has('priority')) out.push(`priority: ${m.priority}`)
+  if (has('roi')) out.push(`roi: ${m.roi}`)
   out.push(`status: ${STATUSES.includes(String(m.status)) ? m.status : 'todo'}`)
-  out.push(`release: ${yamlScalar(normalizeRelease(m.release))}`)
+  if (has('release')) out.push(`release: ${yamlScalar(normalizeRelease(m.release))}`)
   out.push(`blocked_by: [${(m.blocked_by || []).join(', ')}]`)
   out.push(`related: [${(m.related || []).join(', ')}]`)
   out.push(`modules: [${(m.modules || []).join(', ')}]`)
@@ -43,20 +49,22 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
   // ./schedule.ts). Written only while the card carries one — and re-emitted whenever it is
   // there, so nothing that rewrites a card can quietly take a schedule off it.
   out.push(...serializeSchedule(m.schedule))
-  if (!m.questions || m.questions.length === 0) out.push('questions: []')
-  else {
-    out.push('questions:')
-    for (const raw of m.questions) {
-      const q = normalizeQuestion(raw)
-      if (!hasOptions(q)) {
-        out.push(`  - ${yamlScalar(q.text)}`)
-        continue
+  if (has('questions')) {
+    if (!m.questions || m.questions.length === 0) out.push('questions: []')
+    else {
+      out.push('questions:')
+      for (const raw of m.questions) {
+        const q = normalizeQuestion(raw)
+        if (!hasOptions(q)) {
+          out.push(`  - ${yamlScalar(q.text)}`)
+          continue
+        }
+        out.push(`  - question: ${yamlScalar(q.text)}`)
+        out.push(`    mode: ${q.mode}`)
+        out.push('    options:')
+        for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
+        out.push(`    recommend: [${q.recommend.join(', ')}]`)
       }
-      out.push(`  - question: ${yamlScalar(q.text)}`)
-      out.push(`    mode: ${q.mode}`)
-      out.push('    options:')
-      for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
-      out.push(`    recommend: [${q.recommend.join(', ')}]`)
     }
   }
   // What the user should check by hand before accepting the work (./verify.ts). Written only
@@ -164,6 +172,11 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // The release the card ships in. Missing, empty or damaged reads as no release, so a
   // card written before this field — or one whose line was blanked by hand — still opens.
   meta.release = normalizeRelease(meta.release)
+  // How this card ranks. A marketing card carries neither (#435), so a missing one reads as
+  // empty rather than as a level nobody chose — the same shape `release` takes.
+  for (const key of ['priority', 'roi']) {
+    meta[key] = typeof meta[key] === 'string' && (meta[key] as string).trim() ? (meta[key] as string).trim() : ''
+  }
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []
   // The channels this topic goes to. A card written before the field, one on a product

@@ -39,9 +39,10 @@ export interface AgentRole {
   memory: string[]
 }
 
-// Planning is the same work on either solution: the flows that write a card, settle it and
-// close it out.
-const PLANNER_FLOWS = [
+// Planning is the flows that write a card, settle it and close it out. The two solutions
+// keep their own list, because a marketing board has four of them fewer (#435): its cards
+// carry no questions to refine or resolve, and no release to plan or write up.
+const PRODUCT_PLANNER_FLOWS = [
   'create',
   'refine',
   'resolve',
@@ -52,6 +53,8 @@ const PLANNER_FLOWS = [
   'reject',
   'setup',
 ]
+
+const MARKETING_PLANNER_FLOWS = ['create', 'revise', 'archive', 'reject', 'setup']
 
 const REVIEWER: AgentRole = {
   name: 'reviewer',
@@ -64,7 +67,7 @@ const PRODUCT_ROLES: AgentRole[] = [
   {
     name: 'planner',
     gloss: 'plans and refines cards',
-    flows: PLANNER_FLOWS,
+    flows: PRODUCT_PLANNER_FLOWS,
     memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/goal.md'],
   },
   {
@@ -79,8 +82,8 @@ const PRODUCT_ROLES: AgentRole[] = [
 const MARKETING_ROLES: AgentRole[] = [
   {
     name: 'planner',
-    gloss: 'plans and refines topics',
-    flows: PLANNER_FLOWS,
+    gloss: 'plans topics',
+    flows: MARKETING_PLANNER_FLOWS,
     memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/published.md'],
   },
   {

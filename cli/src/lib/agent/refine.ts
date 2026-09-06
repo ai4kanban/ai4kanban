@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto'
 
 import { allCards, findCard } from '../view/read'
 import { scheduleRefineOnBlock } from '../view/edit'
+import { flowRefusal } from './flows'
 import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
@@ -139,6 +140,9 @@ export function claimChanges(before: BoardMarks, sessionId: string): number[] {
 }
 
 export function refinementStep(card: Card): RefinementStep {
+  // A board whose solution has no refine has nothing for one to do (#435) — so every way in
+  // reads 'done' here, and nothing asks for, schedules or follows up with a refine there.
+  if (flowRefusal('refine')) return 'done'
   if (!canRefine(card)) return 'done'
   return 'clarify'
 }
@@ -267,7 +271,7 @@ function refinesAfter(
       : new Set(FOLLOWS_CREATED.has(action) ? changed.filter((id) => !before.has(id)) : changed)
   return cards
     .filter((card) => mine.has(card.id))
-    .filter((card) => card.openBlockers.length === 0 && !card.schedule && canRefine(card))
+    .filter((card) => card.openBlockers.length === 0 && !card.schedule && refinementStep(card) !== 'done')
     .sort(byDispatchOrder)
     .flatMap((card) => {
       const action = refinementStep(card)
@@ -302,7 +306,7 @@ export interface RefinementFollowUp {
 function qaAfterSpec(run: RunRecord): AgentRequest | null {
   if (run.action !== 'spec' || run.cardId === null) return null
   const card = currentCard(run.cardId)
-  if (!card || card.openBlockers.length > 0 || card.schedule || !canRefine(card)) return null
+  if (!card || card.openBlockers.length > 0 || card.schedule || refinementStep(card) === 'done') return null
   return {
     action: 'clarify',
     id: card.id,

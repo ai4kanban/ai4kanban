@@ -32,8 +32,9 @@ import {
 // chip repeating it on every card says nothing the reader can't already see.
 //
 // The channels ARE on the card, on a marketing board (#411) — a topic's whole state is
-// where each of its channels has got to, and that is what the column is scanned for. It is
-// one row of marks between the title and the ranking, and it displaces nothing.
+// where each of its channels has got to, and that is what the column is scanned for. They
+// take the ranking's place there: a marketing card carries no priority and no ROI (#435),
+// because a topic is picked by hand rather than ranked.
 //
 // The release is NOT on the card. The release picker at the top of the board is
 // how you look at one version, and the card page is where a card says and
@@ -171,11 +172,15 @@ export function BoardCard({
       <p className="mb-2.5 text-[13px] font-[700] leading-snug tracking-[-0.01em] break-words">
         {card.title}
       </p>
-      {marketing && <ChannelRow channels={card.channels} />}
-      <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        <PriorityChip value={card.priority} />
-        <RoiTag value={card.roi} />
-      </div>
+      {/* The card's foot: the channels a topic goes to, or how a product card ranks. */}
+      {marketing ? (
+        <ChannelRow channels={card.channels} />
+      ) : (
+        <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <PriorityChip value={card.priority} />
+          <RoiTag value={card.roi} />
+        </div>
+      )}
     </Link>
   );
 }
