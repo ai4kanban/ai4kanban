@@ -189,7 +189,6 @@ export type CardCopy = {
     /** Put the panel back to a read, keeping whatever was ticked or typed. */
     close: string;
     resolve: string;
-    andImplement: string;
     /** The page the panel becomes at phone width (#357): its title, and the line under it
      *  saying what answering does. At window width the panel is read in place and needs
      *  neither. */

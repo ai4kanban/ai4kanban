@@ -150,7 +150,6 @@ const zh: CardCopy = {
     optionsPlaceholder: "用你自己的话…",
     close: "收起",
     resolve: "答复",
-    andImplement: "答复并开发",
     pageTitle: (id) => `答复 #${id}`,
     pageBlurb: "回答这张卡片正在等待的问题。留空的问题保持待澄清。",
   },

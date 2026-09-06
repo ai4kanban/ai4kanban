@@ -819,8 +819,8 @@ The Implement dialog warns, and you can go ahead — you know things the board d
   it is a reason not to land one.
 - **It holds at landing** until nothing is left to answer, and takes no landing slot while it
   waits, so every other card still lands.
-- **Resolve & implement** under **open questions** is the other way: answer first, and the card is built
-  once nothing is left for you to decide.
+- **Resolve** under **open questions** is the other way: answer first, then press Implement with
+  nothing left to decide.
 
 ### Where a delivery's code goes
 
@@ -839,9 +839,9 @@ is **manual commit mode**, below.
   detached HEAD there is nothing to choose: the build is manual, and the paragraph says which of the
   three is why. A detached HEAD builds this way rather than being refused — the commit you then make
   is reachable from `HEAD` alone.
-- **Only the Implement button carries the ticks.** **Schedule** and **Resolve & implement** start a
-  build later, and each reads **Automatic Git commits** and **AI review** as they stand then; so
-  does `akb card implement` in a terminal.
+- **Only the Implement button carries the ticks.** **Schedule** starts a build later, and it reads
+  **Automatic Git commits** and **AI review** as they stand then; so does `akb card implement` in a
+  terminal.
 
 - **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
   same files never write over each other, and neither one touches the edits you have open.
@@ -967,7 +967,7 @@ prints the review flow.
 
 Review is a separate paid run on every delivery. **AI review** in Configuration → General →
 Delivery is the one place it is turned off, and it answers for every build that has a card. There
-is no per-build box and no flag: **Implement**, **Schedule**, **Resolve & implement** and
+is no per-build box and no flag: **Implement**, **Schedule** and
 `akb card implement` all read the setting as it stands then. **Build now** is the one build it
 does not answer for — with no card there is nothing to review against, so it never is.
 
@@ -1000,9 +1000,8 @@ is either the options or your own words, never both. Leave a question untouched 
 researches that one itself. Click away and the panel goes back to being a read, keeping whatever
 you ticked or typed.
 
-**Resolve & implement** is a second confirm: the agent answers the questions it can settle itself,
-and if nothing is left for you to decide it goes straight on to build the card in the same run. If
-a real judgment call remains, it stops and leaves it for you.
+**Resolve** sends your answers: the agent folds them into the plan and settles what it can itself.
+Anything genuinely left for you stays an open question.
 
 When a card is blocked, the **Implement** dialog names each card still in the way and asks you to
 tick that you know before **Implement anyway** wakes up. The warning is there so you know what

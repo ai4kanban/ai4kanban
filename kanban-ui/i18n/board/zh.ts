@@ -41,9 +41,9 @@ const zh: BoardCopy = {
     button: "新建任务",
     startFailed: "Agent 未能启动",
     sheet: {
-      headline: "你想要实现什么？",
-      slogan: "用你自己的话说出来，先聊清楚，写成卡片，或者直接开做。",
-      placeholder: "描述这个任务，或它背后的想法",
+      headlines: ["你想实现什么目标？", "用户遇到了什么问题？", "哪些地方需要改进？", "你想跟进什么市场趋势？"],
+      slogan: "说说你的想法，哪怕还不完整。让 Agent 帮你理清思路，变成可执行的任务。",
+      placeholder: "一个目标、一条用户反馈，或一个待验证的想法……",
       modes: "发送后会做什么",
       answer: "回答，或说说哪里还不对",
       discuss: "讨论",

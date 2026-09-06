@@ -240,6 +240,11 @@ body {
    live as Tailwind utilities in components/agent-shared.tsx — colocated with the
    markup. This keyframe stays here because the .nb-pulse element references it by
    name via animate-[nbPulse_...]. */
+@keyframes nbCaret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 @keyframes nbPulse {
   0%,
   100% {

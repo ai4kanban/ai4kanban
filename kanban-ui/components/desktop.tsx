@@ -297,6 +297,10 @@ const PRESSABLE = "cursor-pointer hover:bg-nb-wash hover:text-nb-ink";
 // reads two controls, not one path with a suffix.
 const BOARD_PART = `${PART} bg-nb-accent-wash text-nb-ink`;
 const BOARD_PRESSABLE = "cursor-pointer hover:bg-nb-accent-soft hover:text-nb-accent-deep";
+// The marketing board is not finished: a hairline tag, quiet enough to be a note
+// on the name rather than a second word in the chip.
+const ALPHA =
+  "shrink-0 rounded-[6px] bg-nb-peach-soft px-[5px] py-[1.5px] text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-peach-ink";
 
 /** Which repo this board is, in the header, and which of its boards is open.
  *
@@ -305,8 +309,9 @@ const BOARD_PRESSABLE = "cursor-pointer hover:bg-nb-accent-soft hover:text-nb-ac
  *  different folder. Only the folder's name is shown; the whole path is the
  *  tooltip, which leaves the board switcher its room.
  *
- *  Beside it, the board's own word: "Engineering" on a product board, "Marketing"
- *  on a marketing one, in the ember wash so it reads as its own control. A project
+ *  Beside it, the board's own word in this window's language — "Engineering" on a
+ *  product board, "Marketing" on a marketing one — in the ember wash so it reads
+ *  as its own control. A project
  *  holding one board gets a label; one holding two gets a switcher, and picking
  *  the other hands the window over the way the projects list does. */
 export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; desktop: boolean }) {
@@ -364,10 +369,21 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
   const open = here?.boards.find((b) => b.path === here.board);
   if (!open) return null;
 
+  // The rules answer in English; the word on screen is this window's language, by
+  // solution. A board whose solution this copy has no word for keeps theirs.
+  const named = (b: BoardEntry) => c.work[b.solution as keyof typeof c.work] ?? b.work;
+  const alpha = (b: BoardEntry) =>
+    b.solution === "marketing" ? (
+      <span title={c.alphaHint} className={ALPHA}>
+        {c.alpha}
+      </span>
+    ) : null;
+
   const word = (
     <>
       <BoardIcon solution={open.solution} />
-      <span className="truncate">{open.work}</span>
+      <span className="truncate">{named(open)}</span>
+      {alpha(open)}
     </>
   );
   // One board is a label with nothing to press, and so is a browser either way:
@@ -402,7 +418,8 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
           >
             <span className="flex items-center gap-1.5">
               {b.path === here!.board && <Dot tone="var(--color-nb-accent)" title={c.openHere} />}
-              <span className="truncate font-[700] text-nb-ink">{b.work}</span>
+              <span className="truncate font-[700] text-nb-ink">{named(b)}</span>
+              {alpha(b)}
             </span>
             <span className="mt-0.5 block truncate font-mono text-[11px] text-nb-ink-soft">{b.path}</span>
           </DropdownMenuItem>

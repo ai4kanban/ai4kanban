@@ -190,9 +190,9 @@ const en: RunsCopy = {
       manualWhyNoReview: (why) =>
         `One click carries this card all the way: the agent builds it, and it stops. Nothing reviews it, and nothing is committed for you — ${why}. Commit what it built, and the card is archived then.`,
       questionsOne:
-        "This card has **1 open question**. It will be built, then hold at landing until you answer it — or press **Resolve & implement** to answer it first.",
+        "This card has **1 open question**. It will be built, then hold at landing until you answer it — or press **Resolve first** to answer it now.",
       questionsMany: (n) =>
-        `This card has **${n} open questions**. It will be built, then hold at landing until you answer them — or press **Resolve & implement** to answer them first.`,
+        `This card has **${n} open questions**. It will be built, then hold at landing until you answer them — or press **Resolve first** to answer them now.`,
       ackQuestionsOne: "I know a question is still open.",
       ackQuestionsMany: (n) => `I know ${n} questions are still open.`,
       blockedOne: (ids) =>
@@ -211,9 +211,8 @@ const en: RunsCopy = {
       notes: "Optional extra notes for the agent…",
       confirm: "Implement",
       confirmAnyway: "Implement anyway",
-      resolveFirst: "Resolve & implement",
-      resolveFirstHint:
-        "Answer the open questions first, and build the card once nothing is left to decide",
+      resolveFirst: "Resolve first",
+      resolveFirstHint: "Answer the open questions before building this card",
       schedule: "Schedule",
       scheduleHint:
         "Build this card by itself, once nothing is in its way — following the repository's commit setting, not the box here.",

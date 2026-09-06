@@ -44,6 +44,12 @@ export type ChromeCopy = {
     badge: (boardDir: string) => string;
     /** The dot on the board this window is showing. */
     openHere: string;
+    /** What each board's work is called, by solution. A board whose solution this copy
+     *  does not know keeps the word the rules answered with. */
+    work: Record<"product" | "marketing", string>;
+    /** The marketing board is not finished yet — the tag beside its name, and its tooltip. */
+    alpha: string;
+    alphaHint: string;
   };
   /** The update chip is an icon, so all but one of these are its tooltip. */
   update: {

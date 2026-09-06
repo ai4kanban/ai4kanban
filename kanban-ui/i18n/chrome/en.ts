@@ -28,6 +28,9 @@ const en: ChromeCopy = {
     heading: "Boards",
     badge: (boardDir) => `${boardDir} — click for this project's boards`,
     openHere: "Open in this window",
+    work: { product: "Engineering", marketing: "Marketing" },
+    alpha: "Alpha",
+    alphaHint: "The marketing board is still experimental — expect it to change.",
   },
   update: {
     out: (version) => `AI4Kanban ${version} is out. Click to install it.`,

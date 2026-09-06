@@ -45,9 +45,14 @@ const en: BoardCopy = {
     button: "Create task",
     startFailed: "could not start the agent",
     sheet: {
-      headline: "What do you want to happen?",
-      slogan: "Say it in your own words — talk it through, write it up, or build it now.",
-      placeholder: "Describe the task, or the idea behind it",
+      headlines: [
+        "What do you want to achieve?",
+        "What problems are users facing?",
+        "What could be improved?",
+        "What market trends do you want to follow?",
+      ],
+      slogan: "Share your idea, even if it’s still rough. Let your agent help clarify it and turn it into actionable tasks.",
+      placeholder: "A goal, user feedback, or an idea to validate…",
       modes: "What sending does",
       answer: "Answer, or say what is still wrong",
       discuss: "Discuss",

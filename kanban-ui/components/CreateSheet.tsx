@@ -1,47 +1,6 @@
 "use client";
 
-// The screen Create task opens (#426) — a sheet over the board, in the shape a fresh agent
-// chat opens in: a centred headline, a one-line slogan, the message box under them, and a
-// row saying what sending does.
-//
-// It replaces the BOARD, not the window: it is drawn on the body's own paper, so the top row
-// stays where it is and the reader keeps their place. It is an action, not a place — Esc or
-// the ✕ hands the board back, rather than becoming a tab the header would have to carry at
-// every width. The chat rail is the one thing it does put away: this screen holds the board's
-// own conversation, so a rail beside it is that exchange drawn twice (components/CreateTask.tsx).
-//
-// Three modes share the one box. **Discuss** (#427) is the board's own conversation
-// (`akb chat`, lib/chat-rail.ts) — the same transcript, agent and model as the chat rail on
-// the board, so a reply typed here and one typed there are one exchange. It is the BOARD's
-// conversation on a card's page too: Create task is a new task, not this card. It is what
-// the screen opens on: a vague idea does not survive one textarea. **Add task** starts today's create run and
-// leaves. **Build now** (#428) sends the sentence straight to a build with no card at all —
-// it skips every step the board exists for, so it names them in a guard off Send and starts
-// nothing until that is confirmed.
-//
-// What Discuss adds beside the conversation is the plan the agent is writing
-// (`docs/kanban/plans/<id>-<slug>.md`, lib/plan-panel.ts): a card on the right, standing
-// beside the exchange where there is room and lying over it where there is not. It is a card
-// and not a second column on purpose — the plan is not a place beside the conversation, it
-// is what the conversation has produced so far, so it is drawn as content on the paper
-// rather than as chrome the sheet is split into. Once the outcome is settled the agent
-// offers to start planning, and pressing it closes the screen and starts the run that writes
-// the cards.
-//
-// The board holds ONE conversation, so a second idea typed into the first is the first
-// idea's plan being rewritten. **New idea** is the way out: it drops the transcript, which
-// takes the plan with it (the plan hangs off the conversation's own file), and the screen is
-// the empty one again. It is the only thing on this screen that throws work away, so it asks
-// first — the same guard Build now uses, naming what goes — and it waits only on a reply in
-// flight. A planning run does not hold it: that run has its own session and the plan's path
-// already, so the discussion can be cleared out from under it and the cards still arrive.
-// Only one guard is ever open, so Esc always has one answer: put the guard down, then the
-// plan, then the screen.
-//
-// The box is the chat rail's own (components/composer.tsx), so Enter starts a line and only
-// the send button sends, exactly as it does there. What the rail keeps is the rail's: the walk
-// back through what it has sent, its Stop, and the Esc that ends a reply — here Esc closes
-// the sheet and leaves the discussion, and any reply still being written, where they are.
+// Create task shares the board conversation and keeps its draft across modes.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -137,6 +96,7 @@ function Sheet({
   // always was — and a draft written before this screen existed is still here. One box for
   // every mode: switching what sending does never takes away what has been typed.
   const [text, setText, clearDraft] = useDraft("create");
+  const [headlineStopped, setHeadlineStopped] = useState(false);
   const [mounted, setMounted] = useState(false);
   // Discuss is what a vague idea wants, so it is what the screen opens on. Build now never
   // is: a build with no card is the deliberate one.
@@ -266,7 +226,11 @@ function Sheet({
       rail={discussing ? rail : null}
       release={release}
       text={text}
-      onText={setText}
+      onText={(value) => {
+        setHeadlineStopped(true);
+        setText(value);
+      }}
+      talking={talking}
       onSend={pressSend}
       sendRef={sendRef}
       guarding={guard === "build"}
@@ -370,9 +334,11 @@ function Sheet({
         // the middle, and the box is what the eye should land on.
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-5 pb-10 max-md:pb-14">
           <div className={`flex flex-col items-center ${COLUMN}`}>
-            <h1 className="text-center text-[27px] font-[800] leading-[1.2] tracking-[-0.025em] max-md:text-[21px]">
-              {c.headline}
-            </h1>
+            <CreateHeadline
+              key={c.headlines[0]}
+              phrases={c.headlines}
+              paused={headlineStopped || text.length > 0}
+            />
             <p className="mt-2 text-center text-[13.5px] text-nb-ink-soft max-md:text-[12.5px]">
               {c.slogan}
             </p>
@@ -382,6 +348,50 @@ function Sheet({
       )}
     </div>,
     body ?? document.body,
+  );
+}
+
+function CreateHeadline({ phrases, paused }: { phrases: readonly string[]; paused: boolean }) {
+  const [frame, setFrame] = useState({ index: 0, length: phrases[0].length, deleting: false });
+  const [reducedMotion, setReducedMotion] = useState(true);
+  const phrase = phrases[frame.index];
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(preference.matches);
+    update();
+    preference.addEventListener("change", update);
+    return () => preference.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (paused || reducedMotion) return;
+    const complete = frame.length === phrase.length && !frame.deleting;
+    const timer = window.setTimeout(() => {
+      if (complete) setFrame({ ...frame, deleting: true });
+      else if (frame.deleting && frame.length === 0) {
+        setFrame({ index: (frame.index + 1) % phrases.length, length: 0, deleting: false });
+      } else {
+        setFrame({ ...frame, length: frame.length + (frame.deleting ? -1 : 1) });
+      }
+    }, complete ? 3200 : frame.deleting ? 35 : 85);
+    return () => window.clearTimeout(timer);
+  }, [frame, paused, reducedMotion, phrase, phrases.length]);
+
+  return (
+    <h1 className="grid w-full text-center text-[27px] font-[800] leading-[1.2] tracking-[-0.025em] max-md:text-[21px]">
+      <span className="sr-only">{phrases[0]}</span>
+      {/* Reserve the tallest phrase at every viewport width. */}
+      {phrases.map((text) => (
+        <span key={text} aria-hidden className="invisible col-start-1 row-start-1 px-2">{text}</span>
+      ))}
+      <span aria-hidden className="col-start-1 row-start-1 self-center px-2">
+        {paused || reducedMotion ? phrase : phrase.slice(0, frame.length)}
+        {!paused && !reducedMotion && (
+          <span className="ml-0.5 inline-block h-[0.9em] w-[2px] animate-[nbCaret_1s_step-end_infinite] bg-nb-ink align-[-0.05em] motion-reduce:animate-none" />
+        )}
+      </span>
+    </h1>
   );
 }
 
@@ -463,6 +473,7 @@ function Composer({
   release,
   text,
   onText,
+  talking,
   onSend,
   sendRef,
   guarding,
@@ -484,6 +495,7 @@ function Composer({
   release: string | null;
   text: string;
   onText(value: string): void;
+  talking: boolean;
   onSend(): void;
   sendRef: React.RefObject<HTMLSpanElement | null>;
   guarding: boolean;
@@ -518,8 +530,8 @@ function Composer({
         onSend={onSend}
         canSend={!!text.trim() && !answering && !waiting && !sending}
         autoFocus
-        placeholder={rail ? c.answer : c.placeholder}
-        label={rail ? c.answer : c.placeholder}
+        placeholder={talking ? c.answer : c.placeholder}
+        label={talking ? c.answer : c.placeholder}
         sendLabel={c.send}
         sendRef={sendRef}
         stop={ours ? { label: chat.stop, onStop: () => void rail?.stop() } : undefined}

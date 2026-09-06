@@ -779,7 +779,7 @@ export function HarnessPicker({
           back in. Never both this and the line above: an agent that isn't installed has
           nothing to be logged out of, and the probe skips it.
 
-          It warns and stops nothing. Implement, Schedule, Resolve & implement and a chat all
+          It warns and stops nothing. Implement, Schedule, Resolve and a chat all
           start under this agent exactly as they would without it — so a probe that read the
           CLI wrong costs one run, not the agent. */}
       {activeOption.installed !== false && loggedOut[activeOption.name] && (

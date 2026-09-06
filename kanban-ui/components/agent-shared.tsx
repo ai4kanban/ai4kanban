@@ -898,7 +898,7 @@ export function ActionDialog({
     // Ticking them wakes a quiet outlined button, not the ember CTA.
     //
     // Each warning has a plain way out that needs no tick, and one alternate button
-    // carries it: Resolve & implement answers the questions first, and Schedule (#140)
+    // carries it: Resolve first opens the questions panel, and Schedule (#140)
     // waits for the blocker. Questions win the slot when a card wears both — it is the
     // one the user can settle now, and the blocker box still names Schedule in words.
     const blockers = dialog.card.blocked_by;

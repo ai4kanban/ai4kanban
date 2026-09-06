@@ -56,7 +56,7 @@ export type BoardCopy = {
      *  and the two short lines under the box. The headline holds across the whole mode
      *  row — Discuss (#427), Add task, Build now (#428). */
     sheet: {
-      headline: string;
+      headlines: readonly string[];
       slogan: string;
       placeholder: string;
       /** What the mode row is, read out. */

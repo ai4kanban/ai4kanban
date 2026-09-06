@@ -152,7 +152,6 @@ const en: CardCopy = {
     optionsPlaceholder: "In your own words…",
     close: "Close",
     resolve: "Resolve",
-    andImplement: "Resolve & implement",
     pageTitle: (id) => `Resolve #${id}`,
     pageBlurb: "Answer what this card is waiting on. Anything you leave blank stays open.",
   },
