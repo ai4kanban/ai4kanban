@@ -24,7 +24,7 @@ import { useOverRail } from "@/lib/over-rail";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { Button } from "./button";
-import { Transcript, Pick, useChatRailHere } from "./Chat";
+import { Transcript, Pasted, Pick, useChatRailHere } from "./Chat";
 import { HAIRLINE } from "./chrome";
 import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
@@ -183,15 +183,22 @@ function Sheet({
     plan.refresh();
   };
 
+  // A discussion message is what is typed OR what was pasted (#441) — pictures on their own
+  // are a message. A run still needs a sentence: the pictures are the conversation's.
+  const pasted = discussing ? rail.pasted.length : 0;
+
   const send = async (picked: CreateMode) => {
     const words = text.trim();
-    if (!words || sending || waiting) return;
+    if (sending || waiting) return;
+    if (!words && !(picked === "discuss" && pasted > 0)) return;
     setGuard(null);
     setError(null);
     if (picked === "discuss") {
       if (!discussing) return;
       clearDraft();
-      rail.say(words, { discuss: true });
+      // The rail's own send, so the pictures waiting in the box go with these words and a
+      // refusal puts them back — only the draft is this screen's own.
+      void rail.send({ text: words, discuss: true });
       plan.refresh();
       return;
     }
@@ -207,7 +214,8 @@ function Sheet({
   // Send in Build now opens the guard rather than starting anything. Switching to another
   // mode closes it: the guard belongs to the mode, not to the press.
   const pressSend = () => {
-    if (!text.trim() || waiting) return;
+    if (waiting) return;
+    if (!text.trim() && pasted === 0) return;
     if (mode === "build") setGuard("build");
     else void send(mode);
   };
@@ -232,6 +240,9 @@ function Sheet({
       onText={(value) => {
         setHeadlineStopped(true);
         setText(value);
+        // The hand has moved on, so the last paste stops explaining itself — the rail's own
+        // box does this from the keystroke too (lib/chat-rail.ts).
+        rail.clearPasteNote();
       }}
       talking={talking}
       onSend={pressSend}
@@ -519,6 +530,8 @@ function Composer({
   const ours = rail?.live != null;
   const trouble = rail ? (rail.error ?? read?.failed ?? read?.blocked) : undefined;
   const pick = read?.pick ?? null;
+  // The pictures pasted in and not yet sent (#441) — only Discuss has any.
+  const pasted = rail?.pasted.length ?? 0;
 
   return (
     <>
@@ -534,8 +547,14 @@ function Composer({
         value={text}
         onChange={onText}
         onSend={onSend}
-        canSend={!!text.trim() && !answering && !waiting && !sending}
+        // Pictures on their own are a message in Discuss (#441); a run still wants words.
+        canSend={(!!text.trim() || pasted > 0) && !answering && !waiting && !sending}
         autoFocus
+        // Discuss is this screen's chat, so its box takes a pasted picture the way the
+        // rail's does. In the other two modes there is no conversation to paste into: the
+        // sentence starts a run, and handing that run a file is #252's.
+        onPasteImages={rail ? (files) => void rail.paste(files) : undefined}
+        head={rail ? <Pasted rail={rail} /> : undefined}
         placeholder={talking ? c.answer : c.placeholder}
         label={talking ? c.answer : c.placeholder}
         sendLabel={c.send}

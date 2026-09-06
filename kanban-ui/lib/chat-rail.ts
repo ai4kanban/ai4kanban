@@ -114,6 +114,9 @@ export interface ChatRail {
   /** What the last paste had to say for itself, in the slot the thumbnails sit in. Gone on
    *  the next paste, on the next keystroke, on an agent switch, and after a few seconds. */
   pasteNote: PasteNote | null;
+  /** Take that note down. The rail's own box does it on the next keystroke; a box with a
+   *  draft of its own — the Discuss screen's (#427) — does it from here. */
+  clearPasteNote(): void;
   /** Where one of these pictures is served from (#441). */
   imageSrc(name: string): string;
   /** Walk this conversation's own sent messages back into an empty box — `back` is
@@ -121,7 +124,10 @@ export interface ChatRail {
   recall(back: boolean): boolean;
   /** Why the last send never got off the ground. Cleared by the next one. */
   error: string | null;
-  send(): Promise<void>;
+  /** Send what the box holds, with the pictures pasted into it (#441): they go with it and
+   *  leave the box, and a refusal puts them back. `text` is for a box with a draft of its
+   *  own — the Discuss screen's (#427) — which keeps that draft to itself. */
+  send(opts?: { text?: string; discuss?: boolean }): Promise<void>;
   /** Send one message the box is not holding: a reply sent again (#269), or the Discuss
    *  screen's own box (#427). It lands at the foot; the box and what is typed in it are
    *  left alone. `discuss` puts the discussion's flow in front of the words; `images` are
@@ -422,6 +428,8 @@ export function useChatRail({
     [cardId, seesImages],
   );
 
+  const clearPasteNote = useCallback(() => setPasteNote(null), []);
+
   const unpaste = useCallback(
     async (name: string) => {
       setPasted((was) => was.filter((n) => n !== name));
@@ -470,21 +478,30 @@ export function useChatRail({
     [cardId, c],
   );
 
-  const send = useCallback(async () => {
-    const text = draft.trim();
-    const shots = pasted;
-    if (!text && shots.length === 0) return;
-    setDraft("");
-    setWalked(null);
-    setPasted([]);
-    setPasteNote(null);
-    // The words and the pictures both go back in the box rather than being lost to a
-    // refusal — the files are still there, so the thumbnails still draw.
-    if (!(await post(text, false, shots))) {
-      setDraft((typed) => (typed ? typed : text));
-      setPasted((now) => (now.length ? now : shots));
-    }
-  }, [draft, pasted, post]);
+  // The words come from the rail's own box, or from one that keeps its own draft and hands
+  // them over. The pictures are the rail's either way — they were pasted against this
+  // conversation and their files sit beside it.
+  const send = useCallback(
+    async (opts: { text?: string; discuss?: boolean } = {}) => {
+      const own = opts.text === undefined;
+      const text = (own ? draft : opts.text ?? "").trim();
+      const shots = pasted;
+      if (!text && shots.length === 0) return;
+      if (own) {
+        setDraft("");
+        setWalked(null);
+      }
+      setPasted([]);
+      setPasteNote(null);
+      // The words and the pictures both go back in the box rather than being lost to a
+      // refusal — the files are still there, so the thumbnails still draw.
+      if (!(await post(text, opts.discuss, shots))) {
+        if (own) setDraft((typed) => (typed ? typed : text));
+        setPasted((now) => (now.length ? now : shots));
+      }
+    },
+    [draft, pasted, post],
+  );
 
   // Nothing of the box is touched: a half-typed message survives a "send again", and the
   // exchange above is left as it was — the message lands at the foot. A message sent again
@@ -570,6 +587,7 @@ export function useChatRail({
     paste,
     unpaste,
     pasteNote,
+    clearPasteNote,
     imageSrc,
     recall,
     error,

@@ -106,7 +106,8 @@ The header carries seven things:
 A vague idea does not survive one textarea, so **Discuss** turns what you send into a
 conversation instead of a run. It is the board's own chat — the same transcript, agent and
 model as the rail down the right — so a reply typed in either lands in the same discussion.
-It never shows in **Runs** and holds no card.
+Its box takes a pasted picture the way the rail's does, on the same terms. It never shows in
+**Runs** and holds no card.
 
 The agent questions the idea rather than taking your first message as a spec, and once an
 outcome is agreed it writes it to `docs/kanban/plans/<id>-<slug>.md`, rendered as markdown

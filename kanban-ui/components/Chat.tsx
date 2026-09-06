@@ -1031,8 +1031,9 @@ function Composer({
         onSend={() => void rail.send()}
         canSend={!disabled && !answering && !empty}
         disabled={disabled}
-        // The chat rail is the one owner that takes a pasted picture; the Create sheet's
-        // attachments are #252's (components/CreateSheet.tsx).
+        // The two boxes on this conversation both take a pasted picture — this one and the
+        // Discuss screen's (components/CreateSheet.tsx). Handing the run a document is
+        // #252's, and still is.
         onPasteImages={(files) => void rail.paste(files)}
         head={<Pasted rail={rail} />}
         placeholder={ask}
@@ -1068,8 +1069,11 @@ function Composer({
  *  nothing in the box, so the note stands where the thumbnails would have been, one line
  *  above the agent that has to change.
  *
- *  The ✕ is always there rather than on hover: it is the only way back out of a paste. */
-function Pasted({ rail }: { rail: ChatRail }) {
+ *  The ✕ is always there rather than on hover: it is the only way back out of a paste.
+ *
+ *  Both boxes on a conversation draw it, so a paste looks the same in the rail and on the
+ *  Discuss screen (components/CreateSheet.tsx). */
+export function Pasted({ rail }: { rail: ChatRail }) {
   const c = useCopy().chat;
   const note = rail.pasteNote;
   if (note) {
