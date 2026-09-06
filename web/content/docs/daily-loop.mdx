@@ -150,6 +150,25 @@ names the branch the change will land on.
 In a terminal it is `akb card implement 4`, which starts the same delivery and warns about an open
 question the same way it warns about a blocker.
 
+## Let clear cards build themselves
+
+**Build clear cards automatically** in Configuration → General → Delivery replaces that press.
+It is off by default. With it on, every card that reaches ready is judged first by a gate
+agent: it reads the card against the same standard the board writes cards to — an observable
+outcome, scope that says what to build, a `## Todo` a builder can follow, nothing left open —
+and either passes it straight into a delivery on the settings above, or sends it back to
+**Not ready** carrying the one question that stopped it. Answer that question and the card
+refines, reaches ready again, and is judged again.
+
+The gate runs one card at a time, in the order **"what's next?"** would name them, and it
+never takes a card that is blocked, recurring, a group's main card, or already in flight. It
+has a runtime of its own under the switch, so the judgment can run on a stronger model than
+the builds it lets through. A gate run that fails or is stopped changes nothing: the card
+stays where it is. Turning the switch on does not go back over the cards already sitting at
+ready — those are still yours to press.
+
+In a terminal it is `akb card gate 4`, which asks the same question about one card.
+
 ## Queue a card that is waiting on another
 
 A card whose `blocked_by` still names an open card can be built or refined anyway — the board

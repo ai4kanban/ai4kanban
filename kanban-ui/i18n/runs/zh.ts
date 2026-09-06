@@ -5,6 +5,7 @@ import type { RunsCopy } from "./types";
 const zh: RunsCopy = {
   action: {
     implement: "开发",
+    gate: "把关",
     review: "评审",
     conflict: "解冲突",
     run: "执行",
@@ -25,6 +26,7 @@ const zh: RunsCopy = {
   },
   verb: {
     implement: "开发",
+    gate: "把关",
     review: "评审",
     conflict: "解决冲突",
     run: "执行",
@@ -45,6 +47,7 @@ const zh: RunsCopy = {
   },
   step: {
     implement: "开发",
+    gate: "把关",
     review: "评审",
     conflict: "解冲突",
     run: "执行",

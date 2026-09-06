@@ -56,3 +56,12 @@ export async function setRuntimeSetting(
     ? rules.setRuntimeSetting(runtime, key, value)
     : { ok: false, error: TOO_OLD };
 }
+
+/** Which runtime one flow runs on. An empty name puts it back on the board's global one —
+ *  the same write `akb agent runtime for <flow> -` makes. */
+export async function setFlowRuntime(command: string, runtime: string): Promise<WriteResult> {
+  const rules = await boardRules();
+  return rules.setFlowRuntime
+    ? rules.setFlowRuntime(command, runtime)
+    : { ok: false, error: TOO_OLD };
+}

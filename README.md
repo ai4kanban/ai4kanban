@@ -104,7 +104,7 @@ version.
 <tr>
 <td width="50%" valign="top">
 <a href="https://cdn.ai4kanban.dev/loop-approval-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="A Slack notification asking to approve a card, with Implement and Open card buttons" /></a><br/>
-<sub><b>Request approval only when necessary</b> — AI4Kanban keeps work moving in the background and reports back only for product decisions and delivery approval. Like a project manager, it keeps demands on your attention to a minimum.</sub>
+<sub><b>Request approval only when necessary</b> — AI4Kanban keeps work moving in the background and reports back only for product decisions and delivery approval. Like a project manager, it keeps demands on your attention to a minimum. Turn on <b>Build clear cards automatically</b> and it asks for even less: a gate agent judges each card that becomes ready, builds the ones written clearly enough, and returns the rest with the one question that stopped them.</sub>
 </td>
 <td width="50%" valign="top"></td>
 </tr>

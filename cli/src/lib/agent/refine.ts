@@ -237,6 +237,9 @@ export function refinementAfter(
 // a file was written.
 const FOLLOWS_CREATED = new Set<AgentAction>([
   'implement',
+  // A gate judges the card and writes at most one `[user]` question on it — which is already
+  // a card no refine would move. It creates nothing, so it follows nothing.
+  'gate',
   'edit',
   'clarify',
   'resolve',

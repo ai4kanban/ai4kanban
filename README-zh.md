@@ -94,7 +94,7 @@ Agent 执行，只在需要产品决策时找你。
 <tr>
 <td width="50%" valign="top">
 <a href="https://cdn.ai4kanban.dev/loop-approval-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="Slack 中的审批通知，带有 Implement 和打开卡片按钮" /></a><br/>
-<sub><b>仅在必要时请求审批</b> — AI4Kanban 会在后台持续推进任务，只在需要产品取舍或确认交付时向你汇报。它像一位项目经理，始终尽量少占用你的注意力。</sub>
+<sub><b>仅在必要时请求审批</b> — AI4Kanban 会在后台持续推进任务，只在需要产品取舍或确认交付时向你汇报。它像一位项目经理，始终尽量少占用你的注意力。开启<b>「卡片写清楚就自动开发」</b>后打扰会更少：把关 Agent 会审阅每张进入待开发的卡片，写清楚的直接开工，其余的带着一个待你回答的问题退回。</sub>
 </td>
 <td width="50%" valign="top"></td>
 </tr>

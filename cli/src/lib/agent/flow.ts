@@ -492,6 +492,10 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   resolve: ['board', 'writing', 'resolve', 'update-questions', 'qa-lightweight'],
   // The dedicated writing pass gets that guide alone: it writes a body and nothing else.
   writing: ['writing'],
+  // The ready gate judges a card against the standard it was written to, so it reads that
+  // standard and the bar a refine converges on — and `update-questions`, which is the whole
+  // of what it may write. Not `board`: it writes no card and closes none.
+  gate: ['writing', 'qa-loop', 'update-questions', 'gate'],
   // Apply the requested correction first, then validate the resulting plan to convergence
   // in the same session. Writing may follow, but never another QA session.
   edit: ['writing', 'revise', 'update-questions', 'qa-lightweight'],
@@ -693,6 +697,21 @@ function buildFlow(req: AgentRequest, program: string): Flow {
           : req.andImplement
             ? `${self} card implement ${req.id} --print — carry straight on, but only if nothing real is left for the user`
             : `${self} card implement ${req.id} --print — once every question is settled`,
+      )
+      break
+    }
+    // The ready gate (#440) — a verdict, so the close is the two ways to give one and
+    // nothing else. No handover: a card it passes is built by the board, not by whoever
+    // read this.
+    case 'gate': {
+      facts.push(...stepsField(card!), ...questionsField(card!.meta), ...verifyField(card!.meta))
+      facts.push(
+        ...field('blockers', card!.meta.blocked_by.map((n) => `#${n}`).join(', ') || 'none'),
+      )
+      close.push(
+        'it passes: change nothing at all and finish successfully — a clean finish IS the verdict, and the board opens the delivery itself',
+        `it does not: \`${raw} update-questions ${req.id} --append ".."\` — exactly one \`[user]\` question naming what blocks the build, which takes the card back to todo by itself`,
+        'never set the status by hand, never edit the body, and never start the build yourself',
       )
       break
     }

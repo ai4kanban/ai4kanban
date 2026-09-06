@@ -45,6 +45,7 @@ export interface AgentRole {
 const PRODUCT_PLANNER_FLOWS = [
   'create',
   'refine',
+  'gate',
   'resolve',
   'revise',
   'plan-release',

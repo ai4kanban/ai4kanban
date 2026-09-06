@@ -22,6 +22,8 @@ const en: MessagesCopy = {
     autoDelivery: "this board's rules are older than auto-delivery — run `npm install -g ai4kanban`.",
     diffApproval: "this board's rules are older than diff approval — run `npm install -g ai4kanban`.",
     aiReview: "this board's rules are older than the AI review setting — run `npm install -g ai4kanban`.",
+    readyGate:
+      "this board's rules are older than the ready gate — run `npm install -g ai4kanban`.",
     silenceLimit: "this board's rules are older than the silence limit — run `npm install -g ai4kanban`.",
     deliveries: "this board's rules are older than deliveries — run `npm install -g ai4kanban`.",
     worktrees:

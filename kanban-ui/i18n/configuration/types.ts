@@ -194,8 +194,22 @@ export type ConfigurationCopy = {
     deleteFailed: (agent: string) => string;
   };
   delivery: {
-    /** A change only reaches deliveries started afterwards. Said once, under all three. */
+    /** A change only reaches deliveries started afterwards. Said once, under all four. */
     frozen: string;
+    /** The ready gate (#440) — the first row, because it decides whether a delivery starts
+     *  at all; the three under it decide how one is built. */
+    gate: {
+      title: string;
+      body: string;
+      failedOn: string;
+      failedOff: string;
+      /** The runtime picker under the row: its label, the "follow the board's" choice, and
+       *  the line saying how far the pick reaches. */
+      runtime: string;
+      followGlobal: string;
+      runtimeScope: string;
+      runtimeFailed: string;
+    };
     commits: { title: string; body: string; failedOn: string; failedOff: string };
     approval: { title: string; body: string; failedOn: string; failedOff: string };
     review: { title: string; body: string; failedOn: string; failedOff: string };

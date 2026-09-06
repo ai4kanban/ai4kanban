@@ -21,6 +21,8 @@ import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-c
 import { withStore } from './store'
 import { boardCommand } from './command'
 import { deliveryRunAfter } from './deliveries'
+import { buildAfterGate, cardStages, gateRunAfter } from './gate'
+import { readyGateOn, silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter, writeRunsAfter } from './follow'
@@ -53,7 +55,6 @@ import {
   titleOf,
   type CardClaim,
 } from './sessions'
-import { silenceMinutes } from './settings'
 import { startResume, startRun } from './start'
 import type { TurnEnd } from './wire'
 import { holdsCard } from './types'
@@ -168,6 +169,12 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // really is its own — and not a neighbouring run's — is settled at the close by
   // `claimChanges`, and that is what earns a card the refine that follows.
   const before = markBoard()
+  // And every card's stage, when the ready gate is on (#440). The gate below fires on the
+  // one move that means a plan has settled — `todo` → `ready` — so it needs where each card
+  // stood before this run, not just which ones are ready now. Nothing is read while the gate
+  // is off, which is also what stops a gate switched on MID-run from reading the whole
+  // backlog as newly settled: this run watches nothing, and the next one watches properly.
+  const stagesBefore = readyGateOn() ? cardStages() : null
   const sources = snapshotSpecs()
   // And the board's own files as they stand, on a Cloud board: the difference between this
   // and the same read at the close is what this run wrote with its own tools, and what its
@@ -479,7 +486,12 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // lands here, and what it hands back is the run that landing wants — conflict
       // resolution, or the focused review an overlapping rebase owes.
       const landing = status === 'done' ? await advanceLanding() : null
-      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing)
+      // And the ready gate (#440): the build a gate this run WAS has just let through, or a
+      // gate on the card this run took to `ready`. Never both — a gate run's own card was
+      // already ready when it started, so it is not a card that entered.
+      const gate =
+        status === 'done' ? (buildAfterGate(record) ?? (stagesBefore && gateRunAfter(stagesBefore))) : null
+      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate)
       resolve(status === 'done' ? 0 : 1)
     }
 
@@ -656,6 +668,7 @@ async function followUp(
   runs: AgentRequest[],
   carryOn: AgentRequest | null,
   landing: AgentRequest | null = null,
+  gate: AgentRequest | null = null,
 ): Promise<void> {
   // A request that already names its flow keeps it — a refinement pass carries its loop's
   // id, and that loop is this flow anyway.
@@ -674,6 +687,9 @@ async function followUp(
     if (carryOn) await startRun(join(carryOn))
     if (landing) await startRun(join(landing))
     for (const req of runs) await startRun(join(req))
+    // Last: the gate reads the board as this close left it, so it picks its card after the
+    // refinements above have taken theirs.
+    if (gate) await startRun(join(gate))
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
   }

@@ -10,6 +10,8 @@
 import { CADENCE_FORMS } from '../cadence'
 import { CHANNEL_NAMES, CHANNEL_STATUSES } from '../channels'
 import { insideRun } from '../agent/env'
+import { cardStages, startGateAfter } from '../agent/gate'
+import { readyGateOn } from '../agent/settings'
 import { recordCreatedCards } from '../agent/store'
 import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
@@ -69,6 +71,13 @@ async function dispatch(
     if (!opened.ok) throw new BoardError(opened.error, { kind: `cloud-${opened.reason}`, dir: root })
     sayIfOffline()
     const input = { args, opts }
+    // Where every card stood before this move, on the one move that can settle a plan by
+    // hand (#440). The gate below fires on the card this move took from `todo` to `ready` —
+    // never inside a run, where the run's own close is what notices.
+    const gateFrom =
+      move === 'update' && opts.status === 'ready' && !insideRun() && readyGateOn()
+        ? cardStages()
+        : null
     // A read answers straight off the board. A write is one operation of the contract, under
     // a lease taken for it — whoever typed this never read the card, so the lease is what
     // hands them the revision they write against (lib/board/ops.ts).
@@ -91,7 +100,11 @@ async function dispatch(
     const { output, warnings, ...fields } = data
     if (output) say(output)
     for (const line of (warnings as string[] | undefined) ?? []) warn(line)
-    return { board: KANBAN, ...fields }
+    // …and the ready gate, once the card is written: a card marked ready by hand goes
+    // through the same judge a refine's own card does.
+    const gated = gateFrom ? await startGateAfter(gateFrom) : null
+    if (gated) say(`the ready gate is judging #${gated.cardId} — it starts the build itself if the card passes.`)
+    return { board: KANBAN, ...fields, ...(gated ? { gate: gated.sessionId } : {}) }
   })
   cli.onAnswer?.(data)
 }

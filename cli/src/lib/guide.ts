@@ -30,6 +30,7 @@ import discussIdea from '../guide/discuss-idea.md'
 import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
 import extractIdeas from '../guide/extract-ideas.md'
+import gate from '../guide/gate.md'
 import implement from '../guide/implement.md'
 import localUi from '../guide/local-ui.md'
 import moduleMap from '../guide/module-map.md'
@@ -81,6 +82,7 @@ export const GUIDES: Guide[] = [
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
   { name: 'update-questions', when: 'classify open questions, answered decisions, and human checks', text: updateQuestions },
+  { name: 'gate', when: 'judge whether a settled card can be built with nobody watching', text: gate },
   { name: 'qa-loop', when: "settle one task's planning gaps and leave only the user's", text: qaLoop },
   { name: 'qa-lightweight', when: 'check one clear, localized task with a short evidence walk', text: qaLightweight },
   { name: 'revise', when: 'make the one change to a card the user asked for', text: revise },
@@ -121,7 +123,7 @@ const OVERRIDES: Record<Solution, Record<string, string>> = {
  *  reads. */
 const GONE: Record<Solution, readonly string[]> = {
   product: [],
-  marketing: ['refine', 'resolve', 'plan-release', 'changelog', 'qa-loop', 'qa-lightweight', 'releases'],
+  marketing: ['refine', 'resolve', 'gate', 'plan-release', 'changelog', 'qa-loop', 'qa-lightweight', 'releases'],
 }
 
 /** The flows one solution has that the other has no use for. Not an override: a `channel`

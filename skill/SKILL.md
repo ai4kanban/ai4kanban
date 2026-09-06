@@ -63,6 +63,10 @@ arguments are the same with or without `--print`.
 each one itself after a build. Type one only to look again after answering a question — each
 takes the delivery, or the card it is on.
 
+`card gate <id>` is the board's own too: with the ready gate switched on it judges every card
+that reaches `ready` and starts the build itself. Never reach for it to sharpen a card — that
+is `card refine`.
+
 **Build now** on the board's Create screen is the one build with no card: what the user typed
 goes straight to an implementation run. It writes no card, asks nothing back, and nothing
 reviews it — the run's own commit is the last word. All it leaves is a delivery and that

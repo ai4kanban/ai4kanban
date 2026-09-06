@@ -1182,9 +1182,22 @@ there is nothing to turn on.
 
 ### General → Delivery
 
-Three switches. All are repository-level answers, saved in `ui.config.json` and shared by everyone
+Four switches. All are repository-level answers, saved in `ui.config.json` and shared by everyone
 on the board. A change applies to deliveries started afterwards; one already in flight keeps what it
 started with.
+
+**Build clear cards automatically**, off by default. The only one that decides whether a delivery
+starts at all; the three under it decide how one is built.
+
+- **Off** — a card that reaches ready waits for Implement, which is what the board has always done.
+- **On** — the ready gate: every card that ENTERS ready is judged first by one `gate` run against
+  `akb guide gate`. A card it passes goes straight into a delivery on the three settings below; a
+  card it fails gets one `[user]` question, which takes it back to `todo`. It takes one card at a
+  time, in `akb guide next-card`'s order, and never a card that is blocked, recurring, a group root,
+  in flight, or already resting at ready when you flipped the switch. A gate run that fails or is
+  stopped changes nothing at all. Under the switch is the gate's own runtime, so the judgment can
+  run on a stronger model than the builds it lets through; `akb card gate <id>` is the same run by
+  hand.
 
 **Automatic Git commits**, on by default. It is the side each Implement opens on, not the only
 way to change it: the dialog's **Build this on a branch of its own** turns one build round and
@@ -1488,6 +1501,7 @@ in the file, so switching agents or providers never touches any of them.
 ```json
 {
   "harness": "claude-code",
+  "readyGate": true,
   "autoCommit": false,
   "requireDiffApproval": true,
   "aiReview": false,
@@ -1505,13 +1519,17 @@ in the file, so switching agents or providers never touches any of them.
   "runtimes": {
     "names": ["default", "cheap"],
     "global": "default",
-    "flows": { "implement": "cheap" }
+    "flows": { "implement": "cheap", "gate": "default" }
   },
   "specAgents": {
     "ui-design": { "runtime": "cheap", "mockupStyle": "ascii" }
   }
 }
 ```
+
+`readyGate` is **Build clear cards automatically** above. Only written when you turn it **on**,
+so a missing key means off, and so does a file that will not parse: an unreadable setting must
+not be the reason the board started building cards by itself.
 
 `autoCommit` is **Automatic Git commits** above. Only written when you turn it off — a
 missing key means on, which is the default.

@@ -163,6 +163,16 @@ const en: ConfigurationCopy = {
   },
   delivery: {
     frozen: "A change applies to deliveries started afterwards.",
+    gate: {
+      title: "Build clear cards automatically",
+      body: "When a card reaches Ready to build, a gate agent judges it against the board's writing standard. A clear card goes straight into a delivery; the rest go back to Not ready with one question for you.",
+      failedOn: "couldn't switch the ready gate on",
+      failedOff: "couldn't switch the ready gate off",
+      runtime: "Runtime",
+      followGlobal: "Board's runtime",
+      runtimeScope: "The gate only",
+      runtimeFailed: "couldn't save the gate's runtime",
+    },
     commits: {
       title: "Automatic Git commits",
       body: "On, each build gets its own branch and worktree, so several run side by side. Off, it builds in your project folder, one at a time.",

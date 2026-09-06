@@ -290,6 +290,12 @@ export interface BoardRules {
   aiReviewEnabled?(): boolean;
   setAiReview?(on: boolean): WriteResult;
 
+  // does a card that reaches `ready` start its own build? (#440) The fourth setting in the
+  // same file, off by default — so rules older than it read as off, which is what they did:
+  // they waited for Implement.
+  readyGateOn?(): boolean;
+  setReadyGate?(on: boolean): WriteResult;
+
   // how long a run may say nothing before the board ends it (#394), in minutes. `0` never
   // ends one, which is what rules older than the setting do.
   silenceMinutes?(): number;
@@ -395,6 +401,9 @@ export interface BoardRules {
   setGlobalRuntime?(name: string): WriteResult;
   setRuntimeHarness?(runtime: string, harness: string): WriteResult;
   setRuntimeSetting?(runtime: string, key: string, value: string): WriteResult;
+  /** Point one flow at a runtime, or back at the board's global one with an empty name
+   *  (#343). Keyed by the flow's own command name, never the line a user types. */
+  setFlowRuntime?(command: string, runtime: string): WriteResult;
 
   // the board, read
   readBoard(): Promise<Board>;

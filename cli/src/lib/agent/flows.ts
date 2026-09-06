@@ -112,6 +112,18 @@ export const FLOWS: Flow[] = [
     ],
   },
   {
+    command: 'gate',
+    group: 'card',
+    action: 'gate',
+    argument: '<id>',
+    gloss: 'judge whether a ready card is clear enough to build unattended',
+    more: [
+      'The board runs this itself on each card that reaches `ready`, when the ready gate is switched on ' +
+        '(Configuration → General → Delivery). It passes the card straight into a delivery, or appends ' +
+        'the one question that stops it.',
+    ],
+  },
+  {
     command: 'resolve',
     group: 'card',
     action: 'resolve',
@@ -217,6 +229,7 @@ const GONE: Record<Solution, Record<string, string>> = {
   marketing: {
     refine: "a topic carries no questions to sharpen, and its angle is settled in the card's own chat",
     resolve: "a topic carries no questions to answer, and its angle is settled in the card's own chat",
+    gate: 'a topic carries no questions to turn one down with, and a piece is written when the user asks for it',
     'plan-release': 'a topic ships to channels, not to a version, and this board plans none',
     changelog: 'a topic ships to channels, not to a version, and this board plans none',
   },

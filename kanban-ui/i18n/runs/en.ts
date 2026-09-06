@@ -5,6 +5,7 @@ import type { RunsCopy } from "./types";
 const en: RunsCopy = {
   action: {
     implement: "implement",
+    gate: "gate",
     review: "review",
     conflict: "conflict",
     run: "run",
@@ -25,6 +26,7 @@ const en: RunsCopy = {
   },
   verb: {
     implement: "implementing",
+    gate: "judging",
     review: "reviewing",
     conflict: "resolving a conflict",
     run: "running",
@@ -45,6 +47,7 @@ const en: RunsCopy = {
   },
   step: {
     implement: "Implement",
+    gate: "Gate",
     review: "Review",
     conflict: "Conflict",
     run: "Run",

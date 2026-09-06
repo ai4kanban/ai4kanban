@@ -42,6 +42,11 @@ export type AgentAction =
   | 'resolve'
   /** Improve a settled card's writing and mark it ready. */
   | 'writing'
+  /** Judge whether a card that has just reached `ready` can be built without asking the
+   *  user anything (#440) — the ready gate. It changes nothing when the answer is yes, and
+   *  the board starts the build; when the answer is no it appends one `[user]` question,
+   *  which takes the card back to `todo`. Only runs while the gate is switched on. */
+  | 'gate'
   /** Finish setting the board up — every step still unticked on
    *  `docs/kanban/setup-checklist.md`, in one run. It names no card and no release: the
    *  checklist is the plan, and the run starts at its first unticked box, so a run started

@@ -67,6 +67,24 @@ export async function setAiReview(on: boolean): Promise<{ ok: boolean; error?: s
   return rules.setAiReview(on);
 }
 
+// --- the ready gate (#440) ----------------------------------------------------
+// **Build clear cards automatically** — the fourth repository-level answer in the same
+// file. Off by default, so rules from before it existed read as off, which is what they
+// did: every card waited for Implement.
+
+export async function readyGateOn(): Promise<boolean> {
+  const rules = await boardRules();
+  return rules.readyGateOn ? rules.readyGateOn() : false;
+}
+
+export async function setReadyGate(on: boolean): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.setReadyGate) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.readyGate };
+  }
+  return rules.setReadyGate(on);
+}
+
 // --- the silence limit (#394) -------------------------------------------------
 // **End a silent run after** — how many minutes a run may produce nothing before the board
 // ends it as a failure. Repository-level, in the same file as the two above.

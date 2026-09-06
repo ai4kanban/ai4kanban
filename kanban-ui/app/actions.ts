@@ -101,6 +101,7 @@ import {
   renameRuntime,
   setRuntimeSetting,
   setGlobalRuntime,
+  setFlowRuntime,
 } from "@/lib/runtimes";
 import {
   boardNotifications,
@@ -120,6 +121,8 @@ import {
   aiReviewEnabled,
   autoCommitAllowed,
   diffApprovalRequired,
+  readyGateOn,
+  setReadyGate,
   setAiReview,
   setAutoCommit,
   setDiffApproval,
@@ -1017,6 +1020,57 @@ export async function aiReviewAction(): Promise<{ on: boolean; error?: string }>
 export async function setAiReviewAction(on: boolean): Promise<WriteResult> {
   if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
   return setAiReview(on);
+}
+
+// **Build clear cards automatically** (#440) — the ready gate, read and saved in the same
+// file as the three above. Off by default, so nothing to read reads as off: an unreadable
+// setting must not be the reason the board started building cards by itself.
+export async function readyGateAction(): Promise<{ on: boolean; error?: string }> {
+  try {
+    return { on: await readyGateOn() };
+  } catch (e) {
+    return { on: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function setReadyGateAction(on: boolean): Promise<WriteResult> {
+  if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
+  return setReadyGate(on);
+}
+
+/** What the gate row's runtime picker draws: the board's runtimes, which one the `gate`
+ *  flow names, and what that resolves to. All of it off the board's own answer, so the row
+ *  keeps no list of its own. A board that names no runtimes has nothing to pick between and
+ *  says so with `named: false`. */
+export async function gateRuntimeAction(): Promise<{
+  named: boolean;
+  names: string[];
+  global: string;
+  /** The runtime the flow names, or "" when it follows the global one. */
+  runtime: string;
+  /** The agent that runtime resolves to here — the mono word beside the name. */
+  harness: string;
+}> {
+  const blank = { named: false, names: [], global: "", runtime: "", harness: "" };
+  try {
+    const info = await agentInfo();
+    const flow = info.flows.find((f) => f.command === "gate");
+    return {
+      named: info.namedRuntimes,
+      names: info.runtimes.map((r) => r.name),
+      global: info.globalRuntime,
+      runtime: flow && flow.runtime !== info.globalRuntime ? flow.runtime : "",
+      harness: flow?.harness ?? "",
+    };
+  } catch {
+    // No rules to ask. The switch above still works; the picker just has nothing to offer.
+    return blank;
+  }
+}
+
+export async function setGateRuntimeAction(runtime: string): Promise<WriteResult> {
+  if (typeof runtime !== "string") return { ok: false, error: "a runtime is saved as text" };
+  return setFlowRuntime("gate", runtime.trim());
 }
 
 // **End a silent run after** (#394) — how many minutes a run may say nothing before the

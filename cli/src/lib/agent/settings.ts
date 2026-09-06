@@ -200,6 +200,37 @@ export function setAiReview(on: boolean): { ok: boolean; error?: string } {
   })
 }
 
+// ---- auto-delivery: does a ready card start its own build? (#440) ----------
+//
+//   "readyGate": true
+//
+// OFF by default, and only written down when somebody turned it on — the same call
+// `requireDiffApproval` made, and for the same reason: switching it on is the deliberate
+// act, and a board that says nothing behaves exactly as it always did.
+//
+// With it ON every card that reaches `ready` is judged by one `gate` run first. A card it
+// passes goes straight into a delivery, on this board's saved delivery settings; a card it
+// fails gets one `[user]` question, which takes it back to `todo` for the user to answer.
+
+/** True only when somebody switched the ready gate on. A file that won't parse reads as
+ *  off: a setting nobody can read is not a reason to start spending runs and building
+ *  cards by itself. */
+export function readyGateOn(): boolean {
+  try {
+    return readConfigRaw().readyGate === true
+  } catch {
+    return false
+  }
+}
+
+/** Save it. Turning it back off drops the key rather than writing `false`. */
+export function setReadyGate(on: boolean): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    if (on) cfg.readyGate = true
+    else delete cfg.readyGate
+  })
+}
+
 // ---- how long a run may say nothing (#394) ---------------------------------
 //
 //   "silenceMinutes": 20

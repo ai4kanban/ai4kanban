@@ -524,6 +524,17 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join(' ')
+    // The ready gate (#440). It is a verdict, not a pass over the card: the whole of what it
+    // may write is one `[user]` question, and finishing with the card untouched IS the other
+    // answer. Nothing here says what the card should say — that is `akb guide writing`, which
+    // the flow prints — and nothing here says to start the build: the board does that, so a
+    // gate that judged well cannot also start the wrong thing.
+    case 'gate':
+      return [
+        `${kb}. Judge task ${req.id} ${named} following \`akb guide gate\` — is it clear enough to build with nobody watching?`,
+        `Change nothing else: you are not refining this card, and a clean finish is how you say "build it".`,
+        `Don't ask me questions with human-in-the-loop — the one question you append to the card is how you defer to me.`,
+      ].join(' ')
     case 'writing':
       return [
         `${kb}. Improve the writing of task ${req.id} ${named} following \`akb guide writing\`.`,

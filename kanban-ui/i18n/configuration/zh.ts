@@ -266,6 +266,16 @@ const zh: ConfigurationCopy = {
   },
   delivery: {
     frozen: "改动只对之后开始的交付生效。",
+    gate: {
+      title: "卡片写清楚就自动开发",
+      body: "卡片进入待开发时，把关 Agent 先按看板的写卡标准审一遍：写清楚的直接进入交付，其余退回未就绪，并在卡上留下一个待你回答的问题。",
+      failedOn: "未能开启自动开工把关",
+      failedOff: "未能关闭自动开工把关",
+      runtime: "运行时",
+      followGlobal: "跟随看板",
+      runtimeScope: "只影响把关这一步",
+      runtimeFailed: "未能保存把关的运行时",
+    },
     commits: {
       title: "自动 Git 提交",
       body: "开启时，每次构建有自己的分支和 worktree，可以多个并行。关闭后，构建在你的项目文件夹里进行，一次只能一个。",
