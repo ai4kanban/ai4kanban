@@ -590,6 +590,11 @@ export interface ChatMessage {
   /** What the turn cost in US dollars, when the connector priced it. The agent's own
    *  arithmetic from tokens at list prices, never a bill. */
   costUsd?: number
+  /** The pictures pasted into this message (#441), in the order they went into the box —
+   *  file names inside this conversation's own folder under `.chats/`, never paths. A name
+   *  whose file has since gone is kept: the message still reads the way it was sent, and
+   *  the slot says the picture is no longer here. */
+  images?: string[]
 }
 
 /** What a conversation is about: the whole board, one card, or the board's first run
@@ -694,6 +699,12 @@ export interface ChatAgent {
   /** The labels of every agent the board ships that can — what a refusal names, so the
    *  user is told where to go rather than only what doesn't work. */
   able: string[]
+  /** It takes a picture pasted into the box (#441). */
+  seesImages: boolean
+  /** The labels of every agent that does, in the order the picker lists them — the other
+   *  half of a turned-away paste. Declared, not filtered by what is installed: filtering
+   *  would leave one machine reading "These can:" with nothing after it. */
+  imagesAble: string[]
 }
 
 /** A conversation as a reader is shown it: the conversation itself when there is one, plus
@@ -707,6 +718,10 @@ export interface ChatView {
   agent: string
   /** The labels of every agent that can hold one — what a refusal names. */
   able: string[]
+  /** The agent this conversation runs takes a pasted picture (#441), and the labels of
+   *  every agent that does — what a turned-away paste is written from. */
+  seesImages: boolean
+  imagesAble: string[]
   /** A reply is being written this second — by this process or by any other on this
    *  machine. A screen watches it to follow a conversation held in a terminal, and to keep
    *  the board it is changing up to date while it writes. */

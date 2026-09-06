@@ -104,7 +104,10 @@ export type { RepurposeResult } from './lib/view/drafts'
 // a chat in the app and a chat in a terminal are the same conversation, held by the same
 // code, in the same file. Nothing here touches the run record: a conversation is not a run.
 export {
+  addChatImage,
+  chatImageFile,
   clearChat,
+  dropChatImage,
   pickChatAgent,
   pickChatModel,
   readChat,

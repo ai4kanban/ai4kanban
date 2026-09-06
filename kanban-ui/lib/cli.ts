@@ -315,16 +315,30 @@ export interface BoardRules {
       /** The flow this message is part of (#427), in front of the words. Rules from before
        *  it ignore it, and the conversation is then a plain chat. */
       guide?: string;
+      /** The pictures pasted into this message (#441), as the names `addChatImage` filed
+       *  them under. Rules from before it ignore them, and the words go on their own. */
+      images?: string[];
     },
   ): Promise<ChatReply | { error: string }>;
   clearChat?(cardId: ChatTarget): boolean;
+  /** The pictures pasted into one conversation (#441): saved beside its transcript, taken
+   *  back out one at a time, and looked up by name when the browser asks to draw one.
+   *  Optional like the chat itself — rules from before them draw no thumbnails and turn
+   *  every paste away. */
+  addChatImage?(
+    cardId: ChatTarget,
+    data: Uint8Array,
+    type: string,
+  ): { name: string } | { error: string };
+  dropChatImage?(cardId: ChatTarget, name: string): void;
+  chatImageFile?(cardId: ChatTarget, name: string): string | null;
   /** What one conversation runs on (#272) — its own agent and model, kept with the
    *  transcript and nowhere near the board's settings. Optional: rules from before them
    *  draw no picker, and every conversation runs the board's pair as it always did. */
   pickChatAgent?(
     cardId: ChatTarget,
     harness: string | null,
-  ): { ok: true; cleared: boolean; harness: string } | { error: string };
+  ): { ok: true; cleared: boolean; restarted?: boolean; harness: string } | { error: string };
   pickChatModel?(cardId: ChatTarget, model: string | null): { ok: true } | { error: string };
 
   // Discuss (#427) — the same board conversation, with the plan it is talking into shape.

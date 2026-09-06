@@ -16,6 +16,13 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./node_modules/tailwindcss/index.css"],
   },
+  // A picture pasted into the chat reaches the server as a server-action argument (#441),
+  // and the default ceiling on one of those is 1 MB — under what a screenshot of a large
+  // display weighs. This app talks to itself over the loopback, so the limit is only there
+  // to stop a runaway.
+  experimental: {
+    serverActions: { bodySizeLimit: "64mb" },
+  },
   // TEMP (screenshot preview): separate dist dir so a dev server can run beside
   // the production one without clobbering .next. Reverted after use.
   ...(process.env.KANBAN_UI_DIST_DIR ? { distDir: process.env.KANBAN_UI_DIST_DIR } : {}),

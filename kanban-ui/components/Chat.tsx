@@ -21,6 +21,7 @@ import {
   createContext,
   Fragment,
   memo,
+  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -34,6 +35,7 @@ import {
   FiChevronRight,
   FiCopy,
   FiEdit3,
+  FiImage,
   FiMessageSquare,
   FiRefreshCw,
   FiTrash2,
@@ -124,6 +126,10 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
   const c = useCopy().chat;
   const read = rail.read;
   const messages = read?.chat?.messages ?? [];
+  // Sending a message again sends the pictures it carried, by the same names (#441). Held
+  // steady, because every message in the exchange is drawn against it.
+  const say = rail.say;
+  const resend = useCallback((text: string, images?: string[]) => say(text, { images }), [say]);
   // A reply is coming, and whether it is this board's server's — the one Stop and Esc can
   // reach. A terminal's reply is followed just the same, but only its own Ctrl-C ends it.
   const answering = rail.answering;
@@ -151,7 +157,8 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
         liveSince={read?.liveSince ?? null}
         stopped={rail.stopped}
         canSend={!!read && !blocked && !answering}
-        onResend={rail.say}
+        onResend={resend}
+        imageSrc={rail.imageSrc}
         // Only once this conversation has actually been read. Landing on a card drops the
         // last one's messages on the spot, and the invitation before the read would be a
         // beat of "nothing has been said" on a card that has plenty.
@@ -265,6 +272,7 @@ export function Transcript({
   stopped,
   canSend,
   onResend,
+  imageSrc,
   empty,
   after,
 }: {
@@ -279,8 +287,11 @@ export function Transcript({
   /** A message can leave the box right now — what "send again" waits for (#269). */
   canSend: boolean;
   /** Both held steady by the rail: a message is drawn once and held across the polls,
-   *  and a fresh callback every render would draw every one of them again. */
-  onResend(text: string): void;
+   *  and a fresh callback every render would draw every one of them again. `images` are
+   *  the pictures that message carried, sent again as the same files (#441). */
+  onResend(text: string, images?: string[]): void;
+  /** Where one of this conversation's pictures is served from (#441). */
+  imageSrc(name: string): string;
   empty: React.ReactNode;
   /** Drawn under the newest line, inside the scroller — the Discuss screen's two answers
    *  (#427), which stand under the message that asked. */
@@ -337,6 +348,7 @@ export function Transcript({
                 sent={m.role === "agent" ? sentBefore(messages, i) : null}
                 canSend={canSend}
                 onResend={onResend}
+                imageSrc={imageSrc}
               />
             </Fragment>
           ))}
@@ -352,6 +364,7 @@ export function Transcript({
               sent={sentBefore(messages, messages.length)}
               canSend={canSend}
               onResend={onResend}
+              imageSrc={imageSrc}
             />
           )}
           {after}
@@ -401,17 +414,21 @@ const Said = memo(
     sent,
     canSend,
     onResend,
+    imageSrc,
   }: {
     message: ChatMessage;
-    /** The message this reply answered — what "send again" sends again (#269). */
-    sent: string | null;
+    /** The message this reply answered — what "send again" sends again (#269), pictures
+     *  and all (#441). */
+    sent: SentAgain | null;
     canSend: boolean;
-    onResend(text: string): void;
+    onResend(text: string, images?: string[]): void;
+    imageSrc(name: string): string;
   }) {
     const c = useCopy().chat;
     const log = useCopy().runs.log;
     const [editing, setEditing] = useState(false);
     if (message.role === "you") {
+      const shots = message.images ?? [];
       if (editing) {
         return (
           <EditSent
@@ -419,7 +436,9 @@ const Said = memo(
             canSend={canSend}
             onSend={(words) => {
               setEditing(false);
-              onResend(words);
+              // Reworded words, the same pictures: they were pasted once and are sent
+              // again rather than saved again.
+              onResend(words, shots);
             }}
             onCancel={() => setEditing(false)}
           />
@@ -427,8 +446,17 @@ const Said = memo(
       }
       return (
         <div className="group ml-6 mt-3 first:mt-0">
-          <div className="whitespace-pre-wrap rounded-[10px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]">
-            {message.text}
+          <div className="rounded-[10px] bg-nb-paper p-2.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]">
+            {/* Above the words, in the order they went into the box. With no words the
+                pictures are the whole message and nothing is held open for text. */}
+            {shots.length > 0 && <Pictures names={shots} imageSrc={imageSrc} />}
+            {message.text && (
+              <p
+                className={`whitespace-pre-wrap text-[13px] leading-[1.5] ${shots.length ? "mt-2" : ""}`}
+              >
+                {message.text}
+              </p>
+            )}
           </div>
           <div className={`mt-0.5 ${ACTIONS}`}>
             <button
@@ -479,7 +507,7 @@ const Said = memo(
                   disabled={!canSend}
                   title={c.againHint}
                   aria-label={c.againHint}
-                  onClick={() => onResend(sent)}
+                  onClick={() => onResend(sent.text, sent.images)}
                 >
                   <FiRefreshCw size={11} aria-hidden />
                   {c.again}
@@ -499,10 +527,18 @@ const Said = memo(
     before.message.ms === now.message.ms &&
     before.message.costUsd === now.message.costUsd &&
     before.message.usage === now.message.usage &&
-    before.sent === now.sent &&
+    // The names, not the array: the rail re-reads the transcript on a timer and hands a
+    // fresh one every poll, and a picture is drawn off its name alone.
+    sameNames(before.message.images, now.message.images) &&
+    before.sent?.text === now.sent?.text &&
+    sameNames(before.sent?.images, now.sent?.images) &&
     before.canSend === now.canSend &&
-    before.onResend === now.onResend,
+    before.onResend === now.onResend &&
+    before.imageSrc === now.imageSrc,
 );
+
+const sameNames = (a: string[] | undefined, b: string[] | undefined): boolean =>
+  (a ?? []).length === (b ?? []).length && (a ?? []).every((name, i) => name === b![i]);
 
 /** The row of things you can do with a message. Not there at rest, so a long exchange reads
  *  as a conversation rather than a wall of buttons; hovering the message brings it up, and
@@ -597,10 +633,62 @@ function EditSent({
   );
 }
 
+/** What "send again" sends again (#269): the words of the message this reply answered, and
+ *  the pictures that came with them (#441). */
+interface SentAgain {
+  text: string;
+  images?: string[];
+}
+
 /** The message this one answered: the nearest thing said before it. */
-function sentBefore(messages: ChatMessage[], at: number): string | null {
-  for (let i = at - 1; i >= 0; i--) if (messages[i].role === "you") return messages[i].text;
+function sentBefore(messages: ChatMessage[], at: number): SentAgain | null {
+  for (let i = at - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role === "you") return { text: m.text, images: m.images };
+  }
   return null;
+}
+
+/** The pictures one message carried, at a size where a screenshot is still recognisable —
+ *  wrapping onto a second row rather than shrinking, so two are as legible as one.
+ *
+ *  A file deleted by hand keeps its slot: the message reads the way it was sent, and the
+ *  slot is where it says the picture is no longer here. The browser is what notices, since
+ *  nothing else reads these files between one poll and the next. */
+function Pictures({ names, imageSrc }: { names: string[]; imageSrc(name: string): string }) {
+  return (
+    <div className="flex flex-wrap gap-[5px]">
+      {names.map((name) => (
+        <Shot key={name} src={imageSrc(name)} />
+      ))}
+    </div>
+  );
+}
+
+function Shot({ src }: { src: string }) {
+  const c = useCopy().chat;
+  const [gone, setGone] = useState(false);
+  if (gone) {
+    return (
+      <span
+        className="flex h-[88px] w-[118px] flex-col items-center justify-center gap-1 rounded-[8px] bg-nb-wash text-[10.5px] text-nb-ink-soft shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]"
+      >
+        <FiImage size={18} aria-hidden />
+        {c.pictureGone}
+      </span>
+    );
+  }
+  return (
+    // A file on this machine, served by app/chat-image/: next/image would optimise a
+    // screenshot nobody is loading over a network.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={c.picture}
+      onError={() => setGone(true)}
+      className="h-[88px] w-auto max-w-full rounded-[8px] object-cover shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]"
+    />
+  );
 }
 
 /** The reply as it arrives. One live line at a time, and it says what the agent is actually
@@ -821,8 +909,14 @@ function transcriptOf(messages: ChatMessage[], c: ChatCopy): string {
   const said: string[] = [];
   for (const m of messages) {
     const words = m.role === "you" ? m.text.trim() : saidOf(m.text);
-    if (words === "") continue;
-    said.push(`**${m.role === "you" ? c.youSaid : c.agentSaid}**\n\n${words}`);
+    // The pictures cannot be pasted anywhere as pictures, so they are counted instead —
+    // which is also what keeps a message that was nothing but pictures from vanishing
+    // out of the copy (#441).
+    const shots = m.images?.length ? c.picturesSaid(m.images.length) : "";
+    if (words === "" && shots === "") continue;
+    said.push(
+      `**${m.role === "you" ? c.youSaid : c.agentSaid}**\n\n${[shots, words].filter(Boolean).join("\n\n")}`,
+    );
   }
   return said.join("\n\n");
 }
@@ -922,7 +1016,9 @@ function Composer({
   ours: boolean;
 }) {
   const c = useCopy().chat;
-  const empty = !rail.draft.trim();
+  // A message is what is typed OR what was pasted (#441): pictures on their own are a
+  // message, and nothing is held open for words that never came.
+  const empty = !rail.draft.trim() && rail.pasted.length === 0;
   const pick = rail.read?.pick ?? null;
   // On a card's page the box asks about that card, so the words in it never read as an
   // invitation to talk about the whole board.
@@ -935,6 +1031,10 @@ function Composer({
         onSend={() => void rail.send()}
         canSend={!disabled && !answering && !empty}
         disabled={disabled}
+        // The chat rail is the one owner that takes a pasted picture; the Create sheet's
+        // attachments are #252's (components/CreateSheet.tsx).
+        onPasteImages={(files) => void rail.paste(files)}
+        head={<Pasted rail={rail} />}
         placeholder={ask}
         label={c.message}
         sendLabel={c.send}
@@ -959,6 +1059,59 @@ function Composer({
           ) : undefined
         }
       />
+    </div>
+  );
+}
+
+/** The top of the box: the pictures waiting to be sent, or what the last paste had to say
+ *  for itself (#441). One slot, because they are never both true — a turned-away paste put
+ *  nothing in the box, so the note stands where the thumbnails would have been, one line
+ *  above the agent that has to change.
+ *
+ *  The ✕ is always there rather than on hover: it is the only way back out of a paste. */
+function Pasted({ rail }: { rail: ChatRail }) {
+  const c = useCopy().chat;
+  const note = rail.pasteNote;
+  if (note) {
+    return (
+      <div
+        className="mx-1 mt-1 rounded-[8px] px-2 py-1.5 text-[12px] leading-[1.45]"
+        style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+      >
+        {note.kind === "blocked" ? (
+          <>
+            <p className="font-[700]">{c.noPictures(rail.read?.agent ?? "")}</p>
+            <p className="mt-0.5">{c.picturesAble(rail.read?.imagesAble ?? [])}</p>
+          </>
+        ) : (
+          <p>{c.pictureFailed(note.why)}</p>
+        )}
+      </div>
+    );
+  }
+  if (rail.pasted.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-1 pt-1.5">
+      {rail.pasted.map((name) => (
+        <span key={name} className="relative block">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
+              served by app/chat-image/. */}
+          <img
+            src={rail.imageSrc(name)}
+            alt={c.picture}
+            className="block size-[44px] rounded-[8px] object-cover shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]"
+          />
+          <button
+            type="button"
+            title={c.unpaste}
+            aria-label={c.unpaste}
+            onClick={() => void rail.unpaste(name)}
+            className="absolute -right-[5px] -top-[5px] grid size-[16px] cursor-pointer place-items-center rounded-full border-[1.5px] border-nb-paper bg-nb-ink text-nb-cream"
+          >
+            <FiX size={9} aria-hidden />
+          </button>
+        </span>
+      ))}
     </div>
   );
 }

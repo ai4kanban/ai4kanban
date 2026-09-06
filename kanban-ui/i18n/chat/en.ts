@@ -68,6 +68,13 @@ const en: ChatCopy = {
   switchConfirm: "Start over",
   switchWaits: "Switching waits for the reply",
   modelChanged: (model) => `model → ${model}`,
+  picture: "Pasted picture",
+  unpaste: "Take this picture out",
+  pictureGone: "the file has gone",
+  noPictures: (agent) => `${agent} can't see images.`,
+  picturesAble: (agents) => `These can: ${agents.join(", ")}.`,
+  pictureFailed: (why) => `That picture didn't go in — ${why}`,
+  picturesSaid: (count) => (count === 1 ? "[1 picture]" : `[${count} pictures]`),
 };
 
 export default en;

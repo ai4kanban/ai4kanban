@@ -1,0 +1,208 @@
+// The pictures pasted into a conversation (#441).
+//
+// The promise is three things. A picture is a file beside the transcript, named by the board
+// and reachable only by that name — nothing a browser says can reach a path. It goes to the
+// agent the way that connector takes one, and to no connector that takes none. And it lives
+// as long as the conversation does, so clearing takes it and a resend re-sends it rather
+// than saving it twice.
+
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, it } from 'node:test'
+
+import {
+  addChatImage,
+  chatImageFile,
+  chatPrompt,
+  clearChat,
+  dropChatImage,
+  readChat,
+  readChatView,
+  sendChatMessage,
+} from '../src/lib/agent/chat.ts'
+import { setBoardRoot } from '../src/lib/paths.ts'
+
+let root = ''
+let home = ''
+
+// One real PNG, one pixel of it — enough that what is written back is what went in.
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+)
+
+// The board on one agent, with a command that answers instantly — what is asserted is the
+// argv it was spawned with, not what an agent made of it.
+const config = (harness: string, settings: Record<string, unknown> = {}): void => {
+  const kanban = path.join(root, 'docs', 'kanban')
+  fs.mkdirSync(kanban, { recursive: true })
+  fs.writeFileSync(
+    path.join(kanban, 'ui.config.json'),
+    JSON.stringify({ harness, harnessSettings: { [harness]: settings } }, null, 2),
+  )
+  setBoardRoot(root)
+}
+
+// A stand-in agent that writes its own argv where the test can read it, so what reached the
+// command line is the assertion rather than a reading of the code that built it.
+function spy(harness: string): string {
+  const agent = path.join(root, 'agent.mjs')
+  const seen = path.join(root, 'argv.json')
+  fs.writeFileSync(
+    agent,
+    `import fs from 'node:fs'\n` +
+      `fs.writeFileSync(${JSON.stringify(seen)}, JSON.stringify(process.argv.slice(2)))\n`,
+  )
+  config(harness, { command: `node ${agent}` })
+  return seen
+}
+
+const paste = (): string => {
+  const saved = addChatImage(null, new Uint8Array(PNG), 'image/png')
+  assert.ok('name' in saved)
+  return saved.name
+}
+
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-chat-images-'))
+  home = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-chat-images-home-'))
+  process.env.AI4KANBAN_HOME = home
+  config('claude-code')
+})
+
+afterEach(() => {
+  delete process.env.AI4KANBAN_HOME
+  fs.rmSync(root, { recursive: true, force: true })
+  fs.rmSync(home, { recursive: true, force: true })
+})
+
+describe('a picture saved beside a conversation', () => {
+  it('is filed under a name of the board’s own, holding the bytes that came in', () => {
+    const name = paste()
+    const file = chatImageFile(null, name)!
+    assert.ok(file.includes(path.join('.chats', 'board.images')))
+    assert.deepEqual(fs.readFileSync(file), PNG)
+  })
+
+  it('is another conversation’s business alone', () => {
+    const name = paste()
+    assert.equal(chatImageFile(12, name), null)
+  })
+
+  it('reaches nothing outside its own folder, whatever the name says', () => {
+    assert.equal(chatImageFile(null, '../../../etc/passwd'), null)
+    assert.equal(chatImageFile(null, 'board.json'), null)
+  })
+
+  it('refuses what is not a picture rather than filing it under a made-up name', () => {
+    const saved = addChatImage(null, new Uint8Array(PNG), 'text/plain')
+    assert.ok('error' in saved && /not a picture/.test(saved.error))
+  })
+
+  it('goes when it is taken back out of the box, and when the conversation is cleared', () => {
+    const dropped = paste()
+    const kept = paste()
+    dropChatImage(null, dropped)
+    assert.equal(chatImageFile(null, dropped), null)
+    assert.ok(chatImageFile(null, kept))
+    clearChat(null)
+    assert.equal(chatImageFile(null, kept), null)
+  })
+})
+
+describe('a message that carries pictures', () => {
+  it('records them on the message, and reads them back off the transcript', async () => {
+    const seen = spy('claude-code')
+    const name = paste()
+    await sendChatMessage(null, 'what is this?', { images: [name] })
+    assert.ok(fs.existsSync(seen))
+    const said = readChat(null)!.messages[0]!
+    assert.deepEqual(said.images, [name])
+  })
+
+  it('is a message with no words at all', async () => {
+    spy('claude-code')
+    const name = paste()
+    const sent = await sendChatMessage(null, '', { images: [name] })
+    assert.ok(!('error' in sent))
+    assert.equal(readChat(null)!.messages[0]!.text, '')
+  })
+
+  it('drops one whose file has gone, and fails when that leaves nothing', async () => {
+    spy('claude-code')
+    const gone = paste()
+    dropChatImage(null, gone)
+    const sent = await sendChatMessage(null, '', { images: [gone] })
+    assert.ok('error' in sent && /no longer on this machine/.test(sent.error))
+  })
+
+  it('is turned away whole by an agent that cannot see one', async () => {
+    config('grok')
+    const name = paste()
+    const sent = await sendChatMessage(null, 'what is this?', { images: [name] })
+    assert.ok('error' in sent && /can't see images/.test(sent.error))
+    // And it names where to go, the way every other refusal does.
+    assert.ok('error' in sent && /Claude Code/.test(sent.error))
+    assert.equal(readChat(null), null)
+  })
+})
+
+describe('how one reaches the agent', () => {
+  it('is written into the words for a connector that reads a path', async () => {
+    const seen = spy('claude-code')
+    const name = paste()
+    await sendChatMessage(null, 'what is this?', { images: [name] })
+    const argv = JSON.parse(fs.readFileSync(seen, 'utf8')) as string[]
+    assert.ok(!argv.includes('--image'))
+    assert.ok(argv[argv.length - 1]!.includes(chatImageFile(null, name)!))
+  })
+
+  it('is a flag per file for a connector whose CLI takes one', async () => {
+    const seen = spy('codex')
+    const one = paste()
+    const two = paste()
+    await sendChatMessage(null, 'which is which?', { images: [one, two] })
+    const argv = JSON.parse(fs.readFileSync(seen, 'utf8')) as string[]
+    // One token per file, `--image=<FILE>`: Codex's own flag takes a LIST, and spelt as two
+    // tokens the last one would swallow the prompt that follows it.
+    assert.deepEqual(
+      argv.filter((tok) => tok.startsWith('--image')),
+      [`--image=${chatImageFile(null, one)}`, `--image=${chatImageFile(null, two)}`],
+    )
+    // And the words say nothing about them — the flag is where they went.
+    assert.ok(!argv[argv.length - 1]!.includes('.png'))
+  })
+
+  it('reaches OpenCode as one token, so its array flag cannot swallow the prompt', async () => {
+    const seen = spy('opencode')
+    const name = paste()
+    await sendChatMessage(null, 'what is this?', { images: [name] })
+    const argv = JSON.parse(fs.readFileSync(seen, 'utf8')) as string[]
+    assert.ok(argv.includes(`--file=${chatImageFile(null, name)}`))
+  })
+})
+
+describe('what the words say about them', () => {
+  it('names each file, above the message, for a connector that reads paths', () => {
+    const prompt = chatPrompt(null, 'what is this?', { resuming: true, pictures: ['/a.png', '/b.png'] })
+    assert.match(prompt, /2 pictures came with this message/)
+    assert.ok(prompt.indexOf('/a.png') < prompt.indexOf('what is this?'))
+  })
+
+  it('says nothing at all when the message carried none', () => {
+    assert.equal(chatPrompt(null, 'hello', { resuming: true, pictures: [] }), 'hello')
+  })
+})
+
+describe('what a conversation says it can take', () => {
+  it('answers for the agent it actually runs, and names the ones that can', () => {
+    config('claude-code')
+    assert.equal(readChatView(null).seesImages, true)
+    config('grok')
+    const view = readChatView(null)
+    assert.equal(view.seesImages, false)
+    assert.deepEqual(view.imagesAble, ['Claude Code', 'Codex', 'Cursor', 'OpenCode'])
+  })
+})

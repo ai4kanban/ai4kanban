@@ -87,6 +87,9 @@ export const CURSOR: Harness = {
   // run. The real resume id rides on every event and the record saves it from the first.
   adoptsSessionId: false,
 
+  // cursor-agent takes no image flag, and its own file reading opens one from a path.
+  images: { as: 'message' },
+
   // Cursor's short skill names are documented for its chat box, not for a headless run, so
   // the prompt asks for the skill in a sentence.
   skillCall: SKILL_SENTENCE,

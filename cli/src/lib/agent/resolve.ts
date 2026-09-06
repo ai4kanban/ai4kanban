@@ -17,6 +17,7 @@ import {
   MODEL_KEY,
   RAW_ARGS_KEY,
   SKILL_SENTENCE,
+  type ImageInput,
   harnessByName,
   namesFlag,
   uniqueIds,
@@ -414,6 +415,9 @@ export interface ActiveRun extends RunPlan {
   /** This agent's own housekeeping chatter on stderr, which the log leaves out
    *  (agent/harnesses/types.ts). Undefined for a harness that has none. */
   quietStderr?: (line: string) => boolean
+  /** How this connector takes a picture on disk (#441) — a flag per file, or a path
+   *  written into the words. Undefined for one that can't see images at all. */
+  images?: ImageInput
 }
 
 /** Work out how to start a fresh run on one runtime. `cwd` is the folder it works in —
@@ -496,6 +500,7 @@ export function openPlan(plan: RunPlan): ActiveRun {
     // opens with rather than something argv carries.
     client: harness.client?.(effectiveValues(resolved)),
     quietStderr: harness.quietStderr,
+    images: harness.images,
   }
 }
 
@@ -547,6 +552,10 @@ export function chatAgent(pin?: string): ChatAgent {
     label: harness.label,
     canChat: harness.resumes,
     able: HARNESSES.filter((h) => h.resumes).map((h) => h.label),
+    // Declared by the connector rather than derived (#441): a CLI either takes a file on
+    // disk or it doesn't, and no model this run happens to pick changes that.
+    seesImages: harness.images !== undefined,
+    imagesAble: HARNESSES.filter((h) => h.images).map((h) => h.label),
   }
 }
 
@@ -570,6 +579,13 @@ export function chatPickAgents(): ChatPickAgent[] {
       installed: onPath(resolved.command),
     }
   })
+}
+
+/** How the agent one conversation runs takes a picture on disk (#441) — `pin` is the agent
+ *  it picked for itself, with none it is the board's. Undefined for one that can't see a
+ *  picture at all, which is the answer a paste is turned away on. */
+export function harnessImages(pin?: string): ImageInput | undefined {
+  return resolveHarness({ pin }).harness.images
 }
 
 /** The board's own model for one agent — where a conversation on it starts, and what one

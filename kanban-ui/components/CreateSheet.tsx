@@ -129,7 +129,10 @@ function Sheet({
   const read = rail.read;
   // Send again and an edited message go the way the box's own words do: as discussion.
   const say = rail.say;
-  const sayInDiscussion = useCallback((words: string) => say(words, true), [say]);
+  const sayInDiscussion = useCallback(
+    (words: string, images?: string[]) => say(words, { discuss: true, images }),
+    [say],
+  );
   // Nothing on this board can hold a conversation at all — no agent that can, or rules older
   // than Discuss. It is not offered then, and never opened on: a mode nothing can answer is
   // worse than no mode.
@@ -188,7 +191,7 @@ function Sheet({
     if (picked === "discuss") {
       if (!discussing) return;
       clearDraft();
-      rail.say(words, true);
+      rail.say(words, { discuss: true });
       plan.refresh();
       return;
     }
@@ -312,6 +315,9 @@ function Sheet({
                   stopped={rail.stopped}
                   canSend={!!read && !read.blocked && !rail.answering}
                   onResend={sayInDiscussion}
+                  // The same conversation the rail draws, so a message pasted into on one
+                  // screen reads the same on the other (#441).
+                  imageSrc={rail.imageSrc}
                   empty={null}
                   after={<Handoff plan={plan} rail={rail} onPlan={onPlan} />}
                 />
@@ -710,7 +716,7 @@ function Handoff({ plan, rail, onPlan }: { plan: PlanPanel; rail: ChatRail; onPl
         size="xs"
         variant="ghost"
         onClick={() => {
-          rail.say(c.notYet, true);
+          rail.say(c.notYet, { discuss: true });
           plan.refresh();
         }}
       >

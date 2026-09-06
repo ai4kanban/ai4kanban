@@ -242,6 +242,12 @@ export const CODEX: Harness = {
   // run. The real resume id lands on the first event and the record saves it there.
   adoptsSessionId: false,
 
+  // `codex exec [resume] --image=<FILE>` attaches one picture, repeated per file. The `=` is
+  // not a style choice: on `codex exec` the flag is `--image <FILE>...`, and spelt as two
+  // tokens it would swallow the prompt that follows it as a second file — Codex would then
+  // read the prompt from a stdin the board never opens and send an empty turn.
+  images: { as: 'args', args: (file) => [`--image=${file}`] },
+
   // Codex ignores a slash name — it reads as plain chat text — and triggers a skill from a
   // `$` name. The install already writes the skill to `.agents/skills/kanban/`, which is
   // where Codex looks.

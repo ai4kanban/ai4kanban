@@ -160,7 +160,7 @@ describe("a conversation's own agent", () => {
     config(BOARD)
     said()
     const picked = pickChatAgent(null, 'codex')
-    assert.deepEqual(picked, { ok: true, cleared: true, harness: 'codex' })
+    assert.deepEqual(picked, { ok: true, cleared: true, restarted: true, harness: 'codex' })
     const chat = readChat(null)!
     assert.equal(chat.messages.length, 0)
     assert.equal(chat.resumeId, undefined)
@@ -201,9 +201,19 @@ describe("a conversation's own agent", () => {
     pickChatModel(null, 'claude-opus-5')
     // Pinning what it already runs, and unpinning it again: neither changes the agent, so
     // neither costs the session.
-    assert.deepEqual(pickChatAgent(null, 'claude-code'), { ok: true, cleared: false, harness: 'claude-code' })
+    assert.deepEqual(pickChatAgent(null, 'claude-code'), {
+      ok: true,
+      cleared: false,
+      restarted: false,
+      harness: 'claude-code',
+    })
     assert.equal(readChat(null)!.pickedHarness, 'claude-code')
-    assert.deepEqual(pickChatAgent(null, null), { ok: true, cleared: false, harness: 'claude-code' })
+    assert.deepEqual(pickChatAgent(null, null), {
+      ok: true,
+      cleared: false,
+      restarted: false,
+      harness: 'claude-code',
+    })
     const chat = readChat(null)!
     assert.equal(chat.pickedHarness, undefined)
     assert.equal(chat.messages.length, 2)

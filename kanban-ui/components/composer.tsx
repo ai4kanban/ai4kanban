@@ -30,6 +30,7 @@ export function MessageBox({
   label,
   sendLabel,
   hint,
+  head,
   foot,
   guard,
   sendRef,
@@ -37,6 +38,7 @@ export function MessageBox({
   disabled = false,
   autoFocus = false,
   onArrow,
+  onPasteImages,
   escEndsReply = false,
 }: {
   value: string;
@@ -50,6 +52,9 @@ export function MessageBox({
   sendLabel: string;
   /** The one short line under the box: the thing that matters right then, or nothing. */
   hint?: React.ReactNode;
+  /** The strip above what is typed — the rail's pasted pictures, and what a paste it
+   *  turned away has to say (#441). The sheet has none. */
+  head?: React.ReactNode;
   /** The foot row, left of the corner button — the rail's agent pick, the sheet's mode row. */
   foot?: React.ReactNode;
   /** A confirmation hung off the corner button — the sheet's Build now guard (#428). It is
@@ -66,6 +71,11 @@ export function MessageBox({
   /** Up/Down where the owner wants them — the rail walks back through what it has sent.
    *  Return true to keep the caret from moving. */
   onArrow?: (up: boolean) => boolean;
+  /** The pictures on the clipboard, for an owner that takes them (#441) — only the chat
+   *  rail does. The paste itself is never interfered with: a clipboard with no picture in
+   *  it never reaches this, and text pasted alongside one lands in the box as it always
+   *  did. */
+  onPasteImages?: (files: File[]) => void;
   /** The rail's own box: the one text box Esc is not taken in, because there it ends the
    *  reply instead (lib/chat-rail.ts). */
   escEndsReply?: boolean;
@@ -74,6 +84,7 @@ export function MessageBox({
   return (
     <>
       <div className="rounded-[12px] bg-nb-paper p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus-within:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]">
+        {head}
         <textarea
           ref={box}
           data-chat-box={escEndsReply ? "" : undefined}
@@ -82,6 +93,11 @@ export function MessageBox({
           onKeyDown={(e) => {
             const arrow = e.key === "ArrowUp" || e.key === "ArrowDown";
             if (arrow && onArrow?.(e.key === "ArrowUp")) e.preventDefault();
+          }}
+          onPaste={(e) => {
+            if (!onPasteImages) return;
+            const files = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+            if (files.length) onPasteImages(files);
           }}
           rows={MIN_ROWS}
           disabled={disabled}

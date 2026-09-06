@@ -39,7 +39,17 @@ import {
   setChannels,
   setChannelStatus,
 } from "@/lib/board";
-import { type ChatRead, clearChat, pickChatAgent, pickChatModel, readChat, sendChat, stopChat } from "@/lib/chat";
+import {
+  type ChatRead,
+  addChatImage,
+  clearChat,
+  dropChatImage,
+  pickChatAgent,
+  pickChatModel,
+  readChat,
+  sendChat,
+  stopChat,
+} from "@/lib/chat";
 import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, planToPlanFrom, readDiscuss } from "@/lib/discuss";
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
 import {
@@ -460,6 +470,8 @@ export async function readChatAction(cardId: number | null): Promise<ChatRead> {
       canChat: false,
       agent: "",
       able: [],
+      seesImages: false,
+      imagesAble: [],
       missing: false,
       pick: null,
       blocked: "that is not a card on this board.",
@@ -475,13 +487,45 @@ export async function sendChatAction(
   cardId: number | null,
   message: string,
   discuss = false,
+  /** The pictures pasted into this message (#441), by the names `addChatImageAction` filed
+   *  them under. A message that is nothing but pictures is a message. */
+  images: string[] = [],
 ): Promise<{ ok: boolean; error?: string }> {
   const target = chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
-  if (typeof message !== "string" || !message.trim()) {
+  const names = Array.isArray(images) ? images.filter((n): n is string => typeof n === "string") : [];
+  if (typeof message !== "string" || (!message.trim() && names.length === 0)) {
     return { ok: false, error: (await machineCopy()).messages.actions.emptyChat };
   }
-  return sendChat(target, message.trim(), { guide: discuss ? DISCUSS_GUIDE : undefined });
+  return sendChat(target, message.trim(), {
+    guide: discuss ? DISCUSS_GUIDE : undefined,
+    images: names,
+  });
+}
+
+/** Save one picture pasted into the box (#441). It is written before the message is sent —
+ *  the thumbnail in the box IS the file — so a paste that can't be saved says so straight
+ *  away rather than failing the send later.
+ *
+ *  It takes a `FormData` because that is how a browser hands bytes to a server action; what
+ *  comes back is the name the picture is filed under, and nothing else ever names a path. */
+export async function addChatImageAction(
+  cardId: number | null,
+  form: FormData,
+): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
+  const target = chatTarget(cardId);
+  if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  const file = form.get("image");
+  if (!(file instanceof Blob)) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  return addChatImage(target, new Uint8Array(await file.arrayBuffer()), file.type);
+}
+
+/** Take one picture back out of the box. Quiet on a name this conversation never held. */
+export async function dropChatImageAction(cardId: number | null, name: string): Promise<{ ok: boolean }> {
+  const target = chatTarget(cardId);
+  if (target === undefined || typeof name !== "string") return { ok: false };
+  await dropChatImage(target, name);
+  return { ok: true };
 }
 
 /** End the reply being written, keeping what arrived. Quiet when there is none: a reply
@@ -503,7 +547,7 @@ export async function clearChatAction(cardId: number | null): Promise<{ ok: bool
 export async function pickChatAgentAction(
   cardId: number | null,
   harness: string | null,
-): Promise<{ ok: boolean; cleared?: boolean; error?: string }> {
+): Promise<{ ok: boolean; cleared?: boolean; restarted?: boolean; error?: string }> {
   const target = chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   if (harness !== null && typeof harness !== "string") {

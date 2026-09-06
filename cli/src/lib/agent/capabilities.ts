@@ -69,6 +69,12 @@ const CAPABILITIES: Capability[] = [
     blurb: 'Prompts ask for the board skill in a sentence.',
     has: (h) => h.skillCall !== SKILL_SENTENCE,
   },
+  {
+    id: 'images',
+    label: 'Pasted pictures',
+    blurb: 'A picture pasted into a chat is turned away.',
+    has: (h) => h.images !== undefined,
+  },
 ]
 
 /** What this connector can't do that another on the list can, in the order above. Empty for

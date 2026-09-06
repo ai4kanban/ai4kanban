@@ -84,4 +84,18 @@ export type ChatCopy = {
   switchWaits: string;
   /** Where the model changed, drawn in the conversation. */
   modelChanged: (model: string) => string;
+  /** The pictures pasted into the box (#441): what one thumbnail and its ✕ are called, and
+   *  what a picture whose file has gone says in its place. */
+  picture: string;
+  unpaste: string;
+  pictureGone: string;
+  /** A paste turned away, in the slot the thumbnails would have taken. Two lines: the agent
+   *  that can't see a picture, and the ones that can. */
+  noPictures: (agent: string) => string;
+  picturesAble: (agents: string[]) => string;
+  /** A picture that could not be written to disk, in the agent's own words. */
+  pictureFailed: (why: string) => string;
+  /** How many pictures a message carried, for a conversation copied out as text — where
+   *  they cannot be drawn. */
+  picturesSaid: (count: number) => string;
 };

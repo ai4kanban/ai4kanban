@@ -39,6 +39,17 @@ export interface LoginProbe {
   login: string
 }
 
+/** How one connector is handed a picture that is already on disk (#441).
+ *
+ *  `message` — its own reading tools open a path written into the words, so the paths go in
+ *  the prompt and the command line is untouched. `args` — its CLI takes each file under a
+ *  flag of its own, and the words then say nothing about them.
+ *
+ *  A connector that can do neither declares none, and is the one a pasted picture is turned
+ *  away by (agent/capabilities.ts). Read off each CLI's own flags rather than guessed: a
+ *  wrong `args` fails the run on an unexpected argument. */
+export type ImageInput = { as: 'message' } | { as: 'args'; args(file: string): string[] }
+
 export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'gaps'> {
   /** The flags to append to the configured argv. `argv` is what the user's command
    *  already carries, so a harness never overrides a flag the user set by hand.
@@ -135,6 +146,10 @@ export interface Harness extends Omit<HarnessOption, 'binary' | 'installed' | 'g
    *  skill from a slash name (`/kanban`); Codex reads a slash as plain chat text and
    *  triggers on a `$` name instead. */
   skillCall: string
+  /** How this connector takes a picture on disk (#441). Left out by one whose CLI takes
+   *  none — then it cannot see images at all, and a paste into its conversation is turned
+   *  away rather than sent to an agent that would ignore it. */
+  images?: ImageInput
 }
 
 // How a prompt asks for the skill on an agent with no direct skill syntax. A fresh chat

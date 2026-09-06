@@ -128,9 +128,12 @@ function printChat(view: ChatView, program: string): void {
     const count = chat.messages.length
     say(`the conversation about ${about} — ${count} message${count === 1 ? '' : 's'}, with ${runs}`)
     for (const m of chat.messages) {
+      // What a message carried besides its words (#441), said rather than drawn: a printed
+      // conversation is the one place a picture can't be shown, so it is counted instead.
+      const shots = m.images?.length ?? 0
       say('')
-      say(`${m.role} · ${ago(Date.now() - m.at)} ago`)
-      say(indent(m.text || '(nothing)'))
+      say(`${m.role} · ${ago(Date.now() - m.at)} ago${shots ? ` · ${shots} picture${shots === 1 ? '' : 's'}` : ''}`)
+      say(indent(m.text || (shots ? '(the pictures are the message)' : '(nothing)')))
       if (m.stoppedWhy) say(`  — ${m.stoppedWhy}`)
     }
   }

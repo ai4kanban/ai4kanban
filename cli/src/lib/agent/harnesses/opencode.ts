@@ -115,6 +115,11 @@ export const OPENCODE: Harness = {
   // from the first one.
   adoptsSessionId: false,
 
+  // `opencode run --file=<FILE>` attaches one file to the message, repeated per file. The
+  // `=` is not a style choice: `--file` takes an ARRAY, and spelt as two tokens it would
+  // swallow the prompt that follows it as a second file.
+  images: { as: 'args', args: (file) => [`--file=${file}`] },
+
   // OpenCode has no slash or `$` skill syntax at all — its model picks a skill itself — so
   // the prompt asks for the skill in a sentence.
   skillCall: SKILL_SENTENCE,

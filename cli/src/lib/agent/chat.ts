@@ -36,6 +36,7 @@ import { languageNote } from './language'
 import {
   chatAgent,
   chatPickAgents,
+  harnessImages,
   harnessLabel,
   harnessModel,
   modelsKnown,
@@ -99,6 +100,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
       ms: typeof entry.ms === 'number' ? entry.ms : undefined,
       usage: usageOf(entry.usage),
       costUsd: typeof entry.costUsd === 'number' ? entry.costUsd : undefined,
+      images: imagesOf(entry.images),
     })
   }
   return {
@@ -152,6 +154,14 @@ function usageOf(value: unknown): TokenUsage | undefined {
   return { input: u.input!, cacheCreation: u.cacheCreation!, cacheRead: u.cacheRead!, output: u.output! }
 }
 
+// The pictures one message carried (#441). Names, never paths: a file this conversation's
+// own folder doesn't hold is not this conversation's picture, whatever the transcript says.
+function imagesOf(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const names = value.filter((n): n is string => typeof n === 'string' && imageName(n))
+  return names.length ? names : undefined
+}
+
 // Write, then rename, so a UI polling the file never catches half of one.
 function writeChat(chat: Chat): void {
   fs.mkdirSync(CHATS_DIR, { recursive: true })
@@ -166,12 +176,79 @@ function writeChat(chat: Chat): void {
  *  Only our end is dropped. The agent's own session stays wherever that CLI keeps it, and is
  *  never spoken to again — nothing on this board holds its id any more. */
 export function clearChat(cardId: ChatTarget): boolean {
+  // The pictures go with the transcript that named them (#441) — the ones already sent and
+  // the ones still waiting in the box, which is the whole of what this folder holds.
+  fs.rmSync(imagesDir(cardId), { recursive: true, force: true })
   try {
     fs.unlinkSync(chatFile(cardId))
     return true
   } catch {
     return false
   }
+}
+
+// ---- the pictures pasted into one conversation (#441) -----------------------
+//
+// One folder per conversation, beside its transcript and gitignored with it: a pasted
+// picture is this machine's record of what was asked, exactly as the transcript is, so it
+// lives and dies with it.
+//
+// What travels between the box, the transcript and this file is a NAME, never a path. A
+// browser can then ask for nothing but a picture of the conversation it is showing, and a
+// message can carry no path that this board did not write itself.
+
+const imagesDir = (cardId: ChatTarget): string => path.join(CHATS_DIR, `${keyOf(cardId)}.images`)
+
+/** The file names this folder is allowed to hold: what `addChatImage` writes and nothing
+ *  else, so neither a transcript nor a caller can name a file outside it. */
+const imageName = (name: string): boolean => /^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(name)
+
+// What a picture is filed under, by what the browser said it was. Anything else is refused
+// rather than saved under a made-up name: an agent opens these by extension.
+const IMAGE_TYPES: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/avif': 'avif',
+  'image/bmp': 'bmp',
+  'image/svg+xml': 'svg',
+}
+
+/** Where one of this conversation's pictures is on disk, or null when it is not there any
+ *  more — the file was deleted by hand, or the name was never one of ours. */
+export function chatImageFile(cardId: ChatTarget, name: string): string | null {
+  if (!imageName(name)) return null
+  const file = path.join(imagesDir(cardId), name)
+  return fs.existsSync(file) ? file : null
+}
+
+/** Save one pasted picture beside this conversation and answer with the name it is filed
+ *  under. Never throws: a picture that couldn't be written is one thing to say in the box,
+ *  and the paste is then turned away rather than the window failing. */
+export function addChatImage(
+  cardId: ChatTarget,
+  data: Uint8Array,
+  type: string,
+): { name: string } | { error: string } {
+  const ext = IMAGE_TYPES[type.toLowerCase()]
+  if (!ext) return { error: `${type || 'that'} is not a picture this board can send.` }
+  if (!data.length) return { error: 'that picture arrived empty.' }
+  const name = `${randomUUID()}.${ext}`
+  try {
+    fs.mkdirSync(imagesDir(cardId), { recursive: true })
+    fs.writeFileSync(path.join(imagesDir(cardId), name), data)
+  } catch (e) {
+    return { error: `that picture could not be saved: ${e instanceof Error ? e.message : String(e)}` }
+  }
+  return { name }
+}
+
+/** Take one picture back out of the box before it is sent. Its file goes with it — nothing
+ *  else on this board is holding it. */
+export function dropChatImage(cardId: ChatTarget, name: string): void {
+  const file = chatImageFile(cardId, name)
+  if (file) fs.rmSync(file, { force: true })
 }
 
 // ---- the plan one conversation is writing (#427) ----------------------------
@@ -261,6 +338,16 @@ function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
   return undefined
 }
 
+/** Why this conversation can't be sent a picture (#441), judged against the agent it
+ *  actually runs. One sentence, written here so the window's refusal and `akb chat`'s are
+ *  the same words — the box turns a paste away before it gets this far, and this is the
+ *  second look that a send takes whatever the box thought. */
+function imagesRefusedBy(chat: Chat | null): string | undefined {
+  const agent = chatAgent(chat?.pickedHarness)
+  if (agent.seesImages) return undefined
+  return `${agent.label} can't see images. The agents that can: ${agent.imagesAble.join(', ')}.`
+}
+
 /** One conversation and what the board can do about it right now. */
 export function readChatView(cardId: ChatTarget): ChatView {
   const chat = readChat(cardId)
@@ -271,6 +358,8 @@ export function readChatView(cardId: ChatTarget): ChatView {
     canChat: agent.canChat,
     agent: agent.label,
     able: agent.able,
+    seesImages: agent.seesImages,
+    imagesAble: agent.imagesAble,
     // Whoever is answering — this process or a terminal on the other side of the machine.
     // A screen reads it to keep up with a reply it never started, and with the board that
     // reply is changing as it goes.
@@ -315,7 +404,7 @@ function pickOf(chat: Chat | null): ChatPick {
 export function pickChatAgent(
   cardId: ChatTarget,
   harness: string | null,
-): { ok: true; cleared: boolean; harness: string } | { error: string } {
+): { ok: true; cleared: boolean; restarted: boolean; harness: string } | { error: string } {
   const agents = chatPickAgents()
   const want = harness ?? chatAgent().name
   if (!agents.some((a) => a.name === want)) {
@@ -334,7 +423,7 @@ export function pickChatAgent(
       chat.updatedAt = Date.now()
       writeChat(chat)
     }
-    return { ok: true, cleared: false, harness: want }
+    return { ok: true, cleared: false, restarted: false, harness: want }
   }
   const had = Boolean(chat?.messages.length)
   clearChat(cardId)
@@ -344,7 +433,10 @@ export function pickChatAgent(
     const now = Date.now()
     writeChat({ cardId, harness: want, pickedHarness: own, messages: [], startedAt: now, updatedAt: now })
   }
-  return { ok: true, cleared: had, harness: want }
+  // `cleared` is what there was to lose; `restarted` is that the conversation was thrown
+  // away at all. They differ on one that had never been spoken to and yet held a pasted
+  // picture (#441) — its file has gone with the rest, and the box has to let go of it.
+  return { ok: true, cleared: had, restarted: true, harness: want }
 }
 
 /** Point one conversation at a model. The conversation carries on — the same session, the
@@ -508,6 +600,10 @@ export interface SendOptions {
    *  note does: a session told once at the top drifts away from it as it grows. Nothing of
    *  it is written into the transcript, which holds what the user said. */
   guide?: string
+  /** The pictures pasted into this message (#441), as the names `addChatImage` filed them
+   *  under. They are sent again rather than saved again on a resend, so one whose file has
+   *  gone since is dropped here rather than failing the turn. */
+  images?: string[]
 }
 
 /** What one turn sends.
@@ -526,16 +622,25 @@ export function chatPrompt(
   cardId: ChatTarget,
   message: string,
   /** `harness` is the agent this conversation picked for itself (#272), whose own syntax
-   *  the skill call follows; with none it is the board's. */
-  opts: { resuming?: boolean; title?: string; harness?: string; guide?: string } = {},
+   *  the skill call follows; with none it is the board's. `pictures` are the paths a
+   *  connector reads out of the words (#441) — empty for one whose CLI takes a flag per
+   *  file, which is handed them instead of being told about them. */
+  opts: {
+    resuming?: boolean
+    title?: string
+    harness?: string
+    guide?: string
+    pictures?: string[]
+  } = {},
 ): string {
   const language = languageNote()
   const flow = guideLine(opts.guide)
+  const shots = pictureLines(opts.pictures)
   if (opts.resuming) {
     // The first run's later turns carry one more line: the session already holds the
     // instructions, and what a long conversation drifts away from is the answer's shape.
     const reminder = cardId === 'setup' ? SETUP_REMINDER : ''
-    return [flow, language, message, reminder].filter(Boolean).join('\n\n')
+    return [flow, language, shots, message, reminder].filter(Boolean).join('\n\n')
   }
   const title = opts.title ?? (typeof cardId === 'number' ? cardTitle(cardId) : undefined)
   const subject =
@@ -546,7 +651,21 @@ export function chatPrompt(
         : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
           `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
           `unless I name another.`
-  return skillPrompt([subject, flow, language, message].filter(Boolean).join('\n\n'), opts.harness)
+  return skillPrompt([subject, flow, language, shots, message].filter(Boolean).join('\n\n'), opts.harness)
+}
+
+/** The pictures that came with this message, for a connector that opens a path written into
+ *  the words. Above the message rather than under it, the way they sit above the words in
+ *  the box — and named as files to read, since that is the only thing the agent can do with
+ *  a path. */
+function pictureLines(pictures: string[] | undefined): string {
+  if (!pictures?.length) return ''
+  const one = pictures.length === 1
+  return (
+    `${one ? 'A picture came' : `${pictures.length} pictures came`} with this message. ` +
+    `Read ${one ? 'it' : 'them'} before you answer:\n` +
+    pictures.map((file) => `- ${file}`).join('\n')
+  )
 }
 
 /** The one line that puts a conversation on a flow. The name reaches here from a screen, so
@@ -576,10 +695,22 @@ export async function sendChatMessage(
   options: SendOptions = {},
 ): Promise<ChatReply | { error: string }> {
   const text = message.trim()
-  if (!text) return { error: 'say something to send.' }
   const chat = readChat(cardId)
   const blocked = blockedBy(cardId, chat)
   if (blocked) return { error: blocked }
+  // The pictures this turn really has (#441): the ones still on this machine, in the order
+  // they went into the box. A resend sends the same files again rather than saving a second
+  // copy, so one deleted since is dropped here — and a message that was nothing but that
+  // picture then has nothing left to send.
+  const named = options.images ?? []
+  const shots = named.filter((name) => chatImageFile(cardId, name) !== null)
+  if (shots.length) {
+    const refused = imagesRefusedBy(chat)
+    if (refused) return { error: refused }
+  }
+  if (!text && !shots.length) {
+    return { error: named.length ? 'those pictures are no longer on this machine.' : 'say something to send.' }
+  }
 
   const release = startAnswering(cardId)
   if (!release) return { error: 'this conversation is still answering the last message.' }
@@ -604,7 +735,9 @@ export async function sendChatMessage(
     // Written down before the agent is asked anything, so a reply that never arrives still
     // leaves the conversation holding what the user said. The board's own opening turn is
     // the exception: it was never said by the user, so it is not shown as though it were.
-    if (!options.fromBoard) held.messages.push({ role: 'you', text, at: now })
+    if (!options.fromBoard) {
+      held.messages.push({ role: 'you', text, at: now, ...(shots.length ? { images: shots } : {}) })
+    }
     // Answering in words answers the ask too (#427): the two buttons stop standing under a
     // message the conversation has already moved past, and `discuss-idea` asks again once
     // the outcome moves.
@@ -629,7 +762,17 @@ export async function sendChatMessage(
     if (!plan) {
       return { error: `${agent.label} can't carry on a ${harnessLabel(held.harness)} conversation. Clear it to start fresh.` }
     }
-    const say = { title: options.title, harness: held.pickedHarness, guide: options.guide }
+    // Where the pictures go is the connector's own answer (agent/harnesses/types.ts): one
+    // that reads a path out of the words is told them, and one with a flag per file is
+    // handed them on the command line and told nothing.
+    const files = shots.map((name) => path.join(imagesDir(cardId), name))
+    const takes = harnessImages(held.pickedHarness)
+    const say = {
+      title: options.title,
+      harness: held.pickedHarness,
+      guide: options.guide,
+      pictures: takes?.as === 'message' ? files : [],
+    }
     const prompt = chatPrompt(cardId, text, { ...say, resuming: Boolean(held.resumeId) })
     // And what to say if that session turns out to be gone (#395): the opening prompt, which
     // carries the skill and what this conversation is about. Without it the thread keeps a
@@ -642,6 +785,7 @@ export async function sendChatMessage(
       prompt,
       restart,
       continuing: held.resumeId,
+      pictures: files,
       onText: options.onText ?? (() => {}),
       onOpen: options.onOpen,
     })
@@ -774,11 +918,20 @@ async function speak(io: {
    *  in its place. */
   restart?: string
   continuing?: string
+  /** The pictures this turn carries (#441), as paths on this machine. Only a connector
+   *  that takes a flag per file uses them here; one that reads them out of the words has
+   *  them in the prompt already. */
+  pictures?: string[]
   onText(chunk: string): void
   onOpen?(stop: () => void): void
 }): Promise<Spoken> {
   const active = openPlan(io.plan)
-  const [cmd, ...args] = active.argv
+  const takes = active.images
+  // Ahead of the prompt, which is always the last argument: for Codex the flags belong to
+  // the `resume` subcommand the argv ends on, and for OpenCode to the message itself.
+  const shots =
+    takes?.as === 'args' ? (io.pictures ?? []).flatMap((file) => takes.args(file)) : []
+  const [cmd, ...args] = [...active.argv, ...shots]
   const client = active.client
   let text = ''
   const push = (chunk: string): void => {

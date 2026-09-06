@@ -52,6 +52,10 @@ export interface ChatRead {
   agent: string;
   /** The labels of every agent that can hold one — what a refusal names. */
   able: string[];
+  /** The agent this conversation runs takes a pasted picture (#441), and the labels of
+   *  every agent that does — the two halves of a turned-away paste. */
+  seesImages: boolean;
+  imagesAble: string[];
   /** That agent's own CLI isn't on this machine, so nothing would answer. */
   missing: boolean;
   /** Why the box is shut for good: no agent that can chat, a conversation held with another
@@ -115,6 +119,8 @@ const NOTHING: ChatRead = {
   canChat: false,
   agent: "",
   able: [],
+  seesImages: false,
+  imagesAble: [],
   missing: false,
   pick: null,
 };
@@ -153,6 +159,11 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
     canChat: view.canChat,
     agent: view.agent,
     able: view.able,
+    // `?? false` and `?? []` on purpose: rules from before pasted pictures say nothing
+    // here, and the box then turns every paste away rather than claiming an agent can see
+    // one (#441).
+    seesImages: view.seesImages ?? false,
+    imagesAble: view.imagesAble ?? [],
     missing: agentMissing(agent),
     blocked: stillBlocked(view, agent.options),
     failed: failed.get(keyOf(cardId)),
@@ -166,7 +177,7 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
 export async function pickChatAgent(
   cardId: ChatTarget,
   harness: string | null,
-): Promise<{ ok: boolean; cleared?: boolean; error?: string }> {
+): Promise<{ ok: boolean; cleared?: boolean; restarted?: boolean; error?: string }> {
   let rules;
   try {
     rules = await boardRules();
@@ -178,8 +189,10 @@ export async function pickChatAgent(
   if ("error" in picked) return { ok: false, error: picked.error };
   flights().failed.delete(keyOf(cardId));
   // `cleared` says whether there was a transcript to lose — a switch to the agent it
-  // already runs takes nothing away, and neither does one it refused.
-  return { ok: true, cleared: picked.cleared };
+  // already runs takes nothing away, and neither does one it refused. `restarted` says the
+  // conversation went whether or not it held anything, which is what the pictures waiting
+  // in the box follow (#441); rules from before it fall back to `cleared`.
+  return { ok: true, cleared: picked.cleared, restarted: picked.restarted ?? picked.cleared };
 }
 
 /** Point this conversation at a model. The same conversation carries on; the next message
@@ -236,8 +249,9 @@ export async function sendChat(
   message: string,
   /** `fromBoard`: the board is speaking, not the user (#280) — the message is sent, and the
    *  transcript keeps only the reply. `guide`: the flow this message is part of (#427),
-   *  which rides in front of the words and reaches no transcript. */
-  opts: { fromBoard?: boolean; guide?: string } = {},
+   *  which rides in front of the words and reaches no transcript. `images`: the pictures
+   *  pasted into it (#441), by the names they were filed under. */
+  opts: { fromBoard?: boolean; guide?: string; images?: string[] } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   let rules;
   try {
@@ -273,6 +287,7 @@ export async function sendChat(
     title: typeof cardId === "number" ? rules.titleOf(cardId) : undefined,
     fromBoard: opts.fromBoard,
     guide: opts.guide,
+    images: opts.images,
     onText: (chunk) => {
       // Frozen on a stop, so the words on screen are the words that were there when the
       // button was pressed.
@@ -312,6 +327,45 @@ export async function stopChat(cardId: ChatTarget): Promise<{ ok: boolean }> {
   // Missing only in the gap before the agent is running; `onOpen` spends it then instead.
   flight.stop?.();
   return { ok: true };
+}
+
+/** Save one pasted picture beside this conversation (#441) and answer with the name it is
+ *  filed under. The bytes never leave this machine: what the box holds afterwards is that
+ *  name, and what the agent is handed is the file. */
+export async function addChatImage(
+  cardId: ChatTarget,
+  data: Uint8Array,
+  type: string,
+): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
+  let rules;
+  try {
+    rules = await boardRules();
+  } catch (e) {
+    return { ok: false, error: whyNoRules(e) };
+  }
+  if (!rules.addChatImage) return { ok: false, error: TOO_OLD };
+  const saved = rules.addChatImage(cardId, data, type);
+  return "error" in saved ? { ok: false, error: saved.error } : { ok: true, name: saved.name };
+}
+
+/** Take one picture back out of the box before it is sent. Its file goes with it. */
+export async function dropChatImage(cardId: ChatTarget, name: string): Promise<void> {
+  try {
+    (await boardRules()).dropChatImage?.(cardId, name);
+  } catch {
+    // Nothing to read the board with — there is no file of ours to drop either.
+  }
+}
+
+/** Where one of this conversation's pictures is on disk, for the one route that serves its
+ *  bytes to the browser. Null when the file has gone, which is what the record draws as a
+ *  picture that is no longer here. */
+export async function chatImageFile(cardId: ChatTarget, name: string): Promise<string | null> {
+  try {
+    return (await boardRules()).chatImageFile?.(cardId, name) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Forget a conversation and start fresh. A reply still being written is left to finish —
