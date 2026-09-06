@@ -1,6 +1,6 @@
 // Read and validate an agent’s frontmatter and instructions.
 
-import type { SpecAgentChoice, SpecAgentSetting } from '../agent/types'
+import { isSpecOutput, SPEC_OUTPUTS, type SpecAgentChoice, type SpecAgentSetting, type SpecOutput } from '../agent/types'
 import { solution } from '../solution'
 import { parseYamlBlock, splitFrontmatter } from './yaml'
 import type { YamlValue } from './yaml'
@@ -21,6 +21,9 @@ export interface SpecAgent {
   kind: AgentKind
   /** The scope it remembers in, or null when it declares none and starts every run fresh. */
   memory: AgentMemory | null
+  /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
+   *  the board's own `output` setting starts at. `agent` unless `akb.output` says so. */
+  output: SpecOutput
   settings: SpecAgentSetting[]
   /** Its `AGENT.md` instructions, without the frontmatter. */
   body: string
@@ -69,7 +72,7 @@ export type AgentMemory = (typeof AGENT_MEMORIES)[number]
 /** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
  *  and the word every flow asks for it by. */
 export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
-const RESERVED_KEYS = ['enabled', 'runtime']
+const RESERVED_KEYS = ['enabled', 'runtime', 'output']
 
 /** Read one `AGENT.md`. Either the agent, or the one line saying why it can't be used. */
 export function parseSpecAgent(
@@ -111,6 +114,15 @@ export function parseSpecAgent(
   }
   const memory = isMemory(declaredMemory) ? declaredMemory : null
 
+  // Who its output is for, to start with. The setting itself is the board's — every spec
+  // agent has it, declared or not — so a file that says nothing gets `agent`, which is where
+  // a section has always gone.
+  const declaredOutput = str(akb.output)
+  if (declaredOutput && !isSpecOutput(declaredOutput)) {
+    return bad(`\`${name}\` declares \`akb.output: ${declaredOutput}\` — it is \`${SPEC_OUTPUTS.join('` or `')}\``)
+  }
+  const output = isSpecOutput(declaredOutput) ? declaredOutput : 'agent'
+
   const settings: SpecAgentSetting[] = []
   const declared = akb.settings === undefined || akb.settings === '' ? [] : akb.settings
   if (!Array.isArray(declared)) return bad(`\`${name}\`: \`akb.settings\` has to be a list`)
@@ -134,6 +146,7 @@ export function parseSpecAgent(
       i18n: readTranslations(akb.i18n),
       kind: declaredKind,
       memory,
+      output,
       settings,
       body: instructions,
       from,

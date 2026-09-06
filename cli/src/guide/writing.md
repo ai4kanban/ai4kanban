@@ -14,7 +14,8 @@ Every flow writes a card in this order:
                              <- answered material decisions building turned up; written
                                 by review, omit when empty. Never approved delivery scope
 
-## By `<name>` agent         <- only while a [user] open question points at it
+## By `<name>` agent         <- here when that agent's output is set to human review, or
+                                while a [user] question points at one set to agent use
 
 <!-- agent -->               <- boundary
 

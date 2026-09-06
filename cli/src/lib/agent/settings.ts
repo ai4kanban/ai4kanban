@@ -243,8 +243,11 @@ export function setSilenceMinutes(minutes: number): { ok: boolean; error?: strin
 //
 //   "specAgents": {
 //     "technology-selection": false,
-//     "ui-design": { "enabled": false, "mockupStyle": "ascii" }
+//     "ui-design": { "enabled": false, "output": "agent", "mockupStyle": "ascii" }
 //   }
+//
+// `enabled`, `runtime` and `output` are the entry's own keys — the board's three answers
+// about an agent — and every other key is one of the settings that agent declares.
 //
 // An agent the file doesn't name is on, with every setting at its default. A plain boolean
 // is the switch on its own — the shape written before settings existed, read the same way
@@ -266,11 +269,14 @@ export interface SpecAgentEntry {
   /** The runtime this agent runs on (#343). A reserved key in the entry, never one of the
    *  values above — an agent that declared a `runtime` setting would otherwise fight it. */
   runtime?: string
+  /** Who this agent's output is for (#445), when somebody has said. Reserved for the same
+   *  reason as `runtime`: the setting is the board's, not one the agent declares. */
+  output?: string
 }
 
 // One entry as the file holds it. Null for a shape we can't read, which the callers take as
 // "nothing saved for this agent".
-const RESERVED_SPEC_KEYS = ['enabled', 'runtime']
+const RESERVED_SPEC_KEYS = ['enabled', 'runtime', 'output']
 
 function parseSpecEntry(value: unknown): SpecAgentEntry | null {
   if (typeof value === 'boolean') return { enabled: value, values: {} }
@@ -281,7 +287,8 @@ function parseSpecEntry(value: unknown): SpecAgentEntry | null {
     if (!RESERVED_SPEC_KEYS.includes(key) && typeof v === 'string') values[key] = v
   }
   const runtime = typeof raw.runtime === 'string' ? raw.runtime.trim() : ''
-  return { enabled: raw.enabled !== false, values, ...(runtime ? { runtime } : {}) }
+  const output = typeof raw.output === 'string' ? raw.output.trim() : ''
+  return { enabled: raw.enabled !== false, values, ...(runtime ? { runtime } : {}), ...(output ? { output } : {}) }
 }
 
 // One agent's entry under its current name or a name it used to have. The first name that
@@ -343,6 +350,23 @@ export function setSpecAgentValue(
   })
 }
 
+/** Save who one spec agent's output is for (#445), leaving its switch, its runtime and its
+ *  own values alone. An empty value drops the key, which is how it goes back to the default
+ *  its `AGENT.md` starts it at.
+ *
+ *  That the word is one the board offers is checked by the caller above this
+ *  (`lib/agents/`), the way an agent's own settings are. */
+export function setSpecAgentOutput(
+  name: string,
+  output: string,
+  legacyNames: string[] = [],
+): { ok: boolean; error?: string } {
+  const next = output.trim()
+  return writeSpecAgentEntry(name, legacyNames, ({ output: _was, ...entry }) =>
+    next ? { ...entry, output: next } : entry,
+  )
+}
+
 /** Drop one spec agent's entry entirely — its switch, its runtime and every value it had
  *  picked. Called when the agent itself is deleted: a settings block for an agent nobody
  *  has is a line the user can neither read nor reach. */
@@ -372,6 +396,7 @@ function writeSpecAgentEntry(
     const body = {
       ...(entry.enabled ? {} : { enabled: false }),
       ...(entry.runtime ? { runtime: entry.runtime } : {}),
+      ...(entry.output ? { output: entry.output } : {}),
       ...entry.values,
     }
     if (Object.keys(body).length > (entry.enabled ? 0 : 1)) block[name] = body

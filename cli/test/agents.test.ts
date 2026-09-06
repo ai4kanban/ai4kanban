@@ -24,9 +24,11 @@ import {
   specAgentCatalog,
   specAgentInstructions,
   specAgentList,
+  specAgentOutput,
   specAgentSelector,
   specHookAgents,
 } from '../src/lib/agents/index.ts'
+import { readAgents } from '../src/lib/agents/roster.ts'
 import { parseYamlBlock } from '../src/lib/agents/yaml.ts'
 import { move, refuses } from './helpers/board.ts'
 
@@ -152,7 +154,7 @@ describe("what an agent says to a reader who doesn't read English", () => {
 
   it('translates the words a setting is drawn by, and nothing a run picks by', () => {
     const agent = findSpecAgent('ui-design')!
-    const [setting] = agentSettingsView(agent, 'zh')
+    const setting = agentSettingsView(agent, 'zh').find((s) => s.key === 'mockupStyle')
     assert.ok(setting)
     assert.match(setting.label, /[\u4e00-\u9fa5]/)
     for (const choice of setting.choices) {
@@ -166,7 +168,8 @@ describe("what an agent says to a reader who doesn't read English", () => {
       agent.settings[0]!.choices.map((c) => c.value),
     )
     assert.equal(setting.default, agent.settings[0]!.default)
-    assert.deepEqual(agentSettingsView(agent, 'en')[0]!.choices[0]!.label, agent.settings[0]!.choices[0]!.label)
+    const english = agentSettingsView(agent, 'en').find((s) => s.key === 'mockupStyle')!
+    assert.deepEqual(english.choices[0]!.label, agent.settings[0]!.choices[0]!.label)
   })
 
   it('falls back per word when a setting is only half translated', () => {
@@ -208,7 +211,7 @@ describe("what an agent says to a reader who doesn't read English", () => {
         '',
       ].join('\n'),
     })
-    const [setting] = agentSettingsView(findSpecAgent('api-contract')!, 'zh')
+    const setting = agentSettingsView(findSpecAgent('api-contract')!, 'zh').find((s) => s.key === 'style')
     assert.ok(setting)
     assert.equal(setting.label, '\u5951\u7ea6\u683c\u5f0f')
     // Nothing was said about the help line or the second choice, so both stay English
@@ -246,7 +249,7 @@ describe('the agents this command ships', () => {
       setting.choices.map((c) => c.value),
       ['full', 'ascii'],
     )
-    for (const choice of setting.choices) assert.match(choice.reference, /^references\//)
+    for (const choice of setting.choices) assert.match(choice.reference ?? '', /^references\//)
   })
 
   it('still answers to the name `technology-selection` had before', () => {
@@ -262,7 +265,8 @@ describe('an agent the project adds', () => {
     assert.ok(agents.some((a) => a.name === 'api-contract'))
     const view = readSpecAgents().find((s) => s.name === 'api-contract')
     assert.equal(view?.enabled, true)
-    assert.deepEqual(view?.settings, [])
+    // It declares no setting of its own, so the only row on its page is the board's.
+    assert.deepEqual(view?.settings.map((s) => s.key), ['output'])
   })
 
   it('is switched off and set like a built-in one', () => {
@@ -628,6 +632,130 @@ describe('writing what an agent remembers', () => {
       /keeps no memory/,
     )
     assert.ok(!fs.existsSync(path.join(kanban(), 'memory', 'agents')))
+  })
+})
+
+// Who a spec agent's finished output is for (#445): the board's own row on every spec agent,
+// saved beside `enabled` and `runtime` rather than among the settings the agent declares.
+describe("who a spec agent's output is for", () => {
+  const saved = (): Record<string, Record<string, unknown>> =>
+    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8')).specAgents
+
+  it('is the first row on every spec agent, whoever wrote it', () => {
+    project('api-contract', { 'AGENT.md': AGENT })
+    for (const name of ['ui-design', 'technology-selection', 'api-contract']) {
+      const [row] = agentSettingsView(findSpecAgent(name)!)
+      assert.equal(row?.key, 'output', name)
+      assert.deepEqual(
+        row!.choices.map((c) => c.value),
+        ['human', 'agent'],
+        name,
+      )
+      // No word about the card's halves: a user picks who reads it, not where it lands.
+      assert.doesNotMatch(JSON.stringify(row), /agent half|human half|<!-- agent -->/)
+    }
+    assert.equal(readSpecAgents().find((a) => a.name === 'ui-design')?.values.output, 'human')
+  })
+
+  it("is on the spec agents in the pane's roster, and on none of the roles", () => {
+    const rows = (name: string): string[] =>
+      readAgents().agents.find((a) => a.name === name)!.settings.map((setting) => setting.key)
+    assert.deepEqual(rows('ui-design'), ['output', 'mockupStyle'])
+    assert.deepEqual(rows('technology-selection'), ['output'])
+    assert.deepEqual(rows('planner'), [])
+  })
+
+  it('starts `ui-design` at human review and every other agent at agent use', () => {
+    project('api-contract', { 'AGENT.md': AGENT })
+    assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'human')
+    assert.equal(specAgentOutput(findSpecAgent('technology-selection')!), 'agent')
+    assert.equal(specAgentOutput(findSpecAgent('api-contract')!), 'agent')
+  })
+
+  it('is not offered on a `write` agent, which writes files rather than a section', () => {
+    solution('marketing')
+    project('api-contract', { 'AGENT.md': AGENT.replace('  kind: spec', '  kind: write') })
+    assert.deepEqual(agentSettingsView(findSpecAgent('api-contract')!), [])
+  })
+
+  it("saves under the entry's own key, and drops it when it goes back to the default", () => {
+    assert.equal(setSpecAgentSetting('ui-design', 'output', 'agent').ok, true)
+    assert.deepEqual(saved()['ui-design'], { output: 'agent' })
+    assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'agent')
+    assert.equal(setSpecAgentSetting('ui-design', 'output', 'human').ok, true)
+    assert.equal(saved(), undefined)
+    assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'human')
+  })
+
+  it("leaves the switch, the runtime and the agent's own values beside it", () => {
+    board({ specAgents: { 'ui-design': { enabled: false, runtime: 'cheap', mockupStyle: 'ascii' } } })
+    assert.equal(setSpecAgentSetting('ui-design', 'output', 'agent').ok, true)
+    assert.deepEqual(saved()['ui-design'], {
+      enabled: false,
+      runtime: 'cheap',
+      output: 'agent',
+      mockupStyle: 'ascii',
+    })
+  })
+
+  it('refuses a word it does not offer, and runs the default when the file holds one', () => {
+    const refused = setSpecAgentSetting('ui-design', 'output', 'nobody')
+    assert.equal(refused.ok, false)
+    assert.match(refused.error!, /not one of the choices for Output/)
+    board({ specAgents: { 'ui-design': { output: 'nobody' } } })
+    assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'human')
+  })
+
+  it("is the board's key, so no agent may declare a setting or a value of its own for it", () => {
+    project('api-contract', {
+      'AGENT.md': AGENT.replace(
+        '  owns: the request and response shape a card changes\n',
+        [
+          '  owns: the request and response shape a card changes',
+          '  settings:',
+          '    - key: output',
+          '      label: Output',
+          '      default: one',
+          '      choices:',
+          '        - value: one',
+          '          label: One',
+          '          cost: one line',
+          '          reference: references/one.md',
+          '',
+        ].join('\n'),
+      ),
+      'references/one.md': 'One.',
+    })
+    assert.match(specAgentCatalog().problems.join('\n'), /`output` is the board's own key/)
+  })
+
+  it('refuses an `akb.output` naming nobody', () => {
+    project('api-contract', { 'AGENT.md': AGENT.replace('  kind: spec', '  kind: spec\n  output: nobody') })
+    assert.match(specAgentCatalog().problems.join('\n'), /`akb\.output: nobody`/)
+  })
+
+  it('tells the run which half it writes in, and prints it where a flow can read it', () => {
+    assert.match(
+      buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' }),
+      /put your section above `<!-- agent -->`/,
+    )
+    assert.match(specAgentList('akb'), /Output: Human review/)
+    board({ specAgents: { 'ui-design': { output: 'agent' } } })
+    assert.match(
+      buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' }),
+      /put your section below `<!-- agent -->`/,
+    )
+    assert.match(specAgentList('akb'), /Output: Agent use/)
+  })
+
+  it('is drawn in the language the reader reads, from the board rather than the agent', () => {
+    const [row] = agentSettingsView(findSpecAgent('ui-design')!, 'zh')
+    assert.equal(row?.label, '\u4ea7\u51fa')
+    for (const choice of row!.choices) {
+      assert.match(choice.label, /[\u4e00-\u9fa5]/, choice.value)
+      assert.match(choice.cost, /[\u4e00-\u9fa5]/, choice.value)
+    }
+    assert.equal(agentSettingsView(findSpecAgent('ui-design')!, 'en')[0]?.label, 'Output')
   })
 })
 

@@ -19,6 +19,7 @@ akb:
               label: 字符草图
               cost: 纯文本，写在卡片里，画得快
   memory: project
+  output: human
   settings:
     - key: mockupStyle
       label: Mockup style

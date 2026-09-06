@@ -18,7 +18,9 @@ akb raw update-questions <id> --drop <n[,n...]>
 ```
 
 When an answer selects one of several options in a spec-agent section, remove the rejected
-options and their spec-tmp files, then move the surviving section below the boundary.
+options and their spec-tmp files. Leave the surviving section in the half that agent's
+`Output` setting names — `akb spec` prints it — so a section only set to agent use goes back
+below the boundary once no unanswered `[user]` question points at it.
 
 ## Curate the human half
 

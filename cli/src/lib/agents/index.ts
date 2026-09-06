@@ -13,17 +13,19 @@
 
 import { runtimeFor } from '../agent/runtime'
 import { runtimeHarness } from '../agent/resolve'
-import { specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from '../agent/settings'
+import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue } from '../agent/settings'
 import type { SpecAgentEntry } from '../agent/settings'
-import type { SpecAgentSettingView, SpecAgentView } from '../agent/types'
+import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
 import { readLanguage } from '../machine/settings'
 import type { Language } from '../machine/types'
 import { readAgentMemory } from '../memory'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import { specAgentCatalog } from './catalog'
+import { agentSettings, outputLines, OUTPUT_KEY } from './output'
 import type { AgentKind, SpecAgent } from './parse'
 
 export { specAgentCatalog } from './catalog'
+export { agentSettings, OUTPUT_KEY } from './output'
 export { specAgentNames } from '../spec-agent-names'
 export type { AgentKind, SpecAgent } from './parse'
 
@@ -48,8 +50,9 @@ export function agentSettingsView(
   language: Language = readLanguage(),
 ): SpecAgentSettingView[] {
   const said = agent.i18n[language]?.settings ?? {}
-  return agent.settings.map((setting) => {
-    const spoken = said[setting.key]
+  return agentSettings(agent).map((setting) => {
+    // The board's own row is not the agent's to translate, so its words come from beside it.
+    const spoken = setting.key === OUTPUT_KEY ? outputLines(language) : said[setting.key]
     const help = spoken?.help || setting.help
     return {
       key: setting.key,
@@ -114,11 +117,12 @@ export function specAgentSettings(
   agent: SpecAgent,
   entries = specAgentEntries(),
 ): { values: Record<string, string>; notes: string[] } {
-  const saved = savedEntry(agent.name, entries)?.values ?? {}
+  const entry = savedEntry(agent.name, entries)
+  const saved = entry?.values ?? {}
   const values: Record<string, string> = {}
   const notes: string[] = []
-  for (const setting of agent.settings) {
-    const picked = saved[setting.key]
+  for (const setting of agentSettings(agent)) {
+    const picked = setting.key === OUTPUT_KEY ? entry?.output : saved[setting.key]
     if (picked !== undefined && setting.choices.some((c) => c.value === picked)) {
       values[setting.key] = picked
       continue
@@ -132,6 +136,14 @@ export function specAgentSettings(
     values[setting.key] = setting.default
   }
   return { values, notes }
+}
+
+/** Who this agent's output is for (#445): the word somebody saved, or the one its own file
+ *  starts it at. Read as a run starts, like everything else it is set to, so the last change
+ *  is the one that counts — and it decides nothing about the cards already written. */
+export const specAgentOutput = (agent: SpecAgent, entries = specAgentEntries()): SpecOutput => {
+  const saved = savedEntry(agent.name, entries)?.output
+  return isSpecOutput(saved) ? saved : agent.output
 }
 
 /** Everything one spec run is handed of its agent: the `AGENT.md` instructions, and the one
@@ -150,7 +162,7 @@ export function specAgentInstructions(
   const references: { title: string; text: string }[] = []
   for (const setting of agent.settings) {
     const choice = setting.choices.find((c) => c.value === values[setting.key])
-    if (!choice) continue
+    if (!choice?.reference) continue
     const text = agent.file(choice.reference)
     if (text === null) {
       notes.push(
@@ -302,11 +314,10 @@ export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; e
 export function setSpecAgentSetting(name: string, key: string, value: string): { ok: boolean; error?: string } {
   const agent = findSpecAgent(name)
   if (!agent) return { ok: false, error: notAnAgent(name) }
-  const setting = agent.settings.find((s) => s.key === key)
+  const takeable = agentSettings(agent)
+  const setting = takeable.find((s) => s.key === key)
   if (!setting) {
-    const takes = agent.settings.length
-      ? `It takes: ${agent.settings.map((s) => s.key).join(', ')}.`
-      : 'It takes none.'
+    const takes = takeable.length ? `It takes: ${takeable.map((s) => s.key).join(', ')}.` : 'It takes none.'
     return { ok: false, error: `"${key}" is not a setting the \`${agent.name}\` spec agent takes. ${takes}` }
   }
   const picked = value.trim()
@@ -319,7 +330,11 @@ export function setSpecAgentSetting(name: string, key: string, value: string): {
   // An empty value means "back to the default", and so does the default itself — both drop
   // the key, so the file never records a pick nobody made.
   const save = !picked || picked === setting.default ? '' : picked
-  return setSpecAgentValue(agent.name, setting.key, save, specAgentNames(agent.name).slice(1))
+  const legacy = specAgentNames(agent.name).slice(1)
+  // The board's own row is the entry's own key, beside `enabled` and `runtime`, so it is
+  // never written among the values the agent declares.
+  if (setting.key === OUTPUT_KEY) return setSpecAgentOutput(agent.name, save, legacy)
+  return setSpecAgentValue(agent.name, setting.key, save, legacy)
 }
 
 export const notAnAgent = (name: string): string => notOnHook(name, 'spec')
@@ -421,9 +436,10 @@ function agentList(
 // never here, so a terminal listing that spelled out every option would be a menu with
 // nothing to press.
 function settingLines(agent: SpecAgent, entries: Record<string, SpecAgentEntry>): string[] {
-  if (!agent.settings.length) return []
+  const settings = agentSettings(agent)
+  if (!settings.length) return []
   const { values } = specAgentSettings(agent, entries)
-  return agent.settings.map((setting) => {
+  return settings.map((setting) => {
     const choice = setting.choices.find((c) => c.value === values[setting.key])
     return `    ${setting.label}: ${choice ? `${choice.label} — ${choice.cost}` : values[setting.key]}`
   })

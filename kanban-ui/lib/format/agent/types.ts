@@ -974,9 +974,22 @@ export interface SpecAgentChoice {
   /** What this choice costs, in one line: how long the run takes, how much detail it
    *  gives, or how readable the result is. Shown wherever the choice is offered. */
   cost: string
-  /** The file this choice loads, relative to the agent's own folder. */
-  reference: string
+  /** The file this choice loads, relative to the agent's own folder. Every choice an agent
+   *  declares names one; the board's own settings (#445) load nothing. */
+  reference?: string
 }
+
+/** Who a spec agent's finished output is for (#445) — the board's own setting, on every spec
+ *  agent whether or not its `AGENT.md` says a word.
+ *
+ *  `human` puts the section above `<!-- agent -->`, where the card is reviewed; `agent` puts
+ *  it below, with the rest of what the build reads. The two words are the card's halves, and
+ *  are the same ones `spec-write --half` takes. */
+export const SPEC_OUTPUTS = ['human', 'agent'] as const
+export type SpecOutput = (typeof SPEC_OUTPUTS)[number]
+
+export const isSpecOutput = (value: unknown): value is SpecOutput =>
+  typeof value === 'string' && (SPEC_OUTPUTS as readonly string[]).includes(value)
 
 /** One setting a spec agent declares (#255) — `HarnessSetting` above, for the agent that
  *  fills part of a card's spec rather than the CLI a run spawns. It is always a pick from
@@ -985,8 +998,8 @@ export interface SpecAgentChoice {
  *  A spec agent's settings ARE its configuration, declared in its own `AGENT.md`
  *  frontmatter, so a new agent brings its own with it and no screen has to learn its name. */
 export interface SpecAgentSetting {
-  /** The key it saves under inside that agent's entry in ui.config.json. `enabled` and
-   *  `runtime` are the entry's own keys, so no setting may take either. */
+  /** The key it saves under inside that agent's entry in ui.config.json. `enabled`,
+   *  `runtime` and `output` are the entry's own keys, so no setting may take one. */
   key: string
   label: string
   help?: string

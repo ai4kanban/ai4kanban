@@ -15,6 +15,7 @@ import {
   agentMemoryBlock,
   findSpecAgent,
   specAgentInstructions,
+  specAgentOutput,
   specAgentSelector,
   writeAgentSelector,
 } from '../agents'
@@ -378,6 +379,10 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       const own = agent ? specAgentInstructions(agent) : null
       if (own) notes.push(...own.notes)
       const contract = findGuide('spec-agent')?.text.trim()
+      // Who this agent's output is for (#445) — the setting decides, so the run is told the
+      // half rather than judging it. The one exception is in the contract below: a section
+      // an unanswered `[user]` question points at is lifted until that question is answered.
+      const half = agent ? specAgentOutput(agent) : 'agent'
       // What this agent remembers, when it declares a memory at all (#421) — the last block,
       // so the board's own words end before the agent's do.
       const memory = agent ? agentMemoryBlock(agent) : ''
@@ -385,6 +390,9 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         [
           `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
           `Edit \`${cardFile}\` directly. Replace or add only the section headed \`\`## By \`${req.specAgent}\` agent\`\`; use \`###\` for its subheadings.`,
+          half === 'human'
+            ? 'Your output is set to be reviewed by me: put your section above `<!-- agent -->`, and leave it there.'
+            : 'Your output is set to be read by the agent that builds this: put your section below `<!-- agent -->`, before `## Decided by the agent`.',
           memory
             ? `Follow your memory below. Edit \`${rel(agentMemoryFile(req.specAgent!))}\` directly when you learn lasting preferences or product facts. Create it if missing; merge duplicates and drop rules already in your instructions. Omit task IDs and run history.`
             : '',

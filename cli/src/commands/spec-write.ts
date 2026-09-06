@@ -16,8 +16,9 @@ import { say } from '../lib/io'
 import { fixMockupBlocks } from '../lib/mockups'
 import { writeAgentMemory } from '../lib/memory'
 import { die, rel, TODO, warn } from '../lib/paths'
-import { findSpecAgent, notAnAgent, specHeading, specAgentNames } from '../lib/agents'
+import { findSpecAgent, notAnAgent, specAgentOutput, specHeading, specAgentNames } from '../lib/agents'
 import type { SpecAgent } from '../lib/agents'
+import type { SpecOutput } from '../lib/agent/types'
 import type { MoveResult } from '../lib/types'
 
 // The sections a spec agent's own goes in FRONT of. They are the card's tail — what the
@@ -28,14 +29,16 @@ const TAIL_HEADINGS = [/^##\s+Decided by the agent\s*$/i, /^##\s+Source\s*$/i]
 // The line dividing a card's two halves (`akb guide writing`).
 const MARKER = /^<!--\s*agent\s*-->$/
 
-/** Which half the section goes in. A section holding a pick the user has to make is their
- *  reading, so it sits above the boundary; everything else is the builder's. */
-const HALVES = ['human', 'agent'] as const
-type Half = (typeof HALVES)[number]
+/** Which half the section goes in — the same two words the agent's `Output` setting is set
+ *  to (#445), because they are the same answer: who the section is written for. */
+type Half = SpecOutput
 
 /** `akb raw spec-write`, as its command declares it (lib/cli/board.ts). Told no `--half`,
- *  a new section goes in the agent half and a rewrite stays where it sits — a spec agent
- *  that says nothing about the reader has not asked for the card to be reshaped.
+ *  the section lands where that agent's `Output` setting says, whether it is new or a
+ *  rewrite — the setting is the answer to who reads it, so a spec agent no longer decides
+ *  that for itself. `--half` is for the one case the setting cannot cover: an unanswered
+ *  `[user]` question pointing at a section set to `agent`, which is lifted into the card
+ *  until that question is answered.
  *
  *  `--memory` is the other half of the same write (#421): an agent that declares one keeps
  *  its memory here too, so the run that answers the card and the run that learned something
@@ -62,7 +65,7 @@ export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOpti
   // Both inputs are read before either is written, so a memory the move cannot read never
   // leaves the card written and the memory not.
   const memory = readMemory(agent, flags.memory)
-  const half = flags.half ?? null
+  const half = flags.half ?? specAgentOutput(agent)
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
@@ -141,19 +144,14 @@ function readSection(file: string | undefined, text: string | undefined): string
   return spaced
 }
 
-// Put the section on the card: over the one already there, or in the half it belongs to.
-// Everything else in the body is untouched — this is a splice, never a rewrite.
-function splice(
-  body: string,
-  name: string,
-  section: string,
-  half: Half | null,
-): { body: string; replaced: boolean } {
+// Put the section on the card, in the half it belongs to. Everything else in the body is
+// untouched — this is a splice, never a rewrite.
+function splice(body: string, name: string, section: string, half: Half): { body: string; replaced: boolean } {
   const lines = body.split('\n')
   const block = [specHeading(name), '', section, '']
   const headings = specAgentNames(name).map(headingRe)
   const at = lines.findIndex((l) => headings.some((heading) => heading.test(l.trim())))
-  if (at < 0) return { body: place(lines, block, half ?? 'agent'), replaced: false }
+  if (at < 0) return { body: place(lines, block, half), replaced: false }
 
   // From its heading to whatever comes next — that span is the agent's, and only that
   // span. The boundary marker ends it too: it divides the card, so a section sitting
@@ -161,14 +159,12 @@ function splice(
   let end = at + 1
   while (end < lines.length && !/^##\s/.test(lines[end]!) && !MARKER.test(lines[end]!.trim())) end++
   const cut = [...lines.slice(0, at), ...lines.slice(end)]
-  // No half asked for: a rewrite stays where the section already sits.
-  const next = half ? place(cut, block, half) : [...lines.slice(0, at), ...block, ...lines.slice(end)].join('\n')
-  return { body: next, replaced: true }
+  return { body: place(cut, block, half), replaced: true }
 }
 
-// Where a section goes when it is not replacing one in place: above the boundary for the
-// human half, and otherwise in front of the card's tail below it, or at the end. A card
-// with no boundary yet takes it where it has always gone — its next refine places it.
+// Where a section goes: above the boundary for the human half, and otherwise in front of the
+// card's tail below it, or at the end. A card with no boundary yet takes it where it has
+// always gone — its next refine places it.
 function place(lines: string[], block: string[], half: Half): string {
   const marker = lines.findIndex((l) => MARKER.test(l.trim()))
   if (half === 'human' && marker >= 0) {

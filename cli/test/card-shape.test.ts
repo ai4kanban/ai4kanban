@@ -67,57 +67,115 @@ const SHAPED = [
   '',
 ].join('\n')
 
-const specWrite = (argv: string[]): Promise<Record<string, unknown>> =>
-  move(root, ['spec-write', '5', 'ui-design', ...argv])
+const specWrite = (argv: string[], agent = 'ui-design'): Promise<Record<string, unknown>> =>
+  move(root, ['spec-write', '5', agent, ...argv])
 
-describe("a spec agent's section and the boundary", () => {
-  it('lands in the agent half when nothing says otherwise', async () => {
+/** Set who one agent's output is for, the way the Agents pane saves it (#445). */
+const setOutput = (agent: string, output: string): void =>
+  fs.writeFileSync(
+    path.join(root, 'docs', 'kanban', 'ui.config.json'),
+    JSON.stringify({ specAgents: { [agent]: { output } } }, null, 2),
+  )
+
+const ABOVE = [
+  '## Worth noting',
+  '## By `ui-design` agent',
+  '<!-- agent -->',
+  '## Scope',
+  '## Todo',
+  '## Decided by the agent',
+]
+
+const BELOW = [
+  '## Worth noting',
+  '<!-- agent -->',
+  '## Scope',
+  '## Todo',
+  '## By `ui-design` agent',
+  '## Decided by the agent',
+]
+
+// `ui-design` ships set to human review and `technology-selection` to agent use, so both
+// values are covered on a board nobody has configured.
+describe("the half a spec agent's section lands in (#445)", () => {
+  it('is the human half for an agent whose output is reviewed, on the rewrite too', async () => {
     write(SHAPED)
+    await specWrite(['--text', 'a screen'])
+    assert.deepEqual(headings(), ABOVE)
+    // Directly above the marker, so a rewrite that took it away would divide the card
+    // somewhere else.
+    await specWrite(['--text', 'a better screen'])
+    assert.deepEqual(headings(), ABOVE)
+    assert.ok(fs.readFileSync(file, 'utf8').includes('a better screen'))
+  })
+
+  it("is the agent half for an agent whose output is the builder's, on the rewrite too", async () => {
+    write(SHAPED)
+    await specWrite(['--text', 'a pick'], 'technology-selection')
+    await specWrite(['--text', 'a better pick'], 'technology-selection')
+    assert.deepEqual(headings(), [
+      '## Worth noting',
+      '<!-- agent -->',
+      '## Scope',
+      '## Todo',
+      '## By `technology-selection` agent',
+      '## Decided by the agent',
+    ])
+    assert.ok(fs.readFileSync(file, 'utf8').includes('a better pick'))
+  })
+
+  it('is what the board is set to, not what the agent shipped set to', async () => {
+    setOutput('ui-design', 'agent')
+    write(SHAPED)
+    await specWrite(['--text', 'a screen'])
+    assert.deepEqual(headings(), BELOW)
+  })
+
+  it('leaves the sections already written where they are when the setting changes', async () => {
+    write(SHAPED)
+    await specWrite(['--text', 'a screen'])
+    setOutput('ui-design', 'agent')
+    // Another agent writing its own section is not this one's rewrite, so nothing moves.
+    await specWrite(['--text', 'a pick'], 'technology-selection')
+    assert.deepEqual(headings(), [
+      '## Worth noting',
+      '## By `ui-design` agent',
+      '<!-- agent -->',
+      '## Scope',
+      '## Todo',
+      '## By `technology-selection` agent',
+      '## Decided by the agent',
+    ])
+    // Its own next write is what places it again.
     await specWrite(['--text', 'a screen'])
     assert.deepEqual(headings(), [
       '## Worth noting',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
+      '## By `technology-selection` agent',
       '## By `ui-design` agent',
       '## Decided by the agent',
     ])
   })
 
-  it('lands above the boundary when the pick is the user\'s', async () => {
+  // The one case the setting cannot answer: an unanswered `[user]` question about a section
+  // set to agent use lifts it into the card, and answering sends it back.
+  it('is overridden by `--half` for one write, either way', async () => {
     write(SHAPED)
-    await specWrite(['--text', 'a screen', '--half', 'human'])
+    await specWrite(['--text', 'a pick', '--half', 'human'], 'technology-selection')
     assert.deepEqual(headings(), [
       '## Worth noting',
-      '## By `ui-design` agent',
+      '## By `technology-selection` agent',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
       '## Decided by the agent',
     ])
-  })
-
-  it('keeps the marker when a rewrite replaces the section directly above it', async () => {
-    write(SHAPED)
-    await specWrite(['--text', 'a screen', '--half', 'human'])
-    await specWrite(['--text', 'a better screen'])
-    assert.deepEqual(headings(), [
-      '## Worth noting',
-      '## By `ui-design` agent',
-      '<!-- agent -->',
-      '## Scope',
-      '## Todo',
-      '## Decided by the agent',
-    ])
-    assert.ok(fs.readFileSync(file, 'utf8').includes('a better screen'))
-  })
-
-  it('sends the section back below the boundary when asked for the agent half', async () => {
-    write(SHAPED)
-    await specWrite(['--text', 'a screen', '--half', 'human'])
     await specWrite(['--text', 'a screen', '--half', 'agent'])
     assert.deepEqual(headings(), [
       '## Worth noting',
+      '## By `technology-selection` agent',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
@@ -127,18 +185,11 @@ describe("a spec agent's section and the boundary", () => {
   })
 
   // The word the heading carries changed twice (#403, #419). A card written under either
-  // one is rewritten in place, so a rerun never leaves two sections for the same agent.
+  // one is rewritten rather than doubled, so a rerun never leaves two sections for one agent.
   it('rewrites the heading a card already carries, whichever word it uses', async () => {
     write(SHAPED.replace('## Scope', '## By `ui-design` skill\n\nan old screen\n\n## Scope'))
     await specWrite(['--text', 'a new screen'])
-    assert.deepEqual(headings(), [
-      '## Worth noting',
-      '<!-- agent -->',
-      '## By `ui-design` agent',
-      '## Scope',
-      '## Todo',
-      '## Decided by the agent',
-    ])
+    assert.deepEqual(headings(), ABOVE)
     const card = fs.readFileSync(file, 'utf8')
     assert.ok(card.includes('a new screen'))
     assert.ok(!card.includes('an old screen'))
