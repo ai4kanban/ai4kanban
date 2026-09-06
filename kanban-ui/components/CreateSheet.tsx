@@ -1,11 +1,13 @@
 "use client";
 
-// The screen Create task opens (#426) — a full-screen sheet over the board, in the shape a
-// fresh agent chat opens in: a centred headline, a one-line slogan, the message box under
-// them, and nothing else.
+// The screen Create task opens (#426) — a sheet over the board, in the shape a fresh agent
+// chat opens in: a centred headline, a one-line slogan, the message box under them, and
+// nothing else.
 //
-// It is an action, not a place: it lays over the board and hands it back on Esc or the ✕,
-// rather than becoming a tab the header would have to carry at every width.
+// It replaces the BOARD, not the window: it is drawn on the body's own paper, so the top row
+// and the rail stay where they are and the reader keeps their place. It is an action, not a
+// place — Esc or the ✕ hands the board back, rather than becoming a tab the header would
+// have to carry at every width.
 //
 // The box is the chat rail's own (components/composer.tsx), so Enter sends and Shift-Enter
 // starts a line here exactly as it does there. What the rail keeps is the rail's: the walk
@@ -20,6 +22,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiPlus, FiX, FiZap } from "react-icons/fi";
+import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
@@ -55,6 +58,8 @@ export function CreateSheet({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sendRef = useRef<HTMLSpanElement>(null);
+  // The window's body, when there is one — the sheet fills that rather than the viewport.
+  const body = useBodySlot();
   useEffect(() => setMounted(true), []);
 
   // While the sheet is up it is the layer Esc answers, and the rail is not (#267). The
@@ -99,15 +104,16 @@ export function CreateSheet({
   };
 
   return createPortal(
-    // No `data-a4k-overlay` here, unlike a dialog: the window's top strip is a drag region
-    // (app/globals.css) and the sheet is drawn under it, so the traffic lights and the drag
-    // still answer. Only the ✕ takes its press back out of the strip.
-    <div className="fixed inset-0 z-50 flex h-[100dvh] flex-col bg-nb-paper">
-      <div className="flex h-[43px] shrink-0 items-center justify-end px-3 max-md:h-14 max-md:px-2">
+    // No `data-a4k-overlay` here, unlike a dialog: nothing of the window's chrome is
+    // covered, so the traffic lights, the drag strip and the rail all still answer.
+    <div
+      className={`${body ? "absolute" : "fixed"} inset-0 z-20 flex flex-col bg-nb-paper`}
+    >
+      <div className="flex shrink-0 items-center justify-end p-2">
         <button
           onClick={onClose}
           aria-label={close}
-          className="a4k-nodrag grid size-7 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90 active:bg-nb-ink/10 max-md:size-11"
+          className="grid size-7 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90 active:bg-nb-ink/10 max-md:size-11"
         >
           <FiX className="h-[18px] w-[18px] max-md:h-5 max-md:w-5" />
         </button>
@@ -209,7 +215,7 @@ export function CreateSheet({
         </div>
       </div>
     </div>,
-    document.body,
+    body ?? document.body,
   );
 }
 

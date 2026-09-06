@@ -28,6 +28,7 @@ import { cloudCardLinkAction } from "@/app/actions";
 import { FiAlertCircle, FiX } from "react-icons/fi";
 import { BELL_MAX, BELL_MIN, BELL_W, samePath, switchProject, useBellRail } from "@/lib/bell-rail";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
+import { BodySlotProvider } from "@/lib/body-slot";
 import { BellProvider } from "@/lib/card-event";
 import { usePhone } from "@/lib/media";
 import { useOpenCards } from "@/lib/open-cards";
@@ -126,6 +127,10 @@ export function Window({
   children: React.ReactNode;
 }) {
   const c = useCopy().chrome;
+  // The paper itself, handed to whatever wants to be drawn INSTEAD of the board and not
+  // instead of the window — the create sheet (#426). State, not a ref: a portal needs the
+  // element to exist before it can be told about it.
+  const [body, setBody] = useState<HTMLDivElement | null>(null);
   // Read up here because the rails below have to know: at phone width one of them covers
   // the whole body, and a rail that stays up over what it just opened is a rail nobody can
   // get out from behind (#357).
@@ -244,6 +249,7 @@ export function Window({
   return (
     <BellProvider value={bell}>
     <ChatProvider rail={chat}>
+    <BodySlotProvider value={body}>
     {/* `dvh`, not `vh`: a phone browser's URL bar shrinks the viewport as you scroll, and
         100vh is the tall one — the tab bar at the foot would sit under the bar until the
         page was scrolled. Everywhere else the two are the same number. */}
@@ -300,7 +306,7 @@ export function Window({
                 up there is chrome on the right too, so it rounds that corner as well — and
                 at phone width the chrome is the top row above and the tab bar below, so
                 both top corners turn away from it. */}
-            <div className={`h-full overflow-hidden bg-nb-paper ${corners}`}>
+            <div ref={setBody} className={`relative h-full overflow-hidden bg-nb-paper ${corners}`}>
               {/* Find, Memory and More are drawn OVER the page rather than instead of it:
                   the page stays mounted, so the board keeps its scroll and a card page
                   keeps its state while the reader looks something up, and the tab back is
@@ -371,6 +377,7 @@ export function Window({
           drawn over it. */}
       {phone && <PhoneTabs tab={tab} onTab={goTab} />}
     </div>
+    </BodySlotProvider>
     </ChatProvider>
     </BellProvider>
   );
