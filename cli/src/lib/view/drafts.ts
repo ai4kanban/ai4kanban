@@ -4,7 +4,8 @@
 // channel, that draft in an editor, and Repurpose and Publish beside it. Everything those
 // four controls need is here, and nothing here is new behaviour: reading and writing a
 // draft is `content/<id>-<slug>/<name>.md` (../content.ts), repurposing is the `channel`
-// command with all of its own checks, and publishing is `raw channel-status`.
+// command with all of its own checks, publishing is `raw channel-status`, and choosing the
+// channels is `update --channels`.
 //
 // Reading and writing a draft stays OUT of the board's operation contract on purpose. A
 // draft is a file beside the board, not a card — a hosted board carries cards alone, and
@@ -52,7 +53,7 @@ function readOne(cardFile: string, name: string): CardDraft | null {
 export function readDrafts(id: number): CardDrafts {
   const { dir, cardFile } = folderOf(id)
   const drafts = DRAFT_NAMES.map((name) => readOne(cardFile, name)).filter((d): d is CardDraft => d !== null)
-  return { dir: rel(dir), drafts }
+  return { dir: rel(dir), drafts, canSetChannels: true }
 }
 
 /** Write one draft and hand the set back as it now reads. The folder is created on the way
@@ -106,5 +107,15 @@ export async function repurposeChannel(id: number, channel: string, again = fals
 export function setChannelStatus(id: number, channel: string, status: ChannelStatus, url = '') {
   return withLease({ card: id }, (env) =>
     board().runMove('channel-status', { args: [String(id), channel, status], opts: { url } }, env),
+  )
+}
+
+/** Choose the channels this topic goes to — `update --channels`, so the same rules apply:
+ *  the whole list is rewritten, the first entry is the lead channel, and a channel that
+ *  stays keeps the status and URL it already had. The page's `+` appends one; taking one
+ *  off is still a terminal's job. */
+export function setChannels(id: number, names: string[]) {
+  return withLease({ card: id }, (env) =>
+    board().runMove('update', { args: [String(id)], opts: { channels: names } }, env),
   )
 }

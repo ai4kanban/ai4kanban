@@ -401,6 +401,19 @@ export async function repurposeChannel(
   }
 }
 
+/** Choose the channels this topic goes to, lead first (#434). The `+` on the card page
+ *  appends one; the whole list is rewritten, and a channel that stays keeps its status and
+ *  URL. Rules without it draw no `+`, so this is only ever called where it exists. */
+export async function setChannels(id: number, names: string[]): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const rules = await boardRules();
+    if (!rules.setChannels) return { ok: false, error: await tooOldForDrafts() };
+    return await rules.setChannels(id, names);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** Move one channel along and record where the piece went up. It posts nothing. */
 export async function setChannelStatus(
   id: number,

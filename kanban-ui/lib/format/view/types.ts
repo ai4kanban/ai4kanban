@@ -125,6 +125,9 @@ export interface CardDrafts {
   dir: string
   drafts: CardDraft[]
   error?: string
+  /** Whether this copy of the rules can write `channels:` (#434) — what the page's `+`
+   *  needs. Absent on rules older than that move, and the `+` is then not drawn. */
+  canSetChannels?: boolean
 }
 
 /** A group root's subtask, as shown on the root's page. Light meta only — clicking through

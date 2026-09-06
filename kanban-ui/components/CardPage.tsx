@@ -76,7 +76,6 @@ import { isReadyHalf } from "./Queue";
 import { SubtaskMap } from "./SubtaskMap";
 import { buildSubtaskMap } from "@/lib/subtask-map";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
-import { DraftsBlock } from "./Drafts";
 
 const CAP = "text-[10px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft";
 
@@ -1129,9 +1128,6 @@ export function CardPage({
   // tags as the plain links they are.
   const mockups = useMachine()?.mockups ?? {};
   const { card, openIds, releases, plan, diff, standing: boardState } = screen;
-  // The marketing detail (#411): the drafts block stands where a product card's delivery
-  // block stands. Everything else on this page is the one both boards share.
-  const marketing = screen.solution === "marketing";
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   // The open-questions panel is answering rather than being read. Held here rather than
@@ -1188,18 +1184,12 @@ export function CardPage({
     void actions.cardOnBoard(card.id).then((there) => (there ? router.refresh() : setOffBoard(true)));
   }, [actions, router, card.id, offBoard]);
   const prevRunning = useRef<Set<string>>(new Set());
-  // …and the same signal the drafts pane re-reads on (#411): a repurpose writes its file
-  // and ends, and this is how the draft arrives in the pane with nothing to poll.
-  const [runsSettled, setRunsSettled] = useState(0);
   useEffect(() => {
     const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));
     let finished = false;
     for (const id of prevRunning.current) if (!now.has(id)) finished = true;
     prevRunning.current = now;
-    if (finished) {
-      refresh();
-      setRunsSettled((n) => n + 1);
-    }
+    if (finished) refresh();
   }, [sessions, refresh]);
 
   // On tab focus, re-read the card once, unconditionally — so a session that ran
@@ -1334,8 +1324,7 @@ export function CardPage({
   );
 
   // The plain run log — a live tail while an agent works, re-openable afterwards. It is what
-  // a card with no delivery has always drawn, and a marketing card draws it under its drafts
-  // block rather than instead of one (#411).
+  // a card with no delivery has always drawn.
   const runLog = latestSession && (
     <SessionLog
       session={sessionLog}
@@ -1738,25 +1727,11 @@ export function CardPage({
                 </div>
               )}
 
-              {/* One block stands here, and which one is what the board's work decides.
-                  On a marketing board it is the drafts block (#411). On a product board it is
-                  the delivery block while one is in flight (#307) — the tab strip, the log in
-                  it, and a foot naming the delivery, its commit mode and where its code is.
-                  A card with neither keeps the plain session log it has always had. */}
-              {marketing ? (
-              /* A marketing card never has a delivery, so this displaces nothing — and the
-                 run log stays under it, because a repurpose is a run like any other. */
-              <>
-                <DraftsBlock
-                  cardId={card.id}
-                  channels={card.channels}
-                  reload={runsSettled}
-                  onWritten={refresh}
-                  onError={setError}
-                />
-                {runLog}
-              </>
-            ) : delivery ? (
+              {/* One block stands here: the delivery block while one is in flight (#307) —
+                  the tab strip, the log in it, and a foot naming the delivery, its commit
+                  mode and where its code is. A card with none keeps the plain session log it
+                  has always had. */}
+              {delivery ? (
               <DeliveryBlock
                 delivery={delivery}
                 diff={diff}

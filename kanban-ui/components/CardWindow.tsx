@@ -10,12 +10,17 @@ import type { CardScreen } from "@/lib/types";
 import { CardPage, type CardChrome } from "./CardPage";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
+import { MarketingCardPage } from "./MarketingCardPage";
 import { Window } from "./Window";
 
+/** Which page a card gets is what the board's work IS (#434): a marketing card is its draft,
+ *  and its page is an editor with nothing else on it. Both are drawn in this same window, so
+ *  the top row, the card rail and the chat rail come with either. */
 export function CardWindow({ screen, machine }: { screen: CardScreen; machine: ScreenMachine }) {
+  const Page = screen.solution === "marketing" ? MarketingCardPage : CardPage;
   return (
     <ScreenMachineProvider value={machine}>
-      <CardPage screen={screen} shell={CardShell} strips={CardStrips} />
+      <Page screen={screen} shell={CardShell} strips={CardStrips} />
     </ScreenMachineProvider>
   );
 }

@@ -35,6 +35,7 @@ import {
   repurposeChannel,
   saveDraft,
   searchCards,
+  setChannels,
   setChannelStatus,
 } from "@/lib/board";
 import { type ChatRead, clearChat, pickChatAgent, pickChatModel, readChat, sendChat, stopChat } from "@/lib/chat";
@@ -866,6 +867,17 @@ export async function setChannelStatusAction(
   if (typeof channel !== "string" || !channel) return { ok: false, error: "a channel is named" };
   if (typeof status !== "string" || !status) return { ok: false, error: "a channel moves to a status" };
   return setChannelStatus(id, channel, status, typeof url === "string" ? url : "");
+}
+
+// Choose the channels this topic goes to, lead first (#434) — the card page's `+`, which
+// appends one to the list the card already carries. Reused from `update --channels`, so a
+// channel that stays keeps its status and the URL it was published at.
+export async function setChannelsAction(id: number, names: string[]): Promise<{ ok: boolean; error?: string }> {
+  if (!Number.isInteger(id)) return { ok: false, error: "channels are chosen by card number" };
+  if (!Array.isArray(names) || names.some((n) => typeof n !== "string")) {
+    return { ok: false, error: "the channels are a list of names" };
+  }
+  return setChannels(id, names);
 }
 
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once

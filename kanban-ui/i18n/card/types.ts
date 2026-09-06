@@ -60,32 +60,50 @@ export type CardCopy = {
      *  panel is a page of its own, so the stack needs a button to push it. */
     resolve: string;
   };
-  /** The drafts block a marketing card's page draws where a product card draws its
-   *  delivery (#411). The tab names are file and channel names, so they are not here. */
-  drafts: {
-    repurpose: string;
-    repurposeHint: string;
-    repurposeFailed: string;
-    publish: string;
-    publishHint: string;
-    publishFailed: string;
-    /** Why both are off while the source is the tab on screen. */
-    notOnSource: string;
-    /** The empty editor, before anything is written for this tab. */
-    empty: string;
+  /** A marketing card's own page (#434) — the whole of it, since nothing a product card
+   *  page says is drawn there. The tab names are file and channel names, not copy. */
+  marketing: {
+    /** The way back to the board, beside the title. */
+    back: string;
+    /** The `…` menu, and the three things in it that are this page's own. */
+    more: string;
+    rewrite: string;
+    /** The two centred actions on a tab nothing is written for, and the line under them
+     *  saying the other way is simply to type. */
+    draft: string;
+    rewriteFromSource: string;
+    orJustWrite: string;
+    rewriteFailed: string;
+    startFailed: string;
+    /** An agent is writing this card — a run, or its own conversation. */
+    rewriting: string;
+    /** How far this topic is published, beside the title. */
+    publishedCount: (published: number, total: number) => string;
+    /** The editor's corner: the file, and whether it holds what is on screen. */
+    saved: string;
     unsaved: string;
-    /** The draft was rewritten on disk while the reader was typing. Saving replaces it. */
-    movedUnderneath: string;
-    /** Repurposing over a draft that is already there. The body is the board's own
-     *  sentence, so only the title and the confirm are here. */
+    /** The `+` at the right of the tab strip. */
+    addChannel: string;
+    addChannelFailed: string;
+    /** Rewriting over a draft that is already there. The body is the board's own sentence,
+     *  so only the title and the confirm are here. */
     replaceTitle: string;
     replaceBody: string;
     replaceConfirm: string;
     /** Publish asks where the piece went up before it marks the channel. */
+    publish: string;
+    publishFailed: string;
     publishTitle: (channel: string) => string;
     publishIntro: string;
     publishUrlPlaceholder: string;
     publishConfirm: string;
+    /** One selected passage, handed to this card's own conversation. `message` is what the
+     *  agent is sent: the file, where the passage sits in it, the passage, and the ask. */
+    ask: {
+      placeholder: string;
+      send: string;
+      message: (file: string, from: number, to: number, selected: string, instruction: string) => string;
+    };
   };
   delivery: {
     /** The fold's own control, which is the whole tab strip. */

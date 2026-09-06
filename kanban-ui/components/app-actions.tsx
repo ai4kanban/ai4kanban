@@ -35,6 +35,7 @@ import {
   resumeSessionAction,
   saveDraftAction,
   scheduleCardAction,
+  setChannelsAction,
   setChannelStatusAction,
   setReleaseGoalAction,
   startAgentAction,
@@ -74,6 +75,7 @@ export const appActions: ScreenActions = {
   saveDraft: saveDraftAction,
   repurpose: repurposeChannelAction,
   setChannelStatus: setChannelStatusAction,
+  setChannels: setChannelsAction,
 };
 
 export function AppActions({ children }: { children: React.ReactNode }) {

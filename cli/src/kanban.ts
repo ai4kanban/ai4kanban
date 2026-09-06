@@ -94,8 +94,9 @@ export { createAgent, deleteAgent, readAgents, saveAgentFile, setAgentRule } fro
 // drawn from and acts through. Reading and writing a draft is a file under
 // `content/<id>-<slug>/`; a repurpose is the `channel` command with every check it makes;
 // publishing is `raw channel-status`, which records where the piece went up and posts
-// nothing. A product board never draws the block, so nothing here is ever called on one.
-export { readDrafts, repurposeChannel, saveDraft, setChannelStatus } from './lib/view/drafts'
+// nothing; choosing the channels is `update --channels`. A product board never draws the
+// page, so nothing here is ever called on one.
+export { readDrafts, repurposeChannel, saveDraft, setChannels, setChannelStatus } from './lib/view/drafts'
 export type { RepurposeResult } from './lib/view/drafts'
 
 // The chat (#240): the board's conversation with its agent, and each card's. A screen

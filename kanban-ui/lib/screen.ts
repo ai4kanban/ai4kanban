@@ -105,9 +105,9 @@ export interface ScreenActions {
   resumeCloudRequest(eventId: string): Promise<WriteResult>;
   cancelCloudRequest(taskId: number, eventId: string): Promise<WriteResult>;
 
-  // ---- a marketing card's drafts and channels (#411) -----------------------
-  // Only the drafts block calls these, and only a marketing board draws it. A caller with
-  // no marketing board of its own still implements them; the block is never reached.
+  // ---- a marketing card's drafts and channels (#411, #434) -----------------
+  // Only the marketing card page calls these, and only a marketing board draws it. A caller
+  // with no marketing board of its own still implements them; the page is never reached.
   readDrafts(id: number): Promise<CardDrafts>;
   saveDraft(id: number, name: string, text: string): Promise<CardDrafts>;
   /** The CLI's `channel` command, with every check it makes. `again` answers a draft that
@@ -115,6 +115,9 @@ export interface ScreenActions {
   repurpose(id: number, channel: string, again: boolean): Promise<RepurposeAnswer>;
   /** Move one channel along and record where the piece went up. It posts nothing. */
   setChannelStatus(id: number, channel: string, status: ChannelStatus, url: string): Promise<WriteResult>;
+  /** Choose the channels this topic goes to, lead first — the page's `+` appends one. A
+   *  channel that stays keeps its status and the URL it went up at. */
+  setChannels(id: number, names: string[]): Promise<WriteResult>;
 }
 
 /** A repurpose that started, or the reason it did not. */

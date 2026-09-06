@@ -265,6 +265,10 @@ export interface BoardRules {
     status: ChannelStatus,
     url?: string,
   ): Promise<{ ok: boolean; error?: string }>;
+  /** Choose the channels this topic goes to (#434), lead first — `update --channels`, so a
+   *  channel that stays keeps its status and its URL. Optional on its own: rules with the
+   *  drafts above but not this one draw the page without its `+`. */
+  setChannels?(id: number, names: string[]): Promise<{ ok: boolean; error?: string }>;
 
   /** What this board's work IS (#407) — `product` or `marketing`. Optional: a copy of the
    *  rules older than the release that added solutions has only ever run product boards. */

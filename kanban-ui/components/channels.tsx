@@ -35,6 +35,10 @@ const STATE: Record<ChannelStatus | "", { colour: string; filled: boolean }> = {
   published: { colour: "var(--color-nb-mint)", filled: true },
 };
 
+/** Every channel the board knows, in the order `cli/src/lib/channels.ts` names them — what
+ *  the marketing card page's `+` offers once the chosen ones are taken out (#434). */
+export const CHANNEL_NAMES = Object.keys(MARK);
+
 /** What this channel is called, for a tooltip and for a tab. The platform's own name, in
  *  every language — a product name is not copy. */
 export const channelLabel = (name: string): string => MARK[name]?.label ?? name;
@@ -51,16 +55,20 @@ export function ChannelMark({
   name,
   status,
   size = 14,
+  dim = !status,
 }: {
   name: string;
   status: ChannelStatus | "";
   size?: number;
+  /** Whether the mark is dimmed. Defaults to "nothing is written for it"; a picker offering
+   *  a channel that has not been chosen at all overrides it (#434). */
+  dim?: boolean;
 }) {
   const mark = MARK[name];
   if (!mark) return null;
   const { Icon } = mark;
   return (
-    <span className="inline-flex shrink-0" style={{ color: mark.colour, opacity: status ? 1 : 0.38 }}>
+    <span className="inline-flex shrink-0" style={{ color: mark.colour, opacity: dim ? 0.38 : 1 }}>
       <Icon size={size} aria-hidden />
     </span>
   );
