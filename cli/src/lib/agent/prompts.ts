@@ -310,7 +310,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'edit':
       return [
         `${kb}. Revise task ${req.id} ${named}: "${req.notes || ''}" ${NO_IMPLEMENT}`,
-        `Apply the requested change following \`akb guide revise\`, then validate the updated plan following \`akb guide qa-loop\`.`,
+        `Apply the requested change following \`akb guide revise\`, then validate the updated plan following \`akb guide qa-lightweight\`.`,
         `You can create new subtasks if it's a group task and the intent is to do so.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
@@ -540,7 +540,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     }
     case 'resolve':
       return [
-        `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`, then validate the updated plan following \`akb guide qa-loop\`.`,
+        `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`, then validate the updated plan following \`akb guide qa-lightweight\`.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
         req.andImplement
           ? `Continue into implementation only if applying the answers leaves no open question.`

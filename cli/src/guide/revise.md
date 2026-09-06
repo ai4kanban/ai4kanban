@@ -1,6 +1,6 @@
 # Revise
 
-Make the requested change, then follow `akb guide qa-loop` to validate the updated card in
+Make the requested change, then follow `akb guide qa-lightweight` to validate the updated card in
 this session. Apply answers supported by the project and leave only decisions the user owns.
 
 - **Changed outcome**: If the request materially changes what the task delivers, run the

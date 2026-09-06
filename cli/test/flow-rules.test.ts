@@ -280,16 +280,24 @@ describe('the prompt', () => {
     assert.match(guide, /rerun only the checks those paths affect/)
   })
 
-  it('runs post-answer QA in the resolver session', () => {
-    const prompt = buildPrompt({ action: 'resolve', id: 1, notes: 'Use A.' })
-    assert.match(prompt, /akb guide resolve/)
-    assert.match(prompt, /akb guide qa-loop/)
-  })
-
-  it('runs post-revision QA in the revision session', () => {
-    const prompt = buildPrompt({ action: 'edit', id: 1, notes: 'Use A.' })
-    assert.match(prompt, /akb guide revise/)
-    assert.match(prompt, /akb guide qa-loop/)
+  it('starts resolve and revise with lightweight QA in the same session', () => {
+    for (const [action, guide] of [['resolve', 'resolve'], ['edit', 'revise']] as const) {
+      const req = { action, id: 1, notes: 'Use A.' }
+      const prompt = buildPrompt(req)
+      assert.match(prompt, new RegExp(`akb guide ${guide}`))
+      assert.match(prompt, /akb guide qa-lightweight/)
+      assert.doesNotMatch(prompt, /akb guide qa-loop/)
+      startCollecting()
+      try {
+        const guides = printFlow(req).guides as string[]
+        assert.ok(guides.includes('qa-lightweight'))
+        assert.ok(!guides.includes('qa-loop'))
+      } finally {
+        stopCollecting()
+      }
+      assert.match(findGuide(guide)!.text, /akb guide qa-lightweight/)
+    }
+    assert.match(findGuide('qa-lightweight')!.text, /broader or more[\s\S]*uncertain[\s\S]*akb guide qa-loop/)
   })
 
   it('shows the spec-agent catalog to every QA-carrying session and to no spec run', () => {

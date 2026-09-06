@@ -467,12 +467,12 @@ const GUIDES_FOR: Record<AgentAction, string[]> = {
   clarify: ['writing', 'update-questions', 'qa-loop'],
   // Apply the user's answers first, then validate the resulting plan to convergence in the
   // same session. The watcher may start writing afterwards, but never another QA session.
-  resolve: ['board', 'writing', 'resolve', 'update-questions', 'qa-loop'],
+  resolve: ['board', 'writing', 'resolve', 'update-questions', 'qa-lightweight'],
   // The dedicated writing pass gets that guide alone: it writes a body and nothing else.
   writing: ['writing'],
   // Apply the requested correction first, then validate the resulting plan to convergence
   // in the same session. Writing may follow, but never another QA session.
-  edit: ['writing', 'revise', 'update-questions', 'qa-loop'],
+  edit: ['writing', 'revise', 'update-questions', 'qa-lightweight'],
   create: ['board', 'evaluate-task', 'add-task'],
   propose: ['board', 'propose', 'evaluate-task', 'add-task'],
   'plan-release': ['board', 'releases', 'plan-release', 'evaluate-task', 'add-task'],

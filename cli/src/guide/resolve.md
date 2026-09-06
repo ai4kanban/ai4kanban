@@ -39,5 +39,5 @@ unchanged and keep the question open.
 Where the answer lands on a spec agent's section, also record it in that agent's memory —
 "An agent's memory" in `akb guide update-questions`.
 
-After applying the supplied answers, follow `akb guide qa-loop` to validate the updated card
+After applying the supplied answers, follow `akb guide qa-lightweight` to validate the updated card
 and every question still open.
