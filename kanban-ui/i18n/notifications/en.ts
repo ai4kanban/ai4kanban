@@ -9,6 +9,11 @@ const en: NotificationsCopy = {
   close: "Close notifications",
   silenced: "silenced",
   silencedTip: "System notifications are silenced for every board on this machine.",
+  filled: (scope, cards) =>
+    cards === 1
+      ? `Watching ${scope} — 1 card was already waiting for you`
+      : `Watching ${scope} — ${cards} cards were already waiting for you`,
+  everyRelease: "every release",
   newCount: (unread) => `${unread} new`,
   markAllRead: "Mark all read",
   justNow: "just now",

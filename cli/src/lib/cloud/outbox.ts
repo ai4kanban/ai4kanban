@@ -65,6 +65,14 @@ export type Pending =
        *  so a refused approval and a broken build never read as one outcome (#318). */
       reason?: string
     })
+  /** The one message a scope change sends (#451). It belongs to no card, so it names none:
+   *  what is watched now, and how many waiting cards the switch brought in. */
+  | (Queued & {
+      kind: 'summary'
+      boardId: string
+      release: string
+      cards: number
+    })
 
 /** One thing this board gave up on sending (#329).
  *
@@ -198,6 +206,10 @@ const subject = (p: Pending): string => {
       return `retire:${p.eventId}`
     case 'action':
       return `action:${p.eventId}`
+    case 'summary':
+      // One board, one outbox, so a switch superseding an unsent switch is the whole rule:
+      // what a chat is owed is where the board stands NOW, not every scope it passed through.
+      return 'summary'
     default:
       return `outcome:${p.eventId}:${p.outcome}`
   }
@@ -205,13 +217,20 @@ const subject = (p: Pending): string => {
 
 /** Whether a queued item and a new one about the same subject would send the same thing. A
  *  publication is its fingerprint AND its revision — the revision is not news, but Cloud
- *  stores it, so a queued snapshot must not hold back the one the card reads at now. Nothing
- *  else carries a payload that can move. */
-const unchanged = (queued: Pending, next: Pending): boolean =>
-  queued.kind === 'publish' && next.kind === 'publish'
-    ? queued.snapshot.fingerprint === next.snapshot.fingerprint &&
+ *  stores it, so a queued snapshot must not hold back the one the card reads at now. A
+ *  summary is the scope and the count. Nothing else carries a payload that can move. */
+const unchanged = (queued: Pending, next: Pending): boolean => {
+  if (queued.kind === 'publish' && next.kind === 'publish') {
+    return (
+      queued.snapshot.fingerprint === next.snapshot.fingerprint &&
       queued.snapshot.revision === next.snapshot.revision
-    : true
+    )
+  }
+  if (queued.kind === 'summary' && next.kind === 'summary') {
+    return queued.release === next.release && queued.cards === next.cards
+  }
+  return true
+}
 
 /**
  * Queue one thing, in the same edit that records what it is about.
@@ -277,6 +296,10 @@ export function giveUp(opId: string, error: string): void {
     const item = outbox.pending.find((p) => p.opId === opId)
     if (!item) return
     outbox.pending = outbox.pending.filter((p) => p.opId !== opId)
+    // A scope change's summary is dropped rather than written down (#451). It acknowledges a
+    // click whose result the user can already see in the bell, so a copy that never reached a
+    // chat is worth less than a row telling them the board is out of step with Cloud.
+    if (item.kind === 'summary') return
     const note: Unsent = {
       subject: subject(item),
       kind: item.kind,

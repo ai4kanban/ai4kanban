@@ -62,6 +62,28 @@ describe('publishEvent', () => {
     assert.ok(!('body' in call.args), 'the card body must never reach the database')
   })
 
+  it('carries whether a scope change is what brought the card into view', async () => {
+    const calls = fakeDatabase(anEvent())
+    const body = {
+      boardId: BOARD,
+      boardName: 'ai4kanban',
+      taskId: 12,
+      taskTitle: 'Already waiting',
+      release: '1.0',
+      revision: 'r1',
+      kind: 'ready_for_review',
+      decision: 'implement',
+      fingerprint: 'f1',
+    }
+
+    await publishEvent(ENV, OWNER, { ...body, broughtIn: true })
+    await publishEvent(ENV, OWNER, body)
+
+    assert.equal(calls[0].args.p_brought_in, true)
+    // A publisher that says nothing is publishing ordinary news, never a quiet fill.
+    assert.equal(calls[1].args.p_brought_in, false)
+  })
+
   it('refuses an event that names no kind, without touching the database', async () => {
     const calls = fakeDatabase(anEvent())
 

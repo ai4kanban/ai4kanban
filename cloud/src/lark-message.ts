@@ -27,7 +27,11 @@ import {
   stateNote,
   stateOf,
   unwrap,
+  waitingLine,
+  watchingLine,
+  WATCH_SUMMARY_BODY,
   type Question,
+  type WatchSummary,
 } from './message.ts'
 
 /** A Card Kit element. Opaque here: this module composes them and Lark reads them. */
@@ -106,6 +110,28 @@ export function cardFor(event: EventRow, reply?: { openId?: string }): Record<st
       template,
     },
     elements: elements.slice(0, LARK_ELEMENT_LIMIT),
+  }
+}
+
+/**
+ * The one card a scope change sends (#451).
+ *
+ * It belongs to no card of the board's, so it carries no control and no card link: what it is
+ * about is the bell, and the rows are already in it. Three lines — what is watched now, how
+ * many cards that turned out to be, and why none of them arrived as a card of its own.
+ */
+export function watchSummaryFor(summary: WatchSummary): Record<string, unknown> {
+  const said = waitingLine(summary.cards)
+  return {
+    config: { wide_screen_mode: true, update_multi: true },
+    header: {
+      title: { tag: 'plain_text', content: watchingLine(summary).slice(0, 150) },
+      template: 'blue',
+    },
+    elements: [
+      note([`🔔 **${said}**`, summary.boardName || 'this board'].join('  ·  ')),
+      text(larkMd(WATCH_SUMMARY_BODY)),
+    ],
   }
 }
 

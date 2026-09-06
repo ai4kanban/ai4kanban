@@ -20,6 +20,10 @@
 //
 // It draws two ends as carefully as the list: nothing waiting, and notifications off for
 // this board. Both say what would fill it, and the off state names where to turn it on.
+//
+// One line sits above the rows when a scope change has just filled them (#451): those cards
+// were already waiting, so they arrive read and raise nothing, and the line is the whole of
+// what says so. It goes when the rail is folded.
 
 import { useEffect, useState } from "react";
 import { FiBell, FiBellOff, FiCheck, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
@@ -104,6 +108,18 @@ export function BellPane({ rail }: { rail: BellRail }) {
           {/* The watched release closed, so the filling stopped. The prompt is here rather
               than only in Configuration, because here is where it stopped. */}
           {center.enabled && !center.release && <PickRelease c={c} onPicked={rail.refresh} />}
+          {/* The scope just moved and brought cards in (#451). One line above the rows it
+              filled, saying why none of them raised anything. */}
+          {rail.filled && (
+            <div className="mx-1 mb-2 shrink-0 rounded-[9px] bg-nb-sky-soft px-3 py-2">
+              <p className="text-[11.5px] font-[700] leading-[16px] text-nb-sky-ink">
+                {c.filled(
+                  rail.filled.release === ALL_RELEASES ? c.everyRelease : rail.filled.release,
+                  rail.filled.cards,
+                )}
+              </p>
+            </div>
+          )}
           {rows.length === 0 ? (
             <Empty
               icon={<FiBell size={20} aria-hidden />}

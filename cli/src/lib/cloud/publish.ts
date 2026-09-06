@@ -30,6 +30,7 @@ import { cloudBoardFor, type CloudBoard } from './boards'
 import {
   isTerminal,
   listEvents,
+  postWatchSummary,
   publishEvent,
   recordAction,
   recordOutcome,
@@ -54,6 +55,7 @@ import {
   queue,
   settle,
   type Pending,
+  type PublishedEvent,
 } from './outbox'
 import { attachBoardServer } from './servers'
 import { readSession } from './session'
@@ -110,12 +112,12 @@ function publishing(): CloudBoard | null {
  * Cloud would carry an unnamed row for good, and the bell would draw a row it cannot say
  * which board is asking. The call is idempotent and costs no write once the name matches.
  */
-export async function publishBoardEvents({ reconcile = false } = {}): Promise<void> {
+export async function publishBoardEvents({ reconcile = false, broughtIn = false } = {}): Promise<void> {
   if (reconcile) {
     const enabled = publishing()
     if (enabled) await registerBoard(enabled.id, enabled.name)
   }
-  await recordBoardEvents({ reconcile })
+  await recordBoardEvents({ reconcile, broughtIn })
   await flushCloudOutbox()
 }
 
@@ -127,11 +129,11 @@ export async function publishBoardEvents({ reconcile = false } = {}): Promise<vo
  * the outbox is a task nothing would ever retry, and a terminal `akb` is gone the moment
  * its command returns.
  */
-export async function recordBoardEvents({ reconcile = false } = {}): Promise<void> {
+export async function recordBoardEvents({ reconcile = false, broughtIn = false } = {}): Promise<void> {
   const enabled = cloudBoardFor(REPO_ROOT)
   if (!enabled || !readSession()) return
   try {
-    if (enabled.release) await queueDifference(enabled, reconcile)
+    if (enabled.release) await queueDifference(enabled, reconcile, broughtIn)
     else retireLive()
   } catch {
     // A board we could not read this second is a board the next write reads again.
@@ -175,18 +177,29 @@ const sleep = (ms: number) =>
     timer.unref?.()
   })
 
-async function queueDifference(enabled: CloudBoard, reconcile: boolean): Promise<void> {
+async function queueDifference(
+  enabled: CloudBoard,
+  reconcile: boolean,
+  broughtIn: boolean,
+): Promise<void> {
   const cards = await board().readCards()
   // Read once for the whole pass: a card the board is working on raises nothing, and asking
   // per card would read the same record as many times as the board has cards.
   const atWork = cardsAtWork()
   const seen = new Set<number>()
+  // How many cards this switch brought into view — what the summary counts, and what says
+  // whether there is a summary at all.
+  let broughtInCount = 0
 
   for (const card of cards) {
     const snapshot = snapshotFor(card, enabled, atWork)
     if (!snapshot) continue
     seen.add(card.id)
     const held = publishedFor(card.id)
+    // What the scope change BROUGHT IN, as against what it merely passed over: a card this
+    // board held no live event for when the switch moved. One already on record whose own
+    // content moved in the same pass is an ordinary refresh and stays news.
+    const quiet = broughtIn && !isLive(held)
     if (held) {
       // The same piece of work at the same revision. Nothing to write and nobody to interrupt.
       //
@@ -211,7 +224,8 @@ async function queueDifference(enabled: CloudBoard, reconcile: boolean): Promise
       // `stale` row falls through and is revived, so one task keeps one row.
       else if (held.state !== 'actionable' && held.state !== 'stale') continue
     }
-    queue({ opId: newOpId(), kind: 'publish', attempts: 0, snapshot })
+    if (quiet) broughtInCount += 1
+    queue({ opId: newOpId(), kind: 'publish', attempts: 0, snapshot: { ...snapshot, broughtIn: quiet } })
   }
 
   // Everything on record whose task stopped being one this board raises events for — it
@@ -221,7 +235,59 @@ async function queueDifference(enabled: CloudBoard, reconcile: boolean): Promise
   // and that is the interruption the bell is for.
   retireLive(seen)
 
+  // The switch's own summary, instead of a message for each of them (#451). Queued only when
+  // it really brought a waiting card in — a switch that changed what is watched and nothing
+  // else is not worth a chat message, whichever direction it moved.
+  if (broughtInCount > 0) {
+    queue({
+      opId: newOpId(),
+      kind: 'summary',
+      attempts: 0,
+      boardId: enabled.id,
+      release: enabled.release,
+      cards: broughtInCount,
+    })
+    noteWatchFill(enabled.release, broughtInCount)
+  }
+
   if (reconcile) await reconcileAgainstCloud(enabled, seen, atWork)
+}
+
+/** Whether the board is still holding a live event for this task. `stale` is not one — the
+ *  card left the watched scope and its row was retired — and neither is a finished delivery's,
+ *  which is history. Both are cards a widening brings back in. */
+const isLive = (held: PublishedEvent | undefined): boolean =>
+  !!held && held.state !== 'stale' && !isEnded(held.state)
+
+// ---- what the bell says about the switch (#451) -----------------------------
+// The same sentence the chat gets, one line above the rows it just filled. Held here rather
+// than in the center so the publisher — the only thing that knows a switch happened — writes
+// it, and handed out ONCE, like an alert: the rail keeps it on screen while it is open, and
+// nothing is said again later to make up for a bell nobody opened.
+
+interface WatchFill {
+  release: string
+  cards: number
+}
+
+/** On `globalThis` for the reason ./center.ts's state is: the rules bundle can be evaluated
+ *  more than once in one board server, and a line written by one copy has to be read by the
+ *  poll running in the other. */
+const fill = (): { held?: WatchFill } => {
+  const g = globalThis as unknown as { __akbWatchFill?: { held?: WatchFill } }
+  if (!g.__akbWatchFill) g.__akbWatchFill = {}
+  return g.__akbWatchFill
+}
+
+const noteWatchFill = (release: string, cards: number): void => {
+  fill().held = { release, cards }
+}
+
+/** The last switch's line, taken away as it is read. */
+export function takeWatchFill(): WatchFill | null {
+  const held = fill().held ?? null
+  delete fill().held
+  return held
 }
 
 /** Queue a retirement for every live event whose task is not in `keep`. With no `keep` it
@@ -329,6 +395,10 @@ function writeOffAbandoned(
  *  as its server, then publish everything it is already holding actionable. Nothing is raised
  *  for any of it.
  *
+ *  It is the same quiet fill a scope change is (#451), rather than a second behaviour: a chat
+ *  already connected when a board is turned on gets the one summary instead of the board's
+ *  whole backlog.
+ *
  *  A board already held by another machine keeps publishing and runs nothing (#318): the two
  *  are separate, and the Cloud section is where the user moves the server here. */
 export async function startPublishing(): Promise<void> {
@@ -336,7 +406,7 @@ export async function startPublishing(): Promise<void> {
   if (!enabled) return
   await registerBoard(enabled.id, enabled.name)
   await attachBoardServer()
-  await publishBoardEvents({ reconcile: true })
+  await publishBoardEvents({ reconcile: true, broughtIn: true })
 }
 
 /** Retire this board's live events. What turning its notifications off does — the record is
@@ -524,6 +594,8 @@ function describe(item: Pending): string {
       return `retire ${item.eventId} as ${item.state}`
     case 'action':
       return `action ${item.eventId} ${item.decision} at ${item.revision}`
+    case 'summary':
+      return `summary ${item.release} brought ${item.cards} in`
     default:
       return `outcome ${item.eventId} ${item.outcome}`
   }
@@ -546,6 +618,7 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
       summary: snapshot.summary,
       notes: snapshot.notes,
       fingerprint: snapshot.fingerprint,
+      broughtIn: snapshot.broughtIn,
     })
     if (!answer.ok) return answer
     settle(item.opId, {
@@ -557,6 +630,18 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
         state: answer.value.event.state,
       },
     })
+    return { ok: true }
+  }
+
+  if (item.kind === 'summary') {
+    const answer = await postWatchSummary({
+      opId: item.opId,
+      boardId: item.boardId,
+      watching: item.release,
+      cards: item.cards,
+    })
+    if (!answer.ok) return answer
+    settle(item.opId)
     return { ok: true }
   }
 

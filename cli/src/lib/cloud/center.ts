@@ -35,7 +35,7 @@ import { eventLabel, needsPerson, onTheRail, type CloudEvent, type CloudEventSta
 import { connectCloudLive, type LiveConnection } from './live'
 import { ensureBoardNotifications } from './notifications'
 import { unsentToCloud } from './outbox'
-import { flushCloudOutbox, publishBoardEvents } from './publish'
+import { flushCloudOutbox, publishBoardEvents, takeWatchFill } from './publish'
 import { readSession } from './session'
 
 /** One row of the rail. The card's number and title, the event's name under it, and nothing
@@ -75,6 +75,13 @@ export interface NotificationAlert {
   kind: 'actionable' | 'outcome'
 }
 
+/** One scope change, as the line above the rows says it: what is watched now, and how many
+ *  cards it brought in. The same sentence the chat's summary carries. */
+export interface WatchFill {
+  release: string
+  cards: number
+}
+
 /** What the bell draws, and what this board's Cloud section needs beside it. */
 export interface NotificationCenter {
   signedIn: boolean
@@ -96,6 +103,9 @@ export interface NotificationCenter {
   unread: number
   /** Alerts to raise now, handed out once. */
   alerts: NotificationAlert[]
+  /** The scope change that just filled the bell (#451), handed out once. Absent when no
+   *  switch brought anything in — the rail draws its one line only when there is one. */
+  filled?: WatchFill
   /** Cloud could not be reached. The rows are what was last known. */
   error?: string
   /** How many changes this board gave up on sending (#329). Non-zero means Cloud is out of
@@ -263,6 +273,9 @@ export function alertFor(
   silent: boolean,
 ): NotificationAlert | null {
   if (silent) return null
+  // A scope change brought this in (#451): it was already waiting when the switch moved, and
+  // the person who moved it is looking at the bell. Nothing about it is news.
+  if (event.broughtIn) return null
   // Nothing is waiting for anybody. `needsPerson` is the whole of that judgment, and the rail
   // draws from the same one, so an interruption and a row can never disagree.
   if (!needsPerson(event)) return null
@@ -308,8 +321,9 @@ export function readCloudCenter(): NotificationCenter {
         state: event.state,
         onRail: onTheRail(event),
         // Only a state waiting for a person counts, so a delivery starting under a row the
-        // user has already read leaves it read.
-        unread: needsPerson(event) && marks[event.id] !== event.changedAt,
+        // user has already read leaves it read. A row a scope change brought in arrives read
+        // too (#451) — it was already waiting, and the line above the list is what says so.
+        unread: needsPerson(event) && !event.broughtIn && marks[event.id] !== event.changedAt,
         changedAt: event.changedAt,
       }
     })
@@ -317,6 +331,9 @@ export function readCloudCenter(): NotificationCenter {
 
   const alerts = notificationsSilenced() ? [] : held.alerts
   held.alerts = []
+  // Handed out once, like an alert. The rail keeps it on screen while it is open; nothing is
+  // said again later to make up for a bell nobody opened.
+  const filled = takeWatchFill()
 
   return {
     signedIn: !!readSession(),
@@ -328,6 +345,7 @@ export function readCloudCenter(): NotificationCenter {
     rows,
     unread: rows.filter((r) => r.unread).length,
     alerts,
+    ...(filled ? { filled } : {}),
     error: held.error,
     unsent: unsentToCloud().length,
   }

@@ -9,6 +9,10 @@ export type NotificationsCopy = {
   /** The machine's silencing switch, said where its effect is felt. */
   silenced: string;
   silencedTip: string;
+  /** The scope just moved and brought cards in (#451): one line above the rows it filled,
+   *  saying why none of them raised anything. `scope` is a release, or `everyRelease`. */
+  filled: (scope: string, cards: number) => string;
+  everyRelease: string;
   /** The unread count over the list, and the one click that empties it. */
   newCount: (unread: number) => string;
   markAllRead: string;

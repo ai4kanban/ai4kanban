@@ -7,7 +7,7 @@ import {
 } from "@/app/actions";
 import { CHAT_MAX, CHAT_MIN, CHAT_W } from "./chat-rail";
 import { useMatches } from "./media";
-import type { NotificationAlert, NotificationCenter } from "./notifications";
+import type { NotificationAlert, NotificationCenter, WatchFill } from "./notifications";
 
 // The bell's own state (#319): whether the rail is up, how wide it is, and the events it is
 // showing.
@@ -59,6 +59,10 @@ export interface BellRail {
   /** The window is too narrow for the rail to stand beside the board, so it covers it. */
   overlay: boolean;
   center: NotificationCenter;
+  /** The scope change that filled the bell (#451), until the rail is folded. The server
+   *  hands it out once, so it is held here — the switch is usually made with the rail down,
+   *  and the line has to be there when it is opened. */
+  filled: WatchFill | null;
   /** Open a row: mark it read, and go to that card — switching the app to that board first
    *  when the row belongs to another one. */
   openRow(eventId: string): Promise<void>;
@@ -87,6 +91,7 @@ export function useBellRail({
 }): BellRail {
   const [open, setOpen] = useState(false);
   const [center, setCenter] = useState<NotificationCenter>(NOTHING);
+  const [filled, setFilled] = useState<WatchFill | null>(null);
   const overlay = useMatches(OVERLAY_UNDER);
   const { panel, onLayoutChanged, onDoubleClick } = useWidth();
   const kickRef = useRef<() => void>(() => {});
@@ -125,6 +130,9 @@ export function useBellRail({
         // Handed out once. Nothing is raised later to make up for a window that was focused
         // when one arrived — that is the whole of the second interruption's rule.
         if (next.alerts.length > 0) alertsRef.current?.(next.alerts);
+        // Handed out once too, and held until the rail is folded: the switch is made in
+        // Configuration, so the bell is usually down when the line arrives.
+        if (next.filled) setFilled(next.filled);
       }
       timer = setTimeout(() => void read(), open ? OPEN_MS : FOLDED_MS);
     };
@@ -167,6 +175,9 @@ export function useBellRail({
   const toggle = useCallback(() => {
     setOpen((was) => {
       const next = !was;
+      // Folding is reading it: the line said why those rows arrived quietly, and they are
+      // still there to look at.
+      if (!next) setFilled(null);
       try {
         window.localStorage.setItem(OPEN_KEY, next ? "1" : "0");
       } catch {
@@ -178,6 +189,7 @@ export function useBellRail({
 
   const fold = useCallback(() => {
     setOpen(false);
+    setFilled(null);
     try {
       window.localStorage.setItem(OPEN_KEY, "0");
     } catch {
@@ -191,6 +203,7 @@ export function useBellRail({
     fold,
     overlay,
     center,
+    filled,
     openRow,
     readAll,
     refresh: () => kickRef.current(),

@@ -97,7 +97,23 @@ export interface PublishBody {
   summary: string
   notes: string
   fingerprint: string
+  /** A scope change is what brought this card into view (#451). Such a publication lands in
+   *  the bell read and owes no new chat message to a destination already connected. */
+  broughtIn: boolean
 }
+
+/** The one message a scope change sends (#451). It belongs to no card and carries no event:
+ *  what is watched now, and how many waiting cards the switch brought in.
+ *
+ *  Best effort. A copy that never reaches a chat is worth less than a row in `unsent` — the
+ *  bell already shows the user what this is telling them. */
+export const postWatchSummary = (body: {
+  opId: string
+  boardId: string
+  watching: string
+  cards: number
+}): Promise<CloudCall<{ summary: { summaryId: string; posted: boolean } }>> =>
+  send('POST', '/v1/watch-summary', body)
 
 /** Retire an event whose task stopped being one this board raises events for. Refused when
  *  an action is already on record — that event has a delivery to report on. */

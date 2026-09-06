@@ -42,6 +42,10 @@ export interface EventRow {
   serverName: string
   createdAt: string
   changedAt: string
+  /** A scope change brought this publication in — it was already waiting when the switch
+   *  moved (#451). Such a row lands in the bell read and owes no new chat message. False on
+   *  ordinary news, and on an event published before this release. */
+  broughtIn: boolean
   acted: boolean
 }
 
@@ -86,6 +90,9 @@ export async function publishEvent(env: Env, owner: Owner, body: unknown): Promi
     p_summary: bounded(input.summary, 4000),
     p_notes: bounded(input.notes, 4000),
     p_fingerprint: text(input.fingerprint, 'fingerprint', 200),
+    // Whether the scope change this pass belongs to is what brought the card into view
+    // (#451). Absent from a publisher older than this release, which is ordinary news.
+    p_brought_in: input.broughtIn === true,
   })
   return { event }
 }

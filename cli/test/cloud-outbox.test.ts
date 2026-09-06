@@ -30,7 +30,9 @@ import {
   recordCloudActionFor,
   recordBoardEvents,
   reportCloudRunEnd,
+  takeWatchFill,
 } from '../src/lib/cloud/publish.ts'
+import { watchRelease } from '../src/lib/cloud/notifications.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { snapshotFor } from '../src/lib/cloud/snapshot.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
@@ -397,6 +399,133 @@ describe('an action nothing on this board is carrying any more', () => {
 })
 
 /** The card `card()` describes, on disk, so the publisher has a board to read. */
+
+// ---------------------------------------------------------------------------
+// Changing the watched scope raises nothing that was already waiting (#451)
+// ---------------------------------------------------------------------------
+
+/** One more card, in whichever release, so a switch has something to bring in. */
+function writeCard(id: number, release: string, title = `Card ${id}`): void {
+  const dir = path.join(root, 'docs', 'kanban', 'todo', 'features')
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(
+    path.join(dir, `${id}-a-card.md`),
+    [
+      '---',
+      `title: ${title}`,
+      'priority: high',
+      'roi: high',
+      'status: ready',
+      `release: "${release}"`,
+      'blocked_by: []',
+      'related: []',
+      'modules: []',
+      'questions: []',
+      'verify: []',
+      '---',
+      '',
+      'What it is for.',
+      '',
+    ].join('\n'),
+  )
+}
+
+const publications = () =>
+  duePending().filter((p): p is Extract<Pending, { kind: 'publish' }> => p.kind === 'publish')
+
+const summaries = () =>
+  duePending().filter((p): p is Extract<Pending, { kind: 'summary' }> => p.kind === 'summary')
+
+describe('widening the watched scope', () => {
+  beforeEach(() => {
+    writeCardFile()
+    writeCard(13, '1.0')
+    writeCard(14, '1.0')
+    BOARD()
+  })
+
+  it('brings the waiting cards in quietly, and raises what starts waiting afterwards', async () => {
+    // The board is already holding 0.8.0's card, published as ordinary news.
+    notePublication(12, 'e-12', 'actionable')
+    fakeCloud(unreachable)
+
+    await watchRelease(ALL_RELEASES)
+
+    const quiet = publications()
+    assert.deepEqual(quiet.map((p) => p.snapshot.taskId).sort(), [13, 14])
+    assert.ok(
+      quiet.every((p) => p.snapshot.broughtIn),
+      'a card the switch brought into view was published as news',
+    )
+
+    // A card that starts waiting after the switch is ordinary news, mark and all.
+    writeCard(15, '1.0')
+    await afterBoardWrite()
+    const fresh = publications().find((p) => p.snapshot.taskId === 15)
+    assert.equal(fresh?.snapshot.broughtIn, false)
+  })
+
+  it('sends one summary for the switch instead of a message each', async () => {
+    notePublication(12, 'e-12', 'actionable')
+    const sent: Array<Record<string, unknown>> = []
+    fakeCloud((url, body) => {
+      if (url.endsWith('/v1/watch-summary')) {
+        sent.push(body as Record<string, unknown>)
+        return ok({ summary: { summaryId: 's-1', posted: true } })
+      }
+      if (url.endsWith('/v1/events') && body === undefined) return ok({ events: [] })
+      if (url.endsWith('/v1/events')) return publishedEvent('e-new', 13)
+      return ok({})
+    })
+
+    await watchRelease(ALL_RELEASES)
+
+    assert.equal(sent.length, 1)
+    assert.equal(sent[0]?.watching, ALL_RELEASES)
+    assert.equal(sent[0]?.cards, 2)
+  })
+
+  it('says the same thing in one line at the top of the bell, once', async () => {
+    fakeCloud(unreachable)
+    await watchRelease(ALL_RELEASES)
+
+    assert.deepEqual(takeWatchFill(), { release: ALL_RELEASES, cards: 3 })
+    assert.equal(takeWatchFill(), null, 'the line is handed out once')
+  })
+
+  it('queues nothing at all when the switch brings no waiting card in', async () => {
+    notePublication(12, 'e-12', 'actionable')
+    notePublication(13, 'e-13', 'actionable')
+    notePublication(14, 'e-14', 'actionable')
+    fakeCloud(unreachable)
+
+    await watchRelease(ALL_RELEASES)
+
+    assert.equal(summaries().length, 0)
+    assert.equal(takeWatchFill(), null)
+  })
+
+  it('drops a summary that runs out of attempts rather than saying the board is out of step', async () => {
+    fakeCloud(unreachable)
+    await watchRelease(ALL_RELEASES)
+    assert.equal(summaries().length, 1)
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const held = readOutbox()
+      const queued = held.pending.find((p) => p.kind === 'summary')
+      if (!queued) break
+      // Nothing else is due, so the summary is what each pass spends its attempt on.
+      held.pending = [queued]
+      queued.nextAt = Date.now() - 1
+      fs.writeFileSync(path.join(root, '.akb', 'cloud-outbox.json'), `${JSON.stringify(held, null, 2)}\n`)
+      await flushCloudOutbox()
+    }
+
+    assert.equal(summaries().length, 0)
+    assert.deepEqual(unsentToCloud(), [], 'a lost summary is not a change the board must report')
+  })
+})
+
 function writeCardFile(release = '0.8.0'): void {
   const dir = path.join(root, 'docs', 'kanban', 'todo', 'features')
   fs.mkdirSync(dir, { recursive: true })
@@ -451,6 +580,7 @@ describe('what a publication carries', () => {
     assert.deepEqual(Object.keys(snapshot).sort(), [
       'boardId',
       'boardName',
+      'broughtIn',
       'decision',
       'fingerprint',
       'kind',
@@ -483,6 +613,7 @@ describe('what a publication carries', () => {
     assert.deepEqual(Object.keys(body ?? {}).sort(), [
       'boardId',
       'boardName',
+      'broughtIn',
       'decision',
       'fingerprint',
       'kind',

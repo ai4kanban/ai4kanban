@@ -66,6 +66,16 @@ describe('a reconnect that missed broadcasts', () => {
   })
 })
 
+describe('a card a scope change brought into view', () => {
+  it('interrupts nobody — it was already waiting when the switch moved', () => {
+    assert.equal(alertFor(undefined, event({ broughtIn: true }), false), null)
+  })
+
+  it('is the mark alone that silences it — the same row without one still raises', () => {
+    assert.equal(alertFor(undefined, event(), false)?.kind, 'actionable')
+  })
+})
+
 describe('the same broadcast delivered twice', () => {
   it('interrupts nobody the second time', () => {
     const held = event()

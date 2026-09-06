@@ -46,6 +46,13 @@ export interface NotificationAlert {
   kind: "actionable" | "outcome";
 }
 
+/** One scope change, as the line above the rows says it (#451): what is watched now, and how
+ *  many cards were already waiting when it moved. */
+export interface WatchFill {
+  release: string;
+  cards: number;
+}
+
 export interface NotificationCenter {
   signedIn: boolean;
   enabled: boolean;
@@ -57,6 +64,9 @@ export interface NotificationCenter {
   rows: NotificationRow[];
   unread: number;
   alerts: NotificationAlert[];
+  /** The scope change that just filled the bell (#451), handed out once. Absent when no
+   *  switch brought anything in, and from rules that predate it. */
+  filled?: WatchFill;
   error?: string;
   /** How many changes this board gave up on sending to Cloud (#329). Absent from rules that
    *  predate it, which is not the same answer as none. */

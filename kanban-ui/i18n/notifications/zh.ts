@@ -9,6 +9,8 @@ const zh: NotificationsCopy = {
   close: "关闭通知",
   silenced: "已静音",
   silencedTip: "这台机器上所有看板的系统通知都已静音。",
+  filled: (scope, cards) => `跟踪范围已改为「${scope}」——${cards} 张卡片早已在等你`,
+  everyRelease: "全部版本",
   newCount: (unread) => `${unread} 条新消息`,
   markAllRead: "全部标为已读",
   justNow: "刚刚",

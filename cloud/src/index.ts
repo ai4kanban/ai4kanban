@@ -43,6 +43,7 @@ import {
   listServers,
   renewClaim,
 } from './servers.ts'
+import { deliverWatchSummary, recordWatchSummary } from './watching.ts'
 import { routeWorkspace } from './workspaces.ts'
 
 interface SelfCheck {
@@ -196,6 +197,25 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
         : await recordOutcome(env, owner, id, body)
     redraw(env, ctx, id)
     return json(moved)
+  }
+
+  // The one message a scope change sends (#451). Not an event: it belongs to no card, so it
+  // takes none of the delivery loop and is posted here, once, through `waitUntil`. Best
+  // effort — the bell already shows the user what it is telling them.
+  if (pathname === '/v1/watch-summary') {
+    requireMethod(request, 'POST')
+    const owner = await requireOwner(request, env)
+    const recorded = await recordWatchSummary(env, owner, await bodyOf(request))
+    // A retry of an attempt that already landed sends nothing. `op_id` is what tells them
+    // apart, so a machine that never heard the answer costs the chat no second message.
+    if (recorded.posted) {
+      ctx.waitUntil(
+        deliverWatchSummary(env, owner, recorded).catch((e) =>
+          console.error('cloud: watch summary failed', e),
+        ),
+      )
+    }
+    return json({ summary: recorded })
   }
 
   // Slack (#320). Five routes the signed-in app calls, one Slack itself redirects to, and

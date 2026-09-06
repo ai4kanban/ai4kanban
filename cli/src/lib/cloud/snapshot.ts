@@ -55,6 +55,11 @@ export interface EventSnapshot {
   /** What the person is being asked to decide. A snapshot whose fingerprint has not moved is
    *  not news, however much of the card moved under it. */
   fingerprint: string
+  /** A scope change is what brought this card into view (#451): it was already waiting when
+   *  the switch moved, so the row lands in the bell read and owes no new chat message. Set
+   *  by the publisher, which is the only thing that knows a switch happened — a card read on
+   *  its own is always ordinary news. */
+  broughtIn: boolean
 }
 
 /** The user-owned questions on this card, with the board's own tag taken off. */
@@ -98,7 +103,7 @@ export function snapshotFor(
   const kind = actionableKind(card, board, atWork)
   if (!kind) return null
   const questions = kind === 'question' ? userQuestions(card) : []
-  const snapshot: Omit<EventSnapshot, 'fingerprint'> = {
+  const snapshot: Omit<EventSnapshot, 'fingerprint' | 'broughtIn'> = {
     boardId: board.id,
     boardName: board.name,
     taskId: card.id,
@@ -111,7 +116,7 @@ export function snapshotFor(
     summary: bound(openingParagraph(card.body), SUMMARY_LIMIT),
     notes: bound(reviewNotes(card.body), NOTES_LIMIT),
   }
-  return { ...snapshot, fingerprint: fingerprint(snapshot) }
+  return { ...snapshot, fingerprint: fingerprint(snapshot), broughtIn: false }
 }
 
 /**
@@ -124,8 +129,11 @@ export function snapshotFor(
  * travel on the snapshot and Cloud still stores them: an action binds the revision, so Cloud
  * must hold the current one. They are written through without moving the event's
  * `changed_at`, which is what re-marks a row unread.
+ *
+ * `broughtIn` is out of it for the other reason: it says how this publication arrived, not
+ * what the card says, and a switch flipped twice must not make one card look revised.
  */
-function fingerprint(snapshot: Omit<EventSnapshot, 'fingerprint'>): string {
+function fingerprint(snapshot: Omit<EventSnapshot, 'fingerprint' | 'broughtIn'>): string {
   return crypto
     .createHash('sha256')
     .update(

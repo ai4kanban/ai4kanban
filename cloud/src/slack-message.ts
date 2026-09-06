@@ -35,7 +35,11 @@ import {
   stateNote,
   stateOf,
   unwrap,
+  waitingLine,
+  watchingLine,
+  WATCH_SUMMARY_BODY,
   type Question,
+  type WatchSummary,
 } from './message.ts'
 
 export { bound, cardUrl, readQuestions, type Question }
@@ -165,6 +169,27 @@ export function logFor(
   return {
     text: `${label}: #${event.taskId} ${event.taskTitle}`,
     blocks: [actorId ? section(`${said}  ·  <@${actorId}>`) : context(said)],
+  }
+}
+
+/**
+ * The one message a scope change sends (#451).
+ *
+ * It belongs to no card, so it carries no control and no card link: what it is about is the
+ * bell, and the rows are already in it. Three lines — what is watched now, how many cards
+ * that turned out to be, and why none of them arrived as a message of its own.
+ */
+export function watchSummaryFor(summary: WatchSummary): { text: string; blocks: Block[] } {
+  const said = waitingLine(summary.cards)
+  return {
+    text: `${watchingLine(summary)}: ${said}`,
+    blocks: [
+      header(watchingLine(summary)),
+      context(
+        [`:bell: *${escape(said)}*`, escape(summary.boardName || 'this board')].join('  ·  '),
+      ),
+      section(escape(WATCH_SUMMARY_BODY)),
+    ],
   }
 }
 

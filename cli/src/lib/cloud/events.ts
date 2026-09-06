@@ -174,6 +174,10 @@ export interface CloudEvent {
   createdAt: string
   /** The event's newest change, which is what the rail orders rows by. */
   changedAt: string
+  /** A scope change is what brought this into view (#451) — it was already waiting when the
+   *  switch moved. Such a row arrives read and interrupts nobody, until the card moves and
+   *  makes it news. Absent from an event published before this release. */
+  broughtIn?: boolean
   /** An action is on record against this event, so no surface may offer a second. */
   acted: boolean
 }

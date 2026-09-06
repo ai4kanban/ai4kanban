@@ -111,6 +111,39 @@ export function stateNote(event: EventRow): string {
 export const cardUrl = (event: EventRow): string =>
   `${API_ORIGIN}/card/${encodeURIComponent(event.boardId)}/${event.taskId}`
 
+// --- the message a scope change sends (#451) ----------------------------------
+// Moving `Configuration → Cloud → Watching` sends ONE message instead of a card each: what
+// the switch brought in was already waiting, and the person who moved it is looking at the
+// bell. The words are here for the reason every other message's are — a second connector is
+// a second implementation, never a second wording.
+
+/** What the board watches when it watches every release. `cli/src/lib/cloud/boards.ts`'s
+ *  `ALL_RELEASES`, said again because the Worker cannot import the board's rules. */
+const ALL_RELEASES = '*'
+
+/** One scope change, as a message says it. */
+export interface WatchSummary {
+  boardName: string
+  /** `*` for every release, or the one release now watched. */
+  watching: string
+  /** How many waiting cards the switch brought in. Never zero. */
+  cards: number
+}
+
+/** The message's heading: what is watched now. */
+export const watchingLine = (summary: WatchSummary): string =>
+  summary.watching === ALL_RELEASES
+    ? 'Watching every release'
+    : `Watching release ${summary.watching}`
+
+/** The line under it: how many cards that turned out to be. */
+export const waitingLine = (cards: number): string =>
+  cards === 1 ? '1 card is waiting for you' : `${cards} cards are waiting for you`
+
+/** Why they arrived as one line rather than as a message each, and what happens from here. */
+export const WATCH_SUMMARY_BODY =
+  'They were already waiting when the scope moved, so they are in your bell and nothing was raised for them. From here on, a card is posted the moment it starts waiting.'
+
 /** What every control carries back: which event it is about, and the revision it was drawn
  *  against, so a press against a card that has moved is refused rather than granted. */
 export const actionValue = (event: EventRow): { eventId: string; revision: string } => ({

@@ -98,7 +98,7 @@ begin
   perform api.register_board(B, BOARD_B, 'b-board', BUDGET);
 
   v_json := api.publish_event(A, BOARD_A, 329, 'Harden the Cloud event flow', '0.8.0', 'r1',
-                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', BUDGET);
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', false, BUDGET);
   v_event := (v_json ->> 'id')::uuid;
   v_json := api.attach_server(A, BOARD_A, MACHINE_A, 'a-machine', false, '[]'::jsonb, BUDGET);
   v_server_a := (v_json ->> 'id')::uuid;
@@ -129,7 +129,7 @@ begin
     format('select api.register_board(%L, %L, %L, %s)', B, BOARD_A, 'stolen', BUDGET),
     'AKB02', 'register_board');
   perform pg_temp.refuses(
-    format('select api.publish_event(%L, %L, 1, %L, %L, %L, %L, %L, %L, %L, %L, %L, %s)',
+    format('select api.publish_event(%L, %L, 1, %L, %L, %L, %L, %L, %L, %L, %L, %L, false, %s)',
            B, BOARD_A, 't', '', 'r9', 'ready_for_review', 'implement', '[]', '', '', 'f9', BUDGET),
     'AKB02', 'publish_event');
   perform pg_temp.refuses(
@@ -226,7 +226,7 @@ begin
 
   -- The same snapshot again writes nothing and raises nothing.
   v_json := api.publish_event(A, BOARD_A, 329, 'Harden the Cloud event flow', '0.8.0', 'r1',
-                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', BUDGET);
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', false, BUDGET);
   assert (v_json ->> 'id')::uuid = v_event, 'an unchanged snapshot raised a second row';
 
   -- An edit the event cannot see — a `release:` reset, a typo in a section it never carries
@@ -241,7 +241,7 @@ begin
    where id = v_event;
   select changed_at, content_at into v_changed, v_content from cloud.events where id = v_event;
   v_json := api.publish_event(A, BOARD_A, 329, 'Harden the Cloud event flow', '', 'r2',
-                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', BUDGET);
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f1', false, BUDGET);
   assert (v_json ->> 'id')::uuid = v_event, 'a quiet refresh raised a second row';
   assert (v_json ->> 'revision') = 'r2', 'a quiet refresh did not write the revision through';
   assert (v_json ->> 'release') = '', 'a quiet refresh did not write the release through';
@@ -253,7 +253,7 @@ begin
   -- What the person is asked to decide moving IS news: the same row, refreshed, and
   -- `changed_at` with it.
   v_json := api.publish_event(A, BOARD_A, 329, 'Harden the Cloud event flow', '', 'r2',
-                              'ready_for_review', 'implement', '[]'::jsonb, 'why moved', 'notes', 'f2', BUDGET);
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why moved', 'notes', 'f2', false, BUDGET);
   assert (v_json ->> 'id')::uuid = v_event, 'a revised card raised a second row';
   assert (v_json ->> 'changedAt')::timestamptz > v_changed, 'a card that moved did not refresh the row';
 
@@ -276,7 +276,7 @@ begin
   -- `content_at` alone would owe the chat nothing, and the ask would sit there with an
   -- Implement on it that `record_event_action` then refuses.
   v_json := api.publish_event(A, BOARD_A, 330, 'A card nobody gets to', '', 'r1',
-                              'ready_for_review', 'implement', '[]'::jsonb, 'why', '', 'f1', BUDGET);
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why', '', 'f1', false, BUDGET);
   v_retired := (v_json ->> 'id')::uuid;
   update cloud.events set content_at = now() - interval '1 hour' where id = v_retired;
   select content_at into v_content from cloud.events where id = v_retired;
@@ -388,7 +388,7 @@ begin
 
   -- A task that needs a person again is new work, and the finished row stays as history.
   v_json := api.publish_event(A, BOARD_A, 329, 'Harden the Cloud event flow', '0.8.0', 'r3',
-                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f3', BUDGET);
+                              'ready_for_review', 'implement', '[]'::jsonb, 'why', 'notes', 'f3', false, BUDGET);
   v_second := (v_json ->> 'id')::uuid;
   assert v_second <> v_event, 'a finished event was reused rather than kept as history';
   select count(*) into v_count from cloud.events where board_id = BOARD_A and task_id = 329;
@@ -702,6 +702,143 @@ begin
   raise notice 'sql checks: every check passed';
 end
 $checks$;
+
+-- ---------------------------------------------------------------------------
+-- Changing the watched scope raises nothing that was already waiting (#451)
+-- ---------------------------------------------------------------------------
+--
+-- A block of its own, on a board of its own: what a scope change does is read against the
+-- mark it leaves on a publication, and mixing it into the flow above would make every
+-- assertion there depend on which switch had last been moved. The account is the one the
+-- block above already made.
+
+do $watching$
+declare
+  A constant uuid := 'aaaaaaaa-1111-4111-8111-111111111111';
+  B constant uuid := 'bbbbbbbb-2222-4222-8222-222222222222';
+  BOARD constant uuid := '77777777-4444-4444-8444-cccccccccccc';
+  BUDGET constant integer := 100000;
+  v_json json;
+  v_quiet uuid;
+  v_news uuid;
+  v_round uuid;
+  v_ended uuid;
+begin
+  delete from cloud.slack_connections where owner_id in (A, B);
+  delete from cloud.lark_connections where owner_id in (A, B);
+  perform api.register_board(A, BOARD, 'watch-board', BUDGET);
+
+  -- The publisher's mark reaches storage, and ordinary news does not carry it.
+  v_json := api.publish_event(A, BOARD, 601, 'Already waiting', '1.0', 'r1',
+                              'ready_for_review', 'implement', '[]'::jsonb, '', '', 'w1', true, BUDGET);
+  v_quiet := (v_json ->> 'id')::uuid;
+  assert (v_json ->> 'broughtIn')::boolean, 'a scope change did not mark what it brought in';
+
+  v_json := api.publish_event(A, BOARD, 602, 'Started waiting afterwards', '1.0', 'r1',
+                              'ready_for_review', 'implement', '[]'::jsonb, '', '', 'n1', false, BUDGET);
+  v_news := (v_json ->> 'id')::uuid;
+  assert not (v_json ->> 'broughtIn')::boolean, 'ordinary news was marked as brought in';
+
+  -- A chat already connected when the switch landed is owed nothing for what it brought in,
+  -- and everything for a card that started waiting afterwards.
+  insert into cloud.slack_connections (owner_id, team_id, bot_token, channel_id, slack_user_id, created_at)
+  values (A, 'T9', 'xoxb', 'C9', 'U9', now() - interval '1 day');
+  assert (api.connector_jobs('slack', v_quiet, 10, 5) -> 0) is null,
+    'a scope change owed a message to a chat that was already connected';
+  assert (api.connector_jobs('slack', v_news, 10, 5) -> 0) is not null,
+    'a card that started waiting after the switch was owed no message';
+
+  -- A chat connected AFTERWARDS is asking for the board, so a mark that silences one switch
+  -- must not leave it permanently empty.
+  update cloud.slack_connections set created_at = now() + interval '1 minute' where owner_id = A;
+  assert (api.connector_jobs('slack', v_quiet, 10, 5) -> 0) is not null,
+    'a chat connected after the switch was left permanently empty';
+  update cloud.slack_connections set created_at = now() - interval '1 day' where owner_id = A;
+
+  -- A message that already exists goes on following its card. An edit costs no message and
+  -- pings nobody, and a chat showing "No longer waiting" over a card that is waiting is
+  -- 0015's defect the other way round.
+  perform api.record_event_delivery(A, v_quiet, 'slack', 'sent', 'ts-quiet', '',
+                                    now() - interval '1 hour', BUDGET);
+  assert (api.connector_jobs('slack', v_quiet, 10, 5) -> 0) is not null,
+    'a message the card already has stopped following it';
+  delete from cloud.event_deliveries where event_id = v_quiet;
+
+  -- A quiet refresh is not the card moving, so it leaves the mark where it is: writing the
+  -- revision through must not turn a quiet fill into an interruption.
+  v_json := api.publish_event(A, BOARD, 601, 'Already waiting', '1.0', 'r2',
+                              'ready_for_review', 'implement', '[]'::jsonb, '', '', 'w1', false, BUDGET);
+  assert (v_json ->> 'broughtIn')::boolean, 'a quiet refresh raised what a scope change had quietened';
+
+  -- What the person is asked to decide moving IS news, and the mark goes with it.
+  v_json := api.publish_event(A, BOARD, 601, 'Already waiting', '1.0', 'r3',
+                              'ready_for_review', 'implement', '[]'::jsonb, 'moved', '', 'w2', false, BUDGET);
+  assert not (v_json ->> 'broughtIn')::boolean, 'a card that moved after the switch stayed quiet';
+  assert (api.connector_jobs('slack', v_quiet, 10, 5) -> 0) is not null,
+    'a card that became news after the switch was still owed no message';
+
+  -- The mark says how the publication ARRIVED, so it is read only while the row is still
+  -- asking. A delivery taken on such a card ends as news like any other — an outcome nobody
+  -- is told about is a delivery that finished in silence.
+  v_json := api.publish_event(A, BOARD, 604, 'Implemented after the switch', '1.0', 'r1',
+                              'ready_for_review', 'implement', '[]'::jsonb, '', '', 'y1', true, BUDGET);
+  v_ended := (v_json ->> 'id')::uuid;
+  assert (v_json ->> 'broughtIn')::boolean, 'a scope change did not mark what it brought in';
+  perform api.record_event_action(A, 'act-451', v_ended, 'implement', 'r1', '[]'::jsonb,
+                                  'waiting_for_server', BUDGET);
+  v_json := api.record_event_outcome(A, 'out-451', v_ended, 'completed', '', 900, BUDGET);
+  assert (v_json ->> 'state') = 'completed', 'the outcome did not reach the event';
+  assert not (v_json ->> 'broughtIn')::boolean,
+    'a delivery on a card the switch brought in finished without telling anybody';
+
+  -- The round trip: narrowing retires the row, widening revives that same one, and the
+  -- revival carries the mark. `0.9 → all → 0.9 → all` costs no row and no interruption.
+  v_json := api.publish_event(A, BOARD, 603, 'In and out of scope', '1.0', 'r1',
+                              'question', 'answer', '[]'::jsonb, '', '', 'x1', true, BUDGET);
+  v_round := (v_json ->> 'id')::uuid;
+  assert (api.retire_event(A, v_round, BUDGET) ->> 'state') = 'stale',
+    'narrowing did not retire what left the scope';
+  v_json := api.publish_event(A, BOARD, 603, 'In and out of scope', '1.0', 'r1',
+                              'question', 'answer', '[]'::jsonb, '', '', 'x1', true, BUDGET);
+  assert (v_json ->> 'id')::uuid = v_round, 'a round trip left a second row behind';
+  assert (v_json ->> 'broughtIn')::boolean, 'widening again raised the bell for the same card';
+
+  -- -------------------------------------------------------------------------
+  -- The switch's own summary
+  -- -------------------------------------------------------------------------
+
+  v_json := api.record_watch_summary(A, 'sum-1', BOARD, '*', 12, BUDGET);
+  assert (v_json ->> 'posted')::boolean, 'the switch''s summary was not written down';
+  assert (v_json ->> 'cards')::integer = 12, 'the summary lost the count it brought in';
+  assert (v_json ->> 'watching') = '*', 'the summary lost the scope it was about';
+  -- A retry of an attempt that already landed posts nothing.
+  v_json := api.record_watch_summary(A, 'sum-1', BOARD, '*', 12, BUDGET);
+  assert not (v_json ->> 'posted')::boolean, 'a retried summary would have posted a second message';
+  assert (select count(*) from cloud.watch_summaries where op_id = 'sum-1') = 1,
+    'a retried summary left a second row';
+
+  -- It is another account's board, so it is not theirs to say anything about.
+  perform pg_temp.refuses(
+    format('select api.record_watch_summary(%L, %L, %L, %L, 3, %s)', B, 'sum-b', BOARD, '*', BUDGET),
+    'AKB02', 'record_watch_summary');
+
+  -- It is addressed to the switching account and nobody else.
+  assert json_array_length(api.watch_summary_targets(A)) = 1,
+    'the summary was not addressed to the account that moved the switch';
+  assert json_array_length(api.watch_summary_targets(B)) = 0,
+    'the summary reached another account''s chats';
+  assert (api.watch_summary_targets(A) -> 0 -> 'posts' ->> 'channelId') = 'C9',
+    'the summary lost the destination it goes to';
+
+  -- The 30-day sweep frees it: the row exists to stop a retry posting twice, and nothing
+  -- retries after an afternoon.
+  update cloud.watch_summaries set created_at = now() - interval '31 days' where op_id = 'sum-1';
+  assert (api.sweep_events() ->> 'watchSummaries')::integer = 1, 'the sweep left a summary behind';
+
+  delete from cloud.slack_connections where owner_id = A;
+  raise notice 'sql checks: #451 watch-scope checks passed';
+end
+$watching$;
 
 -- ---------------------------------------------------------------------------
 -- The control plane a workspace runs on (#314)

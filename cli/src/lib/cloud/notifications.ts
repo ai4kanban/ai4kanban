@@ -8,6 +8,10 @@
 // Each move here is whole: enabling registers the board and fills the bell with what it is
 // already holding, swapping the release republishes against the new one, and turning them
 // off retires this board's live events before the record of them is dropped.
+//
+// Every fill is QUIET (#451). What a switch brings into view was already waiting, so it lands
+// in the bell read, raises nothing, and costs one summary in the chat instead of a message a
+// card. Only a card that starts waiting after the switch is raised.
 
 import { board } from '../board'
 import { REPO_ROOT } from '../paths'
@@ -104,12 +108,14 @@ export async function enableBoardNotifications(release: string): Promise<WriteRe
 }
 
 /** Watch something else — a narrower release, or every one. What the rail asks for when the
- *  release being watched closed. */
+ *  release being watched closed.
+ *
+ *  Whatever the wider scope brings in was already waiting, so none of it is raised (#451). */
 export async function watchRelease(release: string): Promise<WriteResult> {
   if (!cloudBoardFor(REPO_ROOT)) return { ok: false, error: 'Notifications are off for this board.' }
   if (!(await watchable(release))) return { ok: false, error: NOT_WATCHABLE }
   setCloudBoardRelease(REPO_ROOT, release)
-  await publishBoardEvents({ reconcile: true })
+  await publishBoardEvents({ reconcile: true, broughtIn: true })
   return { ok: true }
 }
 
