@@ -646,7 +646,7 @@ function Page({
   // own `AGENT.md`, which is the only place a project can write them, so it falls through to
   // the board's own answer and to a placeholder keyed by the hook it plugs into.
   const role = c.roles[agent.name as keyof typeof c.roles] as
-    { gloss: string; rule: string } | undefined;
+    { gloss: string; rule: string; when?: string } | undefined;
   const title = agentTitle(agent.name);
   const gloss = role?.gloss ?? sentence(agent.gloss);
   const placeholder =
@@ -680,12 +680,13 @@ function Page({
               </span>
             )}
           </div>
-          {/* A specialist is asked for by its own trigger, so the page says when — a role is
-            called by its flows and has nothing to say here. */}
-          {(agent.when || agent.name === COSTLY) && (
+          {/* A specialist is asked for by its own trigger, so the page says when. A role is
+            called by its flows and normally has nothing to say here — the two that stand in
+            for you say it in their own copy (#493). */}
+          {(agent.when || role?.when) && (
             <p className="mt-0.5 max-w-[80ch] text-[11.5px] leading-snug text-nb-ink-soft">
               <span className="font-[700]">{c.runsWhen}</span>{" "}
-              {agent.when ? clause(agent.when.replace(/^use when\s+/i, "")) : c.decider.when}
+              {agent.when ? clause(agent.when.replace(/^use when\s+/i, "")) : role!.when}
             </p>
           )}
         </div>

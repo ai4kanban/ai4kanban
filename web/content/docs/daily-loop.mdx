@@ -152,35 +152,36 @@ question the same way it warns about a blocker.
 
 ## Let clear cards build themselves
 
-**Build clear cards automatically** in Configuration → General → Delivery replaces that press.
-It is off by default. With it on, every card that reaches ready is judged first by a gate
-agent: it reads the card against the same standard the board writes cards to — an observable
-outcome, scope that says what to build, a `## Todo` a builder can follow, nothing left open —
-and either passes it straight into a delivery on the settings above, or sends it back to
-**Not ready** carrying the one question that stopped it. Answer that question and the card
-refines, reaches ready again, and is judged again.
+**Gater** in Configuration → Agents replaces that press. It is off by default. With it on,
+every card that reaches ready is judged first by that agent: it reads the card against the same
+standard the board writes cards to — an observable outcome, scope that says what to build, a
+`## Todo` a builder can follow, nothing left open — and either passes it straight into a
+delivery on the settings above, or sends it back to **Not ready** carrying the one question that
+stopped it. Answer that question and the card refines, reaches ready again, and is judged again.
 
-The gate runs one card at a time, in the order **"what's next?"** would name them, and it
+The Gater runs one card at a time, in the order **"what's next?"** would name them, and it
 never takes a card that is blocked, recurring, a group's main card, or already in flight. It
-runs on the planner's own tool and model, set in Configuration → Agents, so the judgment can
-run on a stronger model than the builds it lets through. A gate run that fails or is stopped
-changes nothing: the card stays where it is. Turning the switch on does not go back over the cards already sitting at
-ready — those are still yours to press.
+judges as you would, so it is given the project's goal and every module's `decisions.md` and
+`rejected.md` on top of the card, and it runs on its own tool and model, set on its row in
+Configuration → Agents — so the judgment can run on a stronger model than the builds it lets
+through. A run that fails or is stopped changes nothing: the card stays where it is. Turning the
+switch on does not go back over the cards already sitting at ready — those are still yours to
+press.
 
 In a terminal it is `akb card gate 4`, which asks the same question about one card.
 
 ## Let the board answer your questions too
 
-The gate removes the press; **Decider** removes the wait. It is a role in Configuration → Agents,
-off by default, and it is the only agent whose switch asks before it goes on:
+The Gater removes the press; **Decider** removes the wait. It is the other role in Configuration
+→ Agents that is off by default, and the only agent whose switch asks before it goes on:
 
 > **While this is on, nothing stops for you.** An idea runs all the way to landed without asking
 > you — a wrong direction included. What it chose, you read afterwards on the card.
 
 With it on, a card that ends its planning with nothing but questions waiting on you is answered
 instead of handed back, and so is a delivery a review sent back with one. It answers from the
-project's goal, the card's modules' `decisions.md` and each question's own recommendation, and
-takes the recommendation when none of those settles it. It never hands a card back, and there is
+project's goal, every module's `decisions.md` and `rejected.md`, and each question's own options
+and recommendation, and takes the recommendation when none of those settles it. It never hands a card back, and there is
 no limit on how many rounds it answers on one card.
 
 What it chose stays on that card — the board marks it, and **What Decider chose for you** on the

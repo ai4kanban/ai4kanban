@@ -4,7 +4,13 @@
 /** The roles the board ships — the agents its own flows are run by, on either solution.
  *  Closed, because the command ships them; a specialist is a file and carries its own
  *  words. */
-export type AgentRoleName = "planner" | "builder" | "writer" | "reviewer" | "decider";
+export type AgentRoleName =
+  | "planner"
+  | "builder"
+  | "writer"
+  | "reviewer"
+  | "gater"
+  | "decider";
 
 export type ConfigurationCopy = {
   open: string;
@@ -172,13 +178,14 @@ export type ConfigurationCopy = {
     /** A role's own line, and the box that trains it saying WHERE the words land: which
      *  runs on this board actually read them, in the names the Runs screen uses. The board
      *  ships the roles, so the pane can carry their words; a specialist says both in its
-     *  own `AGENT.md`, which is the only place a project can write them. */
-    roles: Record<AgentRoleName, { gloss: string; rule: string }>;
+     *  own `AGENT.md`, which is the only place a project can write them.
+     *
+     *  `when` only on a role that can be switched off (#493): the gater and the decider are
+     *  started by something you can point at, and every other role is called by its flows. */
+    roles: Record<AgentRoleName, { gloss: string; rule: string; when?: string }>;
     /** The decider (#447) — the one switch on this board that stops nothing for you, so its
      *  page carries what that costs and its switch asks once before it goes on. */
     decider: {
-      /** When the board starts one, under the gloss. */
-      when: string;
       /** The red strip: what it costs while it is on. */
       costTitle: string;
       cost: string;
@@ -224,16 +231,8 @@ export type ConfigurationCopy = {
     deleteFailed: (agent: string) => string;
   };
   delivery: {
-    /** A change only reaches deliveries started afterwards. Said once, under all four. */
+    /** A change only reaches deliveries started afterwards. Said once, under all three. */
     frozen: string;
-    /** The ready gate (#440) — the first row, because it decides whether a delivery starts
-     *  at all; the three under it decide how one is built. */
-    gate: {
-      title: string;
-      body: string;
-      failedOn: string;
-      failedOff: string;
-    };
     commits: { title: string; body: string; failedOn: string; failedOff: string };
     approval: { title: string; body: string; failedOn: string; failedOff: string };
     review: { title: string; body: string; failedOn: string; failedOff: string };

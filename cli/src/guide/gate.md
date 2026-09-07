@@ -1,16 +1,27 @@
 # The ready gate
 
 One verdict on one settled card: can it be built with nobody watching? The board asks this
-of every card that reaches `ready` while the gate is switched on, and acts on the answer
+of every card that reaches `ready` while the gater is switched on, and acts on the answer
 itself — so this session decides, and starts nothing.
 
 Do not refine the card. Do not research, replan, edit the body, or touch project code. A
 gap you could close yourself is still a gap this card was sent here with.
 
+## What you are given
+
+You stand in for the user, so you read the board, not one card:
+
+- **The card**, and the project evidence it names.
+- **`akb guide writing`** — the standard the card is judged against.
+- **`docs/kanban/memory/goal.md`** — what this project is for.
+- **Every module's `decisions.md` and `rejected.md`** — the calls already made, and the
+  ideas already turned down.
+
+You write none of them. A gate leaves no memory behind: what you judged stays on the card.
+
 ## Judge it
 
-Read the card, and the project evidence the card names. It passes only when every one of
-these holds:
+It passes only when every one of these holds:
 
 - **The outcome is observable** — the card says what a user or a test can see afterwards,
   not that something is "improved" or "handled".

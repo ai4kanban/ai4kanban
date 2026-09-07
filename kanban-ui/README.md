@@ -1186,22 +1186,10 @@ there is nothing to turn on.
 
 ### General → Delivery
 
-Four switches. All are repository-level answers, saved in `ui.config.json` and shared by everyone
+Three switches. All are repository-level answers, saved in `ui.config.json` and shared by everyone
 on the board. A change applies to deliveries started afterwards; one already in flight keeps what it
-started with.
-
-**Build clear cards automatically**, off by default. The only one that decides whether a delivery
-starts at all; the three under it decide how one is built.
-
-- **Off** — a card that reaches ready waits for Implement, which is what the board has always done.
-- **On** — the ready gate: every card that ENTERS ready is judged first by one `gate` run against
-  `akb guide gate`. A card it passes goes straight into a delivery on the three settings below; a
-  card it fails gets one `[user]` question, which takes it back to `todo`. It takes one card at a
-  time, in `akb guide next-card`'s order, and never a card that is blocked, recurring, a group root,
-  in flight, or already resting at ready when you flipped the switch. A gate run that fails or is
-  stopped changes nothing at all. It runs on the Planner's own tool and model, set in
-  **Configuration → Agents**, so the judgment can run on a stronger model than the builds it lets
-  through; `akb card gate <id>` is the same run by hand.
+started with. All three decide how a delivery is built; whether one starts at all is the **Gater**
+(#493), a row of its own under **Configuration → Agents**.
 
 **Automatic Git commits**, on by default. It is the side each Implement opens on, not the only
 way to change it: the dialog's **Build this on a branch of its own** turns one build round and
@@ -1517,9 +1505,11 @@ in the file, so switching agents or providers never touches any of them.
 }
 ```
 
-`readyGate` is **Build clear cards automatically** above. Only written when you turn it **on**,
-so a missing key means off, and so does a file that will not parse: an unreadable setting must
-not be the reason the board started building cards by itself.
+`readyGate` is the **Gater**'s switch on **Configuration → Agents**. Only written when you turn it
+**on**, so a missing key means off, and so does a file that will not parse: an unreadable setting
+must not be the reason the board started building cards by itself. The key keeps the name it was
+written under before the Gater was a row of its own (#493), so a board that had the gate on keeps
+it.
 
 `autoCommit` is **Automatic Git commits** above. Only written when you turn it off — a
 missing key means on, which is the default.
@@ -1603,7 +1593,7 @@ is where one names another, keyed by the agent's name and holding the runtime's 
 ```
 
 The roles the board ships and the specialists a card asks for are one table: `builder`, `planner`,
-`reviewer`, `writer` and any agent name in `docs/kanban/agents/`. It travels with the repository, so
+`reviewer`, `writer`, `gater`, `decider` and any agent name in `docs/kanban/agents/`. It travels with the repository, so
 every checkout runs each agent as the same thing. An id this board no longer has falls back to
 **Global default** and the run's log says so; a tool whose CLI simply isn't installed here does
 **not** fall back — the run fails with the install command in its log.
@@ -1637,7 +1627,11 @@ ships, then the ones this project added.
 
 - A **role** is the agent behind a group of flows. **Planner** plans and refines cards, **Builder**
   builds them and lands them, **Reviewer** checks what was built; a marketing board has a **Writer**
-  in place of the Builder. A role is always on — a board without a planner plans nothing.
+  in place of the Builder. A role is always on — a board without a planner plans nothing — except
+  the two that stand in for you, both off by default and product boards only: **Gater** judges
+  whether a card that reached ready may build unwatched, and **Decider** answers the questions
+  waiting on you. Each has its own switch, rule and runtime, and each reads the goal and every
+  module's `decisions.md` and `rejected.md` on top of the card.
 - A **specialist** fills one part of a card's spec while that card is being planned, never while it
   is being built: **UI design** draws the screen the card changes, **Technology selection** picks the
   library it leans on. Each runs on its own and writes one section of that card and nothing else.

@@ -314,12 +314,6 @@ export interface BoardRules {
   aiReviewEnabled?(): boolean;
   setAiReview?(on: boolean): WriteResult;
 
-  // does a card that reaches `ready` start its own build? (#440) The fourth setting in the
-  // same file, off by default — so rules older than it read as off, which is what they did:
-  // they waited for Implement.
-  readyGateOn?(): boolean;
-  setReadyGate?(on: boolean): WriteResult;
-
   // how long a run may say nothing before the board ends it (#394), in minutes. `0` never
   // ends one, which is what rules older than the setting do.
   silenceMinutes?(): number;

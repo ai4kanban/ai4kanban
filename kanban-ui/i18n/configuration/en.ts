@@ -141,16 +141,21 @@ const en: ConfigurationCopy = {
         gloss: "Reviews a finished build and fixes what it finds.",
         rule: 'Added to the end of every Review — "reject any dependency the card did not name".',
       },
+      gater: {
+        gloss: "Judges whether a ready card is clear enough to build unwatched.",
+        rule: 'Added to the end of every judgement Gater makes — "never pass a card that touches the database".',
+        when: "a card reaches Ready to build. One it passes goes straight into a delivery; the rest go back to Not ready with one question for you.",
+      },
       decider: {
         gloss: "Answers the questions on a card that are waiting on you.",
         rule: 'Added to the end of every answer Decider gives — "when it is close, take the smaller change".',
+        when: "a card is left with nothing but questions waiting on you, a sent-back delivery's included.",
       },
     },
     decider: {
-      when: "a card is left with nothing but questions waiting on you, a sent-back delivery's included.",
       costTitle: "While this is on, nothing stops for you",
       cost: "An idea runs all the way to landed without asking you — a wrong direction included. What it chose, you read afterwards on the card.",
-      note: "It answers from the project's goal, each module's decisions.md and the recommendation on each question, and takes the recommendation when none of those settle it.",
+      note: "It answers from the project's goal, every module's decisions.md and rejected.md, and each question's own options and recommendation, and takes the recommendation when none of those settle it.",
       confirmTitle: "Turn Decider on?",
       confirmBody:
         "From now on the questions waiting on you are answered for you and a card never stops. Switch it off whenever you like — a card already built does not come back.",
@@ -186,12 +191,6 @@ const en: ConfigurationCopy = {
   },
   delivery: {
     frozen: "A change applies to deliveries started afterwards.",
-    gate: {
-      title: "Build clear cards automatically",
-      body: "When a card reaches Ready to build, a gate agent judges it against the board's writing standard. A clear card goes straight into a delivery; the rest go back to Not ready with one question for you.",
-      failedOn: "couldn't switch the ready gate on",
-      failedOff: "couldn't switch the ready gate off",
-    },
     commits: {
       title: "Automatic Git commits",
       body: "On, each build gets its own branch and worktree, so several run side by side. Off, it builds in your project folder, one at a time.",

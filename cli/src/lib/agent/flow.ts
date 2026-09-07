@@ -32,6 +32,7 @@ import { draftFile, SOURCE } from '../content'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
+import { boardMemoryFiles } from '../memory'
 import { die, rel, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
@@ -701,11 +702,12 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     // The decider answering in the user's place (#447). It reads the same two things a
     // resolve does — the questions, and the decisions already made — but the memory is what
-    // it CHOOSES from rather than what it writes to, and the close says so.
+    // it CHOOSES from rather than what it writes to, and the close says so. It stands in for
+    // the user rather than writing one card, so the memory is the whole board's (#493).
     case 'decide': {
       facts.push(...questionsField(card!.meta))
       facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', memoryFiles(card!.meta.modules, 'decisions.md')))
+      facts.push(...field('memory', boardMemoryFiles()))
       close.push(
         `${raw} update-decided ${req.id} --question ".." --chose ".." [--from ".."] — one call per question, before you drop it`,
         `${raw} update-questions ${req.id} --drop <n> — every \`[user]\` question goes, and the card leaves this run with none`,
@@ -716,14 +718,17 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       break
     }
-    // The ready gate (#440) — a verdict, so the close is the two ways to give one and
+    // The gater's verdict (#440, #493) — so the close is the two ways to give one and
     // nothing else. No handover: a card it passes is built by the board, not by whoever
-    // read this.
+    // read this. Like the decider it judges for the whole board, so it is given the goal and
+    // every module's memory on top of the card, and writes none of it.
     case 'gate': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta), ...verifyField(card!.meta))
       facts.push(
         ...field('blockers', card!.meta.blocked_by.map((n) => `#${n}`).join(', ') || 'none'),
       )
+      facts.push(...field('goal', rel(GOAL)))
+      facts.push(...field('memory', boardMemoryFiles()))
       close.push(
         'it passes: change nothing at all and finish successfully — a clean finish IS the verdict, and the board opens the delivery itself',
         `it does not: \`${raw} update-questions ${req.id} --append ".."\` — exactly one \`[user]\` question naming what blocks the build, which takes the card back to todo by itself`,

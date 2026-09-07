@@ -24,8 +24,14 @@ one of them can be switched off:
 - **Builder** — builds cards and lands them: implement, conflict, run. On a marketing board a
   **Writer** takes its place, and also runs `akb channel`.
 - **Reviewer** — checks what was built.
-- **Decider** — answers the questions on a card that are waiting on you. Off by default, and the
-  one role you can switch off. Product boards only: a topic carries no questions.
+- **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
+  default. Product boards only.
+- **Decider** — answers the questions on a card that are waiting on you. Off by default. Product
+  boards only: a topic carries no questions.
+
+The Gater and the Decider are the two roles you can switch off. Neither does a flow's work: each
+stands in for you, so each has its own switch and its own connector, and each reads the whole
+board — the goal, and every module's `decisions.md` and `rejected.md` — on top of the card.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
 while a card is being planned — never while it is being built — writes one named section of that
@@ -53,7 +59,7 @@ screen nor a library goes through all of those without a spec run, and nothing t
 
 When you do want one: **"put the ui-design agent on #4"**, or `akb spec ui-design 4`. Pausing one
 and setting what it produces are both on its page in **Configuration → Agents**; a role is always
-on except the Decider, because a board without a planner plans nothing.
+on except the Gater and the Decider, because a board without a planner plans nothing.
 
 ## Let the Decider answer for you
 
@@ -194,8 +200,8 @@ akb:
 Say only what you want translated: anything you leave out keeps the English the agent declares.
 Whichever language your machine is set to is what the Agents pane draws. Every run is handed the
 English lines whatever you add here, so a translation can never change what an agent is asked to
-do. The roles the board ships — Planner, Builder, Writer, Reviewer — are translated with the rest
-of the product and carry no block of their own.
+do. The roles the board ships — Planner, Builder, Writer, Reviewer, Gater, Decider — are
+translated with the rest of the product and carry no block of their own.
 
 Agents used to live in `docs/kanban/skills/<name>/SKILL.md`. That folder still works for one
 release, and every agent found there is listed with a line telling you to move it.

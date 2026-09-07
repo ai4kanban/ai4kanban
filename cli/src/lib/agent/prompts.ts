@@ -6,11 +6,11 @@
 
 import path from 'node:path'
 import { locate } from '../cards'
-import { agentMemoryDir } from '../memory'
+import { agentMemoryDir, boardMemoryFiles } from '../memory'
 import { channelLanguage } from '../channels'
 import { draftDir, draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
-import { COMMENTS, boardText, rel } from '../paths'
+import { COMMENTS, boardText, rel, GOAL } from '../paths'
 import {
   agentMemoryBlock,
   findSpecAgent,
@@ -222,6 +222,11 @@ function draftFolder(cardId: number | undefined): string | null {
   const found = cardId === undefined ? null : locate(cardId)
   return found && found.kind === 'file' ? rel(draftDir(found.target)) : null
 }
+
+// What the gater and the decider are given on top of the card (#493). Both stand in for the
+// user rather than writing one card, so both read the whole board — the goal, and every
+// module's decisions and rejections — and neither writes a line of it back.
+const boardMemory = (): string => [rel(GOAL), ...boardMemoryFiles()].join(', ')
 
 // `<spec-agents>` asks which solution this board is: `ui-design` and `technology-selection`
 // answer nothing a marketing topic asks. `<write-agents>` does not — the roster is empty on
@@ -609,18 +614,20 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Answer the open questions on task ${req.id} ${named} in my place, following \`akb guide decide\`.`,
         `You are standing in for me: leave no \`[user]\` question open, and do not hand the card back.`,
+        `Choose from ${boardMemory()}, and from each question's own options and recommendation on the card.`,
         `Record every choice with \`${command} raw update-decided\`, and write no lasting decision anywhere.`,
         `Don't ask me questions with human-in-the-loop, and raise no new question.`,
       ].join(' ')
-    // The ready gate (#440). It is a verdict, not a pass over the card: the whole of what it
-    // may write is one `[user]` question, and finishing with the card untouched IS the other
-    // answer. Nothing here says what the card should say — that is `akb guide writing`, which
-    // the flow prints — and nothing here says to start the build: the board does that, so a
-    // gate that judged well cannot also start the wrong thing.
+    // The gater's verdict (#440, #493). It is a verdict, not a pass over the card: the whole
+    // of what it may write is one `[user]` question, and finishing with the card untouched IS
+    // the other answer. Nothing here says what the card should say — that is `akb guide
+    // writing`, which it is sent to read — and nothing here says to start the build: the
+    // board does that, so a gate that judged well cannot also start the wrong thing.
     case 'gate':
       return [
         `${kb}. Judge task ${req.id} ${named} following \`akb guide gate\` — is it clear enough to build with nobody watching?`,
-        `Change nothing else: you are not refining this card, and a clean finish is how you say "build it".`,
+        `Judge it as I would: on top of the card, read ${boardMemory()}, and \`akb guide writing\` — the bar the card is held to.`,
+        `Change nothing else: you are not refining this card, you write no memory, and a clean finish is how you say "build it".`,
         `Don't ask me questions with human-in-the-loop — the one question you append to the card is how you defer to me.`,
       ].join(' ')
     case 'writing':

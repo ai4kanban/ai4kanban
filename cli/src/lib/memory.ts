@@ -6,9 +6,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { warn, AGENT_MEMORY, MEMORY } from './paths'
+import { rel, warn, AGENT_MEMORY, MEMORY } from './paths'
 import { solution } from './solution'
-import { MODULE_NAME_RE } from './validate'
+import { moduleNames, MODULE_NAME_RE } from './validate'
 
 // What a scaffold made: the path, the files it wrote, and whether the folder itself is new.
 export interface Scaffolded {
@@ -270,6 +270,17 @@ export function memoryTargets(modules: string[], fileName: string): MemoryTarget
     const file = path.join(dir ?? MEMORY, fileName)
     return { file, topics: readTopics(file) }
   })
+}
+
+/** Every module's `decisions.md` and `rejected.md`, board-relative — the project-wide pair
+ *  when the board names no modules. What a run standing in for the user is given (#493):
+ *  the gater and the decider judge for the whole board rather than write one card, so
+ *  neither is handed one card's modules. Read-only, so nothing is scaffolded and a file that
+ *  is not there yet is simply named. */
+export function boardMemoryFiles(): string[] {
+  const named = moduleNames() ?? []
+  const dirs = named.length ? named.map((module) => path.join(MEMORY, module)) : [MEMORY]
+  return dirs.flatMap((dir) => [rel(path.join(dir, 'decisions.md')), rel(path.join(dir, 'rejected.md'))])
 }
 
 // The `## ` headings of a memory file, each with how many entries sit under it — enough

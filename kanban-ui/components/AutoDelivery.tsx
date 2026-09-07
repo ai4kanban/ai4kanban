@@ -1,17 +1,12 @@
 "use client";
 
-// Delivery: whether the board starts a build by itself, and how it builds one.
+// Delivery: how the board builds a delivery once one starts.
 //
-// Four switches, all repository-level, all saved with the board rather than with this
+// Three switches, all repository-level, all saved with the board rather than with this
 // machine, so a team shares one answer.
 //
-// **Build clear cards automatically** (#440) is first, because it is the only one that
-// decides whether a delivery starts at all; the three under it decide how one is built. Off
-// — the default — a card that reaches Ready to build waits for Implement. On, one gate run
-// judges each card that gets there against the board's own writing standard: a card it
-// passes goes straight into a delivery on the settings below, and a card it fails goes back
-// to Not ready carrying the one question that stopped it. It runs on the planner's own
-// connector (#443), picked in Configuration → Agents.
+// Whether a delivery starts by itself is not here (#493): that is the Gater, a row of its
+// own on Configuration → Agents, with its own switch, rule and connector.
 //
 // **Automatic Git commits** (#303) is the side each Implement opens on. On — the default —
 // a build gets a branch and a worktree of its own, so several run at once without touching
@@ -37,20 +32,17 @@ import {
   aiReviewAction,
   autoCommitAction,
   diffApprovalAction,
-  readyGateAction,
   setAiReviewAction,
   setAutoCommitAction,
   setDiffApprovalAction,
-  setReadyGateAction,
 } from "@/app/actions";
 import { Group, Panel, Row, Switch } from "./settings";
 
-/** The **Delivery** group of Configuration → General. It reads all four settings from the
+/** The **Delivery** group of Configuration → General. It reads all three settings from the
  *  board when it draws. */
 export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) {
   const c = useCopy().configuration.delivery;
   const caption = useCopy().configuration.general.delivery;
-  const [gate, setGate] = useState<boolean | null>(null);
   const [commits, setCommits] = useState<boolean | null>(null);
   const [approval, setApproval] = useState<boolean | null>(null);
   const [review, setReview] = useState<boolean | null>(null);
@@ -62,28 +54,17 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
       autoCommitAction(),
       diffApprovalAction(),
       aiReviewAction(),
-      readyGateAction(),
-    ]).then(([commit, approve, judge, ready]) => {
+    ]).then(([commit, approve, judge]) => {
       if (!live) return;
       setCommits(commit.on);
       setApproval(approve.on);
       setReview(judge.on);
-      setGate(ready.on);
-      setLoadError(commit.error ?? approve.error ?? judge.error ?? ready.error ?? null);
+      setLoadError(commit.error ?? approve.error ?? judge.error ?? null);
     });
     return () => {
       live = false;
     };
   }, []);
-
-  const flipGate = async (next: boolean) => {
-    setGate(next);
-    const res = await setReadyGateAction(next);
-    if (!res.ok) {
-      setGate(!next);
-      onError?.(res.error || (next ? c.gate.failedOn : c.gate.failedOff));
-    }
-  };
 
   const flipCommits = async (next: boolean) => {
     setCommits(next);
@@ -115,16 +96,6 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
   return (
     <Group title={caption}>
       <Panel>
-        {/* First (#440): this row decides whether a delivery starts at all, and the three
-            under it decide how one is built. */}
-        <Row label={c.gate.title} hint={c.gate.body}>
-          <Switch
-            on={gate}
-            label={(gate ? c.switchOn : c.switchOff)(c.gate.title)}
-            onFlip={flipGate}
-          />
-        </Row>
-
         <Row label={c.commits.title} hint={c.commits.body}>
           <Switch
             on={commits}

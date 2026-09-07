@@ -15,8 +15,10 @@ import { FLOWS, flowRefusal } from '../src/lib/agent/flows.ts'
 import { buildRun } from '../src/lib/agent/prompts.ts'
 import { agentNames, agentRoster, roleForFlow, roles } from '../src/lib/agent/roles.ts'
 import { migrateFlowRules, readRule, ruleFor } from '../src/lib/agent/rules.ts'
-import { specAgentProblems } from '../src/lib/agents/index.ts'
-import { RULES, setBoardRoot } from '../src/lib/paths.ts'
+import { setSpecAgentEnabled, specAgentProblems } from '../src/lib/agents/index.ts'
+import { readAgents } from '../src/lib/agents/roster.ts'
+import { deciderOn, readyGateOn } from '../src/lib/agent/settings.ts'
+import { RULES, setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import { move, refuses } from './helpers/board.ts'
 
 let root = ''
@@ -77,10 +79,12 @@ describe('the roles', () => {
     solution('product')
     assert.deepEqual(
       roles().map((r) => r.name),
-      ['planner', 'builder', 'reviewer', 'decider'],
+      ['planner', 'builder', 'reviewer', 'gater', 'decider'],
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
-    // The decider is the product board's alone: a topic carries no questions to answer.
+    // The gater and the decider are the product board's alone: a topic is never gated, and
+    // it carries no questions to answer.
+    assert.equal(roleForFlow('gate')!.name, 'gater')
     assert.equal(roleForFlow('decide')!.name, 'decider')
     // `akb channel` is the writer's and exists nowhere else.
     assert.equal(roleForFlow('channel'), undefined)
@@ -92,6 +96,7 @@ describe('the roles', () => {
     )
     assert.equal(roleForFlow('implement')!.name, 'writer')
     assert.equal(roleForFlow('channel')!.name, 'writer')
+    assert.equal(roleForFlow('gate'), undefined)
     assert.equal(roleForFlow('decide'), undefined)
   })
 
@@ -114,27 +119,82 @@ describe('the roles', () => {
         .join('\n')
         .concat('\n'),
     )
-    assert.deepEqual(agentNames(), ['planner', 'builder', 'reviewer', 'decider', 'technology-selection', 'ui-design'])
+    assert.deepEqual(agentNames(), [
+      'planner',
+      'builder',
+      'reviewer',
+      'gater',
+      'decider',
+      'technology-selection',
+      'ui-design',
+    ])
     assert.match(specAgentProblems().join('\n'), /`builder` is one of the roles the board ships/)
   })
 
   it('rosters the roles first, then the specialists the command ships', () => {
     solution('product')
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 4), ['planner', 'builder', 'reviewer', 'decider'])
-    assert.deepEqual(names.slice(4), ['technology-selection', 'ui-design'])
+    assert.deepEqual(names.slice(0, 5), ['planner', 'builder', 'reviewer', 'gater', 'decider'])
+    assert.deepEqual(names.slice(5), ['technology-selection', 'ui-design'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      ['role', 'role', 'role', 'role', 'spec', 'spec'],
+      ['role', 'role', 'role', 'role', 'role', 'spec', 'spec'],
     )
     // A role says which flows it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[4]!.flows, [])
-    // Only one role can be switched off, and it is the decider (#447).
+    assert.deepEqual(agentRoster()[5]!.flows, [])
+    // Two roles can be switched off, and each reads a key of its own (#447, #493).
     assert.deepEqual(
-      agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => a.name),
-      ['decider'],
+      agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => [a.name, a.setting]),
+      [
+        ['gater', 'readyGate'],
+        ['decider', 'decider'],
+      ],
     )
+  })
+})
+
+// The gater and the decider (#493) — two agents, two switches, two keys. The keys are the
+// ones the board has always written, so a project that turned either on before the split
+// finds the same agent on afterwards.
+describe('the two roles that can be switched off', () => {
+  const on = (name: string): boolean => readAgents().agents.find((a) => a.name === name)!.enabled
+
+  it('is off on a board that says nothing, and every other role stays on', () => {
+    solution('product')
+    assert.equal(on('gater'), false)
+    assert.equal(on('decider'), false)
+    for (const always of ['planner', 'builder', 'reviewer']) assert.equal(on(always), true, always)
+  })
+
+  it('reads the key the board already wrote, so a switch survives the split', () => {
+    solution('product')
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ readyGate: true }))
+    assert.equal(on('gater'), true)
+    assert.equal(on('decider'), false)
+
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ decider: true }))
+    assert.equal(on('gater'), false)
+    assert.equal(on('decider'), true)
+  })
+
+  it('switches one without touching the other, each under its own key', () => {
+    solution('product')
+    assert.equal(setSpecAgentEnabled('gater', true).ok, true)
+    assert.equal(readyGateOn(), true)
+    assert.equal(deciderOn(), false)
+
+    assert.equal(setSpecAgentEnabled('decider', true).ok, true)
+    assert.equal(setSpecAgentEnabled('gater', false).ok, true)
+    assert.equal(readyGateOn(), false)
+    assert.equal(deciderOn(), true)
+  })
+
+  it('refuses to switch off a role the board runs on', () => {
+    solution('product')
+    const refused = setSpecAgentEnabled('planner', false)
+    assert.equal(refused.ok, false)
+    assert.match(refused.error!, /can't be switched off/)
   })
 })
 

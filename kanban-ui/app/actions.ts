@@ -119,8 +119,6 @@ import {
   aiReviewEnabled,
   autoCommitAllowed,
   diffApprovalRequired,
-  readyGateOn,
-  setReadyGate,
   setAiReview,
   setAutoCommit,
   setDiffApproval,
@@ -1100,22 +1098,6 @@ export async function aiReviewAction(): Promise<{ on: boolean; error?: string }>
 export async function setAiReviewAction(on: boolean): Promise<WriteResult> {
   if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
   return setAiReview(on);
-}
-
-// **Build clear cards automatically** (#440) — the ready gate, read and saved in the same
-// file as the three above. Off by default, so nothing to read reads as off: an unreadable
-// setting must not be the reason the board started building cards by itself.
-export async function readyGateAction(): Promise<{ on: boolean; error?: string }> {
-  try {
-    return { on: await readyGateOn() };
-  } catch (e) {
-    return { on: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function setReadyGateAction(on: boolean): Promise<WriteResult> {
-  if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
-  return setReadyGate(on);
 }
 
 // **End a silent run after** (#394) — how many minutes a run may say nothing before the

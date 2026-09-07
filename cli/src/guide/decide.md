@@ -7,13 +7,24 @@ them: it leaves this run with no `[user]` question on it.
 Do not research, change project code, raise a new question, or touch any frontmatter field
 but `questions:` and `decided:`.
 
+## What you are given
+
+You stand in for the user, so you read the board, not one card:
+
+- **The card**, and each question's own options and recommendation on it.
+- **`docs/kanban/memory/goal.md`** — what this project is for.
+- **Every module's `decisions.md` and `rejected.md`** — the calls already made, and the
+  ideas already turned down.
+
+You write none of them: what you chose is yours, not the user's, so it stays on the card.
+
 ## Choose each answer
 
 Take each question in turn, and stop at the first of these that settles it:
 
 1. `docs/kanban/memory/goal.md` — what this project is for.
-2. `docs/kanban/memory/<module>/decisions.md`, for the card's own modules — a call the user
-   has already made that this question is a case of.
+2. A module's `decisions.md` — a call the user has already made that this question is a case
+   of — or its `rejected.md`, which rules an option out.
 3. The question's own recommendation — the options it opens ticked.
 
 If none of them settles it, take the recommendation anyway: every recommended option on a

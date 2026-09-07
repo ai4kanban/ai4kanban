@@ -16,7 +16,7 @@ import { agentRun } from '../agent/resolve'
 import { agentRoster, ROLE_NAMES } from '../agent/roles'
 import { readRule } from '../agent/rules'
 import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
-import { deciderOn, forgetSpecAgent, specAgentEntries } from '../agent/settings'
+import { forgetSpecAgent, specAgentEntries, switchedOn } from '../agent/settings'
 import type { AgentView } from '../agent/types'
 import { agentMemoryDir, legacyAgentMemoryFile } from '../memory'
 import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
@@ -44,12 +44,13 @@ export function readAgents(): { agents: AgentView[]; problems: string[] } {
       kind: entry.kind,
       builtIn: entry.builtIn,
       // A role runs the board's own flows, so there is normally nothing to switch off: a
-      // board without a planner plans nothing. The decider is the one exception (#447) —
-      // its switch is the board's own `decider`, not a `specAgents` entry.
+      // board without a planner plans nothing. The gater and the decider are the exceptions
+      // (#447, #493) — each reads its own key in the board's settings rather than a
+      // `specAgents` entry.
       switchable: entry.switchable,
       enabled:
         entry.kind === 'role'
-          ? !entry.switchable || deciderOn()
+          ? !entry.setting || switchedOn(entry.setting)
           : specAgentEnabled(entry.name, entries),
       rule: readRule(entry.name),
       memory: entry.memory,

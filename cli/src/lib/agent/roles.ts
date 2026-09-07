@@ -23,16 +23,19 @@ import { agentMemoryFiles } from '../memory'
 import { KANBAN, rel } from '../paths'
 import { solution } from '../solution'
 import { FLOWS } from './flows'
+import type { RoleSwitch } from './settings'
 import type { AgentKind } from '../agents/parse'
 
 /** One role: an agent the board ships, named by the work rather than by a flow. */
 export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
-  /** Whether this role can be switched off (#447). Almost none can: a board without a
-   *  planner plans nothing. The decider is the exception — it runs a flow of the board's,
-   *  so it is a role, and it answers for the user, so it has to be switchable. */
-  switchable?: true
+  /** The key in `ui.config.json` this role is switched on under, when it can be switched
+   *  off at all (#447, #493). Almost none can: a board without a planner plans nothing. The
+   *  two that can stand in for the user rather than doing a flow's work — the gater judges
+   *  a card the way you would, the decider answers what you would have answered — so each
+   *  is off until you ask for it, and each reads its own key. */
+  switch?: RoleSwitch
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
   /** The flows it runs, by flow name (./flows.ts). `channel` and `polish` are in the
@@ -51,7 +54,6 @@ export interface AgentRole {
 const PRODUCT_PLANNER_FLOWS = [
   'create',
   'refine',
-  'gate',
   'resolve',
   'revise',
   'plan-release',
@@ -63,15 +65,28 @@ const PRODUCT_PLANNER_FLOWS = [
 
 const MARKETING_PLANNER_FLOWS = ['create', 'revise', 'archive', 'reject', 'setup']
 
-// The one role the board ships switched OFF (#447). It runs `decide` — the flow that
-// answers a card's `[user]` questions instead of stopping for them — and it owns no memory:
-// what it chooses stays on the card it chose it on, never in a `decisions.md`.
+// The two roles the board ships switched OFF (#447, #493). Neither does a flow's work: each
+// stands in for the user, so each is off until asked for and each owns no memory — what
+// either judged or chose stays on the card it was judging, never in a `decisions.md`.
+//
+// The gater runs `gate`, the verdict on whether a settled card may build unwatched. It was
+// the planner's flow until #493, which cost it a switch and a connector of its own.
+const GATER: AgentRole = {
+  name: 'gater',
+  gloss: 'judges whether a card can build unwatched',
+  flows: ['gate'],
+  memory: [],
+  switch: 'readyGate',
+}
+
+// And the decider runs `decide` — the flow that answers a card's `[user]` questions instead
+// of stopping for them.
 const DECIDER: AgentRole = {
   name: 'decider',
   gloss: 'answers the questions waiting on you',
   flows: ['decide'],
   memory: [],
-  switchable: true,
+  switch: 'decider',
 }
 
 const REVIEWER: AgentRole = {
@@ -95,7 +110,9 @@ const PRODUCT_ROLES: AgentRole[] = [
     memory: ['memory/readme.md', 'memory/redesign.md', 'modules.md'],
   },
   REVIEWER,
-  // Last, and only on a product board: a marketing topic carries no questions to answer.
+  // Last, and only on a product board: it has no `gate` flow, and a topic carries no
+  // questions to answer.
+  GATER,
   DECIDER,
 ]
 
@@ -152,9 +169,12 @@ export interface RosterEntry {
   kind: 'role' | AgentKind
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
-  /** Whether this entry can be switched off. Every specialist can; of the roles, only the
-   *  decider (#447). */
+  /** Whether this entry can be switched off. Every specialist can; of the roles, the gater
+   *  and the decider (#447, #493). */
   switchable: boolean
+  /** A switchable role's own key in `ui.config.json` — what says whether it is on. Absent
+   *  on every other entry: a specialist's switch is its `specAgents` entry. */
+  setting?: RoleSwitch
   /** A role's flows. Empty on a specialist: it is asked for by name, never by a flow. */
   flows: string[]
   /** The memory files it owns, repo-relative — a role's are the files its own flows already
@@ -188,7 +208,8 @@ export function agentRoster(): RosterEntry[] {
       when: '',
       kind: 'role' as const,
       builtIn: true,
-      switchable: role.switchable === true,
+      switchable: role.switch !== undefined,
+      ...(role.switch ? { setting: role.switch } : {}),
       flows: role.flows,
       memory: role.memory.map((file) => rel(path.join(KANBAN, file))),
     })),

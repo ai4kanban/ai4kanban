@@ -22,8 +22,8 @@ docs/kanban/
 │                   exactly as it was approved for it, and how it ended. Tracked in git,
 │                   kept after the card is archived; nobody edits one by hand
 ├── rules/          one rule per agent, in the user's own words — `<agent>.md`: a role the
-│                   board ships (`planner`, `builder`, `reviewer`, `decider`) or a spec
-│                   agent. It is appended to the end of every run that agent does, so every
+│                   board ships (`planner`, `builder`, `reviewer`, `gater`, `decider`) or a
+│                   spec agent. It is appended to the end of every run that agent does, so every
 │                   flow it runs reads it. Tracked in git; a missing or empty file means the
 │                   run goes unchanged. Written from the board UI or `akb raw rule`
 ├── triage/         market signals waiting to be looked at (#453) — `inbox/` holds one file

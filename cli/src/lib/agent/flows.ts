@@ -118,8 +118,8 @@ export const FLOWS: Flow[] = [
     argument: '<id>',
     gloss: 'judge whether a ready card is clear enough to build unattended',
     more: [
-      'The board runs this itself on each card that reaches `ready`, when the ready gate is switched on ' +
-        '(Configuration → General → Delivery). It passes the card straight into a delivery, or appends ' +
+      'The board runs this itself on each card that reaches `ready`, when the gater is switched on ' +
+        '(Configuration → Agents). It passes the card straight into a delivery, or appends ' +
         'the one question that stops it.',
     ],
   },

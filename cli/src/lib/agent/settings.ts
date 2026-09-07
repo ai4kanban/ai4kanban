@@ -162,25 +162,17 @@ export function setAiReview(on: boolean): { ok: boolean; error?: string } {
 // With it ON every card that reaches `ready` is judged by one `gate` run first. A card it
 // passes goes straight into a delivery, on this board's saved delivery settings; a card it
 // fails gets one `[user]` question, which takes it back to `todo` for the user to answer.
+//
+// It is the gater's switch (#493), turned on in Configuration → Agents. The key is the one
+// it was written under, so a board that turned the gate on before the split keeps it.
 
 /** True only when somebody switched the ready gate on. A file that won't parse reads as
  *  off: a setting nobody can read is not a reason to start spending runs and building
  *  cards by itself. */
-export function readyGateOn(): boolean {
-  try {
-    return readConfigRaw().readyGate === true
-  } catch {
-    return false
-  }
-}
+export const readyGateOn = (): boolean => switchedOn('readyGate')
 
 /** Save it. Turning it back off drops the key rather than writing `false`. */
-export function setReadyGate(on: boolean): { ok: boolean; error?: string } {
-  return writeConfig((cfg) => {
-    if (on) cfg.readyGate = true
-    else delete cfg.readyGate
-  })
-}
+export const setReadyGate = (on: boolean): { ok: boolean; error?: string } => setSwitch('readyGate', on)
 
 // ---- the decider: does the board answer your questions for you? (#447) ------
 //
@@ -197,19 +189,35 @@ export function setReadyGate(on: boolean): { ok: boolean; error?: string } {
 
 /** True only when somebody switched the decider on. A file that won't parse reads as off: a
  *  setting nobody can read is not a reason to start answering for the user. */
-export function deciderOn(): boolean {
+export const deciderOn = (): boolean => switchedOn('decider')
+
+/** Save it. Turning it back off drops the key rather than writing `false`. */
+export const setDecider = (on: boolean): { ok: boolean; error?: string } => setSwitch('decider', on)
+
+// ---- a switchable role's own key (#493) ------------------------------------
+//
+// The two switches above are the two roles that can be switched off: the gater runs the
+// ready gate, the decider answers for the user. Each keeps the key it has always had, so a
+// board that turned either on keeps it, and the roster reads a role through its own key
+// rather than asking one role's question of them all.
+
+/** The keys a switchable role is saved under (./roles.ts). */
+export type RoleSwitch = 'readyGate' | 'decider'
+
+/** Whether the role behind this key is on. */
+export function switchedOn(key: RoleSwitch): boolean {
   try {
-    return readConfigRaw().decider === true
+    return readConfigRaw()[key] === true
   } catch {
     return false
   }
 }
 
-/** Save it. Turning it back off drops the key rather than writing `false`. */
-export function setDecider(on: boolean): { ok: boolean; error?: string } {
+/** Save it. Off drops the key rather than writing `false`. */
+export function setSwitch(key: RoleSwitch, on: boolean): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
-    if (on) cfg.decider = true
-    else delete cfg.decider
+    if (on) cfg[key] = true
+    else delete cfg[key]
   })
 }
 

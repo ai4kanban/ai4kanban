@@ -27,7 +27,6 @@ export type MessagesCopy = {
     autoDelivery: string;
     diffApproval: string;
     aiReview: string;
-    readyGate: string;
     silenceLimit: string;
     deliveries: string;
     worktrees: string;
