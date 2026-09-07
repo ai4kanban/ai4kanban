@@ -1956,7 +1956,6 @@ export async function notificationCenterAction(): Promise<NotificationCenter> {
       boardId: "",
       release: "",
       silenced: false,
-      namesBoards: false,
       rows: [],
       unread: 0,
       alerts: [],

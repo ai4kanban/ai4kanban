@@ -21,18 +21,9 @@ export const BellProvider = BellContext.Provider;
 /** The bell this window is showing, or null where there is none. */
 export const useBell = (): BellRail | null => useContext(BellContext);
 
-/**
- * The live Cloud event on one of THIS board's cards, or null.
- *
- * Matched on the board's own Cloud id as well as the task number: the bell carries every
- * enabled board, and two boards can each hold a card #12.
- */
+/** The live Cloud event on one of this board's cards, or null. */
 export function useCardEvent(taskId: number): NotificationRow | null {
   const rail = useBell();
   if (!rail) return null;
-  const { center } = rail;
-  if (!center.boardId) return null;
-  return (
-    center.rows.find((row) => row.boardId === center.boardId && row.taskId === taskId) ?? null
-  );
+  return rail.center.rows.find((row) => row.taskId === taskId) ?? null;
 }

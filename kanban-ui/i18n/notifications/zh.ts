@@ -33,7 +33,6 @@ const zh: NotificationsCopy = {
   },
   unreachable: (why) => `无法连接 Cloud：${why}。以下是我们最后一次拿到的记录。`,
   unsent: (changes) => `Cloud 数据不同步：有 ${changes} 项改动始终没有送达。以这个看板为准。`,
-  boardGone: (board) => `${board} 已不在这台机器上。`,
   closed: {
     title: "你跟踪的版本已经关闭。",
     body: "在你选定新的跟踪对象之前，通知不会再有新内容。",

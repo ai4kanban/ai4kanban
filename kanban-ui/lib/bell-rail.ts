@@ -11,7 +11,7 @@ import { useMatches } from "./media";
 import type { NotificationAlert, NotificationCenter, WatchFill } from "./notifications";
 
 // The bell's own state (#319): whether the rail is up, how wide it is, and the events it is
-// showing.
+// showing — this board's, which is what the rules hand back.
 //
 // It sits in the window for the same two reasons the chat rail's does — the button is in
 // the top row and the rail is down the right — with one more of its own: the right side
@@ -47,7 +47,6 @@ const NOTHING: NotificationCenter = {
   boardId: "",
   release: "",
   silenced: false,
-  namesBoards: false,
   rows: [],
   unread: 0,
   alerts: [],
@@ -66,8 +65,9 @@ export interface BellRail {
    *  hands it out once, so it is held here — the switch is usually made with the rail down,
    *  and the line has to be there when it is opened. */
   filled: WatchFill | null;
-  /** Open a row: mark it read, and go to that card — switching the app to that board first
-   *  when the row belongs to another one. */
+  /** Open a row: mark it read, and go to that card. Also what a clicked system notification
+   *  lands on, and those DO come from other boards — so it switches the app first when the
+   *  event is not this board's. */
   openRow(eventId: string): Promise<void>;
   /** Mark every row read at once. The rows stay; only the count empties. */
   readAll(): Promise<void>;
@@ -246,8 +246,8 @@ export function useBellRail({
 }
 
 // --- switching the app to another board --------------------------------------
-// A row can name a board this window is not showing. Opening it switches the app to that
-// project and lands on the card, which is the one click the bell costs.
+// The rail is this board's, but a system notification is not: it comes from whichever board
+// raised it. Clicking one switches the app to that project and lands on the card.
 
 interface AppBridge {
   openProject(dir: string): Promise<string | null>;

@@ -36,7 +36,7 @@ const zh: SetupCopy = {
       test: "测试并继续",
       testNote: (agent) => `测试 ${agent} 是否可用。`,
       answered: "测试通过",
-      trying: (agent) => `正在尝试 ${agent}…`,
+      trying: (agent) => `正在将 ${agent} 设为你的 Agent`,
       found: (agent) => `${agent} 可用`,
       bySelf: "自己设置",
     },
@@ -45,7 +45,7 @@ const zh: SetupCopy = {
       blurb: "通常不到一分钟。完成后请确认项目信息。",
     },
     project: {
-      right: "请确认或修改。确认前不会写入。",
+      right: "从仓库读出的项目名称和描述。确认前不会写入。",
       hint: "需要修改的地方",
       yes: "确认",
       send: "发送",
@@ -92,7 +92,7 @@ const zh: SetupCopy = {
   },
   done: {
     title: "设置完成",
-    blurb: "正在自动完成剩余设置。你可以查看进度，或直接进入看板。",
+    blurb: "剩下的交给 Agent。你可以直接进入看板。",
     finish: "完成设置",
     starting: "启动中…",
     open: "打开看板",

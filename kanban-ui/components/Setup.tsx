@@ -371,7 +371,7 @@ export function SetupFlow({
           draft={draft}
           agent={agent}
           onGo={setIndex}
-          onExit={onExit}
+          onExit={step ? onExit : null}
           canDiscard={canDiscard}
         />
 
@@ -467,7 +467,10 @@ function StepRail({
   draft: SetupDraft | null;
   agent: AgentInfo;
   onGo: (index: number) => void;
-  onExit: () => void;
+  /** The way out to the board, while leaving is still leaving something. Null on the closing
+   *  screen, where Open the board is the step itself and a second one down here would be the
+   *  same press twice. */
+  onExit: (() => void) | null;
   /** Whether the folder this board was made in can still be given back. */
   canDiscard: boolean;
 }) {
@@ -530,12 +533,16 @@ function StepRail({
       {/* Leaving is never losing (the rules above) — the board keeps a way back in. Under
           it, while the board is still nobody's work but the installer's, the way out of
           the folder itself. */}
-      <div className="mt-auto flex flex-col gap-2 pt-3">
-        <Button variant="ghost" size="sm" className="w-full" onClick={onExit}>
-          {c.rail.exit}
-        </Button>
-        {canDiscard && <DiscardNewBoard />}
-      </div>
+      {(onExit || canDiscard) && (
+        <div className="mt-auto flex flex-col gap-2 pt-3">
+          {onExit && (
+            <Button variant="ghost" size="sm" className="w-full" onClick={onExit}>
+              {c.rail.exit}
+            </Button>
+          )}
+          {canDiscard && <DiscardNewBoard />}
+        </div>
+      )}
     </div>
   );
 }
@@ -792,36 +799,12 @@ function DoneStep({
 
   return (
     <StepBody title={c.title} blurb={c.blurb}>
-      {rows.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {rows.map((step) => (
-            <li key={step.name} className="flex items-start gap-2 text-[13px] leading-relaxed">
-              {step.done ? (
-                <FiCheck className="mt-[3px] shrink-0 text-[13px] text-nb-mint-ink" aria-hidden />
-              ) : (
-                <span
-                  className={cn(
-                    "mt-[6px] size-[6px] shrink-0 rounded-full",
-                    step.name === at && running
-                      ? "bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]"
-                      : "bg-nb-ink/30",
-                  )}
-                  aria-hidden
-                />
-              )}
-              <span className={step.done ? "text-nb-ink-soft" : undefined}>
-                <Ticks text={step.text} />
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {/* What the run is doing. */}
-      <div className="mt-5 nb-panel-sm p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
-        {runId ? (
-          <WatchingSetup runId={runId} />
-        ) : failedRunId || error ? (
+      {/* Only what went wrong, and above the line rather than at the end of it: a run that
+          stopped is why the line is not moving, so it is read before the stops are. A run
+          going well needs nothing — the line already pulses on the step it is doing, and the
+          header's runs button is the way into the log. */}
+      {(failedRunId || error) && (
+        <div className="mb-5 nb-panel-sm p-3" style={{ background: "var(--color-nb-accent-soft)" }}>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] leading-relaxed">
             <span className="min-w-0 flex-1">
               {failedRunId && <SetupRunFailed runId={failedRunId} />}
@@ -831,24 +814,79 @@ function DoneStep({
               {starting ? c.starting : c.finish}
             </Button>
           </div>
-        ) : (
-          <span className="flex items-center gap-2 text-[13px] text-nb-ink-soft">
+          {error && <div className="mt-3"><Failure text={error} /></div>}
+        </div>
+      )}
+
+      <ol className="flex flex-col">
+        {rows.map((step) => (
+          <Stop
+            key={step.name}
+            state={step.done ? "done" : step.name === at && running ? "now" : "next"}
+          >
+            <span className={cn("text-[13px] leading-relaxed", step.done && "text-nb-ink-soft")}>
+              <Ticks text={step.text} />
+            </span>
+          </Stop>
+        ))}
+        {/* The last stop is where the line was always going. It is the one thing to press on
+            this screen — the rail drops its own way out here rather than say it twice. */}
+        <Stop state="end" last>
+          {/* A touch shorter than a plain `sm`: it is a stop on the line, and a full-height
+              button beside a 19px node sits taller than the row it belongs to. */}
+          <Button size="sm" className="py-[5px]" onClick={onExit}>
+            {c.open}
+          </Button>
+        </Stop>
+      </ol>
+    </StepBody>
+  );
+}
+
+/** One stop on the closing screen's line: a node in the left gutter, the line running on to
+ *  the next one, and whatever the stop is beside it. Four states — settled, being done now,
+ *  still ahead, and the board at the end of it. */
+function Stop({
+  state,
+  last,
+  children,
+}: {
+  state: "done" | "now" | "next" | "end";
+  last?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="relative flex gap-3 pl-[1px] last:pb-0 pb-4">
+      {/* The line, drawn from this node's middle to the next one's. Never under the last. */}
+      {!last && (
+        <span
+          className="absolute left-[9px] top-[15px] bottom-[-3px] w-[1.5px] bg-nb-ink/15"
+          aria-hidden
+        />
+      )}
+      <span className="relative z-[1] mt-[2px] flex size-[19px] shrink-0 items-center justify-center">
+        {state === "done" ? (
+          <span className="flex size-[17px] items-center justify-center rounded-full bg-nb-mint-soft">
+            <FiCheck className="text-[10px] text-nb-mint-ink" strokeWidth={3} aria-hidden />
+          </span>
+        ) : state === "now" ? (
+          <>
+            {/* The ring breathes, the dot holds — a node that pulsed whole would read as
+                something loading rather than as the stop the line has reached. */}
             <span
-              className="size-[8px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]"
+              className="absolute size-[19px] rounded-full bg-nb-accent/30 animate-[nbPulse_1.6s_ease-in-out_infinite]"
               aria-hidden
             />
-            {c.starting}
-          </span>
+            <span className="relative size-[9px] rounded-full bg-nb-accent-deep" aria-hidden />
+          </>
+        ) : state === "end" ? (
+          <span className="size-[11px] rounded-full border-[2px] border-nb-accent bg-nb-paper" aria-hidden />
+        ) : (
+          <span className="size-[9px] rounded-full border-[1.5px] border-nb-ink/25 bg-nb-paper" aria-hidden />
         )}
-        {error && <div className="mt-3"><Failure text={error} /></div>}
-      </div>
-
-      <StepButtons>
-        <Button size="sm" onClick={onExit}>
-          {c.open}
-        </Button>
-      </StepButtons>
-    </StepBody>
+      </span>
+      <span className={cn("min-w-0 flex-1", state === "end" && "pt-[1px]")}>{children}</span>
+    </li>
   );
 }
 

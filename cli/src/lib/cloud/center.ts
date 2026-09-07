@@ -20,8 +20,13 @@
 // The rail draws the same two (./events.ts `needsPerson`), so the bell's count is things to
 // do rather than a log of state changes: a delivery going, an approval this machine just
 // took, a cancellation and a card that stopped asking are all the board or the user's own
-// click coming back, and none of them takes a row. The card page reads `rows` for its own
-// title band, so every event stays in there and `onRail` is what says which are drawn.
+// click coming back, and none of them takes a row. `onRail` is what says which are drawn.
+//
+// The BELL is this board's, however wide the connection is. `readCloudCenter` hands back the
+// rows of the board the window is showing and nothing else: a project open in front of you is
+// the work you are doing, and a second project's cards mixed into the same list read as this
+// one's. Interruptions stay account-wide — a system notification is how a board you are not
+// looking at reaches you at all, and clicking one switches the app to it.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -29,7 +34,7 @@ import path from 'node:path'
 import { machineHome } from '../machine/home'
 import { notificationsSilenced } from '../machine/settings'
 import { KANBAN } from '../paths'
-import { cloudBoardById, cloudBoardFor, namesBoards } from './boards'
+import { cloudBoardById, cloudBoardFor } from './boards'
 import { listEvents, readEvent } from './client'
 import { eventLabel, needsPerson, onTheRail, type CloudEvent, type CloudEventState } from './events'
 import { connectCloudLive, type LiveConnection } from './live'
@@ -43,12 +48,6 @@ import { readSession } from './session'
 export interface NotificationRow {
   eventId: string
   boardId: string
-  /** The board this event came from. A row says it only when that board has left this
-   *  machine — the second line carries the event's time instead. */
-  boardName: string
-  /** False when that board is no longer on this machine. The row says so rather than
-   *  switching to it, because the checkout can come back. */
-  boardHere: boolean
   taskId: number
   taskTitle: string
   /** The event's name — what the row's second line and a notification both say. */
@@ -87,17 +86,15 @@ export interface NotificationCenter {
   signedIn: boolean
   /** Notifications are on for THIS board. */
   enabled: boolean
-  /** This board's own Cloud id, so a card page can tell its own event from a row another
-   *  board raised about a task that happens to share a number. Empty when it has none. */
+  /** This board's own Cloud id — every row below is one of its own. Empty when it has none,
+   *  and then there are no rows. */
   boardId: string
   /** The release this board watches. Empty on an enabled board whose release has closed —
    *  the rail asks for another where the filling stopped. */
   release: string
   silenced: boolean
-  /** Whether a row has to name its board. */
-  namesBoards: boolean
-  /** Every live event, newest change first. The rail draws the ones marked `onRail`; the
-   *  card page reads the rest for its own title band. */
+  /** This board's live events, newest change first. The rail draws the ones marked `onRail`;
+   *  the card page reads the rest for its own title band. */
   rows: NotificationRow[]
   /** How many rows are waiting for a person and have not been opened — the bell's count. */
   unread: number
@@ -301,32 +298,31 @@ const alert = (event: CloudEvent, kind: NotificationAlert['kind'], body: string)
 
 // ---- what the bell draws ----------------------------------------------------
 
-/** Every live event, newest change first, and the alerts waiting to be raised. Reading takes
- *  the alerts away: they are raised once or not at all. */
+/** This board's live events, newest change first, and the alerts waiting to be raised.
+ *  Reading takes the alerts away: they are raised once or not at all. */
 export function readCloudCenter(): NotificationCenter {
   const held = state()
   const marks = reads()
   const enabled = cloudBoardFor(KANBAN)
+  const boardId = enabled?.id ?? ''
   const rows: NotificationRow[] = [...held.events.values()]
-    .map((event) => {
-      const board = cloudBoardById(event.boardId)
-      return {
-        eventId: event.id,
-        boardId: event.boardId,
-        boardName: board?.name ?? event.boardName,
-        boardHere: !!board,
-        taskId: event.taskId,
-        taskTitle: event.taskTitle,
-        label: eventLabel(event),
-        state: event.state,
-        onRail: onTheRail(event),
-        // Only a state waiting for a person counts, so a delivery starting under a row the
-        // user has already read leaves it read. A row a scope change brought in arrives read
-        // too (#451) — it was already waiting, and the line above the list is what says so.
-        unread: needsPerson(event) && !event.broughtIn && marks[event.id] !== event.changedAt,
-        changedAt: event.changedAt,
-      }
-    })
+    // The bell is the open board's. The connection carries the whole account, because one
+    // machine holds one socket and every board's interruptions come down it.
+    .filter((event) => !!boardId && event.boardId === boardId)
+    .map((event) => ({
+      eventId: event.id,
+      boardId: event.boardId,
+      taskId: event.taskId,
+      taskTitle: event.taskTitle,
+      label: eventLabel(event),
+      state: event.state,
+      onRail: onTheRail(event),
+      // Only a state waiting for a person counts, so a delivery starting under a row the
+      // user has already read leaves it read. A row a scope change brought in arrives read
+      // too (#451) — it was already waiting, and the line above the list is what says so.
+      unread: needsPerson(event) && !event.broughtIn && marks[event.id] !== event.changedAt,
+      changedAt: event.changedAt,
+    }))
     .sort((a, b) => (a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : b.taskId - a.taskId))
 
   const alerts = notificationsSilenced() ? [] : held.alerts
@@ -338,10 +334,9 @@ export function readCloudCenter(): NotificationCenter {
   return {
     signedIn: !!readSession(),
     enabled: !!enabled,
-    boardId: enabled?.id ?? '',
+    boardId,
     release: enabled?.release ?? '',
     silenced: notificationsSilenced(),
-    namesBoards: namesBoards(),
     rows,
     unread: rows.filter((r) => r.unread).length,
     alerts,
@@ -369,11 +364,14 @@ export function openNotification(
 }
 
 /** Mark every row read at once, without opening any of them. The rows stay — what they are
- *  waiting for has not changed — and the bell's count empties. */
+ *  waiting for has not changed — and the bell's count empties. The rows this board's, like
+ *  the bell: emptying the count here must not empty another project's. */
 export function readAllNotifications(): void {
+  const boardId = cloudBoardFor(KANBAN)?.id
+  if (!boardId) return
   const marks = reads()
   for (const event of state().events.values()) {
-    if (needsPerson(event)) marks[event.id] = event.changedAt
+    if (event.boardId === boardId && needsPerson(event)) marks[event.id] = event.changedAt
   }
   writeReads(marks)
 }

@@ -107,9 +107,9 @@ export function FirstRun({
   const remember = useCallback((p: SetupProposal | null) => {
     if (p) held.current = p;
   }, []);
-  // The agent step answering itself (#404). It owns the whole window while it runs, so it
-  // sits here rather than inside the turn: a view with a sprite in the middle of it and the
-  // frame's three ways out under it would be a form again.
+  // The agent step answering itself (#404). It is a turn of the run like any other, so it
+  // draws inside the frame: the title says which flow you are in, and the ways out below stay
+  // reachable while the probe works through a machine's logged-out CLIs.
   const probe = useAgentProbe({
     on: step?.name === "agent" && !step.done,
     agent,
@@ -118,20 +118,7 @@ export function FirstRun({
       onSaved();
     },
   });
-
-  // Nothing is drawn while the machine is being asked what it has. It takes milliseconds and
-  // spawns nothing, and the alternative is the probing view flashing past on a machine that
-  // had nothing worth trying.
-  if (probe.state.at === "asking") return <div className="min-h-0 flex-1 bg-nb-paper" />;
-  if (probe.state.at === "trying" || probe.state.at === "found") {
-    return (
-      <AgentProbeView
-        label={probe.state.label}
-        settled={probe.state.at === "found"}
-        onPicker={probe.leave}
-      />
-    );
-  }
+  const probeState = probe.state;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-nb-paper">
@@ -142,33 +129,45 @@ export function FirstRun({
         </span>
       </div>
 
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 sm:px-9">
-        <div className="w-full max-w-[720px] py-8">
-          {step?.name === "agent" && (
-            <AgentTurn
-              agent={agent}
-              answered={step.done}
-              probeFailed={probe.state.at === "done" ? probe.state.failed : null}
-              onDone={(saved) => {
-                if (saved) onAgentChanged(saved);
-                onSaved();
-              }}
-            />
-          )}
-          {step?.name === "project" && (
-            <ProjectTurn
-              draft={draft}
-              onSaved={onSaved}
-              onNoTalk={onNoTalk}
-              onProposal={remember}
-              onBackToAgent={onBackToAgent}
-            />
-          )}
-          {step?.name === "goal" && (
-            <GoalTurn initial={draft.goal} onSaved={onSaved} onSkip={onSkipGoal} />
-          )}
+      {/* Nothing is drawn while the machine is being asked what it has: it takes milliseconds,
+          and the probing view would flash past on a machine with nothing worth trying. */}
+      {probeState.at === "asking" ? (
+        <div className="min-h-0 flex-1" />
+      ) : probeState.at === "trying" || probeState.at === "found" ? (
+        <AgentProbeView
+          label={probeState.label}
+          settled={probeState.at === "found"}
+          onPicker={probe.leave}
+        />
+      ) : (
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 sm:px-9">
+          <div className="w-full max-w-[720px] py-8">
+            {step?.name === "agent" && (
+              <AgentTurn
+                agent={agent}
+                answered={step.done}
+                probeFailed={probeState.at === "done" ? probeState.failed : null}
+                onDone={(saved) => {
+                  if (saved) onAgentChanged(saved);
+                  onSaved();
+                }}
+              />
+            )}
+            {step?.name === "project" && (
+              <ProjectTurn
+                draft={draft}
+                onSaved={onSaved}
+                onNoTalk={onNoTalk}
+                onProposal={remember}
+                onBackToAgent={onBackToAgent}
+              />
+            )}
+            {step?.name === "goal" && (
+              <GoalTurn initial={draft.goal} onSaved={onSaved} onSkip={onSkipGoal} />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* The same ways out on every turn. Choosing one is not an answer and is written
           nowhere — except the last, which is the folder itself being given back, and it

@@ -29,8 +29,6 @@ export type NotificationsCopy = {
   /** Cloud answered with less than the whole truth. */
   unreachable: (why: string) => string;
   unsent: (changes: number) => string;
-  /** A row whose board has left this machine. */
-  boardGone: (board: string) => string;
   /** The watched release closed, and what to watch instead. */
   closed: { title: string; body: string; all: string; failed: string };
 };

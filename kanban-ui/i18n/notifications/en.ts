@@ -39,7 +39,6 @@ const en: NotificationsCopy = {
     changes === 1
       ? "Cloud is out of step: 1 change never reached it. This board is the one that is right."
       : `Cloud is out of step: ${changes} changes never reached it. This board is the one that is right.`,
-  boardGone: (board) => `${board} is no longer on this machine.`,
   closed: {
     title: "The release you were watching closed.",
     body: "Nothing new fills the bell until you pick what to watch.",

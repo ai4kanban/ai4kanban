@@ -238,7 +238,3 @@ export function disableCloudBoard(boardDir: string): CloudBoard | null {
   write(state)
   return gone ?? null
 }
-
-/** Whether a row has to name its board. One board is the whole bell and naming it every row
- *  says nothing; a second makes the name the thing that tells two rows apart. */
-export const namesBoards = (): boolean => held().boards.length > 1

@@ -22,7 +22,6 @@ import {
   defaultBoardDir,
   disableCloudBoard,
   enableCloudBoard,
-  namesBoards,
   readCloudBoards,
   setCloudBoardRelease,
 } from '../src/lib/cloud/boards.ts'
@@ -368,13 +367,6 @@ describe('the machine’s list of enabled boards', () => {
     turnOn('/tmp/project', '0.8.0')
     assert.equal(setCloudBoardRelease(defaultBoardDir('/tmp/project'), '0.9.0')?.release, '0.9.0')
     assert.equal(boardIn('/tmp/project')?.release, '0.9.0')
-  })
-
-  it('names a row’s board only once a second one is enabled', () => {
-    turnOn('/tmp/project', '0.8.0')
-    assert.equal(namesBoards(), false)
-    turnOn('/tmp/other', '1.0')
-    assert.equal(namesBoards(), true)
   })
 
   it('forgets a board that is turned off, and leaves the rest', () => {

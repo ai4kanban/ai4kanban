@@ -160,8 +160,8 @@ export function Window({
     onBoardChanged,
   });
   // The bell (#319) shares the right side with the chat: one rail at a time, so opening
-  // either folds the other. It carries every board Cloud is on for, not only this one, so
-  // a row can lead out of this project — which is why it needs the router.
+  // either folds the other. Its rows are this board's; a system notification clicked from
+  // another board is what can lead out of this project, which is why it needs the router.
   const router = useRouter();
   // Held in a ref because the bell is built from this callback: at phone width the bell is
   // the whole screen, so a row opening a card has to take the list off first — otherwise

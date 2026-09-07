@@ -38,7 +38,7 @@ const en: SetupCopy = {
       test: "Test and continue",
       testNote: (agent) => `Send a test request to ${agent}.`,
       answered: "Connection verified",
-      trying: (agent) => `Trying ${agent}…`,
+      trying: (agent) => `Setting up ${agent} as your agent`,
       found: (agent) => `${agent} is ready`,
       bySelf: "Set it up myself",
     },
@@ -48,7 +48,7 @@ const en: SetupCopy = {
         "This usually takes less than a minute. You can review the suggested project details before they are saved.",
     },
     project: {
-      right: "Review these suggestions. Nothing is saved until you confirm.",
+      right: "Your project's name and description, read from your repository. Nothing is saved until you confirm.",
       hint: "Describe any changes",
       yes: "Confirm",
       send: "Request changes",
@@ -97,8 +97,7 @@ const en: SetupCopy = {
   },
   done: {
     title: "Setup details complete",
-    blurb:
-      "The agent is completing the remaining setup. You can view its progress or open the board while it continues.",
+    blurb: "The agent is doing the rest. You can open the board while it works.",
     finish: "Finish setup",
     starting: "Starting…",
     open: "Open the board",

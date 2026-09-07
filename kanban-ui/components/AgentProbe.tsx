@@ -38,7 +38,7 @@ import type { AgentInfo, ConnectionTest } from "@/lib/types";
 // and it is a name, not a sentence, so this is all it takes.
 const NAMED_MS = 1100;
 
-/** Where the probe has got to. `asking` and `trying` own the whole window; `done` is the
+/** Where the probe has got to. `asking` and `trying` fill the frame's turn; `done` is the
  *  probe standing aside for the picker, carrying what the last agent said when one failed. */
 export type ProbeState =
   | { at: "off" }
@@ -170,9 +170,10 @@ export function useAgentProbe({
   return { state, leave };
 }
 
-/** The probe as the user meets it: one full window, a character at work in the middle of it,
- *  and the line saying which agent is being tried. No picker, no fields, nothing to
- *  configure — the one control is the way out to the picker. */
+/** The probe as the user meets it: a character at work, and the line saying which agent is
+ *  being tried. No picker, no fields, nothing to configure — the one control here is the way
+ *  on to the picker. It draws as the run's turn, inside the frame that carries the title, the
+ *  step dots and the ways out of setup. */
 export function AgentProbeView({
   label,
   settled,

@@ -13,6 +13,10 @@
 // a second page drawn for an event would only duplicate the card's. The time is also what
 // says the list runs newest first, so the order takes no heading of its own.
 //
+// Every row is the OPEN board's — the rules scope them, so no row needs to name a board and
+// none of them leads out of the project. A board you are not looking at reaches you as a
+// system notification instead.
+//
 // What gets a row is what is waiting for a person — a card to decide, and how a delivery
 // that person approved ended. A delivery going, an approval this machine just took and a
 // card that stopped asking take none: the rules decide it (`onRail`), so the rail and the
@@ -213,10 +217,10 @@ function Head({ c, silenced, onFold }: { c: NotificationsCopy; silenced: boolean
   );
 }
 
-/** One row: the card's number and title, the event's name and how long ago it changed under
- *  it, and nothing else. The time is what says the list runs newest first, so the order needs
- *  no heading of its own. Unread is an accent dot and ink-weight text; read is the soft ink
- *  everything settled wears. */
+/** One row of this board's: the card's number and title, the event's name and how long ago it
+ *  changed under it, and nothing else. The time is what says the list runs newest first, so
+ *  the order needs no heading of its own. Unread is an accent dot and ink-weight text; read is
+ *  the soft ink everything settled wears. */
 function Row({ row, c, onOpen }: { row: NotificationRow; c: NotificationsCopy; onOpen: () => void }) {
   return (
     <button
@@ -250,17 +254,8 @@ function Row({ row, c, onOpen }: { row: NotificationRow; c: NotificationsCopy; o
           </span>
           <span className="shrink-0 font-[500] text-nb-ink-soft">{ago(row.changedAt, c)}</span>
         </span>
-        {/* The checkout can come back, so the row stays and says so rather than switching
-            to a folder that is not there. */}
-        {!row.boardHere && (
-          <span className="mt-[3px] block text-[11px] leading-[15px] text-nb-ink-soft">
-            {c.boardGone(row.boardName)}
-          </span>
-        )}
       </span>
-      {row.boardHere && (
-        <FiChevronRight className="mt-[3px] shrink-0 text-nb-ink-soft/60" size={13} aria-hidden />
-      )}
+      <FiChevronRight className="mt-[3px] shrink-0 text-nb-ink-soft/60" size={13} aria-hidden />
     </button>
   );
 }

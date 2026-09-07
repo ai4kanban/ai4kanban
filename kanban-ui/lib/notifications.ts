@@ -14,6 +14,10 @@ import type { CloudEventAnswer } from "./types";
 // window is showing: `autoWorkAllowed()` is already the app's answer to "is this the board
 // on screen", so a backgrounded server keeps publishing and never subscribes. A
 // subscription in each would raise one event's notification several times over.
+//
+// The bell itself is the open board's — the rules hand back its rows and nothing else. The
+// account's other boards reach you as system notifications, and clicking one switches the
+// app to it.
 
 /** What the section shows when the rules loaded here predate the notification center. The
  *  bell stays away rather than drawing a count nothing can fill. */
@@ -23,8 +27,6 @@ const TOO_OLD = "The board's rules in this project are too old for Cloud notific
 export interface NotificationRow {
   eventId: string;
   boardId: string;
-  boardName: string;
-  boardHere: boolean;
   taskId: number;
   taskTitle: string;
   label: string;
@@ -56,11 +58,10 @@ export interface WatchFill {
 export interface NotificationCenter {
   signedIn: boolean;
   enabled: boolean;
-  /** This board's own Cloud id — what a card page matches its own event on. */
+  /** This board's own Cloud id — every row below is one of its own. */
   boardId: string;
   release: string;
   silenced: boolean;
-  namesBoards: boolean;
   rows: NotificationRow[];
   unread: number;
   alerts: NotificationAlert[];
@@ -100,7 +101,6 @@ const OFF: NotificationCenter = {
   boardId: "",
   release: "",
   silenced: false,
-  namesBoards: false,
   rows: [],
   unread: 0,
   alerts: [],
