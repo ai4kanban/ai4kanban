@@ -2,7 +2,7 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-09-05
+effective: 2026-09-08
 ---
 
 <TLDR title="The short version">
@@ -114,10 +114,11 @@ Events are queued on your own machine and sent in batches, at most one batch a d
 
 ### How long it is kept, and how to have it deleted
 
-- **The events themselves** are kept for **90 days** and then deleted.
+- **The events themselves** are kept for **90 days** in the database and then deleted.
+- **A daily archive of those same events** is kept **indefinitely**. Before the 90-day deletion, one day's raw events are written as a single file to Cloudflare object storage we run. The file carries everything the events did, including the **install id**, so a question asked years later can still be answered.
 - **Daily totals** worked out from them are kept indefinitely. They carry no install id and nothing about any one machine.
 
-To have your install's events deleted, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev) with your **install id**. You can read it in the app under **Configuration → General → Privacy**, or by running `akb telemetry status`. A machine that has never sent anything has no install id, and there is nothing to delete.
+To have your install's events deleted, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev) with your **install id**. You can read it in the app under **Configuration → General → Privacy**, or by running `akb telemetry status`. We delete the database rows, and rewrite every archive file your install appears in without your events. A machine that has never sent anything has no install id, and there is nothing to delete.
 
 ### Turning usage reporting off
 
@@ -226,7 +227,7 @@ Four subprocessors and one identity provider, across the whole Service — the C
 
 | Who | What they do | Where |
 | --- | --- | --- |
-| **Cloudflare, Inc.** | Compute and hosting — the API, the usage-reporting endpoint and the database behind it, and the static site — and the Email Routing that delivers `support@ai4kanban.dev` | Global network |
+| **Cloudflare, Inc.** | Compute and hosting — the API, the usage-reporting endpoint, the database behind it and the object storage holding the daily event archive, and the static site — and the Email Routing that delivers `support@ai4kanban.dev` | Global network |
 | **Supabase, Inc.** | The database and sign-in | `eu-central-1`, Frankfurt |
 | **Resend (Plus Five Five, Inc.)** | Sending the answer to an invite request, and the request notice | United States |
 | **Spacemail (Spaceship, Inc.)** | The mailbox that routing forwards `support@ai4kanban.dev` to — where a data request, a support message, and the preview notice are read and sent | United States |
@@ -321,7 +322,7 @@ We do not use tracking pixels, fingerprinting, or cross-site identifiers anywher
 We keep personal information only as long as we need it for the purposes described in this Policy:
 
 - **Site visits** — the two counts described above are kept for 90 days and then deleted, and the daily totals worked out from them are kept indefinitely. Neither holds an identifier, so nothing in them is about a particular person. Cloudflare's own delivery logs are kept under Cloudflare's policy and are not ours to query.
-- **Usage reporting events** — kept for 90 days and then deleted. The daily totals worked out from them carry no install id and are kept indefinitely. Turning reporting off deletes what is still queued on your machine and forgets your install id; the events already with us are deleted on request, quoting that id.
+- **Usage reporting events** — kept for 90 days in the database and then deleted. A daily archive file of those same raw events, install id and all, is written to object storage before that deletion and kept indefinitely. The daily totals worked out from them carry no install id and are kept indefinitely. Turning reporting off deletes what is still queued on your machine and forgets your install id; the events already with us are deleted on request, quoting that id.
 - **The rest of app use** — nothing is retained, because nothing else is collected. Apart from usage reporting, a board you have not turned Cloud on for sends us nothing to retain.
 - **Your sign-in record** — held by Supabase Auth, kept while your account can sign in. Only a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) removes it, and removing it is its own step: it does not go with your Cloud records automatically.
 - **Your Cloud account row and your admission** — kept until we remove them by hand on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
