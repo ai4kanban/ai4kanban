@@ -103,6 +103,14 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
    under the release's name. Clone and build there:
    `git clone --local <repo> /tmp/rel && cd /tmp/rel && git checkout v<x>`.
 
+   **From that clone, `pnpm run deploy` misses production.** A tag checkout is a detached
+   HEAD, so wrangler names the branch `HEAD`, and Pages treats anything but `main` as a
+   preview — it prints "Deployment complete" and ai4kanban.dev keeps serving the old
+   release. Say the branch: `wrangler pages deploy out --project-name kanban-skill
+   --branch main --commit-dirty=true`. `wrangler pages deployment list --project-name
+   kanban-skill` shows Preview vs Production, and the real check is the live page —
+   `curl -s https://ai4kanban.dev/download | grep -o 'releases/download/v[0-9.]*'`.
+
 Nothing to do for `kanban-ui/` — it is frozen (below).
 
 ### npm publish on this machine
