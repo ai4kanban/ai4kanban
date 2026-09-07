@@ -109,10 +109,10 @@ const MARKETING_ROLES: AgentRole[] = [
   {
     name: 'writer',
     gloss: 'writes the drafts, repurposes them and polishes them',
-    flows: ['implement', 'conflict', 'run', 'channel', 'polish'],
+    flows: ['implement', 'conflict', 'run', 'channel', 'polish', 'marketing-fix'],
     memory: ['memory/writing.md', 'memory/writing/'],
   },
-  REVIEWER,
+  { ...REVIEWER, flows: [...REVIEWER.flows, 'marketing-verify'] },
 ]
 
 /** Every role name the board ships, on either solution. Reserved: a rule is keyed by the

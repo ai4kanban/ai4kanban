@@ -31,6 +31,7 @@ import { HELP_AFTER } from '../agent/manual'
 import { cmdAgent } from '../../commands/agent'
 import { cmdChat } from '../../commands/chat'
 import { cmdChannel } from '../../commands/channel'
+import { cmdMarketingVerify } from '../../commands/marketing'
 import { cmdCloud } from '../../commands/cloud'
 import { cmdGuide } from '../../commands/guide'
 import {
@@ -227,6 +228,17 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [channel, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
       await onBoard(this, cli, (p) => cmdChannel({ channel, id, note, ...this.opts() }, p))
+    })
+
+  const marketing = noun('marketing', 'work on marketing drafts')
+  withShared(marketing.command('verify'))
+    .argument('<channel>', 'which channel draft to verify')
+    .argument('<id>', 'the topic to verify', cardId)
+    .summary('verify and fix a repurpose against the writing memory')
+    .description('Starts fresh reviewers and a writer when needed, for at most three verify passes. Marketing boards only.')
+    .addOption(new Option('--print', 'refused — verification needs a fresh session').hideHelp())
+    .action(async function (this: Command, channel: string, id: number) {
+      await onBoard(this, cli, () => cmdMarketingVerify({ ...this.opts(), channel, id }))
     })
 
   // ---- talking to the agent -------------------------------------------------

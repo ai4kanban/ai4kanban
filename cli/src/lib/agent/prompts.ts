@@ -481,6 +481,32 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         .filter(Boolean)
         .join(' ')
     }
+    // The two halves of a repurpose's verification loop (#460). The verifier is handed the
+    // draft and its share of the writing memory outright and nothing else: it judges the
+    // words on the page, so the session that wrote them stays out of the ask. The fix run
+    // gets the report pasted in, because the run that wrote it is already gone.
+    case 'marketing-verify': {
+      const files = draftPaths(req.id, req.channel ?? '')
+      return [
+        `${kb}. Verify the ${req.channel} draft of task ${req.id} following \`akb guide marketing-verify\`.`,
+        files ? `Read only the draft ${files.target} and these writing-memory files:` : '',
+        'docs/kanban/memory/writing.md',
+        ...(req.verification?.groups[req.verification.index] ?? []),
+        'Change no file. Do not read previous sessions, logs, reports or the source draft.',
+        'Report every applicable rule that fails, quoting the rule and the failing draft passage. If none fail, reply exactly PASS.',
+        'The board starts the next pass; run no command to start one.',
+      ].filter(Boolean).join('\n')
+    }
+    case 'marketing-fix': {
+      const files = draftPaths(req.id, req.channel ?? '')
+      return [
+        `${kb}. Fix the ${req.channel} draft of task ${req.id} following \`akb guide marketing-fix\`.`,
+        files ? `Edit only ${files.target}. Keep its language and meaning.` : '',
+        'Address every finding below. Change no other file, including the card and writing memory.',
+        'The board starts a fresh verifier after you finish; run no command to start one.',
+        req.notes,
+      ].filter(Boolean).join('\n\n')
+    }
     // One pass over one draft, answering the comments left on it (#458). The batch is named
     // rather than pasted in: a comment is edited and deleted right up to Submit, and words
     // copied into this message would be the ones that were there when the run was written

@@ -31,7 +31,7 @@ export function agentForRun(ask: RunAsk = {}): string | undefined {
   if (!action) return undefined
   // A specialist runs as itself, whichever hook it is on.
   if (SPECIALIST_ACTIONS.has(action)) return specAgent
-  const flow = flowOf(ask, action)
+  const flow = ['marketing-verify', 'marketing-fix'].includes(action) ? action : flowOf(ask, action)
   return flow ? roleForFlow(flow)?.name : undefined
 }
 

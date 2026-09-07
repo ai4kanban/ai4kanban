@@ -25,6 +25,8 @@ const zh: RunsCopy = {
     write: "配套文件",
     channel: "渠道改写",
     polish: "润色",
+    "marketing-verify": "校验",
+    "marketing-fix": "修正",
   },
   verb: {
     implement: "开发",
@@ -48,6 +50,8 @@ const zh: RunsCopy = {
     write: "撰写配套文件",
     channel: "渠道改写",
     polish: "正在润色",
+    "marketing-verify": "正在校验",
+    "marketing-fix": "正在修正",
   },
   step: {
     implement: "开发",
@@ -71,6 +75,8 @@ const zh: RunsCopy = {
     write: "配套文件",
     channel: "渠道改写",
     polish: "润色",
+    "marketing-verify": "校验",
+    "marketing-fix": "修正",
   },
   flow: {
     edit: "修订",

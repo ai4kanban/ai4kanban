@@ -114,7 +114,7 @@ function ownerOf(req: AgentRequest): RuleOwner | null {
   // `akb channel` and the card page's polish are the writer's work and neither is a flow a
   // person types under `akb card`, so each names itself here.
   const flow =
-    req.action === 'channel' || req.action === 'polish' ? req.action : flowForRequest(req)?.command
+    ['channel', 'polish', 'marketing-verify', 'marketing-fix'].includes(req.action) ? req.action : flowForRequest(req)?.command
   const role = roleForFlow(flow ?? '')
   return role ? { name: role.name, role, flow } : null
 }

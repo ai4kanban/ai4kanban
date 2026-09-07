@@ -68,6 +68,14 @@ beats the variable, and both beat `--dir`.
 The board app shows which one you are on in the folder chip, and switches between them
 there.
 
+## Verify a marketing draft
+
+After `akb channel <channel> <id>`, run `akb marketing verify <channel> <id>` to check that
+repurpose against the writing memory. Fresh reviewers report violations, a writer fixes
+that one draft, and the board verifies again, stopping after at most three verify passes.
+The runs stay under one job; any remaining findings stay on its last verification run.
+This is a separate step on marketing boards and has no `--print`. See `akb guide marketing-verify`.
+
 ## Drive the board from your coding agent
 
 Optional, and separate from the board on purpose: a board works from the app on its own.

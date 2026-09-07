@@ -95,6 +95,8 @@ const VERB: Record<AgentAction, string> = {
   write: 'written for',
   channel: 'repurposed',
   polish: 'polished',
+  'marketing-verify': 'verified',
+  'marketing-fix': 'fixed',
   changelog: 'written up',
   review: 'reviewed',
   conflict: 'unblocked',
@@ -570,7 +572,8 @@ export function openRun(
     specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
     // …and which channel, on the one action that has one, so its close knows whose status
     // to move and a resume repurposes for the same channel.
-    channel: req.action === 'channel' ? req.channel : undefined,
+    channel: ['channel', 'marketing-verify', 'marketing-fix'].includes(req.action) ? req.channel : undefined,
+    verification: req.verification,
     // …and which draft, on the one that polishes one, so its close knows whose comments to
     // clear and a resume works over the same file.
     draft: req.action === 'polish' ? req.draft : undefined,
@@ -683,6 +686,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
     channel: prev.channel,
+    verification: prev.verification,
     refineRound: prev.refineRound,
     refineEffort: prev.refineEffort,
     // The same refinement carried on, not a second one — the way a resume re-joins the

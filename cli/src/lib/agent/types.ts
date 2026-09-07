@@ -71,6 +71,8 @@ export type AgentAction =
    *  comments are read off disk and cleared by the board when the run ends `done`.
    *  Marketing boards only. */
   | 'polish'
+  | 'marketing-verify'
+  | 'marketing-fix'
   /** Write one closed version's changelog (#232) — a few plain lines saying what the
    *  version changed, from the goal and the cards the close wrote down. It touches no
    *  card, so it carries a release id, and the close that made the record starts it. */
@@ -101,7 +103,7 @@ export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>
  *  It is not `SPECIALIST_ACTIONS`: that set also picks the agent a run is done by
  *  (`agent/runner.ts`) and the rule it is handed, and a repurpose is neither named by an
  *  agent nor given a specialist's flow. */
-const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([...SPECIALIST_ACTIONS, 'channel'])
+const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([...SPECIALIST_ACTIONS, 'channel', 'marketing-verify', 'marketing-fix'])
 
 /** Whether a run of this action holds the card it names. The one answer every lock reads,
  *  so a card-free run is exempt everywhere or nowhere. */
@@ -132,8 +134,15 @@ export type ReviewTrigger =
   /** The user asked for another look. */
   | 'asked'
 
-/** Everything one run is asked for. What the user typed rides along so the run list can
- *  show it beside the log. */
+/** One verify pass, split across independent readers. */
+export interface WritingVerification {
+  pass: number
+  groups: string[][]
+  index: number
+  reports: string[]
+}
+
+/** Everything one run is asked for. */
 export interface AgentRequest {
   action: AgentAction
   id?: number
@@ -178,6 +187,7 @@ export interface AgentRequest {
    *  (`lib/channels.ts`). It decides the file the run writes and, unless `language` names
    *  another, the language it writes in. */
   channel?: string
+  verification?: WritingVerification
   /** channel: the language THIS repurpose is written in (#457), instead of the channel's
    *  own. Free text, and unset on every repurpose that did not ask for one — nothing on the
    *  card carries it, because it is an argument to one action rather than a setting. */
@@ -200,7 +210,7 @@ export type StartableAction = Exclude<AgentAction, 'propose'>
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<StartableAction, 'clarify' | 'writing' | 'spec' | 'channel' | 'polish' | 'write'>
+  | Exclude<StartableAction, 'clarify' | 'writing' | 'spec' | 'channel' | 'polish' | 'write' | 'marketing-verify' | 'marketing-fix'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -291,6 +301,7 @@ export interface RunRecord {
   /** Which channel this run repurposes for, on a `channel` run — kept for the same reasons,
    *  and so its close knows which channel's status to move to `draft`. */
   channel?: string
+  verification?: WritingVerification
   /** Which draft a `polish` run works over (#458) — kept so its close knows whose batch of
    *  comments to clear, and so a resume polishes the same draft. */
   draft?: string

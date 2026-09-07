@@ -25,6 +25,8 @@ const en: RunsCopy = {
     write: "write",
     channel: "channel",
     polish: "polish",
+    "marketing-verify": "verify",
+    "marketing-fix": "fix",
   },
   verb: {
     implement: "implementing",
@@ -48,6 +50,8 @@ const en: RunsCopy = {
     write: "writing a file",
     channel: "repurposing",
     polish: "polishing",
+    "marketing-verify": "verifying",
+    "marketing-fix": "fixing",
   },
   step: {
     implement: "Implement",
@@ -71,6 +75,8 @@ const en: RunsCopy = {
     write: "Write",
     channel: "Channel",
     polish: "Polish",
+    "marketing-verify": "Verify",
+    "marketing-fix": "Fix",
   },
   flow: {
     edit: "Revise",

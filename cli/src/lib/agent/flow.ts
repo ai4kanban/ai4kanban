@@ -510,6 +510,8 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // never a card, so the card format and the memory set are a page about work it may not do.
   // `akb channel` has no --print either, so this is only ever the run's.
   channel: ['channel'],
+  'marketing-verify': ['marketing-verify'],
+  'marketing-fix': ['marketing-fix'],
   // A polish gets its own flow, for the same reason: one file under `content/`, never a
   // card. Nothing prints it either — Submit on the card page is the only way in.
   polish: ['polish'],

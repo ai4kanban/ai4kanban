@@ -22,6 +22,7 @@ import { pidAlive, withLock } from '../lock'
 import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { asUsage } from './log'
 import { holdsCard } from './types'
+import { readVerification } from './writing-verification'
 import type {
   AgentAction,
   DeliveryApproval,
@@ -124,6 +125,7 @@ export function readStore(): Store {
       // resume: every agent resumes differently, and the one thing worse than a missing
       // offer is a command for the wrong agent.
       harness: typeof entry.harness === 'string' ? entry.harness : '',
+      agent: typeof entry.agent === 'string' && entry.agent ? entry.agent : undefined,
       resumeId: typeof entry.resumeId === 'string' ? entry.resumeId : undefined,
       logPath: typeof entry.logPath === 'string' && entry.logPath ? entry.logPath : logPathOf(entry.sessionId),
       resumedFrom: typeof entry.resumedFrom === 'string' ? entry.resumedFrom : undefined,
@@ -136,6 +138,7 @@ export function readStore(): Store {
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
       channel: typeof entry.channel === 'string' && entry.channel ? entry.channel : undefined,
+      verification: readVerification(entry.verification),
       draft: typeof entry.draft === 'string' && entry.draft ? entry.draft : undefined,
       refineRound:
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
