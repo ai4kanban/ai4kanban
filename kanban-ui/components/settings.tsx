@@ -248,6 +248,14 @@ export const QUIET_BTN =
 export const DANGER_BTN =
   "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-peach-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-peach-ink transition-[background-color,transform] duration-100 hover:bg-nb-peach/45 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
 
+/** The same button again, in the palette's own ember — for the one thing on a pane worth
+ *  finding without looking for it. Test connection is the whole reason the pane is open on a
+ *  runtime that won't run, and in the neutral wash every setting beside it wears it read as
+ *  one more field. Ember wash under the deeper ember ink, the pairing this dialog already uses
+ *  wherever the accent has to carry text. */
+export const ACCENT_BTN =
+  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] bg-nb-accent-soft px-2.5 py-1.5 text-[12px] font-[700] text-nb-accent-deep transition-[background-color,transform] duration-100 hover:bg-nb-accent/28 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100";
+
 /** The pane's one box to type in. Frameless like everything else in the dialog: the same
  *  faint ink fill marks it as a place to type, and the ember focus ring is what says it has
  *  focus. `disabled` here is always a save in flight, hence the wait cursor. */

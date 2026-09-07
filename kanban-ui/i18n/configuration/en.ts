@@ -28,7 +28,8 @@ const en: ConfigurationCopy = {
     footer: "Assign runtimes on the Agents page. Unassigned agents use Global default.",
     name: "Name",
     namePlaceholder: "e.g. Cheap",
-    nameHelp: "Names must be unique.",
+    rename: "Rename",
+    save: "Save",
     newNameHelp: "Naming it creates it. Leave it empty to cancel.",
     newRowBlurb: "Provider, endpoint, key and model come after, under Advanced settings.",
     nameEmpty: "Enter a name.",
@@ -65,7 +66,6 @@ const en: ConfigurationCopy = {
     loggedOutHint: (binary) =>
       `Nobody is logged in to \`${binary}\`, so a run under it would fail. Log in:`,
     gaps: (harness) => `Not supported by ${harness}`,
-    override: (command) => `Runs your override: \`${command}\``,
     saveFailed: "couldn't save the agent setting",
     saveSettingFailed: (setting) => `couldn't save the ${setting} setting`,
     saveSecretFailed: (setting) => `couldn't save the ${setting}`,

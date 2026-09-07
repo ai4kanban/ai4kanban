@@ -1002,8 +1002,7 @@ export interface RuntimeView {
   ignored: string[]
   /** The model id, for the folded row. */
   model: string
-  /** The harness's own command — what a front end compares against to notice there IS an
-   *  override. */
+  /** The harness's own command. */
   command: string
   /** The command a run on this row would spawn. */
   runs: string

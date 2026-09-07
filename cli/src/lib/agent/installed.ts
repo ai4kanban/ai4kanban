@@ -38,6 +38,21 @@ export function commandBinary(command: string): string {
   return command.split(/\s+/).filter(Boolean)[0] ?? ''
 }
 
+/** Whether ONE bare name is on the PATH, without reading a single directory: a stat per PATH
+ *  entry, which is cheaper than `pathLookup` when only one name is in question. What the
+ *  bundled-path fallback asks before it looks anywhere else (`bundled` in harnesses/types.ts). */
+export function binaryOnPath(binary: string): boolean {
+  if (!binary) return false
+  const extensions = WINDOWS ? ['', ...windowsExtensions()] : ['']
+  for (const dir of (process.env.PATH ?? '').split(path.delimiter)) {
+    if (!dir) continue
+    for (const ext of extensions) {
+      if (fs.existsSync(path.join(dir, `${binary}${ext}`))) return true
+    }
+  }
+  return false
+}
+
 /** One read of the PATH, and a question that can be asked of it as many times as you like:
  *  would this command line find something to run?
  *

@@ -56,6 +56,17 @@ export interface Harness
    *  `sessionId` is the id we generated up front — a harness that can't pin an id
    *  ignores it. `cwd` is the project this run belongs to (see WORKING FOLDER). */
   extraArgs(argv: string[], sessionId: string, cwd: string): string[]
+  /** Where this CLI sits when a desktop app shipped it and installed no shim on the PATH.
+   *  Tried in order, and only when the command's bare name isn't on the PATH — an install of
+   *  the CLI proper always wins, because it is the one the user chose and can update.
+   *
+   *  The first path that exists REPLACES the binary in the command line, so the badge and
+   *  the spawn read the same answer. A candidate holding whitespace is skipped: a command is
+   *  split on it (`resolve.ts`), so such a path could never spawn anyway.
+   *
+   *  Called rather than declared, because the answer depends on the environment and on this
+   *  machine's home folder at the moment it is asked. */
+  bundled?(): string[]
   /** True when this harness's CLI can pick an earlier conversation back up. A failed
    *  run offers Resume only then, and it is also the whole of what a chat needs: a
    *  conversation is a second message into the session the agent already opened, so an

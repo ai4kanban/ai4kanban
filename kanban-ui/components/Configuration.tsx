@@ -59,7 +59,6 @@ import type {
   RuntimeView,
   WriteResult,
 } from "@/lib/types";
-import { Button } from "./button";
 import { TOOL_BTN } from "./chrome";
 import { AgentsPanel } from "./Agents";
 import { CloudPanel } from "./Cloud";
@@ -67,7 +66,7 @@ import { Dialog } from "./Dialog";
 import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
 import { MODEL_ROW, ModelRow } from "./model-row";
-import { CAPTION, CONTROL, FLAT_CONTROL, Note, QUIET_BTN } from "./settings";
+import { ACCENT_BTN, CAPTION, CONTROL, FLAT_CONTROL, Note, QUIET_BTN } from "./settings";
 import { WorkspacePanel } from "./Workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -422,10 +421,6 @@ export function HarnessPicker({
         };
   const start = seed(agent, bind?.runtime);
   const [info, setInfo] = useState(agent);
-  // The row as the command now reads it. Never held here: every save tells the pane behind
-  // (`onSaved`), which hands it straight back down — so a model saved in here reaches the
-  // folded row above without a read of its own.
-  const view = bind?.runtime;
   // The agents to offer, and which of them this machine can run (#207). Kept apart from
   // `info` because it is the one part of the setting that changes without anybody saving
   // anything: installing a CLI in a terminal makes an agent runnable, and the picker
@@ -705,12 +700,6 @@ export function HarnessPicker({
     await writeSetting(list, id);
   };
 
-  // A hand-edited `command` override is the one thing worth a note under the cards — it's
-  // what actually runs, and it's invisible otherwise.
-  const savedActive = bind ? bind.runtime.harness : info.name;
-  const savedCommand = bind ? (view?.runs ?? "") : info.command;
-  const overridden = Boolean(savedCommand) && savedCommand !== options.find((o) => o.name === savedActive)?.command;
-
   const labelOf = (name: string) => options.find((o) => o.name === name)?.label ?? name;
 
   // Which harness Test is about to spawn — the card that is on, whichever pane this is. The
@@ -733,6 +722,32 @@ export function HarnessPicker({
       (setting) =>
         setting.kind === "secret" && shownForProvider(activeOption?.settings ?? [], setting.key, picked),
     );
+
+  // Test the setup that is saved (#96). Keyed on that setup, so changing any of it throws
+  // the old result away rather than leaving a "Passed" standing for a setup that is gone.
+  //
+  // Its own button goes at the pane's top right — the one thing here that is a press rather
+  // than a setting, and the answer people open this pane to get. Where the press belongs to
+  // a screen outside (the guided first run), all that is left is the result, and that stays
+  // at the foot, under the button that started it.
+  const tester = (
+    <ConnectionTester
+      key={`${bind?.runtime.id ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
+      agentLabel={testLabel}
+      expected={spawns}
+      labelOf={labelOf}
+      pin={bind?.runtime.id}
+      unsavedPick={Boolean(pending)}
+      disabled={saving}
+      onResult={onTested}
+      runTest={runTest}
+    />
+  );
+
+  // Where a runtime row's Test goes: on the Advanced fold's line, the row's last line and the
+  // only one in it not already spoken for. The row's title line carries Rename and Delete, and
+  // a third button under those two read as a stack of controls in the corner.
+  const onTheFold = Boolean(bind) && connectorSettings.length > 0;
 
   // What the picked connector needs said. It hangs off the block the picked card is in rather
   // than sitting under every grid: these are that connector's own lines, and under a list of
@@ -792,22 +807,17 @@ export function HarnessPicker({
           Above the settings rather than at the foot of the pane: this is what a switch
           costs, and it belongs at the moment of the switch. An agent that lacks nothing
           draws nothing, and so does a board reading older rules, which doesn't answer this
-          at all. */}
-      {activeOption.gaps?.length ? (
+          at all.
+
+          Never in a runtime row. Five lines of prose is the tallest thing in an open row and
+          it answers a question the row isn't asking: a row is what THIS runtime runs, and a
+          board with four rows on one CLI would say the same five lines four times. The pane
+          below is where the CLIs are compared, and it still says all of it. */}
+      {!bind && activeOption.gaps?.length ? (
         <div className="mt-3">
           <HarnessGaps heading={c.gaps(activeOption.label)} gaps={activeOption.gaps} />
         </div>
       ) : null}
-
-      {/* The override, when there is one, so what actually runs is never hidden.
-          Only while the active card is the saved one — mid-switch it names the
-          agent that is on its way out. Each agent has an override of its own, so
-          switching back brings that agent's note back with it. */}
-      {overridden && active === savedActive && (
-        <p className="mt-3 text-[12px] leading-relaxed text-nb-ink-soft">
-          <Rich>{c.override(savedCommand)}</Rich>
-        </p>
-      )}
     </>
   );
 
@@ -828,7 +838,11 @@ export function HarnessPicker({
           subscription. A field that isn't drawn doesn't reach a run either, so
           what you see here is what the agent is given. */}
       {connectorSettings.length > 0 && (
-        <Advanced open={showAdvanced} onToggle={() => setAdvanced(!showAdvanced)}>
+        <Advanced
+          open={showAdvanced}
+          onToggle={() => setAdvanced(!showAdvanced)}
+          aside={onTheFold ? tester : undefined}
+        >
           <div className="flex flex-col gap-5">
             {connectorSettings
               .filter((setting) => shownForProvider(activeOption.settings, setting.key, picked))
@@ -885,42 +899,28 @@ export function HarnessPicker({
     </div>
   );
 
-  // Test the setup that is saved (#96). Keyed on that setup, so changing any of it throws
-  // the old result away rather than leaving a "Passed" standing for a setup that is gone.
-  //
-  // Its own button goes at the pane's top right — the one thing here that is a press rather
-  // than a setting, and the answer people open this pane to get. Where the press belongs to
-  // a screen outside (the guided first run), all that is left is the result, and that stays
-  // at the foot, under the button that started it.
-  const tester = (
-    <ConnectionTester
-      key={`${bind?.runtime.id ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
-      agentLabel={testLabel}
-      expected={spawns}
-      labelOf={labelOf}
-      pin={bind?.runtime.id}
-      unsavedPick={Boolean(pending)}
-      disabled={saving}
-      onResult={onTested}
-      runTest={runTest}
-    />
-  );
-
   // One runtime, whole (#468): the CLI it runs, what that CLI needs said, its settings behind
   // the fold, and the Test. The same grid and the same fields as the pane below — smaller
   // cards, because a row is already an indent in.
   if (bind) {
     return (
       <div className="flex flex-col gap-4">
-        <div>
-          <p className={`mb-2 ${CAPTION} text-nb-ink-soft`}>{cr.connector}</p>
-          <div className="flex flex-col gap-2.5">
-            <HarnessCards options={options} picked={active} loggedOut={loggedOut} disabled={saving} compact onPick={pick} />
-          </div>
+        <div className="flex flex-col gap-2.5">
+          <HarnessCards
+            options={options}
+            picked={active}
+            loggedOut={loggedOut}
+            disabled={saving}
+            compact
+            caption={cr.connector}
+            onPick={pick}
+          />
           {notes}
         </div>
         <div>{fields}</div>
-        <div>{tester}</div>
+        {/* A connector that declares no settings has no fold to hang the Test on, so there
+            it stands on its own. */}
+        {!onTheFold && tester}
       </div>
     );
   }
@@ -983,6 +983,7 @@ export function HarnessCards({
   loggedOut = {},
   disabled,
   compact,
+  caption,
   aside,
   between,
   onPick,
@@ -990,6 +991,10 @@ export function HarnessCards({
   options: HarnessOption[];
   /** The one that is on, by connector name. */
   picked: string;
+  /** What to call the first block, where the caller has a better word than "Installed" —
+   *  inside a runtime row the grid IS the Connector field, and a caption naming the field
+   *  under the row's own name reads as one thing where two captions read as none. */
+  caption?: string;
   /** The connectors nobody is logged into, by name — a word on the card (#392). */
   loggedOut?: Record<string, string>;
   disabled?: boolean;
@@ -1063,7 +1068,7 @@ export function HarnessCards({
   return (
     <>
       {here.length > 0 && (
-        <AgentGrid caption={missing.length ? c.installed : ""} aside={aside}>
+        <AgentGrid caption={caption ?? (missing.length ? c.installed : "")} aside={aside}>
           {here.map(card)}
         </AgentGrid>
       )}
@@ -1109,10 +1114,15 @@ function AgentGrid({
 function Advanced({
   open,
   onToggle,
+  aside,
   children,
 }: {
   open: boolean;
   onToggle: () => void;
+  /** The Test, beside the fold's own label — a runtime row's last line, and the only one in
+   *  the row that isn't already spoken for. Beside it rather than at the far right: a button
+   *  alone in the corner reads as the row's, not as this fold's. */
+  aside?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const c = useCopy().configuration.harness;
@@ -1120,19 +1130,22 @@ function Advanced({
     // The margin is what separates the fold from a note above it. Directly under the agent
     // grid — the usual case — there is no note, and the pane's own gap is separation enough.
     <div className="mt-3 first:mt-0">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={onToggle}
-        className="flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft transition-colors duration-100 hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
-      >
-        {open ? (
-          <FiChevronDown className="shrink-0 text-[13px]" aria-hidden />
-        ) : (
-          <FiChevronRight className="shrink-0 text-[13px]" aria-hidden />
-        )}
-        {c.advanced}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={onToggle}
+          className="flex cursor-pointer items-center gap-1.5 text-[12px] font-[700] text-nb-ink-soft transition-colors duration-100 hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+        >
+          {open ? (
+            <FiChevronDown className="shrink-0 text-[13px]" aria-hidden />
+          ) : (
+            <FiChevronRight className="shrink-0 text-[13px]" aria-hidden />
+          )}
+          {c.advanced}
+        </button>
+        {aside}
+      </div>
       {open ? (
         <div className="mt-4">{children}</div>
       ) : (
@@ -1293,19 +1306,19 @@ function ConnectionTester({
               {c.passed(seconds(result.ms, c))}
             </p>
           )}
-          {/* The one press on this pane, so it wears the button family's ink frame and hard
-              shadow rather than the quiet fill every setting beside it uses. */}
-          <Button
-            variant="ghost"
-            size="xs"
+          {/* The pane's own button shape, in the accent: no ink frame and no hard shadow —
+              this asks a question about the setup rather than committing anything — but not
+              the neutral wash either, which lost it among the settings it sits between. */}
+          <button
+            type="button"
             title={c.blurb(agentLabel)}
             disabled={running || disabled || unsavedPick}
             onClick={() => void test()}
-            className="shrink-0"
+            className={ACCENT_BTN}
           >
             <FiZap className="text-[13px]" aria-hidden />
             {running ? c.running : c.run}
-          </Button>
+          </button>
         </div>
       ) : (
         unsavedPick && <p className="text-[12px] leading-relaxed text-nb-ink-soft">{c.unsavedPick}</p>

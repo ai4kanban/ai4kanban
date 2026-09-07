@@ -27,7 +27,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { DEFAULT_HARNESS, HARNESSES, harnessByName } from './harnesses'
+import { DEFAULT_HARNESS, HARNESSES, MODEL_KEY, harnessByName } from './harnesses'
 import { configBlock, readEnvFile, safeConfig, setSecret, writeConfig } from './settings'
 import type { Harness } from './harnesses'
 
@@ -270,13 +270,18 @@ function clearKeysOf(id: string): { ok: boolean; error?: string } {
 
 /** Move one runtime to another harness. Its settings go with it: a key the new harness doesn't
  *  declare is dropped, because a value under a setting nothing reads is a value nobody can see
- *  or clear. */
+ *  or clear.
+ *
+ *  The model is dropped however both declare it. An id is one CLI's own word — `opus` handed
+ *  to Cursor is a run that fails to start — so a switch leaves the new harness's own default
+ *  running until somebody picks a model for it. */
 export function setRuntimeHarness(id: string, harness: string): { ok: boolean; error?: string } {
   const known = harnessByName(harness)
   if (!known) return { ok: false, error: `no harness called "${harness}" — \`akb agent list\` says what this version runs.` }
   return change(id, (runtime) => {
     if (runtime.harness === harness) return runtime
     const keep = new Set([...known.settings.map((s) => s.key), 'command'])
+    keep.delete(MODEL_KEY)
     const settings = Object.fromEntries(Object.entries(runtime.settings).filter(([key]) => keep.has(key)))
     return { ...runtime, harness, settings }
   })

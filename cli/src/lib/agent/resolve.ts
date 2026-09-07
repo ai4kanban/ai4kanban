@@ -6,6 +6,8 @@
 // be split across two agents — switching the picker while an agent is working changes what
 // the NEXT run spawns, never this one.
 
+import fs from 'node:fs'
+
 import { machineName } from '../machine/identity'
 import { REPO_ROOT } from '../paths'
 import { harnessGaps } from './capabilities'
@@ -25,7 +27,7 @@ import {
 import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
 import { roleForFlow } from './roles'
-import { commandBinary, pathLookup } from './installed'
+import { binaryOnPath, commandBinary, pathLookup } from './installed'
 import { languageNote } from './language'
 import {
   missingRequired,
@@ -119,9 +121,27 @@ export function activeProviderOf({
 }
 
 /** The command one runtime runs: the hand-written `command` override in its settings, or the
- *  harness's own. */
+ *  harness's own — with a bare binary nothing on the PATH answers swapped for the copy a
+ *  desktop app shipped, when the harness says where that is.
+ *
+ *  The swap happens HERE rather than in the installed check because this one string is what
+ *  every reader takes: the badge a pane draws, the line it shows under it, and the argv a run
+ *  spawns. Teaching only the check would light the badge for a run that still dies on
+ *  `spawn codex ENOENT`. */
 export function commandOf(block: Record<string, string>, harness: Harness): string {
-  return block.command?.trim() || harness.command
+  return bundledBinary(block.command?.trim() || harness.command, harness)
+}
+
+// The command with its first word made absolute, or exactly what it was. Untouched when the
+// harness names no bundled copy, when the command already says where its binary lives, or
+// when the PATH answers the bare name — an install of the CLI proper always wins.
+function bundledBinary(command: string, harness: Harness): string {
+  if (!harness.bundled) return command
+  const binary = commandBinary(command)
+  if (!binary || binary.includes('/') || binary.includes('\\')) return command
+  if (binaryOnPath(binary)) return command
+  const found = harness.bundled().find((p) => p && !/\s/.test(p) && fs.existsSync(p))
+  return found ? `${found}${command.slice(binary.length)}` : command
 }
 
 /** What one runtime is set to: each declared setting's value, which of its keys

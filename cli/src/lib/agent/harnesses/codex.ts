@@ -60,11 +60,43 @@ function codexProvider(id: string, name: string, baseUrl?: string): string[] {
   ]
 }
 
+// Where the `codex` binary is when nothing put it on the PATH.
+//
+// Codex is the one CLI here that ships INSIDE a desktop app: the standalone Codex app was
+// folded into the ChatGPT desktop app, which carries a full `codex` in its own resources and
+// installs no shim. So a user who has Codex — and runs it every day in that app — reads as
+// "not installed" on a board that only looks at the PATH.
+//
+// `CODEX_CLI_PATH` comes first and is OpenAI's own variable for this: the app reads it to
+// find the binary it failed to locate, so anyone with an unusual install has already set it
+// and we inherit the answer instead of asking for it again.
+//
+// After it, only paths that were READ OFF a real install. Windows ships as an MSIX package
+// under `C:\Program Files\WindowsApps\OpenAI.Codex_<version>_x64__<hash>`, which carries a
+// version, a publisher hash and an ACL — there is no constant to write down, and its own
+// installer puts `codex` on the PATH anyway. The Linux .deb/.rpm bundles `resources/bin/codex`
+// under a prefix OpenAI doesn't document. Both are left to `CODEX_CLI_PATH` rather than
+// guessed: a wrong path that never matches is dead code that reads like coverage.
+function codexBundled(): string[] {
+  const override = process.env.CODEX_CLI_PATH?.trim()
+  return [
+    ...(override ? [override] : []),
+    // macOS, where Codex now lives in the merged app…
+    '/Applications/ChatGPT.app/Contents/Resources/codex',
+    home('Applications/ChatGPT.app/Contents/Resources/codex'),
+    // …and where it lived before the merge, for an install that hasn't moved yet.
+    '/Applications/Codex.app/Contents/Resources/codex',
+    home('Applications/Codex.app/Contents/Resources/codex'),
+  ]
+}
+
 export const CODEX: Harness = {
   name: 'codex',
   label: 'Codex',
   icon: '/agents/codex.svg',
   command: 'codex exec --json --sandbox workspace-write -c sandbox_workspace_write.network_access=true',
+
+  bundled: codexBundled,
 
   // Nothing to pin: Codex mints its own thread id and takes none from us, so the generated
   // session id is ignored here and the id arrives on the run's first event instead.

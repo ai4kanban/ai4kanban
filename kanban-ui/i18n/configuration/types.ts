@@ -43,7 +43,10 @@ export type ConfigurationCopy = {
     /** The row's own name, and why one was refused. */
     name: string;
     namePlaceholder: string;
-    nameHelp: string;
+    /** A saved row's name is typed over where it is read: Rename opens the line, Save keeps
+     *  it. **Global default** has neither — the command refuses the move. */
+    rename: string;
+    save: string;
     /** On the unsaved row: naming it is what creates it. */
     newNameHelp: string;
     newRowBlurb: string;
@@ -91,7 +94,6 @@ export type ConfigurationCopy = {
     loggedOutHint: (binary: string) => string;
     /** What the picked harness can't do that another on the grid can. */
     gaps: (harness: string) => string;
-    override: (command: string) => string;
     saveFailed: string;
     saveSettingFailed: (setting: string) => string;
     saveSecretFailed: (setting: string) => string;
