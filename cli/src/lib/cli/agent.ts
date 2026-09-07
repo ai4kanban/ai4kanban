@@ -152,21 +152,12 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .argument('[note...]', 'what the flow wants looked at')
     .summary("a named agent that fills one part of a card's spec")
     .description(
-      'It is a run of its own: it starts clean, with the card and your note and nothing else, and it ' +
-        'writes one section of that card — `## By `<agent>` agent` — and changes nothing more. A project ' +
-        'adds its own under docs/kanban/agents/<name>/AGENT.md; the built-in ones ship with this command. ' +
-        'Asked for from inside a run, it is written down rather than started, and the board starts it the ' +
-        'moment that run ends.',
+      'Fill one part of a card spec. Use --print to follow the specialist instructions in the current ' +
+        'session. Without --print, start a separate run; inside a board run, queue it until that run ends.',
     )
     .option('-f, --follow', 'watch its log instead of returning')
     .option('--notes <text>', 'what the flow wants looked at, for a caller building a command')
-    // Declared so the refusal can say WHY there is none, rather than "unknown option".
-    .addOption(new Option('--print', 'refused — see below').hideHelp())
-    .addHelpText(
-      'after',
-      '\nThere is no --print: doing a spec agent in the conversation that asked for it is the one thing it\n' +
-        'exists not to be.\n',
-    )
+    .option('--print', 'print specialist instructions and work in this session')
     .action(async function (this: Command, ...vals: unknown[]) {
       const [agent, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
       await onBoard(this, cli, (p) => cmdSpec({ agent, id, note, ...this.opts() }, p))

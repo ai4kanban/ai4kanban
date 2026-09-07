@@ -5,7 +5,7 @@
 // stoppable like anything else, and starting clean.
 //
 // Repurposing is a step you take, not one that follows the write run on its own: you run it
-// once `source.md` reads right. And like `akb spec` it has no `--print` — a draft written in
+// once `source.md` reads right. It has no `--print` — a draft written in
 // the conversation that asked for it is that conversation's opinion of the piece, not a pass
 // over what `source.md` actually says.
 

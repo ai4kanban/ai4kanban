@@ -1,18 +1,6 @@
-// Putting a spec agent on a card.
-//
-// `akb spec` with nothing after it lists the agents. `akb spec <agent> <id> [note]` asks
-// for one, and what that means depends on who is asking:
-//
-//   - a flow working inside a run the board started — the ask is written onto that run's
-//     record and started by its watcher the moment the run ends,
-//   - anyone else — it starts right now, as an ordinary run.
-//
-// Either way it is a run of its own, with its own log, stoppable like anything else, and
-// it starts clean. That is the one thing this command will not bend on: there is no
-// `--print`, because a spec agent run in the conversation that asked for it is the
-// conversation's own opinion written under someone else's name.
+// Print specialist instructions here, or request a separate run.
 
-import { insideRun } from '../lib/agent/flow'
+import { insideRun, printFlow } from '../lib/agent/flow'
 import { askForSpec, readRuns } from '../lib/agent/sessions'
 import { startRun } from '../lib/agent/start'
 import { titleOf } from '../lib/agent/sessions'
@@ -75,13 +63,14 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
   }
   if (!locate(id)) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
 
-  // The one starting command with no `--print`. A printed flow is "do it here", and here is
-  // exactly where a spec agent must not be: it is worth a run precisely because it has not
-  // read the conversation that wanted it.
-  if (opts.print === true) {
+  const notes = noteOf(opts.note ?? [], opts.notes)
+  const req: AgentRequest = { action: 'spec', id, title: titleOf(id), specAgent: name, notes }
+
+  const caller = insideRun()
+  if (caller && readRuns().find((r) => r.sessionId === caller)?.action === 'spec') {
     die(
-      `a spec agent has no --print: it is worth asking for only because it starts clean, and printing its instructions would have you write the section in the conversation that asked for it. Run \`${program} spec ${name} ${id}\` and it starts on its own.`,
-      { kind: 'bad-option' },
+      'a spec agent does not ask for another spec agent — answer the part you own and leave the rest of the card to the session planning it.',
+      { kind: 'spec-agent-recursion', specAgent: name },
     )
   }
 
@@ -96,24 +85,11 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
     return { specAgent: name, cardId: id, queued: false, pending: true }
   }
 
-  const notes = noteOf(opts.note ?? [], opts.notes)
-  const req: AgentRequest = { action: 'spec', id, title: titleOf(id), specAgent: name, notes }
+  if (opts.print === true) return printFlow(req, program)
 
-  // Asked for from inside a run: written down, not started. A run never starts another, and
-  // an agent that ran inside the asking run would read the very conversation it is meant to
-  // be free of.
+  // Separate requests from a board run start after its parent finishes.
   const inside = insideRun()
   if (inside) {
-    // …unless the asking run is itself a spec run (#403). A spec agent answers one part of
-    // the card and nothing else, so an agent asking for an agent is either work it was given
-    // and should do, or work outside its own part. Refused rather than dropped: a chain that
-    // silently went nowhere reads as a board that lost the ask.
-    if (readRuns().find((r) => r.sessionId === inside)?.action === 'spec') {
-      die(
-        `a spec agent does not ask for another spec agent — answer the part you own and leave the rest of the card to the session planning it.`,
-        { kind: 'spec-agent-recursion', specAgent: name },
-      )
-    }
     const queued = askForSpec(inside, { specAgent: name, cardId: id, notes })
     if (queued === 'no-run') {
       die(`run ${short(inside)} is not on this board's list, so the ask has nowhere to be written down`, {

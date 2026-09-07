@@ -1,10 +1,7 @@
 // The spec agents — what the board can put on a card, and what each one is set to.
 //
-// A spec agent owns one part of a card's spec — the screen a card draws, the library it
-// picks — and it fills that part in a run of its own: it starts clean, gets the card and a
-// short note, writes one section of that card, and touches nothing else. What one is asked
-// to do beyond its own instructions is `akb guide spec-agent`.
-//
+// A spec agent fills one section, in-session or in a separate run.
+
 // Nothing about an agent is written in TypeScript. Its name, the line it is picked by, the
 // part of the spec it owns and the settings it declares all come out of its own `AGENT.md`
 // (./parse.ts), whether the command ships it or the project added it (./catalog.ts). This
@@ -228,8 +225,8 @@ export const findWriteAgent = (name: string): SpecAgent | null => {
 export const specAgentSelector = (id: number | string): string =>
   selector(enabledSpecAgents(), {
     tag: 'spec-agents',
-    lead: "Specialist agents this board has, each filling one part of a card's spec in a run of its own:",
-    ask: `Use each agent’s description as its trigger. Check it against the current card. You must request each matching agent whose section is missing or no longer covers the changed scope, even when you can plan that work yourself: \`akb spec <agent> ${id} <short note>\`.`,
+    lead: "Specialist agents this board has, each filling one part of a card's spec:",
+    ask: `Command: \`akb spec <agent> ${id} <short note> [--print]\`.`,
   })
 
 /** The same catalog, for the agents the writer can call in (#424) — the specialists a draft
@@ -264,7 +261,6 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
       ...(a.memory ? ['  remembers'] : []),
     ]),
     words.ask,
-    'Skip only when the trigger does not match or the agent’s existing output covers the current scope. Your own plan does not count as the agent’s output. After requesting agents, stop; the board starts them when this run ends and resumes this workflow afterward.',
     `</${words.tag}>`,
   ].join('\n')
 }
@@ -361,9 +357,7 @@ export const specAgentList = (program: string, forPerson = false): string =>
   agentList('spec', program, forPerson, {
     lead: `${program} spec <agent> <id> [note] — put a spec agent on a card.`,
     blurb: [
-      "A spec agent fills one part of a card's spec. It runs on its own, in its own context:",
-      'it is given the card and your note, it writes one section of that card, and it changes',
-      'nothing else. Request each agent when its trigger matches the card.',
+      "A spec agent fills one part of a card's spec from the card, your note and its instructions.",
     ],
     guide: 'spec-agent',
   })

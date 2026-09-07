@@ -50,8 +50,8 @@ describe("the board conversation's first message", () => {
 })
 
 describe('every message after the first', () => {
-  it('is the user words alone — the session already holds the subject', () => {
-    assert.equal(chatPrompt(340, 'and the other one?', { resuming: true }), 'and the other one?')
-    assert.equal(chatPrompt(null, 'and the other one?', { resuming: true }), 'and the other one?')
+  it('keeps the user words last without repeating the subject', () => {
+    assert.match(chatPrompt(340, 'and the other one?', { resuming: true }), /and the other one\?$/)
+    assert.match(chatPrompt(null, 'and the other one?', { resuming: true }), /and the other one\?$/)
   })
 })

@@ -502,9 +502,7 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   archive: ['board'],
   reject: ['board', 'reject'],
   setup: ['board', 'setup', 'add-task'],
-  // A spec agent gets its own flow and NOT `board`: it writes one section, never a card,
-  // so the card format, the memory set and the tracks are a page of rules about work it is
-  // not allowed to do. `akb spec` has no --print, so this is only ever read by the run.
+  // Specialist instructions apply to both printed flows and separate runs.
   spec: ['spec-agent'],
   // A repurpose gets its own flow and NOT `board`: it writes one file under `content/` and
   // never a card, so the card format and the memory set are a page about work it may not do.
@@ -802,6 +800,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // Setting the board up (#173). The checklist is the plan, so the facts are the boxes
     // left rather than a card's steps — and the flow's own last tick is what closes the
     // job, which is why nothing here names a command that finishes it.
+    case 'spec': {
+      next.push('Return to the workflow that requested this spec and continue it in this session. No background follow-up is scheduled.')
+      break
+    }
     case 'setup': {
       const steps = readSetupChecklist()
       const left = steps?.filter((s) => !s.done) ?? []

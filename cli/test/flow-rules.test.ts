@@ -11,6 +11,8 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { chatPrompt } from '../src/lib/agent/chat.ts'
+import { cmdSpec } from '../src/commands/spec.ts'
+import { readRuns } from '../src/lib/agent/sessions.ts'
 import { cmdStartRun } from '../src/commands/run.ts'
 import { activeDelivery } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
@@ -84,6 +86,44 @@ async function end(sessionId: string): Promise<void> {
   fs.writeFileSync(record!.logPath, 'log\n')
   await closeRun(sessionId, { status: 'done', ok: true, code: 0 })
 }
+
+describe('in-session spec work', () => {
+  it('prints specialist instructions and rules without starting a run', async () => {
+    setAgentRule('ui-design', 'Keep to the existing palette.')
+    const file = path.join(root, 'docs/kanban/todo/features/1-card.md')
+    const before = fs.readFileSync(file, 'utf8')
+    const sink = startCollecting()
+    try {
+      await akb(root, ['spec', 'ui-design', '1', 'Use scrolling tabs.', '--print'])
+    } finally {
+      stopCollecting()
+    }
+    const printed = sink.out.join('\n')
+    assert.match(printed, /printed, not started/)
+    assert.match(printed, /Use scrolling tabs/)
+    assert.match(printed, /Be a spec agent/)
+    assert.match(printed, /raw validate <task-id>/)
+    assert.match(printed, /continue it in this session/)
+    assert.ok(printed.trimEnd().endsWith('Keep to the existing palette.'))
+    assert.equal(readRuns().length, 0)
+    assert.equal(fs.readFileSync(file, 'utf8'), before)
+  })
+
+  it('prints inside a board run without queuing a specialist', async () => {
+    process.env[RUN_ENV] = run('implement', 1)
+    const before = JSON.stringify(readRuns())
+    startCollecting()
+    try {
+      const result = await cmdSpec({ agent: 'ui-design', id: 1, print: true })
+      assert.equal(result.mode, 'print')
+    } finally {
+      stopCollecting()
+    }
+    assert.equal(JSON.stringify(readRuns()), before)
+  })
+
+
+})
 
 describe('the files', () => {
   it('is nothing until a rule is saved, and nothing again when one is cleared', async () => {
@@ -537,7 +577,7 @@ describe("the board's language", () => {
     for (const action of ['implement', 'review', 'create', 'changelog'] as const) {
       assert.doesNotMatch(buildPrompt({ action, id: 1, title: 'card one', release: '0.1.0' }), /board's prose/)
     }
-    assert.equal(chatPrompt(1, 'and the other one?', { resuming: true }), 'and the other one?')
+    assert.doesNotMatch(chatPrompt(1, 'and the other one?', { resuming: true }), /board's prose/)
     assert.equal(setupInstruction(), '/kanban. Set up this board — follow docs/kanban/setup-checklist.md.')
   })
 

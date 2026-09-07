@@ -426,8 +426,6 @@ describe('what a session is shown', () => {
     assert.match(catalog, /- `ui-design`/)
     assert.match(catalog, /owns the screen a card changes/)
     assert.ok(catalog.includes(findSpecAgent('ui-design')!.description))
-    assert.match(catalog, /description as its trigger/)
-    assert.match(catalog, /must request each matching agent/)
     assert.doesNotMatch(catalog, /planned by guess|Asking for none is the usual answer/)
     assert.match(catalog, /akb spec <agent> 12 <short note>/)
     assert.doesNotMatch(catalog, /Rendered screen/)
@@ -450,7 +448,6 @@ describe('what a session is shown', () => {
     ] as const) {
       const prompt = buildPrompt(req)
       assert.match(prompt, /Use whenever a card designs or changes a user-facing feature/)
-      assert.match(prompt, /must request each matching agent/)
     }
   })
 

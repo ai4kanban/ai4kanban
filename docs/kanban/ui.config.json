@@ -3,11 +3,12 @@
   "harnessSettings": {
     "claude-code": {
       "provider": "subscription",
-      "model": "claude-opus-5",
+      "model": "opus",
       "reasoning": "xhigh"
     },
     "zcode": {
-      "provider": "coding-plan"
+      "provider": "coding-plan",
+      "model": "bigmodel/glm-5.2"
     },
     "codex": {
       "reasoning": "high",

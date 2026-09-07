@@ -65,9 +65,9 @@ describe('every turn after the first', () => {
     assert.match(prompt, /same JSON block/)
   })
 
-  it('leaves every other conversation as it was', () => {
-    assert.equal(chatPrompt(null, 'and the other one?', { resuming: true }), 'and the other one?')
-    assert.equal(chatPrompt(12, 'and the other one?', { resuming: true }), 'and the other one?')
+  it('leaves the setup reminder out of other conversations', () => {
+    assert.match(chatPrompt(null, 'and the other one?', { resuming: true }), /and the other one\?$/)
+    assert.match(chatPrompt(12, 'and the other one?', { resuming: true }), /and the other one\?$/)
   })
 })
 

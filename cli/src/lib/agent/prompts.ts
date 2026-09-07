@@ -407,7 +407,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         [
           `${kb}. You are the \`${req.specAgent}\` spec agent on task ${req.id} ${named}.`,
-          `Edit \`${cardFile}\` directly. Replace or add only the section headed \`\`## By \`${req.specAgent}\` agent\`\`; use \`###\` for its subheadings.`,
+          `Card: \`${cardFile}\`. Section: \`\`## By \`${req.specAgent}\` agent\`\`.`,
           half === 'human'
             ? 'Your output is set to be reviewed by me: put your section above `<!-- agent -->`, and leave it there.'
             : 'Your output is set to be read by the agent that builds this: put your section below `<!-- agent -->`, before `## Decided by the agent`.',

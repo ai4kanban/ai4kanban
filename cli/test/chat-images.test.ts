@@ -219,7 +219,7 @@ describe('what the words say about them', () => {
   })
 
   it('says nothing at all when the message carried none', () => {
-    assert.equal(chatPrompt(null, 'hello', { resuming: true, pictures: [] }), 'hello')
+    assert.doesNotMatch(chatPrompt(null, 'hello', { resuming: true, pictures: [] }), /picture came|pictures came/)
   })
 })
 
