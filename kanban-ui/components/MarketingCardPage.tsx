@@ -60,6 +60,7 @@ import type { Card, CardDrafts, CardScreen, DraftComment, SessionView } from "@/
 import {
   ActionDialog,
   DialogButtons,
+  SessionLog,
   type AgentReq,
   type DialogState,
 } from "./agent-shared";
@@ -82,7 +83,14 @@ import {
   stoppedRows,
 } from "./marketing-runs";
 import { SaveMark, SaveRefused, type SaveState } from "./marketing-save";
-import { runningCardIds, useAgentSessions, useOnTabFocus, type StartedSession } from "./sessions";
+import {
+  latestSessionForCard,
+  runningCardIds,
+  useAgentSessions,
+  useOnTabFocus,
+  useSessionLog,
+  type StartedSession,
+} from "./sessions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -280,6 +288,25 @@ function Draft({
   const busy = live.length > 0;
   const locked = busy || answering;
   const polishingDraft = live.find((r) => r.action === "polish")?.draft;
+
+  // ---- the run log ---------------------------------------------------------
+  //
+  // The same window the engineering card page draws, over the same poll: what the agent is
+  // doing this second, and — once it is over — what it did, how long it took and what it
+  // cost. The run it tails is the one writing the draft on screen; a repurpose starts one
+  // run per channel, so the tab is what says which of them this page is about. With none
+  // live it holds the card's newest run, so the last rewrite can be read back.
+  const writingRun = live.find((r) => draftOf(r) === tab);
+  const logRun = writingRun ?? latestSessionForCard(runs, card.id);
+  const log = useSessionLog(logRun?.sessionId ?? null);
+  const [showLog, setShowLog] = useState(false);
+  // A run STARTING on this draft opens it — the id, not the run, so a poll that finds the
+  // same run still going does not reopen a window the user has since folded. Nothing else
+  // opens it: the editor is what this page is for.
+  const writingId = writingRun?.sessionId;
+  useEffect(() => {
+    if (writingId) setShowLog(true);
+  }, [writingId]);
 
   // ---- reading the drafts --------------------------------------------------
 
@@ -882,14 +909,21 @@ function Draft({
               ? "saved"
               : "none";
 
-  // A tab with nothing in it says which of the four things it is. A channel is never
+  // A tab with nothing to show says which of the four things it is. A channel is never
   // offered a first draft: it is what a repurpose wrote, and an unfinished one is picked
   // back up from the notice above rather than started again from here.
-  const writingHere = live.some((r) => draftOf(r) === tab);
-  const empty: React.ReactNode = !actions ? (
+  //
+  // A run over this tab says so over the draft as well as under an empty one — a rewrite
+  // names what it is doing to the words behind it, which are the ones being replaced.
+  const writingHere = !!writingRun;
+  const empty: React.ReactNode = writingHere ? (
+    written ? (
+      <Empty title={c.empty.rewriting} hint={c.empty.rewritingHint} pulse />
+    ) : (
+      <Empty title={c.empty.writing} hint={c.empty.writingHint} pulse />
+    )
+  ) : !actions ? (
     <Empty title={c.empty.readOnly} hint={c.empty.readOnlyHint} />
-  ) : writingHere ? (
-    <Empty title={c.empty.writing} hint={c.empty.writingHint} pulse />
   ) : locked ? null : tab === SOURCE ? (
     <div className="flex flex-col items-center gap-2.5">
       <Button className="pointer-events-auto" disabled={moving} onClick={onDraft}>
@@ -980,13 +1014,7 @@ function Draft({
                     hold={tabs.current}
                     onClick={(e) => void goTab(ch.name, e.currentTarget)}
                     mark={<ChannelMark name={ch.name} status={ch.status} size={13} />}
-                    dot={
-                      live.some((r) => draftOf(r) === ch.name) ? (
-                        <span className={PULSE_DOT} aria-hidden />
-                      ) : (
-                        <ChannelDot status={ch.status} size={6} />
-                      )
-                    }
+                    dot={<ChannelDot status={ch.status} size={6} />}
                     closeLabel={c.closeChannel(channelLabel(ch.name))}
                     closeDisabled={locked || moving}
                     onClose={
@@ -1085,6 +1113,21 @@ function Draft({
         </div>
       )}
 
+      {/* What the agent is doing, in its own window — the board's one run log, on the page's
+          own ground. It folds to its title bar, which still carries the outcome, the time and
+          the cost, so a folded one is a receipt rather than nothing. Resume is not offered
+          here: the notice above already words a run that stopped and runs it again. */}
+      {logRun && (
+        <div className="shrink-0 bg-nb-wash px-3 py-2" style={PART}>
+          <SessionLog
+            session={log ?? logRun}
+            collapsed={!showLog}
+            onToggle={() => setShowLog((v) => !v)}
+            cap="max-h-[32vh]"
+          />
+        </div>
+      )}
+
       {/* Rules older than the drafts moves can neither read a draft nor write one, so the
           page says why rather than drawing an empty editor — which would read as a topic
           nobody has written for yet. */}
@@ -1097,29 +1140,29 @@ function Draft({
           aria-labelledby={tabId(tab)}
           className="relative min-h-0 flex-1 overflow-hidden"
         >
-          {/* OverType mounts INTO this element, so nothing React draws may live inside it. */}
-          <div ref={host} className={`h-full ${locked ? "opacity-70" : ""}`} />
+          {/* OverType mounts INTO this element, so nothing React draws may live inside it.
+              A draft an agent is rewriting recedes far enough that the state drawn over it is
+              the only thing to read — the old words are what the run is replacing. */}
+          <div
+            ref={host}
+            className={`h-full transition-opacity duration-300 ${writingHere ? "opacity-[0.18]" : locked ? "opacity-70" : ""}`}
+          />
 
-          {/* An agent is writing this draft. The editor is read-only behind this line; which
-              agent is writing what is said in the pill beside the title. */}
-          {locked && (
-            <div
-              className="pointer-events-none absolute left-8 right-8 top-[10px] h-[3px] overflow-hidden rounded-full"
-              style={{ background: "var(--color-nb-accent-soft)" }}
-            >
-              <div
-                className="h-full w-[38%] rounded-full animate-[nbPulse_1.4s_ease-in-out_infinite]"
-                style={{ background: "var(--color-nb-accent)" }}
-              />
-            </div>
-          )}
-
-          {/* Nothing written for this tab yet: what that means, in the middle of the page. It
-              goes the moment there are words — typing straight into the editor is always the
-              other way. */}
-          {loaded && editor && !written && empty && (
+          {/* What this tab is instead of a draft: being written, not written, or not this
+              machine's to write. A rewrite says it here too — over the draft it is replacing,
+              so a rewrite and a first write look the same. */}
+          {loaded && editor && (writingHere || !written) && empty && (
             <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2.5 pb-16">
-              {empty}
+              {/* Over a draft there are words behind this, and a line of them through the
+                  middle of it reads as a smudge. A plate of the page's own paper is what
+                  separates the two; an empty tab has nothing to be separated from. */}
+              {writingHere && written ? (
+                <div className="rounded-[12px] bg-nb-paper/92 px-5 py-3.5 shadow-[0_1px_12px_color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]">
+                  {empty}
+                </div>
+              ) : (
+                empty
+              )}
             </div>
           )}
 

@@ -118,11 +118,12 @@ export async function notificationCenter(): Promise<NotificationCenter> {
   return rules.readCloudCenter();
 }
 
-/** Opening a row marks it read, and says where to go — the board's own path on this
- *  machine, and the card to open in it. Null when the event has gone. */
+/** Opening a row marks it read, and says where to go — the project this board belongs to on
+ *  this machine, the board folder inside it, and the card to open. A project can hold more
+ *  than one board (#407), so the two are not one answer. Null when the event has gone. */
 export async function openNotification(
   eventId: string,
-): Promise<{ boardPath: string | null; taskId: number } | null> {
+): Promise<{ boardPath: string | null; boardDir: string | null; taskId: number } | null> {
   const rules = await boardRules();
   return rules.openNotification ? rules.openNotification(eventId) : null;
 }

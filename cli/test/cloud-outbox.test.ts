@@ -19,7 +19,7 @@ import { board, setBoardProvider } from '../src/lib/board/index.ts'
 import { closeRelease, dropRelease } from '../src/lib/releases.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
-import { ALL_RELEASES, cloudBoardFor, enableCloudBoard } from '../src/lib/cloud/boards.ts'
+import { ALL_RELEASES, cloudBoardFor, defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
 import { startCloudServer, stopCloudServer } from '../src/lib/cloud/board-server.ts'
 import type { CloudEventState } from '../src/lib/cloud/events.ts'
 import { duePending, notePublication, queue, readOutbox, unsentToCloud, type Pending } from '../src/lib/cloud/outbox.ts'
@@ -35,7 +35,7 @@ import {
 import { watchRelease } from '../src/lib/cloud/notifications.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { snapshotFor } from '../src/lib/cloud/snapshot.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { setBoardDir, setBoardRoot } from '../src/lib/paths.ts'
 import type { Card } from '../src/lib/view/types.ts'
 
 const SUPABASE = 'https://cloud.test'
@@ -79,7 +79,7 @@ function signIn(): void {
   })
 }
 
-const BOARD = () => enableCloudBoard(root, '0.8.0')
+const BOARD = () => enableCloudBoard(defaultBoardDir(root), root, '0.8.0')
 
 function card(over: Partial<Card> = {}): Card {
   return {
@@ -179,7 +179,7 @@ describe('a board change made while Cloud is unreachable', () => {
     held.pending[0]!.nextAt = Date.now() - 1
     fs.writeFileSync(path.join(root, '.akb', 'cloud-outbox.json'), `${JSON.stringify(held, null, 2)}\n`)
 
-    startCloudServer(root)
+    startCloudServer(defaultBoardDir(root))
     await flushCloudOutbox()
 
     assert.ok(calls.some((c) => c.endsWith('/v1/events')))
@@ -348,7 +348,7 @@ describe('an action nothing on this board is carrying any more', () => {
    *  watches every release: this temporary one has cut none, so a named release would read
    *  as closed and stop the pass before it reconciles. */
   async function reconcileAgainst(over: Record<string, unknown> = {}): Promise<string[]> {
-    const held = enableCloudBoard(root, ALL_RELEASES)
+    const held = enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
     writeCardFile()
     notePublication(12, 'e-1', (over.state as CloudEventState) ?? 'accepted')
     const event = {
@@ -664,7 +664,7 @@ describe('a sign-in that ran out mid-delivery', () => {
 describe('an edit the event cannot see', () => {
   /** The board on every release, one card published, and what the outbox holds for it. */
   async function published(): Promise<{ fingerprint: string; revision: string }> {
-    const watching = enableCloudBoard(root, ALL_RELEASES)
+    const watching = enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
     writeCardFile()
     // Not `publishedEvent`: that helper re-enables the board on one release, and this is
     // about a board watching all of them.
@@ -732,7 +732,7 @@ describe('release watch durability', () => {
         return []
       } })
       await recordBoardEvents()
-      assert.equal(cloudBoardFor(root)?.release, '0.8.0')
+      assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, '0.8.0')
       assert.ok(duePending().some((p) => p.kind === 'publish' && p.snapshot.taskId === 12))
     })
   }
@@ -754,10 +754,99 @@ describe('release watch durability', () => {
       it(`${end.name} pauses only the watch for the ended release (${watch})`, () => {
         writeCardFile()
         fs.writeFileSync(path.join(root, 'docs/kanban/releases.md'), '- **0.8.0**\n- **0.9.0**\n')
-        enableCloudBoard(root, watch)
+        enableCloudBoard(defaultBoardDir(root), root, watch)
         end('0.8.0')
-        assert.equal(cloudBoardFor(root)?.release, watch === '0.8.0' ? '' : watch)
+        assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, watch === '0.8.0' ? '' : watch)
       })
     }
   }
+})
+
+// Two boards in one project (#407): `marketing/kanban` beside `docs/kanban`. They share the
+// project, and so share `.akb/` — but they are two boards with two event streams, and a pass
+// over one that read the other's record found every one of its rows among cards it had never
+// heard of, retired all of them, and left the board they belong to to raise them again from
+// nothing. One card, one notification, over and over.
+describe('a second board in the same project', () => {
+  /** `marketing/kanban`, holding one card of its own. */
+  function second(): string {
+    const dir = path.join(root, 'marketing', 'kanban')
+    fs.mkdirSync(path.join(dir, 'todo', 'features'), { recursive: true })
+    fs.writeFileSync(path.join(dir, 'config.md'), '# Board\n')
+    fs.writeFileSync(
+      path.join(dir, 'todo', 'features', '3-a-post.md'),
+      [
+        '---',
+        'title: A post',
+        'priority: high',
+        'roi: high',
+        'status: ready',
+        'release: "0.8.0"',
+        'blocked_by: []',
+        'related: []',
+        'modules: []',
+        'questions: []',
+        'verify: []',
+        '---',
+        '',
+        'What it is for.',
+        '',
+      ].join('\n'),
+    )
+    return dir
+  }
+
+  it('is a board of its own, and leaves the first one’s rows exactly where they are', async () => {
+    BOARD()
+    writeCardFile()
+    notePublication(12, 'e-12', 'actionable')
+    const dir = second()
+
+    setBoardDir(dir, root)
+    const marketing = enableCloudBoard(dir, root, ALL_RELEASES)
+    await recordBoardEvents()
+
+    assert.notEqual(marketing.id, cloudBoardFor(defaultBoardDir(root))!.id, 'two boards, two ids')
+    assert.equal(marketing.name, `${path.basename(root)}/marketing`)
+    assert.deepEqual(
+      readOutbox().pending.filter((p) => p.kind === 'retire'),
+      [],
+      'the first board’s events are not this board’s to retire',
+    )
+    assert.ok(
+      readOutbox().pending.some((p) => p.kind === 'publish' && p.snapshot.taskId === 3),
+      'and its own card is published',
+    )
+
+    setBoardRoot(root)
+    assert.equal(readOutbox().published['12']?.state, 'actionable', 'the first board’s record is untouched')
+    assert.deepEqual(readOutbox().pending, [], 'and its outbox is its own')
+  })
+})
+
+// A board does not empty; a READ does. Retiring on one is how a bad read turns into every row
+// being retired and raised again from nothing.
+describe('a board read that comes back empty', () => {
+  it('retires nothing while this board is holding live events', async () => {
+    BOARD()
+    writeCardFile()
+    notePublication(12, 'e-12', 'actionable')
+    setBoardProvider({ ...board(), readCards: async () => [] })
+
+    await recordBoardEvents()
+
+    assert.deepEqual(readOutbox().pending, [])
+    assert.equal(readOutbox().published['12']?.state, 'actionable')
+  })
+
+  it('still retires what really left once a card is read', async () => {
+    BOARD()
+    writeCardFile()
+    notePublication(12, 'e-12', 'actionable')
+    notePublication(13, 'e-13', 'actionable')
+
+    await recordBoardEvents()
+
+    assert.ok(readOutbox().pending.some((p) => p.kind === 'retire' && p.eventId === 'e-13'))
+  })
 })

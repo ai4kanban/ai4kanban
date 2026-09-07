@@ -13,7 +13,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { withLock } from '../lock'
-import { AKB_DIR, ensureAkbDir } from '../paths'
+import { AKB_DIR, ensureAkbDir, KANBAN, REPO_ROOT } from '../paths'
+import { isProjectBoard } from './boards'
 import type { CloudEventAnswer, CloudEventState } from './events'
 import type { EventSnapshot } from './snapshot'
 
@@ -118,8 +119,24 @@ interface Outbox {
 
 const EMPTY: Outbox = { version: 1, published: {}, pending: [], claims: {}, unsent: [] }
 
-const outboxFile = (): string => path.join(AKB_DIR, 'cloud-outbox.json')
-const outboxLock = (): string => path.join(AKB_DIR, 'cloud-outbox.lock')
+/**
+ * Which board's outbox this is.
+ *
+ * `.akb/` belongs to the PROJECT, and a project can hold more than one board (#407) — so a
+ * board that is not the project's own writes its own file. One file for two boards is one
+ * board's record read as the other's: every pass would find the other's events among cards it
+ * has never heard of, retire all of them, and the board they belong to would raise them again
+ * from nothing. The project's own board keeps the plain name, so nothing existing moves.
+ */
+function boardPart(): string {
+  if (isProjectBoard(REPO_ROOT, KANBAN)) return ''
+  const inside = path.relative(REPO_ROOT, KANBAN)
+  const where = !inside || inside.startsWith('..') ? path.basename(KANBAN) : inside
+  return `-${where.replace(/[^a-zA-Z0-9]+/g, '-')}`
+}
+
+const outboxFile = (): string => path.join(AKB_DIR, `cloud-outbox${boardPart()}.json`)
+const outboxLock = (): string => path.join(AKB_DIR, `cloud-outbox${boardPart()}.lock`)
 
 function read(): Outbox {
   try {

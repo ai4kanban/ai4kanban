@@ -14,10 +14,19 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { REPO_ROOT, SESSIONS_DIR } from '../paths'
+import { KANBAN, REPO_ROOT, SESSIONS_DIR } from '../paths'
 
 /** The built file this code is running as. */
 export const SELF = fileURLToPath(import.meta.url)
+
+/** Which board the watcher is pointed at. `--dir` only ever reaches `<project>/docs/kanban`,
+ *  so a board named outright — `--board`, or a UI that called `setBoardDir` — has to be named
+ *  again here, or the watcher reads the wrong board, finds no spec, and the run dies at
+ *  once. */
+function boardArgs(): string[] {
+  const standard = path.join(REPO_ROOT, 'docs', 'kanban')
+  return KANBAN === standard ? ['--dir', REPO_ROOT] : ['--board', KANBAN]
+}
 
 /** Spawn the watcher for a run that has already been written down, and return its pid.
  *  Undefined when the spawn itself failed — then nothing is watching, and the run is
@@ -28,7 +37,7 @@ export function spawnWatcher(sessionId: string): number | undefined {
   // rather than to a terminal that may already be gone.
   const out = fs.openSync(path.join(SESSIONS_DIR, `${sessionId}.watch.log`), 'a')
   try {
-    const child = spawn(process.execPath, [SELF, '__watch', sessionId, '--dir', REPO_ROOT], {
+    const child = spawn(process.execPath, [SELF, '__watch', sessionId, ...boardArgs()], {
       cwd: REPO_ROOT,
       env: process.env,
       // Its own process group, so a Ctrl-C in the terminal that started the run doesn't

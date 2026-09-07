@@ -1965,12 +1965,12 @@ export async function notificationCenterAction(): Promise<NotificationCenter> {
   }
 }
 
-/** Opening a row marks it read and says where to go: the board's own path on this machine,
- *  and the card to open in it. A board no longer here answers with a null path, and the
- *  rail says so rather than switching to it. */
+/** Opening a row marks it read and says where to go: the project this board belongs to on
+ *  this machine, the board folder inside it (#407), and the card to open. A board no longer
+ *  here answers with a null path, and the rail says so rather than switching to it. */
 export async function openNotificationAction(
   eventId: string,
-): Promise<{ boardPath: string | null; taskId: number } | null> {
+): Promise<{ boardPath: string | null; boardDir: string | null; taskId: number } | null> {
   if (typeof eventId !== "string" || !eventId) return null;
   try {
     return await openNotification(eventId);

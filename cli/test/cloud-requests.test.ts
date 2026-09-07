@@ -12,7 +12,12 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
-import { cloudBoardFor, enableCloudBoard, setCloudBoardServer } from '../src/lib/cloud/boards.ts'
+import {
+  cloudBoardFor,
+  defaultBoardDir,
+  enableCloudBoard,
+  setCloudBoardServer,
+} from '../src/lib/cloud/boards.ts'
 import { heldClaims, holdClaim, notePublication, readOutbox } from '../src/lib/cloud/outbox.ts'
 import {
   cancelCloudRequest,
@@ -52,8 +57,8 @@ beforeEach(() => {
     expiresAt: Date.now() + 60 * 60_000,
     subject: '11111111-1111-4111-8111-111111111111',
   })
-  enableCloudBoard(root, '0.8.0')
-  setCloudBoardServer(root, SERVER)
+  enableCloudBoard(defaultBoardDir(root), root, '0.8.0')
+  setCloudBoardServer(defaultBoardDir(root), SERVER)
 })
 
 afterEach(() => {
@@ -91,7 +96,7 @@ const card = (over: Partial<Card> = {}): Card =>
 
 const request = (over: Partial<CloudRequest> = {}): CloudRequest => ({
   id: 'req-1',
-  boardId: cloudBoardFor(root)!.id,
+  boardId: cloudBoardFor(defaultBoardDir(root))!.id,
   eventId: 'e-1',
   serverId: SERVER,
   claimedBy: SERVER,
@@ -185,7 +190,7 @@ describe('a restart that finds an answer waiting', () => {
       return {}
     })
 
-    await catchUpCloudRequests(root)
+    await catchUpCloudRequests(defaultBoardDir(root))
 
     assert.ok(seen.some((c) => c.endsWith('/claim')), 'the waiting request was claimed')
     // A claim that starts nothing and says nothing would sit there until its lease ran out.
@@ -204,7 +209,7 @@ describe('a restart that finds an answer waiting', () => {
       return {}
     })
 
-    await catchUpCloudRequests(root)
+    await catchUpCloudRequests(defaultBoardDir(root))
 
     assert.ok(!seen.some((c) => c.endsWith('/claim')), 'a live claim is never taken a second time')
   })
@@ -221,7 +226,7 @@ describe('a machine that slept past its lease and came back with its delivery st
       return {}
     })
 
-    const done = await resumeCloudRequest('e-1', root)
+    const done = await resumeCloudRequest('e-1', defaultBoardDir(root))
 
     assert.deepEqual(done, { ok: true })
     // `running` again, rather than the `failed` a second start over a card this checkout no
@@ -235,9 +240,9 @@ describe('a machine that slept past its lease and came back with its delivery st
   })
 
   it('is refused on a machine that no longer runs the board', async () => {
-    setCloudBoardServer(root, '')
+    setCloudBoardServer(defaultBoardDir(root), '')
     const calls = fakeCloud(() => ({}))
-    const done = await resumeCloudRequest('e-1', root)
+    const done = await resumeCloudRequest('e-1', defaultBoardDir(root))
     assert.equal(done.ok, false)
     assert.deepEqual(calls, [], 'nothing is asked of Cloud at all')
   })
@@ -271,7 +276,7 @@ describe('a claim this board is no longer working', () => {
     // No delivery on this card: the server died, or the delivery ended without reporting.
     const calls = fakeCloud(() => ({ renewed: true }))
 
-    await renewCloudClaims(root)
+    await renewCloudClaims(defaultBoardDir(root))
 
     assert.deepEqual(heldClaims(), [])
     assert.deepEqual(calls, [], 'a claim nobody is working costs no write')
@@ -283,7 +288,7 @@ describe('a claim this board is no longer working', () => {
     holdClaim({ requestId: 'req-1', eventId: 'e-1', taskId: 12, decision: 'implement' })
     fakeCloud(() => ({ renewed: false }))
 
-    await renewCloudClaims(root)
+    await renewCloudClaims(defaultBoardDir(root))
 
     assert.deepEqual(heldClaims(), [])
   })
@@ -294,7 +299,7 @@ describe('a claim this board is no longer working', () => {
     holdClaim({ requestId: 'req-1', eventId: 'e-1', taskId: 12, decision: 'implement' })
     const calls = fakeCloud(() => ({ renewed: true }))
 
-    await renewCloudClaims(root)
+    await renewCloudClaims(defaultBoardDir(root))
 
     assert.equal(heldClaims().length, 1)
     assert.ok(calls.some((c) => c.endsWith('/renew')))
@@ -304,30 +309,30 @@ describe('a claim this board is no longer working', () => {
 describe('a board taken over by a second machine', () => {
   it('stops claiming as soon as it next looks, and the delivery here is untouched', async () => {
     deliveryRunning(12)
-    const boardId = cloudBoardFor(root)!.id
+    const boardId = cloudBoardFor(defaultBoardDir(root))!.id
     fakeCloud(() => ({
       servers: [{ id: 's-2', boardId, machineId: 'another-machine', machineName: 'the-other', enabled: true }],
     }))
 
-    const server = await readBoardServer(root)
+    const server = await readBoardServer(defaultBoardDir(root))
 
     assert.equal(server.attached, true)
     assert.equal(server.here, false)
     assert.equal(server.machineName, 'the-other')
-    assert.ok(!cloudBoardFor(root)?.serverId, 'this machine drops its own server row')
+    assert.ok(!cloudBoardFor(defaultBoardDir(root))?.serverId, 'this machine drops its own server row')
   })
 
   it('keeps holding the board when Cloud still names this machine', async () => {
-    const boardId = cloudBoardFor(root)!.id
+    const boardId = cloudBoardFor(defaultBoardDir(root))!.id
     const machine = thisMachine()!
     fakeCloud(() => ({
       servers: [{ id: SERVER, boardId, machineId: machine.id, machineName: machine.name, enabled: true }],
     }))
 
-    const server = await readBoardServer(root)
+    const server = await readBoardServer(defaultBoardDir(root))
 
     assert.equal(server.here, true)
-    assert.equal(cloudBoardFor(root)?.serverId, SERVER)
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.serverId, SERVER)
   })
 })
 
@@ -336,8 +341,8 @@ describe('a machine that is signed out', () => {
     fs.rmSync(path.join(home, 'session.json'))
     const calls = fakeCloud(() => ({}))
 
-    await renewCloudClaims(root)
-    const done = await resumeCloudRequest('e-1', root)
+    await renewCloudClaims(defaultBoardDir(root))
+    const done = await resumeCloudRequest('e-1', defaultBoardDir(root))
 
     assert.equal(done.ok, false)
     assert.deepEqual(calls, [])

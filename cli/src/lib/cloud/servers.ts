@@ -17,7 +17,7 @@
 // the wire because the Cloud service still holds it.
 
 import { thisMachine } from '../machine/identity'
-import { REPO_ROOT } from '../paths'
+import { KANBAN } from '../paths'
 import type { WriteResult } from '../view/types'
 import { cloudBoardFor, setCloudBoardServer, stopCloudBoardServer, type CloudBoard } from './boards'
 import { attachServer, detachServer, listServers } from './client'
@@ -47,8 +47,8 @@ export interface BoardServer {
 /** This board's server, when it is this machine: the board record and the server row Cloud
  *  minted. Null whenever nothing here may claim — notifications off, signed out, no
  *  identity, or this machine is not the board's server. */
-export function serverForBoard(root = REPO_ROOT): { board: CloudBoard; serverId: string } | null {
-  const board = cloudBoardFor(root)
+export function serverForBoard(boardDir = KANBAN): { board: CloudBoard; serverId: string } | null {
+  const board = cloudBoardFor(boardDir)
   if (!board?.serverId) return null
   if (!readSession()) return null
   return { board, serverId: board.serverId }
@@ -60,8 +60,8 @@ export function serverForBoard(root = REPO_ROOT): { board: CloudBoard; serverId:
  * `takeOver` is the user saying the machine in front of them runs the board now: the old
  * server is disabled, and a request it left interrupted can then only be cancelled.
  */
-export async function attachBoardServer(takeOver = false, root = REPO_ROOT): Promise<WriteResult> {
-  const board = cloudBoardFor(root)
+export async function attachBoardServer(takeOver = false, boardDir = KANBAN): Promise<WriteResult> {
+  const board = cloudBoardFor(boardDir)
   if (!board) return { ok: false, error: 'Notifications are off for this board.' }
   if (!readSession()) return { ok: false, error: 'Sign in to Cloud first.' }
   const machine = thisMachine()
@@ -69,25 +69,25 @@ export async function attachBoardServer(takeOver = false, root = REPO_ROOT): Pro
 
   const answer = await attachServer(board.id, machine.id, machine.name, takeOver)
   if (!answer.ok) return { ok: false, error: answer.error }
-  setCloudBoardServer(root, answer.value.server.id)
+  setCloudBoardServer(boardDir, answer.value.server.id)
   return { ok: true }
 }
 
 /** Stop this machine running this board's work. The local board is untouched: a delivery
  *  already going finishes here while its request reads interrupted. */
-export async function detachBoardServer(root = REPO_ROOT): Promise<WriteResult> {
-  const board = cloudBoardFor(root)
+export async function detachBoardServer(boardDir = KANBAN): Promise<WriteResult> {
+  const board = cloudBoardFor(boardDir)
   if (!board) return { ok: true }
   const machine = thisMachine()
   // The local record goes first: whatever Cloud answers, this machine must stop claiming.
-  stopCloudBoardServer(root)
+  stopCloudBoardServer(boardDir)
   if (!machine || !readSession()) return { ok: true }
   const answer = await detachServer(board.id, machine.id)
   return answer.ok ? { ok: true } : { ok: false, error: answer.error }
 }
 
 /** Which machine runs this board's work, as the Cloud section and `akb cloud` say it. */
-export async function readBoardServer(root = REPO_ROOT): Promise<BoardServer> {
+export async function readBoardServer(boardDir = KANBAN): Promise<BoardServer> {
   const machine = thisMachine()
   const blank: BoardServer = {
     attached: false,
@@ -95,7 +95,7 @@ export async function readBoardServer(root = REPO_ROOT): Promise<BoardServer> {
     machineName: '',
     thisMachine: machine?.name ?? '',
   }
-  const board = cloudBoardFor(root)
+  const board = cloudBoardFor(boardDir)
   if (!board || !readSession()) return blank
   const answer = await listServers()
   if (!answer.ok) {
@@ -106,21 +106,21 @@ export async function readBoardServer(root = REPO_ROOT): Promise<BoardServer> {
   const held = answer.value.servers.find((s) => s.boardId === board.id)
   if (!held) {
     // Cloud says nobody holds it, so neither does this machine's record.
-    if (board.serverId) setCloudBoardServer(root, '')
+    if (board.serverId) setCloudBoardServer(boardDir, '')
     return blank
   }
   const here = !!machine && held.machineId === machine.id
   // Cloud is the authority on whose board this is: a machine whose row was disabled from
   // somewhere else stops claiming as soon as it next looks.
-  if (here && board.serverId !== held.id) setCloudBoardServer(root, held.id)
-  if (!here && board.serverId) setCloudBoardServer(root, '')
+  if (here && board.serverId !== held.id) setCloudBoardServer(boardDir, held.id)
+  if (!here && board.serverId) setCloudBoardServer(boardDir, '')
   return { attached: true, here, machineName: held.machineName, thisMachine: machine?.name ?? '' }
 }
 
 /** Whether this machine should register itself as this board's server without being asked —
  *  a board whose notifications are on, that has no server row here, and whose server the user
  *  has not turned off. */
-export function wantsServerHere(root = REPO_ROOT): boolean {
-  const board = cloudBoardFor(root)
+export function wantsServerHere(boardDir = KANBAN): boolean {
+  const board = cloudBoardFor(boardDir)
   return !!board && !board.serverId && !board.serverOff && !!readSession()
 }

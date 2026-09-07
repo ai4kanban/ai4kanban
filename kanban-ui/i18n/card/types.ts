@@ -284,6 +284,8 @@ export type MarketingCopy = {
   empty: {
     writing: string;
     writingHint: string;
+    rewriting: string;
+    rewritingHint: string;
     stopped: string;
     stoppedHint: string;
     readOnly: string;

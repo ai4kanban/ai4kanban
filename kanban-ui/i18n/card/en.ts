@@ -88,6 +88,8 @@ const en: CardCopy = {
     empty: {
       writing: "Writing this draft",
       writingHint: "It appears here once it is written",
+      rewriting: "Rewriting this draft",
+      rewritingHint: "The new one replaces what is here",
       stopped: "This one was not written",
       stoppedHint: "The notice above runs it again",
       readOnly: "Read only",

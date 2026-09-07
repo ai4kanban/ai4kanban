@@ -462,7 +462,7 @@ function removeReleaseLine(id: string): void {
   fs.writeFileSync(RELEASES, kept.join('\n') + '\n')
   // Only an explicit close/drop ends a watch; an unavailable release list does not.
   try {
-    if (cloudBoardFor(REPO_ROOT)?.release === id) setCloudBoardRelease(REPO_ROOT, '')
+    if (cloudBoardFor(KANBAN)?.release === id) setCloudBoardRelease(KANBAN, '')
   } catch {
     // Machine notification settings must not fail a board write.
   }

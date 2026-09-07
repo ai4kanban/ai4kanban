@@ -56,7 +56,6 @@ export type ConfigurationCopy = {
     connector: string;
     /** Beside the key field, and where a row has none because the CLI's own login signs it. */
     keyNote: string;
-    cliLogin: (harness: string) => string;
     /** The CLI this row runs is signed out, or isn't here — each followed by its command. */
     signedOutHint: (harness: string) => string;
     notInstalledHint: (harness: string) => string;

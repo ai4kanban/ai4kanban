@@ -22,9 +22,16 @@ export const ALL_RELEASES = '*'
 export interface CloudBoard {
   /** The opaque id Cloud knows this board by. */
   id: string
-  /** Where the board is on this machine. Never sent anywhere. */
+  /** The PROJECT this board belongs to, on this machine. Never sent anywhere. What the app
+   *  opens when a row names a board it is not showing. */
   path: string
-  /** What to call it in the bell — the project folder's own name. */
+  /** The board FOLDER itself, which is what a record is looked up by (#407). A project can
+   *  hold more than one board — `docs/kanban` and `marketing/kanban` — and they are two
+   *  boards with two event streams, not one board read two ways. Records written before this
+   *  say nothing, and are read as the project's default board. */
+  boardDir: string
+  /** What to call it in the bell — the project folder's own name, and where in it a second
+   *  board sits (`boardName`). */
   name: string
   /** What this board raises events for: `ALL_RELEASES`, or one open release, where a task in
    *  any other release — or in none — raises nothing. Empty when a watched release closed and
@@ -60,7 +67,13 @@ function held(): Held {
         .map((b) => ({
           id: b.id,
           path: b.path,
-          name: typeof b.name === 'string' && b.name ? b.name : path.basename(b.path),
+          // A record written before boards were told apart by folder is the project's own
+          // board, which is where every one of them was.
+          boardDir: typeof b.boardDir === 'string' && b.boardDir ? b.boardDir : defaultBoardDir(b.path),
+          name:
+            typeof b.name === 'string' && b.name
+              ? b.name
+              : boardName(b.path, b.boardDir || defaultBoardDir(b.path)),
           release: typeof b.release === 'string' ? b.release : '',
           serverId: typeof b.serverId === 'string' ? b.serverId : undefined,
           serverOff: b.serverOff === true ? true : undefined,
@@ -96,15 +109,45 @@ function canonical(root: string): string {
   }
 }
 
+/** The board a project holds unless it is told about another. */
+export const defaultBoardDir = (project: string): string => path.join(project, 'docs', 'kanban')
+
+/** Whether this is the board its project holds — the ordinary case, and the one where
+ *  nothing the project keeps for a board has to say which board it is for. */
+export const isProjectBoard = (project: string, boardDir: string): boolean =>
+  path.resolve(boardDir) === path.resolve(defaultBoardDir(project))
+
+/**
+ * What to call a board in the bell: the project's own name, and — for a SECOND board in that
+ * project — where in it that board sits.
+ *
+ * `marketing/kanban` is called `ai4kanban/marketing` rather than `kanban`, which is what
+ * every board folder is called and so names nothing.
+ */
+export function boardName(project: string, boardDir: string): string {
+  const here = path.basename(project)
+  if (isProjectBoard(project, boardDir)) return here
+  const inside = path.relative(project, boardDir)
+  if (!inside || inside.startsWith('..')) return path.basename(boardDir) || here
+  const folder = path.basename(inside) === 'kanban' ? path.dirname(inside) : inside
+  return folder === '.' ? here : `${here}/${folder}`
+}
+
 /** Every board Cloud is on for, in the order they were turned on. */
 export function readCloudBoards(): CloudBoard[] {
   return held().boards
 }
 
-/** This board's record, or null when its notifications are off. */
-export function cloudBoardFor(root: string): CloudBoard | null {
-  const here = canonical(root)
-  return held().boards.find((b) => canonical(b.path) === here) ?? null
+/**
+ * This board's record, or null when its notifications are off.
+ *
+ * Looked up by the board FOLDER, never by its project: two boards in one project are two
+ * boards, and matching on the project would hand one of them the other's record — its Cloud
+ * id, its events, and the record of what it published (#407).
+ */
+export function cloudBoardFor(boardDir: string): CloudBoard | null {
+  const here = canonical(boardDir)
+  return held().boards.find((b) => canonical(b.boardDir) === here) ?? null
 }
 
 /** The board a Cloud ID names, or null when it is no longer on this machine — which the
@@ -116,20 +159,23 @@ export function cloudBoardById(id: string): CloudBoard | null {
 /** Turn notifications on for this board, watching one open release. Idempotent: a board
  *  already on keeps its Cloud ID, so turning it off and on again does not orphan its
  *  events. */
-export function enableCloudBoard(root: string, release: string): CloudBoard {
-  const resolved = canonical(root)
+export function enableCloudBoard(boardDir: string, project: string, release: string): CloudBoard {
+  const folder = canonical(boardDir)
+  const root = canonical(project)
   const state = held()
-  const existing = state.boards.find((b) => canonical(b.path) === resolved)
+  const existing = state.boards.find((b) => canonical(b.boardDir) === folder)
   if (existing) {
     existing.release = release
-    existing.path = resolved
+    existing.path = root
+    existing.boardDir = folder
     write(state)
     return existing
   }
   const board: CloudBoard = {
     id: crypto.randomUUID(),
-    path: resolved,
-    name: path.basename(resolved),
+    path: root,
+    boardDir: folder,
+    name: boardName(root, folder),
     release,
   }
   state.boards.push(board)
@@ -140,10 +186,10 @@ export function enableCloudBoard(root: string, release: string): CloudBoard {
 /** Remember — or forget — the server row Cloud minted for this machine on this board (#318).
  *  Empty is Cloud saying this machine does not hold the board, which is a fact rather than a
  *  choice: `stopCloudBoardServer` below is the choice. */
-export function setCloudBoardServer(root: string, serverId: string): CloudBoard | null {
-  const resolved = canonical(root)
+export function setCloudBoardServer(boardDir: string, serverId: string): CloudBoard | null {
+  const folder = canonical(boardDir)
   const state = held()
-  const board = state.boards.find((b) => canonical(b.path) === resolved)
+  const board = state.boards.find((b) => canonical(b.boardDir) === folder)
   if (!board) return null
   if (serverId) {
     board.serverId = serverId
@@ -158,10 +204,10 @@ export function setCloudBoardServer(root: string, serverId: string): CloudBoard 
 /** The user turned this machine's server off for this board. Written down so nothing
  *  registers it again on the next tick — a board never registered and one deliberately
  *  turned off look the same from `serverId` alone, and only one of them is an answer. */
-export function stopCloudBoardServer(root: string): CloudBoard | null {
-  const resolved = canonical(root)
+export function stopCloudBoardServer(boardDir: string): CloudBoard | null {
+  const folder = canonical(boardDir)
   const state = held()
-  const board = state.boards.find((b) => canonical(b.path) === resolved)
+  const board = state.boards.find((b) => canonical(b.boardDir) === folder)
   if (!board) return null
   delete board.serverId
   board.serverOff = true
@@ -171,10 +217,10 @@ export function stopCloudBoardServer(root: string): CloudBoard | null {
 
 /** Which release this board watches. Empty stops the filling and is what a closed release
  *  leaves behind. */
-export function setCloudBoardRelease(root: string, release: string): CloudBoard | null {
-  const resolved = canonical(root)
+export function setCloudBoardRelease(boardDir: string, release: string): CloudBoard | null {
+  const folder = canonical(boardDir)
   const state = held()
-  const board = state.boards.find((b) => canonical(b.path) === resolved)
+  const board = state.boards.find((b) => canonical(b.boardDir) === folder)
   if (!board) return null
   board.release = release
   write(state)
@@ -183,10 +229,10 @@ export function setCloudBoardRelease(root: string, release: string): CloudBoard 
 
 /** Turn them off. The caller retires this board's live events first — the record is what
  *  says which they are. */
-export function disableCloudBoard(root: string): CloudBoard | null {
-  const resolved = canonical(root)
+export function disableCloudBoard(boardDir: string): CloudBoard | null {
+  const folder = canonical(boardDir)
   const state = held()
-  const at = state.boards.findIndex((b) => canonical(b.path) === resolved)
+  const at = state.boards.findIndex((b) => canonical(b.boardDir) === folder)
   if (at < 0) return null
   const [gone] = state.boards.splice(at, 1)
   write(state)

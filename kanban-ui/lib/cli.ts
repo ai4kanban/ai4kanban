@@ -619,7 +619,9 @@ export interface BoardRules {
   // window is showing: one connection however many boards are enabled.
   startCloudCenter?(focused: boolean): void;
   readCloudCenter?(): NotificationCenter;
-  openNotification?(eventId: string): { boardPath: string | null; taskId: number } | null;
+  openNotification?(
+    eventId: string,
+  ): { boardPath: string | null; boardDir: string | null; taskId: number } | null;
   /** Mark every row read without opening any of them. */
   readAllNotifications?(): void;
   setNotificationsSilenced?(on: boolean): WriteResult;

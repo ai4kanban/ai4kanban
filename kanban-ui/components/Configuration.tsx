@@ -712,16 +712,6 @@ export function HarnessPicker({
   // CLI is: two rows on one harness can differ, and only a row holding no key of its own is
   // ever on the list.
   const rowLoggedOut = bind ? out.find((one) => one.runtime === bind.runtime.id)?.login : undefined;
-  // A row whose picked provider takes no key of its own runs on this computer's login, and
-  // that is worth one line where the key field would otherwise be.
-  const usesCliLogin =
-    !!bind &&
-    activeOption?.installed !== false &&
-    !rowLoggedOut &&
-    !connectorSettings.some(
-      (setting) =>
-        setting.kind === "secret" && shownForProvider(activeOption?.settings ?? [], setting.key, picked),
-    );
 
   // Test the setup that is saved (#96). Keyed on that setup, so changing any of it throws
   // the old result away rather than leaving a "Passed" standing for a setup that is gone.
@@ -787,11 +777,6 @@ export function HarnessPicker({
             </code>
           </Note>
         )}
-
-      {/* Nothing to sign in and no key to paste: this row goes through the CLI's own login
-          on this computer. One line where the key field would otherwise be, outside the
-          fold, so it is read without opening anything. */}
-      {usesCliLogin && <Note>{cr.cliLogin(activeOption.label)}</Note>}
 
       {/* The row asks for a harness this build doesn't ship, so another one runs. Never move
           a user to another CLI in silence. */}

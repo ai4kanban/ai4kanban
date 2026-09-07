@@ -766,21 +766,24 @@ export function agentInfo(): AgentInfo {
     // not all of these report a price, name their model or let go of a card when they are
     // rate-limited, and none of that shows up until a run.
     //
-    // `command` stays the harness's own, never a row's override: it is what a front end
-    // compares against to notice there IS an override.
+    // `command` stays the harness's own, never a row's override.
     options: HARNESSES.map((option) => {
       const { name, label, icon, command: cmd, settings, install } = option
       // …and what the first row on each harness is set to, for a screen that lists harnesses
       // rather than runtimes. A run never reads it: `runtimes` above is what one resolves from.
       const first = resolveHarness({ pin: name, harness: name })
+      // The binary this card is answered on is the RESOLVED one, the same as every other
+      // reader's: the connector grid is where "not installed" is drawn, and a CLI that ships
+      // inside a desktop app would read as missing on the one screen that offers it.
+      const spawns = bundledBinary(cmd, option)
       return {
         name,
         label,
         icon,
         command: cmd,
         settings: withModels(option, settings, ran.get(name) ?? []),
-        binary: commandBinary(cmd),
-        installed: onPath(cmd),
+        binary: commandBinary(spawns),
+        installed: onPath(spawns),
         install,
         gaps: harnessGaps(option),
         runs: first.command,

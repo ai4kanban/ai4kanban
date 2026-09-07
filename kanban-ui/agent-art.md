@@ -10,7 +10,6 @@ generate the image, name it after the agent, and commit it.
   card with the agent's initial, in one of the palette's five inks picked from its name.
   That is the normal state for an agent a project adds, so only the agents the command ships
   need art. The card is drawn over the PNG in `Agents.tsx`, not baked into it.
-- **Still missing**: `writer.png`, the marketing board's role.
 
 ## The shared style line
 
@@ -38,8 +37,9 @@ the whole difference, and it has to be readable at 48px.
   wooden handle, head above the shoulder.
 - **`reviewer.png`** — checks what was built. Holding a **peach-rimmed magnifying glass** up
   beside the head so the lens breaks the body's outline; a small sky mark inside the lens.
-- **`writer.png`** — writes the drafts and repurposes them (marketing boards). Holding an
-  **ember pen** upright, nib up, with a sheet of paper against the chest.
+- **`writer.png`** — writes the drafts and repurposes them (marketing boards). Holding a
+  **yellow pencil** with a pink eraser, angled nib-down, over a ruled sheet of paper held
+  against the chest.
 - **`ui-design.png`** — draws the screen a card changes. Holding a **browser window** across
   the chest — title bar with two dots, one lilac block and two pale panels — and a **peach
   pencil** in the free hand.

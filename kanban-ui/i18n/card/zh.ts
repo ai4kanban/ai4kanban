@@ -87,6 +87,8 @@ const zh: CardCopy = {
     empty: {
       writing: "正在写这一份",
       writingHint: "写好就出现在这里",
+      rewriting: "正在重写这一份",
+      rewritingHint: "写好后会替换现在的内容",
       stopped: "这一份没写出来",
       stoppedHint: "上面那一条可以再跑一次",
       readOnly: "只读",

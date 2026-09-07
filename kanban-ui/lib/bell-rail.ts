@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 import {
+  getBoardsAction,
   notificationCenterAction,
   openNotificationAction,
   readAllNotificationsAction,
@@ -95,9 +96,22 @@ export function useBellRail({
   const overlay = useMatches(OVERLAY_UNDER);
   const { panel, onLayoutChanged, onDoubleClick } = useWidth();
   const kickRef = useRef<() => void>(() => {});
+  // Which board of the project this window is showing (#407). Read once after mount rather
+  // than threaded down as a prop: it is one string, the same on every screen of a window.
+  const boardRef = useRef<string | null>(null);
   // Held in a ref so the poll below never restarts when the app's handler changes identity.
   const alertsRef = useRef(onAlerts);
   alertsRef.current = onAlerts;
+
+  useEffect(() => {
+    let live = true;
+    void getBoardsAction()
+      .then((answer) => live && (boardRef.current = answer.board))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   // The fold, remembered across reloads. Read after mount for the usual reason —
   // localStorage is client-only, and reading it during the first render desyncs hydration.
@@ -157,6 +171,12 @@ export function useBellRail({
       if (!where?.boardPath) return;
       if (!samePath(where.boardPath, projectRoot)) {
         await switchProject(where.boardPath, where.taskId);
+        return;
+      }
+      // The same project can hold a second board (#407), and #12 there is not #12 here.
+      const open = boardRef.current;
+      if (where.boardDir && open && !samePath(where.boardDir, open)) {
+        await switchBoard(where.boardDir);
         return;
       }
       onOpenCard(where.taskId);
@@ -219,12 +239,20 @@ export function useBellRail({
 
 interface AppBridge {
   openProject(dir: string): Promise<string | null>;
+  openBoard?(dir: string): Promise<string | null>;
 }
 
 function bridge(): AppBridge | null {
   if (typeof window === "undefined") return null;
   const app = (window as { ai4kanban?: Partial<AppBridge> }).ai4kanban;
   return app?.openProject ? (app as AppBridge) : null;
+}
+
+/** Show another board of the project already open — the app loads it and the window lands on
+ *  it. In a browser there is no app to hand it over to, and the row does nothing rather than
+ *  opening the wrong board's card of that number. */
+async function switchBoard(boardDir: string): Promise<void> {
+  await bridge()?.openBoard?.(boardDir);
 }
 
 /** Two paths naming one folder. A board's path is written down as the machine resolved it,

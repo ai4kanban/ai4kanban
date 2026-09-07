@@ -18,6 +18,7 @@ import path from 'node:path'
 
 import { ROLE_NAMES } from '../agent/roles'
 import { AGENTS, LEGACY_AGENTS, rel } from '../paths'
+import { solution } from '../solution'
 import { BUNDLED_AGENT_FILES } from './bundled'
 import { parseSpecAgent } from './parse'
 import type { SpecAgent } from './parse'
@@ -36,6 +37,20 @@ export function specAgentCatalog(): SpecAgentCatalog {
   const problems: string[] = []
   const take = (read: { agent: SpecAgent } | { problem: string }, folder: string): void => {
     if ('problem' in read) return void problems.push(read.problem)
+    // A `spec` agent fills part of a card's spec, and a marketing board writes none — its
+    // cards go to a writer, not a builder. So the specialists the command ships are not on
+    // one at all, rather than drawn in its pane as agents nothing there can call. A project
+    // that added its own is told why; a built-in is the command's doing, not the board's,
+    // and saying so on every marketing board would be a complaint nobody can act on.
+    if (read.agent.kind === 'spec' && solution() === 'marketing') {
+      if (!read.agent.builtIn) {
+        problems.push(
+          `${read.agent.from}: \`${read.agent.name}\` is a \`spec\` agent, and a marketing board writes ` +
+            'no card spec for one to fill.',
+        )
+      }
+      return
+    }
     if (ROLE_NAMES.includes(read.agent.name)) {
       problems.push(
         `${read.agent.from}: \`${read.agent.name}\` is one of the roles the board ships, whose rule ` +

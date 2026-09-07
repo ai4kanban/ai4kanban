@@ -22,7 +22,7 @@ import { activeDelivery } from '../agent/deliveries'
 import { insideRun } from '../agent/env'
 import { peekRun } from '../agent/sessions'
 import { startRun } from '../agent/start'
-import { REPO_ROOT } from '../paths'
+import { KANBAN } from '../paths'
 import { findCard } from '../view/read'
 import type { Card, WriteResult } from '../view/types'
 import { claimRequest, listRequests, renewClaim } from './client'
@@ -81,8 +81,8 @@ type Started = { started: true }
  * every start, on every reconnect, and once for any short-lived `akb` command that opens the
  * board — which is what lets a machine with no window open still run an approval.
  */
-export async function catchUpCloudRequests(root = REPO_ROOT): Promise<void> {
-  const here = serverForBoard(root)
+export async function catchUpCloudRequests(boardDir = KANBAN): Promise<void> {
+  const here = serverForBoard(boardDir)
   if (!here) return
   const answer = await listRequests(here.serverId)
   if (!answer.ok) return
@@ -93,8 +93,8 @@ export async function catchUpCloudRequests(root = REPO_ROOT): Promise<void> {
 
 /** One request, named by a Realtime hint. The id travels over the socket; what it now says
  *  is read from Cloud, exactly as the bell resolves an event hint. */
-export async function takeCloudRequest(requestId: string, root = REPO_ROOT): Promise<void> {
-  const here = serverForBoard(root)
+export async function takeCloudRequest(requestId: string, boardDir = KANBAN): Promise<void> {
+  const here = serverForBoard(boardDir)
   if (!here) return
   const answer = await listRequests(here.serverId)
   if (!answer.ok) return
@@ -227,8 +227,8 @@ const sameQuestions = (asking: CloudEventQuestion[], carried: CloudEventQuestion
  * run. A claim whose task has no live event on record any more is finished work whose
  * outcome already went out, so it is dropped rather than renewed forever.
  */
-export async function renewCloudClaims(root = REPO_ROOT): Promise<void> {
-  const here = serverForBoard(root)
+export async function renewCloudClaims(boardDir = KANBAN): Promise<void> {
+  const here = serverForBoard(boardDir)
   if (!here) return
   for (const claim of heldClaims()) {
     const held = publishedFor(claim.taskId)
@@ -246,8 +246,8 @@ export async function renewCloudClaims(root = REPO_ROOT): Promise<void> {
 /** Renew for as long as the caller lives, and return the way to stop. What the watcher of a
  *  run holds: a delivery started from a terminal has no board server behind it, and the
  *  watcher is the one process alive for the whole of its run. */
-export function holdCloudClaims(root = REPO_ROOT): () => void {
-  const timer = setInterval(() => void renewCloudClaims(root).catch(() => {}), RENEW_MS)
+export function holdCloudClaims(boardDir = KANBAN): () => void {
+  const timer = setInterval(() => void renewCloudClaims(boardDir).catch(() => {}), RENEW_MS)
   timer.unref?.()
   return () => clearInterval(timer)
 }
@@ -255,13 +255,13 @@ export function holdCloudClaims(root = REPO_ROOT): () => void {
 /** Give a short-lived command its one chance to claim what is waiting before the process
  *  ends. Bounded, and silent either way — a command must not hang on a network the board
  *  never waited for. */
-export async function catchUpOnExit(root = REPO_ROOT): Promise<void> {
+export async function catchUpOnExit(boardDir = KANBAN): Promise<void> {
   // Not from inside a run: the agent working in one makes many board moves, and a Cloud read
   // on each would spend the account's request budget on a question the process that started
   // the run already asked.
   if (insideRun()) return
-  if (!serverForBoard(root)) return
-  await Promise.race([catchUpCloudRequests(root).catch(() => {}), sleep(CATCH_UP_ON_EXIT_MS)])
+  if (!serverForBoard(boardDir)) return
+  await Promise.race([catchUpCloudRequests(boardDir).catch(() => {}), sleep(CATCH_UP_ON_EXIT_MS)])
 }
 
 const sleep = (ms: number) =>
@@ -281,8 +281,8 @@ const sleep = (ms: number) =>
  * Cloud already calls interrupted while its build never stopped, and a second run over a
  * worktree the first is writing to is the one thing a resume must never do.
  */
-export async function resumeCloudRequest(eventId: string, root = REPO_ROOT): Promise<WriteResult> {
-  const here = serverForBoard(root)
+export async function resumeCloudRequest(eventId: string, boardDir = KANBAN): Promise<WriteResult> {
+  const here = serverForBoard(boardDir)
   if (!here) return { ok: false, error: 'This machine does not run this board’s work.' }
   const answer = await listRequests(here.serverId)
   if (!answer.ok) return { ok: false, error: answer.error }

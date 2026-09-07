@@ -19,6 +19,7 @@ import {
   ALL_RELEASES,
   cloudBoardById,
   cloudBoardFor,
+  defaultBoardDir,
   disableCloudBoard,
   enableCloudBoard,
   namesBoards,
@@ -45,7 +46,19 @@ afterEach(() => {
   delete process.env.AI4KANBAN_HOME
 })
 
-const BOARD = { id: 'b-1', path: '/tmp/project', name: 'ai4kanban', release: '0.8.0' }
+const BOARD = {
+  id: 'b-1',
+  path: '/tmp/project',
+  boardDir: '/tmp/project/docs/kanban',
+  name: 'ai4kanban',
+  release: '0.8.0',
+}
+
+// A record is keyed by the board FOLDER, and every board here is the one its project holds —
+// so these say the project and name its folder for it (#407).
+const turnOn = (project: string, release: string) =>
+  enableCloudBoard(defaultBoardDir(project), project, release)
+const boardIn = (project: string) => cloudBoardFor(defaultBoardDir(project))
 
 function card(over: Partial<Card> = {}): Card {
   return {
@@ -330,11 +343,11 @@ describe('the nine states this card fixes', () => {
 describe('the machine’s list of enabled boards', () => {
   it('holds nothing until a board is turned on', () => {
     assert.deepEqual(readCloudBoards(), [])
-    assert.equal(cloudBoardFor('/tmp/whatever'), null)
+    assert.equal(boardIn('/tmp/whatever'), null)
   })
 
   it('mints an id that means nothing outside Cloud, and keeps the path here', () => {
-    const board = enableCloudBoard('/tmp/project', '0.8.0')
+    const board = turnOn('/tmp/project', '0.8.0')
 
     assert.match(board.id, /^[0-9a-f-]{36}$/)
     assert.equal(board.path, path.resolve('/tmp/project'))
@@ -343,8 +356,8 @@ describe('the machine’s list of enabled boards', () => {
   })
 
   it('keeps a board’s id across being turned off and on, so its events are never orphaned', () => {
-    const first = enableCloudBoard('/tmp/project', '0.8.0')
-    const again = enableCloudBoard('/tmp/project', '0.9.0')
+    const first = turnOn('/tmp/project', '0.8.0')
+    const again = turnOn('/tmp/project', '0.9.0')
 
     assert.equal(again.id, first.id)
     assert.equal(again.release, '0.9.0')
@@ -352,24 +365,24 @@ describe('the machine’s list of enabled boards', () => {
   })
 
   it('swaps the release it watches', () => {
-    enableCloudBoard('/tmp/project', '0.8.0')
-    assert.equal(setCloudBoardRelease('/tmp/project', '0.9.0')?.release, '0.9.0')
-    assert.equal(cloudBoardFor('/tmp/project')?.release, '0.9.0')
+    turnOn('/tmp/project', '0.8.0')
+    assert.equal(setCloudBoardRelease(defaultBoardDir('/tmp/project'), '0.9.0')?.release, '0.9.0')
+    assert.equal(boardIn('/tmp/project')?.release, '0.9.0')
   })
 
   it('names a row’s board only once a second one is enabled', () => {
-    enableCloudBoard('/tmp/project', '0.8.0')
+    turnOn('/tmp/project', '0.8.0')
     assert.equal(namesBoards(), false)
-    enableCloudBoard('/tmp/other', '1.0')
+    turnOn('/tmp/other', '1.0')
     assert.equal(namesBoards(), true)
   })
 
   it('forgets a board that is turned off, and leaves the rest', () => {
-    enableCloudBoard('/tmp/project', '0.8.0')
-    enableCloudBoard('/tmp/other', '1.0')
+    turnOn('/tmp/project', '0.8.0')
+    turnOn('/tmp/other', '1.0')
 
-    assert.equal(disableCloudBoard('/tmp/project')?.name, 'project')
-    assert.equal(cloudBoardFor('/tmp/project'), null)
+    assert.equal(disableCloudBoard(defaultBoardDir('/tmp/project'))?.name, 'project')
+    assert.equal(boardIn('/tmp/project'), null)
     assert.equal(readCloudBoards().length, 1)
   })
 
@@ -443,7 +456,7 @@ describe('a delivery that starts before its click is recorded', () => {
 
 describe('the card link in a message', () => {
   it('leads to the board it names, on this machine', () => {
-    const board = enableCloudBoard('/tmp/project-a', ALL_RELEASES)
+    const board = turnOn('/tmp/project-a', ALL_RELEASES)
 
     assert.deepEqual(readCloudCardLink(`ai4kanban://card/${board.id}/12`), {
       ok: true,

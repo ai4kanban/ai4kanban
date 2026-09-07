@@ -36,7 +36,6 @@ const en: ConfigurationCopy = {
     nameTaken: "Name already exists. Choose another.",
     connector: "Connector",
     keyNote: "Used only by this runtime. Stored locally; not synced with the repository.",
-    cliLogin: (harness) => `Uses this computer’s ${harness} login. No API key required.`,
     signedOutHint: (harness) => `${harness} is signed out. Run in this computer’s terminal:`,
     notInstalledHint: (harness) =>
       `${harness} is not installed. Run in this computer’s terminal:`,

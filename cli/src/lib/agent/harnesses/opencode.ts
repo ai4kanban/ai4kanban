@@ -124,11 +124,15 @@ export const OPENCODE: Harness = {
   // OpenCode names its own session; the id rides on every event and the record saves it
   // from the first one. There is no pinning it up front the way Claude Code's
   // `--session-id` does: `--session` continues a session that already exists and answers an
-  // id of our own with "Session not found", so a run that dies before its first event
-  // leaves nothing to resume by.
+  // id of our own with "Session not found".
   adoptsSessionId: false,
 
-  savesSessionAtOpen: false,
+  // But the session is already on disk by then, so the recorded id is enough. Proved on
+  // opencode 1.18.20 the way ./types asks: the first event of a run is `step_start`,
+  // emitted at session open before the model has said anything, and killing the command
+  // there still leaves a session a fresh `opencode run --session <id>` carries on. A run
+  // that failed at its very first model call resumes the same way.
+  savesSessionAtOpen: true,
 
   // `opencode run --file=<FILE>` attaches one file to the message, repeated per file. The
   // `=` is not a style choice: `--file` takes an ARRAY, and spelt as two tokens it would

@@ -14,7 +14,7 @@
 // card. Only a card that starts waiting after the switch is raised.
 
 import { board } from '../board'
-import { REPO_ROOT } from '../paths'
+import { KANBAN, REPO_ROOT } from '../paths'
 import type { WriteResult } from '../view/types'
 import {
   ALL_RELEASES,
@@ -53,14 +53,14 @@ export interface BoardNotifications {
  * fill runs in the background: nothing on screen waits for Cloud.
  */
 export async function ensureBoardNotifications(): Promise<void> {
-  if (!readSession() || cloudBoardFor(REPO_ROOT)) return
-  enableCloudBoard(REPO_ROOT, ALL_RELEASES)
+  if (!readSession() || cloudBoardFor(KANBAN)) return
+  enableCloudBoard(KANBAN, REPO_ROOT, ALL_RELEASES)
   void startPublishing().catch(() => {})
 }
 
 export async function readBoardNotifications(): Promise<BoardNotifications> {
   await ensureBoardNotifications()
-  const held = cloudBoardFor(REPO_ROOT)
+  const held = cloudBoardFor(KANBAN)
   let releases: string[] = []
   try {
     releases = await board().readReleases()
@@ -85,7 +85,7 @@ export async function readBoardNotifications(): Promise<BoardNotifications> {
  * restored onto a new machine — where the machine holding the board is the one that is gone.
  */
 export async function setBoardServer(on: boolean, takeOver = false): Promise<WriteResult> {
-  if (!cloudBoardFor(REPO_ROOT)) return { ok: false, error: 'Notifications are off for this board.' }
+  if (!cloudBoardFor(KANBAN)) return { ok: false, error: 'Notifications are off for this board.' }
   return on ? attachBoardServer(takeOver) : detachBoardServer()
 }
 
@@ -102,7 +102,7 @@ const NOT_WATCHABLE = 'Watch every release, or one of this board’s open ones.'
 export async function enableBoardNotifications(release: string): Promise<WriteResult> {
   if (!readSession()) return { ok: false, error: 'Sign in to Cloud first.' }
   if (!(await watchable(release))) return { ok: false, error: NOT_WATCHABLE }
-  enableCloudBoard(REPO_ROOT, release)
+  enableCloudBoard(KANBAN, REPO_ROOT, release)
   await startPublishing()
   return { ok: true }
 }
@@ -112,9 +112,9 @@ export async function enableBoardNotifications(release: string): Promise<WriteRe
  *
  *  Whatever the wider scope brings in was already waiting, so none of it is raised (#451). */
 export async function watchRelease(release: string): Promise<WriteResult> {
-  if (!cloudBoardFor(REPO_ROOT)) return { ok: false, error: 'Notifications are off for this board.' }
+  if (!cloudBoardFor(KANBAN)) return { ok: false, error: 'Notifications are off for this board.' }
   if (!(await watchable(release))) return { ok: false, error: NOT_WATCHABLE }
-  setCloudBoardRelease(REPO_ROOT, release)
+  setCloudBoardRelease(KANBAN, release)
   await publishBoardEvents({ reconcile: true, broughtIn: true })
   return { ok: true }
 }
@@ -122,11 +122,11 @@ export async function watchRelease(release: string): Promise<WriteResult> {
 /** Turn them off. This board's live events are retired first — a board with notifications
  *  off must not leave a row in the bell asking about it. */
 export async function disableBoardNotifications(): Promise<WriteResult> {
-  if (!cloudBoardFor(REPO_ROOT)) return { ok: true }
+  if (!cloudBoardFor(KANBAN)) return { ok: true }
   await retireBoardEvents()
   // A board that raises no events has no approvals to run either, so this machine stops
   // being its server (#318). Whatever is already building here finishes where it is.
   await detachBoardServer()
-  disableCloudBoard(REPO_ROOT)
+  disableCloudBoard(KANBAN)
   return { ok: true }
 }

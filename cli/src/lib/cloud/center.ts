@@ -28,7 +28,7 @@ import path from 'node:path'
 
 import { machineHome } from '../machine/home'
 import { notificationsSilenced } from '../machine/settings'
-import { REPO_ROOT } from '../paths'
+import { KANBAN } from '../paths'
 import { cloudBoardById, cloudBoardFor, namesBoards } from './boards'
 import { listEvents, readEvent } from './client'
 import { eventLabel, needsPerson, onTheRail, type CloudEvent, type CloudEventState } from './events'
@@ -306,7 +306,7 @@ const alert = (event: CloudEvent, kind: NotificationAlert['kind'], body: string)
 export function readCloudCenter(): NotificationCenter {
   const held = state()
   const marks = reads()
-  const enabled = cloudBoardFor(REPO_ROOT)
+  const enabled = cloudBoardFor(KANBAN)
   const rows: NotificationRow[] = [...held.events.values()]
     .map((event) => {
       const board = cloudBoardById(event.boardId)
@@ -352,15 +352,20 @@ export function readCloudCenter(): NotificationCenter {
 }
 
 /** Opening a row marks it read — the bell's count is unread rows, so a row the user has
- *  looked at stops counting. Answers with where to go: the board's own path on this
- *  machine, and the card to open in it. */
-export function openNotification(eventId: string): { boardPath: string | null; taskId: number } | null {
+ *  looked at stops counting. Answers with where to go: the project this board belongs to on
+ *  this machine, the board folder inside it, and the card to open. The two are not the same
+ *  answer for a project holding a second board (#407) — the project opens its own board, and
+ *  the folder is what says which one the row is about. */
+export function openNotification(
+  eventId: string,
+): { boardPath: string | null; boardDir: string | null; taskId: number } | null {
   const event = state().events.get(eventId)
   if (!event) return null
   const marks = reads()
   marks[eventId] = event.changedAt
   writeReads(marks)
-  return { boardPath: cloudBoardById(event.boardId)?.path ?? null, taskId: event.taskId }
+  const board = cloudBoardById(event.boardId)
+  return { boardPath: board?.path ?? null, boardDir: board?.boardDir ?? null, taskId: event.taskId }
 }
 
 /** Mark every row read at once, without opening any of them. The rows stay — what they are

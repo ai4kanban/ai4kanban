@@ -36,7 +36,6 @@ const zh: ConfigurationCopy = {
     nameTaken: "名称已存在，请使用其他名称。",
     connector: "连接器",
     keyNote: "仅用于此运行时，保存在本机，不随仓库同步。",
-    cliLogin: (harness) => `使用本机 ${harness} 登录，无需 API 密钥。`,
     signedOutHint: (harness) => `${harness} 未登录。在本机终端运行：`,
     notInstalledHint: (harness) => `${harness} 未安装。在本机终端运行：`,
     unknownHarness: (asked, running) =>

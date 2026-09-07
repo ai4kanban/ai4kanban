@@ -25,7 +25,7 @@ import crypto from 'node:crypto'
 
 import { cardsAtWork } from '../agent/store'
 import { board } from '../board'
-import { REPO_ROOT } from '../paths'
+import { KANBAN } from '../paths'
 import { cloudBoardFor, type CloudBoard } from './boards'
 import {
   isTerminal,
@@ -93,7 +93,7 @@ const newOpId = (): string => crypto.randomUUID()
 /** Whether this board publishes at all: notifications on, a release to watch, and a machine
  *  signed in. Each of the three is checked here rather than in five callers. */
 function publishing(): CloudBoard | null {
-  const enabled = cloudBoardFor(REPO_ROOT)
+  const enabled = cloudBoardFor(KANBAN)
   if (!enabled || !enabled.release) return null
   return readSession() ? enabled : null
 }
@@ -130,7 +130,7 @@ export async function publishBoardEvents({ reconcile = false, broughtIn = false 
  * its command returns.
  */
 export async function recordBoardEvents({ reconcile = false, broughtIn = false } = {}): Promise<void> {
-  const enabled = cloudBoardFor(REPO_ROOT)
+  const enabled = cloudBoardFor(KANBAN)
   if (!enabled || !readSession()) return
   try {
     if (enabled.release) await queueDifference(enabled, reconcile, broughtIn)
@@ -149,7 +149,7 @@ export async function recordBoardEvents({ reconcile = false, broughtIn = false }
  */
 export async function afterBoardWrite(): Promise<void> {
   try {
-    if (!cloudBoardFor(REPO_ROOT) || !readSession()) return
+    if (!cloudBoardFor(KANBAN) || !readSession()) return
     await recordBoardEvents()
     void flushCloudOutbox()
   } catch {
@@ -233,6 +233,15 @@ async function queueDifference(
   // it up. One test, not four, and the same one a closed release or a swapped one comes
   // down to. A card put down for the last of those is picked up again when the run ends,
   // and that is the interruption the bell is for.
+  //
+  // …unless the board came back with NO cards at all while this one is holding live events.
+  // A board does not empty; a read does. Retiring on one is how a bad read turns into every
+  // row being retired and raised again from nothing, which is a notification a card, twice.
+  // The next pass that reads a card retires whatever really left.
+  if (cards.length === 0 && livePublications().length > 0) {
+    traceCloud(`sweep skipped: the board read as empty while ${livePublications().length} events are live`)
+    return
+  }
   retireLive(seen)
 
   // The switch's own summary, instead of a message for each of them (#451). Queued only when

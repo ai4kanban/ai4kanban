@@ -173,10 +173,15 @@ export function SessionLog({
   warnUnfinished = false,
   onResumed,
   bare = false,
+  cap = "max-h-[50vh]",
 }: {
   session: SessionView | null;
   collapsed?: boolean;
   onToggle?: () => void;
+  // How tall the body well may grow before it scrolls. Half the viewport suits a page that
+  // scrolls as a whole; the marketing editor, which does not, gives the log less and keeps
+  // the draft.
+  cap?: string;
   // Drop the frame and title bar: the delivery block owns the frame, and folds the useful
   // run status into its tab strip so an embedded log does not grow a second toolbar.
   bare?: boolean;
@@ -453,7 +458,7 @@ export function SessionLog({
         const el = e.currentTarget;
         pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
       }}
-      className={`max-h-[50vh] overflow-auto px-4 py-3 ${flush ? "bg-nb-wash" : "bg-nb-canvas"} shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t border-nb-ink/12" : " rounded-b-[14px]"}`}
+      className={`${cap} overflow-auto px-4 py-3 ${flush ? "bg-nb-wash" : "bg-nb-canvas"} shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t border-nb-ink/12" : " rounded-b-[14px]"}`}
     >
       {body}
     </div>
