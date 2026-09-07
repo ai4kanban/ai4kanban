@@ -206,13 +206,6 @@ export type { CloudSession, TokenResult as CloudTokenResult } from './lib/cloud/
 export { keepAuthorized as keepCloudRealtimeAuthorized } from './lib/cloud/realtime'
 export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME as CLOUD_URL_SCHEME } from './lib/cloud/config'
 
-// The market signals waiting to be looked at (#453) — leads pulled off the endpoint the
-// board is pointed at, and never cards. The local UI draws its rail row and its page from
-// these three: whether the inbox is open to this board and account at all, what it holds,
-// and ignoring one for good. Pulling is `akb signals fetch` and nothing else calls it.
-export { dismissSignal, readSignals, signalsAccess } from './lib/signals'
-export type { SignalsAccess } from './lib/signals'
-
 // The Cloud notification center (#319): the events this machine's boards raise, and the bell
 // that carries every one of them. A board turns itself on as soon as this machine is signed
 // in — notifications are not a setting — so what is left to choose is the release it watches.

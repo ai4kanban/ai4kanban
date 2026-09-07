@@ -116,13 +116,6 @@ export let PLANS = ''
 // delivery worktree leaves out. Never created up front: a missing or empty file means the
 // run goes unchanged.
 export let RULES = ''
-// The leads waiting to be looked at (#453) — market signals pulled from the endpoint the
-// board is pointed at, one Markdown file each under `triage/inbox/`, and `triage/handled.md`
-// recording the source ids that have left it. Tracked in git like the cards, and made by the
-// first fetch rather than by `init`: a board that never pulls a signal has no folder.
-export let TRIAGE = ''
-export let SIGNAL_INBOX = ''
-export let SIGNALS_HANDLED = ''
 // Delivery state that never belongs in git — #303's worktrees are the first thing in it.
 // At the REPOSITORY root, not under docs/kanban/, because docs/kanban/.gitignore cannot
 // reach outside its own folder — so this one line goes in the repo's own.
@@ -239,9 +232,6 @@ function setBoard(kanban: string, root: string, flag: string): string {
   DELIVERIES = path.join(KANBAN, 'deliveries')
   RULES = path.join(KANBAN, 'rules')
   PLANS = path.join(KANBAN, 'plans')
-  TRIAGE = path.join(KANBAN, 'triage')
-  SIGNAL_INBOX = path.join(TRIAGE, 'inbox')
-  SIGNALS_HANDLED = path.join(TRIAGE, 'handled.md')
   AKB_DIR = path.join(REPO_ROOT, '.akb')
   ROOT_GITIGNORE = path.join(REPO_ROOT, '.gitignore')
   return REPO_ROOT

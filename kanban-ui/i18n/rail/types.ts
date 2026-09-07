@@ -40,33 +40,6 @@ export type RailCopy = {
     /** One archived card: the label over its title, and what its two meta chips are. */
     card: { label: string; release: string; archived: string };
   };
-  signals: {
-    /** The row above Archive, and the heading of the page it opens. */
-    row: string;
-    title: string;
-    /** Under the heading: where the signals are, how many, and when the newest of them was
-     *  imported. The stamp is left off an inbox with nothing in it. */
-    meta: (folder: string, count: number) => string;
-    latestImport: (when: string) => string;
-    /** One line under the heading: what a signal is, and what it is not. */
-    lead: string;
-    /** Configured, and nothing pulled yet. */
-    empty: string;
-    /** Not configured: the heading, and the one line each missing setting gets. */
-    connect: string;
-    needEndpoint: (file: string) => string;
-    needToken: (file: string) => string;
-    /** Read out loud as the name of the list. */
-    list: string;
-    /** The three things a signal offers. Dismissing cannot be undone, which is why the
-     *  word is the plain one. */
-    viewSummary: string;
-    hideSummary: string;
-    viewOriginal: string;
-    dismiss: string;
-    /** A dismissal the board refused. */
-    dismissFailed: string;
-  };
   memoryPage: {
     /** The file exists on the board but has never been written to. */
     unwritten: string;

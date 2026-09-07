@@ -58,8 +58,6 @@ import type {
   ScoreResult,
   SetupDraft,
   SetupState,
-  SignalInbox,
-  SignalsAccess,
   VerifyResult,
   WriteResult,
 } from "./format/view/types";
@@ -468,12 +466,6 @@ export interface BoardRules {
    *  added them, and the archive then says so rather than reading as an empty archive. */
   readArchive?(): Promise<ArchiveList>;
   readArchivedCard?(id: number): Promise<ArchivedCardFile | null>;
-  /** The market signal inbox (#453): whether it is open to this board and this account at
-   *  all, what it holds, and ignoring one for good. Optional: a board can be running rules
-   *  older than the release that added them, and the rail then offers no signals row. */
-  signalsAccess?(): Promise<SignalsAccess>;
-  readSignals?(): SignalInbox;
-  dismissSignal?(sourceId: string): { ok: boolean; error?: string };
   /** What an Implement click would do on this board right now (#307): the branch the change
    *  would land on, and whether it lands at all. Optional: a board can be running rules from
    *  before the one-click flow, and the dialog then says only what it always said. */

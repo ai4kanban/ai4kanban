@@ -28,7 +28,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiArchive, FiChevronRight, FiColumns, FiFileText, FiInbox, FiSearch, FiX } from "react-icons/fi";
+import { FiArchive, FiChevronRight, FiColumns, FiFileText, FiSearch, FiX } from "react-icons/fi";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
@@ -43,8 +43,6 @@ export function Rail({
   activeId,
   activeMemory = null,
   activeArchive = false,
-  activeSignals = false,
-  signals = { show: false, count: 0 },
   memoryModules = [],
   total,
   running,
@@ -58,11 +56,6 @@ export function Rail({
   activeMemory?: string | null;
   /** True while this window is showing the archive — the list, or one card in it (#380). */
   activeArchive?: boolean;
-  /** True while this window is showing the market signal inbox (#453). */
-  activeSignals?: boolean;
-  /** Whether to offer the signals row at all, and how many signals are waiting. A board the
-   *  inbox is not open to answers `show: false`, and the row is not drawn. */
-  signals?: { show: boolean; count: number };
   /** The modules the memory panel offers, in the map's order (#130). */
   memoryModules?: MemoryModule[];
   /** How many cards the board holds open — the count on All cards. */
@@ -106,7 +99,7 @@ export function Rail({
         <RailRow
           href="/"
           label={c.allCards}
-          active={activeId === null && !activeMemory && !activeArchive && !activeSignals}
+          active={activeId === null && !activeMemory && !activeArchive}
           count={total}
         />
         {searching ? (
@@ -149,24 +142,11 @@ export function Rail({
           </>
         )}
       </nav>
-      {/* The two ways out of the list, at the foot with Memory and outside what scrolls:
-          neither is one of the open cards, and no amount of typing above should take either
-          away. Market signals (#453) sit over the archive (#380) — leads that have not become
-          cards yet, over the cards that are finished with.
-
-          The archive carries no count: nothing archived is anywhere on the board until it is
-          asked for. Signals carry one, because how many are waiting is the whole reason to
-          look. */}
-      <div className="mt-0.5 flex shrink-0 flex-col gap-0.5">
-        {signals.show && (
-          <RailRow
-            href="/signals"
-            label={c.signals.row}
-            icon={<FiInbox size={13} className="shrink-0" aria-hidden />}
-            active={activeSignals}
-            count={signals.count}
-          />
-        )}
+      {/* The way into the archive (#380). At the foot with Memory and outside the list that
+          scrolls: what is archived is not one of the open cards, and no amount of typing
+          above should take it away. It carries no count — nothing archived is anywhere on
+          the board until it is asked for. */}
+      <div className="mt-0.5 shrink-0">
         <RailRow
           href="/archive"
           label={c.archive.row}

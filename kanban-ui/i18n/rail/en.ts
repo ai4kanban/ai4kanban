@@ -36,23 +36,6 @@ const en: RailCopy = {
     undated: "Archived before the board kept a record",
     card: { label: "Archive", release: "Release", archived: "Archived" },
   },
-  signals: {
-    row: "Market signals",
-    title: "Market signals",
-    meta: (folder, count) => `${folder} · ${count === 1 ? "1 signal" : `${count} signals`}`,
-    latestImport: (when) => `Latest signal import ${when}`,
-    lead: "Leads, not tasks. Nothing here is scheduled or counted, and a signal you dismiss does not come back.",
-    empty: "No signals yet. The next akb signals fetch fills this page.",
-    connect: "Connect a signal source",
-    needEndpoint: (file) => `Signal endpoint — not set. Fill it in ${file}.`,
-    needToken: (file) => `SIGNAL_ENDPOINT_TOKEN — not set. Fill it in ${file}.`,
-    list: "Market signals",
-    viewSummary: "View summary",
-    hideSummary: "Hide summary",
-    viewOriginal: "View original",
-    dismiss: "Dismiss",
-    dismissFailed: "could not dismiss that signal",
-  },
   memoryPage: {
     unwritten:
       "Nothing has been written here yet. The agent adds a line as work is finished, decided, or turned down — this file fills in as the board is used.",

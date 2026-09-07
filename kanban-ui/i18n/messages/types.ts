@@ -16,7 +16,6 @@ export type MessagesCopy = {
     tooOldForScores: string;
     tooOldForMemory: string;
     tooOldForArchive: string;
-    tooOldForSignals: string;
     tooOldForDrafts: string;
     /** The line every `tooOldFor…` above ends with. */
     updateIt: string;

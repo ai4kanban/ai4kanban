@@ -52,7 +52,6 @@ import {
   type PhoneTab,
 } from "./Phone";
 import { Rail } from "./Rail";
-import { useSignalsRow } from "./signals-row";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 
 /** Stood in for a caller that doesn't watch sessions. One instance, so a page
@@ -98,7 +97,6 @@ export function Window({
   currentTitle = "",
   currentMemory = null,
   currentArchive = false,
-  currentSignals = false,
   memoryModules = [],
   goalWritten = false,
   goalOffered = false,
@@ -119,9 +117,6 @@ export function Window({
   /** True while this page is showing the archive — the list, or one card in it (#380). It
    *  is what highlights the rail's Archive row and takes the highlight off All cards. */
   currentArchive?: boolean;
-  /** True while this page is showing the market signal inbox (#453) — what highlights its
-   *  rail row and takes the highlight off All cards. */
-  currentSignals?: boolean;
   /** The modules the rail's Memory panel offers, from the board read every page already
    *  does (#130). Empty on a board whose map names none. */
   memoryModules?: MemoryModule[];
@@ -180,10 +175,6 @@ export function Window({
     [phone, router],
   );
   const bell = useBellRail({ projectRoot, onAlerts: raiseNotifications, onOpenCard: goToCard });
-  // Whether this board and this account may use the market signal inbox at all (#453), and
-  // how many signals are waiting. Asked here rather than on each page so every screen offers
-  // the same rail.
-  const signals = useSignalsRow();
   foldBellRef.current = bell.fold;
   // A notification clicked outside the window opens its own row: the same read mark, and
   // the same switch to that row's board when it is not the one on screen.
@@ -320,8 +311,6 @@ export function Window({
               activeId={currentId}
               activeMemory={currentMemory}
               activeArchive={currentArchive}
-              activeSignals={currentSignals}
-              signals={signals}
               memoryModules={memoryModules}
               total={openIds.length}
               running={running ?? EMPTY}
