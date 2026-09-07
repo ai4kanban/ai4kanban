@@ -57,6 +57,8 @@ export interface BellRail {
   open: boolean;
   toggle(): void;
   fold(): void;
+  /** Open it, wherever it stood — what the Dock badge's click asks for (#483). */
+  unfold(): void;
   /** The window is too narrow for the rail to stand beside the board, so it covers it. */
   overlay: boolean;
   center: NotificationCenter;
@@ -217,10 +219,20 @@ export function useBellRail({
     }
   }, []);
 
+  const unfold = useCallback(() => {
+    setOpen(true);
+    try {
+      window.localStorage.setItem(OPEN_KEY, "1");
+    } catch {
+      // storage unavailable — the rail stays up as long as the window does
+    }
+  }, []);
+
   return {
     open,
     toggle,
     fold,
+    unfold,
     overlay,
     center,
     filled,

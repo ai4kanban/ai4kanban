@@ -54,6 +54,8 @@ const CHANNELS: typeof Channels = {
   setLanguage: "a4k:set-language",
   notify: "a4k:notify",
   openNotification: "a4k:open-notification",
+  badge: "a4k:badge",
+  openBell: "a4k:open-bell",
   opening: "a4k:opening",
 };
 
@@ -88,6 +90,17 @@ const bridge: Ai4kanbanBridge = {
   languageChanged: (language) => ipcRenderer.invoke(CHANNELS.languageChanged, language),
   setLanguage: (language) => ipcRenderer.invoke(CHANNELS.setLanguage, language),
   notify: (alerts) => ipcRenderer.invoke(CHANNELS.notify, alerts),
+  setBadge: (count) => ipcRenderer.invoke(CHANNELS.badge, count),
+  onOpenBell: (fn) => {
+    bellWatchers.add(fn);
+    // Held like the two above: the Dock click can be what raised a window that is still
+    // drawing, and it is the whole of what the user asked for.
+    if (pendingOpenBell) {
+      pendingOpenBell = false;
+      queueMicrotask(fn);
+    }
+    return () => bellWatchers.delete(fn);
+  },
   onOpenNotification: (fn) => {
     notificationWatchers.add(fn);
     // A notification clicked while the window was still drawing must not be lost: the
@@ -167,6 +180,18 @@ ipcRenderer.on(CHANNELS.openNotification, (_e, eventId: string) => {
     return;
   }
   notificationWatchers.forEach((fn) => fn(eventId));
+});
+
+// The Dock icon was clicked on a badge with a count (#483), on its way to the window. Kept
+// when it beats its listener, for the same reason a clicked notification is.
+const bellWatchers = new Set<() => void>();
+let pendingOpenBell = false;
+ipcRenderer.on(CHANNELS.openBell, () => {
+  if (bellWatchers.size === 0) {
+    pendingOpenBell = true;
+    return;
+  }
+  bellWatchers.forEach((fn) => fn());
 });
 
 // The card link a Slack message carries (#320), on its way to the window. Its own set, not

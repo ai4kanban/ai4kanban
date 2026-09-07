@@ -274,6 +274,13 @@ export const CHANNELS = {
   /** A notification was clicked — the other way, like `cloudCallback`. The page opens the
    *  event it names, switching boards first when the event belongs to another one. */
   openNotification: "a4k:open-notification",
+  /** What the bell is counting, on its way to the Dock badge (#483). The page owns the
+   *  number — it is the bell's own count, over every board Cloud is on for — and the app
+   *  only paints it on the systems that have somewhere to paint it. */
+  badge: "a4k:badge",
+  /** The Dock icon raised the window while the badge was carrying a count — the other way.
+   *  The page opens the bell on the rows the badge was counting. */
+  openBell: "a4k:open-bell",
   /** The app has begun opening a project, named by its folder. Sent once the picker is
    *  out of the way, so the launcher can say what it is doing instead of sitting there:
    *  a folder with no board gets one installed here, and that is seconds of nothing.
@@ -375,6 +382,13 @@ export interface Ai4kanbanBridge {
    *  window should not be interrupted by, and asks the operating system for permission the
    *  first time one is raised — refused, the bell and every action keep working. */
   notify(alerts: NotificationAlert[]): Promise<null>;
+  /** Show the bell's unread count on the app's icon (#483). The page sends it on every
+   *  read, focused or not — the badge is for the person who walked away, so focus is not
+   *  its question. A system with no badge is left alone, and the bell is unchanged. */
+  setBadge(count: number): Promise<null>;
+  /** Be told the Dock icon raised the window while the badge was carrying a count. The
+   *  page opens the bell on what it was counting. Returns the way to stop being told. */
+  onOpenBell(fn: () => void): () => void;
   /** Be told when a notification was clicked, by the id of the event it was raised for.
    *  The page opens that event exactly as clicking its row does — switching the app to that
    *  board first when the event belongs to another one. Returns the way to stop being told. */

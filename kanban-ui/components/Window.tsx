@@ -35,7 +35,13 @@ import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import type { MemoryModule } from "@/lib/types";
 import { ChatPane, ChatProvider } from "./Chat";
-import { raiseNotifications, useCardLinkFromApp, useOpenNotificationFromApp } from "./desktop";
+import {
+  raiseNotifications,
+  setDockBadge,
+  useCardLinkFromApp,
+  useOpenBellFromApp,
+  useOpenNotificationFromApp,
+} from "./desktop";
 import { BellPane } from "./Notifications";
 import {
   FindScreen,
@@ -173,6 +179,13 @@ export function Window({
   // A notification clicked outside the window opens its own row: the same read mark, and
   // the same switch to that row's board when it is not the one on screen.
   useOpenNotificationFromApp(bell.openRow);
+  // The Dock badge (#483): the bell's count, where it can be seen with the window buried.
+  // Sent on every change of the number, focused or not — the badge interrupts nobody, and
+  // reading the rows empties it in the same moment it empties the bell.
+  const unread = bell.center.unread;
+  useEffect(() => setDockBadge(unread), [unread]);
+  // The badge's own click. It raised the window; what it was counting is on the rail.
+  useOpenBellFromApp(bell.unfold);
   // The card link a Slack message carries (#320). It names the board as well as the card,
   // so it lands on the right one while another project is open — and says so plainly when
   // that board has been moved off this machine, rather than opening whatever card wears

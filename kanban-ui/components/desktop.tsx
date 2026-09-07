@@ -65,6 +65,30 @@ export function raiseNotifications(alerts: NotificationAlert[]): void {
   });
 }
 
+// --- the Dock badge (#483) ---------------------------------------------------
+// The bell's count, where it can be seen with the window buried or hidden. The number is
+// the bell's own, so nothing is decided here — it is handed over on every read, focused or
+// not, and reading the rows empties both at once. In a browser, and in an app older than
+// the badge, there is nowhere to put it and the bell is unchanged.
+
+/** Put the bell's unread count on the app's icon. */
+export function setDockBadge(count: number): void {
+  const app = bridge();
+  if (!app?.setBadge) return;
+  void app.setBadge(count).catch(() => {
+    // No badge on this system. The bell already shows the number.
+  });
+}
+
+/** Open the bell when the Dock icon raised the window on a count. */
+export function useOpenBellFromApp(open: () => void): void {
+  useEffect(() => {
+    const app = bridge();
+    if (!app?.onOpenBell) return;
+    return app.onOpenBell(open);
+  }, [open]);
+}
+
 /** Open the event a clicked notification names — the same thing clicking its row does, so
  *  a notification raised by another board switches the app to that board first. */
 export function useOpenNotificationFromApp(open: (eventId: string) => void): void {
@@ -199,6 +223,13 @@ interface AppBridge {
    *  opens it exactly as clicking its row does. Returns the way to stop being told.
    *  Optional for the same reason. */
   onOpenNotification?(fn: (eventId: string) => void): () => void;
+  /** Show the bell's unread count on the app's icon (#483). Optional — an app older than
+   *  the badge has nowhere to put it, and the bell wears the same count either way. */
+  setBadge?(count: number): Promise<void>;
+  /** Be told the Dock icon raised the window while the badge was carrying a count, so the
+   *  bell opens on what it was counting. Returns the way to stop being told. Optional for
+   *  the same reason. */
+  onOpenBell?(fn: () => void): () => void;
   /** The app was opened with a card link (#320) — `ai4kanban://card/…`, which a Slack
    *  message carries. Its own channel rather than the sign-in's: the two are answered in
    *  different places, and one shared channel would let whichever listener happened to be

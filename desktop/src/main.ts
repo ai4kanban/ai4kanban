@@ -281,6 +281,11 @@ function createWindow(): void {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      // Chromium slows a hidden window's timers to a crawl, and the bell's poll is one of
+      // them — a badge that only catches up when you come back is the one thing the badge
+      // exists to stop (#483). The poll is one read every few seconds; it costs nothing to
+      // keep it running.
+      backgroundThrottling: false,
     },
   });
   win.once("ready-to-show", () => win?.show());
@@ -445,6 +450,9 @@ async function closeProject(): Promise<void> {
  *  and never has to undraw itself. */
 async function showLauncher(): Promise<void> {
   win?.setTitle("AI4Kanban");
+  // No board on screen is no bell to count, and a badge left standing over the launcher is
+  // a number nothing can clear (#483).
+  paintBadge(0);
   await win?.loadURL(
     launcherUrl({ mac: MAC, language: heldLanguage(), languages: await languageChoices() }),
   );
@@ -927,6 +935,50 @@ ipcMain.handle(CHANNELS.notify, (_e, raw: unknown) => {
     raiseNotification(alert.title, alert.body, alert.eventId);
   }
   return null;
+});
+
+// --- the Dock badge (#483) ---------------------------------------------------
+//
+// The bell already counts what is waiting for a person; the badge is that count where you
+// can see it with the window buried or hidden, which is the whole point of leaving the app
+// running. So the page owns the number — it is the bell's own, over every board Cloud is on
+// for — and the app only paints it.
+//
+// Unlike a notification, focus is not its question: a badge interrupts nobody, and blanking
+// it while the window is in front would only make it wrong the moment the user looks away.
+// Reading the rows empties the bell, and the next count sent is what clears the badge.
+//
+// A system with no badge — Windows, a Linux desktop without one — is left exactly as it
+// was. `setBadgeCount` is the whole of the platform question; nothing else here branches.
+
+let badge = 0;
+
+function paintBadge(count: number): void {
+  if (count === badge) return;
+  badge = count;
+  try {
+    app.setBadgeCount(count);
+  } catch {
+    // No badge on this system. The bell carries the same number, so there is nothing to say.
+  }
+}
+
+ipcMain.handle(CHANNELS.badge, (_e, raw: unknown) => {
+  const count = typeof raw === "number" && Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 0;
+  paintBadge(count);
+  return null;
+});
+
+// Clicking the Dock icon. On macOS an app whose window is hidden or minimized is raised
+// here and nowhere else — without this the click does nothing at all. A click that came
+// off a badge with a count lands on the work: the page opens the bell on the rows the
+// badge was counting, which is the one place that number resolves to.
+app.on("activate", () => {
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+  if (badge > 0) win.webContents.send(CHANNELS.openBell);
 });
 
 function raiseNotification(title: string, body: string, eventId: unknown): void {
