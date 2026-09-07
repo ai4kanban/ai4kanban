@@ -147,9 +147,13 @@ one holds up nothing. Never write the goal for the user. The agent changes only 
 The board sets `pending` when a goal is saved; replace it with an assessment the next time
 you read the goal, without interrupting the user.
 
-**`docs/kanban/memory/agents/` is not a module.** It holds one file per spec agent that
-declares `memory: project` — that agent's own, curated by it and appended to by the flow
-that hears the user's answer about its section (`akb guide update-questions`).
+**`docs/kanban/memory/agents/` is not a module.** It holds one folder per spec agent that
+declares `memory: project`, with two files in it: `redesign.md` for the mistakes that agent
+was corrected on, `decisions.md` for the durable choices the user made. They are the agent's
+own, curated by it and appended to by the flow that hears the user's answer about its
+section (`akb guide update-questions`). No third file: how the product looks is read from
+the app's own `design.md` and components, and a product fact worth keeping is written into
+the lesson or the decision it supports.
 
 ## Archive/Finish a task
 

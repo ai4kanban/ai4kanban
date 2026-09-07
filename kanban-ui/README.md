@@ -1695,14 +1695,17 @@ starts.
 
 #### Give an agent memory
 
-Some agents **remember** — what they were corrected on, and the product facts they needed. The
+Some agents **remember** — what they were corrected on, and the choices you made. The
 agent's page lists the files it owns, read-only:
 
 - A **role** remembers in the files its own flows already write: the Planner in `memory/decisions.md`,
   `memory/rejected.md` and `memory/goal.md`, the Builder in `memory/readme.md`, `memory/redesign.md`
   and `modules.md`.
 - A **specialist** that declares `memory: project` in its `AGENT.md` owns
-  `docs/kanban/memory/agents/<name>.md`. `ui-design` declares one; `technology-selection` does not.
+  `docs/kanban/memory/agents/<name>/` — `redesign.md`, the mistakes it was corrected on, and
+  `decisions.md`, the choices you made. `ui-design` declares a memory; `technology-selection` does not.
+- **How the product looks is not memory**: colours, dimensions and component detail are read from
+  the app's own `design.md`. A board that kept one `<name>.md` moves it into the folder by itself.
 - The files are written by the runs themselves and edited as files, not here. The page says where
   they are so you can read one; nothing on this pane changes them.
 

@@ -18,7 +18,7 @@ import { readRule } from '../agent/rules'
 import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
 import { deciderOn, forgetSpecAgent, specAgentEntries } from '../agent/settings'
 import type { AgentView } from '../agent/types'
-import { agentMemoryFile } from '../memory'
+import { agentMemoryDir, legacyAgentMemoryFile } from '../memory'
 import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
 import { solution } from '../solution'
 import type { WriteResult } from '../view/types'
@@ -152,7 +152,7 @@ export function deleteAgent(name: string): WriteResult & { removed?: string[] } 
   }
   const removed: string[] = []
   try {
-    for (const file of [agent.dir, path.join(RULES, `${name}.md`), agentMemoryFile(name)]) {
+    for (const file of [agent.dir, path.join(RULES, `${name}.md`), agentMemoryDir(name), legacyAgentMemoryFile(name)]) {
       if (!fs.existsSync(file)) continue
       fs.rmSync(file, { recursive: true, force: true })
       removed.push(rel(file))

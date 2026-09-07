@@ -6,7 +6,7 @@
 
 import path from 'node:path'
 import { locate } from '../cards'
-import { agentMemoryFile } from '../memory'
+import { agentMemoryDir } from '../memory'
 import { channelLanguage } from '../channels'
 import { draftDir, draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
@@ -424,7 +424,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
             ? 'Your output is set to be reviewed by me: put your section above `<!-- agent -->`, and leave it there.'
             : 'Your output is set to be read by the agent that builds this: put your section below `<!-- agent -->`, before `## Decided by the agent`.',
           memory
-            ? `Follow your memory below. Edit \`${rel(agentMemoryFile(req.specAgent!))}\` directly when you learn lasting preferences or product facts. Create it if missing; merge duplicates and drop rules already in your instructions. Omit task IDs and run history.`
+            ? `Follow your memory below. It is two files in \`${rel(agentMemoryDir(req.specAgent!))}/\`: \`redesign.md\`, one line per lesson — the mistake, then the design to use instead — and \`decisions.md\`, one line per durable choice the user made. Edit either directly when you learn something lasting, creating it if missing; merge duplicates and drop rules already in your instructions. How the product looks is read from the app's own \`design.md\` and components, never copied into memory, and a product fact worth keeping goes into the lesson or the decision it supports. Omit task IDs and run history.`
             : '',
           req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
           `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,

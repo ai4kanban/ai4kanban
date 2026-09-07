@@ -14,7 +14,7 @@ import { locate } from '../lib/cards'
 import { parseFrontmatter, serializeFrontmatter } from '../lib/frontmatter'
 import { say } from '../lib/io'
 import { fixMockupBlocks } from '../lib/mockups'
-import { writeAgentMemory } from '../lib/memory'
+import { AGENT_MEMORY_FILES, writeAgentMemory, type AgentMemoryName } from '../lib/memory'
 import { die, rel, TODO, warn } from '../lib/paths'
 import { findSpecAgent, notAnAgent, specAgentOutput, specHeading, specAgentNames } from '../lib/agents'
 import type { SpecAgent } from '../lib/agents'
@@ -40,14 +40,22 @@ type Half = SpecOutput
  *  `[user]` question pointing at a section set to `agent`, which is lifted into the card
  *  until that question is answered.
  *
- *  `--memory` is the other half of the same write (#421): an agent that declares one keeps
- *  its memory here too, so the run that answers the card and the run that learned something
- *  are one call and one place. */
+ *  `--redesign` and `--decisions` are the other half of the same write (#421, #473): an agent
+ *  that declares a memory keeps it here too, so the run that answers the card and the run
+ *  that learned something are one call and one place. One flag per file — which of the two a
+ *  line belongs in is the agent's call, not the move's. */
 export interface SpecWriteOptions {
   file?: string
   text?: string
   half?: Half
-  memory?: string
+  redesign?: string
+  decisions?: string
+}
+
+/** Which flag replaces which file. */
+const MEMORY_FLAGS: Record<AgentMemoryName, keyof SpecWriteOptions> = {
+  'redesign.md': 'redesign',
+  'decisions.md': 'decisions',
 }
 
 // `agent` is the word a section carries now; `skill` is the word it carried between #403
@@ -62,9 +70,9 @@ export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOpti
   const name = agent.name
 
   const section = readSection(flags.file, flags.text)
-  // Both inputs are read before either is written, so a memory the move cannot read never
+  // Every input is read before anything is written, so a memory the move cannot read never
   // leaves the card written and the memory not.
-  const memory = readMemory(agent, flags.memory)
+  const memory = readMemory(agent, flags)
   const half = flags.half ?? specAgentOutput(agent)
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
@@ -75,33 +83,40 @@ export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOpti
   const { body: next, replaced } = splice(body, name, section, half)
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + next)
   say(`${replaced ? 'rewrote' : 'wrote'} the \`${name}\` section on #${id} (${rel(file)})`)
-  const kept = memory === null ? null : writeAgentMemory(name, memory)
-  if (kept) say(`${kept.fresh ? 'started' : 'rewrote'} what \`${name}\` remembers (${rel(kept.file)})`)
-  return { id, specAgent: name, replaced, file: rel(file), ...(kept ? { memory: rel(kept.file) } : {}) }
+  const kept = memory.map(([which, text]) => writeAgentMemory(name, which, text))
+  for (const one of kept) say(`${one.fresh ? 'started' : 'rewrote'} what \`${name}\` remembers (${rel(one.file)})`)
+  return { id, specAgent: name, replaced, file: rel(file), ...(kept.length ? { memory: kept.map((one) => rel(one.file)) } : {}) }
 }
 
-// The agent's curated memory, from the file `--memory` names. Null when the flag was not
-// passed, which is the usual run: an agent that learned nothing this time writes nothing.
+// The agent's curated memory, one entry per flag it passed. Empty on the usual run: an agent
+// that learned nothing this time writes nothing.
 //
 // The whole file every time, never an appended line — an agent is handed its memory and
 // hands it back, so what it keeps is a choice it made rather than a pile it never revisits.
-function readMemory(agent: SpecAgent, from: string | undefined): string | null {
-  if (from === undefined) return null
+function readMemory(agent: SpecAgent, flags: SpecWriteOptions): Array<[AgentMemoryName, string]> {
+  const asked = AGENT_MEMORY_FILES.map((name) => [name, flags[MEMORY_FLAGS[name]]] as const).filter(
+    ([, from]) => from !== undefined,
+  )
+  if (!asked.length) return []
   if (!agent.memory) {
     die(`the \`${agent.name}\` agent keeps no memory — add \`memory: project\` under \`akb:\` in its AGENT.md first`, {
       kind: 'agent-has-no-memory',
       specAgent: agent.name,
     })
   }
-  let raw: string
-  try {
-    raw = fs.readFileSync(from, 'utf8')
-  } catch {
-    die(`can't read ${from} — write your memory to a file, then pass its path`)
-  }
-  const text = raw!.trim()
-  if (!text) die('the memory is empty — leave `--memory` off rather than emptying what you remember')
-  return text
+  return asked.map(([name, from]) => {
+    let raw: string
+    try {
+      raw = fs.readFileSync(from!, 'utf8')
+    } catch {
+      die(`can't read ${from} — write your memory to a file, then pass its path`)
+    }
+    const text = raw!.trim()
+    if (!text) {
+      die(`the memory is empty — leave \`--${MEMORY_FLAGS[name]}\` off rather than emptying what you remember`)
+    }
+    return [name, text]
+  })
 }
 
 // The agent's answer, from a file or straight off the command line. A file is what the

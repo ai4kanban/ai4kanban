@@ -96,9 +96,9 @@ const card = (id: number): string => {
   return file
 }
 
-/** What one agent remembers, as it stands on disk. */
-const remembered = (name: string): string =>
-  fs.readFileSync(path.join(kanban(), 'memory', 'agents', `${name}.md`), 'utf8')
+/** One of the two files an agent remembers in, as it stands on disk. */
+const remembered = (name: string, file = 'redesign.md'): string =>
+  fs.readFileSync(path.join(kanban(), 'memory', 'agents', name, file), 'utf8')
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-spec-agents-'))
@@ -518,8 +518,8 @@ describe("the YAML an agent's frontmatter is written in", () => {
   })
 })
 
-// An agent that remembers (#421): one scope, one file, read into every run it starts and
-// written back whole by the move that writes its section.
+// An agent that remembers (#421, #473): one scope, a folder of two files, read into every run
+// it starts and written back whole by the move that writes its section.
 describe('the memory an agent declares', () => {
   const withMemory = (scope: string): string =>
     AGENT.replace('  kind: spec\n', `  kind: spec\n  memory: ${scope}\n`)
@@ -557,42 +557,75 @@ describe('the memory an agent declares', () => {
 })
 
 describe('what a run of an agent that remembers is handed', () => {
-  it('inlines the file as one more block, and says how to write it back', () => {
+  const wrote = (file: string, text: string): void => {
+    fs.mkdirSync(path.join(kanban(), 'memory', 'agents', 'ui-design'), { recursive: true })
+    fs.writeFileSync(path.join(kanban(), 'memory', 'agents', 'ui-design', file), text)
+  }
+
+  it('inlines both files as one block, each under its own heading', () => {
+    wrote('redesign.md', '# What `ui-design` was corrected on\n\n- One figure per tile was rejected.\n')
+    wrote('decisions.md', '# What the user chose for `ui-design`\n\n- This product never opens a modal.\n')
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    assert.match(prompt, /——— what you remember ———/)
+    assert.match(prompt, /One figure per tile was rejected\./)
+    assert.match(prompt, /This product never opens a modal\./)
+    assert.match(prompt, /# What `ui-design` was corrected on/)
+    assert.match(prompt, /# What the user chose for `ui-design`/)
+    // Beside its own rule, and after it — the board's words end before the agent's do.
+    assert.ok(prompt.indexOf('——— you, the `ui-design` agent ———') < prompt.indexOf('——— what you remember ———'))
+  })
+
+  it('names the folder and what each file is for, and asks for neither move nor flag', () => {
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    assert.match(prompt, /two files in `docs\/kanban\/memory\/agents\/ui-design\/`/)
+    assert.match(prompt, /`redesign\.md`, one line per lesson/)
+    assert.match(prompt, /`decisions\.md`, one line per durable choice/)
+    assert.doesNotMatch(prompt, /spec-write|--redesign|--decisions/)
+  })
+
+  // The look is read, never remembered (#473) — said in the run, so an agent with an empty
+  // memory starts out knowing where the colours and dimensions actually live.
+  it('sends it to the app design docs for how the product looks', () => {
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    assert.match(prompt, /read from the app's own `design\.md` and components, never copied into memory/)
+    assert.match(prompt, /product fact worth keeping goes into the lesson or the decision it supports/)
+  })
+
+  it('hands it the empty files rather than nothing, so it knows it has them', () => {
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    assert.match(prompt, /——— what you remember ———/)
+    assert.equal(prompt.match(/nothing has been written down yet/g)?.length, 2)
+  })
+
+  it('says nothing of memory to an agent that declares none', () => {
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'technology-selection' })
+    assert.doesNotMatch(prompt, /——— what you remember ———/)
+    assert.doesNotMatch(prompt, /--redesign|Follow your memory below/)
+  })
+
+  // A board written before the split kept one file. It is moved in on the first read, so the
+  // very run that finds it is handed everything it said (#473).
+  it('moves a board’s one old file into the folder, once, without losing a line', () => {
     fs.mkdirSync(path.join(kanban(), 'memory', 'agents'), { recursive: true })
     fs.writeFileSync(
       path.join(kanban(), 'memory', 'agents', 'ui-design.md'),
       '# What `ui-design` learned\n\n- This product never opens a modal.\n',
     )
     const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
-    assert.match(prompt, /——— what you remember ———/)
     assert.match(prompt, /This product never opens a modal\./)
-    assert.match(prompt, /Edit `docs\/kanban\/memory\/agents\/ui-design\.md` directly/)
-    assert.doesNotMatch(prompt, /spec-write|--memory/)
-    // Beside its own rule, and after it — the board's words end before the agent's do.
-    assert.ok(prompt.indexOf('——— you, the `ui-design` agent ———') < prompt.indexOf('——— what you remember ———'))
-  })
-
-  it('hands it the empty file rather than nothing, so it knows it has one', () => {
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
-    assert.match(prompt, /——— what you remember ———/)
-    assert.match(prompt, /nothing has been written down yet/)
-  })
-
-  it('says nothing of memory to an agent that declares none', () => {
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'technology-selection' })
-    assert.doesNotMatch(prompt, /——— what you remember ———/)
-    assert.doesNotMatch(prompt, /--memory|Follow your memory below/)
+    assert.equal(remembered('ui-design'), '# What `ui-design` was corrected on\n\n- This product never opens a modal.\n')
+    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'ui-design.md')), false)
   })
 })
 
 describe('writing what an agent remembers', () => {
-  const memoryFile = (text: string): string => {
-    const file = path.join(root, 'memory.md')
+  const memoryFile = (text: string, name = 'memory.md'): string => {
+    const file = path.join(root, name)
     fs.writeFileSync(file, text)
     return file
   }
 
-  it('starts the file with one heading, beside the section it wrote', async () => {
+  it('starts each file with its own heading, beside the section it wrote', async () => {
     card(12)
     await move(root, [
       'spec-write',
@@ -600,32 +633,45 @@ describe('writing what an agent remembers', () => {
       'ui-design',
       '--text',
       'a screen',
-      '--memory',
-      memoryFile('- This product never opens a modal.'),
+      '--redesign',
+      memoryFile('- One figure per tile was rejected.'),
+      '--decisions',
+      memoryFile('- This product never opens a modal.', 'chose.md'),
     ])
     assert.equal(
       remembered('ui-design'),
-      '# What `ui-design` learned\n\n- This product never opens a modal.\n',
+      '# What `ui-design` was corrected on\n\n- One figure per tile was rejected.\n',
     )
+    assert.equal(
+      remembered('ui-design', 'decisions.md'),
+      '# What the user chose for `ui-design`\n\n- This product never opens a modal.\n',
+    )
+  })
+
+  it('writes only the file the flag names', async () => {
+    card(12)
+    await move(root, ['spec-write', '12', 'ui-design', '--text', 'a screen', '--decisions', memoryFile('- One.')])
+    assert.equal(remembered('ui-design', 'decisions.md'), '# What the user chose for `ui-design`\n\n- One.\n')
+    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'ui-design', 'redesign.md')), false)
   })
 
   it('replaces it whole, and never stacks a second heading', async () => {
     card(12)
     const write = (text: string): Promise<unknown> =>
-      move(root, ['spec-write', '12', 'ui-design', '--text', 'a screen', '--memory', memoryFile(text)])
+      move(root, ['spec-write', '12', 'ui-design', '--text', 'a screen', '--redesign', memoryFile(text)])
     await write('- One.')
-    await write('# What `ui-design` learned\n\n- One.\n- Two.')
-    assert.equal(remembered('ui-design'), '# What `ui-design` learned\n\n- One.\n- Two.\n')
+    await write('# What `ui-design` was corrected on\n\n- One.\n- Two.')
+    assert.equal(remembered('ui-design'), '# What `ui-design` was corrected on\n\n- One.\n- Two.\n')
     // Handed back with the heading retyped rather than copied, it is still the one heading.
-    await write('# What ui-design learned\n\n- One.')
-    assert.equal(remembered('ui-design'), '# What `ui-design` learned\n\n- One.\n')
+    await write('# What ui-design was corrected on\n\n- One.')
+    assert.equal(remembered('ui-design'), '# What `ui-design` was corrected on\n\n- One.\n')
   })
 
   it('refuses it for an agent that declares no memory', async () => {
     card(12)
     await refuses(
       root,
-      ['spec-write', '12', 'technology-selection', '--text', 'a pick', '--memory', memoryFile('- One.')],
+      ['spec-write', '12', 'technology-selection', '--text', 'a pick', '--redesign', memoryFile('- One.')],
       /keeps no memory/,
     )
     assert.ok(!fs.existsSync(path.join(kanban(), 'memory', 'agents')))
@@ -773,11 +819,14 @@ describe('`agents` as a module name', () => {
   // the four files could land on top of the agents' own.
   it('gets no memory set from `init` when the map names it anyway', async () => {
     fs.writeFileSync(path.join(kanban(), 'modules.md'), '- **agents** — a module someone named\n- **skill** — the command\n')
-    fs.mkdirSync(path.join(kanban(), 'memory', 'agents'), { recursive: true })
-    fs.writeFileSync(path.join(kanban(), 'memory', 'agents', 'ui-design.md'), '# What `ui-design` learned\n\n- One.\n')
+    fs.mkdirSync(path.join(kanban(), 'memory', 'agents', 'ui-design'), { recursive: true })
+    fs.writeFileSync(
+      path.join(kanban(), 'memory', 'agents', 'ui-design', 'redesign.md'),
+      '# What `ui-design` was corrected on\n\n- One.\n',
+    )
     await move(root, ['init'])
     assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'decisions.md')), false)
-    assert.equal(remembered('ui-design'), '# What `ui-design` learned\n\n- One.\n')
+    assert.equal(remembered('ui-design'), '# What `ui-design` was corrected on\n\n- One.\n')
     // Every other module on the map still gets its set.
     assert.ok(fs.existsSync(path.join(kanban(), 'memory', 'skill', 'decisions.md')))
   })

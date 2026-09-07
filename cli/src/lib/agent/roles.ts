@@ -19,7 +19,7 @@ import path from 'node:path'
 
 import { specAgentCatalog } from '../agents/catalog'
 import { agentLines } from '../agents'
-import { agentMemoryFile } from '../memory'
+import { agentMemoryFiles } from '../memory'
 import { KANBAN, rel } from '../paths'
 import { solution } from '../solution'
 import { FLOWS } from './flows'
@@ -178,7 +178,7 @@ export function agentRoster(): RosterEntry[] {
       builtIn: agent.builtIn,
       switchable: true,
       flows: [],
-      memory: agent.memory ? [rel(agentMemoryFile(agent.name))] : [],
+      memory: agent.memory ? agentMemoryFiles(agent.name).map(rel) : [],
     }
   })
   return [

@@ -139,50 +139,109 @@ function scaffoldMemoryDir(dir: string, set: Record<string, string>): Scaffolded
   return made.length ? { dir, made, fresh: false } : null
 }
 
-// ---- an agent's own memory (#421) ------------------------------------------
+// ---- an agent's own memory (#421, #473) -------------------------------------
 //
-// An agent that declares `memory: project` keeps one file of what it learned — the taste it
-// was corrected on and the product facts it needs next time. It sits beside the memory set
-// rather than in it: the set is the board's memory, keyed by module, and this is one
-// agent's, keyed by its name.
+// An agent that declares `memory: project` keeps a folder of what it learned, one file per
+// topic: `redesign.md` for the mistakes it was corrected on, `decisions.md` for the choices
+// the user made. It sits beside the memory set rather than in it: the set is the board's
+// memory, keyed by module, and this is one agent's, keyed by its name.
 //
-// The file is the whole memory. It is read into every run that agent starts and written
-// back whole, so an agent curates what it kept rather than appending to a file it cannot
-// see the end of.
+// Two files and no third. How the product looks is read from the app's own design docs, not
+// copied here, and a product fact worth keeping rides on the lesson or the decision it
+// supports. Both files are read into every run that agent starts and written back whole, so
+// an agent curates what it kept rather than appending to a file it cannot see the end of.
 
 /** The one folder name a module may not take: it is where agent memories live. */
 export const RESERVED_MEMORY_DIR = 'agents'
 
-export const agentMemoryFile = (agent: string): string => path.join(AGENT_MEMORY, `${agent}.md`)
+/** The two files an agent's memory folder holds, in the order a run is handed them. */
+export const AGENT_MEMORY_FILES = ['redesign.md', 'decisions.md'] as const
 
-export const agentMemoryHeading = (agent: string): string => `# What \`${agent}\` learned`
+export type AgentMemoryName = (typeof AGENT_MEMORY_FILES)[number]
+
+/** One of those files: where it is, the heading the board owns, and the lines under it. */
+export interface AgentMemory {
+  name: AgentMemoryName
+  file: string
+  heading: string
+  text: string
+}
+
+export const agentMemoryDir = (agent: string): string => path.join(AGENT_MEMORY, agent)
+
+export const agentMemoryFile = (agent: string, name: AgentMemoryName): string => path.join(agentMemoryDir(agent), name)
+
+/** Both files an agent owns, written or not — what a roster lists and a delete removes. */
+export const agentMemoryFiles = (agent: string): string[] => AGENT_MEMORY_FILES.map((name) => agentMemoryFile(agent, name))
+
+/** The single file a board written before the split kept for that agent. */
+export const legacyAgentMemoryFile = (agent: string): string => path.join(AGENT_MEMORY, `${agent}.md`)
+
+const HEADINGS: Record<AgentMemoryName, (agent: string) => string> = {
+  'redesign.md': (agent) => `# What \`${agent}\` was corrected on`,
+  'decisions.md': (agent) => `# What the user chose for \`${agent}\``,
+}
+
+export const agentMemoryHeading = (agent: string, name: AgentMemoryName): string => HEADINGS[name](agent)
 
 // A heading the agent wrote for itself, matched by its shape rather than its exact words —
 // the way `spec-write` matches the one it owns, so a near-miss is dropped instead of stacked
-// under the board's own.
-const HEADING_RE = /^#\s+What\s+.+\s+learned\s*$/i
+// under the board's own. `learned` is the heading the one-file memory carried.
+const HEADING_RE = /^#\s+What\s+(the user chose for\s+.+|.+\s+(was corrected on|learned))\s*$/i
 
-/** What one agent remembers, or empty when it has written nothing down yet. */
-export function readAgentMemory(agent: string): string {
-  try {
-    return fs.readFileSync(agentMemoryFile(agent), 'utf8').trim()
-  } catch {
-    return ''
-  }
-}
-
-/** Replace what one agent remembers. The heading is the board's, added on the first write
- *  and never twice: an agent handed its file back rewrites the lines under it, and a
- *  heading it wrote for itself is dropped the way `spec-write` drops one. */
-export function writeAgentMemory(agent: string, text: string): { file: string; fresh: boolean } {
-  const file = agentMemoryFile(agent)
-  const fresh = !fs.existsSync(file)
-  const heading = agentMemoryHeading(agent)
+const stripHeading = (text: string): string => {
   const lines = text.trim().split('\n')
   if (HEADING_RE.test(lines[0]?.trim() ?? '')) lines.shift()
-  fs.mkdirSync(AGENT_MEMORY, { recursive: true })
-  fs.writeFileSync(file, `${heading}\n\n${lines.join('\n').trim()}\n`)
+  return lines.join('\n').trim()
+}
+
+/** What one agent remembers: both files in order, each with its heading and whatever is
+ *  under it. A file nobody has written yet comes back with empty `text` rather than being
+ *  left out — the run is still shown it, because the empty file is the invitation. */
+export function readAgentMemory(agent: string): AgentMemory[] {
+  adoptOneFileMemory(agent)
+  return AGENT_MEMORY_FILES.map((name) => {
+    const file = agentMemoryFile(agent, name)
+    let text = ''
+    try {
+      text = stripHeading(fs.readFileSync(file, 'utf8'))
+    } catch {
+      // Nothing written under that heading yet.
+    }
+    return { name, file, heading: agentMemoryHeading(agent, name), text }
+  })
+}
+
+/** Replace one of the two files whole. The heading is the board's, written every time and
+ *  never twice: an agent handed its file back rewrites the lines under it, and a heading it
+ *  wrote for itself is dropped the way `spec-write` drops one. */
+export function writeAgentMemory(agent: string, name: AgentMemoryName, text: string): { file: string; fresh: boolean } {
+  const file = agentMemoryFile(agent, name)
+  const fresh = !fs.existsSync(file)
+  fs.mkdirSync(agentMemoryDir(agent), { recursive: true })
+  fs.writeFileSync(file, `${agentMemoryHeading(agent, name)}\n\n${stripHeading(text)}\n`)
   return { file, fresh }
+}
+
+// A board written before the split kept everything in `memory/agents/<agent>.md`. The first
+// read of that agent's memory moves it into the folder as `redesign.md` — the file it most
+// resembles — and the run that was just handed it lifts out what belongs in `decisions.md`.
+// Nothing is lost and nobody moves a file by hand.
+//
+// Never fatal: a board that cannot be written to still gets its memory read, which is what
+// the caller asked for.
+function adoptOneFileMemory(agent: string): void {
+  const legacy = legacyAgentMemoryFile(agent)
+  try {
+    if (!fs.existsSync(legacy)) return
+    const carried = stripHeading(fs.readFileSync(legacy, 'utf8'))
+    const into = agentMemoryFile(agent, 'redesign.md')
+    const kept = fs.existsSync(into) ? stripHeading(fs.readFileSync(into, 'utf8')) : ''
+    writeAgentMemory(agent, 'redesign.md', [kept, carried].filter(Boolean).join('\n\n'))
+    fs.rmSync(legacy, { force: true })
+  } catch {
+    warn(`couldn't move ${legacy} into ${agentMemoryDir(agent)}/ — reading what is there`)
+  }
 }
 
 // Which copy of a memory file a card's note belongs in — "The memory set" in `akb guide board`

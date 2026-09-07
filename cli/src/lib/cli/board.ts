@@ -383,8 +383,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       "Put a spec agent's answer on the card as one section headed `## By `<agent>` agent`, and change " +
         'nothing else. Run again for the same agent and the section is REPLACED, never added twice. Told ' +
         "nothing, the section lands where that agent's Output setting says — new or rewritten alike. " +
-        '`--memory` writes the other file an agent may have — docs/kanban/memory/agents/<agent>.md, ' +
-        'replaced whole, created with its heading on the first write.',
+        '`--redesign` and `--decisions` write the two files an agent may have in ' +
+        'docs/kanban/memory/agents/<agent>/, each replaced whole and created with its own heading.',
     )
     .option('--file <path>', 'the answer, as markdown written to a file first')
     .option('--text <text>', 'the answer, for a one-liner')
@@ -395,8 +395,12 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       oneOf(['human', 'agent']),
     )
     .option(
-      '--memory <path>',
-      "what the agent remembers, curated whole and written to a file first — only for an agent whose AGENT.md declares `memory: project`",
+      '--redesign <path>',
+      'the lessons the agent remembers — the mistake, then the design to use instead — curated whole and written to a file first; only for an agent whose AGENT.md declares `memory: project`',
+    )
+    .option(
+      '--decisions <path>',
+      'the durable choices the user made, remembered the same way and under the same condition',
     )
     .action(async function (this: Command, id: number, agent: string) {
       await dispatch('spec-write', this, [String(id), agent], this.opts(), cli)

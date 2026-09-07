@@ -67,9 +67,9 @@ export let COMMENTS = ''
 // All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
 // itself, each module's set in a subfolder named after the module.
 export let MEMORY = ''
-// What each agent that declares `memory: project` learned — one file per agent, named after
-// it (#421). Reserved: a module called `agents` would write its set into this folder, so
-// `memory-init` refuses the name.
+// What each agent that declares `memory: project` remembers — one folder per agent, named
+// after it, holding `redesign.md` and `decisions.md` (#421, #473). Reserved: a module called
+// `agents` would write its set into this folder, so `memory-init` refuses the name.
 export let AGENT_MEMORY = ''
 // The one goal file — board root only, never per module (see PROJECT_MEMORY_SET).
 export let GOAL = ''

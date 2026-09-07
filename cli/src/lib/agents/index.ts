@@ -173,8 +173,9 @@ export function specAgentInstructions(
   return { instructions: agent.body.trim(), references, notes }
 }
 
-/** What an agent that remembers is handed of its own file (#421) — read as the run starts,
- *  like everything else it is given, so it has nothing to go and find.
+/** What an agent that remembers is handed of its own files (#421, #473) — read as the run
+ *  starts, like everything else it is given, so it has nothing to go and find. Both files,
+ *  each under its own heading, so the agent writes back to the one a line belongs in.
  *
  *  An agent that has written nothing down yet is still handed the block. A memory it is
  *  never shown is a memory it never starts: the empty file is the invitation.
@@ -184,8 +185,10 @@ export function specAgentInstructions(
 export function agentMemoryBlock(agent: SpecAgent): string {
   if (!agent.memory) return ''
   return [
-    'What you learned on this board, in your own words from earlier runs — the taste you were corrected on and the product facts you needed. Follow it here:',
-    readAgentMemory(agent.name) || '_(empty — nothing has been written down yet.)_',
+    'What you learned on this board, in your own words from earlier runs — the mistakes you were corrected on, and the choices the user made. Follow it here:',
+    ...readAgentMemory(agent.name).map(
+      (file) => `${file.heading}\n\n${file.text || '_(empty — nothing has been written down yet.)_'}`,
+    ),
   ].join('\n\n')
 }
 

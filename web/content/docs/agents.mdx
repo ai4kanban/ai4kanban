@@ -104,15 +104,18 @@ From a terminal: `akb raw rule <agent> --file <path>`, or `--text ""` to clear i
 
 ## Give an agent memory
 
-Some agents **remember** — the taste they were corrected on, and the product facts they needed. The
+Some agents **remember** — the taste they were corrected on, and the choices you made. The
 agent's page lists the files it owns, read-only:
 
 - A **role** remembers in the files its own flows already write: the Planner in `decisions.md`,
   `rejected.md` and `goal.md`, the Builder in `readme.md`, `redesign.md` and `modules.md`.
-- A **specialist** that declares `memory: project` owns `docs/kanban/memory/agents/<name>.md`.
-  `ui-design` declares one; `technology-selection` does not.
+- A **specialist** that declares `memory: project` owns `docs/kanban/memory/agents/<name>/`, two
+  files: `redesign.md`, the mistakes it was corrected on, and `decisions.md`, the choices you made.
+  `ui-design` declares a memory; `technology-selection` does not.
+- **How the product looks is not memory.** Colours, dimensions and component detail are read from
+  the app's own `design.md`, so memory says which doc to read rather than repeating it.
 - The runs write these themselves — the flow that hears your answer records what was taken or sent
-  back, and the agent curates the file on its own runs. Nothing on the pane edits one.
+  back, and the agent curates the files on its own runs. Nothing on the pane edits one.
 
 ## Add one of your own
 
