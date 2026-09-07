@@ -14,18 +14,19 @@
 // of its answer is a warning, and it is only ever given for a CLI that said outright that
 // nobody is logged in.
 //
-// One answer per agent, not per runtime. The probe follows the same per-agent command the
-// installed answer already resolves, so two runtimes on one agent are one probe and a
-// runtime's own `command` override is not a second CLI to ask.
+// One probe per CLI, one verdict per ROW. The spawn follows the command the installed answer
+// already resolves, so two runtimes on one harness are one probe; the verdict is then read
+// per runtime, because a row signing with a key of its own is never logged out however that
+// CLI answers (#467).
 
 import { spawn, type ChildProcess } from 'node:child_process'
 
 import { REPO_ROOT } from '../paths'
-import { HARNESSES, type Harness } from './harnesses'
+import type { Harness } from './harnesses'
 import { commandBinary, pathLookup } from './installed'
 import { shownForProvider } from './providers'
 import { activeProviderOf, commandOf, readBlock } from './resolve'
-import { configBlock, safeConfig } from './settings'
+import { harnessOfRuntime, readRuntimes, type Runtime } from './runtimes'
 import type { LoggedOutAgent } from './types'
 
 /** How long one probe may take before it reads as unknown. A few seconds: long enough for a
@@ -65,33 +66,37 @@ function plain(output: string): string {
   return output.replace(/\u001B\[[0-9;]*[A-Za-z]/g, '')
 }
 
-/** One agent worth asking, and the binary to ask. */
+/** One row worth asking about, and the binary to ask. */
 interface Ask {
+  runtime: Runtime
   harness: Harness
   binary: string
 }
 
-/** Which agents a probe round asks, and with what. Only a login can be probed, so three
- *  kinds of agent are left out and each keeps whatever state it already had:
+/** Which rows a probe round asks about, and with what. Only a login can be probed, so three
+ *  kinds of row are left out and each keeps whatever state it already had:
  *
- *  - one whose connector declares no probe — there is nothing to ask;
+ *  - one whose harness declares no probe — there is nothing to ask;
  *  - one whose binary isn't on the PATH — `installed` already says so, in words with the
  *    command that fixes it, and a spawn would only fail;
- *  - one whose saved setup signs runs with a key of its own, because then the CLI's login
- *    decides nothing. That is read off the settings rather than declared: a `secret` this
- *    board holds, that the picked provider still needs. A key saved under a provider nobody
- *    picked is not one a run would use, so it doesn't count. */
+ *  - one that signs its runs with a key of its own, because then the CLI's login decides
+ *    nothing. That is read off the row's settings rather than declared: a `secret` this
+ *    computer holds under that row's own name, that the picked provider still needs. A key
+ *    saved under a provider nobody picked is not one a run would use, so it doesn't count. */
 export function toAsk(): Ask[] {
-  const cfg = safeConfig()
-  const blocks = configBlock(cfg.harnessSettings)
   const onPath = pathLookup()
   const asks: Ask[] = []
-  for (const harness of HARNESSES) {
+  for (const runtime of readRuntimes()) {
+    const harness = harnessOfRuntime(runtime)
     if (!harness.login) continue
-    const block = configBlock(blocks[harness.name])
-    const command = commandOf(block, harness)
+    const command = commandOf(runtime.settings, harness)
     if (!onPath(command)) continue
-    const { values, secretsSet } = readBlock(harness, block, command.split(/\s+/).filter(Boolean))
+    const { values, secretsSet } = readBlock(
+      harness,
+      runtime.settings,
+      command.split(/\s+/).filter(Boolean),
+      runtime.id,
+    )
     const picked = activeProviderOf({ harness, values, secretsSet })
     const ownKey = harness.settings.some(
       (s) =>
@@ -100,7 +105,7 @@ export function toAsk(): Ask[] {
         shownForProvider(harness.settings, s.key, picked),
     )
     if (ownKey) continue
-    asks.push({ harness, binary: commandBinary(command) })
+    asks.push({ runtime, harness, binary: commandBinary(command) })
   }
   return asks
 }
@@ -157,9 +162,8 @@ function ask({ harness, binary }: Ask): Promise<string> {
 
 let held: { at: number; answer: Promise<LoggedOutAgent[]> } | undefined
 
-/** Every agent this machine has whose own CLI says nobody is logged into it, with the
- *  command that logs them back in. Empty is the ordinary answer, and also the answer
- *  whenever nothing could be read.
+/** Every runtime whose CLI says nobody is logged into it, with the command that logs them
+ *  back in. Empty is the ordinary answer, and also the answer whenever nothing could be read.
  *
  *  Cached for about a minute and shared by every caller inside it, so opening the picker
  *  twice is one round of spawns rather than two. */
@@ -169,8 +173,12 @@ export async function loggedOutAgents(): Promise<LoggedOutAgent[]> {
   return held.answer
 }
 
-/** One round: every agent worth asking, all at once. It never rejects — a probe round that
- *  couldn't run is an empty list, not an error a picker has to handle. */
+/** One round: every CLI worth asking, all at once, and then a verdict per row. It never
+ *  rejects — a probe round that couldn't run is an empty list, not an error a picker has to
+ *  handle.
+ *
+ *  Rows sharing a binary share its answer: the spawns are deduplicated by what would be run,
+ *  so two runtimes on one harness cost one probe. */
 async function probeAll(): Promise<LoggedOutAgent[]> {
   let asks: Ask[]
   try {
@@ -178,11 +186,15 @@ async function probeAll(): Promise<LoggedOutAgent[]> {
   } catch {
     return []
   }
+  const spawns = new Map<string, Promise<string>>()
   const answers = await Promise.all(
     asks.map(async (one) => {
-      const state = readLogin(one.harness, await ask(one))
+      const key = `${one.harness.name} ${one.binary}`
+      const held = spawns.get(key) ?? ask(one)
+      spawns.set(key, held)
+      const state = readLogin(one.harness, await held)
       if (state !== 'logged-out') return undefined
-      return { harness: one.harness.name, login: one.harness.login?.login ?? '' }
+      return { runtime: one.runtime.id, harness: one.harness.name, login: one.harness.login?.login ?? '' }
     }),
   )
   return answers.filter((one): one is LoggedOutAgent => !!one)

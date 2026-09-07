@@ -34,34 +34,54 @@ import {
   providerSetting,
   shownForProvider,
 } from './providers'
-import { localAgentValues } from './local'
 import { specAgentNames } from '../spec-agent-names'
-import { configBlock, harnessOfAgent, readAgentHarness, readEnvFile, safeConfig } from './settings'
-import type { AgentInfo, ChatAgent, ChatPickAgent, HarnessSetting, HarnessRun, Provider } from './types'
+import { readEnvFile, safeConfig } from './settings'
+import {
+  GLOBAL_ID,
+  harnessOfRuntime,
+  pickRuntime,
+  readAgentRuntime,
+  readRuntimes,
+  runtimeOfAgent,
+  secretVar,
+  type Runtime,
+} from './runtimes'
+import type {
+  AgentInfo,
+  ChatAgent,
+  ChatRuntime,
+  HarnessSetting,
+  HarnessRun,
+  Provider,
+  RuntimeView,
+} from './types'
 
 interface ResolvedHarness {
+  /** The runtime that answered — the whole of what this run runs as (#467). */
+  runtime: Runtime
   harness: Harness
   command: string
+  /** The runtime names a harness this build doesn't ship, so the default ran instead. */
   isDefault: boolean
-  /** The agent this run belongs to — a role, or a specialist by name (#443). Empty for a
-   *  read that names none, which resolves the board's default connector. */
+  /** The agent this run belongs to — a role, or a specialist by name. Empty for a read that
+   *  names none, which resolves **Global default**. */
   agent: string
-  /** The connector the agent's own pick named, when it isn't the one that ran: the board
-   *  holds a name this build doesn't ship, so the run fell back. */
-  unknownAgentHarness?: string
-  /** What each declared setting is set to, keyed by its key. A setting the file doesn't
-   *  carry is absent, meaning the agent's own default. A `secret` is never in here — its
+  /** The runtime the agent's own pick named, when the board holds an id no row answers to —
+   *  then **Global default** ran. */
+  unknownAgentRuntime?: string
+  /** What each declared setting is set to, keyed by its key. A setting the runtime doesn't
+   *  carry is absent, meaning the harness's own default. A `secret` is never in here — its
    *  value lives in docs/kanban/.env and is never read back. */
   values: Record<string, string>
-  /** The keys of the secret settings whose variable docs/kanban/.env holds right now. Set
-   *  or not set — the value itself never leaves this module. */
+  /** The keys of the secret settings whose id-scoped variable docs/kanban/.env holds right
+   *  now. Set or not set — the value itself never leaves this module. */
   secretsSet: string[]
   /** The keys whose flag the command override already names, so the override wins and the
    *  setting is never appended. */
   ignored: string[]
-  /** The name the file asked for, when it isn't one of ours. */
+  /** The harness name the runtime asked for, when it isn't one of ours. */
   unknownName?: string
-  /** The file still holds the pre-agent-block top-level `command` key. Nothing reads it. */
+  /** The file still holds the pre-runtime top-level `command` key. Nothing reads it. */
   staleCommand?: boolean
 }
 
@@ -98,24 +118,25 @@ export function activeProviderOf({
   return pickedProvider(setting, values[setting.key] ?? '', isFilled(harness, values, secretsSet))
 }
 
-/** The command one harness runs for a block of its settings: the hand-written `command`
- *  override in that block, or the harness's own. */
-export function commandOf(block: Record<string, unknown>, harness: Harness): string {
-  const override = typeof block.command === 'string' ? block.command.trim() : ''
-  return override || harness.command
+/** The command one runtime runs: the hand-written `command` override in its settings, or the
+ *  harness's own. */
+export function commandOf(block: Record<string, string>, harness: Harness): string {
+  return block.command?.trim() || harness.command
 }
 
-/** What one agent's saved block is set to: each declared setting's value, which of its keys
+/** What one runtime is set to: each declared setting's value, which of its keys
  *  docs/kanban/.env holds right now, and which settings the command already names so the
  *  override wins. `argv` is that command, split.
  *
- *  Exported because a run is not the only reader: the login probe asks the same question of
- *  an agent that isn't running (agent/login.ts), and two readers of one block have to read
- *  it the same way. */
+ *  Exported because a run is not the only reader: the login probe asks the same question of a
+ *  runtime that isn't running (agent/login.ts), and two readers of one row have to read it the
+ *  same way. */
 export function readBlock(
   harness: Harness,
-  block: Record<string, unknown>,
+  block: Record<string, string>,
   argv: string[],
+  /** Whose key lines to look for — a runtime's keys are named after its id (#467). */
+  runtimeId: string,
 ): { values: Record<string, string>; secretsSet: string[]; ignored: string[] } {
   const values: Record<string, string> = {}
   const ignored: string[] = []
@@ -124,15 +145,14 @@ export function readBlock(
   // in the same file.
   const env = harness.settings.some((s) => s.kind === 'secret') ? readEnvFile() : {}
   for (const setting of harness.settings) {
-    // A key lives in docs/kanban/.env, never in this block. A hand-written one here is
+    // A key lives in docs/kanban/.env, never in this row. A hand-written one here is
     // ignored rather than used: the file we promised to keep it out of would be the one
     // holding it.
     if (setting.kind === 'secret') {
-      if (setting.env && env[setting.env]) secretsSet.push(setting.key)
+      if (setting.env && env[secretVar(setting.env, runtimeId)]) secretsSet.push(setting.key)
       continue
     }
-    const raw = block[setting.key]
-    const value = typeof raw === 'string' ? raw.trim() : ''
+    const value = block[setting.key]?.trim() ?? ''
     if (value) values[setting.key] = value
     if (setting.flags?.length && namesFlag(argv, setting.flags)) ignored.push(setting.key)
   }
@@ -153,78 +173,87 @@ export function readBlock(
 /** What a run is asked for, before anything is read. */
 export interface HarnessAsk {
   /** The agent doing the run (agent/runner.ts) — a role, or a specialist by name. Absent
-   *  means the board's default connector, with no agent's own model under it. */
+   *  means **Global default**. */
   agent?: string
-  /** The connector a run already committed to — a resume continues the conversation the agent
-   *  that started it opened, and a plan being reopened spawns exactly what it planned. */
+  /** The runtime a run already committed to — a resume continues the conversation the CLI that
+   *  started it opened, a chat's own pick runs it, and a plan being reopened spawns exactly
+   *  what it planned. A pin written before #467 names a harness, which resolves to the runtime
+   *  that harness's block became. */
   pin?: string
-  /** Settings that win over the saved ones for this one spawn — a conversation's own model
-   *  (#272). Saved nowhere: the board's settings and this machine's are untouched. */
-  settings?: Record<string, string>
+  /** The harness a resume must spawn whatever the pin resolves to: an id means nothing to a
+   *  CLI that never minted it. */
+  harness?: string
 }
 
 function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const cfg = safeConfig()
   const staleCommand = typeof cfg.command === 'string' && cfg.command.trim() ? true : undefined
   const agent = ask.agent ?? ''
-  // Which connector this agent runs, from the board and nowhere else: its own pick, or the
-  // board's default when it made none (agent/settings.ts).
-  const picked = agent ? harnessOfAgent(specAgentNames(agent), readAgentHarness(cfg)) : undefined
-  // `pin` wins over the board: a run already committed to a connector spawns that connector,
+  const list = readRuntimes(cfg)
+  // Which runtime this agent runs, from the board and nowhere else: its own pick, or
+  // **Global default** when it named none (agent/runtimes.ts).
+  const picked = agent ? runtimeOfAgent(specAgentNames(agent), readAgentRuntime(cfg)) : undefined
+  // `pin` wins over the board: a run already committed to a runtime spawns that runtime,
   // whatever the settings have been changed to since.
-  const asked = ask.pin ?? picked ?? (typeof cfg.harness === 'string' ? cfg.harness.trim() : '')
-  const known = harnessByName(asked)
+  const asked = ask.pin ?? picked
+  const runtime = pickRuntime(list, asked, ask.harness)
+  const unknownAgentRuntime =
+    picked && !ask.pin && !list.some((r) => r.id === picked || r.harness === picked) ? picked : undefined
+  const known = harnessByName(runtime.harness)
   const harness = known ?? DEFAULT_HARNESS
-  const unknownAgentHarness = picked && !ask.pin && !harnessByName(picked) ? picked : undefined
-  // What the connector that RAN is set to, out of two files: how to reach it is the board's,
-  // in its own block under `harnessSettings`; which model to run is this agent's, on this
-  // computer (agent/local.ts). A connector name we don't ship runs the default, and then it
-  // is the default's own settings that are read.
-  const block: Record<string, unknown> = {
-    ...configBlock(configBlock(cfg.harnessSettings)[harness.name]),
-    ...localAgentValues(agent, harness.name),
-    // Last, so one conversation's own model wins over both (#272).
-    ...(ask.settings ?? {}),
-  }
-  const command = commandOf(block, harness)
-  const { values, secretsSet, ignored } = readBlock(harness, block, command.split(/\s+/).filter(Boolean))
+  // Everything this run is: one row, with nothing inherited from a per-harness block. A
+  // harness name we don't ship runs the default, and then it is that harness's settings the
+  // row is read against.
+  const command = commandOf(runtime.settings, harness)
+  const { values, secretsSet, ignored } = readBlock(
+    harness,
+    runtime.settings,
+    command.split(/\s+/).filter(Boolean),
+    runtime.id,
+  )
   return {
+    runtime,
     harness,
     command,
     isDefault: !known,
     agent,
-    unknownAgentHarness,
+    unknownAgentRuntime,
     values,
     secretsSet,
     ignored,
-    unknownName: known ? undefined : asked || undefined,
+    unknownName: known ? undefined : runtime.harness || undefined,
     staleCommand,
   }
 }
 
 /** The line the board owes a run's log when the agent's own pick is not what it ran as. One
- *  case: the board names a connector this version doesn't ship. Null otherwise, which is
- *  every ordinary run. */
+ *  case: the board names a runtime this board no longer has. Null otherwise, which is every
+ *  ordinary run. */
 export function harnessNote(resolved: {
   agent: string
-  unknownAgentHarness?: string
-  harness: Harness
+  unknownAgentRuntime?: string
+  runtime: Runtime
 }): string | null {
-  const { agent, unknownAgentHarness, harness } = resolved
-  if (!unknownAgentHarness) return null
-  return `${agent} is set to run on "${unknownAgentHarness}", which this version doesn't run — running ${harness.label}.`
+  const { agent, unknownAgentRuntime, runtime } = resolved
+  if (!unknownAgentRuntime) return null
+  return `${agent} is set to run on the "${unknownAgentRuntime}" runtime, which this board no longer has — running ${runtime.name}.`
 }
 
-/** The settings the connector behind one agent declares — the only keys that may be saved
- *  against it. With no agent named it is the board's default connector. */
+/** The settings the harness behind one runtime declares — the only keys that may be saved
+ *  against it. With nothing named it is **Global default**'s. */
 export function activeSettings(ask: HarnessAsk = {}): HarnessSetting[] {
   return resolveHarness(ask).harness.settings
 }
 
-/** What one agent runs here: the connector's name and label, and the settings it takes. */
-export function agentHarness(agent?: string): { name: string; label: string; settings: HarnessSetting[] } {
-  const { harness } = resolveHarness({ agent })
-  return { name: harness.name, label: harness.label, settings: harness.settings }
+/** What one agent runs here: the runtime, its harness and the settings that harness takes. */
+export function agentHarness(agent?: string): {
+  runtime: string
+  name: string
+  label: string
+  settings: HarnessSetting[]
+} {
+  const { harness, runtime } = resolveHarness({ agent })
+  return { runtime: runtime.id, name: harness.name, label: harness.label, settings: harness.settings }
 }
 
 /** Why this setting can't be saved with this value, or null when it can.
@@ -325,7 +354,7 @@ function settingArgs(resolved: ResolvedHarness): string[] {
 // The keys go in the environment and never in the command: argv is spawned as written and
 // would put a key in every process list on the machine.
 function runEnv(resolved: ResolvedHarness, cwd = REPO_ROOT): NodeJS.ProcessEnv {
-  const { harness, values } = resolved
+  const { harness, values, runtime } = resolved
   const picked = activeProviderOf(resolved)
   const env: NodeJS.ProcessEnv = { ...harness.env() }
   for (const name of ownedVars(harness)) delete env[name]
@@ -334,7 +363,9 @@ function runEnv(resolved: ResolvedHarness, cwd = REPO_ROOT): NodeJS.ProcessEnv {
   for (const setting of harness.settings) {
     if (!setting.env) continue
     if (!shownForProvider(harness.settings, setting.key, picked)) continue
-    const value = setting.kind === 'secret' ? file[setting.env] : values[setting.key]
+    // A key is this runtime's own line, named after its id — two runtimes on one harness sign
+    // with two keys (#467).
+    const value = setting.kind === 'secret' ? file[secretVar(setting.env, runtime.id)] : values[setting.key]
     if (!value) continue
     // A setting can go out under a different variable than the one its own line keeps: the
     // picked provider renames it — the same key is ANTHROPIC_API_KEY on Anthropic's API and
@@ -375,8 +406,11 @@ function ownedVars(harness: Harness): string[] {
  *  it. Everything but the keys: the environment is rebuilt at the moment of the spawn
  *  (`runEnvironment`), because a run's plan is saved to a file and a key never is. */
 export interface RunPlan {
-  /** The agent's name, stamped onto the run. */
+  /** The harness's name, stamped onto the run. */
   harness: string
+  /** The runtime it was resolved from (#467) — what a resume pins, so picking a run up spawns
+   *  the endpoint, key and model it went on. Absent on a plan written before runtimes. */
+  runtime?: string
   /** The agent this run belongs to — a role, or a specialist by name (#443). Absent on a
    *  run that belongs to no agent, and on a plan written before agents picked a connector. */
   agent?: string
@@ -396,10 +430,6 @@ export interface RunPlan {
    *  a worktree of its own (#303), which works in that worktree. Written down with the
    *  plan so the spawn, the connector's own folder flag and `PWD` are one answer. */
   cwd?: string
-  /** Settings this spawn takes over the board's — a conversation's own model (#272).
-   *  Carried on the plan so reopening it resolves the same values a connector that takes
-   *  its model in the conversation needs, not only the flags argv already holds. */
-  settings?: Record<string, string>
 }
 
 /** Everything one run needs at the moment it spawns. Exactly one of `renderer` and
@@ -420,28 +450,28 @@ export interface ActiveRun extends RunPlan {
 }
 
 /** Work out how to start a fresh run. `cwd` is the folder it works in — the project, or a
- *  delivery's own worktree (#303) — and `agent` is the one doing the run
- *  (agent/runner.ts), whose connector and model it spawns on. `note` is the line the board
- *  owes the run's log when that connector isn't what it ran as. */
+ *  delivery's own worktree (#303) — and `agent` is the one doing the run (agent/runner.ts),
+ *  whose runtime it spawns on. `note` is the line the board owes the run's log when that
+ *  runtime isn't what it ran as. */
 export function planRun(
   sessionId: string,
   cwd = REPO_ROOT,
   agent?: string,
-  /** The connector and the settings this one spawn takes over the saved ones — a
-   *  conversation's own pick (#272). Empty for every ordinary run. */
+  /** The runtime this one spawn takes over the agent's — a conversation's own pick (#272).
+   *  Empty for every ordinary run. */
   own: Omit<HarnessAsk, 'agent'> = {},
 ): RunPlan & { note: string | null } {
   const resolved = resolveHarness({ agent, ...own })
-  const { harness, command } = resolved
+  const { harness, command, runtime } = resolved
   const argv = command.split(/\s+/).filter(Boolean)
   return {
     harness: harness.name,
+    runtime: runtime.id,
     ...(agent ? { agent } : {}),
     argv: [...argv, ...settingArgs(resolved), ...harness.extraArgs(argv, sessionId, cwd)],
     resumeId: harness.adoptsSessionId ? sessionId : null,
     install: harness.install,
     cwd,
-    ...(own.settings ? { settings: own.settings } : {}),
     note: harnessNote(resolved),
   }
 }
@@ -450,26 +480,27 @@ export function planRun(
  *  command, same env, same parser — only the flags differ, and the prompt is the "carry
  *  on" one rather than a card action's.
  *
- *  A resume spawns the connector the run itself went on, whatever that agent has been
- *  pointed at since (#443): handing a Claude Code conversation's id to another CLI would mean
- *  nothing there. Null when that connector is one this build doesn't run, or can't resume. */
+ *  A resume spawns the HARNESS the run itself went on, whatever its runtime has been pointed
+ *  at since: handing a Claude Code conversation's id to another CLI would mean nothing there.
+ *  Inside that harness it resolves the runtime the run pinned, so the endpoint, the key and
+ *  the model are the ones it went on. Null when that harness is one this build doesn't run,
+ *  or can't resume. */
 export function planResume(
   harnessName: string,
   resumeId: string,
   cwd = REPO_ROOT,
   agent?: string,
-  /** As `planRun`: what this one spawn takes over the saved settings (#272). */
-  own: Omit<HarnessAsk, 'agent'> = {},
+  /** The runtime the run pinned, or a conversation's own pick (#272). */
+  own: Omit<HarnessAsk, 'agent' | 'harness'> = {},
 ): RunPlan | null {
   if (!harnessByName(harnessName)) return null
-  // `pin` LAST, over `own`'s: a conversation that picked a connector for itself (#272) still
-  // has to be picked up by the one that opened this session, and only its settings carry.
-  const resolved = resolveHarness({ agent, ...own, pin: harnessName })
-  const { harness, command } = resolved
+  const resolved = resolveHarness({ agent, ...own, harness: harnessName })
+  const { harness, command, runtime } = resolved
   if (!harness.resumes) return null
   const argv = command.split(/\s+/).filter(Boolean)
   return {
     harness: harness.name,
+    runtime: runtime.id,
     ...(agent ? { agent } : {}),
     argv: [...argv, ...settingArgs(resolved), ...harness.resumeArgs(argv, resumeId, cwd)],
     // The resumed turn runs under the id it resumed, so this run can be resumed again by
@@ -477,7 +508,6 @@ export function planResume(
     resumeId,
     install: harness.install,
     cwd,
-    ...(own.settings ? { settings: own.settings } : {}),
   }
 }
 
@@ -485,7 +515,7 @@ export function planResume(
  *  because a plan is written to the board and an API key is not: the keys are read out of
  *  docs/kanban/.env here, into the child's environment and nowhere else. */
 export function openPlan(plan: RunPlan): ActiveRun {
-  const resolved = resolveHarness({ agent: plan.agent, pin: plan.harness, settings: plan.settings })
+  const resolved = resolveHarness({ agent: plan.agent, pin: plan.runtime, harness: plan.harness })
   const { harness } = resolved
   return {
     ...plan,
@@ -533,7 +563,8 @@ export function resumesUnder(harnessName: string | undefined): boolean {
  *  board has, on either solution. */
 const PLANNER = 'planner'
 
-/** Which agent this board's conversations are held with, and whether it can hold one.
+/** Which harness this board's conversations are held with, and whether it can hold one.
+ *  `pin` is the runtime the conversation picked for itself, with none the planner's.
  *
  *  A conversation is one message after another into the session the agent already opened,
  *  and that is exactly what `resumes` says a CLI can do — so chat leans on that one
@@ -541,8 +572,9 @@ const PLANNER = 'planner'
  *  the day the two drifted apart. An agent that can't is turned away by this alone, and the
  *  refusal names the ones that can. */
 export function chatAgent(pin?: string): ChatAgent {
-  const { harness } = resolveHarness({ agent: PLANNER, pin })
+  const { harness, runtime } = resolveHarness({ agent: PLANNER, pin })
   return {
+    runtime: runtime.id,
     name: harness.name,
     label: harness.label,
     canChat: harness.resumes,
@@ -554,40 +586,44 @@ export function chatAgent(pin?: string): ChatAgent {
   }
 }
 
-/** Every agent a conversation can be pointed at (#272), and what the board already has
- *  each one set to. The offer comes from here rather than from a list in the UI: it is the
- *  same "can hold a conversation" a refusal already names, and the model each one starts
- *  from is that agent's own setting read exactly as Configuration reads it. */
-export function chatPickAgents(): ChatPickAgent[] {
+/** Every runtime a conversation can be pointed at (#272, #467), in the board's own order.
+ *  The offer comes from here rather than from a list in the UI: it is the same "can hold a
+ *  conversation" a refusal already names, and the model on each row is that runtime's own,
+ *  read exactly as Configuration reads it. */
+export function chatRuntimes(): ChatRuntime[] {
   const onPath = pathLookup()
-  return HARNESSES.filter((h) => h.resumes).map((option) => {
-    const resolved = resolveHarness({ agent: PLANNER, pin: option.name })
-    return {
-      name: option.name,
-      label: option.label,
-      icon: option.icon,
-      // No box where there is nothing for it to set: an agent that declares no model, and
-      // one whose own `command` already names the flag, both ignore what is typed.
-      takesModel:
-        option.settings.some((s) => s.key === 'model') && !resolved.ignored.includes('model'),
-      model: resolved.values.model ?? '',
-      installed: onPath(resolved.command),
-    }
-  })
+  return readRuntimes()
+    .filter((runtime) => harnessOfRuntime(runtime).resumes)
+    .map((runtime) => {
+      const resolved = resolveHarness({ agent: PLANNER, pin: runtime.id })
+      return {
+        id: runtime.id,
+        name: runtime.name,
+        harness: resolved.harness.name,
+        label: resolved.harness.label,
+        icon: resolved.harness.icon,
+        model: resolved.values[MODEL_KEY] ?? '',
+        installed: onPath(resolved.command),
+      }
+    })
 }
 
-/** How the connector one conversation runs takes a picture on disk (#441) — `pin` is the one
- *  it picked for itself, with none the planner's, which is what a chat spawns (#443).
- *  Undefined for one that can't see a picture at all, which is the answer a paste is turned
- *  away on. */
+/** How the harness one conversation runs takes a picture on disk (#441) — `pin` is the runtime
+ *  it picked for itself, with none the planner's, which is what a chat spawns. Undefined for
+ *  one that can't see a picture at all, which is the answer a paste is turned away on. */
 export function harnessImages(pin?: string): ImageInput | undefined {
   return resolveHarness({ agent: PLANNER, pin }).harness.images
 }
 
-/** The model a conversation on one connector starts from — the planner's own, since a chat
- *  about a card is planning work — and what one click puts it back to. */
-export function harnessModel(name?: string): string {
-  return resolveHarness({ agent: PLANNER, pin: name }).values.model ?? ''
+/** The model one runtime runs — what a conversation on it says it is running. */
+export function runtimeModel(pin?: string): string {
+  return resolveHarness({ agent: PLANNER, pin }).values[MODEL_KEY] ?? ''
+}
+
+/** The name one runtime reads as, for saying what a conversation runs. A pin nothing answers
+ *  to reads as **Global default**, which is what would actually run. */
+export function runtimeName(pin?: string): string {
+  return pickRuntime(readRuntimes(), pin).name
 }
 
 /** The label an agent name reads as, for saying which agent a conversation belongs to. */
@@ -660,16 +696,6 @@ function modelsRun(): Map<string, string[]> {
   return ran
 }
 
-/** Every model id worth offering for an agent: what its CLI knows here, in that CLI's own
- *  order, then anything this board has run that the list left out.
- *
- *  One list, wherever a model is picked — the settings pane and a chat's own row both draw
- *  this. Two shortcuts disagreeing about what this machine can run is worse than either of
- *  them being short. */
-export function modelsKnown(harness: string): string[] {
-  return mergeModels(harnessByName(harness), modelsRun().get(harness) ?? [])
-}
-
 function mergeModels(harness: Harness | undefined, ran: string[]): string[] {
   return uniqueIds([...(harness?.models?.() ?? []), ...ran])
 }
@@ -681,19 +707,16 @@ function withModels(harness: Harness, settings: HarnessSetting[], ran: string[])
   return settings.map((setting) => (setting.key === MODEL_KEY ? { ...setting, suggestions } : setting))
 }
 
-/** Which connector runs the board by default, what each one is set to, and which agent runs
- *  each flow — everything a front end needs to draw Configuration without keeping a list of
- *  its own. */
+/** The board's runtimes, every harness they can name, and which agent runs each flow —
+ *  everything a front end needs to draw Configuration without keeping a list of its own. */
 export function agentInfo(): AgentInfo {
-  // The board's DEFAULT connector — the `harness` and `harnessSettings` `akb agent use` and
-  // `akb agent set` write, and what an agent that picked none runs.
+  // **Global default** — the first row, and what an agent naming no runtime runs.
   const { harness, command, isDefault, values, secretsSet, ignored, unknownName, staleCommand } =
     resolveHarness()
-  // Which of the connectors this machine could actually run, asked once for the whole list:
-  // one read of the PATH, then every connector answered out of it. It happens on every read of
-  // the setting rather than once at startup, so a CLI installed while the board was open counts
-  // the next time anything asks.
-  const cfg = safeConfig()
+  // Which of the CLIs this machine could actually run, asked once for the whole list: one read
+  // of the PATH, then every row answered out of it. It happens on every read of the setting
+  // rather than once at startup, so a CLI installed while the board was open counts the next
+  // time anything asks.
   const onPath = pathLookup()
   const ran = modelsRun()
   const harnessOf = harnessLookup()
@@ -706,38 +729,38 @@ export function agentInfo(): AgentInfo {
     // nothing, and a user who forgot theirs makes a new one.
     secretsSet,
     ignored,
-    // Every connector's settings go down, not just the running one's: picking another draws
-    // its own list right away, without asking again. So does what it is already set to,
-    // whether this machine can run it, and the command that installs it if it can't — a
-    // picker offering a connector that isn't here sends the user to a run that dies on the
-    // spawn.
+    // The list the Runtimes pane draws, in the board's own order with **Global default**
+    // first. Each row is the whole truth about one run — its harness's settings, what this
+    // row has them set to, which of its keys this computer holds, and whether the CLI it
+    // names is here.
+    runtimes: readRuntimes().map((runtime) => runtimeView(runtime, onPath, ran)),
+    // Every harness's own settings go down with them, not just the running one's: switching a
+    // row's harness draws its list right away, without asking again. The gaps go too
+    // (`agent/capabilities.ts`), so a picker can say what a switch costs before it is made —
+    // not all of these report a price, name their model or let go of a card when they are
+    // rate-limited, and none of that shows up until a run.
     //
-    // `command` stays the connector's own, never the override: it is what a front end
-    // compares against to notice there IS an override. What the override changes is which
-    // binary gets looked up, and that is `binary`.
-    //
-    // The gaps go down with them (`agent/capabilities.ts`) so a picker can say what a switch
-    // costs before it is made — not all of these connectors report a price, name their model
-    // or let go of a card when they are rate-limited, and none of that shows up until a run.
+    // `command` stays the harness's own, never a row's override: it is what a front end
+    // compares against to notice there IS an override.
     options: HARNESSES.map((option) => {
       const { name, label, icon, command: cmd, settings, install } = option
-      const block = configBlock(configBlock(cfg.harnessSettings)[option.name])
-      const runs = commandOf(block, option)
-      const read = readBlock(option, block, runs.split(/\s+/).filter(Boolean))
+      // …and what the first row on each harness is set to, for a screen that lists harnesses
+      // rather than runtimes. A run never reads it: `runtimes` above is what one resolves from.
+      const first = resolveHarness({ pin: name, harness: name })
       return {
         name,
         label,
         icon,
         command: cmd,
         settings: withModels(option, settings, ran.get(name) ?? []),
-        binary: commandBinary(runs),
-        installed: onPath(runs),
+        binary: commandBinary(cmd),
+        installed: onPath(cmd),
         install,
         gaps: harnessGaps(option),
-        runs,
-        values: read.values,
-        secretsSet: read.secretsSet,
-        ignored: read.ignored,
+        runs: first.command,
+        values: first.values,
+        secretsSet: first.secretsSet,
+        ignored: first.ignored,
       }
     }),
     // The name a screen shows this computer by. The hostname alone — reading it mints no
@@ -754,60 +777,95 @@ export function agentInfo(): AgentInfo {
   }
 }
 
-/** What one agent runs here, and whether that is its own pick or the board's default (#443).
- *  The one answer the Agents pane and `akb agent` both draw. */
-export function agentRun(agent: string, table = readAgentHarness()): HarnessRun {
-  const picked = harnessOfAgent(specAgentNames(agent), table)
-  const resolved = resolveHarness({ agent })
+// One row, as the pane draws it: what it is, what it runs, and what this computer can say
+// about it. The values are read exactly the way a run reads them, so nothing on the row can
+// disagree with what would spawn.
+function runtimeView(
+  runtime: Runtime,
+  onPath: (command: string) => boolean,
+  ran: Map<string, string[]>,
+): RuntimeView {
+  const resolved = resolveHarness({ pin: runtime.id })
+  const { harness, command, values, secretsSet, ignored } = resolved
   return {
-    harness: resolved.harness.name,
-    own: !!picked,
-    // Set only when the board names a connector this build can't run: the fields around it
-    // are the connector that WOULD run, so a pane can say the saved name stopped working
-    // without drawing one connector's values under another's labels.
-    ...(resolved.unknownAgentHarness ? { unknownHarness: resolved.unknownAgentHarness } : {}),
-    settings: withModels(
-      resolved.harness,
-      resolved.harness.settings.filter((setting) => setting.agentOwned),
-      modelsRun().get(resolved.harness.name) ?? [],
-    ),
-    values: Object.fromEntries(
-      resolved.harness.settings
-        .filter((setting) => setting.agentOwned && resolved.values[setting.key])
-        .map((setting) => [setting.key, resolved.values[setting.key]!]),
-    ),
+    id: runtime.id,
+    name: runtime.name,
+    fixed: runtime.id === GLOBAL_ID,
+    harness: runtime.harness,
+    label: harness.label,
+    icon: harness.icon,
+    unknownHarness: resolved.isDefault ? runtime.harness : undefined,
+    settings: withModels(harness, harness.settings, ran.get(harness.name) ?? []),
+    values,
+    secretsSet,
+    ignored,
+    model: values[MODEL_KEY] ?? '',
+    command: harness.command,
+    runs: command,
+    binary: commandBinary(command),
+    installed: onPath(command),
+    install: harness.install,
+    gaps: harnessGaps(harness),
   }
 }
 
-/** The agents this machine could run right now, in the order they are declared — the CLI is
- *  on the PATH, and the provider the saved settings resolve to wants nothing that is not
- *  filled in. An agent still waiting on a key or a base URL is left off: trying it would ask
- *  for the very setting the try was meant to spare the user (#404).
+/** What one agent runs here, and whether that is its own pick or **Global default** (#467).
+ *  The one answer the Agents pane and `akb agent` both draw. */
+export function agentRun(agent: string, table = readAgentRuntime()): HarnessRun {
+  const picked = runtimeOfAgent(specAgentNames(agent), table)
+  const resolved = resolveHarness({ agent })
+  return {
+    runtime: resolved.runtime.id,
+    runtimeName: resolved.runtime.name,
+    harness: resolved.harness.name,
+    own: !!picked,
+    model: resolved.values[MODEL_KEY] ?? '',
+    // Set only when the board names a runtime it no longer has: the fields around it are the
+    // row that WOULD run, so a pane can say the saved pick stopped working without drawing
+    // one runtime's values under another's name.
+    ...(resolved.unknownAgentRuntime ? { unknownRuntime: resolved.unknownAgentRuntime } : {}),
+  }
+}
+
+/** The runtimes this machine could run right now, in the board's own order — the CLI is on
+ *  the PATH, and the provider that row resolves to wants nothing that is not filled in. A
+ *  row still waiting on a key or a base URL is left off: trying it would ask for the very
+ *  setting the try was meant to spare the user (#404).
  *
  *  Spawn-free and uncached, like `installed` — it reads the PATH and the saved settings and
  *  nothing else. Whether one of them ANSWERS is `testConnection`'s question, and this list is
  *  what the first run asks it of, one at a time. */
 export function runnableAgents(): string[] {
-  const cfg = safeConfig()
-  const blocks = configBlock(cfg.harnessSettings)
   const onPath = pathLookup()
-  const names: string[] = []
-  for (const harness of HARNESSES) {
-    const block = configBlock(blocks[harness.name])
-    const command = commandOf(block, harness)
-    if (!onPath(command)) continue
-    const { values, secretsSet } = readBlock(harness, block, command.split(/\s+/).filter(Boolean))
-    const filled = isFilled(harness, values, secretsSet)
-    if (missingHere(harness, activeProviderOf({ harness, values, secretsSet }), filled).length) continue
-    names.push(harness.name)
-  }
-  return names
+  return readRuntimes()
+    .filter((runtime) => couldRun(resolveHarness({ pin: runtime.id }), onPath))
+    .map((runtime) => runtime.id)
 }
 
-/** What a connector's picked provider is still missing, asked of the CONNECTOR's own
- *  settings. A key that picks a model is left out: those belong to the agent and are set per
- *  machine (#443), so a connector is never called unreachable for one nobody has typed yet —
- *  a missing model fails the run itself, and the log says so. */
+/** The same question asked of the HARNESSES, in the order they are declared — the CLI is on
+ *  the PATH and the settings **Global default** would run it under want nothing unfilled.
+ *
+ *  What the guided first run walks (`AgentProbe`): it is choosing the harness **Global
+ *  default** runs, and a board that has never been set up holds exactly one runtime, so the
+ *  runtimes list has nothing there for it to try. */
+export function runnableHarnesses(): string[] {
+  const onPath = pathLookup()
+  return HARNESSES.filter((harness) =>
+    couldRun(resolveHarness({ pin: harness.name, harness: harness.name }), onPath),
+  ).map((harness) => harness.name)
+}
+
+// Its CLI is here, and nothing its picked provider must have is still empty.
+function couldRun(resolved: ResolvedHarness, onPath: (command: string) => boolean): boolean {
+  const { harness, command, values, secretsSet } = resolved
+  if (!onPath(command)) return false
+  const filled = isFilled(harness, values, secretsSet)
+  return missingHere(harness, activeProviderOf(resolved), filled).length === 0
+}
+
+/** What a runtime's picked provider is still missing. A key that picks a model is left out:
+ *  a runtime is never called unreachable for a model nobody has typed yet — a missing model
+ *  fails the run itself, and the log says so. */
 export function missingHere(
   harness: Harness,
   provider: Provider | undefined,

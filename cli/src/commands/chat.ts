@@ -9,8 +9,7 @@
 // message is one command, so the same conversation is picked up from a terminal, from
 // another terminal, or from the board app, and closing any of them loses nothing.
 
-import { clearChat, pickChatAgent, pickChatModel, readChatView, sendChatMessage } from '../lib/agent/chat'
-import { harnessLabel } from '../lib/agent/resolve'
+import { clearChat, pickChatRuntime, readChatView, sendChatMessage } from '../lib/agent/chat'
 import { titleOf } from '../lib/agent/sessions'
 import type { ChatView } from '../lib/agent/types'
 import { collecting, say } from '../lib/io'
@@ -23,8 +22,7 @@ export interface ChatOptions {
   id?: number
   message?: string[]
   clear?: boolean
-  agent?: string
-  model?: string
+  runtime?: string
 }
 
 export async function cmdChat(opts: ChatOptions, program = 'akb'): Promise<MoveResult> {
@@ -43,26 +41,18 @@ export async function cmdChat(opts: ChatOptions, program = 'akb'): Promise<MoveR
 
   if (cardId !== null) assertCardExists(cardId)
 
-  // What this one conversation runs on (#272), before anything is said on it. Both stay
-  // with the transcript, so the next `akb chat` and the board app read the same pick.
-  if (opts.agent !== undefined) {
-    const name = opts.agent.trim()
-    const picked = pickChatAgent(cardId, name || null)
+  // What this one conversation runs on (#272, #467) — one runtime, before anything is said on
+  // it. It stays with the transcript, so the next `akb chat` and the board app read the same
+  // pick.
+  if (opts.runtime !== undefined) {
+    const id = opts.runtime.trim()
+    const picked = pickChatRuntime(cardId, id || null)
     if ('error' in picked) die(picked.error, { kind: 'chat-refused' })
+    const now = readChatView(cardId).pick
     say(
       picked.cleared
-        ? `the conversation about ${about} now runs ${harnessLabel(picked.harness)} — what it had is gone, because that session was the old agent's.`
-        : `the conversation about ${about} now runs ${harnessLabel(picked.harness)}.`,
-    )
-  }
-  if (opts.model !== undefined) {
-    const id = opts.model.trim()
-    const picked = pickChatModel(cardId, id || null)
-    if ('error' in picked) die(picked.error, { kind: 'chat-refused' })
-    say(
-      id
-        ? `the conversation about ${about} now runs on ${id}.`
-        : `the conversation about ${about} is back on the board's model.`,
+        ? `the conversation about ${about} now runs "${now.name}" — what it had is gone, because that session was the old CLI's.`
+        : `the conversation about ${about} now runs "${now.name}".`,
     )
   }
 
@@ -118,10 +108,9 @@ function printChat(view: ChatView, program: string): void {
   // What it runs on, said whether or not anything has been said on it — a pick made before
   // the first message is still the pick.
   const { pick } = view
-  const own = [pick.ownAgent && 'agent', pick.ownModel && 'model'].filter(Boolean).join(' and ')
   const runs =
-    `${harnessLabel(pick.harness)}${pick.model ? ` · ${pick.model}` : ''}` +
-    (own ? ` — this conversation's own ${own}, not the board's` : '')
+    `${pick.name} — ${pick.harness}${pick.model ? ` · ${pick.model}` : ''}` +
+    (pick.own ? " — this conversation's own runtime, not the board's" : '')
   if (!chat || !chat.messages.length) {
     say(`nothing said about ${about} yet. it runs ${runs}`)
   } else {
@@ -139,9 +128,8 @@ function printChat(view: ChatView, program: string): void {
   }
   say('')
   if (view.blocked) say(view.blocked)
-  say(`say something: ${program} chat${target} "your message"`)
-  say(`another model: ${program} chat${target} --model <id>        ("" for the board's)`)
-  say(`another agent: ${program} chat${target} --agent <name>      (starts the conversation over)`)
+  say(`say something:   ${program} chat${target} "your message"`)
+  say(`another runtime: ${program} chat${target} --runtime <id>    ("" for the board's)`)
   if (chat) say(`start again:   ${program} chat${target} --clear`)
 }
 

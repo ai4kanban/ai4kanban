@@ -359,14 +359,13 @@ export interface BoardRules {
   ): { name: string } | { error: string };
   dropChatImage?(cardId: ChatTarget, name: string): void;
   chatImageFile?(cardId: ChatTarget, name: string): string | null;
-  /** What one conversation runs on (#272) — its own agent and model, kept with the
-   *  transcript and nowhere near the board's settings. Optional: rules from before them
-   *  draw no picker, and every conversation runs the board's pair as it always did. */
-  pickChatAgent?(
+  /** What one conversation runs on (#272, #467) — one runtime, kept with the transcript and
+   *  nowhere near the board's settings. Optional: rules from before it draw no picker, and
+   *  every conversation runs the planner's row as it always did. */
+  pickChatRuntime?(
     cardId: ChatTarget,
-    harness: string | null,
-  ): { ok: true; cleared: boolean; restarted?: boolean; harness: string } | { error: string };
-  pickChatModel?(cardId: ChatTarget, model: string | null): { ok: true } | { error: string };
+    runtime: string | null,
+  ): { ok: true; cleared: boolean; restarted?: boolean; runtime: string } | { error: string };
 
   // Discuss (#427) — the same board conversation, with the plan it is talking into shape.
   // Optional like the chat itself: a project running rules older than the release that added
@@ -400,29 +399,45 @@ export interface BoardRules {
    *  it draws a picker. Optional: rules from before it answer nothing, and the first run then
    *  opens on the picker exactly as it always did. */
   runnableAgents?(): string[];
-  /** `ask` names whose settings are read (#443): `pin` one connector, `agent` one agent —
-   *  and with neither, the board's default connector. A copy of the rules from before this
-   *  ignores both and answers for the board's, which is what it always did. */
-  activeSettings(ask?: { pin?: string; agent?: string }): HarnessSetting[];
-  settingSaveError(key: string, value: string, ask?: { pin?: string; agent?: string }): string | null;
+  /** The same question asked of the connectors, which is what the guided first run walks:
+   *  it is choosing the harness Global default runs (#467). Absent on rules from before
+   *  runtimes, where `runnableAgents` already answered in connector names. */
+  runnableHarnesses?(): string[];
+  /** `ask` names whose settings are read (#443, #467): `pin` one runtime or connector,
+   *  `agent` one agent, `harness` narrows to one connector's own rows — and with none of
+   *  them, Global default. A copy of the rules from before this ignores them and answers for
+   *  the board's, which is what it always did. */
+  activeSettings(ask?: { pin?: string; agent?: string; harness?: string }): HarnessSetting[];
+  settingSaveError(
+    key: string,
+    value: string,
+    ask?: { pin?: string; agent?: string; harness?: string },
+  ): string | null;
   setupInstruction(): string;
   setHarness(name: string): WriteResult;
-  /** `harness` names whose block is written; with none it is the board's default (#443). */
+  /** `harness` names whose row is written; with none it is Global default (#467). */
   setHarnessSetting(key: string, value: string, harness?: string): WriteResult;
+  /** The same row's key, under the id-scoped line a run reads (#467). Optional: rules from
+   *  before runtimes wrote a key by its bare variable name, which `setSecret` still does. */
+  setHarnessSecret?(key: string, value: string, harness?: string): WriteResult;
   setSecret(name: string, value: string): WriteResult;
-  /** Named a connector, the test spawns THAT one (#443). */
+  /** Named a runtime or a connector, the test spawns THAT one (#443, #467). */
   testConnection(harness?: string): Promise<ConnectionTest>;
 
-  // which connector each agent runs, and the model under it (#443). The pick is the board's,
-  // in docs/kanban/ui.config.json; the model is this computer's, in docs/kanban/.local.json.
+  // which runtime each agent runs (#467). The pick is the board's, in
+  // docs/kanban/ui.config.json, so every checkout runs each agent as the same thing.
   // Optional: a project can be running rules older than the release that added them, and
   // Configuration → Agents then draws no runtime row.
-  /** Give one agent a connector of its own, or put it back on the board's default with "". */
-  setAgentHarness?(agent: string, harness: string, legacyNames?: string[]): WriteResult;
-  /** Save one of an agent's model settings, against the connector it runs. */
-  setLocalAgentValue?(agent: string, harness: string, key: string, value: string): WriteResult;
-  /** What one agent runs here — its connector's name, label and settings. */
-  agentHarness?(agent?: string): { name: string; label: string; settings: HarnessSetting[] };
+  /** Point one agent at a runtime, or back at Global default with "". */
+  setAgentRuntime?(agent: string, runtime: string, legacyNames?: string[]): WriteResult;
+  /** What one agent runs here — its runtime's id, its harness's name and label, and the
+   *  settings that harness takes. */
+  agentHarness?(agent?: string): {
+    runtime: string;
+    name: string;
+    label: string;
+    settings: HarnessSetting[];
+  };
 
   // the board, read
   readBoard(): Promise<Board>;

@@ -96,10 +96,10 @@ const en: ConfigurationCopy = {
     flipFailedOff: (agent) => `couldn't switch ${agent} off`,
 
     runtime: "Runtime",
-    boardDefault: (harness) => `Board default — ${harness}`,
+    boardDefault: (runtime) => `${runtime} (first on the list)`,
     runtimeBlurb:
-      "The runtime travels with the repository; the model stays on this computer, so every checkout picks its own.",
-    unknownHarness: (harness) => `Set to "${harness}", which this version can't run.`,
+      "The pick travels with the repository. Set a runtime up — its endpoint, key and model — in Configuration → Runtimes.",
+    unknownHarness: (runtime) => `Set to "${runtime}", which this board no longer has.`,
     harnessFailed: (agent) => `couldn't save what ${agent} runs`,
     runsWhen: "Runs when",
     yours: "Yours",

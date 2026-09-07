@@ -172,11 +172,12 @@ export async function readChat(cardId: ChatTarget): Promise<ChatRead> {
   };
 }
 
-/** Point this conversation at an agent (#272). It cannot be carried across, so this throws
- *  the transcript away and opens a fresh one — the rail says so before it asks. */
-export async function pickChatAgent(
+/** Point this conversation at a runtime (#272, #467). A row on another CLI cannot be carried
+ *  across, so it throws the transcript away and opens a fresh one — the rail says so before
+ *  it asks; a row on the same CLI carries the conversation on. */
+export async function pickChatRuntime(
   cardId: ChatTarget,
-  harness: string | null,
+  runtime: string | null,
 ): Promise<{ ok: boolean; cleared?: boolean; restarted?: boolean; error?: string }> {
   let rules;
   try {
@@ -184,32 +185,15 @@ export async function pickChatAgent(
   } catch (e) {
     return { ok: false, error: whyNoRules(e) };
   }
-  if (!rules.pickChatAgent) return { ok: false, error: TOO_OLD };
-  const picked = rules.pickChatAgent(cardId, harness);
+  if (!rules.pickChatRuntime) return { ok: false, error: TOO_OLD };
+  const picked = rules.pickChatRuntime(cardId, runtime);
   if ("error" in picked) return { ok: false, error: picked.error };
   flights().failed.delete(keyOf(cardId));
-  // `cleared` says whether there was a transcript to lose — a switch to the agent it
-  // already runs takes nothing away, and neither does one it refused. `restarted` says the
+  // `cleared` says whether there was a transcript to lose — a switch to a row on the same
+  // CLI takes nothing away, and neither does one it refused. `restarted` says the
   // conversation went whether or not it held anything, which is what the pictures waiting
-  // in the box follow (#441); rules from before it fall back to `cleared`.
+  // in the box follow (#441).
   return { ok: true, cleared: picked.cleared, restarted: picked.restarted ?? picked.cleared };
-}
-
-/** Point this conversation at a model. The same conversation carries on; the next message
- *  runs on it. */
-export async function pickChatModel(
-  cardId: ChatTarget,
-  model: string | null,
-): Promise<{ ok: boolean; error?: string }> {
-  let rules;
-  try {
-    rules = await boardRules();
-  } catch (e) {
-    return { ok: false, error: whyNoRules(e) };
-  }
-  if (!rules.pickChatModel) return { ok: false, error: TOO_OLD };
-  const picked = rules.pickChatModel(cardId, model);
-  return "error" in picked ? { ok: false, error: picked.error } : { ok: true };
 }
 
 /** Why the box is shut whatever the conversation is doing. "Still answering" is not one of
@@ -223,17 +207,14 @@ export async function pickChatModel(
 function stillBlocked(
   view: {
     canChat: boolean;
-    chat: { harness: string; pickedHarness?: string; messages: unknown[] } | null;
+    chat: { harness: string; messages: unknown[] } | null;
     agent: string;
     blocked?: string;
   },
   options: { name: string; label: string }[],
 ): string | undefined {
   if (!view.canChat) return view.blocked;
-  // A conversation that picked its own agent (#272) is already running it, whatever the
-  // board is set to — there is nothing here for the board's own agent to disagree with.
-  if (view.chat?.pickedHarness) return undefined;
-  // And a transcript with nothing in it was held with nobody — picking a model before the
+  // A transcript with nothing in it was held with nobody — picking a runtime before the
   // first message leaves one.
   if (!view.chat?.messages.length) return undefined;
   const harness = view.chat.harness;

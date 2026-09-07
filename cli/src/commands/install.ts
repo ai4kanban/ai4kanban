@@ -17,8 +17,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 
-import { moveModelsLocal } from '../lib/agent/local'
-import { HARNESSES } from '../lib/agent/harnesses'
+import { takeLocalModels } from '../lib/agent/local'
+import { migrateRuntimes, repairEnvFile } from '../lib/agent/runtimes'
 import { agentNames } from '../lib/agent/roles'
 import { runBoard } from '../lib/board-cli'
 import { missingConfigKeys } from '../lib/config-template'
@@ -362,34 +362,38 @@ async function repairBoard(root: string, report: Report): Promise<void> {
   // wrote and never touches a file that's already filled in. It also writes the ignore line
   // the move below needs, so it goes first.
   await boardMove(root, ['init'])
-  moveModels(root, board, report)
+  moveRuntimes(root, board, report)
   dropModuleGoals(board, report)
   checkConfig(board, report)
   checkModules(board, report)
 }
 
-// A model used to be the board's — one per connector in `ui.config.json`, committed and
-// shared by every checkout. It is the AGENT's now, and per machine (#443), so an update moves
-// what this board already had into `docs/kanban/.local.json` under every agent: runs on THIS
-// computer go on using exactly the model they used before, and the other checkouts start
-// empty and pick their own.
+// How to reach a CLI used to be one block per harness in `ui.config.json`, and the model under
+// it was this computer's, in `.local.json`. Both are one runtime now (#467), so an update turns
+// what the board already had into rows: every block becomes one, the one `harness` named
+// becomes **Global default**, and each agent whose model differed gets a row of its own — a
+// board then runs exactly what it ran before.
 //
-// The one write in the whole board that rewrites the user's `ui.config.json`, and it happens
-// once: the keys are gone afterwards, so a second update finds nothing to move.
-function moveModels(root: string, board: string, report: Report): void {
-  const owned = (harness: string, key: string): boolean =>
-    !!HARNESSES.find((h) => h.name === harness)?.settings.some((s) => s.key === key && s.agentOwned)
+// The key file is brought over separately and off the RUNTIMES LIST rather than off the move,
+// so a checkout pulled to a second computer — where the config was converted elsewhere and only
+// `.env` is still old — is repaired there too.
+//
+// This is the one write in the whole board that rewrites the user's `ui.config.json`, and it
+// happens once: the blocks are gone afterwards, so a second update finds nothing to move.
+function moveRuntimes(root: string, board: string, report: Report): void {
   try {
     // Point this process at the board being repaired before asking it who its agents are:
     // `akb update --dir X` repairs a board this process did not resolve on its own, and the
     // roster follows the board's solution and its own `agents/` folder.
     setBoardRoot(root)
-    const line = moveModelsLocal(board, agentNames(), owned)
+    const line = migrateRuntimes(board, agentNames(), takeLocalModels(board))
     if (line) report.did.push(line)
+    const keys = repairEnvFile()
+    if (keys) report.did.push(keys)
   } catch (err) {
     report.notes.push(
-      `couldn't move the models out of docs/kanban/ui.config.json into .local.json (${err instanceof Error ? err.message : String(err)}) —` +
-        " set each agent's model in Configuration → Agents",
+      `couldn't turn docs/kanban/ui.config.json's connector settings into runtimes (${err instanceof Error ? err.message : String(err)}) —` +
+        ' set them up in Configuration → Runtimes',
     )
   }
 }

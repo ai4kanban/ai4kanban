@@ -11,26 +11,19 @@
 //
 // ui.config.json reads:
 //
-//   "harness": "claude-code",
-//   "harnessSettings": {
-//     "claude-code": { "baseUrl": "https://…", "command": "claude -p" },
-//     "codex": { "provider": "api" }
-//   },
-//   "agentHarness": { "builder": "codex" },
+//   "runtimes": [
+//     { "id": "global", "name": "Global default", "harness": "claude-code",
+//       "settings": { "baseUrl": "https://…", "model": "claude-opus-5" } }
+//   ],
+//   "agentRuntime": { "builder": "cheap" },
 //   "specAgents": {
 //     "technology-selection": false,
 //     "ui-design": { "enabled": false, "mockupStyle": "ascii" }
 //   }
 //
-// `harness` is the board's default connector — what an agent that picked none runs.
-// `agentHarness` is where an agent picks another. Every connector keeps its own settings in
-// `harnessSettings`, under its own name, whether or not anything runs it — so switching
-// connectors changes which block is read and throws nothing away. Inside a block, `command`
-// is an optional override for a custom binary or extra flags, hand-edited in the file; every
-// other key is one of the settings that connector declares.
-//
-// What a connector is set to here is how to REACH it — provider, endpoint, extra arguments.
-// Which model an agent runs is the agent's, and per machine (./local.ts).
+// What a run runs as is one runtime, and all of it — harness, provider, endpoint, key, model
+// id, reasoning, extra arguments — is that one row (./runtimes.ts). This file owns the reading
+// and writing of `ui.config.json` itself, the spec agents' entries, and `docs/kanban/.env`.
 //
 // A key no setting declares is left exactly where it is: this is the user's file, and
 // nothing here rewrites a line they wrote.
@@ -39,13 +32,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { ENV_FILE, KANBAN_GITIGNORE, UI_CONFIG } from '../paths'
-import { harnessByName, DEFAULT_HARNESS } from './harnesses'
 
 // ---- ui.config.json --------------------------------------------------------
 
-/** One block out of the config file — the `harnessSettings` map, or one agent's settings
- *  inside it. Anything that isn't a plain object reads as empty, so a hand-edit that put a
- *  string or a list where a block belongs is ignored rather than spread into a run. */
+/** One block out of the config file — a runtime's settings, or one spec agent's entry.
+ *  Anything that isn't a plain object reads as empty, so a hand-edit that put a string or a
+ *  list where a block belongs is ignored rather than spread into a run. */
 export function configBlock(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return value as Record<string, unknown>
@@ -68,53 +60,6 @@ export function safeConfig(): Record<string, unknown> {
   } catch {
     return {}
   }
-}
-
-/** The name of the agent that runs for a config file's `harness` value: the one it names,
- *  when we ship it, and the default otherwise. Its block in `harnessSettings` is the
- *  picked agent's settings — so the writer and the reader always mean the same block. */
-export function pickedHarnessName(configured: unknown): string {
-  const asked = typeof configured === 'string' ? configured.trim() : ''
-  return (harnessByName(asked) ?? DEFAULT_HARNESS).name
-}
-
-/** Save the board's DEFAULT connector — one name, and nothing else moves. Every connector's
- *  settings already live under its own name, so switching writes no setting, reads none, and
- *  loses none: the one you leave keeps its endpoint and its `command` override exactly as
- *  they were, and picking it again brings them back. */
-export function setHarness(name: string): { ok: boolean; error?: string } {
-  return writeConfig((cfg) => {
-    cfg.harness = name
-  })
-}
-
-/** Save one of the settings a connector declares — Claude Code's `baseUrl` writes
- *  `harnessSettings.claude-code.baseUrl`. `harness` names which connector's block is written;
- *  with none it is the board's default one. Writes that one key in that one agent's block and
- *  nothing else: a hand-edited `command`, that agent's other settings, every other agent's
- *  block and any key no setting declares all survive untouched.
- *
- *  An empty value means "use the agent's own default" — that drops the key rather than
- *  leaving an empty string behind, because a missing key and a blank one mean the same
- *  thing and only one of them reads as deliberate. A block with nothing left in it goes
- *  too, so clearing a setting doesn't leave an empty husk behind.
- *
- *  The value is never checked here. Model ids change faster than we ship, so the agent is
- *  the only validator: a bad one makes the run exit non-zero and the reason is in its log.
- *  That the key is one the picked agent declares IS checked, by the command above this. */
-export function setHarnessSetting(key: string, value: string, harness?: string): { ok: boolean; error?: string } {
-  return writeConfig((cfg) => {
-    const name = harness || pickedHarnessName(cfg.harness)
-    const blocks = { ...configBlock(cfg.harnessSettings) }
-    const block = { ...configBlock(blocks[name]) }
-    const next = value.trim()
-    if (next) block[key] = next
-    else delete block[key]
-    if (Object.keys(block).length) blocks[name] = block
-    else delete blocks[name]
-    if (Object.keys(blocks).length) cfg.harnessSettings = blocks
-    else delete cfg.harnessSettings
-  })
 }
 
 // ---- auto-delivery: may the board commit? (#303) ---------------------------
@@ -471,10 +416,10 @@ function writeSpecAgentEntry(
   })
 }
 
-// Read the config, apply one change, write it back — the shared body of every setter. A
-// file that won't parse fails the save instead of overwriting it: losing the user's
-// settings is worse than a failed save.
-function writeConfig(change: (cfg: Record<string, unknown>) => void): { ok: boolean; error?: string } {
+/** Read the config, apply one change, write it back — the shared body of every setter,
+ *  here and in ./runtimes.ts. A file that won't parse fails the save instead of overwriting
+ *  it: losing the user's settings is worse than a failed save. */
+export function writeConfig(change: (cfg: Record<string, unknown>) => void): { ok: boolean; error?: string } {
   let cfg: Record<string, unknown>
   try {
     cfg = readConfigRaw()
@@ -618,69 +563,4 @@ export function setSecret(name: string, value: string): { ok: boolean; error?: s
     const why = e instanceof Error ? e.message : String(e)
     return { ok: false, error: `couldn't write ${ENV_FILE}: ${why}` }
   }
-}
-
-// ---- which harness each agent runs (#443) -----------------------------------
-//
-//   "harness": "claude-code",
-//   "harnessSettings": { "claude-code": { "baseUrl": "https://…" } },
-//   "agentHarness": { "builder": "codex" }
-//
-// Every agent the board has — the roles it ships and the specialists a card asks for — picks
-// the harness it runs on, in one table keyed by the agent's name. An agent the table doesn't
-// name runs `harness`, the board's default. All of it is the BOARD's, in this one file, so
-// every checkout of the repository runs each agent on the same tool.
-//
-// `harnessSettings` is what a harness is set to — how to reach that CLI, and nothing about
-// which model. The model settings are the AGENT's and live per machine (./local.ts), so the
-// two never key the same value twice.
-//
-// A board written before this names none, and then every agent runs `harness` — which is what
-// every flow already ran. A `runtimes` block left by an older release is ignored: the agents
-// it pointed at fall back to the board's harness, and Configuration → Agents is where they
-// are pointed again.
-
-/** Which harness each agent runs, by agent name — only the agents the file names. */
-export function readAgentHarness(cfg: Record<string, unknown> = safeConfig()): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const [agent, value] of Object.entries(configBlock(cfg.agentHarness))) {
-    const name = typeof value === 'string' ? value.trim() : ''
-    if (name) out[agent] = name
-  }
-  return out
-}
-
-/** The harness one agent runs, under its current name or one it used to have, or nothing when
- *  it names none — then it runs the board's own `harness`. */
-export function harnessOfAgent(
-  names: string[],
-  table: Record<string, string> = readAgentHarness(),
-): string | undefined {
-  for (const name of names) {
-    if (table[name]) return table[name]
-  }
-  return undefined
-}
-
-/** Save the harness one agent runs, or put it back on the board's default with an empty
- *  name. Nothing else moves: what that agent picked for each harness is kept per machine
- *  under its own name, so switching a tool and switching back loses no model. */
-export function setAgentHarness(
-  agent: string,
-  harness: string,
-  legacyNames: string[] = [],
-): { ok: boolean; error?: string } {
-  return writeConfig((cfg) => {
-    const block = { ...configBlock(cfg.agentHarness) }
-    for (const legacy of legacyNames) delete block[legacy]
-    if (harness) block[agent] = harness
-    else delete block[agent]
-    if (Object.keys(block).length) cfg.agentHarness = block
-    else delete cfg.agentHarness
-  })
-}
-
-/** Drop one agent's harness pick. Called when the agent itself is deleted. */
-export function forgetAgentHarness(agent: string, legacyNames: string[] = []): { ok: boolean; error?: string } {
-  return setAgentHarness(agent, '', legacyNames)
 }

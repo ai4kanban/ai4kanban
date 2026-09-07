@@ -50,7 +50,10 @@ export async function loggedOutAgents(): Promise<LoggedOutAgent[]> {
  *  way it always did. */
 export async function runnableAgents(): Promise<string[]> {
   const rules = await boardRules();
-  return rules.runnableAgents?.() ?? [];
+  // The connectors, not the runtimes: the probe picks the harness Global default runs, and a
+  // board that has never been set up holds one runtime, so its own list has nothing to walk
+  // (#467). Rules from before runtimes answer connector names out of `runnableAgents`.
+  return (rules.runnableHarnesses ?? rules.runnableAgents)?.() ?? [];
 }
 
 /** What the board shows when there is no copy of the rules to load: no agent, and nothing
@@ -63,17 +66,22 @@ export const NO_AGENT: AgentInfo = {
   values: {},
   secretsSet: [],
   ignored: [],
+  runtimes: [],
   options: [],
   machine: "",
   flows: [],
 };
 
 /** The settings one connector declares — the only keys a save is allowed to write. Named
- *  one, that connector's; named none, the board's default (#443), so Codex's settings are
- *  judged by Codex's rules whichever agent runs it. */
+ *  one, that connector's; named none, Global default's (#467), so Codex's settings are
+ *  judged by Codex's rules whichever runtime runs it.
+ *
+ *  Narrowed to that harness's own rows, the way `agentInfo().options` reads them: a harness
+ *  no runtime is on declares its settings and holds no values, rather than reading as the
+ *  first row on the list. */
 export async function activeSettings(harness?: string): Promise<HarnessSetting[]> {
   const rules = await boardRules();
-  return rules.activeSettings(harness ? { pin: harness } : {}) as unknown as HarnessSetting[];
+  return rules.activeSettings(ask(harness)) as unknown as HarnessSetting[];
 }
 
 /** Why this setting can't be saved with this value, or null when it can. Judged against the
@@ -84,8 +92,10 @@ export async function settingSaveError(
   harness?: string,
 ): Promise<string | null> {
   const rules = await boardRules();
-  return rules.settingSaveError(key, value, harness ? { pin: harness } : {});
+  return rules.settingSaveError(key, value, ask(harness));
 }
+
+const ask = (harness?: string) => (harness ? { pin: harness, harness } : {});
 
 /** What one board action says to the agent. */
 export async function buildPrompt(req: AgentRequest): Promise<string> {

@@ -53,7 +53,6 @@ import { MessageBox } from "./composer";
 import { AgentMark } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
-import { ModelRow } from "./model-row";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1120,31 +1119,25 @@ export function Pasted({ rail }: { rail: ChatRail }) {
   );
 }
 
-/** What this conversation runs on (#272), on the box's own bottom row: the agent as its
- *  mark and the model beside it. It is this conversation's alone — the board's settings
- *  are untouched and no other chat moves.
+/** What this conversation runs on (#272, #467), on the box's own bottom row: one runtime,
+ *  as its CLI's mark and a caret. It is this conversation's alone — the board's settings are
+ *  untouched and no other chat moves.
  *
- *  Everything offered comes from the command: the agents are the ones that can hold a
- *  conversation, and the model box is the picked agent's own setting. */
+ *  Everything offered comes from the command: the rows are the board's runtimes whose CLI can
+ *  hold a conversation, and each one already carries its model, so there is nothing beside it
+ *  to fill in. */
 export function Pick({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answering: boolean }) {
-  const running = pick.agents.find((a) => a.name === pick.harness);
+  const running = pick.runtimes.find((r) => r.id === pick.runtime);
   return (
-    <>
-      {/* One pill, two segments and no seam: they are the same setting read left to right. */}
-      {/* Wide enough for a model id and no wider: the row's room belongs to nothing else,
-          and a box stretched across it reads as the thing you are meant to fill in. */}
-      <span className="flex h-[28px] min-w-0 items-center overflow-hidden rounded-[8px]">
-        <AgentPick rail={rail} pick={pick} label={running?.label ?? pick.harness} answering={answering} />
-        {/* No box where the agent has no model setting to fill in. */}
-        {running?.takesModel && <ModelPick rail={rail} pick={pick} agentModel={running.model} />}
-      </span>
-    </>
+    <span className="flex h-[28px] min-w-0 items-center overflow-hidden rounded-[8px]">
+      <RuntimePick rail={rail} pick={pick} label={running?.name ?? pick.name} answering={answering} />
+    </span>
   );
 }
 
-/** The agent: its mark and a caret, and that is the whole control. Only the open list
- *  spells the harness out, which keeps the row short enough for the model beside it. */
-function AgentPick({
+/** The runtime: its CLI's mark and a caret, and that is the whole control. Only the open list
+ *  spells the row out, which keeps the message box's row short. */
+function RuntimePick({
   rail,
   pick,
   label,
@@ -1157,13 +1150,14 @@ function AgentPick({
 }) {
   const c = useCopy().chat;
   const [open, setOpen] = useState(false);
-  // Which row has been pressed once — the bin's ask-once, per row, because a switch throws
-  // the conversation away. Forgotten whenever the list closes.
+  // Which row has been pressed once — the bin's ask-once, per row, because a switch to
+  // another CLI throws the conversation away. Forgotten whenever the list closes.
   const [confirming, setConfirming] = useState<string | null>(null);
   useEffect(() => {
     if (!open) setConfirming(null);
   }, [open]);
   const has = (rail.read?.chat?.messages.length ?? 0) > 0;
+  const running = pick.runtimes.find((r) => r.id === pick.runtime);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -1172,45 +1166,48 @@ function AgentPick({
           type="button"
           title={c.agentPickHint(label)}
           aria-label={c.agentPick}
-          className="inline-flex h-full shrink-0 cursor-pointer items-center gap-1 pl-2 pr-1.5 hover:brightness-[0.97]"
+          className="inline-flex h-full shrink-0 cursor-pointer items-center gap-1.5 pl-2 pr-1.5 hover:brightness-[0.97]"
           style={{ background: AGENT_FILL }}
         >
-          <AgentMark src={pick.agents.find((a) => a.name === pick.harness)?.icon ?? ""} size={16} name={label} />
+          <AgentMark src={running?.icon ?? ""} size={16} name={label} />
+          <span className="max-w-[128px] truncate text-[12px] text-nb-ink">{label}</span>
           <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="min-w-[210px]">
-        {pick.agents.map((agent) => (
+      <DropdownMenuContent side="top" align="start" className="min-w-[230px]">
+        {pick.runtimes.map((row) => (
           <DropdownMenuItem
-            key={agent.name}
+            key={row.id}
             className="gap-2"
-            disabled={answering && agent.name !== pick.harness}
+            disabled={answering && row.id !== pick.runtime}
             onSelect={(e) => {
-              if (agent.name === pick.harness) return;
-              if (has && confirming !== agent.name) {
+              if (row.id === pick.runtime) return;
+              // Only a row on another CLI costs the transcript, so only that one asks twice.
+              const costs = has && row.harness !== running?.harness;
+              if (costs && confirming !== row.id) {
                 // Keep the list open for the second press.
                 e.preventDefault();
-                setConfirming(agent.name);
+                setConfirming(row.id);
                 return;
               }
-              // The board's own agent is picked by following the board again, not by
-              // pinning the same name — then a board switched later carries this chat too.
-              void rail.pickAgent(agent.name === pick.boardHarness ? null : agent.name);
+              // The board's own row is picked by following the board again, not by pinning
+              // the same id — then a board switched later carries this chat too.
+              void rail.pickRuntime(row.id === pick.boardRuntime ? null : row.id);
             }}
           >
-            <AgentMark src={agent.icon} size={15} />
-            <span className="min-w-0 flex-1 truncate">{agent.label}</span>
-            {confirming === agent.name ? (
+            <AgentMark src={row.icon} size={15} />
+            <span className="min-w-0 flex-1 truncate">{row.name}</span>
+            {confirming === row.id ? (
               <span className="shrink-0 text-[10.5px] font-[700] uppercase tracking-[0.04em] text-nb-accent">
                 {c.switchConfirm}
               </span>
             ) : (
-              <span className="shrink-0 text-[10.5px] font-[400] text-nb-ink-soft">
-                {!agent.installed ? c.notInstalled : agent.name === pick.boardHarness ? c.boardsOwn : ""}
+              <span className="shrink-0 truncate text-[10.5px] font-[400] text-nb-ink-soft">
+                {!row.installed ? c.notInstalled : row.id === pick.boardRuntime ? c.boardsOwn : row.model}
               </span>
             )}
             <span className="w-[13px] shrink-0">
-              {agent.name === pick.harness && <FiCheck size={12} className="text-nb-accent" aria-hidden />}
+              {row.id === pick.runtime && <FiCheck size={12} className="text-nb-accent" aria-hidden />}
             </span>
           </DropdownMenuItem>
         ))}
@@ -1223,99 +1220,7 @@ function AgentPick({
   );
 }
 
-/** The model beside it: free text, because ids change between agent releases and a list of
- *  our own would go stale. The caret offers the same ids the settings pane does — what this
- *  agent's CLI knows on this machine, what the board has run, what has been typed here — as
- *  a shortcut, never as a list of what exists. */
-function ModelPick({ rail, pick, agentModel }: { rail: ChatRail; pick: ChatPick; agentModel: string }) {
-  const c = useCopy().chat;
-  const [typed, setTyped] = useState(pick.model);
-  const [editing, setEditing] = useState(false);
-  // A pick just made, and what the server was still saying when it was made. The polls in
-  // between are behind rather than an answer, so the box holds what was typed until the
-  // server says something else — and then follows it, whatever it says.
-  const asked = useRef<string | null>(null);
-  if (asked.current !== null && asked.current !== pick.model) asked.current = null;
-  // Otherwise the box follows the server: a pick made in a terminal shows up here, and what
-  // is being typed is never written over.
-  if (!editing && asked.current === null && typed !== pick.model) setTyped(pick.model);
-
-  const commit = (value: string) => {
-    const next = value.trim();
-    setTyped(next);
-    if (next === pick.model) return;
-    asked.current = pick.model;
-    void rail.pickModel(next || null);
-  };
-
-  return (
-    <span
-      className="inline-flex h-full min-w-0 items-center pl-2 pr-0.5"
-      style={{ background: MODEL_FILL }}
-    >
-      <input
-        value={typed}
-        onChange={(e) => setTyped(e.target.value)}
-        onFocus={() => setEditing(true)}
-        onBlur={(e) => {
-          setEditing(false);
-          commit(e.target.value);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.currentTarget.blur();
-          }
-        }}
-        spellCheck={false}
-        placeholder={c.modelDefault}
-        aria-label={c.modelPick}
-        title={c.modelPick}
-        // The width of the id it is holding, not of the longest one there could be — a fixed
-        // box leaves a hole between a short id and the caret. Floored so an empty box is
-        // still a box, capped so a long id gives way before the row does.
-        className="min-w-[72px] max-w-[168px] shrink bg-transparent font-mono text-[12px] text-nb-ink field-sizing-content placeholder:font-sans placeholder:text-nb-ink-soft/70 focus:outline-none"
-      />
-      {pick.recent.length > 0 && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              title={c.modelList}
-              aria-label={c.modelList}
-              className="grid size-[22px] shrink-0 cursor-pointer place-items-center rounded-[6px] hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
-            >
-              <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
-            </button>
-          </DropdownMenuTrigger>
-          {/* Scrolls: this is the machine's whole list now, and one agent's runs to a
-              hundred-odd ids. */}
-          <DropdownMenuContent
-            side="top"
-            align="end"
-            className="max-h-[280px] min-w-[210px] overflow-y-auto"
-          >
-            {pick.recent.map((id) => (
-              <DropdownMenuItem
-                key={id}
-                className="gap-2"
-                onSelect={() => {
-                  setTyped(id);
-                  commit(id);
-                }}
-              >
-                <ModelRow id={id} picked={id === pick.model} tag={id === agentModel ? c.boardsOwn : undefined} />
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </span>
-  );
-}
-
-/** What tells the two segments apart, now that no rule does: a fill each, both a shade off
- *  the box's paper. The agent keeps the ember family its mark is already in. */
+/** The one control's fill, a shade off the box's paper, in the ember family the CLI marks
+ *  are already in. */
 const AGENT_FILL = "var(--color-nb-accent-wash)";
-const MODEL_FILL = "var(--color-nb-wash)";
 

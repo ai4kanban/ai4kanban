@@ -16,6 +16,7 @@ import { randomUUID } from 'node:crypto'
 
 import { REPO_ROOT } from '../paths'
 import { openPlan, planRun } from './resolve'
+import { runtimeById } from './runtimes'
 import { createStderrFilter } from './wire'
 import type { ConnectionTest } from './types'
 
@@ -69,13 +70,17 @@ function said(events: string, result: string | undefined, stderr: string): strin
 }
 
 /** Send one small chat through the saved setup and say whether it worked. Never rejects:
- *  every way this can go wrong is a result worth showing. */
-export function testConnection(harness?: string): Promise<ConnectionTest> {
+ *  every way this can go wrong is a result worth showing.
+ *
+ *  `pin` names the runtime to spawn (#467), or — from a pane that still draws one row per
+ *  harness — a harness. A harness is narrowed to its own rows, so one no runtime is on is
+ *  tested as its CLI's own default rather than as whatever row happens to be first. With
+ *  nothing named it is **Global default**, which is what setup's own step tests. */
+export function testConnection(pin?: string): Promise<ConnectionTest> {
   // The same single read a run does, so the test can't be testing one setup while the next
-  // run uses another. The id is thrown away with the run — nothing tracks this. `harness`
-  // names the connector to spawn (#443); with none named it is the board's default one,
-  // which is what setup's own step tests.
-  const run = openPlan(planRun(randomUUID(), REPO_ROOT, undefined, harness ? { pin: harness } : {}))
+  // run uses another. The id is thrown away with the run — nothing tracks this.
+  const ask = !pin ? {} : runtimeById(pin) ? { pin } : { pin, harness: pin }
+  const run = openPlan(planRun(randomUUID(), REPO_ROOT, undefined, ask))
   const startedAt = Date.now()
   const [cmd, ...args] = run.argv
   // The same two shapes a run has (agent/watch.ts): a command that prints is handed the

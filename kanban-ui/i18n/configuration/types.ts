@@ -127,14 +127,14 @@ export type ConfigurationCopy = {
     flipFailedOff: (agent: string) => string;
 
     /** The page under the grid. */
-    /** What this agent runs (#443): the connector, then the model settings under it. */
+    /** What this agent runs (#467): one runtime, which carries its harness and its model. */
     runtime: string;
-    /** The connector list's first entry — an agent that picked none runs the board's. */
-    boardDefault: (harness: string) => string;
-    /** Under the row: where the pick lands, and where the model does. */
+    /** The list's first entry — an agent that named none runs Global default. */
+    boardDefault: (runtime: string) => string;
+    /** Under the row: where the pick lands, and where a runtime is set up. */
     runtimeBlurb: string;
-    /** The connector the board holds for this agent isn't one this build can run. */
-    unknownHarness: (harness: string) => string;
+    /** The runtime the board holds for this agent is one it no longer has. */
+    unknownHarness: (runtime: string) => string;
     harnessFailed: (agent: string) => string;
     /** Before a specialist's own trigger, on its page. */
     runsWhen: string;

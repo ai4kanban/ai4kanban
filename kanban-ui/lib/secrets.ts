@@ -11,3 +11,20 @@ import { boardRules } from "./cli";
 export async function setSecret(name: string, value: string): Promise<{ ok: boolean; error?: string }> {
   return (await boardRules()).setSecret(name, value);
 }
+
+/** One runtime's key, under the id-scoped line a run actually reads (#467). `harness` names
+ *  the row — the first one on that connector — and with none it is Global default.
+ *
+ *  `key` is the setting's own key, not the variable: which line it lands on is the runtime's
+ *  business, and this side never learns the name. Rules from before runtimes have no such
+ *  line and take the bare variable, which is what a run read there. */
+export async function setHarnessSecret(
+  setting: { key: string; env: string },
+  value: string,
+  harness?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  return rules.setHarnessSecret
+    ? rules.setHarnessSecret(setting.key, value, harness)
+    : rules.setSecret(setting.env, value);
+}

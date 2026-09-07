@@ -108,47 +108,97 @@ describe('what a probe makes of its CLI', () => {
   })
 })
 
-describe('who gets asked', () => {
-  it('asks every installed connector that declares a probe', () => {
-    board({})
+describe('which rows get asked', () => {
+  // One row per harness, so what a board holds and what it asks about are the same list.
+  const rows = (...harnesses: string[]) => ({
+    runtimes: harnesses.map((harness, i) => ({
+      id: i === 0 ? 'global' : harness,
+      name: i === 0 ? 'Global default' : harness,
+      harness,
+      settings: {},
+    })),
+  })
+
+  it('asks about every row whose CLI is installed and declares a probe', () => {
+    board(rows('claude-code', 'codex', 'cursor', 'opencode'))
     onPath('claude', 'codex', 'cursor-agent', 'opencode')
     assert.deepEqual(asked().sort(), ['claude-code', 'codex', 'cursor', 'opencode'])
   })
 
-  it('skips a connector whose CLI is not on the PATH', () => {
-    board({})
+  it('asks once per CLI, however many rows sit on it', () => {
+    board({
+      runtimes: [
+        { id: 'global', name: 'Global default', harness: 'claude-code', settings: {} },
+        { id: 'gateway', name: 'My gateway', harness: 'claude-code', settings: {} },
+      ],
+    })
+    onPath('claude')
+    // Two rows to wear the verdict, one binary to ask.
+    assert.deepEqual(asked(), ['claude-code', 'claude-code'])
+    assert.deepEqual(toAsk().map((one) => one.runtime.id), ['global', 'gateway'])
+    assert.deepEqual([...new Set(toAsk().map((one) => one.binary))], ['claude'])
+  })
+
+  it('skips a row whose CLI is not on the PATH', () => {
+    board(rows('claude-code', 'codex'))
     onPath('claude')
     assert.deepEqual(asked(), ['claude-code'])
   })
 
-  it('skips a connector that declares no probe, however it is set up', () => {
-    board({ harness: 'dsh' })
+  it('skips a row whose CLI declares no probe, however it is set up', () => {
+    board(rows('dsh', 'zcode', 'kimi'))
     onPath('dsh-acp', 'zcode', 'kimi')
     assert.deepEqual(asked(), [])
   })
 
-  it('probes the binary a command override names, not the connector default', () => {
-    board({ harnessSettings: { 'claude-code': { command: 'my-claude -p' } } })
+  it('probes the binary a row’s command override names, not the CLI default', () => {
+    board({
+      runtimes: [
+        { id: 'global', name: 'Global default', harness: 'claude-code', settings: { command: 'my-claude -p' } },
+      ],
+    })
     onPath('my-claude')
     assert.deepEqual(toAsk().map((one) => one.binary), ['my-claude'])
   })
 
-  it("skips an agent whose saved setup supplies its own key", () => {
-    board({ harnessSettings: { 'claude-code': { provider: 'anthropic-api' } } }, 'ANTHROPIC_API_KEY=sk-ant\n')
-    onPath('claude', 'codex')
-    assert.deepEqual(asked(), ['codex'])
+  it('skips a row signing with a key of its own, and asks about the row beside it', () => {
+    board(
+      {
+        runtimes: [
+          { id: 'global', name: 'Global default', harness: 'claude-code', settings: {} },
+          {
+            id: 'gateway',
+            name: 'My gateway',
+            harness: 'claude-code',
+            settings: { provider: 'anthropic-api' },
+          },
+        ],
+      },
+      'ANTHROPIC_API_KEY__GATEWAY=sk-ant\n',
+    )
+    onPath('claude')
+    // The gateway row signs with its own key, so its CLI's login decides nothing there —
+    // and the row beside it, on the same CLI, is still worth asking about.
+    assert.deepEqual(toAsk().map((one) => one.runtime.id), ['global'])
   })
 
-  it('skips a connector with an optional key once that key is set', () => {
-    board({}, 'CURSOR_API_KEY=key_1\n')
+  it('skips a row with an optional key once that key is set', () => {
+    board(rows('cursor'), 'CURSOR_API_KEY__GLOBAL=key_1\n')
     onPath('cursor-agent')
     assert.deepEqual(asked(), [])
   })
 
-  it('still asks when the key belongs to a provider nobody picked', () => {
+  it('still asks when the key belongs to a provider that row didn’t pick', () => {
     // The subscription doesn't need the key, so a run under it never sends one: the CLI's
     // own login is what decides, and it is worth asking about.
-    board({ harnessSettings: { 'claude-code': { provider: 'subscription' } } }, 'ANTHROPIC_API_KEY=sk-ant\n')
+    board(
+      {
+        runtimes: [
+          { id: 'global', name: 'Global default', harness: 'claude-code', settings: { provider: 'subscription' } },
+        ],
+      },
+      'ANTHROPIC_API_KEY__GLOBAL=sk-ant\n',
+    )
     onPath('claude')
     assert.deepEqual(asked(), ['claude-code'])
   })

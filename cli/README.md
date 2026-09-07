@@ -149,16 +149,19 @@ akb run stop 3f2a1b04             # end one
 akb run resume 3f2a1b04           # continue one that failed
 ```
 
-Which agent runs them — Claude Code, Codex, Cursor, OpenCode, Kimi Code, DeepSeek Harness,
-ZCode or Grok Build — and what it is set to:
+What they run as. A **runtime** is the whole answer — the coding tool (Claude Code, Codex,
+Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode or Grok Build), the provider, the
+endpoint, the key, the model id, the reasoning level and any extra arguments — and every
+agent names one. The first row is **Global default**, which an agent naming none runs:
 
 ```bash
-akb agent                     # what runs, and how it is set up
-akb agent list                # the agents it can run, and what each one takes
-akb agent use codex
-akb agent set model gpt-5.1-codex
-akb agent set apiKey sk-…     # saved to docs/kanban/.env, never shown back
-akb agent test                # one small chat, to see it works
+akb agent                                  # every runtime, and what each agent runs
+akb agent list                             # the coding tools it can run, and what each takes
+akb agent runtime add "My gateway" codex   # add a row; its id comes from the name
+akb agent set --runtime my_gateway model gpt-5.1-codex
+akb agent set --runtime my_gateway apiKey sk-…   # docs/kanban/.env, never shown back
+akb agent bind builder my_gateway          # point one agent at it
+akb agent test my_gateway                  # one small chat, to see it works
 ```
 
 Runs use these settings, never what your shell happens to export. `akb help` lists

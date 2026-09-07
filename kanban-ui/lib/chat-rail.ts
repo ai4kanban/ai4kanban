@@ -4,8 +4,7 @@ import {
   addChatImageAction,
   clearChatAction,
   dropChatImageAction,
-  pickChatAgentAction,
-  pickChatModelAction,
+  pickChatRuntimeAction,
   readChatAction,
   sendChatAction,
   stopChatAction,
@@ -137,13 +136,10 @@ export interface ChatRail {
    *  the pictures the message being sent again carried — the same files, not a second copy
    *  of them (#441). */
   say(text: string, opts?: { discuss?: boolean; images?: string[] }): void;
-  /** Run this conversation on another agent (#272), or on the board's again with `null`.
-   *  It starts the conversation over — the caller asks first when there is something to
-   *  lose. */
-  pickAgent(harness: string | null): Promise<void>;
-  /** Run it on another model, or on the board's again with `null`. The conversation carries
-   *  on; the next message runs on it. */
-  pickModel(model: string | null): Promise<void>;
+  /** Run this conversation on another runtime (#272, #467), or on the board's again with
+   *  `null`. A row on another CLI starts the conversation over — the caller asks first when
+   *  there is something to lose — and one on the same CLI carries it on. */
+  pickRuntime(runtime: string | null): Promise<void>;
   clear(): Promise<void>;
   /** This conversation is on screen somewhere else — the Discuss screen (#427) — so the
    *  button's unread mark has nothing to say about it. Quiet where nothing has been said. */
@@ -518,14 +514,14 @@ export function useChatRail({
     [post],
   );
 
-  const pickAgent = useCallback(
-    async (harness: string | null) => {
+  const pickRuntime = useCallback(
+    async (runtime: string | null) => {
       setError(null);
-      const res = await pickChatAgentAction(cardId, harness);
+      const res = await pickChatRuntimeAction(cardId, runtime);
       if (!res.ok) setError(res.error ?? c.pickFailed);
       // Only where the switch really threw a transcript away: what the rail was still
-      // holding of it goes too. A refused switch, and one to the agent it already runs,
-      // cost nothing — least of all what is typed in the box.
+      // holding of it goes too. A refused switch, and one to a row on the same CLI, cost
+      // nothing — least of all what is typed in the box.
       if (res.cleared) {
         setHeld(null);
         setDraft("");
@@ -541,16 +537,6 @@ export function useChatRail({
       kickRef.current();
     },
     [cardId, seen, c, setDraft],
-  );
-
-  const pickModel = useCallback(
-    async (model: string | null) => {
-      setError(null);
-      const res = await pickChatModelAction(cardId, model);
-      if (!res.ok) setError(res.error ?? c.pickFailed);
-      kickRef.current();
-    },
-    [cardId, c],
   );
 
   const clear = useCallback(async () => {
@@ -600,8 +586,7 @@ export function useChatRail({
     send,
     say,
     markRead,
-    pickAgent,
-    pickModel,
+    pickRuntime,
     clear,
     panel,
     onLayoutChanged,

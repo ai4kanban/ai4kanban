@@ -48,8 +48,7 @@ import {
   addChatImage,
   clearChat,
   dropChatImage,
-  pickChatAgent,
-  pickChatModel,
+  pickChatRuntime,
   readChat,
   sendChat,
   stopChat,
@@ -98,7 +97,7 @@ import {
   setUsageReporting,
   usageReporting,
 } from "@/lib/telemetry";
-import { setAgentHarness, setAgentSetting } from "@/lib/agent-harness";
+import { setAgentRuntime } from "@/lib/agent-harness";
 import {
   boardNotifications,
   cancelCloudRequest,
@@ -156,8 +155,8 @@ import {
   type StartResult,
   stopSession,
 } from "@/lib/registry";
-import { boardRules, type BoardEntry } from "@/lib/cli";
-import { setSecret } from "@/lib/secrets";
+import { type BoardEntry } from "@/lib/cli";
+import { setHarnessSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import {
   agents as boardAgents,
@@ -542,32 +541,19 @@ export async function clearChatAction(cardId: number | null): Promise<{ ok: bool
   return clearChat(target);
 }
 
-/** Point this conversation at an agent (#272) — `null` for the board's. It starts the
- *  conversation over, because the session belongs to the agent that opened it. */
-export async function pickChatAgentAction(
+/** Point this conversation at a runtime (#272, #467) — `null` for the board's. A row on
+ *  another CLI starts the conversation over, because the session belongs to the CLI that
+ *  opened it; one on the same CLI carries it on. */
+export async function pickChatRuntimeAction(
   cardId: number | null,
-  harness: string | null,
+  runtime: string | null,
 ): Promise<{ ok: boolean; cleared?: boolean; restarted?: boolean; error?: string }> {
   const target = chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
-  if (harness !== null && typeof harness !== "string") {
+  if (runtime !== null && typeof runtime !== "string") {
     return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   }
-  return pickChatAgent(target, harness);
-}
-
-/** Point this conversation at a model — `null` for the board's. The same conversation
- *  carries on and the next message runs on it. */
-export async function pickChatModelAction(
-  cardId: number | null,
-  model: string | null,
-): Promise<{ ok: boolean; error?: string }> {
-  const target = chatTarget(cardId);
-  if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
-  if (model !== null && typeof model !== "string") {
-    return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
-  }
-  return pickChatModel(target, model === null ? null : model.trim());
+  return pickChatRuntime(target, runtime);
 }
 
 // ---- Discuss (#427) ---------------------------------------------------------
@@ -1183,11 +1169,6 @@ export async function setHarnessSettingAction(
   const on = typeof harness === "string" && harness ? harness : undefined;
   const setting = (await activeSettings(on)).find((s) => s.key === key);
   if (!setting) return { ok: false, error: `that connector has no "${key}" setting` };
-  // A model belongs to the agent running it, and is saved per machine — never into the
-  // connector's block, which the repository carries (#443).
-  if (setting.agentOwned) {
-    return { ok: false, error: `"${setting.label}" is one agent's model — it saves on the Agents pane` };
-  }
   // A key never goes near ui.config.json — it has its own action and its own file (#94).
   // Refused here rather than quietly rerouted: a client sending a key down this path has a
   // bug, and the file it would land in is committed.
@@ -1229,7 +1210,9 @@ export async function setHarnessSecretAction(
   if (!setting || setting.kind !== "secret" || !setting.env) {
     return { ok: false, error: `that connector has no "${key}" key` };
   }
-  return withAgent(() => setSecret(setting.env!, value));
+  // Onto that runtime's own line, never the bare variable: a run reads the id-scoped one, so
+  // a key written under the setting's plain name would be a key nothing uses (#467).
+  return withAgent(() => setHarnessSecret({ key, env: setting.env! }, value, on));
 }
 
 // Send one small chat through the setup that is saved right now and say whether it worked
@@ -1253,56 +1236,23 @@ export async function testConnectionAction(harness?: string): Promise<Connection
 // docs/kanban/.local.json. Every write goes through the CLI, so a terminal `akb agent` and
 // this pane are one writer with one set of rules.
 
-/** Give one agent a connector of its own, or put it back on the board's default with "". The
- *  name is checked against the connectors this build ships, so a stale client can't save one
- *  nothing can spawn. */
-export async function setAgentHarnessAction(
+/** Point one agent at a runtime, or back at Global default with "". The id is checked against
+ *  the board's own list, so a stale client can't save one nothing answers to. */
+export async function setAgentRuntimeAction(
   agent: string,
-  harness: string,
+  runtime: string,
 ): Promise<WriteResult & { agent?: AgentInfo }> {
-  if (typeof agent !== "string" || !agent || typeof harness !== "string") {
-    return { ok: false, error: "an agent and a connector are saved as text" };
+  if (typeof agent !== "string" || !agent || typeof runtime !== "string") {
+    return { ok: false, error: "an agent and a runtime are saved as text" };
   }
-  if (harness) {
+  if (runtime) {
     const info = await agentInfo().catch(() => null);
-    // The connectors this build runs are the CLI's list, not a copy kept here.
-    if (!info?.options.some((o) => o.name === harness)) {
-      return { ok: false, error: `unknown connector "${harness}"` };
+    // The runtimes this board has are the CLI's list, not a copy kept here.
+    if (!info?.runtimes.some((r) => r.id === runtime)) {
+      return { ok: false, error: `unknown runtime "${runtime}"` };
     }
   }
-  return withAgent(() => setAgentHarness(agent, harness));
-}
-
-/** Save one of an agent's model settings — checked against the connector THAT AGENT runs,
- *  never the board's default, so a value Codex refuses is never saved against Claude Code's
- *  rules. A key is refused: those are the connector's, in docs/kanban/.env. */
-export async function setAgentSettingAction(
-  agent: string,
-  key: string,
-  value: string,
-): Promise<WriteResult & { agent?: AgentInfo }> {
-  if (typeof agent !== "string" || !agent || typeof key !== "string" || typeof value !== "string") {
-    return { ok: false, error: "a setting is saved as text" };
-  }
-  const on = await agentHarnessName(agent);
-  const setting = (await activeSettings(on)).find((s) => s.key === key);
-  if (!setting || !setting.agentOwned) {
-    return { ok: false, error: `that agent's connector has no "${key}" model setting` };
-  }
-  const next = value.trim();
-  if (setting.kind === "select" && next && !setting.choices?.some((c) => c.value === next)) {
-    return { ok: false, error: `"${next}" isn't one of the ${setting.label} choices` };
-  }
-  const wrong = await settingSaveError(key, next, on);
-  if (wrong) return { ok: false, error: wrong };
-  return withAgent(() => setAgentSetting(agent, key, next));
-}
-
-// What one agent runs here, out of the board's own answer — so this file keeps no second
-// reading of a pick it would then have to hold in step.
-async function agentHarnessName(agent: string): Promise<string | undefined> {
-  const rules = await boardRules().catch(() => null);
-  return rules?.agentHarness?.(agent).name;
+  return withAgent(() => setAgentRuntime(agent, runtime));
 }
 
 // One move, and the whole connector setting as it now reads. A failure answers with the

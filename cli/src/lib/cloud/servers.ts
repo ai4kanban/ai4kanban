@@ -12,9 +12,9 @@
 // exactly the one that has gone.
 //
 // The registration used to carry what this computer ran the board's named runtimes as
-// (#345). Named runtimes are gone (#443) — every agent picks a connector on the board itself
-// — so nothing is reported and no machine card shows a line about one. The field stays on the
-// wire because the Cloud service still holds it.
+// (#345). Runtimes are back (#467), but what a MACHINE runs one as is #371's question, so
+// nothing is reported here and no machine card shows a line about one. The field stays on
+// the wire because the Cloud service still holds it.
 
 import { thisMachine } from '../machine/identity'
 import { REPO_ROOT } from '../paths'

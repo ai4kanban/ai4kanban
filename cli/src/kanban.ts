@@ -114,8 +114,7 @@ export {
   chatImageFile,
   clearChat,
   dropChatImage,
-  pickChatAgent,
-  pickChatModel,
+  pickChatRuntime,
   readChat,
   readChatView,
   sendChatMessage,
@@ -137,10 +136,11 @@ export { parseSetupProposal, setupOpening } from './lib/agent/setup-chat'
 export { chatAgent } from './lib/agent/resolve'
 export { agentInfo, activeSettings, setupInstruction, settingSaveError } from './lib/agent/resolve'
 
-// Which agents this machine could run right now (#404) — installed, and needing no setting
-// the user has not filled in. The first run tries them one at a time instead of opening with
-// a form; it is the same PATH read `agentInfo` already makes, so it spawns nothing.
-export { runnableAgents } from './lib/agent/resolve'
+// What this machine could run right now (#404) — installed, and needing no setting the user
+// has not filled in. `runnableAgents` answers in runtimes (#467); `runnableHarnesses` asks the
+// same of the connectors, which is what the guided first run tries one at a time instead of
+// opening with a form. Both are the PATH read `agentInfo` already makes, so they spawn nothing.
+export { runnableAgents, runnableHarnesses } from './lib/agent/resolve'
 export {
   aiReviewEnabled,
   autoCommitAllowed,
@@ -151,13 +151,26 @@ export {
   setAutoCommit,
   setDecider,
   setDiffApproval,
-  setHarness,
-  setHarnessSetting,
   setReadyGate,
   setSecret,
   setSilenceMinutes,
   silenceMinutes,
 } from './lib/agent/settings'
+
+// The board's runtimes (#467) — one row is the whole answer to what a run runs as. `agentInfo`
+// already carries the list a pane draws, so these are only the writers: add, rename, delete,
+// what one row is set to, its key, and the harness Global default runs.
+export {
+  addRuntime,
+  deleteRuntime,
+  renameRuntime,
+  setHarness,
+  setHarnessSecret,
+  setHarnessSetting,
+  setRuntimeHarness,
+  setRuntimeSecret,
+  setRuntimeSetting,
+} from './lib/agent/runtimes'
 export { testConnection } from './lib/agent/test'
 
 // Which installed agents are logged out (#392). A second, cached, async path beside the
@@ -166,12 +179,11 @@ export { testConnection } from './lib/agent/test'
 // starts.
 export { loggedOutAgents } from './lib/agent/login'
 
-// Which connector each agent runs (#443). The pick is the board's, in
-// docs/kanban/ui.config.json; the model under it is this machine's, in
-// docs/kanban/.local.json. `readAgents` already carries both for every agent, so a screen
-// keeps no list of its own — these are only the writers.
-export { setAgentHarness } from './lib/agent/settings'
-export { setLocalAgentValue } from './lib/agent/local'
+// Which runtime each agent runs (#467). The pick is the board's, in
+// docs/kanban/ui.config.json, so every checkout runs each agent as the same thing.
+// `readAgents` already carries it for every agent, so a screen keeps no list of its own —
+// this is only the writer.
+export { setAgentRuntime } from './lib/agent/runtimes'
 export { agentHarness } from './lib/agent/resolve'
 export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
 // Which boards this project holds, and what each one's work is called (#407). The folder

@@ -1,7 +1,7 @@
 // One model id, drawn the same wherever the board offers one — under the Model box in
 // Configuration, and on a chat's own row.
 //
-// The two lists hold the same ids already (`modelsKnown` in agent/resolve.ts); this is so
+// The two lists hold the same ids already (a runtime's Model box in agent/resolve.ts); this is so
 // they read the same as well. Ids are mono because that is what they are: something you
 // retype, not something you read.
 

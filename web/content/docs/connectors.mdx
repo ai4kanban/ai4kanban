@@ -8,7 +8,7 @@ nav_label: "Coding agents"
 icon: "cpu"
 ---
 
-Pick the board's default in **Configuration → Runtime**, or with `akb agent use <name>`; give one agent a tool of its own in **Configuration → Agents**, or with `akb agent bind <agent> <name>`.
+A **runtime** names one of these and says how to reach it. Add one with `akb agent runtime add` and set it up in **Configuration → Runtimes**; point one agent at one in **Configuration → Agents**, or with `akb agent bind <agent> <runtime>`.
 
 Setting up a new board doesn't ask first. It tries the agents already on your machine —
 Claude Code, then Codex, then the rest — and keeps the first that answers, so there is

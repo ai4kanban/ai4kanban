@@ -16,13 +16,13 @@ import { setBoardRoot } from '../src/lib/paths.ts'
 
 let root = ''
 
-/** A board on Codex, with the settings block and the `.env` this test wants. */
+/** A board whose one runtime is on Codex, with the settings and the `.env` this test wants. */
 function board(settings: Record<string, unknown> = {}, env = ''): void {
   const kanban = path.join(root, 'docs', 'kanban')
   fs.mkdirSync(kanban, { recursive: true })
   fs.writeFileSync(
     path.join(kanban, 'ui.config.json'),
-    JSON.stringify({ harness: 'codex', harnessSettings: { codex: settings } }),
+    JSON.stringify({ runtimes: [{ id: 'global', name: 'Global default', harness: 'codex', settings }] }),
   )
   fs.writeFileSync(path.join(kanban, '.env'), env)
   setBoardRoot(root)
@@ -76,7 +76,7 @@ describe('the ChatGPT subscription', () => {
   })
 
   it('never carries a key, not even one the board holds', () => {
-    board({ provider: 'subscription' }, 'OPENAI_API_KEY=sk-board\n')
+    board({ provider: 'subscription' }, 'OPENAI_API_KEY__GLOBAL=sk-board\n')
     assert.equal(runEnv().OPENAI_API_KEY, undefined)
   })
 
@@ -89,7 +89,7 @@ describe('the ChatGPT subscription', () => {
 
 describe('the OpenAI API', () => {
   it('runs through a provider of the board’s own that reads the key', () => {
-    board({ provider: 'openai-api' }, 'OPENAI_API_KEY=sk-board\n')
+    board({ provider: 'openai-api' }, 'OPENAI_API_KEY__GLOBAL=sk-board\n')
     assert.ok(!argv().includes('openai-api'), `the pick is a config key, never a bare word: ${argv().join(' ')}`)
     assert.deepEqual(overrides(), [
       'model_providers.openai-api.name=OpenAI',
@@ -101,7 +101,7 @@ describe('the OpenAI API', () => {
   })
 
   it('is what a board holding a key reads as, so a pasted key goes on being used', () => {
-    board({}, 'OPENAI_API_KEY=sk-board\n')
+    board({}, 'OPENAI_API_KEY__GLOBAL=sk-board\n')
     assert.equal(agentInfo().values.provider, 'openai-api')
   })
 })

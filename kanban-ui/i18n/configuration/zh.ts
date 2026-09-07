@@ -200,9 +200,9 @@ const zh: ConfigurationCopy = {
     flipFailedOff: (agent) => `未能暂停 ${agent}`,
 
     runtime: "运行时",
-    boardDefault: (harness) => `看板默认——${harness}`,
-    runtimeBlurb: "运行时跟着仓库走；模型只存这台电脑，每个 checkout 各配各的。",
-    unknownHarness: (harness) => `设成了「${harness}」，这个版本跑不了。`,
+    boardDefault: (runtime) => `${runtime}（列表第一行）`,
+    runtimeBlurb: "选择跟着仓库走。运行时本身——端点、密钥、模型——在「配置 → 运行时」里设置。",
+    unknownHarness: (runtime) => `设成了「${runtime}」，这个看板已经没有这一行了。`,
     harnessFailed: (agent) => `未能保存 ${agent} 用什么跑`,
     runsWhen: "触发时机",
     yours: "你添加的",

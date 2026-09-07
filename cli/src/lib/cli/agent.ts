@@ -254,8 +254,10 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
         '`runs`, never holds a card, and never keeps a run off the card it is about.',
     )
     .option('--clear', 'forget that conversation and start fresh')
-    .option('--model <id>', 'run this one conversation on that model ("" for the board’s)')
-    .option('--agent <name>', 'run it on that agent — starts the conversation over')
+    .option(
+      '--runtime <id>',
+      'run this one conversation on that runtime ("" for the board’s); another CLI starts it over',
+    )
     .addHelpText('after', HELP_AFTER.chat)
     .action(async function (this: Command, ...vals: unknown[]) {
       const [id, message] = positional(vals) as [number | undefined, string[]]
@@ -534,9 +536,11 @@ function declareAgent(program: Command, cli: AgentCliOptions): void {
   const agent = withShared(program.command('agent'))
     .summary('what runs the board, and how it is set up')
     .description(
-      "Which connector each agent runs is the BOARD's, in docs/kanban/ui.config.json, so it travels with " +
-        'the repository. The model each agent runs is THIS COMPUTER\'s, in docs/kanban/.local.json, which ' +
-        'git never carries. A run never reads the terminal\'s environment for any of it.',
+      'A RUNTIME is the whole answer to what a run runs as — harness, provider, endpoint, key, model id, ' +
+        "reasoning and extra arguments. Every runtime's shape is the BOARD's, in docs/kanban/ui.config.json, " +
+        'so it travels with the repository; its key is THIS COMPUTER\'s, one line per runtime in ' +
+        "docs/kanban/.env, which git never carries. A run never reads the terminal's environment for any " +
+        'of it.',
     )
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdAgent(['show']))
@@ -551,45 +555,87 @@ function declareAgent(program: Command, cli: AgentCliOptions): void {
     })
 
   word('use')
-    .argument('<name>', 'a connector from `agent list`')
-    .summary('the board’s default — what an agent that picked none runs')
-    .description('Switching never throws a setting away: every connector’s settings live under its own name.')
+    .argument('<name>', 'a harness from `agent list`')
+    .summary('the harness Global default runs')
+    .description(
+      'Global default is the first runtime, and what an agent naming none runs. Every other runtime is ' +
+        'untouched.',
+    )
     .action(async function (this: Command, name: string) {
       await onBoard(this, cli, () => cmdAgent(['use', name]))
     })
 
+  const runtime = word('runtime')
+    .summary('add, rename or delete a runtime')
+    .description(
+      'There is no "make default": the default is the FIRST row, Global default, which no board can ' +
+        'rename or delete. A runtime’s id is generated from its name, keys its API key line in ' +
+        'docs/kanban/.env, and never changes — so a rename costs nothing on any computer.',
+    )
+    .action(async function (this: Command) {
+      await onBoard(this, cli, () => cmdAgent(['show']))
+    })
+
+  withShared(runtime.command('add'))
+    .argument('<name>', 'what to call it — free text, unique on the board')
+    .argument('<harness>', 'a harness from `agent list`')
+    .summary('add one runtime')
+    .action(async function (this: Command, name: string, harness: string) {
+      await onBoard(this, cli, () => cmdAgent(['runtime', 'add', name, harness]))
+    })
+
+  withShared(runtime.command('rename'))
+    .argument('<id>', 'the runtime’s id — `agent` lists them')
+    .argument('<name...>', 'what to call it instead')
+    .summary('rename one runtime, losing nothing')
+    .action(async function (this: Command, id: string, name: string[]) {
+      await onBoard(this, cli, () => cmdAgent(['runtime', 'rename', id, ...name]))
+    })
+
+  withShared(runtime.command('delete'))
+    .argument('<id>', 'the runtime’s id — `agent` lists them')
+    .summary('drop one runtime; the agents on it fall back to Global default')
+    .action(async function (this: Command, id: string) {
+      await onBoard(this, cli, () => cmdAgent(['runtime', 'delete', id]))
+    })
+
   word('bind')
     .argument('<agent>', 'one of this board’s agents — `agent` lists them')
-    .argument('<connector>', 'a connector from `agent list`; "-" puts it back on the board’s default')
-    .summary('give one agent a connector of its own')
-    .description(
-      'The pick is the board’s, so every checkout runs that agent on the same tool. What it picked for ' +
-        'each connector is kept under that connector’s name, so switching and switching back loses no model.',
-    )
-    .action(async function (this: Command, name: string, harness: string) {
-      await onBoard(this, cli, () => cmdAgent(['bind', name, harness]))
+    .argument('<runtime>', 'a runtime id from `agent`; "-" puts it back on Global default')
+    .summary('give one agent a runtime of its own')
+    .description('The pick is the board’s, so every checkout runs that agent as the same thing.')
+    .action(async function (this: Command, name: string, id: string) {
+      await onBoard(this, cli, () => cmdAgent(['bind', name, id]))
     })
 
   word('set')
-    .argument('<key>', 'a setting the connector takes — `agent` lists them')
-    .argument('[value...]', 'the value; left off, the setting is cleared and the connector’s own default runs')
-    .option('--agent <name>', 'whose setting this is; a model always needs one')
-    .summary('one connector setting, one agent’s model, or a key')
+    .argument('<key>', 'a setting the runtime’s harness takes — `agent` lists them')
+    .argument('[value...]', 'the value; left off, the setting is cleared and the CLI’s own default runs')
+    .option('--runtime <id>', 'which runtime to write; left off, Global default')
+    .option('--agent <name>', 'the runtime that agent runs, instead of naming an id')
+    .summary('one runtime setting, or its key')
     .description(
-      'A setting that picks a model belongs to one agent and is saved on this computer alone, so it needs ' +
-        '`--agent`. Everything else is how to reach the connector and is the board’s. A key goes to ' +
-        'docs/kanban/.env and nowhere else, and is never echoed back: give the user the line and let them ' +
-        'type it — a key an agent types lands in its transcript and in the shell history.',
+      'A key goes to docs/kanban/.env under that runtime’s own line, and is never echoed back: give the ' +
+        'user the line and let them type it — a key an agent types lands in its transcript and in the ' +
+        'shell history. Everything else is the board’s, on the row.',
     )
     .action(async function (this: Command, key: string, value: string[]) {
-      const named = this.opts<{ agent?: string }>().agent
-      await onBoard(this, cli, () => cmdAgent(['set', ...(named ? ['--agent', named] : []), key, ...value]))
+      const { agent: named, runtime: id } = this.opts<{ agent?: string; runtime?: string }>()
+      await onBoard(this, cli, () =>
+        cmdAgent([
+          'set',
+          ...(id ? ['--runtime', id] : []),
+          ...(named ? ['--agent', named] : []),
+          key,
+          ...value,
+        ]),
+      )
     })
 
   word('test')
-    .argument('[connector]', 'which connector to test; left off, the board’s default')
+    .argument('[runtime]', 'which runtime to test; left off, Global default')
     .summary('one small chat, to see the setup works')
-    .action(async function (this: Command, harness: string | undefined) {
-      await onBoard(this, cli, () => cmdAgent(['test', ...(harness ? [harness] : [])]))
+    .action(async function (this: Command, id: string | undefined) {
+      await onBoard(this, cli, () => cmdAgent(['test', ...(id ? [id] : [])]))
     })
 }

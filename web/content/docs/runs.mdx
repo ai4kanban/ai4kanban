@@ -29,29 +29,33 @@ When an ask can't run, the answer names the one line that fixes it — `akb inst
 with no board, `npm install -g ai4kanban@latest` for an `akb` that is behind, `akb agent test` for
 an agent that isn't installed, `akb agent` for a key or provider that isn't set.
 
-## Which tool each agent runs on
+## Which runtime each agent runs on
 
 Every run belongs to one agent: a flow is run by the role that owns it — planner, builder,
-reviewer, or writer on a marketing board — and a spec run by the specialist it names. Each of
-them picks the coding tool it runs, so the planner can think on a stronger model than the builder
-writes with.
+reviewer, or writer on a marketing board — and a spec run by the specialist it names. Each of them
+names a **runtime**, which is the whole answer to what that run runs as: the coding tool, the
+provider, the endpoint, the key, the model id, the reasoning level and any extra arguments. So the
+planner can think on a stronger model than the builder writes with, and two agents on the same
+tool can sit on two different gateways.
 
 ```bash
-akb agent                              # every agent, what it runs, and the model under it
-akb agent use claude-code              # the board's default — what an agent that picked none runs
-akb agent bind builder codex           # give one agent a tool of its own
-akb agent set --agent builder model gpt-5.1-codex
+akb agent                                    # every runtime, then every agent and the row it runs
+akb agent runtime add "My gateway" claude-code
+akb agent set --runtime my_gateway baseUrl https://my-gateway.example.com
+akb agent bind builder my_gateway            # give one agent a runtime of its own
 ```
 
-The pick travels with the repository, in `docs/kanban/ui.config.json`, so every checkout runs each
-agent on the same tool. The **model** does not: it is saved in `docs/kanban/.local.json`, which git
-does not carry, because a model id is worth nothing on a machine whose CLI never logged into that
-provider. Clone the repo somewhere else and each agent keeps its tool and picks its own model
-there.
+The first row is **Global default** — what an agent naming no runtime runs. It is the default
+because it is first, not because anything marks it, and it can be neither renamed nor deleted.
 
-**Configuration → Agents** is the same thing on screen: open an agent and its runtime row sits
-above the box that trains it. **Configuration → Runtime** is the tools themselves — one row per
-coding agent, opening onto how to reach that one and a **Test** that says whether it answers.
+A runtime's SHAPE travels with the repository, in `docs/kanban/ui.config.json`, so every checkout
+runs each agent as the same thing. Its **API key** does not: it is one line per runtime in
+`docs/kanban/.env`, which git does not carry. Clone the repo somewhere else and every runtime is
+there, each waiting for its own key.
+
+On screen, **Configuration → Agents** is where each agent picks its runtime, and
+**Configuration → Runtimes** opens each coding tool onto how to reach it and a **Test** that says
+whether it answers. Rows themselves are added, renamed and deleted with `akb agent runtime`.
 
 Which tool to put behind an agent — what each of the eight reports back, what a run may touch,
 and the settings each takes — is [What each coding agent can do](/docs/connectors).

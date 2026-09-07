@@ -516,9 +516,9 @@ export function HarnessPicker({
 
   const activeOption = options.find((o) => o.name === active);
   const settings = activeOption?.settings ?? [];
-  // Only how to REACH this connector is set here. The settings that pick a model belong to
-  // the agent running it and are set on the Agents pane, per machine (#443).
-  const connectorSettings = settings.filter((setting) => !setting.agentOwned);
+  // Every setting the connector declares, the model included: a runtime is the whole answer
+  // to what a run runs as (#467), so this is the one place one is set up.
+  const connectorSettings = settings;
 
   // What "filled in" means on this side: a key is filled when the server says
   // the file holds it, anything else when the box has something in it. The

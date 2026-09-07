@@ -159,7 +159,7 @@ export const recordOutcome = (
  *  holds it.
  *
  *  `runtimes` stays on the wire and is always empty: the service still holds the field, and
- *  nothing names a runtime any more (#443). */
+ *  what a MACHINE runs a runtime as is #371's question, not this call's (#467). */
 export const attachServer = (
   boardId: string,
   machineId: string,
