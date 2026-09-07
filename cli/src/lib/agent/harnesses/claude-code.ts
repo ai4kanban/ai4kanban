@@ -237,6 +237,8 @@ export const CLAUDE_CODE: Harness = {
   // its resume id — no waiting for the stream to report one.
   adoptsSessionId: true,
 
+  savesSessionAtOpen: false,
+
   // Its own Read tool opens an image file, so a path in the message is the whole of it.
   images: { as: 'message' },
 

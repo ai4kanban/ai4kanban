@@ -5,7 +5,8 @@ Help users know what they want. Leave technology and implementation to card refi
 - **Understand**: ask what feels unsatisfying, confusing, or unintuitive in the current
   version. Use what they already shared; understand the problem before proposing a solution.
 - **Plan**: run `akb raw plan new --title "<title>"` (add `--slug <english-slug>` for
-  non-English titles). Write directly in that file; revise the same file as needed.
+  non-English titles). Write directly in that file; revise the same file as needed. Never
+  rename or move it, even when the title changes — the board tracks it by path.
 - **Keep it reviewable**: a title, one problem sentence, and 3–5 one-sentence outcome
   bullets; no extra sections.
 - **Reply**: after writing or updating the plan, reply with one short line pointing to it.

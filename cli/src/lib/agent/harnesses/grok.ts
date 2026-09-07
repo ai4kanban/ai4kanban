@@ -133,6 +133,10 @@ export const GROK: Harness = {
   // up.
   adoptsSessionId: false,
 
+  // And it has written that session down before it answers: killed the instant
+  // `session/new` returns, grok reopens the id from a fresh command.
+  savesSessionAtOpen: true,
+
   // Grok lists its skills as slash names, but a slash typed into an ACP `session/prompt` is
   // not the same thing as one typed into its TUI, and the sentence is proved: asked this
   // way, grok found `.agents/skills/kanban/SKILL.md` in the project and read it.

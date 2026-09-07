@@ -8,8 +8,8 @@
 //
 // A capability is DERIVED wherever the harness already answers it (`resumes`,
 // `adoptsSessionId`, `skillCall`), and read from a field declared for it only where nothing
-// existing could (`reports`, `stopsOnRateLimit`). One answer per capability, so a connector
-// can't claim one thing here and do another on a run.
+// existing could (`reports`, `stopsOnRateLimit`, `savesSessionAtOpen`). One answer per
+// capability, so a connector can't claim one thing here and do another on a run.
 //
 // Adding a capability is one entry in the list below. Nothing outside this file learns a
 // connector's name: the gaps go out on `HarnessOption`, and every screen draws whatever it
@@ -37,7 +37,10 @@ const CAPABILITIES: Capability[] = [
     id: 'early-resume',
     label: 'Early-crash resume',
     blurb: 'A run that fails in its first seconds starts over.',
-    has: (h) => h.adoptsSessionId,
+    // Two ways a run that died in its first seconds still has somewhere to go back to: the
+    // agent took the id we generated, or it minted one and had already saved the session
+    // under it. Anything else leaves the crash ahead of the id.
+    has: (h) => h.adoptsSessionId || h.savesSessionAtOpen,
   },
   {
     id: 'cost',

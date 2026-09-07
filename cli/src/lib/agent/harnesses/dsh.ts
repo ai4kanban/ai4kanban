@@ -137,6 +137,10 @@ export const DSH: Harness = {
   // saves the id there — so a run that dies a minute later can still be picked up.
   adoptsSessionId: false,
 
+  // And it has written that session down before it answers: killed right after
+  // `session/new`, dsh-acp reopens the id from a fresh command about half a second later.
+  savesSessionAtOpen: true,
+
   // dsh has no slash or `$` skill syntax a headless run can use, so the prompt asks for the
   // skill in a sentence. It reads `.agents/skills/`, the folder an install already writes.
   skillCall: SKILL_SENTENCE,

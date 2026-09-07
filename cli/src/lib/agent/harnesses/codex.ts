@@ -244,6 +244,8 @@ export const CODEX: Harness = {
   // run. The real resume id lands on the first event and the record saves it there.
   adoptsSessionId: false,
 
+  savesSessionAtOpen: false,
+
   // `codex exec [resume] --image=<FILE>` attaches one picture, repeated per file. The `=` is
   // not a style choice: on `codex exec` the flag is `--image <FILE>...`, and spelt as two
   // tokens it would swallow the prompt that follows it as a second file — Codex would then

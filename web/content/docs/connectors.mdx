@@ -31,7 +31,7 @@ takes either a `grok login` or the key box, so none of those four is asked.
 | | Claude Code | Codex | Cursor | OpenCode | Kimi Code | DeepSeek Harness | ZCode | Grok Build |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Chat and resume | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Early-crash resume | ✓ | — | — | — | — | — | — | — |
+| Early-crash resume | ✓ | — | — | — | — | ✓ | — | ✓ |
 | Run cost | ✓ | ✓ | — | ✓ | — | ✓ | — | ✓ |
 | Token counts | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Model name | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -45,8 +45,11 @@ fresh run. Every agent supports this. On DeepSeek Harness, a session the agent h
 forgotten no longer ends the run: the board opens a fresh one, starts the task again from
 the top, and says so in the log.
 
-**Early-crash resume** — only Claude Code can resume a run that failed in its first seconds.
-On the others, restart it. Later failures resume normally on all eight.
+**Early-crash resume** — a run that failed in its first seconds picks up rather than starting
+over. Claude Code, DeepSeek Harness and Grok Build can: each has a session saved under the id
+the board recorded before the first prompt went out. On the other five, restart it — ZCode
+names its session that early too, but keeps it in the running command until the first prompt,
+so a crash before that takes it. Later failures resume normally on all eight.
 
 **Run cost, token counts, model name** — what the runs panel shows for a finished run. A
 blank means nothing was reported and nothing could be worked out.

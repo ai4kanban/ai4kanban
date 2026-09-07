@@ -117,6 +117,12 @@ export const ZCODE: Harness = {
   // picked up.
   adoptsSessionId: false,
 
+  // But the session is the running server's until the first prompt: `persistence:
+  // 'immediate'` writes no row, and `session/resume` from a fresh `zcode app-server`
+  // answers "Session not found" ten seconds after the id came back. So a ZCode run that
+  // dies before its first turn has nothing to go back to.
+  savesSessionAtOpen: false,
+
   // ZCode's slash and `$` names are its terminal UI's, not something a sent prompt
   // triggers, so the prompt asks for the skill in a sentence. It reads `.agents/skills/`,
   // the folder an install already writes, and finds the board's rules there by itself.

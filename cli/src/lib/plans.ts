@@ -48,18 +48,46 @@ export function newPlan(title: string, slug?: string): { id: number; path: strin
   return { id, path: `plans/${id}-${base}.md` }
 }
 
-/** One plan as it stands, or null when the path is not a plan of this board's. */
+/** One plan as it stands, or null when the path is not a plan of this board's.
+ *
+ *  A file that is not there is looked for under its id: an agent that retitles a plan tends
+ *  to rename the file with it, and the id is the one part of the name that stays. The path
+ *  answered is then the file's, so the screen and the run it hands off to follow the move. */
 export function readPlan(rel: string): PlanFile | null {
   const file = planFile(rel)
   if (!file) return null
   let text = ''
+  let found = rel
   try {
     text = fs.readFileSync(file, 'utf8')
   } catch {
-    // Not written yet, or being rewritten this second. Either way the caller draws the
-    // path and whatever it last had, never a blank panel.
+    const moved = renamedPlan(rel)
+    if (moved) {
+      found = moved
+      text = fs.readFileSync(planFile(moved) as string, 'utf8')
+    }
+    // Otherwise not written yet, or being rewritten this second. The caller draws the path
+    // and whatever it last had, never a blank panel.
   }
-  return { path: rel, text, lines: text.trim() ? text.trimEnd().split('\n').length : 0 }
+  return { path: found, text, lines: text.trim() ? text.trimEnd().split('\n').length : 0 }
+}
+
+/** The file a missing plan was renamed to — the newest `plans/<id>-*.md` with its id. */
+function renamedPlan(rel: string): string | null {
+  const id = /^(\d+)-/.exec(rel.replace(/^plans\//, ''))?.[1]
+  if (!id) return null
+  let names: string[]
+  try {
+    names = fs.readdirSync(PLANS)
+  } catch {
+    return null
+  }
+  const same = names.filter((n) => n.startsWith(`${id}-`) && n.endsWith('.md'))
+  if (!same.length) return null
+  const newest = same
+    .map((n) => ({ n, at: fs.statSync(path.join(PLANS, n)).mtimeMs }))
+    .sort((a, b) => b.at - a.at)[0]
+  return `plans/${newest.n}`
 }
 
 /** The plan's path as an agent and a card should spell it — from the project root, so a

@@ -223,6 +223,8 @@ export const KIMI: Harness = {
   // Kimi names its own session, and prints the id as its closing row.
   adoptsSessionId: false,
 
+  savesSessionAtOpen: false,
+
   // Kimi does have a slash name for a skill — `/skill:kanban` — but whether one typed into
   // a `-p` prompt is read as a command or as plain chat text is unprobed. The sentence
   // works either way, because Kimi's model picks a skill from its description on its own.

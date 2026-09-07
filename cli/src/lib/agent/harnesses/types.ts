@@ -126,9 +126,16 @@ export interface Harness
   client?(values: Record<string, string>): RunClient
   /** True when this harness adopts the session id we generate before the run starts
    *  (Claude Code takes `--session-id`), so its own resume id IS ours and is known from
-   *  the first moment. False when the harness mints its own id instead — then the id
-   *  arrives mid-run, out of the output stream, and the renderer reports it. */
+   *  the first moment. False when the harness mints its own id instead: a printing command
+   *  reports it out of the output stream, while one the board talks to hands it back as the
+   *  session opens, before the prompt goes out. */
   adoptsSessionId: boolean
+  /** True when the agent has written the session to its own store by the time it hands back
+   *  the id, so a run killed seconds later still reopens under it. Being handed an id early
+   *  is not enough on its own: ZCode answers `session/create` with one and keeps the session
+   *  in the running server, where a crash takes it with the process. Proved by opening a
+   *  session, killing the command, and reopening the id from a fresh one. */
+  savesSessionAtOpen: boolean
   /** What this connector's own output tells the board about a finished run, beyond the work
    *  itself. Every CLI reports something different and none of it can be inferred, so it is
    *  declared: what isn't here is a number the runs panel shows nothing for, rather than one

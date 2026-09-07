@@ -307,8 +307,10 @@ async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> 
       opened = await rpc.call('session/create', {
         workspace,
         mode: MODE,
-        // Written to ZCode's own store as it opens, so a run that dies seconds later can
-        // still be picked up by the id we were just handed.
+        // The runtime's own default, pinned so a later one can't quietly make board runs
+        // `deferred`. It does NOT put the session on disk yet — that happens on the first
+        // prompt, which is why a ZCode run that dies before its first turn can't be
+        // resumed (agent/harnesses/zcode.ts).
         persistence: 'immediate',
         // The session's name is the board's business, not a model call of its own.
         titleGenerationEnabled: false,

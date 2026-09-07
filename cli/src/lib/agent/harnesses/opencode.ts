@@ -128,6 +128,8 @@ export const OPENCODE: Harness = {
   // leaves nothing to resume by.
   adoptsSessionId: false,
 
+  savesSessionAtOpen: false,
+
   // `opencode run --file=<FILE>` attaches one file to the message, repeated per file. The
   // `=` is not a style choice: `--file` takes an ARRAY, and spelt as two tokens it would
   // swallow the prompt that follows it as a second file.
