@@ -24,9 +24,10 @@ import { overRail } from "./over-rail";
 // overlay on a narrow one — so what the user has typed lives here and survives the window
 // being dragged across that line.
 //
-// What is kept in the browser is how the user likes the rail, not what was said: the fold
-// and the width belong to the window (like lib/rail-width.ts), and the conversation itself
-// is a file on this machine, read from the server.
+// What is kept in the browser is how the user likes the rail and what has not been said yet:
+// the fold and the width belong to the window (like lib/rail-width.ts), a half-typed message
+// is the one thing the box cannot re-read from anywhere, and the conversation itself is a
+// file on this machine, read from the server.
 //
 // The same poll is what keeps the page under it honest (#243). A chat writes the board as
 // it answers, so every read carries the board's fingerprint; when that moves, the page is
@@ -39,6 +40,8 @@ const WIDTH_KEY = "kanban-ui.chat-width";
 /** When a reply was last read, per project and per conversation — what the button's mark
  *  is worked out from. */
 const SEEN_PREFIX = "kanban-ui.chat-seen:";
+/** A message typed and not sent, per project and per conversation. */
+const DRAFT_PREFIX = "kanban-ui.chat-draft:";
 
 /** What the rail opens at: wide enough for a paragraph of reply without a line break every
  *  few words, narrow enough to leave the board the screen. Shared with the bell
@@ -167,7 +170,7 @@ export function useChatRail({
   const c = useCopy().messages.chat;
   const [open, setOpen] = useState(false);
   const [read, setRead] = useState<ChatRead | null>(null);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useDraft(projectRoot, cardId);
   const [error, setError] = useState<string | null>(null);
   const [held, setHeld] = useState<string | null>(null);
   // The pictures waiting in the box (#441) — names, because the files are already beside
@@ -179,14 +182,14 @@ export function useChatRail({
   const [walked, setWalked] = useState<number | null>(null);
 
   // Another card's page is another conversation, and nothing of the last one carries over
-  // to it: not its messages, not a half-typed message, not the error its last send left.
-  // Done while rendering rather than in an effect, so the new page never paints a frame of
-  // the old card's exchange before the first read of its own lands.
+  // to it: not its messages, not the error its last send left. A half-typed message is the
+  // exception — it is kept per conversation and comes back with it (`useDraft`). Done while
+  // rendering rather than in an effect, so the new page never paints a frame of the old
+  // card's exchange before the first read of its own lands.
   const [showing, setShowing] = useState(cardId);
   if (showing !== cardId) {
     setShowing(cardId);
     setRead(null);
-    setDraft("");
     setError(null);
     setHeld(null);
     setWalked(null);
@@ -381,11 +384,14 @@ export function useChatRail({
 
   // Typing is what ends a walk: from there the box holds the user's words again. It also
   // takes the last paste's note away (#441) — the hand has moved on.
-  const type = useCallback((text: string) => {
-    setDraft(text);
-    setWalked(null);
-    setPasteNote(null);
-  }, []);
+  const type = useCallback(
+    (text: string) => {
+      setDraft(text);
+      setWalked(null);
+      setPasteNote(null);
+    },
+    [setDraft],
+  );
 
   // A note nobody acted on goes on its own, so the box is not still explaining a paste from
   // five minutes ago.
@@ -461,7 +467,7 @@ export function useChatRail({
       setDraft(sent[sent.length - 1 - step]);
       return true;
     },
-    [sent, walked, draft],
+    [sent, walked, draft, setDraft],
   );
 
   // One message out of the door, whether it came from the box or from a "send again" on a
@@ -500,7 +506,7 @@ export function useChatRail({
         setPasted((now) => (now.length ? now : shots));
       }
     },
-    [draft, pasted, post],
+    [draft, pasted, post, setDraft],
   );
 
   // Nothing of the box is touched: a half-typed message survives a "send again", and the
@@ -534,7 +540,7 @@ export function useChatRail({
       }
       kickRef.current();
     },
-    [cardId, seen, c],
+    [cardId, seen, c, setDraft],
   );
 
   const pickModel = useCallback(
@@ -652,6 +658,57 @@ function save(key: string, px: number) {
     window.localStorage.setItem(key, String(Math.round(px)));
   } catch {
     // storage unavailable — the width lasts as long as the window does
+  }
+}
+
+/** The message typed into this conversation's box and not sent yet, per project. It is kept
+ *  in the browser because it is the one thing in the rail that is nowhere else: the
+ *  transcript is a file, but words still being written are not. So a card looked away from
+ *  and come back to — or come back to after a reload — still has them in its box. */
+function useDraft(projectRoot: string, cardId: number | null) {
+  const key = `${DRAFT_PREFIX}${projectRoot}:${cardId === null ? "board" : cardId}`;
+  const [draft, setDraft] = useState("");
+
+  // Swapped while rendering, like the rest of the switch to another conversation, so the new
+  // card's box never paints a frame of the old card's words.
+  const [showing, setShowing] = useState(key);
+  if (showing !== key) {
+    setShowing(key);
+    setDraft(readDraft(key));
+  }
+
+  // The first read is client-only: doing it during the first render would desync hydration.
+  // Only an empty box takes what was stored, so a fast first keystroke is not overwritten.
+  useEffect(() => {
+    const saved = readDraft(key);
+    if (saved) setDraft((typed) => typed || saved);
+  }, [key]);
+
+  // Written down as it is typed. The first run for a conversation is the one that just read
+  // it, and has nothing to add — skipping it is also what stops the empty box of a first
+  // render from wiping what is stored before the read above lands.
+  const written = useRef<string | null>(null);
+  useEffect(() => {
+    if (written.current !== key) {
+      written.current = key;
+      return;
+    }
+    try {
+      if (draft) window.localStorage.setItem(key, draft);
+      else window.localStorage.removeItem(key);
+    } catch {
+      // storage unavailable — the draft lasts as long as the page does
+    }
+  }, [key, draft]);
+
+  return [draft, setDraft] as const;
+}
+
+function readDraft(key: string): string {
+  try {
+    return window.localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
   }
 }
 
