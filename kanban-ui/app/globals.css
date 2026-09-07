@@ -602,6 +602,15 @@ body.a4k-inset .a4k-nav-edge {
   background: var(--color-nb-accent-wash) !important;
   box-shadow: inset 2px 0 0 0 var(--color-nb-accent-soft) !important;
 }
+/* The passage the open comment box is on (#477). A textarea draws no selection once it is
+   not the focused element, and the box IS the focused element — so the same offsets are
+   painted on the preview, in the same ember the draft's own selection wears. A highlight
+   rather than a class: it covers characters rather than whole lines, and paints without
+   splitting the preview's generated HTML. */
+::highlight(a4k-picked) {
+  background-color: var(--color-nb-accent-soft);
+}
+
 /* The comment's number, in the margin beside the line it starts on. Absolutely placed, so
    it never moves a character of the draft out of line with the textarea underneath. */
 .overtype-wrapper .overtype-preview .a4k-commented[data-comment]::before {

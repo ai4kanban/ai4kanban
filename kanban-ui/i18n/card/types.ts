@@ -130,7 +130,9 @@ export type CardCopy = {
      *  A comment is saved on its lines, not sent — the whole read-through is submitted at
      *  once — so nothing here is worded as a message to an agent. */
     comment: {
-      /** The box that floats up while a passage is selected. */
+      /** What floats up while a passage is selected: the button that opens the box, and then
+       *  the box's own placeholder and its save. */
+      open: string;
       placeholder: string;
       leave: string;
       /** The list under the editor: its heading, and the two things a row offers. */

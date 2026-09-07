@@ -12,6 +12,9 @@ declare module "overtype" {
     padding?: string;
     autoResize?: boolean;
     spellcheck?: boolean;
+    /** The library's own list continuation. The page turns it off (#477): it renumbers by
+     *  assigning `textarea.value`, which throws the undo stack away. */
+    smartLists?: boolean;
     /** Passed straight to the textarea underneath — `readOnly` is how the page locks it
      *  while an agent is writing. */
     textareaProps?: Record<string, unknown>;
@@ -22,6 +25,9 @@ declare module "overtype" {
   }
 
   export interface OverTypeInstance {
+    /** The element the library builds inside the host, and where it writes its own theme as
+     *  inline custom properties. */
+    container: HTMLElement;
     /** The preview layer: one element per source line, except that consecutive list lines
      *  collapse into one `<ul>`/`<ol>` and a fenced block's body into one `<pre>`. */
     preview: HTMLElement;

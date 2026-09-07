@@ -328,8 +328,16 @@ function Draft({
   // draft unsaved and then hold every later re-read off.
   const adopting = useRef(false);
 
+  // True between `compositionstart` and `compositionend`. An IME's half-typed candidate is
+  // in the textarea like any other text, so it would otherwise be saved as the draft.
+  const composing = useRef(false);
+  // A draft an agent is writing takes nothing typed at all — read inside OverType's own
+  // onChange, which never sees a later render's values.
+  const lockedRef = useRef(false);
+  lockedRef.current = locked;
+
   const typed = useCallback((value: string) => {
-    if (adopting.current) return;
+    if (adopting.current || composing.current || lockedRef.current) return;
     pending.current = { tab: tabRef.current, text: value };
     setDirty(true);
     setText(value);
@@ -338,6 +346,10 @@ function Draft({
   }, []);
   const typedRef = useRef(typed);
   typedRef.current = typed;
+  // What the page last saw in the editor — every value `typed` took, and every file read into
+  // it. A composition that was abandoned ends on this, and is not a change to save.
+  const textRef = useRef(text);
+  textRef.current = text;
 
   // The comment marks. OverType replaces its preview's HTML on every render, so they are
   // drawn again from here — through a ref, since the instance below is built once and its
@@ -360,9 +372,18 @@ function Draft({
         fontSize: "13.5px",
         lineHeight: 1.85,
         padding: "24px 32px",
+        // Off, on three counts: it writes a numbered list the draft file may not carry, it
+        // renumbers by assigning `textarea.value` — which throws the undo stack away mid-draft
+        // — and it writes through a read-only lock. The cost is that Enter no longer opens the
+        // next list item.
+        smartLists: false,
         onChange: (value) => typedRef.current(value),
         onRender: () => repaintRef.current(),
       })[0]!;
+      // The draft's own selection in the same ember the comment box paints its passage with,
+      // so handing the focus to the box does not change what the passage looks like. Written
+      // inline, because that is where OverType writes its own theme.
+      made.container.style.setProperty("--selection", "var(--color-nb-accent-soft)");
       setEditor(made);
     })();
     return () => {
@@ -371,6 +392,41 @@ function Draft({
       setEditor(null);
     };
   }, []);
+
+  // ---- letting an IME through ----------------------------------------------
+  //
+  // OverType handles no composition of its own: its `keydown` runs on every key an IME takes,
+  // so Tab and the mod-key shortcuts fire at candidates rather than at the draft. Its
+  // listeners are delegated on `document`, so one on the textarea itself runs first and can
+  // stop the key from ever reaching them.
+  //
+  // The `input` events are let through on purpose — the textarea's own glyphs are transparent,
+  // so a preview that stopped re-rendering would leave the candidate being typed invisible.
+  // What is held back is the SAVE: `typed` ignores everything mid-composition, and the
+  // candidate lands once, here, when it is committed.
+  useEffect(() => {
+    if (!editor) return;
+    const box = editor.textarea;
+    const hold = (e: KeyboardEvent) => {
+      if (composing.current || e.isComposing) e.stopPropagation();
+    };
+    const start = () => {
+      composing.current = true;
+    };
+    const end = () => {
+      composing.current = false;
+      if (box.value !== textRef.current) typedRef.current(box.value);
+    };
+    box.addEventListener("keydown", hold);
+    box.addEventListener("compositionstart", start);
+    box.addEventListener("compositionend", end);
+    return () => {
+      box.removeEventListener("keydown", hold);
+      box.removeEventListener("compositionstart", start);
+      box.removeEventListener("compositionend", end);
+      composing.current = false;
+    };
+  }, [editor]);
 
   // Read-only while an agent is writing this card, and on a page handed no actions — where
   // a save could never land anyway.

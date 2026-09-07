@@ -8,7 +8,8 @@
 //
 // Three pieces, all of them the marketing card page's:
 //
-//   • LeaveComment — the box that floats up while a passage is selected.
+//   • LeaveComment — the button that floats up while a passage is selected, and the box it
+//     becomes once it is pressed.
 //   • useCommentMarks — the wash and the number each commented line carries, put back after
 //     every one of OverType's own renders.
 //   • DraftComments — the list under the editor, and Submit.
@@ -29,6 +30,11 @@ import { HAIRLINE, PULSE_DOT } from "./chrome";
 /** The class a commented line wears. Its look is in `app/globals.css`, which is also where
  *  the reason it has to be written there rather than here is. */
 const MARK = "a4k-commented";
+
+/** The name the passage under the open comment box is painted under (#477). A highlight
+ *  rather than a class: it covers characters, not lines, and paints without splitting the
+ *  preview's HTML. Its look is in `app/globals.css` too. */
+const PICKED = "a4k-picked";
 
 // ---- where a comment sits now ----------------------------------------------
 
@@ -116,10 +122,79 @@ export function useCommentMarks(editor: OverTypeInstance | null, comments: Draft
   return paint;
 }
 
+// ---- painting the passage the box is on --------------------------------------
+
+/** A range over one line element's own text, between two offsets into that line. */
+function spanOf(el: HTMLElement, start: number, end: number): Range | null {
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  let at = 0;
+  let opened = false;
+  for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+    const len = node.textContent?.length ?? 0;
+    if (!opened && start <= at + len) {
+      range.setStart(node, Math.max(0, start - at));
+      opened = true;
+    }
+    if (opened && end <= at + len) {
+      range.setEnd(node, Math.max(0, end - at));
+      return range;
+    }
+    at += len;
+  }
+  return null;
+}
+
+/** The ranges covering the draft's `[from, to)` in the preview. The preview draws one block
+ *  per source line and no newline of its own, so a passage across lines is one range each. */
+function rangesFor(preview: HTMLElement, text: string, from: number, to: number): Range[] {
+  const lines = lineElements(preview);
+  const rows = text.split("\n");
+  const ranges: Range[] = [];
+  let at = 0;
+  // A fenced block's lines all share one `<pre>`, so an offset into one of them is an offset
+  // into the whole block: how far the line sits into its own element is carried along.
+  let within = 0;
+  rows.forEach((line, n) => {
+    const el = lines[n];
+    within = el && el === lines[n - 1] ? within + rows[n - 1]!.length + 1 : 0;
+    const start = Math.max(from, at) - at;
+    const end = Math.min(to, at + line.length) - at;
+    at += line.length + 1;
+    if (!el || end <= start) return;
+    const range = spanOf(el, within + start, within + end);
+    if (range) ranges.push(range);
+  });
+  return ranges;
+}
+
+/** Keep the passage the comment box is on reading as selected. A textarea draws no selection
+ *  once it is not the focused element, and the box IS the focused element while it is open —
+ *  so the same offsets are painted onto the preview instead. */
+function usePickedPaint(editor: OverTypeInstance, at: { from: number; to: number } | null): void {
+  useEffect(() => {
+    const marks = typeof CSS !== "undefined" ? CSS.highlights : undefined;
+    if (!marks) return;
+    if (at) {
+      const ranges = rangesFor(editor.preview, editor.getValue(), at.from, at.to);
+      if (ranges.length) marks.set(PICKED, new Highlight(...ranges));
+    }
+    return () => void marks.delete(PICKED);
+  }, [editor, at]);
+}
+
 // ---- leaving one ------------------------------------------------------------
 
+/** How the comment box is reached from the keyboard, which is also what the button says. */
+const OPEN_KEY = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform) ? "⌘/" : "Ctrl+/";
+
 /**
- * The box that floats up while a passage is selected: what should change here, and Comment.
+ * What a selected passage offers: a button, and — once it is pressed — the box that asks what
+ * should change there.
+ *
+ * A button first, because an input would take the next keystroke: while it is only a button
+ * the selection is still the draft's, so typing over it, deleting it, copying it and undoing
+ * all reach the draft. The focus moves only when the user asks for the box (#477).
  *
  * It stands at the foot of the editor rather than beside the selection: a textarea gives no
  * coordinates for a range, and every way of guessing them is wrong on a wrapped line. The
@@ -135,46 +210,97 @@ export function LeaveComment({
 }) {
   const c = useCopy().card.marketing;
   const [picked, setPicked] = useState<{ from: number; to: number; text: string } | null>(null);
+  const [open, setOpen] = useState(false);
   const [words, setWords] = useState("");
-  // Typing in the input takes focus off the textarea, which is itself a selection change —
-  // so what was selected is read while the editor still holds it, and kept here.
   const box = editor.textarea;
+
+  // What is selected is read while the draft still holds the focus: opening the box takes it,
+  // and a textarea that is not focused reports no selection of its own.
   useEffect(() => {
     const check = () => {
       if (document.activeElement !== box) return;
       const { selectionStart: from, selectionEnd: to, value } = box;
-      setPicked(from === to ? null : { from, to, text: value.slice(from, to) });
+      if (from === to) {
+        setPicked(null);
+        setOpen(false);
+      } else {
+        setPicked({ from, to, text: value.slice(from, to) });
+      }
     };
     document.addEventListener("selectionchange", check);
     return () => document.removeEventListener("selectionchange", check);
   }, [box]);
 
+  // The keyboard's way in, since the button no longer takes the focus by itself.
+  useEffect(() => {
+    const hit = (e: KeyboardEvent) => {
+      if (e.key !== "/" || !(e.metaKey || e.ctrlKey)) return;
+      if (box.selectionStart === box.selectionEnd) return;
+      e.preventDefault();
+      setOpen(true);
+    };
+    box.addEventListener("keydown", hit);
+    return () => box.removeEventListener("keydown", hit);
+  }, [box]);
+
+  usePickedPaint(editor, open ? picked : null);
+
   if (!picked) return null;
+
   const leave = () => {
     if (!words.trim()) return;
     onLeave({ quote: picked.text, from: picked.from, to: picked.to, words: words.trim() });
     setWords("");
+    setOpen(false);
     setPicked(null);
   };
+  /** Give the draft its caret back on the way out — the passage is still selected in it. */
+  const close = () => {
+    setOpen(false);
+    box.focus();
+  };
+
+  // `z-20` because OverType gives its textarea `z-index: 1`: anything drawn over the draft
+  // without a layer of its own is painted underneath it, and takes no click. The band this
+  // stands in spans the editor, so only the control itself takes the pointer — a click
+  // anywhere else on that row still belongs to the draft.
   return (
-    <div className="absolute inset-x-0 bottom-9 flex justify-center px-8">
-      <div className="flex w-full max-w-[420px] items-center gap-1.5 rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_0_var(--color-nb-ink)]">
-        <input
-          autoFocus
-          value={words}
-          placeholder={c.comment.placeholder}
-          onChange={(e) => setWords(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") leave();
-            if (e.key === "Escape") setPicked(null);
-          }}
-          className="min-w-0 flex-1 bg-transparent px-2 text-[13px] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none"
-        />
-        <Button size="xs" disabled={!words.trim()} onClick={leave}>
-          <FiMessageSquare className="text-[12px]" aria-hidden />
-          {c.comment.leave}
+    <div className="pointer-events-none absolute inset-x-0 bottom-9 z-20 flex justify-center px-8">
+      {open ? (
+        <div className="pointer-events-auto flex w-full max-w-[420px] items-center gap-1.5 rounded-[10px] border-[1.5px] border-nb-accent bg-nb-paper p-1.5 shadow-[3px_3px_0_0_var(--color-nb-ink)]">
+          <input
+            autoFocus
+            value={words}
+            placeholder={c.comment.placeholder}
+            onChange={(e) => setWords(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") leave();
+              if (e.key === "Escape") close();
+            }}
+            className="min-w-0 flex-1 bg-transparent px-2 text-[13px] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-none"
+          />
+          <Button size="xs" variant="ghost" disabled={!words.trim()} onClick={leave}>
+            <FiMessageSquare className="text-[12px]" aria-hidden />
+            {c.comment.leave}
+          </Button>
+        </div>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="pointer-events-auto"
+          // The press must leave the selection where it is: the box is what takes the focus,
+          // and only once it is there.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setOpen(true)}
+        >
+          <FiMessageSquare className="text-[13px]" aria-hidden />
+          {c.comment.open}
+          <span className="ml-0.5 rounded-[5px] bg-nb-ink/[0.06] px-1.5 py-[1px] font-mono text-[11px] font-[700] text-nb-ink-soft">
+            {OPEN_KEY}
+          </span>
         </Button>
-      </div>
+      )}
     </div>
   );
 }
