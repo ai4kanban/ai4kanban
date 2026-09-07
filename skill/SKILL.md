@@ -71,10 +71,10 @@ is `card refine`.
 `[user]` questions waiting on a card instead of stopping for them. Type it only when the user
 hands their own call over — an answer they gave is `card resolve`.
 
-**Build now** on the board's Create screen is the one build with no card: what the user typed
-goes straight to an implementation run. It writes no card, asks nothing back, and nothing
-reviews it — the run's own commit is the last word. All it leaves is a delivery and that
-commit, read on its flow in Runs, so `delivery cancel`/`review` name the delivery.
+**Build now** on the board's Create screen is the one build nothing plans: what the user typed
+goes straight to an implementation run, which writes the card from that sentence and builds it
+in the same session. Nothing refines it, nothing asks back, and nothing reviews it — the run's
+own commit is the last word.
 
 Each action's full flow comes back from `--print`, so don't work one out from this list.
 

@@ -14,15 +14,24 @@ Build the approved card. Do not add, rewrite, or tag questions on it.
 - On an eligible interactive change, run focused checks for the affected path plus every
   repository-required check.
 
-## A build with no card
+## A build that writes its own card
 
-**Build now** sends a typed sentence straight here, with no card behind it. That sentence is
-the whole requirement, and the delivery is the only record of the job.
+**Build now** sends a typed sentence with no card behind it. Write the card first, in the
+same run, then build it. The board points the run and its delivery at the card as the create
+lands, so from there it is an ordinary build.
 
-- **Build exactly the sentence**: nothing else says what this was for, so do not widen it.
-- **Write no card**: no card is created, ticked, questioned or archived — the delivery and
-  its commit are all this build leaves.
-- **Nothing reviews it**: AI review and diff approval are off, so your own commit is the
-  last word before it reaches the branch. Run the repository's checks yourself.
-- **Blockers carry no id**: `akb raw run-blocker --step ".." --cause ".." --unblock ".."`,
-  with the id left out. The blocker is read on the run's flow in Runs.
+- **Create it first**: `akb raw create --title ".."`, plus `--release` when the prompt names
+  one. The title is one short line read off the sentence, in the sentence's own language —
+  add `--slug <short-english-slug>` when that is not English, because filenames are ASCII. No
+  `--modules`, no `--question`, no `--schedule` — nothing has evaluated this idea.
+- **The sentence is the summary**: replace the scaffold's opening paragraph with what the
+  user typed, verbatim, in a fenced code block. Open the fence with more backticks than the
+  longest run in the sentence, or the card fails validation on an unclosed fence.
+- **Leave the rest of the scaffold**: `## Worth noting`, `## Scope`, `## Todo` and
+  `## Decided by the agent` stay exactly as `raw create` wrote them.
+- **Then build that card**: the code block is the whole requirement — build exactly it and
+  widen it no further. `akb card implement <id> --print` is the flow from here.
+- **Nothing reviews it**: AI review and diff approval are off, so your own commit is the last
+  word before it reaches the branch. Run the repository's checks yourself.
+- **Blockers before the card**: `akb raw run-blocker --step ".." --cause ".." --unblock ".."`
+  with the id left out, read on the run's flow in Runs. Once the card exists, name it.

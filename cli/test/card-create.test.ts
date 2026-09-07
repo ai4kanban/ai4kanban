@@ -7,6 +7,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, afterEach, beforeEach, describe, it } from 'node:test'
 
+import { joinDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { peekRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
@@ -120,5 +121,30 @@ describe('card creation owns its id', () => {
       0,
     )
     assert.deepEqual(peekRun(owner.sessionId)?.createdCardIds, [8])
+  })
+
+  // A **Build now** writes its own card and then builds it (#470). The delivery it opened
+  // with no card takes the id here, and the card is being built from the moment it exists.
+  it('hands a card made by a Build now run to the delivery it is building in', async () => {
+    const build: RunRecord = {
+      sessionId: 'build-run',
+      cardId: null,
+      action: 'implement',
+      status: 'running',
+      startedAt: Date.now(),
+      harness: 'test',
+      logPath: '/dev/null',
+    }
+    const typed = 'Rename the heading'
+    const deliveryId = withStore((store) => {
+      store.runs.push(build)
+      return joinDelivery(store, build, typed, 'implement', undefined, typed).deliveryId
+    })
+    process.env[RUN_ENV] = build.sessionId
+
+    assert.equal(await runBoard(['create', '--title', typed], { cwd: root }), 0)
+    assert.equal(peekRun(build.sessionId)?.cardId, 8)
+    assert.equal(listDeliveries().find((d) => d.deliveryId === deliveryId)?.cardId, 8)
+    assert.match(fs.readFileSync(path.join(todo, '8-rename-the-heading.md'), 'utf8'), /status: implementing/)
   })
 })

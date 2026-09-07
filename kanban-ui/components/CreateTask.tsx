@@ -81,8 +81,7 @@ export function CreateTask({
 
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up
-  // (on the board; harmless on a card page, and harmless after a Build now, which wrote
-  // none).
+  // (on the board; harmless on a card page). A Build now writes one too (#470).
   const onFinish = useCallback(
     (session: SessionView) => {
       sessionsPanel.open(session.sessionId);
@@ -165,10 +164,11 @@ export function CreateTask({
           onSend={(description, mode) =>
             startSession(
               // Build now carries no card id (#428): the sentence is the requirement, and
-              // the run opens a delivery of its own. It ships in no release — there is no
-              // card to ship.
+              // the run opens a delivery of its own. It carries the release all the same —
+              // the run writes a card from that sentence and it ships in the version on
+              // screen, like one Add task wrote (#470).
               mode === "build"
-                ? { action: "implement", description }
+                ? { action: "implement", description, release: release ?? undefined }
                 : { action: "create", description, release: release ?? undefined },
               mode === "build" ? "Build now" : "Create task",
             )

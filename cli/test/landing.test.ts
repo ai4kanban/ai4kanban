@@ -11,7 +11,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { activeDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
+import { activeDelivery, adoptDirectCard, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding, repairLanding } from '../src/lib/agent/landing.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
@@ -114,10 +114,38 @@ const statusOf = (deliveryId: string): string =>
 
 const log = (ref = 'main'): string[] => git(['log', '--format=%s', ref]).split('\n')
 
-// A build with no card (#428) lands the same way, and leaves nothing on the board behind
-// it: there is no card to hold, none to put back, and none to archive.
+// A build with no card (#428): a **Build now** run that ended before it wrote its own card
+// (#470). It lands the same way and leaves nothing on the board behind it — there is no card
+// to hold, none to put back, and none to archive.
 describe('a build with no card', () => {
   const typed = 'Rename the Runs panel heading to Activity'
+
+  // And the ordinary way round: the run writes its card first, so the delivery lands on a
+  // card and archives it — still with nothing reviewing or approving the work (#470).
+  it('archives the card its run wrote, and is reviewed by nothing on the way', async () => {
+    const opened = openRun({ action: 'implement', description: typed }, 'prompt', [])
+    assert.ok(!('error' in opened), 'a card-less build should start')
+    const built = (opened as { run: { sessionId: string } }).run.sessionId
+    const delivery = listDeliveries().find((d) => d.cardId === null && d.status === 'active')!
+
+    // What the run's first act leaves behind: the card, and the board handing it to the
+    // delivery already in flight.
+    const file = path.join(root, 'docs', 'kanban', 'todo', 'features', '3-direct.md')
+    fs.writeFileSync(file, card(3, typed))
+    assert.equal(adoptDirectCard(built, 3), true)
+    assert.equal(activeDelivery(3)?.deliveryId, delivery.deliveryId)
+
+    fs.writeFileSync(path.join(worktreeDir(delivery.worktree!), 'shared.txt'), 'renamed\n')
+    await end(built)
+    const live = listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)!
+    assert.equal(live.aiReview, false, 'the card arriving must not turn review on')
+    assert.equal(live.approval?.required, false)
+    assert.equal(live.landing?.status, 'waiting', 'it goes straight to landing, unreviewed')
+
+    assert.equal(await advanceLanding(), null)
+    assert.equal(statusOf(delivery.deliveryId), 'finished')
+    assert.equal(fs.existsSync(file), false, 'the card it wrote is archived with the delivery')
+  })
 
   it('lands its own commit, named by the delivery, and archives nothing', async () => {
     const opened = openRun({ action: 'implement', description: typed }, 'prompt', [])

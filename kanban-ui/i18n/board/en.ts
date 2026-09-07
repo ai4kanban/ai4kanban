@@ -70,7 +70,7 @@ const en: BoardCopy = {
       keys: "Esc closes",
       keysDiscuss: "Esc closes and keeps the discussion",
       shipsIn: (release) => `Ships in ${release}`,
-      builds: "Builds it straight away — no card",
+      builds: "no review before your branch",
       newIdea: "New idea",
       newIdeaGuard: {
         title: "Start a new idea?",
@@ -80,12 +80,9 @@ const en: BoardCopy = {
         confirm: "Start new",
       },
       guard: {
-        title: "Build it now, with no card?",
-        skips: [
-          "No card is written",
-          "No questions back, no plan to read",
-          "Nothing reviews it before it reaches your branch",
-        ],
+        title: "Write a card and build it now?",
+        writes: "It writes a card first — a generated title, your words as its whole summary.",
+        skips: ["No questions back, and the card gets no plan", "Nothing reviews it before it reaches your branch"],
         cancel: "Cancel",
         confirm: "Build now",
       },

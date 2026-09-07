@@ -46,7 +46,7 @@ const GUTTER = "px-5";
 const GUTTER_HALF = "px-2.5";
 
 /** What sending does. `discuss` talks it through first (#427); `card` writes one and refines
- *  it; `build` writes none (#428). */
+ *  it; `build` writes one and builds it straight away, refining nothing (#470). */
 export type CreateMode = "discuss" | "card" | "build";
 
 interface Props {
@@ -99,7 +99,7 @@ function Sheet({
   const [headlineStopped, setHeadlineStopped] = useState(false);
   const [mounted, setMounted] = useState(false);
   // Discuss is what a vague idea wants, so it is what the screen opens on. Build now never
-  // is: a build with no card is the deliberate one.
+  // is: a build nothing plans or reviews is the deliberate one.
   const [mode, setMode] = useState<CreateMode>("discuss");
   // Which "are you sure?" is open, if any. One at a time, so Esc has one answer.
   const [guard, setGuard] = useState<null | "build" | "new">(null);
@@ -560,8 +560,8 @@ function Composer({
         sendLabel={c.send}
         sendRef={sendRef}
         stop={ours ? { label: chat.stop, onStop: () => void rail?.stop() } : undefined}
-        // The guard hangs off Send — this app's one way to ask "are you sure?". It
-        // lists what Build now skips rather than arguing for it.
+        // The guard hangs off Send — this app's one way to ask "are you sure?". It leads
+        // with the card the run writes (#470), then lists what the mode still skips.
         guard={
           <ConfirmationPopover
             open={guarding}
@@ -570,6 +570,8 @@ function Composer({
             title={c.guard.title}
             description={
               <span className="flex flex-col gap-1">
+                {/* What it does, in a line of its own — the two below are what it skips. */}
+                <span>{c.guard.writes}</span>
                 {c.guard.skips.map((line) => (
                   <span key={line} className="flex items-start gap-1.5">
                     <FiX className="mt-[3px] shrink-0 text-[11px] text-nb-peach-ink" aria-hidden />
@@ -631,17 +633,19 @@ function Composer({
         }
         hint={
           // The keys on the left and, opposite them, what this mode leaves behind: that the
-          // conversation is still answering, the release a new card ships in, or — in Build
-          // now — that there is no card at all. A board on no release says nothing there
-          // rather than saying so.
+          // conversation is still answering, and the release the card it writes ships in —
+          // Build now writes one too (#470), with the one warning that survives beside it. A
+          // board on no release says nothing there rather than saying so.
           <span className="flex items-center justify-between gap-4 max-md:flex-col max-md:items-start max-md:gap-0.5">
             <span className="truncate">{rail ? c.keysDiscuss : c.keys}</span>
             {rail ? (
               answering && <span className="shrink-0">{chat.sendingWaits}</span>
-            ) : mode === "build" ? (
-              <span className="shrink-0 text-nb-peach-ink">{c.builds}</span>
             ) : (
-              release && <span className="shrink-0">{c.shipsIn(release)}</span>
+              <span className="shrink-0">
+                {release && c.shipsIn(release)}
+                {release && mode === "build" && <span className="opacity-45"> · </span>}
+                {mode === "build" && <span className="text-nb-peach-ink">{c.builds}</span>}
+              </span>
             )}
           </span>
         }

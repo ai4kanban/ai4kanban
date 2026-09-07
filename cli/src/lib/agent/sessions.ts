@@ -521,9 +521,10 @@ export function openRun(
   // so there is no worktree, no branch, nothing to review against a diff and nothing to land
   // (#407): the run works in the project, and the flow's own close is what finishes the card.
   //
-  // A build with no card at all is the third way in (#428): **Build now** sends the typed
+  // A build with no card yet is the third way in (#428): **Build now** sends the typed
   // sentence straight here, so there is no card to look a delivery up by and one is always
-  // opened. It is refused where a carded manual build would be, and nowhere else.
+  // opened. It is refused where a carded manual build would be, and nowhere else. The card
+  // the run writes reaches this delivery afterwards (`adoptDirectCard`, #470).
   const delivers = deliversWithGit()
   const cardless = req.action === 'implement' && cardId === null && !!req.description?.trim()
   let start: DeliveryStart | undefined

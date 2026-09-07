@@ -154,16 +154,17 @@ export interface AgentRequest {
   notes?: string // implement, edit, clarify, resolve, archive, run
   reason?: string // reject
   /** create: what the user wants, in their own words. implement with no `id`: the typed
-   *  sentence a card-less build is approved to build (#428) — its requirements, its prompt
-   *  and its delivery's title all at once. */
+   *  sentence a **Build now** is approved to build (#428) — its requirements, its prompt and
+   *  its delivery's title at once, and the card the run writes from it (#470). */
   description?: string
   /** create: the plan this run writes cards from (#427), as a path from the project root.
    *  The words are in the file, so `description` is left off — a copy pasted into the
    *  prompt would go stale the moment the discussion rewrote it. */
   plan?: string
-  /** create: the version the new card(s) ship in. plan-release: the version being
-   *  planned, and changelog: the version being written up — the whole of what either run
-   *  is about, since neither names a card. */
+  /** create, and implement with no `id`: the version the new card(s) ship in — a
+   *  **Build now** writes one card and it ships in the release on screen like any other
+   *  (#470). plan-release: the version being planned, and changelog: the version being
+   *  written up — the whole of what either run is about, since neither names a card. */
   release?: string
   andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** Internal position in a watcher-managed refinement run chain. */

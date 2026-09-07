@@ -77,18 +77,17 @@ export type BoardCopy = {
       discuss: string;
       /** The mode that writes a card. */
       addTask: string;
-      /** The mode that builds what you typed with no card at all (#428). */
+      /** The mode that builds what you typed, from a card the run writes itself (#470). */
       buildNow: string;
       /** The corner button. Its own word, so a reader isn't told "Add task" twice. */
       send: string;
       keys: string;
       /** Esc keeps a discussion rather than throwing it away, so it says so. */
       keysDiscuss: string;
-      /** Which version a card written here ships in. Nothing is said with no release on
-       *  screen, and nothing in Build now — that mode writes no card to ship. */
+      /** Which version a card written here ships in — in every mode, since Build now
+       *  writes one too (#470). Nothing is said with no release on screen. */
       shipsIn: (release: string) => string;
-      /** What Build now says instead: it skips every step the board is for, so it names
-       *  them before the run starts (#428). */
+      /** And, in Build now, the one thing that mode gives up, beside the release. */
       builds: string;
       /** Leaving one discussion for the next. The board holds one conversation, so this is
        *  the only way a second idea starts on an empty screen. */
@@ -106,6 +105,9 @@ export type BoardCopy = {
       /** The guard Send opens in Build now. Nothing starts until it is confirmed. */
       guard: {
         title: string;
+        /** The card the run writes from what you typed — what this mode does, above what
+         *  it skips (#470). */
+        writes: string;
         /** One line per step this mode skips. */
         skips: readonly string[];
         cancel: string;

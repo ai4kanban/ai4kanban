@@ -10,10 +10,11 @@
 import { CADENCE_FORMS } from '../cadence'
 import { CHANNEL_NAMES, CHANNEL_STATUSES } from '../channels'
 import { insideRun } from '../agent/env'
+import { adoptDirectCard } from '../agent/deliveries'
 import { cardStages, startGateAfter } from '../agent/gate'
 import { readyGateOn } from '../agent/settings'
 import { recordCreatedCards } from '../agent/store'
-import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
+import { board, moveTarget, openBoard, setCardStatusOn, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
 import { BoardError, say, warn } from '../io'
 import { KANBAN } from '../paths'
@@ -95,6 +96,11 @@ async function dispatch(
             return result
           }),
         )
+    // A **Build now** run writes its own card and then builds it (#470). The delivery it
+    // opened before there was a card takes the id here, the moment the create lands, and the
+    // card goes to `implementing` under it — outside the lease above, because the stage is a
+    // board write of its own.
+    if (owner) await adoptCreatedCard(owner, data.ids)
     // A board that ran the move somewhere else sends its prose back rather than printing it;
     // Local printed as it went and has none to add.
     const { output, warnings, ...fields } = data
@@ -107,6 +113,22 @@ async function dispatch(
     return { board: KANBAN, ...fields, ...(gated ? { gate: gated.sessionId } : {}) }
   })
   cli.onAnswer?.(data)
+}
+
+// The card a **Build now** run just wrote, handed to the delivery it is already building in
+// (#470). Nothing happens on any other run: `adoptDirectCard` takes only a run holding a
+// card-less delivery of its own.
+//
+// Best-effort at the last step: the card exists and the record already names it, and failing
+// the create over a stage would leave the run with no card to build.
+async function adoptCreatedCard(owner: string, ids: unknown): Promise<void> {
+  const id = Array.isArray(ids) ? ids[0] : undefined
+  if (!Number.isInteger(id) || !adoptDirectCard(owner, id as number)) return
+  try {
+    await setCardStatusOn(id as number, 'implementing')
+  } catch {
+    // the board would not take the write — the delivery holds the card either way
+  }
 }
 
 // What a mutation answered with: the move's own fields, or the refusal thrown so the door

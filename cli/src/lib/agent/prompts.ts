@@ -49,9 +49,10 @@ const DELIVERY_RESUME = [
 ].join(' ')
 
 // And the last line, which says where the requirements are. A card file can have moved
-// under the delivery, so the copy it is building from is what to read. A build with no card
-// (#428) has no file and no command that prints one, so the typed sentence is quoted here —
-// this is the whole of what a restarted run would otherwise be left without.
+// under the delivery, so the copy it is building from is what to read. A **Build now** that
+// ended before it wrote its card (#470) has no file and no command that prints one, so the
+// typed sentence is quoted here — this is the whole of what a restarted run would otherwise
+// be left without.
 const DELIVERY_RESUME_CARD = `Build the card as the delivery holds it, not as the file reads now: \`%c\` prints the approved copy.`
 
 /** What a resumed run is told: the plain "carry on", or — inside a delivery — the one that
@@ -63,7 +64,9 @@ export function resumePrompt(deliveryId: string | undefined, cardId: number | nu
     return `${lead} ${DELIVERY_RESUME_CARD.replace('%c', `${boardCommandFor(cardId)} card implement ${cardId} --print`)}`
   }
   const typed = findDelivery(deliveryId)?.approved.trim()
-  return typed ? `${lead} There is no card: build exactly this, and nothing more — "${typed}".` : lead
+  return typed
+    ? `${lead} No card was written yet: write it from this sentence as \`akb guide implement\` says, then build exactly it and nothing more — "${typed}".`
+    : lead
 }
 
 /** A format repair continues the same run without repeating its task. */
@@ -255,16 +258,19 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
   // Retired (#438): nothing starts a propose any more, so there is no ask left to write.
   if (req.action === 'propose') return ''
   switch (req.action) {
-    // A build with no card (#428): the typed sentence IS the requirement, so it is quoted
-    // here rather than pointed at. Nothing about the board follows — there is no card to
-    // tick, no question to raise and nothing to archive, which the flow says in full.
+    // A build that writes its own card (#470): the typed sentence IS the requirement, so it
+    // is quoted here rather than pointed at, and the run's first act is the card it holds.
+    // The release the board was showing comes with it, exactly as it does on a create.
     case 'implement':
       if (req.id === undefined) {
         return [
-          `${kb}. Build this, with no card: "${req.description?.trim() ?? ''}".`,
-          `Follow \`akb guide implement\`. That sentence is the whole requirement — build exactly it, and write no card.`,
+          `${kb}. Build this: "${req.description?.trim() ?? ''}".`,
+          `Follow \`akb guide implement\` — write its card first, from that sentence, then build it.`,
+          req.release ? `Put the new card in the "${req.release}" release: \`--release ${req.release}\`.` : '',
           `Don't ask me questions with human-in-the-loop; stop on a real blocker instead.`,
-        ].join(' ')
+        ]
+          .filter(Boolean)
+          .join(' ')
       }
       return [
         `${kb}. Implement task ${req.id} ${named} following \`akb guide implement\`.`,

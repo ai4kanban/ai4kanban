@@ -7,9 +7,11 @@
 // won't change it — and the way to take the card back is Discard on the card page, or
 // `cancel` here, which ends it the same way but leaves its worktree behind.
 //
-// A delivery may also carry NO card (#428) — **Build now** sends a typed sentence straight
-// to a build. Its snapshot is that sentence, which nothing can rewrite; it holds nothing,
-// archives nothing, and its own id is what everything finds it by.
+// A delivery may also open with NO card (#428) — **Build now** sends a typed sentence
+// straight to a build. Its snapshot is that sentence, which nothing can rewrite, and its own
+// id is what everything finds it by. The run's first act is to write the card, which
+// `adoptDirectCard` hands over (#470); until then, and for a run that ends before it, the
+// delivery holds nothing and archives nothing.
 //
 // It leaves two records. The live row sits in docs/kanban/.sessions.json, where the lock
 // and the card page read it. The permanent one is a JSON file per delivery under
@@ -24,6 +26,7 @@ import type { CloudEventState } from '../cloud/events'
 import { recordCloudDeliveryState } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
 import { DELIVERIES, rel } from '../paths'
+import { solution } from '../solution'
 import { candidateBase } from './candidate'
 import { decideRunAfter, decidingOn } from './decide'
 import { boardCommand } from './command'
@@ -345,6 +348,47 @@ export function joinDelivery(
   // card-less delivery answers no action and reports nothing.
   if (cardId !== null) recordCloudDeliveryState(cardId, 'running')
   return delivery
+}
+
+/** Give a **Build now** run the card it has just written (#470).
+ *
+ *  Its delivery is prepared before the run spawns, when there is no card to name, so the id
+ *  is written on afterwards — as `akb raw create` lands, from the same command that made it.
+ *  From here the run, the delivery and the card are the ordinary three: Runs names `#id`,
+ *  the card page shows the delivery in flight, and landing archives the card.
+ *
+ *  What was frozen while there was no card stays frozen: `aiReview` and `approval` are off,
+ *  and `approved` is still the typed sentence — the card was written from it, not the other
+ *  way round.
+ *
+ *  Only a card-less build, which **Build now** is the one way into. An Add task run creates
+ *  cards too, and adopting one would put a card it merely planned into a delivery. A board
+ *  that does not deliver with git opened none (#407), and there the run alone takes the card.
+ *
+ *  The caller writes the card's stage, once the board lease is back. */
+export function adoptDirectCard(sessionId: string, cardId: number): boolean {
+  return withStore((store) => {
+    const run = store.runs.find((r) => r.sessionId === sessionId && r.status === 'running')
+    if (!run || run.action !== 'implement' || run.cardId !== null) return false
+    const delivery = run.deliveryId
+      ? store.deliveries.find((d) => d.deliveryId === run.deliveryId && d.status === 'active')
+      : undefined
+    if (run.deliveryId && (!delivery || delivery.cardId !== null)) return false
+    // Where the card rests when the job ends without archiving it. `raw create` writes every
+    // card at `todo` and the caller takes this one straight to `implementing`; nothing plans
+    // it, so a cancel or a discard hands back a settled card rather than one to refine.
+    // `ready` is the stage a refine takes a card to, and a board with no refine has no such
+    // stage (#435) — the same rule `releaseCard` follows.
+    const idle = solution() === 'marketing' ? 'todo' : 'ready'
+    run.cardId = cardId
+    run.priorStatus = idle
+    if (!delivery) return true
+    delivery.cardId = cardId
+    delivery.priorStatus = idle
+    writeAudit(delivery, store.runs)
+    recordCloudDeliveryState(cardId, 'running')
+    return true
+  })
 }
 
 /** Put a review run into the delivery already in flight on its card.

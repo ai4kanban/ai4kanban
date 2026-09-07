@@ -15,6 +15,7 @@ import {
   findDelivery,
   heldByDelivery,
   insideDelivery,
+  adoptDirectCard,
   joinDelivery,
   namedDelivery,
   settleDelivery,
@@ -353,14 +354,72 @@ describe('a delivery with no card', () => {
   })
 
   // What a restarted run is told when its saved conversation is gone. A carded delivery is
-  // pointed at the command that prints its approved copy; this one has no file and no such
-  // command, so the sentence itself has to be in the words.
+  // pointed at the command that prints its approved copy; this one never got as far as
+  // writing its card, so the sentence itself has to be in the words.
   it('quotes the typed sentence to a run that has to start over', () => {
     const id = startCardless(session({ cardId: null }))
     const prompt = resumePrompt(id, null)
     assert.match(prompt, new RegExp(`Continue delivery ${id}`))
-    assert.match(prompt, /There is no card: build exactly this, and nothing more/)
+    assert.match(prompt, /No card was written yet: write it from this sentence/)
     assert.match(prompt, new RegExp(typed))
+  })
+
+  // The card the run writes for itself (#470), handed to the delivery already in flight.
+  describe('once the run has written its card', () => {
+    it('names it on the run and on the delivery, and rests it at ready', () => {
+      const id = startCardless(session({ cardId: null }))
+      assert.equal(adoptDirectCard(readStore().runs[0]!.sessionId, 9), true)
+      const delivery = findDelivery(id)!
+      assert.equal(delivery.cardId, 9)
+      assert.equal(delivery.priorStatus, 'ready')
+      assert.equal(readStore().runs[0]!.cardId, 9)
+      assert.equal(readStore().runs[0]!.priorStatus, 'ready')
+      assert.equal(readAudit(id).cardId, 9)
+    })
+
+    it('leaves what was frozen with no card frozen — nothing reviews or approves it', () => {
+      const id = withStore((store) => {
+        const run = session({ cardId: null })
+        store.runs.push(run)
+        const delivery = joinDelivery(store, run, typed, 'implement', undefined, typed)
+        delivery.aiReview = false
+        delivery.approval = { required: false, events: [] }
+        return delivery.deliveryId
+      })
+      adoptDirectCard(readStore().runs[0]!.sessionId, 9)
+      const delivery = findDelivery(id)!
+      assert.equal(delivery.aiReview, false)
+      assert.equal(delivery.approval?.required, false)
+      // And the sentence stays the requirement: the card was written from it.
+      assert.equal(delivery.approved, typed)
+    })
+
+    it('takes the first card only — a second create changes nothing', () => {
+      startCardless(session({ cardId: null }))
+      const sessionId = readStore().runs[0]!.sessionId
+      adoptDirectCard(sessionId, 9)
+      assert.equal(adoptDirectCard(sessionId, 10), false)
+      assert.equal(readStore().runs[0]!.cardId, 9)
+    })
+
+    it('leaves a run that is not a card-less build alone', () => {
+      start(session())
+      assert.equal(adoptDirectCard(readStore().runs[0]!.sessionId, 9), false)
+      withStore((store) => store.runs.push(session({ cardId: null, action: 'create' })))
+      assert.equal(adoptDirectCard(readStore().runs[1]!.sessionId, 9), false)
+      assert.equal(readStore().runs[1]!.cardId, null)
+    })
+
+    // A board that does not deliver with git opened no delivery (#407), so the run itself is
+    // what holds the card — and it rests at `todo`, the one stage a board with no refine has.
+    it('hands the card to a run with no delivery, resting it at todo', () => {
+      fs.writeFileSync(path.join(root, 'docs', 'kanban', 'config.md'), '- **Solution** — marketing\n')
+      withStore((store) => store.runs.push(session({ cardId: null })))
+      const sessionId = readStore().runs[0]!.sessionId
+      assert.equal(adoptDirectCard(sessionId, 9), true)
+      assert.equal(readStore().runs[0]!.cardId, 9)
+      assert.equal(readStore().runs[0]!.priorStatus, 'todo')
+    })
   })
 
   it('finishes on its own build in manual commit mode, waiting for no commit', async () => {
