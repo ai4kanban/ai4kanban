@@ -266,7 +266,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
   switch (req.action) {
     // A build that writes its own card (#470): the typed sentence IS the requirement, so it
     // is quoted here rather than pointed at, and the run's first act is the card it holds.
-    // Answered off the plan ask it is a plan instead (#481), named the way a create off one
+    // Answered off the plan handoff it is a plan instead (#481), named the way a create off one
     // is: the words are in the file, and a copy pasted in here would go stale.
     // The release the board was showing comes with it, exactly as it does on a create.
     case 'implement':

@@ -374,7 +374,7 @@ export interface BoardRules {
   // Optional like the chat itself: a project running rules older than the release that added
   // them opens the create screen on Add task, and nothing else is missing.
   readDiscuss?(): Promise<DiscussRead>;
-  /** The run this plan was handed to has started, and which of the plan ask's answers handed
+  /** The run this plan was handed to has started, and which of the handoff's answers handed
    *  it over (#481) — so reopening Discuss says it is still working rather than offering a
    *  second one, and names a build where that is what is working. Rules from before the third
    *  answer take the id alone and record a planning run. */

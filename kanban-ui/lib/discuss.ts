@@ -5,9 +5,8 @@ import type { DiscussRead, PlanAnswer } from "./types";
 //
 // The Discuss screen is the board's own conversation (lib/chat.ts) with one thing added: the
 // plan file the discussion is talking into shape. This is the board's door onto that — the
-// plan, the ask standing under the last message, and the run one of its answers handed the
-// plan to — all of it held by the rules, beside the transcript, so a discussion survives the
-// window being closed.
+// plan, and the run one of the handoff's answers gave it to — all of it held by the rules,
+// beside the transcript, so a discussion survives the window being closed.
 //
 // Nothing here writes the plan file. The agent does, in the conversation; the board only
 // ever reads it.
@@ -19,7 +18,7 @@ export const DISCUSS_GUIDE = "discuss-idea";
 
 /** A board whose rules are older than Discuss, or one with no plan in flight. Both draw the
  *  same screen: the conversation, and no panel. */
-const NOTHING: DiscussRead = { plan: null, ask: false, run: null };
+const NOTHING: DiscussRead = { plan: null, run: null };
 
 /** The plan the board's conversation is writing, as the screen draws it. Never throws: a
  *  board that cannot answer is a screen with no panel, not a page that fails. */

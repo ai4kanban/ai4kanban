@@ -2,7 +2,7 @@
 //
 // The conversation itself is `agent/chat.ts`: Discuss is `akb chat` on the board's own
 // conversation, held in the same file, answered by the same agent. What is added here is
-// the plan that conversation is writing and the run one of the plan ask's answers handed it
+// the plan that conversation is writing and the run one of the handoff's answers handed it
 // to — Start planning, which turns it into cards, or Build now, which writes one card from it
 // and builds it (#481).
 
@@ -11,10 +11,10 @@ import { clearChatPlan, readChat, setChatPlanRun } from './chat'
 import { planPathInText, readPlan } from '../plans'
 import type { DiscussRead, PlanAnswer } from './types'
 
-const NOTHING: DiscussRead = { plan: null, ask: false, run: null }
+const NOTHING: DiscussRead = { plan: null, run: null }
 
 /**
- * What Discuss shows beside the transcript: the plan, the ask, and the run it was handed to.
+ * What Discuss shows beside the transcript: the plan, and the run it was handed to.
  *
  * It is also where a finished plan is let go. A run that wrote its card can end while the
  * screen is shut, so nothing is watching to clear it then — the next read is, and by the
@@ -42,7 +42,6 @@ export async function readDiscuss(): Promise<DiscussRead> {
     // Spelled from the project root, the way a card's `## Source` carries it — the panel
     // shows the path to copy, and the board never opens a plan itself.
     plan: file && { ...file, path: planPathInText(file.path) },
-    ask: plan.ask === true,
     run: plan.run ? { sessionId: plan.run, running, answer: plan.answer ?? 'plan' } : null,
   }
 }

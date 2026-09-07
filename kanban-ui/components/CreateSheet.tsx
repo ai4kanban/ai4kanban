@@ -709,11 +709,16 @@ function Mode({
   );
 }
 
-/** The handoff (#427, #481), under the agent's own last message: the three answers while the
- *  ask stands, and while the run one of them started is going, the one line that says so.
+/** The handoff (#427, #481), under the agent's own last message: the three answers whenever
+ *  there is a plan and the reply is in, and while the run one of them started is going, the
+ *  one line that says so.
  *
- *  No banner and no card of its own — the ask is a paragraph the agent wrote, and these are
- *  the ways of answering it. The box below is never taken away.
+ *  Nothing has to offer them. A plan on screen and a finished turn is the whole condition —
+ *  the agent never announces the handoff, so it can never forget to. They go while a reply is
+ *  being written, because the plan under them is the one being rewritten.
+ *
+ *  No banner and no card of its own — these are the ways of acting on the plan beside them.
+ *  The box below is never taken away.
  *
  *  Three answers, three weights. Start planning is the one to press: the filled button. Build
  *  now acts too, so it carries the accent in its frame and its ink but no fill — one thing
@@ -739,9 +744,14 @@ function Handoff({
   if (read.run?.running) {
     return <Working label={read.run.answer === "build" ? c.building : c.planning} />;
   }
-  // The ask the agent made, or the offer again after a run that wrote no card.
+  // A file that has been written at least once — a plan named a second ago has nothing in it
+  // to act on. And not under a reply being written, nor under a message nobody has answered
+  // yet: the answers stand under the agent's own last word.
+  if (!plan.shown) return null;
+  if (rail.answering || rail.live !== null) return null;
+  if (rail.read?.chat?.messages.at(-1)?.role !== "agent") return null;
+  // A run that wrote no card leaves the plan to be answered again, and says so.
   const failed = !!read.run && !read.run.running;
-  if (!read.ask && !failed) return null;
   const hint = failed ? (read.run?.answer === "build" ? c.buildAgain : c.tryAgain) : c.startHint;
   return (
     <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">

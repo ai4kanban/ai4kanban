@@ -1,4 +1,4 @@
-// Build now under the plan ask (#481): the plan is the requirement, the delivery is titled
+// Build now under the plan handoff (#481): the plan is the requirement, the delivery is titled
 // and bounded by the file, and the panel lets the plan go once its run has written a card.
 
 import assert from 'node:assert/strict'
@@ -141,7 +141,7 @@ describe('what the plan panel does with the run it started', () => {
 
   it('lets the plan go once the run has written a card, however that run then ended', async () => {
     hold({ status: 'error', ok: false, endedAt: Date.now(), createdCardIds: [9] })
-    assert.deepEqual(await readDiscuss(), { plan: null, ask: false, run: null })
+    assert.deepEqual(await readDiscuss(), { plan: null, run: null })
   })
 
   it('holds the plan while that run is still working, card or no card', async () => {

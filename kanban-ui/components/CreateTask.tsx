@@ -111,7 +111,7 @@ export function CreateTask({
     [start, c],
   );
 
-  // The two answers under the plan ask that start a run (#427, #481): the same handoff Add
+  // The two answers under the plan handoff that start a run (#427, #481): the same handoff Add
   // task makes — the screen closes, the run starts behind it, and Runs opens on it and tails
   // it from the first frame. Which plan is the board's own to say, so nothing about it is
   // sent from here; only the release on screen is, exactly as a card written here carries it.

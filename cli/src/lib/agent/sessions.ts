@@ -500,7 +500,7 @@ export function titleOf(cardId: number | undefined): string | undefined {
 }
 
 /** What a build with no card was handed: the sentence **Build now** typed (#428), or the
- *  plan the plan ask was answered on (#481). It is the delivery's title and the whole of its
+ *  plan the handoff was answered on (#481). It is the delivery's title and the whole of its
  *  frozen `approved` requirements at once, so an empty one is nothing to build and the run is
  *  refused rather than opened. Undefined when this is not a card-less build. */
 function approvedDirect(req: AgentRequest): DirectBuild | { error: string } | undefined {
@@ -545,7 +545,7 @@ export function openRun(
   // opened. It is refused where a carded manual build would be, and nowhere else. The card
   // the run writes reaches this delivery afterwards (`adoptDirectCard`, #470).
   //
-  // Under the plan ask it is a plan rather than a sentence (#481). The file is read once,
+  // Under the plan handoff it is a plan rather than a sentence (#481). The file is read once,
   // here, and its title and its words are what the delivery is titled and bounded by — so a
   // plan with nothing written in it yet is refused, the way a missing one is, rather than
   // opening an untitled delivery with nothing to build.

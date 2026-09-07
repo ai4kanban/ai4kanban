@@ -604,7 +604,7 @@ export async function startPlanningAction(release?: string): Promise<StartResult
 }
 
 /**
- * Build now under the plan ask (#481): the Create sheet's own Build now, pointed at the plan
+ * Build now under the plan handoff (#481): the Create sheet's own Build now, pointed at the plan
  * instead of a typed sentence — one run writes a card from it and builds it, refining nothing
  * and reviewing nothing.
  *

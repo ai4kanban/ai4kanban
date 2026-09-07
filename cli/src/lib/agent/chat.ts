@@ -142,7 +142,6 @@ function planOf(value: unknown): ChatPlan | undefined {
   if (!p || typeof p.path !== 'string' || !planFile(p.path)) return undefined
   return {
     path: p.path,
-    ask: p.ask === true ? true : undefined,
     run: typeof p.run === 'string' && p.run ? p.run : undefined,
     // A plan handed over before the third answer existed (#481) names none, and Start
     // planning is the only thing it could have been.
@@ -296,15 +295,6 @@ export function setChatPlan(cardId: ChatTarget, planPath: string): { ok: true } 
   if (!planFile(planPath)) return { error: `${planPath} is not a plan of this board's.` }
   writePlan(cardId, { path: planPath })
   return { ok: true }
-}
-
-/** The outcome is settled: stand the two answers under the last message. Refused where
- *  there is no plan to start on — the ask is about a file, not about the conversation. */
-export function askChatPlan(cardId: ChatTarget): { ok: true; path: string } | { error: string } {
-  const plan = readChat(cardId)?.plan
-  if (!plan) return { error: 'this conversation is not writing a plan yet.' }
-  writePlan(cardId, { ...plan, ask: true })
-  return { ok: true, path: plan.path }
 }
 
 /** The run this plan was handed to has started, and which answer handed it over (#481). The
@@ -694,10 +684,6 @@ export async function sendChatMessage(
     if (!options.fromBoard) {
       held.messages.push({ role: 'you', text, at: now, ...(shots.length ? { images: shots } : {}) })
     }
-    // Answering in words answers the ask too (#427): the two buttons stop standing under a
-    // message the conversation has already moved past, and `discuss-idea` asks again once
-    // the outcome moves.
-    if (!options.fromBoard && held.plan?.ask) held.plan = { ...held.plan, ask: undefined }
     held.updatedAt = now
     writeChat(held)
     // Counted here, and only what the user said (#295): the name of the action and nothing

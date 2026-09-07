@@ -1,10 +1,11 @@
 // ---- `akb raw plan` — the file one discussion is writing (#427) -------------
 //
-// Two moves, both about the board's own conversation. `new` takes the next id and names the
-// file; the words in it are the agent's to write. `ask` says the outcome is settled, which
-// is what stands the three answers under the last message on the Discuss screen.
+// One move, about the board's own conversation. `new` takes the next id and names the file;
+// the words in it are the agent's to write. Nothing here says when to offer the handoff:
+// Discuss stands Start planning, Build now and Not yet under the last reply on its own,
+// whenever there is a plan and the conversation is not answering.
 
-import { askChatPlan, setChatPlan } from '../lib/agent/chat'
+import { setChatPlan } from '../lib/agent/chat'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import { newPlan, planPathInText } from '../lib/plans'
@@ -18,8 +19,7 @@ export interface PlanOptions {
 export function cmdPlan(args: string[], opts: PlanOptions): MoveResult {
   const sub = (args[0] ?? '').trim()
   if (sub === 'new') return planNew(opts)
-  if (sub === 'ask') return planAsk()
-  die(`\`plan ${sub || '<move>'}\` is not a plan move. Try \`plan new\` or \`plan ask\`.`, {
+  die(`\`plan ${sub || '<move>'}\` is not a plan move. Try \`plan new\`.`, {
     kind: 'unknown-move',
     move: `plan ${sub}`,
   })
@@ -34,11 +34,4 @@ function planNew(opts: PlanOptions): MoveResult {
   say(planPathInText(plan.path))
   say(`  #${plan.id} is this plan's — write a short outcome-focused plan and revise it as the discussion moves`)
   return { id: plan.id, file: planPathInText(plan.path), path: plan.path }
-}
-
-function planAsk(): MoveResult {
-  const asked = askChatPlan(null)
-  if ('error' in asked) die(asked.error)
-  say('the discussion now offers Start planning, Build now and Not yet under your last message')
-  return { path: asked.path }
 }
