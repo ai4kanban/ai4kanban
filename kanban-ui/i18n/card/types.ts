@@ -62,92 +62,7 @@ export type CardCopy = {
   };
   /** A marketing card's own page (#434) — the whole of it, since nothing a product card
    *  page says is drawn there. The tab names are file and channel names, not copy. */
-  marketing: {
-    /** The way back to the board, beside the title. */
-    back: string;
-    /** The `…` menu, and the two ways this card leaves the board from it. */
-    more: string;
-    /** The open channel's own rewrite, in the strip beside Publish. */
-    rewrite: string;
-    /** The two centred actions on a tab nothing is written for, and the line under them
-     *  saying the other way is simply to type. */
-    draft: string;
-    rewriteFromSource: string;
-    orJustWrite: string;
-    startFailed: string;
-    /** An agent is writing this card — a run, or its own conversation. */
-    rewriting: string;
-    /** How far this topic is published, beside the title. */
-    publishedCount: (published: number, total: number) => string;
-    /** The editor's corner: the file, and whether it holds what is on screen. */
-    saved: string;
-    unsaved: string;
-    /** The picker at the right of the tab strip (#478): one channel this topic has not
-     *  chosen, added and written in the same press. A channel whose draft is already on
-     *  disk is marked, and choosing it only opens its tab back up. */
-    repurposeTo: string;
-    hasDraft: string;
-    addChannelFailed: string;
-    /** Taking a channel back off the card. The draft file stays where it is. */
-    closeChannel: (channel: string) => string;
-    closeChannelFailed: string;
-    /** The repurpose panel (#457) — the one AI move the source tab has, and the same panel
-     *  a single channel's Rewrite opens. It is the ask: nothing starts until it is
-     *  confirmed, so what it says is what is about to happen. */
-    repurpose: {
-      /** The source tab's button, named for the channels it writes — the picker beside it
-       *  reads "Repurpose to…" too, and a bare "Repurpose" would not say which is which. */
-      action: (channels: string) => string;
-      /** The panel's title in each of its three shapes: every chosen channel, one that is
-       *  being written over, and one being written for the first time. */
-      titleAll: string;
-      titleOne: (channel: string) => string;
-      titleNew: (channel: string) => string;
-      /** What this repurpose does: the channels it writes for the first time, and the
-       *  drafts it replaces — whose edits are the only copy there is. */
-      willWrite: (channels: string, count: number) => string;
-      willReplace: (channels: string, count: number) => string;
-      /** What two channel names are strung together with. */
-      separator: string;
-      /** The idea you had while asking, carried into every run this starts. Optional. */
-      notePlaceholder: string;
-      /** The language this one piece is written in. Unset means the channel's own. */
-      language: string;
-      followChannel: string;
-      /** The confirm, and what it says while the runs are starting. */
-      start: string;
-      starting: string;
-      failed: string;
-    };
-    /** Publish asks where the piece went up before it marks the channel. */
-    publish: string;
-    publishFailed: string;
-    publishTitle: (channel: string) => string;
-    publishIntro: string;
-    publishUrlPlaceholder: string;
-    publishConfirm: string;
-    /** Commenting on a passage, and the batch of comments that goes to one polish (#458).
-     *  A comment is saved on its lines, not sent — the whole read-through is submitted at
-     *  once — so nothing here is worded as a message to an agent. */
-    comment: {
-      /** What floats up while a passage is selected: the button that opens the box, and then
-       *  the box's own placeholder and its save. */
-      open: string;
-      placeholder: string;
-      leave: string;
-      /** The list under the editor: its heading, and the two things a row offers. */
-      heading: string;
-      edit: string;
-      drop: string;
-      save: string;
-      /** The line beside Submit, and the button itself with the batch's count. */
-      hint: string;
-      submit: (n: number) => string;
-      /** While the polish is running, in Submit's place. */
-      polishing: (n: number) => string;
-      failed: string;
-    };
-  };
+  marketing: MarketingCopy;
   delivery: {
     /** The fold's own control, which is the whole tab strip. */
     fold: string;
@@ -299,5 +214,144 @@ export type CardCopy = {
     /** The frame's own title, for a screen reader. */
     frame: (label: string) => string;
     back: (id: number) => string;
+  };
+};
+
+/** A marketing card's page, drawn nowhere else. Its own type, because the pieces the page
+ *  is built from read it by the section they own. */
+export type MarketingCopy = {
+  /** The way back to the board, beside the title. */
+  back: string;
+  /** The `…` menu, and the two ways this card leaves the board from it. */
+  more: string;
+  /** The open channel's own rewrite, in the strip beside Publish. */
+  rewrite: string;
+  /** The one action a source with nothing written offers, and the line under it saying the
+   *  other way is simply to type. A channel page never offers one: it is what a repurpose
+   *  wrote, not a blank waiting to be filled. */
+  draft: string;
+  orJustWrite: string;
+  startFailed: string;
+  /** Only read out loud: what the tab strip is. */
+  tabs: string;
+  /** How far this topic is published, beside the title. */
+  publishedCount: (published: number, total: number) => string;
+  /** Which writing is happening, beside the title (#479). Every run locks the same editor,
+   *  so the pill names the KIND and the DRAFT rather than saying only that something is
+   *  running. The chat rail's answer belongs to no draft and points back at the rail. */
+  run: {
+    draftSource: string;
+    fromSource: (channel: string) => string;
+    rewrite: (channel: string) => string;
+    polish: (draft: string) => string;
+    /** A repurpose is one run per channel, so several drafts are written at once. */
+    several: (n: number) => string;
+    /** Archive and Reject lock the same editor and write no draft to name. */
+    other: string;
+    rail: string;
+    toRail: string;
+  };
+  /** A run that ended without finishing, said where the work is (#479) — this page draws no
+   *  run log, and the run's whole output is still read in the chat rail. */
+  stopped: {
+    what: (draft: string) => string;
+    many: (n: number) => string;
+    again: string;
+    dismiss: string;
+  };
+  /** Saving, on the caret's own line (#479). Failed and changed are the two that wait for
+   *  an answer; the rest come and go on their own. */
+  save: {
+    saved: string;
+    unsaved: string;
+    failed: string;
+    retry: string;
+    changed: string;
+    /** In the foot, in place of the file: the first save is what creates it. */
+    noFile: string;
+    /** A move that had to write first, refused, said under the control that was pressed. */
+    refusedTitle: (draft: string) => string;
+    refusedBody: string;
+    retrySave: string;
+    /** A rewrite landed under words the editor is still holding. Neither answer is the
+     *  page's to pick: whichever it took, the other one would be gone. */
+    changedTitle: string;
+    changedBody: string;
+    takeFile: string;
+    keepMine: string;
+  };
+  /** A tab with nothing in it, which on a channel is never an invitation to draft one. */
+  empty: {
+    writing: string;
+    writingHint: string;
+    stopped: string;
+    stoppedHint: string;
+    readOnly: string;
+    readOnlyHint: string;
+  };
+  /** The picker at the right of the tab strip (#478): one channel this topic has not
+   *  chosen, added and written in the same press. A channel whose draft is already on
+   *  disk is marked, and choosing it only opens its tab back up. */
+  repurposeTo: string;
+  hasDraft: string;
+  addChannelFailed: string;
+  /** Taking a channel back off the card. The draft file stays where it is. */
+  closeChannel: (channel: string) => string;
+  closeChannelFailed: string;
+  /** The repurpose panel (#457) — the one AI move the source tab has, and the same panel
+   *  a single channel's Rewrite opens. It is the ask: nothing starts until it is
+   *  confirmed, so what it says is what is about to happen. */
+  repurpose: {
+    /** The source tab's button, named for the channels it writes — the picker beside it
+     *  reads "Repurpose to…" too, and a bare "Repurpose" would not say which is which. */
+    action: (channels: string) => string;
+    /** The panel's title in each of its three shapes: every chosen channel, one that is
+     *  being written over, and one being written for the first time. */
+    titleAll: string;
+    titleOne: (channel: string) => string;
+    titleNew: (channel: string) => string;
+    /** What this repurpose does: the channels it writes for the first time, and the
+     *  drafts it replaces — whose edits are the only copy there is. */
+    willWrite: (channels: string, count: number) => string;
+    willReplace: (channels: string, count: number) => string;
+    /** What two channel names are strung together with. */
+    separator: string;
+    /** The idea you had while asking, carried into every run this starts. Optional. */
+    notePlaceholder: string;
+    /** The language this one piece is written in. Unset means the channel's own. */
+    language: string;
+    followChannel: string;
+    /** The confirm, and what it says while the runs are starting. */
+    start: string;
+    starting: string;
+    failed: string;
+  };
+  /** Publish records where the piece went up and posts nothing, so its label says so. */
+  publish: string;
+  publishFailed: string;
+  publishTitle: (channel: string) => string;
+  publishIntro: string;
+  publishUrlPlaceholder: string;
+  publishConfirm: string;
+  /** Commenting on a passage, and the batch of comments that goes to one polish (#458).
+   *  A comment is saved on its lines, not sent — the whole read-through is submitted at
+   *  once — so nothing here is worded as a message to an agent. */
+  comment: {
+    /** What floats up while a passage is selected: the button that opens the box, and then
+     *  the box's own placeholder and its save. */
+    open: string;
+    placeholder: string;
+    leave: string;
+    /** The list under the editor: its heading, and the two things a row offers. */
+    heading: string;
+    edit: string;
+    drop: string;
+    save: string;
+    /** The line beside Submit, and the button itself with the batch's count. */
+    hint: string;
+    submit: (n: number) => string;
+    /** While the polish is running, in Submit's place. */
+    polishing: (n: number) => string;
+    failed: string;
   };
 };

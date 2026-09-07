@@ -203,6 +203,10 @@ export interface SessionView {
    *  card page's comment list reads it: every run locks the editor, but only the polish on
    *  THIS tab is the one working through the batch on screen. */
   draft?: string;
+  /** Which channel a `channel` run repurposes for (#479), and nothing on any other run. It
+   *  is what names the draft that run is writing — the marketing page says so while it runs
+   *  and again if it stops short. */
+  channel?: string;
   action: AgentAction;
   /** `interrupted` is its own terminal state: the run was cut off — the server died mid-run
    *  and the agent ended out of our sight — so it neither passed nor reported a failure. It

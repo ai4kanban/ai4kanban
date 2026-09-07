@@ -168,6 +168,22 @@ function rangesFor(preview: HTMLElement, text: string, from: number, to: number)
   return ranges;
 }
 
+/** Where the caret is drawn, in viewport coordinates, or null when the draft is empty there
+ *  (#479). OverType's preview sits character-for-character over the textarea — which is the
+ *  whole trick it is built on — so a range over the character beside the caret is where the
+ *  caret itself is, wrapped lines included. The textarea reports no geometry of its own.
+ *
+ *  The character BEFORE the caret, except at a line's start, where it is the one after: the
+ *  two sit on different lines and the caret belongs to the one it is typing into. */
+export function caretRect(preview: HTMLElement, text: string, at: number): DOMRect | null {
+  const lineStart = at === 0 || text[at - 1] === "\n";
+  const ranges = lineStart ? rangesFor(preview, text, at, at + 1) : rangesFor(preview, text, at - 1, at);
+  const range = lineStart ? ranges[0] : ranges[ranges.length - 1];
+  if (range) return range.getBoundingClientRect();
+  // A blank line carries no character to measure, so its own element stands in for it.
+  return lineElements(preview)[lineAt(text, at)]?.getBoundingClientRect() ?? null;
+}
+
 /** Keep the passage the comment box is on reading as selected. A textarea draws no selection
  *  once it is not the focused element, and the box IS the focused element while it is open —
  *  so the same offsets are painted onto the preview instead. */
@@ -314,6 +330,7 @@ export function DraftComments({
   comments,
   polishing,
   disabled,
+  refusal,
   onEdit,
   onDrop,
   onSubmit,
@@ -323,9 +340,13 @@ export function DraftComments({
   polishing: boolean;
   /** Something else is writing this card, or a move of this block is in flight. */
   disabled: boolean;
+  /** Why Submit did nothing: it has to write the draft first, and that write refused
+   *  (#479). Hung under the button that was pressed rather than said elsewhere. */
+  refusal?: React.ReactNode;
   onEdit: (commentId: string, words: string) => void;
   onDrop: (commentId: string) => void;
-  onSubmit: () => void;
+  /** The button pressed, so the refusal above knows what to hang off. */
+  onSubmit: (from: HTMLElement | null) => void;
 }) {
   const c = useCopy().card.marketing;
   if (!comments.length) return null;
@@ -346,10 +367,13 @@ export function DraftComments({
           ) : (
             <>
               <span className="text-[11.5px] text-nb-ink-soft">{c.comment.hint}</span>
-              <Button size="xs" disabled={disabled} onClick={onSubmit}>
-                <FiMessageSquare className="text-[12px]" aria-hidden />
-                {c.comment.submit(comments.length)}
-              </Button>
+              <span className="relative">
+                <Button size="xs" disabled={disabled} onClick={(e) => onSubmit(e.currentTarget)}>
+                  <FiMessageSquare className="text-[12px]" aria-hidden />
+                  {c.comment.submit(comments.length)}
+                </Button>
+                {refusal}
+              </span>
             </>
           )}
         </span>

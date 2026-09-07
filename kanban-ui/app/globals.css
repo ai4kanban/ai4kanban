@@ -73,6 +73,15 @@ body {
   border: 1.5px solid var(--color-nb-ink);
   border-radius: 14px;
 }
+/* A row that scrolls sideways rather than squeezing what is in it — the marketing editor's
+   tab strip (#479). A full-height scrollbar under a 30px strip would be most of it, so the
+   bar is hidden and the fade at a cut edge is what says there is more. */
+.nb-scroll-x {
+  scrollbar-width: none;
+}
+.nb-scroll-x::-webkit-scrollbar {
+  display: none;
+}
 /* Quiet inset — the same frame at hairline weight, for a supporting band that
    annotates the work rather than being it. */
 .nb-inset {

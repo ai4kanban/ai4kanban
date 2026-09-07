@@ -38,6 +38,7 @@ function toView(
     sessionId: run.sessionId,
     cardId: run.cardId,
     draft: run.draft,
+    channel: run.channel,
     action: run.action as SessionView["action"],
     status: run.status,
     startedAt: run.startedAt,

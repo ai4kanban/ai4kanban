@@ -26,7 +26,13 @@
 // The strip is `channels:` and nothing else (#478): "Repurpose to…" adds a channel, writes
 // its first draft and lands on its tab in one press, and a tab's cross takes that channel
 // back off. No hidden-tab state either way — a closed channel leaves its draft file behind,
-// so reopening it is indistinguishable from choosing it for the first time.
+// so reopening it is indistinguishable from choosing it for the first time. A channel page
+// is therefore always the result of a repurpose, and never offers to draft itself (#479).
+//
+// EVERY state the page can be in reports itself where the work is (#479): which run is
+// writing which draft, which run stopped and how to pick it up (`marketing-runs.tsx`),
+// whether what is typed reached the file (`marketing-save.tsx`), and why a move that had to
+// save first did not happen. Nothing about this page is read in a log.
 //
 // Two halves, because the rail is drawn by the window this page is put INSIDE: the outer
 // half is everything the frame needs (the runs, the error line, the two dialogs that take
@@ -44,7 +50,6 @@ import {
   FiGlobe,
   FiMoreHorizontal,
   FiRepeat,
-  FiSend,
   FiX,
   FiXCircle,
 } from "react-icons/fi";
@@ -67,6 +72,16 @@ import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { Dialog } from "./Dialog";
 import { DraftComments, LeaveComment, useCommentMarks } from "./DraftComments";
 import { OpenIdsProvider } from "./open-ids";
+import {
+  draftLabel,
+  draftOf,
+  RunPill,
+  runWords,
+  SOURCE,
+  StoppedRuns,
+  stoppedRows,
+} from "./marketing-runs";
+import { SaveMark, SaveRefused, type SaveState } from "./marketing-save";
 import { runningCardIds, useAgentSessions, useOnTabFocus, type StartedSession } from "./sessions";
 import {
   DropdownMenu,
@@ -75,17 +90,25 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
-/** The draft every channel is repurposed from. The board's own file name, not copy. */
-const SOURCE = "source";
-
 const NOTHING: CardDrafts = { dir: "", drafts: [] };
 
 /** How long typing has to stop before the draft is written back. Long enough that a pause
  *  mid-sentence is not a save, short enough that walking away leaves the file written. */
 const SAVE_AFTER_MS = 800;
 
+/** How long "Saved" stands before it goes. It is a receipt, not a state to live with — the
+ *  two states that DO wait for an answer stay until they get one. */
+const SAVED_FOR_MS = 2000;
+
+/** How wide `SaveRefused` is, so the strip can keep one from hanging off its right end. */
+const POP_W = 320;
+
 /** The rule under the title row — the quietest line the app parts panes with. */
 const PART = { borderBottom: `1px solid ${HAIRLINE}` } as const;
+
+/** What the editor is, for the tab that names it. */
+const PANEL_ID = "marketing-draft";
+const tabId = (name: string) => `marketing-tab-${name}`;
 
 /** No frame at all: the page draws itself and nothing around it. */
 const Bare: CardShell = ({ children }) => <>{children}</>;
@@ -119,12 +142,9 @@ export function MarketingCardPage({
   );
   const { sessions, start, kick } = useAgentSessions(onFinish);
   const running = runningCardIds(sessions);
-  // Which run is in flight matters to the comment list alone: every run locks the editor,
-  // but only a polish is working through a batch — and only the one on the tab being read
-  // is working through the batch on screen (#458).
-  const polishingDraft = sessions.find(
-    (r) => r.status === "running" && r.cardId === card.id && r.action === "polish",
-  )?.draft;
+  // This card's runs, whole: which one is writing which draft is what the page says while
+  // they run, and which one stopped short is what it says afterwards (#479).
+  const runs = sessions.filter((r) => r.cardId === card.id);
 
   // A run on this card just ended — a Draft or a Rewrite wrote its file, and this is how it
   // reaches the editor with nothing to poll.
@@ -178,8 +198,7 @@ export function MarketingCardPage({
           <Draft
             card={card}
             boardHref={boardHref}
-            busy={running.has(card.id)}
-            polishingDraft={polishingDraft}
+            runs={runs}
             reload={runsSettled}
             error={error}
             onError={setError}
@@ -201,8 +220,7 @@ export function MarketingCardPage({
 function Draft({
   card,
   boardHref,
-  busy,
-  polishingDraft,
+  runs,
   reload,
   error,
   onError,
@@ -213,11 +231,9 @@ function Draft({
 }: {
   card: Card;
   boardHref: string;
-  /** A run on this card is live — the editor is not the user's while one is. */
-  busy: boolean;
-  /** The draft a polish is running over, when one is (#458) — the batch on screen only when
-   *  it is the tab being read. */
-  polishingDraft?: string;
+  /** Every run this card has, newest last. The live ones lock the editor and name the draft
+   *  each is writing; the ones that stopped short are said above it. */
+  runs: SessionView[];
   /** Bumped whenever a run on this card finishes, which is when the draft is re-read. */
   reload: number;
   error: string | null;
@@ -260,7 +276,10 @@ function Draft({
     if (wasAnswering.current && !answering) setSaidSettled((n) => n + 1);
     wasAnswering.current = answering;
   }, [answering]);
+  const live = runs.filter((r) => r.status === "running");
+  const busy = live.length > 0;
   const locked = busy || answering;
+  const polishingDraft = live.find((r) => r.action === "polish")?.draft;
 
   // ---- reading the drafts --------------------------------------------------
 
@@ -285,6 +304,26 @@ function Draft({
   const actionsRef = useRef(actions);
   actionsRef.current = actions;
 
+  // A save that refused, and the tab whose words are still only in the editor. It is the
+  // page's own state rather than the shared error line: another move succeeding does not
+  // put the words on disk, so it must not clear the report either (#479).
+  const [saveFailed, setSaveFailed] = useState<{ tab: string; why: string } | null>(null);
+  // A rewrite landed under words the editor is still holding. Both versions stand until the
+  // user says which wins — the page saves nothing by itself while this is open.
+  const [conflict, setConflict] = useState<{ tab: string; disk: string } | null>(null);
+  const conflictRef = useRef(conflict);
+  conflictRef.current = conflict;
+  // When the last save landed, so the receipt can go on its own.
+  const [savedAt, setSavedAt] = useState(0);
+  useEffect(() => {
+    if (!savedAt) return;
+    const done = setTimeout(() => setSavedAt(0), SAVED_FOR_MS);
+    return () => clearTimeout(done);
+  }, [savedAt]);
+  // What the file said when the editor last took it up — what a re-read is compared against
+  // to know whether it CHANGED rather than merely arrived again.
+  const base = useRef("");
+
   /** Write what is pending, if anything. Answers whether the file now holds it. */
   const flush = useCallback(async (): Promise<boolean> => {
     if (timer.current) clearTimeout(timer.current);
@@ -292,13 +331,19 @@ function Draft({
     const held = pending.current;
     const run = actionsRef.current;
     if (!held || !run) return true;
+    // A rewrite is waiting to be answered on this draft: saving now would answer it, and
+    // the agent's version would be gone.
+    if (conflictRef.current) return false;
     setSaving(true);
     const res = await run.saveDraft(card.id, held.tab, held.text);
     setSaving(false);
     if (res.error) {
-      onError(res.error);
+      setSaveFailed({ tab: held.tab, why: res.error });
       return false;
     }
+    setSaveFailed(null);
+    base.current = held.text;
+    setSavedAt(Date.now());
     // Only what was written is let go: a keystroke that landed during the save is still
     // unsaved, and the next idle writes it.
     if (pending.current === held) {
@@ -307,7 +352,7 @@ function Draft({
     }
     setRead(res);
     return true;
-  }, [card.id, onError]);
+  }, [card.id]);
   const flushRef = useRef(flush);
   flushRef.current = flush;
 
@@ -319,6 +364,9 @@ function Draft({
 
   const host = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<OverTypeInstance | null>(null);
+  // Bumped whenever the caret may have moved without the browser saying so — the save chip
+  // is drawn on the caret's own line.
+  const [caretMoved, setCaretMoved] = useState(0);
   // Read inside OverType's own onChange, which is installed once and never sees a later
   // render's values.
   const tabRef = useRef(tab);
@@ -341,8 +389,10 @@ function Draft({
     pending.current = { tab: tabRef.current, text: value };
     setDirty(true);
     setText(value);
+    setCaretMoved((n) => n + 1);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => void flushRef.current(), SAVE_AFTER_MS);
+    // Nothing saves itself while a rewrite is waiting to be answered.
+    if (!conflictRef.current) timer.current = setTimeout(() => void flushRef.current(), SAVE_AFTER_MS);
   }, []);
   const typedRef = useRef(typed);
   typedRef.current = typed;
@@ -434,24 +484,50 @@ function Draft({
     if (editor) editor.textarea.readOnly = locked || !actions;
   }, [editor, locked, actions]);
 
+  /** Put the file's own words into the editor, dropping whatever it was holding. */
+  const adopt = useCallback(
+    (disk: string) => {
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = null;
+      pending.current = null;
+      base.current = disk;
+      setDirty(false);
+      setConflict(null);
+      setSaveFailed(null);
+      if (editor && editor.getValue() !== disk) {
+        adopting.current = true;
+        editor.setValue(disk);
+        adopting.current = false;
+      }
+      setText(disk);
+      setCaretMoved((n) => n + 1);
+    },
+    [editor],
+  );
+
   // Take up what was read, unless the editor is holding words this would throw away. The tab
   // changing always takes it up: the strip only moves once the last tab's words are on disk,
   // so there is never anything of the old draft to carry into the new one.
+  //
+  // A re-read that finds the file CHANGED under held words is the one case neither answer
+  // fits, so the page picks neither: the idle save stops and both versions are offered.
   const shown = useRef<string | null>(null);
   useEffect(() => {
     if (!editor) return;
     const disk = read.drafts.find((d) => d.name === tab)?.text ?? "";
-    if (shown.current === tab && pending.current) return;
-    shown.current = tab;
-    pending.current = null;
-    setDirty(false);
-    if (editor.getValue() !== disk) {
-      adopting.current = true;
-      editor.setValue(disk);
-      adopting.current = false;
+    if (shown.current === tab && pending.current) {
+      if (disk === base.current) return;
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = null;
+      setConflict((held) => (held && held.tab === tab && held.disk === disk ? held : { tab, disk }));
+      return;
     }
-    setText(disk);
-  }, [read, tab, editor]);
+    // The receipt belongs to the tab it was earned on; the file's own words are what the
+    // new one opens with.
+    if (shown.current !== tab) setSavedAt(0);
+    shown.current = tab;
+    adopt(disk);
+  }, [read, tab, editor, adopt]);
 
   // The batch belongs to the draft on screen: the strip moving is a different set of
   // comments, and a run that ended has already had its own cleared by the board.
@@ -499,16 +575,145 @@ function Draft({
   // nothing to comment with.
   const canComment = !!actions && !!read.canComment;
   const published = channels.filter((ch) => ch.status === "published").length;
+  const names = [SOURCE, ...channels.map((ch) => ch.name)];
+
+  // ---- what is being written, and what stopped (#479) ----------------------
+
+  /** Whether a run over this channel is REwriting it: a repurpose and a rewrite are the same
+   *  command, and only the draft under it tells the two apart. Neither the file nor the
+   *  channel's status moves mid-run, so this reads the same for the whole of one. */
+  const rewriting = (name: string | undefined): boolean =>
+    !!name && (isWritten(name) || (channels.find((ch) => ch.name === name)?.status ?? "") !== "");
+
+  // One pill per live run, except that a repurpose — one run per channel, all at once — is
+  // one pill saying how many. The rail's own answer is in no session list and belongs to no
+  // draft, so it is named apart and sends the reader back to the rail.
+  const pills: { key: string; words: string }[] =
+    live.length > 1 && live.every((r) => r.action === "channel")
+      ? [{ key: "several", words: c.run.several(live.length) }]
+      : live.map((r) => ({ key: r.sessionId, words: runWords(r, rewriting(draftOf(r)), c.run) }));
+
+  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+  const stopped = stoppedRows(runs, card.id, names, dismissed, t.runs.log);
+  const dismiss = (runIds: string[]) => setDismissed((held) => new Set([...held, ...runIds]));
+
+  // ---- a move that has to write first --------------------------------------
+  //
+  // Which control was pressed, and how far from the strip's left edge it stands — the tabs
+  // scroll, so the answer is drawn beside the strip rather than inside it, where the scroll
+  // box would cut it off.
+  const [refused, setRefused] = useState<{ at: string; kind: "failed" | "changed"; x: number } | null>(null);
+  const strip = useRef<HTMLDivElement>(null);
+
+  /** Do `move`, once what is typed is on disk. A write that refused says why under the
+   *  control that was pressed, rather than leaving the press looking dead. */
+  const afterSave = async (at: string, from: HTMLElement | null, move: () => void | Promise<void>) => {
+    setRefused(null);
+    const row = strip.current;
+    const x =
+      row && from
+        ? Math.max(0, Math.min(from.getBoundingClientRect().left - row.getBoundingClientRect().left, row.clientWidth - POP_W))
+        : 0;
+    if (!(await flush())) return setRefused({ at, x, kind: conflictRef.current ? "changed" : "failed" });
+    await move();
+  };
+
+  /** Keep what was typed: the file the agent wrote is what the next save replaces. */
+  const keepMine = () => {
+    base.current = conflict?.disk ?? base.current;
+    setConflict(null);
+    setRefused(null);
+    if (pending.current) timer.current = setTimeout(() => void flushRef.current(), SAVE_AFTER_MS);
+  };
+  /** Take what the agent wrote: the words the editor was holding go with it. */
+  const takeFile = () => {
+    setRefused(null);
+    adopt(conflict?.disk ?? "");
+  };
+  const retrySave = () => {
+    setRefused(null);
+    void flush();
+  };
+
+  /** The answers to whichever refusal is standing, under the control that was pressed. */
+  const refusal = (at: string, align: "left" | "right" = "left", side: "up" | "down" = "down") =>
+    refused?.at === at ? (
+      <SaveRefused
+        kind={refused.kind}
+        draft={draftLabel((refused.kind === "changed" ? conflict?.tab : saveFailed?.tab) ?? tab)}
+        align={align}
+        side={side}
+        onCancel={() => setRefused(null)}
+        onRetry={retrySave}
+        onKeepMine={keepMine}
+        onTakeFile={takeFile}
+      />
+    ) : null;
 
   /** Move the strip, once what is typed is on disk. A write that refused keeps the tab it
    *  belongs to on screen: the words are still in the editor, and only there. */
-  const goTab = async (next: string) => {
+  const goTab = (next: string, from: HTMLElement | null) => {
     if (next === tab) return;
-    if (!(await flush())) return;
-    onError(null);
-    setAsking(null);
-    setTab(next);
+    return afterSave(`tab:${next}`, from, () => {
+      onError(null);
+      setAsking(null);
+      setTab(next);
+    });
   };
+
+  // Arrow keys, Home and End move the strip and select as they go; the strip holds one tab
+  // stop, so the cross a pointer clicks is reached with Delete instead.
+  const tabs = useRef(new Map<string, HTMLButtonElement>());
+  const onStripKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const at = names.indexOf(tab);
+    if ((e.key === "Delete" || e.key === "Backspace") && tab !== SOURCE && canSetChannels && !locked && !moving) {
+      e.preventDefault();
+      return void closeChannel(tab, tabs.current.get(tab) ?? e.currentTarget);
+    }
+    const next =
+      e.key === "ArrowRight"
+        ? names[(at + 1) % names.length]
+        : e.key === "ArrowLeft"
+          ? names[(at - 1 + names.length) % names.length]
+          : e.key === "Home"
+            ? names[0]
+            : e.key === "End"
+              ? names[names.length - 1]
+              : undefined;
+    if (!next) return;
+    e.preventDefault();
+    void goTab(next, tabs.current.get(next) ?? null);
+  };
+
+  // The selected tab is the one tab stop, and it is kept in view — the strip scrolls, so a
+  // tab reached by arrow key can be off the end of it.
+  useEffect(() => {
+    const el = tabs.current.get(tab);
+    if (!el) return;
+    el.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (strip.current?.contains(document.activeElement)) el.focus();
+  }, [tab]);
+
+  // Which ends of the strip are cut, so the fade is drawn where there is more to see.
+  const scroller = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const measureEdges = useCallback(() => {
+    const box = scroller.current;
+    if (!box) return;
+    const left = box.scrollLeft > 1;
+    const right = box.scrollLeft + box.clientWidth < box.scrollWidth - 1;
+    setEdges((held) => (held.left === left && held.right === right ? held : { left, right }));
+  }, []);
+  useEffect(() => {
+    measureEdges();
+    // The chat rail opening narrows the strip without the window resizing, so the box is
+    // watched rather than the window.
+    const box = scroller.current;
+    if (!box) return;
+    const watch = new ResizeObserver(measureEdges);
+    watch.observe(box);
+    return () => watch.disconnect();
+  }, [measureEdges, channels, tab]);
 
   // ---- the moves the page makes itself -------------------------------------
 
@@ -546,7 +751,8 @@ function Draft({
   const repurpose = async (targets: string[], ask: RepurposeAsk) => {
     if (!actions || !targets.length) return;
     // What is typed goes to disk first: a run is about to write these same files, and a
-    // save landing after one would put the words back over what the agent wrote.
+    // save landing after one would put the words back over what the agent wrote. A refusal
+    // here is already reported on the caret's line, which is where it was typed.
     if (!(await flush())) return;
     setMoving(true);
     const fresh = targets.filter((name) => !channels.some((ch) => ch.name === name));
@@ -580,40 +786,40 @@ function Draft({
   /** "Repurpose to…": one channel this topic has not chosen. One whose draft is already on
    *  disk is only opened back up — the file is untouched and nothing runs — and one with
    *  nothing written goes through the same ask a Rewrite opens. */
-  const pickChannel = async (name: string) => {
+  const pickChannel = (name: string, from: HTMLElement | null) =>
     // The strip is about to move, so this tab's words go to disk first — the same rule
     // clicking a tab follows.
-    if (!(await flush())) return;
-    if (!isWritten(name)) return setAsking([name]);
-    setAsking(null);
-    setMoving(true);
-    await add([name]);
-    setMoving(false);
-  };
+    afterSave("pick", from, async () => {
+      if (!isWritten(name)) return setAsking([name]);
+      setAsking(null);
+      setMoving(true);
+      await add([name]);
+      setMoving(false);
+    });
 
   /** Close a channel tab: the channel comes off the card, and `content/…/<name>.md` stays
    *  where it is. Reopening it from the picker is what brings that draft back. */
-  const closeChannel = async (name: string) => {
-    if (!actions) return;
-    if (!(await flush())) return;
-    setMoving(true);
-    const res = await actions.setChannels(
-      card.id,
-      channels.filter((ch) => ch.name !== name).map((ch) => ch.name),
-    );
-    setMoving(false);
-    if (!res.ok) return onError(res.error ?? c.closeChannelFailed);
-    onError(null);
-    setAdded((a) => (a === name ? "" : a));
-    // The ask names channels, so one taken off the card leaves it: confirming what is left
-    // must not put the closed channel back.
-    setAsking((a) => {
-      const left = (a ?? []).filter((n) => n !== name);
-      return left.length ? left : null;
+  const closeChannel = (name: string, from: HTMLElement | null) =>
+    afterSave(`close:${name}`, from, async () => {
+      if (!actions) return;
+      setMoving(true);
+      const res = await actions.setChannels(
+        card.id,
+        channels.filter((ch) => ch.name !== name).map((ch) => ch.name),
+      );
+      setMoving(false);
+      if (!res.ok) return onError(res.error ?? c.closeChannelFailed);
+      onError(null);
+      setAdded((a) => (a === name ? "" : a));
+      // The ask names channels, so one taken off the card leaves it: confirming what is left
+      // must not put the closed channel back.
+      setAsking((a) => {
+        const left = (a ?? []).filter((n) => n !== name);
+        return left.length ? left : null;
+      });
+      if (tab === name) setTab(SOURCE);
+      router.refresh();
     });
-    if (tab === name) setTab(SOURCE);
-    router.refresh();
-  };
 
   // ---- the comments on this draft (#458) -----------------------------------
   //
@@ -647,18 +853,53 @@ function Draft({
   /** Submit the batch: one polish over this draft, with every comment on it. The board
    *  clears them when the run ends `done`, so nothing is cleared here — a polish that
    *  failed leaves the batch to submit again. */
-  const submitComments = async () => {
-    if (!actions || !comments.length) return;
+  const submitComments = (from: HTMLElement | null) =>
     // What is typed goes to disk first: the run is about to write this same file, and a
     // save landing after it would put the words back over what the polish wrote.
-    if (!(await flush())) return;
-    setMoving(true);
-    const res = await actions.polishDraft(card.id, tab);
-    setMoving(false);
-    if (!res.ok) return onError(res.error ?? c.comment.failed);
-    onError(null);
-    onKick();
-  };
+    afterSave("submit", from, async () => {
+      if (!actions || !comments.length) return;
+      setMoving(true);
+      const res = await actions.polishDraft(card.id, tab);
+      setMoving(false);
+      if (!res.ok) return onError(res.error ?? c.comment.failed);
+      onError(null);
+      onKick();
+    });
+
+  // ---- what the editor says about its file ---------------------------------
+
+  const saveState: SaveState = !actions
+    ? "none"
+    : conflict?.tab === tab
+      ? "changed"
+      : saving
+        ? "saving"
+        : saveFailed?.tab === tab
+          ? "failed"
+          : dirty
+            ? "unsaved"
+            : savedAt
+              ? "saved"
+              : "none";
+
+  // A tab with nothing in it says which of the four things it is. A channel is never
+  // offered a first draft: it is what a repurpose wrote, and an unfinished one is picked
+  // back up from the notice above rather than started again from here.
+  const writingHere = live.some((r) => draftOf(r) === tab);
+  const empty: React.ReactNode = !actions ? (
+    <Empty title={c.empty.readOnly} hint={c.empty.readOnlyHint} />
+  ) : writingHere ? (
+    <Empty title={c.empty.writing} hint={c.empty.writingHint} pulse />
+  ) : locked ? null : tab === SOURCE ? (
+    <div className="flex flex-col items-center gap-2.5">
+      <Button className="pointer-events-auto" disabled={moving} onClick={onDraft}>
+        {c.draft}
+      </Button>
+      <span className="text-[12.5px] text-nb-ink-soft">{c.orJustWrite}</span>
+    </div>
+  ) : stopped.some((row) => row.draft === tab) ? (
+    <Empty title={c.empty.stopped} hint={c.empty.stoppedHint} />
+  ) : null;
 
   return (
     <>
@@ -675,17 +916,19 @@ function Draft({
             #{card.id}
           </span>
           <h1 className="min-w-0 truncate text-[19px] font-[800] tracking-[-0.02em]">{card.title}</h1>
-          {/* Where this topic has got to: how far it is published, or — while an agent is
-              inside it — that it is being rewritten. Never both. */}
-          {locked ? (
-            <span
-              className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-[3px] text-[11px] font-[700]"
-              style={{ background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
-            >
-              <span className={PULSE_DOT} aria-hidden />
-              {c.rewriting}
-            </span>
-          ) : published > 0 ? (
+          {/* What is being written, one pill per run — and where nothing is, how far this
+              topic is published. */}
+          {pills.map((pill) => (
+            <RunPill key={pill.key} words={pill.words} />
+          ))}
+          {answering && (
+            <RunPill
+              words={c.run.rail}
+              title={c.run.toRail}
+              onClick={rail && !rail.open ? () => rail.toggle() : undefined}
+            />
+          )}
+          {!locked && published > 0 && (
             <span
               className="flex shrink-0 items-center gap-1 rounded-full px-2 py-[3px] text-[11px] font-[700]"
               style={{ background: "var(--color-nb-mint-soft)", color: "var(--color-nb-mint-ink)" }}
@@ -693,7 +936,7 @@ function Draft({
               <FiCheck className="text-[11px]" aria-hidden />
               {c.publishedCount(published, channels.length)}
             </span>
-          ) : null}
+          )}
           <span className="relative ml-auto flex shrink-0 items-center">
             <PageMenu
               onArchive={actions ? onArchive : undefined}
@@ -704,43 +947,83 @@ function Draft({
         </div>
 
         {/* The strip: `source`, one tab per chosen channel — each with the cross that takes
-            it back off — the picker that chooses one more, and this tab's own actions at the
-            right end. */}
-        <div className="flex items-end gap-1 px-3">
-          <Tab label={SOURCE} mono on={tab === SOURCE} onClick={() => void goTab(SOURCE)} />
-          {channels.map((ch) => (
-            <Tab
-              key={ch.name}
-              label={channelLabel(ch.name)}
-              on={tab === ch.name}
-              onClick={() => void goTab(ch.name)}
-              mark={<ChannelMark name={ch.name} status={ch.status} size={13} />}
-              dot={<ChannelDot status={ch.status} size={6} />}
-              closeLabel={c.closeChannel(channelLabel(ch.name))}
-              closeDisabled={locked || moving}
-              onClose={canSetChannels ? () => void closeChannel(ch.name) : undefined}
-            />
-          ))}
-          {canRepurposeTo && (
-            <span className="mb-[3px]">
-              <RepurposeTo
-                names={unchosen}
-                written={unchosen.filter(isWritten)}
-                disabled={locked || moving}
-                onPick={(n) => void pickChannel(n)}
-              />
-            </span>
-          )}
+            it back off — and the picker that chooses one more, all in a row that scrolls
+            rather than squeezing. This tab's own actions are pinned outside it, so they are
+            where they were whatever the strip is holding. */}
+        <div ref={strip} className="relative flex items-end gap-2 px-3">
+          <div className="relative min-w-0 flex-1">
+            <div
+              ref={scroller}
+              onScroll={measureEdges}
+              className="nb-scroll-x flex items-end gap-1 overflow-x-auto pb-px"
+            >
+              <div
+                role="tablist"
+                aria-label={c.tabs}
+                onKeyDown={onStripKey}
+                className="flex shrink-0 items-end gap-1"
+              >
+                <Tab
+                  label={SOURCE}
+                  name={SOURCE}
+                  mono
+                  on={tab === SOURCE}
+                  hold={tabs.current}
+                  onClick={(e) => void goTab(SOURCE, e.currentTarget)}
+                />
+                {channels.map((ch) => (
+                  <Tab
+                    key={ch.name}
+                    name={ch.name}
+                    label={channelLabel(ch.name)}
+                    on={tab === ch.name}
+                    hold={tabs.current}
+                    onClick={(e) => void goTab(ch.name, e.currentTarget)}
+                    mark={<ChannelMark name={ch.name} status={ch.status} size={13} />}
+                    dot={
+                      live.some((r) => draftOf(r) === ch.name) ? (
+                        <span className={PULSE_DOT} aria-hidden />
+                      ) : (
+                        <ChannelDot status={ch.status} size={6} />
+                      )
+                    }
+                    closeLabel={c.closeChannel(channelLabel(ch.name))}
+                    closeDisabled={locked || moving}
+                    onClose={
+                      canSetChannels ? (e) => void closeChannel(ch.name, e.currentTarget) : undefined
+                    }
+                  />
+                ))}
+              </div>
+              {canRepurposeTo && (
+                <span className="mb-[3px] ml-1 shrink-0">
+                  <RepurposeTo
+                    names={unchosen}
+                    written={unchosen.filter(isWritten)}
+                    disabled={locked || moving}
+                    onPick={(name, from) => void pickChannel(name, from)}
+                  />
+                </span>
+              )}
+            </div>
+            {/* Where the strip is cut, so the scroll is something to see rather than to find. */}
+            {edges.left && <Fade side="left" />}
+            {edges.right && <Fade side="right" />}
+          </div>
           {/* The source tab's one AI move: repurpose into every chosen channel at once. It
               needs a source to read and a channel to write, so it is drawn only where both
               are there, and it names those channels — the picker beside it says "Repurpose
               to…" as well. */}
           {tab === SOURCE && written && channels.length > 0 && actions && (
-            <span className="mb-[2px] ml-auto shrink-0">
+            <span className="mb-[2px] shrink-0">
               <Button
                 size="xs"
                 disabled={locked || moving}
-                onClick={() => setAsking(channels.map((ch) => ch.name))}
+                onClick={(e) =>
+                  void afterSave("repurpose", e.currentTarget, () =>
+                    setAsking(channels.map((ch) => ch.name)),
+                  )
+                }
               >
                 <FiRepeat className="text-[12px]" aria-hidden />
                 {c.repurpose.action(channels.map((ch) => channelLabel(ch.name)).join(c.repurpose.separator))}
@@ -748,23 +1031,51 @@ function Draft({
             </span>
           )}
           {/* The open channel's own two: writing it again over what is there, and recording
-              where it went up. Both need a draft to work on. */}
-          {channel && written && (
-            <span className="mb-[2px] ml-auto flex shrink-0 items-center gap-2">
+              where it went up. Rewrite is how an unfinished channel is written at all, so it
+              stands whether or not there is a draft yet; marking it published needs one. */}
+          {channel && (
+            <span className="mb-[2px] flex shrink-0 items-center gap-2">
               {actions && (
-                <Button variant="ghost" size="xs" disabled={locked || moving} onClick={() => setAsking([channel.name])}>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  disabled={locked || moving}
+                  onClick={(e) =>
+                    void afterSave("rewrite", e.currentTarget, () => setAsking([channel.name]))
+                  }
+                >
                   <FiRepeat className="text-[12px]" aria-hidden />
                   {c.rewrite}
                 </Button>
               )}
-              <Button size="xs" disabled={!actions || moving} onClick={() => setPublishing(true)}>
-                <FiSend className="text-[12px]" aria-hidden />
-                {c.publish}
-              </Button>
+              {written && (
+                <Button size="xs" disabled={!actions || locked || moving} onClick={() => setPublishing(true)}>
+                  <FiCheck className="text-[12px]" aria-hidden />
+                  {c.publish}
+                </Button>
+              )}
             </span>
+          )}
+          {/* Why a press that had to write first did nothing, hung off the strip rather than
+              inside its scroll box, which would cut it off. */}
+          {refused && refused.at !== "submit" && (
+            <div className="absolute top-full z-30" style={{ left: refused.x }}>
+              {refusal(refused.at)}
+            </div>
           )}
         </div>
       </div>
+
+      {/* A run that ended without finishing, per draft: what stopped, why, and one press to
+          pick it back up. */}
+      <StoppedRuns
+        rows={stopped}
+        onDismiss={dismiss}
+        onResumed={(runId) => {
+          dismiss([runId]);
+          onKick();
+        }}
+      />
 
       {/* A refusal the page itself was given — a publish, a rewrite, a channel the board
           would not add. None of them is a conversation, so each is said here. */}
@@ -780,12 +1091,17 @@ function Draft({
       {read.error ? (
         <div className="px-4 py-4 text-[12.5px] text-nb-ink-soft">{read.error}</div>
       ) : (
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div
+          role="tabpanel"
+          id={PANEL_ID}
+          aria-labelledby={tabId(tab)}
+          className="relative min-h-0 flex-1 overflow-hidden"
+        >
           {/* OverType mounts INTO this element, so nothing React draws may live inside it. */}
           <div ref={host} className={`h-full ${locked ? "opacity-70" : ""}`} />
 
-          {/* An agent is writing this draft. The editor is read-only behind this line; what
-              the agent is doing, and anything that goes wrong, is in the rail. */}
+          {/* An agent is writing this draft. The editor is read-only behind this line; which
+              agent is writing what is said in the pill beside the title. */}
           {locked && (
             <div
               className="pointer-events-none absolute left-8 right-8 top-[10px] h-[3px] overflow-hidden rounded-full"
@@ -798,25 +1114,34 @@ function Draft({
             </div>
           )}
 
-          {/* Nothing written for this tab yet: the one thing to do with it, in the middle of
-              the page. It goes the moment there are words — typing straight into the editor
-              is always the other way. */}
-          {loaded && editor && !written && !locked && actions && (
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2.5 pb-16">
-              <Button
-                className="pointer-events-auto"
-                disabled={moving}
-                onClick={channel ? () => setAsking([channel.name]) : onDraft}
-              >
-                {channel ? c.rewriteFromSource : c.draft}
-              </Button>
-              <span className="text-[12.5px] text-nb-ink-soft">{c.orJustWrite}</span>
+          {/* Nothing written for this tab yet: what that means, in the middle of the page. It
+              goes the moment there are words — typing straight into the editor is always the
+              other way. */}
+          {loaded && editor && !written && empty && (
+            <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2.5 pb-16">
+              {empty}
             </div>
           )}
 
-          {/* Which file this is, and whether it is on disk. */}
-          <span className="pointer-events-none absolute bottom-3 right-5 font-mono text-[11px] text-nb-ink-soft/75">
-            {path} · {saving ? t.shared.saving : dirty ? c.unsaved : c.saved}
+          {/* Whether what is on screen reached the file, on the caret's own line. */}
+          {editor && (
+            <SaveMark
+              editor={editor}
+              host={host}
+              state={saveState}
+              tick={caretMoved}
+              onRetry={retrySave}
+              onKeepMine={keepMine}
+              onTakeFile={takeFile}
+            />
+          )}
+
+          {/* Which file this is, and — before the first save creates it — that there is none.
+              `z-20`, because OverType gives its textarea `z-index: 1` and anything drawn over
+              the draft without a layer of its own is painted underneath it. */}
+          <span className="pointer-events-none absolute bottom-3 right-5 z-20 font-mono text-[11px] text-nb-ink-soft/75">
+            {path}
+            {loaded && !draft && ` · ${c.save.noFile}`}
           </span>
 
           {/* The one thing a selection does: leave a comment on it. It is drawn only where
@@ -845,9 +1170,10 @@ function Draft({
           comments={comments}
           polishing={polishingDraft === tab}
           disabled={locked || moving}
+          refusal={refusal("submit", "right", "up")}
           onEdit={(commentId, words) => void editComment(commentId, words)}
           onDrop={(commentId) => void dropComment(commentId)}
-          onSubmit={() => void submitComments()}
+          onSubmit={(from) => void submitComments(from)}
         />
       )}
 
@@ -869,12 +1195,46 @@ const withoutFlag = (why: string | undefined): string => (why ?? "").split("Add 
 
 // ---- the pieces ------------------------------------------------------------
 
+/** The strip is cut at this end and there is more of it that way. */
+function Fade({ side }: { side: "left" | "right" }) {
+  const to = side === "left" ? "90deg" : "270deg";
+  return (
+    <span
+      aria-hidden
+      className={`pointer-events-none absolute inset-y-0 w-[22px] ${side === "left" ? "left-0" : "right-0"}`}
+      style={{ background: `linear-gradient(${to}, var(--color-nb-wash), transparent)` }}
+    />
+  );
+}
+
+/** What a tab with nothing in it is: being written, not written, or not this machine's to
+ *  write. A channel is never offered a first draft — that is what Repurpose is for. */
+function Empty({ title, hint, pulse = false }: { title: string; hint: string; pulse?: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-2.5">
+      <span
+        className="flex items-center gap-2 text-[13px] font-[700]"
+        style={pulse ? { color: "var(--color-nb-accent-deep)" } : { color: "var(--color-nb-ink-soft)" }}
+      >
+        {pulse && <span className={PULSE_DOT} aria-hidden />}
+        {title}
+      </span>
+      <span className="text-[12.5px] text-nb-ink-soft">{hint}</span>
+    </div>
+  );
+}
+
 /** One tab: the channel's mark, its name, how far it has got, and the cross that takes it
  *  back off the card. `source` carries none of the four — it is what every channel is
- *  written from, not a destination, and nothing is left if it goes. */
+ *  written from, not a destination, and nothing is left if it goes.
+ *
+ *  The strip is one tablist and holds one tab stop, so the cross is not in the tab order:
+ *  Delete on the selected tab is what reaches it from the keyboard. */
 function Tab({
+  name,
   label,
   on,
+  hold,
   mono = false,
   mark,
   dot,
@@ -883,20 +1243,23 @@ function Tab({
   closeLabel,
   closeDisabled,
 }: {
+  name: string;
   label: string;
   on: boolean;
+  /** Where the strip keeps its buttons, so it can focus one and scroll it into view. */
+  hold: Map<string, HTMLButtonElement>;
   mono?: boolean;
   mark?: React.ReactNode;
   dot?: React.ReactNode;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   /** Unset on a tab that cannot be closed, which draws no cross at all. */
-  onClose?: () => void;
+  onClose?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   closeLabel?: string;
   closeDisabled?: boolean;
 }) {
   return (
     <span
-      className={`relative flex h-[30px] items-center rounded-t-[8px] transition-colors${
+      className={`relative flex h-[30px] shrink-0 items-center rounded-t-[8px] transition-colors${
         on ? " bg-nb-paper" : " hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)]"
       }${onClose ? " pr-1" : ""}`}
     >
@@ -909,9 +1272,17 @@ function Tab({
       )}
       <button
         type="button"
-        aria-pressed={on}
+        role="tab"
+        id={tabId(name)}
+        aria-selected={on}
+        aria-controls={PANEL_ID}
+        tabIndex={on ? 0 : -1}
+        ref={(el) => {
+          if (el) hold.set(name, el);
+          else hold.delete(name);
+        }}
         onClick={onClick}
-        className={`flex h-full cursor-pointer items-center gap-1.5 pl-2.5 text-[12px] font-[700]${
+        className={`flex h-full cursor-pointer items-center gap-1.5 whitespace-nowrap pl-2.5 text-[12px] font-[700]${
           onClose ? " pr-1" : " pr-2.5"
         }${on ? "" : " text-nb-ink-soft"}`}
       >
@@ -922,6 +1293,7 @@ function Tab({
       {onClose && (
         <button
           type="button"
+          tabIndex={-1}
           title={closeLabel}
           aria-label={closeLabel}
           disabled={closeDisabled}
@@ -937,9 +1309,10 @@ function Tab({
   );
 }
 
-/** "Repurpose to…" at the right of the strip (#478): the channels this topic has not chosen.
+/** "Repurpose to…" at the end of the strip (#478): the channels this topic has not chosen.
  *  It stands where the `+` used to and says what the press does, because adding a channel
- *  and writing its first draft are one move now — there is no empty tab in between.
+ *  and writing its first draft are one move now — there is no empty tab in between, and a
+ *  channel page never offers to draft itself.
  *
  *  A channel whose draft is still on disk from before it was closed is marked as such:
  *  choosing it opens its tab back up and starts nothing. */
@@ -952,16 +1325,18 @@ function RepurposeTo({
   names: string[];
   written: string[];
   disabled: boolean;
-  onPick: (name: string) => void;
+  onPick: (name: string, from: HTMLElement | null) => void;
 }) {
   const c = useCopy().card.marketing;
+  const trigger = useRef<HTMLButtonElement>(null);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
+          ref={trigger}
           type="button"
           disabled={disabled}
-          className="flex h-[24px] cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-accent-soft px-2 text-[12px] font-[700] text-nb-accent-deep transition-colors enabled:hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[24px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[8px] bg-nb-accent-soft px-2 text-[12px] font-[700] text-nb-accent-deep transition-colors enabled:hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <FiRepeat className="text-[12px]" aria-hidden />
           {c.repurposeTo}
@@ -970,7 +1345,7 @@ function RepurposeTo({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[212px]">
         {names.map((name) => (
-          <DropdownMenuItem key={name} className="gap-2" onSelect={() => onPick(name)}>
+          <DropdownMenuItem key={name} className="gap-2" onSelect={() => onPick(name, trigger.current)}>
             <ChannelMark name={name} status="" size={14} dim={false} />
             {channelLabel(name)}
             {written.includes(name) && (
@@ -1045,6 +1420,9 @@ function PageMenu({
  * The note and the language belong to this one repurpose. Both start unset: the note is
  * carried into every run this action starts and remembered nowhere, and an unset language
  * leaves each channel writing in its own.
+ *
+ * It holds Tab while it is open and gives the focus back to whatever opened it, so the
+ * keyboard does not walk out of a panel that is still asking something (#479).
  */
 function RepurposePanel({
   channels,
@@ -1064,6 +1442,12 @@ function RepurposePanel({
   const c = t.card.marketing.repurpose;
   const [note, setNote] = useState("");
   const [language, setLanguage] = useState("");
+  const panel = useRef<HTMLDivElement>(null);
+  const note_ = useRef<HTMLTextAreaElement>(null);
+  // Read while this renders, not in an effect: the focus has moved by the time one runs.
+  const [opener] = useState<HTMLElement | null>(() =>
+    typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null),
+  );
   const fresh = channels.filter((name) => !written.includes(name));
   const names = (list: string[]) => list.map(channelLabel).join(c.separator);
   const start = () => onStart({ note: note.trim() || undefined, language: language || undefined });
@@ -1076,9 +1460,45 @@ function RepurposePanel({
         ? c.titleOne(channelLabel(channels[0]!))
         : c.titleNew(channelLabel(channels[0]!));
 
+  // The note takes the focus, and keeps trying for a few frames: the picker's own menu
+  // restores focus to its trigger as it closes, which happens after this has mounted.
+  useEffect(() => {
+    let left = 24;
+    let frame = 0;
+    const take = () => {
+      if (note_.current && !panel.current?.contains(document.activeElement)) note_.current.focus();
+      if (--left > 0) frame = requestAnimationFrame(take);
+    };
+    frame = requestAnimationFrame(take);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // The control that opened it gets the focus back — Escape, Cancel and a finished
+  // repurpose all leave the same way.
+  useEffect(() => () => opener?.focus?.(), [opener]);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") return onClose();
+      if (event.key !== "Tab") return;
+      const box = panel.current;
+      // A dropdown inside the panel portals its menu out, and its keys are its own.
+      if (!box || !box.contains(document.activeElement)) return;
+      const stops = box.querySelectorAll<HTMLElement>(
+        "button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])",
+      );
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      if (!first || !last) return;
+      // Tab is the panel's own: it is asking something, and walking out of it leaves the
+      // question behind with no way back to it.
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -1086,6 +1506,7 @@ function RepurposePanel({
 
   return (
     <div
+      ref={panel}
       role="dialog"
       aria-label={title}
       className="nb-panel-sm absolute right-3 top-[9px] z-20 w-[min(356px,calc(100%-24px))] bg-nb-paper p-3.5"
@@ -1095,7 +1516,7 @@ function RepurposePanel({
         <p className="mt-1 text-[12px] leading-[1.6] text-nb-ink-soft">{c.willWrite(names(fresh), fresh.length)}</p>
       )}
       <textarea
-        autoFocus
+        ref={note_}
         rows={2}
         value={note}
         placeholder={c.notePlaceholder}
