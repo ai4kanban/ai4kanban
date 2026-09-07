@@ -52,6 +52,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   layout to the build** → ✅ the screen is drawn before the card is settled — where each part
   sits, what fills the empty space, and how the screen is entered and left. Scope lines say
   what the screen does, never what it looks like.
+- ❌ **A control that starts an agent run offers only its fixed choices** (a repurpose you can
+  pick a language for, with nowhere to say what you had in mind) → ✅ put a free-text note
+  beside them, carried into the run — the commands behind these buttons already take one.
 - ❌ **A control that qualifies the next message gets a strip of its own above the
   transcript** (the chat's agent and model on a row between the header and the conversation)
   → ✅ it goes inside the message box, on the box's own bottom row beside Send, and the box
@@ -168,3 +171,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   exercise the feature locally — a feed, a fixture, an environment variable — as part of the
   card. A check that has to wait for publishing is a check nobody makes, and it is the
   failure cases that never get tested at all.
+- ❌ **Runtime rows repeat harness names beside logos and use vague action words as states** → ✅ let the logo identify the harness, name the actual state, and keep concise local-storage notes beside their fields.
+- ❌ **A runtime editor replaces the existing harness card grid with a dropdown and exposes all settings** → ✅ reuse the existing grid and collapsed advanced settings; only reduce card size and spacing to fit.
+
+## Marketing editor
+
+- ❌ **A channel opens empty and asks to draft again** → ✅ Repurpose at the end of the tab bar drafts and opens the channel; its dropdown excludes opened channels.
+- ❌ **Channel labels collapse to icons to fit the window** → ✅ keep labelled tabs and make the tab bar horizontally scrollable.
+- ❌ **Runtime Delete sits below a long settings form** → ✅ place it at the right of the runtime title; use the existing hard-shadow button for Test connection.

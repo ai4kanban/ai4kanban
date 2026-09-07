@@ -15,6 +15,9 @@ re-ask a settled call.
 - A finished card moves to `.archive/` beside `todo/` and stays in git, so finished work can
   be read and diffed; a rejected card is still deleted, since `rejected.md` records why. The
   archive is not project memory — no flow reads it.
+- **A spec agent's memory is two files**: `redesign.md` and `decisions.md` in
+  `memory/agents/<agent>/`, and no third — a product fact worth keeping is written into the
+  decision or lesson it supports, and how the product looks is read from the app's design docs.
 
 ## The goal
 
@@ -23,20 +26,28 @@ re-ask a settled call.
   write is worse than no nag.
 - What a good goal contains is advice in a guide setup links to. Nothing enforces it and the
   file stays free-form.
+- `goal.md` is no flow's precondition. With it empty, evaluate-task, extract-ideas and
+  plan-release read direction from the card's module memory and the repository itself and
+  carry on; none of them stops, and none asks the user to write one.
 
 ## Setup
 
-- Setup asks the user for one thing, the goal. It settles what the goal answers into
-  `decisions.md` and hands every call it can't settle over as `[user]` questions on one card
-  that tops the board — never in the checklist, never in `decisions.md`.
-- Without a written `goal.md` setup stops at the goal step: nothing after it can be built
-  from seed text, so there are no decisions, no module map and no first cards.
+- Setup asks the user for nothing it can read, the goal included. It settles what the
+  repository scan answers into `decisions.md` and hands every call it can't settle over as
+  `[user]` questions on one card that tops the board — never in the checklist, never in
+  `decisions.md`.
+- Skipping the goal ticks the `goal` step and leaves `goal.md` empty, and setup runs to the
+  end from there: `decisions`, `modules` and `tasks` read the repository — README, package
+  files, the tree — and produce the same three seed cards whenever the scan supports them.
 - The module map comes after the decisions — a project started without code has no code to
   read a map from.
 - Setup ends after creating 3 initial cards, the foundations later work builds on. Their
   refinement runs continue independently in the background.
 - Setup is a bounded bootstrap: one repository scan, at most 5 high-level decisions and 5
   modules, and seed cards without full plans. Background refinement does the deeper work.
+- **Nothing to read**: with no goal and a repository that yields no README or package file,
+  setup still finishes and creates no seed cards, leaving the board empty for the user's own
+  first card.
 - While `setup-checklist.md` is there no flow creates a card; the last tick deletes it and a
   finished checklist is never kept as a record. A card the user writes by hand is never
   blocked.
@@ -59,6 +70,14 @@ re-ask a settled call.
   the card failed to preserve is a creation defect.
 - A card is refined as soon as a run creates it — every action that used to follow nothing
   starts a refine on the cards it created, and none on the cards it merely edited.
+
+## The ready gate
+
+- A card the gate turns down goes back to `todo`, with its reason appended to the card as a
+  `[user]` question — the same rule any card holding an unanswered question already follows,
+  so answering it refines the card and sends it through the gate again.
+- Turning the gate on starts nothing already on the board: it applies only to cards that
+  reach `ready` afterwards, so the switch never opens a batch of deliveries at once.
 
 ## Implementation runs
 
@@ -100,6 +119,15 @@ re-ask a settled call.
 - No flow puts a human in the loop while it works. Anything it cannot settle is left on the
   card as an open question and the run finishes; the card is where the user answers, at the
   time they choose.
+- **What `decider` answers**: with its switch on, every `[user]` question still open on a card,
+  including the ones a review left when it sent a delivery back.
+- **When `decider` cannot decide**: it takes that question's recommended option and carries on,
+  and never hands the card back to the user.
+- **How long `decider` keeps answering**: with no cap — every new `[user]` question raised on a
+  card starts another decide run, however many rounds it has already answered.
+- **Turning `decider` on**: it applies only to the QA convergences and delivery events that
+  happen afterwards; cards already stopped on a question stay where they are until
+  `akb card decide <id>` or the next refine.
 
 ## Recurring tasks
 
@@ -142,6 +170,9 @@ re-ask a settled call.
   <path>/ai4kanban.mjs`, pointing at the copy that is running. Every flow writes `akb` and
   each printed line resolves it, so a test or doc that hard-codes `akb` is the thing to fix,
   and nothing installs the command or fetches it from npm to make the name work.
+- `propose` is retired: finding work the board is missing is extract-ideas over the planning
+  sources in `config.md`, and nothing else. `akb propose` is deleted outright with no alias
+  and no pointer — an old call gets the ordinary unknown-command refusal.
 
 ## Installing and updating
 
@@ -165,6 +196,52 @@ re-ask a settled call.
   table, never as drag-and-drop columns.
 - The memory set, `metrics.csv` and `next-id` stay local markdown on every backend — only
   cards ever move. One backend per project.
+
+## The market signal inbox
+
+- **The board reaches one endpoint the user configures, not a platform we integrate**: the
+  board fixes the signal format it accepts and the user points an endpoint and a token at
+  it, so any platform that returns that format works and none of them is named in the code.
+
+## Agents and harnesses
+
+- **A runtime is the whole answer to what a run runs as**: harness, provider, endpoint, key,
+  model id, reasoning and extra arguments are one named row on one list, with no inheritance
+  from a per-harness block — so two agents on one harness sit on two gateways. "Harness" means
+  the CLI itself, and "model" survives only as a box inside a runtime (#467).
+- **The default is a position, not a badge**: the first row is **Global default**, which every
+  board has, which no board can rename or delete, and which every agent naming no runtime runs.
+  There is no "make default" anywhere.
+- **The id keys everything, and the name keys nothing**: a runtime's name is free text, unique
+  and never empty; its id is generated to what `docs/kanban/.env` parses and never changes, so a
+  rename is lossless on every computer.
+- **A runtime's shape travels and its key does not**: harness, endpoint, model id and arguments
+  are the board's, in `ui.config.json`; the key is one line per runtime in `docs/kanban/.env`.
+  So the first computer to upgrade sets the model every checkout runs, and a machine whose CLI
+  never signed into that provider inherits a model it cannot run.
+- **An upgrade turns an older board's blocks into rows, once**: every `harnessSettings` block
+  becomes a runtime — the one `harness` named becomes **Global default** — and each agent whose
+  `.local.json` model differed gets a row of its own, so a board runs exactly what it ran. A
+  pre-#443 `runtimes` block is discarded rather than read under the new rules.
+- **Deleting a runtime clears the agents that named it** rather than being refused: they fall
+  back to **Global default**.
+- **One key-naming scheme, and the upgrade enforces it**: every runtime's key line in
+  `docs/kanban/.env` is named after that runtime's id, **Global default** included, and the
+  upgrade rewrites the lines it finds — off the runtimes list rather than off the migration, so a
+  second computer is repaired too. A rename then stays lossless on every computer, at the cost of
+  the board rewriting the user's key file on each computer it is pulled to (#467).
+
+- **A signal the `inputbox` agent turns down is not deleted**: it moves out of the inbox into
+  a junkbox with the reason, and is cleared 30 days later — long enough to catch a wrong
+  verdict, and the inbox holds only what has not been judged.
+- **Turning one agent on never flips another agent's switch**: `inputbox` says on its own page
+  that running it with `gater` and `decider` on lets an unread external signal reach landed
+  work, and leaves both switches exactly where the user put them.
+
+- **A ZCode chat keeps turning a pasted picture away**: ZCode declares no image input, and
+  that is the honest answer rather than a missing feature — its wire takes attachments, but
+  the runtime drops any image whose model is text-only, and every GLM model ZCode ships is.
+  It reopens when a vision-capable model appears in ZCode's own config.
 
 ## Spec agents
 
@@ -190,6 +267,8 @@ re-ask a settled call.
   the labels and the user opens the card page, one click away, to look.
 - The list of mockup formats is written in `akb guide ui-design` only — putting it in
   `akb guide board` would cost every flow the context for a rule only screen cards need.
+- **One design system per app**: a mockup style that draws against a saved design system reads
+  `docs/kanban/design/<app>.md`, picked from the card's module, and extracts one per app.
 
 ## Chat
 
@@ -199,7 +278,8 @@ re-ask a settled call.
   branch lands the way any delivery's does, and Runs shows it with the typed sentence where a card
   id would be.
 - **Build now never waits**: it runs with AI review and diff approval off, so nothing holds the
-  delivery between the implementation's commit and landing.
+  delivery between the implementation's commit and landing. The card it writes changes that in
+  no way — it is a record, not a checkpoint.
 - Only agents whose command can be sent a second message into the session it already opened
   can hold a chat; any other names the ones that can. A conversation is never held by
   sending the whole exchange again each turn.
@@ -209,9 +289,11 @@ re-ask a settled call.
   what it changes stays in the working tree, and git is where the user takes it back.
 - It adds no rule of its own: the session is an ordinary kanban-skill session, so `--print`
   does a flow there and no flag starts a run.
-- A conversation carries its own agent and model, kept with the transcript, so a terminal
-  continues it on the same pair. The board's are the default, and switching the agent starts
-  the conversation over rather than moving the transcript to a CLI that never opened it.
+- A conversation pins one runtime, kept with the transcript, so a terminal continues it on the
+  same row. The planner's is the default; picking a row on another CLI starts the conversation
+  over rather than moving the transcript to one that never opened it, and picking one on the same
+  CLI carries it on with the change marked. It has no model box of its own — the row carries the
+  model.
 - A plan a **Discuss** chat writes is kept: it stays in `docs/kanban/plans/` after its cards
   are written, and every card it produced names it as its source.
 
@@ -255,15 +337,30 @@ re-ask a settled call.
 - **The writing memory is what decides quality**: `memory/writing.md` and the files under
   `memory/writing/` are where the user's taste lives, so a rule learned on one channel
   reaches every channel it fits. Nothing declares formats.
+- **A learned rule is filed inside the writing memory**: a polish appends a rule that holds
+  for every piece to `memory/writing.md` and one bound to a channel, language or format to
+  its own file under `memory/writing/` — never beside `decisions.md` in `memory/`.
 - **Repurposing does not follow the write run**: the user runs `akb channel` per channel
   once `source.md` reads right.
 - **Publishing is local-first, never a channel API**: a piece goes out from a browser the user
   is already signed into on their own machine — the vendored 小红书 skill, or the channel's
   own composer carrying the draft. No developer account is funded and no token is
   kept alive, so X and LinkedIn numbers stay whatever the user last typed.
-- **A repurpose run is one pass, not a loop**: `source.md` is a medium-length piece, so the
-  run only shortens or expands it into the channel's shape; there is no clarify or QA phase
-  on a draft, because the user editing it is the review.
+- **A repurpose run is one pass; the loop is a step of its own**: `akb channel` only shortens
+  or expands `source.md` into the channel's shape and stops. `akb marketing verify` is what
+  the user runs next, and it loops — a fresh session judges the draft against the writing
+  memory, a fix run answers its report, and it repeats to three passes. There is still no
+  clarify or QA phase on a draft: the loop reads written-down rules, not the topic.
 - **A user `write` agent adds to the writer, never replaces it**: the bundled writer keeps
   writing the draft and calls a named specialist — an image generator, say — when one helps,
   the way a planning run asks for a spec agent.
+- **A marketing card has no `ready` stage**: with no refine to vet a topic, a card only moves between `todo` and `implementing`, and the board is one column of cards plus the recurring one — nothing on the board says which topic is written next.
+- **The verifier is a namespaced command**: `akb marketing verify <channel> <id>`, not a
+  top-level `akb verify`.
+- **A format change takes the cards already open with it**: cutting the marketing card down
+  rewrites the topics already in flight rather than grandfathering them — their unanswered
+  angle and channel options become a few lines of angle at the top of `source.md`, and the
+  board never carries two card formats at once.
+- **A marketing card has no lead channel**: `source.md` is the argument and belongs to no
+  channel, so `channels:` is only the set of channels the topic goes to, in the order the
+  user picked, and every chosen channel is repurposed from the source.

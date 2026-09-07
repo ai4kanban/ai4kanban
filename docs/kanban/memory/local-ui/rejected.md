@@ -66,6 +66,9 @@ before proposing so you don't re-suggest them.
 - **A separate card for restyling the Spec agents pane as pixelart characters** — the
   Agents pane draws that same screen once, so the characters ship with it rather than as
   a second pass over rows the user would see twice. The characters themselves stand.
+- **Kanbo, a desktop pet that speaks the board's notifications** — a character parked on the
+  desktop only makes the desktop messy. The system notification center already delivers the
+  same alerts and gets out of the way after.
 
 ## Runs
 

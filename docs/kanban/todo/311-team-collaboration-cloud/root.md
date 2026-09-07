@@ -126,6 +126,10 @@ is a group task; each piece is its own subtask in this folder.
 - [ ] Say who is holding a card #375
 - [ ] Notify a workspace's owners and members about a card that needs them #328
 
+## Decided by the agent
+
+### Overruled by the user
+
 ## Source
 - `docs/kanban/memory/goal.md`, the 团队协作 section — the four problems a shared board has to
   solve.

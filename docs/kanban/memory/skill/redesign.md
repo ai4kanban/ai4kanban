@@ -74,6 +74,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   costs less than a write path agents are not trained on.
 - ❌ **Give an action a second mode without saying when to pick it** → ✅ a card that adds a
   mode also states the rule for choosing it, and where the agent reads that rule.
+- ❌ **Tell an agent to check for a tool with `command -v <short name>`** → ✅ prove the tool
+  with a subcommand of its own and treat a bad exit as absent. A two-letter name is often
+  already a system binary — `od` is OpenDesign's command and also `/usr/bin/od` — so a
+  presence check passes on a machine that has nothing installed.
 
 ## The goal
 
@@ -133,6 +137,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Infer which cards became unblocked after every run** → ✅ a rough card saves a one-shot
   refine when it first becomes blocked; finishing the blocker only makes that schedule
   eligible, and cancelling lasts for the current blocked episode.
+- ❌ **Scope a chain of runs by its happy path alone** → ✅ a card that hands one run's report
+  to the next also says what a stopped run, a failed run and an empty report each do to the
+  chain, or the builder invents those endings after the card was approved.
 
 ## UI design
 
@@ -146,6 +153,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A mockup is plain HTML, styled by hand to look like the project** → ✅ write it in the
   stack the board UI already runs, so the file is the screen and not scaffolding around it.
   A plain `.html` page stays accepted for a screen that is not a component.
+- ❌ **Call a mockup drawn by an outside engine "self-contained" and stop there** → ✅ name
+  the board's sandbox as the constraint: the iframe loads no scripts, no network, no
+  webfonts and no images, so styles must be inline, fonts must be system stacks and art must
+  be inline SVG, or the drawing renders blank.
 
 ## Connectors
 
@@ -153,3 +164,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   version-sensitive connector declares the range it was exercised across, and a mature
   harness declares nothing and is never asked — a single pinned version warns on the next
   ordinary bump, and a gate on a harness that manages its own compatibility is noise.
+- ❌ **Read a connector's capability off what the protocol hands back** → ✅ prove the
+  capability against the installed runtime and declare it on the harness — ZCode reports a
+  session id at `session/create` and still cannot resume it, because the session only
+  reaches its store on the first prompt.

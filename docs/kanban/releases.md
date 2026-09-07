@@ -10,4 +10,4 @@ wanted, but not promised to a version.
 The order is whatever the lines say, so a hand edit is how you reorder. What comes after
 the em dash is the release's goal — what this version is for, in your own words.
 
-- **0.9.0** — 1. low hanging fruit for ui/ux improvemnets 2. web version so mobile users can access the board.
+_(no releases yet — `release new v1` makes the first one.)_

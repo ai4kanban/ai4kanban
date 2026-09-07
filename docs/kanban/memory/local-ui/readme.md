@@ -87,10 +87,9 @@ naming no other doc is covered there.
   tree, outside the landing queue so other cards still land; an approval covers one base
   commit and one tree and is cancelled by either moving: "Approving a delivery".
 - **AI review** turns that review off — a third switch beside the two above, on by default,
-  with **Have a second agent review it** on the Implement dialog turning one build round the
-  way the worktree tick does. The build then goes straight to landing, the delivery block's
-  foot reads **No AI review**, and the choice is frozen when the delivery starts:
-  "Turning AI review off".
+  and the only place it is answered: the Implement dialog does not ask per build. The build
+  then goes straight to landing, the delivery block's foot reads **No AI review**, and the
+  choice is frozen when the delivery starts: "Turning AI review off".
 - Building a card with **open questions** is allowed behind a third warning: it builds,
   reviews, then holds outside the landing queue until the questions are answered.
   Answering carries the same delivery on unless it changed what the card asks for.
@@ -159,16 +158,17 @@ naming no other doc is covered there.
 
 ## Configuration
 
-- **Runtimes** names the board's runtimes and what this computer runs each one as, kept
-  visibly apart — rename, make global, remove, and a **Test** that spawns that runtime. A
-  board naming no runtimes is the plain harness pane it always was: "Runtimes, and the
-  harness behind one".
-- Two tabs: **Runtimes** is one row per runtime, the global one open and the rest folded to
-  where and what they run, and **Computers** lists the machines the board knows. Each runtime
-  is headed with the computer it runs on, picked there and travelling with the repository;
-  pointed at another computer it shows what that machine reported and offers nothing to press.
-  The pick says where a runtime belongs — a run still lands on the machine it was started
-  from: `web/content/docs/runs.mdx`, "Which tool each flow runs on".
+- **Runtimes** is one list you add to: **Global default** first, which nothing renames or
+  deletes, then every runtime you named, then **+ Add runtime**. A folded row is its name, the
+  CLI's mark and the model it runs, with **Signed out** or **Not installed** on the right where
+  this computer says so; opening one holds its name, the CLI card grid, a folded **Advanced
+  settings** and **Test connection**. Naming the new row is what creates it, and leaving the
+  name empty drops it.
+- Delete sits at the right of a saved row's title and asks first: the agents on that row go
+  back to **Global default**, and the row's API key on this computer goes with it. There is no
+  "make default" control anywhere — the first row is the default.
+- No Computers picker: a board knows exactly one computer. What is that computer's is named
+  where it matters — the row's key and the verdict beside it.
 - Run the board on Claude Code, Codex CLI, Cursor, OpenCode, DeepSeek Harness or ZCode,
   each with its own settings, live log, stop and resume; the picker dims the ones whose CLI
   isn't installed and names the install command: "What each agent needs",
@@ -183,11 +183,14 @@ naming no other doc is covered there.
   through your shell: "Which provider a run goes through".
 - Keys live in `docs/kanban/.env`, kept out of git, and **Test** sends one tiny message
   through the saved setup: "Keys", "Testing the connection".
-- **Agents** lists every spec agent with what it fills in, a switch to stop the board
-  starting new runs of it, and its own settings where it has them — board-wide, saved with
-  the board: "The spec agents".
-- **Rules** adds one rule in your own words to the end of any flow's instructions, saved
-  per flow as files in your board and shared through git: "Flow rules".
+- **Agents** is the whole team on one pane — the Rules pane is gone. A grid of characters,
+  one per agent: the roles the board runs its own flows by (Planner, Builder, Reviewer, or
+  Writer on a marketing board) and the specialists a card asks for, each with a switch where
+  it may be turned off. Selecting one opens its page — its rule in your own words, what it
+  remembers, its settings where it has them, and **Add a specialist** writing a new
+  `docs/kanban/agents/<name>/AGENT.md` from a template. Anything wrong with an agent it found
+  is a line under **Problems on this board**: "Agents", "Give an agent a rule" and "Give an
+  agent memory" in `kanban-ui/README.md`.
 - **Skill** adds or updates the coding agent skill and says how current it is; the app also
   puts `akb` on the PATH itself, silently repairing a dead link: "The coding agent skill",
   `desktop/README.md`.
@@ -244,10 +247,9 @@ naming no other doc is covered there.
   the model carries the same conversation on and the transcript marks where it changed;
   switching the agent starts it over behind the bin's ask-once, and is refused while a reply
   is coming.
-- Configuration → Agents is **Spec agents**. It lists the agents the board ships and the ones the
-  project added under `docs/kanban/agents/`, draws each one's settings from that agent's own
-  `AGENT.md`, and lists anything wrong with one it found under **Problems on this board** — a
-  folder still where agents used to live is one of them: `kanban-ui/README.md`.
+- The pane's specialists come from `docs/kanban/agents/<name>/AGENT.md`, its own file drawing
+  its own settings; a folder still where agents used to live is one of the lines under
+  **Problems on this board**: `kanban-ui/README.md`.
 - Setting up a new board **finds the coding agent instead of asking for it**: the first run
   tries the agents already on the machine — Claude Code, then Codex, then the rest, skipping
   any still wanting a key — with the same call the Test button makes, and the first that
@@ -297,3 +299,47 @@ naming no other doc is covered there.
   that is already set up, and it never returns once answered. The same switch stays as the
   **Privacy** group of Configuration → General, with the install id while there is one and the
   link to every event and field: `https://ai4kanban.dev/privacy`.
+- Create task opens on **Add task** and can be switched to **Build now**: what you type goes
+  straight to a build with no card at all. Send opens a guard first — no card is written, no
+  questions come back, nothing reviews it before it reaches your branch — and confirming
+  closes the sheet and opens Runs on the run. A start that is refused keeps the sentence in
+  the box and says why under it. A card-less flow in Runs shows the typed sentence where a
+  `#id` would be, and its delivery's stop, with the commands that put it back in motion, is
+  read on the flow rather than on a card page.
+- **Skip for now** on the goal step is an answer: setup finishes from there, and no
+  "Skipped" tag, goal band or "write the goal first" refusal is left on the board. Writing a
+  goal later is the star in the top row — it says **Add goal** while the file is empty and
+  opens the box straight away, and turns back into **Goal** once it holds your words.
+- A board with no card on it shows one panel in place of the columns: what an empty board is,
+  and **Create the first card**, which opens the create sheet.
+- A **marketing board draws one card column** — **Topics**, with every open topic and how many
+  are being written — beside Recurring, since a topic never reaches "ready". Its cards wear
+  their channels where a product card wears priority and ROI, the header has no release picker,
+  the card page offers neither Refine nor Resolve, and Implement opens with no "not marked
+  ready" warning to tick.
+- **Build clear cards automatically** is the first row of Configuration → General → Delivery
+  and the only one that decides whether a delivery starts at all. Off by default; on, the
+  ready gate judges each card whose plan settles and builds the ones it passes. Its own
+  runtime picker sits under the row — the board's runtime, or one of the named ones — and is
+  drawn only on a board that names more than one.
+- **Decider** is the only role in Configuration → Agents' **Optional** group. Its page carries
+  the one peach cost strip in the dialog — "While this is on, nothing stops for you" — and its
+  switch asks once before it goes on. A card it answered wears a sky skip mark on the board
+  with the count in its hover, and **What Decider chose for you** on the card page lists each
+  question, the option taken and the file it went on, with a blind pick called out in peach.
+  A delivery stopped or held on questions reads "Decider is answering" instead of "Waiting on
+  you", and Resolve stays live under it.
+- **Build now writes a card and builds it**: the sheet's Build now still sends one request
+  with no id, and the run's first act is `akb raw create` — a title read off the sentence,
+  the sentence itself as the summary's code block, and nothing else on the scaffold. The
+  board hands that card to the delivery already in flight, so Runs turns from the sentence
+  into `#id` and the card page shows the delivery. The request now carries the release on
+  screen, the foot reads it beside "no review before your branch", and the Send guard leads
+  with the card it writes above the two lines it still skips.
+- **Build now stands under a settled plan too**: Discuss's plan ask now offers Start planning,
+  **Build now** and Not yet. Build now opens the sheet's own guard on the answer pressed, then
+  starts the same run Create task's Build now starts — pointed at the plan file, read
+  server-side, in the release on screen. The run writes one card from the plan (its title, the
+  plan verbatim as the summary, `## Source` naming the file) and builds it, refining and
+  reviewing nothing. While it works the answers give way to "Building from this plan…", and the
+  plan is let go once that run has written its card, whatever the run did afterwards.

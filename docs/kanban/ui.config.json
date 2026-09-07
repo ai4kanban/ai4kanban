@@ -1,18 +1,26 @@
 {
-  "harness": "claude-code",
-  "harnessSettings": {
-    "claude-code": {
-      "provider": "subscription",
-      "model": "opus",
-      "reasoning": "xhigh"
+  "runtimes": [
+    {
+      "id": "global",
+      "name": "Global default",
+      "harness": "claude-code",
+      "settings": {
+        "model": "opus"
+      }
     },
-    "zcode": {
-      "provider": "coding-plan",
-      "model": "bigmodel/glm-5.2"
+    {
+      "id": "zcode",
+      "name": "ZCode",
+      "harness": "zcode",
+      "settings": {}
     },
-    "codex": {
-      "reasoning": "high",
-      "command": "/Applications/ChatGPT.app/Contents/Resources/codex exec"
+    {
+      "id": "codex",
+      "name": "Codex",
+      "harness": "codex",
+      "settings": {
+        "reasoning": "high"
+      }
     }
-  }
+  ]
 }

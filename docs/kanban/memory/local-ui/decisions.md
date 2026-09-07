@@ -25,14 +25,12 @@ re-ask a settled call.
 - **A specialist you add is written in the pane**: its whole `AGENT.md` is a box on its page,
   saved the way a rule is, and Add a specialist ends with the cursor in it. The app never
   learns to open a local file in your editor.
-- Runtimes is a list of runtimes, never a list of computers: each one names the single
-  computer it runs on, the global one is open and the rest are folded, and its computer,
-  harness and model are set in place. Computers get a tab of their own. A board naming no
-  runtimes opens on the binding itself. No monospace anywhere.
-- A runtime's computer is a setting first: the board records where a runtime should run and
-  says the pick does not send runs there yet. Dispatching a run to that computer is its own
-  work. A runtime pointed at another computer shows that computer's answer read-only —
-  a binding belongs to the machine that holds it.
+- **Runtimes is one list you add to**: **Global default** first and undeletable, then every
+  runtime the user named, then **+ Add runtime**. The default is a position, not a badge, so
+  no control anywhere moves it, and a row is opened onto the harness card grid rather than a
+  dropdown. No Computers picker until a board can know a second machine.
+- **An agent's harness and model are picked on the agent's own page**, beside its rule, so
+  planner can run a stronger model than builder.
 
 ## Getting the board
 
@@ -75,8 +73,11 @@ re-ask a settled call.
 - A delivery's state rides on the card's title band: the pill, plus one line saying what it
   waits on. Its diff and approval are tabs in the block that already holds the log, so the
   page gains no new furniture.
-- **A card-less build never waits**: it runs with AI review and diff approval off whatever the
-  board's settings say, so the implementation's commit lands with nothing to answer.
+- **A Build now never waits**: it runs with AI review and diff approval off whatever the
+  board's settings say, so the implementation's commit lands with nothing to answer — the
+  card it writes is a record, not a checkpoint.
+- **Build now is one answer wherever it is offered**: the one under a settled plan does
+  whatever Create task's Build now does, rather than a behavior of its own to keep in step.
 
 ## Setup and the first run
 
@@ -92,8 +93,9 @@ re-ask a settled call.
   words the user could accept unchanged, because text the user did not write is no goal.
 - Finishing setup refines the cards it writes: they are the roughest the board will ever
   hold and nothing else comes for them.
-- The goal nudge is a nudge, not a gate — dismissible, back if the goal turns weak again,
-  gone as soon as the user writes anything. One shared notice bar carries conditions like it.
+- The board carries no notice about the goal at all. Skip for now answers the goal step, the
+  rest of setup runs from the repository scan, and the header's own control is the only place
+  that ever offers to write one.
 - The first run's agent step probes the agents already installed instead of asking, and
   the probing view's one control is a Set it up myself link to the picker — nothing cuts
   the probe short by a timer or a cap.
@@ -107,6 +109,11 @@ re-ask a settled call.
   roadmap file.
 - The goal is a reminder, not a file you work in: a quiet header control opens the whole
   thing and editing sits one click in. It gets no row in the Memory panel.
+- That control is the goal's only place on the board, in two states: the star opens what is
+  written, and on an empty file the same star reads Add goal in soft ink and opens the box.
+  It offers, never asks — the goal is optional.
+- A board holding no card at all replaces the columns with one centred panel: what an empty
+  board is, and the offer of the first card. Three empty columns say it three times.
 
 ## Runs
 
@@ -149,6 +156,8 @@ re-ask a settled call.
 - Keys live in `docs/kanban/.env` and nowhere else, kept out of git by the board's own
   gitignore, and a saved key is never shown back. What `.env` names wins for a run; a
   variable it doesn't name is left alone.
+- **Deleting a runtime clears its key**: the key lines that row owns in `docs/kanban/.env` go
+  with the row, and the confirmation says so before the delete.
 - ZCode signs in with a Coding Plan key alone. The *the login ZCode has* pick was dropped
   rather than taught to explain itself, and comes back when a login is shown to work (#282).
 - An installed CLI that is logged out is warned about where the agent is picked, and gates
@@ -175,7 +184,24 @@ re-ask a settled call.
   behind it", because the file is the drawing — and a narrow window scrolls it sideways
   rather than re-wrapping columns that would stop being the drawing.
 
+## The marketing card page
+
+- **A card's channels are picked on the page, not asked for**: the tab strip's picker lists
+  the channels this card has not chosen and adds the picked one as a tab, so nothing waits
+  on a run.
+- **Closing a channel tab drops the channel from the card**: the card's channel list is the
+  only record of which tabs exist, so a close loses that channel's status and URL while the
+  draft file stays and reopening brings it back.
+- **The draft editor keeps the syntax marks on screen**: headings, bold and links take
+  their styles as you type while `##` and `**` stay in the line, so a draft is edited
+  exactly as it sits in the file the agent wrote.
+- **A batch of draft comments is cleared once its polish returns**: the polished draft is
+  the answer, so no comment stays behind as resolved and there is no list to dismiss.
+
 ## Views and filters
+
+- A marketing board draws one column of cards plus the recurring one: there is no `ready`
+  stage to split them by, so the ready/not-ready halves collapse into a single column.
 
 - The queue view regroups the whole board and hides nothing. The release dropdown is the
   one place the board hides cards, and blockers stay on screen whatever is picked, since an
@@ -190,6 +216,9 @@ re-ask a settled call.
   agent chooses the focus itself.
 - Reading a closed version's changelog on the board is its own card, separate from the one
   that writes it.
+- The inbox view has a junkbox beside it — the signals the `inputbox` agent turned down, with
+  the reason, until they expire. It is read-only: there is no putting one back, and a signal
+  worth saving is one the user makes a card from themselves.
 
 ## Chat in the UI
 
@@ -200,8 +229,8 @@ re-ask a settled call.
 - **A plan file is read outside the app**: Discuss writes `docs/kanban/plans/<id>-<slug>.md` and the
   cards it produced name its path; the board never opens it.
 - **Propose tasks is gone from the app**: the mode is dropped rather than carried into the
-  chat, because cards nobody asked for are rarely worth trusting; `akb propose` still writes
-  them from a terminal.
+  chat, because cards nobody asked for are rarely worth trusting. The flow behind it is
+  retired too — finding new work is idea extraction from a named source.
 - The chat is a full-height rail down the right, folded away by default so the board stays
   the centre of the app, and it follows what you are reading — the board's chat on the
   board and on a memory file, a card's on its page — so only one is ever on screen.
@@ -215,6 +244,12 @@ re-ask a settled call.
 - A conversation picks its own agent and model in the rail's header, defaulting to the
   board's; switching the agent starts the conversation over, behind the same confirmation
   the bin takes.
+- **Leaving a discussion never deletes it**: both ways out of the Create task discussion —
+  handing it to a planning run and pressing New idea — set it aside behind Last discussion,
+  which holds only the one set aside last.
+- An agent that cannot see images turns a pasted image away at the box: it says so, names
+  the agents that can, and writes and sends nothing — rather than passing a path on and
+  letting the agent answer that it cannot open the file.
 
 ## Notifications
 
@@ -228,6 +263,9 @@ re-ask a settled call.
 - An actionable event interrupts: a system notification as well as the bell, opening the
   card, with one switch silencing the interruption while the bell keeps filling. A delivery
   it started raises a second notification on every final outcome, not only failure.
+- A card the watched scope merely brought into view does not interrupt: it lands in the bell
+  already read, with no system notification. Only a card that starts waiting after the switch
+  is raised the ordinary way.
 
 ## Moving around the app
 

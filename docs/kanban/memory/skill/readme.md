@@ -56,6 +56,11 @@ covers it, or a plain-words note.
   judgement of whether the goal is clear enough to plan from: `web/content/docs/daily-loop.mdx`.
 - What a good goal covers, offered as one line the user can skip:
   `web/content/docs/what-makes-a-good-goal.mdx`.
+- A board with no goal written still gets its planning done: with `goal.md` missing, empty
+  or still seed text, evaluate-task, extract-ideas and plan-release take direction from the
+  card's module memory and the repository itself and carry on, and none of them asks the
+  user to write one: `akb guide evaluate-task`, `akb guide extract-ideas`,
+  `akb guide plan-release`.
 
 ## Releases
 
@@ -132,10 +137,18 @@ covers it, or a plain-words note.
 - Every delivery leaves one JSON file under `docs/kanban/deliveries/`, tracked in git and
   kept after the card is archived, including every review verdict and why one stopped:
   `akb guide board`.
-- A board can add **one rule of its own to any flow** — plain words in
-  `docs/kanban/rules/<command>.md`, appended to the end of that flow's instructions, tracked
-  in git. A delivery freezes the rules of its four flows when it starts, so editing one
-  changes the next delivery and never one in flight: `akb guide board`.
+- Every flow the board runs is run by a named **role** — Planner (create, refine,
+  resolve, revise, plan-release, changelog, archive, reject, setup), Builder (implement,
+  conflict, run) and Reviewer (review) on a product board, with Writer standing in for
+  Builder and taking `channel` on a marketing one. A role is a name, one line, the flows it
+  runs and the memory files it already owns; nothing moves: `web/content/docs/agents.mdx`.
+- A board adds **one rule of its own per agent**, not per flow — plain words in
+  `docs/kanban/rules/<agent>.md`, named for a role or a specialist and appended to the end of
+  every run that agent does, tracked in git. One rule on `builder` reaches `implement`,
+  `conflict` and `run` alike. `akb raw rule <agent> --text|--file` writes it and an empty one
+  clears it; a board whose rules were keyed by flow folds each file into its role's, once, on
+  first read. A delivery freezes the rules of the agents it is made of when it starts, so
+  editing one changes the next delivery and never one in flight: `akb guide board`.
 - A rough card gets `schedule: refine` when it first becomes blocked; `akb board schedule
   <id> --action implement|refine` replaces it and `--clear` cancels it for that episode:
   "Queue a card that is waiting on another" in `web/content/docs/daily-loop.mdx`.
@@ -162,16 +175,16 @@ covers it, or a plain-words note.
 - **ZCode** (`akb agent use zcode`) needs `npm install -g zcode-app-cli` or ZCode Desktop,
   and signs in with a Z.AI or BigModel Coding Plan key alone. A ZCode run is not fenced to
   the project — ZCode ships no sandbox: `web/content/docs/connectors.mdx`.
-- **A board names its runtimes and says what each one runs as** — all of it in
-  `ui.config.json`, so every checkout runs the same thing with nothing to set up per machine.
-  One home per runtime: the global one is `harness`/`harnessSettings`, every other is an
-  entry under `runtimes.agents`. A runtime with no entry runs the board's agent, and its
-  settings are that agent's block with its own overrides on top. `akb agent runtimes`,
-  `runtime add|remove|global|for|rename` and `bind` are the whole of it: "Which tool each
-  flow runs on" in `web/content/docs/runs.mdx`.
-- Renaming a runtime carries everything held under the old name, including what it runs as.
-  Making another one global swaps the two homes so both go on running what they ran.
-  Removing one clears the spec agents that named it as well as the flows.
+- **A board names its runtimes, and one runtime is the whole answer to what a run runs as** —
+  harness, provider, endpoint, key, model id, reasoning and extra arguments, with nothing
+  inherited from anything. The list lives in `ui.config.json` and travels in git, **Global
+  default** first and undeletable; each row's API key is this computer's, one line in
+  `docs/kanban/.env` named after that row's id. `akb agent`, `agent runtime add|rename|delete`,
+  `agent set --runtime`, `agent bind` and `agent use` are the whole of it: "Which runtime each
+  agent runs on" in `web/content/docs/runs.mdx`.
+- An agent naming no runtime runs **Global default**. Renaming a row moves nothing — the id
+  keys the key line, the agents' picks and every run recorded — and deleting one puts the
+  agents that named it back on **Global default**.
 - A run that stops producing any output ends by itself after the board's silence limit —
   10 minutes unless the board says otherwise, and `0` switches it off — whatever agent it
   runs on. It ends as a failure, so the card keeps its work and Resume picks it up:
@@ -185,7 +198,7 @@ covers it, or a plain-words note.
   again: `web/content/docs/agents.mdx`, `akb guide spec-agent`.
 - The board asks for one itself, so most spec runs are ones nobody typed: the flow writing a
   card asks for the part it would otherwise guess at, a refine or revise asks only when that
-  part is still open, and propose and plan-release ask for none.
+  part is still open, and a release plan asks for none.
 - A spec agent can carry settings of its own — what it produces, not only whether it runs —
   chosen in the board UI and saved with the board, so every card that agent runs on gets the
   same answer: "The spec agents" in `kanban-ui/README.md`.
@@ -195,6 +208,18 @@ covers it, or a plain-words note.
   **Rendered screen** (a `.tsx`/`.html` file per option) or **ASCII drawing** (written into
   the card, travelling through git, a much shorter run): "Picking a layout by looking at it"
   in `web/content/docs/agents.mdx`.
+- A spec agent can **remember what it learned about the product** across its runs: `memory:
+  project` in its `AGENT.md` — the only scope, anything else reported as a problem — gives it
+  `docs/kanban/memory/agents/<name>.md`, tracked in git and inlined into every run of that
+  agent. Two hands write it: the flow that hears the user append one line when its section is
+  taken or sent back, and the agent itself curates the file. `ui-design` declares it;
+  `technology-selection` does not. `memory/agents/` is reserved — `akb raw memory-init agents`
+  is refused: "Give an agent memory" in `web/content/docs/agents.mdx`.
+- A marketing board's writer can **call in a `write` agent** rather than be replaced by one:
+  a build or `akb channel` carries the roster of the board's `kind: write` agents and asks for
+  one by name — `akb write <agent> <id> <note>` — which the board starts alone once that run
+  ends. It writes files inside `content/<id>-<slug>/` and never `source.md`, a channel draft
+  or the card, and it has no `--print`: `akb guide write-agent`, on a marketing board.
 - `technology-selection` comes back with one table — two or three candidates, what each is,
   pros and cons — and one line naming the pick. Keeping what the project already uses and
   writing it yourself are rows on the same terms, and every name is looked up before it is
@@ -308,11 +333,26 @@ covers it, or a plain-words note.
 - A board says what its work IS in one `- **Solution**` line in its own `config.md` — `product`
   (a board with no line, which is every board made before this) or `marketing`. The solution
   picks the flow text `akb guide` and every `--print` hand over: `marketing` replaces `board`,
-  `writing` and `implement` and inherits the rest. `akb install --solution marketing` scaffolds
-  that layout — `content/`, `skills/`, `rules/`, and a memory set of `decisions.md`,
+  `writing`, `implement`, `add-task`, `extract-ideas` and `prune-memory`, adds `channel` and
+  `write-agent`, drops `resolve`, `plan-release`, `changelog`, `qa-loop`, `qa-lightweight` and
+  `releases`, and inherits the rest. Four flows are refused there outright: `akb card refine`,
+  `akb card resolve`, `akb release plan` and `akb release changelog` — off the local UI's action
+  set and off the marketing planner's list too, and never scheduled or followed up with, so
+  `ready` is a stage its cards never reach and `--status ready` is refused as well.
+  `akb install --solution marketing` scaffolds that layout — `content/`, `skills/`, `rules/`, and a memory set of `decisions.md`,
   `rejected.md`, `writing.md` and `published.md`, with no goal, redesign, readme, releases or
   setup checklist — and a build on it writes `content/<id>-<slug>/source.md` in the repo with no
   worktree, branch, review or landing.
+- A marketing card is a **title, its channels and its draft** and nothing else (#435). It carries
+  no `priority`, `roi`, `release` or `questions` — `serializeFrontmatter` leaves all four off on
+  that solution, so every move that rewrites a card leaves them off, and `unpackBoard` writes the
+  fields the payload's own `config.md` names rather than this process's board. `akb raw create`
+  writes no body scaffold and raises no "has no todos" warning there; `akb raw validate` asks for
+  neither the four fields nor the sections, halves, order or `## Todo` checkboxes on a card under
+  `todo/`, so an empty body passes — a card under `todo/recurring/` keeps every rule, and the H1,
+  fence, comment, duplicate-section and `<Mockup>` checks hold on both. `--priority`, `--roi`,
+  `--release`, `--question` and `akb raw update-questions` are refused. The brief is the few lines
+  at the top of `content/<id>-<slug>/source.md`, which `implement` expands in place.
 - A marketing card names the **channels** it goes to in `channels:`, lead channel first — the
   four are `x`, `linkedin` and `reddit` in English and `xiaohongshu` in Chinese, and a channel
   is that name and language and nothing else. `akb raw update <id> --channels <names>` chooses
@@ -329,3 +369,56 @@ covers it, or a plain-words note.
   off drops what is queued and forgets the install id, and `status` prints that id while
   reporting is on. A settings file that exists but cannot be read stops reporting and refuses
   every write until it is fixed.
+- A build can carry no card at all: the sentence sent from **Build now** is the delivery's
+  approved requirements, its title and its prompt. It works in `.akb/worktrees/delivery/<id>`
+  on `delivery/<id>`, runs with AI review and diff approval off, holds and archives no card,
+  and reports nothing to Cloud. `akb delivery review|conflict|cancel` take the delivery
+  itself, and `akb raw run-blocker` takes no id on one. `akb guide implement` says what such
+  a build does and does not leave behind.
+- `akb propose` is gone, and typing it now answers "unknown command". Finding new work is one
+  path: idea extraction from a source you name, and with none named it reads the **Planning
+  sources** in `docs/kanban/config.md`. "What are we missing?" still asks for it:
+  `web/content/docs/daily-loop.mdx`.
+- The project goal is optional: setup no longer stops for it. Skipping it in the first run
+  ticks the `goal` step and leaves `docs/kanban/memory/goal.md` empty, and setup runs to the
+  end — `decisions`, `modules` and `tasks` read the repository (README, package files, the
+  tree). A repository with nothing to read finishes setup with no seed card at all, leaving
+  an empty board. `akb guide setup` says it step by step.
+- The ready gate can start a build without you: `readyGate` in `ui.config.json`, off unless
+  turned on. With it on, a card whose plan settles — `todo` → `ready`, and only that move —
+  gets one `card gate <id>` run, which judges it by `akb guide gate` and either changes
+  nothing (the board then opens the delivery, on the board's own delivery settings) or
+  appends one `[user]` question, which takes the card back to `todo`. It takes one card per
+  round in `akb guide next-card`'s order and never a blocked, recurring, group-root, in-flight
+  or already-ready card; a gate run that fails or is stopped changes nothing. It is a planner
+  flow, so it runs whatever runtime the planner is bound to.
+- The decider answers a card's `[user]` questions for you: `decider` in `ui.config.json`, off
+  unless turned on. It is a fourth role — the only switchable one — running one flow,
+  `card decide <id>`, by `akb guide decide`: it chooses from `memory/goal.md`, the card's
+  modules' `decisions.md` and each question's own recommendation, applies its answers the way
+  `resolve` does, and records each choice in the card's `decided:` list. It writes no lasting
+  decision anywhere. Two triggers and no scan: QA converging with only `[user]` questions left,
+  and the run that leaves a delivery `stopped` or `held` on them. It passes a delivery's hold
+  the way `resolve` does and joins no delivery, so `answeredReview` at its own close hands the
+  delivery on. No round cap, nothing re-runs after a failure, and switching it off puts every
+  card still carrying questions back to waiting on the user. `akb raw update-decided` writes
+  the record; `akb card decide <id>` typed by hand runs whether or not the switch is on.
+- The agent picker no longer lists DSH or Grok Build as lacking early-crash resume: both save
+  the session as it opens, so a run that dies in its first seconds resumes under the id the
+  board already recorded. ZCode still shows the gap — it names a session that early too, but
+  keeps it in the running command until the first prompt, so an early crash loses it. The
+  support grid is in `web/content/docs/connectors.mdx`.
+- A **Build now** run writes its own card before it builds: `akb guide implement`'s "A build
+  that writes its own card" is the shape — `raw create` with a generated title and the release
+  the prompt names, the typed sentence as a fenced summary, the rest of the scaffold left
+  alone, then the ordinary carded build. `adoptDirectCard` gives the run and its card-less
+  delivery that id as the create lands, resting the card at `ready` and taking it to
+  `implementing`; review and diff approval stay frozen off, because they were settled before
+  any card existed. A run that ends before the create still leaves a card-less delivery, which
+  is why every "a build with no card" path is still there.
+- A **Build now** can be handed a plan instead of a sentence: `akb raw plan ask` now names three
+  answers, and `akb guide implement`'s "A build that writes its own card" reads a plan's path as
+  the requirement — the plan's own title, the plan's whole text as the fenced summary, and
+  `## Source` naming that path as the card's last section. The delivery is titled and bounded by
+  the file as the run is written down, so a plan with nothing in it is refused; a resume that
+  never reached the card is given that frozen copy in full rather than a quoted sentence.

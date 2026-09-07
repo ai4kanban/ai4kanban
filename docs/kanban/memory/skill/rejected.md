@@ -25,6 +25,11 @@ before proposing so you don't re-suggest them.
 - **Calling spec agents when a card is written** — a card written from a one-line ask has no
   spec to fill in yet, and a second place to call them means two flows to keep in step.
   Refine asks; add-task doesn't.
+- **An image input for the ZCode harness** — `session/send` does take `attachments`, but
+  every GLM model in ZCode's own config declares text-only input, so its runtime drops the
+  picture before the provider call and says so in the answer. The provider agrees: asked
+  straight, GLM-5.3 answers "Blue" for a green square. Declaring the input would swap an
+  honest gap on the agent page for a paste that is accepted and silently thrown away.
 
 ## Chat
 
@@ -61,6 +66,10 @@ before proposing so you don't re-suggest them.
   backwards, and the weaker half: "start this first" is a guess about order, "don't start
   this yet" is a fact. Where a chain matters we make it a group task.
 - **Grouping the cards a release plan writes** — a release is already the group.
+- **`propose`, a flow that finds new work from the board alone** — retired. Guessing what to
+  build from memory and the goal made cards nobody could trace back to anything. Finding new
+  work is idea extraction only: it reads a real source, and with none named that source is
+  the **Planning sources** in `config.md`.
 - **Changing a card's spec by hand instead of asking a flow to rewrite it** — hand edits
   have no flow behind them and the next refine rewrites them anyway.
 - **A card carrying its own acceptance check, run before the card closes** — review already

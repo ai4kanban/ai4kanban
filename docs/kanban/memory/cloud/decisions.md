@@ -35,6 +35,9 @@ Internal detail stays on the card.
 - Being added to a workspace is not an admission. A teammate an owner adds must already be
   admitted in their own right, so an owner's invitation makes an admitted account a member
   and nothing more; everyone else presses **Request an invite** and waits for us.
+- **A feature planned for paying users opens to admitted accounts first**: the market
+  signal inbox is gated on a signed-in admitted account rather than held back, and its
+  gate becomes payment when pricing lands.
 
 ## Where Cloud runs
 
@@ -89,6 +92,9 @@ Internal detail stays on the card.
   machine, so they follow the member to every machine they open the board on. A member an
   owner adds starts with the switch on, watching the workspace's newest open release, so
   routing works the day a team is formed.
+- Moving the watched scope tells only the member who moved it: their own connected chats get
+  one summary of what the wider scope brought in, and no other member's chat is written to.
+  Everyone else's bell fills quietly.
 - Pressing Implement in a Slack or Lark message records the decision in Cloud on the spot,
   from a phone included. It does not open the app and does not need the machine awake — the
   board's server picks it up when next reachable.
