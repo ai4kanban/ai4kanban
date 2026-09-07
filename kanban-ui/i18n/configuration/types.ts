@@ -152,8 +152,9 @@ export type ConfigurationCopy = {
     /** The page under the grid. */
     /** What this agent runs (#467): one runtime, which carries its harness and its model. */
     runtime: string;
-    /** The list's first entry — an agent that named none runs Global default. */
-    boardDefault: (runtime: string) => string;
+    /** The right-end note on the list's first entry — an agent that named none runs
+     *  Global default. Every other row notes its model id there. */
+    boardsOwn: string;
     /** Under the row: where the pick lands, and where a runtime is set up. */
     runtimeBlurb: string;
     /** The runtime the board holds for this agent is one it no longer has. */

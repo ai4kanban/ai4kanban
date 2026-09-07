@@ -116,7 +116,7 @@ const en: ConfigurationCopy = {
     flipFailedOff: (agent) => `couldn't switch ${agent} off`,
 
     runtime: "Runtime",
-    boardDefault: (runtime) => `${runtime} (first on the list)`,
+    boardsOwn: "the board's",
     runtimeBlurb:
       "The pick travels with the repository. Set a runtime up — its endpoint, key and model — in Configuration → Runtimes.",
     unknownHarness: (runtime) => `Set to "${runtime}", which this board no longer has.`,

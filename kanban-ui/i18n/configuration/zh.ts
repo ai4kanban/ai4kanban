@@ -218,7 +218,7 @@ const zh: ConfigurationCopy = {
     flipFailedOff: (agent) => `未能暂停 ${agent}`,
 
     runtime: "运行时",
-    boardDefault: (runtime) => `${runtime}（列表第一行）`,
+    boardsOwn: "看板的",
     runtimeBlurb: "选择跟着仓库走。运行时本身——端点、密钥、模型——在「配置 → 运行时」里设置。",
     unknownHarness: (runtime) => `设成了「${runtime}」，这个看板已经没有这一行了。`,
     harnessFailed: (agent) => `未能保存 ${agent} 用什么跑`,

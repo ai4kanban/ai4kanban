@@ -115,24 +115,35 @@ const SelectLabel = React.forwardRef<
 SelectLabel.displayName = SelectPrimitive.Label.displayName;
 
 // `hint` is a second line under the entry — what a release is for, under its
-// version id (#164). It sits outside ItemText on purpose: only ItemText is
-// echoed into the closed trigger, so the hint stays in the open list where there
-// is room for it, and the trigger keeps saying just the one thing it has to.
+// version id (#164). `note` is the same idea on the entry's right end, before the
+// check — the row's own aside, like a runtime's model id (#469). Both sit outside
+// ItemText on purpose: only ItemText is echoed into the closed trigger, so they
+// stay in the open list where there is room, and the trigger keeps saying just the
+// one thing it has to.
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & { hint?: React.ReactNode }
->(({ className, children, hint, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
+    hint?: React.ReactNode;
+    note?: React.ReactNode;
+  }
+>(({ className, children, hint, note, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
       "relative flex w-full cursor-pointer select-none rounded-[7px] py-1.5 pl-2.5 pr-8 text-[13px] font-[600] text-nb-ink outline-none data-[highlighted]:bg-nb-wash data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       hint ? "flex-col items-start gap-0.5" : "items-center",
+      note ? "gap-3" : "",
       className,
     )}
     {...props}
   >
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
     {hint}
+    {note && (
+      <span className="ml-auto shrink-0 truncate text-[10.5px] font-[400] text-nb-ink-soft">
+        {note}
+      </span>
+    )}
     {/* No `top`: the check falls at its static position, which the row layout
         centres and the hint's column layout puts beside the first line. */}
     <span className="absolute right-2.5 flex items-center text-nb-accent-deep">

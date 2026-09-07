@@ -278,6 +278,18 @@ describe('writing the list', () => {
     assert.equal(held().agentRuntime, undefined)
     assert.equal(agentRun('builder').runtime, 'global')
   })
+
+  // A picker lists Global default as a row, so it hands its id back rather than an empty
+  // string. Both spellings have to drop the pick, or the row an agent already runs would be
+  // written down as a pick of its own and counted against Global default.
+  it('drops a pick handed Global default’s own id', () => {
+    const { id } = addRuntime('Cheap', 'codex')
+    setAgentRuntime('builder', id!)
+    assert.equal(setAgentRuntime('builder', 'global').ok, true)
+    assert.equal(held().agentRuntime, undefined)
+    assert.equal(agentRun('builder').runtime, 'global')
+    assert.equal(agentInfo().runtimes.find((r) => r.id === 'global')?.agents, 0)
+  })
 })
 
 describe('the raw arguments', () => {

@@ -734,8 +734,8 @@ function Page({
         </p>
       )}
 
-      {/* What this agent runs (#443): the connector, from the board's file, then the model
-          settings under it, from this computer's. Above the box that trains it — it is the
+      {/* What this agent runs (#469): one runtime, from the board's file, which already says
+          the harness, the endpoint and the model. Above the box that trains it — it is the
           first thing about an agent you set, and the last thing you change.
 
           Absent on rules older than the release that added it: the row is left out rather
@@ -850,17 +850,17 @@ function Page({
   );
 }
 
-// --- what one agent runs (#443) ----------------------------------------------
+// --- what one agent runs (#443, #469) -----------------------------------------
 
-// One line: the connector, then the settings that pick a model on it. The connector is the
-// BOARD's — every checkout runs this agent on the same tool — and the model is this
-// computer's, because a model id is worth nothing on a machine whose CLI never logged into
-// that provider.
+// One control: the runtime this agent runs, which is the BOARD's — every checkout runs the
+// agent on the same thing. The row carries its harness and its model with it, so nothing
+// here repeats them and there is no second field to fill in.
 //
-// Which settings appear is the connector's own answer, so a connector that takes a reasoning
-// level draws one and a connector that doesn't draws nothing. An agent that picked no
-// connector reads as the board's default, which is the list's first entry rather than a
-// blank.
+// The list is the message box's (#272): every runtime once, Global default first, the pick
+// ticked in place, and a right-end note per row — its model id, or "the board's" on Global
+// default. Picking that first row is how an agent goes back to having no pick of its own.
+// Install state is left off: a pick travels with the repository, so one computer's PATH is
+// not the board's answer.
 function RunRow({
   agent,
   info,
@@ -874,22 +874,16 @@ function RunRow({
 }) {
   const c = useCopy().configuration.agents;
   const nameOf = useRuntimeName();
-  // Radix refuses an empty-string item value, so "Global default" wears a stand-in inside the
-  // select and is mapped back to "" on the way out.
-  const NONE = "—board—";
-  const first = info.runtimes[0];
-  const boardLabel = first ? nameOf(first) : "";
   const moving = busy("runtime");
   const picked = info.runtimes.find((r) => r.id === agent.runs.runtime);
 
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={agent.runs.own ? agent.runs.runtime : NONE}
-          disabled={moving}
-          onValueChange={(v) => onRuntime(v === NONE ? "" : v)}
-        >
+        {/* `runs.runtime` is already the runtime in effect — Global default for an agent that
+            named none — and handing that first row back drops the agent's own pick, so the
+            list is drawn once with nothing mapped in or out. */}
+        <Select value={agent.runs.runtime} disabled={moving} onValueChange={onRuntime}>
           <SelectTrigger
             aria-label={c.runtime}
             className={`${FLAT_CONTROL} h-[34px] w-[190px] shrink-0 disabled:cursor-wait`}
@@ -897,9 +891,12 @@ function RunRow({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>{c.boardDefault(boardLabel)}</SelectItem>
             {info.runtimes.map((row) => (
-              <SelectItem key={row.id} value={row.id}>
+              <SelectItem
+                key={row.id}
+                value={row.id}
+                note={row.fixed ? c.boardsOwn : row.model}
+              >
                 <span className="flex items-center gap-1.5">
                   <AgentMark src={row.icon} size={13} />
                   {nameOf(row)}
