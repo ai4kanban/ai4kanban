@@ -63,3 +63,56 @@ export function writePruneMemoryCard() {
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + pruneBody())
   return { id, file }
 }
+
+// ---- the market signal pull (#453) -----------------------------------------
+
+const SIGNALS_SLUG = 'fetch-market-signals'
+const SIGNALS_TITLE = 'Fetch market signals'
+
+function signalsBody() {
+  return boardText(`Pull the market signals the board is pointed at into
+\`docs/kanban/triage/inbox/\`. Set a cadence to have it run on its own; without one it runs
+only when you run it. Delete this card if you don't want the job — nothing puts it back.
+
+## Run state
+None.
+
+## Process
+1. Run \`akb signals fetch\`.
+`)
+}
+
+/**
+ * Seed the "Fetch market signals" card, the first time a pull lands.
+ *
+ * Not part of `init`'s scaffold: the inbox itself is made by the first fetch, and a board
+ * that never pulls a signal should carry neither the folder nor a card about it. The caller
+ * only asks on the pull that MAKES the inbox, so deleting the card sticks — that is how a
+ * board says it doesn't want the job.
+ *
+ * It ships with no cadence, so nothing runs on its own until someone sets one — the same
+ * bargain "Prune the memory" makes.
+ *
+ * Returns `{ id, file }`, or `null` when the folder already holds one.
+ */
+export function writeSignalsFetchCard() {
+  const dir = path.join(TODO, RECURRING)
+  fs.mkdirSync(dir, { recursive: true })
+  if (fs.readdirSync(dir).some((name) => name.endsWith(`-${SIGNALS_SLUG}.md`))) return null
+  const id = readNextId()
+  writeNextId(id + 1)
+  const file = path.join(dir, `${id}-${SIGNALS_SLUG}.md`)
+  const meta = {
+    title: SIGNALS_TITLE,
+    priority: 'med',
+    roi: 'med',
+    status: 'todo',
+    release: '',
+    blocked_by: [],
+    related: [],
+    modules: [],
+    questions: [],
+  }
+  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + signalsBody())
+  return { id, file }
+}

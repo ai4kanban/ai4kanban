@@ -37,11 +37,14 @@ import {
   readScore,
   readSetupDraft,
   readSetupState,
+  readSignals,
   repurposeChannel,
   saveDraft,
   searchCards,
   setChannels,
   setChannelStatus,
+  signalsOpen,
+  dismissSignal,
 } from "@/lib/board";
 import {
   type ChatRead,
@@ -1568,6 +1571,35 @@ export async function installSkillAction(): Promise<SkillInstall> {
       skipped: [],
       state: UNKNOWN_SKILL,
     };
+  }
+}
+
+// --- the market signals waiting to be looked at (#453) -----------------------
+// The rail asks for the row once when a window opens and again when the window is looked at
+// again — never on the board's poll, because whether the inbox is open reaches Cloud. The
+// page itself is a server page and reads the inbox directly.
+
+/** Whether to offer the rail row at all, and the count it carries. A board that may not use
+ *  the inbox answers `false`, and the row is simply not there. */
+export async function signalsRowAction(): Promise<{ show: boolean; count: number }> {
+  const access = await signalsOpen();
+  if (!access.open) return { show: false, count: 0 };
+  try {
+    return { show: true, count: (await readSignals()).signals.length };
+  } catch {
+    return { show: false, count: 0 };
+  }
+}
+
+/** Ignore one signal for good. There is no undo — the page says so before it is pressed. */
+export async function dismissSignalAction(sourceId: string): Promise<{ ok: boolean; error?: string }> {
+  if (typeof sourceId !== "string" || !sourceId) {
+    return { ok: false, error: (await machineCopy()).rail.signals.dismissFailed };
+  }
+  try {
+    return await dismissSignal(sourceId);
+  } catch {
+    return { ok: false, error: (await machineCopy()).rail.signals.dismissFailed };
   }
 }
 

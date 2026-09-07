@@ -36,6 +36,23 @@ const zh: RailCopy = {
     undated: "在看板开始记录归档日期之前完成",
     card: { label: "归档", release: "版本", archived: "归档于" },
   },
+  signals: {
+    row: "市场信号",
+    title: "市场信号",
+    meta: (folder, count) => `${folder} · ${count} 条信号`,
+    latestImport: (when) => `最新信号导入时间 ${when}`,
+    lead: "这些是线索，不是任务。它们不排期、不计数，忽略掉的也不会再回来。",
+    empty: "暂无信号。下一次 akb signals fetch 会填满这一页。",
+    connect: "连接信号来源",
+    needEndpoint: (file) => `缺少 Signal endpoint——在 ${file} 里填写。`,
+    needToken: (file) => `缺少 SIGNAL_ENDPOINT_TOKEN——在 ${file} 里填写。`,
+    list: "市场信号",
+    viewSummary: "查看摘要",
+    hideSummary: "收起摘要",
+    viewOriginal: "查看原帖",
+    dismiss: "忽略",
+    dismissFailed: "这条信号忽略失败",
+  },
   memoryPage: {
     unwritten:
       "这里还没有写下任何内容。每当有工作完成、有决策定下、有想法被否决，Agent 都会补上一行——这个文件会随着看板的使用逐渐充实。",

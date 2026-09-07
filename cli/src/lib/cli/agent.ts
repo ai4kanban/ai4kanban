@@ -45,6 +45,7 @@ import {
   cmdStop,
   cmdWatch,
 } from '../../commands/run'
+import { cmdSignalsFetch } from '../../commands/signals'
 import { cmdSpec } from '../../commands/spec'
 import { cmdWrite } from '../../commands/write'
 import { cmdTelemetry } from '../../commands/telemetry'
@@ -258,6 +259,29 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   // ---- the agent that runs them ---------------------------------------------
 
   declareAgent(program, cli)
+
+  // ---- the market signals waiting to be looked at (#453) --------------------
+
+  const signals = noun(
+    'signals',
+    'the market signals waiting to be looked at',
+    'A signal is a lead, not a task: it never enters the card list, is never scheduled, and ' +
+      'counts towards nothing. The inbox is `docs/kanban/triage/inbox/`, one file per signal, ' +
+      'and the board UI is where they are read and ignored.',
+  )
+
+  withShared(signals.command('fetch'))
+    .summary('pull the signals the board is pointed at into the inbox')
+    .description(
+      'Reads the endpoint from `- **Signal endpoint** — <url>` in the board’s `config.md` and its ' +
+        'token from `SIGNAL_ENDPOINT_TOKEN` in `docs/kanban/.env`, and takes everything that comes ' +
+        'back. A signal already in the inbox, or already ignored, is skipped; one missing a required ' +
+        'field is counted and explained. A request that fails writes nothing at all. Free to invited ' +
+        'Cloud accounts on an Engineering board, for now.',
+    )
+    .action(async function (this: Command) {
+      await onBoard(this, cli, () => cmdSignalsFetch())
+    })
 
   // ---- Cloud ----------------------------------------------------------------
 

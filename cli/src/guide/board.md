@@ -26,6 +26,11 @@ docs/kanban/
 │                   agent. It is appended to the end of every run that agent does, so every
 │                   flow it runs reads it. Tracked in git; a missing or empty file means the
 │                   run goes unchanged. Written from the board UI or `akb raw rule`
+├── triage/         market signals waiting to be looked at (#453) — `inbox/` holds one file
+│                   per signal, `handled.md` the source ids that have left it. A signal is a
+│                   LEAD, not a card: never scheduled, never counted, and never turned into
+│                   a card by anything but the flow that does that. Made by the first
+│                   `akb signals fetch`; a board that pulls none has no folder
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user
 ├── releases.md     the open releases, in the order they ship — one line each

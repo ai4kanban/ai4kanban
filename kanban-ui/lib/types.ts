@@ -114,6 +114,10 @@ export type {
   // The board's own name for a checklist box; `SetupStepView` there only because the
   // writing side already had a `SetupStep` of its own.
   SetupStepView as SetupStep,
+  Signal,
+  SignalConfigGap,
+  SignalInbox,
+  SignalsAccess,
   Solution,
   Subtask,
   VerifyResult,

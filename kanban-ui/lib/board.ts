@@ -22,6 +22,8 @@ import type {
   ScreenBoard,
   SetupDraft,
   SetupState,
+  SignalInbox,
+  SignalsAccess,
   Solution,
 } from "./types";
 
@@ -349,6 +351,49 @@ export async function readArchivedCard(id: number): Promise<ArchivedCardFile | n
     throw new NoRulesError(c.tooOldForArchive, c.updateIt);
   }
   return rules.readArchivedCard(id);
+}
+
+// --- the market signals waiting to be looked at (#453) -----------------------
+// A signal is a lead, not a card: nothing here reaches the card list, and pulling is
+// `akb signals fetch` alone — the UI reads the inbox and ignores a signal, and does no
+// pulling of its own.
+//
+// A board whose rules predate them answers "closed" rather than throwing: the whole feature
+// is one rail row, and a row that isn't there is the same answer a Marketing board gets.
+
+/** Whether this board and this account may use the inbox at all. Reaches Cloud, so it is
+ *  asked once when a window opens rather than on the board's poll. */
+export async function signalsOpen(): Promise<SignalsAccess> {
+  try {
+    const rules = await boardRules();
+    if (!rules.signalsAccess) return { open: false, why: (await machineCopy()).messages.rules.tooOldForSignals };
+    return await rules.signalsAccess();
+  } catch (e) {
+    return { open: false, why: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** What the inbox holds, and what is still to be filled in before it can hold more. */
+export async function readSignals(): Promise<SignalInbox> {
+  const rules = await boardRules();
+  if (!rules.readSignals) {
+    const c = (await machineCopy()).messages.rules;
+    throw new NoRulesError(c.tooOldForSignals, c.updateIt);
+  }
+  return rules.readSignals();
+}
+
+/** Ignore one signal for good — its file goes, and no later pull brings it back.
+ *
+ *  A refusal is answered in the page's own copy, not the rules'. The rules say why in
+ *  English — the id is not in the inbox, the file would not go — and none of that is a
+ *  reader's to act on, so what the page shows is the one line it has in both languages. */
+export async function dismissSignal(sourceId: string): Promise<{ ok: boolean; error?: string }> {
+  const c = await machineCopy();
+  const rules = await boardRules();
+  if (!rules.dismissSignal) return { ok: false, error: c.messages.rules.tooOldForSignals };
+  const done = rules.dismissSignal(sourceId);
+  return done.ok ? done : { ok: false, error: c.rail.signals.dismissFailed };
 }
 
 // --- a marketing card's drafts and its channels (#411) -----------------------

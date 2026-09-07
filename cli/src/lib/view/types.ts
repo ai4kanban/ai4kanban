@@ -779,3 +779,50 @@ export interface ScoreView {
 /** What one score read gives back. Kept apart from the metrics result for the same reason
  *  it is there: a failure must not fall through to the "no evidence yet" note. */
 export type ScoreResult = { ok: true; view: ScoreView } | { ok: false; error: string }
+
+// ---- the market signals waiting to be looked at (#453) ---------------------
+
+/** One signal in the inbox — a lead somebody may turn into a card, and not a card. */
+export interface Signal {
+  /** The id the source platform gave it. Its identity: two pulls of the same post carry
+   *  the same one, and that is what the inbox and `handled.md` are keyed on. */
+  sourceId: string
+  title: string
+  /** The post's own words, as the endpoint sent them. */
+  summary: string
+  /** Which platform it came from — free text, so any endpoint can be connected. */
+  platform: string
+  /** The post itself. */
+  url: string
+  /** When the data platform collected it, `YYYY-MM-DD HH:MM` local. What the list sorts on. */
+  collectedAt: string
+  /** When this board wrote it into the inbox, same form. */
+  importedAt: string
+  /** The path from the repo root, forward slashes. */
+  relPath: string
+}
+
+/** A setting a fetch needs and the board hasn't got, and the file it is filled in. */
+export interface SignalConfigGap {
+  what: 'endpoint' | 'token'
+  /** The file to fill it in, from the repo root. */
+  file: string
+}
+
+/** What the inbox holds. */
+export interface SignalInbox {
+  /** The folder, from the repo root — what the heading names. */
+  relPath: string
+  /** Every signal in it, newest collected first. */
+  signals: Signal[]
+  /** The newest import stamp among them, or empty when the inbox is. Read off the signals,
+   *  so dismissing the newest one moves it back rather than forward. */
+  latestImport: string
+  /** What is still to be filled in before a fetch can run. Empty when both are set. */
+  missing: SignalConfigGap[]
+}
+
+/** Whether the inbox is open to this board and this account at all. Closed carries the one
+ *  sentence a person is told — Marketing boards and un-admitted accounts are not in the
+ *  preview, and the rail simply leaves the row out for both. */
+export type SignalsAccess = { open: true } | { open: false; why: string }
