@@ -1,6 +1,6 @@
-// A D1 and a limiter the tests can hold. The database is a real SQLite with the real
-// migration applied, so every statement the Worker runs is checked as SQL and not as a
-// string somebody once believed in.
+// A D1, a limiter and an archive bucket the tests can hold. The database is a real SQLite
+// with the real migration applied, so every statement the Worker runs is checked as SQL and
+// not as a string somebody once believed in.
 
 import { readFileSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
@@ -53,9 +53,32 @@ export function fakeLimiter() {
   }
 }
 
+/** The archive, as a map of key to file. `held` is what a test reads back and seeds. */
+export function fakeBucket(held = new Map()) {
+  return {
+    held,
+    async put(key, value) {
+      held.set(key, value)
+      return { key, size: value.length }
+    },
+    async list({ prefix = '', limit = 1000, cursor } = {}) {
+      const keys = [...held.keys()]
+        .filter((key) => key.startsWith(prefix) && (cursor === undefined || key > cursor))
+        .sort()
+      const page = keys.slice(0, limit)
+      return {
+        objects: page.map((key) => ({ key, size: held.get(key).length })),
+        truncated: keys.length > limit,
+        cursor: page.at(-1),
+      }
+    },
+  }
+}
+
 export const fakeEnv = (over = {}) => ({
   DB: fakeDatabase(),
   LIMITER: fakeLimiter(),
+  ARCHIVE: fakeBucket(),
   COPY: 'production',
   ...over,
 })

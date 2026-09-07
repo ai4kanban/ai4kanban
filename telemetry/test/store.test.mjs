@@ -137,15 +137,15 @@ describe("a day's summary", () => {
 })
 
 describe('what leaves the database', () => {
-  it('sweeps expired events in chunks and leaves the summaries alone', async () => {
+  it('sweeps one day in chunks and leaves the other days and the summaries alone', async () => {
     const db = fakeDatabase()
     await put(db, A, '2026-06-01', [open('old1', '2026-06-01'), open('old2', '2026-06-01')])
     await put(db, A, TODAY, [open('new1', TODAY)])
     await write(db, '2026-06-01', { installs: 1 }, true)
 
-    const swept = await db.prepare(SWEEP).bind('2026-06-07', 1).run()
+    const swept = await db.prepare(SWEEP).bind('2026-06-01', 1).run()
     assert.equal(swept.meta.changes, 1)
-    await db.prepare(SWEEP).bind('2026-06-07', 100).run()
+    await db.prepare(SWEEP).bind('2026-06-01', 100).run()
 
     assert.deepEqual(rows(db, 'SELECT event_id FROM events').map((r) => r.event_id), ['new1'])
     assert.equal(rows(db, 'SELECT COUNT(*) AS n FROM daily')[0].n, 1)

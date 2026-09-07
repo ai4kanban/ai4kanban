@@ -24,8 +24,11 @@ describe('the deployed shape', () => {
     assert.ok(!config.includes('workers.dev"'))
   })
 
-  it('names the databases and the dataset the commands read', () => {
-    for (const copy of Object.values(COPIES)) assert.ok(config.includes(copy.database), copy.database)
+  it('names the databases, the archive buckets and the dataset the commands read', () => {
+    for (const copy of Object.values(COPIES)) {
+      assert.ok(config.includes(`"database_name": "${copy.database}"`), copy.database)
+      assert.ok(config.includes(`"bucket_name": "${copy.bucket}"`), copy.bucket)
+    }
     assert.ok(config.includes(DATASET))
   })
 

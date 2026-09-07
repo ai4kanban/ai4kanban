@@ -36,6 +36,10 @@ export const LIMITS = {
   appBatchesPerDay: 1,
   /** How long a raw event is kept. #293's privacy page states the same number. */
   retentionDays: 90,
+  /** The first day the archive holds — the day #489 published the archive and its indefinite
+   *  limit on #293's privacy page. A day before it was taken under wording that promised
+   *  deletion, so the sweep takes it unwritten. */
+  archiveFrom: '2026-09-08',
 } as const
 
 /**

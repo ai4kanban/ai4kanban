@@ -28,6 +28,10 @@
     }
   ],
 
+  // One file a day of raw events, written out before the sweep deletes them and kept
+  // indefinitely. Created by `wrangler r2 bucket create` — see README.md.
+  "r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "ai4kanban-telemetry-archive" }],
+
   // The per-address hourly limit. It holds a number in memory and never calls storage, so
   // nothing about an address outlives the hour.
   "durable_objects": { "bindings": [{ "name": "LIMITER", "class_name": "AddressHour" }] },
@@ -60,6 +64,7 @@
           "migrations_dir": "migrations"
         }
       ],
+      "r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "ai4kanban-telemetry-archive-dev" }],
       "durable_objects": { "bindings": [{ "name": "LIMITER", "class_name": "AddressHour" }] },
       "analytics_engine_datasets": [
         { "binding": "USAGE", "dataset": "ai4kanban_telemetry_usage" }

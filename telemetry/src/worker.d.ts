@@ -36,6 +36,26 @@ declare interface D1Database {
   batch<T = Record<string, unknown>>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>
 }
 
+declare interface R2Object {
+  key: string
+  size: number
+}
+
+declare interface R2Objects {
+  objects: R2Object[]
+  truncated: boolean
+  cursor?: string
+}
+
+declare interface R2Bucket {
+  put(
+    key: string,
+    value: string,
+    options?: { httpMetadata?: { contentType?: string } },
+  ): Promise<R2Object>
+  list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<R2Objects>
+}
+
 declare interface DurableObjectStub {
   fetch(input: string, init?: RequestInit): Promise<Response>
 }

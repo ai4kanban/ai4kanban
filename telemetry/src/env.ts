@@ -4,6 +4,8 @@ export interface Env {
   DB: D1Database
   /** The per-address hourly limit. It holds a number in memory and writes nothing. */
   LIMITER: DurableObjectNamespace
+  /** One file a day of raw events, written out before the sweep deletes them. */
+  ARCHIVE: R2Bucket
   /**
    * The day's own requests and rows written. Kept here rather than in D1 because a row per
    * request would spend the whole day's allowance measuring itself; the daily job reads a

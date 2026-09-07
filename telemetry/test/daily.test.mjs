@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { LIMITS } from '../contract.ts'
+import { keyOf, linesOf } from '../src/archive.ts'
 import { runDaily, wanted } from '../src/daily.ts'
 import { store } from '../src/store.ts'
 import { take } from '../src/take.ts'
@@ -168,11 +169,100 @@ describe('the daily run', () => {
   })
 })
 
-async function put(env, day, id) {
-  const taken = take(
-    { v: 1, install: A, events: [{ id, name: 'app_day', day, surface: 'app', version: '0.8.1' }] },
-    day,
-    () => id,
-  )
+// Far enough on that the archive's own first days have reached the retention edge: the run
+// writes 2026-09-08 to 2026-09-10 out and may then sweep them.
+const AFTER = new Date('2026-12-10T23:45:00Z')
+const EDGE = '2026-09-11'
+const FIRST = LIMITS.archiveFrom
+
+describe('the archive, ahead of the sweep', () => {
+  it('writes every expiring day out, quiet ones as an empty file, then sweeps them', async () => {
+    const env = fakeEnv()
+    const open = { name: 'app_open', surface: 'app', version: '0.8.1', os: 'darwin', first_run: true }
+    await put(env, FIRST, 'a1', open)
+    await put(env, shift(FIRST, 2), 'a2')
+
+    const run = await runDaily(env, AFTER)
+    assert.deepEqual(run.archived, [FIRST, shift(FIRST, 1), shift(FIRST, 2)])
+    assert.equal(run.archivedRows, 2)
+    assert.equal(run.held, 0)
+    assert.equal(run.swept, 2)
+
+    const [row] = linesOf(env.ARCHIVE.held.get(keyOf(FIRST))).map((line) => JSON.parse(line))
+    assert.equal(row.install_id, A)
+    assert.equal(row.day, FIRST)
+    // The fields come back as an object, not as the JSON string the column holds.
+    assert.deepEqual(row.fields, { os: 'darwin', first_run: true })
+    // A day the service saw nothing on still gets its file, so absence means unwritten.
+    assert.equal(env.ARCHIVE.held.get(keyOf(shift(FIRST, 1))), '')
+
+    const left = env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM events WHERE day < ?').get(EDGE)
+    assert.equal(left.n, 0)
+  })
+
+  it('leaves a day whose write failed in the database, and the days behind it', async () => {
+    const env = fakeEnv()
+    await put(env, FIRST, 'a1')
+    await put(env, shift(FIRST, 2), 'a2')
+    const real = env.ARCHIVE.put.bind(env.ARCHIVE)
+    env.ARCHIVE.put = async (key, value, options) => {
+      if (key === keyOf(shift(FIRST, 1))) throw new Error('no bucket')
+      return real(key, value, options)
+    }
+
+    const run = await runDaily(env, AFTER)
+    assert.deepEqual(run.archived, [FIRST])
+    // The archived day goes; the one behind the failure stays where it is.
+    assert.equal(run.swept, 1)
+    assert.equal(run.held, 1)
+    const left = env.DB.sqlite
+      .prepare('SELECT day FROM events WHERE day < ? ORDER BY day')
+      .all(EDGE)
+    assert.deepEqual(left.map((row) => row.day), [shift(FIRST, 2)])
+  })
+
+  it('sweeps a day from before the archive starts without writing it out', async () => {
+    const env = fakeEnv()
+    await put(env, shift(FIRST, -30), 'old')
+
+    const run = await runDaily(env, AFTER)
+    assert.equal(run.swept, 1)
+    assert.equal(run.held, 0)
+    assert.ok(!env.ARCHIVE.held.has(keyOf(shift(FIRST, -30))))
+  })
+
+  it('never rewrites a file the bucket already holds', async () => {
+    // A run that died between writing the file and finishing the delete. The sweep may still
+    // take what it left behind, but the full file must not be overwritten with it.
+    const whole = '{"install_id":"whole","event_id":"e1"}\n{"install_id":"whole","event_id":"e2"}\n'
+    const env = fakeEnv()
+    env.ARCHIVE.held.set(keyOf(FIRST), whole)
+    await put(env, FIRST, 'a1')
+
+    const run = await runDaily(env, AFTER)
+    assert.ok(!run.archived.includes(FIRST))
+    assert.equal(env.ARCHIVE.held.get(keyOf(FIRST)), whole)
+    assert.equal(run.swept, 1)
+  })
+
+  it('sweeps nothing at all when the archive cannot be reached', async () => {
+    const env = fakeEnv()
+    await put(env, FIRST, 'a1')
+    env.ARCHIVE.list = async () => {
+      throw new Error('no bucket')
+    }
+
+    const run = await runDaily(env, AFTER)
+    assert.deepEqual(run.archived, [])
+    assert.equal(run.swept, 0)
+    assert.equal(run.held, 1)
+    assert.ok(run.summarised.length > 0, 'the summaries are written all the same')
+  })
+})
+
+const APP_DAY = { name: 'app_day', surface: 'app', version: '0.8.1' }
+
+async function put(env, day, id, event = APP_DAY) {
+  const taken = take({ v: 1, install: A, events: [{ id, day, ...event }] }, day, () => id)
   await store(env.DB, taken.install, 'US', taken.rows)
 }

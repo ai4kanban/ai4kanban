@@ -8,16 +8,30 @@ import { fileURLToPath } from 'node:url'
 export const serviceRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
 export const COPIES = {
-  production: { database: 'ai4kanban-telemetry', endpoint: 'https://t.ai4kanban.dev' },
-  development: { database: 'ai4kanban-telemetry-dev', endpoint: 'https://t-dev.ai4kanban.dev' },
+  production: {
+    database: 'ai4kanban-telemetry',
+    bucket: 'ai4kanban-telemetry-archive',
+    endpoint: 'https://t.ai4kanban.dev',
+  },
+  development: {
+    database: 'ai4kanban-telemetry-dev',
+    bucket: 'ai4kanban-telemetry-archive-dev',
+    endpoint: 'https://t-dev.ai4kanban.dev',
+  },
 }
 
 /** `--dev` on any of these commands means the copy our own work posts into. */
 export const copyFrom = (argv) =>
   argv.includes('--dev') ? COPIES.development : COPIES.production
 
-/** Run wrangler with the proxy variables cleared — they break its API calls. */
-export function wrangler(args) {
+/**
+ * Run wrangler with the proxy variables cleared — they break its API calls.
+ *
+ * `absentIf` names the one failure a caller expects — reading an archive file for a day the
+ * bucket has none of. Everything else still throws, so a spent token or an unreachable bucket
+ * is never read as a day that was never written.
+ */
+export function wrangler(args, { absentIf } = {}) {
   const env = { ...process.env }
   for (const name of ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY']) {
     delete env[name]
@@ -30,6 +44,7 @@ export function wrangler(args) {
     maxBuffer: 64 * 1024 * 1024,
   })
   if (run.status !== 0) {
+    if (absentIf?.test(`${run.stderr}${run.stdout}`)) return null
     throw new Error(`wrangler ${args[0]} ${args[1] ?? ''} failed:\n${run.stderr || run.stdout}`)
   }
   return run.stdout

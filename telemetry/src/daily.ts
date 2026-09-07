@@ -2,10 +2,12 @@
  * The one job the service runs on a clock, in the last hour of the UTC day so it spends what
  * the day's allowance has left rather than taking it from the senders first.
  *
- * Two steps today — delete what has expired, then write the summaries — and each stands on
- * its own: a step that fails leaves the rest of the job standing. #400's daily pull of the
- * public GitHub and npm counts is the third, and goes here rather than on a schedule of its
- * own, because a static site cannot run one.
+ * Three steps today — write the expiring days out to the archive, delete what has expired,
+ * then write the summaries — and each stands on its own: a step that fails leaves the rest of
+ * the job standing. The one order that matters is the first two: the sweep may only take a
+ * day the archive already holds. #400's daily pull of the public GitHub and npm counts is the
+ * next step, and goes here rather than on a schedule of its own, because a static site cannot
+ * run one.
  *
  * A run gets fifty queries on the free plan and every D1 query is one of them. So the run
  * keeps a budget, spends it oldest work first, and carries whatever does not fit to the next
@@ -13,6 +15,8 @@
  */
 
 import { LIMITS } from '../contract.ts'
+import { ARCHIVE_PAGE, fileOf, frontier, keyOf } from './archive.ts'
+import type { ArchiveRow } from './archive.ts'
 import type { Env } from './env.ts'
 import { shift } from './take.ts'
 import { SPREAD, TOTALS, WRITE_SUMMARY, numbersOf } from './summary.ts'
@@ -22,22 +26,37 @@ import type { DayUsage } from './usage.ts'
 
 /** Of the free plan's 50 a run, leaving room for the one read the usage gauge costs. */
 const QUERY_BUDGET = 44
+/** Rows one archive read returns. */
+const ARCHIVE_CHUNK = 5_000
+/** The archive's share of the run's queries. Forty thousand rows a day is far more than the
+ *  free plan can store at all, so no day can outgrow one run before the plan itself does. */
+const ARCHIVE_CHUNKS = 8
 /** Rows one delete takes. Small enough that a chunk that fails costs one statement. */
 const SWEEP_CHUNK = 2_500
 const SWEEP_CHUNKS = 10
 /** Spreads, totals, and the write. */
 const QUERIES_PER_DAY = 3
 
+/** The expired days, oldest first — the sweep takes them one at a time. */
+const EXPIRED = 'SELECT day FROM events WHERE day < ?1 GROUP BY day ORDER BY day LIMIT ?2'
+
 export const SWEEP = `
 DELETE FROM events WHERE (install_id, event_id) IN (
-  SELECT install_id, event_id FROM events WHERE day < ?1 LIMIT ?2
+  SELECT install_id, event_id FROM events WHERE day = ?1 LIMIT ?2
 )`
 
 const SUMMARISED = 'SELECT day, settled FROM daily WHERE day >= ?1'
 
 export interface DailyRun {
   day: string
+  /** Days this run wrote out to the archive, oldest first. */
+  archived: string[]
+  /** Event rows those files carry. */
+  archivedRows: number
   swept: number
+  /** Expired days the sweep left where they are, waiting on their archive file. Anything but
+   *  zero for long means the database is growing until the archive is fixed. */
+  held: number
   /** Days whose summary this run wrote. */
   summarised: string[]
   /** Days this run had no budget for. The next run takes them. */
@@ -50,7 +69,10 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
   const today = now.toISOString().slice(0, 10)
   const run: DailyRun = {
     day: today,
+    archived: [],
+    archivedRows: 0,
     swept: 0,
+    held: 0,
     summarised: [],
     carried: 0,
     rowsWritten: 0,
@@ -58,17 +80,42 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
   }
   let left = QUERY_BUDGET
 
-  // The retention sweep. Raw events only: a table beside the summaries that carries no
-  // install id is not this deletion's business.
+  // The archive, ahead of the sweep. A day it could not write stays in `events`, so a missing
+  // bucket or a failing put holds every expired day and the database grows until it is fixed
+  // — the accepted cost of never deleting an unwritten day.
+  let edge: string | null = null
   try {
-    const before = shift(today, -LIMITS.retentionDays)
-    for (let chunk = 0; chunk < SWEEP_CHUNKS && left > 0; chunk += 1) {
-      left -= 1
-      const result = await env.DB.prepare(SWEEP).bind(before, SWEEP_CHUNK).run()
-      run.swept += result.meta.changes
-      run.rowsWritten += result.meta.rows_written
-      run.rowsRead += result.meta.rows_read
-      if (result.meta.changes < SWEEP_CHUNK) break
+    const done = await archiveDays(env, today, Math.min(left, ARCHIVE_CHUNKS), run)
+    left -= done.used
+    edge = done.frontier
+  } catch (error) {
+    console.error('telemetry: archive failed', error)
+  }
+
+  // The retention sweep, one day at a time and oldest first. Raw events only: a table beside
+  // the summaries that carries no install id is not this deletion's business.
+  try {
+    left -= 1
+    const expired = await env.DB.prepare(EXPIRED)
+      .bind(shift(today, -LIMITS.retentionDays), SWEEP_CHUNKS)
+      .all<{ day: string }>()
+    run.rowsRead += expired.meta.rows_read
+    let chunks = 0
+    for (const { day } of expired.results) {
+      if (edge === null || day >= edge) {
+        run.held += 1
+        continue
+      }
+      while (chunks < SWEEP_CHUNKS && left > 0) {
+        chunks += 1
+        left -= 1
+        const result = await env.DB.prepare(SWEEP).bind(day, SWEEP_CHUNK).run()
+        run.swept += result.meta.changes
+        run.rowsWritten += result.meta.rows_written
+        run.rowsRead += result.meta.rows_read
+        if (result.meta.changes < SWEEP_CHUNK) break
+      }
+      if (chunks >= SWEEP_CHUNKS || left <= 0) break
     }
   } catch (error) {
     console.error('telemetry: sweep failed', error)
@@ -83,6 +130,72 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
   spent(env, today, run.rowsWritten, run.rowsRead)
   console.log('telemetry: daily', { ...run, budgetLeft: left })
   return run
+}
+
+/**
+ * Every day whose events the sweep is about to take, written out oldest first.
+ *
+ * A day is taken once, on the run that would otherwise sweep it, so nothing here rewrites a
+ * day that can still take late events. A day the service saw nothing on is written as an
+ * empty file rather than skipped: the frontier moves past it, and every day in the archive's
+ * range then has an answer.
+ */
+async function archiveDays(
+  env: Env,
+  today: string,
+  budget: number,
+  run: DailyRun,
+): Promise<{ used: number; frontier: string }> {
+  const before = shift(today, -LIMITS.retentionDays)
+  let day = await frontier(env.ARCHIVE)
+  let used = 0
+  while (day < before && used < budget) {
+    try {
+      const read = await readDay(env, day, budget - used, run)
+      used += read.used
+      // The day needs more of this run than it has left. It is never put in part: the next
+      // run starts it again, with the whole share to spend.
+      if (read.lines === null) break
+      await env.ARCHIVE.put(keyOf(day), fileOf(read.lines), {
+        httpMetadata: { contentType: 'application/x-ndjson' },
+      })
+      run.archived.push(day)
+      run.archivedRows += read.lines.length
+    } catch (error) {
+      // This day and every expired day behind it stay in `events` until a later run writes
+      // it. The share is called spent: what it cost before failing is not known.
+      console.error('telemetry: archive failed', day, error)
+      used = budget
+      break
+    }
+    day = shift(day, 1)
+  }
+  return { used, frontier: day }
+}
+
+async function readDay(
+  env: Env,
+  day: string,
+  allowed: number,
+  run: DailyRun,
+): Promise<{ used: number; lines: string[] | null }> {
+  const lines: string[] = []
+  let install = ''
+  let event = ''
+  let used = 0
+  for (;;) {
+    if (used >= allowed) return { used, lines: null }
+    used += 1
+    const page = await env.DB.prepare(ARCHIVE_PAGE)
+      .bind(day, install, event, ARCHIVE_CHUNK)
+      .all<ArchiveRow>()
+    run.rowsRead += page.meta.rows_read
+    for (const row of page.results) lines.push(row.line)
+    const last = page.results.at(-1)
+    if (last === undefined || page.results.length < ARCHIVE_CHUNK) return { used, lines }
+    install = last.i
+    event = last.e
+  }
 }
 
 async function summarise(env: Env, today: string, budget: number, run: DailyRun): Promise<number> {
