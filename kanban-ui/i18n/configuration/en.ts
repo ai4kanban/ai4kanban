@@ -8,7 +8,7 @@ const en: ConfigurationCopy = {
   sections: "Configuration sections",
   section: {
     general: "General",
-    runtimes: "Runtime",
+    runtimes: "Runtimes",
     agents: "Agents",
     workspace: "Workspace",
     cloud: "Notifications",
@@ -21,23 +21,43 @@ const en: ConfigurationCopy = {
     language: "Language",
   },
   runtimes: {
-    installed: "Installed",
+    globalDefault: "Global default",
+    signedOut: "Signed out",
     notInstalled: "Not installed",
-    boardDefault: "board default",
-    ownDefault: "the CLI's own default",
-    loggedOut: "logged out",
-    makeDefault: "Make board default",
-    footer:
-      "Each agent picks its runtime and model on the **Agents** pane; one that picked none runs the board default. Keys stay on this computer.",
-    keyIsBoards: "The board's key, in docs/kanban/.env — shared by every agent on this connector.",
-    defaultFailed: (harness) => `couldn't make ${harness} the board default`,
+    add: "Add runtime",
+    footer: "Assign runtimes on the Agents page. Unassigned agents use Global default.",
+    name: "Name",
+    namePlaceholder: "e.g. Cheap",
+    nameHelp: "Names must be unique.",
+    newNameHelp: "Naming it creates it. Leave it empty to cancel.",
+    newRowBlurb: "Provider, endpoint, key and model come after, under Advanced settings.",
+    nameEmpty: "Enter a name.",
+    nameTaken: "Name already exists. Choose another.",
+    connector: "Connector",
+    keyNote: "Used only by this runtime. Stored locally; not synced with the repository.",
+    cliLogin: (harness) => `Uses this computer’s ${harness} login. No API key required.`,
+    signedOutHint: (harness) => `${harness} is signed out. Run in this computer’s terminal:`,
+    notInstalledHint: (harness) =>
+      `${harness} is not installed. Run in this computer’s terminal:`,
+    unknownHarness: (asked, running) =>
+      `This runtime asks for "${asked}", which this build doesn’t ship, so ${running} runs instead.`,
+    remove: "Delete",
+    removeTitle: (name) => `Delete “${name}”?`,
+    removeBlurb: (count) =>
+      `The ${count} agent${count === 1 ? "" : "s"} using this runtime will switch to Global default. Its API key on this computer will also be deleted.`,
+    removeKeyOnly: "Its API key on this computer will also be deleted.",
+    cancel: "Cancel",
+    addFailed: "couldn't add that runtime",
+    renameFailed: "couldn't rename that runtime",
+    removeFailed: "couldn't delete that runtime",
   },
   harness: {
     installed: "Installed",
     notInstalled: "Not installed",
     notHere: (binary) => `${binary} isn't on this machine`,
-    advanced: "Advanced",
-    advancedBlurb: "Provider, endpoint, extra arguments. Left alone, each runs the CLI's own default.",
+    advanced: "Advanced settings",
+    advancedBlurb:
+      "Provider, endpoint, API key, model and arguments. Left alone, each runs the CLI's own default.",
     missingHint: (binary) =>
       `\`${binary}\` isn’t on this machine, so a run would fail to start. Install it:`,
     loggedOut: "logged out",
@@ -59,14 +79,14 @@ const en: ConfigurationCopy = {
     // The rules already say all of this in English.
     rulesText: {},
     secret: {
-      set: "Set — it’s in docs/kanban/.env",
+      set: "Set",
       save: "Save",
       replace: "Replace",
       clear: "Clear",
       cancel: "Cancel",
     },
     test: {
-      run: "Test",
+      run: "Test connection",
       running: "Testing…",
       blurb: (harness) =>
         `Sends one tiny message through ${harness} as it is saved here. On a paid provider that costs a few tokens.`,

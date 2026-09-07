@@ -733,7 +733,13 @@ export function agentInfo(): AgentInfo {
     // first. Each row is the whole truth about one run — its harness's settings, what this
     // row has them set to, which of its keys this computer holds, and whether the CLI it
     // names is here.
-    runtimes: readRuntimes().map((runtime) => runtimeView(runtime, onPath, ran)),
+    runtimes: (() => {
+      // Which rows the agents have named, counted once for the whole list — a delete says how
+      // many agents fall back to **Global default**, and that answer is the board's picks and
+      // nothing else.
+      const named = Object.values(readAgentRuntime())
+      return readRuntimes().map((runtime) => runtimeView(runtime, onPath, ran, named))
+    })(),
     // Every harness's own settings go down with them, not just the running one's: switching a
     // row's harness draws its list right away, without asking again. The gaps go too
     // (`agent/capabilities.ts`), so a picker can say what a switch costs before it is made —
@@ -784,6 +790,7 @@ function runtimeView(
   runtime: Runtime,
   onPath: (command: string) => boolean,
   ran: Map<string, string[]>,
+  named: string[],
 ): RuntimeView {
   const resolved = resolveHarness({ pin: runtime.id })
   const { harness, command, values, secretsSet, ignored } = resolved
@@ -791,10 +798,14 @@ function runtimeView(
     id: runtime.id,
     name: runtime.name,
     fixed: runtime.id === GLOBAL_ID,
-    harness: runtime.harness,
+    // What RUNS, never what the file asked for: a harness we don't ship runs the default, and
+    // the settings, label and mark beside it are that default's. What was asked is
+    // `unknownHarness`, which is the only place the unshipped name is said.
+    harness: harness.name,
     label: harness.label,
     icon: harness.icon,
     unknownHarness: resolved.isDefault ? runtime.harness : undefined,
+    agents: named.filter((pick) => pick === runtime.id).length,
     settings: withModels(harness, harness.settings, ran.get(harness.name) ?? []),
     values,
     secretsSet,

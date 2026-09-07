@@ -34,6 +34,8 @@ const en: MessagesCopy = {
     skillInstall: "the board's rules in this project are too old to install the skill",
     specAgentSwitch: "the board's rules in this project are too old to switch a spec agent",
     specAgentSetting: "the board's rules in this project are too old to set a spec agent",
+    runtimes:
+      "this board's rules are older than named runtimes — run `npm install -g ai4kanban`.",
     usageReporting:
       "this board's rules are older than the usage-reporting setting — run `npm install -g ai4kanban`.",
   },

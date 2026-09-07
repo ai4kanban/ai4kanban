@@ -72,30 +72,34 @@ export const NO_AGENT: AgentInfo = {
   flows: [],
 };
 
-/** The settings one connector declares — the only keys a save is allowed to write. Named
- *  one, that connector's; named none, Global default's (#467), so Codex's settings are
- *  judged by Codex's rules whichever runtime runs it.
- *
- *  Narrowed to that harness's own rows, the way `agentInfo().options` reads them: a harness
- *  no runtime is on declares its settings and holds no values, rather than reading as the
- *  first row on the list. */
-export async function activeSettings(harness?: string): Promise<HarnessSetting[]> {
+/** Whose settings a save is judged against. `runtime` is one row of the board's list (#468);
+ *  `harness` is one connector, narrowed to its own rows the way `agentInfo().options` reads
+ *  them, so a harness no runtime is on declares its settings and holds no values. Neither is
+ *  Global default. */
+export type SettingsAsk = { runtime?: string; harness?: string };
+
+/** The settings behind one row or one connector — the only keys a save is allowed to write,
+ *  so Codex's settings are judged by Codex's rules whichever runtime runs it. */
+export async function activeSettings(on: SettingsAsk = {}): Promise<HarnessSetting[]> {
   const rules = await boardRules();
-  return rules.activeSettings(ask(harness)) as unknown as HarnessSetting[];
+  return rules.activeSettings(ask(on)) as unknown as HarnessSetting[];
 }
 
 /** Why this setting can't be saved with this value, or null when it can. Judged against the
- *  same connector `activeSettings` reads. */
+ *  same row `activeSettings` reads. */
 export async function settingSaveError(
   key: string,
   value: string,
-  harness?: string,
+  on: SettingsAsk = {},
 ): Promise<string | null> {
   const rules = await boardRules();
-  return rules.settingSaveError(key, value, ask(harness));
+  return rules.settingSaveError(key, value, ask(on));
 }
 
-const ask = (harness?: string) => (harness ? { pin: harness, harness } : {});
+// A runtime is named by its id alone — narrowing to a harness would send the read to that
+// harness's FIRST row, which on a list where two rows share one CLI is another row entirely.
+const ask = ({ runtime, harness }: SettingsAsk) =>
+  runtime ? { pin: runtime } : harness ? { pin: harness, harness } : {};
 
 /** What one board action says to the agent. */
 export async function buildPrompt(req: AgentRequest): Promise<string> {

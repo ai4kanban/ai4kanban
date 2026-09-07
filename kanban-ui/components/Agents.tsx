@@ -51,7 +51,7 @@ import type {
   AgentView,
   SpecAgentSettingView,
 } from "@/lib/types";
-import { AgentMark } from "./Configuration";
+import { AgentMark, useRuntimeName } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
 import {
   CAPTION,
@@ -873,10 +873,12 @@ function RunRow({
   onRuntime: (runtime: string) => void;
 }) {
   const c = useCopy().configuration.agents;
+  const nameOf = useRuntimeName();
   // Radix refuses an empty-string item value, so "Global default" wears a stand-in inside the
   // select and is mapped back to "" on the way out.
   const NONE = "—board—";
-  const boardLabel = info.runtimes[0]?.name ?? "";
+  const first = info.runtimes[0];
+  const boardLabel = first ? nameOf(first) : "";
   const moving = busy("runtime");
   const picked = info.runtimes.find((r) => r.id === agent.runs.runtime);
 
@@ -900,7 +902,7 @@ function RunRow({
               <SelectItem key={row.id} value={row.id}>
                 <span className="flex items-center gap-1.5">
                   <AgentMark src={row.icon} size={13} />
-                  {row.name}
+                  {nameOf(row)}
                 </span>
               </SelectItem>
             ))}

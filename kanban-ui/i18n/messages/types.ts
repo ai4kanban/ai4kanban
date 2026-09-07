@@ -35,6 +35,7 @@ export type MessagesCopy = {
     skillInstall: string;
     specAgentSwitch: string;
     specAgentSetting: string;
+    runtimes: string;
     usageReporting: string;
   };
   /** The refusals a server action gives back to the screen that called it. The rest

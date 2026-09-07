@@ -156,6 +156,14 @@ import {
   stopSession,
 } from "@/lib/registry";
 import { type BoardEntry } from "@/lib/cli";
+import {
+  addRuntime,
+  deleteRuntime,
+  renameRuntime,
+  setRuntimeHarness,
+  setRuntimeSecret,
+  setRuntimeSetting,
+} from "@/lib/runtimes";
 import { setHarnessSecret } from "@/lib/secrets";
 import { commandState, installSkill, skillState, UNKNOWN_SKILL } from "@/lib/skill";
 import {
@@ -1193,7 +1201,7 @@ export async function setHarnessSettingAction(
   if (typeof key !== "string" || typeof value !== "string") {
     return { ok: false, error: "a setting is saved as text" };
   }
-  const on = typeof harness === "string" && harness ? harness : undefined;
+  const on = { harness: typeof harness === "string" && harness ? harness : undefined };
   const setting = (await activeSettings(on)).find((s) => s.key === key);
   if (!setting) return { ok: false, error: `that connector has no "${key}" setting` };
   // A key never goes near ui.config.json — it has its own action and its own file (#94).
@@ -1212,7 +1220,7 @@ export async function setHarnessSettingAction(
   // run goes somewhere it can't go.
   const wrong = await settingSaveError(key, next, on);
   if (wrong) return { ok: false, error: wrong };
-  return withAgent(() => setHarnessSetting(key, next, on));
+  return withAgent(() => setHarnessSetting(key, next, on.harness));
 }
 
 // Save one of the picked agent's keys (#94) to docs/kanban/.env — the board's one place for
@@ -1232,14 +1240,14 @@ export async function setHarnessSecretAction(
   if (typeof key !== "string" || typeof value !== "string") {
     return { ok: false, error: "a key is saved as text" };
   }
-  const on = typeof harness === "string" && harness ? harness : undefined;
+  const on = { harness: typeof harness === "string" && harness ? harness : undefined };
   const setting = (await activeSettings(on)).find((s) => s.key === key);
   if (!setting || setting.kind !== "secret" || !setting.env) {
     return { ok: false, error: `that connector has no "${key}" key` };
   }
   // Onto that runtime's own line, never the bare variable: a run reads the id-scoped one, so
   // a key written under the setting's plain name would be a key nothing uses (#467).
-  return withAgent(() => setHarnessSecret({ key, env: setting.env! }, value, on));
+  return withAgent(() => setHarnessSecret({ key, env: setting.env! }, value, on.harness));
 }
 
 // Send one small chat through the setup that is saved right now and say whether it worked
@@ -1280,6 +1288,118 @@ export async function setAgentRuntimeAction(
     }
   }
   return withAgent(() => setAgentRuntime(agent, runtime));
+}
+
+// --- the board's runtimes (#468) ----------------------------------------------
+// Configuration → Runtimes is the list, and these are its six writes. Every one goes through
+// the command's own writers, so a runtime added, renamed or deleted in a terminal and one
+// changed here are the same move with the same rules — including the delete that takes the
+// row's key off this computer.
+//
+// Each answers with the whole setting as it now reads, because none of them is a change the
+// pane can work out for itself: an add mints an id, a harness switch drops the settings the
+// new one doesn't declare, and a delete moves every agent that named the row.
+
+/** Add a runtime on the harness named. The name is the board's to judge — empty or already
+ *  another row's comes back as the refusal the row shows. */
+export async function addRuntimeAction(
+  name: string,
+  harness: string,
+): Promise<WriteResult & { id?: string; agent?: AgentInfo }> {
+  if (typeof name !== "string" || typeof harness !== "string" || !harness) {
+    return { ok: false, error: "a runtime is added by name and harness" };
+  }
+  // The harnesses this build runs are the CLI's list, not a copy kept here.
+  const known = await agentInfo().catch(() => null);
+  if (!known?.options.some((o) => o.name === harness)) {
+    return { ok: false, error: `unknown harness "${harness}"` };
+  }
+  try {
+    const res = await addRuntime(name.trim(), harness);
+    if (!res.ok) return res;
+    return { ok: true, id: res.id, agent: await agentInfo().catch(() => undefined) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** New words for one row. Global default is refused by the command, which is the one place
+ *  that rule lives. */
+export async function renameRuntimeAction(
+  id: string,
+  name: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof id !== "string" || !id || typeof name !== "string") {
+    return { ok: false, error: "a runtime is renamed by id and name" };
+  }
+  return withAgent(() => renameRuntime(id, name.trim()));
+}
+
+/** Drop one row. Its key lines in docs/kanban/.env go with it and the agents that named it
+ *  fall back to Global default — both the command's own doing, so a delete typed in a
+ *  terminal leaves nothing behind either. */
+export async function deleteRuntimeAction(
+  id: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof id !== "string" || !id) return { ok: false, error: "a runtime is deleted by id" };
+  return withAgent(() => deleteRuntime(id));
+}
+
+/** Move one row onto another harness. */
+export async function setRuntimeHarnessAction(
+  id: string,
+  harness: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof id !== "string" || !id || typeof harness !== "string" || !harness) {
+    return { ok: false, error: "a runtime's harness is saved by id and name" };
+  }
+  const known = await agentInfo().catch(() => null);
+  if (!known?.options.some((o) => o.name === harness)) {
+    return { ok: false, error: `unknown harness "${harness}"` };
+  }
+  return withAgent(() => setRuntimeHarness(id, harness));
+}
+
+/** Save one of the settings that row's harness declares — the same checks
+ *  `setHarnessSettingAction` makes, asked of this row rather than of a connector's first. */
+export async function setRuntimeSettingAction(
+  id: string,
+  key: string,
+  value: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof id !== "string" || !id || typeof key !== "string" || typeof value !== "string") {
+    return { ok: false, error: "a runtime setting is saved by id, key and value" };
+  }
+  const on = { runtime: id };
+  const setting = (await activeSettings(on)).find((s) => s.key === key);
+  if (!setting) return { ok: false, error: `that runtime has no "${key}" setting` };
+  if (setting.kind === "secret") {
+    return { ok: false, error: `"${setting.label}" is a key — it saves to docs/kanban/.env` };
+  }
+  const next = value.trim();
+  if (setting.kind === "select" && next && !setting.choices?.some((c) => c.value === next)) {
+    return { ok: false, error: `"${next}" isn't one of the ${setting.label} choices` };
+  }
+  const wrong = await settingSaveError(key, next, on);
+  if (wrong) return { ok: false, error: wrong };
+  return withAgent(() => setRuntimeSetting(id, key, next));
+}
+
+/** Save one row's key to docs/kanban/.env, under its own id-scoped line. Nothing comes back
+ *  but ok: the value is never returned, echoed or read back into the browser. */
+export async function setRuntimeSecretAction(
+  id: string,
+  key: string,
+  value: string,
+): Promise<WriteResult & { agent?: AgentInfo }> {
+  if (typeof id !== "string" || !id || typeof key !== "string" || typeof value !== "string") {
+    return { ok: false, error: "a runtime key is saved by id, key and value" };
+  }
+  const setting = (await activeSettings({ runtime: id })).find((s) => s.key === key);
+  if (!setting || setting.kind !== "secret") {
+    return { ok: false, error: `that runtime has no "${key}" key` };
+  }
+  return withAgent(() => setRuntimeSecret(id, key, value));
 }
 
 // One move, and the whole connector setting as it now reads. A failure answers with the

@@ -3,8 +3,8 @@
 // The board's one configuration home (#41), opened from a quiet gear button in
 // the header. A sidebar on its left names the sections — General (the coding-agent
 // setup #174, how a delivery is built #303/#308, and the language this machine
-// reads in #334), Runtime (the coding tools the board can run and how to reach
-// each one, #68/#93/#443), Agents (the spec agents that fill part of a card's
+// reads in #334), Runtimes (the list of runtimes the board owns and what each one
+// runs as, #68/#93/#443/#467/#468), Agents (the spec agents that fill part of a card's
 // spec, the connector and model each agent runs #443, the rule each one carries
 // and the AGENT.md of one you add, #191/#306/#420/#422) and Notifications (#326).
 // The sidebar is how the dialog grows: a new group of settings is one more entry
@@ -35,6 +35,9 @@ import {
   setHarnessAction,
   setHarnessSecretAction,
   setHarnessSettingAction,
+  setRuntimeHarnessAction,
+  setRuntimeSecretAction,
+  setRuntimeSettingAction,
   testConnectionAction,
 } from "@/app/actions";
 import type { ConfigurationCopy } from "@/i18n/configuration/types";
@@ -52,8 +55,11 @@ import type {
   HarnessGap,
   HarnessOption,
   HarnessSetting,
+  LoggedOutAgent,
+  RuntimeView,
   WriteResult,
 } from "@/lib/types";
+import { Button } from "./button";
 import { TOOL_BTN } from "./chrome";
 import { AgentsPanel } from "./Agents";
 import { CloudPanel } from "./Cloud";
@@ -92,6 +98,14 @@ export function AgentMark({ src, size, name }: { src: string; size: number; name
       style={{ flex: "0 0 auto" }}
     />
   );
+}
+
+/** What one runtime is called on screen. **Global default** is the board's own row and the
+ *  command writes its name in English, so every language says it in its own words (#468);
+ *  every other row is the user's own words, in whatever language they typed them. */
+export function useRuntimeName(): (row: { fixed?: boolean; name: string }) => string {
+  const c = useCopy().configuration.runtimes;
+  return (row) => (row.fixed ? c.globalDefault : row.name);
 }
 
 // The dialog's sections, in sidebar order — what the board is set up with, then the tool
@@ -250,8 +264,8 @@ export function Configuration({
                 on screen — the setup group spawns a process to ask what `akb` on the PATH
                 is, and that answer should be the one from a moment ago. */}
             {section === "general" && <GeneralPanel onError={onError} />}
-            {/* The connectors this board can run (#443) — one row each, and under an open
-                row how to REACH that one. Which model runs is the agent's, on the pane below.
+            {/* The runtimes this board owns (#468) — one row each, **Global default** first,
+                and under an open row the whole of what that row runs as.
 
                 Always mounted, unlike the panes below it: every box in here holds optimistic
                 state seeded from the server's first paint, and unmounting on a section switch
@@ -284,7 +298,7 @@ export function Configuration({
 // help beside them rather than under. A hint stacked under every field is what
 // used to push the last setting off the bottom of the pane; the pane is wide
 // enough to read both at once. Narrow, they stack again in the old order.
-function Field({
+export function Field({
   id,
   label,
   help,
@@ -341,14 +355,13 @@ export interface RunTest {
   current: (() => Promise<ConnectionTest | null>) | null;
 }
 
-/** What a picker in fields-only mode sets: one connector's own settings (#443), whether or
- *  not it is the board's default. */
-export interface HarnessTarget {
-  /** The connector whose block is written. */
-  harness: string;
-  /** That connector as the command reads it now — the seed every field starts from. */
-  option: HarnessOption;
-  /** Told the whole setting after each save, so the pane behind redraws its row without a
+/** What a picker in row mode sets: one runtime on the board's list (#468) — the harness it
+ *  runs, the settings under it and its key, all written against the row's own id, so two rows
+ *  on one CLI never write into each other. */
+export interface RuntimeTarget {
+  /** The row as the command reads it now — the seed every field starts from. */
+  runtime: RuntimeView;
+  /** Told the whole setting after each save, so the pane behind redraws its list without a
    *  read of its own. */
   onSaved: (agent: AgentInfo) => void;
 }
@@ -367,10 +380,10 @@ export function HarnessPicker({
   onTested?: (result: ConnectionTest | null) => void;
   /** Filled in with the pane's own Test, so a screen outside it can run one (#280). */
   runTest?: RunTest;
-  /** Draw ONE connector's settings instead of the grid that picks the board's default
-   *  (#443) — what Configuration → Runtime opens under each row. The fields are the same and
-   *  land in the same `docs/kanban/ui.config.json`; only the block written differs. */
-  bind?: HarnessTarget;
+  /** Draw ONE runtime instead of the grid that picks the board's default (#468) — what an
+   *  expanded row in Configuration → Runtimes holds. The grid and the fields are the same
+   *  ones; only what they are written against differs. */
+  bind?: RuntimeTarget;
 }) {
   // The agent setting as the file now reads it. It starts as the server's first
   // paint and is replaced by what a switch writes back, so the override note and
@@ -384,7 +397,7 @@ export function HarnessPicker({
   // same way whichever of the two it is.
   const seed = (
     info: AgentInfo,
-    option?: HarnessOption,
+    row?: RuntimeView,
   ): {
     active: string;
     command: string;
@@ -394,11 +407,11 @@ export function HarnessPicker({
   } =>
     bind
       ? {
-          active: bind.harness,
-          command: option?.runs ?? "",
-          values: option?.values ?? {},
-          secretsSet: option?.secretsSet ?? [],
-          ignored: option?.ignored ?? [],
+          active: row?.harness ?? bind.runtime.harness,
+          command: row?.runs ?? "",
+          values: row?.values ?? {},
+          secretsSet: row?.secretsSet ?? [],
+          ignored: row?.ignored ?? [],
         }
       : {
           active: info.name,
@@ -407,23 +420,28 @@ export function HarnessPicker({
           secretsSet: info.secretsSet,
           ignored: info.ignored,
         };
-  const start = seed(agent, bind?.option);
+  const start = seed(agent, bind?.runtime);
   const [info, setInfo] = useState(agent);
-  // The connector as the command now reads it. Never held here: every save tells the pane
-  // behind (`onSaved`), which hands it straight back down — so making this connector the
-  // board's default reaches the row's badge too.
-  const view = bind?.option;
+  // The row as the command now reads it. Never held here: every save tells the pane behind
+  // (`onSaved`), which hands it straight back down — so a model saved in here reaches the
+  // folded row above without a read of its own.
+  const view = bind?.runtime;
   // The agents to offer, and which of them this machine can run (#207). Kept apart from
   // `info` because it is the one part of the setting that changes without anybody saving
   // anything: installing a CLI in a terminal makes an agent runnable, and the picker
   // re-asks each time it opens so that shows up without a reload.
   const [options, setOptions] = useState(agent.options);
-  // Which of those agents their own CLI says nobody is logged into (#392), keyed by agent
-  // name and holding the command that logs it back in. Kept apart from `options` for the
-  // same reason they are kept apart from `info`, and one more: this answer costs a spawn per
-  // CLI, so it arrives after the grid is already on screen and never holds it up. Empty
-  // until then, and empty on a board whose rules are older than the question.
-  const [loggedOut, setLoggedOut] = useState<Record<string, string>>({});
+  // Which rows their own CLI says nobody is logged into (#392), each with the command that
+  // logs it back in. Kept apart from `options` for the same reason they are kept apart from
+  // `info`, and one more: this answer costs a spawn per CLI, so it arrives after the grid is
+  // already on screen and never holds it up. Empty until then, and empty on a board whose
+  // rules are older than the question.
+  //
+  // It is read two ways. A CARD says the CLI behind it is signed out, which is a harness
+  // answer; the note under the grid says THIS ROW is, which is a row answer — a row signing
+  // with a key of its own is never on the list however its CLI answers (#467).
+  const [out, setOut] = useState<LoggedOutAgent[]>([]);
+  const loggedOut = Object.fromEntries(out.map((one) => [one.harness, one.login]));
   const [active, setActive] = useState(start.active);
   const [saving, setSaving] = useState(false);
   // What the fields show, and what was last written to the file — keyed by the
@@ -480,8 +498,8 @@ export function HarnessPicker({
   useEffect(() => {
     let live = true;
     void loggedOutAgentsAction()
-      .then((out) => {
-        if (live) setLoggedOut(Object.fromEntries(out.map((one) => [one.harness, one.login])));
+      .then((fresh) => {
+        if (live) setOut(fresh);
       })
       .catch(() => {
         // Nothing to say: an agent nobody could ask about is an agent this pane says nothing
@@ -498,7 +516,7 @@ export function HarnessPicker({
   const settle = (fresh: AgentInfo) => {
     setInfo(fresh);
     setOptions(fresh.options);
-    const next = bind ? fresh.options.find((o) => o.name === bind.harness) : undefined;
+    const next = bind ? fresh.runtimes.find((r) => r.id === bind.runtime.id) : undefined;
     const now = seed(fresh, next);
     setActive(now.active);
     setValues(now.values);
@@ -541,11 +559,9 @@ export function HarnessPicker({
         filled,
       ).map((key) => rules(settings.find((s) => s.key === key)?.label ?? key));
 
-  // Shut until someone opens it on the grid that picks the board's default: every field
-  // behind it has a working default, so that pane's one real question is which connector.
-  // Open on a Runtime row, where the row itself IS the disclosure and what is behind it is
-  // the whole reason the row was pressed.
-  const showAdvanced = advanced ?? !!bind;
+  // Shut until someone opens it, on the grid and on a runtime row alike: every field behind
+  // it has a working default, so what a row opens on is its name and the CLI it runs.
+  const showAdvanced = advanced ?? false;
 
   const pick = async (option: HarnessOption) => {
     if (saving || option.name === active) return;
@@ -572,7 +588,9 @@ export function HarnessPicker({
       setSecretsSet(prev.secretsSet);
     };
     try {
-      const res = await setHarnessAction(option.name);
+      const res = bind
+        ? await setRuntimeHarnessAction(bind.runtime.id, option.name)
+        : await setHarnessAction(option.name);
       if (!res.ok || !res.agent) {
         revert();
         onError?.(res.error || c.saveFailed);
@@ -600,11 +618,9 @@ export function HarnessPicker({
     if (saving) return false;
     setSaving(true);
     try {
-      const res: WriteResult & { agent?: AgentInfo } = await setHarnessSecretAction(
-        setting.key,
-        next,
-        bind?.harness,
-      );
+      const res: WriteResult & { agent?: AgentInfo } = bind
+        ? await setRuntimeSecretAction(bind.runtime.id, setting.key, next)
+        : await setHarnessSecretAction(setting.key, next);
       if (!res.ok) {
         onError?.(res.error || c.saveSecretFailed(rules(setting.label).toLowerCase()));
         return false;
@@ -631,11 +647,9 @@ export function HarnessPicker({
     const put = (v: string) => setValues((all) => ({ ...all, [setting.key]: v }));
     setSaving(true);
     try {
-      const res: WriteResult & { agent?: AgentInfo } = await setHarnessSettingAction(
-        setting.key,
-        value,
-        bind?.harness,
-      );
+      const res: WriteResult & { agent?: AgentInfo } = bind
+        ? await setRuntimeSettingAction(bind.runtime.id, setting.key, value)
+        : await setHarnessSettingAction(setting.key, value);
       if (res.ok) {
         put(value);
         setSaved((all) => ({ ...all, [setting.key]: value }));
@@ -693,75 +707,38 @@ export function HarnessPicker({
 
   // A hand-edited `command` override is the one thing worth a note under the cards — it's
   // what actually runs, and it's invisible otherwise.
-  const savedActive = bind ? bind.harness : info.name;
+  const savedActive = bind ? bind.runtime.harness : info.name;
   const savedCommand = bind ? (view?.runs ?? "") : info.command;
   const overridden = Boolean(savedCommand) && savedCommand !== options.find((o) => o.name === savedActive)?.command;
 
   const labelOf = (name: string) => options.find((o) => o.name === name)?.label ?? name;
 
-  // What Test is about to spawn: the connector on the grid, or the one row this pane is
-  // drawing the settings of.
-  const spawns = active || bind?.harness || "";
+  // Which harness Test is about to spawn — the card that is on, whichever pane this is. The
+  // ROW it spawns is the tester's own `pin`.
+  const spawns = active || bind?.runtime.harness || "";
   const testLabel = labelOf(spawns);
 
-  // Which agents this machine can run, and which it can't. `=== false` on purpose: a board
-  // reading older rules doesn't answer this at all, and an unanswered question counts as
-  // here rather than putting every agent under "not installed".
-  const here = options.filter((o) => o.installed !== false);
-  const missing = options.filter((o) => o.installed === false);
 
-  const card = (option: HarnessOption) => {
-    const on = option.name === active;
-    // The CLI is here, and nobody is logged in to it (#392). This agent IS on the machine
-    // and one command away from working, so it stays in the installed block and says so on
-    // the card; the peach ink is only a second way to see the word.
-    //
-    // The picked agent says it under the grid instead, with the command that logs it in.
-    const signedOut = !on && option.installed !== false && !!loggedOut[option.name];
-    const notHere = option.installed === false;
-    return (
-      <button
-        key={option.name}
-        type="button"
-        aria-pressed={on}
-        disabled={saving}
-        onClick={() => pick(option)}
-        title={
-          notHere ? c.notHere(option.binary) : signedOut ? c.loggedOutHere(option.binary) : undefined
-        }
-        // One fill per card and no frame: the same sheet every group's card in the dialog
-        // sits on, the ember wash when it is the picked one. The fill is what marks the pick
-        // now, so it has to be the ember one — a hairline is not what tells them apart any
-        // more.
-        className={`flex cursor-pointer flex-col items-center gap-2 rounded-[12px] px-2 pb-2.5 pt-4 transition-colors duration-100 disabled:cursor-wait ${
-          on ? "bg-nb-accent-soft" : "bg-nb-sheet hover:bg-nb-wash"
-        }`}
-      >
-        <span
-          className="flex h-[30px] items-center justify-center"
-          // A missing agent's mark dims, unless it is the one the board runs — the line
-          // under the grid is where that case is said, in full, with the install command.
-          style={{ opacity: notHere && !on ? 0.45 : 1 }}
-        >
-          <AgentMark src={option.icon} size={26} />
-        </span>
-        <span className={`text-[12px] font-[800] ${notHere && !on ? "text-nb-ink-soft" : ""}`}>
-          {option.label}
-        </span>
-        {signedOut && (
-          <span className="-mt-1 text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-peach-ink">
-            {c.loggedOut}
-          </span>
-        )}
-      </button>
+  // The row this pane is drawing is signed out, which is not the same question as whether its
+  // CLI is: two rows on one harness can differ, and only a row holding no key of its own is
+  // ever on the list.
+  const rowLoggedOut = bind ? out.find((one) => one.runtime === bind.runtime.id)?.login : undefined;
+  // A row whose picked provider takes no key of its own runs on this computer's login, and
+  // that is worth one line where the key field would otherwise be.
+  const usesCliLogin =
+    !!bind &&
+    activeOption?.installed !== false &&
+    !rowLoggedOut &&
+    !connectorSettings.some(
+      (setting) =>
+        setting.kind === "secret" && shownForProvider(activeOption?.settings ?? [], setting.key, picked),
     );
-  };
 
-  // What the picked agent needs said, and what it can be set to. It hangs off the block the
-  // picked card is in rather than sitting under every grid: these are that agent's settings,
-  // and under a list of agents that don't have them they read as the pane's.
-  const detail = activeOption && (
-    <div>
+  // What the picked connector needs said. It hangs off the block the picked card is in rather
+  // than sitting under every grid: these are that connector's own lines, and under a list of
+  // connectors that don't have them they read as the pane's.
+  const notes = activeOption && (
+    <>
       {/* The picked agent's CLI isn't here (#207). Said as a line rather than by dimming
           the card, because this one has something to do about it: the command that
           installs it. It shows the moment the agent is picked — including mid-switch,
@@ -770,7 +747,9 @@ export function HarnessPicker({
           answer, from a real run. */}
       {activeOption.installed === false && (
         <Note icon={<FiAlertCircle />}>
-          <Rich>{c.missingHint(activeOption.binary)}</Rich>{" "}
+          <Rich>
+            {bind ? cr.notInstalledHint(activeOption.label) : c.missingHint(activeOption.binary)}
+          </Rich>{" "}
           <code className="rounded bg-nb-ink/8 px-1 py-0.5">{activeOption.install}</code>
         </Note>
       )}
@@ -782,10 +761,28 @@ export function HarnessPicker({
           It warns and stops nothing. Implement, Schedule, Resolve and a chat all
           start under this agent exactly as they would without it — so a probe that read the
           CLI wrong costs one run, not the agent. */}
-      {activeOption.installed !== false && loggedOut[activeOption.name] && (
+      {activeOption.installed !== false &&
+        (bind ? rowLoggedOut : loggedOut[activeOption.name]) && (
+          <Note icon={<FiAlertCircle />}>
+            <Rich>
+              {bind ? cr.signedOutHint(activeOption.label) : c.loggedOutHint(activeOption.binary)}
+            </Rich>{" "}
+            <code className="rounded bg-nb-ink/8 px-1 py-0.5">
+              {bind ? rowLoggedOut : loggedOut[activeOption.name]}
+            </code>
+          </Note>
+        )}
+
+      {/* Nothing to sign in and no key to paste: this row goes through the CLI's own login
+          on this computer. One line where the key field would otherwise be, outside the
+          fold, so it is read without opening anything. */}
+      {usesCliLogin && <Note>{cr.cliLogin(activeOption.label)}</Note>}
+
+      {/* The row asks for a harness this build doesn't ship, so another one runs. Never move
+          a user to another CLI in silence. */}
+      {bind?.runtime.unknownHarness && (
         <Note icon={<FiAlertCircle />}>
-          <Rich>{c.loggedOutHint(activeOption.binary)}</Rich>{" "}
-          <code className="rounded bg-nb-ink/8 px-1 py-0.5">{loggedOut[activeOption.name]}</code>
+          {cr.unknownHarness(bind.runtime.unknownHarness, activeOption.label)}
         </Note>
       )}
 
@@ -811,7 +808,11 @@ export function HarnessPicker({
           <Rich>{c.override(savedCommand)}</Rich>
         </p>
       )}
+    </>
+  );
 
+  const fields = activeOption && (
+    <>
       {/* The settings the picked agent declares (#93), in its own order — for
           Claude Code, the provider it talks to (#95), the model it runs with
           (#71) and how hard that model thinks (#97). Nothing here knows an
@@ -827,11 +828,7 @@ export function HarnessPicker({
           subscription. A field that isn't drawn doesn't reach a run either, so
           what you see here is what the agent is given. */}
       {connectorSettings.length > 0 && (
-        <Fields
-          fold={!bind}
-          open={showAdvanced}
-          onToggle={() => setAdvanced(!showAdvanced)}
-        >
+        <Advanced open={showAdvanced} onToggle={() => setAdvanced(!showAdvanced)}>
           <div className="flex flex-col gap-5">
             {connectorSettings
               .filter((setting) => shownForProvider(activeOption.settings, setting.key, picked))
@@ -854,7 +851,7 @@ export function HarnessPicker({
                   <SecretField
                     key={setting.key}
                     setting={setting}
-                    note={cr.keyIsBoards}
+                    note={cr.keyNote}
                     isSet={secretsSet.includes(setting.key)}
                     disabled={saving}
                     onSave={async (v) => {
@@ -876,14 +873,17 @@ export function HarnessPicker({
                 ),
               )}
           </div>
-        </Fields>
+        </Advanced>
       )}
-    </div>
+    </>
   );
 
-  // Which block holds the picked card, so the settings under it land in the right place. An
-  // agent nothing matches counts as installed: that is where the grid draws first.
-  const pickedMissing = missing.some((o) => o.name === active);
+  const detail = (notes || fields) && (
+    <div>
+      {notes}
+      {fields}
+    </div>
+  );
 
   // Test the setup that is saved (#96). Keyed on that setup, so changing any of it throws
   // the old result away rather than leaving a "Passed" standing for a setup that is gone.
@@ -894,11 +894,11 @@ export function HarnessPicker({
   // at the foot, under the button that started it.
   const tester = (
     <ConnectionTester
-      key={`${bind?.harness ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
+      key={`${bind?.runtime.id ?? ""}|${active}|${JSON.stringify(saved)}|${[...secretsSet].sort().join(",")}`}
       agentLabel={testLabel}
       expected={spawns}
       labelOf={labelOf}
-      harness={bind?.harness}
+      pin={bind?.runtime.id}
       unsavedPick={Boolean(pending)}
       disabled={saving}
       onResult={onTested}
@@ -906,12 +906,20 @@ export function HarnessPicker({
     />
   );
 
-  // One connector's own settings, with no grid over them (#443): Configuration → Runtime
-  // opens this under the row, and which connector it is was decided by the row.
+  // One runtime, whole (#468): the CLI it runs, what that CLI needs said, its settings behind
+  // the fold, and the Test. The same grid and the same fields as the pane below — smaller
+  // cards, because a row is already an indent in.
   if (bind) {
     return (
-      <div className="flex flex-col gap-3">
-        {detail}
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className={`mb-2 ${CAPTION} text-nb-ink-soft`}>{cr.connector}</p>
+          <div className="flex flex-col gap-2.5">
+            <HarnessCards options={options} picked={active} loggedOut={loggedOut} disabled={saving} compact onPick={pick} />
+          </div>
+          {notes}
+        </div>
+        <div>{fields}</div>
         <div>{tester}</div>
       </div>
     );
@@ -920,30 +928,21 @@ export function HarnessPicker({
   return (
     <div className="flex flex-col gap-5">
       {/* A pane whose first grid is missing has nowhere to hang the Test on. */}
-      {!runTest && here.length === 0 && tester}
+      {!runTest && options.every((o) => o.installed === false) && tester}
 
-      {/* The agents, in two blocks: the ones this machine can run, then the ones it can't
-          (#207). Which block a card is in is the whole of that answer, so no card wears a
-          "not installed" word of its own — a grid where most agents aren't installed used
-          to repeat that badge down every row.
-
-          A card in the second block is still a card you can press: someone whose CLI lives
-          outside the PATH this board was started with would otherwise be shut out of the
-          agent they use every day.
-
-          A fixed six-column grid rather than a wrapping row: the cards then sit on the same
-          six columns whatever the count, instead of the last row's width drifting with
-          however many agents we ship. */}
-      {here.length > 0 && (
-        // The Test rides the first block's caption line rather than taking a row of its
-        // own: one button, right-aligned, above a pane whose whole first answer is a grid.
-        <AgentGrid caption={missing.length ? c.installed : ""} aside={!runTest && tester}>
-          {here.map(card)}
-        </AgentGrid>
-      )}
-      {!pickedMissing && detail}
-      {missing.length > 0 && <AgentGrid caption={c.notInstalled}>{missing.map(card)}</AgentGrid>}
-      {pickedMissing && detail}
+      {/* The connectors, and this connector's own settings under whichever block holds the
+          picked card. The Test rides the first block's caption line rather than taking a row
+          of its own: one button, right-aligned, above a pane whose whole first answer is a
+          grid. */}
+      <HarnessCards
+        options={options}
+        picked={active}
+        loggedOut={loggedOut}
+        disabled={saving}
+        aside={!runTest && tester}
+        between={detail}
+        onPick={pick}
+      />
 
       {runTest && tester}
 
@@ -961,6 +960,117 @@ export function HarnessPicker({
         </Note>
       )}
     </div>
+  );
+}
+
+/** The card grid that picks a connector — the pane's own, everywhere one is picked: the grid
+ *  that sets what **Global default** runs, the grid inside an expanded runtime row, and the
+ *  grid on the row **+ Add runtime** opens, which has no runtime behind it yet (#468).
+ *
+ *  Two blocks: the connectors this machine can run, then the ones it can't (#207). Which
+ *  block a card is in is the whole of that answer, so no card wears a "not installed" word of
+ *  its own — a grid where most connectors aren't installed used to repeat that badge down
+ *  every row. A card in the second block is still a card you can press: someone whose CLI
+ *  lives outside the PATH this board was started with would otherwise be shut out of the tool
+ *  they use every day.
+ *
+ *  A fixed six-column grid rather than a wrapping row: the cards then sit on the same six
+ *  columns whatever the count, instead of the last row's width drifting with however many
+ *  connectors we ship. */
+export function HarnessCards({
+  options,
+  picked,
+  loggedOut = {},
+  disabled,
+  compact,
+  aside,
+  between,
+  onPick,
+}: {
+  options: HarnessOption[];
+  /** The one that is on, by connector name. */
+  picked: string;
+  /** The connectors nobody is logged into, by name — a word on the card (#392). */
+  loggedOut?: Record<string, string>;
+  disabled?: boolean;
+  /** Smaller cards, for the grid inside a runtime row where it is one field among several. */
+  compact?: boolean;
+  /** The Test, on the first block's caption line. */
+  aside?: React.ReactNode;
+  /** What belongs directly under the block holding the picked card. */
+  between?: React.ReactNode;
+  onPick: (option: HarnessOption) => void;
+}) {
+  const c = useCopy().configuration.harness;
+  // `=== false` on purpose: a board reading older rules doesn't answer this at all, and an
+  // unanswered question counts as here rather than putting every connector under "not
+  // installed".
+  const here = options.filter((o) => o.installed !== false);
+  const missing = options.filter((o) => o.installed === false);
+  const pickedMissing = missing.some((o) => o.name === picked);
+
+  const card = (option: HarnessOption) => {
+    const on = option.name === picked;
+    // The CLI is here, and nobody is logged in to it (#392). This connector IS on the machine
+    // and one command away from working, so it stays in the installed block and says so on
+    // the card; the peach ink is only a second way to see the word.
+    //
+    // The picked connector says it under the grid instead, with the command that logs it in.
+    const signedOut = !on && option.installed !== false && !!loggedOut[option.name];
+    const notHere = option.installed === false;
+    return (
+      <button
+        key={option.name}
+        type="button"
+        aria-pressed={on}
+        disabled={disabled}
+        onClick={() => onPick(option)}
+        title={
+          notHere ? c.notHere(option.binary) : signedOut ? c.loggedOutHere(option.binary) : undefined
+        }
+        // One fill per card and no frame: the same sheet every group's card in the dialog
+        // sits on, the ember wash when it is the picked one. The fill is what marks the pick
+        // now, so it has to be the ember one — a hairline is not what tells them apart any
+        // more.
+        className={`flex cursor-pointer flex-col items-center rounded-[12px] transition-colors duration-100 disabled:cursor-wait ${
+          compact ? "gap-1.5 px-2 pb-2 pt-2.5" : "gap-2 px-2 pb-2.5 pt-4"
+        } ${on ? "bg-nb-accent-soft" : "bg-nb-sheet hover:bg-nb-wash"}`}
+      >
+        <span
+          className={`flex items-center justify-center ${compact ? "h-[24px]" : "h-[30px]"}`}
+          // A missing connector's mark dims, unless it is the one this row runs — the line
+          // under the grid is where that case is said, in full, with the install command.
+          style={{ opacity: notHere && !on ? 0.45 : 1 }}
+        >
+          <AgentMark src={option.icon} size={compact ? 21 : 26} />
+        </span>
+        <span
+          className={`font-[800] ${compact ? "text-[11.5px]" : "text-[12px]"} ${
+            notHere && !on ? "text-nb-ink-soft" : ""
+          }`}
+        >
+          {option.label}
+        </span>
+        {signedOut && (
+          <span className="-mt-1 text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-peach-ink">
+            {c.loggedOut}
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <>
+      {here.length > 0 && (
+        <AgentGrid caption={missing.length ? c.installed : ""} aside={aside}>
+          {here.map(card)}
+        </AgentGrid>
+      )}
+      {!pickedMissing && between}
+      {missing.length > 0 && <AgentGrid caption={c.notInstalled}>{missing.map(card)}</AgentGrid>}
+      {pickedMissing && between}
+    </>
   );
 }
 
@@ -993,33 +1103,9 @@ function AgentGrid({
   );
 }
 
-// One connector's settings, behind a fold or not.
-//
-// On the grid that picks the board's default, folded: everything in here has a default that
-// works, the fold is what says so, and it keeps a pane whose only real question is "which
-// connector" from opening on four fields nobody should have to answer.
-//
-// On a Runtime row, plain — the row is already the disclosure, and a second one inside it
-// hides the very thing the row was pressed for.
-function Fields({
-  fold,
-  open,
-  onToggle,
-  children,
-}: {
-  fold: boolean;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  if (!fold) return <div className="mt-1">{children}</div>;
-  return (
-    <Advanced open={open} onToggle={onToggle}>
-      {children}
-    </Advanced>
-  );
-}
-
+// One connector's settings, always behind a fold: everything in here has a default that
+// works, the fold is what says so, and it keeps a pane — or a runtime row — whose real
+// question is which CLI from opening on six fields nobody should have to answer.
 function Advanced({
   open,
   onToggle,
@@ -1113,7 +1199,7 @@ function ConnectionTester({
   agentLabel,
   expected,
   labelOf,
-  harness,
+  pin,
   unsavedPick,
   disabled,
   onResult,
@@ -1125,9 +1211,9 @@ function ConnectionTester({
    *  keep to itself. */
   expected: string;
   labelOf: (harness: string) => string;
-  /** The connector to spawn (#443). Absent tests the board's default, which is what setup's
-   *  own step is about. */
-  harness?: string;
+  /** The runtime to spawn (#468) — the row the button is on. Absent tests Global default,
+   *  which is what setup's own step is about. */
+  pin?: string;
   // A provider is picked but not written yet, so the saved setup isn't the one
   // on screen and a test now would answer a question nobody asked.
   unsavedPick: boolean;
@@ -1162,7 +1248,7 @@ function ConnectionTester({
     setResult(null);
     let answer: ConnectionTest;
     try {
-      answer = await testConnectionAction(harness);
+      answer = await testConnectionAction(pin);
     } catch (e) {
       // The action doesn't throw for anything the test itself hit — this is the
       // call not getting there (the server went away mid-test). Shown the same
@@ -1207,16 +1293,19 @@ function ConnectionTester({
               {c.passed(seconds(result.ms, c))}
             </p>
           )}
-          <button
-            type="button"
+          {/* The one press on this pane, so it wears the button family's ink frame and hard
+              shadow rather than the quiet fill every setting beside it uses. */}
+          <Button
+            variant="ghost"
+            size="xs"
             title={c.blurb(agentLabel)}
             disabled={running || disabled || unsavedPick}
             onClick={() => void test()}
-            className={`${QUIET_BTN} inline-flex shrink-0 items-center gap-1.5`}
+            className="shrink-0"
           >
             <FiZap className="text-[13px]" aria-hidden />
             {running ? c.running : c.run}
-          </button>
+          </Button>
         </div>
       ) : (
         unsavedPick && <p className="text-[12px] leading-relaxed text-nb-ink-soft">{c.unsavedPick}</p>
@@ -1410,8 +1499,9 @@ function SecretField({
   onSave,
 }: {
   setting: HarnessSetting;
-  /** One more line under the help: the key is the BOARD's, in the one file git does not
-   *  carry, and shared by every agent on this connector (#443). */
+  /** The line beside the box, INSTEAD of the setting's own help: where the key lives and who
+   *  reads it is the pane's answer, not the connector's, and two lines saying it is one too
+   *  many (#468). */
   note?: string;
   // Whether docs/kanban/.env holds this key right now — the whole of what the
   // server tells us about a saved one. A key written into that file by hand
@@ -1447,12 +1537,7 @@ function SecretField({
     <Field
       id={id}
       label={rules(setting.label)}
-      help={
-        <>
-          <p>{setting.help && rules(setting.help)}</p>
-          {note && <p>{note}</p>}
-        </>
-      }
+      help={<p>{note ?? (setting.help && rules(setting.help))}</p>}
     >
       {typing ? (
         <div className="flex items-center gap-2">

@@ -977,14 +977,19 @@ export interface RuntimeView {
   name: string
   /** **Global default** — the first row, which no board can delete or rename. */
   fixed: boolean
-  /** The harness it runs, by name. */
+  /** The harness it runs, by name — the default where the file names one we don't ship, the
+   *  same fallback a run makes. */
   harness: string
   /** That harness's label and mark, for the folded row. */
   label: string
   icon: string
-  /** Set only when the row names a harness this build doesn't ship: the fields around it are
-   *  the one that would run instead. */
+  /** The harness the file asked for, when this build doesn't ship it. Everything else on the
+   *  row is the one running instead. */
   unknownHarness?: string
+  /** How many agents name this row of their own accord — what a delete puts back on **Global
+   *  default**. Read off the board's picks, so it costs no roster read; 0 on **Global default**,
+   *  which is what a pick of none already runs. */
+  agents: number
   /** The settings that harness declares, in the order the expanded row draws them. */
   settings: HarnessSetting[]
   /** What this row has them set to. A `secret` is never in here. */

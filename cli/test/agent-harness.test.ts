@@ -19,6 +19,8 @@ import {
   addRuntime,
   deleteRuntime,
   migrateRuntimes,
+  setRuntimeHarness,
+  setRuntimeSecret,
   readAgentRuntime,
   readRuntimes,
   renameRuntime,
@@ -237,6 +239,27 @@ describe('writing the list', () => {
     assert.equal(agentRun('builder').runtime, 'global')
     assert.equal(held().agentRuntime, undefined)
     assert.match(deleteRuntime('global').error ?? '', /can't be deleted/)
+  })
+
+  it('takes the deleted row’s keys off this computer and leaves every other line alone', () => {
+    const mine = addRuntime('Cheap', 'codex')
+    const yours = addRuntime('Spare', 'codex')
+    // A harness the row used to be on can have left a line behind — the id never moved, so
+    // the delete has to look for that one too.
+    setRuntimeSecret(mine.id!, 'apiKey', 'sk-old')
+    setRuntimeHarness(mine.id!, 'claude-code')
+    setRuntimeSecret(mine.id!, 'apiKey', 'sk-new')
+    setRuntimeSecret(yours.id!, 'apiKey', 'sk-theirs')
+    const before = readEnvFile()
+    assert.ok(Object.keys(before).some((line) => line.endsWith('__CHEAP')))
+
+    assert.equal(deleteRuntime(mine.id!).ok, true)
+    const after = readEnvFile()
+    assert.deepEqual(
+      Object.keys(after).filter((line) => line.endsWith('__CHEAP')),
+      [],
+    )
+    assert.equal(after[secretVar('OPENAI_API_KEY', yours.id!)], 'sk-theirs')
   })
 
   it('carries an older board’s agentHarness picks over on the first write', () => {

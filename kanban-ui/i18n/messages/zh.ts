@@ -31,6 +31,7 @@ const zh: MessagesCopy = {
     skillInstall: "这个项目里的运行规则太旧，无法安装 skill",
     specAgentSwitch: "这个项目里的运行规则太旧，无法开关规格 Agent",
     specAgentSetting: "这个项目里的运行规则太旧，无法设置规格 Agent",
+    runtimes: "这个看板的运行规则早于命名运行时——请运行 `npm install -g ai4kanban`。",
     usageReporting: "这个看板的运行规则早于使用情况上报设置——请运行 `npm install -g ai4kanban`。",
   },
   actions: {

@@ -427,6 +427,23 @@ export interface BoardRules {
   /** Named a runtime or a connector, the test spawns THAT one (#443, #467). */
   testConnection(harness?: string): Promise<ConnectionTest>;
 
+  // the board's runtimes (#467, #468) — the list Configuration → Runtimes is. `agentInfo`
+  // already carries the rows a pane draws, so these are only the writers, all keyed by the
+  // row's id. Optional as a group: rules from before runtimes have none of them, and the
+  // pane says so rather than writing through a path that means something else.
+  /** Add a row on that harness, unnamed nowhere: the id is minted from the name. */
+  addRuntime?(name: string, harness: string): WriteResult & { id?: string };
+  /** New words for one row. Nothing moves — the id keys the key line and the agents' picks. */
+  renameRuntime?(id: string, name: string): WriteResult;
+  /** Drop one row, its key lines with it, and put the agents on it back on Global default. */
+  deleteRuntime?(id: string): WriteResult;
+  /** Move one row onto another harness; a setting the new one doesn't declare goes. */
+  setRuntimeHarness?(id: string, harness: string): WriteResult;
+  /** One of that row's settings, or the harness's own default when the value is empty. */
+  setRuntimeSetting?(id: string, key: string, value: string): WriteResult;
+  /** That row's key, under its own id-scoped line in docs/kanban/.env. */
+  setRuntimeSecret?(id: string, settingKey: string, value: string): WriteResult;
+
   // which runtime each agent runs (#467). The pick is the board's, in
   // docs/kanban/ui.config.json, so every checkout runs each agent as the same thing.
   // Optional: a project can be running rules older than the release that added them, and

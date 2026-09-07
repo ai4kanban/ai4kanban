@@ -27,25 +27,48 @@ export type ConfigurationCopy = {
     privacy: string;
     language: string;
   };
-  /** Configuration → Runtime (#443): one row per connector the board can run, grouped by
-   *  whether this machine has it. The harness block below draws one connector's own
-   *  settings — how to reach it, never which model. */
+  /** Configuration → Runtimes (#468): the list of runtimes the board owns, Global default
+   *  first, with **+ Add runtime** under it. An expanded row is the harness block below,
+   *  drawn against that row. */
   runtimes: {
-    /** Over the connectors this machine has, and over the ones it hasn't. */
-    installed: string;
+    /** The first row, which no board can rename or delete. */
+    globalDefault: string;
+    /** What a folded row says on its right, read per runtime id. States, not buttons — the
+     *  command that answers each one is inside the row. */
+    signedOut: string;
     notInstalled: string;
-    /** The badge on the connector an agent that picked none runs. */
-    boardDefault: string;
-    /** What a folded row says on its right: the provider in effect, or the connector's own
-     *  default when nothing picked one. */
-    ownDefault: string;
-    /** That connector's CLI is here and nobody is logged into it. */
-    loggedOut: string;
-    makeDefault: string;
-    /** Under the two lists: where a model is picked instead. */
+    /** Under the list, and what a new row is for. */
+    add: string;
     footer: string;
-    keyIsBoards: string;
-    defaultFailed: (harness: string) => string;
+    /** The row's own name, and why one was refused. */
+    name: string;
+    namePlaceholder: string;
+    nameHelp: string;
+    /** On the unsaved row: naming it is what creates it. */
+    newNameHelp: string;
+    newRowBlurb: string;
+    nameEmpty: string;
+    nameTaken: string;
+    /** Over the harness card grid inside a row. */
+    connector: string;
+    /** Beside the key field, and where a row has none because the CLI's own login signs it. */
+    keyNote: string;
+    cliLogin: (harness: string) => string;
+    /** The CLI this row runs is signed out, or isn't here — each followed by its command. */
+    signedOutHint: (harness: string) => string;
+    notInstalledHint: (harness: string) => string;
+    /** The row names a harness this build doesn't ship, so another one runs. */
+    unknownHarness: (asked: string, running: string) => string;
+    /** Delete, at the right of a saved row's title, and what it costs. The agent sentence is
+     *  left out where no agent names the row. */
+    remove: string;
+    removeTitle: (name: string) => string;
+    removeBlurb: (count: number) => string;
+    removeKeyOnly: string;
+    cancel: string;
+    addFailed: string;
+    renameFailed: string;
+    removeFailed: string;
   };
   /** The harness picker: the grid setup and the first run pick the board's default on, and
    *  the fields an open Runtime row draws for one connector. Its heading is `runtimes`

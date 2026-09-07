@@ -27,7 +27,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { DEFAULT_HARNESS, harnessByName } from './harnesses'
+import { DEFAULT_HARNESS, HARNESSES, harnessByName } from './harnesses'
 import { configBlock, readEnvFile, safeConfig, setSecret, writeConfig } from './settings'
 import type { Harness } from './harnesses'
 
@@ -236,14 +236,36 @@ export function renameRuntime(id: string, name: string): { ok: boolean; error?: 
 }
 
 /** Drop one runtime, and put the agents that named it back on **Global default** — the delete
- *  is never refused for being in use. */
+ *  is never refused for being in use. Its key goes with it: every `docs/kanban/.env` line named
+ *  after this id is cleared, so the key is off this computer whether the delete was typed here
+ *  or in a pane. */
 export function deleteRuntime(id: string): { ok: boolean; error?: string } {
   if (id === GLOBAL_ID) return { ok: false, error: `${GLOBAL_NAME} can't be deleted — it is what an agent naming no runtime runs.` }
   const list = readRuntimes()
   if (!list.some((r) => r.id === id)) return { ok: false, error: `no runtime called "${id}" on this board.` }
   // The agents that named it fall back with the write: `save` resolves every pick against the
   // list it is writing, and a pick nothing answers to is **Global default**.
-  return save(list.filter((r) => r.id !== id))
+  const res = save(list.filter((r) => r.id !== id))
+  if (!res.ok) return res
+  return clearKeysOf(id)
+}
+
+// Every key line this row owns, gone. Asked of every harness we ship rather than of the one the
+// row ran: an id never moves, so a harness the row used to be on can have left a line behind,
+// and a line nobody would ever see again is a key still sitting on the disk. A variable this
+// file doesn't hold is skipped, so the delete never rewrites `.env` for nothing.
+function clearKeysOf(id: string): { ok: boolean; error?: string } {
+  const env = readEnvFile()
+  for (const harness of HARNESSES) {
+    for (const setting of harness.settings) {
+      if (setting.kind !== 'secret' || !setting.env) continue
+      const line = secretVar(setting.env, id)
+      if (!env[line]) continue
+      const res = setSecret(line, '')
+      if (!res.ok) return res
+    }
+  }
+  return { ok: true }
 }
 
 /** Move one runtime to another harness. Its settings go with it: a key the new harness doesn't
