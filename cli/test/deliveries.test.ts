@@ -314,7 +314,7 @@ describe('a delivery with no card', () => {
   const startCardless = (run: RunRecord): string =>
     withStore((store) => {
       store.runs.push(run)
-      return joinDelivery(store, run, typed, 'implement', undefined, typed).deliveryId
+      return joinDelivery(store, run, typed, 'implement', undefined, { title: typed, approved: typed }).deliveryId
     })
 
   it('takes the typed sentence as its requirements and its title', () => {
@@ -381,7 +381,7 @@ describe('a delivery with no card', () => {
       const id = withStore((store) => {
         const run = session({ cardId: null })
         store.runs.push(run)
-        const delivery = joinDelivery(store, run, typed, 'implement', undefined, typed)
+        const delivery = joinDelivery(store, run, typed, 'implement', undefined, { title: typed, approved: typed })
         delivery.aiReview = false
         delivery.approval = { required: false, events: [] }
         return delivery.deliveryId

@@ -117,12 +117,16 @@ the discussion moves. There is no panel until the file exists, and a rewrite nev
 it: the panel says the file is moving and keeps the last text on screen. Its path stands
 under the heading, copyable; the board never opens a plan itself.
 
-Once the outcome is settled the agent asks whether to start planning, and **Start planning**
-and **Not yet** stand under that message — or type either instead. Start planning closes the
-screen and starts the run that writes the cards, in the release the board is showing, each
-one naming the plan's path in its `## Source`. A run that writes no cards leaves the plan as
-it was and the offer comes back. Closing the screen mid-discussion loses nothing: reopening
-Discuss comes back to the same conversation and the same plan.
+Once the outcome is settled the agent asks whether to start planning, and **Start planning**,
+**Build now** and **Not yet** stand under that message — or type any of them instead. Start
+planning closes the screen and starts the run that writes the cards, in the release the board
+is showing, each one naming the plan's path in its `## Source`. **Build now** is the Create
+sheet's own Build now pointed at the plan: it asks first, then one run writes a single card
+from the plan — the plan verbatim as its summary, its path in `## Source` — and builds it,
+refining nothing and reviewing nothing. A run that writes no card leaves the plan as it was and
+the offer comes back; once one has written its card the plan is finished, whatever that run did
+afterwards. Closing the screen mid-discussion loses nothing: reopening Discuss comes back to
+the same conversation and the same plan.
 
 Plans are board content, so they travel with the board and a card that names one keeps
 pointing at something.
@@ -495,7 +499,8 @@ its name; the same numbers `release list` prints in your terminal. A few more th
 - A **group task** shows whenever the root or any subtask is in the release you picked.
 - **Create task** puts the new card in the release on screen, and the sheet says which one
   under its box. So does **Start planning**: the cards a plan produces ship in it too.
-  **Build now** does too: the card its run writes ships in the release on screen.
+  **Build now** does too, from the box or from under the plan: the card its run writes ships in
+  the release on screen.
 - A release with **nothing open in it says so**, with **No release** one click away. Blockers on
   screen don't count.
 - Your pick is remembered in your browser, per board, and never written to the files — so it

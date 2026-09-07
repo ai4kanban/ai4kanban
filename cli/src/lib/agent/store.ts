@@ -268,6 +268,8 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       endedAt: typeof entry.endedAt === 'number' ? entry.endedAt : undefined,
       sessions: Array.isArray(entry.sessions) ? entry.sessions.filter((s) => typeof s === 'string') : [],
       approved: typeof entry.approved === 'string' ? entry.approved : '',
+      // The plan a card-less build was started from (#481), where it was one.
+      plan: text(entry.plan),
       initialQuestions:
         typeof entry.initialQuestions === 'number' && entry.initialQuestions >= 0
           ? Math.floor(entry.initialQuestions)

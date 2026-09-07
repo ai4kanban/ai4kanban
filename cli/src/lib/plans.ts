@@ -93,3 +93,24 @@ function renamedPlan(rel: string): string | null {
 /** The plan's path as an agent and a card should spell it — from the project root, so a
  *  board that is not at `docs/kanban` names the file that is actually there. */
 export const planPathInText = (rel: string): string => `${boardPath()}/${rel}`
+
+/** The board-relative path behind one spelled that way, or null when it is not a plan of
+ *  this board's. A run carries the spelled form (`AgentRequest.plan`), and reading the file
+ *  it names has to start from a path `planFile` will take. */
+export function planFromText(text: string): string | null {
+  const here = `${boardPath()}/`
+  const rel = text.startsWith(here) ? text.slice(here.length) : text
+  return planFile(rel) ? rel : null
+}
+
+/** What a plan is called: its first heading, or its first line when it has none. Empty for a
+ *  file with nothing written in it yet — the caller refuses such a plan rather than opening
+ *  an untitled delivery on it. */
+export function planTitle(text: string): string {
+  for (const line of text.split('\n')) {
+    const words = line.trim()
+    if (!words) continue
+    return words.replace(/^#+\s*/, '').trim()
+  }
+  return ''
+}

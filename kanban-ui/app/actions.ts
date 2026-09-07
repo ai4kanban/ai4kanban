@@ -197,6 +197,7 @@ import type {
   LoggedOutAgent,
   MemberRoleWire,
   MetricsResult,
+  PlanAnswer,
   SaveProjectResult,
   ScoreResult,
   SessionView,
@@ -317,6 +318,10 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   if (GONE_ON_MARKETING.has(req.action) && (await readSolution()) === "marketing") {
     throw new Error(`a marketing board has no ${req.action}`);
   }
+  // A plan is never named from the browser (#427, #481): the file a run is pointed at is the
+  // board's own to say, and `startPlanningAction` and `startPlanBuildAction` above read it
+  // server-side. Anything sent here naming one is dropped rather than followed.
+  if (req.plan) req = { ...req, plan: undefined };
   // **Build now** is the one implement with no card (#428): the typed sentence is the whole
   // requirement, so it stands in for the id an implement usually names.
   const buildNow = req.action === "implement" && !!req.description?.trim();
@@ -559,15 +564,16 @@ export async function pickChatRuntimeAction(
 // ---- Discuss (#427) ---------------------------------------------------------
 //
 // The Discuss screen is the board's own conversation with the plan it is writing beside it.
-// Three moves: read that plan, record an answer the user pressed, and hand the plan to the
-// run that writes its cards.
+// Four moves: read that plan, record an answer the user pressed, and hand the plan to one of
+// the two runs its answers start — the one that writes its cards, or the one that writes a
+// single card from it and builds it (#481).
 
 export async function readDiscussAction(): Promise<DiscussRead & { supported: boolean }> {
   const [read, supported] = await Promise.all([readDiscuss(), canDiscuss()]);
   return { ...read, supported };
 }
 
-/** One of the two answers, pressed. Written into the transcript as the user's own words,
+/** One of the three answers, pressed. Written into the transcript as the user's own words,
  *  with no turn behind it — the board is what acts on it. */
 export async function noteDiscussAnswerAction(text: string): Promise<void> {
   if (typeof text !== "string" || !text.trim()) return;
@@ -583,15 +589,36 @@ export async function noteDiscussAnswerAction(text: string): Promise<void> {
  * a card written by Add task.
  */
 export async function startPlanningAction(release?: string): Promise<StartResult> {
+  return startFromPlan("create", "plan", release);
+}
+
+/**
+ * Build now under the plan ask (#481): the Create sheet's own Build now, pointed at the plan
+ * instead of a typed sentence — one run writes a card from it and builds it, refining nothing
+ * and reviewing nothing.
+ *
+ * The plan is read here for the same reason Start planning reads it here: the path reaches a
+ * prompt, and the only file this may ever point at is the one the board's own conversation
+ * says it is writing.
+ */
+export async function startPlanBuildAction(release?: string): Promise<StartResult> {
+  return startFromPlan("implement", "build", release);
+}
+
+async function startFromPlan(
+  action: "create" | "implement",
+  answer: PlanAnswer,
+  release?: string,
+): Promise<StartResult> {
   const plan = await planToPlanFrom();
   if (!plan) return { ok: false, error: (await machineCopy()).messages.actions.noPlan };
   const request = await prepareAgentRequest({
-    action: "create",
+    action,
     plan,
     release: typeof release === "string" && release.trim() ? release.trim() : undefined,
   });
   const started = await startSession(request, await buildPrompt(request));
-  if (started.ok && started.sessionId) await planningStarted(started.sessionId);
+  if (started.ok && started.sessionId) await planningStarted(started.sessionId, answer);
   return started;
 }
 

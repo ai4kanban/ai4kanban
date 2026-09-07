@@ -16,17 +16,24 @@ Build the approved card. Do not add, rewrite, or tag questions on it.
 
 ## A build that writes its own card
 
-**Build now** sends a typed sentence with no card behind it. Write the card first, in the
-same run, then build it. The board points the run and its delivery at the card as the create
-lands, so from there it is an ordinary build.
+**Build now** sends a requirement with no card behind it — a typed sentence, or the plan a
+discussion settled. Write the card first, in the same run, then build it. The board points
+the run and its delivery at the card as the create lands, so from there it is an ordinary
+build.
 
+- **Read the plan first**: given a plan's path, that file is the requirement — read it, and
+  everything below reads "the plan" for "the sentence".
 - **Create it first**: `akb raw create --title ".."`, plus `--release` when the prompt names
-  one. The title is one short line read off the sentence, in the sentence's own language —
-  add `--slug <short-english-slug>` when that is not English, because filenames are ASCII. No
-  `--modules`, no `--question`, no `--schedule` — nothing has evaluated this idea.
-- **The sentence is the summary**: replace the scaffold's opening paragraph with what the
-  user typed, verbatim, in a fenced code block. Open the fence with more backticks than the
-  longest run in the sentence, or the card fails validation on an unclosed fence.
+  one. The title is one short line read off the sentence, or the plan's own title, in its own
+  language — add `--slug <short-english-slug>` when that is not English, because filenames are
+  ASCII. No `--modules`, no `--question`, no `--schedule` — nothing has evaluated this idea.
+- **The requirement is the summary**: replace the scaffold's opening paragraph with the
+  sentence, or the plan's whole text, verbatim, in a fenced code block. Open the fence with
+  more backticks than the longest run inside it, or the card fails validation on an unclosed
+  fence.
+- **From a plan, name it**: end the card with `## Source` carrying the plan's path from the
+  project root, the way a create off a plan writes it — once the discussion has let the plan
+  go, that path is the only way back to the file. It is the card's last section.
 - **Leave the rest of the scaffold**: `## Worth noting`, `## Scope`, `## Todo` and
   `## Decided by the agent` stay exactly as `raw create` wrote them.
 - **Then build that card**: the code block is the whole requirement — build exactly it and

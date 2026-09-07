@@ -158,7 +158,9 @@ export interface AgentRequest {
    *  its delivery's title at once, and the card the run writes from it (#470). */
   description?: string
   /** create: the plan this run writes cards from (#427), as a path from the project root.
-   *  The words are in the file, so `description` is left off — a copy pasted into the
+   *  implement with no `id`: the plan a **Build now** under the plan ask is approved to build
+   *  (#481) — it stands in for `description`, and the delivery is titled and bounded by the
+   *  file. The words are in the file, so `description` is left off — a copy pasted into the
    *  prompt would go stale the moment the discussion rewrote it. */
   plan?: string
   /** create, and implement with no `id`: the version the new card(s) ship in — a
@@ -496,6 +498,10 @@ export interface DeliveryRecord {
    *  spec agent's section. Every run in the delivery builds from THIS, so a change to
    *  the card file underneath never changes what the delivery was approved to build. */
   approved: string
+  /** The plan this build was started from (#481), as a path from the project root. Set only
+   *  on a card-less build under the plan ask, where `approved` is that file's text as it
+   *  read when the run was written down. */
+  plan?: string
   /** Questions already open when implementation began. Review waits only on a new decision
    *  it appends; these pre-existing questions continue to hold at landing. */
   initialQuestions?: number
@@ -689,8 +695,28 @@ export interface ChatPlan {
   /** The agent has asked whether to start planning. It stands until an answer is given:
    *  a press, or the next thing the user says. */
   ask?: boolean
-  /** The run writing this plan's cards, once one has been started. */
+  /** The run this plan was handed to, once one has been started. */
   run?: string
+  /** Which answer started it (#481), so the panel names a build rather than a planning
+   *  pass. Absent on a plan handed over before the third answer existed, which was always
+   *  Start planning. */
+  answer?: PlanAnswer
+}
+
+/** What the plan ask was answered with: Start planning, which writes the cards, or Build
+ *  now, which writes one card from the plan and builds it (#481). */
+export type PlanAnswer = 'plan' | 'build'
+
+/** What a build with no card was handed, and everything its delivery is opened from: the
+ *  sentence **Build now** typed (#428), or the plan the plan ask was answered on (#481). */
+export interface DirectBuild {
+  /** The delivery's title — the sentence itself, or the plan's own title. */
+  title: string
+  /** And its frozen `approved` requirements — the same sentence, or the plan's words. */
+  approved: string
+  /** The plan those words were read from, as a path from the project root. Absent on a
+   *  build started from a typed sentence. */
+  plan?: string
 }
 
 /** One point in a conversation where the model changed. `model` is the id in effect from
@@ -785,11 +811,12 @@ export interface DiscussRead {
    *  plan's cards are written. Written out rather than imported: this file is copied into
    *  the board UI and may reach only its siblings. */
   plan: { path: string; text: string; lines: number } | null
-  /** The agent has asked whether to start planning, and the two answers stand. */
+  /** The agent has asked whether to start planning, and the three answers stand. */
   ask: boolean
-  /** The run writing this plan's cards: still working, or the one that failed and can be
-   *  started again. Null when none has been started. */
-  run: { sessionId: string; running: boolean } | null
+  /** The run this plan was handed to: still working, or the one that wrote no card and can
+   *  be started again. `answer` is which answer started it, so the line under the plan names
+   *  a build rather than a planning pass (#481). Null when none has been started. */
+  run: { sessionId: string; running: boolean; answer: PlanAnswer } | null
 }
 
 /** What sending one message came back with. */

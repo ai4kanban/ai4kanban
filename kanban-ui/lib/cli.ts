@@ -18,6 +18,7 @@ import type {
   DeliveryRecord,
   HarnessSetting,
   LoggedOutAgent,
+  PlanAnswer,
   RunRecord,
   RunView,
   SetupProposal,
@@ -371,9 +372,11 @@ export interface BoardRules {
   // Optional like the chat itself: a project running rules older than the release that added
   // them opens the create screen on Add task, and nothing else is missing.
   readDiscuss?(): Promise<DiscussRead>;
-  /** The run writing this plan's cards has started, so reopening Discuss says it is still
-   *  working rather than offering a second one. */
-  startedPlanning?(sessionId: string): void;
+  /** The run this plan was handed to has started, and which of the plan ask's answers handed
+   *  it over (#481) — so reopening Discuss says it is still working rather than offering a
+   *  second one, and names a build where that is what is working. Rules from before the third
+   *  answer take the id alone and record a planning run. */
+  startedPlanning?(sessionId: string, answer?: PlanAnswer): void;
   /** Let the plan go by hand — the discussion was thrown away under it. */
   clearChatPlan?(cardId: ChatTarget): void;
   /** Write one line into the transcript as something the user said, with no turn behind it:

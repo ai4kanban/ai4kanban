@@ -43,6 +43,7 @@ export type {
   HarnessOption,
   HarnessSetting,
   LoggedOutAgent,
+  PlanAnswer,
   RuntimeView,
   ModelChange,
   Provider,

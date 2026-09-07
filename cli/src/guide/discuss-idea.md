@@ -11,5 +11,6 @@ Help users know what they want. Leave technology and implementation to card refi
   bullets; no extra sections.
 - **Reply**: after writing or updating the plan, reply with one short line pointing to it.
   The plan is the proposal; do not repeat or summarize it in chat.
-- **Confirm**: run `akb raw plan ask`. **Start planning** hands off to cards; **Not yet**
+- **Confirm**: run `akb raw plan ask`. **Start planning** hands off to cards; **Build now**
+  writes one card from the plan and builds it, refining and reviewing nothing; **Not yet**
   continues discussion. After text confirmation, offer the button again. Do not create cards here.

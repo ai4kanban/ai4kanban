@@ -53,6 +53,7 @@ import type {
   AgentRequest,
   DeliveryRecord,
   DeliveryStatus,
+  DirectBuild,
   RunRecord,
 } from './types'
 
@@ -288,7 +289,7 @@ export function joinDelivery(
   title: string,
   step: string,
   start?: DeliveryStart,
-  approved?: string,
+  direct?: DirectBuild,
 ): DeliveryRecord {
   const cardId = run.cardId
   // A build with no card joins nothing (#428): there is no card to look one up by, and two
@@ -303,8 +304,12 @@ export function joinDelivery(
       startedAt: run.startedAt,
       sessions: [],
       // The one read of the card this delivery will ever make for its requirements — or,
-      // with no card, the typed sentence it was handed, which can never move under it.
-      approved: cardId === null ? approved ?? '' : approvedRequirements(cardId),
+      // with no card, the sentence or the plan's words it was handed, which can never move
+      // under it.
+      approved: cardId === null ? direct?.approved ?? '' : approvedRequirements(cardId),
+      // …and, where that was a plan, the file it was read from (#481) — the one way back to
+      // it once the panel has let the plan go.
+      plan: cardId === null ? direct?.plan : undefined,
       // Existing questions predate review. Review waits only on a decision it adds itself;
       // these keep waiting at landing as before.
       initialQuestions: cardId === null ? 0 : openQuestions(cardId),

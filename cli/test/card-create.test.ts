@@ -138,7 +138,7 @@ describe('card creation owns its id', () => {
     const typed = 'Rename the heading'
     const deliveryId = withStore((store) => {
       store.runs.push(build)
-      return joinDelivery(store, build, typed, 'implement', undefined, typed).deliveryId
+      return joinDelivery(store, build, typed, 'implement', undefined, { title: typed, approved: typed }).deliveryId
     })
     process.env[RUN_ENV] = build.sessionId
 

@@ -21,6 +21,7 @@ import { dropRunCard, recordCardRun, runBoardMove, setCardStatusOn, takeRunCard 
 import { cardFile } from '../board/revision'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
 import { pidAlive } from '../lock'
+import { planFromText, planTitle, readPlan } from '../plans'
 import { reportRun } from '../machine/usage'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
 import {
@@ -48,6 +49,7 @@ import type {
   AgentAction,
   AgentRequest,
   DeliveryRecord,
+  DirectBuild,
   RefineAsk,
   RefineEffort,
   RunRecord,
@@ -497,6 +499,23 @@ export function titleOf(cardId: number | undefined): string | undefined {
   return cardNow(cardId as number)?.title
 }
 
+/** What a build with no card was handed: the sentence **Build now** typed (#428), or the
+ *  plan the plan ask was answered on (#481). It is the delivery's title and the whole of its
+ *  frozen `approved` requirements at once, so an empty one is nothing to build and the run is
+ *  refused rather than opened. Undefined when this is not a card-less build. */
+function approvedDirect(req: AgentRequest): DirectBuild | { error: string } | undefined {
+  const named = req.plan?.trim()
+  if (named) {
+    const rel = planFromText(named)
+    const text = (rel ? readPlan(rel)?.text : '')?.trim() ?? ''
+    const title = planTitle(text)
+    if (!title) return { error: `there is nothing written in ${named} yet, so there is nothing to build.` }
+    return { title, approved: text, plan: named }
+  }
+  const typed = req.description?.trim()
+  return typed ? { title: typed, approved: typed } : undefined
+}
+
 /** Write a run down and hand back everything the watcher needs to start it. The run is
  *  `running` from this moment: it holds its card, and a second one on the same card is
  *  refused from here on, whichever process asks.
@@ -525,8 +544,15 @@ export function openRun(
   // sentence straight here, so there is no card to look a delivery up by and one is always
   // opened. It is refused where a carded manual build would be, and nowhere else. The card
   // the run writes reaches this delivery afterwards (`adoptDirectCard`, #470).
+  //
+  // Under the plan ask it is a plan rather than a sentence (#481). The file is read once,
+  // here, and its title and its words are what the delivery is titled and bounded by — so a
+  // plan with nothing written in it yet is refused, the way a missing one is, rather than
+  // opening an untitled delivery with nothing to build.
   const delivers = deliversWithGit()
-  const cardless = req.action === 'implement' && cardId === null && !!req.description?.trim()
+  const direct = req.action === 'implement' && cardId === null ? approvedDirect(req) : undefined
+  if (direct && 'error' in direct) return direct
+  const cardless = !!direct
   let start: DeliveryStart | undefined
   if (delivers && req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId)))) {
     const prepared = prepareDelivery(cardId, req.commitMode, req.aiReview)
@@ -604,11 +630,10 @@ export function openRun(
     // review until something has been built.
     if (delivers && DELIVERY_FLOWS.has(req.action) && (cardId !== null || cardless || req.deliveryId)) {
       if (req.action === 'implement') {
-        // A card-less delivery is titled by the sentence it was given, which is also the
-        // whole of what it was approved to build (#428).
-        const typed = req.description?.trim() ?? ''
-        const title = cardId === null ? typed : req.title ?? cardNow(cardId)?.title ?? ''
-        joinDelivery(store, record, title, 'implement', start, typed)
+        // A card-less delivery is titled and bounded by what it was handed (#428, #481): the
+        // typed sentence, or the plan the ask was answered on.
+        const title = cardId === null ? direct?.title ?? '' : req.title ?? cardNow(cardId)?.title ?? ''
+        joinDelivery(store, record, title, 'implement', start, direct)
       } else if (!joinActive(store, record, req.action, req.deliveryId)) {
         store.runs.pop()
         const on = req.deliveryId ? `delivery ${req.deliveryId}` : `#${cardId}`

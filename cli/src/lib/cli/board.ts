@@ -352,13 +352,14 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     })
 
   move('plan')
-    .argument('<move>', 'new — name the plan this discussion is writing; ask — offer to start planning')
+    .argument('<move>', 'new — name the plan this discussion is writing; ask — offer to plan it or build it')
     .summary("the plan file one discussion is writing")
     .description(
       'The Discuss screen writes one file per discussion (#427). `plan new --title "…"` takes the next ' +
         'id and names `docs/kanban/plans/<id>-<slug>.md` — no card is written and the words in it are ' +
-        'yours to write. `plan ask` says the outcome is settled, which stands Start planning and Not yet ' +
-        "under your last message. Both act on the board's own conversation; follow `akb guide discuss-idea`.",
+        'yours to write. `plan ask` says the outcome is settled, which stands Start planning, Build now and ' +
+        "Not yet under your last message. Both act on the board's own conversation; follow " +
+        '`akb guide discuss-idea`.',
     )
     .option('--title <title>', 'what the plan is called — `plan new` only')
     .option('--slug <slug>', 'short English slug for the filename, where the title is not English')

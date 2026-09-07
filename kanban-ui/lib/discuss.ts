@@ -1,13 +1,13 @@
 import { boardRules } from "./cli";
-import type { DiscussRead } from "./types";
+import type { DiscussRead, PlanAnswer } from "./types";
 
 // --- Discuss (#427) -----------------------------------------------------------
 //
 // The Discuss screen is the board's own conversation (lib/chat.ts) with one thing added: the
 // plan file the discussion is talking into shape. This is the board's door onto that — the
-// plan, the ask standing under the last message, and the run turning the plan into cards —
-// all of it held by the rules, beside the transcript, so a discussion survives the window
-// being closed.
+// plan, the ask standing under the last message, and the run one of its answers handed the
+// plan to — all of it held by the rules, beside the transcript, so a discussion survives the
+// window being closed.
 //
 // Nothing here writes the plan file. The agent does, in the conversation; the board only
 // ever reads it.
@@ -43,7 +43,7 @@ export async function canDiscuss(): Promise<boolean> {
   }
 }
 
-/** The user pressed one of the two answers. It is written into the transcript as something
+/** The user pressed one of the three answers. It is written into the transcript as something
  *  they said — the board acts on it, so asking the agent to reply as well would be a turn
  *  spent saying nothing. */
 export async function noteAnswer(text: string): Promise<void> {
@@ -54,17 +54,17 @@ export async function noteAnswer(text: string): Promise<void> {
   }
 }
 
-/** The run writing this plan's cards has started. */
-export async function planningStarted(sessionId: string): Promise<void> {
+/** The run this plan was handed to has started, and which answer handed it over (#481). */
+export async function planningStarted(sessionId: string, answer: PlanAnswer): Promise<void> {
   try {
-    (await boardRules()).startedPlanning?.(sessionId);
+    (await boardRules()).startedPlanning?.(sessionId, answer);
   } catch {
     // Unrecorded, so reopening Discuss offers the run again rather than saying it is going.
   }
 }
 
-/** The plan path a create run is pointed at — as the project spells it, which is how the
- *  read already carries it. Null when the conversation is writing none. */
+/** The plan path a run is pointed at — as the project spells it, which is how the read
+ *  already carries it. Null when the conversation is writing none. */
 export async function planToPlanFrom(): Promise<string | null> {
   return (await readDiscuss()).plan?.path ?? null;
 }

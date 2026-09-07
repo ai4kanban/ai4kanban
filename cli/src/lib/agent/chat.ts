@@ -57,6 +57,7 @@ import type {
   ChatTarget,
   ChatView,
   ModelChange,
+  PlanAnswer,
   TokenUsage,
 } from './types'
 
@@ -143,6 +144,9 @@ function planOf(value: unknown): ChatPlan | undefined {
     path: p.path,
     ask: p.ask === true ? true : undefined,
     run: typeof p.run === 'string' && p.run ? p.run : undefined,
+    // A plan handed over before the third answer existed (#481) names none, and Start
+    // planning is the only thing it could have been.
+    answer: p.run ? (p.answer === 'build' ? 'build' : 'plan') : undefined,
   }
 }
 
@@ -303,12 +307,12 @@ export function askChatPlan(cardId: ChatTarget): { ok: true; path: string } | { 
   return { ok: true, path: plan.path }
 }
 
-/** The run that turns this plan into cards has started. The ask is answered by it, so it
- *  goes; the plan is held until that run has written its cards. */
-export function setChatPlanRun(cardId: ChatTarget, sessionId: string): void {
+/** The run this plan was handed to has started, and which answer handed it over (#481). The
+ *  ask is answered by it, so it goes; the plan is held until that run has written a card. */
+export function setChatPlanRun(cardId: ChatTarget, sessionId: string, answer: PlanAnswer): void {
   const plan = readChat(cardId)?.plan
   if (!plan) return
-  writePlan(cardId, { path: plan.path, run: sessionId })
+  writePlan(cardId, { path: plan.path, run: sessionId, answer })
 }
 
 /** Let the plan go — its cards are written, and the next idea starts a file of its own. */

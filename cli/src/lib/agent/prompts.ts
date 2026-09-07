@@ -63,10 +63,16 @@ export function resumePrompt(deliveryId: string | undefined, cardId: number | nu
   if (cardId !== null) {
     return `${lead} ${DELIVERY_RESUME_CARD.replace('%c', `${boardCommandFor(cardId)} card implement ${cardId} --print`)}`
   }
-  const typed = findDelivery(deliveryId)?.approved.trim()
-  return typed
-    ? `${lead} No card was written yet: write it from this sentence as \`akb guide implement\` says, then build exactly it and nothing more — "${typed}".`
-    : lead
+  const delivery = findDelivery(deliveryId)
+  const approved = delivery?.approved.trim()
+  if (!approved) return lead
+  // Started from a plan (#481), the approved copy is a whole document — it cannot be quoted
+  // as the sentence below is, and the file it came from may have been rewritten since, so
+  // what the delivery froze is set out here in full.
+  if (delivery?.plan) {
+    return `${lead} No card was written yet: write it from the plan this delivery was approved to build, as \`akb guide implement\` says, then build exactly that and nothing more. It came from \`${delivery.plan}\`, and this is the copy to build:\n\n${approved}`
+  }
+  return `${lead} No card was written yet: write it from this sentence as \`akb guide implement\` says, then build exactly it and nothing more — "${approved}".`
 }
 
 /** A format repair continues the same run without repeating its task. */
@@ -260,12 +266,18 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
   switch (req.action) {
     // A build that writes its own card (#470): the typed sentence IS the requirement, so it
     // is quoted here rather than pointed at, and the run's first act is the card it holds.
+    // Answered off the plan ask it is a plan instead (#481), named the way a create off one
+    // is: the words are in the file, and a copy pasted in here would go stale.
     // The release the board was showing comes with it, exactly as it does on a create.
     case 'implement':
       if (req.id === undefined) {
         return [
-          `${kb}. Build this: "${req.description?.trim() ?? ''}".`,
-          `Follow \`akb guide implement\` — write its card first, from that sentence, then build it.`,
+          req.plan
+            ? `${kb}. Build the plan at \`${req.plan}\`. Read it first — it is the whole requirement.`
+            : `${kb}. Build this: "${req.description?.trim() ?? ''}".`,
+          req.plan
+            ? `Follow \`akb guide implement\` — write its card first, from that plan, then build it.`
+            : `Follow \`akb guide implement\` — write its card first, from that sentence, then build it.`,
           req.release ? `Put the new card in the "${req.release}" release: \`--release ${req.release}\`.` : '',
           `Don't ask me questions with human-in-the-loop; stop on a real blocker instead.`,
         ]

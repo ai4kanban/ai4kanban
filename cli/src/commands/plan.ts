@@ -2,7 +2,7 @@
 //
 // Two moves, both about the board's own conversation. `new` takes the next id and names the
 // file; the words in it are the agent's to write. `ask` says the outcome is settled, which
-// is what stands the two answers under the last message on the Discuss screen.
+// is what stands the three answers under the last message on the Discuss screen.
 
 import { askChatPlan, setChatPlan } from '../lib/agent/chat'
 import { say } from '../lib/io'
@@ -39,6 +39,6 @@ function planNew(opts: PlanOptions): MoveResult {
 function planAsk(): MoveResult {
   const asked = askChatPlan(null)
   if ('error' in asked) die(asked.error)
-  say('the discussion now offers Start planning and Not yet under your last message')
+  say('the discussion now offers Start planning, Build now and Not yet under your last message')
   return { path: asked.path }
 }

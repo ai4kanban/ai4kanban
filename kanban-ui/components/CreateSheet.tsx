@@ -63,6 +63,9 @@ interface Props {
   onSend: (description: string, mode: CreateMode) => Promise<{ ok: boolean; error?: string }>;
   /** Start planning: close and start the run that writes the plan's cards. */
   onPlan: () => void;
+  /** Build now off the plan (#481): close and start the run that writes one card from it and
+   *  builds it. The guard has already been answered. */
+  onBuildPlan: () => void;
 }
 
 // Discuss is the BOARD's conversation, whatever page Create task was pressed on (#427). On
@@ -86,6 +89,7 @@ function Sheet({
   onClose,
   onSend,
   onPlan,
+  onBuildPlan,
   rail,
 }: Props & { rail: ChatRail }) {
   const c = useCopy().board.create.sheet;
@@ -330,7 +334,7 @@ function Sheet({
                   // screen reads the same on the other (#441).
                   imageSrc={rail.imageSrc}
                   empty={null}
-                  after={<Handoff plan={plan} rail={rail} onPlan={onPlan} />}
+                  after={<Handoff plan={plan} rail={rail} onPlan={onPlan} onBuild={onBuildPlan} />}
                 />
               </div>
               {/* Over the exchange, the card stops at the box — enlarged too: this screen is
@@ -705,23 +709,40 @@ function Mode({
   );
 }
 
-/** The handoff (#427), under the agent's own last message: the two answers while the ask
- *  stands, and while the run is writing the cards, the one line that says so.
+/** The handoff (#427, #481), under the agent's own last message: the three answers while the
+ *  ask stands, and while the run one of them started is going, the one line that says so.
  *
  *  No banner and no card of its own — the ask is a paragraph the agent wrote, and these are
- *  the ways of answering it. The box below is never taken away. */
-function Handoff({ plan, rail, onPlan }: { plan: PlanPanel; rail: ChatRail; onPlan(): void }) {
+ *  the ways of answering it. The box below is never taken away.
+ *
+ *  Three answers, three weights. Start planning is the one to press: the filled button. Build
+ *  now acts too, so it carries the accent in its frame and its ink but no fill — one thing
+ *  cannot have two equally loud buttons. Not yet is the plain paper ghost; it does nothing. */
+function Handoff({
+  plan,
+  rail,
+  onPlan,
+  onBuild,
+}: {
+  plan: PlanPanel;
+  rail: ChatRail;
+  onPlan(): void;
+  onBuild(): void;
+}) {
   const c = useCopy().board.create.sheet.plan;
+  // Which "are you sure?" Build now opened, if any — the same one Send hangs off in the
+  // sheet's own Build now (#470), anchored to the answer that was pressed.
+  const [guard, setGuard] = useState(false);
+  const anchor = useRef<HTMLSpanElement>(null);
   const read = plan.read;
   if (!read?.plan) return null;
   if (read.run?.running) {
-    return (
-      <p className="px-2.5 pt-2 text-[12px] text-nb-ink-soft">{c.planning}</p>
-    );
+    return <Working label={read.run.answer === "build" ? c.building : c.planning} />;
   }
-  // The ask the agent made, or the offer again after a run that never wrote its cards.
+  // The ask the agent made, or the offer again after a run that wrote no card.
   const failed = !!read.run && !read.run.running;
   if (!read.ask && !failed) return null;
+  const hint = failed ? (read.run?.answer === "build" ? c.buildAgain : c.tryAgain) : c.startHint;
   return (
     <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
       <Button
@@ -735,6 +756,32 @@ function Handoff({ plan, rail, onPlan }: { plan: PlanPanel; rail: ChatRail; onPl
       >
         {c.start}
       </Button>
+      {/* The panel hangs off this, so it lives inside — the way New idea's does above. */}
+      <span ref={anchor} className="relative flex">
+        <Button
+          size="xs"
+          variant="ghost"
+          className="font-[700]"
+          aria-expanded={guard}
+          style={{
+            borderColor: "var(--color-nb-accent-deep)",
+            color: "var(--color-nb-accent-deep)",
+          }}
+          onClick={() => setGuard((was) => !was)}
+        >
+          {c.build}
+        </Button>
+        <BuildGuard
+          open={guard}
+          anchorRef={anchor}
+          onDismiss={() => setGuard(false)}
+          onConfirm={() => {
+            setGuard(false);
+            void noteDiscussAnswerAction(c.build);
+            onBuild();
+          }}
+        />
+      </span>
       <Button
         size="xs"
         variant="ghost"
@@ -745,8 +792,61 @@ function Handoff({ plan, rail, onPlan }: { plan: PlanPanel; rail: ChatRail; onPl
       >
         {c.notYet}
       </Button>
-      <span className="text-[11.5px] text-nb-ink-soft">{failed ? c.tryAgain : c.startHint}</span>
+      <span className="text-[11.5px] text-nb-ink-soft">{hint}</span>
     </div>
+  );
+}
+
+/** The run one answer started, in the line the three answers stood on. The dot is what finds
+ *  it: this line sits against the reply's own small grey text, and accent moving is what says
+ *  "working" everywhere else in the app. */
+function Working({ label }: { label: string }) {
+  return (
+    <p className="flex items-center gap-1.5 px-2.5 pt-2 text-[12px] text-nb-ink-soft">
+      <span aria-hidden className="size-[7px] shrink-0 rounded-full bg-nb-accent" />
+      {label}
+    </p>
+  );
+}
+
+/** The guard Build now opens, wherever it is pressed — the sheet's own words (#470), because
+ *  this is the sheet's own Build now: one behavior, one guard. The plan those words are about
+ *  is on screen beside it. */
+function BuildGuard({
+  open,
+  anchorRef,
+  onDismiss,
+  onConfirm,
+}: {
+  open: boolean;
+  anchorRef: React.RefObject<HTMLSpanElement | null>;
+  onDismiss(): void;
+  onConfirm(): void;
+}) {
+  const c = useCopy().board.create.sheet.guard;
+  return (
+    <ConfirmationPopover
+      open={open}
+      anchorRef={anchorRef}
+      align="left"
+      title={c.title}
+      description={
+        <span className="flex flex-col gap-1">
+          <span>{c.writes}</span>
+          {c.skips.map((line) => (
+            <span key={line} className="flex items-start gap-1.5">
+              <FiX className="mt-[3px] shrink-0 text-[11px] text-nb-peach-ink" aria-hidden />
+              <span>{line}</span>
+            </span>
+          ))}
+        </span>
+      }
+      cancelLabel={c.cancel}
+      confirmLabel={c.confirm}
+      busy={false}
+      onDismiss={onDismiss}
+      onConfirm={onConfirm}
+    />
   );
 }
 

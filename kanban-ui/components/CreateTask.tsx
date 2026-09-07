@@ -19,7 +19,7 @@
 // cannot: it closes the sheet first, so its refusal is said under the button.
 
 import { useRouter } from "next/navigation";
-import { startPlanningAction } from "@/app/actions";
+import { startPlanBuildAction, startPlanningAction } from "@/app/actions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
@@ -111,22 +111,27 @@ export function CreateTask({
     [start, c],
   );
 
-  // Start planning (#427): the same handoff Add task makes — the screen closes, the run that
-  // writes the plan's cards starts behind it, and Runs opens on it and tails it from the
-  // first frame. Which plan is the board's own to say, so nothing about it is sent from here.
-  const startPlanning = useCallback(async () => {
-    setOpen(false);
-    const res = await startPlanningAction(release ?? undefined);
-    if (!res.ok) {
-      setError(res.error || c.startFailed);
-      return;
-    }
-    if (!res.sessionId) return;
-    // The server started it, so it is `watch` and not `start` that takes it on — otherwise
-    // the cards it writes would not reach the board until something else re-read it.
-    watch(res.sessionId, "Start planning");
-    sessionsPanel.open(res.sessionId);
-  }, [release, watch, c]);
+  // The two answers under the plan ask that start a run (#427, #481): the same handoff Add
+  // task makes — the screen closes, the run starts behind it, and Runs opens on it and tails
+  // it from the first frame. Which plan is the board's own to say, so nothing about it is
+  // sent from here; only the release on screen is, exactly as a card written here carries it.
+  const startFromPlan = useCallback(
+    async (answer: "plan" | "build") => {
+      setOpen(false);
+      const start = answer === "build" ? startPlanBuildAction : startPlanningAction;
+      const res = await start(release ?? undefined);
+      if (!res.ok) {
+        setError(res.error || c.startFailed);
+        return;
+      }
+      if (!res.sessionId) return;
+      // The server started it, so it is `watch` and not `start` that takes it on — otherwise
+      // the card it writes would not reach the board until something else re-read it.
+      watch(res.sessionId, answer === "build" ? "Build now" : "Start planning");
+      sessionsPanel.open(res.sessionId);
+    },
+    [release, watch, c],
+  );
 
   return (
     <div className="relative flex shrink-0 items-center">
@@ -173,7 +178,8 @@ export function CreateTask({
               mode === "build" ? "Build now" : "Create task",
             )
           }
-          onPlan={() => void startPlanning()}
+          onPlan={() => void startFromPlan("plan")}
+          onBuildPlan={() => void startFromPlan("build")}
         />
       )}
     </div>
