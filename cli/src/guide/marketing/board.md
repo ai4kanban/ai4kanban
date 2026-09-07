@@ -64,7 +64,7 @@ channel, and the source tab's repurpose starts one for every chosen channel at o
 ## Channels
 
 A topic goes to the channels its card names, in `channels:`. The order is the one you
-picked them in: it orders the tab strip and where `+` appends, and nothing else — no
+picked them in: it orders the tab strip, and nothing else — no
 channel leads. Every chosen channel gets its own file — `source.md` is the argument,
 written for no channel, and is never published.
 

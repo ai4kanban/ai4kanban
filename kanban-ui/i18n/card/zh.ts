@@ -56,12 +56,16 @@ const zh: CardCopy = {
     publishedCount: (published, total) => `${published} / ${total} 已发布`,
     saved: "已保存",
     unsaved: "未保存",
-    addChannel: "加频道",
+    repurposeTo: "改写到…",
+    hasDraft: "已有稿件",
     addChannelFailed: "未能添加该频道",
+    closeChannel: (channel) => `关闭 ${channel}`,
+    closeChannelFailed: "未能关闭该频道",
     repurpose: {
-      action: "改写各频道",
+      action: (channels) => `改写 ${channels}`,
       titleAll: "改写各频道",
       titleOne: (channel) => `改写${channel}`,
+      titleNew: (channel) => `改写到 ${channel}`,
       willWrite: (channels) => `${channels} 还没有稿件，这次会写出来。`,
       willReplace: (channels, count) =>
         count === 1

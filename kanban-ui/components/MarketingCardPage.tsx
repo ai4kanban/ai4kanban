@@ -23,6 +23,11 @@
 // what is unsaved is written back to its own tab's file before the strip moves or the page
 // goes.
 //
+// The strip is `channels:` and nothing else (#478): "Repurpose to…" adds a channel, writes
+// its first draft and lands on its tab in one press, and a tab's cross takes that channel
+// back off. No hidden-tab state either way — a closed channel leaves its draft file behind,
+// so reopening it is indistinguishable from choosing it for the first time.
+//
 // Two halves, because the rail is drawn by the window this page is put INSIDE: the outer
 // half is everything the frame needs (the runs, the error line, the two dialogs that take
 // the card off the board), and the inner half is the page itself, which reads that rail.
@@ -36,12 +41,11 @@ import {
   FiArrowLeft,
   FiCheck,
   FiChevronDown,
-  FiEdit3,
   FiGlobe,
   FiMoreHorizontal,
-  FiPlus,
   FiRepeat,
   FiSend,
+  FiX,
   FiXCircle,
 } from "react-icons/fi";
 import type { OverTypeInstance } from "overtype";
@@ -68,7 +72,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
@@ -415,6 +418,11 @@ function Draft({
     if (tab !== SOURCE && tab !== added && !channels.some((ch) => ch.name === tab)) setTab(SOURCE);
   }, [channels, tab, added]);
 
+  /** Whether that draft has anything on disk. What the panel warns about, what says whether
+   *  a run replaces one — the same question `akb channel` asks before it starts — and what
+   *  tells a channel the picker can simply reopen from one it has to write. */
+  const isWritten = (name: string) => (read.drafts.find((d) => d.name === name)?.text ?? "").trim() !== "";
+
   const channel = channels.find((ch) => ch.name === tab);
   const draft = read.drafts.find((d) => d.name === tab);
   // The file this tab writes, named before it exists: the first save is what makes it.
@@ -425,8 +433,11 @@ function Draft({
   // — or the editor arriving — and the file reaching it.
   const written = (dirty ? text : (draft?.text ?? "")).trim() !== "";
   const unchosen = CHANNEL_NAMES.filter((name) => !channels.some((ch) => ch.name === name));
-  // The `+` is drawn only where the board's rules carry the move behind it.
-  const canAdd = !!actions && !!read.canSetChannels && unchosen.length > 0;
+  // Both moves the strip makes are `update --channels`, so both need the rules that carry
+  // it. "Repurpose to…" needs a source on top of that: a repurpose refuses without one.
+  const canSetChannels = !!actions && !!read.canSetChannels;
+  const sourceWritten = tab === SOURCE ? written : isWritten(SOURCE);
+  const canRepurposeTo = canSetChannels && sourceWritten && unchosen.length > 0;
   // And the comment box and its list only where the rules carry those moves (#458). A board
   // running older rules keeps its editor, its tabs and its repurpose, and simply offers
   // nothing to comment with.
@@ -445,9 +456,23 @@ function Draft({
 
   // ---- the moves the page makes itself -------------------------------------
 
-  /** Whether that channel has a draft on disk. What the panel warns about, and what says
-   *  whether a run replaces one — the same question `akb channel` asks before it starts. */
-  const isWritten = (name: string) => (read.drafts.find((d) => d.name === name)?.text ?? "").trim() !== "";
+  /** Put channels on the card and land the strip on the first of them — `channels:` is the
+   *  only record of which tabs there are, so this is the whole of opening one. Every channel
+   *  already there keeps its status and the URL it went up at. Answers whether it landed;
+   *  the caller has flushed and owns `moving`. */
+  const add = async (names: string[]): Promise<boolean> => {
+    if (!actions || !names.length) return false;
+    const res = await actions.setChannels(card.id, [...channels.map((ch) => ch.name), ...names]);
+    if (!res.ok) {
+      onError(res.error ?? c.addChannelFailed);
+      return false;
+    }
+    onError(null);
+    setAdded(names[0]!);
+    setTab(names[0]!);
+    router.refresh();
+    return true;
+  };
 
   /**
    * Repurpose, once the panel has been confirmed — `akb channel <name> <id>` per channel,
@@ -457,6 +482,10 @@ function Draft({
    * refused: it was named as one this will replace before anything ran. A refusal that
    * still comes back — the file appeared since the pane last read the folder — is said on
    * the error line, without the sentence telling a terminal which flag to add.
+   *
+   * A channel picked from "Repurpose to…" is not on the card yet, and `akb channel` refuses
+   * one the card has not chosen — so it is added, and the strip lands on it, before the run
+   * starts (#478). A refusal after that leaves the tab open on its own empty state.
    */
   const repurpose = async (targets: string[], ask: RepurposeAsk) => {
     if (!actions || !targets.length) return;
@@ -464,6 +493,8 @@ function Draft({
     // save landing after one would put the words back over what the agent wrote.
     if (!(await flush())) return;
     setMoving(true);
+    const fresh = targets.filter((name) => !channels.some((ch) => ch.name === name));
+    if (fresh.length && !(await add(fresh))) return setMoving(false);
     const results = await Promise.all(
       targets.map((name) => actions.repurpose(card.id, name, isWritten(name), ask)),
     );
@@ -490,20 +521,41 @@ function Draft({
     router.refresh();
   };
 
-  /** The `+`: one more channel on the end of the list. Every channel already there keeps
-   *  its status and the URL it went up at. */
-  const addChannel = async (name: string) => {
-    if (!actions) return;
+  /** "Repurpose to…": one channel this topic has not chosen. One whose draft is already on
+   *  disk is only opened back up — the file is untouched and nothing runs — and one with
+   *  nothing written goes through the same ask a Rewrite opens. */
+  const pickChannel = async (name: string) => {
     // The strip is about to move, so this tab's words go to disk first — the same rule
     // clicking a tab follows.
     if (!(await flush())) return;
+    if (!isWritten(name)) return setAsking([name]);
+    setAsking(null);
     setMoving(true);
-    const res = await actions.setChannels(card.id, [...channels.map((ch) => ch.name), name]);
+    await add([name]);
     setMoving(false);
-    if (!res.ok) return onError(res.error ?? c.addChannelFailed);
+  };
+
+  /** Close a channel tab: the channel comes off the card, and `content/…/<name>.md` stays
+   *  where it is. Reopening it from the picker is what brings that draft back. */
+  const closeChannel = async (name: string) => {
+    if (!actions) return;
+    if (!(await flush())) return;
+    setMoving(true);
+    const res = await actions.setChannels(
+      card.id,
+      channels.filter((ch) => ch.name !== name).map((ch) => ch.name),
+    );
+    setMoving(false);
+    if (!res.ok) return onError(res.error ?? c.closeChannelFailed);
     onError(null);
-    setAdded(name);
-    setTab(name);
+    setAdded((a) => (a === name ? "" : a));
+    // The ask names channels, so one taken off the card leaves it: confirming what is left
+    // must not put the closed channel back.
+    setAsking((a) => {
+      const left = (a ?? []).filter((n) => n !== name);
+      return left.length ? left : null;
+    });
+    if (tab === name) setTab(SOURCE);
     router.refresh();
   };
 
@@ -588,7 +640,6 @@ function Draft({
           ) : null}
           <span className="relative ml-auto flex shrink-0 items-center">
             <PageMenu
-              onRewrite={channel && actions ? () => setAsking([channel.name]) : undefined}
               onArchive={actions ? onArchive : undefined}
               onReject={actions ? onReject : undefined}
               disabled={locked || moving}
@@ -596,8 +647,9 @@ function Draft({
           </span>
         </div>
 
-        {/* The strip: `source`, one tab per chosen channel, the `+` that chooses one more,
-            and — once this tab has a draft — Publish at its right end. */}
+        {/* The strip: `source`, one tab per chosen channel — each with the cross that takes
+            it back off — the picker that chooses one more, and this tab's own actions at the
+            right end. */}
         <div className="flex items-end gap-1 px-3">
           <Tab label={SOURCE} mono on={tab === SOURCE} onClick={() => void goTab(SOURCE)} />
           {channels.map((ch) => (
@@ -608,16 +660,25 @@ function Draft({
               onClick={() => void goTab(ch.name)}
               mark={<ChannelMark name={ch.name} status={ch.status} size={13} />}
               dot={<ChannelDot status={ch.status} size={6} />}
+              closeLabel={c.closeChannel(channelLabel(ch.name))}
+              closeDisabled={locked || moving}
+              onClose={canSetChannels ? () => void closeChannel(ch.name) : undefined}
             />
           ))}
-          {canAdd && (
+          {canRepurposeTo && (
             <span className="mb-[3px]">
-              <AddChannel names={unchosen} disabled={moving} onPick={(n) => void addChannel(n)} />
+              <RepurposeTo
+                names={unchosen}
+                written={unchosen.filter(isWritten)}
+                disabled={locked || moving}
+                onPick={(n) => void pickChannel(n)}
+              />
             </span>
           )}
           {/* The source tab's one AI move: repurpose into every chosen channel at once. It
               needs a source to read and a channel to write, so it is drawn only where both
-              are there. */}
+              are there, and it names those channels — the picker beside it says "Repurpose
+              to…" as well. */}
           {tab === SOURCE && written && channels.length > 0 && actions && (
             <span className="mb-[2px] ml-auto shrink-0">
               <Button
@@ -626,12 +687,20 @@ function Draft({
                 onClick={() => setAsking(channels.map((ch) => ch.name))}
               >
                 <FiRepeat className="text-[12px]" aria-hidden />
-                {c.repurpose.action}
+                {c.repurpose.action(channels.map((ch) => channelLabel(ch.name)).join(c.repurpose.separator))}
               </Button>
             </span>
           )}
+          {/* The open channel's own two: writing it again over what is there, and recording
+              where it went up. Both need a draft to work on. */}
           {channel && written && (
-            <span className="mb-[2px] ml-auto shrink-0">
+            <span className="mb-[2px] ml-auto flex shrink-0 items-center gap-2">
+              {actions && (
+                <Button variant="ghost" size="xs" disabled={locked || moving} onClick={() => setAsking([channel.name])}>
+                  <FiRepeat className="text-[12px]" aria-hidden />
+                  {c.rewrite}
+                </Button>
+              )}
               <Button size="xs" disabled={!actions || moving} onClick={() => setPublishing(true)}>
                 <FiSend className="text-[12px]" aria-hidden />
                 {c.publish}
@@ -744,8 +813,9 @@ const withoutFlag = (why: string | undefined): string => (why ?? "").split("Add 
 
 // ---- the pieces ------------------------------------------------------------
 
-/** One tab: the channel's mark, its name, and how far it has got. `source` carries neither
- *  mark nor dot — it is what every channel is written from, not a destination. */
+/** One tab: the channel's mark, its name, how far it has got, and the cross that takes it
+ *  back off the card. `source` carries none of the four — it is what every channel is
+ *  written from, not a destination, and nothing is left if it goes. */
 function Tab({
   label,
   on,
@@ -753,6 +823,9 @@ function Tab({
   mark,
   dot,
   onClick,
+  onClose,
+  closeLabel,
+  closeDisabled,
 }: {
   label: string;
   on: boolean;
@@ -760,17 +833,16 @@ function Tab({
   mark?: React.ReactNode;
   dot?: React.ReactNode;
   onClick: () => void;
+  /** Unset on a tab that cannot be closed, which draws no cross at all. */
+  onClose?: () => void;
+  closeLabel?: string;
+  closeDisabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={`relative flex h-[30px] cursor-pointer items-center gap-1.5 rounded-t-[8px] px-2.5 text-[12px] font-[700] transition-colors${
-        on
-          ? " bg-nb-paper"
-          : " text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)]"
-      }`}
+    <span
+      className={`relative flex h-[30px] items-center rounded-t-[8px] transition-colors${
+        on ? " bg-nb-paper" : " hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_5%,transparent)]"
+      }${onClose ? " pr-1" : ""}`}
     >
       {on && (
         <span
@@ -779,21 +851,50 @@ function Tab({
           style={{ background: "var(--color-nb-accent)" }}
         />
       )}
-      {mark}
-      <span className={mono ? "font-mono text-[11.5px]" : undefined}>{label}</span>
-      {dot}
-    </button>
+      <button
+        type="button"
+        aria-pressed={on}
+        onClick={onClick}
+        className={`flex h-full cursor-pointer items-center gap-1.5 pl-2.5 text-[12px] font-[700]${
+          onClose ? " pr-1" : " pr-2.5"
+        }${on ? "" : " text-nb-ink-soft"}`}
+      >
+        {mark}
+        <span className={mono ? "font-mono text-[11.5px]" : undefined}>{label}</span>
+        {dot}
+      </button>
+      {onClose && (
+        <button
+          type="button"
+          title={closeLabel}
+          aria-label={closeLabel}
+          disabled={closeDisabled}
+          onClick={onClose}
+          className={`grid size-[17px] shrink-0 cursor-pointer place-items-center rounded-[5px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] disabled:cursor-not-allowed disabled:opacity-40${
+            on ? "" : " opacity-60"
+          }`}
+        >
+          <FiX className="text-[11px]" aria-hidden />
+        </button>
+      )}
+    </span>
   );
 }
 
-/** The `+` at the right of the strip: the channels this topic has not chosen. Picking one
- *  appends it to the end of the list, and the strip lands on its tab. */
-function AddChannel({
+/** "Repurpose to…" at the right of the strip (#478): the channels this topic has not chosen.
+ *  It stands where the `+` used to and says what the press does, because adding a channel
+ *  and writing its first draft are one move now — there is no empty tab in between.
+ *
+ *  A channel whose draft is still on disk from before it was closed is marked as such:
+ *  choosing it opens its tab back up and starts nothing. */
+function RepurposeTo({
   names,
+  written,
   disabled,
   onPick,
 }: {
   names: string[];
+  written: string[];
   disabled: boolean;
   onPick: (name: string) => void;
 }) {
@@ -804,18 +905,21 @@ function AddChannel({
         <button
           type="button"
           disabled={disabled}
-          title={c.addChannel}
-          aria-label={c.addChannel}
-          className="grid size-6 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[24px] cursor-pointer items-center gap-1.5 rounded-[8px] bg-nb-accent-soft px-2 text-[12px] font-[700] text-nb-accent-deep transition-colors enabled:hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <FiPlus className="text-[14px]" aria-hidden />
+          <FiRepeat className="text-[12px]" aria-hidden />
+          {c.repurposeTo}
+          <FiChevronDown className="text-[12px]" aria-hidden />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[176px]">
+      <DropdownMenuContent align="start" className="min-w-[212px]">
         {names.map((name) => (
           <DropdownMenuItem key={name} className="gap-2" onSelect={() => onPick(name)}>
             <ChannelMark name={name} status="" size={14} dim={false} />
             {channelLabel(name)}
+            {written.includes(name) && (
+              <span className="ml-auto text-[11px] font-[600] text-nb-ink-soft">{c.hasDraft}</span>
+            )}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -823,22 +927,21 @@ function AddChannel({
   );
 }
 
-/** The `…` beside the title: rewriting this channel's draft over the one already there, and
- *  the two ways this card leaves the board. */
+/** The `…` beside the title: the two ways this card leaves the board. Rewriting a channel
+ *  lives in the strip beside Publish — the strip is the discoverable door, and two of them
+ *  onto one run is one too many. */
 function PageMenu({
-  onRewrite,
   onArchive,
   onReject,
   disabled,
 }: {
-  onRewrite?: () => void;
   onArchive?: () => void;
   onReject?: () => void;
   disabled: boolean;
 }) {
   const t = useCopy();
   const c = t.card.marketing;
-  if (!onRewrite && !onArchive && !onReject) return null;
+  if (!onArchive && !onReject) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -852,13 +955,6 @@ function PageMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[192px]">
-        {onRewrite && (
-          <DropdownMenuItem className="gap-2" disabled={disabled} onSelect={onRewrite}>
-            <FiEdit3 className="text-[13px]" aria-hidden />
-            {c.rewrite}
-          </DropdownMenuItem>
-        )}
-        {onRewrite && (onArchive || onReject) && <DropdownMenuSeparator />}
         {onArchive && (
           <DropdownMenuItem className="gap-2" disabled={disabled} onSelect={onArchive}>
             <FiArchive className="text-[13px]" aria-hidden />
@@ -915,6 +1011,14 @@ function RepurposePanel({
   const fresh = channels.filter((name) => !written.includes(name));
   const names = (list: string[]) => list.map(channelLabel).join(c.separator);
   const start = () => onStart({ note: note.trim() || undefined, language: language || undefined });
+  // One channel names itself, and says whether this is its first draft or its next one —
+  // the picker opens this panel too, on a channel nothing has been written for yet (#478).
+  const title =
+    channels.length > 1
+      ? c.titleAll
+      : written.length
+        ? c.titleOne(channelLabel(channels[0]!))
+        : c.titleNew(channelLabel(channels[0]!));
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -927,12 +1031,10 @@ function RepurposePanel({
   return (
     <div
       role="dialog"
-      aria-label={channels.length === 1 ? c.titleOne(channelLabel(channels[0]!)) : c.titleAll}
+      aria-label={title}
       className="nb-panel-sm absolute right-3 top-[9px] z-20 w-[min(356px,calc(100%-24px))] bg-nb-paper p-3.5"
     >
-      <p className="text-[13px] font-[700] leading-[1.45] text-nb-ink">
-        {channels.length === 1 ? c.titleOne(channelLabel(channels[0]!)) : c.titleAll}
-      </p>
+      <p className="text-[13px] font-[700] leading-[1.45] text-nb-ink">{title}</p>
       {fresh.length > 0 && (
         <p className="mt-1 text-[12px] leading-[1.6] text-nb-ink-soft">{c.willWrite(names(fresh), fresh.length)}</p>
       )}

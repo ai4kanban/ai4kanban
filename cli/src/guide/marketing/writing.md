@@ -25,7 +25,7 @@ hand-write the frontmatter: `akb raw create`, `update`, `update-verify` and
   akb raw update <id> --channels x,xiaohongshu
   ```
 
-  in the order they picked. The order only orders the tab strip and where `+` appends.
+  in the order they picked. The order only orders the tab strip.
 - **No channel leads**: `channels:` is the set of channels the piece goes to — nothing on
   the card says which post matters most. `source.md` is written for none of them, and every
   chosen channel's draft is its own repurposing of it.

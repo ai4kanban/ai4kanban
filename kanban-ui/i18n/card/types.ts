@@ -65,8 +65,9 @@ export type CardCopy = {
   marketing: {
     /** The way back to the board, beside the title. */
     back: string;
-    /** The `…` menu, and the three things in it that are this page's own. */
+    /** The `…` menu, and the two ways this card leaves the board from it. */
     more: string;
+    /** The open channel's own rewrite, in the strip beside Publish. */
     rewrite: string;
     /** The two centred actions on a tab nothing is written for, and the line under them
      *  saying the other way is simply to type. */
@@ -81,17 +82,27 @@ export type CardCopy = {
     /** The editor's corner: the file, and whether it holds what is on screen. */
     saved: string;
     unsaved: string;
-    /** The `+` at the right of the tab strip. */
-    addChannel: string;
+    /** The picker at the right of the tab strip (#478): one channel this topic has not
+     *  chosen, added and written in the same press. A channel whose draft is already on
+     *  disk is marked, and choosing it only opens its tab back up. */
+    repurposeTo: string;
+    hasDraft: string;
     addChannelFailed: string;
+    /** Taking a channel back off the card. The draft file stays where it is. */
+    closeChannel: (channel: string) => string;
+    closeChannelFailed: string;
     /** The repurpose panel (#457) — the one AI move the source tab has, and the same panel
      *  a single channel's Rewrite opens. It is the ask: nothing starts until it is
      *  confirmed, so what it says is what is about to happen. */
     repurpose: {
-      /** The strip's button, and the panel's title in each of its two shapes. */
-      action: string;
+      /** The source tab's button, named for the channels it writes — the picker beside it
+       *  reads "Repurpose to…" too, and a bare "Repurpose" would not say which is which. */
+      action: (channels: string) => string;
+      /** The panel's title in each of its three shapes: every chosen channel, one that is
+       *  being written over, and one being written for the first time. */
       titleAll: string;
       titleOne: (channel: string) => string;
+      titleNew: (channel: string) => string;
       /** What this repurpose does: the channels it writes for the first time, and the
        *  drafts it replaces — whose edits are the only copy there is. */
       willWrite: (channels: string, count: number) => string;

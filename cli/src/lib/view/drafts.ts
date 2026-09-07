@@ -137,8 +137,8 @@ export function setChannelStatus(id: number, channel: string, status: ChannelSta
 
 /** Choose the channels this topic goes to — `update --channels`, so the same rules apply:
  *  the whole list is rewritten, no entry leads, and a channel that stays keeps the status
- *  and URL it already had. The page's `+` appends one; taking one off is still a
- *  terminal's job. */
+ *  and URL it already had. The page's picker appends one and a tab's cross takes one off;
+ *  the draft file is left alone either way. */
 export function setChannels(id: number, names: string[]) {
   return withLease({ card: id }, (env) =>
     board().runMove('update', { args: [String(id)], opts: { channels: names } }, env),

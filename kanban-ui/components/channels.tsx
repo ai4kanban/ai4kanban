@@ -36,7 +36,7 @@ const STATE: Record<ChannelStatus | "", { colour: string; filled: boolean }> = {
 };
 
 /** Every channel the board knows, in the order `cli/src/lib/channels.ts` names them — what
- *  the marketing card page's `+` offers once the chosen ones are taken out (#434). */
+ *  the marketing card page's "Repurpose to…" offers once the chosen ones are taken out. */
 export const CHANNEL_NAMES = Object.keys(MARK);
 
 /** What this channel is called, for a tooltip and for a tab. The platform's own name, in

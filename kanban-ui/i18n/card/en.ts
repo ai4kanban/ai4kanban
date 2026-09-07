@@ -57,12 +57,16 @@ const en: CardCopy = {
     publishedCount: (published, total) => `${published} / ${total} published`,
     saved: "Saved",
     unsaved: "Unsaved",
-    addChannel: "Add a channel",
+    repurposeTo: "Repurpose to…",
+    hasDraft: "Has a draft",
     addChannelFailed: "the channel could not be added",
+    closeChannel: (channel) => `Close ${channel}`,
+    closeChannelFailed: "the channel could not be closed",
     repurpose: {
-      action: "Repurpose all",
+      action: (channels) => `Repurpose ${channels}`,
       titleAll: "Repurpose into each channel",
       titleOne: (channel) => `Rewrite ${channel}`,
+      titleNew: (channel) => `Repurpose to ${channel}`,
       willWrite: (channels, count) =>
         count === 1 ? `${channels} has no draft yet — this writes it.` : `${channels} have no draft yet — this writes them.`,
       willReplace: (channels, count) =>
