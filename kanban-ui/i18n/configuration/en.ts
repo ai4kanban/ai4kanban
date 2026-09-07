@@ -31,7 +31,6 @@ const en: ConfigurationCopy = {
     rename: "Rename",
     save: "Save",
     newNameHelp: "Naming it creates it. Leave it empty to cancel.",
-    newRowBlurb: "Provider, endpoint, key and model come after, under Advanced settings.",
     nameEmpty: "Enter a name.",
     nameTaken: "Name already exists. Choose another.",
     connector: "Connector",

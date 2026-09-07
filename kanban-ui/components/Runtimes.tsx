@@ -31,10 +31,12 @@ import {
   deleteRuntimeAction,
   loggedOutAgentsAction,
   renameRuntimeAction,
+  setRuntimeSecretAction,
+  setRuntimeSettingAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { AgentInfo, RuntimeView } from "@/lib/types";
-import { AgentMark, Field, HarnessCards, HarnessPicker, useRuntimeName } from "./Configuration";
+import { AgentMark, Field, HarnessPicker, useRuntimeName } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
 import { CONTROL, QUIET_BTN } from "./settings";
 
@@ -110,7 +112,7 @@ export function RuntimesPanel({
         ))}
         {adding && (
           <NewRow
-            options={info.options}
+            info={info}
             harness={startHarness}
             taken={taken}
             onAdded={added}
@@ -467,21 +469,26 @@ function Row({
   );
 }
 
-/** The row **+ Add runtime** opens: a name box and the card grid, and nothing else. It is a
- *  runtime only once it is named — an id is minted from the name and never moves again, so a
- *  row created as "New runtime" would keep `…__NEW_RUNTIME` as its key line for good.
+/** The row **+ Add runtime** opens: the whole row, drawn before it exists — the name box, the
+ *  card grid and the same Advanced settings every saved row has. A runtime is a name, a
+ *  connector and what that connector needs, and asking for them in that order beats naming it
+ *  first and finding the rest afterwards.
  *
- *  Leaving the row with the name still empty drops it; pressing Enter on an empty box asks
- *  for a name. */
+ *  Nothing is written until it is named: an id is minted from the name and never moves again,
+ *  so a row created as "New runtime" would keep `…__NEW_RUNTIME` as its key line for good.
+ *  What the fields hold is kept here and replayed onto the row the moment the name creates it.
+ *
+ *  Leaving the row with the name still empty drops it, settings and all; pressing Enter on an
+ *  empty box asks for a name. */
 function NewRow({
-  options,
+  info,
   harness,
   taken,
   onAdded,
   onDrop,
   onError,
 }: {
-  options: AgentInfo["options"];
+  info: AgentInfo;
   harness: string;
   taken: (name: string, self?: string) => boolean;
   onAdded: (agent: AgentInfo, id: string) => void;
@@ -493,14 +500,38 @@ function NewRow({
   const [picked, setPicked] = useState(harness);
   const [refusal, setRefusal] = useState("");
   const [busy, setBusy] = useState(false);
+  // What the fields hold, waiting for a name. Two of them because they go to two files under
+  // the id the name mints: the settings to docs/kanban/ui.config.json, the keys to
+  // docs/kanban/.env. A key sits here only for as long as the row is unnamed — nothing else
+  // holds one, and dropping the row drops it with everything else.
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [secrets, setSecrets] = useState<Record<string, string>>({});
   const box = useRef<HTMLInputElement>(null);
-  // Picking a card blurs the name box without leaving the row. Read as leaving it, an empty
-  // box would drop the row before the press it was aimed at ever landed, and a filled one
-  // would create the runtime on the harness picked a moment ago.
-  const within = useRef(false);
+  const row = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     box.current?.focus();
+  }, []);
+
+  // A press outside the row is the answer: a named row is created and an unnamed one dropped.
+  // Read from the press rather than from focus, because the row is a form — a field that blurs
+  // itself on Enter, and a provider list that opens in a layer of its own, both look like
+  // focus leaving and neither is. The provider list is that layer, so a press in it is a press
+  // in the row.
+  const leave = useRef<() => void>(() => {});
+  leave.current = () => {
+    if (typed.trim()) void create();
+    else onDrop();
+  };
+  useEffect(() => {
+    const pressed = (e: PointerEvent) => {
+      const at = e.target as Element | null;
+      if (!at || !row.current) return;
+      if (row.current.contains(at) || at.closest("[data-radix-popper-content-wrapper]")) return;
+      leave.current();
+    };
+    document.addEventListener("pointerdown", pressed, true);
+    return () => document.removeEventListener("pointerdown", pressed, true);
   }, []);
 
   const create = async () => {
@@ -522,7 +553,22 @@ function NewRow({
         onError?.(res.error || c.addFailed);
         return;
       }
-      onAdded(res.agent, res.id);
+      // The row exists; now it gets what was typed into it, in the order it was typed — a
+      // provider before the box it needs, the way the fields themselves saved. A field the
+      // board refuses is reported and the rest still land: the row is already on the list, and
+      // dropping it to undo one setting would take the others with it.
+      let agent = res.agent;
+      const settled = (out: { ok: boolean; error?: string; agent?: AgentInfo }) => {
+        if (!out.ok) onError?.(out.error || c.addFailed);
+        else if (out.agent) agent = out.agent;
+      };
+      for (const [key, value] of Object.entries(values)) {
+        if (value) settled(await setRuntimeSettingAction(res.id, key, value));
+      }
+      for (const [key, value] of Object.entries(secrets)) {
+        if (value) settled(await setRuntimeSecretAction(res.id, key, value));
+      }
+      onAdded(agent, res.id);
     } catch (e) {
       onError?.(e instanceof Error ? e.message : String(e));
     } finally {
@@ -532,22 +578,7 @@ function NewRow({
 
   return (
     <div
-      // A pointer press lands before the blur it causes, and is forgotten right after it.
-      onPointerDownCapture={() => {
-        within.current = true;
-        setTimeout(() => {
-          within.current = false;
-        }, 0);
-      }}
-      // Leaving the ROW is the answer, not leaving the name box: a named row is created and
-      // an unnamed one is dropped, however the focus got out. Moving between the box and the
-      // cards is not leaving it — a press on unfocusable padding names nothing to compare
-      // against, which is what the flag above is for.
-      onBlur={(e) => {
-        if (within.current || e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-        if (typed.trim()) void create();
-        else onDrop();
-      }}
+      ref={row}
       className="flex flex-col gap-4 border-t border-nb-ink/10 px-3.5 pb-3.5 pt-3 first:border-t-0"
     >
       <Field
@@ -572,18 +603,28 @@ function NewRow({
         />
       </Field>
 
-      <div className="flex flex-col gap-2.5">
-        <HarnessCards
-          options={options}
-          picked={picked}
-          disabled={busy}
-          compact
-          caption={c.connector}
-          onPick={(option) => setPicked(option.name)}
-        />
-      </div>
-
-      <p className="text-[12px] leading-relaxed text-nb-ink-soft">{c.newRowBlurb}</p>
+      {/* The same picker an open row draws, written into this row's own state instead of into
+          the board. */}
+      <HarnessPicker
+        agent={info}
+        onError={onError}
+        draft={{
+          harness: picked,
+          values,
+          secretsSet: Object.entries(secrets)
+            .filter(([, v]) => v)
+            .map(([k]) => k),
+          onHarness: (name) => {
+            // Settings belong to the connector they were typed for, so a switch drops them
+            // here exactly as it drops them on a saved row.
+            setPicked(name);
+            setValues({});
+            setSecrets({});
+          },
+          onSetting: (key, value) => setValues((all) => ({ ...all, [key]: value })),
+          onSecret: (key, value) => setSecrets((all) => ({ ...all, [key]: value })),
+        }}
+      />
     </div>
   );
 }

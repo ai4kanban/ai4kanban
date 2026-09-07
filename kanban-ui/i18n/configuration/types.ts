@@ -49,7 +49,6 @@ export type ConfigurationCopy = {
     save: string;
     /** On the unsaved row: naming it is what creates it. */
     newNameHelp: string;
-    newRowBlurb: string;
     nameEmpty: string;
     nameTaken: string;
     /** Over the harness card grid inside a row. */

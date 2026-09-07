@@ -31,7 +31,6 @@ const zh: ConfigurationCopy = {
     rename: "重命名",
     save: "保存",
     newNameHelp: "输入名称后创建；留空则取消。",
-    newRowBlurb: "创建后可在「高级设置」里配置提供方、接口地址、密钥和模型。",
     nameEmpty: "请输入名称。",
     nameTaken: "名称已存在，请使用其他名称。",
     connector: "连接器",

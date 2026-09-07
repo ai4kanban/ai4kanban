@@ -365,12 +365,29 @@ export interface RuntimeTarget {
   onSaved: (agent: AgentInfo) => void;
 }
 
+/** What a picker in draft mode sets: the runtime the row **+ Add runtime** is about to
+ *  create. It has no id yet — an id is minted from the name — so nothing here is written.
+ *  Every pick and every saved field is handed to the caller, which replays them onto the row
+ *  the moment the name creates it, and drops them with the row if the name never comes. */
+export interface DraftTarget {
+  /** The connector the draft is on. */
+  harness: string;
+  /** The settings typed so far, keyed the way the file keys them. */
+  values: Record<string, string>;
+  /** Which keys the draft holds — set or not set, the same answer a saved row gives. */
+  secretsSet: string[];
+  onHarness: (harness: string) => void;
+  onSetting: (key: string, value: string) => void;
+  onSecret: (key: string, value: string) => void;
+}
+
 export function HarnessPicker({
   agent,
   onError,
   onTested,
   runTest,
   bind,
+  draft,
 }: {
   agent: AgentInfo;
   onError?: (msg: string) => void;
@@ -383,7 +400,13 @@ export function HarnessPicker({
    *  expanded row in Configuration → Runtimes holds. The grid and the fields are the same
    *  ones; only what they are written against differs. */
   bind?: RuntimeTarget;
+  /** Draw a runtime that doesn't exist yet: the same row, with nothing written anywhere. */
+  draft?: DraftTarget;
 }) {
+  // Whether this picker is a row on the Runtimes list — saved or still being named. It decides
+  // what the notes call things and what the row is spared; where a write GOES is `bind` and
+  // `draft`, which are never both.
+  const inRow = Boolean(bind || draft);
   // The agent setting as the file now reads it. It starts as the server's first
   // paint and is replaced by what a switch writes back, so the override note and
   // the notices below always describe the agent on screen rather than the one
@@ -404,7 +427,15 @@ export function HarnessPicker({
     secretsSet: string[];
     ignored: string[];
   } =>
-    bind
+    draft
+      ? {
+          active: draft.harness,
+          command: "",
+          values: draft.values,
+          secretsSet: draft.secretsSet,
+          ignored: [],
+        }
+      : bind
       ? {
           active: row?.harness ?? bind.runtime.harness,
           command: row?.runs ?? "",
@@ -574,6 +605,13 @@ export function HarnessPicker({
     setSecretsSet([]);
     setPending("");
     setAdvanced(null);
+    // A draft has nothing to write into: the pick is the caller's to hold, and the fields it
+    // just cleared are cleared there too — settings belong to the connector they were typed
+    // for.
+    if (draft) {
+      draft.onHarness(option.name);
+      return;
+    }
     setSaving(true);
     const revert = () => {
       setActive(prev.name);
@@ -611,6 +649,16 @@ export function HarnessPicker({
   // worked — the dialog never learns a saved key.
   const saveSecret = async (setting: HarnessSetting, next: string): Promise<boolean> => {
     if (saving) return false;
+    // A draft's key waits in the caller until the name mints the id the line is written under
+    // — there is no other line it could go on. It reaches docs/kanban/.env with the row, or
+    // goes nowhere at all.
+    if (draft) {
+      draft.onSecret(setting.key, next);
+      setSecretsSet((all) =>
+        next ? [...new Set([...all, setting.key])] : all.filter((k) => k !== setting.key),
+      );
+      return true;
+    }
     setSaving(true);
     try {
       const res: WriteResult & { agent?: AgentInfo } = bind
@@ -640,6 +688,15 @@ export function HarnessPicker({
   const writeSetting = async (setting: HarnessSetting, value: string): Promise<boolean> => {
     const was = saved[setting.key] ?? "";
     const put = (v: string) => setValues((all) => ({ ...all, [setting.key]: v }));
+    // A draft's fields save into the caller and nowhere else. It always takes: there is no
+    // write to fail, and a deferred provider pick (#95) still lands the moment its box is
+    // filled.
+    if (draft) {
+      put(value);
+      setSaved((all) => ({ ...all, [setting.key]: value }));
+      draft.onSetting(setting.key, value);
+      return true;
+    }
     setSaving(true);
     try {
       const res: WriteResult & { agent?: AgentInfo } = bind
@@ -753,7 +810,7 @@ export function HarnessPicker({
       {activeOption.installed === false && (
         <Note icon={<FiAlertCircle />}>
           <Rich>
-            {bind ? cr.notInstalledHint(activeOption.label) : c.missingHint(activeOption.binary)}
+            {inRow ? cr.notInstalledHint(activeOption.label) : c.missingHint(activeOption.binary)}
           </Rich>{" "}
           <code className="rounded bg-nb-ink/8 px-1 py-0.5">{activeOption.install}</code>
         </Note>
@@ -770,7 +827,7 @@ export function HarnessPicker({
         (bind ? rowLoggedOut : loggedOut[activeOption.name]) && (
           <Note icon={<FiAlertCircle />}>
             <Rich>
-              {bind ? cr.signedOutHint(activeOption.label) : c.loggedOutHint(activeOption.binary)}
+              {inRow ? cr.signedOutHint(activeOption.label) : c.loggedOutHint(activeOption.binary)}
             </Rich>{" "}
             <code className="rounded bg-nb-ink/8 px-1 py-0.5">
               {bind ? rowLoggedOut : loggedOut[activeOption.name]}
@@ -798,7 +855,7 @@ export function HarnessPicker({
           it answers a question the row isn't asking: a row is what THIS runtime runs, and a
           board with four rows on one CLI would say the same five lines four times. The pane
           below is where the CLIs are compared, and it still says all of it. */}
-      {!bind && activeOption.gaps?.length ? (
+      {!inRow && activeOption.gaps?.length ? (
         <div className="mt-3">
           <HarnessGaps heading={c.gaps(activeOption.label)} gaps={activeOption.gaps} />
         </div>
@@ -887,7 +944,11 @@ export function HarnessPicker({
   // One runtime, whole (#468): the CLI it runs, what that CLI needs said, its settings behind
   // the fold, and the Test. The same grid and the same fields as the pane below — smaller
   // cards, because a row is already an indent in.
-  if (bind) {
+  //
+  // A draft row is the same row, minus the Test: there is nothing on the board to spawn yet,
+  // and a Test that answered for the connector rather than for this runtime would be answering
+  // a question the row didn't ask.
+  if (inRow) {
     return (
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2.5">
@@ -905,7 +966,7 @@ export function HarnessPicker({
         <div>{fields}</div>
         {/* A connector that declares no settings has no fold to hang the Test on, so there
             it stands on its own. */}
-        {!onTheFold && tester}
+        {!onTheFold && !draft && tester}
       </div>
     );
   }
