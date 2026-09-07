@@ -512,8 +512,9 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   channel: ['channel'],
   'marketing-verify': ['marketing-verify'],
   'marketing-fix': ['marketing-fix'],
-  // A polish gets its own flow, for the same reason: one file under `content/`, never a
-  // card. Nothing prints it either — Submit on the card page is the only way in.
+  // A polish gets its own flow, for the same reason: one file under `content/` and the
+  // writing memory its own guide files rules in (#459), never a card. Nothing prints it
+  // either — Submit on the card page is the only way in.
   polish: ['polish'],
   // A write agent gets its own flow, for the same reason a spec agent does: it writes files
   // in one folder and never a card. `akb write` has no --print, so this is only the run's.

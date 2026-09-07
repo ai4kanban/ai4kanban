@@ -146,6 +146,12 @@ describe('submitting the batch', () => {
     assert.match(prompt, /comments under `"x"` in docs\/kanban\/\.comments\/2\.json/)
     assert.match(prompt, /rewrite docs\/kanban\/content\/2-a-topic\/x\.md/)
   })
+
+  it('names the writing memory the polish files its rules in', () => {
+    const prompt = buildPrompt({ action: 'polish', id: 2, title: 'A topic', draft: 'x' })
+    assert.match(prompt, /docs\/kanban\/memory\/writing\.md/)
+    assert.match(prompt, /docs\/kanban\/memory\/writing\//)
+  })
 })
 
 describe('the batch leaves with its card', () => {

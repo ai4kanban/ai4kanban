@@ -508,9 +508,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ].filter(Boolean).join('\n\n')
     }
     // One pass over one draft, answering the comments left on it (#458). The batch is named
-    // rather than pasted in: a comment is edited and deleted right up to Submit, and words
-    // copied into this message would be the ones that were there when the run was written
-    // down. Nothing here says what the draft argues, for the reason a repurpose doesn't.
+    // rather than pasted in: a comment is edited and deleted right up to Submit. It also files
+    // what it learned in the writing memory (#459), so those paths are named here the same way.
     case 'polish': {
       const name = req.draft ?? ''
       const files = polishPaths(req.id, name)
@@ -519,8 +518,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         files
           ? `Read ${files.file} and the comments under \`"${name}"\` in ${files.comments}, then rewrite ${files.file}.`
           : '',
-        `Work every comment in that batch into one pass over the draft, and stop.`,
-        `Write that one file and nothing else — not the card, not another draft, and not the comments file: the board clears the batch when this run ends.`,
+        `Work every comment in that batch into one pass over the draft, then record only reusable corrections in the board's writing memory following the guide.`,
+        `Write only that draft and the files those corrections need in \`docs/kanban/memory/writing.md\` or under \`docs/kanban/memory/writing/\`. Leave the card, other drafts and the comments file alone: the board clears the batch when this run ends.`,
         `Don't ask me questions with human-in-the-loop — the review is me reading the polished draft.`,
       ]
         .filter(Boolean)
