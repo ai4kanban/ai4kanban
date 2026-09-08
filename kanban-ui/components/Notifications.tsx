@@ -40,6 +40,7 @@ import type { NotificationRow } from "@/lib/notifications";
 import { ALL_RELEASES } from "@/lib/types";
 import { Button } from "./button";
 import { HAIRLINE, TOOL_BTN } from "./chrome";
+import { Loading } from "./settings";
 
 /**
  * The tool cluster's first segment: the bell, and its unread count beside it.
@@ -88,7 +89,13 @@ export function BellPane({ rail }: { rail: BellRail }) {
   return (
     <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3 max-md:pl-3">
       <Head c={c} silenced={center.silenced} onFold={rail.fold} />
-      {center.unavailable ? (
+      {/* Before the first read lands the rail has been told nothing — least of all that
+          nobody is signed in. It says it is looking. */}
+      {!rail.ready ? (
+        <div className="flex flex-1 items-center justify-center">
+          <Loading>{c.checking}</Loading>
+        </div>
+      ) : center.unavailable ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
           title={c.unavailable}

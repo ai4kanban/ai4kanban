@@ -54,6 +54,10 @@ const NOTHING: NotificationCenter = {
 
 export interface BellRail {
   open: boolean;
+  /** The first read has landed. Until it does, nothing below is the account's answer — the
+   *  blank says "not signed in" because that is what a blank says, and the rail draws that
+   *  it is still looking rather than a state it has not been told. */
+  ready: boolean;
   toggle(): void;
   fold(): void;
   /** Open it, wherever it stood — what the Dock badge's click asks for (#483). */
@@ -94,6 +98,7 @@ export function useBellRail({
 }): BellRail {
   const [open, setOpen] = useState(false);
   const [center, setCenter] = useState<NotificationCenter>(NOTHING);
+  const [ready, setReady] = useState(false);
   const [filled, setFilled] = useState<WatchFill | null>(null);
   const overlay = useMatches(OVERLAY_UNDER);
   const { panel, onLayoutChanged, onDoubleClick } = useWidth();
@@ -143,6 +148,7 @@ export function useBellRail({
       if (!alive) return;
       if (next) {
         setCenter(next);
+        setReady(true);
         // Handed out once. Nothing is raised later to make up for a window that was focused
         // when one arrived — that is the whole of the second interruption's rule.
         if (next.alerts.length > 0) alertsRef.current?.(next.alerts);
@@ -230,6 +236,7 @@ export function useBellRail({
 
   return {
     open,
+    ready,
     toggle,
     fold,
     unfold,

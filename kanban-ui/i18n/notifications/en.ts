@@ -20,6 +20,7 @@ const en: NotificationsCopy = {
   minutesAgo: (m) => `${m}m ago`,
   hoursAgo: (h) => `${h}h ago`,
   daysAgo: (d) => `${d}d ago`,
+  checking: "Checking…",
   unavailable: "Notifications aren’t available here",
   signedOut: {
     title: "Not signed in to Cloud",

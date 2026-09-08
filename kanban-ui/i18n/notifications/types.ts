@@ -21,6 +21,8 @@ export type NotificationsCopy = {
   minutesAgo: (m: number) => string;
   hoursAgo: (h: number) => string;
   daysAgo: (d: number) => string;
+  /** Still asking the board where the account stands. */
+  checking: string;
   /** The rail's ends: a mark, what would fill it, and where to go. */
   unavailable: string;
   signedOut: { title: string; body: string; hint: string };

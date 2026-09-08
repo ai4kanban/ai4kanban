@@ -17,6 +17,7 @@ const zh: NotificationsCopy = {
   minutesAgo: (m) => `${m} 分钟前`,
   hoursAgo: (h) => `${h} 小时前`,
   daysAgo: (d) => `${d} 天前`,
+  checking: "检查中…",
   unavailable: "这里无法使用通知",
   signedOut: {
     title: "尚未登录 Cloud",
