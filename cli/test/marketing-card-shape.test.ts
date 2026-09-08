@@ -12,6 +12,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { unpackBoard, type BoardPayload } from '../src/lib/board/transfer.ts'
+import { findGuide } from '../src/lib/guide.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { discardTopic, newTopic, readDrafts, saveDraft } from '../src/lib/view/drafts.ts'
@@ -49,6 +50,21 @@ afterEach(() => {
 })
 
 describe('a marketing card', () => {
+  it('keeps product planning guides out of the repurposing pipeline', () => {
+    for (const name of ['add-task', 'extract-ideas', 'evaluate-task', 'writing', 'setup']) {
+      assert.equal(findGuide(name), null, name)
+    }
+    for (const name of ['board', 'polish', 'marketing-verify', 'marketing-fix', 'repurpose', 'prune-memory']) {
+      assert.ok(findGuide(name), name)
+    }
+    assert.equal(findGuide('channel'), null)
+    assert.doesNotMatch(buildPrompt({ action: 'create', description: 'A topic' }), /guide add-task|open questions/)
+    solution('product')
+    for (const name of ['add-task', 'extract-ideas', 'evaluate-task', 'writing', 'setup']) {
+      assert.ok(findGuide(name), name)
+    }
+  })
+
   it('is written with neither ranking, release nor questions, and with no body', async () => {
     const made = await move(root, ['create', '--title', 'Approve a screen', '--modules', 'shipped'])
     const text = card(String(made.file).split('todo/')[1]!)

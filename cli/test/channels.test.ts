@@ -188,7 +188,7 @@ describe('the run that repurposes one draft', () => {
 
   it('hands the run both file paths, the channel’s language and its own flow', () => {
     const prompt = buildPrompt({ action: 'channel', id: 2, title: 'A topic', channel: 'xiaohongshu' })
-    assert.match(prompt, /akb guide channel/)
+    assert.match(prompt, /akb guide repurpose/)
     assert.match(prompt, /Read docs\/kanban\/content\/2-a-topic\/source\.md/)
     assert.match(prompt, /write docs\/kanban\/content\/2-a-topic\/xiaohongshu\.md, in Chinese/)
     assert.match(buildPrompt({ action: 'channel', id: 2, channel: 'x' }), /x\.md, in English/)

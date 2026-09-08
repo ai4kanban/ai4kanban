@@ -353,6 +353,9 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'create':
+      if (solution() === 'marketing') {
+        return `${kb}. Create the topic requested here: ${req.plan ? `Read the request at ${req.plan}` : req.description || ''}. Follow \`akb guide board\` and use \`akb raw create --title "..."\`. Write no card body or source draft; start no agent flow.`
+      }
       return [
         // A create off a plan (#427) names the file rather than carrying its words: the
         // plan is a file the user can open, and a copy pasted in here would go stale.
@@ -473,14 +476,14 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       const agent = findSpecAgent(req.specAgent ?? '')
       const own = agent ? specAgentInstructions(agent) : null
       if (own) notes.push(...own.notes)
-      const contract = findGuide('write-agent')?.text.trim()
+      const contract = findGuide('repurpose')?.text.trim()
       const folder = draftFolder(req.id)
       const memory = agent ? agentMemoryBlock(agent) : ''
       return [
         [
           `${kb}. You are the \`${req.specAgent}\` write agent on task ${req.id} ${named}.`,
           `Read the card, do only what you were asked for, and write your files into ${folder ?? "that topic's `content/<id>/` folder"} — nothing outside it.`,
-          `Never \`source.md\`, never a channel's draft, never the card, never project code.`,
+          `Write only the requested files. Never \`source.md\`, the card or project code.`,
           memory ? `You keep a memory of this board, below. Follow it — this run does not write it back.` : '',
           req.notes ? `What the writing run that asked for you wants: ${req.notes}` : '',
           `Don't ask me questions with human-in-the-loop — if the ask cannot be done, write no file and say why in your last message.`,
@@ -511,7 +514,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       // handed the two paths, and an unset one reads exactly as it always did.
       const language = req.language?.trim() || channelLanguage(name)
       return [
-        `${kb}. Repurpose task ${req.id} ${named} for ${name} following \`akb guide channel\`.`,
+        `${kb}. Repurpose task ${req.id} ${named} for ${name} following \`akb guide repurpose\`.`,
         files ? `Read ${files.source} and write ${files.target}, in ${language}.` : '',
         `One pass: shorten or expand the piece into that channel's shape, in that language, and stop.`,
         `Write that one file and nothing else — not the card, not \`source.md\`, and not another channel's draft.`,
@@ -534,7 +537,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         ...(req.verification?.groups[req.verification.index] ?? []),
         'Change no file. Do not read previous sessions, logs, reports or the source draft.',
         'Report every applicable rule that fails, quoting the rule and the failing draft passage. If none fail, reply exactly PASS.',
-        'The board starts the next pass; run no command to start one.',
+        'Start no other run.',
       ].filter(Boolean).join('\n')
     }
     case 'marketing-fix': {
@@ -543,7 +546,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `${kb}. Fix the ${req.channel} draft of task ${req.id} following \`akb guide marketing-fix\`.`,
         files ? `Edit only ${files.target}. Keep its language and meaning.` : '',
         'Address every finding below. Change no other file, including the card and writing memory.',
-        'The board starts a fresh verifier after you finish; run no command to start one.',
+        'Start no other run.',
         req.notes,
       ].filter(Boolean).join('\n\n')
     }
@@ -559,7 +562,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           ? `Read ${files.file} and the comments under \`"${name}"\` in ${files.comments}, then rewrite ${files.file}.`
           : '',
         `Work every comment in that batch into one pass over the draft, then record only reusable corrections in the board's writing memory following the guide.`,
-        `Write only that draft and the files those corrections need in \`docs/kanban/memory/writing.md\` or under \`docs/kanban/memory/writing/\`. Leave the card, other drafts and the comments file alone: the board clears the batch when this run ends.`,
+        `Write only that draft and the files those corrections need in \`docs/kanban/memory/writing.md\` or under \`docs/kanban/memory/writing/\`. Leave the card, other drafts and the comments file alone.`,
         `Don't ask me questions with human-in-the-loop — the review is me reading the polished draft.`,
       ]
         .filter(Boolean)

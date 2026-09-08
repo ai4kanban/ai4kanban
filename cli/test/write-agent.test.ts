@@ -150,11 +150,12 @@ describe('what a write run is handed', () => {
     const prompt = buildPrompt({ action: 'write', id: 2, specAgent: 'poster', notes: 'the hero image' })
     assert.match(prompt, /You are the `poster` write agent on task 2/)
     assert.match(prompt, /docs\/kanban\/content\/2-a-topic/)
-    assert.match(prompt, /Be a write agent/)
+    assert.match(prompt, /Repurpose a topic/)
     assert.match(prompt, /You make the images a draft asks for/)
     assert.match(prompt, /the hero image/)
-    // The draft is finished and points at its files; nothing it writes may reach back.
     assert.match(prompt, /Never `source\.md`/)
+    assert.match(prompt, /Write only the requested files/)
+    assert.doesNotMatch(prompt, /never a channel.s draft/i)
   })
 })
 

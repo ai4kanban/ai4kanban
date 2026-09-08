@@ -376,7 +376,7 @@ export const writeAgentList = (program: string, forPerson = false): string =>
       'context: it is given the card and your note, it writes the files that note names, and',
       'it changes nothing else. Request each agent when its description matches the draft.',
     ],
-    guide: 'write-agent',
+    guide: 'repurpose',
   })
 
 function agentList(

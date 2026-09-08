@@ -491,7 +491,7 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // A repurpose gets its own flow and NOT `board`: it writes one file under `content/` and
   // never a card, so the card format and the memory set are a page about work it may not do.
   // `akb channel` has no --print either, so this is only ever the run's.
-  channel: ['channel'],
+  channel: ['repurpose'],
   'marketing-verify': ['marketing-verify'],
   'marketing-fix': ['marketing-fix'],
   // A polish gets its own flow, for the same reason: one file under `content/` and the
@@ -500,7 +500,7 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   polish: ['polish'],
   // A write agent gets its own flow, for the same reason a spec agent does: it writes files
   // in one folder and never a card. `akb write` has no --print, so this is only the run's.
-  write: ['write-agent'],
+  write: ['repurpose'],
 }
 
 const guidesFor = (req: AgentRequest): string[] => {

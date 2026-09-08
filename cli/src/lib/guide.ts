@@ -50,18 +50,14 @@ import setup from '../guide/setup.md'
 import specAgent from '../guide/spec-agent.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
-import writeAgent from '../guide/write-agent.md'
 import writing from '../guide/writing.md'
 
-import marketingAddTask from '../guide/marketing/add-task.md'
 import marketingBoard from '../guide/marketing/board.md'
-import marketingChannel from '../guide/marketing/channel.md'
-import marketingExtractIdeas from '../guide/marketing/extract-ideas.md'
 import marketingPolish from '../guide/marketing/polish.md'
 import marketingVerify from '../guide/marketing/verify.md'
 import marketingFix from '../guide/marketing/fix.md'
 import marketingPruneMemory from '../guide/marketing/prune-memory.md'
-import marketingWriting from '../guide/marketing/writing.md'
+import repurpose from '../guide/marketing/repurpose.md'
 
 import { boardText } from './paths'
 import { solution, type Solution } from './solution'
@@ -110,11 +106,8 @@ export const GUIDES: Guide[] = [
 const OVERRIDES: Record<Solution, Record<string, string>> = {
   product: {},
   marketing: {
-    'add-task': marketingAddTask,
     board: marketingBoard,
-    'extract-ideas': marketingExtractIdeas,
     'prune-memory': marketingPruneMemory,
-    writing: marketingWriting,
   },
 }
 
@@ -125,6 +118,11 @@ const OVERRIDES: Record<Solution, Record<string, string>> = {
 const GONE: Record<Solution, readonly string[]> = {
   product: [],
   marketing: [
+    'setup',
+    'add-task',
+    'extract-ideas',
+    'evaluate-task',
+    'writing',
     'refine',
     'resolve',
     'decide',
@@ -143,12 +141,11 @@ const GONE: Record<Solution, readonly string[]> = {
 const EXTRA: Record<Solution, Guide[]> = {
   product: [],
   marketing: [
-    { name: 'channel', when: "repurpose a topic's draft for one channel", text: marketingChannel },
     { name: 'marketing-verify', when: 'check a channel draft against the writing memory', text: marketingVerify },
     { name: 'marketing-fix', when: 'fix the writing violations a verifier reported', text: marketingFix },
     { name: 'polish', when: 'work a batch of comments into one pass over a draft', text: marketingPolish },
     // A product board has no writer to join, so nothing there could ever ask for one.
-    { name: 'write-agent', when: "write part of a topic's draft folder, as the agent asked for it", text: writeAgent },
+    { name: 'repurpose', when: "repurpose a topic into the requested draft or supporting files", text: repurpose },
   ],
 }
 
