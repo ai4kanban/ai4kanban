@@ -2,43 +2,36 @@
 
 Write and repair `docs/kanban/modules.md` — a plain list of the project's modules.
 
-A module is anything maintained in the codebase that grows independently. Judged by
-meaning, not by folder; a handful of lines, not one per folder.
-
-Keep the list short. A simple single-purpose project is one module, and more lines come
-only as the code grows. Be strictest in a repo with no code, where the plan is all there
-is to read: one line per part the plan clearly keeps separate, not one per piece it
-mentions.
+A module is a part of the project developed independently of other parts. Modules may
+share folders. Keep a single-purpose project as one module; before code exists, define
+separate modules only for parts the plan explicitly treats as independent.
 
 ## Examples
 
 A repo with `server/`, `packages/core/`, `web/`, `cli/`, and `docs/` might map to:
 
 ```
-If a line here disagrees with the repo you just read, fix the line.
-
 - **api** — the backend server and its shared core. `server/`, `packages/core/`.
 - **web-app** — the browser app users sign into. `web/`.
 - **cli** — the command-line client. `cli/`.
 - **docs** — the public documentation site. `docs/`.
 ```
 
-Five folders, four modules — the server and its core always change together, so they
-are one line.
-
-A repo with no code, where the plan names a phone habit tracker, a syncing server, a
-database, a login flow, and push notifications:
-
-```
-- **app** — the phone app people record habits in. No code yet.
-- **sync** — the server that keeps devices in agreement. No code yet.
-```
-
-Five pieces, two modules — the database, the login flow, and the notifications each live
-inside one of those two.
+The server and core change together, so they share one module.
 
 ## Repair
 
-Whoever reads the map and sees it disagree with the repo fixes it in the same run: add
-the missing line, delete or rename the dead one, fix a stale path. If the user says the
-map is wrong, rebuild from scratch.
+- **Update the map**: Correct outdated entries. Split a module when the code or plans show
+  that it now contains independently developed parts, even if its description still covers
+  them. If the user reports an incorrect map, rebuild it from the current code and plans.
+- **Update cards and memory**: After changing modules, update affected open cards with
+  `akb raw update <id> --modules <names>`. Follow the section below when splitting memory.
+  Move memory when renaming a module; move any remaining memory to the project set when
+  removing one.
+
+## Split module memory
+
+Create the new module's memory set with `akb raw memory-init <module>`. Review each source
+memory file entry by entry. Move notes specific to the new module into its corresponding
+file. Split entries that cover both modules; keep shared rules with the module responsible
+for them. Remove moved content from the original file; do not duplicate it.

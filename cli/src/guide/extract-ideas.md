@@ -25,7 +25,8 @@ Return `add`, `update #<id>`, or `skip`, with one-line evidence.
 
 **Rules**:
 
-- **Existing modules only**: Do not invent a module to fit an outside idea.
+- **Module changes**: Follow `akb guide module-map` if the map no longer reflects the code
+  or plans. Do not add a module solely to accommodate an outside idea.
 - **Draft-only delegation**: Subagents return drafts; only the main agent creates cards.
 - **Validation gate**: Keep only concrete, feasible gaps that fit the direction, justify their scope, and are not already supported, rejected, or ruled out.
 - **Direction without a goal**: `goal.md` is the direction when the user wrote one. When it is empty — no file, seed text only, or unreadable frontmatter — take direction from the module's memory and the repository itself (README, package files, layout); judge a gap on its own when those say nothing either. Never ask the user to write a goal.
