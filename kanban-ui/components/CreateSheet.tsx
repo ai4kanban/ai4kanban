@@ -466,6 +466,8 @@ function Composer({
         // rail's does. In the other two modes there is no conversation to paste into: the
         // sentence starts a run, and handing that run a file is #252's.
         onPasteImages={rail ? (files) => void rail.paste(files) : undefined}
+        // Dropping one in is the same path, so it is on wherever the paste is (#511).
+        drop={rail ? { onFiles: (files) => void rail.dropFiles(files), hint: chat.dropRelease } : undefined}
         head={rail ? <Pasted rail={rail} /> : undefined}
         placeholder={talking ? c.answer : c.placeholder}
         label={talking ? c.answer : c.placeholder}

@@ -106,8 +106,8 @@ The header carries seven things:
 A vague idea does not survive one textarea, so **Discuss** turns what you send into a
 conversation instead of a run. It is the board's own chat — the same transcript, agent and
 model as the rail down the right — so a reply typed in either lands in the same discussion.
-Its box takes a pasted picture the way the rail's does, on the same terms. It never shows in
-**Runs** and holds no card.
+Its box takes a pasted or dropped picture the way the rail's does, on the same terms. It
+never shows in **Runs** and holds no card.
 
 The agent behind it is the **Discussion helper**: it is there to help you decide what you want
 and whether an idea deserves work at all, so a discussion that ends in defer, drop or investigate
@@ -230,8 +230,10 @@ written, and where it names a card the name is a link to that card's page.
   conversation's own messages, down-arrow walks the other way, and typing ends the walk.
   They come from the transcript, so they survive a reload and take in what you sent from a
   terminal — and another card's chat offers its own.
-- **Paste a picture straight into the box.** A screenshot on the clipboard goes in as a
-  thumbnail, several to a message, and each one has a ✕ to take it back out before you send.
+- **Paste or drag a picture straight into the box.** A screenshot on the clipboard goes in
+  as a thumbnail, and so do image files dragged onto the box — the whole box, which lights up
+  while they are over it. Several to a message, and each one has a ✕ to take it back out
+  before you send.
   Words and pictures go together, and pictures on their own are a message. They are saved on
   this machine beside the conversation, out of git, and what the agent gets is the file — so
   a message sent again sends the same pictures rather than a second copy of them, and one you
@@ -239,6 +241,9 @@ written, and where it names a card the name is a link to that card's page.
   - **An agent that can't see pictures turns the paste away** where it happens: the box says
     so and names the ones that can, and nothing is written or sent. Which agents can is on
     each one's own entry in Configuration, beside what else it can and can't do.
+  - **A dropped file that is not a picture is named** in the same place, and any pictures
+    dropped with it still go in. A file dropped anywhere else in the window does nothing —
+    the board stays where it is and the draft survives.
 - **Stop a reply that went the wrong way.** While one is coming, Send is **Stop** — one
   click, or Esc, and it ends there. What arrived is kept and the next message carries on
   from it; nothing is undone, and the message you stopped is not put back to be reworded.

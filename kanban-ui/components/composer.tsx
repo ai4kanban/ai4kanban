@@ -9,8 +9,8 @@
 // rail's Stop, its walk back through what it has sent, and the Esc that ends a reply are
 // the rail's alone: the sheet starts a run and leaves, so it has none of them.
 
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { FiSend, FiSquare } from "react-icons/fi";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { FiImage, FiSend, FiSquare } from "react-icons/fi";
 import { Button } from "./button";
 
 /** How tall the box grows with what is typed, and what it opens at. */
@@ -39,6 +39,7 @@ export function MessageBox({
   autoFocus = false,
   onArrow,
   onPasteImages,
+  drop,
   escEndsReply = false,
 }: {
   value: string;
@@ -76,14 +77,58 @@ export function MessageBox({
    *  it never reaches this, and text pasted alongside one lands in the box as it always
    *  did. */
   onPasteImages?: (files: File[]) => void;
+  /** Files dropped on the box, for an owner that takes them (#511) — the whole frame is the
+   *  target, and `hint` is what the foot row says while they are over it. A box without this
+   *  one, or a shut box, takes no drop and shows no highlight. A drag carrying no file is
+   *  never touched: text dragged in still lands in the box. */
+  drop?: { onFiles: (files: File[]) => void; hint: React.ReactNode };
   /** The rail's own box: the one text box Esc is not taken in, because there it ends the
    *  reply instead (lib/chat-rail.ts). */
   escEndsReply?: boolean;
 }) {
   const box = useGrow(value);
+  const [over, setOver] = useState(false);
+  const takesDrop = !!drop && !disabled;
   return (
     <>
-      <div className="rounded-[12px] bg-nb-paper p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus-within:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]">
+      <div
+        onDragOver={
+          takesDrop
+            ? (e) => {
+                if (!carriesFiles(e)) return;
+                e.preventDefault();
+                setOver(true);
+              }
+            : undefined
+        }
+        // Leaving for a child of the box is not leaving the box — without this the
+        // highlight flickers as the pointer crosses the text area.
+        onDragLeave={
+          takesDrop
+            ? (e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+              }
+            : undefined
+        }
+        onDrop={
+          takesDrop
+            ? (e) => {
+                if (!carriesFiles(e)) return;
+                e.preventDefault();
+                setOver(false);
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length) drop?.onFiles(files);
+              }
+            : undefined
+        }
+        // While files are over it the box takes the accent as its ground and wears the same
+        // ring it draws on focus, so the target is the frame rather than the text area.
+        className={
+          over
+            ? "rounded-[12px] bg-nb-accent-wash p-1.5 shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
+            : "rounded-[12px] bg-nb-paper p-1.5 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus-within:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
+        }
+      >
         {head}
         <textarea
           ref={box}
@@ -110,7 +155,16 @@ export function MessageBox({
             button on the right, and no gap of its own in between — the foot decides what
             sits where by pushing its own last piece over. */}
         <div className="flex h-7 items-center gap-1.5">
-          <span className="flex min-w-0 flex-1 items-center gap-1.5">{foot}</span>
+          <span className="flex min-w-0 flex-1 items-center gap-1.5">
+            {over ? (
+              <span className="flex min-w-0 items-center gap-1.5 pl-1 text-[12px] font-[700] text-nb-accent-deep">
+                <FiImage className="shrink-0 text-[13px]" aria-hidden />
+                <span className="truncate">{drop?.hint}</span>
+              </span>
+            ) : (
+              foot
+            )}
+          </span>
           {/* One button in this corner, not two: on a reply this server owns it IS Stop,
               and everywhere else it is a Send. */}
           <span ref={sendRef} className="relative flex shrink-0">
@@ -136,6 +190,12 @@ export function MessageBox({
       {hint ? <div className="mt-1.5 px-1.5 text-[11px] text-nb-ink-soft">{hint}</div> : null}
     </>
   );
+}
+
+/** A drag the box has any use for. Anything else — text dragged out of the conversation and
+ *  back in — is left to the caret. */
+function carriesFiles(e: React.DragEvent) {
+  return e.dataTransfer.types.includes("Files");
 }
 
 /** Grow the box with what is typed, and scroll past the ceiling rather than pushing the

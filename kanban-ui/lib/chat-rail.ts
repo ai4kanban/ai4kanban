@@ -65,10 +65,13 @@ const FOLDED_MS = 8000;
  *  enough to read twice, short enough that it is gone by the time the next thought is. */
 const PASTE_NOTE_MS = 8000;
 
-/** What the last paste left behind (#441): the running agent can't see pictures at all, or
- *  one picture could not be written to disk. The box draws each in the slot the thumbnails
- *  would have taken. */
-export type PasteNote = { kind: "blocked" } | { kind: "failed"; why: string };
+/** What the last paste or drop left behind (#441, #511): the running agent can't see
+ *  pictures at all, one picture could not be written to disk, or a dropped file was not a
+ *  picture. The box draws each in the slot the thumbnails would have taken. */
+export type PasteNote =
+  | { kind: "blocked" }
+  | { kind: "failed"; why: string }
+  | { kind: "notImage"; name: string };
 
 /** What a poll saw change on the board, handed to whoever is drawing the page. */
 export interface BoardChange {
@@ -113,6 +116,9 @@ export interface ChatRail {
   /** Take a paste. Pictures the running agent can't see are turned away whole: nothing is
    *  written and nothing is sent. */
   paste(files: File[]): Promise<void>;
+  /** Take a drop (#511): the pictures in it go the way a paste does, and a file that is not
+   *  one is named in the note rather than throwing the batch away. */
+  dropFiles(files: File[]): Promise<void>;
   /** Take one back out before it is sent — its file goes with it. */
   unpaste(name: string): Promise<void>;
   /** What the last paste had to say for itself, in the slot the thumbnails sit in. Gone on
@@ -433,6 +439,21 @@ export function useChatRail({
     [cardId, seesImages],
   );
 
+  // One drop. The pictures in it are a paste; anything else is named, because a mixed drop
+  // refused whole would throw away pictures the user picked (#511).
+  const dropFiles = useCallback(
+    async (files: File[]) => {
+      const images = files.filter((f) => f.type.startsWith("image/"));
+      const refused = files.filter((f) => !f.type.startsWith("image/"));
+      setPasteNote(null);
+      if (images.length) await paste(images);
+      // One slot, so the pictures speak first: an agent that can't see them, or one that
+      // could not be written, is the nearer problem than a file this box never takes.
+      if (refused.length) setPasteNote((now) => now ?? { kind: "notImage", name: refused[0].name });
+    },
+    [paste],
+  );
+
   const clearPasteNote = useCallback(() => setPasteNote(null), []);
 
   const unpaste = useCallback(
@@ -580,6 +601,7 @@ export function useChatRail({
     setDraft: type,
     pasted,
     paste,
+    dropFiles,
     unpaste,
     pasteNote,
     clearPasteNote,

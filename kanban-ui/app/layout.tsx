@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { setLanguageAction } from "@/app/actions";
 import { AppActions } from "@/components/app-actions";
 import { NavEdge } from "@/components/desktop";
+import { DropGuard } from "@/components/drop-guard";
 import { getCopy } from "@/i18n";
 import { LanguageProvider } from "@/components/language";
 import { insetTitleBar, isDesktop } from "@/lib/desktop";
@@ -73,6 +74,9 @@ export default async function RootLayout({
             pages: the runs panel in the top row acts through it too, and that row is on the
             memory, archive and mockup pages as well. */}
         <AppActions>
+          {/* A file dropped anywhere the app has no use for it does nothing (#511) — here
+              rather than on a screen, because what it guards is the window. */}
+          <DropGuard />
           {/* The window has to be movable from every page, including the ones
               with no header — "there is no board here" is a whole screen with no
               top row on it. So the strip, not the header, is what makes the top

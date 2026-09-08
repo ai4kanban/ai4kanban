@@ -1040,6 +1040,8 @@ function Composer({
         // Discuss screen's (components/CreateSheet.tsx). Handing the run a document is
         // #252's, and still is.
         onPasteImages={(files) => void rail.paste(files)}
+        // And a picture dragged in from Finder, on the same path (#511).
+        drop={{ onFiles: (files) => void rail.dropFiles(files), hint: c.dropRelease }}
         head={<Pasted rail={rail} />}
         placeholder={ask}
         label={c.message}
@@ -1069,9 +1071,9 @@ function Composer({
   );
 }
 
-/** The top of the box: the pictures waiting to be sent, or what the last paste had to say
- *  for itself (#441). One slot, because they are never both true — a turned-away paste put
- *  nothing in the box, so the note stands where the thumbnails would have been, one line
+/** The top of the box: what the last paste or drop had to say for itself (#441, #511), then
+ *  the pictures waiting to be sent. Both, because a drop can put pictures in and turn a file
+ *  away in the same breath — the note stands above the thumbnails it did not take, one line
  *  above the agent that has to change.
  *
  *  The ✕ is always there rather than on hover: it is the only way back out of a paste.
@@ -1081,47 +1083,51 @@ function Composer({
 export function Pasted({ rail }: { rail: ChatRail }) {
   const c = useCopy().chat;
   const note = rail.pasteNote;
-  if (note) {
-    return (
-      <div
-        className="mx-1 mt-1 rounded-[8px] px-2 py-1.5 text-[12px] leading-[1.45]"
-        style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
-      >
-        {note.kind === "blocked" ? (
-          <>
-            <p className="font-[700]">{c.noPictures(rail.read?.agent ?? "")}</p>
-            <p className="mt-0.5">{c.picturesAble(rail.read?.imagesAble ?? [])}</p>
-          </>
-        ) : (
-          <p>{c.pictureFailed(note.why)}</p>
-        )}
-      </div>
-    );
-  }
-  if (rail.pasted.length === 0) return null;
+  if (!note && rail.pasted.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2 px-1 pt-1.5">
-      {rail.pasted.map((name) => (
-        <span key={name} className="relative block">
-          {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
-              served by app/chat-image/. */}
-          <img
-            src={rail.imageSrc(name)}
-            alt={c.picture}
-            className="block size-[44px] rounded-[8px] object-cover shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]"
-          />
-          <button
-            type="button"
-            title={c.unpaste}
-            aria-label={c.unpaste}
-            onClick={() => void rail.unpaste(name)}
-            className="absolute -right-[5px] -top-[5px] grid size-[16px] cursor-pointer place-items-center rounded-full border-[1.5px] border-nb-paper bg-nb-ink text-nb-cream"
-          >
-            <FiX size={9} aria-hidden />
-          </button>
-        </span>
-      ))}
-    </div>
+    <>
+      {note && (
+        <div
+          className="mx-1 mt-1 rounded-[8px] px-2 py-1.5 text-[12px] leading-[1.45]"
+          style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+        >
+          {note.kind === "blocked" ? (
+            <>
+              <p className="font-[700]">{c.noPictures(rail.read?.agent ?? "")}</p>
+              <p className="mt-0.5">{c.picturesAble(rail.read?.imagesAble ?? [])}</p>
+            </>
+          ) : note.kind === "notImage" ? (
+            <p>{c.notPicture(note.name)}</p>
+          ) : (
+            <p>{c.pictureFailed(note.why)}</p>
+          )}
+        </div>
+      )}
+      {rail.pasted.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-1 pt-1.5">
+          {rail.pasted.map((name) => (
+            <span key={name} className="relative block">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
+                  served by app/chat-image/. */}
+              <img
+                src={rail.imageSrc(name)}
+                alt={c.picture}
+                className="block size-[44px] rounded-[8px] object-cover shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]"
+              />
+              <button
+                type="button"
+                title={c.unpaste}
+                aria-label={c.unpaste}
+                onClick={() => void rail.unpaste(name)}
+                className="absolute -right-[5px] -top-[5px] grid size-[16px] cursor-pointer place-items-center rounded-full border-[1.5px] border-nb-paper bg-nb-ink text-nb-cream"
+              >
+                <FiX size={9} aria-hidden />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
