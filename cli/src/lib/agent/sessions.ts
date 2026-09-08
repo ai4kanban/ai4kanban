@@ -100,8 +100,7 @@ const VERB: Record<AgentAction, string> = {
   write: 'written for',
   channel: 'repurposed',
   polish: 'polished',
-  'marketing-verify': 'verified',
-  'marketing-fix': 'fixed',
+  'marketing-polish-loop': 'verified',
   changelog: 'written up',
   review: 'reviewed',
   conflict: 'unblocked',
@@ -630,10 +629,9 @@ export function openRun(
     // Which agent this is, on the two actions that are one — so the run list can name it,
     // and so a resume starts the same agent rather than a different one.
     specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
-    // …and which channel, on the one action that has one, so its close knows whose status
-    // to move and a resume repurposes for the same channel.
-    channel: ['channel', 'marketing-verify', 'marketing-fix'].includes(req.action) ? req.channel : undefined,
-    verification: req.verification,
+    // …and which channel, on the two actions that name one, so a repurpose's close knows
+    // whose status to move and a resume works the same draft.
+    channel: ['channel', 'marketing-polish-loop'].includes(req.action) ? req.channel : undefined,
     // …and which draft, on the one that polishes one, so its close knows whose comments to
     // clear and a resume works over the same file.
     draft: req.action === 'polish' ? req.draft : undefined,
@@ -754,7 +752,6 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
     channel: prev.channel,
-    verification: prev.verification,
     refineRound: prev.refineRound,
     refineEffort: prev.refineEffort,
     // The same refinement carried on, not a second one — the way a resume re-joins the

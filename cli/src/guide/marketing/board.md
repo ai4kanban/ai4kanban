@@ -12,8 +12,8 @@ Paths below are relative to `docs/kanban/`.
 - **`memory/rejected.md`**: rejected topics and reasons; pillar-specific rejections may live under `memory/<pillar>/`.
 - **`memory/published.md`**: date, channel, URL and result for each published piece.
 
-Follow the current flow's guide: `repurpose`, `polish`, `marketing-verify`,
-`marketing-fix` or `prune-memory`. Do not start another flow unless instructed.
+Follow the current flow's guide: `repurpose`, `polish`, `marketing-polish-loop` or
+`prune-memory`. Do not start another flow unless instructed.
 
 For an archive request, confirm every chosen channel is published and recorded in
 `memory/published.md`, then run `akb raw archive <id>`. Keep `content/<id>/`.

@@ -538,31 +538,25 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         .filter(Boolean)
         .join(' ')
     }
-    // The two halves of a repurpose's verification loop (#460). The verifier is handed the
-    // draft and its share of the writing memory outright and nothing else: it judges the
-    // words on the page, so the session that wrote them stays out of the ask. The fix run
-    // gets the report pasted in, because the run that wrote it is already gone.
-    case 'marketing-verify': {
+    // One capped polish loop over one channel draft (#520). The cap, the counter and the
+    // stop condition are spelled out here rather than left to the run's sense of "good
+    // enough" — and they are said again in the guide, so a run that reads only one of the
+    // two still loops the same number of times.
+    //
+    // The memory files are not listed: the run picks them itself from the folder, because
+    // which of them apply is a reading of the draft this message has not made.
+    case 'marketing-polish-loop': {
       const files = draftPaths(req.id, req.channel ?? '')
       return [
-        `${kb}. Verify the ${req.channel} draft of task ${req.id} following \`akb guide marketing-verify\`.`,
-        files ? `Read only the draft ${files.target} and these writing-memory files:` : '',
-        'docs/kanban/memory/writing.md',
-        ...(req.verification?.groups[req.verification.index] ?? []),
-        'Change no file. Do not read previous sessions, logs, reports or the source draft.',
-        'Report every applicable rule that fails, quoting the rule and the failing draft passage. If none fail, reply exactly PASS.',
-        'Start no other run.',
-      ].filter(Boolean).join('\n')
-    }
-    case 'marketing-fix': {
-      const files = draftPaths(req.id, req.channel ?? '')
-      return [
-        `${kb}. Fix the ${req.channel} draft of task ${req.id} following \`akb guide marketing-fix\`.`,
+        `${kb}. Polish the ${req.channel} draft of task ${req.id} following \`akb guide marketing-polish-loop\`.`,
         files ? `Edit only ${files.target}. Keep its language and meaning.` : '',
-        'Address every finding below. Change no other file, including the card and writing memory.',
-        'Start no other run.',
+        'Check it against docs/kanban/memory/writing.md and the files under docs/kanban/memory/writing/ that apply to it, then fix what you found, and repeat.',
+        'Stop on the first check that finds nothing, or after 3 passes — whichever comes first. Never a 4th.',
+        'A fix is not its own verdict: every pass re-reads the draft off disk before it judges it.',
+        'Change no other file, including the card, the source draft and the writing memory. Start no other run.',
+        'Report which memory files you used and dropped, how many passes ran, why the loop stopped, and what each pass changed.',
         req.notes,
-      ].filter(Boolean).join('\n\n')
+      ].filter(Boolean).join('\n')
     }
     // One pass over one draft, answering the comments left on it (#458). The batch is named
     // rather than pasted in: a comment is edited and deleted right up to Submit. It also files

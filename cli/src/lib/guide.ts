@@ -54,8 +54,7 @@ import writing from '../guide/writing.md'
 
 import marketingBoard from '../guide/marketing/board.md'
 import marketingPolish from '../guide/marketing/polish.md'
-import marketingVerify from '../guide/marketing/verify.md'
-import marketingFix from '../guide/marketing/fix.md'
+import marketingPolishLoop from '../guide/marketing/verify.md'
 import marketingPruneMemory from '../guide/marketing/prune-memory.md'
 import repurpose from '../guide/marketing/repurpose.md'
 
@@ -141,8 +140,7 @@ const GONE: Record<Solution, readonly string[]> = {
 const EXTRA: Record<Solution, Guide[]> = {
   product: [],
   marketing: [
-    { name: 'marketing-verify', when: 'check a channel draft against the writing memory', text: marketingVerify },
-    { name: 'marketing-fix', when: 'fix the writing violations a verifier reported', text: marketingFix },
+    { name: 'marketing-polish-loop', when: 'check a channel draft against the writing memory and fix it, up to three passes', text: marketingPolishLoop },
     { name: 'polish', when: 'work a batch of comments into one pass over a draft', text: marketingPolish },
     // A product board has no writer to join, so nothing there could ever ask for one.
     { name: 'repurpose', when: "repurpose a topic into the requested draft or supporting files", text: repurpose },
@@ -165,7 +163,13 @@ export const guideNames = (): string[] => guidesHere().map((g) => g.name)
 
 /** Names a flow answered to before it was renamed. Asked for by the old one, the flow still
  *  comes back — every board, card and habit that spells it the old way keeps working. */
-const RENAMED: Record<string, string> = { 'spec-skill': 'spec-agent' }
+const RENAMED: Record<string, string> = {
+  'spec-skill': 'spec-agent',
+  // The verify-then-fix pair the polish loop replaced (#520). A marketing board's own
+  // memory still spells them, and both now answer with the one guide that took their place.
+  'marketing-verify': 'marketing-polish-loop',
+  'marketing-fix': 'marketing-polish-loop',
+}
 
 /** One flow as this board reads it: its solution's words, spelling this board's own path. */
 export function findGuide(name: string): Guide | null {

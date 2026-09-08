@@ -253,8 +253,7 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   'writing',
   'spec',
   'channel',
-  'marketing-verify',
-  'marketing-fix',
+  'marketing-polish-loop',
   'write',
 ])
 

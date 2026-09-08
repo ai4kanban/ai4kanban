@@ -57,7 +57,6 @@ import {
   type CardClaim,
 } from './sessions'
 import { startResume, startRun } from './start'
-import { afterWritingVerification } from './writing-verification'
 import type { TurnEnd } from './wire'
 import { holdsCard } from './types'
 import type { AgentRequest, RunRecord, RunStatus } from './types'
@@ -97,7 +96,7 @@ const UNSENT = (why: string): string =>
 
 const MAX_FORMAT_REPAIRS = 3
 
-export async function watchRun(sessionId: string, resume = startResume, startVerification = startRun): Promise<number> {
+export async function watchRun(sessionId: string, resume = startResume): Promise<number> {
   const spec = readSpec(sessionId)
   const run = peekRun(sessionId)
   if (!run || !spec) {
@@ -454,10 +453,7 @@ export async function watchRun(sessionId: string, resume = startResume, startVer
       if (model) log.write(modelLine(model))
       // The final message goes to the log behind a marker line, so the file alone is the
       // complete durable record and a later read can split events from message again.
-      const result = spoken ? spoken.result : renderer?.result()
-      const verification = !takenOver && !carried && !contractError
-        ? afterWritingVerification({ ...record, status, result }) : {}
-      const final = verification.report ?? result
+      const final = spoken ? spoken.result : renderer?.result()
       if (final) log.write(`\n${RESULT_MARKER}\n${final}\n`)
       await new Promise<void>((closed) => log.end(closed))
 
@@ -512,12 +508,6 @@ export async function watchRun(sessionId: string, resume = startResume, startVer
       const gate =
         status === 'done' ? (buildAfterGate(record) ?? (stagesBefore && gateRunAfter(stagesBefore))) : null
       if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate)
-      if (verification.next) {
-        const next = await startVerification(verification.next)
-        if ('error' in next || !next.spawned) {
-          patch(sessionId, (r) => { r.note = joinNotes(r.note, 'Writing verification could not continue: ' + ('error' in next ? next.error : 'watcher did not start.')) })
-        }
-      }
       resolve(status === 'done' ? 0 : 1)
     }
 
@@ -762,7 +752,6 @@ function requestOf(record: RunRecord): AgentRequest {
     runtime: record.runtime,
     specAgent: record.specAgent,
     channel: record.channel,
-    verification: record.verification,
     draft: record.draft,
     refineRound: record.refineRound,
     refineEffort: record.refineEffort,

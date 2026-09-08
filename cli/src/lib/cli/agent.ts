@@ -227,8 +227,8 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .argument('<channel>', 'which channel draft to verify')
     .argument('<id>', 'the topic to verify', cardId)
     .summary('verify and fix a repurpose against the writing memory')
-    .description('Starts fresh reviewers and a writer when needed, for at most three verify passes. Marketing boards only.')
-    .addOption(new Option('--print', 'refused — verification needs a fresh session').hideHelp())
+    .description('One run checks the draft and fixes it, stopping on a clean pass or after three. Marketing boards only.')
+    .addOption(new Option('--print', 'refused — the polish loop needs a fresh session').hideHelp())
     .action(async function (this: Command, channel: string, id: number) {
       await onBoard(this, cli, () => cmdMarketingVerify({ ...this.opts(), channel, id }))
     })

@@ -54,7 +54,7 @@ describe('a marketing card', () => {
     for (const name of ['add-task', 'extract-ideas', 'evaluate-task', 'writing', 'setup']) {
       assert.equal(findGuide(name), null, name)
     }
-    for (const name of ['board', 'polish', 'marketing-verify', 'marketing-fix', 'repurpose', 'prune-memory']) {
+    for (const name of ['board', 'polish', 'marketing-polish-loop', 'repurpose', 'prune-memory']) {
       assert.ok(findGuide(name), name)
     }
     assert.equal(findGuide('channel'), null)

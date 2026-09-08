@@ -71,10 +71,10 @@ there.
 ## Verify a marketing draft
 
 After `akb channel <channel> <id>`, run `akb marketing verify <channel> <id>` to check that
-repurpose against the writing memory. Fresh reviewers report violations, a writer fixes
-that one draft, and the board verifies again, stopping after at most three verify passes.
-The runs stay under one job; any remaining findings stay on its last verification run.
-This is a separate step on marketing boards and has no `--print`. See `akb guide marketing-verify`.
+repurpose against the writing memory. One run checks the draft, fixes what it found and
+checks again, stopping on the first pass with nothing to fix or after three passes, and
+says what each pass changed. This is a separate step on marketing boards and has no
+`--print`. See `akb guide marketing-polish-loop`.
 
 ## Drive the board from your coding agent
 

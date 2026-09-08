@@ -22,7 +22,6 @@ import { pidAlive, withLock } from '../lock'
 import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { asUsage } from './log'
 import { holdsCard } from './types'
-import { readVerification } from './writing-verification'
 import type {
   AgentAction,
   DeliveryApproval,
@@ -62,8 +61,17 @@ export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, 
 // readable.
 const WAS_CLARIFY = new Set(['auto-refine', 'refine', 'raise-questions'])
 
-export const readAction = (action: unknown): AgentAction =>
-  typeof action === 'string' && WAS_CLARIFY.has(action) ? 'clarify' : (action as AgentAction)
+// And the two the polish loop replaced (#520), for the same reason: a marketing board that
+// verified a draft before this version keeps up to KEEP_RUNS of them, and a record whose
+// action no longer exists holds a card it never held and has no word to be listed under.
+const WAS_POLISH_LOOP = new Set(['marketing-verify', 'marketing-fix'])
+
+export const readAction = (action: unknown): AgentAction => {
+  if (typeof action !== 'string') return action as AgentAction
+  if (WAS_CLARIFY.has(action)) return 'clarify'
+  if (WAS_POLISH_LOOP.has(action)) return 'marketing-polish-loop'
+  return action as AgentAction
+}
 
 /** Everything the file holds. */
 export interface Store {
@@ -143,7 +151,6 @@ export function readStore(): Store {
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
       channel: typeof entry.channel === 'string' && entry.channel ? entry.channel : undefined,
-      verification: readVerification(entry.verification),
       draft: typeof entry.draft === 'string' && entry.draft ? entry.draft : undefined,
       refineRound:
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
