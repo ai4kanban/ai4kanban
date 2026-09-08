@@ -184,9 +184,9 @@ describe('how one reaches the agent', () => {
   })
 
   it('follows the connector the chat actually spawns, not the board’s default', async () => {
-    // A chat runs the planner's connector (#443). Here that is Claude Code, which reads a
-    // path out of the words, while the board's default is Codex, which takes a flag —
-    // reading the default instead sends the message with the pictures named nowhere.
+    // A chat runs the discussion helper's connector (#443, #502). Here that is Claude Code,
+    // which reads a path out of the words, while the board's default is Codex, which takes a
+    // flag — reading the default instead sends the message with the pictures named nowhere.
     const agent = path.join(root, 'agent.mjs')
     const seen = path.join(root, 'argv.json')
     fs.writeFileSync(
@@ -198,7 +198,7 @@ describe('how one reaches the agent', () => {
       path.join(root, 'docs', 'kanban', 'ui.config.json'),
       JSON.stringify({
         harness: 'codex',
-        agentHarness: { planner: 'claude-code' },
+        agentHarness: { 'discussion-helper': 'claude-code' },
         harnessSettings: { 'claude-code': { command: `node ${agent}` } },
       }),
     )

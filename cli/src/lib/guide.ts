@@ -80,7 +80,7 @@ export const GUIDES: Guide[] = [
   { name: 'writing', when: "write a card body — its format, and the rules every card is held to", text: writing },
   { name: 'evaluate-task', when: 'check one task idea before it becomes a card', text: evaluateTask },
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
-  { name: 'discuss-idea', when: 'talk a vague idea into a short plan file, then hand it to planning', text: discussIdea },
+  { name: 'discuss-idea', when: 'help decide whether an idea is worth building, and hand what it settled to planning', text: discussIdea },
   { name: 'next-card', when: 'name which cards already on the board to build now', text: nextCard },
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },

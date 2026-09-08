@@ -5,6 +5,7 @@
  *  Closed, because the command ships them; a specialist is a file and carries its own
  *  words. */
 export type AgentRoleName =
+  | "discussion-helper"
   | "planner"
   | "builder"
   | "writer"
@@ -180,8 +181,9 @@ export type ConfigurationCopy = {
      *  ships the roles, so the pane can carry their words; a specialist says both in its
      *  own `AGENT.md`, which is the only place a project can write them.
      *
-     *  `when` only on a role that can be switched off (#493): the gater and the decider are
-     *  started by something you can point at, and every other role is called by its flows. */
+     *  `when` only on a role something other than a flow starts: the gater and the decider
+     *  are started by something you can point at (#493), the discussion helper by you
+     *  talking to it (#502), and every other role is called by its flows. */
     roles: Record<AgentRoleName, { gloss: string; rule: string; when?: string }>;
     /** The decider (#447) — the one switch on this board that stops nothing for you, so its
      *  page carries what that costs and its switch asks once before it goes on. */

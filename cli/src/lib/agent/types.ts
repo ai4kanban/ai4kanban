@@ -712,7 +712,7 @@ export interface Chat {
   /** The model the last reply was written by, as the agent named it. */
   model?: string
   /** The runtime this conversation was picked to run on (#272, #467). Absent means it
-   *  follows the planner's, and is refused when that changes to another CLI; set means it
+   *  follows the discussion helper's, and is refused when that changes to another CLI; set means it
    *  goes on running this row whatever the board is switched to. */
   runtime?: string
   /** Where the model changed mid-conversation (#272), so a reply can be read against the
@@ -791,15 +791,15 @@ export interface ChatRuntime {
 
 /** What one conversation runs on, and what it could run on instead (#272, #467). */
 export interface ChatPick {
-  /** The runtime it runs — its own pick, or the planner's. */
+  /** The runtime it runs — its own pick, or the discussion helper's. */
   runtime: string
   /** That runtime's name, and the harness and model behind it, for the row. */
   name: string
   harness: string
   model: string
-  /** It picked that runtime itself rather than following the planner. */
+  /** It picked that runtime itself rather than following the discussion helper. */
   own: boolean
-  /** The planner's own runtime — what one click puts a conversation back to. */
+  /** The discussion helper's own runtime — what one click puts a conversation back to. */
   boardRuntime: string
   /** Every runtime that can hold a conversation, in the board's own order. */
   runtimes: ChatRuntime[]
@@ -807,7 +807,7 @@ export interface ChatPick {
 
 /** Which harness holds this board's conversations, and whether it can hold one at all. */
 export interface ChatAgent {
-  /** The runtime behind it — its own pick, or the planner's. */
+  /** The runtime behind it — its own pick, or the discussion helper's. */
   runtime: string
   name: string
   label: string

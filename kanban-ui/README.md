@@ -109,8 +109,10 @@ model as the rail down the right — so a reply typed in either lands in the sam
 Its box takes a pasted picture the way the rail's does, on the same terms. It never shows in
 **Runs** and holds no card.
 
-The agent questions the idea rather than taking your first message as a spec, and once an
-outcome is agreed it writes it to `docs/kanban/plans/<id>-<slug>.md`, rendered as markdown
+The agent behind it is the **Discussion helper**: it is there to help you decide what you want
+and whether an idea deserves work at all, so a discussion that ends in defer, drop or investigate
+is a discussion that did its job. It questions the idea rather than taking your first message as a
+spec, and once an outcome is agreed it writes it to `docs/kanban/plans/<id>-<slug>.md`, rendered as markdown
 in a panel down the right you can drag wider or narrower. The file is the outcome and
 nothing else — the problem and the agreed behavior, 30–50 lines — and it is rewritten as
 the discussion moves. There is no panel until the file exists, and a rewrite never blanks
@@ -276,9 +278,9 @@ written, and where it names a card the name is a link to that card's page.
 - **It keeps.** The exchange is still there after the app is closed and reopened, and it is per
   project. The bin in the chat's own header clears it, and asks once before it does.
 - **Pick the runtime for this conversation alone.** On the box's own bottom row, beside Send: one
-  control, showing the row's tool as its mark and its name beside it. It starts on the planner's,
-  and what you pick sticks to this conversation until you change it — the board's settings are
-  untouched, every run still takes them, and another chat is unaffected. The ↩ beside it is there
+  control, showing the row's tool as its mark and its name beside it. It starts on the discussion
+  helper's, and what you pick sticks to this conversation until you change it — the board's
+  settings are untouched, every run still takes them, and another chat is unaffected. The ↩ beside it is there
   only while it differs, and puts the conversation back on the board's.
   - **One control, because a runtime carries the model.** The list is the board's runtimes whose
     CLI can hold a conversation, each with its model id beside it; a row is set up in
@@ -1592,15 +1594,18 @@ is where one names another, keyed by the agent's name and holding the runtime's 
 "agentRuntime": { "builder": "cheap", "ui-design": "cheap" }
 ```
 
-The roles the board ships and the specialists a card asks for are one table: `builder`, `planner`,
-`reviewer`, `writer`, `gater`, `decider` and any agent name in `docs/kanban/agents/`. It travels with the repository, so
+The roles the board ships and the specialists a card asks for are one table: `discussion-helper`,
+`builder`, `planner`, `reviewer`, `writer`, `gater`, `decider` and any agent name in
+`docs/kanban/agents/`. It travels with the repository, so
 every checkout runs each agent as the same thing. An id this board no longer has falls back to
 **Global default** and the run's log says so; a tool whose CLI simply isn't installed here does
 **not** fall back — the run fails with the install command in its log.
 
 Which agent does a run: a flow is run by the role that owns it, and a `spec` or `write` run by the
 specialist it names. A pass a flow spawns belongs to that flow's role — a refine's clarify, resolve
-and writing passes are the planner's, and so is an `akb card resolve` you type.
+and writing passes are the planner's, and so is an `akb card resolve` you type. Every conversation
+— Discuss, the chat beside a card, `akb chat` — is the discussion helper's, so what it runs on is
+set apart from what plans your cards.
 
 **The model is on the runtime**, so it travels with the repository too — which is why the planner
 can think on a stronger model than the builder writes with on every checkout. What stays on this
@@ -1625,7 +1630,9 @@ fills one in, `akb agent bind <agent> <id>` points an agent at one, `akb agent u
 board's own order: the **roles** its own flows are run by, then the **specialists** the command
 ships, then the ones this project added.
 
-- A **role** is the agent behind a group of flows. **Planner** plans and refines cards, **Builder**
+- A **role** is the agent behind a group of flows. **Discussion helper** is the one you talk to —
+  it helps you decide what you want and whether an idea deserves work, and a discussion that ends
+  without creating a card is a fine outcome; **Planner** plans and refines cards, **Builder**
   builds them and lands them, **Reviewer** checks what was built; a marketing board has a **Writer**
   in place of the Builder. A role is always on — a board without a planner plans nothing — except
   the two that stand in for you, both off by default and product boards only: **Gater** judges

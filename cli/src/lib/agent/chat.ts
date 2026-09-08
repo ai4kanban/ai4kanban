@@ -45,6 +45,8 @@ import {
   skillPrompt,
   type RunPlan,
 } from './resolve'
+import { DISCUSSION_ROLE } from './roles'
+import { chatRuleBlock } from './rules'
 import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
@@ -63,9 +65,15 @@ import type {
   TokenUsage,
 } from './types'
 
-// Whose connector and model a conversation runs on (#443). A chat about a card is planning
-// work, so it follows the planner — the one role every board has, on either solution.
-const CHAT_AGENT = 'planner'
+// Whose connector, model and rule a conversation runs on (#443, #502). Every conversation
+// the board holds is the discussion helper's — the role that helps decide what is worth
+// building, before anything is planned.
+const CHAT_AGENT = DISCUSSION_ROLE
+
+/** The guide a discussion follows — the discussion helper's own brief (`akb guide
+ *  discuss-idea`). The Discuss screen names it on every turn; a terminal names nothing, so
+ *  it is the default here and the same agent answers either way. */
+export const DISCUSSION_GUIDE = 'discuss-idea'
 
 /** A conversation's file is named by what it is about, so the board's conversation, the
  *  first run's, each card's and each discussion's are separate by construction and one can
@@ -117,7 +125,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
     model: typeof raw.model === 'string' && raw.model ? raw.model : undefined,
     // A conversation held before #467 pinned a HARNESS, and `pickRuntime` reads that as the
     // runtime that harness's block became — so a held chat carries across rather than
-    // silently going back to the planner's. The model it held is dropped: the row it maps to
+    // silently going back to the discussion helper's. The model it held is dropped: the row it maps to
     // already carries one.
     runtime: pinOf(raw),
     modelChanges: changesOf(raw.modelChanges),
@@ -443,7 +451,7 @@ export function readChatView(cardId: ChatTarget): ChatView {
 
 // ---- what one conversation runs on (#272, #467) ----------------------------
 //
-// The planner's runtime is where every conversation starts. A pick is this conversation's
+// The discussion helper's runtime is where every conversation starts. A pick is this conversation's
 // alone: it is kept with the transcript, nothing of it reaches ui.config.json, and another
 // chat is unaffected. One control, because a runtime already carries the model — there is no
 // separate model box any more.
@@ -470,7 +478,7 @@ function pickOf(chat: Chat | null): ChatPick {
   }
 }
 
-/** Point one conversation at a runtime. `null` puts it back on the planner's, which is a
+/** Point one conversation at a runtime. `null` puts it back on the discussion helper's, which is a
  *  switch like any other.
  *
  *  A transcript can't move to a CLI that never opened its session, so a pick that changes the
@@ -643,13 +651,14 @@ export function chatPrompt(
   } = {},
 ): string {
   const language = languageNote()
-  const flow = guideLine(opts.guide)
+  const flow = guideLine(opts.guide ?? defaultGuide(cardId))
+  const rule = chatRuleBlock(CHAT_AGENT)
   const shots = pictureLines(opts.pictures)
   if (opts.resuming) {
     // The first run's later turns carry one more line: the session already holds the
     // instructions, and what a long conversation drifts away from is the answer's shape.
     const reminder = cardId === 'setup' ? SETUP_REMINDER : ''
-    return [flow, language, shots, message, reminder].filter(Boolean).join('\n\n')
+    return [flow, language, rule, shots, message, reminder].filter(Boolean).join('\n\n')
   }
   const title = opts.title ?? (typeof cardId === 'number' ? cardTitle(cardId) : undefined)
   const subject =
@@ -660,8 +669,15 @@ export function chatPrompt(
         : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
           `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
           `unless I name another.`
-  return skillPrompt([subject, flow, language, shots, message].filter(Boolean).join('\n\n'), opts.harness)
+  return skillPrompt([subject, flow, language, rule, shots, message].filter(Boolean).join('\n\n'), opts.harness)
 }
+
+/** The flow a conversation follows when the screen naming one didn't (#502). A discussion is
+ *  the discussion helper's own work — deciding what is worth building — so `akb chat` in a
+ *  terminal is held the same way the Discuss screen holds it. A chat about a card follows
+ *  none: it is about that card, and the card says what it is. */
+const defaultGuide = (cardId: ChatTarget): string | undefined =>
+  cardId === null || isDiscussion(cardId) ? DISCUSSION_GUIDE : undefined
 
 /** The pictures that came with this message, for a connector that opens a path written into
  *  the words. Above the message rather than under it, the way they sit above the words in
@@ -755,7 +771,7 @@ export async function sendChatMessage(
 
     // What this conversation picked for itself (#272, #467): one runtime, which carries the
     // whole of what a turn runs as. Empty on a conversation that never picked, which is the
-    // planner's answer and exactly what a run takes.
+    // discussion helper's answer and exactly what a run takes.
     const own = held.runtime ? { pin: held.runtime } : {}
     // A fresh session, or one more turn into the session the last message left open.
     const plan = held.resumeId

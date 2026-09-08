@@ -12,8 +12,8 @@
 //
 // The set is per solution. A `product` board builds code, so it has a Builder; a
 // `marketing` board writes drafts, so the same flows belong to a Writer, which also runs
-// the repurpose `akb channel` starts and the polish a batch of comments asks for. Planner
-// and Reviewer are the same work either way.
+// the repurpose `akb channel` starts and the polish a batch of comments asks for. Discussion
+// helper, Planner and Reviewer are the same work either way.
 
 import path from 'node:path'
 
@@ -96,7 +96,20 @@ const REVIEWER: AgentRole = {
   memory: [],
 }
 
+// The role every conversation is held by (#502) — `akb chat`, the chat rail and Discuss.
+// `chat` is in its list the way `channel` is in the writer's: not a flow anyone types under
+// `akb card`, and the role's work all the same. It comes first because a discussion comes
+// before a card: what it helps with is whether an idea deserves work at all, and a
+// discussion that ends in nothing is a discussion that did its job.
+const DISCUSSION_HELPER: AgentRole = {
+  name: 'discussion-helper',
+  gloss: 'helps decide what is worth building',
+  flows: ['chat'],
+  memory: [],
+}
+
 const PRODUCT_ROLES: AgentRole[] = [
+  DISCUSSION_HELPER,
   {
     name: 'planner',
     gloss: 'plans and refines cards',
@@ -117,6 +130,7 @@ const PRODUCT_ROLES: AgentRole[] = [
 ]
 
 const MARKETING_ROLES: AgentRole[] = [
+  DISCUSSION_HELPER,
   {
     name: 'planner',
     gloss: 'plans topics',
@@ -131,6 +145,10 @@ const MARKETING_ROLES: AgentRole[] = [
   },
   { ...REVIEWER, flows: [...REVIEWER.flows, 'marketing-verify'] },
 ]
+
+/** The role every conversation is held by — whose runtime a chat runs on and whose rule it
+ *  reads. Named here so `akb chat`, the chat rail and Discuss all read the same one. */
+export const DISCUSSION_ROLE = DISCUSSION_HELPER.name
 
 /** Every role name the board ships, on either solution. Reserved: a rule is keyed by the
  *  agent's name, so a project agent taking one would share that role's rule file

@@ -11,7 +11,7 @@
 // agent now, so who works on your cards and how you train them are one list rather than two
 // that never mentioned each other.
 //
-// What this pane knows: the four roles the board ships, and only their words. The names,
+// What this pane knows: the roles the board ships, and only their words. The names,
 // what each one does, whether it may be switched off, the memory it owns and the settings it
 // declares are the board's own roster, asked for when the pane opens — so an agent shipped
 // later, or one this project adds, is drawn here with nothing in this file touched.
@@ -682,7 +682,7 @@ function Page({
           </div>
           {/* A specialist is asked for by its own trigger, so the page says when. A role is
             called by its flows and normally has nothing to say here — the two that stand in
-            for you say it in their own copy (#493). */}
+            for you (#493) and the one you talk to (#502) say it in their own copy. */}
           {(agent.when || role?.when) && (
             <p className="mt-0.5 max-w-[80ch] text-[11.5px] leading-snug text-nb-ink-soft">
               <span className="font-[700]">{c.runsWhen}</span>{" "}

@@ -79,9 +79,11 @@ describe('the roles', () => {
     solution('product')
     assert.deepEqual(
       roles().map((r) => r.name),
-      ['planner', 'builder', 'reviewer', 'gater', 'decider'],
+      ['discussion-helper', 'planner', 'builder', 'reviewer', 'gater', 'decider'],
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
+    // Every conversation is the discussion helper's, and `chat` is no flow anyone types.
+    assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
     // The gater and the decider are the product board's alone: a topic is never gated, and
     // it carries no questions to answer.
     assert.equal(roleForFlow('gate')!.name, 'gater')
@@ -92,8 +94,9 @@ describe('the roles', () => {
     solution('marketing')
     assert.deepEqual(
       roles().map((r) => r.name),
-      ['planner', 'writer', 'reviewer'],
+      ['discussion-helper', 'planner', 'writer', 'reviewer'],
     )
+    assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
     assert.equal(roleForFlow('implement')!.name, 'writer')
     assert.equal(roleForFlow('channel')!.name, 'writer')
     assert.equal(roleForFlow('gate'), undefined)
@@ -120,6 +123,7 @@ describe('the roles', () => {
         .concat('\n'),
     )
     assert.deepEqual(agentNames(), [
+      'discussion-helper',
       'planner',
       'builder',
       'reviewer',
@@ -134,15 +138,15 @@ describe('the roles', () => {
   it('rosters the roles first, then the specialists the command ships', () => {
     solution('product')
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 5), ['planner', 'builder', 'reviewer', 'gater', 'decider'])
-    assert.deepEqual(names.slice(5), ['technology-selection', 'ui-design'])
+    assert.deepEqual(names.slice(0, 6), ['discussion-helper', 'planner', 'builder', 'reviewer', 'gater', 'decider'])
+    assert.deepEqual(names.slice(6), ['technology-selection', 'ui-design'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      ['role', 'role', 'role', 'role', 'role', 'spec', 'spec'],
+      ['role', 'role', 'role', 'role', 'role', 'role', 'spec', 'spec'],
     )
-    // A role says which flows it runs; a specialist is asked for by name and runs none.
+    // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[5]!.flows, [])
+    assert.deepEqual(agentRoster()[6]!.flows, [])
     // Two roles can be switched off, and each reads a key of its own (#447, #493).
     assert.deepEqual(
       agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => [a.name, a.setting]),
@@ -164,7 +168,7 @@ describe('the two roles that can be switched off', () => {
     solution('product')
     assert.equal(on('gater'), false)
     assert.equal(on('decider'), false)
-    for (const always of ['planner', 'builder', 'reviewer']) assert.equal(on(always), true, always)
+    for (const always of ['discussion-helper', 'planner', 'builder', 'reviewer']) assert.equal(on(always), true, always)
   })
 
   it('reads the key the board already wrote, so a switch survives the split', () => {

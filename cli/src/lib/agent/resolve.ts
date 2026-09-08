@@ -26,7 +26,7 @@ import {
 } from './harnesses'
 import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
-import { roleForFlow } from './roles'
+import { DISCUSSION_ROLE, roleForFlow } from './roles'
 import { binaryOnPath, commandBinary, pathLookup } from './installed'
 import { languageNote } from './language'
 import {
@@ -578,13 +578,13 @@ export function resumesUnder(harnessName: string | undefined): boolean {
   return !!harness && harness.resumes
 }
 
-/** Whose settings a conversation and the setup line are read under (#443). A chat about a
- *  card is planning work, and so is setup, so both follow the planner — the one role every
- *  board has, on either solution. */
+/** Whose settings the setup line is read under (#443). Setup writes a board's first cards
+ *  and memory notes, so it follows the planner — the one role every board has, on either
+ *  solution. A conversation follows `DISCUSSION_ROLE` instead (#502). */
 const PLANNER = 'planner'
 
 /** Which harness this board's conversations are held with, and whether it can hold one.
- *  `pin` is the runtime the conversation picked for itself, with none the planner's.
+ *  `pin` is the runtime the conversation picked for itself, with none the discussion helper's.
  *
  *  A conversation is one message after another into the session the agent already opened,
  *  and that is exactly what `resumes` says a CLI can do — so chat leans on that one
@@ -592,7 +592,7 @@ const PLANNER = 'planner'
  *  the day the two drifted apart. An agent that can't is turned away by this alone, and the
  *  refusal names the ones that can. */
 export function chatAgent(pin?: string): ChatAgent {
-  const { harness, runtime } = resolveHarness({ agent: PLANNER, pin })
+  const { harness, runtime } = resolveHarness({ agent: DISCUSSION_ROLE, pin })
   return {
     runtime: runtime.id,
     name: harness.name,
@@ -615,7 +615,7 @@ export function chatRuntimes(): ChatRuntime[] {
   return readRuntimes()
     .filter((runtime) => harnessOfRuntime(runtime).resumes)
     .map((runtime) => {
-      const resolved = resolveHarness({ agent: PLANNER, pin: runtime.id })
+      const resolved = resolveHarness({ agent: DISCUSSION_ROLE, pin: runtime.id })
       return {
         id: runtime.id,
         name: runtime.name,
@@ -629,15 +629,15 @@ export function chatRuntimes(): ChatRuntime[] {
 }
 
 /** How the harness one conversation runs takes a picture on disk (#441) — `pin` is the runtime
- *  it picked for itself, with none the planner's, which is what a chat spawns. Undefined for
+ *  it picked for itself, with none the discussion helper's, which is what a chat spawns. Undefined for
  *  one that can't see a picture at all, which is the answer a paste is turned away on. */
 export function harnessImages(pin?: string): ImageInput | undefined {
-  return resolveHarness({ agent: PLANNER, pin }).harness.images
+  return resolveHarness({ agent: DISCUSSION_ROLE, pin }).harness.images
 }
 
 /** The model one runtime runs — what a conversation on it says it is running. */
 export function runtimeModel(pin?: string): string {
-  return resolveHarness({ agent: PLANNER, pin }).values[MODEL_KEY] ?? ''
+  return resolveHarness({ agent: DISCUSSION_ROLE, pin }).values[MODEL_KEY] ?? ''
 }
 
 /** The name one runtime reads as, for saying what a conversation runs. A pin nothing answers
@@ -670,7 +670,7 @@ export function skillCall(agent?: string): string {
  *  conversation picked for itself (#272), whose own syntax the call then follows; with none
  *  it is the board's. */
 export function skillPrompt(message: string, pin?: string): string {
-  const call = resolveHarness({ agent: PLANNER, pin }).harness.skillCall
+  const call = resolveHarness({ agent: DISCUSSION_ROLE, pin }).harness.skillCall
   return call === SKILL_SENTENCE ? `${call}: ${message}` : `${call} ${message}`
 }
 

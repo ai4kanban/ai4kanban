@@ -366,7 +366,7 @@ export interface BoardRules {
   chatImageFile?(cardId: ChatTarget, name: string): string | null;
   /** What one conversation runs on (#272, #467) — one runtime, kept with the transcript and
    *  nowhere near the board's settings. Optional: rules from before it draw no picker, and
-   *  every conversation runs the planner's row as it always did. */
+   *  every conversation runs the discussion helper's row as it always did. */
   pickChatRuntime?(
     cardId: ChatTarget,
     runtime: string | null,

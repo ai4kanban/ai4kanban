@@ -151,13 +151,23 @@ export const ruleOwnerSays = (owner: { name: string; role: boolean }): string =>
 /** The rule as a run is given it: the user's words, and one line of the board's before them
  *  saying whose they are. Empty when the agent has no rule. */
 export function ruleBlock(req: AgentRequest, frozen?: Record<string, string>): string {
-  const rule = ruleFor(req, frozen)
-  if (!rule) return ''
-  return [
-    `This board's ${ruleOwnerSays(ruleOwner(req)!)}. It is the user's, it applies here, and nothing of the board's follows it:`,
-    rule,
-  ].join('\n\n')
+  return said(ruleOwner(req), ruleFor(req, frozen))
 }
+
+/** The same block for a conversation (#502), which is no run and has no `AgentRequest`: it
+ *  is the discussion helper's, and the rule is read off disk on every turn — a chat outlives
+ *  any one edit of it, so the words the user saved reach the next thing they type. */
+export function chatRuleBlock(agent: string): string {
+  return said({ name: agent, role: false }, readRule(agent))
+}
+
+const said = (owner: { name: string; role: boolean } | null, rule: string): string =>
+  owner && rule
+    ? [
+        `This board's ${ruleOwnerSays(owner)}. It is the user's, it applies here, and nothing of the board's follows it:`,
+        rule,
+      ].join('\n\n')
+    : ''
 
 // ---- the one-time move onto the agents (#420) -------------------------------
 //

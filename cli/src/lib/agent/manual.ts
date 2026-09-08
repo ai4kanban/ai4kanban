@@ -51,6 +51,11 @@ print a flow and do it here or start a background run; saying which one you want
 Only an agent whose command can take a second message into its own session can hold a
 conversation. On any other one, chat says so and names the agents that can.
 
+Every conversation is held by the discussion helper, the agent that helps you decide what you
+want and whether an idea deserves work — a discussion that ends without creating a card is a fine
+outcome. It carries a rule and a runtime of its own, so talking can run a different model from
+planning.
+
 The agent and the model are one conversation's own. Each starts on the board's, and a pick
 sticks to that conversation until it is changed. Changing the model carries the same session
 on; changing the agent cannot, so it starts the conversation over.

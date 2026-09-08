@@ -226,6 +226,11 @@ const zh: ConfigurationCopy = {
     ruleLabel: (agent) => `${agent} 的要求`,
     rulePlaceholder: (agent) => `会附加到 ${agent} 每次运行的末尾——例如「合入前先跑 pnpm test」。`,
     roles: {
+      "discussion-helper": {
+        gloss: "帮你判断什么值得做。",
+        rule: "会附加到你发给它的每一条消息末尾——例如「最后总要问一个我没想到的问题」。",
+        when: "你找它聊的时候——「讨论」，或者卡片旁边的对话。它帮你想清楚要什么、这个想法值不值得做；聊完什么都不做也是好结果。",
+      },
       planner: {
         gloss: "撰写并打磨你的卡片。",
         rule: "会附加到每一次新建、澄清、修订、规划版本、更新日志和归档运行的末尾——例如「未决问题一律用编号列表列出」。",
