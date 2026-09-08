@@ -176,6 +176,8 @@ const zh: ConfigurationCopy = {
       "The runs panel shows no model.": "运行面板不显示模型。",
       "Rate-limit exit": "限流即退出",
       "A rate-limited run waits it out, holding its card.": "被限流的运行会一直等下去，卡片也一直占着。",
+      "Provider retry": "服务商抖动重试",
+      "A passing provider failure ends the run.": "服务商偶发故障会直接结束运行。",
       "Direct skill call": "直接调用 Skill",
       "Prompts ask for the board skill in a sentence.": "提示词用一句话请求看板 Skill。",
     },

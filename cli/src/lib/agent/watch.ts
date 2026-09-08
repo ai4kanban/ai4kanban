@@ -31,6 +31,7 @@ import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './l
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
 import { openPlan } from './resolve'
+import { planRetry, retryLine } from './retry'
 import {
   claimChanges,
   markBoard,
@@ -52,6 +53,7 @@ import {
   readSpec,
   readSpecAsks,
   readWriteAsks,
+  resumeSessionId,
   setCardStatus,
   titleOf,
   type CardClaim,
@@ -302,11 +304,26 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     let takenOver = false
     // How the renewal that keeps the card held is stopped, once this run is over.
     let unhold: () => void = () => {}
-    const finish = async (code: number | null, asked: boolean): Promise<void> => {
+    // How a wait between retry attempts is cut short (#525). Set only while one is going,
+    // and it is what a stop reaches then: there is no child left to signal.
+    let wakeUp: (() => void) | undefined
+    const sleep = (ms: number): Promise<void> =>
+      new Promise((wake) => {
+        const t = setTimeout(() => {
+          wakeUp = undefined
+          wake()
+        }, ms)
+        wakeUp = () => {
+          clearTimeout(t)
+          wakeUp = undefined
+          wake()
+        }
+      })
+    const finish = async (code: number | null, wanted: boolean): Promise<void> => {
       if (done) return
       done = true
+      let asked = wanted
       if (idle) clearTimeout(idle)
-      unhold()
       if (renderer) {
         append(renderer.flush())
         // The ids may have been in the last partial line, on a very short run.
@@ -328,6 +345,46 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // would advance and the refinements behind it would run on work that never happened.
       const failure = renderer?.failure?.()
       const unfinished = blocker || failure
+      const result = spoken ? spoken.result : renderer?.result()
+
+      // ---- a provider that failed for a moment (#525) ------------------------
+      //
+      // Waited out HERE, before a word of this run is written down: the record is still
+      // `running`, this process is still up and still renewing the card's hold, so the run
+      // stays the card's live run and its failure is not yet reported as final.
+      //
+      // Only a failure the AGENT reported can be one. A run the board itself ended — the
+      // silence limit, a stop, a card taken over — produced no provider signal to read, and
+      // one that recorded a blocker stopped on purpose. And no conversation to pick up is
+      // no retry: this continues the very turn that died, it never starts the work again.
+      const held = peekRun(sessionId) ?? record
+      const ours = takenOver || asked || silent || !!blocker
+      const said = failure ?? spoken?.error
+      // What the CLI printed outside its own events — where a connection that dropped
+      // mid-stream leaves its only word, with no `result` event behind it.
+      const offStream = renderer?.offStream?.()
+      const blip =
+        ours || (code === 0 && !said) || !resumeSessionId(held)
+          ? undefined
+          : active.transient?.({ failure: said, result, offStream })
+      const again = blip ? planRetry(held.retry, blip, held.startedAt) : null
+      if (again) {
+        log.write(`\n[board] ${retryLine(again)}\n`)
+        patch(sessionId, (r) => {
+          r.retry = again
+        })
+        await sleep(Math.max(0, again.at - Date.now()))
+        // A stop that landed during the wait ends the run here rather than after one more
+        // attempt — it is the Cancel the runs view offers beside the countdown.
+        if (stopped || peekRun(sessionId)?.stopping === true) asked = true
+      }
+      // Not after a takeover either: the card stopped being this machine's while the wait
+      // ran, and the next attempt would work on somebody else's card.
+      const retrying = !!again && !asked && !takenOver
+      // The card's hold stops being renewed only now: through the wait above it was still
+      // this run's to hold.
+      unhold()
+
       // A run the silence window ended is a failure whatever the killed command or a
       // connector's last turn goes on to report: we ended it, so our own call stands.
       // A run whose card was taken over is the same: our own call, over anything the agent
@@ -453,14 +510,13 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       if (model) log.write(modelLine(model))
       // The final message goes to the log behind a marker line, so the file alone is the
       // complete durable record and a later read can split events from message again.
-      const final = spoken ? spoken.result : renderer?.result()
-      if (final) log.write(`\n${RESULT_MARKER}\n${final}\n`)
+      if (result) log.write(`\n${RESULT_MARKER}\n${result}\n`)
       await new Promise<void>((closed) => log.end(closed))
 
       patch(sessionId, (r) => {
         if (totalCost !== undefined) r.costUsd = totalCost
         if (usage) r.usage = usage
-        if (final) r.result = final
+        if (result) r.result = result
       })
       // The refines themselves are only for a run that finished. One that failed or was
       // ended left the board half-written, and a refine of half a card is a refine you throw
@@ -494,6 +550,14 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         && (record.formatRepair?.attempt ?? 0) < MAX_FORMAT_REPAIRS) {
         const next = await resume(sessionId)
         if ('error' in next) patch(sessionId, (r) => { r.error = `${contractError}\nCannot resume format repair: ${next.error}` })
+      }
+      // The next attempt (#525), started the instant the failed one is written down — the
+      // same handoff a format repair makes, so the card is between runs for as long as one
+      // record write takes and no longer. A retry and a repair are never both on: a repair
+      // follows a run that finished, and this one failed.
+      if (retrying) {
+        const next = await resume(sessionId)
+        if ('error' in next) patch(sessionId, (r) => { r.error = joinNotes(r.error, `Could not try again: ${next.error}`) })
       }
       // The delivery's own next run first, when it has one — the review after a build. It is
       // read from the record the close just wrote, so it is taken once and started once.
@@ -555,8 +619,15 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
 
     let stopped = false
     const askToStop = () => {
-      if (stopped || done) return
+      if (stopped) return
       stopped = true
+      // Waiting between retry attempts (#525): there is no child to signal, so the wait is
+      // cut short and the close it was holding open carries on as a stop.
+      if (wakeUp) {
+        wakeUp()
+        return
+      }
+      if (done) return
       giveUp(true)
     }
     process.on('SIGTERM', askToStop)
@@ -566,7 +637,16 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     // another machine holding it ends the run there — what it wrote to the board is dropped
     // rather than uploaded, and its card is read back from the workspace (#398).
     unhold = holdRunCard(sessionId, record.cardId, () => {
-      if (done || takenOver) return
+      if (takenOver) return
+      // Waiting between retry attempts (#525): the run is closing already — `done` is set —
+      // but the card is still being renewed, so a takeover has to land. Cut the wait short
+      // and the close carries on as a takeover instead of starting another attempt.
+      if (wakeUp) {
+        takenOver = true
+        wakeUp()
+        return
+      }
+      if (done) return
       takenOver = true
       giveUp(false)
     })

@@ -66,6 +66,13 @@ export type RunsCopy = {
     body: string;
     failed: string;
   };
+  /** A run waiting out a provider that failed for a moment (#525). */
+  retry: {
+    /** The countdown to the next attempt, and which attempt it is. */
+    waiting: (seconds: number, attempt: number, of: number) => string;
+    /** The same the moment the wait is up. */
+    starting: (attempt: number, of: number) => string;
+  };
   resume: {
     label: string;
     resuming: string;

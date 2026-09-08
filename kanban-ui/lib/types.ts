@@ -22,7 +22,7 @@
 // the other. `CommentBatch` is what a comment write answers with — the CLI hands back the
 // list, and the wrapper adds the one line a board too old to carry the move can say.
 
-import type { AgentAction, DeliveryStatus, ExecutionBlocker, ReviewTrigger, TokenUsage } from "./format/agent/types";
+import type { AgentAction, DeliveryStatus, ExecutionBlocker, ReviewTrigger, RunRetry, TokenUsage } from "./format/agent/types";
 import type { CardDeliveryState, DraftComment } from "./format/view/types";
 
 export type {
@@ -55,6 +55,7 @@ export type {
   ReviewTrigger,
   RunPick,
   HarnessRun,
+  RunRetry,
   RunStatus,
   SettingChoice,
   SetupProposal,
@@ -271,6 +272,10 @@ export interface SessionView {
   error?: string;
   /** The one concrete interruption to clear before this implementation resumes. */
   blocker?: ExecutionBlocker;
+  /** The automatic retry this run is part of (#525) — what the provider said, when the next
+   *  attempt starts, and which attempt it is. A live run whose `at` is still ahead is
+   *  WAITING between attempts: it holds its card, and Stop ends it for good. */
+  retry?: RunRetry;
   /** The agent's final message, parsed from its event stream. Terminal runs only. When
    *  present the UI leads with it and folds the event tail away; absent, the tail is all
    *  there is. */

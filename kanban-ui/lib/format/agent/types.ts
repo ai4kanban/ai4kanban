@@ -254,6 +254,27 @@ export interface ExecutionBlocker {
   unblock: string
 }
 
+/** Where a run stands in an automatic retry after a passing provider failure (#525).
+ *
+ *  It rides on the run and is carried onto the one that continues it, so the three attempts
+ *  and the fifteen minutes are counted across the whole chain rather than per session. */
+export interface RunRetry {
+  /** Attempts made so far, this one included. */
+  attempt: number
+  /** And how many this chain gets in all. Kept with the run rather than read off the
+   *  policy, so a screen shows the limit this run was actually held to. */
+  of: number
+  /** What the provider said, in its own words — one line. */
+  reason: string
+  /** When the next attempt starts. In the past on a run that IS that attempt, so a reader
+   *  draws a countdown only while it is ahead. */
+  at: number
+  /** When the FIRST attempt of this chain started. The fifteen minutes run from here, not
+   *  from its failure, so the time a harness spent retrying inside an attempt counts
+   *  against the same window. */
+  since: number
+}
+
 /** One run, as the shared record holds it. Every process reads and writes this same
  *  shape — the record is the only thing that knows what is running. */
 export interface RunRecord {
@@ -312,6 +333,10 @@ export interface RunRecord {
    *  deliberately gone: resuming drops the record it took over from. */
   resumedFrom?: string
   formatRepair?: { attempt: number; errors: string; cardIds: number[]; changedIds: number[]; existingIds: number[] }
+  /** The automatic retry this run is part of (#525), on the run WAITING for the next
+   *  attempt and on every attempt after the first. Absent on a run that has never hit a
+   *  provider failure, which is nearly all of them. */
+  retry?: RunRetry
   /** The card's saved stage the instant before this run overwrote it with
    *  `implementing`, so the end of the run puts back what was there. */
   priorStatus?: string

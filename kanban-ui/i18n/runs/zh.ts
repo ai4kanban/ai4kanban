@@ -136,6 +136,10 @@ const zh: RunsCopy = {
     body: "它会就地结束。写了一半的内容会留在你的工作区里。",
     failed: "未能中止这次运行",
   },
+  retry: {
+    waiting: (seconds, attempt, of) => `${seconds} 秒后重试 · 第 ${attempt}/${of} 次`,
+    starting: (attempt, of) => `正在开始第 ${attempt}/${of} 次尝试`,
+  },
   resume: {
     label: "继续",
     resuming: "继续中…",

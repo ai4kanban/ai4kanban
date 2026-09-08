@@ -1,5 +1,6 @@
 import { createCodexStreamRenderer } from '../wire'
 import { arr, home, modelsIn, num, obj, str } from './models'
+import { providerBlip } from './transient'
 import { namesFlag, type Harness } from './types'
 
 // The two flags every `codex exec` run wants, added only when the user's own `command`
@@ -253,6 +254,12 @@ export const CODEX: Harness = {
   reports: ['tokens', 'model', 'cost'],
 
   stopsOnRateLimit: false,
+
+  // A provider that stumbled, in the one place `codex exec --json` reports why a run
+  // failed: its `turn.failed` and `error` events, which the renderer keeps as this run's
+  // failure (#525). Its final message is not read the way Claude Code's is — Codex puts the
+  // reason on the stream, so a message that merely mentions one is the agent's prose.
+  transient: ({ failure }) => providerBlip(failure),
 
   renderer: createCodexStreamRenderer,
 

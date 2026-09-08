@@ -20,6 +20,8 @@ import {
   RAW_ARGS_KEY,
   SKILL_SENTENCE,
   type ImageInput,
+  type RunFailure,
+  type TransientFailure,
   harnessByName,
   namesFlag,
   uniqueIds,
@@ -469,6 +471,9 @@ export interface ActiveRun extends RunPlan {
   /** How this connector takes a picture on disk (#441) — a flag per file, or a path
    *  written into the words. Undefined for one that can't see images at all. */
   images?: ImageInput
+  /** Reads this connector's failure output for a provider that merely stumbled (#525).
+   *  Undefined for one that recognises none, whose runs never retry. */
+  transient?: (failure: RunFailure) => TransientFailure | undefined
 }
 
 /** Work out how to start a fresh run. `cwd` is the folder it works in — the project, or a
@@ -553,6 +558,7 @@ export function openPlan(plan: RunPlan): ActiveRun {
     client: harness.client?.(effectiveValues(resolved)),
     quietStderr: harness.quietStderr,
     images: harness.images,
+    transient: harness.transient?.bind(harness),
   }
 }
 

@@ -34,15 +34,24 @@ export interface StreamRenderer {
    *  model. Only harnesses whose output names a model implement this; the rest
    *  leave it out and the UI shows nothing rather than inventing a name. */
   model?(): string | undefined
-  /** Why this run ended badly, in the agent's own words — for a CLI that reports a failure
-   *  on its stream and still exits 0. The exit code is the verdict everywhere else, and
-   *  every other agent we ship exits non-zero on its own failures, so only Claude Code
-   *  implements this: `claude -p` exits 0 on a `result` event carrying `is_error`, and
-   *  without this the run would close as `done` and its card would advance.
+  /** Why this run ended badly, in the agent's own words — for a CLI that puts its reason on
+   *  the stream rather than only in an exit code. Claude Code needs it because `claude -p`
+   *  exits 0 on a `result` event carrying `is_error`, and without this the run would close
+   *  as `done` and its card would advance. Codex implements it because `codex exec --json`
+   *  says why a turn gave up on the stream and nowhere else, and a retry has to read it
+   *  (#525). The rest leave it out and their exit code is the whole verdict.
    *
    *  Read after `flush`, so the closing event is in. Undefined means the stream reported
    *  no failure — never "the run passed", which is still the exit code's to say. */
   failure?(): string | undefined
+  /** The last line this CLI printed that was NOT one of its own events (#525). A `claude -p`
+   *  whose connection drops mid-stream dies here and nowhere else: no `result` event ever
+   *  arrives, so `result()` and `failure()` are both empty and this line is the only thing
+   *  the run said about why. Only Claude Code implements it; the rest leave it out.
+   *
+   *  Read after `flush`. It is the CLI talking, not the agent — everything the agent says
+   *  arrives as an event — so a reader still has to judge whether the words are a failure. */
+  offStream?(): string | undefined
   /** The id this harness's own CLI resumes by, once its output has reported one.
    *  Only harnesses that mint their own id mid-run implement this — one that
    *  adopts the id we generate (Claude Code, via `--session-id`) knows it before

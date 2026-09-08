@@ -36,6 +36,7 @@ import type {
   ReviewTrigger,
   ReviewVerdict,
   RunRecord,
+  RunRetry,
   RunStatus,
 } from './types'
 
@@ -145,6 +146,7 @@ export function readStore(): Store {
         && typeof entry.formatRepair.errors === 'string'
         && [entry.formatRepair.cardIds, entry.formatRepair.changedIds, entry.formatRepair.existingIds].every((ids) => Array.isArray(ids) && ids.every(Number.isInteger))
         ? entry.formatRepair : undefined,
+      retry: readRetry(entry.retry),
       priorStatus: typeof entry.priorStatus === 'string' ? entry.priorStatus : undefined,
       // The pictures the create sheet handed this run (#517), as paths in its own folder.
       pictures: readPictures(entry.pictures),
@@ -167,6 +169,22 @@ export function readStore(): Store {
   }
   runs.sort((a, b) => a.startedAt - b.startedAt)
   return { runs, deliveries: readDeliveryRows(box?.deliveries), marks: readMarks(box?.marks) }
+}
+
+// The retry a run is part of (#525). All four numbers or nothing: a half-written one would
+// let a chain count attempts against a window it never had, which is a card held for
+// longer than the policy allows.
+function readRetry(raw: unknown): RunRetry | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const r = raw as Partial<RunRetry>
+  const whole =
+    Number.isInteger(r.attempt) && (r.attempt as number) > 0 &&
+    Number.isInteger(r.of) && (r.of as number) > 0 &&
+    typeof r.reason === 'string' && !!r.reason &&
+    typeof r.at === 'number' && typeof r.since === 'number'
+  return whole
+    ? { attempt: r.attempt as number, of: r.of as number, reason: r.reason as string, at: r.at as number, since: r.since as number }
+    : undefined
 }
 
 // A board written by a copy of these rules from before marks existed has none, and reads as

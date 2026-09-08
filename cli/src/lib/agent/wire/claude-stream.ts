@@ -56,11 +56,18 @@ export function createStreamRenderer(): StreamRenderer {
   let model: string | undefined
   let usage: TokenUsage | undefined
   let failure: string | undefined
+  let offStream: string | undefined
 
   const renderLine = (line: string): string => {
     if (!line.trim()) return ''
     const ev = frame(line)
-    if (!ev) return `${line}\n`
+    if (!ev) {
+      // Not one of Claude Code's events: the CLI itself talking, straight onto stdout. Kept
+      // as the last such line, because a run the connection dropped under ends on one and
+      // reports nothing else at all (#525).
+      offStream = line.trim()
+      return `${line}\n`
+    }
     // Which model is doing the work, taken from the run's own output as it goes.
     // First one wins, so this settles on the opening banner's id and never drifts
     // to whatever a later turn happens to say.
@@ -130,5 +137,6 @@ export function createStreamRenderer(): StreamRenderer {
     usage: () => usage,
     model: () => model,
     failure: () => failure,
+    offStream: () => offStream,
   }
 }

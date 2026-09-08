@@ -36,6 +36,7 @@ takes either a `grok login` or the key box, so none of those four is asked.
 | Token counts | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Model name | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Rate-limit exit | ✓ | — | — | — | — | — | — | — |
+| Provider retry | ✓ | ✓ | — | — | — | — | — | — |
 | Direct skill call | ✓ | ✓ | — | — | — | — | — | — |
 
 **Chat and resume** — talk to the board or a card, and pick up a failed run instead of
@@ -70,6 +71,15 @@ Whichever agent you run, a run that stops producing any output ends by itself af
 **End a silent run after** in Configuration → General — 10 minutes unless you change it,
 and 0 switches it off. It ends as a failure, so the card keeps its work and Resume picks
 it up.
+
+**Provider retry** — a run that dies on a passing provider failure picks itself back up.
+Claude Code and Codex report their failures in a form the board reads, so a dropped
+connection or an overloaded endpoint is waited out and the same conversation carries on: up
+to three attempts within fifteen minutes, in the same folder, with the card held the whole
+time. The runs panel shows the reason and the countdown, and Stop ends the run for good.
+Everything else stays as it is today — a signed-out CLI, a spent quota, a cancelled run, a
+tool that failed, and any output nobody has read all stop for you to resume. The other six
+agents never retry.
 
 **Direct skill call** — Claude Code and Codex are told to load the board skill by name.
 Cursor, OpenCode, Kimi Code, DeepSeek Harness, ZCode and Grok Build are asked in the prompt

@@ -1,6 +1,12 @@
 import { createStreamRenderer } from '../wire'
 import { arr, home, modelsIn, obj, str } from './models'
+import { providerBlip } from './transient'
 import type { Harness } from './types'
+
+// Claude Code's own voice rather than the agent's: the CLI writes its provider failures
+// under this one prefix, and nothing else a run ends on carries it (#525).
+const cliSaid = (said: string | undefined): string | undefined =>
+  /^\s*API Error\b/i.test(said ?? '') ? said : undefined
 
 // The families `--model` names, each meaning the latest model in it. Claude Code's own
 // `--model` help is where these come from, and they are the only model names here that
@@ -230,6 +236,19 @@ export const CLAUDE_CODE: Harness = {
 
   // The variable above is the switch: the first 429 exits non-zero and the card is free.
   stopsOnRateLimit: true,
+
+  // A provider that stumbled, in the three ways `claude -p` reports one (#525).
+  //
+  // `failure` is a `result` event marked `is_error`, which the renderer already reads for
+  // its own reason. `offStream` is a line the CLI printed outside its events, and it is how
+  // BOTH failures this board captured arrived — "API Error: Connection dropped
+  // (ECONNRESET)" and "API Error: Connection lost mid-response.": the connection goes and
+  // no `result` event is ever written. `result` is the agent's own last message, read for
+  // the same words in case a future CLI puts them there.
+  //
+  // The last two only behind the `API Error:` prefix the CLI writes them under: everything
+  // else on those two is the agent's prose, and prose quoting an error is not a failure.
+  transient: ({ failure, result, offStream }) => providerBlip(failure, cliSaid(offStream), cliSaid(result)),
 
   renderer: createStreamRenderer,
 

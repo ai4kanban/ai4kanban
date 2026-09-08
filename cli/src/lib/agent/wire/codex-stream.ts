@@ -106,6 +106,7 @@ export function createCodexStreamRenderer(): StreamRenderer {
   let final: string | undefined
   let usage: TokenUsage | undefined
   let threadId: string | undefined
+  let failure: string | undefined
   let facts: CodexRunFacts | undefined
   let lookedAt = 0
 
@@ -150,10 +151,21 @@ export function createCodexStreamRenderer(): StreamRenderer {
         // the ones the run ended on rather than a total it can't verify.
         usage = parseUsage(ev.usage) ?? usage
         return ''
-      case 'turn.failed':
-        return `[error] ${str(obj(ev.error).message)}\n`
-      case 'error':
-        return `[error] ${str(ev.message)}\n`
+      // The two events that say the RUN did not get there — the turn giving up, and the
+      // stream itself failing. Kept as the run's failure (#525), because `codex exec`
+      // reports its reason on this stream and nowhere else, and a retry has to read it.
+      // An item's own `error` is not one of them: a tool that failed is the agent's
+      // problem to work around, and the turn around it may still finish.
+      case 'turn.failed': {
+        const said = str(obj(ev.error).message)
+        failure = said || failure
+        return `[error] ${said}\n`
+      }
+      case 'error': {
+        const said = str(ev.message)
+        failure = said || failure
+        return `[error] ${said}\n`
+      }
       default:
         // turn.started and anything a newer Codex adds: noise in a tail.
         return ''
@@ -184,5 +196,6 @@ export function createCodexStreamRenderer(): StreamRenderer {
       return priceUsd(facts?.provider, facts?.model, usage)
     },
     resumeId: () => threadId,
+    failure: () => failure,
   }
 }

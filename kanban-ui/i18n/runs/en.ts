@@ -138,6 +138,10 @@ const en: RunsCopy = {
     body: "It ends where it is. Anything it half-wrote stays in your working tree.",
     failed: "couldn't stop that run",
   },
+  retry: {
+    waiting: (seconds, attempt, of) => `Retrying in ${seconds}s · attempt ${attempt} of ${of}`,
+    starting: (attempt, of) => `Starting attempt ${attempt} of ${of}`,
+  },
   resume: {
     label: "Resume",
     resuming: "Resuming…",

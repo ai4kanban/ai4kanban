@@ -361,6 +361,13 @@ function resumeIdOf(r: RunRecord): string | undefined {
   return r.resumeId
 }
 
+/** The id this run's own CLI would pick its conversation up by, or nothing when there is
+ *  none. Asked BEFORE a run's status is settled, by the retry that has to know whether
+ *  there is anything to come back to before it holds a card through a wait (#525). */
+export function resumeSessionId(run: RunRecord): string | undefined {
+  return resumesUnder(run.harness) ? resumeIdOf(run) : undefined
+}
+
 // A run that ended before finishing, so there is something left to continue: it failed, it
 // was cut off, or the user stopped it. A stop ends the run, not the conversation — changing
 // their mind is one click, and the alternative is redoing the work from the top. The one
@@ -749,6 +756,9 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     resumeId: plan.resumeId ?? undefined,
     resumedFrom: prev.sessionId,
     formatRepair: prev.formatRepair ? { ...prev.formatRepair, attempt: prev.formatRepair.attempt + 1 } : undefined,
+    // The retry chain carries on rather than starting over (#525): this run IS the attempt
+    // the failed one scheduled, so its count and its window come with it.
+    retry: prev.retry,
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
     channel: prev.channel,

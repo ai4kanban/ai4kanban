@@ -67,6 +67,12 @@ const CAPABILITIES: Capability[] = [
     has: (h) => h.stopsOnRateLimit,
   },
   {
+    id: 'retry',
+    label: 'Provider retry',
+    blurb: 'A passing provider failure ends the run.',
+    has: (h) => h.transient !== undefined,
+  },
+  {
     id: 'skill-call',
     label: 'Direct skill call',
     blurb: 'Prompts ask for the board skill in a sentence.',

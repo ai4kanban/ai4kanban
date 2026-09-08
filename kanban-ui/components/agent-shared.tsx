@@ -24,6 +24,7 @@ import {
   type CommandAction,
   type DeliveryCommitMode,
   type DeliveryPlan,
+  type RunRetry,
   type ScheduledAction,
   type SessionView,
   type TokenUsage,
@@ -168,6 +169,30 @@ export function stoppedShort(session: SessionView | null | undefined): boolean {
   return session?.status === "error" || session?.status === "interrupted";
 }
 
+// A run waiting out a provider that failed for a moment (#525).
+//
+// It is drawn only while the next attempt is still ahead, which is the only moment a LIVE
+// run has anything to say beyond that it is going. The run still holds its card through the
+// wait, so the three things to know are why it stopped, how long is left, and how many
+// attempts remain — and Stop, in the title bar above, is what ends it for good.
+function RetryWait({ retry }: { retry: RunRetry }) {
+  const c = useCopy().runs.retry;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+  const left = Math.max(0, Math.round((retry.at - now) / 1000));
+  return (
+    <div role="status" className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
+      <p className="nb-tag mb-1.5 text-nb-peach-ink">
+        {left > 0 ? c.waiting(left, retry.attempt, retry.of) : c.starting(retry.attempt, retry.of)}
+      </p>
+      <p className="text-[12.5px] leading-relaxed text-nb-ink">{retry.reason}</p>
+    </div>
+  );
+}
+
 // A tailing view of one run's captured output (task #14). Shows the last few
 // KB; auto-scrolls to the newest line unless the user has scrolled up to read
 // back. Once the run ends with a parsed final message, the view leads with
@@ -214,6 +239,11 @@ export function SessionLog({
   const result = (session?.result || "").trim();
   const note = (session?.note || "").trim();
   const blocker = session?.blocker;
+  // The wait between retry attempts (#525): a live run whose next attempt is still ahead.
+  // A run already ON its next attempt carries the same record and draws nothing — it is
+  // simply running.
+  const waiting =
+    session?.status === "running" && session.retry && session.retry.at > Date.now() ? session.retry : null;
 
   useEffect(() => {
     const el = ref.current;
@@ -393,6 +423,7 @@ export function SessionLog({
   // coming after it.
   const body = (
     <>
+      {waiting && <RetryWait retry={waiting} />}
       {blockerPanel}
       {unfinishedLine}
       {message}

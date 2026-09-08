@@ -56,6 +56,10 @@ function toView(
     code: run.code,
     error: run.error,
     blocker: run.blocker,
+    // The retry this run is part of (#525). Kept on a live run too — unlike the numbers
+    // above, which only arrive at the close: a run WAITING for its next attempt is the one
+    // case where a live run has something to say beyond that it is going.
+    retry: run.retry,
     result: run.status !== "running" ? run.result : undefined,
     note: run.status !== "running" ? run.note : undefined,
     tail: run.tail,
