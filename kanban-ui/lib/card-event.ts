@@ -1,11 +1,16 @@
 "use client";
 
-// Where the window's bell sits, and the one question a card page asks it (#319).
+// Where the window's bell sits, and the one question a card page asks of a card's live Cloud
+// event (#319).
 //
 // Split out of components/Notifications.tsx (#374): the bell — its pane, its rows and the
 // two board actions behind them — is the app's own shell, and a card page needs none of it
-// to ask whether this card has a live Cloud event. A screen drawn with no bell around it
-// gets `null` and draws no mark, which is exactly right.
+// to ask whether this card has a live Cloud event.
+//
+// The rows and the bell are two contexts, not one (#364). The app fills both, from the same
+// read; the hosted card page draws no bell at all and fills the rows alone, off the
+// workspace's own live decisions. A screen given neither gets `null` and draws no mark, which
+// is exactly right.
 
 import { createContext, useContext } from "react";
 import type { BellRail } from "./bell-rail";
@@ -15,15 +20,19 @@ import type { NotificationRow } from "./notifications";
 // builds. Context is what puts the two on one state without every page threading it through
 // its header — the same seam the chat rail sits behind.
 const BellContext = createContext<BellRail | null>(null);
+const RowsContext = createContext<readonly NotificationRow[] | null>(null);
 
 export const BellProvider = BellContext.Provider;
+
+/** The live Cloud events on this board's cards, whoever read them. */
+export const CardEventsProvider = RowsContext.Provider;
 
 /** The bell this window is showing, or null where there is none. */
 export const useBell = (): BellRail | null => useContext(BellContext);
 
 /** The live Cloud event on one of this board's cards, or null. */
 export function useCardEvent(taskId: number): NotificationRow | null {
-  const rail = useBell();
-  if (!rail) return null;
-  return rail.center.rows.find((row) => row.taskId === taskId) ?? null;
+  const rows = useContext(RowsContext);
+  if (!rows) return null;
+  return rows.find((row) => row.taskId === taskId) ?? null;
 }

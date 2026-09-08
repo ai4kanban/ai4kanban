@@ -21,6 +21,7 @@ import { KANBAN } from '../paths'
 import type { WriteResult } from '../view/types'
 import { cloudBoardFor, setCloudBoardServer, stopCloudBoardServer, type CloudBoard } from './boards'
 import { attachServer, detachServer, listServers } from './client'
+import { eventHome, workspaceNodeFor } from './home'
 import { readSession } from './session'
 
 /** A machine registered against one board, as Cloud holds it. */
@@ -44,14 +45,27 @@ export interface BoardServer {
   thisMachine: string
 }
 
-/** This board's server, when it is this machine: the board record and the server row Cloud
- *  minted. Null whenever nothing here may claim — notifications off, signed out, no
- *  identity, or this machine is not the board's server. */
+/**
+ * The machine row this checkout claims its work under, when that machine is this one.
+ *
+ * Two kinds of row, one shape. A Local board attaches exactly ONE server, and the row is the
+ * one this machine holds for it. A Cloud checkout has no board server at all: it claims under
+ * its NODE in the workspace (#364), which every one of the workspace's machines has one of —
+ * so a decision taken in a browser is picked up by whichever of them is running.
+ *
+ * Null whenever nothing here may claim: notifications off, signed out, no node registered
+ * yet, or this machine is not the board's server.
+ */
 export function serverForBoard(boardDir = KANBAN): { board: CloudBoard; serverId: string } | null {
   const board = cloudBoardFor(boardDir)
-  if (!board?.serverId) return null
+  if (!board) return null
   if (!readSession()) return null
-  return { board, serverId: board.serverId }
+  const home = eventHome(board)
+  if (home.workspaceId) {
+    const node = workspaceNodeFor()
+    return node ? { board, serverId: node } : null
+  }
+  return board.serverId ? { board, serverId: board.serverId } : null
 }
 
 /**
@@ -119,8 +133,12 @@ export async function readBoardServer(boardDir = KANBAN): Promise<BoardServer> {
 
 /** Whether this machine should register itself as this board's server without being asked —
  *  a board whose notifications are on, that has no server row here, and whose server the user
- *  has not turned off. */
+ *  has not turned off.
+ *
+ *  Never on a Cloud checkout: it attaches no board server at all, because its decisions belong
+ *  to the workspace and every one of the workspace's machines may claim them (#364). */
 export function wantsServerHere(boardDir = KANBAN): boolean {
   const board = cloudBoardFor(boardDir)
-  return !!board && !board.serverId && !board.serverOff && !!readSession()
+  if (!board || eventHome(board).workspaceId) return false
+  return !board.serverId && !board.serverOff && !!readSession()
 }

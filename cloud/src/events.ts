@@ -18,7 +18,11 @@ import type { Owner } from './owner.ts'
  *  whatever the database happened to build. */
 export interface EventRow {
   id: string
+  /** The board this event belongs to, and empty on one a workspace keeps (#364). Exactly one
+   *  of the two is ever set. */
   boardId: string
+  /** The workspace this event belongs to, and empty on a board's. */
+  workspaceId: string
   boardName: string
   taskId: number
   taskTitle: string
@@ -65,7 +69,14 @@ export async function registerBoard(env: Env, owner: Owner, body: unknown): Prom
   })
 }
 
-/** Store or refresh one event. */
+/**
+ * Store or refresh one event, in the home the publisher names.
+ *
+ * A checkout carrying a pointer publishes into its WORKSPACE (#364), so one card keeps one
+ * live decision however many of its machines publish it; every other checkout publishes into
+ * the board id its machine minted, exactly as it always has. Naming both, or neither, is a
+ * bad request rather than a guess.
+ */
 export async function publishEvent(env: Env, owner: Owner, body: unknown): Promise<{ event: EventRow }> {
   const input = (body ?? {}) as Record<string, unknown>
   const kind = String(input.kind ?? '')
@@ -74,10 +85,16 @@ export async function publishEvent(env: Env, owner: Owner, body: unknown): Promi
   if (!DECISIONS.includes(decision)) throw badRequest('That event asks for no decision Cloud knows.')
   const taskId = Number(input.taskId)
   if (!Number.isInteger(taskId) || taskId < 0) throw badRequest('That event names no task.')
+  const workspace = named(input.workspaceId) ? uuid(input.workspaceId, 'workspace') : null
+  const board = named(input.boardId) ? uuid(input.boardId, 'board') : null
+  if (!board === !workspace) {
+    throw badRequest('That event names a board or a workspace, never both.')
+  }
 
   const event = await mutate<EventRow>(env, 'publish_event', {
     p_subject: owner.accountId,
-    p_board: uuid(input.boardId, 'board'),
+    p_board: board,
+    p_workspace: workspace,
     p_task_id: taskId,
     p_task_title: text(input.taskTitle, 'task title', 500),
     p_release: typeof input.release === 'string' ? input.release.slice(0, 100) : '',
@@ -100,6 +117,24 @@ export async function publishEvent(env: Env, owner: Owner, body: unknown): Promi
 /** Every event this account holds — the catch-up read on every start and reconnect. */
 export async function listEvents(env: Env, owner: Owner): Promise<{ events: EventRow[] }> {
   const events = await call<EventRow[]>(env, 'list_events', { p_subject: owner.accountId })
+  return { events: events ?? [] }
+}
+
+/**
+ * Every decision one workspace's board is raising (#364) — the read a hosted card page makes
+ * beside the board, so it knows whether the card on screen is waiting on one.
+ *
+ * The live rows alone. A finished delivery is history, and no surface offers a press on one.
+ */
+export async function listWorkspaceEvents(
+  env: Env,
+  owner: Owner,
+  workspaceId: string,
+): Promise<{ events: EventRow[] }> {
+  const events = await call<EventRow[]>(env, 'list_workspace_events', {
+    p_subject: owner.accountId,
+    p_workspace: uuid(workspaceId, 'workspace'),
+  })
   return { events: events ?? [] }
 }
 
@@ -183,6 +218,10 @@ export async function recordOutcome(
 // very differently to whoever sent one.
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Whether a field was filled in at all. A missing home and an empty one read the same, so a
+ *  publisher that leaves out the field it does not use and one that sends `''` agree. */
+const named = (value: unknown): boolean => typeof value === 'string' && value.trim() !== ''
 
 function uuid(value: unknown, what: string): string {
   const held = typeof value === 'string' ? value.trim() : ''

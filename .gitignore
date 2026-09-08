@@ -18,6 +18,7 @@ docs/kanban/todo/
 /marketing/
 
 kanban-ui/.next-guide-test/
+kanban-ui/.next-shots/
 
 researches/
 .env

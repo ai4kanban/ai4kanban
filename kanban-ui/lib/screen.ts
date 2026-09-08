@@ -186,6 +186,43 @@ export interface ScreenMachine {
   mockups?: MockupSet;
 }
 
+// ---- which of a card page's controls a surface offers (#364) ----------------
+//
+// A screen handed actions used to draw its WHOLE toolbar: `CardPage` draws it on `!!actions`
+// and Edit and Reject are unconditional, so a surface that supplies actions to get one button
+// gets every other one with it.
+//
+// The hosted board is the surface that needs otherwise. A signed-in reader may approve a
+// delivery and answer a card's questions from a borrowed phone (#322, #364), and nothing else:
+// a card's fields, its body and its delivery all stay in the app. So a surface says which
+// controls it offers, and the page draws those and no more.
+
+/**
+ * The controls a card page can draw.
+ *
+ * The seven toolbar buttons — `run` is Implement's place on a recurring card — plus `resume`,
+ * which is the pair of ways out of a request whose machine stopped mid-delivery. Not in the
+ * list, and so never offered by a surface that names its controls: a card's fields, a
+ * hand-check cross-off and a queued run, all of which stay in the app.
+ */
+export type CardControl =
+  | 'implement'
+  | 'run'
+  | 'refine'
+  | 'edit'
+  | 'resolve'
+  | 'archive'
+  | 'reject'
+  | 'resume'
+
+const ControlsContext = createContext<readonly CardControl[] | null>(null);
+
+export const ScreenControlsProvider = ControlsContext.Provider;
+
+/** The controls this surface offers, or null — then the page draws every one that fits the
+ *  card, which is the app's own page unchanged. */
+export const useControls = (): readonly CardControl[] | null => useContext(ControlsContext);
+
 /** Where in a screen's body one of the app's own bands is drawn (#374). They are the app's
  *  because each one leads somewhere only the machine holding the board has — the download
  *  page, the goal editor, the setup run — so the screens leave a place for them rather than

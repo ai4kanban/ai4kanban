@@ -145,8 +145,12 @@ export function answeredFromEvent(
 export interface CloudEvent {
   id: string
   /** The board's opaque Cloud ID. It means nothing outside Cloud — the mapping to a local
-   *  path is held on the machine alone. */
+   *  path is held on the machine alone. Empty on an event a workspace keeps (#364). */
   boardId: string
+  /** The workspace this event belongs to, for a checkout carrying a pointer (#364) — where
+   *  one card keeps one decision however many of its machines publish it. Empty on a Local
+   *  board's, and absent from an event published before this release. */
+  workspaceId?: string
   /** What that board is called, so one bell can carry several. */
   boardName: string
   taskId: number
@@ -216,12 +220,13 @@ export function eventLabel(event: Pick<CloudEvent, 'kind' | 'state'>): string {
   }
 }
 
-/** The four states no local mark has words for — what the card page's title band may show
+/** The five states no local mark has words for — what the card page's title band may show
  *  when nothing of the board's own already holds that slot. */
 export const CARD_BAND_STATES: CloudEventState[] = [
   'actionable',
   'accepted',
   'waiting_for_server',
+  'running',
   'stale',
 ]
 
@@ -235,6 +240,11 @@ export function bandLabel(state: CloudEventState): string {
       return 'Starting'
     case 'waiting_for_server':
       return 'Waiting for a machine'
+    // A machine has taken the decision up. In the app the delivery's own pill is normally
+    // already saying so and wins the slot; on a hosted card page there is no delivery to
+    // read, and without this word a decision that was picked up says nothing (#364).
+    case 'running':
+      return 'Running'
     case 'stale':
       return 'No longer waiting'
     default:

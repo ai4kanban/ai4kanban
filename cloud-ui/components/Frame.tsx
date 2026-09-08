@@ -1,11 +1,15 @@
 "use client";
 
-// The frame these pages are drawn in (#322).
+// The frame these pages are drawn in (#322, #364).
 //
 // It is the app's window with everything that ACTS taken out. Around the board: the board's
-// name and the release picker. Around a card: the board's name and the way back. Nothing
-// else — no rail, no chat, no Create task, no card action — so there is nothing on either
-// page a reader can press that changes the board.
+// name and the release picker. Around a card: the board's name, the way back, and the way
+// into the app for a machine that holds a copy of this workspace. Nothing else — no rail, no
+// chat, no Create task — and the board page stays a read.
+//
+// The card page is the one that writes, and only the two decisions the card is waiting on:
+// the buttons for those are the board's own (`kanban-ui/components/CardPage.tsx`), so nothing
+// here draws one.
 //
 // The controls are the board's own (`kanban-ui/components/`), at the weight the app's own
 // top row is drawn at, so a member recognises the screen they left the app on.
@@ -53,6 +57,7 @@ export function TopRow({
   workspaceName,
   back,
   signedOut,
+  readOnly = true,
   children,
 }: {
   workspaceName?: string;
@@ -60,6 +65,9 @@ export function TopRow({
   back?: string;
   /** This is the page a sign-out landed on. */
   signedOut?: boolean;
+  /** Whether this page really is a read. False on a card the board is raising a decision for
+   *  (#364), where the mark would be saying the opposite of the two buttons under it. */
+  readOnly?: boolean;
   children?: ReactNode;
 }) {
   const copy = useHostedCopy();
@@ -88,7 +96,7 @@ export function TopRow({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {children}
-        {workspaceName !== undefined && <ReadOnlyMark />}
+        {workspaceName !== undefined && readOnly && <ReadOnlyMark />}
         {signedOut ? <SignIn /> : <SignOut />}
       </div>
     </header>
@@ -108,6 +116,24 @@ function ReadOnlyMark() {
 
 const WAY_OUT =
   "flex h-7 cursor-pointer items-center rounded-[8px] bg-nb-paper px-2.5 text-[12px] font-[700] text-nb-ink max-md:h-9";
+
+/**
+ * The way into the app, offered on a card page (#364).
+ *
+ * A workspace card's chat link lands every reader here rather than on `ai4kanban://`, because
+ * a redirect cannot tell whether the machine asking has the app and guessing wrong on a phone
+ * is the failure this page exists to remove. This is what that costs a desktop reader back: a
+ * machine holding a copy of the workspace opens the card in the app, and one without it does
+ * nothing — which is why it is an offer rather than a redirect.
+ */
+export function OpenInApp({ workspace, card }: { workspace: string; card: number }) {
+  const copy = useHostedCopy();
+  return (
+    <a href={`ai4kanban://card/${encodeURIComponent(workspace)}/${card}`} className={`${WAY_OUT} ${CHROME}`}>
+      {copy.openInApp}
+    </a>
+  );
+}
 
 /** A form rather than a link: signing a reader out is a change, and a link somebody else put
  *  on a page must not be able to make it. `SameSite=Lax` carries the cookie on a link and not

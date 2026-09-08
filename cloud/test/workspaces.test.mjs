@@ -611,6 +611,23 @@ describe('the routes', () => {
     ])
   })
 
+  it('reads the decisions this board is raising (#364)', async () => {
+    const calls = fakeDatabase({ events: [] })
+
+    await get(`${WORKSPACE}/events`)
+
+    assert.deepEqual(calls.map((c) => c.fn), ['list_workspace_events'])
+    assert.equal(calls[0].args.p_workspace, WORKSPACE)
+    // A read, so a card page asking on every paint costs the day's write budget nothing.
+    assert.ok(!('p_daily_write_budget' in calls[0].args))
+  })
+
+  it('never writes through the decisions route', async () => {
+    const calls = fakeDatabase({})
+    await assert.rejects(post(`${WORKSPACE}/events`, {}), (e) => e.code === 'method_not_allowed')
+    assert.equal(calls.length, 0)
+  })
+
   it('sends the board’s own content to its own function too', async () => {
     const calls = fakeDatabase({})
 

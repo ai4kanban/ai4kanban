@@ -1,4 +1,4 @@
-// Where Cloud is, and the reads these pages make of it (#322).
+// Where Cloud is, and the calls these pages make of it (#322, #364).
 //
 // None of the three values below is secret: the publishable key's whole job is to let
 // Supabase Auth answer a sign-in and a refresh, and it reaches nothing — the `api` schema
@@ -7,6 +7,7 @@
 // environment overrides each one so a deploy can be pointed at a throwaway project.
 
 import type { BoardRead } from "@/lib/format/board/assemble";
+import type { CloudEvent } from "@/lib/format/cloud/events";
 
 const SUPABASE_URL = "https://yajrbpprmdvtkvjjfpbk.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_ioUQ23BTtoj8NKqndp0Jrw_omVR3m4n";
@@ -74,4 +75,79 @@ export async function readWorkspaces(token: string): Promise<Read<WorkspaceRef[]
   const answer = await get<{ workspaces: WorkspaceRef[] }>("/v1/workspaces", token);
   if (answer.ok) return { ok: true, value: answer.value.workspaces ?? [] };
   return answer.why === "unavailable" ? UNAVAILABLE : { ok: true, value: [] };
+}
+
+/** The decisions this workspace's board is raising (#364) — one live event per card that is
+ *  waiting on somebody. A read that fails answers with none: a card page draws the card
+ *  whether or not it could tell what it is waiting on, and no controls is the safe half. */
+export async function readEvents(workspaceId: string, token: string): Promise<CloudEvent[]> {
+  const answer = await get<{ events: CloudEvent[] }>(
+    `/v1/workspaces/${encodeURIComponent(workspaceId)}/events`,
+    token,
+  );
+  return answer.ok ? (answer.value.events ?? []) : [];
+}
+
+// ---- the one write these pages make (#364) ----------------------------------
+//
+// A member approves a delivery for review, or answers a card's open questions. Both are the
+// same durable action on the card's live event that the app, Slack and Lark record, so this
+// is a fourth caller of a shape three surfaces already share.
+//
+// It leaves the browser through this app's own server: the session is an `httpOnly` cookie a
+// script cannot read, so a route handler holds the token and nothing on the page ever carries
+// one.
+
+/** One answer to one of an event's questions, in the event's own order. */
+export interface EventAnswer {
+  picked: number[];
+  text: string;
+}
+
+/**
+ * How a press ended.
+ *
+ * A refusal and an outage are kept apart, which is the whole reason this is not `Read<T>`: a
+ * press the service refuses says why in the service's own words — the event was answered
+ * elsewhere, the card has moved, this account is not in the workspace — and a press it could
+ * not answer says so and leaves the decision unmade. Reading the second as the first would
+ * tell somebody their decision was rejected when nothing ever reached the service.
+ */
+export type Press =
+  | { ok: true; state: string }
+  | { ok: false; why: "refused" | "unavailable"; error: string };
+
+/** What every outage says. Never the service's own words, because there were none. */
+export const UNREACHABLE = "unreachable";
+
+/** Record the one action a card's live event carries. */
+export async function pressEvent(
+  eventId: string,
+  token: string,
+  body: { opId: string; decision: "implement" | "answer"; revision: string; answers: EventAnswer[] },
+): Promise<Press> {
+  let response: Response;
+  try {
+    response = await fetch(`${endpoints().api}/v1/events/${encodeURIComponent(eventId)}/action`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      // A browser decision waits for a machine: nothing runs until one of the workspace's own
+      // machines claims it, and the card says so until one does.
+      body: JSON.stringify({ ...body, state: "waiting_for_server" }),
+      cache: "no-store",
+    });
+  } catch {
+    return { ok: false, why: "unavailable", error: UNREACHABLE };
+  }
+
+  const said = (await response.json().catch(() => null)) as
+    | { event?: { state?: string }; error?: { message?: string } }
+    | null;
+  if (response.ok) return { ok: true, state: said?.event?.state ?? "accepted" };
+  if (response.status >= 500) return { ok: false, why: "unavailable", error: UNREACHABLE };
+  return { ok: false, why: "refused", error: said?.error?.message ?? "" };
 }

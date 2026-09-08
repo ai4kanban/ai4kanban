@@ -11,6 +11,7 @@ import { publishEvent, recordAction, recordOutcome } from '../src/events.ts'
 const OWNER = { accountId: '11111111-1111-4111-8111-111111111111', subject: 'x', handle: 'a', name: null, avatarUrl: null, expiresAt: 0 }
 const BOARD = '22222222-2222-4222-8222-222222222222'
 const EVENT = '33333333-3333-4333-8333-333333333333'
+const WORKSPACE = '44444444-4444-4444-8444-444444444444'
 
 const ENV = { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'k' }
 
@@ -91,6 +92,42 @@ describe('publishEvent', () => {
       publishEvent(ENV, OWNER, { boardId: BOARD, taskId: 1, kind: 'whatever', decision: 'answer' }),
       (e) => e.code === 'bad_request',
     )
+    assert.equal(calls.length, 0)
+  })
+
+  it('publishes into the workspace a Cloud checkout carries (#364)', async () => {
+    const calls = fakeDatabase(anEvent({ boardId: '', workspaceId: WORKSPACE }))
+
+    await publishEvent(ENV, OWNER, {
+      workspaceId: WORKSPACE,
+      taskId: 364,
+      taskTitle: 'Review in the browser',
+      revision: 'r1',
+      kind: 'ready_for_review',
+      decision: 'implement',
+      fingerprint: 'f1',
+    })
+
+    assert.equal(calls[0].args.p_workspace, WORKSPACE)
+    assert.equal(calls[0].args.p_board, null)
+  })
+
+  it('refuses an event that names both homes, and one that names neither', async () => {
+    const calls = fakeDatabase(anEvent())
+    const body = {
+      taskId: 1,
+      taskTitle: 't',
+      revision: 'r',
+      kind: 'question',
+      decision: 'answer',
+      fingerprint: 'f',
+    }
+
+    await assert.rejects(
+      publishEvent(ENV, OWNER, { ...body, boardId: BOARD, workspaceId: WORKSPACE }),
+      (e) => e.code === 'bad_request',
+    )
+    await assert.rejects(publishEvent(ENV, OWNER, body), (e) => e.code === 'bad_request')
     assert.equal(calls.length, 0)
   })
 

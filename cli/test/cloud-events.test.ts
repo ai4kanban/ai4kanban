@@ -25,13 +25,16 @@ import {
   readCloudBoards,
   setCloudBoardRelease,
 } from '../src/lib/cloud/boards.ts'
-import { CLOUD_EVENT_STATES, eventLabel, isFinalEventState } from '../src/lib/cloud/events.ts'
+import { bandLabel, CARD_BAND_STATES, CLOUD_EVENT_STATES, eventLabel, isFinalEventState } from '../src/lib/cloud/events.ts'
 import { readOutbox } from '../src/lib/cloud/outbox.ts'
 import { recordCloudActionFor, recordCloudDeliveryState } from '../src/lib/cloud/publish.ts'
 import { readCloudCardLink } from '../src/lib/cloud/center.ts'
+import { rememberBoardCopy } from '../src/lib/cloud/copy.ts'
 import { actionableKind, snapshotFor, userQuestions } from '../src/lib/cloud/snapshot.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { Card, Question } from '../src/lib/view/types.ts'
+
+const WORKSPACE = '99999999-9999-4999-8999-999999999999'
 
 let home = ''
 
@@ -336,6 +339,16 @@ describe('the nine states this card fixes', () => {
     }
     assert.equal(eventLabel({ kind: 'question', state: 'actionable' }), 'Question waiting')
     assert.equal(eventLabel({ kind: 'ready_for_review', state: 'actionable' }), 'Ready for review')
+    assert.equal(eventLabel({ kind: 'ready_for_review', state: 'running' }), 'Working on it')
+  })
+
+  it('gives the title band a word for every state it is listed for (#364)', () => {
+    // The hosted card page has no delivery to read, so the band is the whole of what a
+    // reader is told — a state on the list with no word says nothing at all.
+    for (const state of CARD_BAND_STATES) {
+      assert.ok(bandLabel(state), state)
+    }
+    assert.equal(bandLabel('running'), 'Running')
   })
 })
 
@@ -460,6 +473,31 @@ describe('the card link in a message', () => {
 
   it('says so when that board has been moved off this machine', () => {
     assert.deepEqual(readCloudCardLink('ai4kanban://card/b-gone/12'), { ok: false, reason: 'not-here' })
+  })
+
+  it('leads to this machine’s copy of a workspace the hosted page named (#364)', () => {
+    const board = turnOn('/tmp/project-w', ALL_RELEASES)
+    rememberBoardCopy(board.path, {
+      workspaceId: WORKSPACE,
+      revision: '1',
+      readAt: new Date().toISOString(),
+    })
+
+    // The hosted card page's app link carries the WORKSPACE, because that is the only id a
+    // browser has. `copies.json` is what turns it back into a folder on this machine.
+    assert.deepEqual(readCloudCardLink(`ai4kanban://card/${WORKSPACE}/12`), {
+      ok: true,
+      boardPath: board.path,
+      boardDir: board.boardDir,
+      taskId: 12,
+    })
+  })
+
+  it('says so for a workspace no checkout here holds a copy of', () => {
+    assert.deepEqual(readCloudCardLink(`ai4kanban://card/${WORKSPACE}/12`), {
+      ok: false,
+      reason: 'not-here',
+    })
   })
 
   it('answers nothing for a URL that names no card, so other answers pass through', () => {

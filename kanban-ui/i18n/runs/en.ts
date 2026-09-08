@@ -204,6 +204,8 @@ const en: RunsCopy = {
         "One click carries this card all the way: the agent builds it, and it stops. Nothing reviews it, and **manual commit mode** is on, so nothing is committed for you: commit what it built, and the card is archived then.",
       manualWhyNoReview: (why) =>
         `One click carries this card all the way: the agent builds it, and it stops. Nothing reviews it, and nothing is committed for you — ${why}. Commit what it built, and the card is archived then.`,
+      recorded:
+        "This is recorded the moment you press it. Nothing builds here — the card waits for a machine, and whichever of yours is running picks it up and carries it all the way.",
       questionsOne:
         "This card has **1 open question**. It will be built, then hold at landing until you answer it — or press **Resolve first** to answer it now.",
       questionsMany: (n) =>

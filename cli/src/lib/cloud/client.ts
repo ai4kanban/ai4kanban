@@ -76,14 +76,17 @@ export const isTerminal = (code?: string): boolean => !!code && TERMINAL_CODES.i
 export const registerBoard = (boardId: string, name: string): Promise<CloudCall<{ boardId: string }>> =>
   send('POST', '/v1/boards', { boardId, name })
 
-/** Store or refresh one event. The Worker deduplicates on `boardId` + `taskId`, so a
- *  refreshed snapshot moves the live row rather than raising a second. */
+/** Store or refresh one event. The Worker deduplicates on the home and the task, so a
+ *  refreshed snapshot moves the live row rather than raising a second — and a workspace card
+ *  keeps one row however many of its machines publish it (#364). */
 export const publishEvent = (body: PublishBody): Promise<CloudCall<{ event: CloudEvent }>> =>
   send('POST', '/v1/events', body)
 
 export interface PublishBody {
   opId: string
+  /** The home this event belongs to (#364): exactly one of the two, and the other empty. */
   boardId: string
+  workspaceId: string
   boardName: string
   taskId: number
   taskTitle: string

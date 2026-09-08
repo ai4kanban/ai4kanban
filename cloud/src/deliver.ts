@@ -124,11 +124,14 @@ export async function deliver<Posts>(
 }
 
 /**
- * Where the card's own message is, per board, task and connector (#359).
+ * Where the card's own message is, per home, task and connector (#359).
  *
  * Recorded the moment the chat answers rather than with the event's delivery: a reply that
  * then fails, and a second event of the same card arriving in the same pass, must neither of
  * them cost the card a second message.
+ *
+ * The home is the event's — a board, or the workspace it belongs to (#364) — because the
+ * message follows the card, and a card belongs to whichever of the two holds it.
  */
 export const recordCardMessage = <Posts>(
   env: Env,
@@ -138,7 +141,8 @@ export const recordCardMessage = <Posts>(
 ): Promise<unknown> =>
   mutate(env, 'record_card_message', {
     p_subject: job.ownerId,
-    p_board: job.event.boardId,
+    p_board: job.event.boardId || null,
+    p_workspace: job.event.workspaceId || null,
     p_task_id: job.event.taskId,
     p_connector: connector,
     p_external_ref: ref,

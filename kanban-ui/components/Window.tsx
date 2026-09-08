@@ -37,7 +37,7 @@ import {
 } from "@/lib/bell-rail";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
 import { BodySlotProvider } from "@/lib/body-slot";
-import { BellProvider } from "@/lib/card-event";
+import { BellProvider, CardEventsProvider } from "@/lib/card-event";
 import { usePhone } from "@/lib/media";
 import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
@@ -301,6 +301,9 @@ export function Window({
     );
   return (
     <BellProvider value={bell}>
+    {/* The card page reads the same rows the bell draws (#364), through a context of its
+        own: a page drawn without a bell around it — the hosted board — fills it too. */}
+    <CardEventsProvider value={bell.center.rows}>
     <ChatProvider rail={chat}>
     <BodySlotProvider value={body}>
     {/* `dvh`, not `vh`: a phone browser's URL bar shrinks the viewport as you scroll, and
@@ -434,6 +437,7 @@ export function Window({
     </div>
     </BodySlotProvider>
     </ChatProvider>
+    </CardEventsProvider>
     </BellProvider>
   );
 }

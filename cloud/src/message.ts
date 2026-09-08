@@ -106,10 +106,20 @@ export function stateNote(event: EventRow): string {
   }
 }
 
-/** Where the card link goes. An https address the service answers by handing the browser
- *  the app's own URL scheme, because a chat takes an http link and nothing else. */
+/**
+ * Where the card link goes. An https address the service answers with one redirect, because a
+ * chat takes an http link and nothing else.
+ *
+ * It branches on where the event LIVES rather than on the device asking (#364): a redirect
+ * cannot tell whether the machine behind it has the app installed, and guessing wrong on a
+ * phone is the failure the hosted card page exists to remove. A workspace event has a page to
+ * land on and goes there; a board event — every Local board's — has none, and keeps the app
+ * link it has always had.
+ */
 export const cardUrl = (event: EventRow): string =>
-  `${API_ORIGIN}/card/${encodeURIComponent(event.boardId)}/${event.taskId}`
+  event.workspaceId
+    ? `${API_ORIGIN}/card/w/${encodeURIComponent(event.workspaceId)}/${event.taskId}`
+    : `${API_ORIGIN}/card/${encodeURIComponent(event.boardId)}/${event.taskId}`
 
 // --- the message a scope change sends (#451) ----------------------------------
 // Moving `Configuration → Cloud → Watching` sends ONE message instead of a card each: what

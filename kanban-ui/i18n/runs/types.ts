@@ -132,6 +132,10 @@ export type RunsCopy = {
       manualFolderNoReview: string;
       manualNoReview: string;
       manualWhyNoReview: (why: string) => string;
+      /** What the press does on a surface that starts no run of its own (#364): the browser
+       *  records it, and one of the workspace's machines builds it when one is running. It
+       *  replaces the five sentences above, which describe a checkout a reader has none of. */
+      recorded: string;
       questionsOne: string;
       questionsMany: (n: number) => string;
       ackQuestionsOne: string;

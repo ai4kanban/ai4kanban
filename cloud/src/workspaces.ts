@@ -26,6 +26,7 @@ import {
 import { call, mutate } from './db.ts'
 import type { Env } from './env.ts'
 import { badRequest, notFound } from './errors.ts'
+import { listWorkspaceEvents } from './events.ts'
 import { bodyOf, json, requireMethod } from './http.ts'
 import { runtimes, shortName, uuid } from './input.ts'
 import type { ServerRuntime } from './input.ts'
@@ -751,6 +752,14 @@ export async function routeWorkspace(env: Env, owner: Owner, request: Request, u
   if (section === 'read' && !name) {
     requireMethod(request, 'GET')
     return json(await readForReader(env, owner, id))
+  }
+
+  // The decisions this board is raising (#364). Beside the reader read rather than in it: a
+  // board page redraws from `read` and a card page asks for both, and an event moves on its
+  // own clock — a press elsewhere settles one without the board changing at all.
+  if (section === 'events' && !name) {
+    requireMethod(request, 'GET')
+    return json(await listWorkspaceEvents(env, owner, id))
   }
 
   if (section === 'archive' && !name) {

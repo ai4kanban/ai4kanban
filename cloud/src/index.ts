@@ -1,4 +1,4 @@
-import { isLarkCloud } from './config.ts'
+import { CLOUD_UI_ORIGIN, isLarkCloud } from './config.ts'
 import { mutate } from './db.ts'
 import { requireEnv } from './env.ts'
 import type { Env } from './env.ts'
@@ -299,7 +299,21 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     return json(await beginLarkConnect(env, owner, named, new URL(request.url).origin))
   }
 
-  // The card link every connector's message carries. A chat takes an http address and nothing
+  // A workspace card's link (#364). It lands on the hosted card page rather than on the app's
+  // URL scheme, so a phone with no app reads the card and decides on it. The shape says which
+  // it is — the message wrote it knowing where its event lives — so this is still one
+  // redirect with no lookup, and answering it tells nobody whether that workspace exists.
+  const hosted = /^\/card\/w\/([^/]+)\/(\d+)$/.exec(pathname)
+  if (hosted) {
+    requireMethod(request, 'GET')
+    const [, workspace = '', task = ''] = hosted
+    return new Response(null, {
+      status: 302,
+      headers: { location: `${CLOUD_UI_ORIGIN}/${encodeURIComponent(workspace)}/${task}` },
+    })
+  }
+
+  // The card link a Local board's message carries. A chat takes an http address and nothing
   // else, so this is the http half of `ai4kanban://card/…` — one redirect, no lookup, and
   // nothing about the board is learnt by answering it.
   const card = /^\/card\/([^/]+)\/(\d+)$/.exec(pathname)

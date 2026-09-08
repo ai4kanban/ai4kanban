@@ -40,6 +40,7 @@ import type { Card } from '../src/lib/view/types.ts'
 
 const SUPABASE = 'https://cloud.test'
 const API = 'https://api.test'
+const WORKSPACE = '99999999-9999-4999-8999-999999999999'
 
 let home = ''
 let root = ''
@@ -591,6 +592,8 @@ describe('what a publication carries', () => {
       'summary',
       'taskId',
       'taskTitle',
+      // The home the event belongs to (#364). Empty on a Local board, and never a path.
+      'workspaceId',
     ])
     const wire = JSON.stringify(snapshot)
     assert.ok(!wire.includes('features/12-a.md'), 'no path on the machine ever travels')
@@ -625,7 +628,44 @@ describe('what a publication carries', () => {
       'summary',
       'taskId',
       'taskTitle',
+      'workspaceId',
     ])
+  })
+})
+
+describe('a checkout that points at a workspace (#364)', () => {
+  /** Point this checkout at a workspace, the way `akb cloud go` does. */
+  const pointAt = (workspace: string) =>
+    fs.writeFileSync(
+      path.join(root, '.ai4kanban.json'),
+      `${JSON.stringify({ version: 1, workspace }, null, 2)}\n`,
+    )
+
+  it('publishes into the workspace rather than into this machine’s board id', async () => {
+    BOARD()
+    pointAt(WORKSPACE)
+    const sent: Array<Record<string, unknown>> = []
+    fakeCloud((url, body) => {
+      if (!url.endsWith('/v1/events')) return ok({})
+      sent.push(body as Record<string, unknown>)
+      return ok({ event: { id: 'e-1', boardId: '', workspaceId: WORKSPACE, taskId: 12, state: 'actionable', changedAt: 'now', acted: false } })
+    })
+    setBoardProvider({ readCards: async () => [card()] } as never)
+
+    await publishBoardEvents()
+
+    const [body] = sent
+    assert.equal(body?.workspaceId, WORKSPACE)
+    // One home and never both: a workspace card that also named a board would raise a second
+    // row on the machine that opened the same workspace next.
+    assert.equal(body?.boardId, '')
+  })
+
+  it('leaves a checkout with no pointer publishing into its board, exactly as before', async () => {
+    const board = BOARD()
+    const snapshot = snapshotFor(card(), board)
+    assert.equal(snapshot?.boardId, board.id)
+    assert.equal(snapshot?.workspaceId, '')
   })
 })
 

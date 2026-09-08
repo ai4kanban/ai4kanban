@@ -34,9 +34,11 @@ import path from 'node:path'
 import { machineHome } from '../machine/home'
 import { notificationsSilenced } from '../machine/settings'
 import { KANBAN } from '../paths'
-import { cloudBoardById, cloudBoardFor } from './boards'
+import { cloudBoardById, cloudBoardFor, readCloudBoards } from './boards'
+import { readBoardCopy } from './copy'
 import { listEvents, readEvent } from './client'
 import { eventLabel, needsPerson, onTheRail, type CloudEvent, type CloudEventState } from './events'
+import { eventHome, inHome } from './home'
 import { connectCloudLive, type LiveConnection } from './live'
 import { ensureBoardNotifications } from './notifications'
 import { unsentToCloud } from './outbox'
@@ -48,6 +50,8 @@ import { readSession } from './session'
 export interface NotificationRow {
   eventId: string
   boardId: string
+  /** The workspace this event belongs to (#364). Empty on a Local board's. */
+  workspaceId: string
   taskId: number
   taskTitle: string
   /** The event's name — what the row's second line and a notification both say. */
@@ -308,13 +312,16 @@ export function readCloudCenter(): NotificationCenter {
   const marks = reads()
   const enabled = cloudBoardFor(KANBAN)
   const boardId = enabled?.id ?? ''
+  // What this board's own events are addressed to (#364) — its workspace, or its board id.
+  const home = enabled ? eventHome(enabled) : null
   const rows: NotificationRow[] = [...held.events.values()]
     // The bell is the open board's. The connection carries the whole account, because one
     // machine holds one socket and every board's interruptions come down it.
-    .filter((event) => !!boardId && event.boardId === boardId)
+    .filter((event) => !!home && inHome(event, home))
     .map((event) => ({
       eventId: event.id,
       boardId: event.boardId,
+      workspaceId: event.workspaceId ?? '',
       taskId: event.taskId,
       taskTitle: event.taskTitle,
       label: eventLabel(event),
@@ -362,31 +369,52 @@ export function openNotification(
   const marks = reads()
   marks[eventId] = event.changedAt
   writeReads(marks)
+  const where = checkoutOf(event)
+  return { boardPath: where?.path ?? null, boardDir: where?.boardDir ?? null, taskId: event.taskId }
+}
+
+/** The checkout on THIS machine an event's card is in, or null when none is. A board event
+ *  names a board record; a workspace event names a workspace, and this machine's copy of it
+ *  is what `copies.json` records (#364). */
+function checkoutOf(event: {
+  boardId: string
+  workspaceId?: string
+}): { path: string; boardDir: string } | null {
+  if (event.workspaceId) {
+    const board = readCloudBoards().find(
+      (b) => readBoardCopy(b.path)?.workspaceId === event.workspaceId,
+    )
+    return board ? { path: board.path, boardDir: board.boardDir } : null
+  }
   const board = cloudBoardById(event.boardId)
-  return { boardPath: board?.path ?? null, boardDir: board?.boardDir ?? null, taskId: event.taskId }
+  return board ? { path: board.path, boardDir: board.boardDir } : null
 }
 
 /** Mark every row read at once, without opening any of them. The rows stay — what they are
  *  waiting for has not changed — and the bell's count empties. The rows this board's, like
  *  the bell: emptying the count here must not empty another project's. */
 export function readAllNotifications(): void {
-  const boardId = cloudBoardFor(KANBAN)?.id
-  if (!boardId) return
+  const enabled = cloudBoardFor(KANBAN)
+  if (!enabled) return
+  const home = eventHome(enabled)
   const marks = reads()
   for (const event of state().events.values()) {
-    if (event.boardId === boardId && needsPerson(event)) marks[event.id] = event.changedAt
+    if (inHome(event, home) && needsPerson(event)) marks[event.id] = event.changedAt
   }
   writeReads(marks)
 }
 
 // ---- the card link a message carries (#320) ----------------------------------
-// `ai4kanban://card/<board>/<task>`, which the app registers (#326) and hands here. It is
-// for READING the whole card: a decision is made in the message it came from, and this link
-// is never how one is made.
+// `ai4kanban://card/<id>/<task>`, which the app registers (#326) and hands here. It is for
+// READING the whole card: a decision is made in the message it came from, or on the hosted
+// card page, and this link is never how one is made.
 //
-// The board is named as well as the card, so a link works while another project is open —
-// and a board that is no longer on this machine is said plainly rather than opening whatever
-// card wears that number on the board in front of the user. The checkout can come back.
+// The id in it is a board's or a WORKSPACE's (#364): a Local board's message still carries its
+// board id, and the hosted card page offers this link with the workspace it is showing, so a
+// machine holding a copy of that workspace opens the card in the app. Either way the id is
+// named as well as the card, so a link works while another project is open — and one this
+// machine does not hold is said plainly rather than opening whatever card wears that number on
+// the board in front of the user. The checkout can come back.
 
 /** Where a card link leads, or why it leads nowhere. Null when the URL is not a card link
  *  at all, so a caller can hand every one of the app's URLs through this.
@@ -400,17 +428,20 @@ export type CloudCardLink =
 export function readCloudCardLink(url: string): CloudCardLink | null {
   const named = cardInUrl(url)
   if (!named) return null
-  const board = cloudBoardById(named.boardId)
-  if (!board) return { ok: false, reason: 'not-here' }
-  return { ok: true, boardPath: board.path, boardDir: board.boardDir, taskId: named.taskId }
+  // A board record first, then a copy of a workspace: the two id spaces are both uuids, so
+  // only one of them can ever answer, and asking in this order leaves a Local board's link
+  // reading exactly as it always has.
+  const where = checkoutOf({ boardId: named.id, workspaceId: '' }) ?? checkoutOf({ boardId: '', workspaceId: named.id })
+  if (!where) return { ok: false, reason: 'not-here' }
+  return { ok: true, boardPath: where.path, boardDir: where.boardDir, taskId: named.taskId }
 }
 
-/** The board and card a URL names. Read off the whole address rather than off `URL`'s parts,
- *  because a custom scheme's authority is not parsed the same way everywhere. */
-function cardInUrl(url: string): { boardId: string; taskId: number } | null {
+/** The board or workspace and the card a URL names. Read off the whole address rather than off
+ *  `URL`'s parts, because a custom scheme's authority is not parsed the same way everywhere. */
+function cardInUrl(url: string): { id: string; taskId: number } | null {
   const match = /^ai4kanban:\/\/card\/([^/?#]+)\/(\d+)(?:[/?#]|$)/i.exec((url ?? '').trim())
   if (!match) return null
   const taskId = Number(match[2])
   if (!Number.isInteger(taskId)) return null
-  return { boardId: decodeURIComponent(match[1] ?? ''), taskId }
+  return { id: decodeURIComponent(match[1] ?? ''), taskId }
 }

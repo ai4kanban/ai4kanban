@@ -25,6 +25,7 @@ import { parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { ALL_RELEASES, type CloudBoard } from './boards'
 import { decisionFor, type CloudEventKind, type CloudEventQuestion } from './events'
+import { eventHome, type EventHome } from './home'
 
 /** How much of the card's own words an event carries.
  *
@@ -34,10 +35,12 @@ import { decisionFor, type CloudEventKind, type CloudEventQuestion } from './eve
 const SUMMARY_LIMIT = 1500
 const NOTES_LIMIT = 2500
 
-/** The event one card would raise, as it goes to the Worker. `boardId` names the board;
- *  nothing here says where that board is. */
+/** The event one card would raise, as it goes to the Worker. The home names a board or the
+ *  workspace this checkout points at (./home.ts); nothing here says where either one is. */
 export interface EventSnapshot {
   boardId: string
+  /** Set instead of `boardId` on a checkout carrying a pointer (#364). */
+  workspaceId: string
   boardName: string
   taskId: number
   taskTitle: string
@@ -99,12 +102,14 @@ export function snapshotFor(
   card: Card,
   board: CloudBoard,
   atWork?: ReadonlySet<number>,
+  home: EventHome = eventHome(board),
 ): EventSnapshot | null {
   const kind = actionableKind(card, board, atWork)
   if (!kind) return null
   const questions = kind === 'question' ? userQuestions(card) : []
   const snapshot: Omit<EventSnapshot, 'fingerprint' | 'broughtIn'> = {
-    boardId: board.id,
+    boardId: home.boardId,
+    workspaceId: home.workspaceId,
     boardName: board.name,
     taskId: card.id,
     taskTitle: card.title,

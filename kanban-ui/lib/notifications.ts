@@ -29,6 +29,9 @@ const TOO_OLD = "The board's rules in this project are too old for Cloud notific
 export interface NotificationRow {
   eventId: string;
   boardId: string;
+  /** The workspace this event belongs to (#364). Empty on a Local board's, and absent from
+   *  rules that predate the move. */
+  workspaceId?: string;
   taskId: number;
   taskTitle: string;
   label: string;

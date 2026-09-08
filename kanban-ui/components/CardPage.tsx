@@ -60,7 +60,7 @@ import {
 } from "./chips";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { usePhone } from "@/lib/media";
-import { useActions, useMachine, type StripPlace } from "@/lib/screen";
+import { useActions, useControls, useMachine, type CardControl, type StripPlace } from "@/lib/screen";
 import { cn } from "@/lib/utils";
 import { parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
@@ -126,6 +126,7 @@ function HandChecks({
   revision,
   verify,
   busy,
+  canEdit,
 }: {
   cardId: number;
   /** The revision this page read the card at (#316) — what the cross-off is written
@@ -133,6 +134,9 @@ function HandChecks({
   revision: string;
   verify: string[];
   busy: boolean;
+  /** Whether this surface offers crossing one off (#364). The hosted board draws the lines
+   *  and no ✕: a hand-check is a note on work already done, not one of a card's decisions. */
+  canEdit: boolean;
 }) {
   const c = useCopy().card.handChecks;
   const actions = useActions();
@@ -201,7 +205,7 @@ function HandChecks({
               <span className="mt-[7px] size-[5px] shrink-0 rounded-full bg-current" aria-hidden />
               <span className="min-w-0 flex-1">{line}</span>
               {!busy &&
-                actions &&
+                canEdit &&
                 (confirming === line ? (
                   <button
                     type="button"
@@ -295,7 +299,7 @@ function DeciderChoices({ decided }: { decided: CardDecision[] }) {
   );
 }
 
-type CardButton = "implement" | "run" | "refine" | "edit" | "resolve" | "archive" | "reject";
+type CardButton = CardControl;
 
 // The one place that maps a card's state to the buttons that fit it (task #29).
 // Inputs are the whole card state: `status`, open questions, todo progress. Each
@@ -306,7 +310,11 @@ type CardButton = "implement" | "run" | "refine" | "edit" | "resolve" | "archive
 // job rather than a piece of work: it is run again and again and never finished.
 // So Implement becomes **Run** and Archive never shows — there is no end state to
 // archive it into. Edit, Resolve and Reject stand exactly as they are.
-function visibleActions(card: Card, marketing: boolean): Set<CardButton> {
+function visibleActions(
+  card: Card,
+  marketing: boolean,
+  offered: readonly CardControl[] | null,
+): Set<CardButton> {
   const hasUserQuestions = card.questions.some((q) => parseQuestion(q.text).tag === "user");
   const { total, done } = card.todos;
   const allDone = total > 0 && done === total; // zero-todo cards never count as done
@@ -334,6 +342,12 @@ function visibleActions(card: Card, marketing: boolean): Set<CardButton> {
   // card: it has no end state, and archiving one would take a job off the board.
   if (!card.recurring && (card.isGroup ? groupDone : allDone)) buttons.add("archive");
   buttons.add("reject"); // Reject — always
+  // What the SURFACE offers, on top of what the card's state allows (#364). A surface that
+  // names none offers all of them, which is the app; the hosted board names Implement and
+  // Resolve, so a reader on a borrowed phone can make a card's two decisions and nothing
+  // else. Narrowing only: a control the card's own state rules out never comes back.
+  if (!offered) return buttons;
+  for (const button of buttons) if (!offered.includes(button)) buttons.delete(button);
   return buttons;
 }
 
@@ -1186,6 +1200,13 @@ export function CardPage({
   const cardHref = useCardHref();
   const boardHref = useBoardHref();
   const actions = useActions();
+  // Which of this page's controls the surface drawing it offers (#364). Null is the app: every
+  // control that fits the card.
+  const offered = useControls();
+  // Everything this page writes that is NOT one of those controls — a card's fields, a
+  // hand-check crossed off, a queued run taken back. A surface that names its controls offers
+  // none of it: naming two buttons must not hand over the whole page.
+  const fieldWrites = !!actions && !offered;
   // The screens this card's `<Mockup>` tags point at (#239) — a file on this machine, so it
   // travels with the machine rather than on the card's read. A caller without one draws the
   // tags as the plain links they are.
@@ -1312,14 +1333,9 @@ export function CardPage({
   const off = busy || held;
   const offUnlessAsked = busy || (held && !answerable);
   const { total, done } = card.todos;
-  const buttons = visibleActions(card, marketing);
+  const buttons = visibleActions(card, marketing, offered);
   // The delivery has ended and its block is still on the page — the one that carries Discard.
   const finishedBlock = !delivery && !!card.finished && !!diff;
-  // Whether the toolbar has anything to draw. A free card always does (Edit and Reject are
-  // unconditional); a held one only when the delivery leaves it something to click. A page
-  // handed no actions has none of it: every button here writes, and a row of buttons that
-  // cannot is worse than no row (#374).
-  const toolbar = !!actions && (!delivery || !!carryOn);
   // The column this card sits in on the board (components/Queue.tsx) — the phone's way back
   // names where it goes rather than just pointing at it (#357), and carries the key so the
   // board opens on that column instead of on the first page of the swipe.
@@ -1344,9 +1360,21 @@ export function CardPage({
     (buttons.has("edit") && !delivery) ||
     (buttons.has("archive") && !delivery) ||
     (buttons.has("reject") && !delivery);
+  // Whether the toolbar has anything to draw. A page handed no actions has none of it: every
+  // button here writes, and a row of buttons that cannot is worse than no row (#374). Neither
+  // has a held card the delivery leaves nothing to click on — nor a surface offering controls
+  // this card carries none of (#364), where an empty row would just be a gap.
+  const anyAction =
+    (buttons.has("implement") && !delivery) ||
+    (phone && canResolve) ||
+    hasExtra ||
+    (buttons.has("run") && !delivery) ||
+    (buttons.has("refine") && !delivery) ||
+    !!(waiting && carryOn);
+  const toolbar = !!actions && (!delivery || !!carryOn) && anyAction;
 
   // This card's live Cloud event (#319). Two things read it: the title band's one mark, for
-  // the four states no local mark has words for, and the Implement and Resolve clicks —
+  // the states no local mark has words for, and the Implement and Resolve clicks —
   // which act on the spot exactly as they always have and record the same durable action
   // against it, so every other surface showing that event stops offering it.
   const cloudEvent = useCardEvent(card.id);
@@ -1513,9 +1541,9 @@ export function CardPage({
             {offBoard && (
               <div className="nb-section flex flex-wrap items-center gap-x-2 gap-y-1 bg-nb-sky-soft p-3.5 text-[13px]">
                 <span>{c.offBoard.line}</span>
-                {/* The archive is a screen only the app has, and only the app can reach
-                    this line at all — the hosted card page is handed no actions. */}
-                {actions && (
+                {/* The archive is a screen only the app has, so only a surface that offers
+                    the whole page draws the way to it (#364). */}
+                {fieldWrites && (
                   <Link
                     href={`/archive/${card.id}`}
                     className="font-[700] text-nb-accent hover:text-nb-accent-deep"
@@ -1619,7 +1647,7 @@ export function CardPage({
                   (#318). It is the one Cloud state with something to press, and it is pressed
                   here — beside the delivery it belongs to — because a rail row opens this
                   page and draws no view of its own. */}
-              {cloudEvent?.state === "interrupted" && (
+              {cloudEvent?.state === "interrupted" && (!offered || offered.includes("resume")) && (
                 <InterruptedRequest
                   taskId={card.id}
                   eventId={cloudEvent.eventId}
@@ -1867,18 +1895,18 @@ export function CardPage({
                   <ReleaseSelect
                     value={card.release}
                     releases={releases}
-                    disabled={busy || !actions}
+                    disabled={busy || !fieldWrites}
                     onChange={(v) => patchCard(card.id, { release: v })}
                   />
                 </MetaItem>
               )}
 
               <MetaItem label={c.meta.priority}>
-                <LevelSelect value={card.priority} disabled={busy || !actions} onChange={(v) => patchCard(card.id, { priority: v })} />
+                <LevelSelect value={card.priority} disabled={busy || !fieldWrites} onChange={(v) => patchCard(card.id, { priority: v })} />
               </MetaItem>
 
               <MetaItem label={c.meta.roi}>
-                <LevelSelect value={card.roi} disabled={busy || !actions} onChange={(v) => patchCard(card.id, { roi: v })} />
+                <LevelSelect value={card.roi} disabled={busy || !fieldWrites} onChange={(v) => patchCard(card.id, { roi: v })} />
               </MetaItem>
 
               {total > 0 && (
@@ -1910,7 +1938,7 @@ export function CardPage({
                 <MetaItem label={c.meta.cadence}>
                   <CadenceSelect
                     value={card.cadence}
-                    disabled={busy || !actions}
+                    disabled={busy || !fieldWrites}
                     onChange={(v) => patchCard(card.id, { cadence: v })}
                   />
                 </MetaItem>
@@ -1954,7 +1982,7 @@ export function CardPage({
                   >
                     {scheduleLabel(card)}
                   </span>
-                  {actions && (
+                  {fieldWrites && (
                     <button
                       type="button"
                       onClick={unschedule}
@@ -2089,16 +2117,25 @@ export function CardPage({
               {/* Last on the page, under the body and its agent half: every line here is a
                   note on work already done, so it comes after what the card is. */}
               <DeciderChoices decided={card.decided} />
-              <HandChecks cardId={card.id} revision={card.revision} verify={card.verify} busy={busy} />
+              <HandChecks
+                cardId={card.id}
+                revision={card.revision}
+                verify={card.verify}
+                busy={busy}
+                canEdit={fieldWrites}
+              />
             </div>
           </main>
 
+          {/* Queueing a run behind a blocker is a board write rather than one of the card's
+              decisions, so a surface that names its controls is handed no `onSchedule` — and a
+              dialog without one simply does not offer it (#364). */}
           {dialog && (
             <ActionDialog
               dialog={dialog}
               onClose={() => setDialog(null)}
               onRun={runAgent}
-              onSchedule={scheduleAgent}
+              onSchedule={fieldWrites ? scheduleAgent : undefined}
               onResolveFirst={() => {
                 setDialog(null);
                 setDeciding(true);

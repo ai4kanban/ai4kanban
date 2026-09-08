@@ -30,6 +30,16 @@ export interface HostedCopy {
   noWorkspace: string;
   chooseWorkspace: string;
   readOnly: string;
+  /** The way into the app, offered on a card page (#364). A machine holding a copy of this
+   *  workspace opens the card; one without the app does nothing, which is why it is an offer
+   *  rather than a redirect. */
+  openInApp: string;
+  /** A press the service could not answer. Never a refusal — nothing reached the service, and
+   *  the decision is unmade rather than rejected. */
+  pressUnavailable: string;
+  /** A press refused with no words of its own: the browser session ran out, or this page is
+   *  showing a card that has moved on. The redraw that follows says what it is now. */
+  pressRefused: string;
 }
 
 const en: HostedCopy = {
@@ -46,6 +56,9 @@ const en: HostedCopy = {
   noWorkspace: "No workspace yet. Make one in the AI4Kanban app, and it opens here.",
   chooseWorkspace: "Your workspaces",
   readOnly: "Read-only",
+  openInApp: "Open in the app",
+  pressUnavailable: "That could not be sent just now. Nothing was decided — try again shortly.",
+  pressRefused: "This card has moved on. Reload to see where it stands.",
 };
 
 const zh: HostedCopy = {
@@ -61,6 +74,9 @@ const zh: HostedCopy = {
   noWorkspace: "尚无工作区。在 AI4Kanban 应用中创建后，即可在此打开。",
   chooseWorkspace: "你的工作区",
   readOnly: "只读",
+  openInApp: "在应用中打开",
+  pressUnavailable: "暂时无法提交，尚未做出决定，请稍后重试。",
+  pressRefused: "该任务卡已发生变化，请刷新查看当前状态。",
 };
 
 export const getHostedCopy = (language: Language): HostedCopy => (language === "zh" ? zh : en);

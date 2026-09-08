@@ -59,6 +59,7 @@ import {
 } from './outbox'
 import { attachBoardServer } from './servers'
 import { readSession } from './session'
+import { eventHome, inHome, type EventHome } from './home'
 import { snapshotFor } from './snapshot'
 import { traceCloud } from './trace'
 
@@ -183,6 +184,10 @@ async function queueDifference(
   broughtIn: boolean,
 ): Promise<void> {
   const cards = await board().readCards()
+  // Where this checkout's decisions live (#364) — its workspace, or the board id its machine
+  // minted. Read once for the pass, like the record below: it is a file on disk, and it
+  // cannot change under one read of the board.
+  const home = eventHome(enabled)
   // Read once for the whole pass: a card the board is working on raises nothing, and asking
   // per card would read the same record as many times as the board has cards.
   const atWork = cardsAtWork()
@@ -192,7 +197,7 @@ async function queueDifference(
   let broughtInCount = 0
 
   for (const card of cards) {
-    const snapshot = snapshotFor(card, enabled, atWork)
+    const snapshot = snapshotFor(card, enabled, atWork, home)
     if (!snapshot) continue
     seen.add(card.id)
     const held = publishedFor(card.id)
@@ -259,7 +264,7 @@ async function queueDifference(
     noteWatchFill(enabled.release, broughtInCount)
   }
 
-  if (reconcile) await reconcileAgainstCloud(enabled, seen, atWork)
+  if (reconcile) await reconcileAgainstCloud(home, seen, atWork)
 }
 
 /** Whether the board is still holding a live event for this task. `stale` is not one — the
@@ -319,14 +324,14 @@ const ABANDONED_ACTION_MS = 10 * 60_000
  *  holds. Closes the gap a crash between a board write and its outbox row leaves, the one a
  *  card edited outside `akb` leaves, and the one a machine that died mid-delivery leaves. */
 async function reconcileAgainstCloud(
-  enabled: CloudBoard,
+  home: EventHome,
   actionable: Set<number>,
   atWork: ReadonlySet<number>,
 ): Promise<void> {
   const answer = await listEvents()
   if (!answer.ok) return
   for (const event of answer.value.events) {
-    if (event.boardId !== enabled.id) continue
+    if (!inHome(event, home)) continue
     if (event.state === 'accepted') {
       writeOffAbandoned(event, atWork)
       continue
@@ -616,6 +621,7 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
     const answer = await publishEvent({
       opId: item.opId,
       boardId: snapshot.boardId,
+      workspaceId: snapshot.workspaceId,
       boardName: snapshot.boardName,
       taskId: snapshot.taskId,
       taskTitle: snapshot.taskTitle,

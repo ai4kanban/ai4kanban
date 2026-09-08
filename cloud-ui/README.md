@@ -1,11 +1,15 @@
 # The hosted board
 
-`cloud.ai4kanban.dev` — a Cloud workspace's board and its cards, read-only, in a browser
-(#322). It is for a member away from the machine the app is installed on: a second computer,
-a borrowed laptop, a phone.
+`cloud.ai4kanban.dev` — a Cloud workspace's board and its cards, in a browser (#322). It is
+for a member away from the machine the app is installed on: a second computer, a borrowed
+laptop, a phone.
 
-Every page is member-only. There is no public board, no unauthenticated route and nothing a
-reader presses that changes anything.
+Every page is member-only. There is no public board and no unauthenticated route.
+
+The board page is a read. A card page carries the card's TWO decisions and no third (#364) —
+approve a delivery for review, and answer the questions the user owns — because those are what
+a member away from their machine is blocked on. A card's fields, its body and its delivery all
+stay in the app.
 
 ## What it serves
 
@@ -13,7 +17,8 @@ reader presses that changes anything.
 | --- | --- |
 | `/` | The signed-in account's workspace, or the list when it reaches more than one |
 | `/<workspace-id>` | That workspace's board — the columns and the release picker |
-| `/<workspace-id>/<card-id>` | One card, whole: the human half, the folded agent half, its subtasks and its open questions |
+| `/<workspace-id>/<card-id>` | One card, whole: the human half, the folded agent half, its subtasks and its open questions — with Implement and Resolve where the board is raising a decision for it |
+| `/<workspace-id>/<card-id>/decide` | Where a press is recorded. A route handler, because the session is an `httpOnly` cookie the page cannot read |
 | `/signin`, `/signin/callback` | The browser's own GitHub sign-in |
 | `/signout` | Ends the browser session and nothing else |
 
@@ -23,6 +28,10 @@ They are `kanban-ui`'s, imported rather than copied. #374 split each screen from
 window: `<Board>` and `<CardPage>` draw from one read and act through one passed-in client,
 so a caller that hands in no `ScreenActions` and no `ScreenMachine` gets the same screens
 read-only — every control that would write is gone rather than dead.
+
+A card page is handed a client, and a `ScreenControlsProvider` naming the two controls this
+surface offers (#364). The page draws those and no more: `lib/actions.ts` implements the two
+and throws on everything else, which nothing on the page can reach.
 
 Three things make that import work:
 
@@ -39,7 +48,7 @@ own reading rules as plain functions, shared into `kanban-ui/lib/format/` by
 `scripts/sync-format.mjs`. There is no filesystem, no git and no coding agent anywhere in
 that path.
 
-## The read
+## The reads
 
 `GET api.ai4kanban.dev/v1/workspaces/<id>/read` — the workspace's name, its live cards and
 the four configuration documents these two screens draw. `cloud/migrations/0018_reader_read.sql`
@@ -47,10 +56,29 @@ is what leaves everything else behind: the memory set, the per-flow rules, the a
 closed releases' summaries, the history files, the trail, the delivery records and the
 execution nodes are served to no browser.
 
+`GET .../v1/workspaces/<id>/events` — the decisions that board is raising, one live event per
+card waiting on somebody (#364). A second read on a second clock: a press elsewhere settles an
+event without the board changing at all. A card page asks for both at once, so the controls
+never appear under the reader after the first paint.
+
 A signed-out visitor, a signed-in account with no claim on the workspace, a deleted
 workspace and a made-up id all meet the same sentence, so none of them learns anything from
 the difference. A read the service could not answer says the board could not be read just
 now, and is never that sentence.
+
+## The write
+
+`POST .../v1/events/<id>/action`, through this app's own `/<workspace>/<card>/decide`. It
+records the one durable action the card's live event carries — the same one the app, Slack and
+Lark record — so the first surface to act settles it and every other redraws as answered.
+
+The token never reaches the page: the session is an `httpOnly` cookie, so a route handler on
+this server holds it. `SameSite=Lax` is what refuses a cross-site press.
+
+A press waits for a machine. Cloud runs no agent over a board, so nothing builds until one of
+the workspace's own machines claims it, and the card reads *waiting for a machine* until one
+does. A refusal says why in the service's own words; a press the service could not answer says
+so and leaves the decision unmade.
 
 ## The browser session
 
@@ -91,8 +119,10 @@ Two things come first:
   it is, `-- --set` puts it there. Auth does not refuse an address that is not on the list; it
   returns to the site URL instead, so without this every sign-in lands on the marketing site
   and no board ever opens.
-- **The schema.** Apply `cloud/migrations/0018_reader_read.sql` (`cd ../cloud && npm run
-  migrate`) — without it the read route has no function to call.
+- **The schema.** Apply `cloud/migrations/0018_reader_read.sql` and
+  `cloud/migrations/0021_workspace_events.sql` (`cd ../cloud && npm run migrate`) — without the
+  first the read route has no function to call, and without the second no card page finds a
+  decision to offer.
 
 Then:
 

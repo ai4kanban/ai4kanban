@@ -33,9 +33,10 @@
     "**/*.tsx",
     "./.next/types/**/*.ts",
     ".next-cadence/types/**/*.ts",
+    ".next-guide-test/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-guide-test/types/**/*.ts"
+    ".next-shots/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

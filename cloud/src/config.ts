@@ -122,6 +122,10 @@ export const SLACK_BLOCK_LIMIT = 50
  *  read off a request's origin. */
 export const API_ORIGIN = 'https://api.ai4kanban.dev'
 
+/** Where the hosted board pages are (#322). A workspace card's link lands there rather than
+ *  on the app's URL scheme, which is what makes a phone with no app useful (#364). */
+export const CLOUD_UI_ORIGIN = 'https://cloud.ai4kanban.dev'
+
 // --- Lark / 飞书 (#351) --------------------------------------------------------
 // A store app per cloud: listed in that cloud's own directory, installed by a tenant, and
 // posting with a token minted per tenant from the `app_ticket` the platform pushes. No

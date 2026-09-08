@@ -249,6 +249,10 @@ workspace, deleting it, and a node registering or renewing.
   releases' summaries, the history files, the trail, the delivery records and the execution
   nodes are served to no browser, and the migration is what leaves them behind rather than
   the Worker. See `../cloud-ui/README.md`.
+- `GET /v1/workspaces/<id>/events` — the decisions this workspace's board is raising (#364):
+  one live event per card waiting on somebody. A read of its own rather than part of
+  `/read`, because an event moves on its own clock — a press elsewhere settles one without
+  the board changing at all. Every member's, like the board.
 - `GET /v1/workspaces/<id>/archive` — the cards that have left the board.
 - `GET|POST /v1/workspaces/<id>/documents` — every board file that is not a card, under the
   path it is written back to: `config.md`, `modules.md`, `releases.md`, `todo/README.md`, the
@@ -343,10 +347,17 @@ been chosen. All but the last two behind the same bearer token:
   answers `200` for everything Lark itself did right — a refused press is said to the person
   in a toast, because a non-200 tells them the app is broken.
 
-Both connectors' link buttons:
+Both connectors' link buttons. Which of the two a message carries is decided by where the
+event LIVES rather than by the device asking (#364): a redirect cannot tell whether the machine
+behind it has the app, and guessing wrong on a phone is the failure the hosted card page
+exists to remove. Either way it is one redirect with no lookup, so answering tells nobody
+whether that board or workspace exists.
 
-- `GET /card/<board>/<task>` — the http half of `ai4kanban://card/…`, which is all a link
-  button in either chat will take. One redirect, no lookup.
+- `GET /card/<board>/<task>` — a Local board's. The http half of `ai4kanban://card/…`, which
+  is all a link button in either chat will take.
+- `GET /card/w/<workspace>/<task>` — a workspace's. Redirects to that card on
+  `cloud.ai4kanban.dev`, which is signed in, works on a phone with no app, and offers the app
+  link for a machine holding a copy of the workspace.
 
 A refusal is always `{ "error": { "code": ..., "message": ... } }`, and `message` is written
 to be shown to a user as it stands. The two a client must tell apart:

@@ -15,7 +15,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
-import { useActions } from "@/lib/screen";
+import { useActions, useMachine } from "@/lib/screen";
 import { parseQuestion } from "@/lib/questions";
 import { useSolution } from "./solution";
 import type { CloudEventAnswer } from "@/lib/types";
@@ -865,6 +865,9 @@ export function ActionDialog({
   const t = useCopy();
   const d = t.runs.dialog;
   const marketing = useSolution() === "marketing";
+  // The machine holding the board, or none — a caller serving these screens from somewhere
+  // else (#322). Read here rather than in the branch below: hooks are not called under one.
+  const runsHere = !!useMachine();
   const [text, setText, clearDraft] = useDraft(`${dialog.kind}:${dialog.card.id}`);
   // "Yes, I know" for a warned action (see the implement branch). Deliberately NOT
   // persisted like the note draft is: closing the dialog drops it, so every open
@@ -925,6 +928,12 @@ export function ActionDialog({
     // than the choice the answer doesn't say, so the dialog keeps the one sentence it has
     // always had. Where it is offered, the tick is what the paragraph reads from.
     const canChoose = plan.canChooseWorktree === true;
+    // Whether this click starts a run HERE. The hosted card page has no machine holding the
+    // board (#322), so pressing Implement records the decision and one of the workspace's own
+    // machines builds it later (#364) — none of the five sentences below is true of that, and
+    // the plan a reader is handed says `manual` only because a browser has no checkout to
+    // read one from.
+    const recorded = !runsHere;
     const auto = canChoose ? ownBranch : plan.commitMode === "auto";
     // Whether a second agent reviews this build is the board's own **AI review** setting
     // (#416) and nothing this dialog asks; rules older than it say nothing, and every build
@@ -948,7 +957,9 @@ export function ActionDialog({
     return (
       <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
         <p className={INTRO}>
-          {auto ? (
+          {recorded ? (
+            <Rich>{c.recorded}</Rich>
+          ) : auto ? (
             <>
               <Rich code={BRANCH}>{autoIntro}</Rich>
               {/* The one place the click does NOT carry the card all the way (#308). */}
@@ -1007,7 +1018,12 @@ export function ActionDialog({
             <Rich>{c.notReady}</Rich>
           </WarningBox>
         )}
-        <textarea className={INPUT} rows={4} placeholder={c.notes} value={text} onChange={(e) => setText(e.target.value)} />
+        {/* Notes ride the prompt of the run this click starts, and a recorded press starts
+            none — the event carries the decision and nothing else. So the box is gone rather
+            than there and dropped (#364). */}
+        {!recorded && (
+          <textarea className={INPUT} rows={4} placeholder={c.notes} value={text} onChange={(e) => setText(e.target.value)} />
+        )}
         <DialogButtons
           onClose={onClose}
           confirmLabel={warned ? c.confirmAnyway : c.confirm}
