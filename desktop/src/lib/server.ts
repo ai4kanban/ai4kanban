@@ -23,6 +23,10 @@
 // project's server, which keeps running behind the window. A project the user
 // left with nothing going has its server stopped straight away, so the app
 // doesn't carry a Node process per folder anyone ever opened.
+//
+// A board is on screen in as many windows as the user opened on it (#495), and
+// they share the one server: the board is the same files and the same runs
+// either way, and only the view is per window.
 
 import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
@@ -248,12 +252,16 @@ export interface BoardServersOptions {
 export class BoardServers {
   readonly env: Env;
   readonly version: string;
-  /** The file the app writes the open project's path into, so each server can
-   *  tell whether it is the one on screen. */
+  /** The file the app writes the open boards' paths into, one per line, so each
+   *  server can tell whether it is one of the ones on screen. Oldest window
+   *  first, and the first line is also the one board that raises the account's
+   *  system notifications (kanban-ui/lib/desktop.ts). */
   readonly focusFile: string;
   /** boardDir → BoardServer */
   private readonly servers = new Map<string, BoardServer>();
-  private current: BoardServer | null = null;
+  /** The boards a window is showing right now — one per window (#495), so a
+   *  board on screen in any of them is never retired. */
+  private onScreen = new Set<string>();
   private sweeper: NodeJS.Timeout | null = null;
 
   constructor({ env, version, focusFile }: BoardServersOptions) {
@@ -262,18 +270,15 @@ export class BoardServers {
     this.focusFile = focusFile;
   }
 
-  /** The project the window is showing, or null before the first one opens. */
-  get boardDir(): string | null {
-    return this.current?.boardDir ?? null;
+  /** Every board a window is showing, in the order the windows opened. */
+  get boards(): string[] {
+    return [...this.onScreen];
   }
 
-  get url(): string | null {
-    return this.current?.url ?? null;
-  }
-
-  /** Make `boardDir` the open project and return the URL to show. Reuses the
-   *  server already running on it — coming back to a project you left mid-run
-   *  puts you back in front of that very run, log and all. */
+  /** Start (or come back to) the server on `boardDir` and return the URL to
+   *  show. Reuses the server already running on it — coming back to a board you
+   *  left mid-run puts you back in front of that very run, log and all, and two
+   *  windows on one board share the one server rather than starting a second. */
   async open(boardDir: string): Promise<string> {
     let server = this.servers.get(boardDir);
     if (server && !server.alive) {
@@ -295,12 +300,10 @@ export class BoardServers {
         throw e;
       }
     }
-    const previous = this.current;
-    this.current = server;
-    // Say which project is on screen BEFORE the old one is let go, so no server
-    // ever reads the file mid-switch and thinks it is still the focused one.
+    // On screen BEFORE anything is let go, so no server ever reads the focus
+    // file mid-switch and thinks its turn is over.
+    this.onScreen.add(boardDir);
     this.writeFocus();
-    if (previous && previous !== server) await this.retire(previous);
     this.sweep();
     const url = server.url;
     // A server that started has a port, and so a URL. Saying so out loud beats
@@ -309,36 +312,26 @@ export class BoardServers {
     return url;
   }
 
-  /** Leave the open project without opening another — Close Project. The same
-   *  letting-go as a switch, minus the arrival: a run going in it keeps going,
-   *  exactly as it does when the window moves to a different project. */
-  async close(): Promise<void> {
-    const previous = this.current;
-    if (!previous) return;
-    this.current = null;
+  /** What every window is showing now — after one opens another board, closes,
+   *  or goes back to the launcher. The boards named here stay; a board no window
+   *  is left on is let go, and a run going in it keeps going until it ends. */
+  showing(boards: string[]): void {
+    this.onScreen = new Set(boards);
     this.writeFocus();
-    await this.retire(previous);
     this.sweep();
   }
 
-  /** Let go of a server the window has just left: stopped now when nothing is
-   *  going in it, kept (and swept later) when a run is. */
-  async retire(server: BoardServer): Promise<void> {
-    if (server.busy) return;
-    this.servers.delete(server.boardDir);
-    await server.stop();
-  }
-
-  /** Stop the background servers whose runs have finished. Runs on a timer for
-   *  as long as there is anything to watch, and stops itself when there isn't. */
+  /** Stop the servers that no window is on and whose runs have finished. Runs on
+   *  a timer for as long as there is anything to watch, and stops itself when
+   *  there isn't. */
   sweep(): void {
-    const background = [...this.servers.values()].filter((s) => s !== this.current);
+    const background = [...this.servers.values()].filter((s) => !this.onScreen.has(s.boardDir));
     for (const server of background) {
       if (server.busy && server.alive) continue;
       this.servers.delete(server.boardDir);
       void server.stop();
     }
-    const watching = [...this.servers.values()].some((s) => s !== this.current);
+    const watching = [...this.servers.values()].some((s) => !this.onScreen.has(s.boardDir));
     if (watching && !this.sweeper) {
       this.sweeper = setInterval(() => this.sweep(), SWEEP_MS);
       this.sweeper.unref();
@@ -348,8 +341,8 @@ export class BoardServers {
     }
   }
 
-  /** Which projects have a server up right now, and which of them is on screen —
-   *  what the projects list needs beyond what it can read off the disk. */
+  /** Which projects have a server up right now — what the projects list needs
+   *  beyond what it can read off the disk. */
   running(): string[] {
     return [...this.servers.keys()];
   }
@@ -357,7 +350,7 @@ export class BoardServers {
   writeFocus(): void {
     try {
       fs.mkdirSync(path.dirname(this.focusFile), { recursive: true });
-      fs.writeFileSync(this.focusFile, `${this.boardDir ?? ""}\n`);
+      fs.writeFileSync(this.focusFile, `${this.boards.join("\n")}\n`);
     } catch {
       // A focus file we can't write means a backgrounded board may keep
       // refining itself. Not worth an error in the user's face, and quitting
@@ -371,7 +364,7 @@ export class BoardServers {
     this.sweeper = null;
     const all = [...this.servers.values()];
     this.servers.clear();
-    this.current = null;
+    this.onScreen.clear();
     await Promise.all(all.map((s) => s.stop()));
   }
 }

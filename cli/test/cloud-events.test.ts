@@ -453,6 +453,7 @@ describe('the card link in a message', () => {
     assert.deepEqual(readCloudCardLink(`ai4kanban://card/${board.id}/12`), {
       ok: true,
       boardPath: board.path,
+      boardDir: board.boardDir,
       taskId: 12,
     })
   })

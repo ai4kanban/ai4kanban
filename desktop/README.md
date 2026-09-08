@@ -43,8 +43,16 @@ What the app adds, and all it adds:
   artwork down the left, and on the right the app's mark, **Open Folder**, and the projects
   opened before. The picture is `resources/art/launcher.png`, inlined at launch; with no
   file there the app draws its own panel instead. The folder badge in the
-  header opens another one later; so does **File → Open Project…**. One board at a time, and
-  a folder with no board lands on the make-a-board screen.
+  header opens another one later; so does **File → Open Project…**. A folder with no board
+  lands on the make-a-board screen.
+- **A window per board.** A project can hold more than one board, and the board badge beside
+  the folder badge switches between them (#407). Picking one opens it in a window of its own
+  and leaves the window it was pressed in where it was (#495) — a new window every time, in
+  both directions and with no modifier, so Engineering and Marketing stand side by side. The
+  windows share the board's files and its runs; the page, its history, the card you have open
+  and the chat are each window's own. Each window's title is its project and what its board's
+  work is called, so the system's window switcher tells them apart. A notification, a bell row
+  and an `ai4kanban://` link for another board go to the window already on it.
 - **Opening in your language.** On the launch that finds nothing saved, the app reads the
   machine's own preferred languages (`app.getPreferredSystemLanguages()`) and writes down the
   first one the board's rules have a copy for — any Chinese is 中文, and a language they don't
@@ -62,8 +70,10 @@ What the app adds, and all it adds:
   Going back never leaves the project you are in.
 - **Finding your agent.** `$SHELL -ilc 'env -0'` at startup, so runs inherit the PATH a
   terminal would have given them (`src/lib/shell-env.ts`).
-- **Ending cleanly.** Closing the window ends the board server and every agent run under
-  it — the server child leads its own process group for exactly this reason.
+- **Ending cleanly.** Closing the last window ends every board server and every agent run
+  under them — the server child leads its own process group for exactly this reason. Closing
+  one of several stops nothing: a run belongs to its board, not to the window it was started
+  from.
 - **Installing a newer version.** Read from the newest GitHub release, shown as a line above
   the board — and installed from that line (#372): one click downloads the build for this
   system and architecture, the line shows progress while you keep working, and the restart

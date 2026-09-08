@@ -28,6 +28,7 @@ const zh: ChromeCopy = {
     heading: "看板",
     badge: (boardDir) => `${boardDir}——点击查看这个项目的看板`,
     openHere: "已在此窗口打开",
+    openWindow: "在新窗口中打开",
     work: { product: "工程看板", marketing: "营销看板" },
     alpha: "实验中",
     alphaHint: "营销看板仍在实验阶段，随时可能变化。",

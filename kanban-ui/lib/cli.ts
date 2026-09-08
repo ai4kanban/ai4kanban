@@ -617,9 +617,11 @@ export interface BoardRules {
   // project running rules that sign in but predate the center draws no bell rather than a
   // count nothing can fill.
   //
-  // `startCloudCenter` is idempotent and takes whether this board server is the one the
-  // window is showing: one connection however many boards are enabled.
-  startCloudCenter?(focused: boolean): void;
+  // `startCloudCenter` is idempotent and takes whether a window is showing this board: a
+  // backgrounded server never subscribes. Its connection carries the whole account, so the
+  // alerts it hands out are account-wide — which of the on-screen boards raises them is
+  // `alertsAllowed()` in ./desktop.ts, not this.
+  startCloudCenter?(onScreen: boolean): void;
   readCloudCenter?(): NotificationCenter;
   openNotification?(
     eventId: string,
@@ -675,11 +677,14 @@ export interface BoardRules {
   setLarkChat?(chat: LarkChat): Promise<CloudMove>;
   disconnectLark?(): Promise<CloudMove>;
 
-  /** Where the card link in a Slack message leads — the board's own path on this machine,
-   *  and the card to open in it. Null when the URL names no card. */
+  /** Where the card link in a Slack message leads — the project on this machine, the board
+   *  folder inside it (#407), and the card to open. Null when the URL names no card. */
   readCloudCardLink?(
     url: string,
-  ): { ok: true; boardPath: string; taskId: number } | { ok: false; reason: "not-here" } | null;
+  ):
+    | { ok: true; boardPath: string; boardDir: string; taskId: number }
+    | { ok: false; reason: "not-here" }
+    | null;
 
   // what the board would start on its own, this minute
   nextWork(): Promise<AgentRequest[]>;

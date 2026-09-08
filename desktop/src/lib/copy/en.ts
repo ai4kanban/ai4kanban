@@ -73,6 +73,7 @@ const en: DesktopCopy = {
     forget: "Take this project off the list — nothing on disk is touched",
     forgetGone: "The folder is gone — take it off the list",
   },
+  boards: { work: { product: "Engineering", marketing: "Marketing" } },
   dialog: {
     folderGone: {
       message: (name) => `${name} isn't there any more.`,

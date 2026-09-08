@@ -207,8 +207,12 @@ export const CHANNELS = {
   info: "a4k:info",
   projects: "a4k:projects",
   openProject: "a4k:open-project",
-  /** Show another board of the project already open (#407). */
+  /** Put another board of this project in front (#407): the window already on it,
+   *  or this one when none is (#495). */
   openBoard: "a4k:open-board",
+  /** Open another board of this project in a WINDOW OF ITS OWN (#495) — the
+   *  header's switcher, which never takes the window it was pressed in. */
+  openBoardWindow: "a4k:open-board-window",
   forgetProject: "a4k:forget-project",
   pickRepo: "a4k:pick-repo",
   /** Ask for a folder and answer with what it holds — the picker onboarding's four moves
@@ -304,11 +308,16 @@ export interface Ai4kanbanBridge {
   /** Show a project from that list. Returns the folder now open, which is the
    *  old one when the project's folder has gone. */
   openProject(dir: string): Promise<string | null>;
-  /** Show another of this project's boards (#407) — `marketing/kanban` beside
-   *  `docs/kanban`. The same handover a project makes: the one on screen keeps
-   *  running behind the window, the picked one gets its own server, and the page
-   *  is replaced. Returns the folder now open. */
+  /** Put another of this project's boards in front (#407) — `marketing/kanban`
+   *  beside `docs/kanban`. The window already on that board is raised; when none
+   *  is, this window takes it and the page is replaced. What a bell row and a
+   *  notification for another board land on. Returns the folder now shown. */
   openBoard(dir: string): Promise<string | null>;
+  /** Open another of this project's boards in a window of its own (#495), leaving
+   *  this window on its board. Always a new window, in both directions and with no
+   *  modifier — even when that board already has one. Returns the folder it opened
+   *  on, or null when there was nothing to open. */
+  openBoardWindow(dir: string): Promise<string | null>;
   /** Take a project off the list — nothing on disk is touched. Returns the list
    *  as it now is. */
   forgetProject(dir: string): Promise<ProjectInfo[]>;

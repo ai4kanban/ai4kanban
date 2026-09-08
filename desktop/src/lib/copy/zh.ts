@@ -73,6 +73,7 @@ const zh: DesktopCopy = {
     forget: "把这个项目移出列表——磁盘上的文件不受影响",
     forgetGone: "文件夹已不存在——把它移出列表",
   },
+  boards: { work: { product: "工程看板", marketing: "营销看板" } },
   dialog: {
     folderGone: {
       message: (name) => `${name} 已经不在了。`,

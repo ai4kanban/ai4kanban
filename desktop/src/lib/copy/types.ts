@@ -91,6 +91,10 @@ export interface DesktopCopy {
     forget: string;
     forgetGone: string;
   };
+  /** What a board's work is called, by solution (#495) — the word beside the project in
+   *  each window's title, so the OS window switcher tells two windows apart. A board whose
+   *  solution this copy has no word for keeps the rules' own English. */
+  boards: { work: Record<"product" | "marketing", string> };
   /** The dialogs the app draws over the window. */
   dialog: {
     folderGone: { message: (name: string) => string; detail: (path: string) => string };

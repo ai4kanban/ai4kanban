@@ -40,26 +40,52 @@ export function insetTitleBar(): boolean {
 // recurring cards on the dispatcher's timer — must not go on spending money on a
 // project nobody is looking at.
 //
-// The app says which project is on screen by writing its path into the file it
-// names in KANBAN_FOCUS_FILE, and rewrites it on every switch. Read fresh each
+// The app says which boards are on screen by writing their paths into the file
+// it names in KANBAN_FOCUS_FILE, one per line — one window, one line (#495) —
+// and rewrites it on every switch. The first line is also the board that raises
+// the account's system notifications (`alertsAllowed` below). Read fresh each
 // time rather than cached, since the whole point is that it changes under us.
 // Outside the app there is no such file and no such question: a board served to
 // a browser is the only board its server has, so it always works.
 
-export function autoWorkAllowed(): boolean {
+/** The boards the app says are on screen, oldest window first. Empty outside the app, and
+ *  empty when the file hasn't been written or can't be read — saying nothing is on screen
+ *  is what keeps a board working the way it does everywhere else, and the app ends every
+ *  run it started when it quits either way. */
+function boardsOnScreen(): string[] {
   const file = process.env.KANBAN_FOCUS_FILE;
-  if (!file) return true;
-  let focused: string;
+  if (!file) return [];
   try {
-    focused = fs.readFileSync(file, "utf8").trim();
+    return fs
+      .readFileSync(file, "utf8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
   } catch {
-    // The app hasn't written it yet, or we can't read it. Saying yes keeps a
-    // board working the way it does everywhere else; the app ends every run it
-    // started when it quits either way.
-    return true;
+    return [];
   }
-  if (!focused) return true;
-  const at = path.resolve(focused);
+}
+
+export function autoWorkAllowed(): boolean {
+  const open = boardsOnScreen();
+  return open.length === 0 || open.some(onScreen);
+}
+
+/** Whether this board server is the one that raises the account's system notifications.
+ *
+ *  The alerts a board server hands out are the whole ACCOUNT's, not its own board's — that
+ *  is how a board you are not looking at reaches you at all. So exactly one server may
+ *  raise them, however many are on screen (#495): the first line of the focus file, which
+ *  is the oldest open window's board and moves only when that window goes. Every other
+ *  on-screen board still subscribes, because its own bell is what it fills. */
+export function alertsAllowed(): boolean {
+  const open = boardsOnScreen();
+  return open.length === 0 || onScreen(open[0]);
+}
+
+/** Whether one line of the focus file names this board. */
+function onScreen(named: string): boolean {
+  const at = path.resolve(named);
   // The app names the folder the user picked, which may sit anywhere inside the
   // repo the board was found in — so either answer counts as "this is me".
   if (at === path.resolve(boardSearchStart())) return true;

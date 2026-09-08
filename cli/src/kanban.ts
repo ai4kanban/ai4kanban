@@ -217,11 +217,12 @@ export type { SignalsAccess } from './lib/signals'
 // that carries every one of them. A board turns itself on as soon as this machine is signed
 // in — notifications are not a setting — so what is left to choose is the release it watches.
 //
-// The board server the window is showing calls `startCloudCenter(true)` and draws from
+// A board server with a window on it calls `startCloudCenter(true)` and draws from
 // `readCloudCenter`; a backgrounded one calls neither and keeps publishing over `fetch`,
-// because one subscription per server would raise one event's notification several times
-// over. Optional to the UI like every Cloud move above: a project running older rules draws
-// no bell rather than failing to draw the header.
+// because it has no bell to fill. Each connection carries the whole account, so raising the
+// alerts once across several on-screen boards (#495) is the UI's to arrange. Optional to the
+// UI like every Cloud move above: a project running older rules draws no bell rather than
+// failing to draw the header.
 export {
   openNotification,
   readAllNotifications,

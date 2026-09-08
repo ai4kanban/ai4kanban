@@ -260,10 +260,13 @@ function bridge(): AppBridge | null {
   return app?.openProject ? (app as AppBridge) : null;
 }
 
-/** Show another board of the project already open — the app loads it and the window lands on
- *  it. In a browser there is no app to hand it over to, and the row does nothing rather than
- *  opening the wrong board's card of that number. */
-async function switchBoard(boardDir: string): Promise<void> {
+/** Put another board of the project already open in front — the window already on it, or
+ *  this one when none is (#495). In a browser there is no app to hand it over to, and the
+ *  row does nothing rather than opening the wrong board's card of that number.
+ *
+ *  Exported for the card link a message carries, which lands on the same board as a bell
+ *  row that names one (#320) — one move, not two that look alike. */
+export async function switchBoard(boardDir: string): Promise<void> {
   await bridge()?.openBoard?.(boardDir);
 }
 

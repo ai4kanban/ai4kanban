@@ -180,11 +180,14 @@ interface AppBridge {
   }>;
   projects(): Promise<ProjectEntry[]>;
   openProject(dir: string): Promise<string | null>;
-  /** Show another of this project's boards (#407) — the same handover the projects list
-   *  makes: the board on screen keeps running behind the window, the picked one gets its
-   *  own server, and the page is replaced. Optional — an app older than the second board
-   *  knows only projects, and the badge stays a label there. */
+  /** Put another of this project's boards in front (#407): the window already on it, or
+   *  this one when none is — what a bell row for another board lands on. Optional — an app
+   *  older than the second board knows only projects, and the badge stays a label there. */
   openBoard?(dir: string): Promise<string | null>;
+  /** Open another of this project's boards in a window of its own (#495), leaving this
+   *  window on its board. Optional — an app older than the second window switches in
+   *  place, which is what `openBoard` above does there. */
+  openBoardWindow?(dir: string): Promise<string | null>;
   forgetProject(dir: string): Promise<ProjectEntry[]>;
   pickRepo(): Promise<string | null>;
   createBoard(): Promise<{ ok: boolean; error?: string }>;
@@ -344,7 +347,7 @@ const ALPHA =
  *  product board, "Marketing" on a marketing one — in the ember wash so it reads
  *  as its own control. A project
  *  holding one board gets a label; one holding two gets a switcher, and picking
- *  the other hands the window over the way the projects list does. */
+ *  the other opens it in a window of its own (#495). */
 export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; desktop: boolean }) {
   const path = (
     <>
@@ -373,6 +376,19 @@ export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; des
 function BoardIcon({ solution }: { solution: string }) {
   const Icon = solution === "marketing" ? FaBullhorn : FaCode;
   return <Icon className="shrink-0 text-nb-accent" size={12} aria-hidden />;
+}
+
+/** Pick another board: it opens in a window of its own and this one stays where it is
+ *  (#495). A new window every time, in both directions and with no modifier, so ordinary
+ *  back-and-forth switching leaves windows to close by hand — that is the trade for being
+ *  able to see two boards at once.
+ *
+ *  An app older than the second window has no window to open, and switches this one in
+ *  place, which is what the badge has always done. */
+function openBoardFrom(dir: string): void {
+  const app = bridge();
+  if (app?.openBoardWindow) void app.openBoardWindow(dir);
+  else void app?.openBoard?.(dir);
 }
 
 /** Which board of this project is open, and — in the app, when the project holds
@@ -418,7 +434,7 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
     </>
   );
   // One board is a label with nothing to press, and so is a browser either way:
-  // switching hands the whole window over, which only the app can do.
+  // opening a window is something only the app can do.
   const others = here!.boards.filter((b) => b.path !== here!.board);
   if (!desktop || others.length === 0 || !bridge()?.openBoard) {
     return (
@@ -444,8 +460,8 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
           <DropdownMenuItem
             key={b.path}
             className={`flex-col items-stretch gap-0 font-[400] ${b.path === here!.board ? "cursor-default" : ""}`}
-            title={b.path}
-            onSelect={(e) => (b.path === here!.board ? e.preventDefault() : void bridge()?.openBoard?.(b.path))}
+            title={b.path === here!.board ? b.path : c.openWindow}
+            onSelect={(e) => (b.path === here!.board ? e.preventDefault() : openBoardFrom(b.path))}
           >
             <span className="flex items-center gap-1.5">
               {b.path === here!.board && <Dot tone="var(--color-nb-accent)" title={c.openHere} />}

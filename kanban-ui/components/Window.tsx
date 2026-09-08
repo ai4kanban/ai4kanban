@@ -24,9 +24,17 @@
 import { useCopy } from "@/i18n/use-copy";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cloudCardLinkAction } from "@/app/actions";
+import { cloudCardLinkAction, getBoardsAction } from "@/app/actions";
 import { FiAlertCircle, FiX } from "react-icons/fi";
-import { BELL_MAX, BELL_MIN, BELL_W, samePath, switchProject, useBellRail } from "@/lib/bell-rail";
+import {
+  BELL_MAX,
+  BELL_MIN,
+  BELL_W,
+  samePath,
+  switchBoard,
+  switchProject,
+  useBellRail,
+} from "@/lib/bell-rail";
 import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib/chat-rail";
 import { BodySlotProvider } from "@/lib/body-slot";
 import { BellProvider } from "@/lib/card-event";
@@ -199,6 +207,10 @@ export function Window({
   // so it lands on the right one while another project is open — and says so plainly when
   // that board has been moved off this machine, rather than opening whatever card wears
   // that number on the board in front of the user.
+  //
+  // The app hands every link to the window in front, because only the board's own rules turn
+  // a Cloud board into a folder on this machine. Resolved here, a link for another board
+  // goes to the window already on it (#495).
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
   const openCardLink = useCallback(
     (url: string) => {
@@ -208,8 +220,15 @@ export function Window({
         if (!where) return;
         if (!where.ok) return setLinkNotice(c.cardLink.notHere);
         setLinkNotice(null);
-        if (samePath(where.boardPath, projectRoot)) return goToCard(where.taskId);
-        await switchProject(where.boardPath, where.taskId);
+        if (!samePath(where.boardPath, projectRoot)) {
+          return void switchProject(where.boardPath, where.taskId);
+        }
+        // The same project can hold a second board (#407), and #12 there is not #12 here.
+        const here = await getBoardsAction().catch(() => null);
+        if (where.boardDir && here && !samePath(where.boardDir, here.board)) {
+          return void switchBoard(where.boardDir);
+        }
+        goToCard(where.taskId);
       })();
     },
     [c, goToCard, projectRoot],

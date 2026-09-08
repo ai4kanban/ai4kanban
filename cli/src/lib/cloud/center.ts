@@ -164,13 +164,16 @@ function state(): Held {
 /**
  * Open the account's topic, if this process is the one that should hold it.
  *
- * `focused` is whether this board server is the one the window is showing. A backgrounded
- * server keeps publishing and never subscribes — a subscription in each would raise one
- * event's notification several times over.
+ * `onScreen` is whether a window is showing this board. A backgrounded server keeps
+ * publishing and never subscribes — it has no bell to fill.
+ *
+ * Several boards can be on screen at once (#495) and each subscribes for its own bell, so
+ * the alerts below are handed out by more than one server. Raising them once is the app's
+ * to arrange (`alertsAllowed` in kanban-ui/lib/desktop.ts).
  */
-export function startCloudCenter(focused: boolean): void {
+export function startCloudCenter(onScreen: boolean): void {
   const held = state()
-  if (!focused || !readSession()) return
+  if (!onScreen || !readSession()) return
   // Signed in means on, so the board registers itself here rather than waiting for somebody
   // to open Configuration. Ahead of the guards below: this runs on every poll, and the pass
   // that enables the board is usually not the one that opens the socket.
@@ -386,16 +389,20 @@ export function readAllNotifications(): void {
 // card wears that number on the board in front of the user. The checkout can come back.
 
 /** Where a card link leads, or why it leads nowhere. Null when the URL is not a card link
- *  at all, so a caller can hand every one of the app's URLs through this. */
+ *  at all, so a caller can hand every one of the app's URLs through this.
+ *
+ *  The project and the board folder inside it are two answers, like `openNotification`
+ *  above: a project can hold more than one board (#407) and #12 there is not #12 here. */
 export type CloudCardLink =
-  | { ok: true; boardPath: string; taskId: number }
+  | { ok: true; boardPath: string; boardDir: string; taskId: number }
   | { ok: false; reason: 'not-here' }
 
 export function readCloudCardLink(url: string): CloudCardLink | null {
   const named = cardInUrl(url)
   if (!named) return null
   const board = cloudBoardById(named.boardId)
-  return board ? { ok: true, boardPath: board.path, taskId: named.taskId } : { ok: false, reason: 'not-here' }
+  if (!board) return { ok: false, reason: 'not-here' }
+  return { ok: true, boardPath: board.path, boardDir: board.boardDir, taskId: named.taskId }
 }
 
 /** The board and card a URL names. Read off the whole address rather than off `URL`'s parts,

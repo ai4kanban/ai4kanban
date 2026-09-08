@@ -1,5 +1,5 @@
 import { boardRules } from "./cli";
-import { autoWorkAllowed } from "./desktop";
+import { alertsAllowed, autoWorkAllowed } from "./desktop";
 import type { CloudEventAnswer } from "./types";
 
 // --- the notification center (#319) ------------------------------------------
@@ -10,10 +10,12 @@ import type { CloudEventAnswer } from "./types";
 // this machine. That is the board's own rules, so the flow can change with nothing in this
 // app touched — the same seam every Cloud move in lib/cloud.ts sits behind.
 //
-// One connection however many boards are enabled, and it belongs to the board server the
-// window is showing: `autoWorkAllowed()` is already the app's answer to "is this the board
-// on screen", so a backgrounded server keeps publishing and never subscribes. A
-// subscription in each would raise one event's notification several times over.
+// A board on screen subscribes; a backgrounded server keeps publishing and never does. Each
+// connection carries the whole account, so the alerts one hands out are account-wide — and
+// only ONE on-screen board may raise them, or a window per board would interrupt once per
+// window (#495). `autoWorkAllowed()` says which servers subscribe, `alertsAllowed()` which
+// one interrupts; the alerts are taken from the rest either way, so nothing piles up to be
+// raised late.
 //
 // The bell itself is the open board's — the rules hand back its rows and nothing else. The
 // account's other boards reach you as system notifications, and clicking one switches the
@@ -115,7 +117,10 @@ export async function notificationCenter(): Promise<NotificationCenter> {
   if (!rules.readCloudCenter || !rules.startCloudCenter) return OFF;
   // Idempotent, and the one place the connection is opened: every screen polls this.
   rules.startCloudCenter(autoWorkAllowed());
-  return rules.readCloudCenter();
+  const center = rules.readCloudCenter();
+  // Reading took the alerts away wherever this runs; only the one board that interrupts
+  // passes them on.
+  return alertsAllowed() ? center : { ...center, alerts: [] };
 }
 
 /** Opening a row marks it read, and says where to go — the project this board belongs to on
