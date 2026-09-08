@@ -7,10 +7,7 @@
 
   // The hosted board. `api.ai4kanban.dev` is the service these pages read; this is the
   // name a member opens in a browser, kept free for exactly this by cloud/wrangler.jsonc.
-  //
-  // Server-rendering a board runs past Workers Free — the render is per request and the
-  // bundle carries Next — so this Worker deploys to Workers Paid on the account the site
-  // already deploys from. See README.md, "Deploy".
+  // See README.md, "Deploy".
   "workers_dev": false,
   "preview_urls": false,
   "routes": [{ "pattern": "cloud.ai4kanban.dev", "custom_domain": true }],

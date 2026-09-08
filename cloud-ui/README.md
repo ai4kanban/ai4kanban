@@ -80,16 +80,17 @@ AI4KANBAN_SUPABASE_URL, AI4KANBAN_SUPABASE_ANON_KEY, AI4KANBAN_CLOUD_URL
 
 ## Deploy
 
-**This Worker needs Workers Paid.** Server-rendering a board runs past the Free plan's
-per-request CPU, and the bundle carries Next. It deploys to the same Cloudflare account the
-site deploys from; the plan is changed in the Cloudflare dashboard, not in this repository.
+This is a Worker, on the same Cloudflare account the site deploys from. It server-renders
+every page and its bundle carries Next, so it is the heaviest thing we deploy — about 1.1 MB
+gzipped.
 
 Two things come first:
 
-- **The sign-in's return address.** Add `https://cloud.ai4kanban.dev/signin/callback` to the
-  Supabase project's redirect allow-list (`../cloud/README.md`, step 4). Auth does not refuse
-  an address that is not on it — it returns to the site URL instead, so without this every
-  sign-in lands on the marketing site and no board ever opens.
+- **The sign-in's return address.** `https://cloud.ai4kanban.dev/signin/callback` has to be on
+  the Supabase project's redirect allow-list — `cd ../cloud && npm run redirects` says whether
+  it is, `-- --set` puts it there. Auth does not refuse an address that is not on the list; it
+  returns to the site URL instead, so without this every sign-in lands on the marketing site
+  and no board ever opens.
 - **The schema.** Apply `cloud/migrations/0018_reader_read.sql` (`cd ../cloud && npm run
   migrate`) — without it the read route has no function to call.
 

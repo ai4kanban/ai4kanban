@@ -670,8 +670,9 @@ Only needed once, and again if the project is ever recreated.
    and nothing else** (`cli/src/lib/cloud/signin.ts`), so every account carries an address
    GitHub itself verified — which is where we answer a request — and the grant still cannot
    read a repository.
-4. **The sign-in's two return addresses** — in the project's Auth URL configuration, add
-   both to the redirect allow-list. `ai4kanban://cloud/signed-in` is the URL scheme the
+4. **The sign-in's two return addresses** — `npm run redirects` says which of them the
+   project allows, and `npm run redirects -- --set` writes both.
+   `ai4kanban://cloud/signed-in` is the URL scheme the
    desktop app registers for itself (#326): the board UI server's loopback port is whatever
    the OS handed out at launch, so there is no fixed `http` address to register instead.
    `https://cloud.ai4kanban.dev/signin/callback` is the browser's own (#322,

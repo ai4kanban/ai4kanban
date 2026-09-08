@@ -6,9 +6,11 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // The screens live in ../kanban-ui, so the tracer's root is the repository rather than
-  // this folder — without it the build refuses to follow an import out of the app.
-  outputFileTracingRoot: path.join(here, ".."),
+  // No `outputFileTracingRoot`. Pointing it at the repository moves the standalone build to
+  // `.next/standalone/cloud-ui/`, and OpenNext reads `.next/standalone/` — it works out its
+  // own root from the nearest lockfile, which is this folder, and the two disagreeing is a
+  // build that dies on a missing pages-manifest.json. `transpilePackages` below is what
+  // carries ../kanban-ui in, so the wider root buys nothing.
   // The board screen and a card page are TypeScript in ../kanban-ui, and Next compiles
   // source outside its own folder only for a package it is told to transpile. That tree is
   // this app's `ai4kanban-ui` dependency (`file:../kanban-ui`) for exactly this reason — no
