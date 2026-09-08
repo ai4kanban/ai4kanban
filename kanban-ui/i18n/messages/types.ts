@@ -26,7 +26,6 @@ export type MessagesCopy = {
   tooOld: {
     autoDelivery: string;
     diffApproval: string;
-    aiReview: string;
     silenceLimit: string;
     deliveries: string;
     worktrees: string;

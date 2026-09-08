@@ -71,6 +71,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 // component.
 const COSTLY = "decider";
 
+// The one agent whose switch is a delivery setting (#509). Review is a paid run per
+// delivery, so this switch ships ON and flipping it answers deliveries started afterwards —
+// its page says so in the same words Configuration → General → Delivery uses for its own
+// switches. Named here for the same reason as the one above: there is exactly one.
+const PER_DELIVERY = "reviewer";
+
 export function AgentsPanel({
   info,
   onError,
@@ -336,9 +342,10 @@ export function AgentsPanel({
       {agents && (
         <>
           {/* Two grids, because the two halves are answered differently: the top one is who
-              runs this board and cannot be switched off, the bottom one is what this project
-              chose to add — the specialists the command ships, then its own. Fixed tracks,
-              so a short row leaves empty ones rather than stretching its tiles. */}
+              runs this board and cannot be switched off, the bottom one is everything that
+              can be — the reviewer, the two roles that stand in for you, the specialists the
+              command ships, then this project's own. Fixed tracks, so a short row leaves
+              empty ones rather than stretching its tiles. */}
           <Group title={c.always}>
             <div className="grid grid-cols-5 gap-3 max-sm:grid-cols-3">
               {always.map(tile)}
@@ -632,6 +639,9 @@ function Page({
   busy: (key: string) => boolean;
 }) {
   const c = useCopy().configuration.agents;
+  // Delivery's own sentence, read from there rather than copied: the reviewer's switch is
+  // one of the delivery settings, and there is one way to say what a flip answers.
+  const frozen = useCopy().configuration.delivery.frozen;
   const box = useRef<HTMLTextAreaElement>(null);
   const [asking, setAsking] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
@@ -786,6 +796,12 @@ function Page({
             {agent.name === COSTLY && (
               <p className="mt-2.5 max-w-[74ch] text-[11.5px] leading-relaxed text-nb-ink-soft">
                 {c.decider.note}
+              </p>
+            )}
+
+            {agent.name === PER_DELIVERY && (
+              <p className="mt-2.5 max-w-[74ch] text-[11.5px] leading-relaxed text-nb-ink-soft">
+                {frozen}
               </p>
             )}
 

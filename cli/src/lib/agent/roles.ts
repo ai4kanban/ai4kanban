@@ -31,10 +31,11 @@ export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
   /** The key in `ui.config.json` this role is switched on under, when it can be switched
-   *  off at all (#447, #493). Almost none can: a board without a planner plans nothing. The
-   *  two that can stand in for the user rather than doing a flow's work — the gater judges
-   *  a card the way you would, the decider answers what you would have answered — so each
-   *  is off until you ask for it, and each reads its own key. */
+   *  off at all (#447, #493, #509). Most cannot: a board without a planner plans nothing.
+   *  Three can. Two stand in for the user rather than doing a flow's work — the gater judges
+   *  a card the way you would, the decider answers what you would have answered — so each is
+   *  off until you ask for it. The reviewer does a flow's work and ships on, because judging
+   *  a build is a paid run a board may decline. Each reads its own key. */
   switch?: RoleSwitch
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
@@ -89,11 +90,15 @@ const DECIDER: AgentRole = {
   switch: 'decider',
 }
 
+// The one role that runs a flow and can still be switched off (#509). Review is a paid run
+// per delivery, so a board may decline it — under the key **AI review** was always written
+// under, which is why this switch is the only one that ships ON.
 const REVIEWER: AgentRole = {
   name: 'reviewer',
   gloss: 'checks what was built',
   flows: ['review'],
   memory: [],
+  switch: 'aiReview',
 }
 
 // The role every conversation is held by (#502) — `akb chat`, the chat rail and Discuss.
@@ -187,8 +192,8 @@ export interface RosterEntry {
   kind: 'role' | AgentKind
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
-  /** Whether this entry can be switched off. Every specialist can; of the roles, the gater
-   *  and the decider (#447, #493). */
+  /** Whether this entry can be switched off. Every specialist can; of the roles, the gater,
+   *  the decider (#447, #493) and the reviewer (#509). */
   switchable: boolean
   /** A switchable role's own key in `ui.config.json` — what says whether it is on. Absent
    *  on every other entry: a specialist's switch is its `specAgents` entry. */

@@ -17,7 +17,7 @@ import { agentNames, agentRoster, roleForFlow, roles } from '../src/lib/agent/ro
 import { migrateFlowRules, readRule, ruleFor } from '../src/lib/agent/rules.ts'
 import { setSpecAgentEnabled, specAgentProblems } from '../src/lib/agents/index.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
-import { deciderOn, readyGateOn } from '../src/lib/agent/settings.ts'
+import { aiReviewEnabled, deciderOn, readyGateOn } from '../src/lib/agent/settings.ts'
 import { RULES, setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import { move, refuses } from './helpers/board.ts'
 
@@ -147,10 +147,11 @@ describe('the roles', () => {
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
     assert.deepEqual(agentRoster()[6]!.flows, [])
-    // Two roles can be switched off, and each reads a key of its own (#447, #493).
+    // Three roles can be switched off, and each reads a key of its own (#447, #493, #509).
     assert.deepEqual(
       agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => [a.name, a.setting]),
       [
+        ['reviewer', 'aiReview'],
         ['gater', 'readyGate'],
         ['decider', 'decider'],
       ],
@@ -158,17 +159,19 @@ describe('the roles', () => {
   })
 })
 
-// The gater and the decider (#493) — two agents, two switches, two keys. The keys are the
-// ones the board has always written, so a project that turned either on before the split
-// finds the same agent on afterwards.
-describe('the two roles that can be switched off', () => {
+// The gater, the decider (#493) and the reviewer (#509) — three agents, three switches,
+// three keys. The keys are the ones the board has always written, so a project that answered
+// any of them before the split finds the same agent as it left it.
+describe('the roles that can be switched off', () => {
   const on = (name: string): boolean => readAgents().agents.find((a) => a.name === name)!.enabled
 
-  it('is off on a board that says nothing, and every other role stays on', () => {
+  it('starts on the side its role ships, and every role that has no switch stays on', () => {
     solution('product')
     assert.equal(on('gater'), false)
     assert.equal(on('decider'), false)
-    for (const always of ['discussion-helper', 'planner', 'builder', 'reviewer']) assert.equal(on(always), true, always)
+    // The one switchable role that ships ON: review is declined, not asked for.
+    assert.equal(on('reviewer'), true)
+    for (const always of ['discussion-helper', 'planner', 'builder']) assert.equal(on(always), true, always)
   })
 
   it('reads the key the board already wrote, so a switch survives the split', () => {
@@ -180,6 +183,11 @@ describe('the two roles that can be switched off', () => {
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ decider: true }))
     assert.equal(on('gater'), false)
     assert.equal(on('decider'), true)
+
+    // And the reviewer the other way round: its key is only ever written to turn it off.
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ aiReview: false }))
+    assert.equal(on('reviewer'), false)
+    assert.equal(aiReviewEnabled(), false)
   })
 
   it('switches one without touching the other, each under its own key', () => {
@@ -192,6 +200,20 @@ describe('the two roles that can be switched off', () => {
     assert.equal(setSpecAgentEnabled('gater', false).ok, true)
     assert.equal(readyGateOn(), false)
     assert.equal(deciderOn(), true)
+  })
+
+  // The reviewer's key is the one **AI review** was always written under, and it keeps that
+  // polarity (#509): switching it off writes `false`, switching it back on drops the key.
+  it("writes the reviewer's key only when review is off", () => {
+    solution('product')
+    assert.equal(setSpecAgentEnabled('reviewer', false).ok, true)
+    assert.equal(aiReviewEnabled(), false)
+    assert.equal(on('reviewer'), false)
+    assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).aiReview, false)
+
+    assert.equal(setSpecAgentEnabled('reviewer', true).ok, true)
+    assert.equal(aiReviewEnabled(), true)
+    assert.equal('aiReview' in JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')), false)
   })
 
   it('refuses to switch off a role the board runs on', () => {

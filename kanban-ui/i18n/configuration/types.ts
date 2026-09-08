@@ -233,11 +233,12 @@ export type ConfigurationCopy = {
     deleteFailed: (agent: string) => string;
   };
   delivery: {
-    /** A change only reaches deliveries started afterwards. Said once, under all three. */
+    /** A change only reaches deliveries started afterwards. Said once under both switches,
+     *  and again on the Reviewer's page (#509) — its switch is the third delivery setting,
+     *  and it is read from here so there is one way to say it. */
     frozen: string;
     commits: { title: string; body: string; failedOn: string; failedOff: string };
     approval: { title: string; body: string; failedOn: string; failedOff: string };
-    review: { title: string; body: string; failedOn: string; failedOff: string };
     /** Only read out loud: one setting's switch. */
     switchOn: (setting: string) => string;
     switchOff: (setting: string) => string;

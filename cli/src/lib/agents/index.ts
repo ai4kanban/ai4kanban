@@ -293,7 +293,8 @@ export function readSpecAgents(): SpecAgentView[] {
 export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; error?: string } {
   // A switchable ROLE keeps its answer in the board's own settings rather than in
   // `specAgents` (#447) — it is not a file this project added, so there is no entry to write.
-  // Each has a key of its own (#493), so the gater and the decider are switched separately.
+  // Each has a key of its own (#493, #509), so the gater, the decider and the reviewer are
+  // switched separately.
   const role = roleNamed(name)
   if (role) {
     if (!role.switch) return { ok: false, error: `\`${name}\` is one of the roles the board runs on, so it can't be switched off.` }

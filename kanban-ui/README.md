@@ -854,8 +854,8 @@ is **manual commit mode**, below.
   three is why. A detached HEAD builds this way rather than being refused — the commit you then make
   is reachable from `HEAD` alone.
 - **Only the Implement button carries the ticks.** **Schedule** starts a build later, and it reads
-  **Automatic Git commits** and **AI review** as they stand then; so does `akb card implement` in a
-  terminal.
+  **Automatic Git commits** and the **Reviewer**'s switch as they stand then; so does
+  `akb card implement` in a terminal.
 
 - **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
   same files never write over each other, and neither one touches the edits you have open.
@@ -979,9 +979,9 @@ prints the review flow.
 
 #### Turning AI review off
 
-Review is a separate paid run on every delivery. **AI review** in Configuration → General →
-Delivery is the one place it is turned off, and it answers for every build off a planned card.
-There is no per-build box and no flag: **Implement**, **Schedule** and
+Review is a separate paid run on every delivery, so it is the **Reviewer**'s own switch on
+Configuration → Agents — the one place it is turned off, and it answers for every build off a
+planned card. There is no per-build box and no flag: **Implement**, **Schedule** and
 `akb card implement` all read the setting as it stands then. **Build now** is the one build it
 does not answer for — nothing planned that card, so there is nothing to review it against, and
 it never is.
@@ -1188,10 +1188,11 @@ there is nothing to turn on.
 
 ### General → Delivery
 
-Three switches. All are repository-level answers, saved in `ui.config.json` and shared by everyone
+Two switches. Both are repository-level answers, saved in `ui.config.json` and shared by everyone
 on the board. A change applies to deliveries started afterwards; one already in flight keeps what it
-started with. All three decide how a delivery is built; whether one starts at all is the **Gater**
-(#493), a row of its own under **Configuration → Agents**.
+started with. Both decide how a delivery is built. The two answers that are an agent are not here:
+whether a delivery starts at all is the **Gater** (#493) and whether it is reviewed is the
+**Reviewer** (#509), each a tile under **Configuration → Agents**.
 
 **Automatic Git commits**, on by default. It is the side each Implement opens on, not the only
 way to change it: the dialog's **Build this on a branch of its own** turns one build round and
@@ -1209,14 +1210,6 @@ its own, however that was chosen, so it stays settable with automatic Git commit
   is what auto-delivery is for.
 - **On** — nothing lands unread: every delivery waits after review until you approve the exact tree
   it would land. See **Approving a delivery** below.
-
-**AI review**, on by default. It decides whether a build is judged at all, for every build off a
-planned card — the Implement dialog does not ask per click, and **Build now** is never reviewed.
-
-- **On** — a fresh session reviews each delivery and fixes what it finds. It is a separate paid
-  run per delivery.
-- **Off** — the build is the last agent to read the code, and the delivery goes straight to
-  landing. See **Turning AI review off** below.
 
 ### Runtime — the coding tools this board can run
 
@@ -1519,9 +1512,11 @@ missing key means on, which is the default.
 `requireDiffApproval` is **Approve diffs before landing** above. The other way round:
 only written when you turn it **on**, so a missing key means off, which is the default.
 
-`aiReview` is **AI review** above. Like `autoCommit`, only written when you turn it off — a
-missing key means on, and so does a file that will not parse: an unreadable setting must not be
-the reason something landed unreviewed.
+`aiReview` is the **Reviewer**'s switch on **Configuration → Agents**. Like `autoCommit`, only
+written when you turn it off — a missing key means on, and so does a file that will not parse: an
+unreadable setting must not be the reason something landed unreviewed. The key keeps the name it
+was written under while it was a row of General → Delivery (#509), so a board that had review off
+keeps it off.
 
 `runtimes` is the board's list, and one **runtime** is the whole answer to what a run runs as: the
 coding tool, the provider, the endpoint, the key, the model id, the reasoning level and any extra
@@ -1635,10 +1630,11 @@ ships, then the ones this project added.
   without creating a card is a fine outcome; **Planner** plans and refines cards, **Builder**
   builds them and lands them, **Reviewer** checks what was built; a marketing board has a **Writer**
   in place of the Builder. A role is always on — a board without a planner plans nothing — except
-  the two that stand in for you, both off by default and product boards only: **Gater** judges
-  whether a card that reached ready may build unwatched, and **Decider** answers the questions
-  waiting on you. Each has its own switch, rule and runtime, and each reads the goal and every
-  module's `decisions.md` and `rejected.md` on top of the card.
+  three, each with a switch of its own. Two stand in for you, both off by default and product
+  boards only: **Gater** judges whether a card that reached ready may build unwatched, and
+  **Decider** answers the questions waiting on you; each reads the goal and every module's
+  `decisions.md` and `rejected.md` on top of the card. The third is the **Reviewer**, on by
+  default: judging a build is a paid run per delivery, so a board may decline it.
 - A **specialist** fills one part of a card's spec while that card is being planned, never while it
   is being built: **UI design** draws the screen the card changes, **Technology selection** picks the
   library it leans on. Each runs on its own and writes one section of that card and nothing else.

@@ -44,9 +44,9 @@ export function readAgents(): { agents: AgentView[]; problems: string[] } {
       kind: entry.kind,
       builtIn: entry.builtIn,
       // A role runs the board's own flows, so there is normally nothing to switch off: a
-      // board without a planner plans nothing. The gater and the decider are the exceptions
-      // (#447, #493) — each reads its own key in the board's settings rather than a
-      // `specAgents` entry.
+      // board without a planner plans nothing. The gater, the decider and the reviewer are
+      // the exceptions (#447, #493, #509) — each reads its own key in the board's settings
+      // rather than a `specAgents` entry, and its own default with it.
       switchable: entry.switchable,
       enabled:
         entry.kind === 'role'

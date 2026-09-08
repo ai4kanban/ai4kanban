@@ -132,24 +132,16 @@ export function setDiffApproval(on: boolean): { ok: boolean; error?: string } {
 // With it ON every delivery gets a fresh review run after its implementation. With it OFF
 // the implementation is the last agent to read the code: the repository's required checks
 // still run, and the open-question hold and diff approval still gate landing.
+//
+// It is the reviewer's switch (#509), flipped on the reviewer's tile in Configuration →
+// Agents. The key is the one it was always written under, so a board that turned review off
+// keeps its answer.
 
-/** True unless somebody switched AI review off. A file that won't parse reads as on: an
- *  unreadable setting must not be the reason something landed unreviewed. */
-export function aiReviewEnabled(): boolean {
-  try {
-    return readConfigRaw().aiReview !== false
-  } catch {
-    return true
-  }
-}
+/** True unless somebody switched AI review off. */
+export const aiReviewEnabled = (): boolean => switchedOn('aiReview')
 
 /** Save it. Turning it back on drops the key rather than writing `true`. */
-export function setAiReview(on: boolean): { ok: boolean; error?: string } {
-  return writeConfig((cfg) => {
-    if (on) delete cfg.aiReview
-    else cfg.aiReview = false
-  })
-}
+export const setAiReview = (on: boolean): { ok: boolean; error?: string } => setSwitch('aiReview', on)
 
 // ---- auto-delivery: does a ready card start its own build? (#440) ----------
 //
@@ -194,30 +186,39 @@ export const deciderOn = (): boolean => switchedOn('decider')
 /** Save it. Turning it back off drops the key rather than writing `false`. */
 export const setDecider = (on: boolean): { ok: boolean; error?: string } => setSwitch('decider', on)
 
-// ---- a switchable role's own key (#493) ------------------------------------
+// ---- a switchable role's own key (#493, #509) ------------------------------
 //
-// The two switches above are the two roles that can be switched off: the gater runs the
-// ready gate, the decider answers for the user. Each keeps the key it has always had, so a
-// board that turned either on keeps it, and the roster reads a role through its own key
-// rather than asking one role's question of them all.
+// Three of the switches above are roles that can be switched off: the gater runs the ready
+// gate, the decider answers for the user, the reviewer judges what was built. Each keeps the
+// key it has always had, so a board that already answered any of them keeps its answer, and
+// the roster reads a role through its own key rather than asking one role's question of them
+// all.
+//
+// They do not all ship the same way round. The two that stand in for the user are off until
+// asked for; the reviewer ships on. Either way the file records only what somebody changed.
 
 /** The keys a switchable role is saved under (./roles.ts). */
-export type RoleSwitch = 'readyGate' | 'decider'
+export type RoleSwitch = 'readyGate' | 'decider' | 'aiReview'
 
-/** Whether the role behind this key is on. */
+/** The keys whose role ships ON, so only switching it OFF is written down. */
+const ON_BY_DEFAULT = new Set<RoleSwitch>(['aiReview'])
+
+/** Whether the role behind this key is on. A file that won't parse reads as the default: a
+ *  setting nobody can read is not a reason to change what the board does. */
 export function switchedOn(key: RoleSwitch): boolean {
+  const shipsOn = ON_BY_DEFAULT.has(key)
   try {
-    return readConfigRaw()[key] === true
+    return shipsOn ? readConfigRaw()[key] !== false : readConfigRaw()[key] === true
   } catch {
-    return false
+    return shipsOn
   }
 }
 
-/** Save it. Off drops the key rather than writing `false`. */
+/** Save it. Back at the default drops the key rather than writing it down. */
 export function setSwitch(key: RoleSwitch, on: boolean): { ok: boolean; error?: string } {
   return writeConfig((cfg) => {
-    if (on) cfg[key] = true
-    else delete cfg[key]
+    if (on === ON_BY_DEFAULT.has(key)) delete cfg[key]
+    else cfg[key] = on
   })
 }
 
