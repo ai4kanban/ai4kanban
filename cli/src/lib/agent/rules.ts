@@ -180,8 +180,11 @@ const said = (owner: { name: string; role: boolean } | null, rule: string): stri
 // role runs, so nothing else in the folder is touched.
 
 /** Fold any per-flow rule files into their role's. One line per role it rewrote, empty when
- *  there was nothing to move — which is every call after the first. */
+ *  there was nothing to move — which is every call after the first. Every read and write of
+ *  a rule comes through here, so a specialist renamed between releases takes its file with
+ *  it on the same pass. */
 export function migrateFlowRules(): string[] {
+  adoptRenamedRules()
   let here: Set<string>
   try {
     here = new Set(fs.readdirSync(RULES))
@@ -207,4 +210,27 @@ export function migrateFlowRules(): string[] {
     )
   }
   return notes
+}
+
+// A rule is saved under the agent's name, so an agent renamed between releases would leave
+// its file behind. Move it onto the new name, once, and only when nothing is saved there
+// yet — the file under the current name is the one the user last wrote.
+function adoptRenamedRules(): void {
+  let here: string[]
+  try {
+    here = fs.readdirSync(RULES)
+  } catch {
+    return
+  }
+  for (const file of here) {
+    if (!file.endsWith('.md')) continue
+    const was = file.slice(0, -'.md'.length)
+    const now = canonicalSpecAgent(was)
+    if (now === was || fs.existsSync(rulePath(now))) continue
+    try {
+      fs.renameSync(rulePath(was), rulePath(now))
+    } catch {
+      // Never fatal: the read goes on with whatever is under the current name.
+    }
+  }
 }

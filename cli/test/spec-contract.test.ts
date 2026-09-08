@@ -90,7 +90,7 @@ describe('the card format contract', () => {
   })
 
   it('validates specialist sections while ignoring examples inside code fences', () => {
-    const example = '\n## By `ui-design` agent\n\n### Layout\n\n````md\n```\n## Scope\n<!-- agent -->\n<Mockup broken>\n```\n````\n'
+    const example = '\n## By `ui-designer` agent\n\n### Layout\n\n````md\n```\n## Scope\n<!-- agent -->\n<Mockup broken>\n```\n````\n'
     assert.deepEqual(validateSpec(file, valid.replace('## Decided by the agent', example + '\n## Decided by the agent')), [])
     assert.ok(validateSpec(file, valid + '\n```md\ntext').some((e) => e.rule === 'code-fence'))
   })
@@ -121,7 +121,7 @@ async function fakeRun(repairable: boolean, action: AgentAction = 'writing') {
     console.log(JSON.stringify({type: 'result', result: 'Done', total_cost_usd: 0.1, usage: {input_tokens: 10, output_tokens: 5}}));
   `)
   fs.writeFileSync(path.join(root, 'docs/kanban/ui.config.json'), JSON.stringify({ harness: 'claude-code', harnessSettings: { 'claude-code': { command: `${process.execPath} ${script}` } } }))
-  const opened = openRun({ action, id: 1, ...(action === 'spec' ? { specAgent: 'ui-design' } : {}) }, 'Write the spec.', [])
+  const opened = openRun({ action, id: 1, ...(action === 'spec' ? { specAgent: 'ui-designer' } : {}) }, 'Write the spec.', [])
   if ('error' in opened) throw new Error(opened.error)
   opened.spec.plan.argv = [process.execPath, script]
   opened.spec.plan.harness = 'claude-code'

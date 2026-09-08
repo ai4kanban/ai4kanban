@@ -17,8 +17,8 @@
 //   ],
 //   "agentRuntime": { "builder": "cheap" },
 //   "specAgents": {
-//     "technology-selection": false,
-//     "ui-design": { "enabled": false, "mockupStyle": "ascii" }
+//     "tech-stack-advisor": false,
+//     "ui-designer": { "enabled": false, "mockupStyle": "ascii" }
 //   }
 //
 // What a run runs as is one runtime, and all of it — harness, provider, endpoint, key, model
@@ -266,8 +266,8 @@ export function setSilenceMinutes(minutes: number): { ok: boolean; error?: strin
 // The same file also holds which spec agents may run, and what each one is set to:
 //
 //   "specAgents": {
-//     "technology-selection": false,
-//     "ui-design": { "enabled": false, "output": "agent", "mockupStyle": "ascii" }
+//     "tech-stack-advisor": false,
+//     "ui-designer": { "enabled": false, "output": "agent", "mockupStyle": "ascii" }
 //   }
 //
 // `enabled` and `output` are the entry's own keys — the board's two answers about an

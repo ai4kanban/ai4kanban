@@ -111,8 +111,8 @@ describe('an agent with a runtime of its own', () => {
       runtime('global', 'claude-code', { model: 'claude-opus-5' }),
       runtime('cheap', 'codex', { model: 'gpt-5.1-codex' }),
     ],
-    agentRuntime: { builder: 'cheap', 'ui-design': 'cheap' },
-    specAgents: { 'ui-design': { mockupStyle: 'ascii' } },
+    agentRuntime: { builder: 'cheap', 'ui-designer': 'cheap' },
+    specAgents: { 'ui-designer': { mockupStyle: 'ascii' } },
   }
 
   beforeEach(() => config(board))
@@ -141,14 +141,14 @@ describe('an agent with a runtime of its own', () => {
   })
 
   it('runs a spec agent as itself, on its own row', () => {
-    assert.equal(agentForRun({ action: 'spec', specAgent: 'ui-design' }), 'ui-design')
-    assert.equal(plan({ action: 'spec', specAgent: 'ui-design' }).runtime, 'cheap')
-    assert.equal(plan({ action: 'spec', specAgent: 'technology-selection' }).runtime, 'global')
+    assert.equal(agentForRun({ action: 'spec', specAgent: 'ui-designer' }), 'ui-designer')
+    assert.equal(plan({ action: 'spec', specAgent: 'ui-designer' }).runtime, 'cheap')
+    assert.equal(plan({ action: 'spec', specAgent: 'tech-stack-advisor' }).runtime, 'global')
   })
 
   it('keeps the spec agent’s runtime out of its settings, and its switch a switch', () => {
-    assert.deepEqual(specAgentEntries()['ui-design'], { enabled: true, values: { mockupStyle: 'ascii' } })
-    const view = readSpecAgents().find((s) => s.name === 'ui-design')
+    assert.deepEqual(specAgentEntries()['ui-designer'], { enabled: true, values: { mockupStyle: 'ascii' } })
+    const view = readSpecAgents().find((s) => s.name === 'ui-designer')
     assert.equal(view?.enabled, true)
     assert.equal(view?.values.mockupStyle, 'ascii')
     assert.equal(view?.harness, 'codex')

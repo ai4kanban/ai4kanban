@@ -54,7 +54,7 @@ export let AGENTS = ''
 // Where they used to sit, read for one release so a board that already has some keeps
 // working (#419). Every agent found here is reported, telling the user to move it.
 export let LEGACY_AGENTS = ''
-// Drawings of the screens cards change — one folder per card id (see the `ui-design` spec
+// Drawings of the screens cards change — one folder per card id (see the `ui-designer` spec
 // agent). Keyed by id, so a card leaving the board takes its folder.
 // Dotted and ignored: a mockup is a working drawing, redrawn from the card whenever the
 // question comes back, so it is never something the repo carries or a teammate pulls.

@@ -50,7 +50,7 @@ Click any screenshot for the full-size version.
 <sub><b>Execute</b> — run ready tasks in parallel in separate git worktrees, review the changes, and resolve conflicts before landing.</sub>
 </td>
 <td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="A ui-design agent's report with two working mockups attached to the card" /></a><br/>
+<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="A ui-designer agent's report with two working mockups attached to the card" /></a><br/>
 <sub><b>Settle key decisions first</b> — use built-in or custom spec agents to compare technology choices and produce working UI mockups.</sub>
 </td>
 </tr>

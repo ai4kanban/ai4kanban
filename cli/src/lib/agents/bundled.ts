@@ -9,14 +9,14 @@
 // project's own agent is read, so adding a built-in agent is adding files and the two lines
 // naming them here.
 
-import uiDesign from '../../agents/ui-design/AGENT.md'
-import uiDesignAscii from '../../agents/ui-design/references/ascii-drawing.md'
-import uiDesignRendered from '../../agents/ui-design/references/rendered-screen.md'
-import technologySelection from '../../agents/technology-selection/AGENT.md'
+import uiDesigner from '../../agents/ui-designer/AGENT.md'
+import uiDesignerAscii from '../../agents/ui-designer/references/ascii-drawing.md'
+import uiDesignerRendered from '../../agents/ui-designer/references/rendered-screen.md'
+import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
-  'ui-design/AGENT.md': uiDesign,
-  'ui-design/references/ascii-drawing.md': uiDesignAscii,
-  'ui-design/references/rendered-screen.md': uiDesignRendered,
-  'technology-selection/AGENT.md': technologySelection,
+  'ui-designer/AGENT.md': uiDesigner,
+  'ui-designer/references/ascii-drawing.md': uiDesignerAscii,
+  'ui-designer/references/rendered-screen.md': uiDesignerRendered,
+  'tech-stack-advisor/AGENT.md': techStackAdvisor,
 }

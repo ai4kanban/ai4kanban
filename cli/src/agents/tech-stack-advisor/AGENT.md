@@ -1,5 +1,5 @@
 ---
-name: technology-selection
+name: tech-stack-advisor
 description: Use when a card needs to choose or replace an outside library, tool, or service. Skip when it only uses an already settled dependency without a new selection decision.
 akb:
   kind: spec

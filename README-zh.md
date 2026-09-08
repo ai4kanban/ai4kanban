@@ -48,7 +48,7 @@ AI4Kanban 把任务、依赖关系和项目记忆放在同一块 Markdown 看板
 <sub><b>推进执行</b> — 在独立的 git worktree 中并行执行已就绪的任务，评审变更，并在合入前解决冲突。</sub>
 </td>
 <td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-design Agent 的报告，卡片上附有两套可运行的 mockup" /></a><br/>
+<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-designer Agent 的报告，卡片上附有两套可运行的 mockup" /></a><br/>
 <sub><b>先定关键方案</b> — 使用内置或自定义规格 Agent 比较技术方案，产出可运行的 UI 原型。</sub>
 </td>
 </tr>

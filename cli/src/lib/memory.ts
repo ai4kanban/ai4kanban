@@ -8,6 +8,7 @@ import path from 'node:path'
 
 import { rel, warn, AGENT_MEMORY, MEMORY } from './paths'
 import { solution } from './solution'
+import { specAgentNames } from './spec-agent-names'
 import { moduleNames, MODULE_NAME_RE } from './validate'
 
 // What a scaffold made: the path, the files it wrote, and whether the folder itself is new.
@@ -199,6 +200,7 @@ const stripHeading = (text: string): string => {
  *  under it. A file nobody has written yet comes back with empty `text` rather than being
  *  left out — the run is still shown it, because the empty file is the invitation. */
 export function readAgentMemory(agent: string): AgentMemory[] {
+  adoptRenamedMemory(agent)
   adoptOneFileMemory(agent)
   return AGENT_MEMORY_FILES.map((name) => {
     const file = agentMemoryFile(agent, name)
@@ -216,11 +218,35 @@ export function readAgentMemory(agent: string): AgentMemory[] {
  *  never twice: an agent handed its file back rewrites the lines under it, and a heading it
  *  wrote for itself is dropped the way `spec-write` drops one. */
 export function writeAgentMemory(agent: string, name: AgentMemoryName, text: string): { file: string; fresh: boolean } {
+  adoptRenamedMemory(agent)
   const file = agentMemoryFile(agent, name)
   const fresh = !fs.existsSync(file)
   fs.mkdirSync(agentMemoryDir(agent), { recursive: true })
   fs.writeFileSync(file, `${agentMemoryHeading(agent, name)}\n\n${stripHeading(text)}\n`)
   return { file, fresh }
+}
+
+// An agent's memory is kept under its name, so an agent renamed between releases would
+// leave it behind. Move the folder — and the one file a board written before the split kept
+// — onto the new name, once, and only when nothing is there yet: what is under the current
+// name is what the agent has been writing since.
+//
+// Never fatal: the read goes on with whatever is under the current name.
+function adoptRenamedMemory(agent: string): void {
+  for (const was of specAgentNames(agent).slice(1)) {
+    moveMemory(agentMemoryDir(was), agentMemoryDir(agent))
+    moveMemory(legacyAgentMemoryFile(was), legacyAgentMemoryFile(agent))
+  }
+}
+
+const moveMemory = (from: string, into: string): void => {
+  try {
+    if (!fs.existsSync(from) || fs.existsSync(into)) return
+    fs.mkdirSync(path.dirname(into), { recursive: true })
+    fs.renameSync(from, into)
+  } catch {
+    warn(`couldn't move ${from} to ${into} — reading what is there`)
+  }
 }
 
 // A board written before the split kept everything in `memory/agents/<agent>.md`. The first

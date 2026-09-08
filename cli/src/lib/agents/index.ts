@@ -248,7 +248,7 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
   if (!on.length) return ''
   return [
     // Tagged, because this block is a list of other agents' work sitting under an
-    // instruction about the card. Without a boundary a run reads "ui-design" as part of its
+    // instruction about the card. Without a boundary a run reads "ui-designer" as part of its
     // own job.
     `<${words.tag}>`,
     words.lead,

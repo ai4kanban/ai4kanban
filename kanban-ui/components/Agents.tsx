@@ -470,7 +470,7 @@ export function AgentsPanel({
 // No state line under the name: the switch says whether it is on, the grey says it is off,
 // and the section it sits in says whether it can be switched off at all.
 //
-// Two lines are reserved for the name, so `Technology selection` wraps in full and every
+// Two lines are reserved for the name, so `Tech stack advisor` wraps in full and every
 // tile keeps one height. Nothing here is ever cut off.
 function Tile({
   agent,

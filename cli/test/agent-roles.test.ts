@@ -133,8 +133,8 @@ describe('the roles', () => {
       'memory-pruner',
       'gater',
       'decider',
-      'technology-selection',
-      'ui-design',
+      'tech-stack-advisor',
+      'ui-designer',
     ])
     assert.match(specAgentProblems().join('\n'), /`builder` is one of the roles the board ships/)
   })
@@ -151,7 +151,7 @@ describe('the roles', () => {
       'gater',
       'decider',
     ])
-    assert.deepEqual(names.slice(7), ['technology-selection', 'ui-design'])
+    assert.deepEqual(names.slice(7), ['tech-stack-advisor', 'ui-designer'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
       ['role', 'role', 'role', 'role', 'role', 'role', 'role', 'spec', 'spec'],
@@ -307,9 +307,19 @@ describe('akb raw rule', () => {
 
   it('takes a spec agent by name too, and refuses a name no agent answers to', async () => {
     solution('product')
-    await move(root, ['rule', 'ui-design', '--text', 'Keep to the existing palette.'])
-    assert.equal(ruleText('ui-design'), 'Keep to the existing palette.')
+    await move(root, ['rule', 'ui-designer', '--text', 'Keep to the existing palette.'])
+    assert.equal(ruleText('ui-designer'), 'Keep to the existing palette.')
     await refuses(root, ['rule', 'designer', '--text', 'Anything.'], /planner, builder, reviewer/)
+  })
+
+  // The agent was renamed, and a rule is saved under the agent's name.
+  it('moves a spec agent’s rule off the name it had before, once', async () => {
+    solution('product')
+    fs.mkdirSync(RULES, { recursive: true })
+    fs.writeFileSync(path.join(RULES, 'ui-design.md'), 'Keep to the existing palette.\n')
+    assert.equal(readRule('ui-designer'), 'Keep to the existing palette.')
+    assert.equal(ruleText('ui-designer'), 'Keep to the existing palette.')
+    assert.equal(fs.existsSync(path.join(RULES, 'ui-design.md')), false)
   })
 
   it('refuses two sources, and no source at all', async () => {

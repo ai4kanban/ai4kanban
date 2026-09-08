@@ -145,7 +145,7 @@ describe("what an agent says to a reader who doesn't read English", () => {
   })
 
   it('ships both bundled agents with their Chinese lines', () => {
-    for (const name of ['ui-design', 'technology-selection']) {
+    for (const name of ['ui-designer', 'tech-stack-advisor']) {
       const said = agentLines(findSpecAgent(name)!, 'zh')
       assert.match(said.description, /[\u4e00-\u9fa5]/, name)
       assert.match(said.owns, /[\u4e00-\u9fa5]/, name)
@@ -153,7 +153,7 @@ describe("what an agent says to a reader who doesn't read English", () => {
   })
 
   it('translates the words a setting is drawn by, and nothing a run picks by', () => {
-    const agent = findSpecAgent('ui-design')!
+    const agent = findSpecAgent('ui-designer')!
     const setting = agentSettingsView(agent, 'zh').find((s) => s.key === 'mockupStyle')
     assert.ok(setting)
     assert.match(setting.label, /[\u4e00-\u9fa5]/)
@@ -230,9 +230,9 @@ describe('the agents this command ships', () => {
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['technology-selection', 'ui-design'],
+      ['tech-stack-advisor', 'ui-designer'],
     )
-    const ui = findSpecAgent('ui-design')!
+    const ui = findSpecAgent('ui-designer')!
     assert.match(ui.owns, /the screen a card changes/)
     assert.match(ui.description, /^Use when/)
     assert.match(ui.description, /user-facing feature/)
@@ -241,8 +241,8 @@ describe('the agents this command ships', () => {
     assert.equal(ui.builtIn, true)
   })
 
-  it('carries `ui-design`\'s mockup style, its two choices and their references', () => {
-    const setting = findSpecAgent('ui-design')!.settings[0]!
+  it('carries `ui-designer`\'s mockup style, its two choices and their references', () => {
+    const setting = findSpecAgent('ui-designer')!.settings[0]!
     assert.equal(setting.key, 'mockupStyle')
     assert.equal(setting.default, 'full')
     assert.deepEqual(
@@ -252,8 +252,10 @@ describe('the agents this command ships', () => {
     for (const choice of setting.choices) assert.match(choice.reference ?? '', /^references\//)
   })
 
-  it('still answers to the name `technology-selection` had before', () => {
-    assert.equal(findSpecAgent('recommend-tech-stack')?.name, 'technology-selection')
+  it('still answers to every name each of them had before', () => {
+    assert.equal(findSpecAgent('recommend-tech-stack')?.name, 'tech-stack-advisor')
+    assert.equal(findSpecAgent('technology-selection')?.name, 'tech-stack-advisor')
+    assert.equal(findSpecAgent('ui-design')?.name, 'ui-designer')
   })
 })
 
@@ -302,10 +304,10 @@ describe('an agent the project adds', () => {
   })
 
   it('is refused rather than allowed to shadow a built-in name', () => {
-    project('ui-design', { 'AGENT.md': AGENT.replace('name: api-contract', 'name: ui-design') })
+    project('ui-designer', { 'AGENT.md': AGENT.replace('name: api-contract', 'name: ui-designer') })
     const { agents, problems } = specAgentCatalog()
-    assert.equal(agents.filter((a) => a.name === 'ui-design').length, 1)
-    assert.equal(findSpecAgent('ui-design')?.builtIn, true)
+    assert.equal(agents.filter((a) => a.name === 'ui-designer').length, 1)
+    assert.equal(findSpecAgent('ui-designer')?.builtIn, true)
     assert.match(problems.join('\n'), /already on this board/)
   })
 })
@@ -415,7 +417,7 @@ describe('an agent nobody can read', () => {
 
   it('leaves the agents that do parse usable', () => {
     project('broken', { 'AGENT.md': 'Just instructions.' })
-    assert.ok(findSpecAgent('ui-design'))
+    assert.ok(findSpecAgent('ui-designer'))
   })
 })
 
@@ -423,9 +425,9 @@ describe('what a session is shown', () => {
   it('gives a planning session the names, descriptions and ownership and no instructions', () => {
     const catalog = specAgentSelector(12)
     assert.match(catalog, /<spec-agents>/)
-    assert.match(catalog, /- `ui-design`/)
+    assert.match(catalog, /- `ui-designer`/)
     assert.match(catalog, /owns the screen a card changes/)
-    assert.ok(catalog.includes(findSpecAgent('ui-design')!.description))
+    assert.ok(catalog.includes(findSpecAgent('ui-designer')!.description))
     assert.doesNotMatch(catalog, /planned by guess|Asking for none is the usual answer/)
     assert.match(catalog, /akb spec <agent> 12 <short note>/)
     assert.doesNotMatch(catalog, /Rendered screen/)
@@ -452,13 +454,13 @@ describe('what a session is shown', () => {
   })
 
   it('says nothing at all when every agent is switched off', () => {
-    board({ specAgents: { 'ui-design': false, 'technology-selection': false } })
+    board({ specAgents: { 'ui-designer': false, 'tech-stack-advisor': false } })
     assert.equal(specAgentSelector(12), '')
   })
 
   it('hands a spec run the contract, its agent and only the picked reference', () => {
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
-    assert.match(prompt, /You are the `ui-design` spec agent on task 12/)
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
+    assert.match(prompt, /You are the `ui-designer` spec agent on task 12/)
     assert.match(prompt, /Be a spec agent/)
     assert.match(prompt, /You draw the screen a card needs/)
     assert.match(prompt, /Mockup format: a rendered screen/)
@@ -466,16 +468,16 @@ describe('what a session is shown', () => {
   })
 
   it('swaps the reference when the board picks the other style', () => {
-    board({ specAgents: { 'ui-design': { mockupStyle: 'ascii' } } })
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    board({ specAgents: { 'ui-designer': { mockupStyle: 'ascii' } } })
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
     assert.match(prompt, /Mockup format: a plain-text drawing/)
     assert.doesNotMatch(prompt, /Mockup format: a rendered screen/)
   })
 
   it('falls back and says so when the saved choice is gone', () => {
-    board({ specAgents: { 'ui-design': { mockupStyle: 'sketch' } } })
+    board({ specAgents: { 'ui-designer': { mockupStyle: 'sketch' } } })
     const notes: string[] = []
-    buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' }, notes)
+    buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' }, notes)
     assert.match(notes.join('\n'), /Mockup style is saved as "sketch"/)
   })
 })
@@ -524,9 +526,9 @@ describe('the memory an agent declares', () => {
   const withMemory = (scope: string): string =>
     AGENT.replace('  kind: spec\n', `  kind: spec\n  memory: ${scope}\n`)
 
-  it('is `project` on `ui-design` and nothing on `technology-selection`', () => {
-    assert.equal(findSpecAgent('ui-design')?.memory, 'project')
-    assert.equal(findSpecAgent('technology-selection')?.memory, null)
+  it('is `project` on `ui-designer` and nothing on `tech-stack-advisor`', () => {
+    assert.equal(findSpecAgent('ui-designer')?.memory, 'project')
+    assert.equal(findSpecAgent('tech-stack-advisor')?.memory, null)
   })
 
   it('is read the same way off a project agent', () => {
@@ -550,34 +552,34 @@ describe('the memory an agent declares', () => {
     const catalog = specAgentSelector(12)
     const entry = (name: string): string =>
       catalog.split(/^- /m).find((part) => part.startsWith(`\`${name}\``)) ?? ''
-    assert.match(entry('ui-design'), /^ {2}remembers$/m)
-    assert.doesNotMatch(entry('technology-selection'), /remembers/)
+    assert.match(entry('ui-designer'), /^ {2}remembers$/m)
+    assert.doesNotMatch(entry('tech-stack-advisor'), /remembers/)
     assert.doesNotMatch(catalog, /memory\/agents/)
   })
 })
 
 describe('what a run of an agent that remembers is handed', () => {
   const wrote = (file: string, text: string): void => {
-    fs.mkdirSync(path.join(kanban(), 'memory', 'agents', 'ui-design'), { recursive: true })
-    fs.writeFileSync(path.join(kanban(), 'memory', 'agents', 'ui-design', file), text)
+    fs.mkdirSync(path.join(kanban(), 'memory', 'agents', 'ui-designer'), { recursive: true })
+    fs.writeFileSync(path.join(kanban(), 'memory', 'agents', 'ui-designer', file), text)
   }
 
   it('inlines both files as one block, each under its own heading', () => {
-    wrote('redesign.md', '# What `ui-design` was corrected on\n\n- One figure per tile was rejected.\n')
-    wrote('decisions.md', '# What the user chose for `ui-design`\n\n- This product never opens a modal.\n')
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    wrote('redesign.md', '# What `ui-designer` was corrected on\n\n- One figure per tile was rejected.\n')
+    wrote('decisions.md', '# What the user chose for `ui-designer`\n\n- This product never opens a modal.\n')
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
     assert.match(prompt, /——— what you remember ———/)
     assert.match(prompt, /One figure per tile was rejected\./)
     assert.match(prompt, /This product never opens a modal\./)
-    assert.match(prompt, /# What `ui-design` was corrected on/)
-    assert.match(prompt, /# What the user chose for `ui-design`/)
+    assert.match(prompt, /# What `ui-designer` was corrected on/)
+    assert.match(prompt, /# What the user chose for `ui-designer`/)
     // Beside its own rule, and after it — the board's words end before the agent's do.
-    assert.ok(prompt.indexOf('——— you, the `ui-design` agent ———') < prompt.indexOf('——— what you remember ———'))
+    assert.ok(prompt.indexOf('——— you, the `ui-designer` agent ———') < prompt.indexOf('——— what you remember ———'))
   })
 
   it('names the folder and what each file is for, and asks for neither move nor flag', () => {
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
-    assert.match(prompt, /two files in `docs\/kanban\/memory\/agents\/ui-design\/`/)
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
+    assert.match(prompt, /two files in `docs\/kanban\/memory\/agents\/ui-designer\/`/)
     assert.match(prompt, /`redesign\.md`, one line per lesson/)
     assert.match(prompt, /`decisions\.md`, one line per durable choice/)
     assert.doesNotMatch(prompt, /spec-write|--redesign|--decisions/)
@@ -586,19 +588,19 @@ describe('what a run of an agent that remembers is handed', () => {
   // The look is read, never remembered (#473) — said in the run, so an agent with an empty
   // memory starts out knowing where the colours and dimensions actually live.
   it('sends it to the app design docs for how the product looks', () => {
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
     assert.match(prompt, /read from the app's own `design\.md` and components, never copied into memory/)
     assert.match(prompt, /product fact worth keeping goes into the lesson or the decision it supports/)
   })
 
   it('hands it the empty files rather than nothing, so it knows it has them', () => {
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
     assert.match(prompt, /——— what you remember ———/)
     assert.equal(prompt.match(/nothing has been written down yet/g)?.length, 2)
   })
 
   it('says nothing of memory to an agent that declares none', () => {
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'technology-selection' })
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'tech-stack-advisor' })
     assert.doesNotMatch(prompt, /——— what you remember ———/)
     assert.doesNotMatch(prompt, /--redesign|Follow your memory below/)
   })
@@ -608,13 +610,25 @@ describe('what a run of an agent that remembers is handed', () => {
   it('moves a board’s one old file into the folder, once, without losing a line', () => {
     fs.mkdirSync(path.join(kanban(), 'memory', 'agents'), { recursive: true })
     fs.writeFileSync(
-      path.join(kanban(), 'memory', 'agents', 'ui-design.md'),
-      '# What `ui-design` learned\n\n- This product never opens a modal.\n',
+      path.join(kanban(), 'memory', 'agents', 'ui-designer.md'),
+      '# What `ui-designer` learned\n\n- This product never opens a modal.\n',
     )
-    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' })
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
     assert.match(prompt, /This product never opens a modal\./)
-    assert.equal(remembered('ui-design'), '# What `ui-design` was corrected on\n\n- This product never opens a modal.\n')
-    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'ui-design.md')), false)
+    assert.equal(remembered('ui-designer'), '# What `ui-designer` was corrected on\n\n- This product never opens a modal.\n')
+    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'ui-designer.md')), false)
+  })
+
+  // The agent was renamed, and what it remembers is kept under its name.
+  it('moves what it remembers off the name it had before, once', () => {
+    const was = path.join(kanban(), 'memory', 'agents', 'ui-design')
+    fs.mkdirSync(was, { recursive: true })
+    fs.writeFileSync(path.join(was, 'redesign.md'), '# What `ui-design` was corrected on\n\n- One figure per tile was rejected.\n')
+    const prompt = buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' })
+    assert.match(prompt, /One figure per tile was rejected\./)
+    assert.match(prompt, /# What `ui-designer` was corrected on/)
+    assert.match(remembered('ui-designer'), /One figure per tile was rejected\./)
+    assert.equal(fs.existsSync(was), false)
   })
 })
 
@@ -630,7 +644,7 @@ describe('writing what an agent remembers', () => {
     await move(root, [
       'spec-write',
       '12',
-      'ui-design',
+      'ui-designer',
       '--text',
       'a screen',
       '--redesign',
@@ -639,39 +653,39 @@ describe('writing what an agent remembers', () => {
       memoryFile('- This product never opens a modal.', 'chose.md'),
     ])
     assert.equal(
-      remembered('ui-design'),
-      '# What `ui-design` was corrected on\n\n- One figure per tile was rejected.\n',
+      remembered('ui-designer'),
+      '# What `ui-designer` was corrected on\n\n- One figure per tile was rejected.\n',
     )
     assert.equal(
-      remembered('ui-design', 'decisions.md'),
-      '# What the user chose for `ui-design`\n\n- This product never opens a modal.\n',
+      remembered('ui-designer', 'decisions.md'),
+      '# What the user chose for `ui-designer`\n\n- This product never opens a modal.\n',
     )
   })
 
   it('writes only the file the flag names', async () => {
     card(12)
-    await move(root, ['spec-write', '12', 'ui-design', '--text', 'a screen', '--decisions', memoryFile('- One.')])
-    assert.equal(remembered('ui-design', 'decisions.md'), '# What the user chose for `ui-design`\n\n- One.\n')
-    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'ui-design', 'redesign.md')), false)
+    await move(root, ['spec-write', '12', 'ui-designer', '--text', 'a screen', '--decisions', memoryFile('- One.')])
+    assert.equal(remembered('ui-designer', 'decisions.md'), '# What the user chose for `ui-designer`\n\n- One.\n')
+    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'ui-designer', 'redesign.md')), false)
   })
 
   it('replaces it whole, and never stacks a second heading', async () => {
     card(12)
     const write = (text: string): Promise<unknown> =>
-      move(root, ['spec-write', '12', 'ui-design', '--text', 'a screen', '--redesign', memoryFile(text)])
+      move(root, ['spec-write', '12', 'ui-designer', '--text', 'a screen', '--redesign', memoryFile(text)])
     await write('- One.')
-    await write('# What `ui-design` was corrected on\n\n- One.\n- Two.')
-    assert.equal(remembered('ui-design'), '# What `ui-design` was corrected on\n\n- One.\n- Two.\n')
+    await write('# What `ui-designer` was corrected on\n\n- One.\n- Two.')
+    assert.equal(remembered('ui-designer'), '# What `ui-designer` was corrected on\n\n- One.\n- Two.\n')
     // Handed back with the heading retyped rather than copied, it is still the one heading.
-    await write('# What ui-design was corrected on\n\n- One.')
-    assert.equal(remembered('ui-design'), '# What `ui-design` was corrected on\n\n- One.\n')
+    await write('# What ui-designer was corrected on\n\n- One.')
+    assert.equal(remembered('ui-designer'), '# What `ui-designer` was corrected on\n\n- One.\n')
   })
 
   it('refuses it for an agent that declares no memory', async () => {
     card(12)
     await refuses(
       root,
-      ['spec-write', '12', 'technology-selection', '--text', 'a pick', '--redesign', memoryFile('- One.')],
+      ['spec-write', '12', 'tech-stack-advisor', '--text', 'a pick', '--redesign', memoryFile('- One.')],
       /keeps no memory/,
     )
     assert.ok(!fs.existsSync(path.join(kanban(), 'memory', 'agents')))
@@ -686,7 +700,7 @@ describe("who a spec agent's output is for", () => {
 
   it('is the first row on every spec agent, whoever wrote it', () => {
     project('api-contract', { 'AGENT.md': AGENT })
-    for (const name of ['ui-design', 'technology-selection', 'api-contract']) {
+    for (const name of ['ui-designer', 'tech-stack-advisor', 'api-contract']) {
       const [row] = agentSettingsView(findSpecAgent(name)!)
       assert.equal(row?.key, 'output', name)
       assert.deepEqual(
@@ -697,21 +711,21 @@ describe("who a spec agent's output is for", () => {
       // No word about the card's halves: a user picks who reads it, not where it lands.
       assert.doesNotMatch(JSON.stringify(row), /agent half|human half|<!-- agent -->/)
     }
-    assert.equal(readSpecAgents().find((a) => a.name === 'ui-design')?.values.output, 'human')
+    assert.equal(readSpecAgents().find((a) => a.name === 'ui-designer')?.values.output, 'human')
   })
 
   it("is on the spec agents in the pane's roster, and on none of the roles", () => {
     const rows = (name: string): string[] =>
       readAgents().agents.find((a) => a.name === name)!.settings.map((setting) => setting.key)
-    assert.deepEqual(rows('ui-design'), ['output', 'mockupStyle'])
-    assert.deepEqual(rows('technology-selection'), ['output'])
+    assert.deepEqual(rows('ui-designer'), ['output', 'mockupStyle'])
+    assert.deepEqual(rows('tech-stack-advisor'), ['output'])
     assert.deepEqual(rows('planner'), [])
   })
 
-  it('starts `ui-design` at human review and every other agent at agent use', () => {
+  it('starts `ui-designer` at human review and every other agent at agent use', () => {
     project('api-contract', { 'AGENT.md': AGENT })
-    assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'human')
-    assert.equal(specAgentOutput(findSpecAgent('technology-selection')!), 'agent')
+    assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
+    assert.equal(specAgentOutput(findSpecAgent('tech-stack-advisor')!), 'agent')
     assert.equal(specAgentOutput(findSpecAgent('api-contract')!), 'agent')
   })
 
@@ -722,20 +736,20 @@ describe("who a spec agent's output is for", () => {
   })
 
   it("saves under the entry's own key, and drops it when it goes back to the default", () => {
-    assert.equal(setSpecAgentSetting('ui-design', 'output', 'agent').ok, true)
-    assert.deepEqual(saved()['ui-design'], { output: 'agent' })
-    assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'agent')
-    assert.equal(setSpecAgentSetting('ui-design', 'output', 'human').ok, true)
+    assert.equal(setSpecAgentSetting('ui-designer', 'output', 'agent').ok, true)
+    assert.deepEqual(saved()['ui-designer'], { output: 'agent' })
+    assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'agent')
+    assert.equal(setSpecAgentSetting('ui-designer', 'output', 'human').ok, true)
     assert.equal(saved(), undefined)
-    assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'human')
+    assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
   })
 
   // A `runtime` left by a board written before #443 goes: named runtimes are gone, and the
   // agent it pointed at runs the connector the board gives it now.
   it("leaves the switch and the agent's own values beside it, and drops a stale runtime", () => {
-    board({ specAgents: { 'ui-design': { enabled: false, runtime: 'cheap', mockupStyle: 'ascii' } } })
-    assert.equal(setSpecAgentSetting('ui-design', 'output', 'agent').ok, true)
-    assert.deepEqual(saved()['ui-design'], {
+    board({ specAgents: { 'ui-designer': { enabled: false, runtime: 'cheap', mockupStyle: 'ascii' } } })
+    assert.equal(setSpecAgentSetting('ui-designer', 'output', 'agent').ok, true)
+    assert.deepEqual(saved()['ui-designer'], {
       enabled: false,
       output: 'agent',
       mockupStyle: 'ascii',
@@ -743,11 +757,11 @@ describe("who a spec agent's output is for", () => {
   })
 
   it('refuses a word it does not offer, and runs the default when the file holds one', () => {
-    const refused = setSpecAgentSetting('ui-design', 'output', 'nobody')
+    const refused = setSpecAgentSetting('ui-designer', 'output', 'nobody')
     assert.equal(refused.ok, false)
     assert.match(refused.error!, /not one of the choices for Output/)
-    board({ specAgents: { 'ui-design': { output: 'nobody' } } })
-    assert.equal(specAgentOutput(findSpecAgent('ui-design')!), 'human')
+    board({ specAgents: { 'ui-designer': { output: 'nobody' } } })
+    assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
   })
 
   it("is the board's key, so no agent may declare a setting or a value of its own for it", () => {
@@ -780,26 +794,26 @@ describe("who a spec agent's output is for", () => {
 
   it('tells the run which half it writes in, and prints it where a flow can read it', () => {
     assert.match(
-      buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' }),
+      buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' }),
       /put your section above `<!-- agent -->`/,
     )
     assert.match(specAgentList('akb'), /Output: Human review/)
-    board({ specAgents: { 'ui-design': { output: 'agent' } } })
+    board({ specAgents: { 'ui-designer': { output: 'agent' } } })
     assert.match(
-      buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-design' }),
+      buildPrompt({ action: 'spec', id: 12, specAgent: 'ui-designer' }),
       /put your section below `<!-- agent -->`/,
     )
     assert.match(specAgentList('akb'), /Output: Agent use/)
   })
 
   it('is drawn in the language the reader reads, from the board rather than the agent', () => {
-    const [row] = agentSettingsView(findSpecAgent('ui-design')!, 'zh')
+    const [row] = agentSettingsView(findSpecAgent('ui-designer')!, 'zh')
     assert.equal(row?.label, '\u4ea7\u51fa')
     for (const choice of row!.choices) {
       assert.match(choice.label, /[\u4e00-\u9fa5]/, choice.value)
       assert.match(choice.cost, /[\u4e00-\u9fa5]/, choice.value)
     }
-    assert.equal(agentSettingsView(findSpecAgent('ui-design')!, 'en')[0]?.label, 'Output')
+    assert.equal(agentSettingsView(findSpecAgent('ui-designer')!, 'en')[0]?.label, 'Output')
   })
 })
 
@@ -819,14 +833,14 @@ describe('`agents` as a module name', () => {
   // the four files could land on top of the agents' own.
   it('gets no memory set from `init` when the map names it anyway', async () => {
     fs.writeFileSync(path.join(kanban(), 'modules.md'), '- **agents** — a module someone named\n- **skill** — the command\n')
-    fs.mkdirSync(path.join(kanban(), 'memory', 'agents', 'ui-design'), { recursive: true })
+    fs.mkdirSync(path.join(kanban(), 'memory', 'agents', 'ui-designer'), { recursive: true })
     fs.writeFileSync(
-      path.join(kanban(), 'memory', 'agents', 'ui-design', 'redesign.md'),
-      '# What `ui-design` was corrected on\n\n- One.\n',
+      path.join(kanban(), 'memory', 'agents', 'ui-designer', 'redesign.md'),
+      '# What `ui-designer` was corrected on\n\n- One.\n',
     )
     await move(root, ['init'])
     assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'decisions.md')), false)
-    assert.equal(remembered('ui-design'), '# What `ui-design` was corrected on\n\n- One.\n')
+    assert.equal(remembered('ui-designer'), '# What `ui-designer` was corrected on\n\n- One.\n')
     // Every other module on the map still gets its set.
     assert.ok(fs.existsSync(path.join(kanban(), 'memory', 'skill', 'decisions.md')))
   })

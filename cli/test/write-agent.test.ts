@@ -185,7 +185,7 @@ describe('asking for one', () => {
 
   it('refuses an agent that is off, a name nobody has, a spec agent and --print', async () => {
     await refusesRun(['write', 'nobody', '2'], /"nobody" is not a write agent on this board/)
-    await refusesRun(['write', 'ui-design', '2'], /is not a write agent on this board/)
+    await refusesRun(['write', 'ui-designer', '2'], /is not a write agent on this board/)
     await refusesRun(['write', 'poster', '2', '--print'], /a write agent has no --print/)
     board('marketing', { specAgents: { poster: false } })
     await refusesRun(['write', 'poster', '2'], /switched off for this board/)

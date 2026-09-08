@@ -4,7 +4,7 @@ Configuration → Agents draws one character per agent. This is the recipe for t
 generate the image, name it after the agent, and commit it.
 
 - **Where a file goes**: `kanban-ui/public/agent-art/<agent name>.png` — `builder.png`,
-  `ui-design.png`. The name is the agent's own name from the catalog, not a title.
+  `ui-designer.png`. The name is the agent's own name from the catalog, not a title.
   `public/agents/` is a different folder: those are the coding agents' brand logos.
 - **What draws without a file**: `base.png` — the same character with no prop — holding a
   card with the agent's initial, in one of the palette's five inks picked from its name.
@@ -43,10 +43,10 @@ the whole difference, and it has to be readable at 48px.
 - **`writer.png`** — writes the drafts and repurposes them (marketing boards). Holding a
   **yellow pencil** with a pink eraser, angled nib-down, over a ruled sheet of paper held
   against the chest.
-- **`ui-design.png`** — draws the screen a card changes. Holding a **browser window** across
+- **`ui-designer.png`** — draws the screen a card changes. Holding a **browser window** across
   the chest — title bar with two dots, one lilac block and two pale panels — and a **peach
   pencil** in the free hand.
-- **`technology-selection.png`** — picks the library a card leans on. Holding **two
+- **`tech-stack-advisor.png`** — picks the library a card leans on. Holding **two
   interlocking puzzle pieces**, one sky and one mint, meeting in front of the body.
 - **`gater.png`** — says whether a settled card may build unwatched. A **striped boom
   barrier** raised beside the body, its arm banded ember and cream on a grey post, and a

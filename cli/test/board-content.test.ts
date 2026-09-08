@@ -124,7 +124,7 @@ describe('the team, as a contract read and write', () => {
     assert.equal(agents.find((a) => a.name === 'reviewer')?.rule, '')
     // A role runs the board's own flows, so it has no switch; a specialist does.
     assert.equal(agents.find((a) => a.name === 'builder')?.switchable, false)
-    assert.equal(agents.find((a) => a.name === 'ui-design')?.switchable, true)
+    assert.equal(agents.find((a) => a.name === 'ui-designer')?.switchable, true)
 
     const cleared = await onBoard((env) => board().saveAgentRule('builder', '   ', env))
     assert.ok(cleared.ok)
@@ -153,7 +153,7 @@ describe('the team, as a contract read and write', () => {
     assert.match(added2!.gloss, /unwritten/i)
     assert.match(added2!.when, /Unwritten/i)
 
-    for (const taken of ['api-contract', 'ui-design', 'builder']) {
+    for (const taken of ['api-contract', 'ui-designer', 'builder']) {
       assert.equal((await onBoard((env) => board().createAgent(taken, env))).ok, false, taken)
     }
   })
@@ -174,7 +174,7 @@ describe('the team, as a contract read and write', () => {
 
     // A role runs the board's own flows and a bundled agent ships inside the command, so
     // neither has a folder here to remove.
-    for (const theirs of ['builder', 'ui-design', 'api-contract']) {
+    for (const theirs of ['builder', 'ui-designer', 'api-contract']) {
       assert.equal((await onBoard((env) => board().deleteAgent(theirs, env))).ok, false, theirs)
     }
   })

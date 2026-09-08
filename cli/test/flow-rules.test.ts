@@ -89,12 +89,12 @@ async function end(sessionId: string): Promise<void> {
 
 describe('in-session spec work', () => {
   it('prints specialist instructions and rules without starting a run', async () => {
-    setAgentRule('ui-design', 'Keep to the existing palette.')
+    setAgentRule('ui-designer', 'Keep to the existing palette.')
     const file = path.join(root, 'docs/kanban/todo/features/1-card.md')
     const before = fs.readFileSync(file, 'utf8')
     const sink = startCollecting()
     try {
-      await akb(root, ['spec', 'ui-design', '1', 'Use scrolling tabs.', '--print'])
+      await akb(root, ['spec', 'ui-designer', '1', 'Use scrolling tabs.', '--print'])
     } finally {
       stopCollecting()
     }
@@ -114,7 +114,7 @@ describe('in-session spec work', () => {
     const before = JSON.stringify(readRuns())
     startCollecting()
     try {
-      const result = await cmdSpec({ agent: 'ui-design', id: 1, print: true })
+      const result = await cmdSpec({ agent: 'ui-designer', id: 1, print: true })
       assert.equal(result.mode, 'print')
     } finally {
       stopCollecting()
@@ -347,11 +347,11 @@ describe('the prompt', () => {
       const prompt = buildPrompt({ action, id: 1 })
       assert.match(prompt, /<spec-agents>/)
       // The catalog is names, descriptions and ownership — never a skill's own instructions.
-      assert.match(prompt, /- `ui-design`/)
+      assert.match(prompt, /- `ui-designer`/)
       assert.doesNotMatch(prompt, /You draw the screen a card needs/)
     }
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /<spec-agents>/)
-    assert.doesNotMatch(buildPrompt({ action: 'spec', id: 1, specAgent: 'ui-design' }), /<spec-agents>/)
+    assert.doesNotMatch(buildPrompt({ action: 'spec', id: 1, specAgent: 'ui-designer' }), /<spec-agents>/)
   })
 
   it('keeps the card-creation refinement choice in one guide', () => {
@@ -473,10 +473,10 @@ describe('the prompt', () => {
 
   it("puts a spec agent's own rule after its instructions, and no role's", async () => {
     setAgentRule('planner', 'Ask about the data model.')
-    setAgentRule('ui-design', 'Keep to the existing palette.')
-    const prompt = buildPrompt({ action: 'spec', id: 1, specAgent: 'ui-design' })
+    setAgentRule('ui-designer', 'Keep to the existing palette.')
+    const prompt = buildPrompt({ action: 'spec', id: 1, specAgent: 'ui-designer' })
     assert.ok(prompt.trimEnd().endsWith('Keep to the existing palette.'))
-    assert.match(prompt, /`ui-design` agent carries one rule of its own\./)
+    assert.match(prompt, /`ui-designer` agent carries one rule of its own\./)
     assert.doesNotMatch(prompt, /data model/)
   })
 

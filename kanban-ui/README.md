@@ -402,7 +402,7 @@ top of it. A board that has archived nothing says so.
 A card that changes a screen can carry **mockups** of it — small files under
 `docs/kanban/.mockups/<card id>/`, each drawing one layout the card could take. The card body
 points at each one with a tag on a line of its own, and the card page draws the screen that file
-holds where the tag sits, so you pick a layout by looking at it. The `ui-design` agent writes
+holds where the tag sits, so you pick a layout by looking at it. The `ui-designer` agent writes
 one by default and alternatives only when explicitly requested; only a card page shows them,
 and the card file is never written to.
 
@@ -431,10 +431,10 @@ board cannot draw, reads as one plain note naming the file, and the rest of the 
 usual.
 
 The folder is gitignored — a mockup is a working drawing, not something the repo carries. A card
-pulled from someone else's board shows its tags as those notes until `ui-design` draws the
+pulled from someone else's board shows its tags as those notes until `ui-designer` draws the
 options again here.
 
-**Which of the two styles `ui-design` draws in is the board's Mockup style setting**, under
+**Which of the two styles `ui-designer` draws in is the board's Mockup style setting**, under
 Configuration → Agents (`mockupStyle` in `ui.config.json`). It is board-wide, so a card carries
 one style throughout. It starts at the rendered screen above; the other choice is a **plain-text
 drawing**, which costs a much shorter run and reads as itself in a terminal, at the price of the
@@ -1507,7 +1507,7 @@ in the file, so switching agents or providers never touches any of them.
     "builder": "cheap"
   },
   "specAgents": {
-    "ui-design": { "mockupStyle": "ascii" }
+    "ui-designer": { "mockupStyle": "ascii" }
   }
 }
 ```
@@ -1598,7 +1598,7 @@ The first row of `runtimes` is **Global default** — what an agent naming none 
 is where one names another, keyed by the agent's name and holding the runtime's `id`:
 
 ```json
-"agentRuntime": { "builder": "cheap", "ui-design": "cheap" }
+"agentRuntime": { "builder": "cheap", "ui-designer": "cheap" }
 ```
 
 The roles the board ships and the specialists a card asks for are one table: `discussion-helper`,
@@ -1648,7 +1648,7 @@ ships, then the ones this project added.
   `decisions.md` and `rejected.md` on top of the card. The third is the **Reviewer**, on by
   default: judging a build is a paid run per delivery, so a board may decline it.
 - A **specialist** fills one part of a card's spec while that card is being planned, never while it
-  is being built: **UI design** draws the screen the card changes, **Technology selection** picks the
+  is being built: **UI designer** draws the screen the card changes, **Tech stack advisor** picks the
   library it leans on. Each runs on its own and writes one section of that card and nothing else.
   There is no way to put one on a card by hand: that is what the board does for you.
 
@@ -1712,7 +1712,7 @@ agent's page lists the files it owns, read-only:
   and `modules.md`.
 - A **specialist** that declares `memory: project` in its `AGENT.md` owns
   `docs/kanban/memory/agents/<name>/` — `redesign.md`, the mistakes it was corrected on, and
-  `decisions.md`, the choices you made. `ui-design` declares a memory; `technology-selection` does not.
+  `decisions.md`, the choices you made. `ui-designer` declares a memory; `tech-stack-advisor` does not.
 - **How the product looks is not memory**: colours, dimensions and component detail are read from
   the app's own `design.md`. A board that kept one `<name>.md` moves it into the folder by itself.
 - The files are written by the runs themselves and edited as files, not here. The page says where

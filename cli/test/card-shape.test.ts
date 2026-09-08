@@ -67,7 +67,7 @@ const SHAPED = [
   '',
 ].join('\n')
 
-const specWrite = (argv: string[], agent = 'ui-design'): Promise<Record<string, unknown>> =>
+const specWrite = (argv: string[], agent = 'ui-designer'): Promise<Record<string, unknown>> =>
   move(root, ['spec-write', '5', agent, ...argv])
 
 /** Set who one agent's output is for, the way the Agents pane saves it (#445). */
@@ -79,7 +79,7 @@ const setOutput = (agent: string, output: string): void =>
 
 const ABOVE = [
   '## Worth noting',
-  '## By `ui-design` agent',
+  '## By `ui-designer` agent',
   '<!-- agent -->',
   '## Scope',
   '## Todo',
@@ -91,11 +91,11 @@ const BELOW = [
   '<!-- agent -->',
   '## Scope',
   '## Todo',
-  '## By `ui-design` agent',
+  '## By `ui-designer` agent',
   '## Decided by the agent',
 ]
 
-// `ui-design` ships set to human review and `technology-selection` to agent use, so both
+// `ui-designer` ships set to human review and `tech-stack-advisor` to agent use, so both
 // values are covered on a board nobody has configured.
 describe("the half a spec agent's section lands in (#445)", () => {
   it('is the human half for an agent whose output is reviewed, on the rewrite too', async () => {
@@ -111,21 +111,21 @@ describe("the half a spec agent's section lands in (#445)", () => {
 
   it("is the agent half for an agent whose output is the builder's, on the rewrite too", async () => {
     write(SHAPED)
-    await specWrite(['--text', 'a pick'], 'technology-selection')
-    await specWrite(['--text', 'a better pick'], 'technology-selection')
+    await specWrite(['--text', 'a pick'], 'tech-stack-advisor')
+    await specWrite(['--text', 'a better pick'], 'tech-stack-advisor')
     assert.deepEqual(headings(), [
       '## Worth noting',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
-      '## By `technology-selection` agent',
+      '## By `tech-stack-advisor` agent',
       '## Decided by the agent',
     ])
     assert.ok(fs.readFileSync(file, 'utf8').includes('a better pick'))
   })
 
   it('is what the board is set to, not what the agent shipped set to', async () => {
-    setOutput('ui-design', 'agent')
+    setOutput('ui-designer', 'agent')
     write(SHAPED)
     await specWrite(['--text', 'a screen'])
     assert.deepEqual(headings(), BELOW)
@@ -134,16 +134,16 @@ describe("the half a spec agent's section lands in (#445)", () => {
   it('leaves the sections already written where they are when the setting changes', async () => {
     write(SHAPED)
     await specWrite(['--text', 'a screen'])
-    setOutput('ui-design', 'agent')
+    setOutput('ui-designer', 'agent')
     // Another agent writing its own section is not this one's rewrite, so nothing moves.
-    await specWrite(['--text', 'a pick'], 'technology-selection')
+    await specWrite(['--text', 'a pick'], 'tech-stack-advisor')
     assert.deepEqual(headings(), [
       '## Worth noting',
-      '## By `ui-design` agent',
+      '## By `ui-designer` agent',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
-      '## By `technology-selection` agent',
+      '## By `tech-stack-advisor` agent',
       '## Decided by the agent',
     ])
     // Its own next write is what places it again.
@@ -153,8 +153,8 @@ describe("the half a spec agent's section lands in (#445)", () => {
       '<!-- agent -->',
       '## Scope',
       '## Todo',
-      '## By `technology-selection` agent',
-      '## By `ui-design` agent',
+      '## By `tech-stack-advisor` agent',
+      '## By `ui-designer` agent',
       '## Decided by the agent',
     ])
   })
@@ -163,10 +163,10 @@ describe("the half a spec agent's section lands in (#445)", () => {
   // set to agent use lifts it into the card, and answering sends it back.
   it('is overridden by `--half` for one write, either way', async () => {
     write(SHAPED)
-    await specWrite(['--text', 'a pick', '--half', 'human'], 'technology-selection')
+    await specWrite(['--text', 'a pick', '--half', 'human'], 'tech-stack-advisor')
     assert.deepEqual(headings(), [
       '## Worth noting',
-      '## By `technology-selection` agent',
+      '## By `tech-stack-advisor` agent',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
@@ -175,11 +175,11 @@ describe("the half a spec agent's section lands in (#445)", () => {
     await specWrite(['--text', 'a screen', '--half', 'agent'])
     assert.deepEqual(headings(), [
       '## Worth noting',
-      '## By `technology-selection` agent',
+      '## By `tech-stack-advisor` agent',
       '<!-- agent -->',
       '## Scope',
       '## Todo',
-      '## By `ui-design` agent',
+      '## By `ui-designer` agent',
       '## Decided by the agent',
     ])
   })
@@ -187,7 +187,7 @@ describe("the half a spec agent's section lands in (#445)", () => {
   // The word the heading carries changed twice (#403, #419). A card written under either
   // one is rewritten rather than doubled, so a rerun never leaves two sections for one agent.
   it('rewrites the heading a card already carries, whichever word it uses', async () => {
-    write(SHAPED.replace('## Scope', '## By `ui-design` skill\n\nan old screen\n\n## Scope'))
+    write(SHAPED.replace('## Scope', '## By `ui-designer` skill\n\nan old screen\n\n## Scope'))
     await specWrite(['--text', 'a new screen'])
     assert.deepEqual(headings(), ABOVE)
     const card = fs.readFileSync(file, 'utf8')

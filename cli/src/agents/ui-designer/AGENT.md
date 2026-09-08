@@ -1,5 +1,5 @@
 ---
-name: ui-design
+name: ui-designer
 description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, and flows. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision. A detailed plan or an existing component is not a reason to skip.
 akb:
   kind: spec

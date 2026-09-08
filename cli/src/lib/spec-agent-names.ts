@@ -5,7 +5,9 @@
 // harness out of the board's file before any of that catalog is loaded.
 
 const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
-  'recommend-tech-stack': 'technology-selection',
+  'recommend-tech-stack': 'tech-stack-advisor',
+  'technology-selection': 'tech-stack-advisor',
+  'ui-design': 'ui-designer',
 }
 
 /** The name a spec agent goes by now, for a name it may have gone by before. */

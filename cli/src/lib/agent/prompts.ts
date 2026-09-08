@@ -248,7 +248,7 @@ function draftFolder(cardId: number | undefined): string | null {
 // module's decisions and rejections — and neither writes a line of it back.
 const boardMemory = (): string => [rel(GOAL), ...boardMemoryFiles()].join(', ')
 
-// `<spec-agents>` asks which solution this board is: `ui-design` and `technology-selection`
+// `<spec-agents>` asks which solution this board is: `ui-designer` and `tech-stack-advisor`
 // answer nothing a marketing topic asks. `<write-agents>` does not — the roster is empty on
 // a product board by itself, since `kind: write` does not parse there.
 function roster(req: AgentRequest): string {
