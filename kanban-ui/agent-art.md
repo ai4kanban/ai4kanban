@@ -31,6 +31,9 @@ lilac `#b199e0`, peach `#ec9a72`.
 Each names the job and the one prop nobody else carries. Same body, different prop — that is
 the whole difference, and it has to be readable at 48px.
 
+- **`discussion-helper.png`** — talks a question through before a card exists. Holding **two
+  speech bubbles** in front of the body, a cream one with three mint dots and a lilac one
+  with two black lines, the lilac one overlapping behind.
 - **`planner.png`** — plans and refines cards. Holding a **three-column board** across the
   chest, its columns mint, ember and sky, each with a couple of cards in it.
 - **`builder.png`** — builds cards and lands them. Holding an **ember hammer** upright on a
@@ -48,6 +51,9 @@ the whole difference, and it has to be readable at 48px.
 - **`gater.png`** — says whether a settled card may build unwatched. A **striped boom
   barrier** raised beside the body, its arm banded ember and cream on a grey post, and a
   **clipboard** across the chest with one green tick on it.
+- **`decider.png`** — answers a card's `[user]` questions the way you would. A **two-way
+  signpost** held beside the body on a grey post: a mint arrow pointing forward and a grey
+  one pointing back.
 
 ## Checking a result
 
