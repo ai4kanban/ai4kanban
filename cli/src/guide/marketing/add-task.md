@@ -24,16 +24,5 @@ moment the user says which channels this goes to; leave it off until then. A top
 `todo/<id>.md` — the title never reaches the filename, so `--slug` is refused here and a
 non-English title needs nothing extra.
 
-## Then write the brief, in the draft
-
-The card carries no body. Write a few lines at the top of
-`docs/kanban/content/<id>/source.md` — make the folder — saying:
-
-- **the angle**: what this piece argues, in one sentence;
-- **who it is for**, and what they already believe;
-- **what it may not claim** — anything `memory/decisions.md` has not settled;
-- **where it came from**: the URL, file, or message that led to the topic.
-
-That is the brief `akb card implement <id>` expands into the piece. Nothing else records
-what the topic was for, so leave nothing out of it — and leave nothing in it that the draft
-will not need.
+The card is the whole of it. Write no `content/<id>/` folder and no `source.md`: the source
+is the user's own words, and a blank one is what invites them.

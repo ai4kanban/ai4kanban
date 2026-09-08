@@ -245,6 +245,7 @@ const GONE: Record<Solution, Record<string, string>> = {
     resolve: "a topic carries no questions to answer, and its angle is settled in the card's own chat",
     decide: "a topic carries no questions to answer for you, and its angle is settled in the card's own chat",
     gate: 'a topic carries no questions to turn one down with, and a piece is written when the user asks for it',
+    implement: "a topic's source is the user's own words, and the agent's writing starts at the repurpose",
     'plan-release': 'a topic ships to channels, not to a version, and this board plans none',
     changelog: 'a topic ships to channels, not to a version, and this board plans none',
   },

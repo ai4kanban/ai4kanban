@@ -284,9 +284,9 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   }
   if (flags.status !== undefined) {
     // `ready` is the stage a refine takes a card to, and a marketing board has no refine
-    // (#435): its cards go straight from `todo` to `implementing`.
+    // (#435): a topic rests at `todo` until it is archived.
     if (flags.status === 'ready' && solution() === 'marketing') {
-      die(`--status ready is not a \`marketing\` card's — a topic goes from todo to implementing; press Implement on it.`, {
+      die(`--status ready is not a \`marketing\` card's — a topic rests at todo until it is archived.`, {
         kind: 'wrong-solution',
         solution: solution(),
       })

@@ -28,7 +28,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { idPrefix, locate } from '../cards'
-import { draftFile, SOURCE } from '../content'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
@@ -45,7 +44,7 @@ import { boardCommandFor } from './command'
 import { deliveryFor } from './deliveries'
 import { aiReviewOn, owesFocusedReview } from './review'
 import { field, metaLine, numbered } from './facts'
-import { languageName, translating } from './language'
+import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { setupInstruction } from './resolve'
@@ -334,22 +333,6 @@ function workspaceField(delivery: DeliveryRecord | undefined): string[] {
   ])
 }
 
-// The file a marketing build writes: `content/<id>/source.md` (#407, #409). It
-// belongs to no channel (#457): it is the argument, in the board's language, and every
-// chosen channel's own draft is a later `akb channel` pass — so `channels:` tells this run
-// nothing, and a card that names none still drafts. The card carries no brief (#435): the
-// few lines already at the top of that file are the brief. Nothing on a product board,
-// which delivers a diff.
-function draftField(card: CardFacts): string[] {
-  if (solution() !== 'marketing') return []
-  return field('draft', [
-    `expand ${rel(draftFile(card.file, SOURCE))} in place — its opening lines are the brief, and they are the only brief there is.`,
-    `it belongs to no channel: it is the argument, not a post — write it in ${languageName()}, give it no channel's length or shape, and it is never published.`,
-    `each chosen channel's own draft is a later \`akb channel\` pass, so write none of them here.`,
-    'there is no branch and no worktree: the draft is the delivery, and the user editing it is the review.',
-  ])
-}
-
 // The `update` flags a card on this board takes — the four a marketing card has no field
 // for are left out rather than named and refused (#435).
 const editableFields = (): string =>
@@ -569,19 +552,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         )
         break
       }
-      facts.push(...draftField(card))
       facts.push(...stepsField(card))
       if (card.meta.questions.length) facts.push(...questionsField(card.meta))
       facts.push(...verifyField(card.meta))
-      // What a finished piece is recorded in. `readme.md` is the product solution's "what
-      // shipped"; a marketing board records one line per published piece instead, and that
-      // file is the board's, not a pillar's.
-      facts.push(
-        ...field(
-          'memory',
-          solution() === 'marketing' ? [rel(path.join(MEMORY, 'published.md'))] : memoryFiles(card.meta.modules, 'readme.md'),
-        ),
-      )
+      facts.push(...field('memory', memoryFiles(card.meta.modules, 'readme.md')))
       // Inside a delivery the build is not the end of the job: a fresh run reviews what
       // it made against the approved copy, the board lands it, and the board archives the
       // card once it has landed (#302, #307). With AI review off there is no such run

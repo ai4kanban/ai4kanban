@@ -32,6 +32,6 @@ Send each surviving candidate to `akb guide add-task` — adding `--proposed` to
 call, because the board found this topic rather than a person asking for it — then report
 what was created and skipped.
 
-Each created card gets the few lines of brief at the top of its
-`content/<id>/source.md`, and the provenance is one of them: `<name or description>
-— <URL, file, or message context>`, never a generic label such as "external research".
+Write no draft: the report is where each topic's provenance is named, as `<name or
+description> — <URL, file, or message context>`, never a generic label such as "external
+research".

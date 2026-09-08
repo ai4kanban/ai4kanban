@@ -2,7 +2,7 @@
 
 A card is one **topic**, and it is three things: a title, the channels it goes to, and the
 draft under `content/`. It has no body — the piece is the deliverable, and a second copy of
-the brief on the card is one that goes stale the moment the draft moves.
+it on the card is one that goes stale the moment the draft moves.
 
 ```text
 ---
@@ -33,9 +33,6 @@ hand-write the frontmatter: `akb raw create`, `update`, `update-verify` and
 
 ## The draft is the card
 
-- **The brief is the top of `source.md`**: a few lines saying the angle, who it is for, and
-  what it may not claim, with the provenance among them. `implement` expands that file in
-  place; it never writes a second brief onto the card.
 - **The angle, the audience and the hook are the user's**: they are settled in the card's
   own chat, not filed as questions — a marketing card carries none.
 - **Write the title in the board's language**, whatever language this guide is read in. It

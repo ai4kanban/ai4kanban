@@ -48,15 +48,14 @@ sources — the product board's goal and what shipped, the site docs, and this b
 ## The loop
 
 ```
-create ─▶ implement ─▶ you edit ─▶ channel ─▶ you edit ─▶ publish ─▶ archive
- topic     source.md               <channel>.md            published.md
-                                                          + writing lessons
+create ─▶ you write ─▶ channel ─▶ you edit ─▶ publish ─▶ archive
+ topic     source.md   <channel>.md           published.md
+                                              + writing lessons
 ```
 
 A card is a title, its channels and its draft — there is no brief on the card and no
 refining pass over it. The angle, the audience and the hook are settled in the card's own
-chat, and the few lines at the top of `content/<id>/source.md` are what `implement`
-expands.
+chat, and `content/<id>/source.md` is the user's own words: nothing drafts it for them.
 
 `akb channel <name> <id>` is a step you take, once `source.md` reads right — one run per
 channel, and the source tab's repurpose starts one for every chosen channel at once.

@@ -50,7 +50,6 @@ const en: CardCopy = {
     back: "Back to the board",
     more: "More",
     rewrite: "Rewrite",
-    draft: "Draft source",
     startFailed: "the run could not be started",
     tabs: "Drafts",
     title: "Topic title",
@@ -67,7 +66,6 @@ const en: CardCopy = {
     },
     publishedCount: (published, total) => `${published} / ${total} published`,
     run: {
-      draftSource: "Drafting source",
       fromSource: (channel) => `Writing ${channel} from source`,
       rewrite: (channel) => `Rewriting ${channel}`,
       polish: (draft) => `Rewriting ${draft} to your comments`,

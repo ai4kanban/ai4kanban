@@ -57,7 +57,6 @@ import marketingAddTask from '../guide/marketing/add-task.md'
 import marketingBoard from '../guide/marketing/board.md'
 import marketingChannel from '../guide/marketing/channel.md'
 import marketingExtractIdeas from '../guide/marketing/extract-ideas.md'
-import marketingImplement from '../guide/marketing/implement.md'
 import marketingPolish from '../guide/marketing/polish.md'
 import marketingVerify from '../guide/marketing/verify.md'
 import marketingFix from '../guide/marketing/fix.md'
@@ -114,7 +113,6 @@ const OVERRIDES: Record<Solution, Record<string, string>> = {
     'add-task': marketingAddTask,
     board: marketingBoard,
     'extract-ideas': marketingExtractIdeas,
-    implement: marketingImplement,
     'prune-memory': marketingPruneMemory,
     writing: marketingWriting,
   },
@@ -126,7 +124,18 @@ const OVERRIDES: Record<Solution, Record<string, string>> = {
  *  reads. */
 const GONE: Record<Solution, readonly string[]> = {
   product: [],
-  marketing: ['refine', 'resolve', 'decide', 'gate', 'plan-release', 'changelog', 'qa-loop', 'qa-lightweight', 'releases'],
+  marketing: [
+    'refine',
+    'resolve',
+    'decide',
+    'gate',
+    'implement',
+    'plan-release',
+    'changelog',
+    'qa-loop',
+    'qa-lightweight',
+    'releases',
+  ],
 }
 
 /** The flows one solution has that the other has no use for. Not an override: a `channel`

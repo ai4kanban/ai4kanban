@@ -323,7 +323,7 @@ const CARDLESS = new Set(["create", "plan-release", "changelog", "setup"]);
 
 // Of those, the ones a marketing board has not (#435). Refused rather than left off the set
 // above, because which board this is is only known once it has been read.
-const GONE_ON_MARKETING = new Set(["refine", "resolve", "plan-release", "changelog"]);
+const GONE_ON_MARKETING = new Set(["refine", "resolve", "plan-release", "changelog", "implement"]);
 
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
@@ -332,9 +332,10 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   // A tab left open across the upgrade that made refine the loop still posts the old name.
   if (req && (req.action as string) === "auto-refine") req = { ...req, action: "refine" };
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
-  // The four a marketing board has no place for (#435): its cards carry no questions to
-  // sharpen or answer, and it plans no versions. The CLI refuses them too — this is so a
-  // button that could never work never reaches one.
+  // The five a marketing board has no place for (#435): its cards carry no questions to
+  // sharpen or answer, it plans no versions, and a topic's source is the user's own words
+  // rather than something an agent drafts. The CLI refuses them too — this is so a button
+  // that could never work never reaches one.
   if (GONE_ON_MARKETING.has(req.action) && (await readSolution()) === "marketing") {
     throw new Error(`a marketing board has no ${req.action}`);
   }

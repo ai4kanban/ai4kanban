@@ -97,7 +97,9 @@ describe('the roles', () => {
       ['discussion-helper', 'planner', 'writer', 'reviewer'],
     )
     assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
-    assert.equal(roleForFlow('implement')!.name, 'writer')
+    // The writer's work starts at the repurpose: a topic's source is the user's own words,
+    // so a marketing board has no `implement` for any role to run.
+    assert.equal(roleForFlow('implement'), undefined)
     assert.equal(roleForFlow('channel')!.name, 'writer')
     assert.equal(roleForFlow('gate'), undefined)
     assert.equal(roleForFlow('decide'), undefined)

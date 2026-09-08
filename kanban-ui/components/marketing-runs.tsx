@@ -2,8 +2,8 @@
 
 // ---- what the marketing editor says about its runs (#479) -------------------
 //
-// Every run over this card locks the same editor, so a lock on its own says nothing: a first
-// draft, a repurpose, a rewrite, a polish and the chat rail answering all looked alike. Two
+// Every run over this card locks the same editor, so a lock on its own says nothing: a
+// repurpose, a rewrite, a polish and the chat rail answering all looked alike. Two
 // things are said here instead — which KIND of writing is happening and which DRAFT it is
 // writing, and, when one ended without finishing, the same two facts plus a way to pick it
 // back up.
@@ -25,13 +25,11 @@ import { PULSE_DOT } from "./chrome";
 /** The draft every channel is repurposed from. The board's own file name, not copy. */
 export const SOURCE = "source";
 
-/** Which draft a run writes, when it writes one. A repurpose names its channel, a polish
- *  names the draft it works over, and the card's own build writes the source. Archive and
- *  Reject write no draft at all. */
+/** Which draft a run writes, when it writes one. A repurpose names its channel and a polish
+ *  names the draft it works over. Archive and Reject write no draft at all. */
 export function draftOf(run: SessionView): string | undefined {
   if (run.action === "polish") return run.draft;
   if (run.action === "channel") return run.channel;
-  if (run.action === "implement") return SOURCE;
   return undefined;
 }
 
@@ -52,7 +50,7 @@ export function runWords(run: SessionView, rewriting: boolean, c: MarketingCopy[
     const label = draft ? channelLabel(draft) : "";
     return rewriting ? c.rewrite(label) : c.fromSource(label);
   }
-  return run.action === "implement" ? c.draftSource : c.other;
+  return c.other;
 }
 
 /** The pill beside the title: one live run in words. The chat rail's own answer claims no

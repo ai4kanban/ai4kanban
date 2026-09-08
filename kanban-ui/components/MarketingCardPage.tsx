@@ -238,7 +238,6 @@ export function MarketingCardPage({
             error={error}
             onError={setError}
             onKick={kick}
-            onDraft={() => void runAgent({ action: "implement", id: card.id }, "implement")}
             onDiscard={() => setDiscarding(true)}
             onArchive={() => setDialog({ kind: "archive", card })}
             onReject={() => setDialog({ kind: "reject", card })}
@@ -265,7 +264,6 @@ function Draft({
   error,
   onError,
   onKick,
-  onDraft,
   onDiscard,
   onArchive,
   onReject,
@@ -280,7 +278,6 @@ function Draft({
   error: string | null;
   onError: (why: string | null) => void;
   onKick: () => void;
-  onDraft: () => void;
   onDiscard: () => void;
   onArchive: () => void;
   onReject: () => void;
@@ -953,9 +950,9 @@ function Draft({
               ? "saved"
               : "none";
 
-  // A tab with nothing to show says which of the four things it is. A channel is never
-  // offered a first draft: it is what a repurpose wrote, and an unfinished one is picked
-  // back up from the notice above rather than started again from here.
+  // A tab with nothing to show says which of the three things it is. No draft is ever
+  // offered from here: the source is the user's own words, a channel's is what a repurpose
+  // wrote, and an unfinished one is picked back up from the notice above.
   //
   // A run over this tab says so over the draft as well as under an empty one — a rewrite
   // names what it is doing to the words behind it, which are the ones being replaced.
@@ -968,20 +965,13 @@ function Draft({
     )
   ) : !actions ? (
     <Empty title={c.empty.readOnly} hint={c.empty.readOnlyHint} />
-  ) : locked ? null : tab === SOURCE ? (
-    // Source's own offer, at the foot rather than the middle (#507): the invitation to type
-    // is the placeholder up at the caret, and this is the other way — an agent drafting it —
-    // kept out of its way.
-    <Button variant="ghost" className="pointer-events-auto" disabled={moving} onClick={onDraft}>
-      {c.draft}
-    </Button>
-  ) : stopped.some((row) => row.draft === tab) ? (
+  ) : locked ? null : stopped.some((row) => row.draft === tab) ? (
     <Empty title={c.empty.stopped} hint={c.empty.stoppedHint} />
   ) : null;
 
-  // A blank source is a topic somebody just opened, so it says what to put in it. The offer
-  // at the foot moves out of its way; on a channel there is no invitation at all, because a
-  // channel draft is what a repurpose writes and the pane says so over the whole of it.
+  // A blank source is a topic somebody just opened, so it says what to put in it. On a
+  // channel there is no invitation at all, because a channel draft is what a repurpose
+  // writes and the pane says so over the whole of it.
   const inviting = tab === SOURCE && !writingHere && !locked && !!actions;
 
   // What the empty draft invites, in the library's own shim rather than a layer of our own:

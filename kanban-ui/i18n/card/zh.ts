@@ -49,7 +49,6 @@ const zh: CardCopy = {
     back: "回到看板",
     more: "更多",
     rewrite: "重写",
-    draft: "起草 source",
     startFailed: "未能启动这次运行",
     tabs: "稿件",
     title: "选题标题",
@@ -66,7 +65,6 @@ const zh: CardCopy = {
     },
     publishedCount: (published, total) => `${published} / ${total} 已发布`,
     run: {
-      draftSource: "正在起草 source",
       fromSource: (channel) => `正在从 source 写 ${channel}`,
       rewrite: (channel) => `正在重写 ${channel}`,
       polish: (draft) => `正在按意见改 ${draft}`,

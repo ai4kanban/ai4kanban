@@ -145,7 +145,7 @@ const MARKETING_ROLES: AgentRole[] = [
   {
     name: 'writer',
     gloss: 'writes the drafts, repurposes them and polishes them',
-    flows: ['implement', 'conflict', 'run', 'channel', 'polish', 'marketing-fix'],
+    flows: ['conflict', 'run', 'channel', 'polish', 'marketing-fix'],
     memory: ['memory/writing.md', 'memory/writing/'],
   },
   { ...REVIEWER, flows: [...REVIEWER.flows, 'marketing-verify'] },

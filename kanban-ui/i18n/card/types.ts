@@ -230,10 +230,6 @@ export type MarketingCopy = {
   more: string;
   /** The open channel's own rewrite, in the strip beside Publish. */
   rewrite: string;
-  /** The one action a source with nothing written offers, at the foot of the empty editor —
-   *  the other way is simply to type, which `sourcePlaceholder` is already saying. A channel
-   *  page never offers one: it is what a repurpose wrote, not a blank waiting to be filled. */
-  draft: string;
   startFailed: string;
   /** Only read out loud: what the tab strip is. */
   tabs: string;
@@ -261,7 +257,6 @@ export type MarketingCopy = {
    *  so the pill names the KIND and the DRAFT rather than saying only that something is
    *  running. The chat rail's answer belongs to no draft and points back at the rail. */
   run: {
-    draftSource: string;
     fromSource: (channel: string) => string;
     rewrite: (channel: string) => string;
     polish: (draft: string) => string;

@@ -98,7 +98,7 @@ export async function cmdChannel(opts: ChannelOptions, program = 'akb'): Promise
   const source = draftFile(found.target, SOURCE)
   if (!fs.existsSync(source)) {
     die(
-      `#${id} has no ${rel(source)} yet — there is nothing to repurpose. \`${program} card implement ${id}\` writes it.`,
+      `#${id} has no ${rel(source)} yet — there is nothing to repurpose. Write it first: the source is your own words, and nothing drafts it for you.`,
       { kind: 'no-source-draft', id },
     )
   }

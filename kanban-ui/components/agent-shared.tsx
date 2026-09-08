@@ -17,7 +17,6 @@ import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
 import { useActions, useMachine } from "@/lib/screen";
 import { parseQuestion } from "@/lib/questions";
-import { useSolution } from "./solution";
 import type { CloudEventAnswer } from "@/lib/types";
 import {
   type Card,
@@ -864,7 +863,6 @@ export function ActionDialog({
   // clears the draft once the run has actually started.
   const t = useCopy();
   const d = t.runs.dialog;
-  const marketing = useSolution() === "marketing";
   // The machine holding the board, or none — a caller serving these screens from somewhere
   // else (#322). Read here rather than in the branch below: hooks are not called under one.
   const runsHere = !!useMachine();
@@ -912,10 +910,7 @@ export function ActionDialog({
     // waits for the blocker. Questions win the slot when a card wears both — it is the
     // one the user can settle now, and the blocker box still names Schedule in words.
     const blockers = dialog.card.blocked_by;
-    // `ready` is the stage a refine takes a card to, and a marketing board has no refine
-    // (#435) — a topic goes straight from todo to implementing, so there is no rough plan
-    // to warn about and nothing for the user to acknowledge.
-    const notReady = !marketing && dialog.card.status !== "ready";
+    const notReady = dialog.card.status !== "ready";
     const asked = dialog.card.questions.length;
     const answerable = dialog.card.questions.some((q) => parseQuestion(q.text).tag === "user");
     const warned = blockers.length > 0 || notReady || asked > 0;
