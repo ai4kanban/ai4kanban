@@ -488,10 +488,11 @@ function Draft({
         onChange: (value) => typedRef.current(value),
         onRender: () => repaintRef.current(),
       })[0]!;
-      // The draft's own selection in the same ember the comment box paints its passage with,
-      // so handing the focus to the box does not change what the passage looks like. Written
-      // inline, because that is where OverType writes its own theme.
-      made.container.style.setProperty("--selection", "var(--color-nb-accent-soft)");
+      // The input overlays the preview, so its selection must let the text show through.
+      made.container.style.setProperty(
+        "--selection",
+        "color-mix(in srgb, var(--color-nb-accent) 20%, transparent)",
+      );
       setEditor(made);
     })();
     return () => {
