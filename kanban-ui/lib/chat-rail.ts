@@ -13,6 +13,7 @@ import { useCopy } from "@/i18n/use-copy";
 import type { ChatRead } from "./chat";
 import type { ChatTarget } from "./types";
 import { useMatches } from "./media";
+import type { PasteNote, PictureBox } from "./picture-box";
 import { overRail } from "./over-rail";
 
 // The chat rail's own state (#242): whether it is up, how wide it is, and the conversation
@@ -65,13 +66,9 @@ const FOLDED_MS = 8000;
  *  enough to read twice, short enough that it is gone by the time the next thought is. */
 const PASTE_NOTE_MS = 8000;
 
-/** What the last paste or drop left behind (#441, #511): the running agent can't see
- *  pictures at all, one picture could not be written to disk, or a dropped file was not a
- *  picture. The box draws each in the slot the thumbnails would have taken. */
-export type PasteNote =
-  | { kind: "blocked" }
-  | { kind: "failed"; why: string }
-  | { kind: "notImage"; name: string };
+/** What the last paste or drop left behind (#441, #511) — the shape the create sheet's own
+ *  box uses too (lib/picture-box.ts), so both draw through one component. */
+export type { PasteNote } from "./picture-box";
 
 /** What a poll saw change on the board, handed to whoever is drawing the page. */
 export interface BoardChange {
@@ -129,6 +126,9 @@ export interface ChatRail {
   clearPasteNote(): void;
   /** Where one of these pictures is served from (#441). */
   imageSrc(name: string): string;
+  /** The same pictures as one box, for the component that draws them — the create sheet's
+   *  own box is the other one (lib/picture-box.ts). */
+  pictures: PictureBox;
   /** Walk this conversation's own sent messages back into an empty box — `back` is
    *  up-arrow, and the answer is whether the key was taken (#268). */
   recall(back: boolean): boolean;
@@ -465,6 +465,20 @@ export function useChatRail({
     [cardId],
   );
 
+  // The rail's pictures as one box, so the rail and the create sheet draw theirs through
+  // one component (lib/picture-box.ts).
+  const pictures = useMemo<PictureBox>(
+    () => ({
+      pasted,
+      note: pasteNote,
+      src: imageSrc,
+      unpaste: (name) => void unpaste(name),
+      agent: shown?.agent ?? "",
+      imagesAble: shown?.imagesAble ?? [],
+    }),
+    [pasted, pasteNote, imageSrc, unpaste, shown?.agent, shown?.imagesAble],
+  );
+
   const recall = useCallback(
     (back: boolean) => {
       if (sent.length === 0) return false;
@@ -606,6 +620,7 @@ export function useChatRail({
     pasteNote,
     clearPasteNote,
     imageSrc,
+    pictures,
     recall,
     error,
     send,

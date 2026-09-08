@@ -40,6 +40,8 @@ export type {
   CommandAction,
   CommandRequest,
   ConnectionTest,
+  CreateImageAgents,
+  ImageAgent,
   DiscussRead,
   HarnessGap,
   HarnessOption,

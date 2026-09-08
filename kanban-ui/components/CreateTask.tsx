@@ -231,15 +231,19 @@ export function CreateTask({
           projectRoot={projectRoot}
           discussion={discussion}
           onClose={() => setOpen(false)}
-          onSend={(description, mode) =>
+          onSend={(description, mode, pictures) =>
             startSession(
               // Build now carries no card id (#428): the sentence is the requirement, and
               // the run opens a delivery of its own. It carries the release all the same —
               // the run writes a card from that sentence and it ships in the version on
-              // screen, like one Add task wrote (#470).
-              mode === "build"
-                ? { action: "implement", description, release: release ?? undefined }
-                : { action: "create", description, release: release ?? undefined },
+              // screen, like one Add task wrote (#470). And whatever was pasted into the box
+              // (#517): the board renames that folder after the run and hands it the paths.
+              {
+                action: mode === "build" ? "implement" : "create",
+                description,
+                release: release ?? undefined,
+                ...(pictures.shots.length ? { box: pictures.box, shots: pictures.shots } : {}),
+              },
               mode === "build" ? "Build now" : "Create task",
             )
           }

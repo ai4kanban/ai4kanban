@@ -25,7 +25,7 @@ import { deliveryFor, findDelivery } from './deliveries'
 import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
-import { skillCall } from './resolve'
+import { agentImages, skillCall } from './resolve'
 import { agentForRun } from './runner'
 import { migrateFlowRules, ruleBlock } from './rules'
 import type { AgentAction, AgentRequest } from './types'
@@ -162,7 +162,7 @@ export function buildAsk(req: AgentRequest, notes: string[] = []): string {
   // spells the command the ordinary way.
   const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
   const check = 'After editing a card, run `akb raw validate <id>` for each card you wrote and fix every reported format error before finishing. Background runs also validate automatically before advancing.'
-  const ask = [actionPrompt(req, command, notes), check, commandNote(command)].filter(Boolean).join(' ')
+  const ask = [actionPrompt(req, command, notes), pictureNote(req), check, commandNote(command)].filter(Boolean).join(' ')
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
   return boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n'))
@@ -172,6 +172,23 @@ export function buildAsk(req: AgentRequest, notes: string[] = []): string {
  *  after everything else the board writes, so nothing of the board's follows the user's. */
 export function buildPrompt(req: AgentRequest, notes: string[] = []): string {
   return [buildAsk(req, notes), ruleBlock(req, frozenRules(req))].filter(Boolean).join('\n\n')
+}
+
+/** The pictures pasted into the create sheet (#517), as files to open — that is the only
+ *  thing an agent can do with a path, and the words the user typed alongside them say what
+ *  they are for.
+ *
+ *  Only for a connector that reads a path out of the words. One with a flag per file is
+ *  handed them on its command line and told nothing here (agent/watch.ts), exactly as a
+ *  conversation hands them over (agent/chat.ts). */
+function pictureNote(req: AgentRequest): string {
+  const files = req.pictures ?? []
+  if (!files.length || agentImages(agentForRun(req))?.as !== 'message') return ''
+  const one = files.length === 1
+  return (
+    `${one ? 'A picture came' : `${files.length} pictures came`} with this. ` +
+    `Read ${one ? 'it' : 'them'} first: ${files.join(', ')}.`
+  )
 }
 
 /** The rules the delivery in flight on this card froze when it started, or nothing when

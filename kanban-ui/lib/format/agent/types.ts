@@ -171,6 +171,15 @@ export interface AgentRequest {
    *  (#470). plan-release: the version being planned, and changelog: the version being
    *  written up — the whole of what either run is about, since neither names a card. */
   release?: string
+  /** create, and implement with no `id`: the pictures pasted into the create sheet (#517).
+   *  `box` is the folder they were written to as they were pasted and `shots` their names in
+   *  the order they went into the box. `startRun` renames that folder after the run and
+   *  turns the pair into `pictures`; nothing else reads them. */
+  box?: string
+  shots?: string[]
+  /** The pictures this run was handed, as paths on this machine — worked out from `box` and
+   *  `shots` when the run is written down, so a browser never names one. */
+  pictures?: string[]
   andImplement?: boolean // resolve: keep going and implement once the questions settle
   /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
@@ -298,6 +307,10 @@ export interface RunRecord {
   /** The card's saved stage the instant before this run overwrote it with
    *  `implementing`, so the end of the run puts back what was there. */
   priorStatus?: string
+  /** The pictures this run was handed (#517), as paths in its own folder beside the log.
+   *  Kept so a connector taking a flag per file is handed them at spawn, and so a restart
+   *  can name them again. */
+  pictures?: string[]
   /** A stop has been asked for. Written so the supervisor's own end, whichever path
    *  witnesses it, records `stopped` rather than a failure. */
   stopping?: boolean
@@ -825,6 +838,24 @@ export interface ChatAgent {
    *  half of a turned-away paste. Declared, not filtered by what is installed: filtering
    *  would leave one machine reading "These can:" with nothing after it. */
   imagesAble: string[]
+}
+
+/** What one agent can do with a picture (#517) — read off the connector it runs, so the
+ *  create sheet turns a paste away against the run the mode would start rather than against
+ *  the chat's. The three fields a refusal is written from, in the chat rail's own words. */
+export interface ImageAgent {
+  /** The connector's label, for "X can't see images." */
+  agent: string
+  seesImages: boolean
+  /** The labels of every agent that can, in the order the picker lists them. */
+  imagesAble: string[]
+}
+
+/** What the create sheet's two run modes can do with a picture: Add task runs the planner,
+ *  **Build now** the builder. Discuss is the chat's own and is not here. */
+export interface CreateImageAgents {
+  card: ImageAgent
+  build: ImageAgent
 }
 
 /** A conversation as a reader is shown it: the conversation itself when there is one, plus

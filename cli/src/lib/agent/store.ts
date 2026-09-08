@@ -135,6 +135,8 @@ export function readStore(): Store {
         && [entry.formatRepair.cardIds, entry.formatRepair.changedIds, entry.formatRepair.existingIds].every((ids) => Array.isArray(ids) && ids.every(Number.isInteger))
         ? entry.formatRepair : undefined,
       priorStatus: typeof entry.priorStatus === 'string' ? entry.priorStatus : undefined,
+      // The pictures the create sheet handed this run (#517), as paths in its own folder.
+      pictures: readPictures(entry.pictures),
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
       channel: typeof entry.channel === 'string' && entry.channel ? entry.channel : undefined,
@@ -305,6 +307,14 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
 
 const text = (value: unknown): string | undefined =>
   typeof value === 'string' && value ? value : undefined
+
+// The pictures a run was handed (#517). Their folder can go before the record does — the
+// prune takes it with the log — so a name that no longer answers is simply not read back.
+function readPictures(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const files = raw.filter((p): p is string => typeof p === 'string' && p.length > 0)
+  return files.length ? files : undefined
+}
 
 function readBlocker(raw: unknown): RunRecord['blocker'] {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined

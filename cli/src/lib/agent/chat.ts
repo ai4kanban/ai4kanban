@@ -32,6 +32,7 @@ import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { planFile } from '../plans'
 import { ensureSkillInstalled } from '../skill/install'
 import { languageNote } from './language'
+import { pictureName, savePicture } from './pictures'
 import {
   chatAgent,
   chatRuntimes,
@@ -198,7 +199,7 @@ function usageOf(value: unknown): TokenUsage | undefined {
 // own folder doesn't hold is not this conversation's picture, whatever the transcript says.
 function imagesOf(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined
-  const names = value.filter((n): n is string => typeof n === 'string' && imageName(n))
+  const names = value.filter((n): n is string => typeof n === 'string' && pictureName(n))
   return names.length ? names : undefined
 }
 
@@ -239,49 +240,22 @@ export function clearChat(cardId: ChatTarget): boolean {
 
 const imagesDir = (cardId: ChatTarget): string => path.join(CHATS_DIR, `${keyOf(cardId)}.images`)
 
-/** The file names this folder is allowed to hold: what `addChatImage` writes and nothing
- *  else, so neither a transcript nor a caller can name a file outside it. */
-const imageName = (name: string): boolean => /^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/.test(name)
-
-// What a picture is filed under, by what the browser said it was. Anything else is refused
-// rather than saved under a made-up name: an agent opens these by extension.
-const IMAGE_TYPES: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/gif': 'gif',
-  'image/webp': 'webp',
-  'image/avif': 'avif',
-  'image/bmp': 'bmp',
-  'image/svg+xml': 'svg',
-}
-
 /** Where one of this conversation's pictures is on disk, or null when it is not there any
  *  more — the file was deleted by hand, or the name was never one of ours. */
 export function chatImageFile(cardId: ChatTarget, name: string): string | null {
-  if (!imageName(name)) return null
+  if (!pictureName(name)) return null
   const file = path.join(imagesDir(cardId), name)
   return fs.existsSync(file) ? file : null
 }
 
 /** Save one pasted picture beside this conversation and answer with the name it is filed
- *  under. Never throws: a picture that couldn't be written is one thing to say in the box,
- *  and the paste is then turned away rather than the window failing. */
+ *  under. */
 export function addChatImage(
   cardId: ChatTarget,
   data: Uint8Array,
   type: string,
 ): { name: string } | { error: string } {
-  const ext = IMAGE_TYPES[type.toLowerCase()]
-  if (!ext) return { error: `${type || 'that'} is not a picture this board can send.` }
-  if (!data.length) return { error: 'that picture arrived empty.' }
-  const name = `${randomUUID()}.${ext}`
-  try {
-    fs.mkdirSync(imagesDir(cardId), { recursive: true })
-    fs.writeFileSync(path.join(imagesDir(cardId), name), data)
-  } catch (e) {
-    return { error: `that picture could not be saved: ${e instanceof Error ? e.message : String(e)}` }
-  }
-  return { name }
+  return savePicture(imagesDir(cardId), data, type)
 }
 
 /** Take one picture back out of the box before it is sent. Its file goes with it — nothing

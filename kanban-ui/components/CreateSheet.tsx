@@ -23,6 +23,7 @@ import { useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
+import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
 import type { DiscussionTarget } from "@/lib/types";
 import { Button } from "./button";
 import { Transcript, Pasted, Pick } from "./Chat";
@@ -63,8 +64,15 @@ interface Props {
   /** Start the run, and say whether it started. Never called in Discuss — that mode sends to
    *  the conversation. A refusal — uncommitted changes, another build already working in this
    *  checkout, a workspace out of reach — leaves the sheet up with the sentence still in the
-   *  box, so it can be sent again once the reason is fixed. */
-  onSend: (description: string, mode: CreateMode) => Promise<{ ok: boolean; error?: string }>;
+   *  box, so it can be sent again once the reason is fixed.
+   *
+   *  `pictures` is what was pasted into the box (#517): the folder they were written to and
+   *  their names in the order they went in. The run takes that folder as its own. */
+  onSend: (
+    description: string,
+    mode: CreateMode,
+    pictures: { box: string; shots: string[] },
+  ) => Promise<{ ok: boolean; error?: string }>;
   /** Start planning: close and start the run that writes the plan's cards. */
   onPlan: () => void;
   /** Build now off the plan (#481): close and start the run that writes one card from it and
@@ -103,6 +111,10 @@ function Sheet({
   // Discuss is what a vague idea wants, so it is what the screen opens on. Build now never
   // is: a build nothing plans or reviews is the deliberate one.
   const [mode, setMode] = useState<CreateMode>("discuss");
+  // The pictures Add task and Build now were pasted into (#517). One box across both modes,
+  // so switching what sending does never loses what was pasted; Discuss keeps its own with
+  // the conversation.
+  const pictures = useCreatePictures(mode);
   // Whether the Build now guard is open. Esc answers it before it answers the screen.
   const [guard, setGuard] = useState(false);
   const [sending, setSending] = useState(false);
@@ -180,13 +192,23 @@ function Sheet({
       plan.refresh();
       return;
     }
+    if (pictures.refused) return;
     setSending(true);
-    const res = await onSend(words, picked);
+    // The box is the run's from here, so the sheet closing behind a started run leaves its
+    // pictures where the run can read them.
+    pictures.handOver();
+    const res = await onSend(words, picked, { box: pictures.box, shots: pictures.pasted });
     setSending(false);
     // Only a run that actually started takes the sentence with it. A refusal keeps the
-    // sheet and the words exactly as they were, and says why under the box.
-    if (res.ok) clearDraft();
-    else setError(res.error ?? startFailed);
+    // sheet and the words exactly as they were — pictures included — and says why under
+    // the box.
+    if (res.ok) {
+      clearDraft();
+      pictures.sent();
+    } else {
+      pictures.takeBack();
+      setError(res.error ?? startFailed);
+    }
   };
 
   // Send in Build now opens the guard rather than starting anything. Switching to another
@@ -194,6 +216,8 @@ function Sheet({
   const pressSend = () => {
     if (waiting) return;
     if (!text.trim() && pasted === 0) return;
+    // The mode picked cannot see what is in the box; the box says so and nothing starts.
+    if (mode !== "discuss" && pictures.refused) return;
     if (mode === "build") setGuard(true);
     else void send(mode);
   };
@@ -213,6 +237,7 @@ function Sheet({
       waiting={waiting}
       sending={sending}
       rail={discussing ? rail : null}
+      pictures={pictures}
       release={release}
       text={text}
       onText={(value) => {
@@ -221,6 +246,7 @@ function Sheet({
         // The hand has moved on, so the last paste stops explaining itself — the rail's own
         // box does this from the keystroke too (lib/chat-rail.ts).
         rail.clearPasteNote();
+        pictures.clearNote();
       }}
       talking={talking}
       onSend={pressSend}
@@ -399,6 +425,7 @@ function Composer({
   waiting,
   sending,
   rail,
+  pictures,
   release,
   text,
   onText,
@@ -421,6 +448,9 @@ function Composer({
   sending: boolean;
   /** The conversation, while Discuss is the mode and can answer. Null in the other modes. */
   rail: ChatRail | null;
+  /** The pictures Add task and Build now were pasted into (#517) — the other two modes'
+   *  own box, which Discuss never reaches. */
+  pictures: CreatePictures;
   release: string | null;
   text: string;
   onText(value: string): void;
@@ -459,16 +489,31 @@ function Composer({
         value={text}
         onChange={onText}
         onSend={onSend}
-        // Pictures on their own are a message in Discuss (#441); a run still wants words.
-        canSend={(!!text.trim() || pasted > 0) && !answering && !waiting && !sending}
+        // Pictures on their own are a message in Discuss (#441); a run still wants words
+        // (#517), and a run that cannot see what is in the box does not start at all.
+        canSend={
+          (!!text.trim() || pasted > 0) && !answering && !waiting && !sending && !pictures.refused
+        }
         autoFocus
         // Discuss is this screen's chat, so its box takes a pasted picture the way the
-        // rail's does. In the other two modes there is no conversation to paste into: the
-        // sentence starts a run, and handing that run a file is #252's.
-        onPasteImages={rail ? (files) => void rail.paste(files) : undefined}
+        // rail's does. Add task and Build now take one into a box of their own (#517), which
+        // becomes the folder the run they start reads it from.
+        onPasteImages={
+          rail
+            ? (files) => void rail.paste(files)
+            : pictures.offered
+              ? (files) => void pictures.paste(files)
+              : undefined
+        }
         // Dropping one in is the same path, so it is on wherever the paste is (#511).
-        drop={rail ? { onFiles: (files) => void rail.dropFiles(files), hint: chat.dropRelease } : undefined}
-        head={rail ? <Pasted rail={rail} /> : undefined}
+        drop={
+          rail
+            ? { onFiles: (files) => void rail.dropFiles(files), hint: chat.dropRelease }
+            : pictures.offered
+              ? { onFiles: (files) => void pictures.dropFiles(files), hint: chat.dropRelease }
+              : undefined
+        }
+        head={<Pasted box={rail ? rail.pictures : pictures} />}
         placeholder={talking ? c.answer : c.placeholder}
         label={talking ? c.answer : c.placeholder}
         sendLabel={c.send}

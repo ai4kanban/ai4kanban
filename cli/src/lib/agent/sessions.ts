@@ -589,6 +589,8 @@ export function openRun(
     status: 'running',
     startedAt: Date.now(),
     input: runInput(req),
+    // What was pasted into the sheet that started it (#517), now in this run's own folder.
+    pictures: req.pictures?.length ? req.pictures : undefined,
     harness: plan.harness,
     agent: plan.agent,
     // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs

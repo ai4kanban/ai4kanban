@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto'
 
 import { dropRunCard, runCanStart, takeRunCard } from '../board'
 import { spawnWatcher } from './launch'
+import { claimRunPictures, returnRunPictures } from './pictures'
 import { buildRun } from './prompts'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import type { AgentRequest, RunRecord } from './types'
@@ -38,10 +39,30 @@ export function startCardlessRun(req: AgentRequest): { run: RunRecord; spawned: 
   return can.ok ? open(req, randomUUID()) : { error: can.error }
 }
 
+/** What this run is written down from (#517): the pictures pasted into the create sheet
+ *  become the run's own — the box is renamed after it, so the log prune takes them with the
+ *  log — and `pictures` is always what was claimed out of that box. A request that names a
+ *  file itself names a path on this machine, and these come from a browser, so it is dropped
+ *  rather than followed. */
+export function runAsk(req: AgentRequest, sessionId: string): AgentRequest {
+  const pictures = claimRunPictures(req.box, sessionId, req.shots)
+  return {
+    ...req,
+    box: undefined,
+    shots: undefined,
+    pictures: pictures.length ? pictures : undefined,
+  }
+}
+
 function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: boolean } | { error: string } {
-  const { prompt, notes } = buildRun(req)
-  const opened = openRun(req, prompt, notes, sessionId)
-  if ('error' in opened) return { error: opened.error }
+  // A run refused below gives its pictures back — the sheet is still up with its words.
+  const ask = runAsk(req, sessionId)
+  const { prompt, notes } = buildRun(ask)
+  const opened = openRun(ask, prompt, notes, sessionId)
+  if ('error' in opened) {
+    returnRunPictures(sessionId, req.box)
+    return { error: opened.error }
+  }
   const { run } = opened
   const pid = spawnWatcher(run.sessionId)
   markSpawned(run.sessionId, pid)

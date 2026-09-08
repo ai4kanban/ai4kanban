@@ -9,9 +9,10 @@
 // belong to the flow that spawned them, and so to the same agent.
 
 import { flowByAction } from './flows'
+import { agentImageView } from './resolve'
 import { roleForFlow } from './roles'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
-import type { AgentAction } from './types'
+import type { AgentAction, CreateImageAgents } from './types'
 
 /** What a run has to say about itself for its agent to be worked out. The same three fields
  *  `agent/rules.ts` reads to hand a run its rule, and read the same way. */
@@ -42,4 +43,15 @@ export function agentForRun(ask: RunAsk = {}): string | undefined {
 function flowOf(ask: RunAsk, action: AgentAction): string | undefined {
   if (ask.refineRound !== undefined && REFINE_ACTIONS.has(action)) return 'refine'
   return flowByAction(action)?.command
+}
+
+/** What each of the create sheet's two run modes can do with a picture (#517): Add task runs
+ *  the planner, **Build now** the builder. Read here rather than in the sheet, so the box
+ *  turns a paste away against the run that mode would start — never against the chat's
+ *  agent, which answers Discuss and nothing else. */
+export function createImageAgents(): CreateImageAgents {
+  return {
+    card: agentImageView(agentForRun({ action: 'create' })),
+    build: agentImageView(agentForRun({ action: 'implement' })),
+  }
 }

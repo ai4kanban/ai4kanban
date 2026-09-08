@@ -54,6 +54,7 @@ import type {
   ChatRuntime,
   HarnessSetting,
   HarnessRun,
+  ImageAgent,
   Provider,
   RuntimeView,
 } from './types'
@@ -633,6 +634,24 @@ export function chatRuntimes(): ChatRuntime[] {
  *  one that can't see a picture at all, which is the answer a paste is turned away on. */
 export function harnessImages(pin?: string): ImageInput | undefined {
   return resolveHarness({ agent: DISCUSSION_ROLE, pin }).harness.images
+}
+
+/** How the harness ONE AGENT runs takes a picture on disk (#517) — the planner's for an Add
+ *  task, the builder's for a **Build now**. Undefined for one that can't see a picture at
+ *  all, which is what the create sheet turns a paste away on. */
+export function agentImages(agent?: string): ImageInput | undefined {
+  return resolveHarness({ agent }).harness.images
+}
+
+/** What one agent's connector can do with a picture, in the words a refusal is written from
+ *  — the same three the chat rail reads off `chatAgent`, asked of a run's own agent. */
+export function agentImageView(agent?: string): ImageAgent {
+  const { harness } = resolveHarness({ agent })
+  return {
+    agent: harness.label,
+    seesImages: harness.images !== undefined,
+    imagesAble: HARNESSES.filter((h) => h.images).map((h) => h.label),
+  }
 }
 
 /** The model one runtime runs — what a conversation on it says it is running. */

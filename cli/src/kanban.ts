@@ -133,6 +133,14 @@ export {
 } from './lib/agent/chat'
 export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
 
+// The pictures pasted into the create sheet (#517). They are written as they are pasted,
+// into a box the sheet holds; the run that starts takes the box as its own folder beside its
+// log, so the log prune takes them with it. Nothing here names a path — a box and a file
+// name are all a browser ever sends. `createImageAgents` is what the sheet turns a paste
+// away by: Add task is checked against the planner's connector and Build now the builder's.
+export { addRunPicture, dropRunPicture, emptyRunBox, runPictureFile } from './lib/agent/pictures'
+export { createImageAgents } from './lib/agent/runner'
+
 // Discuss (#427): the board's own conversation, talked into one plan file. The screen reads
 // `readDiscuss` for the plan it is writing, the ask standing under the last message and the
 // run turning that plan into cards; the three writers are the answer pressed, the handoff,

@@ -91,6 +91,13 @@ The header carries seven things:
   is left where it is. An unsent draft is kept for the next time you open it, and a start
   that is refused keeps the sentence there to send again. A board with no agent that can
   hold a conversation is not offered Discuss at all, and opens on Add task.
+  **Add task and Build now take a pasted or dropped picture** the way Discuss does — a
+  screenshot of the bug beats describing it. The two share one set, so switching between them
+  keeps what was pasted, and Discuss's belong to the conversation. Words are still what sends:
+  pictures on their own leave the button down. Each is saved as it goes in, the run reads them
+  as files beside its own log, and closing the sheet without sending leaves none behind. If the
+  agent that mode runs — the planner for Add task, the builder for Build now — can't see
+  pictures, the box says so and names the ones that can.
 - **Runs** — every agent session, live or finished. Open one to read its log. A finished run
   can be continued with a follow-up prompt; that starts a new run. A job with no card shows
   the sentence it was started with where a `#id` would be — a **Build now** does only until

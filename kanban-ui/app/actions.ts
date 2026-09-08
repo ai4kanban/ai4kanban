@@ -59,6 +59,12 @@ import {
   sendChat,
   stopChat,
 } from "@/lib/chat";
+import {
+  addRunPicture,
+  createImageAgents,
+  dropRunPicture,
+  emptyRunBox,
+} from "@/lib/create-pictures";
 import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, planToPlanFrom, readDiscuss } from "@/lib/discuss";
 import {
   archiveDiscussion,
@@ -203,6 +209,7 @@ import type {
   CommandState,
   CommentBatch,
   ConnectionTest,
+  CreateImageAgents,
   DiscussionRow,
   DiscussionTarget,
   DiscussRead,
@@ -555,6 +562,45 @@ export async function dropChatImageAction(cardId: ChatTarget, name: string): Pro
   if (target === undefined || typeof name !== "string") return { ok: false };
   await dropChatImage(target, name);
   return { ok: true };
+}
+
+// ---- the pictures pasted into the create sheet (#517) -----------------------
+//
+// The same shape as a conversation's, one box along: they are written as they are pasted,
+// and the run that starts takes the box as its own folder beside its log. A `box` is a uuid
+// the sheet minted when it opened — the command checks its shape, so nothing a browser sends
+// can name a folder outside the board's own.
+
+/** Save one picture pasted into Add task or Build now. */
+export async function addRunPictureAction(
+  box: string,
+  form: FormData,
+): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
+  const file = form.get("image");
+  if (typeof box !== "string" || !(file instanceof Blob)) {
+    return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  }
+  return addRunPicture(box, new Uint8Array(await file.arrayBuffer()), file.type);
+}
+
+/** Take one picture back out of the box before it is sent. */
+export async function dropRunPictureAction(box: string, name: string): Promise<{ ok: boolean }> {
+  if (typeof box !== "string" || typeof name !== "string") return { ok: false };
+  await dropRunPicture(box, name);
+  return { ok: true };
+}
+
+/** The sheet was closed without sending: nothing it was pasted into is left behind. */
+export async function emptyRunBoxAction(box: string): Promise<{ ok: boolean }> {
+  if (typeof box !== "string") return { ok: false };
+  await emptyRunBox(box);
+  return { ok: true };
+}
+
+/** What each of the sheet's two run modes can do with a picture — what a paste in Add task
+ *  or Build now is turned away by, before any file is written. */
+export async function createImageAgentsAction(): Promise<CreateImageAgents> {
+  return createImageAgents();
 }
 
 /** End the reply being written, keeping what arrived. Quiet when there is none: a reply

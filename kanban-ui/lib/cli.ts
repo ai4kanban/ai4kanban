@@ -17,6 +17,7 @@ import type {
   DiscussionTarget,
   DiscussRead,
   ConnectionTest,
+  CreateImageAgents,
   DeliveryRecord,
   HarnessSetting,
   LoggedOutAgent,
@@ -368,6 +369,17 @@ export interface BoardRules {
   ): { name: string } | { error: string };
   dropChatImage?(cardId: ChatTarget, name: string): void;
   chatImageFile?(cardId: ChatTarget, name: string): string | null;
+  /** The pictures pasted into the create sheet (#517), kept the same way but in a box of
+   *  their own: the run that starts takes the box as its folder beside its log. Optional —
+   *  rules from before them take no paste in Add task or Build now. */
+  addRunPicture?(box: string, data: Uint8Array, type: string): { name: string } | { error: string };
+  dropRunPicture?(box: string, name: string): void;
+  runPictureFile?(box: string, name: string): string | null;
+  /** Everything in the box, for a sheet closed without sending. */
+  emptyRunBox?(box: string): void;
+  /** What each of the sheet's two run modes can do with a picture — the planner's answer for
+   *  Add task, the builder's for Build now. */
+  createImageAgents?(): CreateImageAgents;
   /** What one conversation runs on (#272, #467) — one runtime, kept with the transcript and
    *  nowhere near the board's settings. Optional: rules from before it draw no picker, and
    *  every conversation runs the discussion helper's row as it always did. */

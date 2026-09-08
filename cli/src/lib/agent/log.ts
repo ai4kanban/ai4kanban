@@ -38,10 +38,10 @@ export const KEEP_LOGS = 100
 /** Keep the newest KEEP_LOGS runs on disk and delete the rest; called as each run closes.
  *
  *  Counted in RUNS, not files. A run leaves a `.watch.log` beside its `.log`, and sometimes
- *  a `.plan.json` or `.asks.json` — under a file budget those sidecars eat the history
- *  (halving it, at least), and a run could lose its log while its sidecars stayed. The
- *  record drops a finished run whose log is gone, so what this keeps is what the run list
- *  can still show. */
+ *  a `.plan.json`, an `.asks.json` or an `.images` folder of what was pasted into the sheet
+ *  that started it (#517) — under a file budget those sidecars eat the history (halving it,
+ *  at least), and a run could lose its log while its sidecars stayed. The record drops a
+ *  finished run whose log is gone, so what this keeps is what the run list can still show. */
 export function pruneLogs(): void {
   try {
     // A run's own log dates it; its sidecars go whenever it does.
@@ -50,19 +50,37 @@ export function pruneLogs(): void {
       .filter((f) => f.endsWith('.log') && !f.endsWith('.watch.log'))
       .map((f) => ({ id: f.slice(0, -'.log'.length), t: fs.statSync(path.join(SESSIONS_DIR, f)).mtimeMs }))
       .sort((a, b) => b.t - a.t)
+    const kept = new Set(runs.slice(0, KEEP_LOGS).map((r) => r.id))
     const drop = new Set(runs.slice(KEEP_LOGS).map((r) => r.id))
-    if (drop.size === 0) return
     for (const f of fs.readdirSync(SESSIONS_DIR)) {
       const dot = f.indexOf('.')
-      if (!drop.has(dot === -1 ? f : f.slice(0, dot))) continue
+      const id = dot === -1 ? f : f.slice(0, dot)
+      // A pictures folder whose run never started — a sheet closed while the window was
+      // gone, so nothing was there to empty it. It is dropped once it is old enough that no
+      // box could still be holding it open.
+      const stray = f.endsWith('.images') && !kept.has(id) && !drop.has(id) && stale(f)
+      if (!stray && !drop.has(id)) continue
       try {
-        fs.unlinkSync(path.join(SESSIONS_DIR, f))
+        // `.images` is a folder; everything else a run leaves is one file.
+        fs.rmSync(path.join(SESSIONS_DIR, f), { recursive: true, force: true })
       } catch {
         // ignore
       }
     }
   } catch {
     // no folder yet, nothing to prune
+  }
+}
+
+/** How long a box of pictures with no run behind it is left alone — comfortably longer than
+ *  a create sheet stays open, so nothing is taken out from under one being typed into. */
+const STRAY_MS = 24 * 60 * 60 * 1000
+
+function stale(name: string): boolean {
+  try {
+    return Date.now() - fs.statSync(path.join(SESSIONS_DIR, name)).mtimeMs > STRAY_MS
+  } catch {
+    return false
   }
 }
 

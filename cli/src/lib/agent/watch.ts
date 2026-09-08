@@ -187,7 +187,12 @@ export async function watchRun(sessionId: string, resume = startResume, startVer
   // the end of every run forever, which is how a real warning gets read as furniture.
   const wasBroken = new Set(boardComplaints())
 
-  const [cmd, ...args] = active.argv
+  // Where the pictures the sheet was pasted into go is the connector's own answer
+  // (agent/harnesses/types.ts): one that reads a path out of the words has them in the
+  // prompt already (agent/prompts.ts), and one with a flag per file is handed them here.
+  const takes = active.images
+  const shots = takes?.as === 'args' ? (record.pictures ?? []).flatMap((file) => takes.args(file)) : []
+  const [cmd, ...args] = [...active.argv, ...shots]
   const workDir = active.cwd ?? REPO_ROOT
   // How long this run may say nothing. Read once, here, like every other setting a run
   // uses: a limit changed mid-run belongs to the next run.
@@ -759,6 +764,7 @@ function requestOf(record: RunRecord): AgentRequest {
     refineRound: record.refineRound,
     refineEffort: record.refineEffort,
     flowId: record.flowId,
+    pictures: record.pictures,
   }
 }
 

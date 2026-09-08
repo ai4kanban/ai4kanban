@@ -45,6 +45,7 @@ import type { ChatCopy } from "@/i18n/chat/types";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
+import type { PictureBox } from "@/lib/picture-box";
 import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
@@ -1042,7 +1043,7 @@ function Composer({
         onPasteImages={(files) => void rail.paste(files)}
         // And a picture dragged in from Finder, on the same path (#511).
         drop={{ onFiles: (files) => void rail.dropFiles(files), hint: c.dropRelease }}
-        head={<Pasted rail={rail} />}
+        head={<Pasted box={rail.pictures} />}
         placeholder={ask}
         label={c.message}
         sendLabel={c.send}
@@ -1078,12 +1079,12 @@ function Composer({
  *
  *  The ✕ is always there rather than on hover: it is the only way back out of a paste.
  *
- *  Both boxes on a conversation draw it, so a paste looks the same in the rail and on the
- *  Discuss screen (components/CreateSheet.tsx). */
-export function Pasted({ rail }: { rail: ChatRail }) {
+ *  Every box that takes a picture draws it: the rail, the Discuss screen, and Add task and
+ *  Build now with their own (#517) — so a paste looks the same wherever it lands.  */
+export function Pasted({ box }: { box: PictureBox }) {
   const c = useCopy().chat;
-  const note = rail.pasteNote;
-  if (!note && rail.pasted.length === 0) return null;
+  const note = box.note;
+  if (!note && box.pasted.length === 0) return null;
   return (
     <>
       {note && (
@@ -1093,8 +1094,8 @@ export function Pasted({ rail }: { rail: ChatRail }) {
         >
           {note.kind === "blocked" ? (
             <>
-              <p className="font-[700]">{c.noPictures(rail.read?.agent ?? "")}</p>
-              <p className="mt-0.5">{c.picturesAble(rail.read?.imagesAble ?? [])}</p>
+              <p className="font-[700]">{c.noPictures(box.agent)}</p>
+              <p className="mt-0.5">{c.picturesAble(box.imagesAble)}</p>
             </>
           ) : note.kind === "notImage" ? (
             <p>{c.notPicture(note.name)}</p>
@@ -1103,14 +1104,14 @@ export function Pasted({ rail }: { rail: ChatRail }) {
           )}
         </div>
       )}
-      {rail.pasted.length > 0 && (
+      {box.pasted.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 px-1 pt-1.5">
-          {rail.pasted.map((name) => (
+          {box.pasted.map((name) => (
             <span key={name} className="relative block">
               {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
-                  served by app/chat-image/. */}
+                  served by app/chat-image/ or app/create-image/. */}
               <img
-                src={rail.imageSrc(name)}
+                src={box.src(name)}
                 alt={c.picture}
                 className="block size-[44px] rounded-[8px] object-cover shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]"
               />
@@ -1118,7 +1119,7 @@ export function Pasted({ rail }: { rail: ChatRail }) {
                 type="button"
                 title={c.unpaste}
                 aria-label={c.unpaste}
-                onClick={() => void rail.unpaste(name)}
+                onClick={() => box.unpaste(name)}
                 className="absolute -right-[5px] -top-[5px] grid size-[16px] cursor-pointer place-items-center rounded-full border-[1.5px] border-nb-paper bg-nb-ink text-nb-cream"
               >
                 <FiX size={9} aria-hidden />
