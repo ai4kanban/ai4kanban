@@ -50,7 +50,6 @@ import setup from '../guide/setup.md'
 import specAgent from '../guide/spec-agent.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
-import validateOnReddit from '../guide/validate-on-reddit.md'
 import writeAgent from '../guide/write-agent.md'
 import writing from '../guide/writing.md'
 
@@ -106,7 +105,6 @@ export const GUIDES: Guide[] = [
   { name: 'setup', when: "setup's own steps, while the checklist is still there", text: setup },
   { name: 'update', when: 'pull a newer version into a project that already has one', text: update },
   { name: 'local-ui', when: 'run the board from buttons instead of the terminal', text: localUi },
-  { name: 'validate-on-reddit', when: 'check an idea against what people actually say', text: validateOnReddit },
 ]
 
 /** The flows one solution says differently. Everything not named here is the text above. */
