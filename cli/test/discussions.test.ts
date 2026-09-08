@@ -16,6 +16,7 @@ import {
   noteChatMessage,
   readChat,
   setChatPlan,
+  setChatPlanRun,
 } from '../src/lib/agent/chat.ts'
 import {
   archiveDiscussion,
@@ -49,6 +50,9 @@ const plan = (name: string): string => {
   fs.writeFileSync(path.join(plans, name), '# a plan\n')
   return `plans/${name}`
 }
+
+const planIsThere = (rel: string): boolean =>
+  fs.existsSync(path.join(root, 'docs', 'kanban', rel))
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-discussions-'))
@@ -148,9 +152,33 @@ describe('archiving one by hand', () => {
   it('takes the row away and keeps the transcript', () => {
     const target = startDiscussion()
     spoke(target, 'done with this one')
-    assert.deepEqual(archiveDiscussion(target), { ok: true })
+    assert.deepEqual(archiveDiscussion(target), { ok: true, plans: [] })
     assert.deepEqual(listDiscussions(), [])
     assert.equal(readChat(target)?.messages[0]?.text, 'done with this one')
+  })
+
+  it('drops the plans nothing came of', () => {
+    const target = startDiscussion()
+    spoke(target, 'an idea that went nowhere')
+    const first = plan('9-first.md')
+    const second = plan('10-second.md')
+    setChatPlan(target, first, 'The first')
+    setChatPlan(target, second, 'The second')
+
+    assert.deepEqual(archiveDiscussion(target), { ok: true, plans: [first, second] })
+    assert.equal(planIsThere(first), false)
+    assert.equal(planIsThere(second), false)
+  })
+
+  it('keeps a plan a run was started from — its cards name the file', () => {
+    const target = startDiscussion()
+    spoke(target, 'this one became cards')
+    const built = plan('9-built.md')
+    setChatPlan(target, built, 'Built')
+    setChatPlanRun(target, 'session-1', 'build')
+
+    assert.deepEqual(archiveDiscussion(target), { ok: true, plans: [] })
+    assert.equal(planIsThere(built), true)
   })
 
   it('refuses a discussion this board never held', () => {

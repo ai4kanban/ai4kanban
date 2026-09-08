@@ -67,7 +67,8 @@ function discussionArchive(opts: DiscussionOptions): MoveResult {
   const done = archiveDiscussion(target)
   if ('error' in done) die(done.error, { kind: 'card-not-found' })
   say('taken out of the list — its transcript is still on this machine.')
-  return { discussion: target, archived: true }
+  for (const gone of done.plans) say(`  dropped ${gone}`)
+  return { discussion: target, archived: true, plans: done.plans }
 }
 
 // Which discussion a move is about: the one named, else the one this turn is answering.

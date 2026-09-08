@@ -13,7 +13,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 
 import { CHATS_DIR } from '../paths'
-import { planPathInText } from '../plans'
+import { dropPlan, planPathInText } from '../plans'
 import {
   answeringOn,
   chatFile,
@@ -79,12 +79,23 @@ export function titleDiscussion(target: DiscussionTarget, title: string): void {
   setChatTitle(target, title)
 }
 
-/** Take one discussion out of the list. Its transcript stays on disk — `akb chat --clear` is
- *  still the only thing that forgets a conversation. */
-export function archiveDiscussion(target: DiscussionTarget): { ok: true } | { error: string } {
-  if (!readChat(target)) return { error: `no discussion called "${target}" on this board.` }
+/** Take one discussion out of the list, and its plans with it: a discussion put away is the
+ *  end of the subject, and a plan nothing came of is a file nobody would ever open again —
+ *  the board lists plans nowhere, so what is left in `plans/` is unreachable by hand.
+ *
+ *  A plan handed to a run stays. The cards that run wrote name it in `## Source`, and that
+ *  path is the only way back to the file.
+ *
+ *  Its transcript stays on disk — `akb chat --clear` is still the only thing that forgets a
+ *  conversation. */
+export function archiveDiscussion(
+  target: DiscussionTarget,
+): { ok: true; plans: string[] } | { error: string } {
+  const chat = readChat(target)
+  if (!chat) return { error: `no discussion called "${target}" on this board.` }
+  const dropped = (chat.plans ?? []).filter((p) => !p.run && dropPlan(p.path)).map((p) => p.path)
   setChatArchived(target, true)
-  return { ok: true }
+  return { ok: true, plans: dropped }
 }
 
 // ---- the files -------------------------------------------------------------

@@ -72,6 +72,21 @@ export function readPlan(rel: string): PlanFile | null {
   return { path: found, text, lines: text.trim() ? text.trimEnd().split('\n').length : 0 }
 }
 
+/** Drop one plan the board is done with, answering whether a file went. The path is followed
+ *  through a rename the same way reading one is, and a file no longer there is nothing to do. */
+export function dropPlan(rel: string): boolean {
+  const file = planFile(rel)
+  if (!file) return false
+  const target = fs.existsSync(file) ? file : planFile(renamedPlan(rel) ?? '')
+  if (!target) return false
+  try {
+    fs.rmSync(target)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** The file a missing plan was renamed to — the newest `plans/<id>-*.md` with its id. */
 function renamedPlan(rel: string): string | null {
   const id = /^(\d+)-/.exec(rel.replace(/^plans\//, ''))?.[1]

@@ -390,7 +390,7 @@ export interface BoardRules {
   // before them draw no list, and the create screen holds the board's one conversation.
   listDiscussions?(): DiscussionRow[];
   startDiscussion?(): DiscussionTarget;
-  archiveDiscussion?(target: DiscussionTarget): { ok: true } | { error: string };
+  archiveDiscussion?(target: DiscussionTarget): { ok: true; plans?: string[] } | { error: string };
   titleDiscussion?(target: DiscussionTarget, title: string): void;
   /** The discussion a string names, spelled either way — null for anything this board did
    *  not write, so nothing arriving from a browser can name a file of ours by accident. */
