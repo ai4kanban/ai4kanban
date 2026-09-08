@@ -210,6 +210,10 @@ naming no other doc is covered there.
 - A bell in the top row carries every board Cloud is on for: unread count, one row per
   event newest first, opening the card and switching board when it belongs to another.
   The right side holds one rail at a time, so the bell and chat fold each other.
+- The app icon wears the bell's own count in its badge — every board Cloud is on for,
+  whether the window is focused, buried or hidden — and reading the rows empties both at
+  once. Clicking the icon raises the window with the bell open on what it was counting.
+  Systems with no badge are unchanged.
 - A board that couldn't reach Cloud catches up on its own — retried on the board's tick and
   on a backoff — and what it finally gives up on is said in the bell rather than
   disappearing. Turning Cloud on for a busy board fills over minutes.
@@ -343,3 +347,12 @@ naming no other doc is covered there.
   plan verbatim as the summary, `## Source` naming the file) and builds it, refining and
   reviewing nothing. While it works the answers give way to "Building from this plan…", and the
   plan is let go once that run has written its card, whatever the run did afterwards.
+- **A new runtime is set up in one pass**: the row **+ Add runtime** opens now draws the
+  whole runtime — the name, the connector grid and the same **Advanced settings** fold every
+  saved row has, so provider, endpoint, key and model are filled in before it is named rather
+  than found afterwards. Naming it creates it and everything typed lands on it; leaving it
+  unnamed drops the lot. A press outside the row is what ends it.
+- **The gate switch moved to the Agents page**: Configuration → General → Delivery now holds
+  three switches, not four — **Build clear cards automatically** is gone, and **Gater** is a row
+  on Configuration → Agents beside Decider, with its own switch, connector, instructions box and
+  `Runs when` line. A board that already had the gate on finds Gater on.

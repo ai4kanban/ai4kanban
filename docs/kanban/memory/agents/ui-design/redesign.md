@@ -10,6 +10,10 @@
   one page read as two products, not two moments.
 - **Draw in Chinese, in the board's own words**: take them from `kanban-ui/i18n/*/zh.ts`.
   Invented copy is sent back.
+- **A mockup file is ONE 1280 × 800 screen**: the card page draws it in an iframe clipped to
+  exactly that, so a second frame stacked under the first is invisible. Where a card names
+  two surfaces, pick the one whose layout is actually new and let the copy-only one follow
+  the pattern it copies.
 - **Draw the frame the app really has**: the board's three columns are cut at the paper's
   edge at 1280, and a card page is drawn inside the rail + chat frame, never the whole
   1280. A drawing that fits everything in is a drawing of a different app.
@@ -77,6 +81,9 @@
   rejected outright, and the same body with a swapped hat or a recolour does not pass either.
 - **The agent roster's characters are `kanban-ui/agent-art.md`'s**: one body, one prop each.
   Recolouring the body instead does not read as a roster.
+- **An agent with no `public/agent-art/<name>.png` holds a card with its initial**, in an ink
+  picked from its name — that is what ships, so inventing a prop for it draws art nobody
+  ordered.
 - **A prop is one silhouette, not a scene**: at 48px the character is ~24px of chest, so
   cut detail until a single outline is left.
 

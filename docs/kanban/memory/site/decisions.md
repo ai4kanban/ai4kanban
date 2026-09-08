@@ -79,3 +79,5 @@ re-ask a settled call.
   page is amended in place with a new effective date, never joined by a second page, because
   the sentence promising no collection has to stop being true for existing users as well as
   new ones. That amended page plus the in-app step is the whole notice a local user gets.
+- **How long is the archived copy of raw events kept?**: indefinitely. The privacy page says
+  the archive still carries the install id, and the deletion promise by install id covers it.

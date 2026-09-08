@@ -422,3 +422,13 @@ covers it, or a plain-words note.
   `## Source` naming that path as the card's last section. The delivery is titled and bounded by
   the file as the run is written down, so a plan with nothing in it is refused; a resume that
   never reached the card is given that frozen copy in full rather than a quoted sentence.
+- The ready gate is an agent now: **Gater** is a role of its own, running `gate` alone, off by
+  default, with its own rule file, its own connector and its own switch. It left the planner's
+  flow list, so a gate run no longer carries the planner's rule. It and the Decider are the two
+  roles that stand in for the user, so each is given the project's goal and every module's
+  `decisions.md` and `rejected.md` on top of the card — the Gater also `akb guide writing`, the
+  Decider also each question's own options — and neither writes a line of memory back. The
+  switch keeps the `readyGate` key it always had, so a board that turned the gate on keeps it.
+- `validate-on-reddit` is gone from the flows. No flow routed to it and it wrote outside the
+  board, so `akb guide` lists one row fewer. Testing a move by posting is an ordinary card,
+  repurposed through `channel`, with voice from `memory/writing/`.

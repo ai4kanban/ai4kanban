@@ -19,7 +19,17 @@
       "name": "Codex",
       "harness": "codex",
       "settings": {
-        "reasoning": "high"
+        "reasoning": "high",
+        "model": "gpt-6-astra"
+      }
+    },
+    {
+      "id": "fable",
+      "name": "Fable",
+      "harness": "claude-code",
+      "settings": {
+        "provider": "subscription",
+        "model": "fable"
       }
     }
   ]

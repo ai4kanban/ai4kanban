@@ -78,6 +78,9 @@ re-ask a settled call.
   so answering it refines the card and sends it through the gate again.
 - Turning the gate on starts nothing already on the board: it applies only to cards that
   reach `ready` afterwards, so the switch never opens a batch of deliveries at once.
+- **A new agent's rule starts empty**: splitting a flow out onto its own agent copies nothing
+  out of the rule it used to run on, so gate lines left in the planner's rule stop reaching the
+  gate run until the user moves them.
 
 ## Implementation runs
 
@@ -202,6 +205,10 @@ re-ask a settled call.
 - **The board reaches one endpoint the user configures, not a platform we integrate**: the
   board fixes the signal format it accepts and the user points an endpoint and a token at
   it, so any platform that returns that format works and none of them is named in the code.
+- **A signal that passes triage becomes a card that refines itself**: triage schedules a
+  refine on every card it creates, so an external signal arrives with its plan already
+  written rather than as one paragraph — the extra runs and their cost are spent
+  automatically, without anyone asking.
 
 ## Agents and harnesses
 
@@ -296,6 +303,9 @@ re-ask a settled call.
   model.
 - A plan a **Discuss** chat writes is kept: it stays in `docs/kanban/plans/` after its cards
   are written, and every card it produced names it as its source.
+- **`akb chat` reaches the board's discussions**: a board holds many rather than one, so with
+  no message `akb chat` lists the discussions going and a message says which one it continues.
+  The app and the terminal stay one conversation.
 
 ## Card format
 

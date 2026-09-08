@@ -244,9 +244,13 @@ re-ask a settled call.
 - A conversation picks its own agent and model in the rail's header, defaulting to the
   board's; switching the agent starts the conversation over, behind the same confirmation
   the bin takes.
-- **Leaving a discussion never deletes it**: both ways out of the Create task discussion —
-  handing it to a planning run and pressing New idea — set it aside behind Last discussion,
-  which holds only the one set aside last.
+- **A board holds many discussions, listed in the rail**: every Create task press opens a new
+  one and the rail lists the ones going, under the open cards, so several subjects are talked
+  through side by side. New idea is gone — nothing has to be thrown away to start the next.
+- **A discussion is named by its agent**: the row shows the first line the user typed, then
+  the title the agent gives it once it has read the exchange, retitled as the subject settles.
+- **A discussion leaves the list by hand or by age**: its row's menu holds one item, Archive,
+  and the board keeps only its 20 most recent, dropping the oldest past that without asking.
 - An agent that cannot see images turns a pasted image away at the box: it says so, names
   the agents that can, and writes and sends nothing — rather than passing a path on and
   letting the agent answer that it cannot open the file.
@@ -263,6 +267,10 @@ re-ask a settled call.
 - An actionable event interrupts: a system notification as well as the bell, opening the
   card, with one switch silencing the interruption while the bell keeps filling. A delivery
   it started raises a second notification on every final outcome, not only failure.
+- The rail and its count are the OPEN board's. The connection stays account-wide — one
+  machine holds one socket — but another project's cards mixed into the list read as this
+  one's. A board you are not looking at reaches you as a system notification, and clicking
+  one switches the app to it.
 - A card the watched scope merely brought into view does not interrupt: it lands in the bell
   already read, with no system notification. Only a card that starts waiting after the switch
   is raised the ordinary way.
@@ -273,9 +281,12 @@ re-ask a settled call.
   swipe moves between card pages only, because the board scrolls its columns with the very
   same gesture.
 - A project holding more than one board shows the second inside the header's folder chip: a
-  small inner badge naming the board's work — "Engineering", "Marketing" — and pressing it
-  hands the window to that board the way picking a project does. One board means a plain
-  label; a browser gets a label too.
+  small inner badge naming the board's work — "Engineering", "Marketing" — and picking one
+  opens it in a new desktop window, leaving the window it was pressed in on its own board.
+  One board means a plain label; a browser gets a label too and switches in place.
+- **A board switch never reuses a window**: picking a board already open elsewhere opens
+  another window on it rather than focusing the one that has it, so two views of one board
+  are possible and duplicate windows are the user's to close.
 
 ## The app's language
 

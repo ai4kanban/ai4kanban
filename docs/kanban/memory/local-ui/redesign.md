@@ -124,6 +124,13 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   in the repo. A screen whose whole point is the artwork cannot ship without it.
 - ❌ **Monospace is used to make a name read as a literal** → ✅ settings prose is one
   typeface; a name earns its weight from position and weight, not from a second font.
+- ❌ **A form leaves out the fields it can't save yet and prints a line saying where they
+  come later** → ✅ draw the whole form and hold what it can't write, replaying it once the
+  thing exists. A sentence pointing at a control that is not on screen reads as a missing
+  control, not as a next step; needing to explain the order is the sign the order is wrong.
+- ❌ **A form-shaped row is dismissed by "focus left it"** → ✅ dismiss it on a press
+  outside. A field blurring itself on Enter, and a list that opens in a portal, both look
+  like focus leaving and neither is — read as leaving, they throw the user's work away.
 
 ## Keys
 

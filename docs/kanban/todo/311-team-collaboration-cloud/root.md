@@ -5,7 +5,7 @@ roi: high
 status: ready
 release: ""
 blocked_by: []
-related: [328, 375]
+related: [328]
 modules: [cloud, local-ui]
 questions: []
 verify:
@@ -123,7 +123,7 @@ is a group task; each piece is its own subtask in this folder.
 
 ## Todo
 - [x] Add members and roles to a Cloud workspace #376
-- [ ] Say who is holding a card #375
+- [x] Say who is holding a card #375
 - [ ] Notify a workspace's owners and members about a card that needs them #328
 
 ## Decided by the agent

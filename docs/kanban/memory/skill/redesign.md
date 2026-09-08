@@ -49,6 +49,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Send an article, analysis or complaint straight to add-task** → ✅ treat it as
   evidence: extract the user problems, route them to modules, and validate them against
   shipped, planned, rejected and remembered work before creating cards.
+- ❌ **Hold the plan a discussion is writing in a single slot that the next one replaces** → ✅
+  a discussion writes many plans over its life, so its own file keeps them as a list — nothing
+  in `plans/` says who wrote it, and the shared `next-id` leaves no range to infer it from.
 
 ## The command
 
