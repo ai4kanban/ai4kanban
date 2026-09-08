@@ -3,7 +3,7 @@
 // The board UI draws a marketing topic with a tab strip over `source` and each chosen
 // channel, that draft in an editor, the comments left on it under that, and Repurpose and
 // Publish beside it. Everything those controls need is here, and almost none of it is new
-// behaviour: reading and writing a draft is `content/<id>-<slug>/<name>.md` (../content.ts),
+// behaviour: reading and writing a draft is `content/<id>/<name>.md` (../content.ts),
 // repurposing is the `channel` command with all of its own checks, publishing is
 // `raw channel-status`, and choosing the channels is `update --channels`. The comments and
 // the polish they go to (#458) are the exception — Submit is their only door, so their own
@@ -32,6 +32,7 @@ import { draftDir, draftFile, SOURCE } from '../content'
 import { BoardError } from '../io'
 import { die, rel, TODO } from '../paths'
 import { solution } from '../solution'
+import { UNTITLED } from './types'
 import type { CardDraft, CardDrafts, ChannelStatus, DraftComment } from './types'
 
 /** The names a draft may go by: the source, and the four channels. Anything else is a path
@@ -75,7 +76,7 @@ export function readDrafts(id: number): CardDrafts {
 }
 
 /** Write one draft and hand the set back as it now reads. The folder is created on the way
- *  — the first save on a topic is what makes `content/<id>-<slug>/`. */
+ *  — the first save on a topic is what makes `content/<id>/`. */
 export function saveDraft(id: number, name: string, text: string): CardDrafts {
   mustBeADraft(name)
   const { cardFile } = folderOf(id)
@@ -83,6 +84,73 @@ export function saveDraft(id: number, name: string, text: string): CardDrafts {
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, text)
   return readDrafts(id)
+}
+
+// ---- opening and discarding a topic (#507) ---------------------------------
+//
+// New topic is one press: it writes the card and the page it opens is the editor. Both moves
+// here are `akb raw` moves under a lease, so a screen and a terminal write the same board —
+// and neither starts an agent, because a topic that has not been written yet has nothing to
+// ask one.
+
+/** What a New topic press gets back: the id its page is at, or why nothing was written. */
+export interface TopicResult {
+  ok: boolean
+  id?: number
+  error?: string
+}
+
+/** Refuse a move that only a marketing board has. */
+function mustBeMarketing(what: string): void {
+  if (solution() === 'marketing') return
+  die(`${what} is the marketing solution's — this board is \`${solution()}\`, and its cards are built, not written.`, {
+    kind: 'wrong-solution',
+    solution: solution(),
+  })
+}
+
+/**
+ * Write one blank topic — `raw create --title Untitled`, so the id, the filename and the
+ * index entry are the board's own.
+ *
+ * `Untitled` rather than an empty title: `create` refuses an empty one, and the title is
+ * frontmatter the page rewrites in place. Nothing else is asked for — no pillar, no channel
+ * — because the point is to be typing a second later.
+ */
+export async function newTopic(): Promise<TopicResult> {
+  try {
+    mustBeMarketing('New topic')
+    const res = await withLease({ board: true }, (env) =>
+      board().runMove('create', { args: [], opts: { title: UNTITLED } }, env),
+    )
+    if (!res.ok) return { ok: false, error: res.error }
+    const id = res.data.id
+    return typeof id === 'number' ? { ok: true, id } : { ok: false, error: 'the topic was written without an id' }
+  } catch (e) {
+    if (e instanceof BoardError) return { ok: false, error: e.message }
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/**
+ * Take one topic off the board — `raw reject`, so every other card's `blocked_by:` and the
+ * index are fixed the way they are for any other card that leaves.
+ *
+ * A press and never a timer: a topic opened and left blank stays where it is, so nothing the
+ * user made disappears on its own. The drafts stay behind exactly as an archive leaves them.
+ */
+export async function discardTopic(id: number): Promise<TopicResult> {
+  try {
+    mustBeMarketing('Discard')
+    folderOf(id) // the topic, or the refusal that names it
+    const res = await withLease({ card: id }, (env) =>
+      board().runMove('reject', { args: [String(id)], opts: {} }, env),
+    )
+    return res.ok ? { ok: true, id } : { ok: false, error: res.error }
+  } catch (e) {
+    if (e instanceof BoardError) return { ok: false, error: e.message }
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
 }
 
 /** What a Repurpose click gets back. `kind` is the refusal's own name, so the pane can turn

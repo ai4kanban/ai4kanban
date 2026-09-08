@@ -12,7 +12,12 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { unpackBoard, type BoardPayload } from '../src/lib/board/transfer.ts'
+import { printFlow } from '../src/lib/agent/flow.ts'
+import { buildPrompt } from '../src/lib/agent/prompts.ts'
+import { discardTopic, newTopic, readDrafts, saveDraft } from '../src/lib/view/drafts.ts'
 import { parseFrontmatter, serializeFrontmatter } from '../src/lib/frontmatter.ts'
+import { startCollecting, stopCollecting } from '../src/lib/io.ts'
+import { setLanguage } from '../src/lib/machine/settings.ts'
 import { setBoardRoot, TODO } from '../src/lib/paths.ts'
 import { validateSpec } from '../src/lib/spec-contract.ts'
 import type { Meta } from '../src/lib/types.ts'
@@ -56,8 +61,74 @@ describe('a marketing card', () => {
   it('keeps them off on every later move, not only on create', async () => {
     await move(root, ['create', '--title', 'Approve a screen', '--modules', 'shipped'])
     await move(root, ['update', '3', '--title', 'Approve a screen, not a paragraph'])
-    const text = card('3-approve-a-screen.md')
+    const text = card('3.md')
     for (const field of ['priority:', 'roi:', 'release:', 'questions:']) assert.ok(!text.includes(field), field)
+  })
+
+  it('is named off its id alone, and its draft folder with it', async () => {
+    const made = await move(root, ['create', '--title', 'Approve a screen', '--modules', 'shipped'])
+    assert.equal(made.file, 'docs/kanban/todo/3.md')
+    assert.equal(readDrafts(3).dir, 'docs/kanban/content/3')
+    // The title is frontmatter alone: writing one moves neither the card nor its drafts.
+    await move(root, ['update', '3', '--title', 'Approve a screen, not a paragraph'])
+    assert.ok(fs.existsSync(path.join(TODO, '3.md')))
+    assert.equal(readDrafts(3).dir, 'docs/kanban/content/3')
+  })
+
+  it('refuses --slug, so no command can part a topic from its drafts', async () => {
+    await refuses(root, ['create', '--title', 'x', '--slug', 'approve'], /--slug is not a `marketing` card's/)
+    await move(root, ['create', '--title', 'Approve a screen'])
+    await refuses(root, ['update', '3', '--slug', 'approve'], /--slug is not a `marketing` card's/)
+    assert.ok(fs.existsSync(path.join(TODO, '3.md')))
+  })
+
+  // A non-English board is told to pass `--slug` so a title that slugifies to nothing does
+  // not name every card `<id>-task.md` (#337). Here the flag is refused, so being told to
+  // pass it is being told to make a call the board turns down.
+  it('tells no run to pass --slug, whatever language the board is read in', async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-topic-home-'))
+    process.env.AI4KANBAN_HOME = home
+    try {
+      setLanguage('zh')
+      await move(root, ['create', '--title', '一个选题'])
+      const sink = startCollecting()
+      try {
+        printFlow({ action: 'create' })
+      } finally {
+        stopCollecting()
+      }
+      // `marketing/add-task` is printed under the ask and says the flag is refused, so this
+      // asks about the words the run is given: the close line, and the language note in it.
+      const ask = sink.out.join('\n').split('the flows this is done by')[0]!
+      assert.match(ask, /create --title "\.\." —/)
+      assert.doesNotMatch(ask, /--slug/)
+      assert.doesNotMatch(buildPrompt({ action: 'implement', id: 3, title: '一个选题' }), /--slug/)
+    } finally {
+      delete process.env.AI4KANBAN_HOME
+      fs.rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('keeps a slugged topic written before the id-only name exactly where it is', async () => {
+    fs.writeFileSync(
+      path.join(TODO, '2-a-piece.md'),
+      `${serializeFrontmatter({ title: 'A piece', status: 'todo' } as Partial<Meta>)}\n`,
+    )
+    assert.equal(readDrafts(2).dir, 'docs/kanban/content/2-a-piece')
+    await move(root, ['update', '2', '--title', 'A piece, renamed'])
+    assert.ok(fs.existsSync(path.join(TODO, '2-a-piece.md')))
+  })
+
+  it('opens a blank topic and takes one back off, with no agent either way', async () => {
+    const made = await newTopic()
+    assert.equal(made.ok, true)
+    assert.equal(card(`${made.id}.md`).includes('title: Untitled'), true)
+    saveDraft(made.id!, 'source', 'a rough note')
+    const gone = await discardTopic(made.id!)
+    assert.equal(gone.ok, true)
+    assert.ok(!fs.existsSync(path.join(TODO, `${made.id}.md`)))
+    // The drafts outlive the topic, exactly as they outlive an archive.
+    assert.ok(fs.existsSync(path.join(kanban(), 'content', String(made.id), 'source.md')))
   })
 
   it('refuses the flags that would write one', async () => {

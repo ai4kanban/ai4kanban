@@ -230,14 +230,31 @@ export type MarketingCopy = {
   more: string;
   /** The open channel's own rewrite, in the strip beside Publish. */
   rewrite: string;
-  /** The one action a source with nothing written offers, and the line under it saying the
-   *  other way is simply to type. A channel page never offers one: it is what a repurpose
-   *  wrote, not a blank waiting to be filled. */
+  /** The one action a source with nothing written offers, at the foot of the empty editor —
+   *  the other way is simply to type, which `sourcePlaceholder` is already saying. A channel
+   *  page never offers one: it is what a repurpose wrote, not a blank waiting to be filled. */
   draft: string;
-  orJustWrite: string;
   startFailed: string;
   /** Only read out loud: what the tab strip is. */
   tabs: string;
+  /** The title row (#507). A topic opens `Untitled`, drawn in placeholder style, and typing
+   *  replaces it — so `title` is what the box is called and `titlePlaceholder` is what stands
+   *  in the empty one. `titleFailed` is said when the board would not take the new title. */
+  title: string;
+  titlePlaceholder: string;
+  titleFailed: string;
+  /** The empty source editor's own invitation (#507) — what to put in a blank topic. */
+  sourcePlaceholder: string;
+  /** Taking an unwanted topic off the board from the `…` menu (#507). Never automatic: a
+   *  topic left blank stays where it is until this is pressed and confirmed. */
+  discard: {
+    action: string;
+    title: string;
+    blurb: string;
+    keepsDrafts: string;
+    confirm: string;
+    failed: string;
+  };
   /** How far this topic is published, beside the title. */
   publishedCount: (published: number, total: number) => string;
   /** Which writing is happening, beside the title (#479). Every run locks the same editor,

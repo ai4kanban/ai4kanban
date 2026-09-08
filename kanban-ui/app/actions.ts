@@ -24,9 +24,11 @@ import {
   boardScreen,
   boardsHere,
   commentOnDraft,
+  discardTopic,
   readSolution,
   cardStillThere,
   dropDraftComment,
+  newTopic,
   editDraftComment,
   polishDraft,
   refreshBoard,
@@ -226,6 +228,7 @@ import type {
   SlackConversation,
   SlackState,
   SpecAgentView,
+  TopicResult,
   UsageReporting,
   VerifyResult,
   WriteResult,
@@ -993,6 +996,21 @@ export async function setChannelStatusAction(
   if (typeof channel !== "string" || !channel) return { ok: false, error: "a channel is named" };
   if (typeof status !== "string" || !status) return { ok: false, error: "a channel moves to a status" };
   return setChannelStatus(id, channel, status, typeof url === "string" ? url : "");
+}
+
+// New topic (#507) — the marketing board's Create. It writes one blank card and answers with
+// its id, which is the page the press lands on. No agent: a topic nobody has written yet has
+// nothing to ask one, so this is a board write like any other and it is over by the time the
+// router moves.
+export async function newTopicAction(): Promise<TopicResult> {
+  return newTopic();
+}
+
+// Discard the topic on screen (#507) — the `…` menu's own item, and the only thing that takes
+// a blank one off the board. It is a press and never a timer, so nothing here is automatic.
+export async function discardTopicAction(id: number): Promise<TopicResult> {
+  if (!Number.isInteger(id)) return { ok: false, error: "a topic is discarded by card number" };
+  return discardTopic(id);
 }
 
 // Choose the channels this topic goes to (#434) — the card page's `+`, which

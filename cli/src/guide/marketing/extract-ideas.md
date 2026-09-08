@@ -33,5 +33,5 @@ call, because the board found this topic rather than a person asking for it — 
 what was created and skipped.
 
 Each created card gets the few lines of brief at the top of its
-`content/<id>-<slug>/source.md`, and the provenance is one of them: `<name or description>
+`content/<id>/source.md`, and the provenance is one of them: `<name or description>
 — <URL, file, or message context>`, never a generic label such as "external research".

@@ -6,7 +6,7 @@ instructions came with this run — follow them and ask for nothing else.
 
 ## What you write
 
-Files inside the card's draft folder — `docs/kanban/content/<id>-<slug>/` — and nothing
+Files inside the card's draft folder — `docs/kanban/content/<id>/` — and nothing
 else. The folder's path is in this run's message; write there directly.
 
 The writer named the files it wants in the note. Write those, under those names, and stop.

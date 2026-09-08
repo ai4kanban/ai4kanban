@@ -17,20 +17,32 @@
 // this button: the sheet is still up, so a message behind it is a message nobody reads — and
 // the sentence has to stay in the box to be sent again. Start planning (#427) is the one that
 // cannot: it closes the sheet first, so its refusal is said under the button.
+//
+// On a marketing board this is New topic instead (#507), and it opens nothing: marketing work
+// starts from source material, so the press writes the card and lands in its editor. There is
+// no sheet, no discussion and no agent — everything the sheet asks for is a decision about a
+// topic nobody has written yet.
 
 import { useRouter } from "next/navigation";
-import { startDiscussionAction, startPlanBuildAction, startPlanningAction } from "@/app/actions";
+import {
+  newTopicAction,
+  startDiscussionAction,
+  startPlanBuildAction,
+  startPlanningAction,
+} from "@/app/actions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { useCreateSheetRequest } from "@/lib/create-open";
 import { usePhone } from "@/lib/media";
+import { armNewTopic } from "@/lib/new-topic";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
 import type { AgentReq } from "./agent-shared";
 import { Button } from "./button";
 import { useChatRailHere } from "./Chat";
 import { CreateSheet } from "./CreateSheet";
 import { sessionsPanel, useAgentSessions } from "./sessions";
+import { useSolution } from "./solution";
 
 // `release` is the version the board is showing (#104), or null for the whole
 // board. A card written while one release is on screen ships in it, so it doesn't
@@ -46,6 +58,7 @@ export function CreateTask({
 }) {
   const c = useCopy().board.create;
   const router = useRouter();
+  const marketing = useSolution() === "marketing";
   const [open, setOpen] = useState(false);
   // The discussion the sheet is holding (#496). A press opens a fresh one; a rail row hands
   // over the one it is picking back up. Null while the board's rules are older than the list,
@@ -95,6 +108,21 @@ export function CreateTask({
   // reader is looking, not by pointing at this button. Only an ask made while this row was on
   // screen: the store outlives a page change, and a sheet opening by itself on the page
   // someone navigated to is a box nobody pressed for.
+  // New topic (#507): write the card, then go to its page with the mark that puts the cursor
+  // in the Source pane. `busy` is only about not writing two topics from one double-press —
+  // the press is over in a board write, so there is nothing to tail and nothing to watch.
+  const [writing, setWriting] = useState(false);
+  const openTopic = useCallback(async () => {
+    if (writing) return;
+    setWriting(true);
+    setError(null);
+    const res = await newTopicAction();
+    setWriting(false);
+    if (!res.ok || res.id === undefined) return setError(res.error || c.topicFailed);
+    armNewTopic(res.id);
+    router.push(`/${res.id}`);
+  }, [writing, router, c]);
+
   const asked = useCreateSheetRequest();
   const seen = useRef(asked);
   useEffect(() => {
@@ -103,13 +131,16 @@ export function CreateTask({
     setError(null);
     // A row named the discussion it is picking back up; the empty board's ask names none, so
     // it opens a fresh one exactly as the button does.
-    if (asked.discussion) {
+    // On a marketing board the only surface that asks is the empty board, and what it is
+    // asking for is a topic: there is no sheet there to open (#507).
+    if (marketing) void openTopic();
+    else if (asked.discussion) {
       setDiscussion(asked.discussion);
       setOpen(true);
     } else {
       void openFresh();
     }
-  }, [asked, openFresh]);
+  }, [asked, openFresh, marketing, openTopic]);
 
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up
@@ -165,19 +196,21 @@ export function CreateTask({
     [release, discussion, watch, c],
   );
 
+  // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357). Narrow
+  // screens keep the button but drop its label — a plus in the same square frame, still the
+  // same target.
+  const label = marketing ? c.topicButton : c.button;
   return (
     <div className="relative flex shrink-0 items-center">
       <Button
-        // The top row's 28px box, 36px at phone width where a thumb has to hit it
-        // (#357). Narrow screens keep the button but drop its label — a plus in the
-        // same square frame, still the same target.
         size="xs"
         className="shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
-        aria-label={c.button}
-        onClick={() => void openFresh()}
+        aria-label={label}
+        disabled={writing}
+        onClick={() => void (marketing ? openTopic() : openFresh())}
       >
         <FiPlus className="text-[15px]" aria-hidden />
-        <span className="sr-only sm:not-sr-only">{c.button}</span>
+        <span className="sr-only sm:not-sr-only">{label}</span>
       </Button>
 
       {error && (
@@ -190,7 +223,9 @@ export function CreateTask({
         </div>
       )}
 
-      {open && (
+      {/* The sheet and its discuss / plan / build modes are the product board's (#507): on a
+          marketing board the press above has already written the topic and moved the page. */}
+      {open && !marketing && (
         <CreateSheet
           release={release}
           projectRoot={projectRoot}

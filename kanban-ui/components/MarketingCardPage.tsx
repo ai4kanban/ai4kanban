@@ -18,7 +18,7 @@
 // free to be different shapes; the cost is that the top row, the rail wiring and the run
 // watching are now written twice.
 //
-// The editor edits the FILE — `content/<id>-<slug>/<tab>.md`, byte for byte, which is what
+// The editor edits the FILE — `content/<id>/<tab>.md`, byte for byte, which is what
 // lets an agent and a person write the same draft. Saving is on idle with no button, and
 // what is unsaved is written back to its own tab's file before the strip moves or the page
 // goes.
@@ -50,12 +50,15 @@ import {
   FiGlobe,
   FiMoreHorizontal,
   FiRepeat,
+  FiTrash2,
   FiX,
   FiXCircle,
 } from "react-icons/fi";
 import type { OverTypeInstance } from "overtype";
 import { useCopy } from "@/i18n/use-copy";
+import { takeNewTopic } from "@/lib/new-topic";
 import { useActions, type DraftPassage, type RepurposeAsk } from "@/lib/screen";
+import { UNTITLED } from "@/lib/types";
 import type { Card, CardDrafts, CardScreen, DraftComment, SessionView } from "@/lib/types";
 import {
   ActionDialog,
@@ -73,6 +76,7 @@ import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { Dialog } from "./Dialog";
 import { DraftComments, LeaveComment, useCommentMarks } from "./DraftComments";
 import { OpenIdsProvider } from "./open-ids";
+import { SolutionProvider } from "./solution";
 import {
   draftLabel,
   draftOf,
@@ -192,12 +196,35 @@ export function MarketingCardPage({
     [router, boardHref, kick],
   );
 
+  // Discarding a topic (#507) is a board write, not a run: nothing has to read the card to
+  // take it off, so there is no session to watch and the page leaves the moment it lands.
+  const [discarding, setDiscarding] = useState(false);
+  const [dropping, setDropping] = useState(false);
+  const actions = useActions();
+  const discard = useCallback(async () => {
+    if (!actions || dropping) return;
+    setDropping(true);
+    const res = await actions.discardTopic(card.id);
+    setDropping(false);
+    if (!res.ok) {
+      setDiscarding(false);
+      setError(res.error || c.discard.failed);
+      return;
+    }
+    router.push(boardHref);
+  }, [actions, dropping, card.id, router, boardHref, c]);
+
   const chrome: CardChrome = { screen, running, onBoardChanged, onError: setError };
   const Shell = shell ?? Bare;
   const Strip = strips;
 
   return (
     <OpenIdsProvider ids={openIds}>
+      {/* What this board's work IS (#411), the way the board screen and the engineering card
+          page provide it — the frame around this page draws the top row and the rail, and
+          without this they would both read `product` and offer a topic the planning entry
+          (#507). */}
+      <SolutionProvider value={screen.solution}>
       <Shell {...chrome}>
         {/* One screen, never scrolled as a whole: the editor is what scrolls, so the title
             and the strip stay where they were put. */}
@@ -212,12 +239,17 @@ export function MarketingCardPage({
             onError={setError}
             onKick={kick}
             onDraft={() => void runAgent({ action: "implement", id: card.id }, "implement")}
+            onDiscard={() => setDiscarding(true)}
             onArchive={() => setDialog({ kind: "archive", card })}
             onReject={() => setDialog({ kind: "reject", card })}
           />
         </div>
       </Shell>
+      </SolutionProvider>
 
+      {discarding && (
+        <DiscardDialog busy={dropping} onClose={() => setDiscarding(false)} onConfirm={() => void discard()} />
+      )}
       {dialog && <ActionDialog dialog={dialog} onClose={() => setDialog(null)} onRun={runAgent} />}
     </OpenIdsProvider>
   );
@@ -234,6 +266,7 @@ function Draft({
   onError,
   onKick,
   onDraft,
+  onDiscard,
   onArchive,
   onReject,
 }: {
@@ -248,6 +281,7 @@ function Draft({
   onError: (why: string | null) => void;
   onKick: () => void;
   onDraft: () => void;
+  onDiscard: () => void;
   onArchive: () => void;
   onReject: () => void;
 }) {
@@ -555,6 +589,16 @@ function Draft({
     shown.current = tab;
     adopt(disk);
   }, [read, tab, editor, adopt]);
+
+  // One press lands in the editor (#507). New topic wrote this card and came straight here,
+  // so the caret goes into the Source pane rather than waiting for somebody to click into it.
+  // Only that visit — every other way into a topic is a reader opening one they already have,
+  // and taking their focus would be taking it from wherever they were.
+  useEffect(() => {
+    if (!editor || !loaded || !actions) return;
+    if (!takeNewTopic(card.id)) return;
+    editor.textarea.focus();
+  }, [editor, loaded, actions, card.id]);
 
   // The batch belongs to the draft on screen: the strip moving is a different set of
   // comments, and a run that ended has already had its own cleared by the board.
@@ -925,15 +969,27 @@ function Draft({
   ) : !actions ? (
     <Empty title={c.empty.readOnly} hint={c.empty.readOnlyHint} />
   ) : locked ? null : tab === SOURCE ? (
-    <div className="flex flex-col items-center gap-2.5">
-      <Button className="pointer-events-auto" disabled={moving} onClick={onDraft}>
-        {c.draft}
-      </Button>
-      <span className="text-[12.5px] text-nb-ink-soft">{c.orJustWrite}</span>
-    </div>
+    // Source's own offer, at the foot rather than the middle (#507): the invitation to type
+    // is the placeholder up at the caret, and this is the other way — an agent drafting it —
+    // kept out of its way.
+    <Button variant="ghost" className="pointer-events-auto" disabled={moving} onClick={onDraft}>
+      {c.draft}
+    </Button>
   ) : stopped.some((row) => row.draft === tab) ? (
     <Empty title={c.empty.stopped} hint={c.empty.stoppedHint} />
   ) : null;
+
+  // A blank source is a topic somebody just opened, so it says what to put in it. The offer
+  // at the foot moves out of its way; on a channel there is no invitation at all, because a
+  // channel draft is what a repurpose writes and the pane says so over the whole of it.
+  const inviting = tab === SOURCE && !writingHere && !locked && !!actions;
+
+  // What the empty draft invites, in the library's own shim rather than a layer of our own:
+  // it is already at the caret, in the editor's metrics, and two placeholders on one blank
+  // page read as a bug.
+  useEffect(() => {
+    if (editor?.placeholderEl) editor.placeholderEl.textContent = inviting ? c.sourcePlaceholder : "";
+  }, [editor, inviting, c]);
 
   return (
     <>
@@ -949,7 +1005,7 @@ function Draft({
           <span className="shrink-0 text-[19px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
             #{card.id}
           </span>
-          <h1 className="min-w-0 truncate text-[19px] font-[800] tracking-[-0.02em]">{card.title}</h1>
+          <TopicTitle card={card} disabled={!actions || locked || moving} onError={onError} />
           {/* What is being written, one pill per run — and where nothing is, how far this
               topic is published. */}
           {pills.map((pill) => (
@@ -973,6 +1029,7 @@ function Draft({
           )}
           <span className="relative ml-auto flex shrink-0 items-center">
             <PageMenu
+              onDiscard={actions ? onDiscard : undefined}
               onArchive={actions ? onArchive : undefined}
               onReject={actions ? onReject : undefined}
               disabled={locked || moving}
@@ -1152,7 +1209,9 @@ function Draft({
               machine's to write. A rewrite says it here too — over the draft it is replacing,
               so a rewrite and a first write look the same. */}
           {loaded && editor && (writingHere || !written) && empty && (
-            <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2.5 pb-16">
+            <div
+              className={`pointer-events-none absolute inset-0 z-20 flex flex-col items-center gap-2.5 ${inviting ? "justify-end pb-10" : "justify-center pb-16"}`}
+            >
               {/* Over a draft there are words behind this, and a line of them through the
                   middle of it reads as a smudge. A plate of the page's own paper is what
                   separates the two; an empty tab has nothing to be separated from. */}
@@ -1401,21 +1460,110 @@ function RepurposeTo({
   );
 }
 
-/** The `…` beside the title: the two ways this card leaves the board. Rewriting a channel
+/**
+ * The topic's title, editable in place (#507).
+ *
+ * A topic opens `Untitled`, which is the absence of a title rather than one somebody chose:
+ * it is drawn in placeholder style, and focusing the box clears it so the first keystroke
+ * replaces it rather than landing beside it. Emptying the box writes `Untitled` back — the
+ * board refuses an empty title, and a save that failed because the user deleted a word is
+ * not something to explain.
+ *
+ * Nothing about this moves a file: a topic's card is `todo/<id>.md` and its drafts are
+ * `content/<id>/`, so the title lives in frontmatter alone and every keystroke of it is
+ * reversible.
+ *
+ * Saved on blur, not per keystroke: the title is one short line typed in one go, and a save
+ * per character would be a card write per character.
+ */
+function TopicTitle({
+  card,
+  disabled,
+  onError,
+}: {
+  card: Card;
+  disabled: boolean;
+  onError: (why: string | null) => void;
+}) {
+  const c = useCopy().card.marketing;
+  const actions = useActions();
+  const router = useRouter();
+  const [value, setValue] = useState(card.title);
+  const [editing, setEditing] = useState(false);
+  // The card re-read under the box — a run renamed it, or another window did. What is being
+  // typed wins while it is being typed; anything else takes the card's own word for it.
+  const held = useRef(card.title);
+  useEffect(() => {
+    if (editing || held.current === card.title) return;
+    held.current = card.title;
+    setValue(card.title);
+  }, [card.title, editing]);
+
+  const save = async (typed: string) => {
+    const title = typed.trim() || UNTITLED;
+    setValue(title);
+    held.current = title;
+    if (!actions || title === card.title) return;
+    const res = await actions.patchCard(card.id, { title }, card.revision);
+    if (!res.ok) {
+      setValue(card.title);
+      held.current = card.title;
+      onError(res.error || c.titleFailed);
+      return;
+    }
+    onError(null);
+    router.refresh();
+  };
+
+  const untitled = value === UNTITLED;
+  return (
+    <input
+      className={`min-w-0 flex-1 truncate bg-transparent text-[19px] font-[800] tracking-[-0.02em] outline-none placeholder:font-[800] placeholder:text-nb-ink-soft/55 ${untitled && !editing ? "text-nb-ink-soft/55" : "text-nb-ink"}`}
+      value={value}
+      disabled={disabled}
+      aria-label={c.title}
+      placeholder={c.titlePlaceholder}
+      onChange={(e) => setValue(e.target.value)}
+      onFocus={() => {
+        setEditing(true);
+        if (value === UNTITLED) setValue("");
+      }}
+      onBlur={(e) => {
+        setEditing(false);
+        void save(e.target.value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          setValue(held.current);
+          e.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
+
+/** The `…` beside the title: the ways this card leaves the board. Rewriting a channel
  *  lives in the strip beside Publish — the strip is the discoverable door, and two of them
- *  onto one run is one too many. */
+ *  onto one run is one too many.
+ *
+ *  Discard (#507) is the one for a topic that should never have been opened, so it leads: it
+ *  is the answer to a blank page, and nothing else on the board removes one. Archive and
+ *  Reject are what a topic that was worked on leaves by, and both start a run. */
 function PageMenu({
+  onDiscard,
   onArchive,
   onReject,
   disabled,
 }: {
+  onDiscard?: () => void;
   onArchive?: () => void;
   onReject?: () => void;
   disabled: boolean;
 }) {
   const t = useCopy();
   const c = t.card.marketing;
-  if (!onArchive && !onReject) return null;
+  if (!onDiscard && !onArchive && !onReject) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -1429,6 +1577,12 @@ function PageMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[192px]">
+        {onDiscard && (
+          <DropdownMenuItem className="gap-2" disabled={disabled} onSelect={onDiscard}>
+            <FiTrash2 className="text-[13px]" aria-hidden />
+            {c.discard.action}
+          </DropdownMenuItem>
+        )}
         {onArchive && (
           <DropdownMenuItem className="gap-2" disabled={disabled} onSelect={onArchive}>
             <FiArchive className="text-[13px]" aria-hidden />
@@ -1616,6 +1770,28 @@ function LanguagePick({ value, onPick }: { value: string; onPick: (value: string
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** Discarding a topic (#507) — the one confirm on this page that starts no run. It asks
+ *  because the card is gone for good, and it says what stays: the drafts under `content/`
+ *  outlive the topic exactly as they do an archive. */
+function DiscardDialog({
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const c = useCopy().card.marketing.discard;
+  return (
+    <Dialog title={c.title} onClose={onClose}>
+      <p className="text-[13px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
+      <p className="mt-1.5 text-[13px] leading-relaxed text-nb-ink-soft">{c.keepsDrafts}</p>
+      <DialogButtons onClose={onClose} onConfirm={onConfirm} confirmLabel={c.confirm} disabled={busy} />
+    </Dialog>
   );
 }
 

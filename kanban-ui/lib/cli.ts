@@ -287,6 +287,15 @@ export interface BoardRules {
    *  drafts above but not this one draw the page without its `+`. */
   setChannels?(id: number, names: string[]): Promise<{ ok: boolean; error?: string }>;
 
+  // the two ends of a topic (#507): New topic writing a blank one for the editor to open on,
+  // and Discard taking one off the board again. Neither starts an agent. Optional together:
+  // rules older than the release that added them leave the board's Create task where it is,
+  // so a marketing board there is exactly what it was.
+  /** Write one blank topic — `raw create --title Untitled` — and answer with its id. */
+  newTopic?(): Promise<{ ok: boolean; id?: number; error?: string }>;
+  /** Take one topic off the board — `raw reject`, with every reference it fixes. */
+  discardTopic?(id: number): Promise<{ ok: boolean; id?: number; error?: string }>;
+
   // the comments left on one draft, and the polish they go to (#458). Optional together and
   // separately from the drafts above: rules with the editor but not these draw it with
   // nothing to comment with, which is what `CardDrafts.canComment` says. Each write answers

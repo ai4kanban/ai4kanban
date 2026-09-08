@@ -32,6 +32,7 @@ import type {
   CommandRequest,
   ScheduledAction,
   SessionView,
+  TopicResult,
   VerifyResult,
   WriteResult,
 } from "./types";
@@ -120,6 +121,15 @@ export interface ScreenActions {
   /** Choose the channels this topic goes to — the page's `+` appends one. A
    *  channel that stays keeps its status and the URL it went up at. */
   setChannels(id: number, names: string[]): Promise<WriteResult>;
+
+  // ---- the two ends of a topic (#507) --------------------------------------
+  // New topic is the marketing board's Create — it writes the card and the page it opens is
+  // the editor — and Discard is the `…` menu's way back off the board. Neither starts an
+  // agent, so neither answers with a session: the write is done when the call returns.
+  /** Write one blank topic and answer with the id its page is at. */
+  newTopic(): Promise<TopicResult>;
+  /** Take one topic off the board. A press, never a timer. */
+  discardTopic(id: number): Promise<TopicResult>;
 
   // ---- the comments on one draft, and the polish they go to (#458) ---------
   // Only ever called where `CardDrafts.canComment` said yes: a board whose rules predate

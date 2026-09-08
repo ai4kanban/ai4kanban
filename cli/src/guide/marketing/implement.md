@@ -2,7 +2,7 @@
 
 Write the approved topic's draft. Do not add, rewrite, or tag questions on the card.
 
-The deliverable is one file: `docs/kanban/content/<id>-<slug>/source.md`. It is already
+The deliverable is one file: `docs/kanban/content/<id>/source.md`. It is already
 there, holding a few lines of brief: the angle, who it is for, what it may not claim, and
 where the topic came from. **Expand that file in place** — the brief is the opening of the
 piece, not a page to write over.

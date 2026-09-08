@@ -63,11 +63,11 @@ export type AgentAction =
    *  else. A flow asks for one; the board starts it once that flow's own run has ended. */
   | 'spec'
   /** One channel's draft, repurposed from a topic's `source.md` (#409). It is named by
-   *  `channel`, starts clean, and writes one file under `content/<id>-<slug>/` — no card,
+   *  `channel`, starts clean, and writes one file under `content/<id>/` — no card,
    *  no other channel's draft, and no second pass. Marketing boards only. */
   | 'channel'
   /** One pass over one draft, answering every comment left on it (#458). It is named by
-   *  `draft`, starts clean, and writes that one file under `content/<id>-<slug>/` — the
+   *  `draft`, starts clean, and writes that one file under `content/<id>/` — the
    *  comments are read off disk and cleared by the board when the run ends `done`.
    *  Marketing boards only. */
   | 'polish'
@@ -85,7 +85,7 @@ export type AgentAction =
   | 'conflict'
   /** One `write` agent writing part of a topic's draft folder (#424) — an image for a
    *  post, a chart, a caption file. It is named by `specAgent`, it starts clean, and it
-   *  writes files under `content/<id>-<slug>/` and nothing else. The writer asks for one;
+   *  writes files under `content/<id>/` and nothing else. The writer asks for one;
    *  the board starts it once the writing run has ended. Marketing boards only. */
   | 'write'
 

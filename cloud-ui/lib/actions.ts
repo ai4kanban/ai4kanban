@@ -125,6 +125,8 @@ export function hostedActions(press: HostedPress): ScreenActions {
     repurpose: noSuchControl,
     setChannelStatus: noSuchControl,
     setChannels: noSuchControl,
+    newTopic: noSuchControl,
+    discardTopic: noSuchControl,
     commentOnDraft: noSuchControl,
     editDraftComment: noSuchControl,
     dropDraftComment: noSuchControl,

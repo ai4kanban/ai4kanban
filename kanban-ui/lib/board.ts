@@ -28,6 +28,7 @@ import type {
   SignalInbox,
   SignalsAccess,
   Solution,
+  TopicResult,
 } from "./types";
 
 // --- reading the board, through the CLI (#169) -------------------------------
@@ -430,7 +431,7 @@ export async function dismissSignal(sourceId: string): Promise<{ ok: boolean; er
 
 // --- a marketing card's drafts and its channels (#411) -----------------------
 // The card page's drafts block, on the server side of the boundary. Every one of these is
-// the CLI's own — a draft is `content/<id>-<slug>/<name>.md`, a repurpose is the `channel`
+// the CLI's own — a draft is `content/<id>/<name>.md`, a repurpose is the `channel`
 // command with all of its checks, and Publish is `raw channel-status`.
 //
 // A board whose rules predate them says so in the block rather than failing: `error` on the
@@ -567,6 +568,33 @@ export async function polishDraft(
     const rules = await boardRules();
     if (!rules.polishDraft) return { ok: false, error: await tooOldForDrafts() };
     return await rules.polishDraft(id, draft);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- the two ends of a topic (#507) ------------------------------------------
+// New topic writes a blank card and its page opens on the editor; Discard takes one off the
+// board again. Rules older than either say so in the same line the drafts block says, so a
+// press on an old board reports why instead of appearing to do nothing.
+
+/** Write one blank topic and answer with the id its page is at. */
+export async function newTopic(): Promise<TopicResult> {
+  try {
+    const rules = await boardRules();
+    if (!rules.newTopic) return { ok: false, error: await tooOldForDrafts() };
+    return await rules.newTopic();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Take one topic off the board — the topic page's own Discard, and nothing automatic. */
+export async function discardTopic(id: number): Promise<TopicResult> {
+  try {
+    const rules = await boardRules();
+    if (!rules.discardTopic) return { ok: false, error: await tooOldForDrafts() };
+    return await rules.discardTopic(id);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

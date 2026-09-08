@@ -58,9 +58,13 @@ export interface BoardRead {
 
 // ---- the pieces `view/read.ts` shares with it -------------------------------
 
-/** The number at the front of a card's filename, or of a group folder's name. */
+/** The number at the front of a card's filename, or of a group folder's name.
+ *
+ *  The slug after it is optional (#507): a marketing topic is named off its id alone —
+ *  `507.md`, `507/` — so a title the user has not decided yet never reaches a path. A
+ *  slugged name reads exactly as it always did. */
 export const idPrefix = (name: string): number | null => {
-  const m = name.match(/^(\d+)-/)
+  const m = name.match(/^(\d+)(?:-|\.md$|$)/)
   return m ? Number(m[1]) : null
 }
 

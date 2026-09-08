@@ -1,7 +1,7 @@
 # Repurpose a draft for one channel
 
 Turn the topic's `source.md` into one channel's draft — one pass, then stop. Write only
-`docs/kanban/content/<id>-<slug>/<channel>.md`: not the card, not `source.md`, not another
+`docs/kanban/content/<id>/<channel>.md`: not the card, not `source.md`, not another
 channel's draft.
 
 ## The channels

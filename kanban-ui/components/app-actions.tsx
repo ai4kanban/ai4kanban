@@ -23,6 +23,7 @@ import {
   commentOnDraftAction,
   createReleaseAction,
   discardDeliveryAction,
+  discardTopicAction,
   dropDraftCommentAction,
   dropReleaseAction,
   dropVerifyAction,
@@ -30,6 +31,7 @@ import {
   getBoard,
   getSessionAction,
   listSessionsAction,
+  newTopicAction,
   patchCardAction,
   planReleaseAction,
   polishDraftAction,
@@ -80,6 +82,9 @@ export const appActions: ScreenActions = {
   repurpose: repurposeChannelAction,
   setChannelStatus: setChannelStatusAction,
   setChannels: setChannelsAction,
+
+  newTopic: newTopicAction,
+  discardTopic: discardTopicAction,
 
   commentOnDraft: commentOnDraftAction,
   editDraftComment: editDraftCommentAction,

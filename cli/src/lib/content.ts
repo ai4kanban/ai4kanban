@@ -1,8 +1,9 @@
 // Where a marketing board's drafts live.
 //
-// One folder per card — `content/<id>-<slug>/` — named off the card's own filename, so the
-// folder and the card always match and neither has to be looked up from the other. The
-// folder is tracked in git and kept after the card is archived: the piece outlives the
+// One folder per card — `content/<id>/` — named off the card's own filename, so the folder
+// and the card always match and neither has to be looked up from the other. A topic written
+// before #507 is `<id>-<slug>.md` and keeps its `content/<id>-<slug>/` for the same reason.
+// The folder is tracked in git and kept after the card is archived: the piece outlives the
 // topic that asked for it.
 //
 // Inside it, one file per draft. `source.md` is the argument, written for no channel and

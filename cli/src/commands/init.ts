@@ -270,7 +270,7 @@ export function cmdInit(named?: Solution): MoveResult {
   // with no cadence, so nothing runs until someone asks for it.
   const pruneCard = writePruneMemoryCard()
   say(`initialised board at ${rel(KANBAN)}/`)
-  if (marketing) say(`  solution: marketing — \`${rel(contentDir())}/<id>-<slug>/\` is where a card's drafts go`)
+  if (marketing) say(`  solution: marketing — \`${rel(contentDir())}/<id>/\` is where a card's drafts go`)
   else say(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
   if (questionsCard) say(`  questions card: #${questionsCard.id} — setup appends the calls it can't settle here`)
   if (pruneCard) say(`  recurring card: #${pruneCard.id} ${rel(pruneCard.file)} — prunes the memory; runs only when you run it`)

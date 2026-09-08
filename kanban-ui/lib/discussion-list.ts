@@ -25,7 +25,10 @@ export interface DiscussionList {
   archive(target: DiscussionTarget): Promise<void>;
 }
 
-export function useDiscussions(): DiscussionList {
+/** `off` is a board that holds no discussions at all — a marketing one (#507), where every
+ *  row would open a sheet that board does not have. Nothing is read then, the way nothing is
+ *  read at phone width. */
+export function useDiscussions(off = false): DiscussionList {
   const [rows, setRows] = useState<DiscussionRow[]>([]);
   const kickRef = useRef<() => void>(() => {});
   // At phone width there is no rail to draw them in, so nothing is read at all.
@@ -33,7 +36,7 @@ export function useDiscussions(): DiscussionList {
   const answering = rows.some((row) => row.answering);
 
   useEffect(() => {
-    if (phone) {
+    if (phone || off) {
       setRows([]);
       return;
     }
@@ -72,7 +75,7 @@ export function useDiscussions(): DiscussionList {
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [phone, answering]);
+  }, [phone, off, answering]);
 
   const archive = useCallback(async (target: DiscussionTarget) => {
     setRows((was) => was.filter((row) => row.target !== target));

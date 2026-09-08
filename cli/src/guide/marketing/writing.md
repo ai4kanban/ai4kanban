@@ -38,5 +38,5 @@ hand-write the frontmatter: `akb raw create`, `update`, `update-verify` and
   place; it never writes a second brief onto the card.
 - **The angle, the audience and the hook are the user's**: they are settled in the card's
   own chat, not filed as questions — a marketing card carries none.
-- **Write the title in the board's language**, whatever language this guide is read in. A
-  non-English title also needs `--slug <short-english-slug>`.
+- **Write the title in the board's language**, whatever language this guide is read in. It
+  is frontmatter only — a topic's file is `todo/<id>.md` — so no slug goes with it.

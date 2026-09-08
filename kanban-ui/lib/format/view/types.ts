@@ -99,6 +99,12 @@ export interface CardSchedule {
 export const SOLUTIONS = ['product', 'marketing'] as const
 export type Solution = (typeof SOLUTIONS)[number]
 
+/** The title a topic is written with, before the user has decided on one (#507). A card's
+ *  title is never empty — `create` refuses one — so this is what a blank topic carries and
+ *  what an emptied title box writes back. The topic page draws it in placeholder style, so
+ *  it reads as the absence of a title rather than as a title somebody chose. */
+export const UNTITLED = 'Untitled'
+
 /** How far one channel has got with a topic (#409). Chosen and nothing written yet is the
  *  empty string, not a name of its own — the four below are the steps a draft moves along.
  *  `scheduled`, `published` and a channel's URL are in the shape from the start so the field
@@ -139,7 +145,7 @@ export interface DraftComment {
   at: number
 }
 
-/** One file under `content/<id>-<slug>/` (#411): `source`, or a channel's name. `text` is
+/** One file under `content/<id>/` (#411): `source`, or a channel's name. `text` is
  *  the whole draft — they are a screenful of prose each — and `path` is what the pane names
  *  under the editor, relative to the project. */
 export interface CardDraft {

@@ -9,10 +9,10 @@ rules apply to every card workflow here; each workflow's guide covers the rest.
 docs/kanban/
 ├── todo/           open topics
 │   ├── README.md   the index — read it first
-│   ├── <id>-<slug>.md
-│   │               one card per file — todo/ is flat
+│   ├── <id>.md     one card per file — todo/ is flat. A topic is named off its id alone:
+│   │               its title is frontmatter, so writing one moves nothing
 │   └── recurring/  jobs we repeat (`akb guide recurring-task`) — never archived
-├── content/<id>-<slug>/
+├── content/<id>/
 │                   the deliverable: `source.md`, and `<channel>.md` per chosen channel.
 │                   Tracked in git and kept after the card is archived
 ├── memory/
@@ -55,7 +55,7 @@ create ─▶ implement ─▶ you edit ─▶ channel ─▶ you edit ─▶ pu
 
 A card is a title, its channels and its draft — there is no brief on the card and no
 refining pass over it. The angle, the audience and the hook are settled in the card's own
-chat, and the few lines at the top of `content/<id>-<slug>/source.md` are what `implement`
+chat, and the few lines at the top of `content/<id>/source.md` are what `implement`
 expands.
 
 `akb channel <name> <id>` is a step you take, once `source.md` reads right — one run per
@@ -116,4 +116,4 @@ reused; only `akb raw create` allocates them.
 
 A topic is finished when every channel in `channels:` reads `published` and its line is in
 `published.md`. Then `akb raw archive <id>` — the card leaves the board and its
-`content/<id>-<slug>/` folder stays in git.
+`content/<id>/` folder stays in git.

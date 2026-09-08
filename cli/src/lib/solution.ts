@@ -48,6 +48,11 @@ export const SOLUTION_WORK: Record<Solution, { long: string; short: string }> = 
  *  edits and the review is that edit (#407). */
 export const deliversWithGit = (): boolean => solution() !== 'marketing'
 
+/** Whether a card here is named off its id alone — `todo/<id>.md`, and the `content/<id>/`
+ *  derived from it (#507). True on `marketing`: a topic's title is not decided when it is
+ *  written, so it never reaches a path, `--slug` is refused and no run is told to pass one. */
+export const namedById = (): boolean => solution() === 'marketing'
+
 /** The frontmatter fields one solution's cards do not carry. A marketing card is a topic:
  *  it is picked by hand rather than ranked, it ships to channels rather than to a version,
  *  and its open choices are talked through in the card's chat, not filed as questions

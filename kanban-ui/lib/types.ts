@@ -128,7 +128,7 @@ export type {
   VerifyResult,
   WriteResult,
 } from "./format/view/types";
-export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES, SOLUTIONS } from "./format/view/types";
+export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES, SOLUTIONS, UNTITLED } from "./format/view/types";
 
 // The one read each screen makes (#374) — what the board screen draws, and what a card page
 // draws. The server fills them (lib/board.ts) and the screens take them as one prop.
@@ -181,6 +181,15 @@ export const ALL_RELEASES = "*";
 
 export type { Language, UsageReporting } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
+
+/** What New topic or Discard did (#507): the topic's id, or the reason nothing was written.
+ *  Both are direct board writes with no agent behind them, so there is no session to watch —
+ *  the answer is the whole result. */
+export interface TopicResult {
+  ok: boolean;
+  id?: number;
+  error?: string;
+}
 
 /** One draft's comments after a write, or the reason there are none to show (#458) — a
  *  board whose rules predate the move, which is also the board that draws no comment

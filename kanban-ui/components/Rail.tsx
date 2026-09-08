@@ -30,6 +30,9 @@
 // cards: they have no page of their own, a row opens one in the Create task sheet, and a
 // search never takes one away. At phone width there is no rail at all, so there is no list
 // there either — see DiscussionRow and lib/discussion-list.ts.
+//
+// A marketing board has no such list (#507): every row here opens the create sheet, and that
+// sheet is the planning step a topic does not take. Nothing is polled for it either.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -54,6 +57,7 @@ import { useCardSearch } from "@/lib/card-search";
 import { createSheet } from "@/lib/create-open";
 import { useDiscussions } from "@/lib/discussion-list";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
+import { useSolution } from "./solution";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,8 +107,8 @@ export function Rail({
   const { query, setQuery, matches } = useCardSearch();
   const searching = query.trim().length > 0;
   // The discussions this board is holding (#496). They are not cards, so what is typed in
-  // the box above never takes them away.
-  const discussions = useDiscussions();
+  // the box above never takes them away. A marketing board holds none to draw (#507).
+  const discussions = useDiscussions(useSolution() === "marketing");
 
   // Closing the row you are standing on has to say where to stand instead: the
   // card after it, else the one before, else the board. Closing a row you are

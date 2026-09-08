@@ -37,7 +37,7 @@ import { die, rel, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_RO
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
-import { carriesField, solution } from '../solution'
+import { carriesField, namedById, solution } from '../solution'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
@@ -334,7 +334,7 @@ function workspaceField(delivery: DeliveryRecord | undefined): string[] {
   ])
 }
 
-// The file a marketing build writes: `content/<id>-<slug>/source.md` (#407, #409). It
+// The file a marketing build writes: `content/<id>/source.md` (#407, #409). It
 // belongs to no channel (#457): it is the argument, in the board's language, and every
 // chosen channel's own draft is a later `akb channel` pass — so `channels:` tells this run
 // nothing, and a card that names none still drafts. The card carries no brief (#435): the
@@ -779,8 +779,9 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       }
       close.push(
         // `--slug` only on a board that isn't English (#337): a non-English title slugifies
-        // to nothing, and every card would be named `<id>-task.md`.
-        `${raw} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''}${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
+        // to nothing, and every card would be named `<id>-task.md`. Never where a card is
+        // named off its id alone (#507) — there the flag is refused.
+        `${raw} create --title ".."${translating() && !namedById() ? ' --slug <short-english-slug>' : ''}${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         ...bodyScaffoldClose('then fill only the existing'),
       )
       break

@@ -20,13 +20,14 @@ akb raw create --title "..." --modules <pillar>
 ```
 
 That is the whole card: a title and the pillar it belongs to. `--channels` goes on the
-moment the user says which channels this goes to; leave it off until then. A non-English
-title also needs `--slug <short-english-slug>`.
+moment the user says which channels this goes to; leave it off until then. A topic is
+`todo/<id>.md` — the title never reaches the filename, so `--slug` is refused here and a
+non-English title needs nothing extra.
 
 ## Then write the brief, in the draft
 
 The card carries no body. Write a few lines at the top of
-`docs/kanban/content/<id>-<slug>/source.md` — make the folder — saying:
+`docs/kanban/content/<id>/source.md` — make the folder — saying:
 
 - **the angle**: what this piece argues, in one sentence;
 - **who it is for**, and what they already believe;

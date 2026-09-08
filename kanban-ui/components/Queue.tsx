@@ -91,9 +91,16 @@ const NARROW_W = "w-[min(300px,calc(100vw-2rem))]";
  *  has been archived. The columns are three empty lists saying the same thing three times,
  *  so the body becomes one panel that says it once and offers the first card. A read-only
  *  caller gets the panel without the offer: `onCreate` is absent there, and a button that
- *  writes nothing is worse than no button. */
+ *  writes nothing is worse than no button.
+ *
+ *  A marketing board offers a topic instead (#507), and what it says is what marketing work
+ *  starts from — source material, not a plan. */
 export function EmptyBoard({ onCreate }: { onCreate?: () => void }) {
-  const c = useCopy().board.queue.emptyBoard;
+  const e = useCopy().board.queue.emptyBoard;
+  const marketing = useSolution() === "marketing";
+  const c = marketing
+    ? { title: e.topicTitle, blurb: e.topicBlurb, create: e.topicCreate }
+    : { title: e.title, blurb: e.blurb, create: e.create };
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center p-4">
       <div className="nb-panel flex w-full max-w-[460px] flex-col items-center px-10 py-9">

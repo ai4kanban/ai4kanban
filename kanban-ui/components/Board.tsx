@@ -466,7 +466,8 @@ export function Board({
 
           {board && noCards && !planSessionId ? (
             // The offer only where a card can actually be written: a read-only caller has
-            // no create sheet to open.
+            // nothing to open. The ask goes to the header's control either way — the create
+            // sheet on a product board, one New topic press on a marketing one (#507).
             <EmptyBoard onCreate={actions ? () => createSheet.open() : undefined} />
           ) : board ? (
             <QueueView columns={columns} sessions={sessions} onOpenLog={setLogSessionId} />

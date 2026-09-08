@@ -462,7 +462,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         [
           `${kb}. You are the \`${req.specAgent}\` write agent on task ${req.id} ${named}.`,
-          `Read the card, do only what you were asked for, and write your files into ${folder ?? "that topic's `content/<id>-<slug>/` folder"} — nothing outside it.`,
+          `Read the card, do only what you were asked for, and write your files into ${folder ?? "that topic's `content/<id>/` folder"} — nothing outside it.`,
           `Never \`source.md\`, never a channel's draft, never the card, never project code.`,
           memory ? `You keep a memory of this board, below. Follow it — this run does not write it back.` : '',
           req.notes ? `What the writing run that asked for you wants: ${req.notes}` : '',

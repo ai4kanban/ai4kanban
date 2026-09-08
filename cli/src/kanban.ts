@@ -92,12 +92,24 @@ export { createAgent, deleteAgent, readAgents, saveAgentFile, setAgentRule } fro
 
 // A marketing card's drafts and its channels (#411) — what the board UI's drafts block is
 // drawn from and acts through. Reading and writing a draft is a file under
-// `content/<id>-<slug>/`; a repurpose is the `channel` command with every check it makes;
+// `content/<id>/`; a repurpose is the `channel` command with every check it makes;
 // publishing is `raw channel-status`, which records where the piece went up and posts
 // nothing; choosing the channels is `update --channels`. A product board never draws the
 // page, so nothing here is ever called on one.
-export { readDrafts, repurposeChannel, saveDraft, setChannels, setChannelStatus } from './lib/view/drafts'
-export type { RepurposeAsk, RepurposeResult } from './lib/view/drafts'
+//
+// New topic and Discard (#507) are the two ends of the same page: `raw create` writing a
+// blank topic the editor opens on, and `raw reject` taking one off again. Neither starts an
+// agent — a topic nobody has written yet has nothing to ask one.
+export {
+  discardTopic,
+  newTopic,
+  readDrafts,
+  repurposeChannel,
+  saveDraft,
+  setChannels,
+  setChannelStatus,
+} from './lib/view/drafts'
+export type { RepurposeAsk, RepurposeResult, TopicResult } from './lib/view/drafts'
 
 // The comments a reader leaves on one draft, and the polish they are submitted to (#458).
 // A comment is saved on its passage rather than sent, so a whole read-through costs one

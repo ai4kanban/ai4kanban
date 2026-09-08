@@ -173,7 +173,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .summary("a named agent that writes part of a topic's draft folder")
     .description(
       'It is a run of its own: it starts clean, with the card and your note and nothing else, and it ' +
-        'writes files inside `content/<id>-<slug>/` — never `source.md`, never a channel draft, never ' +
+        'writes files inside `content/<id>/` — never `source.md`, never a channel draft, never ' +
         'the card. A project adds one under docs/kanban/agents/<name>/AGENT.md with `kind: write`. ' +
         'Asked for from inside a run, it is written down rather than started, and the board starts it ' +
         'the moment that run ends. Marketing boards only.',
@@ -201,7 +201,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .summary("repurpose a topic's draft for one channel")
     .description(
       "It is a run of its own: it reads that topic's `source.md` and writes " +
-        '`content/<id>-<slug>/<name>.md` in the channel\'s own language — or in `--language`, for this ' +
+        '`content/<id>/<name>.md` in the channel\'s own language — or in `--language`, for this ' +
         'one repurpose — and changes nothing else. Run it once `source.md` reads right — nothing ' +
         'follows the write run on its own. A draft already there is never silently replaced. ' +
         'Marketing boards only.',

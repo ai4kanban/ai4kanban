@@ -13,7 +13,7 @@ import { countsForRecord, recordFact, type Answerer, type Origin } from '../lib/
 import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
 import { CHANNEL_NAMES, CHANNEL_STATUSES, asChannelStatus, chooseChannels } from '../lib/channels'
 import { flowRefusal } from '../lib/agent/flows'
-import { carriesField, solution } from '../lib/solution'
+import { carriesField, namedById, solution } from '../lib/solution'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { readDecidedOp, type DecidedInput } from '../lib/decided'
@@ -76,6 +76,18 @@ function recurringBody() {
 function refuseGoneField(field: string, why: string, flag = `--${field}`): void {
   if (carriesField(field)) return
   die(`${flag} is not a \`${solution()}\` card's — ${why}.`, { kind: 'wrong-solution', solution: solution() })
+}
+
+// `--slug` on a board that names a card off its id alone (`namedById`, ../lib/solution.ts).
+// Refused rather than ignored: it would part the card from the draft folder derived from
+// its name. A recurring job keeps its slug on either board.
+function refuseTopicSlug(recurring: boolean): void {
+  if (recurring || !namedById()) return
+  die(
+    `--slug is not a \`${solution()}\` card's — a topic is \`todo/<id>.md\` and its drafts are \`content/<id>/\`, ` +
+      'so a slug would rename the card away from its own draft folder. The title is frontmatter; change that instead.',
+    { kind: 'wrong-solution', solution: solution() },
+  )
 }
 
 // How often a recurring card repeats, as `--cadence` gives it: one of the forms in
@@ -168,8 +180,16 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   const questions = collectQuestions(opts.asked ?? [])
   warnBadQuestionTags(questions)
   const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, recurring, questions) : null
+  // A marketing topic is named off its id alone (#507) — `todo/<id>.md`, and `content/<id>/`
+  // derived from it — so the title lives in frontmatter only and a retitle moves nothing. A
+  // recurring job is the same job on either board, so it keeps its slug.
+  if (opts.slug !== undefined) refuseTopicSlug(recurring)
   const slug = slugify(opts.slug !== undefined ? opts.slug : title)
-  const fileRel = recurring ? path.join(RECURRING, `${start}-${slug}.md`) : `${start}-${slug}.md`
+  const fileRel = recurring
+    ? path.join(RECURRING, `${start}-${slug}.md`)
+    : namedById()
+      ? `${start}.md`
+      : `${start}-${slug}.md`
   const file = path.join(TODO, fileRel)
   if (fs.existsSync(file)) die(`${rel(file)} already exists — pick a different --slug`)
 
@@ -178,7 +198,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   bumpMetric('created')
   const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, cadence, questions }
   // A marketing topic card carries no body: the piece is the deliverable, and it lives in
-  // `content/<id>-<slug>/` (#435). A recurring job is the same job on either board, so it
+  // `content/<id>/` (#435). A recurring job is the same job on either board, so it
   // still gets its `## Process`.
   const scaffolded = opts.body !== false && (recurring || solution() !== 'marketing')
   const body = !scaffolded ? '' : recurring ? recurringBody() : defaultBody()
@@ -320,6 +340,7 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   let base = path.basename(file)
   if (flags.slug !== undefined) {
     if (found.kind === 'group') die('renaming a group root by script is not supported')
+    refuseTopicSlug(isRecurringCard(found))
     base = `${id}-${slugify(flags.slug)}.md`
   }
   // A card never changes folders: --slug at most renames the file where it sits.

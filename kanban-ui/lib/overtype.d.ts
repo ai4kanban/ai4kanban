@@ -34,6 +34,11 @@ declare module "overtype" {
     /** The textarea the user actually types in. Its `selectionStart`/`selectionEnd` are
      *  offsets into the file itself, which is what a comment records with its passage. */
     textarea: HTMLTextAreaElement;
+    /** The shim the library draws where the caret is while the textarea is empty — its own
+     *  metrics, so what it says lands exactly where the first word will. The page writes it
+     *  per draft (#507): the source's invitation, and nothing on a channel, which says what
+     *  it is instead over the whole pane. */
+    placeholderEl?: HTMLElement;
     getValue(): string;
     setValue(markdown: string): void;
     destroy(): void;

@@ -38,6 +38,8 @@ export function walkDirs(dir: string, acc: string[] = []): string[] {
 // `docs/kanban/todo/` is flat — one card per file:
 //
 //   todo/<id>-<slug>.md                    a card
+//   todo/<id>.md                           a MARKETING topic — the slug is the title's, and
+//                                          a topic's title is not decided yet (#507)
 //   todo/<id>-<slug>/root.md               a GROUP task — one card
 //                    <sub>-<slug>.md       its subtasks
 //   todo/recurring/<id>-<slug>.md          the one reserved folder (see isRecurringCard)
