@@ -32,5 +32,8 @@
         "model": "fable"
       }
     }
-  ]
+  ],
+  "agentRuntime": {
+    "discussion-helper": "codex"
+  }
 }

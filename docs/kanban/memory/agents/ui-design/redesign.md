@@ -38,6 +38,9 @@
   shape for the same state reads as a second state.
 - **A pane has no title of its own**: the sidebar already names it, and the captions are
   the whole of the structure.
+- **A source is a type plus its own key/value pairs, never one free-text string**: draw the
+  type's mark and name from one table, then the values it carries. Never a row shape per
+  connector, and nothing at all where the item named no type.
 
 ## Saying no, and saying nothing
 
@@ -121,7 +124,9 @@
 - **The render script must SIT in `kanban-ui/` and be RUN from there**: Node looks beside
   the script, so one in `/tmp` cannot resolve `sucrase`, `tailwindcss` or `react-dom/server`.
 - **Give sucrase the `imports` transform too** (`['typescript', 'jsx', 'imports']`), or the
-  leftover `export` is a syntax error in the sandbox.
+  leftover `export` is a syntax error in the sandbox. It writes to `exports`, so the sandbox's
+  `module.exports` and `exports` must be ONE object — two objects, and the default export
+  comes back `undefined` as "Element type is invalid".
 - **`compile()` is async and will not read a stylesheet for you**: `compiler.build is not a
   function` means a missing `await`, and `@import "tailwindcss"` throws until the call is
   handed a `loadStylesheet`.
@@ -144,3 +149,6 @@
 - **When no browser will start, measure instead of guessing**: add the frame up by hand,
   render to HTML anyway to prove the component runs, and say in the report that the frame
   was never seen.
+- **整理记忆看起来像链接项，周期像必选项**：改为明确的 CTA，进入 Configurations → Agent → Memory Pruner；用户开启定期整理后才显示周期设置。
+- **Correct direction can still be misleading UI**: preserve the current screen’s complete layout and control sizes when adding a feature; do not replace it with a simplified settings page.
+- **定期整理独占一行太丑**：收成「立即整理」旁的小控件，点击才展开周期设置。

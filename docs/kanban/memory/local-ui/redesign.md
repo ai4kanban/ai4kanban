@@ -59,6 +59,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   transcript** (the chat's agent and model on a row between the header and the conversation)
   → ✅ it goes inside the message box, on the box's own bottom row beside Send, and the box
   carries no rule above it. What answers the message belongs where the message is written.
+- ❌ **A row works out where an item came from by matching free text against a table of
+  platforms, and draws a generic mark when nothing matches** → ✅ the item names a source
+  type from a predefined list and carries the rest — subreddit, author — as its own
+  key/value pairs. One row draws every source, a type the table doesn't know draws its
+  name alone, and an item that named no type draws no source at all.
 
 ## Runs and deliveries
 
@@ -181,8 +186,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Runtime rows repeat harness names beside logos and use vague action words as states** → ✅ let the logo identify the harness, name the actual state, and keep concise local-storage notes beside their fields.
 - ❌ **A runtime editor replaces the existing harness card grid with a dropdown and exposes all settings** → ✅ reuse the existing grid and collapsed advanced settings; only reduce card size and spacing to fit.
 
-## Marketing editor
+## Runtime and agent controls
 
-- ❌ **A channel opens empty and asks to draft again** → ✅ Repurpose at the end of the tab bar drafts and opens the channel; its dropdown excludes opened channels.
-- ❌ **Channel labels collapse to icons to fit the window** → ✅ keep labelled tabs and make the tab bar horizontally scrollable.
 - ❌ **Runtime Delete sits below a long settings form** → ✅ place it at the right of the runtime title; use the existing hard-shadow button for Test connection.
+- ❌ **Memory maintenance looks like a file row and opens a separate popover** → ✅ use a clear 整理记忆 button linking to Configuration → Agent → Memory Pruner.
+- ❌ **An agent feature mockup replaces the current roster and detail layout** → ✅ retain the current Agent pane and add the feature’s controls inside the selected agent’s detail.
+- ❌ **Optional scheduling occupies a full settings row** → ✅ keep it beside the manual action as a compact control that opens its settings on demand.

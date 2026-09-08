@@ -75,6 +75,9 @@ before proposing so you don't re-suggest them.
 - **A card carrying its own acceptance check, run before the card closes** — review already
   judges the delivery against the approved card. What only a person can confirm goes under
   **check by hand**, and making those a gate stalls a board on notes nobody comes back to.
+- **Teaching the recurring-task flow to set a cadence** — the card was never written past
+  the template, and the flow already covers it: `--cadence` exists and `recurring-task`
+  says to leave it off unless the user asks for a schedule.
 - **release-completeness, a score for how right a release plan turned out** — nothing runs
   at the moment a plan is finished, so there is no roster to compare the close against, and
   the work that belonged in the plan and was never written down needs a person to say so.

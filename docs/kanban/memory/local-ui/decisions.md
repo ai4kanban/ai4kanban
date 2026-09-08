@@ -22,6 +22,9 @@ re-ask a settled call.
   one pixelart character per agent — the switch on the tile, and the agent's rule, what it
   remembers and its settings read by selecting the tile. It ships as characters from the
   first release, and its art ships as files, unlike the Runs fleet.
+- **AI review is switched on the reviewer's tile**: the Agents pane is the switch's only
+  home, and Configuration → General → Delivery keeps just automatic commits and diff
+  approval.
 - **A specialist you add is written in the pane**: its whole `AGENT.md` is a box on its page,
   saved the way a rule is, and Add a specialist ends with the cursor in it. The app never
   learns to open a local file in your editor.
@@ -184,24 +187,7 @@ re-ask a settled call.
   behind it", because the file is the drawing — and a narrow window scrolls it sideways
   rather than re-wrapping columns that would stop being the drawing.
 
-## The marketing card page
-
-- **A card's channels are picked on the page, not asked for**: the tab strip's picker lists
-  the channels this card has not chosen and adds the picked one as a tab, so nothing waits
-  on a run.
-- **Closing a channel tab drops the channel from the card**: the card's channel list is the
-  only record of which tabs exist, so a close loses that channel's status and URL while the
-  draft file stays and reopening brings it back.
-- **The draft editor keeps the syntax marks on screen**: headings, bold and links take
-  their styles as you type while `##` and `**` stay in the line, so a draft is edited
-  exactly as it sits in the file the agent wrote.
-- **A batch of draft comments is cleared once its polish returns**: the polished draft is
-  the answer, so no comment stays behind as resolved and there is no list to dismiss.
-
 ## Views and filters
-
-- A marketing board draws one column of cards plus the recurring one: there is no `ready`
-  stage to split them by, so the ready/not-ready halves collapse into a single column.
 
 - The queue view regroups the whole board and hides nothing. The release dropdown is the
   one place the board hides cards, and blockers stay on screen whatever is picked, since an
@@ -254,6 +240,12 @@ re-ask a settled call.
 - An agent that cannot see images turns a pasted image away at the box: it says so, names
   the agents that can, and writes and sends nothing — rather than passing a path on and
   letting the agent answer that it cannot open the file.
+- **Pictures never send alone in Add task and Build now**: Send stays off until something is
+  typed, so a screenshot always arrives with the words saying what it is for — unlike Discuss,
+  where a picture on its own is already a message.
+- **A runtime picked on the create sheet lasts one send**: Add task and Build now open on the
+  planner's and the builder's own runtime every time, so a one-off pick never becomes the
+  board's default.
 
 ## Notifications
 

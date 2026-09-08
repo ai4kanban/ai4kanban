@@ -23,6 +23,13 @@ run plans cards from loose notes: it reads a passing aside as a requirement, and
 the parts nobody said. Put one step in front of the card writing — turn the material into a
 short brief first, and plan from the brief.
 
+## Worth noting
+- **`akb guide extract-ideas` does not already cover this**: it reads an article as evidence
+  and may rightly come back with nothing, while a request the user is making must produce
+  cards and say what the material left unsaid, so the brief stays a step of its own.
+
+<!-- agent -->
+
 ## Scope
 - One step in front of the card writing, for a task idea the user gave in their own words —
   typed, in a file (#252), or spoken (#253).
@@ -35,6 +42,8 @@ short brief first, and plan from the brief.
 - What comes out is a short brief with a fixed shape: what is wanted, why it matters, what
   is explicitly out, and what the material never says.
 - The brief carries only what the material says.
+- The brief's reading rules are the ones `akb guide extract-ideas` already states — read the
+  whole material, treat a suggested solution as an idea to test — pointed at, not restated.
 - Anything the material never says is listed as unknown, never filled in.
 - Every line of the brief can be traced back to the material it came from.
 - Long material is read whole. Nothing is dropped for being far down the file.
@@ -74,3 +83,12 @@ short brief first, and plan from the brief.
 - **Why a source and a written plan skip it**: extract-ideas reads a source as evidence and
   quotes its own words back into each card's `## Source`; #157 promises every part of a spec
   becomes work. A short reading in front of either thins what it has to judge.
+- **Where `extract-ideas` stops**: `akb guide add-task` routes a direct task idea past it,
+  and its "strong signal only, zero candidates is valid" rule discards weak material — right
+  for an article, wrong for work the user is asking for.
+- **What `extract-ideas` never produces**: it names nothing the material leaves unsaid and
+  leaves no artifact between the material and the cards, which are the two things the brief
+  exists to give.
+- **Provenance differs too**: extract-ideas creates cards with `--proposed` and a `## Source`,
+  marking work the board found; a card written from the user's own words was asked for and
+  has no source to cite.

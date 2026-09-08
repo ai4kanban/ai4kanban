@@ -215,11 +215,7 @@ covers it, or a plain-words note.
   taken or sent back, and the agent itself curates the file. `ui-design` declares it;
   `technology-selection` does not. `memory/agents/` is reserved — `akb raw memory-init agents`
   is refused: "Give an agent memory" in `web/content/docs/agents.mdx`.
-- A marketing board's writer can **call in a `write` agent** rather than be replaced by one:
-  a build or `akb channel` carries the roster of the board's `kind: write` agents and asks for
-  one by name — `akb write <agent> <id> <note>` — which the board starts alone once that run
-  ends. It writes files inside `content/<id>-<slug>/` and never `source.md`, a channel draft
-  or the card, and it has no `--print`: `akb guide write-agent`, on a marketing board.
+
 - `technology-selection` comes back with one table — two or three candidates, what each is,
   pros and cons — and one line naming the pick. Keeping what the project already uses and
   writing it yourself are rows on the same terms, and every name is looked up before it is
@@ -332,37 +328,9 @@ covers it, or a plain-words note.
   printed flow spells that board's own path in place of `docs/kanban`: `cli/README.md`.
 - A board says what its work IS in one `- **Solution**` line in its own `config.md` — `product`
   (a board with no line, which is every board made before this) or `marketing`. The solution
-  picks the flow text `akb guide` and every `--print` hand over: `marketing` replaces `board`,
-  `writing`, `implement`, `add-task`, `extract-ideas` and `prune-memory`, adds `channel` and
-  `write-agent`, drops `resolve`, `plan-release`, `changelog`, `qa-loop`, `qa-lightweight` and
-  `releases`, and inherits the rest. Four flows are refused there outright: `akb card refine`,
-  `akb card resolve`, `akb release plan` and `akb release changelog` — off the local UI's action
-  set and off the marketing planner's list too, and never scheduled or followed up with, so
-  `ready` is a stage its cards never reach and `--status ready` is refused as well.
-  `akb install --solution marketing` scaffolds that layout — `content/`, `skills/`, `rules/`, and a memory set of `decisions.md`,
-  `rejected.md`, `writing.md` and `published.md`, with no goal, redesign, readme, releases or
-  setup checklist — and a build on it writes `content/<id>-<slug>/source.md` in the repo with no
-  worktree, branch, review or landing.
-- A marketing card is a **title, its channels and its draft** and nothing else (#435). It carries
-  no `priority`, `roi`, `release` or `questions` — `serializeFrontmatter` leaves all four off on
-  that solution, so every move that rewrites a card leaves them off, and `unpackBoard` writes the
-  fields the payload's own `config.md` names rather than this process's board. `akb raw create`
-  writes no body scaffold and raises no "has no todos" warning there; `akb raw validate` asks for
-  neither the four fields nor the sections, halves, order or `## Todo` checkboxes on a card under
-  `todo/`, so an empty body passes — a card under `todo/recurring/` keeps every rule, and the H1,
-  fence, comment, duplicate-section and `<Mockup>` checks hold on both. `--priority`, `--roi`,
-  `--release`, `--question` and `akb raw update-questions` are refused. The brief is the few lines
-  at the top of `content/<id>-<slug>/source.md`, which `implement` expands in place.
-- A marketing card names the **channels** it goes to in `channels:`, lead channel first — the
-  four are `x`, `linkedin` and `reddit` in English and `xiaohongshu` in Chinese, and a channel
-  is that name and language and nothing else. `akb raw update <id> --channels <names>` chooses
-  them and `akb raw channel-status <id> <channel> <status> [--url]` moves one along;
-  `akb channel <name> <id>` is a run of its own that repurposes the topic's `source.md` into
-  `content/<id>-<slug>/<channel>.md` and marks that channel `draft`. It refuses a channel the
-  card has not chosen, a topic with no `source.md`, a non-marketing board, being typed inside a
-  run, and a draft already written unless `--again` says to replace it. `akb guide channel` is
-  the flow, and marketing's `akb guide prune-memory` splits a rule that stopped holding
-  everywhere out of `writing.md` into `memory/writing/`.
+  picks the flow text `akb guide` and every `--print` hand over; each solution supplies its own
+  overrides and additions.
+
 - `akb telemetry status|on|off` reads and changes anonymous usage reporting for the machine,
   never prompting, so a terminal-only user can turn it off without opening the app. The answer
   is on when absent and lives beside the language in `~/.ai4kanban/settings.json`; turning it
@@ -432,3 +400,11 @@ covers it, or a plain-words note.
 - `validate-on-reddit` is gone from the flows. No flow routed to it and it wrote outside the
   board, so `akb guide` lists one row fewer. Testing a move by posting is an ordinary card,
   repurposed through `channel`, with voice from `memory/writing/`.
+
+- Pruning the memory is an agent, not a recurring card. `akb prune-memory` is a flow of its own
+  — the Memory pruner's, over the project's memory, each module's and the agents' — and it names
+  no card, writes no card and leaves no `verify:` line. The board starts one by itself only when
+  recurring pruning is switched on with a cadence it can read, and a pass that failed is not
+  fired again until the next window. A fresh board no longer seeds a "Prune the memory" card, and
+  a board that has one loses it on the next `akb update`, its cadence kept beside the agent and
+  switched off.

@@ -316,11 +316,7 @@ naming no other doc is covered there.
   opens the box straight away, and turns back into **Goal** once it holds your words.
 - A board with no card on it shows one panel in place of the columns: what an empty board is,
   and **Create the first card**, which opens the create sheet.
-- A **marketing board draws one card column** — **Topics**, with every open topic and how many
-  are being written — beside Recurring, since a topic never reaches "ready". Its cards wear
-  their channels where a product card wears priority and ROI, the header has no release picker,
-  the card page offers neither Refine nor Resolve, and Implement opens with no "not marked
-  ready" warning to tick.
+
 - **Build clear cards automatically** is the first row of Configuration → General → Delivery
   and the only one that decides whether a delivery starts at all. Off by default; on, the
   ready gate judges each card whose plan settles and builds the ones it passes. Its own
@@ -356,3 +352,20 @@ naming no other doc is covered there.
   three switches, not four — **Build clear cards automatically** is gone, and **Gater** is a row
   on Configuration → Agents beside Decider, with its own switch, connector, instructions box and
   `Runs when` line. A board that already had the gate on finds Gater on.
+
+- **Both chat boxes take a dragged picture**: image files dropped on the chat rail's message
+  box, or on the create-task view's Discuss box, go in the way a paste does — several to a
+  drop, as removable thumbnails that only attach on Send. The whole box is the target and it
+  wears the accent while files are over it, its foot row saying they go in on release. A
+  dropped file that is not a picture is named where a refused paste says so, and pictures that
+  came with it still go in. A file dropped anywhere else in the window does nothing: the board
+  stays where it is and the unsent draft survives.
+
+- **Prune memory is a button, not a card**: the Memory panel in the rail and the phone's Memory
+  screen lead with **Prune memory**, which opens Configuration → Agents on the Memory pruner's
+  page. **Run now** there starts one pass and reads **Running…** while it goes; a compact
+  **Recurring pruning** chip beside it opens the opt-in and, once on, the cadence — neutral
+  while off, showing the cadence while on, and opening it enables nothing. A cadence the board
+  cannot read is refused in place and leaves the schedule off. Under the pair, quiet text says
+  **Never run** until the first pass that passed, then its time; a pass that failed says so
+  beside Run now and leaves that time where it was.

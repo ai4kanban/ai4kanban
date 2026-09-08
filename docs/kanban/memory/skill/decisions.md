@@ -137,6 +137,13 @@ re-ask a settled call.
 - A built-in background job ships as a seeded card in `todo/recurring/`, run when the user
   sets a cadence — never as its own UI switch with its own state file. The card is the
   visible, editable record; deleting it is the opt-out, and nothing re-adds it.
+- **Memory pruning is the exception**: it is the Memory pruner agent, not a card. **Prune
+  memory** in the Memory panel — and on the phone's Memory screen — opens that agent's page
+  in Configuration → Agents rather than starting a run; **Run now** there is the pass, and a
+  prune raises nothing for a human to review. Recurring pruning is opt-in behind a compact
+  chip on the same page and starts Off, including after migration; the cadence and the last
+  successful pass live in `docs/kanban/ui.config.json`. A board still carrying the old prune
+  card loses it once on the next repair, keeping its cadence as an inactive preference.
 - A cadence is always the units grammar — `30m`, `2h`, `1d`, `1d at 09:30`. There is no word
   form like `daily`, so nothing has to translate between two.
 
@@ -337,40 +344,3 @@ re-ask a settled call.
   draft → repurpose → edit → publish, which shares little with the product's
   add-task → refine → implement → archive; what the two really do share moves into the
   kernel at the extraction, not before.
-
-## Marketing
-
-- **A channel is a name and a language, not a skill**: `akb channel <name> <id>` carries one
-  built-in instruction — repurpose `source.md` for that channel in that channel's language —
-  and there is no per-channel instruction file to edit. `x`, `linkedin` and `reddit` are
-  English, `xiaohongshu` is Chinese, and the four ship inside the command.
-- **The writing memory is what decides quality**: `memory/writing.md` and the files under
-  `memory/writing/` are where the user's taste lives, so a rule learned on one channel
-  reaches every channel it fits. Nothing declares formats.
-- **A learned rule is filed inside the writing memory**: a polish appends a rule that holds
-  for every piece to `memory/writing.md` and one bound to a channel, language or format to
-  its own file under `memory/writing/` — never beside `decisions.md` in `memory/`.
-- **Repurposing does not follow the write run**: the user runs `akb channel` per channel
-  once `source.md` reads right.
-- **Publishing is local-first, never a channel API**: a piece goes out from a browser the user
-  is already signed into on their own machine — the vendored 小红书 skill, or the channel's
-  own composer carrying the draft. No developer account is funded and no token is
-  kept alive, so X and LinkedIn numbers stay whatever the user last typed.
-- **A repurpose run is one pass; the loop is a step of its own**: `akb channel` only shortens
-  or expands `source.md` into the channel's shape and stops. `akb marketing verify` is what
-  the user runs next, and it loops — a fresh session judges the draft against the writing
-  memory, a fix run answers its report, and it repeats to three passes. There is still no
-  clarify or QA phase on a draft: the loop reads written-down rules, not the topic.
-- **A user `write` agent adds to the writer, never replaces it**: the bundled writer keeps
-  writing the draft and calls a named specialist — an image generator, say — when one helps,
-  the way a planning run asks for a spec agent.
-- **A marketing card has no `ready` stage**: with no refine to vet a topic, a card only moves between `todo` and `implementing`, and the board is one column of cards plus the recurring one — nothing on the board says which topic is written next.
-- **The verifier is a namespaced command**: `akb marketing verify <channel> <id>`, not a
-  top-level `akb verify`.
-- **A format change takes the cards already open with it**: cutting the marketing card down
-  rewrites the topics already in flight rather than grandfathering them — their unanswered
-  angle and channel options become a few lines of angle at the top of `source.md`, and the
-  board never carries two card formats at once.
-- **A marketing card has no lead channel**: `source.md` is the argument and belongs to no
-  channel, so `channels:` is only the set of channels the topic goes to, in the order the
-  user picked, and every chosen channel is repurposed from the source.

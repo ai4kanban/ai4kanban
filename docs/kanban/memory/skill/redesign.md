@@ -43,6 +43,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   fact the card does not carry, stamp it on the card at the moment it becomes true — an
   optional frontmatter field written only when set, the way `last_run` is. `record.csv` counts
   events for the score; it is not where a card's own facts live.
+- ❌ **A path is named off a title the user has not decided yet, and a rename fixes it
+  later** → ✅ name the file off the id alone. A rename has to pick the instant a title
+  counts as written, and a title box that saves as it is typed makes that instant the first
+  keystroke.
 
 ## Idea intake
 
@@ -156,6 +160,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A mockup is plain HTML, styled by hand to look like the project** → ✅ write it in the
   stack the board UI already runs, so the file is the screen and not scaffolding around it.
   A plain `.html` page stays accepted for a screen that is not a component.
+- ❌ **Plan a screen in prose and call the card ready** → ✅ a card that changes what the user
+  sees carries a drawing before it leaves planning. Scope bullets and todos read as agreed
+  while every reader is picturing a different screen.
 - ❌ **Call a mockup drawn by an outside engine "self-contained" and stop there** → ✅ name
   the board's sandbox as the constraint: the iframe loads no scripts, no network, no
   webfonts and no images, so styles must be inline, fonts must be system stacks and art must
@@ -171,3 +178,4 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   capability against the installed runtime and declare it on the harness — ZCode reports a
   session id at `session/create` and still cannot resume it, because the session only
   reaches its store on the first prompt.
+- ❌ **Memory pruning assumes a recurring schedule, including on migration** → ✅ keep manual pruning available and recurring pruning Off until the user opts in.

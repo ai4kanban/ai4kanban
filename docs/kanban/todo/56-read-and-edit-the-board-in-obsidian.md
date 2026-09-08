@@ -14,6 +14,13 @@ questions:
 Let a user read and edit the board in Obsidian. The user opens the board folder in the
 repo as a vault, and every card reads like a normal Obsidian note.
 
+## Worth noting
+
+- **The switch goes in `docs/kanban/ui.config.json`.** Every board setting lives in the
+  file that already exists, so this card creates no file and adds one key to that one.
+
+<!-- agent -->
+
 ## Scope
 
 - This is a format option on the markdown board, not a second backend. Same files, same
@@ -103,11 +110,6 @@ repo as a vault, and every card reads like a normal Obsidian note.
 - [ ] In the guide: when the backend is not the markdown board, the Obsidian switch is
       ignored, because there is no card file to write.
 - [ ] Add a line to `web/` copy about Obsidian support (doc only — do not touch page code).
-
-## Decided
-
-- **The switch goes in `docs/kanban/ui.config.json`.** Every board setting lives in the
-  file that already exists, so this card creates no file and adds one key to that one.
 
 ## Decided by the agent
 
