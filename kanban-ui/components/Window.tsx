@@ -127,7 +127,7 @@ export function Window({
   /** True while this page is showing the archive — the list, or one card in it (#380). It
    *  is what highlights the rail's Archive row and takes the highlight off All cards. */
   currentArchive?: boolean;
-  /** True while this page is showing the market signal inbox (#453) — what highlights its
+  /** True while this page is showing the inbox (#453, #499) — what highlights its
    *  rail row and takes the highlight off All cards. */
   currentSignals?: boolean;
   /** The modules the rail's Memory panel offers, from the board read every page already
@@ -188,8 +188,8 @@ export function Window({
     [phone, router],
   );
   const bell = useBellRail({ projectRoot, onAlerts: raiseNotifications, onOpenCard: goToCard });
-  // Whether this board and this account may use the market signal inbox at all (#453), and
-  // how many signals are waiting. Asked here rather than on each page so every screen offers
+  // Whether this board and this account may use the inbox at all (#453), and how much is
+  // waiting in it. Asked here rather than on each page so every screen offers
   // the same rail.
   const signals = useSignalsRow();
   foldBellRef.current = bell.fold;

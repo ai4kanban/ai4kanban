@@ -783,21 +783,22 @@ export interface ScoreView {
  *  it is there: a failure must not fall through to the "no evidence yet" note. */
 export type ScoreResult = { ok: true; view: ScoreView } | { ok: false; error: string }
 
-// ---- the market signals waiting to be looked at (#453) ---------------------
+// ---- the inbox: anything that might become work (#453, #499) ---------------
 
-/** One signal in the inbox — a lead somebody may turn into a card, and not a card. */
+/** One item in the inbox — something worth turning into a card, and not yet a card. */
 export interface Signal {
-  /** The id the source platform gave it. Its identity: two pulls of the same post carry
-   *  the same one, and that is what the inbox and `handled.md` are keyed on. */
+  /** Its identity: two pulls of the same post carry the same one, and that is what the
+   *  inbox and `handled.md` are keyed on. Derived when nothing supplies one. */
   sourceId: string
   title: string
-  /** The post's own words, as the endpoint sent them. */
+  /** Its own words — the post, the pasted text, or what the dropped file is. */
   summary: string
-  /** Which platform it came from — free text, so any endpoint can be connected. */
-  platform: string
-  /** The post itself. */
+  /** Where it came from — a site name, `PDF`, a newsletter, a file name. Free text, so
+   *  any endpoint can be connected. Empty when nothing said. */
+  source: string
+  /** The thing itself, when there is one to open. Empty otherwise. */
   url: string
-  /** When the data platform collected it, `YYYY-MM-DD HH:MM` local. What the list sorts on. */
+  /** When it was collected, `YYYY-MM-DD HH:MM` local. What the list sorts on. */
   collectedAt: string
   /** When this board wrote it into the inbox, same form. */
   importedAt: string
@@ -816,7 +817,7 @@ export interface SignalConfigGap {
 export interface SignalInbox {
   /** The folder, from the repo root — what the heading names. */
   relPath: string
-  /** Every signal in it, newest collected first. */
+  /** Everything in it, newest collected first. */
   signals: Signal[]
   /** The newest import stamp among them, or empty when the inbox is. Read off the signals,
    *  so dismissing the newest one moves it back rather than forward. */
@@ -824,6 +825,18 @@ export interface SignalInbox {
   /** What is still to be filled in before a fetch can run. Empty when both are set. */
   missing: SignalConfigGap[]
 }
+
+/** What **Add to inbox** was handed: what was pasted, a dropped file, or both. One of the
+ *  two has to carry something — an add with neither is refused. */
+export interface InboxDrop {
+  /** Pasted text, or a link on its own. */
+  text?: string
+  /** A dropped file: its name, what the browser called it, and its bytes. */
+  file?: { name: string; type: string; data: Uint8Array }
+}
+
+/** What one add did. The failure carries the one sentence the page shows. */
+export type InboxAddResult = { ok: true; signal: Signal } | { ok: false; error: string }
 
 /** Whether the inbox is open to this board and this account at all. Closed carries the one
  *  sentence a person is told — Marketing boards and un-admitted accounts are not in the

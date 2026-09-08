@@ -1,4 +1,4 @@
-// Where the board pulls its market signals from (#453).
+// Where the board pulls its inbox from (#453).
 //
 // Two settings, in the two places the board already keeps settings: the endpoint is a line
 // in `config.md`, like every other project setting, and the token is a key in

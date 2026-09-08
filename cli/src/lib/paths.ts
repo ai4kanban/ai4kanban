@@ -116,10 +116,10 @@ export let PLANS = ''
 // delivery worktree leaves out. Never created up front: a missing or empty file means the
 // run goes unchanged.
 export let RULES = ''
-// The leads waiting to be looked at (#453) — market signals pulled from the endpoint the
+// The inbox waiting to be looked at (#453, #499) — what was pulled from the endpoint the
 // board is pointed at, one Markdown file each under `triage/inbox/`, and `triage/handled.md`
 // recording the source ids that have left it. Tracked in git like the cards, and made by the
-// first fetch rather than by `init`: a board that never pulls a signal has no folder.
+// first thing to land in it rather than by `init`: an empty inbox has no folder.
 export let TRIAGE = ''
 export let SIGNAL_INBOX = ''
 export let SIGNALS_HANDLED = ''

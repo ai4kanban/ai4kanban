@@ -1,27 +1,32 @@
-// The market signal inbox on disk (#453).
+// The inbox on disk (#453, #499).
 //
-// One signal is one Markdown file under `docs/kanban/triage/inbox/`: the six fields the
-// endpoint sent in the frontmatter, the post's own words below it. Markdown rather than a
-// database because the board already is markdown in git — a signal diffs, reviews and
-// reverts with everything else, and a local board takes on no new dependency for it.
+// One item is one Markdown file under `docs/kanban/triage/inbox/`: what is known about it
+// in the frontmatter, its own words below. Markdown rather than a database because the
+// board already is markdown in git — an item diffs, reviews and reverts with everything
+// else, and a local board takes on no new dependency for it.
+//
+// Title and body are the whole requirement. `source`, `url` and `collected_at` are written
+// only when something supplies them, so a dropped PDF and a pulled Reddit post are the same
+// kind of file with different amounts filled in.
 //
 // `triage/handled.md` is the other half: one line per source id that has LEFT the inbox,
-// with when it went. It is what makes a dismissal stick — the signal file is gone, so the
+// with when it went. It is what makes a dismissal stick — the item's file is gone, so the
 // file itself cannot be what says "don't import this again" (#454 writes here too, for the
-// signals it has turned into cards).
+// items it has turned into cards).
 //
-// The folder is made by the first fetch, never by `init`: a board that pulls no signals
-// carries no folder.
+// The folder is made the first time something lands in it, never by `init`: a board with an
+// empty inbox carries no folder.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { formatStamp } from '../cadence'
+import { DERIVED } from './identity'
 import { SIGNAL_INBOX, SIGNALS_HANDLED, TRIAGE, rel } from '../paths'
 import { unquote, yamlScalar } from '../yaml'
 import type { Signal } from '../view/types'
 
-/** A signal as it arrives, before the board stamps its import. */
+/** An item as it arrives, before the board stamps its import. */
 export type IncomingSignal = Omit<Signal, 'importedAt' | 'relPath'>
 
 const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
@@ -30,17 +35,18 @@ const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
  *  folder is there yet. */
 export const inboxPath = (): string => boardRel(SIGNAL_INBOX)
 
-// ---- one signal file -------------------------------------------------------
+// ---- one file -------------------------------------------------------------
 
-const FIELDS = ['source_id', 'title', 'platform', 'url', 'collected_at', 'imported_at'] as const
+// What every file carries, whatever wrote it. Everything else is optional.
+const FIELDS = ['source_id', 'title', 'collected_at', 'imported_at'] as const
 
 function serialize(signal: Signal): string {
   const lines = [
     '---',
     `source_id: ${yamlScalar(signal.sourceId)}`,
     `title: ${yamlScalar(signal.title)}`,
-    `platform: ${yamlScalar(signal.platform)}`,
-    `url: ${yamlScalar(signal.url)}`,
+    ...(signal.source ? [`source: ${yamlScalar(signal.source)}`] : []),
+    ...(signal.url ? [`url: ${yamlScalar(signal.url)}`] : []),
     `collected_at: ${yamlScalar(signal.collectedAt)}`,
     `imported_at: ${yamlScalar(signal.importedAt)}`,
     '---',
@@ -48,8 +54,8 @@ function serialize(signal: Signal): string {
   return `${lines.join('\n')}\n\n${signal.summary.trim()}\n`
 }
 
-/** One signal read back off disk, or null when the file is not one — a stray file in the
- *  folder is skipped rather than drawn as a signal with empty fields. */
+/** One item read back off disk, or null when the file is not one — a stray file in the
+ *  folder is skipped rather than drawn with empty fields. */
 function parse(file: string): Signal | null {
   let text: string
   try {
@@ -75,33 +81,36 @@ function parse(file: string): Signal | null {
       .join('\n')
       .replace(/^\n+/, '')
       .replace(/\s+$/, ''),
-    platform: held.platform!,
-    url: held.url!,
+    // `platform` is what files written before #499 called it.
+    source: held.source || held.platform || '',
+    url: held.url || '',
     collectedAt: held.collected_at!,
     importedAt: held.imported_at!,
     relPath: boardRel(file),
   }
 }
 
-// A source id is anything the platform says it is, so the name is derived rather than used
+// A source id is anything its source says it is, so the name is derived rather than used
 // as typed: the readable part for a person browsing the folder, the hash so two ids that
-// scrub down to the same word still get two files.
+// scrub down to the same word still get two files. A derived id says nothing to a reader,
+// so what is readable then is the title.
 function fileName(signal: Signal): string {
   const day = signal.collectedAt.slice(0, 10)
-  const word = signal.sourceId
+  const said = signal.sourceId.startsWith(DERIVED) ? signal.title : signal.sourceId
+  const word = said
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 40)
   let hash = 0x811c9dc5
   for (const ch of signal.sourceId) hash = Math.imul(hash ^ ch.charCodeAt(0), 0x01000193) >>> 0
-  return `${day}-${word || 'signal'}-${hash.toString(16).padStart(8, '0')}.md`
+  return `${day}-${word || 'item'}-${hash.toString(16).padStart(8, '0')}.md`
 }
 
 // ---- reading ---------------------------------------------------------------
 
-/** Every signal in the inbox, newest collected first. Empty on a board that has never
- *  pulled one, which is the same answer as an inbox somebody has emptied. */
+/** Everything in the inbox, newest collected first. Empty on a board that has never put
+ *  anything in it, which is the same answer as an inbox somebody has emptied. */
 export function readInbox(): Signal[] {
   let names: string[]
   try {
@@ -113,7 +122,7 @@ export function readInbox(): Signal[] {
     .filter((name) => name.endsWith('.md'))
     .map((name) => parse(path.join(SIGNAL_INBOX, name)))
     .filter((signal): signal is Signal => signal !== null)
-  // Ties keep a stable order, so a redraw never shuffles two signals collected in the same
+  // Ties keep a stable order, so a redraw never shuffles two items collected in the same
   // minute past each other.
   signals.sort((a, b) => b.collectedAt.localeCompare(a.collectedAt) || a.sourceId.localeCompare(b.sourceId))
   return signals
@@ -126,10 +135,10 @@ export const latestImport = (signals: Signal[]): string =>
 // ---- what has left the inbox -----------------------------------------------
 
 const HANDLED_HEAD = [
-  '# Handled signals',
+  '# Handled',
   '',
-  'The source ids that have left the inbox, and when. A signal listed here is never',
-  'imported again, however many times the endpoint sends it.',
+  'The source ids that have left the inbox, and when. Anything listed here is never',
+  'pulled again, however many times the endpoint sends it.',
   '',
 ]
 
@@ -168,7 +177,7 @@ export function markHandled(sourceId: string, when = formatStamp(new Date())): v
 
 // ---- writing ---------------------------------------------------------------
 
-/** Write one signal into the inbox, stamped with the moment it was imported. */
+/** Write one item into the inbox, stamped with the moment it was imported. */
 export function writeSignal(incoming: IncomingSignal, importedAt: string): Signal {
   fs.mkdirSync(SIGNAL_INBOX, { recursive: true })
   const signal: Signal = { ...incoming, importedAt, relPath: '' }
@@ -177,8 +186,8 @@ export function writeSignal(incoming: IncomingSignal, importedAt: string): Signa
   return { ...signal, relPath: boardRel(file) }
 }
 
-/** Take one signal out of the inbox for good: its file goes, its source id is written down,
- *  and the next fetch leaves it alone. False when the inbox holds no such signal. */
+/** Take one item out of the inbox for good: its file goes, its source id is written down,
+ *  and the next fetch leaves it alone. False when the inbox holds no such item. */
 export function dropSignal(sourceId: string): boolean {
   const found = readInbox().find((signal) => signal.sourceId === sourceId)
   if (!found) return false

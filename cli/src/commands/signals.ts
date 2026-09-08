@@ -1,11 +1,12 @@
-// `akb signals fetch` — pull the market signals the board is pointed at (#453).
+// `akb signals fetch` — pull what the board is pointed at into the inbox (#453).
 //
-// The one command the feature has. It checks who the inbox is open to, reads the two
-// settings, asks the endpoint, and writes what came back — the whole of it in one pass, so
-// a scheduled pull and a hand-typed one do exactly the same thing.
+// The endpoint's way in. It checks who the inbox is open to, reads the two settings, asks
+// the endpoint, and writes what came back — the whole of it in one pass, so a scheduled pull
+// and a hand-typed one do exactly the same thing. The other way in is **Add to inbox** on
+// the page (#499), which writes the same files without an endpoint.
 //
-// Signals are leads, not tasks: nothing here creates a card, ranks anything, or touches the
-// board's counts. Turning one into a card is #454's.
+// Nothing in the inbox is a task: nothing here creates a card, ranks anything, or touches
+// the board's counts. Turning one into a card is #454's.
 
 import fs from 'node:fs'
 
@@ -38,7 +39,7 @@ export async function cmdSignalsFetch(): Promise<MoveResult> {
 
   say(`Pulled ${signalEndpoint()}.`)
   say(
-    `Added ${count(report.added.length, 'signal', 'signals')}, ` +
+    `Added ${count(report.added.length, 'item', 'items')}, ` +
       `skipped ${report.skipped}, failed ${report.failed.length}.`,
   )
   for (const failed of report.failed) say(`  ${failed.which} — ${failed.why}`)

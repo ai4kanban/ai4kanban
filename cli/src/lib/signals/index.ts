@@ -1,6 +1,6 @@
-// The market signal inbox, as everything outside it asks for it (#453).
+// The inbox, as everything outside it asks for it (#453, #499).
 //
-// The local UI draws a rail row and a page from these two, and `akb signals fetch` writes
+// The local UI draws a rail row and a page from these, and `akb signals fetch` writes
 // through the same modules. Whether the inbox is open at all is ./access.ts, asked apart
 // from the read because it reaches Cloud and a page read does not.
 
@@ -8,6 +8,7 @@ import { signalConfigGaps } from './config'
 import { dropSignal, inboxPath, latestImport, readInbox } from './inbox'
 import type { SignalInbox } from '../view/types'
 
+export { addToInbox } from './add'
 export { signalsAccess, type SignalsAccess } from './access'
 export { fetchSignals, type FetchReport, type SignalFailure } from './fetch'
 export { ENDPOINT_SETTING, TOKEN_KEY, sayGap, signalConfigGaps } from './config'
@@ -25,9 +26,9 @@ export function readSignals(): SignalInbox {
   }
 }
 
-/** Ignore one signal: its file goes and its source id is written down, so no later fetch
+/** Ignore one item: its file goes and its source id is written down, so no later fetch
  *  brings it back. There is no way back — that is what the page says before it is used. */
 export function dismissSignal(sourceId: string): { ok: boolean; error?: string } {
-  if (!sourceId) return { ok: false, error: 'no signal named' }
-  return dropSignal(sourceId) ? { ok: true } : { ok: false, error: `the inbox holds no signal ${sourceId}` }
+  if (!sourceId) return { ok: false, error: 'nothing named' }
+  return dropSignal(sourceId) ? { ok: true } : { ok: false, error: `the inbox holds no ${sourceId}` }
 }

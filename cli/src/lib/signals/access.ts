@@ -1,8 +1,8 @@
-// Who the market signal inbox is open to (#453).
+// Who the inbox is open to (#453).
 //
 // The first version is free to invited Cloud accounts on an Engineering board. Pricing is
 // what turns it into a paid feature, and Marketing boards are not in it at all — a topic
-// board plans content, not leads.
+// board plans content, not engineering work.
 //
 // One answer, asked in both directions: the local UI hides the rail row with it, and
 // `akb signals fetch` refuses with it. Nothing else decides — Cloud is asked every time,
@@ -22,7 +22,7 @@ export async function signalsAccess(): Promise<SignalsAccess> {
   if (work !== 'product') {
     return {
       open: false,
-      why: `Market signals are an ${SOLUTION_WORK.product.long} board feature; this board's work is ${SOLUTION_WORK[work].long}.`,
+      why: `The inbox is an ${SOLUTION_WORK.product.long} board feature; this board's work is ${SOLUTION_WORK[work].long}.`,
     }
   }
   const account = await readCloudAccount()
@@ -32,11 +32,11 @@ export async function signalsAccess(): Promise<SignalsAccess> {
     case 'not-admitted':
       return {
         open: false,
-        why: 'Market signals are open to invited Cloud accounts. Request an invite in the AI4Kanban app, under Configuration → Notifications.',
+        why: 'The inbox is open to invited Cloud accounts. Request an invite in the AI4Kanban app, under Configuration → Notifications.',
       }
     case 'expired':
       return { open: false, why: `Your Cloud sign-in has expired. ${SIGN_IN}` }
     default:
-      return { open: false, why: `Market signals are a Cloud preview. ${SIGN_IN}` }
+      return { open: false, why: `The inbox is a Cloud preview. ${SIGN_IN}` }
   }
 }

@@ -44,6 +44,7 @@ import {
   setChannels,
   setChannelStatus,
   signalsOpen,
+  addToInbox,
   dismissSignal,
 } from "@/lib/board";
 import {
@@ -1556,7 +1557,7 @@ export async function installSkillAction(): Promise<SkillInstall> {
   }
 }
 
-// --- the market signals waiting to be looked at (#453) -----------------------
+// --- the inbox waiting to be looked at (#453, #499) --------------------------
 // The rail asks for the row once when a window opens and again when the window is looked at
 // again — never on the board's poll, because whether the inbox is open reaches Cloud. The
 // page itself is a server page and reads the inbox directly.
@@ -1570,6 +1571,35 @@ export async function signalsRowAction(): Promise<{ show: boolean; count: number
     return { show: true, count: (await readSignals()).signals.length };
   } catch {
     return { show: false, count: 0 };
+  }
+}
+
+/** Add one thing to the inbox by hand (#499): a dropped file, a pasted link, or pasted text.
+ *
+ *  It takes a `FormData` because that is how a browser hands bytes to a server action. What
+ *  it could not take is the rules' own sentence — the reader dropped the thing, so what was
+ *  wrong with it is theirs to hear.
+ *
+ *  The access check is the page's: this address is only reachable from a page that already
+ *  answered it, and asking again would reach Cloud on every add. */
+export async function addToInboxAction(form: FormData): Promise<{ ok: boolean; error?: string }> {
+  const c = await machineCopy();
+  try {
+    const typed = form.get("text");
+    const dropped = form.get("file");
+    const name = form.get("name");
+    const file =
+      dropped instanceof Blob
+        ? {
+            name: typeof name === "string" && name ? name : "file",
+            type: dropped.type,
+            data: new Uint8Array(await dropped.arrayBuffer()),
+          }
+        : undefined;
+    const done = await addToInbox({ text: typeof typed === "string" ? typed : undefined, file });
+    return done.ok ? { ok: true } : { ok: false, error: done.error };
+  } catch {
+    return { ok: false, error: c.rail.signals.add.failed };
   }
 }
 

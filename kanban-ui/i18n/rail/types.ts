@@ -44,28 +44,40 @@ export type RailCopy = {
     /** The row above Archive, and the heading of the page it opens. */
     row: string;
     title: string;
-    /** Under the heading: where the signals are, how many, and when the newest of them was
-     *  imported. The stamp is left off an inbox with nothing in it. */
+    /** Under the heading: where the inbox is, how much is in it, and when the newest of it
+     *  arrived. The stamp is left off an inbox with nothing in it. */
     meta: (folder: string, count: number) => string;
     latestImport: (when: string) => string;
-    /** One line under the heading: what a signal is, and what it is not. */
+    /** One line under the heading: what the inbox is for, and what it is not. */
     lead: string;
-    /** Configured, and nothing pulled yet. */
+    /** Nothing in it yet. */
     empty: string;
-    /** Not configured: the heading, and the one line each missing setting gets. */
+    /** No endpoint configured: the heading, and the one line each missing setting gets.
+     *  An offer, not a demand — an unconfigured board still takes what is dropped in. */
     connect: string;
     needEndpoint: (file: string) => string;
     needToken: (file: string) => string;
     /** Read out loud as the name of the list. */
     list: string;
-    /** The three things a signal offers. Dismissing cannot be undone, which is why the
-     *  word is the plain one. */
+    /** The three things an item offers. Dismissing cannot be undone, which is why the
+     *  word is the plain one. Open is left off one with nothing to open. */
     viewSummary: string;
     hideSummary: string;
     viewOriginal: string;
     dismiss: string;
     /** A dismissal the board refused. */
     dismissFailed: string;
+    /** Add to inbox (#499): the box that takes a dropped file, a pasted link, or text. */
+    add: {
+      title: string;
+      placeholder: string;
+      /** The second half of the offer, and what the box says while a file is over it. */
+      drop: string;
+      dropping: string;
+      button: string;
+      /** An add the board refused for a reason it cannot put in the reader's language. */
+      failed: string;
+    };
   };
   memoryPage: {
     /** The file exists on the board but has never been written to. */

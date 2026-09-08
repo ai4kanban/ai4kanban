@@ -1,9 +1,9 @@
-// The market signal inbox (#453).
+// The inbox (#453, #499).
 //
-// The three halves that have to agree: what the endpoint sends becomes a file, the same
-// signal sent twice becomes one file, and a signal that has been ignored never comes back.
-// The fetch is driven against a stubbed `fetch`, so these fix the shape of the request and
-// the answers to a refusal without a network.
+// The halves that have to agree: what the endpoint sends becomes a file, the same thing sent
+// twice becomes one file, something ignored never comes back, and what is dropped or pasted
+// in by hand lands as the same kind of file. The fetch is driven against a stubbed `fetch`,
+// so these fix the shape of the request and the answers to a refusal without a network.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -12,6 +12,7 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { addToInbox } from '../src/lib/signals/add.ts'
 import { signalConfigGaps } from '../src/lib/signals/config.ts'
 import { fetchSignals } from '../src/lib/signals/fetch.ts'
 import { readHandled } from '../src/lib/signals/inbox.ts'
@@ -23,15 +24,20 @@ const inbox = () => path.join(kanban(), 'triage', 'inbox')
 
 const ENDPOINT = 'https://signals.example.test/pull'
 
-/** One signal as an endpoint sends it. */
+/** One item as an endpoint sends it. */
 const wire = (id: string, extra: Record<string, unknown> = {}) => ({
   source_id: id,
   title: `Signal ${id}`,
   summary: 'What somebody said, in their own words.',
-  platform: 'Reddit',
+  source: 'Reddit',
   url: `https://reddit.example.test/${id}`,
   collected_at: '2026-09-06T21:40:00Z',
   ...extra,
+})
+
+/** A dropped file, the way the page hands one over. */
+const dropped = (name: string, body: string, type = '') => ({
+  file: { name, type, data: new TextEncoder().encode(body) },
 })
 
 /** Answer the next fetch with this body, and remember what it was asked. */
@@ -87,7 +93,7 @@ describe('what a pull writes', () => {
     assert.equal(inboxNow.signals.length, 2)
     const [first] = inboxNow.signals
     assert.equal(first!.title, 'Signal a1')
-    assert.equal(first!.platform, 'Reddit')
+    assert.equal(first!.source, 'Reddit')
     assert.equal(first!.summary, 'What somebody said, in their own words.')
     assert.match(first!.collectedAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
     assert.equal(inboxNow.latestImport, first!.importedAt)
@@ -135,19 +141,47 @@ describe('the same signal twice', () => {
   })
 })
 
-describe('a signal missing a required field', () => {
-  it('is counted and named, and the rest of the batch still lands', async () => {
-    answerWith({
-      signals: [wire('good'), { ...wire('bad'), url: '', platform: '   ' }, wire('alsoGood')],
-    })
+describe('what the endpoint may leave out (#499)', () => {
+  it('takes an item with only a title and a body', async () => {
+    answerWith({ signals: [{ title: 'A newsletter issue', summary: 'What it said.' }] })
+    const report = await fetchSignals()
+    assert.equal(report.added.length, 1)
+    const [only] = readSignals().signals
+    assert.equal(only!.source, '')
+    assert.equal(only!.url, '')
+    assert.match(only!.sourceId, /^derived-[0-9a-f]{16}$/)
+    assert.match(only!.collectedAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
+  })
+
+  it('derives the same id for the same item twice, so it lands once', async () => {
+    answerWith({ signals: [{ title: 'Same', summary: 'Words.' }] })
+    await fetchSignals()
+    answerWith({ signals: [{ title: 'Same', summary: 'Words.' }] })
+    assert.equal((await fetchSignals()).skipped, 1)
+  })
+
+  it('names the site as the source when nothing else does', async () => {
+    answerWith({ signals: [{ title: 'A post', summary: 'Words.', url: 'https://www.example.test/a/b' }] })
+    await fetchSignals()
+    assert.equal(readSignals().signals[0]!.source, 'example.test')
+  })
+
+  it('still reads `platform` from an endpoint written before the rename', async () => {
+    answerWith({ signals: [{ title: 'A post', summary: 'Words.', platform: 'Zhihu' }] })
+    await fetchSignals()
+    assert.equal(readSignals().signals[0]!.source, 'Zhihu')
+  })
+
+  it('refuses one with no words in it, and the rest of the batch still lands', async () => {
+    answerWith({ signals: [wire('good'), { ...wire('bad'), title: '', summary: '  ' }, wire('alsoGood')] })
     const report = await fetchSignals()
     assert.equal(report.added.length, 2)
-    assert.deepEqual(report.failed, [{ which: 'bad', why: 'missing platform, url' }])
+    assert.deepEqual(report.failed, [{ which: 'bad', why: 'missing title, summary' }])
     assert.equal(readSignals().signals.length, 2)
   })
 
   it('is named by its place when it carries no source id', async () => {
-    answerWith({ signals: [{ title: 'Nothing else' }] })
+    answerWith({ signals: [{ summary: 'Nothing else' }] })
     const report = await fetchSignals()
     assert.equal(report.failed[0]!.which, 'signal 1')
   })
@@ -229,5 +263,72 @@ describe('ignoring a signal', () => {
   it('refuses an id the inbox does not hold', () => {
     assert.equal(dismissSignal('nobody').ok, false)
     assert.equal(dismissSignal('').ok, false)
+  })
+})
+
+describe('adding to the inbox by hand (#499)', () => {
+  it('takes a pasted link, named by where it points', () => {
+    const done = addToInbox({ text: '  https://www.example.test/blog/why-x  ' })
+    assert.equal(done.ok, true)
+    const [only] = readSignals().signals
+    assert.equal(only!.title, 'example.test/blog/why-x')
+    assert.equal(only!.source, 'example.test')
+    assert.equal(only!.url, 'https://www.example.test/blog/why-x')
+  })
+
+  it('takes pasted text, titled by its first line', () => {
+    assert.equal(addToInbox({ text: 'Their pricing changed\n\nThe cheap tier is gone.' }).ok, true)
+    const [only] = readSignals().signals
+    assert.equal(only!.title, 'Their pricing changed')
+    assert.match(only!.summary, /The cheap tier is gone\./)
+    assert.equal(only!.url, '')
+  })
+
+  it('reads a dropped text file as the body, and names the file as the source', () => {
+    assert.equal(addToInbox(dropped('issue-42.md', '# Newsletter 42\n\nWhat it said.')).ok, true)
+    const [only] = readSignals().signals
+    assert.equal(only!.title, 'Newsletter 42')
+    assert.equal(only!.source, 'issue-42.md')
+    assert.match(only!.summary, /What it said\./)
+    assert.equal(fs.existsSync(path.join(inbox(), 'files')), false)
+  })
+
+  it('copies a file it cannot read into the board, and the body says where', () => {
+    const pdf = { file: { name: 'q3.pdf', type: 'application/pdf', data: new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00, 0xff]) } }
+    assert.equal(addToInbox(pdf).ok, true)
+    const [only] = readSignals().signals
+    assert.equal(only!.title, 'q3')
+    assert.equal(only!.source, 'q3.pdf')
+    assert.match(only!.summary, /docs\/kanban\/triage\/inbox\/files\/q3-[0-9a-f]{8}\.pdf/)
+    assert.equal(fs.readdirSync(path.join(inbox(), 'files')).length, 1)
+    // The copy is beside the inbox, not in it: the list still holds one item.
+    assert.equal(readSignals().signals.length, 1)
+  })
+
+  it('leaves no copy behind when it refuses a file the inbox already holds', () => {
+    const pdf = () => ({ file: { name: 'q3.pdf', type: 'application/pdf', data: new Uint8Array([0x25, 0x50, 0x44, 0x46]) } })
+    assert.equal(addToInbox(pdf()).ok, true)
+    const kept = fs.readdirSync(path.join(inbox(), 'files'))
+    assert.equal(addToInbox(pdf()).ok, false)
+    assert.deepEqual(fs.readdirSync(path.join(inbox(), 'files')), kept)
+    assert.equal(readSignals().signals.length, 1)
+  })
+
+  it('refuses the same thing twice, and refuses an empty add', () => {
+    assert.equal(addToInbox({ text: 'https://example.test/a' }).ok, true)
+    const again = addToInbox({ text: 'https://example.test/a' })
+    assert.equal(again.ok, false)
+    assert.match(again.ok ? '' : again.error, /already in the inbox/)
+    assert.equal(addToInbox({ text: '   ' }).ok, false)
+    assert.equal(addToInbox({}).ok, false)
+  })
+
+  it('writes the same kind of file the pull writes, so it dismisses the same way', () => {
+    const done = addToInbox({ text: 'A thing worth doing\n\nBecause of this.' })
+    assert.equal(done.ok, true)
+    const id = readSignals().signals[0]!.sourceId
+    assert.deepEqual(dismissSignal(id), { ok: true })
+    assert.deepEqual(readSignals().signals, [])
+    assert.equal(readHandled().has(id), true)
   })
 })

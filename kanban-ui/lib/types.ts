@@ -89,6 +89,8 @@ export type {
   DropPlan,
   FillPlan,
   FillSkip,
+  InboxAddResult,
+  InboxDrop,
   Level,
   MemoryFile,
   MemoryModule,

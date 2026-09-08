@@ -7,9 +7,9 @@ import { isDesktop } from "@/lib/desktop";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { Board, SignalInbox } from "@/lib/types";
 
-// The market signal inbox, read on the server (#453). A page of its own for the reason the
-// archive is one: the rail highlights a row from the address you are on, and Back has to step
-// off the page rather than through it.
+// The inbox, read on the server (#453, #499). A page of its own for the reason the archive
+// is one: the rail highlights a row from the address you are on, and Back has to step off
+// the page rather than through it.
 //
 // A board the inbox is not open to has no rail row, so this address is one nothing links to —
 // and it answers as no page at all rather than drawing a feature that is not on.

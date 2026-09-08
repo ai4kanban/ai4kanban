@@ -1,23 +1,25 @@
-// One pull of the market signal endpoint (#453).
+// One pull of the inbox endpoint (#453, #499).
 //
 // `GET` the endpoint `config.md` names, with the token from `docs/kanban/.env` as a bearer.
-// The answer is `{ "signals": [...] }`, each signal carrying the six required fields. There
-// is no paging and no ceiling: the endpoint decides how much it sends, and the board takes
-// all of it. Turning whatever a platform actually returns into this shape is the user's own
-// converter — which is what lets any platform be connected without the board knowing one.
+// The answer is `{ "signals": [...] }`. Only `title` and `summary` are required — `source`,
+// `url` and `collected_at` are taken when sent, and `source_id` is derived when nothing
+// supplies one, so an endpoint over a newsletter or a PDF pipeline connects on the same
+// terms as one over a social platform. There is no paging and no ceiling: the endpoint
+// decides how much it sends, and the board takes all of it.
 //
 // Nothing is written until the whole answer is in hand: a request that fails, an answer
 // that will not parse and a board with the settings still to fill in all leave the inbox
-// exactly as it was. A signal that fails field validation is the one exception the other
+// exactly as it was. An item that fails field validation is the one exception the other
 // way — it is counted and explained, and the rest of the batch still lands.
 
 import { formatStamp } from '../cadence'
 import { die } from '../paths'
 import { signalConfigGaps, signalEndpoint, signalToken } from './config'
+import { derivedSourceId, host } from './identity'
 import { readHandled, readInbox, writeSignal, type IncomingSignal } from './inbox'
 import type { Signal } from '../view/types'
 
-/** One signal the fetch would not take, and why. */
+/** One item the fetch would not take, and why. */
 export interface SignalFailure {
   /** Its source id, or where it sat in the answer when it carried none. */
   which: string
@@ -32,26 +34,32 @@ export interface FetchReport {
   failed: SignalFailure[]
 }
 
-const REQUIRED = ['source_id', 'title', 'summary', 'platform', 'url', 'collected_at'] as const
+const REQUIRED = ['title', 'summary'] as const
 
 type Wire = Record<string, unknown>
 
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')
 
-/** One wire signal read into the shape the inbox writes, or the reasons it cannot be. */
+/** One wire item read into the shape the inbox writes, or the reasons it cannot be.
+ *
+ *  `platform` is read as `source` for endpoints written before #499 renamed the field. */
 function read(raw: Wire): { ok: true; signal: IncomingSignal } | { ok: false; why: string } {
   const missing = REQUIRED.filter((field) => !text(raw[field]))
   if (missing.length > 0) return { ok: false, why: `missing ${missing.join(', ')}` }
-  const when = new Date(text(raw.collected_at))
-  if (Number.isNaN(when.getTime())) return { ok: false, why: `collected_at is not a time: ${text(raw.collected_at)}` }
+  const sent = text(raw.collected_at)
+  const when = sent ? new Date(sent) : new Date()
+  if (Number.isNaN(when.getTime())) return { ok: false, why: `collected_at is not a time: ${sent}` }
+  const url = text(raw.url)
+  const title = text(raw.title)
+  const summary = text(raw.summary)
   return {
     ok: true,
     signal: {
-      sourceId: text(raw.source_id),
-      title: text(raw.title),
-      summary: text(raw.summary),
-      platform: text(raw.platform),
-      url: text(raw.url),
+      sourceId: text(raw.source_id) || derivedSourceId(url || `${title}\n${summary}`),
+      title,
+      summary,
+      source: text(raw.source) || text(raw.platform) || host(url),
+      url,
       collectedAt: formatStamp(when),
     },
   }

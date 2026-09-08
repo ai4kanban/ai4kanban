@@ -64,13 +64,13 @@ export function writePruneMemoryCard() {
   return { id, file }
 }
 
-// ---- the market signal pull (#453) -----------------------------------------
+// ---- the inbox pull (#453) -------------------------------------------------
 
-const SIGNALS_SLUG = 'fetch-market-signals'
-const SIGNALS_TITLE = 'Fetch market signals'
+const SIGNALS_SLUG = 'fill-the-inbox'
+const SIGNALS_TITLE = 'Fill the inbox'
 
 function signalsBody() {
-  return boardText(`Pull the market signals the board is pointed at into
+  return boardText(`Pull what the board is pointed at into
 \`docs/kanban/triage/inbox/\`. Set a cadence to have it run on its own; without one it runs
 only when you run it. Delete this card if you don't want the job — nothing puts it back.
 
@@ -83,10 +83,10 @@ None.
 }
 
 /**
- * Seed the "Fetch market signals" card, the first time a pull lands.
+ * Seed the "Fill the inbox" card, the first time a pull lands.
  *
  * Not part of `init`'s scaffold: the inbox itself is made by the first fetch, and a board
- * that never pulls a signal should carry neither the folder nor a card about it. The caller
+ * that never pulls should carry neither the folder nor a card about it. The caller
  * only asks on the pull that MAKES the inbox, so deleting the card sticks — that is how a
  * board says it doesn't want the job.
  *

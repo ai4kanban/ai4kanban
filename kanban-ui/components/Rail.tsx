@@ -58,9 +58,9 @@ export function Rail({
   activeMemory?: string | null;
   /** True while this window is showing the archive — the list, or one card in it (#380). */
   activeArchive?: boolean;
-  /** True while this window is showing the market signal inbox (#453). */
+  /** True while this window is showing the inbox (#453, #499). */
   activeSignals?: boolean;
-  /** Whether to offer the signals row at all, and how many signals are waiting. A board the
+  /** Whether to offer the Inbox row at all, and how much is waiting in it. A board the
    *  inbox is not open to answers `show: false`, and the row is not drawn. */
   signals?: { show: boolean; count: number };
   /** The modules the memory panel offers, in the map's order (#130). */
@@ -151,16 +151,16 @@ export function Rail({
       </nav>
       {/* The two ways out of the list, at the foot with Memory and outside what scrolls:
           neither is one of the open cards, and no amount of typing above should take either
-          away. Market signals (#453) sit over the archive (#380) — leads that have not become
-          cards yet, over the cards that are finished with.
+          away. The inbox (#453, #499) sits over the archive (#380) — what has not become a
+          card yet, over the cards that are finished with.
 
           The archive carries no count: nothing archived is anywhere on the board until it is
-          asked for. Signals carry one, because how many are waiting is the whole reason to
-          look. */}
+          asked for. The inbox carries one, because how much is waiting is the whole reason
+          to look. */}
       <div className="mt-0.5 flex shrink-0 flex-col gap-0.5">
         {signals.show && (
           <RailRow
-            href="/signals"
+            href="/inbox"
             label={c.signals.row}
             icon={<FiInbox size={13} className="shrink-0" aria-hidden />}
             active={activeSignals}

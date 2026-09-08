@@ -53,6 +53,8 @@ import type {
   DraftComment,
   DropPlan,
   FillPlan,
+  InboxAddResult,
+  InboxDrop,
   MemoryFile,
   MetricsResult,
   SaveProjectResult,
@@ -472,11 +474,13 @@ export interface BoardRules {
    *  added them, and the archive then says so rather than reading as an empty archive. */
   readArchive?(): Promise<ArchiveList>;
   readArchivedCard?(id: number): Promise<ArchivedCardFile | null>;
-  /** The market signal inbox (#453): whether it is open to this board and this account at
-   *  all, what it holds, and ignoring one for good. Optional: a board can be running rules
-   *  older than the release that added them, and the rail then offers no signals row. */
+  /** The inbox (#453, #499): whether it is open to this board and this account at all, what
+   *  it holds, adding to it by hand, and ignoring one for good. Optional: a board can be
+   *  running rules older than the release that added them, and the rail then offers no
+   *  Inbox row — `addToInbox` alone can be missing on rules that have the other three. */
   signalsAccess?(): Promise<SignalsAccess>;
   readSignals?(): SignalInbox;
+  addToInbox?(drop: InboxDrop): InboxAddResult;
   dismissSignal?(sourceId: string): { ok: boolean; error?: string };
   /** What an Implement click would do on this board right now (#307): the branch the change
    *  would land on, and whether it lands at all. Optional: a board can be running rules from

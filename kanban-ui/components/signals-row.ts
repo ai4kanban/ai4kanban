@@ -1,6 +1,6 @@
 "use client";
 
-// Whether the window offers the market signal row at all (#453), and the count it carries.
+// Whether the window offers the Inbox row at all (#453), and the count it carries.
 //
 // Its own module rather than a part of components/Signals.tsx: the window asks for the row on
 // every screen, and that page is drawn inside the window — one file holding both would be an
@@ -17,7 +17,7 @@ export interface SignalsRow {
 
 // The last answer, held for the tab rather than for the component, and the hooks watching it.
 // Opening a page is a fresh Window, and a hook starting from "no row" would take the row off
-// the rail on every navigation and put it back a moment later — including on the signals page
+// the rail on every navigation and put it back a moment later — including on the Inbox page
 // itself, where it is the mark saying where you are.
 let held: SignalsRow = { show: false, count: 0 };
 const watching = new Set<(row: SignalsRow) => void>();
@@ -27,8 +27,8 @@ async function ask(): Promise<void> {
   for (const tell of watching) tell(held);
 }
 
-/** Ask again — what the signals page calls once it has dismissed one, so the count on the rail
- *  is the count on the page. */
+/** Ask again — what the Inbox page calls once it has added or dismissed one, so the count on
+ *  the rail is the count on the page. */
 export const reloadSignalsRow = (): void => void ask();
 
 /** Asked when a window opens and again when the window is looked at again, never on the

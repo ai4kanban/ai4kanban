@@ -260,24 +260,24 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
 
   declareAgent(program, cli)
 
-  // ---- the market signals waiting to be looked at (#453) --------------------
+  // ---- the inbox waiting to be looked at (#453, #499) -----------------------
 
   const signals = noun(
     'signals',
-    'the market signals waiting to be looked at',
-    'A signal is a lead, not a task: it never enters the card list, is never scheduled, and ' +
-      'counts towards nothing. The inbox is `docs/kanban/triage/inbox/`, one file per signal, ' +
-      'and the board UI is where they are read and ignored.',
+    'the inbox waiting to be looked at',
+    'What is in the inbox is not a task: it never enters the card list, is never scheduled, ' +
+      'and counts towards nothing. The inbox is `docs/kanban/triage/inbox/`, one file each, ' +
+      'and the board UI is where they are added, read and ignored.',
   )
 
   withShared(signals.command('fetch'))
-    .summary('pull the signals the board is pointed at into the inbox')
+    .summary('pull what the board is pointed at into the inbox')
     .description(
       'Reads the endpoint from `- **Signal endpoint** — <url>` in the board’s `config.md` and its ' +
         'token from `SIGNAL_ENDPOINT_TOKEN` in `docs/kanban/.env`, and takes everything that comes ' +
-        'back. A signal already in the inbox, or already ignored, is skipped; one missing a required ' +
-        'field is counted and explained. A request that fails writes nothing at all. Free to invited ' +
-        'Cloud accounts on an Engineering board, for now.',
+        'back. Only `title` and `summary` are required. Something already in the inbox, or already ' +
+        'ignored, is skipped; one with no words in it is counted and explained. A request that fails ' +
+        'writes nothing at all. Free to invited Cloud accounts on an Engineering board, for now.',
     )
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdSignalsFetch())

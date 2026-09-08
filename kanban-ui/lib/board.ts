@@ -17,6 +17,8 @@ import type {
   DeliveryDiff,
   DeliveryPlan,
   DraftComment,
+  InboxAddResult,
+  InboxDrop,
   MemoryFile,
   MetricsResult,
   ScoreResult,
@@ -371,10 +373,10 @@ export async function readArchivedCard(id: number): Promise<ArchivedCardFile | n
   return rules.readArchivedCard(id);
 }
 
-// --- the market signals waiting to be looked at (#453) -----------------------
-// A signal is a lead, not a card: nothing here reaches the card list, and pulling is
-// `akb signals fetch` alone — the UI reads the inbox and ignores a signal, and does no
-// pulling of its own.
+// --- the inbox waiting to be looked at (#453, #499) --------------------------
+// Nothing here is a card: the inbox never reaches the card list. Pulling is
+// `akb signals fetch` alone; what the UI does is read the inbox, add to it by hand, and
+// ignore what it does not want.
 //
 // A board whose rules predate them answers "closed" rather than throwing: the whole feature
 // is one rail row, and a row that isn't there is the same answer a Marketing board gets.
@@ -399,6 +401,18 @@ export async function readSignals(): Promise<SignalInbox> {
     throw new NoRulesError(c.tooOldForSignals, c.updateIt);
   }
   return rules.readSignals();
+}
+
+/** Add one thing to the inbox by hand (#499) — a dropped file, a pasted link, or pasted
+ *  text. It lands as the same Markdown file a pull writes, so triage does not know which
+ *  way it came in.
+ *
+ *  The rules say why in English when they refuse, and that IS the reader's to act on here —
+ *  what was dropped is theirs — so it is passed through rather than replaced. */
+export async function addToInbox(drop: InboxDrop): Promise<InboxAddResult> {
+  const rules = await boardRules();
+  if (!rules.addToInbox) return { ok: false, error: (await machineCopy()).messages.rules.tooOldForSignals };
+  return rules.addToInbox(drop);
 }
 
 /** Ignore one signal for good — its file goes, and no later pull brings it back.
