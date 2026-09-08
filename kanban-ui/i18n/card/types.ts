@@ -15,6 +15,10 @@ export type CardCopy = {
    *  archived it, or a group root went with its last subtask. The page stays put and says
    *  so; the archive holds what it became. */
   offBoard: { line: string; open: string };
+  /** Somebody else is holding this card (#375) — a Cloud board only, and only while the
+   *  hold is live. A hint, not a gate: what protects the card is the refusal a save meets,
+   *  so this says who to wait for and until when, and nothing about asking them. */
+  hold: (handle: string, until: string) => string;
   /** The delivery started again from the current card rather than the approved copy. */
   supersedes: string;
   /** The heading over a delivery note that is waiting on the reader. */

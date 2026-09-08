@@ -1190,7 +1190,7 @@ export function CardPage({
   // travels with the machine rather than on the card's read. A caller without one draws the
   // tags as the plain links they are.
   const mockups = useMachine()?.mockups ?? {};
-  const { card, openIds, releases, plan, diff, standing: boardState } = screen;
+  const { card, openIds, releases, plan, diff, hold, standing: boardState } = screen;
   // What this board's work IS (#411). Since #434 a marketing card has its own page, so this
   // is `false` on every screen that reaches here; it stays because the page reads it rather
   // than assuming which board mounted it.
@@ -1488,6 +1488,16 @@ export function CardPage({
             {boardState.offline && (
               <div className="nb-section bg-nb-sky-soft p-3.5 text-[13px]">
                 {boardState.readWhen ? t.board.notice.offline(boardState.readWhen) : t.board.notice.offlineNeverRead}
+              </div>
+            )}
+
+            {/* Somebody else is holding this card (#375). It sits where the offline line
+                sits and reads the same way: nothing failed, this is what the board knows.
+                A hint and not a gate — it was read when the page was, so the hold may
+                already have freed, and the refusal a save meets is what protects the card. */}
+            {hold && (
+              <div className="nb-section bg-nb-sky-soft p-3.5 text-[13px]">
+                {c.hold(hold.handle, hold.expiresWhen)}
               </div>
             )}
 

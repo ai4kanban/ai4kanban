@@ -1232,6 +1232,7 @@ declare
   v_delivery uuid;
   v_json json;
   v_text text;
+  v_message text;
   v_count integer;
   v_lease uuid;
   v_second uuid;
@@ -1370,6 +1371,8 @@ begin
   v_json := api.take_lock(A, v_ws, v_node, 1, null, 1800, BUDGET);
   v_lease := (v_json ->> 'leaseId')::uuid;
   assert (v_json ->> 'cardId')::integer = 1, 'a lock did not say which card it is over';
+  -- Who is holding it (#375), read back through the membership rather than stored twice.
+  assert (v_json ->> 'holder') = 'account-a', 'a lock did not name the member holding it';
   assert (v_json ->> 'revision') = (api.read_card(A, v_ws, 1) -> 'card' ->> 'revision'),
     'a lock did not hand its holder the revision that card reads at';
   assert (v_json ->> 'expiresAt')::timestamptz > now(), 'a lock was granted already expired';
@@ -1382,14 +1385,33 @@ begin
   assert (v_json ->> 'expiresAt')::timestamptz > now() + interval '20 minutes',
     'taking a lock again did not move its expiry';
 
-  -- A second caller is refused, and told when it frees up.
+  -- A second caller is refused, told who is holding it (#375) and when it frees up.
   begin
     perform api.take_lock(A, v_ws, v_node, 1, null, 1800, BUDGET);
     raise exception 'a second writer took a lock somebody else was holding';
   exception when sqlstate 'AKB11' then
-    get stacked diagnostics v_text = pg_exception_detail;
+    get stacked diagnostics v_text = pg_exception_detail, v_message = message_text;
     assert v_text::timestamptz > now(), 'a lock refusal did not say when the card frees up';
+    assert v_message = '@account-a is holding card 1.', 'a lock refusal did not name the holder';
   end;
+
+  -- A hold nobody can be named for keeps the wording it had before a holder was named: a
+  -- blank or a stale name would be worse than the sentence #315 raised.
+  update cloud.workspace_locks set account_id = null where workspace_id = v_ws and card_id = 1;
+  begin
+    perform api.take_lock(A, v_ws, v_node, 1, null, 1800, BUDGET);
+    raise exception 'a second writer took a lock somebody else was holding';
+  exception when sqlstate 'AKB11' then
+    get stacked diagnostics v_message = message_text;
+    assert v_message = 'Another writer is holding card 1.',
+      'an unattributable hold was refused with something other than the unnamed sentence';
+  end;
+  assert (api.list_locks(A, v_ws) -> 0 ->> 'holder') = '',
+    'an unattributable hold was listed with a name on it';
+  -- And so is a holder who is no longer a member — a former member's name on a live hold
+  -- would say they are working a board they can no longer open.
+  assert cloud.lock_holder(v_ws, B) = '', 'a hold was named for an account outside the workspace';
+  update cloud.workspace_locks set account_id = A where workspace_id = v_ws and card_id = 1;
 
   -- And so is their write, before anything is written. Their words are current — they read
   -- the card a moment ago — so what they meet is the lock and not a conflict.
@@ -1421,6 +1443,14 @@ begin
   v_json := api.take_lock(A, v_ws, v_node, null, null, 1800, BUDGET);
   v_lease := (v_json ->> 'leaseId')::uuid;
   assert (v_json ->> 'cardId') is null, 'the board''s own lock named a card';
+  begin
+    perform api.take_lock(A, v_ws, v_node, null, null, 1800, BUDGET);
+    raise exception 'a second writer took the board''s own lock';
+  exception when sqlstate 'AKB11' then
+    get stacked diagnostics v_message = message_text;
+    assert v_message = '@account-a is holding this board.',
+      'the board''s own lock refused without naming who is holding it';
+  end;
   perform pg_temp.refuses(
     format('select api.write_documents(%L, %L, %L, %L, null, %L, %s)', A, v_ws, 'c-doc-steal', v_node,
            '[{"path":"memory/readme.md","kind":"memory","expect":"1","body":"stolen\n"}]', BUDGET),

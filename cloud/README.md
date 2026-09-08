@@ -86,7 +86,11 @@ cloud/
   person editing a card actually is. So a card — or the board, for what is not one card — is
   held by one lease at a time on a 30-minute lease. Nothing sweeps: an expired lock is free
   for the next caller. The holder is the lease id and not the account, because one account on
-  two machines is already two writers. The revision check stays behind it: a lease that runs
+  two machines is already two writers. A lock still records the ACCOUNT beside the lease, and
+  that is read back through the membership to name the member holding it — in the lock itself
+  and in the refusal — so a teammate turned away knows who to wait for. A hold the workspace
+  cannot attribute, because the account is gone or is no longer a member, refuses without a
+  name rather than with a stale one. The revision check stays behind it: a lease that runs
   out under a long run still lets a second writer in, and the stale upload is then refused as
   a conflict — which is what makes "never a silent overwrite" true rather than likely.
 - **A stale writer is told what changed; a current one is told who is holding it**: the
@@ -255,9 +259,11 @@ workspace, deleting it, and a node registering or renewing.
   `config`, `memory`, `rule`, `summary`, `history`.
 - `GET|POST /v1/workspaces/<id>/locks` — the writer locks this workspace has out, and taking
   one: `{ "cardId": 7, "nodeId": "…", "lease": "…" }`. No `cardId` is the board's own lock,
-  which covers what is not one card. It answers with the lease it was granted under and the
-  revision that resource reads at — what a caller who never read it writes against. Presenting
-  the lease again takes it again and moves the expiry; the length is the service's.
+  which covers what is not one card. It answers with the lease it was granted under, the
+  revision that resource reads at — what a caller who never read it writes against — and
+  `holder`, the GitHub handle of the member holding it (`""` when it cannot be attributed).
+  Presenting the lease again takes it again and moves the expiry; the length is the
+  service's.
 - `POST /v1/workspaces/<id>/locks/release` — give one up: `{ "cardId": 7, "lease": "…" }`.
   Silent about a lock this caller does not hold.
 - `POST /v1/workspaces/<id>/deliveries` — open a delivery attempt under an id this service
@@ -357,7 +363,7 @@ to be shown to a user as it stands. The two a client must tell apart:
 | `revision_conflict` | A write against a revision that has moved. Carries `current`, the revision the resource holds now, so the client re-reads that one card and writes again. |
 | `operation_reused` | One `opId`, two different changes. A retry carrying the same payload is answered with the first result instead; this is a client reusing an id. |
 | `node_removed` | The call came from a machine this workspace no longer runs its work on. |
-| `card_locked` | Another writer is holding that card, or the board. Not a conflict: nothing moved under the caller, and re-reading answers the same. Carries `until`, when the lease runs out. |
+| `card_locked` | Another writer is holding that card, or the board — named by GitHub handle when the workspace can attribute the hold. Not a conflict: nothing moved under the caller, and re-reading answers the same. Carries `until`, when the lease runs out. |
 | `board_not_empty` | An import pointed at a workspace that already holds a board. Retrying lands on the same board; the answer is a new workspace. |
 | `slack_unavailable` / `slack_not_connected` | This service carries no Slack app, or this account has connected none. |
 | `lark_unavailable` / `lark_not_connected` | This service carries no app for that cloud, or this account has connected no Lark destination. |

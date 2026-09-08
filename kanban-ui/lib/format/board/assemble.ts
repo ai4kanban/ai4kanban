@@ -419,5 +419,8 @@ export function cardScreenFrom(read: BoardRead, id: number, now = Date.now()): C
     // board's, and no control here would use either.
     plan: { commitMode: 'manual' },
     diff: null,
+    // The hosted card page is read-only (#322), so a hold on the card changes nothing it
+    // draws — and this read carries cards alone.
+    hold: null,
   }
 }

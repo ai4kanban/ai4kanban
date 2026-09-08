@@ -559,6 +559,13 @@ describe('the refusals a client acts on', () => {
     // Not a conflict: nothing moved under the caller, so there is no revision to re-read.
     assert.ok(!('current' in lockedBody.error))
 
+    // The database names the member holding it (#375), and that sentence is what a person
+    // reads — the Worker adds nothing and rewrites nothing.
+    const named = await refusalResponse(
+      refusalFor({ code: PG_CARD_LOCKED, message: '@octocat is holding card 12.', details: '2026-09-02T10:00:00Z' }, 400),
+    ).json()
+    assert.equal(named.error.message, '@octocat is holding card 12.')
+
     const taken = refusalFor({ code: PG_BOARD_NOT_EMPTY, message: 'This workspace already holds a board.' }, 400)
     assert.equal(taken.code, 'board_not_empty')
     assert.equal(taken.message, 'This workspace already holds a board.')

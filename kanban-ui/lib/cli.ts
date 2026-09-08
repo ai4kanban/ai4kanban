@@ -34,6 +34,7 @@ import type {
   SlackConversation,
   SlackState,
 } from "./format/cloud/types";
+import type { CardHold } from "./format/board/screen";
 import type { BoardNotifications, NotificationCenter } from "./notifications";
 import type { Language, UsageReporting } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
@@ -193,6 +194,9 @@ export interface BoardRules {
   boardState?(): BoardState;
   /** Re-read the whole workspace. The user asking, never a timer. */
   refreshBoard?(): Promise<{ ok: boolean; error?: string }>;
+  /** Every card somebody is holding right now (#375). A Local board answers with none, and
+   *  so does a copy of the rules older than the release that added it. */
+  boardHolds?(): Promise<CardHold[]>;
   /** When the copy was read, in the one spelling a terminal and a browser both use — minute
    *  precision and always UTC, so a server render and a client render agree. */
   boardCopyReadWhen?(iso: string): string;

@@ -319,8 +319,11 @@ export const releaseWorkspaceLock = (
   })
 
 /** Every lock the workspace is holding right now. */
-export const listWorkspaceLocks = (workspaceId: string): Promise<CloudCall<{ locks: WireLock[] }>> =>
-  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/locks`)
+export const listWorkspaceLocks = (
+  workspaceId: string,
+  opts?: SendOptions,
+): Promise<CloudCall<{ locks: WireLock[] }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/locks`, undefined, opts)
 
 // ---- this machine, as one of the workspace's nodes ---------------------------
 
@@ -506,6 +509,9 @@ export interface WireLock {
   leaseId: string
   cardId: number | null
   revision: string
+  /** Whose hold it is (#375) — the member's GitHub handle, or `''` when the workspace
+   *  cannot attribute it. A workspace older than that release sends none. */
+  holder?: string
   grantedAt: string
   expiresAt: string
 }

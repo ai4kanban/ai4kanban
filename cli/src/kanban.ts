@@ -411,7 +411,7 @@ export type * from './lib/board/contract'
 // A board server calls `openBoard` once for the project it serves, `boardState` wherever it
 // draws whether the board is offline and how old the copy is, and `refreshBoard` when the
 // user asks for the workspace to be read again — never on a timer.
-export { boardState, openBoard, refreshBoard, when as boardCopyReadWhen } from './lib/board'
+export { boardHolds, boardState, openBoard, refreshBoard, when as boardCopyReadWhen } from './lib/board'
 export type { BoardState, OpenBoard, OpenRefusal } from './lib/board'
 export { readPointer as readBoardPointer, writePointer as writeBoardPointer } from './lib/cloud/pointer'
 export type { BoardPointer } from './lib/cloud/pointer'

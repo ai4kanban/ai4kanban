@@ -427,12 +427,12 @@ describe('a write on a Cloud board', () => {
     assert.equal(calls.filter((c) => c.path.endsWith('/archive')).length, 1)
   })
 
-  it('says how long a card another writer holds is held for', async () => {
+  it('says who is holding a card another writer holds, and how long for', async () => {
     worker((call) => {
       if (call.method === 'POST' && call.path.endsWith('/locks')) {
         return refused(409, {
           code: 'card_locked',
-          message: 'Another writer is holding card 3.',
+          message: '@octocat is holding card 3.',
           until: '2026-09-02T10:30:00Z',
         })
       }
@@ -441,10 +441,26 @@ describe('a write on a Cloud board', () => {
     pointed(false)
     await openBoard(root)
 
+    // The same sentence a run refused on this card reads (#375) — the workspace writes it
+    // once and every surface shows it as it stands.
     const got = await board().lease({ card: 3 })
     assert.equal(got.ok, false)
-    assert.match(got.ok === false ? got.error : '', /Another writer is holding card 3/)
+    assert.match(got.ok === false ? got.error : '', /@octocat is holding card 3\./)
     assert.match(got.ok === false ? got.error : '', /2026-09-02T10:30:00Z/)
+  })
+
+  it('keeps the unnamed sentence when the workspace cannot attribute the hold', async () => {
+    worker((call) =>
+      call.method === 'POST' && call.path.endsWith('/locks')
+        ? refused(409, { code: 'card_locked', message: 'Another writer is holding card 3.' })
+        : undefined,
+    )
+    pointed(false)
+    await openBoard(root)
+
+    const got = await board().lease({ card: 3 })
+    assert.equal(got.ok, false)
+    assert.equal(got.ok === false ? got.error : '', 'Another writer is holding card 3.')
   })
 })
 

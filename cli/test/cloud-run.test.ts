@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import {
   board,
+  boardHolds,
   boardImage,
   carryRunEdits,
   dropRunCard,
@@ -180,6 +181,7 @@ function standard(call: Call): Response {
         leaseId: lease,
         cardId,
         revision: cardId ? `r${cardId}` : '7',
+        holder: 'octocat',
         grantedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
       },
@@ -309,20 +311,89 @@ describe("a run's hold on its card", () => {
     assert.equal(heldLease(WORKSPACE, 3), '')
   })
 
-  it('refuses a run whose card another machine holds, and says when the hold runs out', async () => {
+  it('refuses a run whose card another machine holds, naming the holder and when it frees up', async () => {
     worker((call) =>
       call.method === 'POST' && call.path.endsWith('/locks')
-        ? refused(409, { code: 'card_locked', message: 'Another writer is holding card 3.', until: '2026-09-03T12:00:00Z' })
+        ? refused(409, { code: 'card_locked', message: '@octocat is holding card 3.', until: '2026-09-03T12:00:00Z' })
         : undefined,
     )
     pointed()
     await openBoard(root)
 
+    // The workspace's own sentence names the member (#375); the run adds the wait and the
+    // one thing to do instead.
     const held = await takeRunCard(RUN, 3)
     assert.equal(held.ok, false)
-    assert.match(held.ok === false ? held.error : '', /held by another machine/)
+    assert.match(held.ok === false ? held.error : '', /@octocat is holding card 3\./)
     assert.match(held.ok === false ? held.error : '', /2026-09-03T12:00:00Z/)
+    assert.match(held.ok === false ? held.error : '', /work another card/)
     assert.equal(heldLease(WORKSPACE, 3), '')
+  })
+
+  it('says who is holding each card, and nothing on a Local board', async () => {
+    const soon = new Date(Date.now() + 20 * 60_000).toISOString()
+    worker((call) =>
+      call.method === 'GET' && call.path.endsWith('/locks')
+        ? ok({
+            locks: [
+              { leaseId: 'l-0', cardId: null, revision: '7', holder: 'octocat', grantedAt: soon, expiresAt: soon },
+              { leaseId: 'l-3', cardId: 3, revision: 'r3', holder: 'octocat', grantedAt: soon, expiresAt: soon },
+              { leaseId: 'l-4', cardId: 4, revision: 'r4', holder: '', grantedAt: soon, expiresAt: soon },
+            ],
+          })
+        : undefined,
+    )
+    pointed()
+    await openBoard(root)
+
+    const holds = await boardHolds()
+    // The board's own lock is nothing a card page draws, and a hold with nobody to name
+    // cannot be drawn as a name.
+    assert.deepEqual(
+      holds.map((h) => h.cardId),
+      [3],
+    )
+    assert.equal(holds[0]?.handle, 'octocat')
+    assert.equal(holds[0]?.expiresWhen, `${soon.replace('T', ' ').slice(0, 16)} UTC`)
+
+    await openBoard(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-cloudrun-local-')))
+    assert.deepEqual(await boardHolds(), [])
+  })
+
+  it('draws nobody over a card this machine is already holding', async () => {
+    const soon = new Date(Date.now() + 20 * 60_000).toISOString()
+    worker((call) =>
+      call.method === 'GET' && call.path.endsWith('/locks')
+        ? ok({
+            locks: [
+              // What `takeRunCard` below was granted, and a hold on another machine.
+              { leaseId: 'lease-3', cardId: 3, revision: 'r3', holder: 'octocat', grantedAt: soon, expiresAt: soon },
+              { leaseId: 'l-4', cardId: 4, revision: 'r4', holder: 'hubot', grantedAt: soon, expiresAt: soon },
+            ],
+          })
+        : undefined,
+    )
+    pointed()
+    await openBoard(root)
+    await takeRunCard(RUN, 3)
+
+    // Every write from here presents that lease, so the run on this machine is nobody the
+    // reader waits for — the hold worth a line is the one on the other machine.
+    assert.deepEqual(
+      (await boardHolds()).map((h) => h.cardId),
+      [4],
+    )
+  })
+
+  it('answers with no holds rather than a refusal when the workspace is out of reach', async () => {
+    worker()
+    pointed()
+    await openBoard(root)
+    mock.method(globalThis, 'fetch', async () => {
+      throw new Error('offline')
+    })
+
+    assert.deepEqual(await boardHolds(), [])
   })
 
   it('refuses a run that cannot reach the workspace', async () => {

@@ -83,6 +83,9 @@ export interface WorkspaceLock {
   /** The card it is over, or null for the board itself. */
   cardId: number | null
   revision: string
+  /** The GitHub handle of the member holding it (#375), read back off the account. Empty
+   *  when the hold cannot be attributed — the account is gone, or is no longer a member. */
+  holder: string
   grantedAt: string
   expiresAt: string
 }

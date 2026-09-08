@@ -10,6 +10,7 @@ import type {
   BoardStanding,
   Card,
   CardDrafts,
+  CardHold,
   CardRef,
   CardScreen,
   ChannelStatus,
@@ -130,10 +131,11 @@ export async function cardScreen(id: number): Promise<CardScreen | null> {
   const card = await findCard(id);
   if (!card) return null;
   const board = await readBoard();
-  const [plan, diff, head] = await Promise.all([
+  const [plan, diff, head, hold] = await Promise.all([
     deliveryPlan(),
     deliveryDiff(card.delivery?.id ?? card.finished?.id),
     screenBoard(),
+    cardHold(id),
   ]);
   return {
     ...head,
@@ -144,7 +146,23 @@ export async function cardScreen(id: number): Promise<CardScreen | null> {
     memoryModules: board.memoryModules,
     plan,
     diff,
+    hold,
   };
+}
+
+/** Who is holding this card right now (#375), or null when nobody is. Read here — when the
+ *  page is drawn, and again when a refresh redraws it — and never polled: nothing pushes a
+ *  hold, and the refusal a save meets is what actually protects the card.
+ *
+ *  A Local board, a board out of reach and a copy of the rules older than holds all answer
+ *  with none, because a page missing the hint is better than one that will not open. */
+async function cardHold(id: number): Promise<CardHold | null> {
+  try {
+    const holds = (await (await boardRules()).boardHolds?.()) ?? [];
+    return holds.find((h) => h.cardId === id) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Read the whole workspace again — the user asking, never a timer. A Local board answers

@@ -16,6 +16,7 @@
 //     the close starts any follow-up run.
 
 import { cloudHandle } from './open'
+import { heldLine } from './cloud'
 import type { CarryResult } from './cloud'
 import type { BoardPayload } from './transfer'
 import { stampHolder } from '../cloud/holds'
@@ -64,12 +65,9 @@ export async function takeRunCard(sessionId: string, cardId: number | null): Pro
   const got = await cloud.holdCard(cardId, sessionId)
   if (got.ok) return { ok: true }
   if (got.takenOver) {
-    return {
-      ok: false,
-      error:
-        `#${cardId} is held by another machine on this workspace` +
-        `${got.until ? `, until ${got.until}` : ''}. Wait for that hold to run out, or work another card.`,
-    }
+    // The workspace's own sentence names who is holding the card (#375). What is added here
+    // is the two things it cannot say: when the wait ends, and what to do instead.
+    return { ok: false, error: `${heldLine(got.error, got.until)} Wait for that hold to run out, or work another card.` }
   }
   // Anything else the workspace never answered: the run does not start on the copy alone,
   // because the machine holding the card would have its edits written over.

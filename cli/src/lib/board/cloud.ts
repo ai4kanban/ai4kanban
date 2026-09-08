@@ -30,10 +30,11 @@
 // is what the run engine calls; this is where those reach the workspace.
 //
 // What is deliberately NOT here: creating, importing, exporting and leaving a workspace
-// (#317), and who else is holding a card (#375).
+// (#317).
 
 import {
   isOffline,
+  listWorkspaceLocks,
   readWorkspaceArchive,
   readWorkspaceDocuments,
   readWorkspaceSnapshot,
@@ -61,6 +62,7 @@ import { ignoreBoardCopyIfMissing, readNextId, TODO } from '../paths'
 import { nextWork as dispatchNextWork } from '../view/dispatch'
 import type { SaveProjectResult } from '../view/types'
 import { NO_REVISION } from './contract'
+import type { CardHold } from './screen'
 import type {
   BoardProvider,
   Lease,
@@ -122,6 +124,10 @@ export interface CloudBoardHandle {
   carry(before: BoardPayload, sessionId: string): Promise<CarryResult>
   /** Put the machine's copy of one card back to what the workspace holds. */
   reread(cardId: number): Promise<void>
+  /** Every card another writer is holding right now (#375). A read, so it costs the daily
+   *  write budget nothing — and it answers with none rather than refusing when the
+   *  workspace is out of reach: a hint the refusal backs up is not worth a screen error. */
+  holds(): Promise<CardHold[]>
 }
 
 /** Taking a card's hold: granted, held by another machine until `until`, or a workspace this
@@ -243,6 +249,7 @@ export async function openCloudBoard(
       image: () => packBoard(),
       carry: (before, sessionId) => carry(ctx, before, sessionId),
       reread: (cardId) => reread(ctx, cardId),
+      holds: () => holds(ctx),
     },
   }
 }
@@ -705,9 +712,9 @@ function cloudBoard(ctx: Context): BoardProvider {
         // card another machine has taken. Forget it here, or every write after this one
         // would present a lease that is nobody's (#398).
         if (mineAlready && got.code === 'card_locked' && 'card' in target) dropHold(ctx.workspaceId, target.card)
-        // A card another writer holds says when the hold runs out, so somebody waiting knows
-        // how long rather than being told "later".
-        return { ok: false, error: got.until ? `${got.error} The hold runs out at ${got.until}.` : got.error }
+        // A card another writer holds names them and says when the hold runs out, so
+        // somebody waiting knows who and how long rather than being told "later".
+        return { ok: false, error: heldLine(got.error, got.until) }
       }
       const mine = await local.lease(target)
       if (!mine.ok) {
@@ -872,6 +879,40 @@ function difference(before: BoardPayload, after: BoardPayload): Change {
  */
 export const when = (iso: string): string =>
   iso ? `${iso.replace('T', ' ').slice(0, 16)} UTC` : 'never'
+
+/** What somebody turned away by another writer's hold is told: the workspace's own sentence,
+ *  which names the member holding it (#375), and when the wait ends. */
+export const heldLine = (error: string, until?: string): string =>
+  until ? `${error} The hold runs out at ${until}.` : error
+
+/**
+ * Every card this workspace is holding for somebody right now (#375).
+ *
+ * Three holds are left out. The board's own lock, because it is taken and given back inside
+ * one board move and nothing draws it. A hold the workspace cannot attribute to a member,
+ * because there is no name to say. And a hold THIS machine already has: every write from
+ * here presents that lease and is never refused by it (#398), so drawing it would name the
+ * reader as somebody to wait for.
+ *
+ * Bounded like every other read a screen waits on: a workspace out of reach answers with no
+ * holds rather than holding the card page open until the socket gives up.
+ */
+async function holds(ctx: Context): Promise<CardHold[]> {
+  if (ctx.offline) return []
+  const got = await listWorkspaceLocks(ctx.workspaceId, { timeoutMs: OFFLINE_PROBE_MS })
+  if (!got.ok) return []
+  return got.value.locks
+    .filter(
+      (lock) =>
+        lock.cardId !== null && !!lock.holder && heldLease(ctx.workspaceId, lock.cardId) !== lock.leaseId,
+    )
+    .map((lock) => ({
+      cardId: lock.cardId as number,
+      handle: lock.holder as string,
+      expiresAt: lock.expiresAt,
+      expiresWhen: when(lock.expiresAt),
+    }))
+}
 
 /** One card as the workspace stores it, for telling two reads of the copy apart. */
 const textOf = (card: CardPayload): string =>

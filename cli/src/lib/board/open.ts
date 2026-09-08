@@ -11,6 +11,7 @@
 import { openCloudBoard, type CloudBoardHandle, type CloudBoardState, type OpenRefusal } from './cloud'
 import { readPointer } from '../cloud/pointer'
 import { setBoardProvider } from './index'
+import type { CardHold } from './screen'
 
 export type { OpenRefusal }
 
@@ -110,6 +111,17 @@ export function boardState(): BoardState {
     readAt: state.readAt,
     workspaceName: state.workspaceName,
   }
+}
+
+/**
+ * Every card somebody is holding on this board right now (#375).
+ *
+ * A Local board answers with none and asks nothing: there is no workspace to hold a card
+ * and nobody else to hold it. Read where a card page is drawn and where the board is
+ * refreshed — never on a timer, so no screen polls for a hint the refusal already backs up.
+ */
+export function boardHolds(): Promise<CardHold[]> {
+  return open ? open.board.holds() : Promise.resolve([])
 }
 
 /**

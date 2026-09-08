@@ -68,6 +68,23 @@ export interface BoardScreen extends ScreenBoard {
   error: string | null
 }
 
+/** Who is holding a card right now (#375). Only a Cloud workspace has one, and only while
+ *  the hold is live — a Local board holds nothing and answers with none.
+ *
+ *  A hint, not a gate: it is read when the page is and never pushed, so a reader can see a
+ *  name that has since freed and write anyway, meeting the refusal that actually protects
+ *  the card. `expiresWhen` is the expiry already spelled by the board's own rules, for the
+ *  reason `BoardStanding.readWhen` is — the line renders on a server and again in a
+ *  browser, so the wording has to be one answer. */
+export interface CardHold {
+  cardId: number
+  /** The holder's GitHub handle. Never empty: a hold the workspace cannot attribute is not
+   *  one of these, because there is nobody to name. */
+  handle: string
+  expiresAt: string
+  expiresWhen: string
+}
+
 /** Everything a card page draws. The board fields beside the card are the ones the page
  *  itself needs — the ids it may link to, the releases its picker offers, whether the goal
  *  is written, the modules memory is kept for. */
@@ -82,4 +99,8 @@ export interface CardScreen extends ScreenBoard {
   /** What the delivery on this card changed (#305), capped where it was read. Null when
    *  there is nothing to show, and then the delivery block has no **Diff** tab. */
   diff: DeliveryDiff | null
+  /** Who is holding this card (#375). Null on a Local board, when nothing holds the card,
+   *  when the hold cannot be attributed to a member, and when it is this machine's own —
+   *  a lease every write from here presents is nobody to wait for. */
+  hold: CardHold | null
 }

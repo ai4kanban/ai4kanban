@@ -18,7 +18,7 @@ export * from './screen'
 export { envelope, moveTarget, newOpId, opConflict, opOk, opRefused, leaseAnd } from './ops'
 export { boardRevision, cardRevision, revisionOf } from './revision'
 // Which board a checkout opens, how it stands, and the one re-read that is the user asking.
-export { boardState, openBoard, refreshBoard } from './open'
+export { boardHolds, boardState, openBoard, refreshBoard } from './open'
 export type { BoardState, OpenBoard, OpenRefusal } from './open'
 // When a Cloud board's copy was read, in the one spelling a terminal and a browser both use.
 export { when } from './cloud'
