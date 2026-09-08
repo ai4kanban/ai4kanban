@@ -107,6 +107,12 @@ export function useRuntimeName(): (row: { fixed?: boolean; name: string }) => st
   return (row) => (row.fixed ? c.globalDefault : row.name);
 }
 
+/** The one agent whose page carries an action rather than only settings (#514): pruning is
+ *  the only agent work nothing on the board asks for, so its page is where a pass is started
+ *  and where the cadence that repeats it is opted into. Named here because three screens
+ *  need the same word — the rail's button, the phone's, and the pane that draws the page. */
+export const PRUNER = "memory-pruner";
+
 // The dialog's sections, in sidebar order — what the board is set up with, then the tool
 // it runs on, then what that tool is told, then where the answers go. Adding a settings
 // group is one entry here plus its pane below; nothing else moves.
@@ -131,13 +137,17 @@ const SECTIONS: { id: Section; icon: IconType }[] = [
 // works once the skill is installed, so when it isn't, the way out of that strip
 // is this dialog's General pane rather than a sentence telling the user to go find
 // the gear.
-let openRequest: { at: number; section: Section } | null = null;
+//
+// A request may also name the agent whose page to open on (#514): Prune memory in the rail
+// is one press, and landing on the Agents grid with nothing selected would leave the reader
+// to find the character themselves.
+let openRequest: { at: number; section: Section; agent?: string } | null = null;
 const requestSubs = new Set<() => void>();
 export const configDialog = {
-  open(section: Section = "general") {
+  open(section: Section = "general", agent?: string) {
     // A fresh object every time, so asking for the same section twice still
     // reaches a dialog the user closed in between.
-    openRequest = { at: openRequest ? openRequest.at + 1 : 1, section };
+    openRequest = { at: openRequest ? openRequest.at + 1 : 1, section, agent };
     for (const fn of requestSubs) fn();
   },
 };
@@ -149,6 +159,25 @@ function useOpenRequest() {
     },
     () => openRequest,
     () => openRequest,
+  );
+}
+
+/** The gear in the header's tool cluster, which is all it is: pressing it asks the dialog to
+ *  open, the way every other way in already does. It is a component of its own because the
+ *  dialog below has to be mounted exactly ONCE — it portals to the body, so a second copy
+ *  hidden by a `md:` class would still paint — while the gear itself is desktop-only. */
+export function ConfigurationButton() {
+  const c = useCopy().configuration;
+  return (
+    <button
+      type="button"
+      className={TOOL_BTN}
+      title={c.open}
+      aria-label={c.open}
+      onClick={() => configDialog.open("general")}
+    >
+      <FiSettings size={15} aria-hidden />
+    </button>
   );
 }
 
@@ -164,6 +193,9 @@ export function Configuration({
   const [open, setOpen] = useState(false);
   // Which pane shows. Reopening the dialog starts back on General.
   const [section, setSection] = useState<Section>("general");
+  // The agent the request named, for the pane to open on. Cleared once that pane has taken
+  // it, so selecting another character is never undone by a re-render.
+  const [pickAgent, setPickAgent] = useState("");
   const router = useRouter();
 
   // Someone outside this tree asked for the dialog — open it on the section they
@@ -173,6 +205,7 @@ export function Configuration({
   useEffect(() => {
     if (!request) return;
     setSection(request.section);
+    setPickAgent(request.agent ?? "");
     setOpen(true);
   }, [request]);
 
@@ -189,21 +222,6 @@ export function Configuration({
 
   return (
     <>
-      {/* The last tool in the header's cluster (components/chrome.tsx) — no frame
-          of its own, one hairline between it and Sessions. */}
-      <button
-        type="button"
-        className={TOOL_BTN}
-        title={c.open}
-        aria-label={c.open}
-        onClick={() => {
-          setSection("general");
-          setOpen(true);
-        }}
-      >
-        <FiSettings size={15} aria-hidden />
-      </button>
-
       {open && (
         <Dialog
           title={c.title}
@@ -277,7 +295,14 @@ export function Configuration({
                 added, its own AGENT.md. Mounted only while it is the section on screen: it
                 asks the board for its roster when it draws, and that roster carries the
                 switches and the rules as they read right now. */}
-            {section === "agents" && <AgentsPanel info={agent} onError={onError} />}
+            {section === "agents" && (
+              <AgentsPanel
+                info={agent}
+                openOn={pickAgent}
+                onPicked={() => setPickAgent("")}
+                onError={onError}
+              />
+            )}
             {/* The Cloud sign-in (#326) — the account this MACHINE acts as, not a setting of
                 this board. Mounted only while it is the section on screen: it asks the
                 service who is signed in, over the network. */}

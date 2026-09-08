@@ -36,6 +36,8 @@ const en: MessagesCopy = {
       "this board's rules are older than named runtimes — run `npm install -g ai4kanban`.",
     usageReporting:
       "this board's rules are older than the usage-reporting setting — run `npm install -g ai4kanban`.",
+    memoryPruner:
+      "this board's rules are older than the memory pruner — run `npm install -g ai4kanban`.",
   },
   actions: {
     noSuchCard: "that is not a card on this board.",

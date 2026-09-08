@@ -44,6 +44,7 @@ import {
   FiInbox,
   FiMessageSquare,
   FiMoreHorizontal,
+  FiScissors,
   FiSearch,
   FiX,
 } from "react-icons/fi";
@@ -56,7 +57,9 @@ import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
 import { createSheet } from "@/lib/create-open";
 import { useDiscussions } from "@/lib/discussion-list";
+import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
+import { configDialog, PRUNER } from "./Configuration";
 import { useSolution } from "./solution";
 import {
   DropdownMenu,
@@ -278,6 +281,7 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
           {/* The rows' own breathing room is inside the scroller, not padding on it: padding
               is floor a 0fr track can't shrink past, and closed has to close all the way. */}
           <div className="flex flex-col gap-0.5 py-1">
+            <PruneButton />
             {split && <PanelLabel text={c.project} />}
             <MemoryFileRows module="" active={active} />
             {split && <PanelLabel text={c.modules} divider />}
@@ -320,6 +324,34 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
         </nav>
       </div>
     </div>
+  );
+}
+
+/** Prune memory (#514) — the one thing you DO to the memory, over the files you read.
+ *
+ *  It is a button rather than a row: the rows below open a file, and this opens the Memory
+ *  Pruner's page in Configuration, where a pass is started and a cadence is set. So it wears
+ *  the button family's ink frame and hard shadow instead of a row's flat corner, and a
+ *  hairline parts it from the files.
+ *
+ *  It does not prune. A pass rewrites every memory file, so the second click — **Run now**,
+ *  on the agent's own page — is where that is asked for. */
+function PruneButton() {
+  const c = useCopy().rail.memory;
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="xs"
+        title={c.pruneTitle}
+        onClick={() => configDialog.open("agents", PRUNER)}
+        className="mx-2.5 mb-1 h-[32px] w-[calc(100%-1.25rem)] font-[700] text-nb-accent-deep"
+      >
+        <FiScissors size={13} aria-hidden />
+        {c.prune}
+      </Button>
+      <div className="mx-2.5 mb-1" style={{ borderTop: `1px solid ${HAIRLINE}` }} />
+    </>
   );
 }
 

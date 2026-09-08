@@ -32,7 +32,7 @@ import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
 import { boardMemoryFiles } from '../memory'
-import { die, rel, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
+import { die, rel, AGENT_MEMORY, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
@@ -486,6 +486,9 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   archive: ['board'],
   reject: ['board', 'reject'],
   setup: ['board', 'setup', 'add-task'],
+  // A prune gets the memory set's own definition and the rules for squeezing it, and NOT
+  // the rest of `board`: it rewrites memory files and writes no card at all.
+  'prune-memory': ['board', 'prune-memory'],
   // Specialist instructions apply to both printed flows and separate runs.
   spec: ['spec-agent'],
   // A repurpose gets its own flow and NOT `board`: it writes one file under `content/` and
@@ -843,6 +846,25 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         `write the lines to a file, then ${raw} release changelog ${quoteId(version)} --file <path> — it owns the placement, and running it again replaces the changelog rather than adding one`,
         'change nothing else — not a card, not the release list, not the code',
+      )
+      break
+    }
+    // Squeezing the memory back down (#514). The facts are the files, because the files
+    // ARE the job: there is no card to read and nothing on the board to tick afterwards.
+    case 'prune-memory': {
+      // Folders, not files: a prune covers the whole memory set in each of them, and the
+      // set is `akb guide board`'s to define rather than this flow's to list.
+      facts.push(
+        ...field('memory', [
+          rel(MEMORY),
+          ...(moduleNames() ?? []).map((module) => rel(path.join(MEMORY, module))),
+        ]),
+      )
+      facts.push(...field('agents', `${rel(AGENT_MEMORY)}/<agent>/ — one folder per agent that remembers`))
+      close.push(
+        'rewrite the files above in place — that is the whole job',
+        'raise nothing for anyone: there is no card to question, so what you cannot settle stays in the file',
+        'change nothing else — not a card, not the goal, not the code',
       )
       break
     }

@@ -134,10 +134,12 @@ import {
 import {
   autoCommitAllowed,
   diffApprovalRequired,
+  memoryPrune,
   setAutoCommit,
   setDiffApproval,
   setHarness,
   setHarnessSetting,
+  setMemoryPrune,
   setSilenceMinutes,
   silenceMinutes,
 } from "@/lib/config";
@@ -222,6 +224,7 @@ import type {
   LarkCloud,
   LarkState,
   LoggedOutAgent,
+  MemoryPruneSchedule,
   MemberRoleWire,
   MetricsResult,
   PlanAnswer,
@@ -1220,6 +1223,45 @@ export async function setSilenceLimitAction(minutes: number): Promise<WriteResul
     return { ok: false, error: "that setting is a whole number of minutes" };
   }
   return setSilenceMinutes(minutes);
+}
+
+// --- the memory pruner (#514) ------------------------------------------------
+// Its page reads the schedule when the Agents pane opens, saves the opt-in and the cadence
+// through the same file the switches above are in, and starts one pass by hand.
+//
+// Rules older than the pruner answer `null` rather than a schedule, and the page draws Run
+// now without the recurrence chip — never a control whose save could only fail.
+export async function memoryPruneAction(): Promise<{
+  schedule: MemoryPruneSchedule | null;
+  error?: string;
+}> {
+  try {
+    return { schedule: await memoryPrune() };
+  } catch (e) {
+    return { schedule: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function setMemoryPruneAction(next: {
+  enabled: boolean;
+  cadence: string;
+}): Promise<WriteResult> {
+  if (typeof next?.enabled !== "boolean" || typeof next?.cadence !== "string") {
+    return { ok: false, error: "a prune schedule is saved as an opt-in and a cadence" };
+  }
+  try {
+    return await setMemoryPrune(next);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Start one prune by hand — **Run now** on the pruner's page. It names no card: the memory
+ *  set is the whole job. A second pass while one is going is refused by the run record's own
+ *  one-at-a-time rule, so the button never has to know. */
+export async function startPruneMemoryAction(): Promise<StartResult> {
+  const req: AgentRequest = { action: "prune-memory" };
+  return startSession(req, await buildPrompt(req));
 }
 
 // The agents the board can run and which of them this machine has (#207) — the picker asks

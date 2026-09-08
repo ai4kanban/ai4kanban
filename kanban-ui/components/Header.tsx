@@ -4,7 +4,7 @@ import type { ReleasePick } from "@/lib/release-pick";
 import type { AgentInfo } from "@/lib/types";
 import { ChatButton } from "./Chat";
 import { ToolCluster } from "./chrome";
-import { Configuration } from "./Configuration";
+import { Configuration, ConfigurationButton } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { ProjectPath, UpdateChip } from "./desktop";
 import { GitHubLink } from "./GitHubLink";
@@ -243,7 +243,7 @@ export function Header({
             <BellButton />
             <Insights />
             <Sessions />
-            <Configuration agent={agent} onError={onError} />
+            <ConfigurationButton />
           </ToolCluster>
           <ChatButton />
         </span>
@@ -256,6 +256,12 @@ export function Header({
             <BellButton />
           </ToolCluster>
         </span>
+        {/* The dialog itself, mounted once at every width and opened by asks rather than by
+            a control of its own. The gear above is the desktop's way in; on a phone the one
+            way in is Prune memory on the Memory screen (#514), which opens it straight on the
+            Memory Pruner's page. It portals to the body, so mounting a second copy inside a
+            `md:` branch would paint two. */}
+        <Configuration agent={agent} onError={onError} />
         <CreateTask release={createRelease} projectRoot={projectRoot} />
       </div>
     </header>

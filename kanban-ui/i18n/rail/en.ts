@@ -34,6 +34,8 @@ const en: RailCopy = {
       redesign: "Design mistakes",
       rejected: "Rejected ideas",
     },
+    prune: "Prune memory",
+    pruneTitle: "Prune memory — opens Memory pruner in Configuration",
   },
   archive: {
     row: "Archive",

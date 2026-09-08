@@ -32,6 +32,7 @@ const zh: MessagesCopy = {
     specAgentSetting: "这个项目里的运行规则太旧，无法设置规格 Agent",
     runtimes: "这个看板的运行规则早于命名运行时——请运行 `npm install -g ai4kanban`。",
     usageReporting: "这个看板的运行规则早于使用情况上报设置——请运行 `npm install -g ai4kanban`。",
+    memoryPruner: "这个看板的运行规则早于记忆整理 Agent——请运行 `npm install -g ai4kanban`。",
   },
   actions: {
     noSuchCard: "这不是本看板上的卡片。",

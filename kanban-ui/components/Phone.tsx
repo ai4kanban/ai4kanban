@@ -29,6 +29,7 @@ import {
   FiMessageSquare,
   FiMoreHorizontal,
   FiPlay,
+  FiScissors,
   FiSearch,
   FiSettings,
   FiX,
@@ -41,7 +42,9 @@ import { memoryKey, memoryModuleOf, useOpenModules } from "@/lib/memory-panel";
 import type { OpenCard } from "@/lib/open-cards";
 import { MEMORY_FILES, type MemoryModule } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Button } from "./button";
 import { HAIRLINE, PHONE_ROW } from "./chrome";
+import { configDialog, PRUNER } from "./Configuration";
 import { Goal } from "./Goal";
 import { Insights } from "./Insights";
 
@@ -231,7 +234,10 @@ export function FindScreen({ rows }: { rows: OpenCard[] }) {
 
 /** The rail's Memory panel, as a screen (#357). The same four files in the same order for
  *  the project and for each module — nothing here folds away, because the screen is the
- *  panel rather than a foot under a list of cards. */
+ *  panel rather than a foot under a list of cards.
+ *
+ *  Prune memory leads it, as it does in the rail (#514) — the same button, at a thumb's
+ *  height, opening the same Memory Pruner page. */
 export function MemoryScreen({
   active,
   modules,
@@ -245,6 +251,16 @@ export function MemoryScreen({
   const split = modules.length > 0;
   return (
     <Screen title={c.heading}>
+      <Button
+        variant="ghost"
+        size="sm"
+        title={c.pruneTitle}
+        onClick={() => configDialog.open("agents", PRUNER)}
+        className="mb-3 mt-1 h-11 w-full font-[700] text-nb-accent-deep"
+      >
+        <FiScissors size={15} aria-hidden />
+        {c.prune}
+      </Button>
       {split && <GroupLabel text={c.project} />}
       <div className="flex flex-col gap-1">
         <MemoryRows module="" active={active} />

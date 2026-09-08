@@ -26,34 +26,42 @@
 // agent. An agent with no art draws its first letter in the same pixel style, which is the
 // normal state for an agent you add — never a broken image.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiAlertCircle,
   FiCheck,
   FiChevronDown,
+  FiClock,
   FiPlus,
+  FiScissors,
   FiTrash2,
 } from "react-icons/fi";
 import {
   agentsAction,
   createAgentAction,
   deleteAgentAction,
+  listSessionsAction,
+  memoryPruneAction,
   saveAgentFileAction,
   setAgentRuntimeAction,
   setAgentRuleAction,
+  setMemoryPruneAction,
   setSpecAgentAction,
   setSpecAgentSettingAction,
+  startPruneMemoryAction,
 } from "@/app/actions";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type {
   AgentInfo,
   AgentView,
+  MemoryPruneSchedule,
   SpecAgentSettingView,
 } from "@/lib/types";
-import { AgentMark, useRuntimeName } from "./Configuration";
+import { AgentMark, PRUNER, useRuntimeName } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
 import {
+  ACCENT_BTN,
   CAPTION,
   DANGER_BTN,
   FLAT_CONTROL,
@@ -79,11 +87,19 @@ const PER_DELIVERY = "reviewer";
 
 export function AgentsPanel({
   info,
+  openOn = "",
+  onPicked,
   onError,
 }: {
   /** The connectors this board can run, and which one is its default (#443) — what the
    *  runtime row on an agent's page offers. */
   info: AgentInfo;
+  /** The agent to open the page on, when the pane was opened by a deep link (#514). Empty
+   *  the rest of the time: the grid is the answer to "who works on this board", and a page
+   *  opened for you is a page you did not ask for. */
+  openOn?: string;
+  /** Taken, so selecting another character afterwards is never undone. */
+  onPicked?: () => void;
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.agents;
@@ -94,6 +110,10 @@ export function AgentsPanel({
   // Which agent's page is open. The pane opens with none: the grid is the answer to "who
   // works on this board", and a page opened for you is a page you did not ask for.
   const [picked, setPicked] = useState("");
+  // A page opened by a deep link is scrolled to (#514): it is drawn under two grids, so the
+  // pane would otherwise open on the roster with the page the link named off screen.
+  const [reveal, setReveal] = useState(false);
+  const page = useRef<HTMLDivElement>(null);
   // What the two boxes hold right now, by agent, so selecting another tile never loses an
   // edit that has not been saved yet.
   const [rules, setRules] = useState<Record<string, string>>({});
@@ -135,6 +155,16 @@ export function AgentsPanel({
   useEffect(() => {
     void load();
   }, []);
+
+  // The agent a deep link named (#514) — Prune memory in the rail opens this pane on the
+  // pruner's page. It waits for the roster: selecting a name the grid does not hold yet
+  // would draw no page at all.
+  useEffect(() => {
+    if (!openOn || !agents?.some((a) => a.name === openOn)) return;
+    setPicked(openOn);
+    setReveal(true);
+    onPicked?.();
+  }, [openOn, agents, onPicked]);
 
   // Saving what a page holds when it is left. Read off a ref rather than off the render the
   // callback was made in, because one of the callers below fires as the pane is coming
@@ -317,6 +347,13 @@ export function AgentsPanel({
   };
 
   const agent = agents?.find((a) => a.name === picked);
+
+  useEffect(() => {
+    if (!reveal || !agent) return;
+    page.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    setReveal(false);
+  }, [reveal, agent]);
+
   const always = agents?.filter((a) => !a.switchable) ?? [];
   const optional = agents?.filter((a) => a.switchable) ?? [];
 
@@ -376,31 +413,34 @@ export function AgentsPanel({
           </Group>
 
           {agent && (
-            <Page
-              agent={agent}
-              rule={rules[agent.name] ?? ""}
-              file={files[agent.name]}
-              saved={savedRule === agent.name}
-              refusal={
-                refusal && refusal.agent === agent.name ? refusal.why : ""
-              }
-              focusFile={focusFile}
-              onFocused={() => setFocusFile(false)}
-              onRule={(text) => {
-                setRules((all) => ({ ...all, [agent.name]: text }));
-                setSavedRule("");
-              }}
-              onFile={(text) =>
-                setFiles((all) => ({ ...all, [agent.name]: text }))
-              }
-              onLeave={() => void leave.current(agent.name)}
-              onPick={(key, value) => void pick(agent, key, value)}
-              info={info}
-              onRuntime={(runtime) => void bind(agent, runtime)}
-              onDelete={() => remove(agent.name)}
-              deleting={saving.includes(agent.name)}
-              busy={(key) => saving.includes(`${agent.name}/${key}`)}
-            />
+            <div ref={page}>
+              <Page
+                agent={agent}
+                rule={rules[agent.name] ?? ""}
+                file={files[agent.name]}
+                saved={savedRule === agent.name}
+                refusal={
+                  refusal && refusal.agent === agent.name ? refusal.why : ""
+                }
+                focusFile={focusFile}
+                onFocused={() => setFocusFile(false)}
+                onRule={(text) => {
+                  setRules((all) => ({ ...all, [agent.name]: text }));
+                  setSavedRule("");
+                }}
+                onFile={(text) =>
+                  setFiles((all) => ({ ...all, [agent.name]: text }))
+                }
+                onLeave={() => void leave.current(agent.name)}
+                onPick={(key, value) => void pick(agent, key, value)}
+                info={info}
+                onRuntime={(runtime) => void bind(agent, runtime)}
+                onError={onError}
+                onDelete={() => remove(agent.name)}
+                deleting={saving.includes(agent.name)}
+                busy={(key) => saving.includes(`${agent.name}/${key}`)}
+              />
+            </div>
           )}
 
           {problems.length > 0 && (
@@ -613,6 +653,7 @@ function Page({
   onLeave,
   onPick,
   onRuntime,
+  onError,
   onDelete,
   deleting,
   busy,
@@ -632,6 +673,8 @@ function Page({
   onPick: (key: string, value: string) => void;
   /** Give this agent a connector of its own, or "" to put it back on the board's default. */
   onRuntime: (runtime: string) => void;
+  /** Where a failure the page cannot show in place goes — the dialog's error strip. */
+  onError?: (msg: string) => void;
   /** One of its model settings, on this computer. */
   onDelete: () => Promise<void>;
   /** The delete is in flight. */
@@ -700,6 +743,10 @@ function Page({
             </p>
           )}
         </div>
+
+        {/* The pruner's own action (#514), where an added agent's Delete sits: it is the one
+            agent whose page is a thing to press rather than only settings to fill in. */}
+        {agent.name === PRUNER && <PruneControls onError={onError} />}
 
         {/* Only an agent this project added: a role runs the board's own flows and a bundled
             agent ships inside the command, so neither is this board's to remove. */}
@@ -863,6 +910,270 @@ function Page({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// --- the memory pruner's own controls (#514) ---------------------------------
+
+// One pass, and the schedule that repeats it.
+//
+// Pruning is the only agent work nothing on the board asks for, so this is the whole of how
+// it is reached: **Run now** starts a pass, and the chip beside it opens the opt-in that
+// makes the board start one by itself. The chip is compact and closed by default — a
+// standing switch row would give a setting that is off on almost every board the width of
+// the page — and it says the cadence once one is running, which is the only state worth
+// reading at a glance.
+//
+// Recurrence is OFF until it is asked for, and opening the popover enables nothing: a pass
+// rewrites every memory file.
+//
+// The quiet line under the group is the last pass that PASSED. A run that failed or was
+// stopped leaves it exactly where it was and says so beside the button, so a schedule that
+// is not getting through is visible without opening Runs.
+function PruneControls({ onError }: { onError?: (msg: string) => void }) {
+  const c = useCopy().configuration.agents.pruner;
+  const [schedule, setSchedule] = useState<MemoryPruneSchedule | null>(null);
+  const [tooOld, setTooOld] = useState(false);
+  const [running, setRunning] = useState(false);
+  // Whether the newest finished pass got through. Only ever drawn beside the button — the
+  // last-run line below is the record of what passed, and a failure must not move it.
+  const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [why, setWhy] = useState("");
+  const anchor = useRef<HTMLSpanElement>(null);
+
+  const readSchedule = useCallback(async () => {
+    const res = await memoryPruneAction();
+    setSchedule(res.schedule);
+    setTooOld(!res.schedule && !res.error);
+    if (res.error) onError?.(res.error);
+  }, [onError]);
+
+  // What the runs record says about pruning right now: whether one is going, and whether
+  // the newest finished one got through. Polled while a pass is live and read once
+  // otherwise — the page is a settings page, not a run log.
+  const readRuns = useCallback(async () => {
+    let live = false;
+    try {
+      const runs = (await listSessionsAction()).filter((r) => r.action === "prune-memory");
+      live = runs.some((r) => r.status === "running");
+      const done = runs.filter((r) => r.status !== "running").sort((a, b) => b.startedAt - a.startedAt)[0];
+      setFailed(!!done && done.status !== "done");
+    } catch {
+      // the runs could not be read — the button still works, and it says nothing it can't
+    }
+    setRunning(live);
+    return live;
+  }, []);
+
+  useEffect(() => {
+    void readSchedule();
+    void readRuns();
+  }, [readSchedule, readRuns]);
+
+  // While a pass is going, look again every few seconds — and re-read the schedule the
+  // moment it stops, because a pass that passed is what moves the last-run line.
+  useEffect(() => {
+    if (!running) return;
+    const timer = setInterval(() => {
+      void readRuns().then((live) => {
+        if (!live) void readSchedule();
+      });
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [running, readRuns, readSchedule]);
+
+  const start = async () => {
+    if (running) return;
+    setRunning(true);
+    setFailed(false);
+    const res = await startPruneMemoryAction();
+    if (!res.ok) {
+      setRunning(false);
+      onError?.(res.error || c.saveFailed);
+      return;
+    }
+    void readRuns();
+  };
+
+  // Save the opt-in and the cadence together, and put the saved state back on a refusal:
+  // an invalid cadence must never leave a schedule looking active.
+  const save = async (next: { enabled: boolean; cadence: string }) => {
+    setSaving(true);
+    setWhy("");
+    try {
+      const res = await setMemoryPruneAction(next);
+      if (!res.ok) {
+        setWhy(res.error || c.saveFailed);
+        return false;
+      }
+      await readSchedule();
+      return true;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const on = schedule?.enabled ?? false;
+
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1.5">
+      <div className="flex items-center gap-2">
+        {!tooOld && (
+          <span ref={anchor} className="relative">
+            <button
+              type="button"
+              aria-expanded={open}
+              title={c.chipLabel(on ? schedule!.cadence : c.off)}
+              aria-label={c.chipLabel(on ? schedule!.cadence : c.off)}
+              onClick={() => setOpen((was) => !was)}
+              // Neutral while off, ember once it is running: the closed chip's whole job is
+              // to say whether anything starts by itself, and what.
+              className={`flex h-[28px] cursor-pointer items-center gap-1.5 rounded-[8px] px-2 text-[11.5px] font-[700] transition-colors duration-100 ${
+                on ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft hover:bg-nb-canvas"
+              }`}
+            >
+              <FiClock size={12} aria-hidden />
+              {on ? schedule!.cadence : c.recurring}
+              <FiChevronDown size={11} aria-hidden />
+            </button>
+            {open && (
+              <RecurrencePopover
+                schedule={schedule}
+                busy={saving}
+                why={why}
+                copy={c}
+                anchorRef={anchor}
+                onDismiss={() => {
+                  setOpen(false);
+                  setWhy("");
+                }}
+                onSave={save}
+              />
+            )}
+          </span>
+        )}
+        <button type="button" className={ACCENT_BTN} disabled={running} onClick={() => void start()}>
+          <FiScissors aria-hidden />
+          {running ? c.running : c.run}
+        </button>
+      </div>
+      <span className="text-[11px] text-nb-ink-soft">
+        {failed && !running ? `${c.failed} · ` : ""}
+        {schedule?.lastRun ? c.lastRun(schedule.lastRun) : c.neverRun}
+      </span>
+      {tooOld && <span className="text-[11px] text-nb-ink-soft">{c.tooOld}</span>}
+    </div>
+  );
+}
+
+// The chip's own panel: the opt-in, and — once it is asked for — the cadence it repeats on.
+//
+// Flipping the switch on is an INTENT, not a save: with no cadence yet there is nothing to
+// schedule, so the box appears and nothing is written. What saves is a cadence, and a
+// cadence the board refuses keeps the panel open with the reason under the box and the
+// schedule off — an invalid one can never activate anything.
+//
+// Flipping it off saves at once. Turning a schedule off is complete on its own, and a
+// setting that waited for a second action to take effect is a setting nobody can trust.
+function RecurrencePopover({
+  schedule,
+  busy,
+  why,
+  copy,
+  anchorRef,
+  onDismiss,
+  onSave,
+}: {
+  schedule: MemoryPruneSchedule | null;
+  busy: boolean;
+  why: string;
+  copy: ReturnType<typeof useCopy>["configuration"]["agents"]["pruner"];
+  anchorRef: React.RefObject<HTMLSpanElement | null>;
+  onDismiss: () => void;
+  onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
+}) {
+  const [cadence, setCadence] = useState(schedule?.cadence ?? "");
+  // What the switch shows: what is saved, or what has just been asked for and is waiting on
+  // a cadence. The two agree again the moment a save lands.
+  const [want, setWant] = useState(schedule?.enabled ?? false);
+  const box = useRef<HTMLInputElement>(null);
+
+  const flip = async (next: boolean) => {
+    setWant(next);
+    // On with nothing to run on: show the box and wait. Off, or on with a cadence already
+    // saved, is the whole answer and goes straight through.
+    if (next && !cadence.trim()) return void requestAnimationFrame(() => box.current?.focus());
+    if (!(await onSave({ enabled: next, cadence }))) setWant(!next);
+  };
+
+  // True once there is nothing left to write — either nothing changed, or what changed
+  // landed.
+  const saveCadence = async (): Promise<boolean> => {
+    if (cadence.trim() === (schedule?.cadence ?? "") && want === (schedule?.enabled ?? false)) return true;
+    if (await onSave({ enabled: want, cadence })) return true;
+    setWant(schedule?.enabled ?? false);
+    return false;
+  };
+
+  // Leaving writes a cadence typed but not yet committed: dismissing takes the box off
+  // screen before its blur can fire, and a cadence that vanished as you clicked away is a
+  // setting nobody can trust. A refusal keeps the panel open with the reason.
+  const leave = useRef(async () => {});
+  leave.current = async () => {
+    if (await saveCadence()) onDismiss();
+  };
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") void leave.current();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!anchorRef.current?.contains(event.target as Node)) void leave.current();
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [anchorRef]);
+
+  return (
+    <div className="nb-panel-sm absolute right-0 top-[calc(100%+8px)] z-40 w-[min(280px,calc(100vw-32px))] bg-nb-paper p-3 text-left">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[12.5px] font-[700] text-nb-ink">{copy.optIn}</span>
+        <Switch on={want} busy={busy} label={copy.optIn} onFlip={flip} />
+      </div>
+      {want && (
+        <div className="mt-2.5">
+          <label className={`${CAPTION} mb-[5px] block text-nb-ink-soft`} htmlFor="prune-cadence">
+            {copy.cadence}
+          </label>
+          <input
+            id="prune-cadence"
+            ref={box}
+            value={cadence}
+            disabled={busy}
+            spellCheck={false}
+            placeholder={copy.cadencePlaceholder}
+            onChange={(e) => setCadence(e.target.value)}
+            onBlur={() => void saveCadence()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void saveCadence();
+            }}
+            className="w-full rounded-[8px] bg-nb-wash px-2.5 py-1.5 font-mono text-[12px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
+          />
+          <p className="mt-1 text-[11px] leading-snug text-nb-ink-soft">{copy.cadenceHint}</p>
+        </div>
+      )}
+      {why && (
+        <p className="mt-2 rounded-[8px] bg-nb-peach-soft px-2.5 py-[6px] text-[11.5px] leading-[16px] text-nb-peach-ink">
+          {why}
+        </p>
+      )}
     </div>
   );
 }

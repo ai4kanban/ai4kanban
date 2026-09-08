@@ -86,6 +86,11 @@ export type AgentAction =
    *  both diffs and the checkout, it stages the resolution, and the board finishes the
    *  rebase after it. Its resolution gets the focused review an overlap owes (#415). */
   | 'conflict'
+  /** Squeeze the memory back down to what helps planning (#514) — the memory pruner's one
+   *  flow. It names no card: the memory set is the whole of what it works on, so it is
+   *  started from the agent's own page or by the cadence that page carries. It raises
+   *  nothing for a human — what it cannot settle stays in the memory file. */
+  | 'prune-memory'
   /** One `write` agent writing part of a topic's draft folder (#424) — an image for a
    *  post, a chart, a caption file. It is named by `specAgent`, it starts clean, and it
    *  writes files under `content/<id>/` and nothing else. The writer asks for one;
@@ -1308,6 +1313,18 @@ export interface AgentView {
   /** A project agent's whole `AGENT.md`, frontmatter included — what its page writes
    *  through. Absent on a bundled agent, whose file ships inside the command. */
   file?: AgentFileView
+}
+
+/** The memory pruner's schedule (#514), as every reader takes it. It lives beside the
+ *  board's other settings in `docs/kanban/ui.config.json`; `agent/settings.ts` owns the
+ *  reading and the writing, and this is the shape the pruner's page draws from. */
+export interface MemoryPruneSchedule {
+  /** Whether the board may start a prune on its own. Off until the user asks. */
+  enabled: boolean
+  /** How often, in the recurring cards' own grammar (`../cadence.ts`), or empty. */
+  cadence: string
+  /** The last pass that PASSED, as a minute stamp, or empty for "never run". */
+  lastRun: string
 }
 
 /** A project agent's own file, as its page holds it. */

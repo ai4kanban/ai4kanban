@@ -9,7 +9,7 @@ shipped behavior.
 Evaluate it with `akb guide evaluate-task`, then create it with `--recurring`:
 
 ```
-akb raw create --title "Prune the memory" --recurring \
+akb raw create --title "Scan the competitors" --recurring \
              --priority med --roi med --modules skill
 ```
 

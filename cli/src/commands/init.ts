@@ -28,7 +28,7 @@ import {
   type Scaffolded,
 } from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
-import { writePruneMemoryCard } from '../lib/recurring'
+import { migratePruneMemoryCard } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
 import type { MoveResult } from '../lib/types'
 
@@ -186,9 +186,10 @@ export function cmdInit(named?: Solution): MoveResult {
     // scaffold below; a board that was set up long ago has no file and must stay quiet,
     // and planting one here would tell that user to finish a setup that finished months ago.
     //
-    // Nor is the "Prune the memory" recurring card, for the same kind of reason: deleting
-    // it is how a board opts out of the job, and a repair that re-added it would undo that
-    // choice on every re-run.
+    // The "Prune the memory" card is not among them either — it goes the other way (#514).
+    // Pruning is the Memory pruner agent now, so a board still carrying the card carries two
+    // prune schedules; the repair takes the card off and keeps its cadence beside the agent,
+    // switched off. Once, because after it there is no such card to find.
     const added: string[] = [
       ...writeSkeletonIfMissing(),
       writeConfigIfMissing(named ?? solution()) && rel(CONFIG),
@@ -229,6 +230,7 @@ export function cmdInit(named?: Solution): MoveResult {
     // A goal written by an older version: the seeded text goes, and a goal with words in
     // it stops reading as one nobody wrote.
     const goalRepaired = marketing ? null : repairGoal()
+    const prunedCard = migratePruneMemoryCard()
     const movedMockups = moveMockupsIfOld()
     say(
       added.length
@@ -238,6 +240,7 @@ export function cmdInit(named?: Solution): MoveResult {
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
     if (goalRepaired) say(`  ${rel(GOAL)}: ${goalRepaired} — the agent judges the goal and edits the field`)
     if (movedMockups) say(`  moved the mockups to ${movedMockups}/ — they are out of git now, so commit the old path as deleted`)
+    if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Agents); its cadence is kept there, switched off`)
     if (added.includes(rel(MODULES_MD))) {
       say(`  next: fill in ${rel(MODULES_MD)} (see "The module map"), then re-run init for the memory paths`)
     }
@@ -266,14 +269,10 @@ export function cmdInit(named?: Solution): MoveResult {
   // The questions card comes right after `next-id` is seeded, so it takes id 1 and sorts
   // on top. Setup's steps append every call they can't settle to it as they run.
   const questionsCard = marketing ? null : (writeSetupChecklist(), writeSetupQuestionsCard())
-  // The one job every board starts with, in the reserved `recurring/` folder. It ships
-  // with no cadence, so nothing runs until someone asks for it.
-  const pruneCard = writePruneMemoryCard()
   say(`initialised board at ${rel(KANBAN)}/`)
   if (marketing) say(`  solution: marketing — \`${rel(contentDir())}/<id>/\` is where a card's drafts go`)
   else say(`  setup's remaining steps are in ${rel(SETUP_CHECKLIST)} — \`setup-done <step>\` ticks one`)
   if (questionsCard) say(`  questions card: #${questionsCard.id} — setup appends the calls it can't settle here`)
-  if (pruneCard) say(`  recurring card: #${pruneCard.id} ${rel(pruneCard.file)} — prunes the memory; runs only when you run it`)
   const next = marketing ? null : nextSetupStep()
   if (next) say(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
   return { board: rel(KANBAN), created: true, solution: solution(), next: next?.name ?? null }

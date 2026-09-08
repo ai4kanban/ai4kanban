@@ -11,7 +11,8 @@ export type AgentRoleName =
   | "writer"
   | "reviewer"
   | "gater"
-  | "decider";
+  | "decider"
+  | "memory-pruner";
 
 export type ConfigurationCopy = {
   open: string;
@@ -197,6 +198,33 @@ export type ConfigurationCopy = {
       confirmTitle: string;
       confirmBody: string;
       turnOn: string;
+    };
+    /** The memory pruner (#514) — the one agent whose page carries an action rather than
+     *  only settings: it prunes when you press Run now, and on the cadence you opt into. */
+    pruner: {
+      /** The action, and what it reads while a pass is going. */
+      run: string;
+      running: string;
+      /** The compact schedule chip beside it: what it says while recurrence is off, and
+       *  what it reads out loud either way. */
+      recurring: string;
+      chipLabel: (state: string) => string;
+      /** What the chip's read-out-loud state says while nothing repeats. */
+      off: string;
+      /** Inside its popover: the opt-in, then the cadence it runs on. */
+      optIn: string;
+      cadence: string;
+      cadencePlaceholder: string;
+      /** The forms a cadence can take, under the box. */
+      cadenceHint: string;
+      /** The quiet line under the action group. */
+      neverRun: string;
+      lastRun: (when: string) => string;
+      /** Beside Run now when the last pass did not finish. */
+      failed: string;
+      /** A save the board refused, and rules that predate the pruner. */
+      saveFailed: string;
+      tooOld: string;
     };
     /** The same box for a specialist, by the hook it plugs into. */
     specialistRule: {

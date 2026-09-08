@@ -1,7 +1,8 @@
 // ---- what the board should start on its own --------------------------------
 //
-// Two jobs that need no user at all: the cards somebody scheduled, whose last blocker has
-// now left the board, and the recurring cards whose cadence has elapsed. A front end with a
+// Three jobs that need no user at all: the cards somebody scheduled, whose last blocker has
+// now left the board, the recurring cards whose cadence has elapsed, and — on a board that
+// asked for it — the memory pruner's own cadence. A front end with a
 // timer asks this once a tick and starts whatever comes back — it holds the timer, this
 // holds the rules, so a board driven from a window and a board driven from anywhere else
 // pick the same cards in the same order.
@@ -16,6 +17,7 @@
 // See `dueScheduled`.
 
 import { nextDue } from '../cadence'
+import { memoryPrune } from '../agent/settings'
 import { answeredWork } from '../agent/deliveries'
 import { advanceLanding } from '../agent/landing'
 import { flowRefusal } from '../agent/flows'
@@ -67,6 +69,22 @@ function dueRecurring(cards: Card[], runs: RunView[], busy: Set<number>): Card[]
       return !last || last.startedAt < due.getTime()
     })
     .sort(byDispatchOrder)
+}
+
+// Whether the memory pruner is due right now (#514). The same three rules the recurring
+// cards above run on, read out of the board's settings instead of a card's frontmatter:
+// the schedule has to be explicitly ON with a cadence the board can parse, that cadence
+// has to have elapsed since the last pass that PASSED, and a run started for this very
+// window means the last attempt failed — starting it again is then a person's call, not a
+// loop the tick reopens every minute.
+function pruneDue(runs: RunView[]): boolean {
+  const prune = memoryPrune()
+  if (!prune.enabled) return false
+  const due = nextDue(prune.lastRun, prune.cadence)
+  if (!due || due.getTime() > Date.now()) return false
+  const passes = runs.filter((r) => r.action === 'prune-memory')
+  if (passes.some((r) => r.status === 'running')) return false
+  return !passes.some((r) => r.startedAt >= due.getTime())
 }
 
 // The action a scheduled card runs, as a request. A card's schedule is written in the same
@@ -126,7 +144,7 @@ async function dueScheduled(cards: Card[], busy: Set<number>, clearMark: ClearMa
 /**
  * The runs the board would start on its own right now, in the order to start them.
  *
- * At most one of each kind, and the two have their own slots: a scheduled card is a run the
+ * At most one of each kind, and each kind has a slot of its own: a scheduled card is a run the
  * user already asked for, on a card whose turn has finally come, so it must not sit behind a
  * recurring pass that happens to be due in the same minute.
  *
@@ -166,6 +184,10 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
     const card = dueRecurring(cards, runs, busy)[0]
     if (card) work.push({ action: 'run', id: card.id, title: card.title })
   }
+
+  // The prune the pruner's own cadence has made due (#514). A slot of its own, like the two
+  // above: it touches no card, so nothing it does can queue behind them or they behind it.
+  if (pruneDue(runs)) work.push({ action: 'prune-memory' })
 
   // The deliveries whose question has been answered (#302). Not gated on the slots above
   // for the same reason landing isn't: another look at work already built is that

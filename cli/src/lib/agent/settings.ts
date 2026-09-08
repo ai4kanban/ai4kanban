@@ -31,7 +31,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { CADENCE_FORMS, formatStamp, parseCadence } from '../cadence'
 import { ENV_FILE, KANBAN_GITIGNORE, UI_CONFIG } from '../paths'
+import type { MemoryPruneSchedule } from './types'
 
 // ---- ui.config.json --------------------------------------------------------
 
@@ -572,4 +574,78 @@ export function setSecret(name: string, value: string): { ok: boolean; error?: s
     const why = e instanceof Error ? e.message : String(e)
     return { ok: false, error: `couldn't write ${ENV_FILE}: ${why}` }
   }
+}
+
+// ---- the memory pruner's schedule (#514) ------------------------------------
+//
+//   "memoryPrune": { "enabled": true, "cadence": "1d at 09:30", "lastRun": "2026-09-08 09:30" }
+//
+// Pruning used to be a recurring card. It is an agent now (`agent/roles.ts`), so what a card
+// carried in its frontmatter — the cadence, the last pass — is kept here instead, in the
+// board's own settings file rather than a state file of its own.
+//
+// Recurrence is OFF until somebody asks for it, migration included: a pass rewrites every
+// memory file, and a job that started itself the day a board upgraded is not one anybody
+// chose. A cadence with `enabled` false is a preference the board holds and never acts on.
+//
+// `lastRun` moves only on a pass that PASSED, which is what stops a failing prune from
+// firing again every tick.
+
+const NO_PRUNE: MemoryPruneSchedule = { enabled: false, cadence: '', lastRun: '' }
+
+/** What the file says about the pruner. A file that won't parse, or a block written by
+ *  hand into some other shape, reads as nothing scheduled: a setting nobody can read is
+ *  not a reason to start rewriting the memory. */
+export function memoryPrune(): MemoryPruneSchedule {
+  let cfg: Record<string, unknown>
+  try {
+    cfg = readConfigRaw()
+  } catch {
+    return NO_PRUNE
+  }
+  const block = configBlock(cfg.memoryPrune)
+  const cadence = typeof block.cadence === 'string' ? block.cadence.trim() : ''
+  const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
+  // A schedule can only be on with a cadence the board can act on, whatever the file says:
+  // `enabled: true` beside a cadence nothing parses would be a switch that starts nothing.
+  return { enabled: block.enabled === true && parseCadence(cadence) !== null, cadence, lastRun }
+}
+
+/** Save the opt-in and the cadence, keeping the last run. Switching it on needs a cadence
+ *  the board can read — an invalid one can never activate a schedule. */
+export function setMemoryPrune(next: { enabled: boolean; cadence: string }): { ok: boolean; error?: string } {
+  const cadence = next.cadence.trim()
+  if ((next.enabled || cadence) && parseCadence(cadence) === null) {
+    return { ok: false, error: `"${cadence}" isn't a cadence — use ${CADENCE_FORMS}` }
+  }
+  return writeConfig((cfg) => {
+    const block = configBlock(cfg.memoryPrune)
+    const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
+    const body = {
+      ...(next.enabled ? { enabled: true } : {}),
+      ...(cadence ? { cadence } : {}),
+      ...(lastRun ? { lastRun } : {}),
+    }
+    if (Object.keys(body).length) cfg.memoryPrune = body
+    else delete cfg.memoryPrune
+  })
+}
+
+/** Record a prune that passed. The switch and the cadence are left exactly as they are —
+ *  this is the stamp the cadence counts from, not an answer about whether to run. */
+export function stampMemoryPrune(when: Date = new Date()): void {
+  writeConfig((cfg) => {
+    cfg.memoryPrune = { ...configBlock(cfg.memoryPrune), lastRun: formatStamp(when) }
+  })
+}
+
+/** Carry an old prune card's cadence over as a preference, once (#514). It never switches
+ *  recurrence on, and it never overwrites a cadence somebody has already saved here. */
+export function adoptMemoryPruneCadence(cadence: string): void {
+  const next = cadence.trim()
+  if (!next || parseCadence(next) === null) return
+  if (memoryPrune().cadence) return
+  writeConfig((cfg) => {
+    cfg.memoryPrune = { ...configBlock(cfg.memoryPrune), cadence: next }
+  })
 }

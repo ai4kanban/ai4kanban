@@ -156,6 +156,11 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every answer Decider gives — "when it is close, take the smaller change".',
         when: "a card is left with nothing but questions waiting on you, a sent-back delivery's included.",
       },
+      "memory-pruner": {
+        gloss: "Squeezes the memory back down to what helps planning.",
+        rule: 'Added to the end of every prune — "never drop a line about a paying customer".',
+        when: "you press Run now, and on the cadence you opt into here. Nothing else starts it.",
+      },
     },
     decider: {
       costTitle: "While this is on, nothing stops for you",
@@ -165,6 +170,22 @@ const en: ConfigurationCopy = {
       confirmBody:
         "From now on the questions waiting on you are answered for you and a card never stops. Switch it off whenever you like — a card already built does not come back.",
       turnOn: "Turn on",
+    },
+    pruner: {
+      run: "Run now",
+      running: "Running…",
+      recurring: "Recurring pruning",
+      chipLabel: (state) => `Recurring pruning: ${state}`,
+      off: "off",
+      optIn: "Prune on a schedule",
+      cadence: "Every",
+      cadencePlaceholder: "1d at 09:30",
+      cadenceHint: "30m, 6h, 7d, or 1d at 09:30.",
+      neverRun: "Never run",
+      lastRun: (when) => `Last run ${when}`,
+      failed: "Last run did not finish",
+      saveFailed: "couldn't save the prune schedule",
+      tooOld: "This board's rules are older than scheduled pruning.",
     },
     specialistRule: {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,

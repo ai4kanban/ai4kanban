@@ -21,6 +21,7 @@ import type {
   DeliveryRecord,
   HarnessSetting,
   LoggedOutAgent,
+  MemoryPruneSchedule,
   PlanAnswer,
   RunPick,
   RunRecord,
@@ -332,6 +333,12 @@ export interface BoardRules {
   // ends one, which is what rules older than the setting do.
   silenceMinutes?(): number;
   setSilenceMinutes?(minutes: number): WriteResult;
+
+  // the memory pruner's schedule (#514) — whether it repeats, how often, and the last pass
+  // that passed. Optional like the settings above: rules older than the release that added
+  // the pruner draw its page without the recurrence control rather than failing.
+  memoryPrune?(): MemoryPruneSchedule;
+  setMemoryPrune?(next: { enabled: boolean; cadence: string }): WriteResult;
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the

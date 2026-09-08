@@ -44,6 +44,7 @@ import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
 import { agentForRun } from './runner'
 import { readRuntimes, runtimeById } from './runtimes'
+import { stampMemoryPrune } from './settings'
 import { logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { holdsCard, SPECIALIST_ACTIONS } from './types'
 import type {
@@ -75,7 +76,7 @@ const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-re
 // to write: two plan-releases write the same missing cards, and two setups work down the
 // same checklist side by side. A create is not one of them — it writes the one card it was
 // handed, and its id and index entry are the board lease's problem, not this lock's.
-const SINGLETON_ACTIONS = new Set<AgentAction>(['plan-release', 'setup'])
+const SINGLETON_ACTIONS = new Set<AgentAction>(['plan-release', 'setup', 'prune-memory'])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
 // implemented".
@@ -94,6 +95,7 @@ const VERB: Record<AgentAction, string> = {
   decide: 'decided',
   'plan-release': 'planned',
   setup: 'set up',
+  'prune-memory': 'pruned',
   spec: 'specified',
   write: 'written for',
   channel: 'repurposed',
@@ -110,6 +112,7 @@ const VERB: Record<AgentAction, string> = {
 const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   'plan-release': 'a release is already being planned',
   setup: 'this board is already being set up',
+  'prune-memory': 'the memory is already being pruned',
 }
 
 // A run's action maps to the saved stage it puts the card in while it goes. Only a
@@ -327,6 +330,18 @@ async function recordRecurringRun(run: RunRecord): Promise<void> {
     await recordCardRun(run.cardId)
   } catch {
     // the card is gone, or the board would not take the write — the run is over either way
+  }
+}
+
+// The pruner's own stamp (#514), for the same reason and on the same terms as the card
+// above: only a pass that PASSED moves it, so a prune that failed leaves the schedule due
+// and the board does not fire it again on the next tick.
+function recordPrune(run: RunRecord): void {
+  if (run.action !== 'prune-memory' || run.status !== 'done') return
+  try {
+    stampMemoryPrune()
+  } catch {
+    // the settings file would not take the write — the run is over either way
   }
 }
 
@@ -979,6 +994,7 @@ export async function closeRun(
   await settleDelivery(closed)
   await restoreCardStatus(closed)
   await recordRecurringRun(closed)
+  recordPrune(closed)
   // Last, because it is the only step that reads what the four above left behind: a card is
   // raised on Cloud once nothing is working on it (#319), and this run stops holding its
   // card here. Whatever it decides is best effort — a run never fails over Cloud.

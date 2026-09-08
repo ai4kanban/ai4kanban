@@ -202,6 +202,18 @@ export const FLOWS: Flow[] = [
     gloss: 'finish setting the board up',
     more: ['Every step still unticked on docs/kanban/setup-checklist.md, in one run.'],
   },
+  // The memory pruner's one flow (#514). Typed bare, like `setup`: it acts on the memory
+  // set rather than on a card, so there is nothing to name.
+  {
+    command: 'prune-memory',
+    action: 'prune-memory',
+    argument: '',
+    gloss: 'squeeze the memory back down to what helps planning',
+    more: [
+      'The project, the modules and the agents, in one run. Configuration → Agents → Memory pruner is ' +
+        'where it is started and where a recurring pass is switched on.',
+    ],
+  },
   { command: 'archive', group: 'card', action: 'archive', argument: '<id>', gloss: 'finish the card' },
   {
     command: 'reject',

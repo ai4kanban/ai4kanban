@@ -10,7 +10,7 @@ import { agentMemoryDir, boardMemoryFiles } from '../memory'
 import { channelLanguage } from '../channels'
 import { draftDir, draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
-import { COMMENTS, boardText, rel, GOAL } from '../paths'
+import { COMMENTS, boardText, rel, GOAL, MEMORY } from '../paths'
 import {
   agentMemoryBlock,
   findSpecAgent,
@@ -427,6 +427,16 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Read \`${command} guide setup\` and \`${command} guide board\` together in your first shell call, then follow setup from the first unticked box in \`docs/kanban/setup-checklist.md\`.`,
         `At the tasks step, read \`${command} guide add-task\` once. Do not call any other guide or help command during setup.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions, the way the setup flow says.`,
+      ].join(' ')
+    // Squeeze the memory back down to what helps planning (#514). It names nothing: the
+    // memory set IS the whole job, so the run reads the folders off the board itself. It
+    // raises nothing for a human either — a prune has no card to leave a question on, so
+    // anything it cannot settle stays in the memory file it is rewriting.
+    case 'prune-memory':
+      return [
+        `${kb}. Prune this board's memory following \`akb guide prune-memory\`.`,
+        `Cover the project's own memory at \`${rel(MEMORY)}/\`, each module's beside it, and the agents' at \`${rel(MEMORY)}/agents/<agent>/\`.`,
+        `Change nothing but those files: no card, no \`verify:\` line, no question for anyone.`,
       ].join(' ')
     // Inject the shared contract, specialty instructions, and selected references.
     case 'spec': {

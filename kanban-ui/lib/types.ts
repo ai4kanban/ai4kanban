@@ -47,6 +47,7 @@ export type {
   HarnessOption,
   HarnessSetting,
   LoggedOutAgent,
+  MemoryPruneSchedule,
   PlanAnswer,
   RuntimeView,
   ModelChange,

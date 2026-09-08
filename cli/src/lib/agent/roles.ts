@@ -113,6 +113,17 @@ const DISCUSSION_HELPER: AgentRole = {
   memory: [],
 }
 
+// The role that keeps the memory readable (#514). It has no switch for the same reason the
+// planner has none: a board without it simply never prunes, and Run now on its page is the
+// switch — nothing it does happens unasked until a cadence is turned on there. It owns no
+// memory file: it rewrites every one of them, and a list of all of them says nothing.
+const MEMORY_PRUNER: AgentRole = {
+  name: 'memory-pruner',
+  gloss: 'squeezes the memory back down to what helps planning',
+  flows: ['prune-memory'],
+  memory: [],
+}
+
 const PRODUCT_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
@@ -128,6 +139,7 @@ const PRODUCT_ROLES: AgentRole[] = [
     memory: ['memory/readme.md', 'memory/redesign.md', 'modules.md'],
   },
   REVIEWER,
+  MEMORY_PRUNER,
   // Last, and only on a product board: it has no `gate` flow, and a topic carries no
   // questions to answer.
   GATER,
@@ -149,6 +161,7 @@ const MARKETING_ROLES: AgentRole[] = [
     memory: ['memory/writing.md', 'memory/writing/'],
   },
   { ...REVIEWER, flows: [...REVIEWER.flows, 'marketing-verify'] },
+  MEMORY_PRUNER,
 ]
 
 /** The role every conversation is held by — whose runtime a chat runs on and whose rule it

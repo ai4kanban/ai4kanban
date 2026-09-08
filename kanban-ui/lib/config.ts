@@ -1,5 +1,6 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
+import type { MemoryPruneSchedule } from "./types";
 
 // --- the settings, through the CLI (#168) ------------------------------------
 // docs/kanban/ui.config.json is still the file, and it still holds which agent runs, with
@@ -71,4 +72,25 @@ export async function setSilenceMinutes(minutes: number): Promise<{ ok: boolean;
     return { ok: false, error: (await machineCopy()).messages.tooOld.silenceLimit };
   }
   return rules.setSilenceMinutes(minutes);
+}
+
+// --- the memory pruner's schedule (#514) -------------------------------------
+// **Recurring pruning** — the opt-in, the cadence and the last successful pass, in the
+// board's own settings file beside the switches above. Rules that predate the pruner answer
+// nothing, and its page draws Run now without the recurrence control.
+
+export async function memoryPrune(): Promise<MemoryPruneSchedule | null> {
+  const rules = await boardRules();
+  return rules.memoryPrune ? rules.memoryPrune() : null;
+}
+
+export async function setMemoryPrune(next: {
+  enabled: boolean;
+  cadence: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.setMemoryPrune) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.memoryPruner };
+  }
+  return rules.setMemoryPrune(next);
 }
