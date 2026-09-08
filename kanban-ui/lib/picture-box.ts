@@ -9,17 +9,18 @@ import {
 } from "@/app/actions";
 import type { ChatRuntime, CreateImageAgents, ImageAgent } from "./types";
 
-// One box of pictures waiting to be sent (#441, #511, #517).
+// One box of pictures waiting to be sent (#441, #511, #517, #530).
 //
 // Two of them exist and they look the same in the window: a conversation's, which belongs to
-// the exchange (lib/chat-rail.ts), and the create sheet's, which belongs to the run Add task
-// or Build now is about to start. What is shared is the SHAPE — thumbnails, the ✕ on each,
-// and the one line a turned-away paste leaves — so `Pasted` in components/Chat.tsx draws
-// either without knowing which it has.
+// the exchange (lib/chat-rail.ts), and the create sheet's, which is here. What is shared is
+// the SHAPE — thumbnails, the ✕ on each, the preview one opens, and the one line a
+// turned-away paste leaves — so `Pasted` in components/Chat.tsx draws either without knowing
+// which it has.
 //
-// The sheet's own box is here. It holds a uuid the sheet minted when it opened, so two
-// windows never paste into one folder; the run that starts takes that folder as its own,
-// beside its log.
+// The sheet's box holds a uuid it minted when it opened, so two windows never paste into one
+// folder. It is the sheet's ONE box across Discuss, Add task and Build now: a run that starts
+// takes that folder as its own beside its log, and a Discuss send moves its files into the
+// conversation's folder instead.
 
 /** What the last paste or drop left behind: the agent that would run can't see pictures at
  *  all, one picture could not be written to disk, or a dropped file was not a picture. The
@@ -46,9 +47,10 @@ export interface PictureBox {
 
 /** The create sheet's box, and what the sheet does with it. */
 export interface CreatePictures extends PictureBox {
-  /** The folder these are written into, sent with the run so it becomes the run's own. */
+  /** The folder these are written into: sent with the run so it becomes the run's own, or
+   *  handed to a Discuss send, which moves them beside the conversation (#530). */
   box: string;
-  /** Whether this box takes a paste at all — a run mode, once what its agent can do has been
+  /** Whether this box takes a paste at all — true once what the mode's agent can do has been
    *  read. A paste it cannot send is still TAKEN, and turned away with the sentence that says
    *  who can: a box that quietly ignores a screenshot says nothing at all. */
   offered: boolean;
@@ -64,15 +66,17 @@ export interface CreatePictures extends PictureBox {
   handOver(): void;
   /** …and it was refused, so the box is the sheet's again. */
   takeBack(): void;
-  /** …or it started: the files belong to the run now, and the sheet opens a fresh box. */
+  /** …or it started — or the Discuss message went: the files are gone from here either way,
+   *  and the sheet opens a fresh box. */
   sent(): void;
 }
 
 const nothing: ImageAgent = { agent: "", seesImages: false, imagesAble: [] };
 
-/** The pictures pasted into Add task and Build now (#517). One box across both modes, so
- *  switching what sending does never loses what was pasted; Discuss has the conversation's
- *  own and never reaches this.
+/** The pictures pasted into the create sheet (#517, #530). ONE box across all three of its
+ *  modes, so switching what sending does never loses what was pasted or shows it twice: the
+ *  thumbnails on screen are the pictures the mode that sends is handed. Discuss's send is
+ *  what moves them into the conversation's own folder (lib/chat.ts).
  *
  *  A picture is written as it is pasted — the thumbnail IS the file — so a paste that can't
  *  be saved says so straight away rather than failing the run later. A sheet closed without
@@ -81,8 +85,12 @@ export function useCreatePictures(
   mode: "discuss" | "card" | "build",
   /** The runtime picked for this send (#518), or null for the mode's agent's own. It runs
    *  its own CLI, so what the run can do with a picture is that row's answer and not the
-   *  agent's. */
+   *  agent's. Add task and Build now only — Discuss picks its own on the conversation. */
   picked: ChatRuntime | null = null,
+  /** What Discuss's own agent can do with a picture — the conversation's answer, which the
+   *  rail already reads. Null while that read is still coming, and on a board with no
+   *  conversation to send to. */
+  chat: ImageAgent | null = null,
 ): CreatePictures {
   const [box, setBox] = useState(() => crypto.randomUUID());
   const [pasted, setPasted] = useState<string[]>([]);
@@ -106,14 +114,18 @@ export function useCreatePictures(
     };
   }, [box]);
 
-  const own = agents ? (mode === "build" ? agents.build : agents.card) : nothing;
+  const run = agents ? (mode === "build" ? agents.build : agents.card) : nothing;
   // A picked row carries its CLI's label, and `imagesAble` is every CLI that can take a
   // picture — so the row says for itself whether this send's pictures reach the run.
-  const sees =
+  const own =
     picked && agents
-      ? { ...own, agent: picked.label, seesImages: own.imagesAble.includes(picked.label) }
-      : own;
-  const offered = agents !== null && mode !== "discuss";
+      ? { ...run, agent: picked.label, seesImages: run.imagesAble.includes(picked.label) }
+      : run;
+  // Whose answer this mode's paste is judged by: the conversation's agent in Discuss, the
+  // run's in the other two. One box, three modes, and the box says which of them is holding
+  // what was pasted.
+  const sees = mode === "discuss" ? (chat ?? nothing) : own;
+  const offered = mode === "discuss" ? chat !== null : agents !== null;
   const refused = pasted.length > 0 && offered && !sees.seesImages;
 
   const paste = useCallback(

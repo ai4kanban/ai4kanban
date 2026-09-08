@@ -65,6 +65,7 @@ const zh: ChatCopy = {
   modelChanged: (model) => `模型 → ${model}`,
   picture: "图片",
   unpaste: "移除这张图片",
+  openPicture: "查看大图",
   pictureGone: "原图已不在",
   noPictures: (agent) => `${agent} 看不了图片。`,
   picturesAble: (agents) => `能看图的：${agents.join("、")}。`,

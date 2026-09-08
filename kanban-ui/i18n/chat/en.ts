@@ -70,6 +70,7 @@ const en: ChatCopy = {
   modelChanged: (model) => `model → ${model}`,
   picture: "Picture",
   unpaste: "Take this picture out",
+  openPicture: "Open this picture",
   pictureGone: "the file has gone",
   noPictures: (agent) => `${agent} can't see images.`,
   picturesAble: (agents) => `These can: ${agents.join(", ")}.`,

@@ -385,6 +385,11 @@ export interface BoardRules {
   runPictureFile?(box: string, name: string): string | null;
   /** Everything in the box, for a sheet closed without sending. */
   emptyRunBox?(box: string): void;
+  /** The sheet's box handed to a Discuss send (#530): one box holds what was pasted in all
+   *  three modes, so sending in Discuss moves its files into the conversation's own folder
+   *  and answers with the names that landed. Optional — rules from before it take no paste
+   *  in Discuss at all. */
+  adoptChatPictures?(cardId: ChatTarget, box: string, names: string[]): string[];
   /** What each of the sheet's two run modes can do with a picture — the planner's answer for
    *  Add task, the builder's for Build now. */
   createImageAgents?(): CreateImageAgents;

@@ -123,6 +123,7 @@ export { commentOnDraft, dropDraftComment, editDraftComment, polishDraft } from 
 // code, in the same file. Nothing here touches the run record: a conversation is not a run.
 export {
   addChatImage,
+  adoptChatPictures,
   chatImageFile,
   clearChat,
   dropChatImage,

@@ -542,6 +542,10 @@ export async function sendChatAction(
   /** The pictures pasted into this message (#441), by the names `addChatImageAction` filed
    *  them under. A message that is nothing but pictures is a message. */
   images: string[] = [],
+  /** The create sheet's box those pictures are still in (#530) — the send is what moves
+   *  them into this conversation's folder. Left out by the rail, whose box IS this
+   *  conversation's. */
+  box?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
@@ -552,6 +556,7 @@ export async function sendChatAction(
   return sendChat(target, message.trim(), {
     guide: discuss ? DISCUSS_GUIDE : undefined,
     images: names,
+    box: names.length && typeof box === "string" ? box : undefined,
   });
 }
 

@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import {
   addChatImage,
+  adoptChatPictures,
   chatImageFile,
   chatPrompt,
   clearChat,
@@ -22,7 +23,8 @@ import {
   readChatView,
   sendChatMessage,
 } from '../src/lib/agent/chat.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { addRunPicture, pictureBox, runPictureFile } from '../src/lib/agent/pictures.ts'
+import { setBoardRoot, SESSIONS_DIR } from '../src/lib/paths.ts'
 
 let root = ''
 let home = ''
@@ -62,6 +64,16 @@ function spy(harness: string): string {
 const paste = (): string => {
   const saved = addChatImage(null, new Uint8Array(PNG), 'image/png')
   assert.ok('name' in saved)
+  return saved.name
+}
+
+// The create sheet's own box (#517), which a Discuss send moves into the conversation.
+const BOX = '11111111-1111-4111-8111-111111111111'
+const RUN = '22222222-2222-4222-8222-222222222222'
+
+const intoBox = (box = BOX): string => {
+  const saved = addRunPicture(box, new Uint8Array(PNG), 'image/png')
+  assert.ok('name' in saved, 'error' in saved ? saved.error : '')
   return saved.name
 }
 
@@ -109,6 +121,47 @@ describe('a picture saved beside a conversation', () => {
     assert.ok(chatImageFile(null, kept))
     clearChat(null)
     assert.equal(chatImageFile(null, kept), null)
+  })
+})
+
+describe('the create sheet’s box a Discuss send takes over (#530)', () => {
+  it('moves its pictures beside the conversation under the same names, and the box goes', () => {
+    const one = intoBox()
+    const two = intoBox()
+    assert.deepEqual(adoptChatPictures(null, BOX, [one, two]), [one, two])
+    assert.deepEqual(fs.readFileSync(chatImageFile(null, one)!), PNG)
+    assert.ok(chatImageFile(null, two))
+    assert.ok(!fs.existsSync(pictureBox(BOX)))
+  })
+
+  it('is another conversation’s business alone', () => {
+    const name = intoBox()
+    adoptChatPictures(null, BOX, [name])
+    assert.equal(chatImageFile(12, name), null)
+  })
+
+  it('answers with the names that landed — one gone or never ours is not one of them', () => {
+    const name = intoBox()
+    const gone = '33333333-3333-4333-8333-333333333333.png'
+    assert.deepEqual(adoptChatPictures(null, BOX, ['../../../etc/passwd', name, gone]), [name])
+  })
+
+  it('takes nothing out of a folder a run already owns', () => {
+    fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+    const name = intoBox(RUN)
+    fs.writeFileSync(path.join(SESSIONS_DIR, `${RUN}.log`), 'working')
+    assert.deepEqual(adoptChatPictures(null, RUN, [name]), [])
+    assert.ok(runPictureFile(RUN, name))
+  })
+
+  it('leaves the message that follows carrying them', async () => {
+    const seen = spy('claude-code')
+    const name = intoBox()
+    const landed = adoptChatPictures(null, BOX, [name])
+    await sendChatMessage(null, 'what is this?', { images: landed })
+    const argv = JSON.parse(fs.readFileSync(seen, 'utf8')) as string[]
+    assert.ok(argv[argv.length - 1]!.includes(chatImageFile(null, name)!))
+    assert.deepEqual(readChat(null)!.messages[0]!.images, [name])
   })
 })
 

@@ -59,7 +59,7 @@ const boxId = (box: string): boolean => /^[0-9a-f-]{36}$/.test(box)
 /** A box a sheet may still write to. A folder a RUN already owns is not one — it is named
  *  after that run, and its id is the same shape a box is, so a stale window naming it would
  *  otherwise write into a build in flight or carry its pictures off. */
-const freeBox = (box: string): boolean =>
+export const freeBox = (box: string): boolean =>
   boxId(box) && !fs.existsSync(path.join(SESSIONS_DIR, `${box}.log`))
 
 /** Where one box's pictures sit. Named after the RUN once one has started, which is what

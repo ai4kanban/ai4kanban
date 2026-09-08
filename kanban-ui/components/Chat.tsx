@@ -28,6 +28,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   FiArrowDown,
   FiCheck,
@@ -45,7 +46,9 @@ import type { ChatCopy } from "@/i18n/chat/types";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRail } from "@/lib/chat-rail";
+import { useOverRail } from "@/lib/over-rail";
 import type { PictureBox } from "@/lib/picture-box";
+import { useSwipeBack } from "@/lib/swipe-back";
 import type { ChatMessage, ChatPick, ModelChange } from "@/lib/types";
 import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
@@ -1077,13 +1080,20 @@ function Composer({
  *  away in the same breath — the note stands above the thumbnails it did not take, one line
  *  above the agent that has to change.
  *
- *  The ✕ is always there rather than on hover: it is the only way back out of a paste.
+ *  A thumbnail is 44px, which is a picture you can point at rather than one you can read, so
+ *  it opens the picture whole (#530). The ✕ is always there rather than on hover — it is the
+ *  only way back out of a paste — and it is beside the thumbnail's own button, not inside
+ *  it, so taking a picture out never opens it first.
  *
- *  Every box that takes a picture draws it: the rail, the Discuss screen, and Add task and
- *  Build now with their own (#517) — so a paste looks the same wherever it lands.  */
+ *  Every box that takes a picture draws it: the rail and the Discuss screen with its one box
+ *  across all three modes (#517, #530) — so a paste looks the same wherever it lands.  */
 export function Pasted({ box }: { box: PictureBox }) {
   const c = useCopy().chat;
   const note = box.note;
+  const [shown, setShown] = useState<string | null>(null);
+  // A picture taken out while it is open takes its own preview down with it — and so does a
+  // box emptied by a send.
+  const there = shown !== null && box.pasted.includes(shown);
   if (!note && box.pasted.length === 0) return null;
   return (
     <>
@@ -1108,13 +1118,24 @@ export function Pasted({ box }: { box: PictureBox }) {
         <div className="flex flex-wrap items-center gap-2 px-1 pt-1.5">
           {box.pasted.map((name) => (
             <span key={name} className="relative block">
-              {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
-                  served by app/chat-image/ or app/create-image/. */}
-              <img
-                src={box.src(name)}
-                alt={c.picture}
-                className="block size-[44px] rounded-[8px] object-cover shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]"
-              />
+              {/* A button, so the picture opens to a tap and to Enter or Space alike. */}
+              <button
+                type="button"
+                title={c.openPicture}
+                aria-label={c.openPicture}
+                onClick={() => setShown(name)}
+                className="block cursor-pointer rounded-[8px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
+                    served by app/chat-image/ or app/create-image/. */}
+                <img
+                  src={box.src(name)}
+                  alt={c.picture}
+                  className="block size-[44px] rounded-[8px] object-cover shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)]"
+                />
+              </button>
+              {/* Beside that button rather than inside it: the ✕ takes the picture out and
+                  opens nothing. */}
               <button
                 type="button"
                 title={c.unpaste}
@@ -1128,7 +1149,54 @@ export function Pasted({ box }: { box: PictureBox }) {
           ))}
         </div>
       )}
+      {there && <Preview src={box.src(shown)} onClose={() => setShown(null)} />}
     </>
+  );
+}
+
+/** One picture, whole, over everything else (#530). Uncropped and no bigger than it is: a
+ *  screenshot is read here, and a picture blown past its own pixels is harder to read than
+ *  the thumbnail was.
+ *
+ *  Nothing about the draft moves while it is up, and every way out — Escape, the ✕, the
+ *  scrim, the swipe back — puts it back exactly as it was. Escape is taken in the capture
+ *  phase and stopped there, because the screens underneath answer that key too
+ *  (components/CreateSheet.tsx, lib/chat-rail.ts) and one press must close one thing. */
+function Preview({ src, onClose }: { src: string; onClose: () => void }) {
+  const c = useCopy();
+  useOverRail();
+  // It covers the page, so the swipe back leaves it before the screen it opened over (#526).
+  useSwipeBack(true, onClose);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      onClose();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+
+  return createPortal(
+    <div className="nb-scrim" style={{ alignItems: "center", zIndex: 60 }} onClick={onClose}>
+      <button
+        type="button"
+        aria-label={c.shared.close}
+        onClick={onClose}
+        className="absolute right-4 top-4 grid size-9 cursor-pointer place-items-center rounded-[8px] bg-nb-paper text-nb-ink shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
+      >
+        <FiX size={18} aria-hidden />
+      </button>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine,
+          served by app/chat-image/ or app/create-image/. */}
+      <img
+        src={src}
+        alt={c.chat.picture}
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-full max-w-full rounded-[10px] object-contain shadow-[0_8px_40px_rgba(0,0,0,0.35)]"
+      />
+    </div>,
+    document.body,
   );
 }
 

@@ -231,8 +231,9 @@ export async function sendChat(
   /** `fromBoard`: the board is speaking, not the user (#280) — the message is sent, and the
    *  transcript keeps only the reply. `guide`: the flow this message is part of (#427),
    *  which rides in front of the words and reaches no transcript. `images`: the pictures
-   *  pasted into it (#441), by the names they were filed under. */
-  opts: { fromBoard?: boolean; guide?: string; images?: string[] } = {},
+   *  pasted into it (#441), by the names they were filed under. `box`: those pictures are
+   *  still in the create sheet's own box (#530) and this send is what brings them over. */
+  opts: { fromBoard?: boolean; guide?: string; images?: string[]; box?: string } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   let rules;
   try {
@@ -242,6 +243,9 @@ export async function sendChat(
   }
   const send = rules.sendChatMessage;
   if (!send) return { ok: false, error: TOO_OLD };
+  // The sheet pasted into its own box (#530) and this copy of the board cannot bring one
+  // over. Said here rather than sending the words without their pictures.
+  if (opts.box && !rules.adoptChatPictures) return { ok: false, error: TOO_OLD };
 
   const key = keyOf(cardId);
   const { live, failed } = flights();
@@ -258,6 +262,13 @@ export async function sendChat(
   if (held) return { ok: false, error: (await machineCopy()).messages.chat.busy };
   failed.delete(key);
 
+  // Nothing below this line refuses the send, so this is where the sheet's box becomes the
+  // conversation's (#530): a refusal above leaves the pictures where the sheet is drawing
+  // them, and from here they are the transcript's.
+  const images = opts.box
+    ? (rules.adoptChatPictures?.(cardId, opts.box, opts.images ?? []) ?? [])
+    : opts.images;
+
   const flight: Flight = { text: "", startedAt: Date.now(), stopped: false, landed: false, done: Promise.resolve() };
   live.set(key, flight);
   // Not awaited: this call returns as soon as the agent has been asked, and the reply lands
@@ -268,7 +279,7 @@ export async function sendChat(
     title: typeof cardId === "number" ? rules.titleOf(cardId) : undefined,
     fromBoard: opts.fromBoard,
     guide: opts.guide,
-    images: opts.images,
+    images,
     onText: (chunk) => {
       // Frozen on a stop, so the words on screen are the words that were there when the
       // button was pressed.

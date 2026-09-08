@@ -121,9 +121,6 @@ export interface ChatRail {
   /** What the last paste had to say for itself, in the slot the thumbnails sit in. Gone on
    *  the next paste, on the next keystroke, on an agent switch, and after a few seconds. */
   pasteNote: PasteNote | null;
-  /** Take that note down. The rail's own box does it on the next keystroke; a box with a
-   *  draft of its own — the Discuss screen's (#427) — does it from here. */
-  clearPasteNote(): void;
   /** Where one of these pictures is served from (#441). */
   imageSrc(name: string): string;
   /** The same pictures as one box, for the component that draws them — the create sheet's
@@ -135,15 +132,15 @@ export interface ChatRail {
   /** Why the last send never got off the ground. Cleared by the next one. */
   error: string | null;
   /** Send what the box holds, with the pictures pasted into it (#441): they go with it and
-   *  leave the box, and a refusal puts them back. `text` is for a box with a draft of its
-   *  own — the Discuss screen's (#427) — which keeps that draft to itself. */
-  send(opts?: { text?: string; discuss?: boolean }): Promise<void>;
+   *  leave the box, and a refusal puts them back. */
+  send(): Promise<void>;
   /** Send one message the box is not holding: a reply sent again (#269), or the Discuss
    *  screen's own box (#427). It lands at the foot; the box and what is typed in it are
-   *  left alone. `discuss` puts the discussion's flow in front of the words; `images` are
-   *  the pictures the message being sent again carried — the same files, not a second copy
-   *  of them (#441). */
-  say(text: string, opts?: { discuss?: boolean; images?: string[] }): void;
+   *  left alone, and the answer is whether it left. `discuss` puts the discussion's flow in
+   *  front of the words; `images` are the pictures the message being sent again carried —
+   *  the same files, not a second copy of them (#441) — or, with `box`, the ones still in
+   *  the create sheet's own box, which this send moves over (#530). */
+  say(text: string, opts?: { discuss?: boolean; images?: string[]; box?: string }): Promise<boolean>;
   /** Run this conversation on another runtime (#272, #467), or on the board's again with
    *  `null`. A row on another CLI starts the conversation over — the caller asks first when
    *  there is something to lose — and one on the same CLI carries it on. */
@@ -454,8 +451,6 @@ export function useChatRail({
     [paste],
   );
 
-  const clearPasteNote = useCallback(() => setPasteNote(null), []);
-
   const unpaste = useCallback(
     async (name: string) => {
       setPasted((was) => was.filter((n) => n !== name));
@@ -507,10 +502,10 @@ export function useChatRail({
   // One message out of the door, whether it came from the box or from a "send again" on a
   // reply that stopped short. The answer is whether it left.
   const post = useCallback(
-    async (text: string, discuss = false, images: string[] = []) => {
+    async (text: string, discuss = false, images: string[] = [], box?: string) => {
       setError(null);
       setHeld(null);
-      const res = await sendChatAction(cardId, text, discuss, images);
+      const res = await sendChatAction(cardId, text, discuss, images, box);
       if (!res.ok) setError(res.error ?? c.sendFailed);
       kickRef.current();
       return res.ok;
@@ -518,37 +513,30 @@ export function useChatRail({
     [cardId, c],
   );
 
-  // The words come from the rail's own box, or from one that keeps its own draft and hands
-  // them over. The pictures are the rail's either way — they were pasted against this
-  // conversation and their files sit beside it.
-  const send = useCallback(
-    async (opts: { text?: string; discuss?: boolean } = {}) => {
-      const own = opts.text === undefined;
-      const text = (own ? draft : opts.text ?? "").trim();
-      const shots = pasted;
-      if (!text && shots.length === 0) return;
-      if (own) {
-        setDraft("");
-        setWalked(null);
-      }
-      setPasted([]);
-      setPasteNote(null);
-      // The words and the pictures both go back in the box rather than being lost to a
-      // refusal — the files are still there, so the thumbnails still draw.
-      if (!(await post(text, opts.discuss, shots))) {
-        if (own) setDraft((typed) => (typed ? typed : text));
-        setPasted((now) => (now.length ? now : shots));
-      }
-    },
-    [draft, pasted, post, setDraft],
-  );
+  // The rail's own box: the words in it and the pictures pasted against this conversation,
+  // whose files already sit beside it. A screen with a draft of its own sends through `say`.
+  const send = useCallback(async () => {
+    const text = draft.trim();
+    const shots = pasted;
+    if (!text && shots.length === 0) return;
+    setDraft("");
+    setWalked(null);
+    setPasted([]);
+    setPasteNote(null);
+    // The words and the pictures both go back in the box rather than being lost to a
+    // refusal — the files are still there, so the thumbnails still draw.
+    if (!(await post(text, false, shots))) {
+      setDraft((typed) => (typed ? typed : text));
+      setPasted((now) => (now.length ? now : shots));
+    }
+  }, [draft, pasted, post, setDraft]);
 
   // Nothing of the box is touched: a half-typed message survives a "send again", and the
   // exchange above is left as it was — the message lands at the foot. A message sent again
   // carries the pictures it carried, by the same names: no second copy is written.
   const say = useCallback(
-    (text: string, opts: { discuss?: boolean; images?: string[] } = {}) =>
-      void post(text, opts.discuss, opts.images),
+    (text: string, opts: { discuss?: boolean; images?: string[]; box?: string } = {}) =>
+      post(text, opts.discuss, opts.images, opts.box),
     [post],
   );
 
@@ -618,7 +606,6 @@ export function useChatRail({
     dropFiles,
     unpaste,
     pasteNote,
-    clearPasteNote,
     imageSrc,
     pictures,
     recall,

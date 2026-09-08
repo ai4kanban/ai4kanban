@@ -88,6 +88,8 @@ export type ChatCopy = {
    *  and what a picture whose file has gone says in its place. */
   picture: string;
   unpaste: string;
+  /** What a thumbnail is called as the button that opens the picture whole (#530). */
+  openPicture: string;
   pictureGone: string;
   /** A paste turned away, in the slot the thumbnails would have taken. Two lines: the agent
    *  that can't see a picture, and the ones that can. */

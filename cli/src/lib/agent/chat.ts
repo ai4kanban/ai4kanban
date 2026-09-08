@@ -32,7 +32,7 @@ import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { planFile } from '../plans'
 import { ensureSkillInstalled } from '../skill/install'
 import { languageNote } from './language'
-import { pictureName, savePicture } from './pictures'
+import { emptyRunBox, freeBox, pictureName, runPictureFile, savePicture } from './pictures'
 import {
   chatAgent,
   chatRuntimes,
@@ -263,6 +263,34 @@ export function addChatImage(
 export function dropChatImage(cardId: ChatTarget, name: string): void {
   const file = chatImageFile(cardId, name)
   if (file) fs.rmSync(file, { force: true })
+}
+
+/** Take the create sheet's box into this conversation (#530). The sheet pastes into ONE box
+ *  across its three modes, so a Discuss send is what moves those files here — and it happens
+ *  after everything that could refuse the send, so a refusal never leaves the box empty.
+ *
+ *  The names that landed come back, and the box goes: what is left of it is a folder no send
+ *  will ever read. Names, not paths, both ways — `runPictureFile` is what turns one into a
+ *  file, and it refuses anything the board did not write itself. */
+export function adoptChatPictures(cardId: ChatTarget, box: string, names: string[]): string[] {
+  // A folder a run already owns is not a box to take from (agent/pictures.ts).
+  if (!freeBox(box)) return []
+  const to = imagesDir(cardId)
+  const landed: string[] = []
+  for (const name of names) {
+    const file = runPictureFile(box, name)
+    if (!file) continue
+    try {
+      fs.mkdirSync(to, { recursive: true })
+      fs.renameSync(file, path.join(to, name))
+      landed.push(name)
+    } catch {
+      // It could not be moved, so it is not a picture this message carries — the same
+      // nothing a send already makes of one deleted by hand.
+    }
+  }
+  emptyRunBox(box)
+  return landed
 }
 
 // ---- the plan one conversation is writing (#427) ----------------------------
