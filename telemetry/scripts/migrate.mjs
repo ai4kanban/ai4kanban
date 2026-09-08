@@ -11,4 +11,6 @@
 import { copyFrom, wrangler } from './copies.mjs'
 
 const copy = copyFrom(process.argv)
-process.stdout.write(wrangler(['d1', 'migrations', 'apply', copy.database, '--remote']))
+process.stdout.write(
+  wrangler(['d1', 'migrations', 'apply', copy.database, ...copy.flags, '--remote']),
+)

@@ -7,16 +7,20 @@ import { fileURLToPath } from 'node:url'
 
 export const serviceRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
+// `flags` picks the copy for wrangler. The dev database is declared under `env.dev`, and
+// wrangler only looks there when told to, so every command against it carries `--env dev`.
 export const COPIES = {
   production: {
     database: 'ai4kanban-telemetry',
     bucket: 'ai4kanban-telemetry-archive',
     endpoint: 'https://t.ai4kanban.dev',
+    flags: [],
   },
   development: {
     database: 'ai4kanban-telemetry-dev',
     bucket: 'ai4kanban-telemetry-archive-dev',
     endpoint: 'https://t-dev.ai4kanban.dev',
+    flags: ['--env', 'dev'],
   },
 }
 
@@ -55,7 +59,8 @@ export function wrangler(args, { absentIf } = {}) {
  * endpoint that answers a read, so this is the only way any number leaves the service.
  */
 export function statement(copy, sql) {
-  const out = wrangler(['d1', 'execute', copy.database, '--remote', '--json', '--command', sql])
+  const args = ['d1', 'execute', copy.database, ...copy.flags, '--remote', '--json']
+  const out = wrangler([...args, '--command', sql])
   const start = out.indexOf('[')
   if (start < 0) throw new Error(`d1 execute returned no JSON:\n${out}`)
   return JSON.parse(out.slice(start))

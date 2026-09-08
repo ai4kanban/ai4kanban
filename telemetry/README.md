@@ -43,21 +43,33 @@ telemetry/
 
 ## Standing it up
 
-Once per copy. The database and the bucket take `-dev` on the copy our own work posts into,
-so a development run never writes into the real archive:
+Both copies are up. Repeat this only on a fresh account. The database and the bucket take
+`-dev` on the copy our own work posts into, so a development run never writes into the real
+archive:
 
 ```sh
 npx wrangler d1 create ai4kanban-telemetry                 # paste the id into wrangler.jsonc
 npx wrangler r2 bucket create ai4kanban-telemetry-archive  # the daily event archive
 npm run migrate                                            # apply migrations/ to the database
-npx wrangler secret put CF_ACCOUNT_ID    # the daily job's usage gauge, both optional
-npx wrangler secret put CF_API_TOKEN     # a token with Account Analytics Read
 npm run deploy
 ```
 
 `t.ai4kanban.dev` and `t-dev.ai4kanban.dev` are custom domains on the zone the site already
 uses; wrangler adds the DNS record on the first deploy. Never a `workers.dev` address —
 content blockers drop those, which would quietly remove part of the site's page views.
+
+### The usage gauge is off
+
+The day's own cost goes to Analytics Engine, which this account has not enabled. Declaring
+the binding is what fails a deploy, so `wrangler.jsonc` leaves it out and `npm run numbers`
+reports every day's cost as unknown. Everything else — taking events, the archive, the sweep
+— does not touch it. To turn it back on: enable Analytics Engine in the dashboard, restore
+`analytics_engine_datasets` on both copies, and add the two secrets the read needs.
+
+```sh
+npx wrangler secret put CF_ACCOUNT_ID    # the daily job's usage gauge, both optional
+npx wrangler secret put CF_API_TOKEN     # a token with Account Analytics Read
+```
 
 ## Day to day
 

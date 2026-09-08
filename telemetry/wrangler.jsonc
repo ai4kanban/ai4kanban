@@ -23,7 +23,7 @@
     {
       "binding": "DB",
       "database_name": "ai4kanban-telemetry",
-      "database_id": "PASTE_THE_DATABASE_ID",
+      "database_id": "1b6c3fc5-c0ec-4be7-badc-5dc55ac9edb3",
       "migrations_dir": "migrations"
     }
   ],
@@ -37,11 +37,11 @@
   "durable_objects": { "bindings": [{ "name": "LIMITER", "class_name": "AddressHour" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AddressHour"] }],
 
-  // The day's own requests and rows written. One dataset for both copies: the allowance
-  // belongs to the account, so the gauge is only honest if it counts both.
-  "analytics_engine_datasets": [
-    { "binding": "USAGE", "dataset": "ai4kanban_telemetry_usage" }
-  ],
+  // The day's own requests and rows written would go to Analytics Engine, which this account
+  // has not enabled — declaring the binding is what makes a deploy fail, so it is left out.
+  // `USAGE` is optional throughout (src/usage.ts), and without it `npm run numbers` reports
+  // every day's cost as unknown. Enable the product, then put the binding back on both copies:
+  //   "analytics_engine_datasets": [{ "binding": "USAGE", "dataset": "ai4kanban_telemetry_usage" }]
 
   "vars": { "COPY": "production" },
 
@@ -60,15 +60,12 @@
         {
           "binding": "DB",
           "database_name": "ai4kanban-telemetry-dev",
-          "database_id": "PASTE_THE_DEV_DATABASE_ID",
+          "database_id": "78e588c1-2b7b-4916-b5c1-06bde6518aec",
           "migrations_dir": "migrations"
         }
       ],
       "r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "ai4kanban-telemetry-archive-dev" }],
       "durable_objects": { "bindings": [{ "name": "LIMITER", "class_name": "AddressHour" }] },
-      "analytics_engine_datasets": [
-        { "binding": "USAGE", "dataset": "ai4kanban_telemetry_usage" }
-      ],
       "vars": { "COPY": "development" }
     }
   }
