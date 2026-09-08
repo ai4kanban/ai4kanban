@@ -218,6 +218,10 @@ export interface AgentRequest {
   /** implement: whether THIS build is reviewed (#416) — the Implement dialog's other tick.
    *  Absent on every other way in, and those fall back to **AI review**. */
   aiReview?: boolean
+  /** The runtime THIS run spawns on (#518) — the create sheet's pick, over the runtime its
+   *  agent is set to. It applies to the one run and changes nothing in Configuration →
+   *  Agents. Absent on every run that named none, which is the agent's own. */
+  runtime?: string
 }
 
 /** Every action a run can still be started with — everything but the retired ones. */
@@ -292,6 +296,11 @@ export interface RunRecord {
   /** The harness this run ran under, recorded when it starts, so a finished run keeps
    *  showing the agent that ran IT — changing the setting later can't rewrite history. */
   harness: string
+  /** The runtime it ran on (#467, #518), by id — the agent's own, or the one this run was
+   *  started with. Recorded for the same reason as the harness, and read by a resume so the
+   *  turn that continues it runs as the turn before it did. Absent on a run written before
+   *  runtimes. */
+  runtime?: string
   /** The agent it was run by — a role, or a specialist by name (#443). Absent on a run that
    *  belongs to no agent, and on one written before agents picked a connector. */
   agent?: string
@@ -790,8 +799,9 @@ export interface ModelChange {
   model: string
 }
 
-/** One runtime a conversation can be pointed at (#272, #467) — every row whose CLI can hold
- *  one, and what that row runs. */
+/** One runtime a picker offers (#272, #467, #518) — a row of the board's list, and what that
+ *  row runs. A conversation is offered the rows whose CLI can hold one; a run is offered
+ *  them all. */
 export interface ChatRuntime {
   id: string
   name: string
@@ -818,6 +828,17 @@ export interface ChatPick {
   /** The discussion helper's own runtime — what one click puts a conversation back to. */
   boardRuntime: string
   /** Every runtime that can hold a conversation, in the board's own order. */
+  runtimes: ChatRuntime[]
+}
+
+/** What one flow would run on, and what it could be started on instead (#518) — the create
+ *  sheet's picker, which pins a runtime for that one run. */
+export interface RunPick {
+  /** The runtime the flow's own agent is set to — where the picker opens, and the one row
+   *  that is the way back to it. */
+  runtime: string
+  /** Every runtime the board holds, in the board's own order. Nothing is filtered out: a CLI
+   *  that is not installed is marked and still offered. */
   runtimes: ChatRuntime[]
 }
 

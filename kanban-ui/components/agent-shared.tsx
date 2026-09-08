@@ -75,6 +75,9 @@ export interface AgentReq {
   /** Where THIS build works (#346) — the Implement dialog's tick, and nothing else's.
    *  Absent everywhere it wasn't asked, and the board then reads the repository setting. */
   commitMode?: DeliveryCommitMode;
+  /** The runtime THIS run spawns on (#518) — the create sheet's pick, for the one run.
+   *  Absent everywhere it wasn't asked, and the run is then its agent's own. */
+  runtime?: string;
 }
 
 export type DialogState =

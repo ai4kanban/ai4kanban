@@ -64,6 +64,14 @@ export interface Flow {
 
 const NOTE = 'anything the run should know, in your own words'
 
+// The runtime one run spawns on (#518) — the same pick the create sheet makes, for the two
+// flows it starts. It is this run's alone: nothing in Configuration → Agents moves, and the
+// next run of the same flow is back on its agent's own runtime.
+const RUNTIME_OPTION: FlowOption = {
+  flags: '--runtime <id>',
+  description: "the runtime to run on, for this run only (default: the flow's own agent's)",
+}
+
 export const FLOWS: Flow[] = [
   {
     command: 'implement',
@@ -72,6 +80,7 @@ export const FLOWS: Flow[] = [
     argument: '<id> [note...]',
     argumentNote: NOTE,
     gloss: 'build the card',
+    options: [RUNTIME_OPTION],
   },
   {
     command: 'review',
@@ -160,7 +169,10 @@ export const FLOWS: Flow[] = [
     argument: '<what...>',
     argumentNote: 'what you want, in your own words',
     gloss: 'write the card(s) for it',
-    options: [{ flags: '--release <version>', description: 'the version the new cards ship in' }],
+    options: [
+      { flags: '--release <version>', description: 'the version the new cards ship in' },
+      RUNTIME_OPTION,
+    ],
   },
   {
     command: 'plan-release',

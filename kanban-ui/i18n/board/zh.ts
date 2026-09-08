@@ -67,6 +67,13 @@ const zh: BoardCopy = {
       keysDiscuss: "Esc 关闭并保留这次讨论",
       shipsIn: (release) => `将在 ${release} 中交付`,
       builds: "不经评审就进分支",
+      runtime: {
+        label: "本次运行使用的运行时",
+        hint: (runtime) => `正在使用 ${runtime}`,
+        agentsOwn: "该 Agent 的",
+        notInstalled: "未安装",
+        cost: "仅本次运行，不改动「配置 → Agents」。",
+      },
       guard: {
         title: "写一张卡片，直接开做？",
         writes: "先写一张卡片：标题自动生成，正文是你的原话。",

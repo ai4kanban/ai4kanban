@@ -52,6 +52,7 @@ export type {
   ModelChange,
   Provider,
   ReviewTrigger,
+  RunPick,
   HarnessRun,
   RunStatus,
   SettingChoice,

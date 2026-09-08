@@ -43,6 +43,7 @@ import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } f
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
 import { agentForRun } from './runner'
+import { readRuntimes, runtimeById } from './runtimes'
 import { logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { holdsCard, SPECIALIST_ACTIONS } from './types'
 import type {
@@ -529,6 +530,16 @@ export function openRun(
   sessionId: string = randomUUID(),
 ): { run: RunRecord; spec: RunSpec } | { error: string } {
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
+  // The runtime this one run was asked for (#518). Refused here rather than resolved away:
+  // a pin nothing answers to would quietly run **Global default**, and a run on another
+  // model than the one picked is the worst way to answer a pick.
+  if (req.runtime && !runtimeById(req.runtime)) {
+    return {
+      error: `this board has no runtime called "${req.runtime}". It has: ${readRuntimes()
+        .map((r) => r.id)
+        .join(', ')}.`,
+    }
+  }
   // A build with no delivery on its card opens one, and a delivery is got ready before
   // anything is written down (#303): the commit mode is decided, the checkout is checked,
   // and the worktree is made. A refusal here costs nothing, and whatever it made is undone
@@ -577,7 +588,9 @@ export function openRun(
   // Which agent does this run — its flow's role, or the specialist itself on a spec run
   // (#443). Read here, with everything else, so a change made mid-run reaches the next run
   // and not this one.
-  const plan = planRun(sessionId, cwd, agentForRun(req))
+  // …and on the runtime this run was started with, when it named one (#518) — over the one
+  // its agent is set to, and for this run alone.
+  const plan = planRun(sessionId, cwd, agentForRun(req), req.runtime ? { pin: req.runtime } : {})
   // What that agent resolved to, when the board names a connector this version can't run. It
   // goes in the log rather than being swallowed: a run on another tool than the one asked
   // for is the first thing to check when its output looks wrong.
@@ -592,6 +605,9 @@ export function openRun(
     // What was pasted into the sheet that started it (#517), now in this run's own folder.
     pictures: req.pictures?.length ? req.pictures : undefined,
     harness: plan.harness,
+    // What it ran as, recorded beside the harness (#518): the agent's own runtime, or the
+    // one this run was started with.
+    runtime: plan.runtime,
     agent: plan.agent,
     // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs
     // none, and one that mints its own has nothing to record yet.
@@ -684,8 +700,16 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   // itself.
   const resuming = prev.deliveryId ? findDelivery(prev.deliveryId) : undefined
   // The connector the run being continued went on, whatever its agent has been pointed at
-  // since: a conversation can only be picked up by the CLI that opened it (#443).
-  const plan = planResume(prev.harness, resumeId, deliveryCwd(resuming ?? {}), prev.agent)
+  // since: a conversation can only be picked up by the CLI that opened it (#443). And the
+  // runtime it went on inside that connector (#518), so a run started on a picked runtime
+  // carries on as what it was rather than falling back to its agent's own.
+  const plan = planResume(
+    prev.harness,
+    resumeId,
+    deliveryCwd(resuming ?? {}),
+    prev.agent,
+    prev.runtime ? { pin: prev.runtime } : {},
+  )
   if (!plan) {
     return {
       error: `this version can't continue a conversation ${prev.harness || 'the agent that started it'} opened`,
@@ -707,6 +731,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     // No `input`: the note the user typed is already in the conversation being resumed —
     // repeating it would read as a second instruction they never gave.
     harness: plan.harness,
+    runtime: plan.runtime,
     agent: plan.agent,
     resumeId: plan.resumeId ?? undefined,
     resumedFrom: prev.sessionId,

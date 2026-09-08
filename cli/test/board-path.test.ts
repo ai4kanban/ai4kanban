@@ -135,7 +135,7 @@ describe('what the board prints', () => {
   it('gives a board its solution flow text and inherits the rest', () => {
     useBoard(find(root, { board: marketing }), false)
     assert.equal(solution(), 'marketing')
-    assert.match(findGuide('board')!.text, /A marketing board/)
+    assert.match(findGuide('board')!.text, /^# Marketing board context/)
     // Gone rather than overridden: a marketing board has no `implement` at all.
     assert.equal(findGuide('implement'), null)
     assert.match(findGuide('reject')!.text, /^# /)

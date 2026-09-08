@@ -102,6 +102,20 @@ export type BoardCopy = {
       shipsIn: (release: string) => string;
       /** And, in Build now, the one thing that mode gives up, beside the release. */
       builds: string;
+      /** The runtime the run will spawn on (#518) — the picker beside Send, in Add task and
+       *  in Build now. */
+      runtime: {
+        /** The control, read out. */
+        label: string;
+        /** What it is running, on hover. */
+        hint: (runtime: string) => string;
+        /** The row that is the flow's own agent's runtime — the way back to it. */
+        agentsOwn: string;
+        /** A row whose CLI is not on this machine. Offered all the same. */
+        notInstalled: string;
+        /** The one line under the list: what a pick here does, and does not, change. */
+        cost: string;
+      };
       /** The guard Send opens in Build now. Nothing starts until it is confirmed. */
       guard: {
         title: string;

@@ -180,10 +180,13 @@ export function buildPrompt(req: AgentRequest, notes: string[] = []): string {
  *
  *  Only for a connector that reads a path out of the words. One with a flag per file is
  *  handed them on its command line and told nothing here (agent/watch.ts), exactly as a
- *  conversation hands them over (agent/chat.ts). */
+ *  conversation hands them over (agent/chat.ts).
+ *
+ *  The connector asked is the one THIS run spawns — its agent's, or the runtime it was
+ *  started on instead (#518), which is what the spawn hands the files to. */
 function pictureNote(req: AgentRequest): string {
   const files = req.pictures ?? []
-  if (!files.length || agentImages(agentForRun(req))?.as !== 'message') return ''
+  if (!files.length || agentImages(agentForRun(req), req.runtime)?.as !== 'message') return ''
   const one = files.length === 1
   return (
     `${one ? 'A picture came' : `${files.length} pictures came`} with this. ` +
@@ -278,9 +281,10 @@ function deliveryAim(
 
 function actionPrompt(req: AgentRequest, command: string, notes: string[]): string {
   // How this agent calls the skill — the only part of a prompt that follows the connector.
-  // It is the connector THIS run's agent runs (#443), not the board's default one: a
-  // `/kanban` sent to Codex is plain chat text and the skill never loads.
-  const kb = skillCall(agentForRun(req))
+  // It is the connector THIS RUN spawns: the one its agent runs (#443), or the runtime the
+  // run was started on instead (#518) — never the board's default. A `/kanban` sent to Codex
+  // is plain chat text and the skill never loads.
+  const kb = skillCall(agentForRun(req), req.runtime)
   const tag = req.id ? `#${req.id}` : ''
   const named = req.title ? `${tag} ("${req.title}")` : tag
   // Retired (#438): nothing starts a propose any more, so there is no ask left to write.

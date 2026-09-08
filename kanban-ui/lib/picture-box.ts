@@ -7,7 +7,7 @@ import {
   dropRunPictureAction,
   emptyRunBoxAction,
 } from "@/app/actions";
-import type { CreateImageAgents, ImageAgent } from "./types";
+import type { ChatRuntime, CreateImageAgents, ImageAgent } from "./types";
 
 // One box of pictures waiting to be sent (#441, #511, #517).
 //
@@ -77,7 +77,13 @@ const nothing: ImageAgent = { agent: "", seesImages: false, imagesAble: [] };
  *  A picture is written as it is pasted — the thumbnail IS the file — so a paste that can't
  *  be saved says so straight away rather than failing the run later. A sheet closed without
  *  sending empties the box behind it. */
-export function useCreatePictures(mode: "discuss" | "card" | "build"): CreatePictures {
+export function useCreatePictures(
+  mode: "discuss" | "card" | "build",
+  /** The runtime picked for this send (#518), or null for the mode's agent's own. It runs
+   *  its own CLI, so what the run can do with a picture is that row's answer and not the
+   *  agent's. */
+  picked: ChatRuntime | null = null,
+): CreatePictures {
   const [box, setBox] = useState(() => crypto.randomUUID());
   const [pasted, setPasted] = useState<string[]>([]);
   const [note, setNote] = useState<PasteNote | null>(null);
@@ -100,7 +106,13 @@ export function useCreatePictures(mode: "discuss" | "card" | "build"): CreatePic
     };
   }, [box]);
 
-  const sees = agents ? (mode === "build" ? agents.build : agents.card) : nothing;
+  const own = agents ? (mode === "build" ? agents.build : agents.card) : nothing;
+  // A picked row carries its CLI's label, and `imagesAble` is every CLI that can take a
+  // picture — so the row says for itself whether this send's pictures reach the run.
+  const sees =
+    picked && agents
+      ? { ...own, agent: picked.label, seesImages: own.imagesAble.includes(picked.label) }
+      : own;
   const offered = agents !== null && mode !== "discuss";
   const refused = pasted.length > 0 && offered && !sees.seesImages;
 
@@ -125,7 +137,7 @@ export function useCreatePictures(mode: "discuss" | "card" | "build"): CreatePic
         setPasted((was) => [...was, saved.name]);
       }
     },
-    [box, sees],
+    [box, sees.seesImages],
   );
 
   // One drop. The pictures in it are a paste; anything else is named, because a mixed drop

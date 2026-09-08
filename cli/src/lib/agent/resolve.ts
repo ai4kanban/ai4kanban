@@ -56,6 +56,7 @@ import type {
   HarnessRun,
   ImageAgent,
   Provider,
+  RunPick,
   RuntimeView,
 } from './types'
 
@@ -612,11 +613,27 @@ export function chatAgent(pin?: string): ChatAgent {
  *  conversation" a refusal already names, and the model on each row is that runtime's own,
  *  read exactly as Configuration reads it. */
 export function chatRuntimes(): ChatRuntime[] {
+  return runtimeRows((runtime) => harnessOfRuntime(runtime).resumes)
+}
+
+/** What one flow would run on and what it could be started on instead (#518) — the runtime
+ *  its own agent is set to, and every runtime the board holds.
+ *
+ *  Nothing is filtered: a run spawns a CLI and asks it for one pass, so there is no
+ *  "can it hold a conversation" to fail — a row whose CLI is not installed is marked and
+ *  still offered, the way Configuration → Runtimes lists it. */
+export function runRuntimePick(flow: string): RunPick {
+  return { runtime: resolveHarness({ agent: roleForFlow(flow)?.name }).runtime.id, runtimes: runtimeRows() }
+}
+
+// The board's rows as a picker draws them. Each is read as itself — a row carries the whole
+// of what a run on it spawns, so which agent would be running is not part of the answer.
+function runtimeRows(keep: (runtime: Runtime) => boolean = () => true): ChatRuntime[] {
   const onPath = pathLookup()
   return readRuntimes()
-    .filter((runtime) => harnessOfRuntime(runtime).resumes)
+    .filter(keep)
     .map((runtime) => {
-      const resolved = resolveHarness({ agent: DISCUSSION_ROLE, pin: runtime.id })
+      const resolved = resolveHarness({ pin: runtime.id })
       return {
         id: runtime.id,
         name: runtime.name,
@@ -638,9 +655,10 @@ export function harnessImages(pin?: string): ImageInput | undefined {
 
 /** How the harness ONE AGENT runs takes a picture on disk (#517) — the planner's for an Add
  *  task, the builder's for a **Build now**. Undefined for one that can't see a picture at
- *  all, which is what the create sheet turns a paste away on. */
-export function agentImages(agent?: string): ImageInput | undefined {
-  return resolveHarness({ agent }).harness.images
+ *  all, which is what the create sheet turns a paste away on. `pin` is the runtime the run
+ *  was started on instead (#518), whose connector then answers. */
+export function agentImages(agent?: string, pin?: string): ImageInput | undefined {
+  return resolveHarness({ agent, pin }).harness.images
 }
 
 /** What one agent's connector can do with a picture, in the words a refusal is written from
@@ -680,9 +698,10 @@ export function adoptsSessionId(harnessName: string): boolean {
 
 /** How a fresh prompt calls the skill under the connector one agent runs — `/kanban` for
  *  Claude Code, `$kanban` for Codex, or a sentence when the connector has no direct syntax.
- *  With no agent named it is the board's default connector. */
-export function skillCall(agent?: string): string {
-  return resolveHarness({ agent }).harness.skillCall
+ *  With no agent named it is the board's default connector. `pin` is the runtime one run was
+ *  started on over its agent's own (#518), whose connector the call then follows. */
+export function skillCall(agent?: string, pin?: string): string {
+  return resolveHarness({ agent, pin }).harness.skillCall
 }
 
 /** Invoke the skill with one user's words and no extra prompt. `pin` is the agent a

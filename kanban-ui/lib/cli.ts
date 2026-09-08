@@ -22,6 +22,7 @@ import type {
   HarnessSetting,
   LoggedOutAgent,
   PlanAnswer,
+  RunPick,
   RunRecord,
   RunView,
   SetupProposal,
@@ -492,6 +493,11 @@ export interface BoardRules {
     label: string;
     settings: HarnessSetting[];
   };
+  /** What one flow would run on and what it could be started on instead (#518) — the
+   *  runtime its own agent is set to, and every runtime the board holds. Optional: rules
+   *  from before it draw no picker on the create sheet, and both its runs go on the
+   *  planner's and the builder's own runtimes as they always did. */
+  runRuntimePick?(flow: string): RunPick;
 
   // the board, read
   readBoard(): Promise<Board>;

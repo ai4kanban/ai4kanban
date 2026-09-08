@@ -125,6 +125,9 @@ export function readStore(): Store {
       // resume: every agent resumes differently, and the one thing worse than a missing
       // offer is a command for the wrong agent.
       harness: typeof entry.harness === 'string' ? entry.harness : '',
+      // The row it ran as (#518). Absent on a run written before runtimes, which then
+      // resumes on its agent's own row inside the harness it went on.
+      runtime: typeof entry.runtime === 'string' && entry.runtime ? entry.runtime : undefined,
       agent: typeof entry.agent === 'string' && entry.agent ? entry.agent : undefined,
       resumeId: typeof entry.resumeId === 'string' ? entry.resumeId : undefined,
       logPath: typeof entry.logPath === 'string' && entry.logPath ? entry.logPath : logPathOf(entry.sessionId),

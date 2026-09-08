@@ -76,6 +76,13 @@ const en: BoardCopy = {
       keysDiscuss: "Esc closes and keeps the discussion",
       shipsIn: (release) => `Ships in ${release}`,
       builds: "no review before your branch",
+      runtime: {
+        label: "The runtime this run uses",
+        hint: (runtime) => `Running ${runtime}`,
+        agentsOwn: "the agent's",
+        notInstalled: "not installed",
+        cost: "This run only — Configuration → Agents is untouched.",
+      },
       guard: {
         title: "Write a card and build it now?",
         writes: "It writes a card first — a generated title, your words as its whole summary.",

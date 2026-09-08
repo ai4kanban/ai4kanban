@@ -1,5 +1,5 @@
 import { boardRules, type AgentRequest, type CommandRequest } from "./cli";
-import type { AgentInfo, HarnessSetting, LoggedOutAgent } from "./types";
+import type { AgentInfo, HarnessSetting, LoggedOutAgent, RunPick } from "./types";
 
 // --- which agent runs, and the words it is sent (#168) -----------------------
 // All of it lives in the CLI now — the connectors, what each one takes, how the settings
@@ -100,6 +100,14 @@ export async function settingSaveError(
 // harness's FIRST row, which on a list where two rows share one CLI is another row entirely.
 const ask = ({ runtime, harness }: SettingsAsk) =>
   runtime ? { pin: runtime } : harness ? { pin: harness, harness } : {};
+
+/** What one flow would run on, and what it could be started on instead (#518): the runtime
+ *  its own agent is set to, and every runtime the board holds. Null on rules from before it,
+ *  where a run has no runtime to be pointed at and the sheet draws no picker. */
+export async function runRuntimePick(flow: string): Promise<RunPick | null> {
+  const rules = await boardRules();
+  return rules.runRuntimePick?.(flow) ?? null;
+}
 
 /** What one board action says to the agent. */
 export async function buildPrompt(req: AgentRequest): Promise<string> {

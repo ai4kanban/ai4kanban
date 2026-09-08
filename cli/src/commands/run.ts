@@ -176,6 +176,8 @@ export interface StartOptions {
   release?: string
   effort?: RefineEffort
   andImplement?: boolean
+  /** The runtime this one run spawns on (#518), on the two flows that take one. */
+  runtime?: string
 }
 
 // Turn what was typed into the request the run is started from. The command line has been
@@ -198,7 +200,7 @@ function readRequest(
   // The four actions that name no card. Two name nothing at all; planning a release and
   // writing one up each name a version.
   if (action === 'create') {
-    return { req: { action, description: words(0)!, release: opts.release }, follow, print }
+    return { req: { action, description: words(0)!, release: opts.release, runtime: opts.runtime }, follow, print }
   }
   if (action === 'plan-release') {
     return { req: { action, release: words(0)! }, follow, print }
@@ -240,6 +242,9 @@ function readRequest(
   const req: CommandRequest = { action, id, title: titleOf(id) }
   if (action === 'reject') req.reason = words(1)
   else req.notes = words(1)
+  // The one run's own runtime (#518) — declared by `implement` alone among these, so
+  // nothing else can be given one.
+  if (action === 'implement') req.runtime = opts.runtime
   if (action === 'refine') req.refineEffort = opts.effort
   if (action === 'resolve' && opts.andImplement === true) req.andImplement = true
   return { req, follow, print }

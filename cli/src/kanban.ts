@@ -212,6 +212,11 @@ export { loggedOutAgents } from './lib/agent/login'
 // this is only the writer.
 export { setAgentRuntime } from './lib/agent/runtimes'
 export { agentHarness } from './lib/agent/resolve'
+
+// What one run would spawn on, and what it could be started on instead (#518) — the create
+// sheet's picker. The pick travels on the request the run is started from and is remembered
+// nowhere, so this is a read and there is no writer beside it.
+export { runRuntimePick } from './lib/agent/resolve'
 export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
 // Which boards this project holds, and what each one's work is called (#407). The folder
 // chip's badge is drawn from these: one board gets a label, two get a switcher.

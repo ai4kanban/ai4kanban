@@ -14,6 +14,7 @@ import {
   agentInfo,
   loggedOutAgents,
   runnableAgents,
+  runRuntimePick,
   type AgentRequest,
   type CommandRequest,
   buildPrompt,
@@ -224,6 +225,7 @@ import type {
   MemberRoleWire,
   MetricsResult,
   PlanAnswer,
+  RunPick,
   SaveProjectResult,
   ScoreResult,
   SessionView,
@@ -379,6 +381,17 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
     }
   }
   return started;
+}
+
+/** What the create sheet's two runs would go on (#518): the runtime Add task's own agent
+ *  and Build now's own agent are set to, and the whole list either can be pointed at
+ *  instead. Read once when the sheet opens — the pick is never remembered, so there is
+ *  nothing here to write back. Null on rules with no picker behind them.
+ *
+ *  Keyed by the sheet's own mode names, so the sheet reads the mode it is on. */
+export async function createRuntimePicksAction(): Promise<{ card: RunPick; build: RunPick } | null> {
+  const [card, build] = await Promise.all([runRuntimePick("create"), runRuntimePick("implement")]);
+  return card && build ? { card, build } : null;
 }
 
 /** What a card page adds to a start so the same decision reaches Cloud: the revision the

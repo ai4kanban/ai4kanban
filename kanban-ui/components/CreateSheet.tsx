@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  FiChevronDown,
   FiCopy,
   FiCheck,
   FiFileText,
@@ -16,7 +17,7 @@ import {
   FiX,
   FiZap,
 } from "react-icons/fi";
-import { noteDiscussAnswerAction } from "@/app/actions";
+import { createRuntimePicksAction, noteDiscussAnswerAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
@@ -24,12 +25,20 @@ import { useOverRail } from "@/lib/over-rail";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
-import type { DiscussionTarget } from "@/lib/types";
+import type { DiscussionTarget, RunPick } from "@/lib/types";
 import { Button } from "./button";
 import { Transcript, Pasted, Pick } from "./Chat";
 import { HAIRLINE } from "./chrome";
 import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
+import { AgentMark } from "./Configuration";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
 
@@ -72,6 +81,8 @@ interface Props {
     description: string,
     mode: CreateMode,
     pictures: { box: string; shots: string[] },
+    /** The runtime picked for this one run (#518), or undefined for the agent's own. */
+    runtime?: string,
   ) => Promise<{ ok: boolean; error?: string }>;
   /** Start planning: close and start the run that writes the plan's cards. */
   onPlan: () => void;
@@ -111,12 +122,34 @@ function Sheet({
   // Discuss is what a vague idea wants, so it is what the screen opens on. Build now never
   // is: a build nothing plans or reviews is the deliberate one.
   const [mode, setMode] = useState<CreateMode>("discuss");
-  // The pictures Add task and Build now were pasted into (#517). One box across both modes,
-  // so switching what sending does never loses what was pasted; Discuss keeps its own with
-  // the conversation.
-  const pictures = useCreatePictures(mode);
   // Whether the Build now guard is open. Esc answers it before it answers the screen.
   const [guard, setGuard] = useState(false);
+  // What the two run modes would spawn on (#518), read once when the sheet opens: Add task's
+  // own agent's runtime and Build now's, and the list either can be pointed at instead. Null
+  // while it is still coming, and on rules with no picker behind them.
+  const [picks, setPicks] = useState<{ card: RunPick; build: RunPick } | null>(null);
+  // The runtime this send goes on, or null for the mode's own agent's. It is this sheet's
+  // and this mode's: switching mode clears it, and the sheet is unmounted when it closes, so
+  // the next one opens back on the agent's own.
+  const [runtime, setRuntime] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void createRuntimePicksAction()
+      .then((read) => live && setPicks(read))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  // What this mode's send would go on, and the row picked out of it — null while the read is
+  // still coming, and null again the moment the mode's own runtime is the answer.
+  const runPick = mode === "build" ? (picks?.build ?? null) : (picks?.card ?? null);
+  const pickedRow = runtime ? (runPick?.runtimes.find((r) => r.id === runtime) ?? null) : null;
+  // The pictures Add task and Build now were pasted into (#517). One box across both modes,
+  // so switching what sending does never loses what was pasted; Discuss keeps its own with
+  // the conversation. What may go in it is the picked runtime's answer when there is one
+  // (#518) — the CLI that row runs is the one the run hands them to.
+  const pictures = useCreatePictures(mode, pickedRow);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sendRef = useRef<HTMLSpanElement>(null);
@@ -197,7 +230,12 @@ function Sheet({
     // The box is the run's from here, so the sheet closing behind a started run leaves its
     // pictures where the run can read them.
     pictures.handOver();
-    const res = await onSend(words, picked, { box: pictures.box, shots: pictures.pasted });
+    const res = await onSend(
+      words,
+      picked,
+      { box: pictures.box, shots: pictures.pasted },
+      runtime ?? undefined,
+    );
     setSending(false);
     // Only a run that actually started takes the sentence with it. A refusal keeps the
     // sheet and the words exactly as they were — pictures included — and says why under
@@ -226,6 +264,9 @@ function Sheet({
     setMode(picked);
     setGuard(false);
     setError(null);
+    // Each mode opens on its own agent's runtime (#518), so the pick does not follow the
+    // switch: what the planner runs is not an answer about what the builder runs.
+    setRuntime(null);
   };
 
   const composer = (
@@ -238,6 +279,9 @@ function Sheet({
       sending={sending}
       rail={discussing ? rail : null}
       pictures={pictures}
+      pick={discussing ? null : runPick}
+      runtime={runtime}
+      onRuntime={setRuntime}
       release={release}
       text={text}
       onText={(value) => {
@@ -426,6 +470,9 @@ function Composer({
   sending,
   rail,
   pictures,
+  pick,
+  runtime,
+  onRuntime,
   release,
   text,
   onText,
@@ -451,6 +498,12 @@ function Composer({
   /** The pictures Add task and Build now were pasted into (#517) — the other two modes'
    *  own box, which Discuss never reaches. */
   pictures: CreatePictures;
+  /** What this run mode would spawn on and what it could spawn instead (#518). Null in
+   *  Discuss, whose own picker is the conversation's, and while the read is still coming. */
+  pick: RunPick | null;
+  /** The runtime picked for this send, or null for the mode's own agent's. */
+  runtime: string | null;
+  onRuntime(runtime: string | null): void;
   release: string | null;
   text: string;
   onText(value: string): void;
@@ -471,7 +524,7 @@ function Composer({
   // is writing is followed just the same and ended in that terminal.
   const ours = rail?.live != null;
   const trouble = rail ? (rail.error ?? read?.failed ?? read?.blocked) : undefined;
-  const pick = read?.pick ?? null;
+  const chatPick = read?.pick ?? null;
   // The pictures pasted in and not yet sent (#441) — only Discuss has any.
   const pasted = rail?.pasted.length ?? 0;
 
@@ -583,10 +636,20 @@ function Composer({
                 onPick={() => onPick("build")}
               />
             </span>
-            {rail && pick && (
+            {/* Opposite the modes, hard against Send: what the run will go on. In Discuss it
+                is the conversation's own agent (components/Chat.tsx); in the two run modes
+                it is the runtime this send spawns (#518). Never both — one slot, one answer
+                to "what answers this". */}
+            {rail && chatPick ? (
               <span className="ml-auto flex min-w-0 items-center gap-1.5">
-                <Pick rail={rail} pick={pick} answering={answering} />
+                <Pick rail={rail} pick={chatPick} answering={answering} />
               </span>
+            ) : (
+              pick && (
+                <span className="ml-auto flex min-w-0 items-center gap-1.5">
+                  <RuntimePick pick={pick} runtime={runtime} onPick={onRuntime} />
+                </span>
+              )
             )}
           </>
         }
@@ -663,6 +726,79 @@ function Mode({
     </button>
   );
 }
+
+/** What this run will spawn on (#518), on the box's own bottom row: one runtime, as its
+ *  CLI's mark and a caret — the same control Discuss draws for the conversation, in the same
+ *  place, so the foot row always answers "what runs this" in one spot.
+ *
+ *  It is the run's alone. Nothing in Configuration → Agents moves, and the pick is forgotten
+ *  the moment the sheet closes — every sheet opens back on the flow's own agent's runtime.
+ *
+ *  Everything offered comes from the board: every runtime it holds, in its own order, each
+ *  carrying the model it runs. A row whose CLI is not installed is marked and still offered
+ *  — nothing is probed, and the run's own refusal is what says a binary is missing. */
+function RuntimePick({
+  pick,
+  runtime,
+  onPick,
+}: {
+  pick: RunPick;
+  /** The row picked for this send, or null for the agent's own. */
+  runtime: string | null;
+  onPick(runtime: string | null): void;
+}) {
+  const c = useCopy().board.create.sheet.runtime;
+  const [open, setOpen] = useState(false);
+  const on = runtime ?? pick.runtime;
+  const running = pick.runtimes.find((r) => r.id === on);
+  const label = running?.name ?? on;
+
+  return (
+    <span className="flex h-[28px] min-w-0 items-center overflow-hidden rounded-[8px]">
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            title={c.hint(label)}
+            aria-label={c.label}
+            className="inline-flex h-full shrink-0 cursor-pointer items-center gap-1.5 pl-2 pr-1.5 hover:brightness-[0.97]"
+            style={{ background: RUNTIME_FILL }}
+          >
+            <AgentMark src={running?.icon ?? ""} size={16} name={label} />
+            <span className="max-w-[128px] truncate text-[12px] text-nb-ink">{label}</span>
+            <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="start" className="min-w-[230px]">
+          {pick.runtimes.map((row) => (
+            <DropdownMenuItem
+              key={row.id}
+              className="gap-2"
+              // The agent's own row is picked by following the agent again rather than by
+              // pinning the same id, so the send carries a runtime only when one was chosen.
+              onSelect={() => onPick(row.id === pick.runtime ? null : row.id)}
+            >
+              <AgentMark src={row.icon} size={15} />
+              <span className="min-w-0 flex-1 truncate">{row.name}</span>
+              <span className="shrink-0 truncate text-[10.5px] font-[400] text-nb-ink-soft">
+                {!row.installed ? c.notInstalled : row.id === pick.runtime ? c.agentsOwn : row.model}
+              </span>
+              <span className="w-[13px] shrink-0">
+                {row.id === on && <FiCheck size={12} className="text-nb-accent" aria-hidden />}
+              </span>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <p className="px-2.5 py-1 text-[10.5px] leading-[1.4] text-nb-ink-soft">{c.cost}</p>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </span>
+  );
+}
+
+/** The one control's fill, a shade off the box's paper — the same wash the conversation's
+ *  own picker stands on (components/Chat.tsx). */
+const RUNTIME_FILL = "var(--color-nb-accent-wash)";
 
 /** The handoff (#427, #481), under the agent's own last message: the three answers whenever
  *  there is a plan and the reply is in, and while the run one of them started is going, the

@@ -757,6 +757,9 @@ function requestOf(record: RunRecord): AgentRequest {
       ? { deliveryId: record.deliveryId, description: record.input }
       : {}),
     title: titleOf(id),
+    // The runtime it is running as (#518), so a prompt rebuilt here calls the skill the way
+    // the CLI actually spawned takes it.
+    runtime: record.runtime,
     specAgent: record.specAgent,
     channel: record.channel,
     verification: record.verification,
