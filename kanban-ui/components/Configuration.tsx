@@ -142,6 +142,10 @@ const SECTIONS: { id: Section; icon: IconType }[] = [
 // is one press, and landing on the Agents grid with nothing selected would leave the reader
 // to find the character themselves.
 let openRequest: { at: number; section: Section; agent?: string } | null = null;
+// The last request the dialog has opened on. The store outlives the dialog — the header
+// remounts on every page change — so without this a fresh mount would replay the previous
+// request and reopen the dialog after every navigation back.
+let takenAt = 0;
 const requestSubs = new Set<() => void>();
 export const configDialog = {
   open(section: Section = "general", agent?: string) {
@@ -203,7 +207,8 @@ export function Configuration({
   // reopens rather than doing nothing.
   const request = useOpenRequest();
   useEffect(() => {
-    if (!request) return;
+    if (!request || request.at === takenAt) return;
+    takenAt = request.at;
     setSection(request.section);
     setPickAgent(request.agent ?? "");
     setOpen(true);
