@@ -13,6 +13,8 @@ import type {
   ChatReply,
   ChatTarget,
   ChatView,
+  DiscussionRow,
+  DiscussionTarget,
   DiscussRead,
   ConnectionTest,
   DeliveryRecord,
@@ -370,15 +372,29 @@ export interface BoardRules {
     runtime: string | null,
   ): { ok: true; cleared: boolean; restarted?: boolean; runtime: string } | { error: string };
 
-  // Discuss (#427) — the same board conversation, with the plan it is talking into shape.
+  // Discuss (#427) — one discussion's conversation, with the plan it is talking into shape.
   // Optional like the chat itself: a project running rules older than the release that added
   // them opens the create screen on Add task, and nothing else is missing.
-  readDiscuss?(): Promise<DiscussRead>;
+  //
+  // Rules from before discussions (#496) take no target and answer for the board's one
+  // conversation, which is exactly what such a board still holds.
+  readDiscuss?(target?: ChatTarget): Promise<DiscussRead>;
   /** The run this plan was handed to has started, and which of the handoff's answers handed
    *  it over (#481) — so reopening Discuss says it is still working rather than offering a
    *  second one, and names a build where that is what is working. Rules from before the third
    *  answer take the id alone and record a planning run. */
-  startedPlanning?(sessionId: string, answer?: PlanAnswer): void;
+  startedPlanning?(sessionId: string, answer?: PlanAnswer, target?: ChatTarget): void;
+
+  // The discussions this board is holding (#496). The rail lists them, Create task opens a
+  // new one on every press, and a row's menu takes one out of the list. Optional: rules from
+  // before them draw no list, and the create screen holds the board's one conversation.
+  listDiscussions?(): DiscussionRow[];
+  startDiscussion?(): DiscussionTarget;
+  archiveDiscussion?(target: DiscussionTarget): { ok: true } | { error: string };
+  titleDiscussion?(target: DiscussionTarget, title: string): void;
+  /** The discussion a string names, spelled either way — null for anything this board did
+   *  not write, so nothing arriving from a browser can name a file of ours by accident. */
+  asDiscussion?(named: string): DiscussionTarget | null;
   /** Let the plan go by hand — the discussion was thrown away under it. */
   clearChatPlan?(cardId: ChatTarget): void;
   /** Write one line into the transcript as something the user said, with no turn behind it:

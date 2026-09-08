@@ -11,6 +11,7 @@ import {
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRead } from "./chat";
+import type { ChatTarget } from "./types";
 import { useMatches } from "./media";
 import { overRail } from "./over-rail";
 
@@ -77,8 +78,9 @@ export interface BoardChange {
 }
 
 export interface ChatRail {
-  /** The conversation on screen: a card id, or null for the board's own. */
-  cardId: number | null;
+  /** The conversation on screen: a card id, a discussion (#496), or null for the board's
+   *  own. */
+  cardId: ChatTarget;
   /** The card's title, when this is a card's conversation. */
   cardTitle: string;
   open: boolean;
@@ -157,7 +159,7 @@ export function useChatRail({
   onBoardChanged,
 }: {
   projectRoot: string;
-  cardId: number | null;
+  cardId: ChatTarget;
   cardTitle?: string;
   /** Called when the board has moved since the last poll — by this chat, by a terminal one,
    *  or by anything else on this machine. The page re-reads itself on it. */
@@ -397,7 +399,8 @@ export function useChatRail({
     return () => clearTimeout(timer);
   }, [pasteNote]);
 
-  // Where one of this conversation's pictures is served from (app/chat-image/).
+  // Where one of this conversation's pictures is served from (app/chat-image/). A
+  // discussion's target is already the address its own folder answers at (#496).
   const chatKey = cardId === null ? "board" : String(cardId);
   const imageSrc = useCallback(
     (name: string) => `/chat-image/${chatKey}/${encodeURIComponent(name)}`,
@@ -650,7 +653,7 @@ function save(key: string, px: number) {
  *  in the browser because it is the one thing in the rail that is nowhere else: the
  *  transcript is a file, but words still being written are not. So a card looked away from
  *  and come back to — or come back to after a reload — still has them in its box. */
-function useDraft(projectRoot: string, cardId: number | null) {
+function useDraft(projectRoot: string, cardId: ChatTarget) {
   const key = `${DRAFT_PREFIX}${projectRoot}:${cardId === null ? "board" : cardId}`;
   const [draft, setDraft] = useState("");
 
@@ -700,7 +703,7 @@ function readDraft(key: string): string {
 /** When this conversation was last read, per project. A conversation this window has never
  *  seen counts as read the first time it is looked at: a chat held in a terminal last week
  *  is not news. */
-function useSeen(projectRoot: string, cardId: number | null) {
+function useSeen(projectRoot: string, cardId: ChatTarget) {
   const key = `${SEEN_PREFIX}${projectRoot}:${cardId === null ? "board" : cardId}`;
   const [at, setAt] = useState(0);
   const started = useRef(false);

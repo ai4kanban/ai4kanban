@@ -236,13 +236,14 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   // ---- talking to the agent -------------------------------------------------
 
   withShared(program.command('chat'))
-    .argument('[id]', 'the card the conversation is about; left off, it is the board’s', cardId)
+    .argument('[id]', 'the card the conversation is about; left off, it is a discussion', cardId)
     .argument('[message...]', 'what to say; left off, the conversation so far is printed')
     .summary('a conversation that also does the board work')
     .description(
       'The reply arrives as it is written, and the next message lands in the same session — the agent ' +
-        "still has everything said before. The board's conversation and each card's are separate, and " +
-        'both live on this machine until they are cleared. A chat is still not a run: it never shows in ' +
+        "still has everything said before. A board holds many discussions at once and each card's " +
+        'conversation is its own, and all of them live on this machine until they are cleared. With ' +
+        'nothing at all it lists the discussions going. A chat is still not a run: it never shows in ' +
         '`runs`, never holds a card, and never keeps a run off the card it is about.',
     )
     .option('--clear', 'forget that conversation and start fresh')
@@ -250,6 +251,8 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       '--runtime <id>',
       'run this one conversation on that runtime ("" for the board’s); another CLI starts it over',
     )
+    .option('--discussion <id>', 'which discussion this message continues; left off, the most recent one')
+    .option('--new', 'start a fresh discussion and say it into that')
     .addHelpText('after', HELP_AFTER.chat)
     .action(async function (this: Command, ...vals: unknown[]) {
       const [id, message] = positional(vals) as [number | undefined, string[]]

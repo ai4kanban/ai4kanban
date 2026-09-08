@@ -70,9 +70,10 @@ export interface ChatRead {
   pick: ChatPick | null;
 }
 
-/** The chat a window is showing: the board's, one card's, or the first run's (#280). */
+/** The chat a window is showing: the board's, one card's, the first run's (#280) or one
+ *  discussion's (#496) — whose target is already the key its own file is named by. */
 const keyOf = (target: ChatTarget): string =>
-  target === null ? "board" : target === "setup" ? "setup" : `card-${target}`;
+  target === null ? "board" : typeof target === "string" ? target : `card-${target}`;
 
 // Read at load, so English: this is the line for rules too old to hold a conversation,
 // and the language is one of the things such a copy may not be able to answer for.

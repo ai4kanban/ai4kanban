@@ -19,12 +19,13 @@
 // cannot: it closes the sheet first, so its refusal is said under the button.
 
 import { useRouter } from "next/navigation";
-import { startPlanBuildAction, startPlanningAction } from "@/app/actions";
+import { startDiscussionAction, startPlanBuildAction, startPlanningAction } from "@/app/actions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { useCreateSheetRequest } from "@/lib/create-open";
-import type { SessionView } from "@/lib/types";
+import { usePhone } from "@/lib/media";
+import type { DiscussionTarget, SessionView } from "@/lib/types";
 import type { AgentReq } from "./agent-shared";
 import { Button } from "./button";
 import { useChatRailHere } from "./Chat";
@@ -46,23 +47,14 @@ export function CreateTask({
   const c = useCopy().board.create;
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  // The discussion the sheet is holding (#496). A press opens a fresh one; a rail row hands
+  // over the one it is picking back up. Null while the board's rules are older than the list,
+  // which still holds its one conversation.
+  const [discussion, setDiscussion] = useState<DiscussionTarget | null>(null);
   // Start planning closes the sheet before the run is asked for (#427), so a refusal there
   // has no box to go back to — it is said under the button instead. A refused create still
   // goes to the sheet, which is still up.
   const [error, setError] = useState<string | null>(null);
-
-  // The empty board asks for the sheet from the middle of the page (#437) — the first card
-  // is offered where the reader is looking, not by pointing at this button. Only an ask made
-  // while this row was on screen: the store outlives a page change, and a sheet opening by
-  // itself on the page someone navigated to is a box nobody pressed for.
-  const asked = useCreateSheetRequest();
-  const seen = useRef(asked);
-  useEffect(() => {
-    if (!asked || asked === seen.current) return;
-    seen.current = asked;
-    setError(null);
-    setOpen(true);
-  }, [asked]);
 
   // The rail and this screen are never both up. Pressing Chat asks for the board's
   // conversation or a card's — and on the board the sheet is already showing the board's, so
@@ -78,6 +70,46 @@ export function CreateTask({
   useEffect(() => {
     if (open) foldRail?.();
   }, [open, foldRail]);
+
+  // Every press is a new subject (#496): the sheet opens on a discussion of its own, so a
+  // second idea is never typed into the first. Nothing is written until the first message,
+  // so a sheet opened and closed again leaves no row in the rail.
+  //
+  // At phone width there is no rail to list them, so the press stays on the discussion it
+  // already had — one is reachable there, and a new one every press would be a subject with
+  // no way back to it.
+  const phone = usePhone();
+  const openFresh = useCallback(async () => {
+    setError(null);
+    if (phone && discussion) return setOpen(true);
+    // Opened after the discussion is in hand, so the sheet never paints a frame of the last
+    // subject's exchange on its way to the new one.
+    // Null is a board whose rules are older than the list. It holds one conversation, which
+    // is exactly what `null` reads as.
+    setDiscussion(await startDiscussionAction());
+    setOpen(true);
+  }, [phone, discussion]);
+
+  // The empty board asks for the sheet from the middle of the page (#437), and a rail row
+  // picks a discussion back up the same way (#496) — the first card is offered where the
+  // reader is looking, not by pointing at this button. Only an ask made while this row was on
+  // screen: the store outlives a page change, and a sheet opening by itself on the page
+  // someone navigated to is a box nobody pressed for.
+  const asked = useCreateSheetRequest();
+  const seen = useRef(asked);
+  useEffect(() => {
+    if (!asked || asked === seen.current) return;
+    seen.current = asked;
+    setError(null);
+    // A row named the discussion it is picking back up; the empty board's ask names none, so
+    // it opens a fresh one exactly as the button does.
+    if (asked.discussion) {
+      setDiscussion(asked.discussion);
+      setOpen(true);
+    } else {
+      void openFresh();
+    }
+  }, [asked, openFresh]);
 
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up
@@ -119,7 +151,7 @@ export function CreateTask({
     async (answer: "plan" | "build") => {
       setOpen(false);
       const start = answer === "build" ? startPlanBuildAction : startPlanningAction;
-      const res = await start(release ?? undefined);
+      const res = await start(release ?? undefined, discussion);
       if (!res.ok) {
         setError(res.error || c.startFailed);
         return;
@@ -130,7 +162,7 @@ export function CreateTask({
       watch(res.sessionId, answer === "build" ? "Build now" : "Start planning");
       sessionsPanel.open(res.sessionId);
     },
-    [release, watch, c],
+    [release, discussion, watch, c],
   );
 
   return (
@@ -142,10 +174,7 @@ export function CreateTask({
         size="xs"
         className="shrink-0 max-md:h-9 max-sm:w-9 max-sm:px-0"
         aria-label={c.button}
-        onClick={() => {
-          setError(null);
-          setOpen(true);
-        }}
+        onClick={() => void openFresh()}
       >
         <FiPlus className="text-[15px]" aria-hidden />
         <span className="sr-only sm:not-sr-only">{c.button}</span>
@@ -165,6 +194,7 @@ export function CreateTask({
         <CreateSheet
           release={release}
           projectRoot={projectRoot}
+          discussion={discussion}
           onClose={() => setOpen(false)}
           onSend={(description, mode) =>
             startSession(

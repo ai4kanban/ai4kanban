@@ -71,14 +71,6 @@ const en: BoardCopy = {
       keysDiscuss: "Esc closes and keeps the discussion",
       shipsIn: (release) => `Ships in ${release}`,
       builds: "no review before your branch",
-      newIdea: "New idea",
-      newIdeaGuard: {
-        title: "Start a new idea?",
-        drops: ["This discussion", "The plan it wrote"],
-        keeps: "The run writing its cards keeps going — follow it in Runs.",
-        cancel: "Keep it",
-        confirm: "Start new",
-      },
       guard: {
         title: "Write a card and build it now?",
         writes: "It writes a card first — a generated title, your words as its whole summary.",

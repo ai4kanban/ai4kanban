@@ -1,13 +1,13 @@
 "use client";
 
-// Create task shares the board conversation and keeps its draft across modes.
+// Create task holds ONE discussion (#496) — the one the press opened, or the one a rail row
+// picked back up — and keeps its draft across modes.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   FiCopy,
   FiCheck,
-  FiEdit,
   FiFileText,
   FiMaximize2,
   FiMessageSquare,
@@ -23,8 +23,9 @@ import { useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
+import type { DiscussionTarget } from "@/lib/types";
 import { Button } from "./button";
-import { Transcript, Pasted, Pick, useChatRailHere } from "./Chat";
+import { Transcript, Pasted, Pick } from "./Chat";
 import { HAIRLINE } from "./chrome";
 import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
@@ -52,9 +53,12 @@ export type CreateMode = "discuss" | "card" | "build";
 interface Props {
   /** The version the board is showing (#104), which a card written here ships in. */
   release: string | null;
-  /** Which board this is — what the board's conversation is read against when the window
-   *  is not already holding it. */
+  /** Which board this is — what this discussion's conversation is read against. */
   projectRoot: string;
+  /** The discussion this screen is holding (#496): a fresh one on every Create task press,
+   *  or the one a rail row picked back up. Null on a board whose rules are older than the
+   *  list, which still holds its one conversation. */
+  discussion: DiscussionTarget | null;
   onClose: () => void;
   /** Start the run, and say whether it started. Never called in Discuss — that mode sends to
    *  the conversation. A refusal — uncommitted changes, another build already working in this
@@ -68,24 +72,18 @@ interface Props {
   onBuildPlan: () => void;
 }
 
-// Discuss is the BOARD's conversation, whatever page Create task was pressed on (#427). On
-// the board the window is already holding that one, so the sheet takes it — reading here is
-// then what clears the top row's mark. A card page's rail holds that CARD's conversation
-// instead, which is not what this screen is for, so there the sheet reads the board's own
-// for as long as it is up.
+// Discuss is one DISCUSSION's conversation (#427, #496), never the window's rail: the rail
+// holds the board's own or a card's, and this screen is neither. So the sheet opens its own
+// on whichever discussion it was given, and a reply to another one goes on arriving behind
+// it — the server owns every reply, so nothing is cut off by the screen it is not on.
 export function CreateSheet(props: Props) {
-  const here = useChatRailHere();
-  if (here && here.cardId === null) return <Sheet {...props} rail={here} />;
-  return <SheetOnBoardChat {...props} />;
-}
-
-function SheetOnBoardChat(props: Props) {
-  const rail = useChatRail({ projectRoot: props.projectRoot, cardId: null });
+  const rail = useChatRail({ projectRoot: props.projectRoot, cardId: props.discussion });
   return <Sheet {...props} rail={rail} />;
 }
 
 function Sheet({
   release,
+  discussion,
   onClose,
   onSend,
   onPlan,
@@ -95,7 +93,7 @@ function Sheet({
   const c = useCopy().board.create.sheet;
   const startFailed = useCopy().board.create.startFailed;
   const close = useCopy().shared.close;
-  const plan = usePlanPanel();
+  const plan = usePlanPanel(discussion);
   // The same draft key the dialog used, so text typed and not sent is kept the way it
   // always was — and a draft written before this screen existed is still here. One box for
   // every mode: switching what sending does never takes away what has been typed.
@@ -105,8 +103,8 @@ function Sheet({
   // Discuss is what a vague idea wants, so it is what the screen opens on. Build now never
   // is: a build nothing plans or reviews is the deliberate one.
   const [mode, setMode] = useState<CreateMode>("discuss");
-  // Which "are you sure?" is open, if any. One at a time, so Esc has one answer.
-  const [guard, setGuard] = useState<null | "build" | "new">(null);
+  // Whether the Build now guard is open. Esc answers it before it answers the screen.
+  const [guard, setGuard] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sendRef = useRef<HTMLSpanElement>(null);
@@ -153,14 +151,6 @@ function Sheet({
   // start an Add task run under it. The box waits out that beat instead.
   const waiting = mode === "discuss" && !settled;
 
-  // This conversation is on screen here, so a reply read here must not leave the top row's
-  // Chat button marked (#427).
-  const markRead = rail.markRead;
-  const at = read?.chat?.updatedAt;
-  useEffect(() => {
-    if (discussing && at !== undefined) markRead();
-  }, [discussing, at, markRead]);
-
   if (!mounted) return null;
 
   const messages = read?.chat?.messages ?? [];
@@ -171,22 +161,6 @@ function Sheet({
   // where it has not — and enlarged, over it at any width, taking the sheet.
   const beside = plan.open && plan.beside && !plan.full;
   const over = plan.open && !beside;
-  // Leaving this discussion for the next one. Only where there is something to leave, and
-  // not under a reply — that would land it in a fresh file. A planning run is no reason to
-  // wait: it was handed the plan when it started and reads nothing from here, so the
-  // discussion it came out of is finished business. The guard says the run keeps going, and
-  // Runs is where it is watched.
-  const planning = plan.read?.run?.running === true;
-  const canStartNew = discussing && !rail.answering && (messages.length > 0 || plan.shown);
-  const startNew = async () => {
-    setGuard(null);
-    setError(null);
-    // The transcript's file is where the plan is held, so dropping it lets both go — the
-    // read after it is what empties the card.
-    await rail.clear();
-    plan.refresh();
-  };
-
   // A discussion message is what is typed OR what was pasted (#441) — pictures on their own
   // are a message. A run still needs a sentence: the pictures are the conversation's.
   const pasted = discussing ? rail.pasted.length : 0;
@@ -195,7 +169,7 @@ function Sheet({
     const words = text.trim();
     if (sending || waiting) return;
     if (!words && !(picked === "discuss" && pasted > 0)) return;
-    setGuard(null);
+    setGuard(false);
     setError(null);
     if (picked === "discuss") {
       if (!discussing) return;
@@ -220,13 +194,13 @@ function Sheet({
   const pressSend = () => {
     if (waiting) return;
     if (!text.trim() && pasted === 0) return;
-    if (mode === "build") setGuard("build");
+    if (mode === "build") setGuard(true);
     else void send(mode);
   };
 
   const pick = (picked: CreateMode) => {
     setMode(picked);
-    setGuard(null);
+    setGuard(false);
     setError(null);
   };
 
@@ -251,8 +225,8 @@ function Sheet({
       talking={talking}
       onSend={pressSend}
       sendRef={sendRef}
-      guarding={guard === "build"}
-      onGuardDismiss={() => setGuard(null)}
+      guarding={guard}
+      onGuardDismiss={() => setGuard(false)}
       onGuardConfirm={() => void send("build")}
       error={error}
     />
@@ -265,20 +239,10 @@ function Sheet({
       ref={plan.measure}
       className={`${body ? "absolute" : "fixed"} inset-0 z-20 flex flex-col bg-nb-paper`}
     >
-      {/* Both of these are the app's own press-down button, not quiet text. They arrive
-          mid-discussion on a screen that is otherwise all conversation, and a chip a shade
-          off paper is one nobody finds: the plan the agent has just written is the thing to
-          read next, and New idea is the only way back to an empty screen. */}
+      {/* The app's own press-down button, not quiet text. It arrives mid-discussion on a
+          screen that is otherwise all conversation, and a chip a shade off paper is one
+          nobody finds: the plan the agent has just written is the thing to read next. */}
       <div className="flex shrink-0 items-center justify-end gap-2 p-2">
-        {canStartNew && (
-          <NewIdea
-            open={guard === "new"}
-            planning={planning}
-            onOpen={() => setGuard("new")}
-            onDismiss={() => setGuard(null)}
-            onStart={() => void startNew()}
-          />
-        )}
         {/* Whether the card is up, which is the screen's own business. Its size is not —
             that is the card's, and lives on the card (PlanCard). Lit while it is up, the way
             a mode chip is: this is a toggle, and a toggle has to say which way it is. */}
@@ -334,7 +298,15 @@ function Sheet({
                   // screen reads the same on the other (#441).
                   imageSrc={rail.imageSrc}
                   empty={null}
-                  after={<Handoff plan={plan} rail={rail} onPlan={onPlan} onBuild={onBuildPlan} />}
+                  after={
+                    <Handoff
+                      plan={plan}
+                      rail={rail}
+                      discussion={discussion}
+                      onPlan={onPlan}
+                      onBuild={onBuildPlan}
+                    />
+                  }
                 />
               </div>
               {/* Over the exchange, the card stops at the box — enlarged too: this screen is
@@ -413,70 +385,6 @@ function CreateHeadline({ phrases, paused }: { phrases: readonly string[]; pause
         )}
       </span>
     </h1>
-  );
-}
-
-/** Leaving this discussion for the next one. The board holds one conversation, so without
- *  this a second idea is typed into the first and the agent rewrites the first idea's plan.
- *
- *  It is the only press on this screen that throws work away, so it opens the guard rather
- *  than doing it: the same panel Build now hangs off Send, naming what goes, with Keep it
- *  and Start new side by side. Pressing the button is never the answer — choosing is.
- *
- *  Under a planning run it is offered all the same, with one line more: that run is its own
- *  session and nothing here stops it. */
-function NewIdea({
-  open,
-  planning,
-  onOpen,
-  onDismiss,
-  onStart,
-}: {
-  open: boolean;
-  /** The run writing this plan's cards is going — the guard says it survives. */
-  planning: boolean;
-  onOpen: () => void;
-  onDismiss: () => void;
-  onStart: () => void;
-}) {
-  const c = useCopy().board.create.sheet;
-  // The panel hangs off this, and an outside click is measured against it — so it lives
-  // inside, the way the composer's guard lives inside the Send box (components/composer.tsx).
-  const anchor = useRef<HTMLSpanElement>(null);
-  return (
-    <span ref={anchor} className="relative flex">
-      <Button variant="ghost" size="xs" aria-expanded={open} onClick={open ? onDismiss : onOpen}>
-        <FiEdit size={13} aria-hidden />
-        {c.newIdea}
-      </Button>
-      <ConfirmationPopover
-        open={open}
-        anchorRef={anchor}
-        align="right"
-        title={c.newIdeaGuard.title}
-        description={
-          <span className="flex flex-col gap-1">
-            {c.newIdeaGuard.drops.map((line) => (
-              <span key={line} className="flex items-start gap-1.5">
-                <FiX className="mt-[3px] shrink-0 text-[11px] text-nb-peach-ink" aria-hidden />
-                <span>{line}</span>
-              </span>
-            ))}
-            {planning && (
-              <span className="flex items-start gap-1.5">
-                <FiCheck className="mt-[3px] shrink-0 text-[11px] text-nb-ink-soft" aria-hidden />
-                <span>{c.newIdeaGuard.keeps}</span>
-              </span>
-            )}
-          </span>
-        }
-        cancelLabel={c.newIdeaGuard.cancel}
-        confirmLabel={c.newIdeaGuard.confirm}
-        busy={false}
-        onDismiss={onDismiss}
-        onConfirm={onStart}
-      />
-    </span>
   );
 }
 
@@ -726,11 +634,14 @@ function Mode({
 function Handoff({
   plan,
   rail,
+  discussion,
   onPlan,
   onBuild,
 }: {
   plan: PlanPanel;
   rail: ChatRail;
+  /** Which discussion the answer is written into (#496). */
+  discussion: string | null;
   onPlan(): void;
   onBuild(): void;
 }) {
@@ -760,13 +671,13 @@ function Handoff({
         onClick={() => {
           // Pressing it is saying it: the answer goes into the transcript with no turn
           // behind it, because the board is what acts on it.
-          void noteDiscussAnswerAction(c.start);
+          void noteDiscussAnswerAction(c.start, discussion);
           onPlan();
         }}
       >
         {c.start}
       </Button>
-      {/* The panel hangs off this, so it lives inside — the way New idea's does above. */}
+      {/* The panel hangs off this, so it lives inside — the way the Send guard's does. */}
       <span ref={anchor} className="relative flex">
         <Button
           size="xs"
@@ -787,7 +698,7 @@ function Handoff({
           onDismiss={() => setGuard(false)}
           onConfirm={() => {
             setGuard(false);
-            void noteDiscussAnswerAction(c.build);
+            void noteDiscussAnswerAction(c.build, discussion);
             onBuild();
           }}
         />

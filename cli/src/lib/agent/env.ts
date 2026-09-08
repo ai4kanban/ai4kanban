@@ -23,3 +23,22 @@ export function insideRun(): string | null {
 export function runEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv {
   return { ...env, [RUN_ENV]: value }
 }
+
+/** The variable a chat turn puts on the agent it spawns, holding the discussion that turn is
+ *  answering (#496).
+ *
+ *  It is here for the same reason `KANBAN_RUN` is: `akb raw plan new` has to land on the
+ *  discussion whose reply is being written, and reading it off the environment means the
+ *  agent never spells an id and can never stamp the wrong one. */
+export const DISCUSSION_ENV = 'KANBAN_DISCUSSION'
+
+/** The discussion this process is answering, when a chat turn started it — otherwise null. */
+export function insideDiscussion(): string | null {
+  const id = process.env[DISCUSSION_ENV]
+  return id && id.trim() ? id.trim() : null
+}
+
+/** Put the discussion's id into the environment its agent receives. */
+export function discussionEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv {
+  return { ...env, [DISCUSSION_ENV]: value }
+}

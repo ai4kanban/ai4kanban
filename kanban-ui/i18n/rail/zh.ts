@@ -13,6 +13,14 @@ const zh: RailCopy = {
   runningRow: (label) => `${label}——运行中`,
   running: "运行中",
   close: (label) => `关闭${label}`,
+  discussions: {
+    heading: "讨论",
+    unnamed: "新讨论",
+    answeringRow: (name) => `${name}——正在回复`,
+    answering: "正在回复",
+    menu: (name) => `对${name}的操作`,
+    archive: "归档",
+  },
   memory: {
     heading: "记忆",
     show: "Agent 关于这个项目记住了什么",

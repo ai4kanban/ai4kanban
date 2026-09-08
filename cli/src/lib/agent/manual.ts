@@ -54,6 +54,10 @@ conversation. On any other one, chat says so and names the agents that can.
 The agent and the model are one conversation's own. Each starts on the board's, and a pick
 sticks to that conversation until it is changed. Changing the model carries the same session
 on; changing the agent cannot, so it starts the conversation over.
+
+A board holds many discussions at once, and these are the same ones the board app lists in
+its rail: with nothing at all, chat prints them; --discussion carries one on; --new starts
+one. A card's conversation is its own and is named by its number.
 `,
 
   /** Under `delivery`: what one is, which no verb of it says on its own. */

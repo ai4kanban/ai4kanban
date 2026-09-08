@@ -89,19 +89,6 @@ export type BoardCopy = {
       shipsIn: (release: string) => string;
       /** And, in Build now, the one thing that mode gives up, beside the release. */
       builds: string;
-      /** Leaving one discussion for the next. The board holds one conversation, so this is
-       *  the only way a second idea starts on an empty screen. */
-      newIdea: string;
-      /** It throws work away, so it asks first — the same guard Build now uses. */
-      newIdeaGuard: {
-        title: string;
-        /** One line per thing that goes. */
-        drops: readonly string[];
-        /** Said only while the planning run is going: what clearing does NOT stop. */
-        keeps: string;
-        cancel: string;
-        confirm: string;
-      };
       /** The guard Send opens in Build now. Nothing starts until it is confirmed. */
       guard: {
         title: string;

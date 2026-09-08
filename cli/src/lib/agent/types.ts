@@ -652,10 +652,49 @@ export interface ChatMessage {
   images?: string[]
 }
 
-/** What a conversation is about: the whole board, one card, or the board's first run
- *  (#280). The first run's is separate from the board's own so neither can read the
- *  other's — one is a form being filled in, the other is a chat about a working board. */
-export type ChatTarget = number | null | 'setup'
+/** What a conversation is about: the whole board, one card, the board's first run (#280),
+ *  or one discussion (#496). The first run's is separate from the board's own so neither can
+ *  read the other's — one is a form being filled in, the other is a chat about a working
+ *  board.
+ *
+ *  A discussion's form is the key its own file is named by, so the target, the file and the
+ *  address a browser asks one of its pictures at are all the one string. */
+export type ChatTarget = number | null | 'setup' | DiscussionTarget
+
+/** One discussion, as a chat target — `discussion-<id>`. */
+export type DiscussionTarget = `discussion-${string}`
+
+/** The one spelling of a discussion target, so a browser, a terminal and the file on disk
+ *  never disagree about which discussion a string names. */
+export const DISCUSSION_PREFIX = 'discussion-'
+
+/** True for a target that names one discussion. */
+export const isDiscussion = (target: ChatTarget): target is DiscussionTarget =>
+  typeof target === 'string' && target.startsWith(DISCUSSION_PREFIX)
+
+/** The target one discussion id names. */
+export const discussionTarget = (id: string): DiscussionTarget => `${DISCUSSION_PREFIX}${id}`
+
+/** The id inside a discussion target. */
+export const discussionIdOf = (target: DiscussionTarget): string => target.slice(DISCUSSION_PREFIX.length)
+
+/** One discussion as the rail and `akb chat` list it (#496). */
+export interface DiscussionRow {
+  /** Its id, and the target its conversation is read by. */
+  id: string
+  target: DiscussionTarget
+  /** What the row is called: the title its latest plan gave it, else the first line the user
+   *  typed, else nothing at all on one that has never been spoken to. */
+  name: string
+  /** When it was last spoken to — what the 20 most recent are counted by. */
+  updatedAt: number
+  /** How many messages have been said in it. */
+  messages: number
+  /** Its agent is writing a reply this second. */
+  answering: boolean
+  /** The plan it is writing, as a path from the project root. Absent on one writing none. */
+  plan?: string
+}
 
 /** One conversation — the board's, one card's, or the first run's. It is not a run:
  *  nothing here reaches the run record, so a chat never shows in the runs panel, never
@@ -679,10 +718,17 @@ export interface Chat {
   /** Where the model changed mid-conversation (#272), so a reply can be read against the
    *  model that wrote it. */
   modelChanges?: ModelChange[]
-  /** The plan this conversation is discussing into shape (#427). It is kept here, beside
-   *  the transcript, because the transcript is the chat rail's too and is never cleared —
-   *  so nothing else in the file could say which plan is the live one. */
-  plan?: ChatPlan
+  /** Every plan this conversation has written (#427, #496), in the order it named them,
+   *  with the live one last and not `done`. They are kept here, beside the transcript,
+   *  because the transcript is the chat rail's too and is never cleared — so nothing else
+   *  in the file could say which plan is the live one. */
+  plans?: ChatPlan[]
+  /** What this discussion is called (#496) — the title its latest plan gave it. Absent
+   *  until one is named, and the row falls back to the first line the user typed. */
+  title?: string
+  /** It has been taken out of the discussion list — by hand, or because it fell past the
+   *  20 spoken to most recently (#496). Its transcript stays where it is. */
+  archived?: boolean
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number
@@ -698,6 +744,11 @@ export interface ChatPlan {
    *  pass. Absent on a plan handed over before the third answer existed, which was always
    *  Start planning. */
   answer?: PlanAnswer
+  /** Its cards are written and it is no longer the live one (#496). It stays in the list —
+   *  the discussion made it — and the next plan named starts a file of its own. */
+  done?: boolean
+  /** What it is called, so a discussion's row can be named without opening the file. */
+  title?: string
 }
 
 /** What the handoff was answered with: Start planning, which writes the cards, or Build

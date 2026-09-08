@@ -1,15 +1,15 @@
 // The Discuss screen's own state (#427) — everything it draws that the chat rail doesn't.
 //
-// The conversation itself is `agent/chat.ts`: Discuss is `akb chat` on the board's own
-// conversation, held in the same file, answered by the same agent. What is added here is
-// the plan that conversation is writing and the run one of the handoff's answers handed it
-// to — Start planning, which turns it into cards, or Build now, which writes one card from it
-// and builds it (#481).
+// The conversation itself is `agent/chat.ts`: Discuss is `akb chat` on one discussion (#496),
+// held in the same file, answered by the same agent. What is added here is the plan that
+// discussion is writing and the run one of the handoff's answers handed it to — Start
+// planning, which turns it into cards, or Build now, which writes one card from it and builds
+// it (#481).
 
 import { listRuns } from './sessions'
-import { clearChatPlan, readChat, setChatPlanRun } from './chat'
+import { chatPlan, clearChatPlan, readChat, setChatPlanRun } from './chat'
 import { planPathInText, readPlan } from '../plans'
-import type { DiscussRead, PlanAnswer } from './types'
+import type { ChatTarget, DiscussRead, PlanAnswer } from './types'
 
 const NOTHING: DiscussRead = { plan: null, run: null }
 
@@ -21,8 +21,8 @@ const NOTHING: DiscussRead = { plan: null, run: null }
  * time anyone opens Discuss again the panel is gone and the next idea starts a file of its
  * own. A run that wrote none is kept, so the screen can offer it again.
  */
-export async function readDiscuss(): Promise<DiscussRead> {
-  const plan = readChat(null)?.plan
+export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRead> {
+  const plan = chatPlan(readChat(target))
   if (!plan) return NOTHING
   const run = plan.run ? (await listRuns()).find((r) => r.sessionId === plan.run) : undefined
   // Still working, or over without writing a card — it failed, was stopped, was cut off, or
@@ -34,7 +34,7 @@ export async function readDiscuss(): Promise<DiscussRead> {
   // the card twice. A run that ended having written none leaves the plan to be answered
   // again.
   if (plan.run && !running && run?.createdCardIds?.length) {
-    clearChatPlan(null)
+    clearChatPlan(target)
     return NOTHING
   }
   const file = readPlan(plan.path)
@@ -47,8 +47,8 @@ export async function readDiscuss(): Promise<DiscussRead> {
 }
 
 /** The run this plan was handed to has started, and which answer handed it over. Held on the
- *  conversation so reopening Discuss says it is still working rather than offering a second
+ *  discussion so reopening it says the run is still working rather than offering a second
  *  one, and says which of the two is working. */
-export function startedPlanning(sessionId: string, answer: PlanAnswer = 'plan'): void {
-  setChatPlanRun(null, sessionId, answer)
+export function startedPlanning(sessionId: string, answer: PlanAnswer = 'plan', target: ChatTarget = null): void {
+  setChatPlanRun(target, sessionId, answer)
 }

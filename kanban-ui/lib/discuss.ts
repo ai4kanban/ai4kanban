@@ -1,10 +1,10 @@
 import { boardRules } from "./cli";
-import type { DiscussRead, PlanAnswer } from "./types";
+import type { ChatTarget, DiscussRead, PlanAnswer } from "./types";
 
 // --- Discuss (#427) -----------------------------------------------------------
 //
-// The Discuss screen is the board's own conversation (lib/chat.ts) with one thing added: the
-// plan file the discussion is talking into shape. This is the board's door onto that — the
+// The Discuss screen is one discussion's conversation (lib/chat.ts) with one thing added: the
+// plan file that discussion is talking into shape. This is the board's door onto that — the
 // plan, and the run one of the handoff's answers gave it to — all of it held by the rules,
 // beside the transcript, so a discussion survives the window being closed.
 //
@@ -22,10 +22,10 @@ const NOTHING: DiscussRead = { plan: null, run: null };
 
 /** The plan the board's conversation is writing, as the screen draws it. Never throws: a
  *  board that cannot answer is a screen with no panel, not a page that fails. */
-export async function readDiscuss(): Promise<DiscussRead> {
+export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRead> {
   try {
     const rules = await boardRules();
-    return (await rules.readDiscuss?.()) ?? NOTHING;
+    return (await rules.readDiscuss?.(target)) ?? NOTHING;
   } catch {
     return NOTHING;
   }
@@ -45,18 +45,18 @@ export async function canDiscuss(): Promise<boolean> {
 /** The user pressed one of the three answers. It is written into the transcript as something
  *  they said — the board acts on it, so asking the agent to reply as well would be a turn
  *  spent saying nothing. */
-export async function noteAnswer(text: string): Promise<void> {
+export async function noteAnswer(text: string, target: ChatTarget = null): Promise<void> {
   try {
-    (await boardRules()).noteChatMessage?.(null, text);
+    (await boardRules()).noteChatMessage?.(target, text);
   } catch {
     // The answer is still acted on; only the line in the transcript is lost.
   }
 }
 
 /** The run this plan was handed to has started, and which answer handed it over (#481). */
-export async function planningStarted(sessionId: string, answer: PlanAnswer): Promise<void> {
+export async function planningStarted(sessionId: string, answer: PlanAnswer, target: ChatTarget = null): Promise<void> {
   try {
-    (await boardRules()).startedPlanning?.(sessionId, answer);
+    (await boardRules()).startedPlanning?.(sessionId, answer, target);
   } catch {
     // Unrecorded, so reopening Discuss offers the run again rather than saying it is going.
   }
@@ -64,6 +64,6 @@ export async function planningStarted(sessionId: string, answer: PlanAnswer): Pr
 
 /** The plan path a run is pointed at — as the project spells it, which is how the read
  *  already carries it. Null when the conversation is writing none. */
-export async function planToPlanFrom(): Promise<string | null> {
-  return (await readDiscuss()).plan?.path ?? null;
+export async function planToPlanFrom(target: ChatTarget = null): Promise<string | null> {
+  return (await readDiscuss(target)).plan?.path ?? null;
 }

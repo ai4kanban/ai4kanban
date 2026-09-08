@@ -355,16 +355,33 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .argument('<move>', 'new — name the plan this discussion is writing')
     .summary("the plan file one discussion is writing")
     .description(
-      'The Discuss screen writes one file per discussion (#427). `plan new --title "…"` takes the next ' +
+      'The Discuss screen writes one file per plan (#427). `plan new --title "…"` takes the next ' +
         'id and names `docs/kanban/plans/<id>-<slug>.md` — no card is written and the words in it are ' +
-        "yours to write. It acts on the board's own conversation; follow `akb guide discuss-idea`. " +
-        'Start planning, Build now and Not yet stand under your reply on their own once a plan exists — ' +
-        'there is nothing to run to offer them.',
+        'yours to write. It lands on the discussion this turn is answering (#496), and its title names ' +
+        'that discussion in the rail; follow `akb guide discuss-idea`. Start planning, Build now and Not ' +
+        'yet stand under your reply on their own once a plan exists — there is nothing to run to offer ' +
+        'them.',
     )
     .option('--title <title>', 'what the plan is called')
     .option('--slug <slug>', 'short English slug for the filename, where the title is not English')
     .action(async function (this: Command, sub: string) {
       await dispatch('plan', this, [sub], this.opts(), cli)
+    })
+
+  move('discussion')
+    .argument('<move>', 'new, list, title or archive')
+    .summary('the discussions this board is holding')
+    .description(
+      'A board holds many discussions at once (#496), each with its own transcript, agent session and ' +
+        "plans. `discussion list` says which are going and what each is called; `discussion new` opens " +
+        'one; `discussion title --title "…"` names one; `discussion archive` takes one out of the list, ' +
+        'leaving its transcript on this machine. Told no --id, `title` and `archive` act on the ' +
+        'discussion this turn is answering.',
+    )
+    .option('--id <id>', 'the discussion, where it is not the one this turn is answering')
+    .option('--title <title>', 'what to call it')
+    .action(async function (this: Command, sub: string) {
+      await dispatch('discussion', this, [sub], this.opts(), cli)
     })
 
   move('validate')

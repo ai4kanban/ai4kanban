@@ -48,6 +48,8 @@ import {
 import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
+import { discussionEnv } from './env'
+import { isDiscussion } from './types'
 import type {
   Chat,
   ChatMessage,
@@ -66,12 +68,12 @@ import type {
 const CHAT_AGENT = 'planner'
 
 /** A conversation's file is named by what it is about, so the board's conversation, the
- *  first run's and each card's are separate by construction and one can never be read as
- *  another's. */
-const keyOf = (target: ChatTarget): string =>
-  target === null ? 'board' : target === 'setup' ? 'setup' : `card-${target}`
+ *  first run's, each card's and each discussion's are separate by construction and one can
+ *  never be read as another's. A discussion's target IS its key (#496). */
+export const keyOf = (target: ChatTarget): string =>
+  target === null ? 'board' : typeof target === 'string' ? target : `card-${target}`
 
-const chatFile = (target: ChatTarget): string => path.join(CHATS_DIR, `${keyOf(target)}.json`)
+export const chatFile = (target: ChatTarget): string => path.join(CHATS_DIR, `${keyOf(target)}.json`)
 
 // A conversation is this machine's record of what was said to an agent on it — the same
 // kind of thing as a run's log, and no more the repo's business than one.
@@ -119,7 +121,9 @@ export function readChat(cardId: ChatTarget): Chat | null {
     // already carries one.
     runtime: pinOf(raw),
     modelChanges: changesOf(raw.modelChanges),
-    plan: planOf(raw.plan),
+    plans: plansOf(raw),
+    title: typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : undefined,
+    archived: raw.archived === true,
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
@@ -135,8 +139,16 @@ function pinOf(raw: Partial<Chat> & { pickedHarness?: unknown }): string | undef
   return undefined
 }
 
-// The plan this conversation is writing (#427). A path is the whole of it; a file that
-// names none, or names one that is not a plan of this board's, reads as no plan at all.
+// The plans this conversation has written (#427, #496), oldest first. A file written before
+// the list existed names one plan in `plan`, and reads as a list of that one.
+function plansOf(raw: Partial<Chat> & { plan?: unknown }): ChatPlan[] | undefined {
+  const held = Array.isArray(raw.plans) ? raw.plans : raw.plan !== undefined ? [raw.plan] : []
+  const plans = held.map(planOf).filter((p): p is ChatPlan => p !== undefined)
+  return plans.length ? plans : undefined
+}
+
+// One plan on the list. A path is the whole of it; an entry that names none, or names one
+// that is not a plan of this board's, reads as no plan at all.
 function planOf(value: unknown): ChatPlan | undefined {
   const p = value as Partial<ChatPlan> | undefined
   if (!p || typeof p.path !== 'string' || !planFile(p.path)) return undefined
@@ -146,6 +158,8 @@ function planOf(value: unknown): ChatPlan | undefined {
     // A plan handed over before the third answer existed (#481) names none, and Start
     // planning is the only thing it could have been.
     answer: p.run ? (p.answer === 'build' ? 'build' : 'plan') : undefined,
+    done: p.done === true ? true : undefined,
+    title: typeof p.title === 'string' && p.title.trim() ? p.title.trim() : undefined,
   }
 }
 
@@ -282,32 +296,81 @@ function chatOrOpen(cardId: ChatTarget): Chat {
   return readChat(cardId) ?? { cardId, harness: chatAgent().name, messages: [], startedAt: now, updatedAt: now }
 }
 
-function writePlan(cardId: ChatTarget, plan: ChatPlan | undefined): void {
+/** The plan one conversation is writing right now: the last one it named, until that one is
+ *  let go. A conversation writing none answers undefined. */
+export function chatPlan(chat: Chat | null): ChatPlan | undefined {
+  const last = chat?.plans?.[chat.plans.length - 1]
+  return last && !last.done ? last : undefined
+}
+
+// Write the list back, and with it the name the discussion goes under: the live plan's title,
+// so a row is named by what the discussion is about rather than by the words it opened on.
+function writePlans(cardId: ChatTarget, plans: ChatPlan[]): void {
   const chat = chatOrOpen(cardId)
-  chat.plan = plan
+  chat.plans = plans.length ? plans : undefined
+  const named = [...plans].reverse().find((p) => p.title)
+  if (named?.title) chat.title = named.title
   chat.updatedAt = Date.now()
   writeChat(chat)
 }
 
-/** Point one conversation at the plan it is writing. A second call replaces the first: a
- *  discussion writes one plan at a time, and naming a new one lets the old one go. */
-export function setChatPlan(cardId: ChatTarget, planPath: string): { ok: true } | { error: string } {
+/** Point one conversation at a plan it is writing. It is appended to the list rather than
+ *  replacing what is there: a discussion writes one plan at a time, but the ones it finished
+ *  are still its own (#496), and naming a new one only lets the live slot go. */
+export function setChatPlan(
+  cardId: ChatTarget,
+  planPath: string,
+  title?: string,
+): { ok: true } | { error: string } {
   if (!planFile(planPath)) return { error: `${planPath} is not a plan of this board's.` }
-  writePlan(cardId, { path: planPath })
+  const held = readChat(cardId)?.plans ?? []
+  // Naming the same file again is the same plan, not a second one.
+  const rest = held.filter((p) => p.path !== planPath).map((p) => ({ ...p, done: true as const }))
+  writePlans(cardId, [...rest, { path: planPath, title: title?.trim() || undefined }])
   return { ok: true }
 }
 
 /** The run this plan was handed to has started, and which answer handed it over (#481). The
  *  ask is answered by it, so it goes; the plan is held until that run has written a card. */
 export function setChatPlanRun(cardId: ChatTarget, sessionId: string, answer: PlanAnswer): void {
-  const plan = readChat(cardId)?.plan
-  if (!plan) return
-  writePlan(cardId, { path: plan.path, run: sessionId, answer })
+  const chat = readChat(cardId)
+  const live = chatPlan(chat)
+  if (!live) return
+  writePlans(
+    cardId,
+    (chat?.plans ?? []).map((p) => (p.path === live.path ? { ...p, run: sessionId, answer } : p)),
+  )
 }
 
-/** Let the plan go — its cards are written, and the next idea starts a file of its own. */
+/** Let the live plan go — its cards are written, and the next idea starts a file of its own.
+ *  It stays on the list: the discussion wrote it, and that does not stop being true. */
 export function clearChatPlan(cardId: ChatTarget): void {
-  if (readChat(cardId)?.plan) writePlan(cardId, undefined)
+  const chat = readChat(cardId)
+  const live = chatPlan(chat)
+  if (!live) return
+  writePlans(
+    cardId,
+    (chat?.plans ?? []).map((p) => (p.path === live.path ? { ...p, done: true } : p)),
+  )
+}
+
+/** Name one discussion (#496). Written straight onto its file, so the rail and `akb chat`
+ *  read the same name. */
+export function setChatTitle(cardId: ChatTarget, title: string): void {
+  const words = title.trim()
+  if (!words) return
+  const chat = chatOrOpen(cardId)
+  chat.title = words
+  writeChat(chat)
+}
+
+/** Take one discussion out of the list, or put it back (#496). The transcript stays where it
+ *  is — archiving only ever hides the row. */
+export function setChatArchived(cardId: ChatTarget, archived: boolean): void {
+  const chat = readChat(cardId)
+  if (!chat) return
+  chat.archived = archived
+  writeChat(chat)
 }
 
 /** Write one line into the transcript as something the user said, with no turn behind it.
@@ -343,7 +406,7 @@ function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
       `its session means nothing to another agent. Clear it to start fresh with ${agent.label}.`
     )
   }
-  if (answering(cardId)) return 'this conversation is still answering the last message.'
+  if (answeringOn(cardId)) return 'this conversation is still answering the last message.'
   return undefined
 }
 
@@ -372,7 +435,7 @@ export function readChatView(cardId: ChatTarget): ChatView {
     // Whoever is answering — this process or a terminal on the other side of the machine.
     // A screen reads it to keep up with a reply it never started, and with the board that
     // reply is changing as it goes.
-    answering: answering(cardId),
+    answering: answeringOn(cardId),
     blocked: blockedBy(cardId, chat),
     pick: pickOf(chat),
   }
@@ -430,7 +493,7 @@ export function pickChatRuntime(
         : `this board has no runtime called "${want}". It has: ${offered.map((r) => r.id).join(', ')}.`,
     }
   }
-  if (answering(cardId)) return { error: 'this conversation is still answering the last message.' }
+  if (answeringOn(cardId)) return { error: 'this conversation is still answering the last message.' }
 
   const chat = readChat(cardId)
   const own = runtime === null ? undefined : want
@@ -482,7 +545,7 @@ const UNNAMED_MS = 10_000
 
 // Who is answering, or nobody — and a marker left behind by a process that is gone is
 // cleared here rather than left to block the conversation for good.
-function answering(cardId: ChatTarget): boolean {
+export function answeringOn(cardId: ChatTarget): boolean {
   const dir = busyDir(cardId)
   let age: number
   try {
@@ -509,7 +572,7 @@ function ownerOf(dir: string): number | undefined {
 // which of two callers gets it, the same way it settles every other lock on this board.
 function startAnswering(cardId: ChatTarget): (() => void) | null {
   const dir = busyDir(cardId)
-  if (answering(cardId)) return null
+  if (answeringOn(cardId)) return null
   fs.mkdirSync(CHATS_DIR, { recursive: true })
   try {
     fs.mkdirSync(dir, { recursive: false })
@@ -592,7 +655,7 @@ export function chatPrompt(
   const subject =
     cardId === 'setup'
       ? setupSubject()
-      : cardId === null
+      : cardId === null || isDiscussion(cardId)
         ? `This is a chat about this project's board.`
         : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
           `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
@@ -725,6 +788,9 @@ export async function sendChatMessage(
       restart,
       continuing: held.resumeId,
       pictures: files,
+      // The discussion this turn is answering (#496), so `akb raw plan new` called from
+      // inside it lands on this discussion rather than on the board's one conversation.
+      discussion: isDiscussion(cardId) ? cardId : undefined,
       onText: options.onText ?? (() => {}),
       onOpen: options.onOpen,
     })
@@ -763,7 +829,10 @@ export async function sendChatMessage(
     // message was sent. Nothing else can have moved — a runtime is only picked between
     // turns (#467).
     const since = readChat(cardId)
-    if (since) held.plan = since.plan
+    if (since) {
+      held.plans = since.plans
+      held.title = since.title ?? held.title
+    }
     held.updatedAt = Date.now()
     writeChat(held)
     return { text: reply, stoppedWhy, model: spoken.model, chat: held }
@@ -849,6 +918,8 @@ async function speak(io: {
    *  that takes a flag per file uses them here; one that reads them out of the words has
    *  them in the prompt already. */
   pictures?: string[]
+  /** The discussion this turn is answering (#496), for the agent's own environment. */
+  discussion?: string
   onText(chunk: string): void
   onOpen?(stop: () => void): void
 }): Promise<Spoken> {
@@ -886,7 +957,7 @@ async function speak(io: {
       // The project, not this process's cwd: a chat runs inside the board server, whose cwd
       // is its own bundled folder in the app. See the note in agent/test.ts.
       cwd: REPO_ROOT,
-      env: active.env,
+      env: io.discussion ? discussionEnv(active.env, io.discussion) : active.env,
       shell: false,
       stdio,
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>
@@ -1027,4 +1098,12 @@ async function speak(io: {
 
     child.on('close', (code) => finish(code === 0, code === null ? undefined : `the agent exited with code ${code}`))
   })
+}
+
+/** The first line of what was typed, cut to something a rail row can hold. What a discussion
+ *  is called before its plan has named it (#496). */
+export function firstLine(text: string): string {
+  const line = text.trim().split('\n').find((l) => l.trim()) ?? ''
+  const words = line.trim()
+  return words.length > 80 ? `${words.slice(0, 79).trimEnd()}…` : words
 }

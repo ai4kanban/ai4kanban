@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import { chatImageFile } from "@/lib/chat";
+import { asDiscussion } from "@/lib/discussions";
 import type { ChatTarget } from "@/lib/types";
 
 // The bytes of one picture pasted into a conversation (#441).
@@ -32,7 +33,7 @@ export async function GET(
   { params }: { params: Promise<{ chat: string; name: string }> },
 ) {
   const { chat, name } = await params;
-  const target = targetOf(chat);
+  const target = await targetOf(chat);
   if (target === undefined) return NOT_FOUND;
 
   const file = await chatImageFile(target, decodeURIComponent(name));
@@ -55,9 +56,12 @@ export async function GET(
   });
 }
 
-// The conversation this address names: the board's, the first run's, or one card's.
-function targetOf(chat: string): ChatTarget | undefined {
+// The conversation this address names: the board's, the first run's, one card's, or one
+// discussion's (#496). A discussion is checked against the board rather than by its shape,
+// so the address can only ever name a folder this board itself wrote.
+async function targetOf(chat: string): Promise<ChatTarget | undefined> {
   if (chat === "board") return null;
   if (chat === "setup") return "setup";
-  return /^\d+$/.test(chat) ? Number(chat) : undefined;
+  if (/^\d+$/.test(chat)) return Number(chat);
+  return (await asDiscussion(chat)) ?? undefined;
 }

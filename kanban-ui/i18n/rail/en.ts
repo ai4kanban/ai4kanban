@@ -13,6 +13,14 @@ const en: RailCopy = {
   runningRow: (label) => `${label} — running`,
   running: "running",
   close: (label) => `Close ${label}`,
+  discussions: {
+    heading: "Discussions",
+    unnamed: "New discussion",
+    answeringRow: (name) => `${name} — replying`,
+    answering: "replying",
+    menu: (name) => `What to do with ${name}`,
+    archive: "Archive",
+  },
   memory: {
     heading: "Memory",
     show: "What the agent remembers about this project",

@@ -1,34 +1,45 @@
 // Talking to the agent, rather than setting it a job.
 //
-// `akb chat "…"` is about the whole board, `akb chat 12 "…"` about that card, and the two
-// are separate conversations that never mix. Each message lands in the session the last one
-// left open, so the agent still has everything said before — which is what makes it a
+// `akb chat 12 "…"` is about that card; everything else is a discussion (#496) — the same
+// discussions the board app lists in its rail, so the terminal shares them instead of
+// holding a conversation of its own. Each message lands in the session the last one left
+// open, so the agent still has everything said before — which is what makes it a
 // conversation and not a run repeated (lib/agent/chat.ts).
 //
-// With no message it prints the conversation so far. There is no prompt to type into: every
-// message is one command, so the same conversation is picked up from a terminal, from
-// another terminal, or from the board app, and closing any of them loses nothing.
+// With no message and no card it prints the discussions going. There is no prompt to type
+// into: every message is one command, so the same conversation is picked up from a terminal,
+// from another terminal, or from the board app, and closing any of them loses nothing.
 
 import { clearChat, pickChatRuntime, readChatView, sendChatMessage } from '../lib/agent/chat'
+import { asDiscussion, listDiscussions, startDiscussion } from '../lib/agent/discussions'
 import { titleOf } from '../lib/agent/sessions'
-import type { ChatView } from '../lib/agent/types'
+import { isDiscussion, type ChatTarget, type ChatView } from '../lib/agent/types'
 import { collecting, say } from '../lib/io'
 import { die } from '../lib/paths'
 import type { MoveResult } from '../lib/types'
 
 /** `akb chat`, as its command declares it (lib/cli/agent.ts). */
 export interface ChatOptions {
-  /** The card the conversation is about; left off, it is the board's. */
+  /** The card the conversation is about; left off, it is a discussion. */
   id?: number
   message?: string[]
   clear?: boolean
   runtime?: string
+  /** Which discussion a message continues. Left off, it is the one spoken to most recently. */
+  discussion?: string
+  /** Start a fresh discussion and say this into it. */
+  new?: boolean
 }
 
 export async function cmdChat(opts: ChatOptions, program = 'akb'): Promise<MoveResult> {
-  const cardId = opts.id ?? null
   const message = (opts.message ?? []).join(' ').trim()
-  const about = cardId === null ? 'the board' : `#${cardId}`
+  // The list is what `akb chat` on its own is for: no card, nothing to say, and nothing
+  // naming one discussion.
+  if (opts.id === undefined && !message && !opts.clear && opts.runtime === undefined && !opts.new && !opts.discussion) {
+    return listing(program)
+  }
+  const cardId = opts.id ?? discussionFor(opts, Boolean(message))
+  const about = describe(cardId)
 
   // Clearing is the one thing that doesn't ask whether the card is still on the board:
   // it is how a conversation left behind by anything is tidied away.
@@ -39,7 +50,7 @@ export async function cmdChat(opts: ChatOptions, program = 'akb'): Promise<MoveR
     return { cardId, cleared: had }
   }
 
-  if (cardId !== null) assertCardExists(cardId)
+  if (typeof cardId === 'number') assertCardExists(cardId)
 
   // What this one conversation runs on (#272, #467) — one runtime, before anything is said on
   // it. It stays with the transcript, so the next `akb chat` and the board app read the same
@@ -93,6 +104,57 @@ export async function cmdChat(opts: ChatOptions, program = 'akb'): Promise<MoveR
   }
 }
 
+// ---- which conversation this is --------------------------------------------
+
+/** How a conversation is named in a sentence. */
+function describe(target: ChatTarget): string {
+  if (typeof target === 'number') return `#${target}`
+  return isDiscussion(target) ? 'this discussion' : 'the board'
+}
+
+/** The discussion a message continues: the one named, a fresh one where `--new` was asked
+ *  for, else the one spoken to most recently. A first message on a board holding none opens
+ *  one — there is nothing to carry on, and refusing it would be a no with no way past it. */
+function discussionFor(opts: ChatOptions, saying: boolean): ChatTarget {
+  if (opts.discussion) {
+    const named = asDiscussion(opts.discussion)
+    if (!named) {
+      die(`"${opts.discussion}" is not a discussion of this board's. \`chat\` on its own lists them.`, {
+        kind: 'bad-option',
+      })
+    }
+    return named
+  }
+  if (opts.new) return startDiscussion()
+  const latest = listDiscussions()[0]
+  if (latest) return latest.target
+  if (saying) return startDiscussion()
+  die('no discussions going. Say something to start one: `chat "your message"`.', { kind: 'bad-option' })
+}
+
+/** `akb chat` on its own: what is going, and how to carry one on. */
+function listing(program: string): MoveResult {
+  const rows = listDiscussions()
+  if (!rows.length) {
+    say('no discussions going.')
+  } else {
+    say(`${rows.length} discussion${rows.length === 1 ? '' : 's'}, most recently spoken to first:`)
+    for (const row of rows) {
+      const marks = [`${row.messages} message${row.messages === 1 ? '' : 's'}`, `${ago(Date.now() - row.updatedAt)} ago`]
+      if (row.answering) marks.push('answering')
+      say('')
+      say(`  ${row.name || '(unnamed)'}`)
+      say(`  ${row.target} — ${marks.join(' · ')}`)
+      if (row.plan) say(`  ${row.plan}`)
+    }
+  }
+  say('')
+  say(`carry one on: ${program} chat --discussion <id> "your message"`)
+  say(`start a new:  ${program} chat --new "your message"`)
+  say(`one card's:   ${program} chat <id> "your message"`)
+  return { discussions: rows }
+}
+
 // A conversation about a card the board hasn't got is a typo, not a conversation.
 function assertCardExists(cardId: number): void {
   const title = titleOf(cardId)
@@ -102,8 +164,14 @@ function assertCardExists(cardId: number): void {
 // ---- how a conversation reads ----------------------------------------------
 
 function printChat(view: ChatView, program: string): void {
-  const about = view.cardId === null ? 'the board' : `#${view.cardId}`
-  const target = view.cardId === null ? '' : ` ${view.cardId}`
+  const about = describe(view.cardId)
+  // How this same conversation is named again on the command line under it.
+  const target =
+    typeof view.cardId === 'number'
+      ? ` ${view.cardId}`
+      : isDiscussion(view.cardId)
+        ? ` --discussion ${view.cardId}`
+        : ''
   const chat = view.chat
   // What it runs on, said whether or not anything has been said on it — a pick made before
   // the first message is still the pick.

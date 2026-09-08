@@ -61,6 +61,10 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
+/** The card this rail is on, or null for anything that isn't one. The rail draws the board's
+ *  conversation and each card's; a discussion (#496) is the Create sheet's, never this. */
+const cardOf = (rail: ChatRail): number | null => (typeof rail.cardId === "number" ? rail.cardId : null);
+
 /** How long the clear button waits for its second click before going back to being a
  *  trash can. One click never throws a conversation away. */
 const CONFIRM_MS = 4000;
@@ -161,7 +165,7 @@ export function ChatPane({ rail }: { rail: ChatRail }) {
         // Only once this conversation has actually been read. Landing on a card drops the
         // last one's messages on the spot, and the invitation before the read would be a
         // beat of "nothing has been said" on a card that has plenty.
-        empty={read ? <Empty cardId={rail.cardId} hopeless={hopeless ? blocked : undefined} /> : null}
+        empty={read ? <Empty cardId={cardOf(rail)} hopeless={hopeless ? blocked : undefined} /> : null}
       />
       {trouble && !(hopeless && messages.length === 0) && (
         <p
@@ -188,7 +192,8 @@ function Head({ rail }: { rail: ChatRail }) {
   }, [confirming]);
   const messages = rail.read?.chat?.messages ?? [];
   const has = messages.length > 0;
-  const about = rail.cardId === null ? c.aboutBoard : c.aboutCard(rail.cardId);
+  const card = cardOf(rail);
+  const about = card === null ? c.aboutBoard : c.aboutCard(card);
 
   return (
     <div className="mb-1.5 flex h-[30px] shrink-0 items-center gap-2 px-2.5">
@@ -196,7 +201,7 @@ function Head({ rail }: { rail: ChatRail }) {
       <span className="shrink-0 text-[12.5px] font-[700]">{c.label}</span>
       <span
         className="truncate text-[12px] text-nb-ink-soft"
-        title={rail.cardId === null ? c.aboutBoardHint : c.aboutCardHint(rail.cardId, rail.cardTitle)}
+        title={card === null ? c.aboutBoardHint : c.aboutCardHint(card, rail.cardTitle)}
       >
         {about}
       </span>
@@ -1021,7 +1026,8 @@ function Composer({
   const pick = rail.read?.pick ?? null;
   // On a card's page the box asks about that card, so the words in it never read as an
   // invitation to talk about the whole board.
-  const ask = rail.cardId === null ? c.ask : c.askCard(rail.cardId);
+  const card = cardOf(rail);
+  const ask = card === null ? c.ask : c.askCard(card);
   return (
     <div className="relative shrink-0 px-2.5 pb-0.5 pt-1.5">
       <MessageBox

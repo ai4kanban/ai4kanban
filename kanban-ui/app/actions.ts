@@ -58,6 +58,12 @@ import {
   stopChat,
 } from "@/lib/chat";
 import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, planToPlanFrom, readDiscuss } from "@/lib/discuss";
+import {
+  archiveDiscussion,
+  asDiscussion,
+  listDiscussions,
+  startDiscussion,
+} from "@/lib/discussions";
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
 import {
   cloudAccount,
@@ -189,6 +195,7 @@ import type {
   CardPatch,
   CardRef,
   ChannelStatus,
+  ChatTarget,
   CloudAccount,
   CloudEventAnswer,
   CloudMove,
@@ -196,6 +203,8 @@ import type {
   CommandState,
   CommentBatch,
   ConnectionTest,
+  DiscussionRow,
+  DiscussionTarget,
   DiscussRead,
   DropPlan,
   FillPlan,
@@ -463,15 +472,19 @@ export async function getSessionAction(sessionId: string): Promise<SessionView |
 // window reads how far it has got, so folding the rail or walking to another card never
 // cuts one off.
 
-/** A card id, or null for the board's own conversation. Anything else is not a chat this
- *  board has. */
-function chatTarget(cardId: unknown): number | null | undefined {
+/** A card id, a discussion (#496), or null for the board's own conversation. Anything else
+ *  is not a chat this board has.
+ *
+ *  A discussion is checked against the board rather than against a shape written here, so a
+ *  string from a browser can only ever name a conversation this board itself wrote. */
+async function chatTarget(cardId: unknown): Promise<ChatTarget | undefined> {
   if (cardId === null) return null;
+  if (typeof cardId === "string") return (await asDiscussion(cardId)) ?? undefined;
   return typeof cardId === "number" && Number.isInteger(cardId) ? cardId : undefined;
 }
 
-export async function readChatAction(cardId: number | null): Promise<ChatRead> {
-  const target = chatTarget(cardId);
+export async function readChatAction(cardId: ChatTarget): Promise<ChatRead> {
+  const target = await chatTarget(cardId);
   if (target === undefined) {
     return {
       chat: null,
@@ -498,14 +511,14 @@ export async function readChatAction(cardId: number | null): Promise<ChatRead> {
  *  in front of it. Which flow that is is settled here rather than sent: nothing from a
  *  browser names a topic that reaches a prompt. */
 export async function sendChatAction(
-  cardId: number | null,
+  cardId: ChatTarget,
   message: string,
   discuss = false,
   /** The pictures pasted into this message (#441), by the names `addChatImageAction` filed
    *  them under. A message that is nothing but pictures is a message. */
   images: string[] = [],
 ): Promise<{ ok: boolean; error?: string }> {
-  const target = chatTarget(cardId);
+  const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   const names = Array.isArray(images) ? images.filter((n): n is string => typeof n === "string") : [];
   if (typeof message !== "string" || (!message.trim() && names.length === 0)) {
@@ -524,10 +537,10 @@ export async function sendChatAction(
  *  It takes a `FormData` because that is how a browser hands bytes to a server action; what
  *  comes back is the name the picture is filed under, and nothing else ever names a path. */
 export async function addChatImageAction(
-  cardId: number | null,
+  cardId: ChatTarget,
   form: FormData,
 ): Promise<{ ok: true; name: string } | { ok: false; error: string }> {
-  const target = chatTarget(cardId);
+  const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   const file = form.get("image");
   if (!(file instanceof Blob)) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
@@ -535,8 +548,8 @@ export async function addChatImageAction(
 }
 
 /** Take one picture back out of the box. Quiet on a name this conversation never held. */
-export async function dropChatImageAction(cardId: number | null, name: string): Promise<{ ok: boolean }> {
-  const target = chatTarget(cardId);
+export async function dropChatImageAction(cardId: ChatTarget, name: string): Promise<{ ok: boolean }> {
+  const target = await chatTarget(cardId);
   if (target === undefined || typeof name !== "string") return { ok: false };
   await dropChatImage(target, name);
   return { ok: true };
@@ -544,14 +557,14 @@ export async function dropChatImageAction(cardId: number | null, name: string): 
 
 /** End the reply being written, keeping what arrived. Quiet when there is none: a reply
  *  that has already landed is not an error to have tried to stop. */
-export async function stopChatAction(cardId: number | null): Promise<{ ok: boolean; error?: string }> {
-  const target = chatTarget(cardId);
+export async function stopChatAction(cardId: ChatTarget): Promise<{ ok: boolean; error?: string }> {
+  const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   return stopChat(target);
 }
 
-export async function clearChatAction(cardId: number | null): Promise<{ ok: boolean; error?: string }> {
-  const target = chatTarget(cardId);
+export async function clearChatAction(cardId: ChatTarget): Promise<{ ok: boolean; error?: string }> {
+  const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   return clearChat(target);
 }
@@ -560,10 +573,10 @@ export async function clearChatAction(cardId: number | null): Promise<{ ok: bool
  *  another CLI starts the conversation over, because the session belongs to the CLI that
  *  opened it; one on the same CLI carries it on. */
 export async function pickChatRuntimeAction(
-  cardId: number | null,
+  cardId: ChatTarget,
   runtime: string | null,
 ): Promise<{ ok: boolean; cleared?: boolean; restarted?: boolean; error?: string }> {
-  const target = chatTarget(cardId);
+  const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   if (runtime !== null && typeof runtime !== "string") {
     return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
@@ -571,23 +584,46 @@ export async function pickChatRuntimeAction(
   return pickChatRuntime(target, runtime);
 }
 
+// ---- the discussions this board is holding (#496) ---------------------------
+//
+// A board holds many at once. The rail lists them, Create task opens a new one on every
+// press, and a row's menu takes one out of the list.
+
+export async function listDiscussionsAction(): Promise<DiscussionRow[]> {
+  return listDiscussions();
+}
+
+/** Open a discussion — what Create task presses. Nothing is written until the first message,
+ *  so opening the sheet and closing it again leaves no row behind. */
+export async function startDiscussionAction(): Promise<DiscussionTarget | null> {
+  return startDiscussion();
+}
+
+/** Take one discussion out of the list. Its transcript stays on this machine. */
+export async function archiveDiscussionAction(target: string): Promise<{ ok: boolean; error?: string }> {
+  const named = await asDiscussion(target);
+  if (!named) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  return archiveDiscussion(named);
+}
+
 // ---- Discuss (#427) ---------------------------------------------------------
 //
-// The Discuss screen is the board's own conversation with the plan it is writing beside it.
+// The Discuss screen is one discussion's conversation with the plan it is writing beside it.
 // Four moves: read that plan, record an answer the user pressed, and hand the plan to one of
 // the two runs its answers start — the one that writes its cards, or the one that writes a
 // single card from it and builds it (#481).
 
-export async function readDiscussAction(): Promise<DiscussRead & { supported: boolean }> {
-  const [read, supported] = await Promise.all([readDiscuss(), canDiscuss()]);
+export async function readDiscussAction(discussion: string | null = null): Promise<DiscussRead & { supported: boolean }> {
+  const target = await chatTarget(discussion);
+  const [read, supported] = await Promise.all([readDiscuss(target ?? null), canDiscuss()]);
   return { ...read, supported };
 }
 
 /** One of the three answers, pressed. Written into the transcript as the user's own words,
  *  with no turn behind it — the board is what acts on it. */
-export async function noteDiscussAnswerAction(text: string): Promise<void> {
+export async function noteDiscussAnswerAction(text: string, discussion: string | null = null): Promise<void> {
   if (typeof text !== "string" || !text.trim()) return;
-  await noteAnswer(text.trim());
+  await noteAnswer(text.trim(), (await chatTarget(discussion)) ?? null);
 }
 
 /**
@@ -598,8 +634,8 @@ export async function noteDiscussAnswerAction(text: string): Promise<void> {
  * says it is writing. `release` is what the board was showing, so the cards land in it like
  * a card written by Add task.
  */
-export async function startPlanningAction(release?: string): Promise<StartResult> {
-  return startFromPlan("create", "plan", release);
+export async function startPlanningAction(release?: string, discussion: string | null = null): Promise<StartResult> {
+  return startFromPlan("create", "plan", release, discussion);
 }
 
 /**
@@ -611,16 +647,21 @@ export async function startPlanningAction(release?: string): Promise<StartResult
  * prompt, and the only file this may ever point at is the one the board's own conversation
  * says it is writing.
  */
-export async function startPlanBuildAction(release?: string): Promise<StartResult> {
-  return startFromPlan("implement", "build", release);
+export async function startPlanBuildAction(release?: string, discussion: string | null = null): Promise<StartResult> {
+  return startFromPlan("implement", "build", release, discussion);
 }
 
 async function startFromPlan(
   action: "create" | "implement",
   answer: PlanAnswer,
   release?: string,
+  discussion: string | null = null,
 ): Promise<StartResult> {
-  const plan = await planToPlanFrom();
+  // Which discussion's plan is the board's own to say: the browser names the discussion, and
+  // the path is read here — so the only file a run may ever be pointed at is the one that
+  // discussion says it is writing (#496).
+  const target = (await chatTarget(discussion)) ?? null;
+  const plan = await planToPlanFrom(target);
   if (!plan) return { ok: false, error: (await machineCopy()).messages.actions.noPlan };
   const request = await prepareAgentRequest({
     action,
@@ -628,7 +669,7 @@ async function startFromPlan(
     release: typeof release === "string" && release.trim() ? release.trim() : undefined,
   });
   const started = await startSession(request, await buildPrompt(request));
-  if (started.ok && started.sessionId) await planningStarted(started.sessionId, answer);
+  if (started.ok && started.sessionId) await planningStarted(started.sessionId, answer, target);
   return started;
 }
 

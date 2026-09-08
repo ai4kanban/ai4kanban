@@ -13,6 +13,18 @@ export type RailCopy = {
   runningRow: (label: string) => string;
   running: string;
   close: (label: string) => string;
+  /** The discussions this board is holding (#496), listed under the open cards. */
+  discussions: {
+    heading: string;
+    /** One that has said nothing the board could name it by yet. */
+    unnamed: string;
+    /** Its agent is writing a reply — the hover, and the word a screen reader gets. */
+    answeringRow: (name: string) => string;
+    answering: string;
+    /** The ⋯ on a row, and its one item. */
+    menu: (name: string) => string;
+    archive: string;
+  };
   memory: {
     heading: string;
     show: string;

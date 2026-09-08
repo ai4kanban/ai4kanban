@@ -25,10 +25,25 @@
 // most of the board, and a window is not tall enough to be the limit on what can
 // be found. The Memory panel at the foot (#129) doesn't scroll with them either —
 // see MemoryPanel below.
+//
+// Under the open cards are the discussions this board is holding (#496). They are not
+// cards: they have no page of their own, a row opens one in the Create task sheet, and a
+// search never takes one away. At phone width there is no rail at all, so there is no list
+// there either — see DiscussionRow and lib/discussion-list.ts.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiArchive, FiChevronRight, FiColumns, FiFileText, FiInbox, FiSearch, FiX } from "react-icons/fi";
+import {
+  FiArchive,
+  FiChevronRight,
+  FiColumns,
+  FiFileText,
+  FiInbox,
+  FiMessageSquare,
+  FiMoreHorizontal,
+  FiSearch,
+  FiX,
+} from "react-icons/fi";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
@@ -36,7 +51,15 @@ import type { OpenCard } from "@/lib/open-cards";
 import { MEMORY_FILES, type MemoryModule } from "@/lib/types";
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
+import { createSheet } from "@/lib/create-open";
+import { useDiscussions } from "@/lib/discussion-list";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export function Rail({
   rows,
@@ -79,6 +102,9 @@ export function Rail({
   const router = useRouter();
   const { query, setQuery, matches } = useCardSearch();
   const searching = query.trim().length > 0;
+  // The discussions this board is holding (#496). They are not cards, so what is typed in
+  // the box above never takes them away.
+  const discussions = useDiscussions();
 
   // Closing the row you are standing on has to say where to stand instead: the
   // card after it, else the one before, else the board. Closing a row you are
@@ -144,6 +170,23 @@ export function Rail({
                 active={card.id === activeId}
                 running={running.has(card.id)}
                 onClose={() => close(card.id)}
+              />
+            ))}
+          </>
+        )}
+        {/* Under the open cards, and left where they are by a search: a discussion is not a
+            card, so nothing typed above should hide one. Each row opens that discussion in
+            the Create task sheet — there is no page of its own to go to. */}
+        {discussions.rows.length > 0 && (
+          <>
+            <RailLabel text={c.discussions.heading} count={discussions.rows.length} />
+            {discussions.rows.map((row) => (
+              <DiscussionRow
+                key={row.target}
+                name={row.name || c.discussions.unnamed}
+                answering={row.answering}
+                onOpen={() => createSheet.open(row.target)}
+                onArchive={() => void discussions.archive(row.target)}
               />
             ))}
           </>
@@ -451,6 +494,66 @@ function RailRow({
           <FiX size={13} aria-hidden />
         </button>
       )}
+    </div>
+  );
+}
+
+/** One discussion (#496), in the open card's own geometry — same height, same corner, same
+ *  truncation — so the list below the cards reads as one rail rather than as a second
+ *  design that happens to sit under it.
+ *
+ *  It is a button, not a link: a discussion has no page of its own, and pressing the row
+ *  opens it in the Create task sheet. There is no open state for the same reason — the sheet
+ *  covers the window it would be marked in.
+ *
+ *  The ⋯ is a sibling of the button, not a child of it, and holds the one thing there is to
+ *  do to a discussion from here: take it out of the list. */
+function DiscussionRow({
+  name,
+  answering,
+  onOpen,
+  onArchive,
+}: {
+  name: string;
+  /** Its agent is writing a reply — the same pulse an open card's row carries while a run
+   *  is inside it. */
+  answering: boolean;
+  onOpen: () => void;
+  onArchive: () => void;
+}) {
+  const c = useCopy().rail;
+  return (
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={onOpen}
+        title={answering ? c.discussions.answeringRow(name) : name}
+        className="flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] pl-2.5 pr-7 text-left text-[12.5px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
+      >
+        <FiMessageSquare size={13} className="shrink-0" aria-hidden />
+        <span className="truncate">{name}</span>
+        {answering && (
+          <>
+            <span className={`ml-auto ${PULSE_DOT}`} aria-hidden />
+            <span className="sr-only">{c.discussions.answering}</span>
+          </>
+        )}
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            title={c.discussions.menu(name)}
+            aria-label={c.discussions.menu(name)}
+            className="absolute right-1 top-1/2 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-[5px] text-nb-ink opacity-0 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:opacity-100 group-hover:opacity-60 group-hover:hover:opacity-100 data-[state=open]:opacity-100"
+          >
+            <FiMoreHorizontal size={13} aria-hidden />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onArchive}>{c.discussions.archive}</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

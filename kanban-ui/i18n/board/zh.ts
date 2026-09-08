@@ -62,14 +62,6 @@ const zh: BoardCopy = {
       keysDiscuss: "Esc 关闭并保留这次讨论",
       shipsIn: (release) => `将在 ${release} 中交付`,
       builds: "不经评审就进分支",
-      newIdea: "新想法",
-      newIdeaGuard: {
-        title: "开始一个新想法？",
-        drops: ["这次讨论", "它写出的方案"],
-        keeps: "正在写卡片的运行不会停——可以在运行面板里跟进。",
-        cancel: "保留",
-        confirm: "开始新的",
-      },
       guard: {
         title: "写一张卡片，直接开做？",
         writes: "先写一张卡片：标题自动生成，正文是你的原话。",

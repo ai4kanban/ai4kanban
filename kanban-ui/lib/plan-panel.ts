@@ -86,13 +86,24 @@ export interface PlanPanel {
   refresh(): void;
 }
 
-export function usePlanPanel(): PlanPanel {
+/** `discussion` is which discussion's plan this panel draws (#496) — the one the sheet is
+ *  open on. Null is the board's own conversation, which is what a board too old to hold
+ *  discussions still has. */
+export function usePlanPanel(discussion: string | null = null): PlanPanel {
   const [read, setRead] = useState<DiscussRead | null>(null);
   const [supported, setSupported] = useState(false);
   // The last words read for the file on screen, and which file they are. A rewrite empties
   // the file for an instant; keeping both is what lets the card say so and go on showing
   // the plan, rather than blinking to nothing and back.
   const [held, setHeld] = useState<{ path: string; text: string } | null>(null);
+  // Another discussion is another plan, so nothing of the last one is drawn while the first
+  // read of this one lands. Done while rendering, the way the chat rail switches.
+  const [showing, setShowing] = useState(discussion);
+  if (showing !== discussion) {
+    setShowing(discussion);
+    setRead(null);
+    setHeld(null);
+  }
   const [hidden, setHidden] = useState(false);
   const [full, setFull] = useState(false);
   const { measure, width } = useSheetWidth();
@@ -106,7 +117,7 @@ export function usePlanPanel(): PlanPanel {
       if (!alive || inFlight) return;
       inFlight = true;
       try {
-        const next = await readDiscussAction();
+        const next = await readDiscussAction(discussion);
         if (!alive) return;
         setSupported(next.supported);
         setRead(next);
@@ -134,8 +145,9 @@ export function usePlanPanel(): PlanPanel {
       clearTimeout(timer);
     };
     // The screen this belongs to is mounted only while it is up, so the loop's life is the
-    // screen's: nothing to start and stop, and nothing left polling behind a shut sheet.
-  }, []);
+    // screen's: nothing to start and stop, and nothing left polling behind a shut sheet. A
+    // sheet moved to another discussion restarts it: the plan it draws is that one's.
+  }, [discussion]);
 
   const beside = width === 0 || width >= BESIDE_FROM;
   const card = cardWidth(width);

@@ -35,6 +35,8 @@ export type {
   ChatPick,
   ChatRuntime,
   ChatTarget,
+  DiscussionRow,
+  DiscussionTarget,
   CommandAction,
   CommandRequest,
   ConnectionTest,
@@ -57,6 +59,7 @@ export type {
   TokenUsage,
 } from "./format/agent/types";
 export type { DeliveryCommitMode, DeliveryRecord, DeliveryStatus, DeliveryStep } from "./format/agent/types";
+export { discussionTarget, isDiscussion } from "./format/agent/types";
 
 export type {
   ArchiveGroup,

@@ -129,6 +129,17 @@ export type { SendOptions as ChatSendOptions } from './lib/agent/chat'
 export { readDiscuss, startedPlanning } from './lib/agent/discuss'
 export { clearChatPlan, noteChatMessage } from './lib/agent/chat'
 
+// The discussions a board is holding (#496). A board holds many at once — each with its own
+// transcript, agent session and plans — so the rail lists them and Create task opens a new
+// one on every press. The list is the `.chats/` files themselves: there is no index to drift.
+export {
+  archiveDiscussion,
+  asDiscussion,
+  listDiscussions,
+  startDiscussion,
+  titleDiscussion,
+} from './lib/agent/discussions'
+
 // The board's first-run conversation (#280): the opening turn the board speaks itself, and
 // the reader that turns one reply into the two config answers a screen draws. The screen
 // never parses the agent — it asks here, so the board and the command read one shape.

@@ -49,6 +49,7 @@ import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove } from '../../commands/remove'
 import { cmdRule, type RuleOptions } from '../../commands/rule'
+import { cmdDiscussion, type DiscussionOptions } from '../../commands/discussion'
 import { cmdPlan, type PlanOptions } from '../../commands/plan'
 import { cmdRunBlocker, type RunBlockerOptions } from '../../commands/run-blocker'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
@@ -148,6 +149,7 @@ const MOVES: Record<string, RunMove> = {
   rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
   'run-blocker': ({ args, opts }) => cmdRunBlocker(args[0] ? Number(args[0]) : undefined, as<RunBlockerOptions>(opts)),
   plan: ({ args, opts }) => cmdPlan(args, as<PlanOptions>(opts)),
+  discussion: ({ args, opts }) => cmdDiscussion(args, as<DiscussionOptions>(opts)),
   peek: () => {
     const id = readNextId()
     say(String(id))
