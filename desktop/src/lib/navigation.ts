@@ -18,8 +18,11 @@
 // its shortcuts, and a mouse's own back and forward buttons are the way
 // through.
 //
-// A dialog or a panel over the board is not a page, so a swipe back does not
-// close one — it leaves the view the dialog is over and takes the one before.
+// A view laid over the page — a dialog, the runs panel, the create screen — is
+// left by the swipe before the page underneath moves (#526), and that is the
+// page's own answer, made in preload.ts. The moves here are unchanged by it: the
+// menu, its shortcuts and a mouse's buttons still move the window's history and
+// nothing else.
 
 import type { BrowserWindow } from "electron";
 import { CHANNELS, type NavDirection } from "../shared/bridge";

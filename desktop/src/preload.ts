@@ -240,27 +240,35 @@ ipcRenderer.on(CHANNELS.fullscreen, (_e, on: boolean) => {
 });
 window.addEventListener("DOMContentLoaded", paint);
 
-// The two-finger swipe back and forward (#210).
+// The two-finger swipe back and forward (#210, #526).
 //
 // A browser answers this gesture itself, deep in Chromium, and Electron leaves
 // that machinery off — no switch turns it on. What does reach the page is what
 // the gesture is made of: sideways scrolling. So the swipe is read here, from
-// the wheel events, and the move itself is left to main, which already knows
-// what back and forward mean for the menu.
+// the wheel events, and the page is asked what it means before anything moves.
 //
 // This has to live in this file rather than beside the rest of the app's code:
 // the renderer is sandboxed, so a relative require throws (see the top of this
-// file), and there is nowhere else in the page the app can put code.
+// file), and there is nowhere else in the page the app can put code. That is
+// also why the answer is a DOM event and not a call: the DOM is the one thing
+// this script and the page share.
 //
-// One gesture, two jobs, and only one of them can have it. The board's columns
-// are scrolled sideways with the very same two fingers, and they can usually go
-// both ways at once, so a board that answered the swipe would either stop
-// scrolling or navigate when the user meant to scroll. The columns keep it: the
-// swipe is a card page's, where nothing scrolls sideways and back is what the
-// gesture almost always means. From the board, Back and Forward are the menu's.
+// One gesture, three jobs, in this order:
 //
-// A card page can still hold something that scrolls sideways on its own — a
-// wide code block — and scrolling one of those must never count as a swipe.
+//   1. Something that can still scroll sideways under the fingers — the board's
+//      columns, a wide code block, a table — is scrolling, not swiping. It wins
+//      wherever it has room to travel, which is what keeps the columns theirs.
+//   2. A view laid over the page — a dialog, the runs panel, the create screen —
+//      is what the swipe leaves, one layer per gesture. The page says so by
+//      cancelling the event below (kanban-ui/lib/swipe-back.ts); the page also
+//      takes the gesture when there is no earlier view in the app, and goes to
+//      the board instead.
+//   3. Otherwise the page history moves, back or forward.
+//
+// The bare board is the one page the history is never moved from: its columns
+// are the gesture's, and at the end of them a swipe means nothing rather than
+// meaning "leave the board". The check stays here rather than in the page so it
+// holds even in the moment before the page is listening.
 //
 // The move itself is made here, on the page's own history, and NOT by asking
 // main to drive the window's. Those are two different accounts of where the
@@ -278,14 +286,21 @@ const SWIPE_TRAVEL = 90;
  *  coasting macOS keeps sending after the fingers lift, so one flick moves one
  *  view and its momentum doesn't move a second. */
 const SWIPE_IDLE_MS = 250;
+/** How the page is told. Written out here and in kanban-ui/lib/swipe-back.ts —
+ *  this script can import nothing from there. */
+const SWIPE_BACK = "a4k:swipe-back";
 
-/** Is this one of the pages the swipe belongs to? A card is `/<id>`, a memory
- *  file is `/memory/<name>` or `/memory/<module>/<name>` (#129, #130), and the
- *  board is `/` — see the note above for why the board is left out. The board's
- *  columns are what the gesture was kept from; nothing on a memory page scrolls
- *  sideways, so back is what it means there, exactly as on a card. */
-function swipeablePage(): boolean {
-  return /^\/\d+$/.test(location.pathname) || /^\/memory\/[^/]+(\/[^/]+)?$/.test(location.pathname);
+/** The board itself, where the columns keep the gesture. */
+function onBoard(): boolean {
+  return location.pathname === "/";
+}
+
+/** Tell the page a swipe back was made, and say whether it took it. Cancelling
+ *  is how a view over the page says it left instead. */
+function pageTook(): boolean {
+  const asked = new CustomEvent(SWIPE_BACK, { cancelable: true });
+  window.dispatchEvent(asked);
+  return asked.defaultPrevented;
 }
 
 /** Is anything from `target` up to the root still able to scroll `delta`'s way?
@@ -323,6 +338,14 @@ function go(direction: NavDirection): void {
   else history.forward();
 }
 
+/** What one finished flick does. Forward is the history's alone: a view the
+ *  gesture dismissed is not somewhere to go back into. */
+function swipe(direction: NavDirection): void {
+  if (direction === "back" && pageTook()) return;
+  if (onBoard()) return;
+  go(direction);
+}
+
 let travel = 0;
 let lastWheel = 0;
 let spent = false;
@@ -339,7 +362,6 @@ window.addEventListener(
     // turned out to be someone scrolling a column. Either way the rest of the
     // flick and its coasting are ignored until the hand goes still.
     if (spent) return;
-    if (!swipeablePage()) return;
     // A mouse wheel reports whole lines and has no sideways axis to speak of; a
     // trackpad reports pixels. Only the trackpad is a swipe.
     if (e.deltaMode !== 0) return;
@@ -364,7 +386,7 @@ window.addEventListener(
     const direction: NavDirection = travel < 0 ? "back" : "forward";
     travel = 0;
     spent = true;
-    go(direction);
+    swipe(direction);
   },
   // Capture, so a page that handles its own wheel events can't swallow the
   // gesture; passive, because this only watches — the scrolling it lets through

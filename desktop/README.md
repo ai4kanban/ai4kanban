@@ -61,10 +61,13 @@ What the app adds, and all it adds:
   launcher carries an **English / 中文** switcher in its corner, since it comes before there is
   a board to open **Configuration → General** on. A guess that cannot be saved is not made,
   and a build whose bundled rules predate the setting opens English and draws no switcher.
-- **Going back.** On a card, a two-finger swipe right goes back to the view before and left
-  goes forward again, the same as in a browser, and the edge you left by lights up for a
-  moment. The board is the one page the swipe leaves alone: its columns are scrolled
-  sideways with the same two fingers, so there the gesture stays theirs. **View → Back** and
+- **Going back.** A two-finger swipe right is the way out of whatever is on screen: it
+  takes off the view laid over the page first — a dialog, the runs panel, Create task,
+  Configuration, one layer per swipe — and otherwise goes back to the view before, with left
+  going forward again. The edge you left by lights up for a moment. Anything that can still
+  scroll sideways under the fingers keeps the gesture, so the board's columns and a wide code
+  block scroll rather than navigate, and the bare board never leaves itself. From a view with
+  nothing visited before it the swipe opens the board. **View → Back** and
   **Forward** work from anywhere and need no trackpad (`⌘[` / `⌘]` on macOS, `Alt+←` /
   `Alt+→` elsewhere); on Windows and Linux, so do the back and forward buttons on a mouse.
   Going back never leaves the project you are in.

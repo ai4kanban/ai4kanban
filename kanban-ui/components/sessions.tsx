@@ -15,6 +15,7 @@ import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useOverRail } from "@/lib/over-rail";
+import { useSwipeBack } from "@/lib/swipe-back";
 import { useActions, type ScreenActions, type StartAnswer } from "@/lib/screen";
 import { flowLabel, flowOf, flowSaid, runFlows, stepLabel, triggerLabel, type RunFlow } from "@/lib/run-flows";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
@@ -559,6 +560,8 @@ function SessionsDialog({
   useEffect(() => setMounted(true), []);
   // Over the chat rail while it is up, so Esc closes the panel and leaves a reply alone.
   useOverRail();
+  // …and over the page, so the swipe back takes the panel off before the page moves (#526).
+  useSwipeBack(true, () => sessionsPanel.close());
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") sessionsPanel.close();

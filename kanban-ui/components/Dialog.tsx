@@ -6,6 +6,7 @@ import { FiX } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
+import { useSwipeBack } from "@/lib/swipe-back";
 
 // A small modal on the neo-brutalism scrim. Esc closes; clicking the backdrop
 // closes; the panel itself doesn't.
@@ -50,6 +51,10 @@ export function Dialog({
   // The chat rail wants Esc too (#267). A dialog is over it while it is up, so the key
   // closes the dialog and leaves the reply alone.
   useOverRail();
+
+  // A dialog covers the page, so the swipe back leaves it before the page underneath moves
+  // (#526) — the same close the ✕ and Esc make, and no more.
+  useSwipeBack(true, onClose);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

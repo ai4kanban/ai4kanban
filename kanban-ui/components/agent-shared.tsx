@@ -15,6 +15,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
+import { useSwipeBack } from "@/lib/swipe-back";
 import { useActions, useMachine } from "@/lib/screen";
 import { parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
@@ -726,6 +727,8 @@ export function SessionLogOverlay({
   useEffect(() => setMounted(true), []);
   // Over the chat rail while it is up, so Esc closes the log and leaves a reply alone.
   useOverRail();
+  // …and over the page, so the swipe back closes it before the page moves (#526).
+  useSwipeBack(true, onClose);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();

@@ -22,6 +22,7 @@ import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { useOverRail } from "@/lib/over-rail";
+import { useSwipeBack } from "@/lib/swipe-back";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
@@ -172,6 +173,11 @@ function Sheet({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, guard, full, toggleFull]);
+
+  // The swipe back leaves the same two layers in the same order (#526): the enlarged plan
+  // first, then the screen. What has been typed is kept either way — the box's draft
+  // outlives the screen (useDraft) and the conversation is on disk — and nothing is sent.
+  useSwipeBack(true, () => (full ? toggleFull() : onClose()));
 
   const read = rail.read;
   // Send again and an edited message go the way the box's own words do: as discussion.

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { setLanguageAction } from "@/app/actions";
 import { AppActions } from "@/components/app-actions";
-import { NavEdge } from "@/components/desktop";
+import { NavEdge, SwipeBack } from "@/components/desktop";
 import { DropGuard } from "@/components/drop-guard";
 import { getCopy } from "@/i18n";
 import { LanguageProvider } from "@/components/language";
@@ -88,6 +88,10 @@ export default async function RootLayout({
               mark has to outlive the one it started on. Only in the app: a
               browser draws its own. */}
           {desktop && <NavEdge />}
+          {/* And what that move leaves first: a view laid over the page goes before the
+              page does (#526). Here for the same reason — the gesture is answered wherever
+              it is made. */}
+          {desktop && <SwipeBack />}
           {children}
         </AppActions>
         </LanguageProvider>

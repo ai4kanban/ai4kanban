@@ -26,6 +26,7 @@
 // there by the app's preload script. It is simply absent in a browser, so every
 // call below checks first.
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { FaBullhorn, FaCode } from "react-icons/fa";
 import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
@@ -35,6 +36,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { getBoardsAction } from "@/app/actions";
 import type { BoardEntry } from "@/lib/cli";
 import type { NotificationAlert } from "@/lib/notifications";
+import { atFirstView, dismissTopLayer, SWIPE_BACK, watchViews } from "@/lib/swipe-back";
 import { Button } from "./button";
 import { CHROME } from "./chrome";
 import {
@@ -306,6 +308,36 @@ export function NavEdge() {
       />
     </>
   );
+}
+
+/** What the swipe back leaves, when it is not a page (#526).
+ *
+ *  The app's preload script reads the gesture and asks the page before it moves the
+ *  history. Two answers are the page's own: a view laid over it goes first — one layer per
+ *  gesture — and a card opened with nothing visited before it goes to the board, so the
+ *  gesture always lands somewhere. Anything else is the history's, and the preload script
+ *  moves it.
+ *
+ *  Renders nothing, and does nothing in a browser: the event only ever comes from the app.
+ *  Here rather than on a page, for the same reason the mark down the edge is — a swipe
+ *  outlives the view it started on. */
+export function SwipeBack() {
+  const router = useRouter();
+  useEffect(() => {
+    watchViews();
+    const swiped = (e: Event) => {
+      if (dismissTopLayer()) return e.preventDefault();
+      // The board replaces the view rather than being pushed over it: what was swiped out
+      // of is behind, not ahead, and a pushed entry would make the way back a way forward.
+      if (atFirstView() && location.pathname !== "/") {
+        router.replace("/");
+        e.preventDefault();
+      }
+    };
+    window.addEventListener(SWIPE_BACK, swiped);
+    return () => window.removeEventListener(SWIPE_BACK, swiped);
+  }, [router]);
+  return null;
 }
 
 // --- the folder badge, and the projects behind it ---------------------------
