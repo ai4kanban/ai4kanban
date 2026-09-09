@@ -611,6 +611,23 @@ export function deliveryAcceptsAnswers(cardId: number): boolean {
   return !!state && (state.paused || state.deciding === true)
 }
 
+/** The cards whose delivery is held at landing (#565): built, reviewed, queued, and stopped
+ *  on questions only the user can answer.
+ *
+ *  A delivery holds the card, so everything that asks what the board is working on counts
+ *  these as busy. They are the one exception — nothing is moving, and nothing will until the
+ *  user answers — which is why Cloud raises them (cloud/publish.ts). A card the decider is
+ *  answering is not one of them: `paused` is what says the user is being asked. */
+export function cardsHeldAtLanding(): Set<number> {
+  const held = new Set<number>()
+  for (const delivery of readStore().deliveries) {
+    if (delivery.status !== 'active' || delivery.cardId === null) continue
+    const state = deliveryState(delivery, openQuestions(delivery.cardId), decidingOn(delivery.cardId))
+    if (state.stage === 'held' && state.paused) held.add(delivery.cardId)
+  }
+  return held
+}
+
 /** The review this card's delivery is owed now that its question has been answered — or
  *  nothing, which is every card that is not waiting at one.
  *

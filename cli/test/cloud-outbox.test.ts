@@ -18,7 +18,7 @@ import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 import { board, setBoardProvider } from '../src/lib/board/index.ts'
 import { closeRelease, dropRelease } from '../src/lib/releases.ts'
 import { withStore } from '../src/lib/agent/store.ts'
-import type { RunRecord } from '../src/lib/agent/types.ts'
+import type { DeliveryRecord, RunRecord } from '../src/lib/agent/types.ts'
 import { ALL_RELEASES, cloudBoardFor, defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
 import { startCloudServer, stopCloudServer } from '../src/lib/cloud/board-server.ts'
 import type { CloudEventState } from '../src/lib/cloud/events.ts'
@@ -527,7 +527,63 @@ describe('widening the watched scope', () => {
   })
 })
 
-function writeCardFile(release = '0.8.0'): void {
+// The one delivery that holds a card without working it (#565). Built, reviewed and queued,
+// with nothing left to do but the card's open questions — the same wait a card with no
+// delivery raises, which is why the publisher raises this one too.
+describe('a delivery held at landing', () => {
+  const ASKING = '[user] Which shade of blue?'
+
+  /** A card asking the user, with a delivery on it in the stage `landing` gives it. */
+  function held(landing?: DeliveryRecord['landing']): void {
+    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    writeCardFile('0.8.0', [ASKING])
+    setBoardProvider({
+      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+    } as never)
+    withStore((store) =>
+      store.deliveries.push({
+        deliveryId: 'd-12',
+        cardId: 12,
+        title: 'A task',
+        status: 'active',
+        startedAt: Date.now(),
+        sessions: [],
+        approved: '',
+        steps: [],
+        commitMode: 'auto',
+        targetBranch: 'main',
+        landing,
+      } as DeliveryRecord),
+    )
+  }
+
+  /** What the pass queued for card 12, if anything. */
+  const queued = () =>
+    readOutbox().pending.find((p) => p.kind === 'publish' && p.snapshot.taskId === 12)
+
+  it('raises its card, because the questions are all that is left', async () => {
+    held({ status: 'waiting', attempts: 0, at: Date.now() })
+
+    await recordBoardEvents()
+
+    const publication = queued()
+    assert.ok(publication, 'the card is raised while it waits on the user')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.decision, 'answer')
+  })
+
+  it('stays quiet while the delivery is still building it', async () => {
+    // No landing record: review has not passed it yet, so the questions are a warning the
+    // user already answered for rather than something the board is waiting on.
+    held()
+
+    await recordBoardEvents()
+
+    assert.equal(queued(), undefined)
+  })
+})
+
+function writeCardFile(release = '0.8.0', questions: string[] = []): void {
   const dir = path.join(root, 'docs', 'kanban', 'todo', 'features')
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(
@@ -542,7 +598,9 @@ function writeCardFile(release = '0.8.0'): void {
       'blocked_by: []',
       'related: []',
       'modules: []',
-      'questions: []',
+      questions.length
+        ? `questions:\n${questions.map((q) => `  - ${JSON.stringify(q)}`).join('\n')}`
+        : 'questions: []',
       'verify: []',
       '---',
       '',

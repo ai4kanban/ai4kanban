@@ -13,7 +13,9 @@
 // Actionable means waiting for a person with NOTHING WORKING ON IT (./snapshot.ts). A run
 // picking a card up puts its row down, and the run ending picks it back up — which is the
 // one thing the bell interrupts anybody over, because it is the one moment the board has
-// finished and the user has not.
+// finished and the user has not. A delivery HELD AT LANDING is the one thing that holds a
+// card without working it (#565): it is finished but for the card's open questions, so the
+// card is raised as if nothing held it.
 //
 // One task means one row. A card revised twice before anyone looks must not leave three
 // rows asking about revisions two of them no longer bind, and answering the last question
@@ -23,6 +25,7 @@
 
 import crypto from 'node:crypto'
 
+import { cardsHeldAtLanding } from '../agent/deliveries'
 import { cardsAtWork } from '../agent/store'
 import { board } from '../board'
 import { KANBAN } from '../paths'
@@ -191,13 +194,19 @@ async function queueDifference(
   // Read once for the whole pass: a card the board is working on raises nothing, and asking
   // per card would read the same record as many times as the board has cards.
   const atWork = cardsAtWork()
+  // …except a delivery held at landing (#565). It is built, reviewed and queued, and the only
+  // thing left is the card's open questions — the same wait a card with no delivery raises,
+  // arrived at from the other end. `atWork` itself is left whole: a delivery is still
+  // carrying these cards, which is what `writeOffAbandoned` below asks.
+  const heldAtLanding = cardsHeldAtLanding()
+  const raising = new Set([...atWork].filter((id) => !heldAtLanding.has(id)))
   const seen = new Set<number>()
   // How many cards this switch brought into view — what the summary counts, and what says
   // whether there is a summary at all.
   let broughtInCount = 0
 
   for (const card of cards) {
-    const snapshot = snapshotFor(card, enabled, atWork, home)
+    const snapshot = snapshotFor(card, enabled, raising, home)
     if (!snapshot) continue
     seen.add(card.id)
     const held = publishedFor(card.id)

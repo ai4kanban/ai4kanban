@@ -8,6 +8,10 @@
 //   • either at `ready`, or carrying questions only the user can answer, and
 //   • nothing in its way: no run working it, and no open card it waits on.
 //
+// `atWork` is the caller's answer to the third rule, because what counts as working a card
+// is the delivery record's to say rather than this file's — a delivery held at landing holds
+// its card and works it no longer, and the publisher leaves those out of the set (#565).
+//
 // Narrowed to one release, a task in another — or promised to none — is not what the user
 // asked to be told about. A task that is BOTH `ready` and asking raises the question:
 // answering it rewrites the card and moves its revision, so an approval granted first would
