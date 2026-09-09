@@ -2,7 +2,7 @@
 
 ## Writing Style
 
-- Add minimal, only necessary information to SKILL.md, design.md, `cli/src/guide/*.md`, or `references/*.md`. The context is precious.
+- Add minimal, only necessary information to SKILL.md, design.md, `cli/src/guide/*.md`, or `references/*.md`. The context is precious. Trim them while you add new rules. Don't just pile up.
 - When writing bullet points, it's recommended to use `- **bold title**: one liner` format to make the requirements scannable.
 - Always use a professional and comprehensible language.
 - **UI text**: assume that readers have ZERO patience. Use clean UI philosophy. The UI must be extremely intuitive and glanceable. No explanation notes unless actually necessary.

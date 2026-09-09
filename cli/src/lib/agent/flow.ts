@@ -623,16 +623,15 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         }
       }
       close.push(`finish successfully with no new question when the work is ready — that passes review`)
-      // Where a decision that blocks landing goes. A build with no card has nowhere to put
-      // one (#428), so it says so and stops rather than writing a card nobody asked for.
+      // A delivery without a card reports its blocking decision in the final message.
       close.push(
         card
           ? `append a question to #${req.id} by \`akb guide update-questions\` only when a genuine user-owned decision blocks landing; then stop`
-          : `there is no card to append a question to — say a blocking decision in your last message and stop, and write no card`,
+          : `there is no card to append a question to — say a blocking decision in your last message and stop`,
       )
       if (card) {
         close.push(
-          'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself, settle facts, and drop unrelated discoveries after noting them in the run log',
+          'record an answered material decision surfaced by the build under `## Worth noting after implementation` as `- **<question>**: <answer>` only when the user could reasonably reverse it; resolve technical details yourself and settle facts',
           `leave the card on the board — passing review is not the end of the delivery, and the board archives the card itself once the work has landed`,
         )
       }

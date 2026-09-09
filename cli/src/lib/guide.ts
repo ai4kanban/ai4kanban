@@ -31,6 +31,7 @@ import discussIdea from '../guide/discuss-idea.md'
 import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
 import extractIdeas from '../guide/extract-ideas.md'
+import followUp from '../guide/follow-up.md'
 import gate from '../guide/gate.md'
 import implement from '../guide/implement.md'
 import localUi from '../guide/local-ui.md'
@@ -75,6 +76,7 @@ export const GUIDES: Guide[] = [
   { name: 'writing', when: "write a card body — its format, and the rules every card is held to", text: writing },
   { name: 'evaluate-task', when: 'check one task idea before it becomes a card', text: evaluateTask },
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
+  { name: 'follow-up', when: 'place additional work and prepare context for a follow-up card', text: followUp },
   { name: 'discuss-idea', when: 'help decide whether an idea is worth building, and hand what it settled to planning', text: discussIdea },
   { name: 'next-card', when: 'name which cards already on the board to build now', text: nextCard },
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },

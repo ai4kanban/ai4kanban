@@ -6,6 +6,7 @@ Build the approved card. Preserve settled decisions and unrelated questions.
   question describing the obstacle and action needed. Stop only dependent work; resume it
   after the user resolves the question. Settle routine technical choices yourself.
 - Do not replace or contradict what the card says.
+- **Follow-ups**: follow `akb guide follow-up` for additional work.
 - A printed, interactive implementation may stay uncommitted in the target checkout only
   when the card is still clear and localized under "Choose its refine effort" in
   `akb guide add-task`. Otherwise use the tracked implementation path. Background runs

@@ -10,9 +10,9 @@ A question is a decision that project evidence cannot answer, materially affects
 experience, and has at least two coherent options. Ask it directly; state each option's outcome
 and main cost, and recommend the option you would take.
 
-An unresolved fact, unavailable source, technical detail, or choice the agent can safely make
-within the accepted outcome is not a question. Settle it and record a lasting answer below the
-human half when necessary.
+Settle facts, technical details, and safe choices yourself; record lasting answers below the
+human half when necessary. Never ask whether to fix work here or create a card; follow
+`akb guide follow-up` for placement.
 
 ### User-owned question (`[user]`)
 

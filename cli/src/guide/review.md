@@ -11,15 +11,14 @@ to the card waits for the user's answer.
      checks, and read `## Worth noting after implementation`. Do not reopen decisions the
      card already answers or report a condition the user explicitly accepted.
 2. Fix plain mistakes in the delivery's worktree, update focused tests, and rerun the
-   affected checks. Resolve implementation details yourself. Drop unrelated implementation
-   discoveries after noting them in the run log. Do not exhaustively search unaffected code
-   or invent hypothetical issues.
+   affected checks. Route additional work through `akb guide follow-up`. Do not
+   exhaustively search unaffected code or invent hypothetical issues.
 3. Only when a finding needs a user decision, a human-only check, or a new material decision
    note, read `akb guide update-questions`. Resolve technical details yourself. Before editing
    the card, read `akb guide board`; read `akb guide writing` only for a body edit. Never edit
    frontmatter by hand or change approved requirements to justify a defect.
 4. Append a remaining `[user]` question to this card and stop. Otherwise finish successfully;
-   no card edit is required to pass. Review never creates or updates another card.
+   no card edit is required to pass.
 
 - **Check output**: run each check once and save its full output and exit status. Inspect that
   output; never rerun a check just to change `grep` or `tail`. Rerun only after affected code

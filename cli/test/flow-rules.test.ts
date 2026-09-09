@@ -304,12 +304,16 @@ describe('the prompt', () => {
     assert.match(guide, /Never approve a deviation here/)
   })
 
-  it('keeps implementation discoveries off the board', () => {
-    const guide = findGuide('review')!.text
-    const prompt = buildPrompt({ action: 'review', id: 1, title: 'card one' })
-    assert.match(guide, /Review never creates or updates another card/)
-    assert.match(guide, /Drop unrelated implementation\s+discoveries/)
-    assert.doesNotMatch(prompt, /create or update a separate card/)
+  it('routes independent review follow-ups without a user placement decision', () => {
+    for (const name of ['review', 'implement', 'update-questions']) {
+      assert.match(findGuide(name)!.text, /`akb guide follow-up`/)
+    }
+    assert.match(findGuide('update-questions')!.text, /Never ask whether to fix work here or create a card/)
+    const followUp = findGuide('follow-up')!.text
+    assert.match(followUp, /without asking permission or blocking the original/)
+    assert.match(followUp, /Never defer a required fix/)
+    assert.match(followUp, /preserve the context in the body before refinement/)
+    assert.match(followUp, /`akb guide add-task`/)
   })
 
   it('makes the latest target authoritative in a conflict and reviews the result', () => {
