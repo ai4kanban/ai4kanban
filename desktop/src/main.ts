@@ -41,6 +41,7 @@ import { copy, holdLanguage, heldLanguage } from "./lib/copy";
 import { launcherUrl } from "./lib/launcher";
 import { buildMenu } from "./lib/menu";
 import { attachNavigation, type Navigation } from "./lib/navigation";
+import { createProject as makeProject } from "./lib/new-project";
 import * as projects from "./lib/projects";
 import {
   DEFAULT_LANGUAGE,
@@ -72,6 +73,8 @@ import {
   type CommandInstall,
   type CommandInstallResult,
   type CreateBoardResult,
+  type CreateProjectRequest,
+  type CreateProjectResult,
   type NotificationAlert,
   type ProjectInfo,
   type UpdateStatus,
@@ -637,7 +640,12 @@ async function showLauncher(w: Win): Promise<void> {
   w.badge = 0;
   paintBadge();
   await w.win.loadURL(
-    launcherUrl({ mac: MAC, language: heldLanguage(), languages: await languageChoices() }),
+    launcherUrl({
+      mac: MAC,
+      language: heldLanguage(),
+      languages: await languageChoices(),
+      location: newProjectHome(),
+    }),
   );
   w.nav.reset();
 }
@@ -670,6 +678,54 @@ async function pickRepo(w: Win | null): Promise<string | null> {
   if (!repo || repo === w.board) return w.board;
   await open(w, repo);
   return w.board;
+}
+
+/** Where the launcher's New project form starts (#546): beside the project opened last,
+ *  which is where the next one usually belongs, and home on a machine with none. */
+function newProjectHome(): string {
+  const last = store.lastRepo() ?? store.projects()[0]?.path;
+  const parent = last ? path.dirname(last) : null;
+  return parent && fs.existsSync(parent) ? parent : app.getPath("home");
+}
+
+/** Ask where a new project goes — the picker Open folder raises, asked for the parent and
+ *  opening nothing. Cancelling leaves the form on whatever it already said. */
+async function pickLocation(w: Win | null, from: unknown): Promise<string | null> {
+  const res = await openDialog(w, {
+    title: copy().dialog.pick.titleLocation,
+    message: copy().dialog.pick.messageLocation,
+    buttonLabel: copy().dialog.pick.buttonLocation,
+    properties: ["openDirectory", "createDirectory"],
+    defaultPath: typeof from === "string" && from ? from : newProjectHome(),
+  });
+  const picked = res.filePaths[0];
+  return res.canceled || !picked ? null : picked;
+}
+
+/** Create new project (#546): make the folder and its repository, then hand it to `open()`
+ *  exactly as a picked folder is — the board is installed there and the project joins the
+ *  list. A refusal is the form's to print, and has written nothing.
+ *
+ *  A folder with no repository is still a project, so `git` failing is said in a dialog
+ *  and the open carries on. */
+async function createProject(w: Win | null, request: unknown): Promise<CreateProjectResult> {
+  if (!w) return { ok: false, error: copy().project.locationNeeded };
+  const asked = request as Partial<CreateProjectRequest> | undefined;
+  const made = await makeProject(
+    typeof asked?.name === "string" ? asked.name : "",
+    typeof asked?.parent === "string" ? asked.parent : "",
+    shellEnv,
+  );
+  if (!made.ok) return made;
+  if (made.noGit) {
+    await messageBox(w, {
+      type: "warning",
+      message: copy().project.noGit.message,
+      detail: made.noGit,
+    });
+  }
+  await open(w, made.dir);
+  return { ok: true, dir: made.dir };
 }
 
 /** The projects list: everything the user has opened, the open ones marked, with
@@ -1011,6 +1067,10 @@ ipcMain.handle(CHANNELS.forgetProject, (_e, repo: unknown) => forgetProject(repo
 ipcMain.handle(CHANNELS.pickRepo, (e) => pickRepo(asking(e)));
 
 ipcMain.handle(CHANNELS.pickFolder, (e) => pickFolder(asking(e)));
+
+ipcMain.handle(CHANNELS.pickLocation, (e, from: unknown) => pickLocation(asking(e), from));
+
+ipcMain.handle(CHANNELS.createProject, (e, request: unknown) => createProject(asking(e), request));
 
 ipcMain.handle(CHANNELS.closeProject, async (e) => {
   await closeProject(asking(e));

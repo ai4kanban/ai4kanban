@@ -26,6 +26,11 @@ file is about **using** the board.
 On the first launch, pick a project folder. It does not need a board yet: if there is no
 `docs/kanban/` there, the app offers to make one and then opens its guided first run.
 
+With nothing on disk yet, take **Create new project** beside **Open folder**: name it, say
+which folder it goes in, and the app makes the folder, starts a Git repository in it, and
+opens it like any other project. A name that is not one folder name, and a folder that is
+already there, are refused before anything is written.
+
 The folder path in the header opens the **Projects** list. Pick a project there to go back to
 a folder you opened before, or **Open folder…** to add another. **File → Open Project…** and
 **File → Open Recent** are the same two moves from the menu.

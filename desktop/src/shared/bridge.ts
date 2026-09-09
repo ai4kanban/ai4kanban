@@ -63,6 +63,18 @@ export interface UpdateStatus {
 
 export type CreateBoardResult = { ok: true } | { ok: false; error: string };
 
+/** A new project the launcher asked for (#546): one folder name, and the folder it goes
+ *  in. The name is never a path — the picker answers `parent`, and everything the user
+ *  types is the last segment. */
+export interface CreateProjectRequest {
+  name: string;
+  parent: string;
+}
+
+/** What making it came to. `ok` means the folder is there and the app is already opening
+ *  it; the failures are the form's to print, so each is a finished sentence. */
+export type CreateProjectResult = { ok: true; dir: string } | { ok: false; error: string };
+
 // --- the Cloud path through onboarding (#317) --------------------------------
 // Onboarding offers a Cloud board before any board is open, so there is no board server to
 // ask for any of this: the app answers it itself, from the rules it already carries
@@ -218,6 +230,11 @@ export const CHANNELS = {
   /** Ask for a folder and answer with what it holds — the picker onboarding's four moves
    *  share, and the one Export writes into. Nothing is opened (#317). */
   pickFolder: "a4k:pick-folder",
+  /** Ask where a new project goes — the same picker, answering with the folder rather
+   *  than opening it (#546). */
+  pickLocation: "a4k:pick-location",
+  /** Make the folder, start a repository in it, and open it (#546). */
+  createProject: "a4k:create-project",
   /** Leave the board on screen and show the launcher — what a deleted workspace leaves the
    *  window on (#317). */
   closeProject: "a4k:close-project",
@@ -328,6 +345,14 @@ export interface Ai4kanbanBridge {
    *  the user cancelled. Onboarding's four moves all start here, and Export writes into
    *  whatever this answers with. */
   pickFolder(): Promise<CloudFolder | null>;
+  /** Ask which folder a new project goes in, starting at `from` (#546). The same picker
+   *  `pickRepo` raises; nothing is opened. Null when the user cancelled. */
+  pickLocation(from: string): Promise<string | null>;
+  /** Make a new project: the folder, a Git repository in it, and then the same open a
+   *  picked folder gets — board setup and a line on the projects list. Refuses a name that
+   *  is not one folder name and a destination that already exists, without writing
+   *  anything (#546). */
+  createProject(request: CreateProjectRequest): Promise<CreateProjectResult>;
   /** Leave the project on screen and show the launcher — where a checkout lands when the
    *  workspace it pointed at has been deleted (#317). */
   closeProject(): Promise<null>;

@@ -33,6 +33,10 @@ export interface LauncherOptions {
    *  switcher: a build whose bundled rules predate the setting cannot save a
    *  pick, and a control that cannot save is worse than no control. */
   languages: LanguageChoice[];
+  /** Where a new project goes until the user says otherwise (#546) — beside the projects
+   *  already on the list, or home. The form starts filled in, so naming it is the only
+   *  move a first project needs. */
+  location: string;
 }
 
 export function launcherUrl(options: LauncherOptions): string {
@@ -106,7 +110,7 @@ function artwork(): string {
 // ink outlines, one ember accent, a hard offset shadow that presses down. This
 // screen is the app's front door, so it has to be the same object as the board
 // behind it.
-function page({ mac, language, languages }: LauncherOptions): string {
+function page({ mac, language, languages, location }: LauncherOptions): string {
   const c = getCopy(language).launcher;
   const tag = languages.find((l) => l.code === language)?.tag ?? "en";
   return `<!doctype html>
@@ -209,19 +213,24 @@ function page({ mac, language, languages }: LauncherOptions): string {
     flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 340px;
+    max-width: 380px;
   }
 
   .lockup { display: flex; align-items: center; gap: 13px; }
   h1 { margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -0.015em; }
 
+  /* The two moves, side by side: opening what is already there, and making what
+     isn't. Open Folder keeps the accent — it is the one most launches want — and
+     Create new project is the same block in outline. */
+  .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 30px; }
+  .actions[hidden] { display: none; }
+
   .open {
     -webkit-app-region: no-drag;
-    margin-top: 30px;
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    padding: 12px 22px;
+    padding: 12px 18px;
     border: 1.5px solid var(--ink);
     border-radius: 12px;
     background: var(--accent);
@@ -238,6 +247,64 @@ function page({ mac, language, languages }: LauncherOptions): string {
   /* A folder is named by whoever made it, so the button holds the long ones
      rather than growing past the column. */
   .open .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 230px; }
+  .open:disabled { opacity: 0.5; cursor: default; }
+  .open[hidden] { display: none; }
+  /* The same block without the accent: a second offer, not a second first choice. */
+  .ghost { background: var(--paper); color: var(--ink); }
+  .ghost:hover { background: color-mix(in srgb, var(--ink) 6%, var(--paper)); }
+
+  /* Making one (#546). It takes the place of the two buttons rather than sitting
+     under them: while it is up, naming the project is the only thing to do. */
+  .new { align-self: stretch; margin-top: 30px; display: flex; flex-direction: column; gap: 9px; }
+  .new[hidden] { display: none; }
+  .field {
+    -webkit-app-region: no-drag;
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--ink);
+    border-radius: 12px;
+    background: var(--paper);
+    box-shadow: 3px 3px 0 0 var(--ink);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    user-select: text;
+  }
+  .field::placeholder { color: var(--ink-soft); font-weight: 400; }
+  .field:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Where it goes: a path, so it reads as one — and a button, because that is how
+     it changes. Long paths keep their end, which is the folder you recognise. */
+  .where {
+    -webkit-app-region: no-drag;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 11px;
+    border: 1.5px solid color-mix(in srgb, var(--ink) 20%, transparent);
+    border-radius: 11px;
+    background: transparent;
+    color: var(--ink-soft);
+    font: inherit;
+    cursor: pointer;
+  }
+  .where:hover { border-color: var(--ink); color: var(--ink); }
+  .where:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .where span {
+    flex: 1;
+    overflow: hidden;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
+    text-align: left;
+  }
+  .error { margin: 0; color: var(--accent-deep); font-size: 12px; font-weight: 700; }
+  .error[hidden] { display: none; }
+  .ends { display: flex; justify-content: flex-end; gap: 10px; }
+  .ends .open { padding: 9px 18px; font-size: 14px; }
 
   /* Opening a project. Installing a board into a fresh folder and starting its
      server are seconds of work with this page still on screen, and a front door
@@ -443,7 +510,19 @@ ${switcher(language, languages, c)}
 <main>
   <div class="inner">
     <div class="lockup">${MARK}<h1>AI4Kanban</h1></div>
-    <button type="button" class="open" id="open">${FOLDER_ICON}<span class="label">${escapeHtml(c.openFolder)}</span></button>
+    <div class="actions" id="actions">
+      <button type="button" class="open" id="open">${FOLDER_ICON}<span class="label">${escapeHtml(c.openFolder)}</span></button>
+      <button type="button" class="open ghost" id="create">${PLUS_ICON}<span class="label">${escapeHtml(c.create)}</span></button>
+    </div>
+    <form class="new" id="new" hidden>
+      <input class="field" id="name" type="text" autocomplete="off" spellcheck="false" placeholder="${escapeHtml(c.projectName)}" aria-label="${escapeHtml(c.projectName)}">
+      <button type="button" class="where" id="where" title="${escapeHtml(location)}" aria-label="${escapeHtml(c.location)}">${FOLDER_ICON}<span id="where-path">&#8234;${escapeHtml(location)}</span></button>
+      <p class="error" id="error" role="alert" hidden></p>
+      <div class="ends">
+        <button type="button" class="open ghost" id="cancel">${escapeHtml(c.cancel)}</button>
+        <button type="submit" class="open" id="make">${escapeHtml(c.createIt)}</button>
+      </div>
+    </form>
     <section class="recent" id="recent" hidden>
       <h2><span>${escapeHtml(c.recent)}</span></h2>
       <ul class="rows" id="rows"></ul>
@@ -471,6 +550,8 @@ const MARK = `<svg width="34" height="34" viewBox="0 0 78 78" role="img" aria-la
     </svg>`;
 
 const FOLDER_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+
+const PLUS_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`;
 
 const CLOSE_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
 
@@ -688,10 +769,76 @@ function script(c: DesktopCopy["launcher"]): string {
   const openButton = document.getElementById("open");
   openButton.addEventListener("click", () => app?.pickRepo());
 
+  // Making one (#546). The form replaces the two buttons, and everything it refuses comes
+  // back from the app as a finished sentence — the page prints it and changes nothing.
+  const actions = document.getElementById("actions");
+  const form = document.getElementById("new");
+  const nameField = document.getElementById("name");
+  const whereButton = document.getElementById("where");
+  const wherePath = document.getElementById("where-path");
+  const makeButton = document.getElementById("make");
+  const cancelButton = document.getElementById("cancel");
+  const errorLine = document.getElementById("error");
+  const createButton = document.getElementById("create");
+  // The path is read back off the button rather than pasted in here a second time: a
+  // folder is named by whoever made it, and this is a <script>.
+  let where = whereButton.title;
+
+  function showForm(on) {
+    actions.hidden = on;
+    form.hidden = !on;
+    errorLine.hidden = true;
+    if (on) nameField.focus();
+  }
+
+  // Nothing has been written yet whatever the form says, so leaving it is only a redraw.
+  function closeForm() {
+    nameField.value = "";
+    showForm(false);
+  }
+
+  function working(on) {
+    for (const el of [nameField, whereButton, cancelButton, makeButton]) el.disabled = on;
+  }
+
+  function refuse(message) {
+    working(false);
+    errorLine.textContent = message || "";
+    errorLine.hidden = !message;
+    nameField.focus();
+  }
+
+  createButton.addEventListener("click", () => showForm(true));
+  cancelButton.addEventListener("click", closeForm);
+
+  whereButton.addEventListener("click", () => {
+    app?.pickLocation(where).then((picked) => {
+      if (!picked) return;
+      where = picked;
+      // The mark the recent list uses: the path is laid out right to left so a long one
+      // keeps its end, and this is what makes it READ left to right again.
+      wherePath.textContent = "\\u202A" + picked;
+      whereButton.title = picked;
+    }).catch(() => {});
+  });
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    errorLine.hidden = true;
+    working(true);
+    app?.createProject({ name: nameField.value, parent: where }).then((made) => {
+      // Made: the app is already opening it, and the board's page loads over this one.
+      if (!made || !made.ok) refuse(made && made.error);
+    }).catch(() => refuse(""));
+  });
+
   // The app has started opening a project — the picker is already gone, and this page has
   // the wait. Nothing puts it back: the board's page loads over this one, and the only
   // other way out of an open ends the app.
   app?.onOpening((name) => {
+    // A project made here is opened with the form still up; the wait belongs on the
+    // button, which is where every other open says it.
+    showForm(false);
     document.body.classList.add("busy");
     document.body.setAttribute("aria-busy", "true");
     const spinner = document.createElement("span");
@@ -701,6 +848,7 @@ function script(c: DesktopCopy["launcher"]): string {
     // Through a function, so a dollar sign in a folder's name is a character.
     label.textContent = OPENING.replace(FILLS_IN, () => name);
     openButton.replaceChildren(spinner, label);
+    createButton.hidden = true;
   });
 
   // The switcher saves through the app rather than through a board server, which this
@@ -723,6 +871,10 @@ function script(c: DesktopCopy["launcher"]): string {
       if (e.key === "Escape") langs.open = false;
     });
   }
+  // Escape leaves the form too — it has written nothing, so there is nothing to confirm.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !form.hidden && !makeButton.disabled) closeForm();
+  });
 
   const recent = document.getElementById("recent");
   const rows = document.getElementById("rows");

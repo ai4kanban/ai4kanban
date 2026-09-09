@@ -82,6 +82,15 @@ export interface DesktopCopy {
     /** A language on the switcher that isn't written yet. */
     soon: string;
     runningHere: string;
+    /** The second action, and the form it opens (#546): a name, the folder it goes in,
+     *  and the two buttons that end it. */
+    create: string;
+    projectName: string;
+    /** The button carrying the folder a new project goes in — what it is, since the
+     *  button itself is a path. */
+    location: string;
+    createIt: string;
+    cancel: string;
     /** The badge on a project the board of which lives in a Cloud workspace. */
     cloudBadge: string;
     /** What the button says while a project is being opened. */
@@ -98,7 +107,16 @@ export interface DesktopCopy {
   /** The dialogs the app draws over the window. */
   dialog: {
     folderGone: { message: (name: string) => string; detail: (path: string) => string };
-    pick: { titleFirst: string; titleAnother: string; message: string; button: string };
+    pick: {
+      titleFirst: string;
+      titleAnother: string;
+      message: string;
+      button: string;
+      /** The same picker, asked for the folder a NEW project's folder goes in (#546). */
+      titleLocation: string;
+      messageLocation: string;
+      buttonLocation: string;
+    };
     /** The offer to put `akb` on the PATH, and both of its outcomes. */
     command: {
       ask: string;
@@ -174,6 +192,18 @@ export interface DesktopCopy {
     failedDownload: (reason: string) => string;
     failedChecksum: string;
     failedUnpack: (reason: string) => string;
+  };
+  /** Making a new project from the launcher (#546). The refusals are printed by the
+   *  launcher's own form, so each is a finished sentence; `noGit` is the one of these the
+   *  app raises as a dialog, because by then the folder is made and the board is going in. */
+  project: {
+    nameNeeded: string;
+    nameNotOneFolder: string;
+    nameNotAllowed: string;
+    locationNeeded: string;
+    exists: (path: string) => string;
+    failed: (reason: string) => string;
+    noGit: { message: string; detail: (reason: string) => string };
   };
   /** The failures `lib/board-init.ts` reports. A `stderr` from the installer passes through
    *  as it arrived. */

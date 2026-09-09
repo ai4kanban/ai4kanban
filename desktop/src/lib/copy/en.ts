@@ -67,6 +67,11 @@ const en: DesktopCopy = {
     language: "Language",
     soon: "Soon",
     runningHere: "A run is going here",
+    create: "Create new project",
+    projectName: "Project name",
+    location: "Where it goes — click to change",
+    createIt: "Create",
+    cancel: "Cancel",
     cloudBadge: "Cloud",
     opening: (name) => `Opening ${name}…`,
     pathGone: (path) => `${path} — the folder is gone`,
@@ -85,6 +90,9 @@ const en: DesktopCopy = {
       titleAnother: "Open another project",
       message: "Pick the project folder to open. It doesn't need a board yet.",
       button: "Open",
+      titleLocation: "Where the project goes",
+      messageLocation: "Pick the folder the new project's own folder goes in.",
+      buttonLocation: "Choose",
     },
     command: {
       ask: "Put the akb command on your PATH?",
@@ -153,6 +161,21 @@ const en: DesktopCopy = {
     failedChecksum:
       "The download does not match the checksum published with it, so it was thrown away. Nothing on this computer was changed.",
     failedUnpack: (reason) => `The download could not be unpacked: ${reason}.`,
+  },
+  project: {
+    nameNeeded: "Type a name for the project.",
+    nameNotOneFolder:
+      "A project name is one folder name — it cannot hold a path. The folder button is where you say where it goes.",
+    nameNotAllowed: "This system will not take that as a folder name.",
+    locationNeeded: "Pick the folder the project goes in.",
+    exists: (path) =>
+      `${path} is already there, and nothing is ever written into a folder that exists. Pick another name, or another place for it.`,
+    failed: (reason) => `The project folder could not be made: ${reason}.`,
+    noGit: {
+      message: "The project was made, but it is not a Git repository.",
+      detail: (reason) =>
+        `${reason}\n\nThe folder and its board are yours all the same. Run \`git init\` in it whenever you want the repository.`,
+    },
   },
   board: {
     installerMissing: (path) =>

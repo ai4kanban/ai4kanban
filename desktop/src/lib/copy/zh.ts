@@ -67,6 +67,11 @@ const zh: DesktopCopy = {
     language: "语言",
     soon: "即将支持",
     runningHere: "这里有任务正在运行",
+    create: "新建项目",
+    projectName: "项目名称",
+    location: "存放位置——点击更改",
+    createIt: "创建",
+    cancel: "取消",
     cloudBadge: "Cloud",
     opening: (name) => `正在打开 ${name}…`,
     pathGone: (path) => `${path} —— 文件夹已不存在`,
@@ -84,6 +89,9 @@ const zh: DesktopCopy = {
       titleAnother: "打开另一个项目",
       message: "选择要打开的项目文件夹。它还没有看板也没关系。",
       button: "打开",
+      titleLocation: "项目存放位置",
+      messageLocation: "选择新项目的文件夹要放进哪个文件夹。",
+      buttonLocation: "选择",
     },
     command: {
       ask: "把 akb 命令加入 PATH？",
@@ -143,6 +151,19 @@ const zh: DesktopCopy = {
     failedDownload: (reason) => `下载没有完成：${reason}。`,
     failedChecksum: "下载的文件与发布时公布的校验值不一致，已丢弃。这台电脑上没有任何改动。",
     failedUnpack: (reason) => `下载的文件无法解压：${reason}。`,
+  },
+  project: {
+    nameNeeded: "请为项目取个名字。",
+    nameNotOneFolder: "项目名称只是一个文件夹名，不能带路径。存放位置请用那个文件夹按钮来选。",
+    nameNotAllowed: "这个系统不接受这样的文件夹名。",
+    locationNeeded: "请选择项目要放进哪个文件夹。",
+    exists: (path) => `${path} 已经存在，而应用绝不会写入已有的文件夹。请换个名字，或者换个存放位置。`,
+    failed: (reason) => `项目文件夹创建失败：${reason}。`,
+    noGit: {
+      message: "项目已创建，但它还不是一个 Git 仓库。",
+      detail: (reason) =>
+        `${reason}\n\n文件夹和它的看板都已经准备好了。想要仓库时，随时在里面运行 \`git init\`。`,
+    },
   },
   board: {
     installerMissing: (path) =>
