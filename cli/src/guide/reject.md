@@ -3,9 +3,13 @@
 Start with `akb raw reject <id>`. It deletes the card file. Before deleting, it prints the
 whole card — that printout is your copy, and you write the note from it.
 
-The rest of its output names two jobs. Do both.
+The rest of its output names two jobs.
 
-**1. Write the note.** The output says which `rejected.md` to use and which topics it
+**1. Write the note, if this rejection earns one.** Judge it against "What earns a note" in
+`akb guide board`: a note is a lasting reason not to propose the idea again. A duplicate, or
+a card the board has simply moved past, earns none — write nothing and say so.
+
+When it does earn one, the output says which `rejected.md` to use and which topics it
 already has. Add one line under the topic that fits:
 
 `- **<idea name>** — <why we said no, one line>.`

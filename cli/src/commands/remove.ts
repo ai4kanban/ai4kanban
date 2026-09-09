@@ -376,7 +376,7 @@ function closeGroup(rootFile: string): GroupClose | null {
 // flat list of shipped work by design; `rejected.md` is grouped by topic.
 const NOTE_KIND: Record<Metric, { file: string; what: string; guide: string; topics: boolean }> = {
   completed: { file: 'readme.md', what: 'record the shipped work', guide: '"Finish a task" in `akb guide board`', topics: false },
-  rejected: { file: 'rejected.md', what: 'write the rejection note', guide: '`akb guide reject`', topics: true },
+  rejected: { file: 'rejected.md', what: 'write the rejection note, if this rejection earns one', guide: '`akb guide reject`', topics: true },
 }
 
 // Long lines are quoted for recognition, not for copying — the file:line above each one is

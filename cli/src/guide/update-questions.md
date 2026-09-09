@@ -74,6 +74,10 @@ file it belongs in:
   agent's next proposal. Start the file with ``# What the user chose for `<agent>` `` when it
   isn't there.
 
+Append only what clears "What earns a note" in `akb guide board` — a correction or a choice
+that will change the agent's next proposal. Most answers change nothing lasting: leave both
+files untouched then, and merge into an equivalent line rather than repeating it.
+
 One line, in the user's own terms, and no card id, date, or story of the run. Nothing else
 goes in those files; the rest of them is the agent's. Never add a third file, and never copy
 how the product looks into either — that is read from the app's own `design.md` and

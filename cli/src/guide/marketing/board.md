@@ -13,6 +13,22 @@ Paths below are relative to `docs/kanban/`.
 - **`memory/rejected.md`**: rejected topics and reasons; pillar-specific rejections may live under `memory/<pillar>/`.
 - **`memory/published.md`**: date, channel, URL and result for each published piece.
 
+## What earns a note
+
+Memory holds only what improves a future choice. Writing nothing is a normal, complete
+outcome — never manufacture a lesson to satisfy a closing step.
+
+- **Honor an opt-out**: told not to record, write no memory at all for that action, and
+  finish what was asked for.
+- **Require lasting value**: a durable preference, constraint, decision, or lesson that
+  would materially change a later call. Nothing else.
+- **Skip housekeeping**: a duplicate, a routine status change, and a fact already captured
+  elsewhere earn no note. Rejecting a duplicate says nothing about the topic.
+- **Merge, don't repeat**: rewrite an equivalent entry in place instead of adding a second.
+
+`memory/published.md` is the record of published work, not a note — it follows the archive
+step below.
+
 Follow the current flow's guide: `repurpose`, `polish`, `marketing-polish-loop` or
 `prune-memory`. Do not start another flow unless instructed.
 

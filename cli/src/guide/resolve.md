@@ -33,7 +33,8 @@ three independent items is normal; every additional item needs distinct user-fac
 
 ## Record lasting user decisions
 
-Record only durable, user-facing answers in `memory/<module>/decisions.md`. Write one
+Record only durable, user-facing answers that clear "What earns a note" in `akb guide board`,
+in `memory/<module>/decisions.md`. Write one
 `**<key>**: <call>` line under the relevant topic, without its rationale. Replace a
 contradicted call instead of keeping both. If the user's answer is unclear, leave memory
 unchanged and keep the question open.

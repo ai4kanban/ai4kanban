@@ -163,6 +163,26 @@ section (`akb guide update-questions`). No third file: how the product looks is 
 the app's own `design.md` and components, and a product fact worth keeping is written into
 the lesson or the decision it supports.
 
+### What earns a note
+
+Memory holds only what improves a future planning choice. Writing nothing is a normal,
+complete outcome — never manufacture a lesson to satisfy a closing step.
+
+- **Honor an opt-out**: told not to record — "do not record", "no memory", or the like —
+  write no memory at all for that action, and finish the board action that was asked for.
+- **Require lasting value**: `decisions.md`, `redesign.md`, `rejected.md` and the agent
+  memories take a durable preference, constraint, decision, or lesson that would materially
+  change a later planning call. Nothing else.
+- **Skip housekeeping**: a duplicate, a routine status change, and a fact already captured
+  elsewhere earn no note. Rejecting a duplicate says nothing about the feature — never write
+  a line that reads as if it were unwanted.
+- **Merge, don't repeat**: keep the principle and its reason, and rewrite an equivalent entry
+  in place instead of adding a second one.
+
+Every flow that writes planning memory holds to this bar, `akb guide reject` and "An agent's
+memory" in `akb guide update-questions` included. `readme.md` is the record of shipped work,
+not a planning note — it follows "Finish a task" below.
+
 ## Archive/Finish a task
 
 **`akb raw archive <id>` is the only way a task leaves the board.** It files the card,

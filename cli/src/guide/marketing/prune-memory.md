@@ -11,5 +11,8 @@ rules only when a later decision or explicit feedback supersedes them.
 - **Rejections**: retain what was rejected and why. Published work belongs in `published.md`.
 - **Publication history**: preserve every entry's date, channel, URL and result. Shorten wording only.
 
+Drop every entry that fails "What earns a note" in `akb guide board` — the bar that governs a
+write governs what stays.
+
 Polish saves individual lessons; this guide consolidates existing memory. Drop narrative
 and repetition, not evidence needed to interpret a rule.

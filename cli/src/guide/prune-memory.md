@@ -10,7 +10,8 @@ design mistake, or re-asking a settled question. Rewrite each as **topics** (h2 
 the module — with plain-language takeaways under each section. Keep only what helps future
 planning; drop code detail, dates, task ids, step-by-step stories.
 
-Merge lines that say the same thing. Rewrite, don't just cut.
+Drop every entry that fails "What earns a note" in `akb guide board` — the bar that governs a
+write governs what stays. Merge lines that say the same thing. Rewrite, don't just cut.
 
 On top of that, per file:
 
