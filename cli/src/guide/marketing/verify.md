@@ -5,10 +5,11 @@ in this one session. Write only that draft.
 
 ## Pick the verifiers
 
-Read the draft, then list `memory/writing/`.
+Read the draft, then recursively list all Markdown files under `memory/writing/`.
 
 - **All of them by default**: use every file, dropping only the ones plainly out of scope
-  for this piece — a social post that is not for search skips `writing/seo.md`.
+  for this piece — a social post that is not for search skips `writing/seo.md`;
+  a non-Reddit piece skips `writing/reddit/`. Shared aspect files still apply.
 - **`memory/writing.md` always applies**: it is the shared memory and is never dropped.
 - **Say which**: name the files you used and the files you dropped, with one reason each.
 
@@ -31,8 +32,6 @@ Three passes at most. Each pass is a check and then a fix, in that order.
 - **One file**: edit only the named channel draft. Never the card, `source.md`, another
   channel's draft or the writing memory — verification findings are not user feedback, and
   learning from feedback belongs to `akb guide polish`.
-- **Block when necessary**: if the loop cannot run, run
-  `akb raw run-blocker <id> --step ".." --cause ".." --unblock ".."` and stop.
 
 End with the files used and dropped, how many passes ran and why the loop stopped, what
 each pass changed, and any finding still outstanding.

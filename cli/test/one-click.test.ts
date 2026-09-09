@@ -447,41 +447,8 @@ describe('a run that ends before it spawns', () => {
   })
 })
 
-const blocker = (argv: string[]): Promise<Record<string, unknown>> => move(root, ['run-blocker', '1', ...argv])
-
-describe('implementation blockers', () => {
-  it('records three actionable lines on the current implementation run', async () => {
-    const sessionId = run('implement', 1, 'card one')
-    process.env[RUN_ENV] = sessionId
-    await blocker(['--step', 'Install `@supabase/realtime-js`', '--cause', 'Package installation is unavailable in this run', '--unblock', 'Allow the installation, then resume'])
-
-    assert.deepEqual(peekRun(sessionId)?.blocker, {
-      step: 'Install `@supabase/realtime-js`',
-      cause: 'Package installation is unavailable in this run',
-      unblock: 'Allow the installation, then resume',
-    })
-  })
-
-  it('refuses a blocker outside the implementation doing that card', async () => {
-    await assert.rejects(
-      () => blocker(['--step', 'Do it', '--cause', 'Cannot', '--unblock', 'Allow it']),
-      /only for the implementation run/,
-    )
-
-    const sessionId = run('edit', 1, 'card one')
-    process.env[RUN_ENV] = sessionId
-    await assert.rejects(
-      () => blocker(['--step', 'Do it', '--cause', 'Cannot', '--unblock', 'Allow it']),
-      /only an implementation run/,
-    )
-  })
-
-  it('keeps every field to one short line', async () => {
-    const sessionId = run('implement', 1, 'card one')
-    process.env[RUN_ENV] = sessionId
-    await assert.rejects(
-      () => blocker(['--step', 'One\nTwo', '--cause', 'Cannot', '--unblock', 'Allow it']),
-      /--step needs one short sentence/,
-    )
+describe('removed raw commands', () => {
+  it('rejects run-blocker as an unknown command', async () => {
+    await assert.rejects(() => move(root, ['run-blocker', '1']), /unknown command/)
   })
 })

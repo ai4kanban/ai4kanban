@@ -336,21 +336,6 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('tag', this, [String(id), positions, tag], this.opts(), cli)
     })
 
-  move('run-blocker')
-    .argument('[id]', `${ID} — leave it out on a build with no card`, cardId)
-    .summary('pause an implementation on one actionable blocker')
-    .description(
-      'Record why the current implementation cannot safely continue and the one action that lets Resume ' +
-        'carry it on. Each field is one short sentence. This belongs to the run, never to the card ' +
-        'questions.',
-    )
-    .requiredOption('--step <text>', 'the step it stopped on')
-    .requiredOption('--cause <text>', 'why it cannot safely continue')
-    .requiredOption('--unblock <text>', 'the one action that lets Resume carry it on')
-    .action(async function (this: Command, id: number | undefined) {
-      await dispatch('run-blocker', this, id === undefined ? [] : [String(id)], this.opts(), cli)
-    })
-
   move('plan')
     .argument('<move>', 'new — name the plan this discussion is writing')
     .summary("the plan file one discussion is writing")

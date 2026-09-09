@@ -36,6 +36,14 @@ free-text choice. Use `--mode multi` only for combinable options, recommending e
 would take. Use `--update <n>`, `--drop <n[,n...]>`, or `--to-verify <n[,n...]>` only for an
 existing question.
 
+### Implementation blockers
+
+An implementation obstacle requiring user action also belongs in a `[user]` question, even
+when no product decision is needed. State what cannot proceed and what action is needed;
+offer concrete ways forward, such as granting access or deferring the affected work. Use
+`akb raw update-questions` with options as above. Stop only dependent work and resume after
+resolution. Do not reopen settled decisions or turn agent-resolvable issues into questions.
+
 ### `Worth noting` and `Worth noting after implementation`
 
 These sections contain answers, never open questions. Put an answered question in `## Worth

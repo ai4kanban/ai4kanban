@@ -1,11 +1,10 @@
 # Implement a settled card
 
-Build the approved card. Do not add, rewrite, or tag questions on it.
+Build the approved card. Preserve settled decisions and unrelated questions.
 
-- **Stop on a real blocker**: when the work cannot safely continue, run
-  `akb raw run-blocker <id> --step ".." --cause ".." --unblock ".."`, then stop. Each
-  field is one short factual sentence, and `--unblock` names one concrete action—never a
-  menu of alternatives.
+- **User-action blockers**: follow `akb guide update-questions` and append a `[user]`
+  question describing the obstacle and action needed. Stop only dependent work; resume it
+  after the user resolves the question. Settle routine technical choices yourself.
 - Do not replace or contradict what the card says.
 - A printed, interactive implementation may stay uncommitted in the target checkout only
   when the card is still clear and localized under "Choose its refine effort" in
@@ -40,5 +39,3 @@ build.
   widen it no further. `akb card implement <id> --print` is the flow from here.
 - **Nothing reviews it**: AI review and diff approval are off, so your own commit is the last
   word before it reaches the branch. Run the repository's checks yourself.
-- **Blockers before the card**: `akb raw run-blocker --step ".." --cause ".." --unblock ".."`
-  with the id left out, read on the run's flow in Runs. Once the card exists, name it.

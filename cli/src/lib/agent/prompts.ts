@@ -305,7 +305,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
             ? `Follow \`akb guide implement\` — write its card first, from that plan, then build it.`
             : `Follow \`akb guide implement\` — write its card first, from that sentence, then build it.`,
           req.release ? `Put the new card in the "${req.release}" release: \`--release ${req.release}\`.` : '',
-          `Don't ask me questions with human-in-the-loop; stop on a real blocker instead.`,
+          `Resolve routine choices yourself; record blockers needing user action on the card following \`akb guide update-questions\`.`,
         ]
           .filter(Boolean)
           .join(' ')

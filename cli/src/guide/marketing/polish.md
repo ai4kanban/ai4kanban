@@ -1,34 +1,24 @@
 # Polish from user feedback
 
-Apply one draft's comment batch, then save only reusable lessons from that feedback.
-Write only the named draft and relevant writing-memory files. Leave the card, other
-drafts and comments file alone.
+Apply the comment batch to the named draft, then save reusable user preferences.
+Write only that draft and relevant writing-memory files.
 
-## Read the feedback
+## Polish the draft
 
-Read the named draft, its list in `docs/kanban/.comments/<id>.json`,
-`memory/writing.md` and every file under `memory/writing/`.
+Read the draft, its list in `docs/kanban/.comments/<id>.json`, `memory/writing.md`
+and every Markdown file under `memory/writing/`, recursively.
 
-- **Anchor by quote**: `quote` identifies the passage; `from` and `to` are hints. `words` is the user's request.
-- **Use the current draft**: if the quote has changed or disappeared, apply the request where it still fits; never restore deleted text just to edit it.
-- **Resolve together**: read the whole batch before editing. Follow an explicit later correction; do not guess between incompatible requests.
+- **Read the whole batch**: `quote` anchors the passage, `from`/`to` are hints, and `words` is the request. Use the current text; skip a comment if its passage is gone and no clear target remains.
+- **Apply the feedback**: follow explicit later corrections; otherwise resolve conflicting requests using your judgment. Use factual claims supplied by the user without requiring supporting information. Preserve unrelated text, intent, language and format unless feedback changes them; invent no claims of your own.
+- **Check every comment**: reread against the batch and applicable writing rules. Feedback overrides rules for this draft; a local exception does not repeal them.
 
-## Polish
+## Save structured memories
 
-- **Apply every request**: make one coherent edit, changing neighbouring text only when needed. Keep unrelated text unchanged.
-- **Preserve intent**: retain the argument, language and channel format unless the feedback explicitly changes them. Invent no facts or claims.
-- **Check the result**: reread against every comment and applicable writing rule. User feedback takes precedence for this draft; a local exception does not repeal a general rule.
-- **Block when necessary**: if a request cannot be resolved, run `akb raw run-blocker <id> --step ".." --cause ".." --unblock ".."` and stop without saving memory. Do not silently drop it.
+After checking the draft:
 
-## Save memories
+- **Learn only reusable preferences**: skip one-off facts, URLs and passage replacements. Never make rules from your own rewrite or uncertain interpretations.
+- **File by scope and aspect**: use `memory/writing/<aspect>.md` for shared concerns (`voice.md`, `seo.md`) and `memory/writing/<channel>/*.md` for channel rules split by aspect or format (`reddit/self-promo.md`). Keep `memory/writing.md` small: only cross-cutting defaults, not a catch-all. Split coherent topics into named files. Preserve actual scope; where feedback arose does not determine where it applies.
+- **Group by topic**: use descriptive `##` headings within each file, e.g. `## Self-promo posts` in `reddit/posts.md`. Create files and sections as needed; move misplaced related rules instead of appending to a flat list. Leave unrelated memory alone.
+- **Say it once**: merge matching rules; preserve meaning, scope and exceptions. Use `- ❌ <specific mistake> → ✅ <preferred approach>`. Replace a contradicted preference only when feedback clearly changes it; remove files or sections emptied by moves.
 
-Finish and check the draft before updating memory.
-
-- **Learn from the user**: save a correction only when the feedback establishes a preference that applies to future pieces. Never turn your own rewrite or an uncertain interpretation into a rule.
-- **Skip one-off edits**: facts, URLs, numbers and passage-specific replacements are not writing rules. No reusable lesson means no memory edit.
-- **File by topic**: a lesson goes to the `memory/writing/` file whose topic it belongs to — what the rule checks, not the language, format or channel it was learned on. A rule that holds for one language or format only says so in its own wording. What no topic file covers stays in `memory/writing.md`.
-- **A new file only when no topic fits**: name it for what it checks, one plain word where possible — `seo.md`, `voice.md`, `structure.md`. Never widen a rule to fit an existing file. File it once: a lesson touching two topics goes to the one it is mainly about. Source feedback cannot establish a channel-format rule.
-- **Say it once**: update an existing matching rule or add `- ❌ <specific mistake> → ✅ <preferred approach>`, preserving the user's meaning and qualifiers. Replace a contradicted rule only when the feedback clearly changes the standing preference.
-- **Keep edits small**: use the existing heading; create a topic file only when needed. Do not reorganize or prune unrelated memory.
-
-End with a brief account of the draft changes and rules saved, or “No reusable lesson.”
+End with the draft changes and rules saved, or “No reusable lesson.”

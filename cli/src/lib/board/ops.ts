@@ -79,7 +79,6 @@ const CARD_MOVES = new Set([
   'archive',
   'reject',
   'record-run',
-  'run-blocker',
   'spec-write',
 ])
 

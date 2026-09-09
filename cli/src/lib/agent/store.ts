@@ -30,7 +30,6 @@ import type {
   DeliveryReview,
   DeliveryStatus,
   DeliveryStep,
-  ExecutionBlocker,
   LandingStatus,
   ReviewStopReason,
   ReviewTrigger,
@@ -258,27 +257,6 @@ export function cardsAtWork(): Set<number> {
     if (delivery.status === 'active' && delivery.cardId !== null) held.add(delivery.cardId)
   }
   return held
-}
-
-/** Attach the one interruption a person must clear before this implementation resumes.
- *
- *  `cardId` is null on a build with no card (#428): there is no id to name, so the run's own
- *  is not checked against one. */
-export function recordRunBlocker(
-  cardId: number | null,
-  sessionId: string,
-  blocker: ExecutionBlocker,
-): { ok: true; run: RunRecord } | { ok: false; error: string } {
-  return withRuns((runs) => {
-    const run = runs.find((r) => r.sessionId === sessionId)
-    if (!run || run.status !== 'running') return { ok: false, error: 'no active run can record this blocker' }
-    if (run.action !== 'implement') return { ok: false, error: 'only an implementation run can record a blocker' }
-    if (cardId !== null && run.cardId !== cardId) {
-      return { ok: false, error: `this run is implementing ${run.cardId === null ? 'no card' : `#${run.cardId}`}, not #${cardId}` }
-    }
-    run.blocker = blocker
-    return { ok: true, run: { ...run } }
-  })
 }
 
 function readDeliveryRows(raw: unknown): DeliveryRecord[] {

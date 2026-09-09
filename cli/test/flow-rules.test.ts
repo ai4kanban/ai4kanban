@@ -260,14 +260,19 @@ describe('the prompt', () => {
     assert.match(build, /focused checks[\s\S]*repository-required check/)
   })
 
-  it('keeps implementation blockers out of card questions', () => {
+  it('routes implementation blockers through card questions', () => {
     const prompt = buildPrompt({ action: 'implement', id: 1, title: 'card one' })
     const guide = findGuide('implement')!.text
     assert.match(prompt, /akb guide implement/)
     assert.doesNotMatch(prompt, /Leave any questions as open questions/)
     assert.doesNotMatch(prompt, /update-questions/)
-    assert.match(guide, /run-blocker/)
-    assert.match(guide, /Do not add, rewrite, or tag questions/)
+    assert.doesNotMatch(guide, /run-blocker/)
+    assert.match(guide, /Preserve settled decisions and unrelated questions/)
+    assert.match(guide, /akb guide update-questions/)
+    assert.match(guide, /Stop only dependent work; resume it/)
+    assert.match(findGuide('update-questions')!.text, /### Implementation blockers/)
+    const build = buildPrompt({ action: 'implement', description: 'Build a widget' })
+    assert.match(build, /blockers needing user action[\s\S]*akb guide update-questions/)
     assert.doesNotMatch(guide, /Worth noting after implementation/)
   })
 
