@@ -36,7 +36,7 @@ import { notificationsSilenced } from '../machine/settings'
 import { KANBAN } from '../paths'
 import { cloudBoardById, cloudBoardFor, readCloudBoards } from './boards'
 import { readBoardCopy } from './copy'
-import { listEvents, readEvent } from './client'
+import { isTerminal, listEvents, readEvent } from './client'
 import { eventLabel, needsPerson, onTheRail, type CloudEvent, type CloudEventState } from './events'
 import { eventHome, inHome } from './home'
 import { connectCloudLive, type LiveConnection } from './live'
@@ -144,10 +144,15 @@ function writeReads(read: Record<string, string>): void {
 
 // ---- the held connection ----------------------------------------------------
 
-/** How long the bell goes without a durable read while its socket is not carrying it. A
- *  socket that never joined receives nothing and says nothing, so without this the rail would
- *  sit on whatever the start read and never move again (#329). */
+/** How long the bell goes without a durable read. A socket that never joined receives nothing
+ *  and says nothing, and a joined one can still lose a hint on the wire, so without this the
+ *  rail would sit on whatever the start read until the socket reconnects (#329, #566). */
 const CATCH_UP_MS = 5 * 60_000
+
+/** How long a failed hint read waits before each further go. Three retries over seven seconds
+ *  — long enough for a passing blip, and short enough that the catch-up read above is the only
+ *  other floor needed. */
+const RETRY_MS = [1_000, 2_000, 4_000]
 
 interface Held {
   live: LiveConnection | null
@@ -157,11 +162,18 @@ interface Held {
   starting?: Promise<void>
   /** When the last durable read began. */
   readAt?: number
+  /** Hint retries still waiting. */
+  retries: Set<ReturnType<typeof setTimeout>>
+  /** Bumped by every stop. A read still in flight then belongs to a center that is gone, so
+   *  it raises nothing. */
+  epoch: number
 }
 
 function state(): Held {
   const g = globalThis as unknown as { __akbCloudCenter?: Held }
-  if (!g.__akbCloudCenter) g.__akbCloudCenter = { live: null, events: new Map(), alerts: [] }
+  if (!g.__akbCloudCenter) {
+    g.__akbCloudCenter = { live: null, events: new Map(), alerts: [], retries: new Set(), epoch: 0 }
+  }
   return g.__akbCloudCenter
 }
 
@@ -183,12 +195,11 @@ export function startCloudCenter(onScreen: boolean): void {
   // that enables the board is usually not the one that opens the socket.
   void ensureBoardNotifications().catch(() => {})
   if (held.live || held.starting) {
-    // The socket is what keeps the rail moving, so long as it really joined. One that did
-    // not receives nothing and reports nothing — a refused topic, or a Realtime having a bad
-    // afternoon — and the durable read is the floor under it.
-    if (!held.live?.joined() && Date.now() - (held.readAt ?? 0) > CATCH_UP_MS) {
-      void catchUp(false).catch(() => {})
-    }
+    // The durable read is the floor under the socket, joined or not. One that did not join
+    // receives nothing and reports nothing — a refused topic, or a Realtime having a bad
+    // afternoon — and a joined one still drops the odd hint on the wire, which costs five
+    // minutes here rather than waiting for a reconnect (#566).
+    if (Date.now() - (held.readAt ?? 0) > CATCH_UP_MS) void catchUp(false).catch(() => {})
     return
   }
   held.starting = (async () => {
@@ -200,7 +211,7 @@ export function startCloudCenter(onScreen: boolean): void {
       onReady: (firstTime) => void catchUp(firstTime),
       onHint: (payload) => {
         const id = payload.eventId
-        if (typeof id === 'string' && id) void hint(id)
+        if (typeof id === 'string' && id) void readHint(id)
       },
     })
     // No socket on this runtime — the bell still fills from the catch-up read.
@@ -222,6 +233,11 @@ export function stopCloudCenter(): void {
   held.events.clear()
   held.alerts = []
   held.readAt = undefined
+  // Nothing a stopped center was still waiting on may raise anybody: signing out and quitting
+  // are both the user saying they are done being interrupted.
+  for (const timer of held.retries) clearTimeout(timer)
+  held.retries.clear()
+  held.epoch += 1
 }
 
 /** The durable read every start and reconnect does before listening for hints.
@@ -247,10 +263,28 @@ async function catchUp(firstTime: boolean): Promise<void> {
 }
 
 /** One hint, resolved through the Worker. Realtime carries the identifier; Postgres is the
- *  authority for what it now says. */
-async function hint(eventId: string): Promise<void> {
+ *  authority for what it now says.
+ *
+ *  A read that did not get through is tried again on `RETRY_MS` — the alert this hint carries
+ *  has nothing else to arrive on until the catch-up read, five minutes out. A refusal
+ *  `isTerminal` names is an answer rather than a blip, so it is given up on at once, and a
+ *  hint given up on says nothing: `error` stays what the durable read made of Cloud (#566). */
+export async function readHint(eventId: string, attempt = 0): Promise<void> {
+  const held = state()
+  const epoch = held.epoch
   const answer = await readEvent(eventId)
-  if (!answer.ok) return
+  if (held.epoch !== epoch) return
+  if (!answer.ok) {
+    const wait = RETRY_MS[attempt]
+    if (wait === undefined || isTerminal(answer.code)) return
+    const timer = setTimeout(() => {
+      held.retries.delete(timer)
+      void readHint(eventId, attempt + 1)
+    }, wait)
+    timer.unref?.()
+    held.retries.add(timer)
+    return
+  }
   merge(answer.value.event, { silent: false })
 }
 
