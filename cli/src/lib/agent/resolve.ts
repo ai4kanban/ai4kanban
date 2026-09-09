@@ -10,6 +10,7 @@ import fs from 'node:fs'
 
 import { machineName } from '../machine/identity'
 import { REPO_ROOT } from '../paths'
+import { splitCommand, quoteArg } from './argv'
 import { harnessGaps } from './capabilities'
 import type { RunClient, StreamRenderer } from './wire'
 import {
@@ -139,13 +140,19 @@ export function commandOf(block: Record<string, string>, harness: Harness): stri
 // The command with its first word made absolute, or exactly what it was. Untouched when the
 // harness names no bundled copy, when the command already says where its binary lives, or
 // when the PATH answers the bare name — an install of the CLI proper always wins.
+//
+// The resolved path goes back in QUOTED: on Windows the places a desktop app keeps its CLI are
+// all under a folder with a space in the name, and the command string is re-split by every
+// reader of it (agent/argv.ts). Only that first word is rewritten — the rest is the command
+// exactly as it was written, so a hand-written argument is never re-spelt.
 function bundledBinary(command: string, harness: Harness): string {
   if (!harness.bundled) return command
   const binary = commandBinary(command)
   if (!binary || binary.includes('/') || binary.includes('\\')) return command
   if (binaryOnPath(binary)) return command
-  const found = harness.bundled().find((p) => p && !/\s/.test(p) && fs.existsSync(p))
-  return found ? `${found}${command.slice(binary.length)}` : command
+  const found = harness.bundled().find((p) => p && fs.existsSync(p))
+  if (!found) return command
+  return `${quoteArg(found)}${command.slice(command.indexOf(binary) + binary.length)}`
 }
 
 /** What one runtime is set to: each declared setting's value, which of its keys
@@ -232,7 +239,7 @@ function resolveHarness(ask: HarnessAsk = {}): ResolvedHarness {
   const { values, secretsSet, ignored } = readBlock(
     harness,
     runtime.settings,
-    command.split(/\s+/).filter(Boolean),
+    splitCommand(command),
     runtime.id,
   )
   return {
@@ -356,9 +363,10 @@ function settingArgs(resolved: ResolvedHarness): string[] {
   // harness adds: a connector whose own arguments open a subcommand (`codex exec … resume
   // <id>`) takes everything after that subcommand as the subcommand's.
   //
-  // Split on spaces, the same way the command itself is, and nothing is checked: what this
-  // is for is the flags the board has no words for, and only the CLI can judge one.
-  return [...providerArgs, ...flags, ...(values[RAW_ARGS_KEY]?.split(/\s+/).filter(Boolean) ?? [])]
+  // Split the same way the command itself is — quotes and all (agent/argv.ts) — and nothing
+  // is checked: what this is for is the flags the board has no words for, and only the CLI
+  // can judge one.
+  return [...providerArgs, ...flags, ...(splitCommand(values[RAW_ARGS_KEY] ?? ''))]
 }
 
 // The environment one run gets, in three steps.
@@ -490,7 +498,7 @@ export function planRun(
 ): RunPlan & { note: string | null } {
   const resolved = resolveHarness({ agent, ...own })
   const { harness, command, runtime } = resolved
-  const argv = command.split(/\s+/).filter(Boolean)
+  const argv = splitCommand(command)
   return {
     harness: harness.name,
     runtime: runtime.id,
@@ -524,7 +532,7 @@ export function planResume(
   const resolved = resolveHarness({ agent, ...own, harness: harnessName })
   const { harness, command, runtime } = resolved
   if (!harness.resumes) return null
-  const argv = command.split(/\s+/).filter(Boolean)
+  const argv = splitCommand(command)
   return {
     harness: harness.name,
     runtime: runtime.id,

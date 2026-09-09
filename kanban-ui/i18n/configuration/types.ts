@@ -46,6 +46,10 @@ export type ConfigurationCopy = {
      *  command that answers each one is inside the row. */
     signedOut: string;
     notInstalled: string;
+    /** The CLI this row resolves to is on this computer and would not start (#550). */
+    cannotRun: string;
+    /** The line under such a row, with the command that installs the CLI proper after it. */
+    cannotRunHint: (harness: string) => string;
     /** Under the list, and what a new row is for. */
     add: string;
     footer: string;

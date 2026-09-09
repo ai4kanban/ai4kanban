@@ -19,6 +19,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { splitCommand } from './argv'
+
 const WINDOWS = process.platform === 'win32'
 
 /** The extensions that make a bare name runnable on Windows, where `claude` on the PATH is
@@ -33,9 +35,10 @@ function windowsExtensions(): string[] {
 }
 
 /** The binary a command line spawns — its first word, which is all that has to exist for
- *  the spawn to get off the ground. */
+ *  the spawn to get off the ground. Quoted, that word may hold spaces (agent/argv.ts); it
+ *  comes back here as the plain path a stat can be taken of. */
 export function commandBinary(command: string): string {
-  return command.split(/\s+/).filter(Boolean)[0] ?? ''
+  return splitCommand(command)[0] ?? ''
 }
 
 /** Whether ONE bare name is on the PATH, without reading a single directory: a stat per PATH

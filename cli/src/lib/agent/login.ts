@@ -12,7 +12,8 @@
 // `akb card implement` all start exactly as they did — a stale or wrong reading here costs one
 // wasted run, where gating on it would lock someone out of an agent that works. So the whole
 // of its answer is a warning, and it is only ever given for a CLI that said outright that
-// nobody is logged in.
+// nobody is logged in — or, since #550, one that would not start at all, which is the other
+// thing only a spawn can find out.
 //
 // One probe per CLI, one verdict per ROW. The spawn follows the command the installed answer
 // already resolves, so two runtimes on one harness are one probe; the verdict is then read
@@ -22,6 +23,7 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 
 import { REPO_ROOT } from '../paths'
+import { quoteArg, splitCommand } from './argv'
 import type { Harness } from './harnesses'
 import { commandBinary, pathLookup } from './installed'
 import { shownForProvider } from './providers'
@@ -44,10 +46,23 @@ const MAX_OUTPUT = 64 * 1024
 
 const WINDOWS = process.platform === 'win32'
 
-/** What one probe's output said. `unknown` is the answer to everything that isn't a clear
- *  reading — no probe declared, a spawn that failed, a budget that ran out, output neither
- *  reading covers — and it says nothing on any screen. */
-export type LoginState = 'ready' | 'logged-out' | 'unknown'
+/** What a Windows shell prints when the thing it was handed never ran: a path it could not
+ *  find, and one it was refused — which is what a `codex.exe` under `WindowsApps` answers.
+ *
+ *  Only ever read alongside a non-zero exit and no login reading, so a CLI that merely prints
+ *  these words while working is never called unrunnable. Off Windows there is no shell in the
+ *  way and the spawn's own `error` says it instead. */
+const SHELL_REFUSED =
+  /is not recognized as an internal|Access is denied|The system cannot find the (file|path)|cannot execute/i
+
+/** What one probe made of the CLI it asked. `unknown` is the answer to everything that isn't
+ *  a clear reading — no probe declared, a budget that ran out, output neither reading covers —
+ *  and it says nothing on any screen.
+ *
+ *  `cannot-run` is the one verdict that isn't about a login (#550): the file this row resolves
+ *  to is on the machine and would not start. A desktop app's own bundled CLI is where that
+ *  turns up — discovery finds the file, and only a spawn can say the ACL refuses it. */
+export type LoginState = 'ready' | 'logged-out' | 'unknown' | 'cannot-run'
 
 /** What this connector's own readings make of one probe's output. `ready` is asked first, so
  *  a CLI that prints both — a login beside the words "not logged in" in a hint — is never
@@ -67,7 +82,7 @@ function plain(output: string): string {
 }
 
 /** One row worth asking about, and the binary to ask. */
-interface Ask {
+export interface Ask {
   runtime: Runtime
   harness: Harness
   binary: string
@@ -94,7 +109,7 @@ export function toAsk(): Ask[] {
     const { values, secretsSet } = readBlock(
       harness,
       runtime.settings,
-      command.split(/\s+/).filter(Boolean),
+      splitCommand(command),
       runtime.id,
     )
     const picked = activeProviderOf({ harness, values, secretsSet })
@@ -113,7 +128,10 @@ export function toAsk(): Ask[] {
 /** The probe's child process, or nothing when it wouldn't start at all. */
 function start(binary: string, args: string[]): ChildProcess | undefined {
   try {
-    return spawn(binary, args, {
+    // Under a shell the command line is one string again, so a binary whose path holds a
+    // space goes back in quoted — which is most of what a Windows path is (agent/argv.ts).
+    // Without the shell it is already one argument and needs nothing.
+    return spawn(WINDOWS ? quoteArg(binary) : binary, args, {
       cwd: REPO_ROOT,
       // Nothing to type at: a probe that stopped to ask would spend its whole budget and
       // answer nothing. Its stdout and stderr are one answer — several of these print the
@@ -130,22 +148,36 @@ function start(binary: string, args: string[]): ChildProcess | undefined {
   }
 }
 
-/** One probe, run to a hard budget. Everything that can go wrong — a binary that won't
- *  start, a CLI that hangs, a non-zero exit — comes back as whatever was printed, which is
- *  then read like any other output and lands on `unknown`. */
-function ask({ harness, binary }: Ask): Promise<string> {
+/** What one probe came back with: everything the CLI printed, and whether the executable
+ *  itself never ran. */
+export interface Probe {
+  output: string
+  /** The file is there and still would not start — a spawn that failed outright, or a shell
+   *  that refused what it was given. */
+  unrunnable: boolean
+}
+
+/** One probe, run to a hard budget. Everything that can go wrong — a CLI that hangs, a
+ *  non-zero exit, output nothing recognises — comes back as whatever was printed and is read
+ *  like any other output.
+ *
+ *  The one thing told apart from that is a binary that never started: the spawn's own `error`,
+ *  or, under the Windows shell that hides it, the shell's refusal beside a non-zero exit. */
+export function ask({ harness, binary }: Ask): Promise<Probe> {
   const args = harness.login?.args ?? []
   return new Promise((resolve) => {
     let output = ''
+    let broken = false
     let settled = false
-    const finish = (): void => {
+    const finish = (code?: number | null): void => {
       if (settled) return
       settled = true
       clearTimeout(timer)
-      resolve(output)
+      const refused = WINDOWS && code !== 0 && SHELL_REFUSED.test(output)
+      resolve({ output, unrunnable: broken || refused })
     }
     const child = start(binary, args)
-    if (!child) return resolve('')
+    if (!child) return resolve({ output: '', unrunnable: true })
     const timer = setTimeout(() => {
       child.kill('SIGKILL')
       finish()
@@ -155,8 +187,11 @@ function ask({ harness, binary }: Ask): Promise<string> {
     }
     child.stdout?.on('data', take)
     child.stderr?.on('data', take)
-    child.on('error', finish)
-    child.on('close', finish)
+    child.on('error', () => {
+      broken = true
+      finish()
+    })
+    child.on('close', (code) => finish(code))
   })
 }
 
@@ -186,15 +221,33 @@ async function probeAll(): Promise<LoggedOutAgent[]> {
   } catch {
     return []
   }
-  const spawns = new Map<string, Promise<string>>()
+  const spawns = new Map<string, Promise<Probe>>()
   const answers = await Promise.all(
-    asks.map(async (one) => {
+    asks.map(async (one): Promise<LoggedOutAgent | undefined> => {
       const key = `${one.harness.name} ${one.binary}`
       const held = spawns.get(key) ?? ask(one)
       spawns.set(key, held)
-      const state = readLogin(one.harness, await held)
+      const probe = await held
+      const read = readLogin(one.harness, probe.output)
+      // A CLI that answered says whatever it answered; only one that said nothing readable
+      // can be the executable that would not start.
+      const state = read === 'unknown' && probe.unrunnable ? 'cannot-run' : read
+      if (state === 'cannot-run') {
+        return {
+          runtime: one.runtime.id,
+          harness: one.harness.name,
+          login: one.harness.login?.login ?? '',
+          state,
+          install: one.harness.install,
+        }
+      }
       if (state !== 'logged-out') return undefined
-      return { runtime: one.runtime.id, harness: one.harness.name, login: one.harness.login?.login ?? '' }
+      return {
+        runtime: one.runtime.id,
+        harness: one.harness.name,
+        login: one.harness.login?.login ?? '',
+        state,
+      }
     }),
   )
   return answers.filter((one): one is LoggedOutAgent => !!one)

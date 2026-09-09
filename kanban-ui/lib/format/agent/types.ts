@@ -1158,9 +1158,9 @@ export interface RuntimeView {
  *  runs answers (#467). The probe itself is still one per CLI — two rows on one harness are
  *  one spawn.
  *
- *  Only a clear logged-out reading is ever on this list. A harness with no probe, a spawn
- *  that failed, a probe that ran out of time and output its own readings don't cover are all
- *  absent. */
+ *  Only a clear reading is ever on this list. A harness with no probe, a probe that ran out
+ *  of time and output its own readings don't cover are all absent — the one exception being a
+ *  spawn that failed on an executable this machine HAS, which is `cannot-run` (#550). */
 export interface LoggedOutAgent {
   /** The runtime's id — which ROW wears the verdict. */
   runtime: string
@@ -1168,6 +1168,11 @@ export interface LoggedOutAgent {
   harness: string
   /** The command that logs the user back in. */
   login: string
+  /** Why this row is on the list. Absent on rules older than #550, which read as
+   *  `logged-out` — the only verdict there was. */
+  state?: 'logged-out' | 'cannot-run'
+  /** `cannot-run` only: the command that installs the CLI proper, which is the way out. */
+  install?: string
 }
 
 /** What one agent runs (#467): the runtime it names, and enough of that row to say what it

@@ -498,7 +498,11 @@ export function HarnessPicker({
   // answer; the note under the grid says THIS ROW is, which is a row answer — a row signing
   // with a key of its own is never on the list however its CLI answers (#467).
   const [out, setOut] = useState<LoggedOutAgent[]>([]);
-  const loggedOut = Object.fromEntries(out.map((one) => [one.harness, one.login]));
+  // Signed out only. A row whose CLI would not start at all is on the same list and is a
+  // different verdict, said on the folded row (#550) — never as "signed out" here.
+  const loggedOut = Object.fromEntries(
+    out.filter((one) => one.state !== "cannot-run").map((one) => [one.harness, one.login]),
+  );
   const [active, setActive] = useState(start.active);
   const [saving, setSaving] = useState(false);
   // What the fields show, and what was last written to the file — keyed by the
@@ -799,7 +803,9 @@ export function HarnessPicker({
   // The row this pane is drawing is signed out, which is not the same question as whether its
   // CLI is: two rows on one harness can differ, and only a row holding no key of its own is
   // ever on the list.
-  const rowLoggedOut = bind ? out.find((one) => one.runtime === bind.runtime.id)?.login : undefined;
+  const rowLoggedOut = bind
+    ? out.find((one) => one.runtime === bind.runtime.id && one.state !== "cannot-run")?.login
+    : undefined;
 
   // Test the setup that is saved (#96). Keyed on that setup, so changing any of it throws
   // the old result away rather than leaving a "Passed" standing for a setup that is gone.

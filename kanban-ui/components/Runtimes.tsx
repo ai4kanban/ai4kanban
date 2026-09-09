@@ -10,7 +10,7 @@
 // key and its model, with nothing inherited from anywhere. So the row's SHAPE is the board's,
 // in docs/kanban/ui.config.json, and travels in git; what is this computer's is its key, in
 // docs/kanban/.env under the row's own id, and the verdict beside it — whether that CLI is
-// here, and whether anybody is logged into it.
+// here, whether it would start, and whether anybody is logged into it.
 //
 // The default is a POSITION, not a badge: the first row is it, so there is no control
 // anywhere that moves it.
@@ -35,7 +35,7 @@ import {
   setRuntimeSettingAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
-import type { AgentInfo, RuntimeView } from "@/lib/types";
+import type { AgentInfo, LoggedOutAgent, RuntimeView } from "@/lib/types";
 import { AgentMark, Field, HarnessPicker, useRuntimeName } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
 import { CONTROL, QUIET_BTN } from "./settings";
@@ -58,15 +58,16 @@ export function RuntimesPanel({
   // The row being added, before it has a name. It exists nowhere but here: the first name
   // saved creates it, and leaving the box empty drops it.
   const [adding, setAdding] = useState(false);
-  // Which rows their own CLI says nobody is logged into (#392), by runtime id. It costs a
-  // spawn per CLI, so it arrives after the list is already on screen and never holds it up.
-  const [loggedOut, setLoggedOut] = useState<Record<string, string>>({});
+  // What their own CLI said about each row, by runtime id: nobody logged in (#392), or an
+  // executable that is here and would not start (#550). It costs a spawn per CLI, so it
+  // arrives after the list is already on screen and never holds it up.
+  const [warned, setWarned] = useState<Record<string, LoggedOutAgent>>({});
 
   useEffect(() => {
     let live = true;
     void loggedOutAgentsAction()
       .then((out) => {
-        if (live) setLoggedOut(Object.fromEntries(out.map((one) => [one.runtime, one.login])));
+        if (live) setWarned(Object.fromEntries(out.map((one) => [one.runtime, one])));
       })
       .catch(() => {
         // A row nobody could ask about is one this pane says nothing about.
@@ -103,7 +104,7 @@ export function RuntimesPanel({
             info={info}
             row={row}
             open={row.id === open}
-            loggedOut={loggedOut[row.id]}
+            warning={warned[row.id]}
             onToggle={() => setOpen(row.id === open ? null : row.id)}
             taken={taken}
             onChanged={setInfo}
@@ -184,10 +185,20 @@ function RowAction({
 
 /** What a folded row says on its right: this computer's verdict on the CLI it runs. A state,
  *  never a button — the command that answers it is inside the row. Only one can apply: a row
- *  whose binary isn't here is never probed for a login. */
-function Verdict({ row, loggedOut }: { row: RuntimeView; loggedOut?: string }) {
+ *  whose binary isn't here is never probed at all.
+ *
+ *  Three words, because being on disk and being runnable are not the same thing (#550): a
+ *  desktop app's bundled CLI is found by looking, and only a spawn finds out that its own
+ *  package refuses to start it. That one carries a line of its own under the row. */
+function Verdict({ row, warning }: { row: RuntimeView; warning?: LoggedOutAgent }) {
   const c = useCopy().configuration.runtimes;
-  const word = !row.installed ? c.notInstalled : loggedOut ? c.signedOut : "";
+  const word = !row.installed
+    ? c.notInstalled
+    : warning?.state === "cannot-run"
+      ? c.cannotRun
+      : warning
+        ? c.signedOut
+        : "";
   if (!word) return null;
   return (
     <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] font-[700] text-nb-peach-ink">
@@ -201,7 +212,7 @@ function Row({
   info,
   row,
   open,
-  loggedOut,
+  warning,
   onToggle,
   taken,
   onChanged,
@@ -210,7 +221,7 @@ function Row({
   info: AgentInfo;
   row: RuntimeView;
   open: boolean;
-  loggedOut?: string;
+  warning?: LoggedOutAgent;
   onToggle: () => void;
   taken: (name: string, self?: string) => boolean;
   onChanged: (agent: AgentInfo) => void;
@@ -443,13 +454,28 @@ function Row({
           </>
         )}
         <span className="flex shrink-0 items-center gap-2">
-          <Verdict row={row} loggedOut={loggedOut} />
+          <Verdict row={row} warning={warning} />
         </span>
       </div>
 
       {refusal && (
         <div className="px-3.5 pb-2.5 pl-[35px]">
           <Refusal>{refusal}</Refusal>
+        </div>
+      )}
+
+      {/* What to do about a CLI that is here and won't start — in the slot a refused rename
+          uses, so it is read folded and nobody has to open the row to find it. The other two
+          verdicts need no line: their command is inside the row, and "Not installed" already
+          carries its own under the grid. */}
+      {row.installed && warning?.state === "cannot-run" && (
+        <div className="px-3.5 pb-2.5 pl-[35px]">
+          <Refusal>
+            {c.cannotRunHint(row.label)}{" "}
+            {warning.install && (
+              <code className="rounded bg-nb-ink/8 px-1 py-0.5">{warning.install}</code>
+            )}
+          </Refusal>
         </div>
       )}
 

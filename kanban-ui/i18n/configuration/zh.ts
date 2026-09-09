@@ -24,6 +24,8 @@ const zh: ConfigurationCopy = {
     globalDefault: "全局默认",
     signedOut: "未登录",
     notInstalled: "未安装",
+    cannotRun: "无法运行",
+    cannotRunHint: (harness) => `本机上的 ${harness} 启动失败。请更新它，或安装其 CLI：`,
     add: "添加运行时",
     footer: "在「Agent」页分配运行时；未指定时使用「全局默认」。",
     name: "名称",

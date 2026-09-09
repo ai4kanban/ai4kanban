@@ -80,8 +80,8 @@ export interface Harness
    *  the CLI proper always wins, because it is the one the user chose and can update.
    *
    *  The first path that exists REPLACES the binary in the command line, so the badge and
-   *  the spawn read the same answer. A candidate holding whitespace is skipped: a command is
-   *  split on it (`resolve.ts`), so such a path could never spawn anyway.
+   *  the spawn read the same answer. A path holding spaces is fine: it goes back in quoted,
+   *  and every reader of the command splits it quote-aware (`agent/argv.ts`).
    *
    *  Called rather than declared, because the answer depends on the environment and on this
    *  machine's home folder at the moment it is asked. */

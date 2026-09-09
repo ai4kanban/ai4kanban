@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
 import { createCodexStreamRenderer } from '../wire'
 import { arr, home, modelsIn, num, obj, str } from './models'
 import { providerBlip } from './transient'
@@ -72,22 +75,145 @@ function codexProvider(id: string, name: string, baseUrl?: string): string[] {
 // find the binary it failed to locate, so anyone with an unusual install has already set it
 // and we inherit the answer instead of asking for it again.
 //
-// After it, only paths that were READ OFF a real install. Windows ships as an MSIX package
-// under `C:\Program Files\WindowsApps\OpenAI.Codex_<version>_x64__<hash>`, which carries a
-// version, a publisher hash and an ACL — there is no constant to write down, and its own
-// installer puts `codex` on the PATH anyway. The Linux .deb/.rpm bundles `resources/bin/codex`
-// under a prefix OpenAI doesn't document. Both are left to `CODEX_CLI_PATH` rather than
-// guessed: a wrong path that never matches is dead code that reads like coverage.
+// After it, only paths that were READ OFF a real install, and only this platform's. The Linux
+// .deb/.rpm bundles `resources/bin/codex` under a prefix OpenAI doesn't document, so that one
+// is still left to `CODEX_CLI_PATH`: a wrong path that never matches is dead code that reads
+// like coverage.
+
+/** An environment root as this machine sets it, or nothing. A root that isn't set holds
+ *  nothing to look in and is not a failed lookup. */
+function envRoot(name: string): string {
+  return process.env[name]?.trim() ?? ''
+}
+
+/** The immediate subfolder NAMES of one folder — the single variable level each Windows
+ *  layout below has, and the whole of what is enumerated. Empty when the folder isn't there
+ *  or can't be read, so a missing root, a locked one, or one that disappears mid-scan costs
+ *  the lookup nothing. */
+function folders(parent: string): string[] {
+  if (!parent) return []
+  try {
+    return fs
+      .readdirSync(parent, { withFileTypes: true })
+      .filter((one) => one.isDirectory())
+      .map((one) => one.name)
+  } catch {
+    return []
+  }
+}
+
+/** A file's modification time, or 0 for one that isn't there. */
+function modified(file: string): number {
+  try {
+    return fs.statSync(file).mtimeMs
+  } catch {
+    return 0
+  }
+}
+
+/** Comparing two paths, so every ordering below ends in something that reads the same way
+ *  twice on the same disk. */
+function byPath(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+/** Newest first: the Desktop cache names its folders by build hash, which says nothing about
+ *  version, so the executable's own modification time is the only ordering there is. It
+ *  prefers a recently written file — not a proven latest CLI — and ties break on the path. */
+function byNewest(files: string[]): string[] {
+  return files
+    .map((file) => ({ file, at: modified(file) }))
+    .sort((a, b) => b.at - a.at || byPath(a.file, b.file))
+    .map((one) => one.file)
+}
+
+/** The version a folder name carries, as numbers: `OpenAI.Codex_1.2.3_x64__abc` reads as
+ *  [1,2,3], and so does `1.2.3-x86_64-pc-windows-msvc`. A name carrying none sorts last. */
+function versionOf(name: string): number[] {
+  const found = /(\d+(?:\.\d+)+)/.exec(name)
+  return found ? found[1]!.split('.').map(Number) : []
+}
+
+/** Highest version first, ties on the name. Never a spawn and never a string compare of the
+ *  whole name: `0.9.0` has to beat `0.10.0` on the numbers, not on the alphabet. */
+function byVersion(names: string[]): string[] {
+  return [...names].sort((a, b) => {
+    const [x, y] = [versionOf(a), versionOf(b)]
+    for (let i = 0; i < Math.max(x.length, y.length); i++) {
+      const step = (y[i] ?? -1) - (x[i] ?? -1)
+      if (step) return step
+    }
+    return byPath(a, b)
+  })
+}
+
+/** Every architecture these folder names are known to be spelt with — Windows' own package
+ *  word and the Rust target the standalone release is built for. */
+const ARCHES = ['x86_64', 'aarch64', 'i686', 'x64', 'arm64', 'x86']
+
+/** How THIS machine's architecture is spelt in them. */
+function ourArches(): string[] {
+  if (process.arch === 'arm64') return ['arm64', 'aarch64']
+  if (process.arch === 'ia32') return ['x86', 'i686']
+  return ['x64', 'x86_64']
+}
+
+/** Whether a folder name is one this machine could run. The LONGEST architecture word in the
+ *  name is the one it was built for — `x86_64` holds `x86` and is not it. A name that spells
+ *  out an architecture we are not is dropped; one that names none is kept, because an
+ *  unfamiliar spelling is a reason to try the file, not to throw it away. */
+function ourArch(name: string): boolean {
+  const lower = name.toLowerCase()
+  const named = ARCHES.filter((arch) => lower.includes(arch)).sort((a, b) => b.length - a.length)[0]
+  return !named || ourArches().includes(named)
+}
+
+// Every place a Windows machine has been seen to keep a `codex.exe` that nothing put on the
+// PATH, in the order they are tried. `%ProgramFiles%\WindowsApps` is last because running a
+// packaged app's file directly is often refused by its ACL — worth trying only once nothing
+// else answered.
+//
+// Read off firsthand reports rather than an OpenAI guarantee (openai/codex#29365, #43162,
+// #27230). A file being here proves it is on disk and nothing more: whether it starts is the
+// login probe's answer (agent/login.ts), and a cache Desktop left behind stays discoverable
+// after Desktop itself is uninstalled.
+export function codexOnWindows(): string[] {
+  const local = envRoot('LOCALAPPDATA')
+  const profile = envRoot('USERPROFILE')
+  const programs = envRoot('ProgramFiles')
+  const cache = local ? path.join(local, 'OpenAI', 'Codex', 'bin') : ''
+  const releases = profile ? path.join(profile, '.codex', 'packages', 'standalone', 'releases') : ''
+  const packages = programs ? path.join(programs, 'WindowsApps') : ''
+  return [
+    // Desktop's relocated CLI cache: a folder per build hash, newest file first.
+    ...byNewest(folders(cache).map((name) => path.join(cache, name, 'codex.exe'))),
+    // The separate standalone launcher, at a path with nothing variable in it.
+    ...(local ? [path.join(local, 'Programs', 'OpenAI', 'Codex', 'bin', 'codex.exe')] : []),
+    // That launcher's release payload: a folder per version and target.
+    ...byVersion(folders(releases).filter(ourArch)).map((name) =>
+      path.join(releases, name, 'bin', 'codex.exe'),
+    ),
+    // Desktop's own MSIX package.
+    ...byVersion(folders(packages).filter((name) => name.startsWith('OpenAI.Codex_')).filter(ourArch)).map(
+      (name) => path.join(packages, name, 'app', 'resources', 'codex.exe'),
+    ),
+  ]
+}
+
 function codexBundled(): string[] {
   const override = process.env.CODEX_CLI_PATH?.trim()
   return [
     ...(override ? [override] : []),
-    // macOS, where Codex now lives in the merged app…
-    '/Applications/ChatGPT.app/Contents/Resources/codex',
-    home('Applications/ChatGPT.app/Contents/Resources/codex'),
-    // …and where it lived before the merge, for an install that hasn't moved yet.
-    '/Applications/Codex.app/Contents/Resources/codex',
-    home('Applications/Codex.app/Contents/Resources/codex'),
+    ...(process.platform === 'win32'
+      ? codexOnWindows()
+      : [
+          // macOS, where Codex now lives in the merged app…
+          '/Applications/ChatGPT.app/Contents/Resources/codex',
+          home('Applications/ChatGPT.app/Contents/Resources/codex'),
+          // …and where it lived before the merge, for an install that hasn't moved yet.
+          '/Applications/Codex.app/Contents/Resources/codex',
+          home('Applications/Codex.app/Contents/Resources/codex'),
+        ]),
   ]
 }
 

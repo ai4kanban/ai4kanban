@@ -24,6 +24,9 @@ const en: ConfigurationCopy = {
     globalDefault: "Global default",
     signedOut: "Signed out",
     notInstalled: "Not installed",
+    cannotRun: "Can’t run",
+    cannotRunHint: (harness) =>
+      `${harness} is on this computer but won’t start. Update it, or install its CLI:`,
     add: "Add runtime",
     footer: "Assign runtimes on the Agents page. Unassigned agents use Global default.",
     name: "Name",
