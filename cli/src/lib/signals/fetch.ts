@@ -1,4 +1,4 @@
-// One pull of the inbox endpoint (#453, #499).
+// One pull of the triage endpoint (#453, #499).
 //
 // `GET` the endpoint `config.md` names, with the token from `docs/kanban/.env` as a bearer.
 // The answer is `{ "signals": [...] }`. Only `title` and `summary` are required — `source`,
@@ -72,17 +72,17 @@ function read(raw: Wire): { ok: true; signal: IncomingSignal } | { ok: false; wh
  *  reader is told is that it is missing, not what it is. */
 export async function fetchSignals(): Promise<FetchReport> {
   const gaps = signalConfigGaps()
-  if (gaps.length > 0) die('the board is not set up to pull signals yet', { kind: 'signals-not-configured' })
+  if (gaps.length > 0) die('the board is not set up to pull triage items yet', { kind: 'triage-not-configured' })
 
   const endpoint = signalEndpoint()
   let response: Response
   try {
     response = await fetch(endpoint, { headers: { authorization: `Bearer ${signalToken()}` } })
   } catch (e) {
-    die(`could not reach ${endpoint}: ${e instanceof Error ? e.message : String(e)}`, { kind: 'signals-unreachable' })
+    die(`could not reach ${endpoint}: ${e instanceof Error ? e.message : String(e)}`, { kind: 'triage-unreachable' })
   }
   if (!response.ok) {
-    die(`${endpoint} answered ${response.status}.`, { kind: 'signals-refused' })
+    die(`${endpoint} answered ${response.status}.`, { kind: 'triage-endpoint-refused' })
   }
 
   let body: unknown
@@ -90,12 +90,12 @@ export async function fetchSignals(): Promise<FetchReport> {
     body = await response.json()
   } catch (e) {
     die(`${endpoint} did not answer with JSON: ${e instanceof Error ? e.message : String(e)}`, {
-      kind: 'signals-unreadable',
+      kind: 'triage-unreadable',
     })
   }
   const wire = (body as { signals?: unknown } | null)?.signals
   if (!Array.isArray(wire)) {
-    die(`${endpoint} did not answer with a \`signals\` list.`, { kind: 'signals-unreadable' })
+    die(`${endpoint} did not answer with a \`signals\` list.`, { kind: 'triage-unreadable' })
   }
 
   const seen = new Set([...readInbox().map((signal) => signal.sourceId), ...readHandled()])
@@ -103,12 +103,12 @@ export async function fetchSignals(): Promise<FetchReport> {
   const report: FetchReport = { added: [], skipped: 0, failed: [] }
   wire.forEach((raw, at) => {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-      report.failed.push({ which: `signal ${at + 1}`, why: 'not an object' })
+      report.failed.push({ which: `item ${at + 1}`, why: 'not an object' })
       return
     }
     const found = read(raw as Wire)
     if (!found.ok) {
-      report.failed.push({ which: text((raw as Wire).source_id) || `signal ${at + 1}`, why: found.why })
+      report.failed.push({ which: text((raw as Wire).source_id) || `item ${at + 1}`, why: found.why })
       return
     }
     if (seen.has(found.signal.sourceId)) {

@@ -7,7 +7,7 @@
     },
     {
       "label": "Using the board",
-      "items": ["daily-loop", "chat", "releases", "agents", "runs", "market-signals", "local-and-cloud-boards", "connectors"]
+      "items": ["daily-loop", "chat", "releases", "agents", "runs", "triage", "local-and-cloud-boards", "connectors"]
     }
   ]
 }

@@ -4,7 +4,7 @@
 // what this covers, is the machinery around it: the switch is off until somebody asks for
 // it, archiving is the only trigger and it fires once per completed card, a card the board
 // has already reflected on is never reflected on twice, the flow reads its card out of
-// `.archive/` where the ordinary card read no longer finds it, and `akb signals add` puts
+// `.archive/` where the ordinary card read no longer finds it, and `akb triage add` puts
 // one proposal in the inbox carrying the card that prompted it.
 
 import assert from 'node:assert/strict'
@@ -19,7 +19,7 @@ import { reflectRunsAfter } from '../src/lib/agent/propose.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
 import { proposerOn, setProposer } from '../src/lib/agent/settings.ts'
 import { setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
-import { cmdSignalsAdd } from '../src/commands/signals.ts'
+import { cmdTriageAdd } from '../src/commands/triage.ts'
 import { readSignals } from '../src/lib/signals/index.ts'
 
 let root = ''
@@ -190,7 +190,7 @@ describe('the flow', () => {
     complete(1)
     const ask = buildAsk({ action: 'reflect', id: 1, title: 'card 1' })
     assert.match(ask, /docs\/kanban\/\.archive\/1-card\.md/)
-    assert.match(ask, /signals add/)
+    assert.match(ask, /triage add/)
   })
 
   it('reads the card the archive holds, which the board no longer has', () => {
@@ -198,7 +198,7 @@ describe('the flow', () => {
     complete(1)
     const printed = said(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }))
     assert.match(printed, /docs\/kanban\/\.archive\/1-card\.md/)
-    assert.match(printed, /signals add/)
+    assert.match(printed, /triage add/)
     // And it is told outright that proposing nothing is a finished job.
     assert.match(printed, /propose nothing at all/)
   })
@@ -212,7 +212,7 @@ describe('the flow', () => {
 describe('a proposal in the inbox', () => {
   it('lands as an ordinary item carrying the card that prompted it', () => {
     said(() =>
-      cmdSignalsAdd({
+      cmdTriageAdd({
         title: 'Let a delivery say what it skipped',
         source: '#1',
         text: 'Card #1 left its second half undone — docs/kanban/.archive/1-card.md.',
@@ -226,14 +226,14 @@ describe('a proposal in the inbox', () => {
 
   it('refuses the same proposal twice', () => {
     const twice = () =>
-      said(() => cmdSignalsAdd({ title: 'The same idea', source: '#1', text: 'The same words.' }))
+      said(() => cmdTriageAdd({ title: 'The same idea', source: '#1', text: 'The same words.' }))
     twice()
     assert.throws(twice, /already in the inbox/)
     assert.equal(readSignals().signals.length, 1)
   })
 
   it('refuses one with nothing written in it', () => {
-    assert.throws(() => cmdSignalsAdd({ title: 'A title alone' }), /has to say something/)
-    assert.throws(() => cmdSignalsAdd({ text: 'Words with no title.' }), /--title/)
+    assert.throws(() => cmdTriageAdd({ title: 'A title alone' }), /has to say something/)
+    assert.throws(() => cmdTriageAdd({ text: 'Words with no title.' }), /--title/)
   })
 })

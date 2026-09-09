@@ -176,7 +176,7 @@ const en: ConfigurationCopy = {
         name: "Proposer",
         gloss: "Proposes the work a finished card leaves behind.",
         rule: 'Added to the end of every reflection Proposer makes — "never propose more tests".',
-        when: "a card is archived. It reads that one card and puts what should follow it in the Inbox, where you triage it like anything else that arrives.",
+        when: "a card is archived. It reads that one card and puts what should follow it in Triage, to sort like anything else that arrives.",
       },
       "memory-pruner": {
         name: "Memory pruner",

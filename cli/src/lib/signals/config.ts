@@ -1,4 +1,4 @@
-// Where the board pulls its inbox from (#453).
+// Where the board pulls triage items from (#453).
 //
 // Two settings, in the two places the board already keeps settings: the endpoint is a line
 // in `config.md`, like every other project setting, and the token is a key in
@@ -17,12 +17,12 @@ import { CONFIG, ENV_FILE, rel } from '../paths'
 import type { SignalConfigGap } from '../view/types'
 
 /** The key the token is held under, in `docs/kanban/.env`. */
-export const TOKEN_KEY = 'SIGNAL_ENDPOINT_TOKEN'
+export const TOKEN_KEY = 'TRIAGE_ENDPOINT_TOKEN'
 
 /** The setting's name in `config.md`, the way every other one is written there. */
-export const ENDPOINT_SETTING = 'Signal endpoint'
+export const ENDPOINT_SETTING = 'Triage endpoint'
 
-const LINE = /^- \*\*Signal endpoint\*\*\s*[—-]\s*(.+)$/m
+const LINE = /^- \*\*Triage endpoint\*\*\s*[—-]\s*(.+)$/m
 
 const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
 
@@ -51,10 +51,10 @@ export function signalConfigGaps(): SignalConfigGap[] {
   return gaps
 }
 
-/** One line naming what a gap is and where it goes — what `akb signals fetch` prints when
+/** One line naming what a gap is and where it goes — what `akb triage fetch` prints when
  *  it refuses for want of configuration. */
 export function sayGap(gap: SignalConfigGap): string {
   return gap.what === 'endpoint'
-    ? `no signal endpoint — add \`- **${ENDPOINT_SETTING}** — <url>\` to ${gap.file}`
-    : `no signal token — set \`${TOKEN_KEY}\` in ${gap.file}`
+    ? `no ${ENDPOINT_SETTING} — add \`- **${ENDPOINT_SETTING}** — <url>\` to ${gap.file}`
+    : `no ${TOKEN_KEY} — set \`${TOKEN_KEY}\` in ${gap.file}`
 }

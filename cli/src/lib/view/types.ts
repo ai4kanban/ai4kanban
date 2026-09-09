@@ -837,7 +837,7 @@ export interface InboxDrop {
   /** A dropped file: its name, what the browser called it, and its bytes. */
   file?: { name: string; type: string; data: Uint8Array }
   /** The item's title, when the caller knows it rather than leaving it to be read off the
-   *  first line (#534) — what `akb signals add` passes. */
+   *  first line (#534) — what `akb triage add` passes. */
   title?: string
   /** And where it came from, for the same reason: a proposal names the card that prompted
    *  it. Empty or absent leaves whatever the input itself gave. */

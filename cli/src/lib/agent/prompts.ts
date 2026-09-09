@@ -458,7 +458,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `${kb}. Task ${req.id} ${named} has just been completed. Propose the work that should follow it, following \`akb guide reflect\`.`,
         `It has left the board — read it at \`${archivedCardFile(req.id)}\`, and take nothing else as input.`,
         `Judge what is worth proposing against ${boardMemory()}, and skip anything already on the board, already in the inbox, or turned down before.`,
-        `Write each survivor with \`${command} signals add\`: that is the whole of what you may write — no card is created, edited or archived, and finding nothing worth proposing is a complete result.`,
+        `Write each survivor with \`${command} triage add\`: that is the whole of what you may write — no card is created, edited or archived, and finding nothing worth proposing is a complete result.`,
         `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
     // Inject the shared contract, specialty instructions, and selected references.

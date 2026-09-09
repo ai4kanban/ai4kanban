@@ -45,7 +45,7 @@ import {
   cmdStop,
   cmdWatch,
 } from '../../commands/run'
-import { cmdSignalsAdd, cmdSignalsFetch } from '../../commands/signals'
+import { cmdTriageAdd, cmdTriageFetch } from '../../commands/triage'
 import { cmdSpec } from '../../commands/spec'
 import { cmdWrite } from '../../commands/write'
 import { cmdTelemetry } from '../../commands/telemetry'
@@ -263,43 +263,43 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
 
   declareAgent(program, cli)
 
-  // ---- the inbox waiting to be looked at (#453, #499) -----------------------
+  // ---- what is waiting to be sorted (#453, #499) ----------------------------
 
-  const signals = noun(
-    'signals',
-    'the inbox waiting to be looked at',
-    'What is in the inbox is not a task: it never enters the card list, is never scheduled, ' +
-      'and counts towards nothing. The inbox is `docs/kanban/triage/inbox/`, one file each, ' +
+  const triage = noun(
+    'triage',
+    'what is waiting to be sorted',
+    'What is in triage is not a task: it never enters the card list, is never scheduled, ' +
+      'and counts towards nothing. Triage is `docs/kanban/triage/inbox/`, one file each, ' +
       'and the board UI is where they are added, read and ignored.',
   )
 
-  withShared(signals.command('fetch'))
-    .summary('pull what the board is pointed at into the inbox')
+  withShared(triage.command('fetch'))
+    .summary('pull what the board is pointed at into triage')
     .description(
-      'Reads the endpoint from `- **Signal endpoint** — <url>` in the board’s `config.md` and its ' +
-        'token from `SIGNAL_ENDPOINT_TOKEN` in `docs/kanban/.env`, and takes everything that comes ' +
-        'back. Only `title` and `summary` are required. Something already in the inbox, or already ' +
+      'Reads the endpoint from `- **Triage endpoint** — <url>` in the board’s `config.md` and its ' +
+        'token from `TRIAGE_ENDPOINT_TOKEN` in `docs/kanban/.env`, and takes everything that comes ' +
+        'back. Only `title` and `summary` are required. Something already in triage, or already ' +
         'ignored, is skipped; one with no words in it is counted and explained. A request that fails ' +
         'writes nothing at all. Free to invited Cloud accounts on an Engineering board, for now.',
     )
     .action(async function (this: Command) {
-      await onBoard(this, cli, () => cmdSignalsFetch())
+      await onBoard(this, cli, () => cmdTriageFetch())
     })
 
-  withShared(signals.command('add'))
-    .summary('write one item into the inbox')
+  withShared(triage.command('add'))
+    .summary('write one item into triage')
     .description(
       'One item, from words you already have — no endpoint, and nothing is pulled. The body is ' +
         '`--text` for a line or two, `--file <path>` when it is longer. `--source` says where it came ' +
         'from, and a reflection puts the card that prompted it there. It is not a task: it waits in ' +
-        'the inbox until somebody triages it. An item the inbox already holds is refused.',
+        'triage until somebody sorts it. An item triage already holds is refused.',
     )
     .requiredOption('--title <text>', 'what it is, in one line')
     .option('--text <text>', 'its own words')
     .option('--file <path>', 'its own words, written to a file first')
     .option('--source <text>', 'where it came from')
     .action(async function (this: Command) {
-      await onBoard(this, cli, () => cmdSignalsAdd(this.opts()))
+      await onBoard(this, cli, () => cmdTriageAdd(this.opts()))
     })
 
   // ---- Cloud ----------------------------------------------------------------

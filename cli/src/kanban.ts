@@ -247,7 +247,7 @@ export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME
 // The inbox: anything that might become work (#453, #499) — what the endpoint pulled in,
 // and what somebody dropped or pasted in, and never cards. The local UI draws its rail row
 // and its page from these four: whether the inbox is open to this board and account at all,
-// what it holds, adding to it, and ignoring one for good. Pulling is `akb signals fetch`
+// what it holds, adding to it, and ignoring one for good. Pulling is `akb triage fetch`
 // and nothing else calls it.
 export { addToInbox, dismissSignal, readSignals, signalsAccess } from './lib/signals'
 export type { SignalsAccess } from './lib/signals'

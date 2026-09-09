@@ -59,9 +59,9 @@ const realFetch = globalThis.fetch
 function configure({ endpoint = true, token = true }: { endpoint?: boolean; token?: boolean } = {}): void {
   fs.writeFileSync(
     path.join(kanban(), 'config.md'),
-    `# Configuration\n\n- **Project** — A board.\n${endpoint ? `- **Signal endpoint** — ${ENDPOINT}\n` : ''}`,
+    `# Configuration\n\n- **Project** — A board.\n${endpoint ? `- **Triage endpoint** — ${ENDPOINT}\n` : ''}`,
   )
-  if (token) fs.writeFileSync(path.join(kanban(), '.env'), 'SIGNAL_ENDPOINT_TOKEN=a-secret\n')
+  if (token) fs.writeFileSync(path.join(kanban(), '.env'), 'TRIAGE_ENDPOINT_TOKEN=a-secret\n')
   else fs.rmSync(path.join(kanban(), '.env'), { force: true })
 }
 
@@ -183,7 +183,7 @@ describe('what the endpoint may leave out (#499)', () => {
   it('is named by its place when it carries no source id', async () => {
     answerWith({ signals: [{ summary: 'Nothing else' }] })
     const report = await fetchSignals()
-    assert.equal(report.failed[0]!.which, 'signal 1')
+    assert.equal(report.failed[0]!.which, 'item 1')
   })
 
   it('is refused when its collected time is not a time', async () => {
@@ -214,12 +214,12 @@ describe('a pull that fails', () => {
       ['endpoint', 'token'],
     )
     answerWith({ signals: [wire('a1')] })
-    await assert.rejects(fetchSignals(), /not set up to pull signals/)
+    await assert.rejects(fetchSignals(), /not set up to pull triage items/)
     assert.equal(asked, null)
   })
 
   it('reads a placeholder endpoint as no endpoint at all', () => {
-    fs.writeFileSync(path.join(kanban(), 'config.md'), '# Configuration\n\n- **Signal endpoint** — <url>\n')
+    fs.writeFileSync(path.join(kanban(), 'config.md'), '# Configuration\n\n- **Triage endpoint** — <url>\n')
     assert.deepEqual(
       signalConfigGaps().map((gap) => gap.what),
       ['endpoint'],

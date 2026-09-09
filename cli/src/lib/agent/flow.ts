@@ -886,7 +886,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...field('memory', boardMemoryFiles()))
       facts.push(...field('inbox', `${rel(SIGNAL_INBOX)}/ — what is already waiting to be triaged`))
       close.push(
-        `${self} signals add --title ".." --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
+        `${self} triage add --title ".." --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
         'propose nothing at all when nothing follows: that is a complete result, and most completions are it',
         'change nothing else — no card is created, edited or archived, and no memory file is written',
       )

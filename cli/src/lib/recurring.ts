@@ -51,8 +51,8 @@ export function migratePruneMemoryCard(): string | null {
 
 // ---- the inbox pull (#453) -------------------------------------------------
 
-const SIGNALS_SLUG = 'fill-the-inbox'
-const SIGNALS_TITLE = 'Fill the inbox'
+const SIGNALS_SLUG = 'fetch-triage-items'
+const SIGNALS_TITLE = 'Fetch triage items'
 
 function signalsBody() {
   return boardText(`Pull what the board is pointed at into
@@ -63,12 +63,12 @@ only when you run it. Delete this card if you don't want the job — nothing put
 None.
 
 ## Process
-1. Run \`akb signals fetch\`.
+1. Run \`akb triage fetch\`.
 `)
 }
 
 /**
- * Seed the "Fill the inbox" card, the first time a pull lands.
+ * Seed the "Fetch triage items" card, the first time a pull lands.
  *
  * Not part of `init`'s scaffold: the inbox itself is made by the first fetch, and a board
  * that never pulls should carry neither the folder nor a card about it. The caller

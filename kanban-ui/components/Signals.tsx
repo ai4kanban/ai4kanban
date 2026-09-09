@@ -3,8 +3,8 @@
 // The inbox (#453, #499) — anything that might become work, in
 // `docs/kanban/triage/inbox/`, newest collected first.
 //
-// Two ways in, one folder: `akb signals fetch` pulls from the endpoint the board is pointed
-// at, and **Add to inbox** at the top of this page takes a dropped file, a pasted link or
+// Two ways in, one folder: `akb triage fetch` pulls from the endpoint the board is pointed
+// at, and **Add to triage** at the top of this page takes a dropped file, a pasted link or
 // pasted text. Both write the same Markdown file, so nothing below the box knows which way
 // something came in.
 //

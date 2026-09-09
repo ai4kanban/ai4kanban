@@ -376,7 +376,7 @@ export async function readArchivedCard(id: number): Promise<ArchivedCardFile | n
 
 // --- the inbox waiting to be looked at (#453, #499) --------------------------
 // Nothing here is a card: the inbox never reaches the card list. Pulling is
-// `akb signals fetch` alone; what the UI does is read the inbox, add to it by hand, and
+// `akb triage fetch` alone; what the UI does is read the inbox, add to it by hand, and
 // ignore what it does not want.
 //
 // A board whose rules predate them answers "closed" rather than throwing: the whole feature

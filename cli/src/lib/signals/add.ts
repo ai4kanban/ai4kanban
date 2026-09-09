@@ -15,7 +15,7 @@
 // Downloads folder would be dead the moment the file moved or the board was cloned.
 //
 // A caller may say the title and the source outright instead of leaving them to be read off
-// the input (#534): `akb signals add` does, so a proposal carries the card that prompted it.
+// the input (#534): `akb triage add` does, so a proposal carries the card that prompted it.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -107,7 +107,7 @@ export function addToInbox(drop: InboxDrop): InboxAddResult {
   const read = describe(typed, file)
   const keep = read.keep
   // A caller that knows the two facts says them rather than leaving them to be read off the
-  // words (#534): `akb signals add` is given a title and the card the item came from.
+  // words (#534): `akb triage add` is given a title and the card the item came from.
   const incoming = {
     ...read.incoming,
     ...(drop.title?.trim() ? { title: oneLine(drop.title) } : {}),

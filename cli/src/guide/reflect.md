@@ -44,7 +44,7 @@ drop every candidate that is already accounted for:
 One inbox item each:
 
 ```text
-akb signals add --title "<one line>" --source "#<id>" --text "<why it follows, and the link>"
+akb triage add --title "<one line>" --source "#<id>" --text "<why it follows, and the link>"
 ```
 
 The body is two or three sentences: what the work is, why the completed card calls for it,

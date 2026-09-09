@@ -27,13 +27,13 @@ docs/kanban/
 │                   appended to the end of every run that agent does, so every flow it runs
 │                   reads it. Tracked in git; a missing or empty file leaves the run
 │                   unchanged. Written from the board UI or `akb raw rule`
-├── triage/         the inbox waiting to be looked at (#453, #499) — `inbox/` holds one
+├── triage/         what is waiting to be sorted (#453, #499) — `inbox/` holds one
 │                   file each, `handled.md` the source ids that have left it. Anything that
-│                   might become work goes in: `akb signals fetch` pulls it, somebody drops
-│                   a file or pastes a link on the Inbox page, or `akb signals add` writes
+│                   might become work goes in: `akb triage fetch` pulls it, somebody drops
+│                   a file or pastes a link on the Triage page, or `akb triage add` writes
 │                   one — which is where a reflection's proposals land. It is NOT a card:
 │                   never scheduled, never counted, and never turned into a card by
-│                   anything but the flow that does that. An empty inbox has no folder
+│                   anything but the flow that does that. Empty triage has no folder
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user
 ├── releases.md     the open releases, in the order they ship — one line each

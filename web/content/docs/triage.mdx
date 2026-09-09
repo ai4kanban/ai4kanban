@@ -1,32 +1,32 @@
 ---
-title: "Market signals"
-title_tag: "AI4Kanban market signals — pull Reddit, X and Xiaohongshu leads into your board"
-description: "Point the board at a signal endpoint and it pulls what people are saying into an inbox beside your cards. Signals are leads, not tasks: read them, open the post, dismiss the ones that don't matter."
-lead: "The board can pull what people are saying on Reddit, X, Xiaohongshu and anywhere else into an inbox beside your cards. A signal is a lead, not a task."
+title: "Triage"
+title_tag: "AI4Kanban triage — pull Reddit, X and Xiaohongshu leads into your board"
+description: "Point the board at a triage endpoint and it pulls what people are saying into a list beside your cards. What lands there is a lead, not a task: read it, open the post, dismiss the ones that don't matter."
+lead: "The board can pull what people are saying on Reddit, X, Xiaohongshu and anywhere else into Triage, beside your cards. What lands there is a lead, not a task."
 last_updated: "September 9, 2026"
-nav_label: "Market signals"
+nav_label: "Triage"
 icon: "inbox"
 ---
 
-**Market signals** sit above **Archive** in the rail, with a count. The page lists what the
+**Triage** sits above **Archive** in the rail, with a count. The page lists what the
 board last pulled, newest collected first: a title, the post's own words, which platform it
 came from, and three things you can do with it — read the summary, open the original, or
 dismiss it.
 
 Free to invited Cloud accounts on an Engineering board while it is a preview. On a Marketing
 board, and on an account that is signed out or not yet invited, there is no rail row and
-`akb signals fetch` refuses.
+`akb triage fetch` refuses.
 
-## A signal is not a card
+## A triage item is not a card
 
-The inbox is deliberately outside `todo/`. A signal is never scheduled, never ranked, never
+Triage is deliberately outside `todo/`. An item is never scheduled, never ranked, never
 counted in your board numbers, and never becomes a card on its own — it is somebody else's
 sentence, waiting for you to decide whether there is work in it. Cards are what you have
 decided to build.
 
-That means the inbox needs looking at, the way a mailbox does. Dismissing a signal is
+That means triage needs looking at, the way a mailbox does. Dismissing an item is
 permanent: its file goes, its id is written to `docs/kanban/triage/handled.md`, and no later
-pull brings it back. There is no undo, and that is the point — an inbox you can never empty
+pull brings it back. There is no undo, and that is the point — a list you can never empty
 is one you stop opening.
 
 ## Connect a source
@@ -37,17 +37,22 @@ Two settings, both filled in by hand for now.
 settings already there:
 
 ```markdown
-- **Signal endpoint** — https://signals.example.com/v1/pull
+- **Triage endpoint** — https://signals.example.com/v1/pull
 ```
 
 **The token** goes in `docs/kanban/.env`, where the board keeps every key. It is never shown
 on a screen, written to a log, or repeated in an error:
 
 ```
-SIGNAL_ENDPOINT_TOKEN=…
+TRIAGE_ENDPOINT_TOKEN=…
 ```
 
 `docs/kanban/.env` is kept out of git by the board's own `.gitignore`.
+
+These replaced the earlier `Signal endpoint` and `SIGNAL_ENDPOINT_TOKEN`, which are no longer
+read, and the `akb signals` command, which is gone. Rename them in your own `config.md` and
+`.env`, and update any script or recurring card that still runs the old command — nothing is
+rewritten for you.
 
 ## What the endpoint returns
 
@@ -86,29 +91,29 @@ the reason the board never has to know a platform.
 ## Pull
 
 ```bash
-akb signals fetch
+akb triage fetch
 ```
 
-It reports what it did — `Added 12 signals, skipped 3, failed 1.` — and explains each failure
+It reports what it did — `Added 12 items, skipped 3, failed 1.` — and explains each failure
 on its own line. A request that fails, an answer it cannot read, and a setting still to be
-filled in all write nothing at all: the inbox is left exactly as it was.
+filled in all write nothing at all: triage is left exactly as it was.
 
 The first successful pull makes `docs/kanban/triage/inbox/` and seeds a recurring card,
-**Fetch market signals**, in `todo/recurring/`. Give that card a cadence and the board pulls on
+**Fetch triage items**, in `todo/recurring/`. Give that card a cadence and the board pulls on
 its own; leave it without one and nothing runs until you ask. Delete the card if you don't want
 the job — nothing puts it back.
 
 ## Put something in yourself
 
-The endpoint is not the only way in. **Add to inbox** on the page takes a pasted link, some
+The endpoint is not the only way in. **Add to triage** on the page takes a pasted link, some
 typed text, or a dropped file, and from a terminal:
 
 ```bash
-akb signals add --title "What it is" --text "Its own words." --source "where it came from"
+akb triage add --title "What it is" --text "Its own words." --source "where it came from"
 ```
 
 `--file <path>` takes the body from a file when it is longer than a line or two. Neither needs
-an endpoint or a Cloud account. An item the inbox already holds is refused rather than doubled.
+an endpoint or a Cloud account. An item triage already holds is refused rather than doubled.
 
 This is also where the board's own **Proposer** writes: with it switched on, every card you
 archive is reflected on and what should follow it lands here, carrying the card that prompted
