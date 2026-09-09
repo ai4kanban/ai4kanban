@@ -54,7 +54,10 @@ const en: SetupCopy = {
       send: "Request changes",
       unsure: {
         ask: (folder) => `Set up ${folder}`,
+        blurb: "The repository is empty, so tell the board what this project is.",
         name: "Project name",
+        what: "Description",
+        whatHint: "What this project is for",
         go: "Continue",
       },
     },

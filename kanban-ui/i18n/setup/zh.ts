@@ -51,7 +51,10 @@ const zh: SetupCopy = {
       send: "发送",
       unsure: {
         ask: (folder) => `设置 ${folder}`,
+        blurb: "仓库是空的，请告诉看板这个项目是做什么的。",
         name: "项目名称",
+        what: "描述",
+        whatHint: "这个项目用来做什么",
         go: "继续",
       },
     },

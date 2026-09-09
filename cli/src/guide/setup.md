@@ -41,8 +41,9 @@ nothing.
 ```
 
 - `name` and `description` become the project heading and subheading.
-- If the repository is unclear, set `unsure: true`, summarize what is known, and put one
-  question in `ask`. Do not guess.
+- If the repository is unclear, set `unsure: true`, keep `summary` to one sentence, and put
+  one short question in `ask` — it is shown as the hint of the description field. Do not
+  guess.
 - A correction returns the same JSON shape. Never ask for the goal here.
 
 ## `project`

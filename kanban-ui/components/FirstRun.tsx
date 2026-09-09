@@ -490,36 +490,37 @@ function ProjectTurn({
   }
 
   const proposal = read.proposal;
-  // A repo with nothing to read. The heading is the folder, not the agent's shrug: a valid
-  // new project is not a failure, so what little the agent saw is body copy and Continue
-  // takes the name as it stands with no description behind it.
+  // A repo with nothing to read: the same two fields the form asks for, and the agent's
+  // one question stands in for the description hint. Nothing it summarised is shown.
   if (proposal.unsure) {
     const u = c.project.unsure;
+    const field = cn(
+      "mt-1.5 w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3.5 py-2.5",
+      "text-[14px] text-nb-ink placeholder:text-nb-ink-soft/60",
+      "focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent",
+    );
     return (
       <>
         <Ask>{u.ask(draft.project.name)}</Ask>
-        {proposal.summary && <Under>{proposal.summary}</Under>}
-        {proposal.ask && <Under>{proposal.ask}</Under>}
+        <Under>{u.blurb}</Under>
         <label className="mt-6 block">
           <span className="text-[13px] font-[700] text-nb-ink-soft">{u.name}</span>
-          <input
-            className={cn(
-              "mt-1.5 w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3.5 py-2.5",
-              "text-[14px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent",
-            )}
-            value={name}
-            autoFocus
-            onChange={(e) => setName(e.target.value)}
+          <input className={field} value={name} autoFocus onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="mt-4 block">
+          <span className="text-[13px] font-[700] text-nb-ink-soft">{u.what}</span>
+          <textarea
+            className={cn(field, "resize-y leading-relaxed")}
+            rows={2}
+            value={said}
+            placeholder={proposal.ask || u.whatHint}
+            onChange={(e) => setSaid(e.target.value)}
           />
         </label>
-        <Box value={said} onChange={setSaid} hint={c.yourWords} rows={3} />
         {saveError && <Failure text={saveError} />}
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <Button disabled={busy || !name.trim()} onClick={() => void save(name, "")}>
+          <Button disabled={busy || !name.trim()} onClick={() => void save(name, said.trim())}>
             {busy ? t.shared.saving : u.go}
-          </Button>
-          <Button variant="ghost" disabled={busy || !said.trim()} onClick={() => void say(said)}>
-            {c.project.send}
           </Button>
         </div>
       </>

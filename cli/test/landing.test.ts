@@ -5,7 +5,8 @@
 // own checkout followed it, and what is left behind afterwards.
 
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
+import { once } from 'node:events'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -494,6 +495,51 @@ describe('queued behind the slot', () => {
 })
 
 describe('a conflict', () => {
+  it('allows only one concurrent landing pass in this process', async () => {
+    await reviewed(1, 'card one', 'one\n')
+    await reviewed(2, 'card two', 'two\n')
+    const requests = await Promise.all([advanceLanding(), advanceLanding()])
+    assert.equal(requests.filter((r) => r?.action === 'conflict').length, 1)
+    assert.equal(requests.filter((r) => r === null).length, 1)
+  })
+
+  it('leaves another process’s rebase alone, including during startup recovery', async () => {
+    await reviewed(1, 'card one', 'one\n')
+    const second = await reviewed(2, 'card two', 'two\n')
+    await advanceLanding()
+    const dir = worktreeDir(second.worktree!)
+    fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\ntwo\n')
+    git(['add', 'shared.txt'], dir)
+    const lock = path.join(root, 'docs/kanban/.sessions/.landing.lock')
+    const child = spawn(process.execPath, ['-e', `
+      const fs = require('node:fs');
+      const dir = process.argv[1];
+      fs.mkdirSync(dir);
+      fs.writeFileSync(dir + '/' + process.pid + '-' + require('node:crypto').randomUUID(), '');
+      process.send('locked');
+      process.on('message', () => process.exit(0));
+    `, lock], { stdio: ['ignore', 'ignore', 'inherit', 'ipc'] })
+    try {
+      await once(child, 'message')
+      const old = new Date(Date.now() - 120_000)
+      fs.utimesSync(lock, old, old)
+      assert.equal(await advanceLanding(), null)
+      assert.deepEqual(repairLanding(), [])
+      assert.equal(rebaseInProgress(dir), true)
+      assert.equal(fs.readFileSync(path.join(dir, 'shared.txt'), 'utf8'), 'one\ntwo\n')
+    } finally {
+      const exited = once(child, 'exit')
+      child.kill()
+      await exited
+    }
+    // The dead owner leaves its lock behind; the next pass recovers it.
+    assert.equal((await advanceLanding())?.action, 'review')
+    assert.equal(fs.existsSync(lock), false)
+    await passReview(2, 'card two')
+    await advanceLanding()
+    assert.equal(landingOf(second.deliveryId)?.status, 'landed')
+  })
+
   it('is resolved by a session and reviewed again before landing', async () => {
     const first = await reviewed(1, 'card one', 'one\n')
     const second = await reviewed(2, 'card two', 'two\n')

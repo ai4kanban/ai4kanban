@@ -15,6 +15,7 @@
 // runs the same code in its own process, that wait stops every screen answering. With it,
 // a waiter asks whether that process is still alive and takes over the moment it isn't.
 
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -85,6 +86,56 @@ function claimBreak(dir: string): boolean {
   } catch {
     // Another waiter is breaking it, or it is already gone — either way the retry sorts it.
     return false
+  }
+}
+
+// Remove only this generation's token. A replacement lock is nonempty, so rmdir refuses it.
+function removeClaim(dir: string, token?: string): boolean {
+  if (token) {
+    try { fs.unlinkSync(path.join(dir, token)) } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+    }
+  }
+  try {
+    fs.rmdirSync(dir)
+    return true
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code
+    if (code === 'ENOENT') return true
+    if (code === 'ENOTEMPTY' || code === 'EEXIST') return false
+    throw err
+  }
+}
+
+/** Claim without waiting. Publish an initialized directory so no live claim appears empty. */
+export function tryLock(dir: string): (() => void) | undefined {
+  fs.mkdirSync(path.dirname(dir), { recursive: true })
+  const token = `${process.pid}-${randomUUID()}`
+  const candidate = fs.mkdtempSync(`${dir}.`)
+  try {
+    fs.writeFileSync(path.join(candidate, token), '')
+    for (;;) {
+      try {
+        fs.renameSync(candidate, dir)
+        return () => { removeClaim(dir, token) }
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code
+        if (code !== 'ENOTEMPTY' && code !== 'EEXIST') throw err
+      }
+      let entries: string[]
+      try { entries = fs.readdirSync(dir) } catch (err) {
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT') continue
+        throw err
+      }
+      if (entries.length) {
+        if (entries.length !== 1 || !/^\d+-[a-f0-9-]{36}$/.test(entries[0]!)) return undefined
+        const owner = Number(entries[0]!.split('-')[0])
+        if (pidAlive(owner)) return undefined
+      }
+      if (!removeClaim(dir, entries[0])) return undefined
+    }
+  } finally {
+    fs.rmSync(candidate, { recursive: true, force: true })
   }
 }
 

@@ -66,9 +66,14 @@ export type SetupCopy = {
       unsure: {
         /** The heading, over the folder the board was opened on. */
         ask: (folder: string) => string;
+        /** One line under the heading: the repo was empty, say what this is. */
+        blurb: string;
         /** The label over the editable project name. */
         name: string;
-        /** The way on: keep the name, leave the description empty, go to the goal. */
+        /** The label over the description, and its hint when the agent asked nothing. */
+        what: string;
+        whatHint: string;
+        /** The way on: save the name and description, go to the goal. */
         go: string;
       };
     };

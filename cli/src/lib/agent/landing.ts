@@ -7,17 +7,18 @@
 // brought in shares no file with it; one that does share a file — a resolved conflict
 // among them — gets a review of that intersection before it lands.
 //
-// One card lands at a time. The slot is held on the delivery record rather than in a lock:
-// a landing can span a whole review run, and the board's own lock is held for the
-// milliseconds of one write and breaks itself as stale after a minute.
+// The record holds the delivery's slot across runs. A separate lock serializes Git work
+// across watcher and scheduler processes without holding the board's record lock.
 //
 // Nothing here is ever pushed, and nothing is ever staged in the user's checkout: the
 // squash is made in the delivery's own worktree, and the target branch is fast-forwarded
 // under them so their index and working tree follow it the way a `git pull` would.
 
+import path from 'node:path'
 import { setCardStatusOn } from '../board'
 import { say } from '../io'
-import { REPO_ROOT } from '../paths'
+import { tryLock } from '../lock'
+import { REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { approvalStands, cancelApproval } from './approval'
 import { boardCommand } from './command'
 import { deliveryMessage, deliveryName } from './commit-mode'
@@ -348,7 +349,10 @@ function noteQueue(held: Set<string>): void {
  *  waiter nothing handed off to is still picked up, and once as a board comes up. It never
  *  throws: a caller on a timer must survive an unreadable repository and try again. */
 export async function advanceLanding(): Promise<AgentRequest | null> {
+  let release: (() => void) | undefined
   try {
+    release = tryLock(path.join(SESSIONS_DIR, '.landing.lock'))
+    if (!release) return null
     // A supersede an earlier pass made and nothing ever started, before anything else: it
     // is a card with no delivery and nobody coming for it, which is the worst state the
     // queue can leave one in.
@@ -382,6 +386,8 @@ export async function advanceLanding(): Promise<AgentRequest | null> {
     // A repository that would not answer. The delivery keeps the slot it holds and the
     // next pass tries again; nothing here may fail the run that called it.
     return null
+  } finally {
+    release?.()
   }
 }
 
@@ -746,6 +752,16 @@ async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto:
  *  landing is simply tried again — and a slot whose holder is no longer active is freed by
  *  the record itself, since only an ACTIVE delivery can hold one. */
 export function repairLanding(): string[] {
+  const release = tryLock(path.join(SESSIONS_DIR, '.landing.lock'))
+  if (!release) return []
+  try {
+    return repairIdleLanding()
+  } finally {
+    release()
+  }
+}
+
+function repairIdleLanding(): string[] {
   const store = readStore()
   const complaints: string[] = []
   for (const d of store.deliveries) {
