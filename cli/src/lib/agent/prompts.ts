@@ -55,10 +55,13 @@ const DELIVERY_RESUME = [
 // be left without.
 const DELIVERY_RESUME_CARD = `Build the card as the delivery holds it, not as the file reads now: \`%c\` prints the approved copy.`
 
-/** What a resumed run is told: the plain "carry on", or — inside a delivery — the one that
- *  re-enters the delivery's flow. */
-export function resumePrompt(deliveryId: string | undefined, cardId: number | null): string {
+/** Resume the same action; only implementation receives build requirements. */
+export function resumePrompt(deliveryId: string | undefined, cardId: number | null, action: AgentAction): string {
   if (!deliveryId) return RESUME_PROMPT
+  if (action === 'review' || action === 'conflict') {
+    return `${RESUME_PROMPT} Continue with \`${boardCommandFor(cardId ?? undefined)} delivery ${action} ${deliveryId} --print\`.`
+  }
+  if (action !== 'implement') return RESUME_PROMPT
   const lead = DELIVERY_RESUME.replace('%s', deliveryId)
   if (cardId !== null) {
     return `${lead} ${DELIVERY_RESUME_CARD.replace('%c', `${boardCommandFor(cardId)} card implement ${cardId} --print`)}`
@@ -114,20 +117,12 @@ const RESTART_LEAD = [
   `Do the task below from the top, checking each step's precondition before you do it — work an earlier run already finished is done, so don't repeat it.`,
 ].join(' ')
 
-/** What a run is told when the session it came back for turns out to be gone and a fresh
- *  one was opened in its place (#395). Unlike the resume prompt it stands on its own: it
- *  names the skill and the task, because nothing of the conversation survived.
- *
- *  A delivery's resume prompt already does — it names the delivery and prints the approved
- *  card — so the BUILD is restarted with that one as it is. Its review and its conflict run
- *  are different jobs on the same delivery, and that prompt would put either of them on the
- *  implement flow, so they are restarted by their own ask. Nothing comes back for a run whose
- *  ask can no longer be written down, and the client fails such a run rather than restarting
- *  it blind. */
+/** Restart a lost conversation with its original action. Builds recover approved requirements;
+ *  other restartable actions receive their own ask. */
 export function restartPrompt(req: AgentRequest, deliveryId?: string): string | undefined {
   // A run that names neither a card nor a delivery has no ask to write down again.
   if (req.id === undefined && !req.deliveryId && !deliveryId) return undefined
-  if (deliveryId && req.action === 'implement') return resumePrompt(deliveryId, req.id ?? null)
+  if (deliveryId && req.action === 'implement') return resumePrompt(deliveryId, req.id ?? null, req.action)
   if (!RESTARTABLE.has(req.action)) return undefined
   return [RESTART_LEAD, buildPrompt(req)].join('\n\n')
 }
@@ -634,18 +629,13 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
     }
-    // Resolving the conflict a landing's rebase stopped on (#304). It is new work, not a
-    // correction: the two cards were both right on their own, and what to keep is a
-    // judgment neither card wrote down. Nothing here names the files — they are in the
-    // worktree and the flow prints them — and nothing here says to finish the rebase: the
-    // board does that, so the run has one job and no rebase state to get wrong.
+    // The flow supplies conflict facts; the guide owns the procedure.
     case 'conflict': {
       const aim = deliveryAim(req, deliveryFor(req))
       return [
         `${kb}. ${aim.subject} is landing, and its rebase onto the target branch stopped on a conflict.`,
         `\`${command} delivery conflict ${aim.arg} --print\` names the conflicted files, both sides' intent and both diffs.`,
-        `Resolve every conflicted file in the delivery's worktree so both intentions survive, \`git add\` each one, and stop there — the board finishes the rebase, then reviews your resolution before it lands.`,
-        `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
+        `Follow \`akb guide conflict\`.`,
       ].join(' ')
     }
     case 'resolve':

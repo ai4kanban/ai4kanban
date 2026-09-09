@@ -373,6 +373,7 @@ function conflictField(delivery: DeliveryRecord | undefined): string[] {
   const files = conflictedPaths(worktreeDir(delivery.worktree))
   const overlap = delivery.landing?.overlap ?? []
   return field('conflict', [
+    ...(delivery.landing?.why ? [`landing: ${delivery.landing.why}`] : []),
     files.length
       ? `${files.length} file${files.length === 1 ? '' : 's'} to resolve in ${delivery.worktree}:`
       : `the rebase onto ${delivery.targetBranch} stopped, but no file is conflicted right now — check \`git status\` there`,
@@ -646,7 +647,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...candidateField(delivery))
       close.push(
         'treat the target branch as the current implementation; preserve it and replay only what the approved copy above requires',
-        '`git add` each file you resolved, and leave the rebase alone: the board runs `git rebase --continue`' +
+        'repair Git state failures while preserving the delivery; `git add` each file you resolved, then stop: the board runs `git rebase --continue`' +
           (aiReviewOn(delivery ?? {})
             ? ', then reviews the composed result before it lands'
             : ' and lands the composed result — this delivery has AI review off'),

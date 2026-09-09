@@ -87,7 +87,7 @@ describe('the delivery a plan build opens', () => {
         plan: `docs/kanban/${PLAN_REL}`,
       }).deliveryId
     })
-    const prompt = resumePrompt(id, null)
+    const prompt = resumePrompt(id, null, 'implement')
     assert.match(prompt, /write it from the plan this delivery was approved to build/)
     assert.match(prompt, new RegExp(`docs/kanban/${PLAN_REL}`))
     assert.match(prompt, /The problem, in one sentence\./)

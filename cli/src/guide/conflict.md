@@ -11,5 +11,7 @@
 - Do not create or update cards, propose follow-up work, or raise unrelated implementation
   questions.
 - Stage each resolved file with `git add`.
+- Repair Git state failures in the delivery's worktree yourself, preserving its commits and
+  staged resolutions. These are execution problems, not user questions.
 - Do not continue, abort, or otherwise finish the rebase; stop after staging the resolution.
 - Review follows the completed rebase before anything lands.

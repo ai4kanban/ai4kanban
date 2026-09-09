@@ -638,9 +638,7 @@ function startConflict(delivery: DeliveryRecord, target: string, files: string[]
   }
 }
 
-// Finish the rebase the conflict run resolved. It staged the resolution and stopped;
-// this is the `--continue` it deliberately did not run. A rebase that still will not go
-// through is aborted — the branch is whole again — and the card is asked.
+// Continue staged resolutions; return failures to the agent without discarding its work.
 async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<Step> {
   const left = conflictedPaths(dir)
   const done = left.length ? { ok: false, why: `${names(left)} ${are(left.length)} still conflicted` } : continueRebase(dir)
@@ -650,26 +648,13 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
     // resolution itself is code no review has seen.
     return await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!, 'conflict')
   }
-  abortRebase(dir)
   const why =
     `the conflict between ${deliveryName(delivery)} and ${delivery.targetBranch} was not resolved — ` +
     `${done.why ?? 'the rebase would not go through'}`
-  await handOver(
-    delivery,
-    'conflict',
-    why,
-    {
-      text:
-        `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
-        `Its work is whole on ${delivery.branch}. Once you have decided, ` +
-        `\`${boardCommand()} delivery review ${delivery.deliveryId}\` puts it back in motion.`,
-      options: [
-        `I'll resolve it myself and land ${delivery.branch}`,
-        `cancel the delivery, and start the card again on top of ${delivery.targetBranch}`,
-      ],
-    },
-  )
-  return { done: true }
+  patchLanding(delivery.deliveryId, (landing) => { landing.why = why })
+  return {
+    start: { action: 'conflict', id: delivery.cardId ?? undefined, deliveryId: delivery.deliveryId, title: delivery.title },
+  }
 }
 
 // ---- moving the target branch -----------------------------------------------

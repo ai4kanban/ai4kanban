@@ -321,7 +321,7 @@ describe('the prompt', () => {
     assert.match(guide, /target branch as the authoritative current implementation/)
     assert.match(guide, /Do not create or update cards/)
     assert.match(guide, /Review follows the completed rebase/)
-    assert.match(buildPrompt({ action: 'conflict', id: 1, title: 'card one' }), /reviews your resolution before it lands/)
+    assert.match(buildPrompt({ action: 'conflict', id: 1, title: 'card one' }), /Follow `akb guide conflict`/)
   })
 
   it('gives review a scope step for a focused post-rebase pass', () => {

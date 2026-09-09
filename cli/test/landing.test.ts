@@ -522,23 +522,53 @@ describe('a conflict', () => {
     assert.equal(landingOf(second.deliveryId)?.status, 'landed')
   })
 
-  it('leaves a question and the branch whole when it stays unresolved', async () => {
+  it('retries unresolved conflicts without asking the user or discarding work', async () => {
     await reviewed(1, 'card one', 'one\n')
     const second = await reviewed(2, 'card two', 'two\n')
     await advanceLanding()
 
     const session = run('conflict', 2, 'card two')
     await end(session, 'error')
-    assert.equal(await advanceLanding(), null)
+    assert.equal((await advanceLanding())?.action, 'conflict')
 
     const live = listDeliveries().find((d) => d.deliveryId === second.deliveryId)!
-    assert.equal(live.landing?.status, 'conflict')
-    assert.equal(live.review?.stopped?.reason, 'landing')
-    assert.equal(rebaseInProgress(worktreeDir(second.worktree!)), false)
-    // Its work is still whole on its own branch, and the card carries the question.
+    assert.equal(live.landing?.status, 'landing')
+    assert.equal(live.review?.stopped, undefined)
+    assert.equal(rebaseInProgress(worktreeDir(second.worktree!)), true)
     assert.deepEqual(log(second.branch!), ['card two (#2)', 'start'])
     const text = fs.readFileSync(path.join(root, 'docs', 'kanban', 'todo', 'features', '2-card.md'), 'utf8')
-    assert.match(text, /\[user\] Delivery .* could not land on main/)
+    assert.doesNotMatch(text, /\[user\]/)
+  })
+
+  it('hands damaged rebase state back to the agent and reviews after recovery', async () => {
+    await reviewed(1, 'card one', 'one\n')
+    const second = await reviewed(2, 'card two', 'two\n')
+    await advanceLanding()
+    const dir = worktreeDir(second.worktree!)
+    fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\ntwo\n')
+    git(['add', 'shared.txt'], dir)
+    const headName = path.resolve(dir, git(['rev-parse', '--git-path', 'rebase-merge/head-name'], dir))
+    const saved = fs.readFileSync(headName)
+    fs.unlinkSync(headName)
+
+    assert.equal((await advanceLanding())?.action, 'conflict')
+    const live = listDeliveries().find((d) => d.deliveryId === second.deliveryId)!
+    assert.match(live.landing?.why ?? '', /head-name/)
+    assert.equal(live.review?.stopped, undefined)
+    assert.equal(fs.readFileSync(path.join(dir, 'shared.txt'), 'utf8'), 'one\ntwo\n')
+    const sink = startCollecting()
+    try {
+      printFlow({ action: 'conflict', id: 2, deliveryId: second.deliveryId })
+    } finally {
+      stopCollecting()
+    }
+    assert.match(sink.out.join('\n'), /head-name/)
+    fs.writeFileSync(headName, saved)
+    assert.equal((await advanceLanding())?.action, 'review')
+    await passReview(2, 'card two')
+    await advanceLanding()
+    assert.equal(landingOf(second.deliveryId)?.status, 'landed')
+    assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'one\ntwo\n')
   })
 })
 

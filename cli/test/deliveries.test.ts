@@ -384,7 +384,7 @@ describe('a delivery with no card', () => {
   // writing its card, so the sentence itself has to be in the words.
   it('quotes the typed sentence to a run that has to start over', () => {
     const id = startCardless(session({ cardId: null }))
-    const prompt = resumePrompt(id, null)
+    const prompt = resumePrompt(id, null, 'implement')
     assert.match(prompt, new RegExp(`Continue delivery ${id}`))
     assert.match(prompt, /No card was written yet: write it from this sentence/)
     assert.match(prompt, new RegExp(typed))

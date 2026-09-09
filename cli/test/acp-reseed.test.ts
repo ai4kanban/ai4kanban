@@ -13,7 +13,7 @@ import path from 'node:path'
 import { PassThrough } from 'node:stream'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { restartPrompt } from '../src/lib/agent/prompts.ts'
+import { restartPrompt, resumePrompt } from '../src/lib/agent/prompts.ts'
 import { createAcpClient } from '../src/lib/agent/wire/acp.ts'
 import type { TurnEnd } from '../src/lib/agent/wire/client.ts'
 import { obj, str, type Json } from '../src/lib/agent/wire/json.ts'
@@ -192,6 +192,16 @@ describe('the prompt a restarted run is given', () => {
     const prompt = restartPrompt({ action: 'conflict', id: 12 }, 'abc123')
     assert.match(prompt ?? '', /conflict 12 --print/)
     assert.doesNotMatch(prompt ?? '', /implement 12 --print/)
+  })
+
+  it('resumes review and conflict on their own flows, with or without a card', () => {
+    for (const action of ['review', 'conflict'] as const) {
+      for (const cardId of [12, null]) {
+        const prompt = resumePrompt('abc123', cardId, action)
+        assert.match(prompt, new RegExp(`delivery ${action} abc123 --print`))
+        assert.doesNotMatch(prompt, /implement|Build the card|write it from/)
+      }
+    }
   })
 
   it('says the task is being done again, not carried on', () => {

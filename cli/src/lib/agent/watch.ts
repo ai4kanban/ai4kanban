@@ -162,11 +162,8 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // The keys are read here and nowhere else: the plan on disk carries the command and the
   // agent's name, never a key, and this is the one moment one is needed.
   const active = openPlan(spec.plan)
-  // A resumed run's prompt is the "carry on" one — the conversation already holds the
-  // card, the work done and the error it died on, so the whole action prompt would be a
-  // second instruction nobody gave. Inside a delivery it says more: re-enter the flow and
-  // check each step's precondition, rather than carrying on from a half-finished sentence.
-  const prompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? [resumePrompt(record.deliveryId, record.cardId), spec.prompt].filter(Boolean).join('\n\n') : spec.prompt)
+  // Resume the recorded action, not another phase of the same delivery.
+  const prompt = record.formatRepair ? contractRepairPrompt(requestOf(record), record.formatRepair.errors) : (record.resumedFrom ? [resumePrompt(record.deliveryId, record.cardId, record.action), spec.prompt].filter(Boolean).join('\n\n') : spec.prompt)
 
   // The board as it was the moment before the agent touched it. The difference between this
   // and the same read at the close is what this run could be answerable for; which of it
