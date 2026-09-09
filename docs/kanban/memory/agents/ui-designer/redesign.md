@@ -70,6 +70,9 @@
   you are stuck on, so an overlay ends at the composer's top edge.
 - **One way off, in the pane's own head; one way back, in the top row.** Where a sheet's
   close ✕ already sits in that corner, a second ✕ is unreadable — use a labelled toggle.
+- **A hover bubble must not land on a band's rule**: a tip drawn above the FIRST card of a
+  module band covers that band's caption and hairline and reads as a broken render — hang it
+  off a card that has another card above it.
 - **Land a scroll cut through body text**, never through an 11px caption: sliced caption
   text reads as a broken render, a sliced character does not.
 - **Text sliced flat at a panel's foot reads as a bug**: fade the last ~56px into the
@@ -125,6 +128,9 @@
   only global is `React`, render with `react-dom/server`, build the CSS with tailwind's
   `compile()` over the markup's classes, then screenshot headless Chrome at 1280 × 800 with
   `--force-device-scale-factor=2`. A layout that overflows its dialog is only caught here.
+- **`kanban-ui/render-mockup.mjs` is untracked and gets deleted between sessions**: when it
+  is gone, write it again from this recipe rather than reaching for a new approach.
+- **Triage needs order as well as capacity**: repeated heavy card frames look crowded and scattered; use date groups, aligned rows and quiet separators, keep Add on demand, and drop arbitrary first-screen item quotas.
 - **The render script must SIT in `kanban-ui/` and be RUN from there**: Node looks beside
   the script, so one in `/tmp` cannot resolve `sucrase`, `tailwindcss` or `react-dom/server`.
 - **Give sucrase the `imports` transform too** (`['typescript', 'jsx', 'imports']`), or the
@@ -157,3 +163,4 @@
 - **整理记忆看起来像链接项，周期像必选项**：改为明确的 CTA，进入 Configurations → Agent → Memory Pruner；用户开启定期整理后才显示周期设置。
 - **Correct direction can still be misleading UI**: preserve the current screen’s complete layout and control sizes when adding a feature; do not replace it with a simplified settings page.
 - **定期整理独占一行太丑**：收成「立即整理」旁的小控件，点击才展开周期设置。
+- **Attachment designs used an obsolete Create task view**: inspect the current composer and per-mode runtime controls before drawing the attachment.

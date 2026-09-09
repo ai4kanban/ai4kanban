@@ -217,6 +217,7 @@ re-ask a settled call.
   written rather than as one paragraph — the extra runs and their cost are spent
   automatically, without anyone asking.
 - **When the proposer reflects**: one run per completed card, started as that card is archived; nothing else triggers reflection.
+- **A dismissal only blocks the automatic pull**: a dismissed item is never fetched again, but a user adding the same thing by hand is always let through — re-pasting the link is the only way back from a wrong dismissal, and no screen offers a restore.
 
 ## Agents and harnesses
 
@@ -317,8 +318,9 @@ re-ask a settled call.
   over rather than moving the transcript to one that never opened it, and picking one on the same
   CLI carries it on with the change marked. It has no model box of its own — the row carries the
   model.
-- A plan a **Discuss** chat writes is kept: it stays in `docs/kanban/plans/` after its cards
-  are written, and every card it produced names it as its source.
+- A plan a **Discuss** chat writes is kept: once the run it was handed to has written its
+  cards it moves to `docs/kanban/plans/archive/`, and every card it produced names that
+  archive path as its source.
 - **`akb chat` reaches the board's discussions**: a board holds many rather than one, so with
   no message `akb chat` lists the discussions going and a message says which one it continues.
   The app and the terminal stay one conversation.

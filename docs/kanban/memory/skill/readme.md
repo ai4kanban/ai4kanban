@@ -162,10 +162,19 @@ covers it, or a plain-words note.
   settled**, **Decisions that stood**, **Proposals built**, worked out on each read, with
   `not enough yet` instead of a percentage where the evidence is thin, and none of the three
   a target: "Insights" in `kanban-ui/README.md`.
-- `akb signals add --title ".." --text ".."` writes one item straight into the inbox, with
+- `akb triage add --title ".." --text ".."` writes one item straight into triage, with
   `--file <path>` for a longer body and `--source` for where it came from. It needs no
-  endpoint and no Cloud account, and an item the inbox already holds is refused: "Put
-  something in yourself" in `web/content/docs/market-signals.mdx`.
+  endpoint and no Cloud account, and an item triage already holds is refused: "Put
+  something in yourself" in `web/content/docs/triage.mdx`.
+- **Triage is the one name for it, and the old one is gone.** The command is `akb triage
+  fetch | add`; `akb signals` fails as an unknown command. The endpoint is
+  `- **Triage endpoint** — <url>` in `config.md` and the token `TRIAGE_ENDPOINT_TOKEN` in
+  `docs/kanban/.env` — `Signal endpoint` and `SIGNAL_ENDPOINT_TOKEN` are no longer read, and
+  a board carrying only those is told it is not set up. Nothing is rewritten for you: rename
+  the two settings, and update any script or recurring card still running the old command.
+  The recurring card a first pull seeds is now **Fetch triage items**; a board already
+  carrying the old **Fill the inbox** card keeps it, unchanged, and gets the new one too:
+  `web/content/docs/triage.mdx`.
 
 ## Agents, runtimes and keys
 
@@ -194,7 +203,7 @@ covers it, or a plain-words note.
   runs on. It ends as a failure, so the card keeps its work and Resume picks it up:
   `web/content/docs/connectors.mdx`.
 - **Proposer** reads a card the board has just finished and puts the work that should follow
-  it in the Inbox, each item carrying its rationale and the card that prompted it. Off by
+  it in Triage, each item carrying its rationale and the card that prompted it. Off by
   default and turned on in Configuration → Agents, where it costs one run per completion;
   archiving is its only trigger, and finding nothing worth proposing is a normal result:
   "Let the Proposer look back" in `web/content/docs/agents.mdx`.
@@ -417,3 +426,11 @@ covers it, or a plain-words note.
   fired again until the next window. A fresh board no longer seeds a "Prune the memory" card, and
   a board that has one loses it on the next `akb update`, its cadence kept beside the agent and
   switched off.
+
+- A card is not a card to act on until the run that created it has finished. `akb raw create`
+  inside a run attaches the new id to it, and until that run ends successfully every card
+  action — implement, run, refine, resolve, edit, reject, archive, schedule — refuses with a
+  line naming the run. A run that failed, was stopped or was cut off leaves the card
+  unfinished until it is picked back up; a create typed by a person is complete at once, and a
+  **Build now** card is being built rather than written. The creating run is the one caller
+  those refusals let through, so it can still refine the card it just wrote.

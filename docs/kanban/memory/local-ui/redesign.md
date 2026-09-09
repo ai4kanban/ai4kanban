@@ -5,6 +5,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## What the UI does
 
+- ❌ **Triage wastes space on a standing form, then overcorrects with a wall of heavy card boxes** → ✅ use grouped, aligned rows with quiet separators, search and filters; open Add on demand and prioritize scan order over a first-screen item quota.
+
 - ❌ **The UI lets people hand-edit the board** (toggle todos, write cards, mark done) → ✅
   the UI spawns agent runs to do the kanban work; only priority, ROI and a title/body edit
   are direct.
@@ -194,3 +196,4 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Optional scheduling occupies a full settings row** → ✅ keep it beside the manual action as a compact control that opens its settings on demand.
 
 - ❌ **Treat standalone CLI paths as Desktop discovery coverage** → ✅ scan reported Desktop cache paths, including hashed folders, using the same known-path approach as macOS.
+- ❌ **An attachment spec targets an old Create task dialog** → ✅ inspect the current composer, modes and runtime selection before designing its file input.

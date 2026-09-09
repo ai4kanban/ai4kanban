@@ -5,13 +5,13 @@ roi: high
 status: todo
 release: ""
 blocked_by: []
-related: [250, 157]
+related: [250]
 modules: [skill]
 questions:
   - question: "[user] What happens to the brief before the cards are written? A run started from the app has nobody to answer it — there is no live reply channel."
     mode: single
     options:
-      - "the same rule as a spec import (#157): in a coding-agent session the agent shows the brief and waits for a yes; a run started from the app writes the brief into its log and carries on"
+      - in a coding-agent session the agent shows the brief and waits for a yes; a run started from the app writes the brief into its log and carries on
       - the brief always goes into the log and the run carries on — one rule everywhere, and a wrong card is revised after
       - the run stops once the brief is written and leaves it for the user to approve; a second run writes the cards
     recommend: [1]
@@ -35,8 +35,8 @@ short brief first, and plan from the brief.
   typed, in a file (#252), or spoken (#253).
 - An article, a complaint or a write-up skips it. `akb guide extract-ideas` reads a source
   as it does today.
-- A plan the user already wrote skips it. `akb guide plan-from-spec` (#157) reads a spec
-  whole.
+- A plan the user already wrote skips it. The agent reads the spec directly and follows
+  `akb guide add-task`.
 - `akb guide add-task` says which of the three readings a request gets.
 - What goes in is the material, word for word.
 - What comes out is a short brief with a fixed shape: what is wanted, why it matters, what
@@ -65,7 +65,7 @@ short brief first, and plan from the brief.
 - [ ] Carry what the material leaves open into the new cards as open questions.
 - [ ] Split several unrelated requests in one piece of material into separate briefs.
 - [ ] Write the routing rule into `akb guide add-task`: a task idea gets the brief, a source
-      goes to extract-ideas, a written plan goes to #157.
+      goes to extract-ideas, a written plan goes directly to card creation.
 - [ ] Show the brief before the cards are written.
 - [ ] Keep the brief in the run's own folder beside its log.
 - [ ] Say in the daily-loop guide that a typed or spoken idea now goes through a brief, and
@@ -81,8 +81,8 @@ short brief first, and plan from the brief.
 - **Why a fixed shape**: "unknown" has to be a place the brief must fill in, or the run
   quietly answers it instead of admitting it.
 - **Why a source and a written plan skip it**: extract-ideas reads a source as evidence and
-  quotes its own words back into each card's `## Source`; #157 promises every part of a spec
-  becomes work. A short reading in front of either thins what it has to judge.
+  quotes its own words back into each card's `## Source`; a written plan already states
+  the requested work. A short reading in front of either thins what it has to judge.
 - **Where `extract-ideas` stops**: `akb guide add-task` routes a direct task idea past it,
   and its "strong signal only, zero candidates is valid" rule discards weak material — right
   for an article, wrong for work the user is asking for.

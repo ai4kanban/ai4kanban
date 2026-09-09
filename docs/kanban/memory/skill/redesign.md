@@ -81,9 +81,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   costs less than a write path agents are not trained on.
 - ❌ **Give an action a second mode without saying when to pick it** → ✅ a card that adds a
   mode also states the rule for choosing it, and where the agent reads that rule.
-- ❌ **Leave the command, its setting and its key under the old word after the product
-  renamed the thing they act on** → ✅ one word across the product: the command follows the
-  UI's name, and the old spelling survives only as a hidden alias and a read-time fallback.
+- ❌ **Keep legacy commands and settings when renaming a feature** → ✅ use one name across
+  the product; remove `akb signals` and old settings without aliases or read-time fallbacks.
+  We do not maintain backward compatibility.
 - ❌ **Tell an agent to check for a tool with `command -v <short name>`** → ✅ prove the tool
   with a subcommand of its own and treat a bad exit as absent. A two-letter name is often
   already a system binary — `od` is OpenDesign's command and also `/usr/bin/od` — so a
@@ -184,3 +184,5 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Memory pruning assumes a recurring schedule, including on migration** → ✅ keep manual pruning available and recurring pruning Off until the user opts in.
 
 - ❌ **Treat standalone CLI paths as Desktop discovery coverage** → ✅ scan reported Desktop cache paths, including hashed folders, using the same known-path approach as macOS.
+- ❌ **Keep a second handled-ID list beside retained result files** → ✅ scan the files through one CLI operation; limit the UI’s default date range without deleting the evidence needed for deduplication.
+- ❌ **Document input is disabled by an assumed harness/model format limit** → ✅ research the actual input path, pass the staged file to the agent's tools, and surface reading errors without promising universal support.

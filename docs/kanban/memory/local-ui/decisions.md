@@ -113,6 +113,9 @@ re-ask a settled call.
 - Optional usage reporting is on by default, and one required step discloses it before a
   board opens — once per machine, not per board. An install that predates the release takes
   the same step and the same default; there is no grandfathered-off state.
+- **Continuing past an unreadable repository answers the project step**: the folder name is
+  saved as the project and setup moves to the goal, and the desktop offer to discard a wrongly
+  opened folder retires at that press like any other answered project step.
 
 ## The goal
 
@@ -188,6 +191,9 @@ re-ask a settled call.
   back to one long run with the same instructions.
 - A group root shows what waits on what as a map above the subtasks: one column per layer,
   blockers first, id-only chips, no labels, and no map where nothing blocks anything.
+- **A card that is not finished being created does not open**: it sits on the board, muted
+  and marked, and clicking it does nothing until its creator finishes — so it can be neither
+  inspected, watched, nor recovered from a page of its own.
 
 ## Mockups on a card page
 
@@ -220,8 +226,9 @@ re-ask a settled call.
   put clear work on the board, or implement it without a task.
 - **Create task is an action, not a place**: it opens a full-screen sheet over the board that Esc
   or ✕ closes, rather than a Board/Build tab pair in the header.
-- **A plan file is read outside the app**: Discuss writes `docs/kanban/plans/<id>-<slug>.md` and the
-  cards it produced name its path; the board never opens it.
+- **A plan file is read outside the app**: Discuss writes `docs/kanban/plans/<id>-<slug>.md`,
+  it moves to `plans/archive/` once its run has written cards, and those cards name wherever
+  it is; the board never opens it.
 - **Propose tasks is gone from the app**: the mode is dropped rather than carried into the
   chat, because cards nobody asked for are rarely worth trusting. The flow behind it is
   retired too — finding new work is idea extraction from a named source.
@@ -321,3 +328,4 @@ re-ask a settled call.
 
 - `kanban-ui/README.md` is the user-facing guide, and any card that changes visible UI
   behavior updates it. `akb guide local-ui` covers installation only.
+- **Document attachments**: let the selected runtime attempt PDF/Word reading and surface its errors; do not disable document formats by model or require the board to convert them first.

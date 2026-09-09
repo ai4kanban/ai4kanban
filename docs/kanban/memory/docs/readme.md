@@ -38,3 +38,7 @@ covers it, or a plain-words note.
   commit each way, the export, leaving Cloud and deleting the workspace:
   `web/content/docs/local-and-cloud-boards.mdx`, and a section of its own in `README.md` and
   `README-zh.md`.
+- The Market signals guide is now **Triage** at `/docs/triage`, in the same place in the rail.
+  `/docs/market-signals` is not redirected — the old address 404s. It carries the new command,
+  the two renamed settings, the **Fetch triage items** recurring card, and a note that the old
+  command and settings are gone and are yours to update: `web/content/docs/triage.mdx`.

@@ -17,22 +17,25 @@ questions:
     recommend: [1]
 ---
 
-Today the only way to put work on this board is to type it into the Create task box.
-Anything the user already wrote down, or would rather just say out loud, has to be retyped
-or pasted in as a wall of text. Give the board other ways in — a file, your voice — send
+Create task already accepts typed messages and pasted images. A document the user already
+wrote, or an idea they would rather say out loud, still needs another way in. Give the board other ways in — a file, your voice — send
 each one to the flow that reads that kind of material, and put a short brief in front of the
 loose notes people type or speak. A brief is four short parts: what is wanted, why it
 matters, what is out, and what the material never says. This is a group task; each piece is
 its own subtask in this folder.
 
+## Worth noting
+
+<!-- agent -->
+
 ## Scope
-- Three ways to bring work in: typed text (today), a file the user picks, words the user
-  speaks.
+- Three inputs covered by this group: typed text (today), a document the user picks, words
+  the user speaks; existing pasted images keep their current behavior.
 - `akb guide add-task` is the router: it reads what arrived and picks the flow for it.
 - A task idea the user typed or spoke goes through the brief (#251) first, unless it is
   already short and clear.
-- A plan the user already wrote goes to `akb guide plan-from-spec` (#157), which reads it
-  whole.
+- A plan the user already wrote is read directly by the agent and follows
+  `akb guide add-task`.
 - An article, a complaint or a write-up goes to `akb guide extract-ideas`, as it does today.
 - What the user brought in — the document, the transcript, word for word — never travels
   inside the words a run is started with. The run is given a path and opens it.
@@ -42,10 +45,9 @@ its own subtask in this folder.
 - No way in writes a card by itself.
 - No card holds a copy of what the user brought in.
 - Nothing the user brought in lands in git.
-- In the desktop app an attached file is read where it sits.
-- In a browser tab the text the browser hands over is written into the run's own folder,
-  `docs/kanban/.sessions/`.
-- That copy goes when the run's log goes.
+- Document formats, runtime error handling and storage ownership follow #252: both desktop
+  and browser stage files locally, with copies owned by a discussion or a run and deleted
+  with that owner.
 - A recording is dropped as soon as it is text.
 - Every card written this way names in `## Source` the file it came from, or says it was
   spoken and when.
@@ -68,21 +70,21 @@ its own subtask in this folder.
 - **Where the brief sits**: behind the router, on a task idea the user gave in their own
   words. A source and a written plan each already have a flow that reads them whole, and a
   short brief in front of either is a second, thinner reading of the same material.
-- **A spec file is checked once, not twice**: #157 lists the cards it is about to write, and
-  that list is the check. It does not also pass the brief.
 - **Why the outside connectors are out**: Notion, GitHub Issues and Obsidian read another
   product's API, and they are planned elsewhere (#313, #56). A file the user picks and words
   the user speaks are material the board can already read.
 - **Why file and voice are one group**: they are the two ways into the Create task dialog
   that the app is missing, they land in the same box, and the same router decides what
   happens to either.
-- **Where a browser tab's text sits**: in the run's own folder beside its log, named for the
-  run. That folder is already out of git, holds no cards, and is cleared with the log.
 
 ### Worth noting
 - **Voice is the lowest priority of the three**: it is the least proven, and it needs a way
   to turn speech into text that the board does not have today. If only one piece ships, it
   should be the file.
-- **The file picker does not wait for the brief**: a file holding a plan goes to #157 and a
+- **The file picker does not wait for the brief**: a file holding a plan goes directly to card creation and a
   file holding an article goes to extract-ideas, so #252 is useful on its own. Voice still
   waits — a two-minute ramble is exactly what the brief is there to catch.
+
+### Overruled by the user
+- **Where a browser tab's text sits**: in the run's own folder beside its log, named for the
+  run. That folder is already out of git, holds no cards, and is cleared with the log.

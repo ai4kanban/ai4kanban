@@ -375,3 +375,15 @@ naming no other doc is covered there.
   cannot read is refused in place and leaves the schedule off. Under the pair, quiet text says
   **Never run** until the first pass that passed, then its time; a pass that failed says so
   beside Run now and leaves that time where it was.
+
+- **The inbox is called Triage.** The rail row, the page title and the list all read
+  "Triage / 待筛选", and the add box is "Add to triage / 加入待筛选". The page still draws one
+  list and one add box. When the settings are missing it names them by their new names —
+  `Triage endpoint` and `TRIAGE_ENDPOINT_TOKEN`: `web/content/docs/triage.mdx`.
+
+- **A card being created does not open**: while the run that wrote it is still going, its board
+  card sinks into the board — wash ground, hairline, no shadow — wears a pulsing **creating**
+  mark in place of its status pill, and clicks nowhere. Its page refuses a direct URL with the
+  reason and a way back. A creator that stopped short leaves the card marked **unfinished** with
+  **Resume creating** on the card itself, since there is no page to offer it on. Both marks go
+  the moment the creator finishes and the card draws as any other.

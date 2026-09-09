@@ -61,7 +61,7 @@ subtask in this folder.
 - **What is already a button, and needs nothing**: proposing, creating, refining,
   resolving, scheduling, archiving, rejecting, every release move, running and stopping a
   run, the goal, the metrics, the agent settings, and installing the skill. Pruning the
-  memory is the recurring card #142 with its own Run button. Changing a card's own words is
+  memory is handled by the memory pruner. Changing a card's own words is
   Edit on the card page, which asks the agent for the rewrite; that stays the way to do it.
   Putting a specialist agent on a card is `akb spec` in a terminal, with Configuration →
   Agents saying which specialists may run at all; that stays the way to do it too. The audit
