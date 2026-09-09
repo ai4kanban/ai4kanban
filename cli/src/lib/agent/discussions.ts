@@ -24,6 +24,9 @@ import {
   setChatArchived,
   setChatTitle,
 } from './chat'
+import { filePlanOfRun } from './discuss'
+import { peekRun } from './sessions'
+import { runIsLive } from './store'
 import {
   DISCUSSION_PREFIX,
   discussionIdOf,
@@ -58,13 +61,22 @@ export function startDiscussion(): DiscussionTarget {
  *  It is also where the list is held to its length: the ones past `KEEP` are archived here,
  *  oldest first, so nothing has to run on a timer and a board left alone for a month tidies
  *  itself the moment someone looks at it. One whose agent is answering is never taken — the
- *  reply it is writing has somewhere to land. */
+ *  reply it is writing has somewhere to land.
+ *
+ *  And it is where a plan handoff is settled (#551). This read already walks every file,
+ *  archived ones included, so a run that ended while nobody was looking is noticed here
+ *  rather than by a watcher: the plan is filed away, or the discussion comes back. */
 export function listDiscussions(): DiscussionRow[] {
   adoptBoardChat()
   const rows: DiscussionRow[] = []
   for (const target of discussionFiles()) {
-    const chat = readChat(target)
-    if (!chat || chat.archived) continue
+    let chat = readChat(target)
+    if (!chat) continue
+    if (chat.archived) {
+      if (!settleHandoff(target, chat)) continue
+      chat = readChat(target)
+      if (!chat || chat.archived) continue
+    }
     rows.push(rowOf(target, chat))
   }
   rows.sort((a, b) => b.updatedAt - a.updatedAt)
@@ -96,6 +108,35 @@ export function archiveDiscussion(
   const dropped = (chat.plans ?? []).filter((p) => !p.run && dropPlan(p.path)).map((p) => p.path)
   setChatArchived(target, true)
   return { ok: true, plans: dropped }
+}
+
+/** An archived discussion whose handoff run has settled, answering whether it is back on
+ *  the rail (#551).
+ *
+ *  Only the board's own archive is undone: one the user made stays out whatever its run
+ *  does. A run that wrote cards ends the subject — the plan is filed away and the row stays
+ *  archived, as if the user had put it there. A run that wrote none gives the row back with
+ *  its plan and its answers as they were. */
+function settleHandoff(target: DiscussionTarget, chat: Chat): boolean {
+  if (chat.archivedBy !== 'board') return false
+  const plan = chatPlan(chat)
+  // No plan left to wait on — it was let go somewhere else. The mark goes, and the row stays
+  // out: there is nothing to bring it back for.
+  if (!plan?.run) {
+    setChatArchived(target, true)
+    return false
+  }
+  const run = peekRun(plan.run)
+  if (run && runIsLive(run)) return false
+  // The card, not the exit code (#481) — and a run the record no longer holds wrote none we
+  // can point at, so its discussion comes back the same way a failed one's does.
+  if (run?.createdCardIds?.length) {
+    filePlanOfRun(target, run.createdCardIds)
+    setChatArchived(target, true)
+    return false
+  }
+  setChatArchived(target, false)
+  return true
 }
 
 // ---- the files -------------------------------------------------------------

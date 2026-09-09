@@ -5,6 +5,10 @@
 // enough to read in one screen. It is not a card and the board never opens one; what makes
 // it findable again is the path each card it produced names in its `## Source`.
 //
+// It lives in one of two folders and never both: `plans/` while it is still live, and
+// `plans/archive/` once the run it was handed to has written its cards (#551) — so what is
+// left in `plans/` is only what may still be answered again.
+//
 // The id comes off `next-id`, so a plan and the cards written from it are one numbering.
 // That is the only thing here that writes the board's shared files, and it writes no card:
 // `akb raw create` is the only move that does, and it always writes one.
@@ -12,7 +16,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { PLANS, boardPath, die, readNextId, writeNextId } from './paths'
+import { PLANS, PLANS_ARCHIVE, boardPath, die, readNextId, writeNextId } from './paths'
 import { slugify } from './validate'
 
 /** One plan file, as a screen draws it. `text` is empty for a path whose file is not there
@@ -24,13 +28,20 @@ export interface PlanFile {
   lines: number
 }
 
+/** The prefix of a plan already filed away (#551). */
+const ARCHIVED = 'plans/archive/'
+
+/** Whether a path names a plan that has been filed away. */
+export const isArchivedPlan = (rel: string): boolean => rel.startsWith(ARCHIVED)
+
 /** That path as an absolute one. Refuses anything that would climb out of `plans/`: the
- *  path reaches here off a conversation's own file, and a plan is only ever one file in one
- *  folder. */
+ *  path reaches here off a conversation's own file, and a plan is only ever one file, in
+ *  `plans/` while it is live and in `plans/archive/` once its cards are written. */
 export function planFile(rel: string): string | null {
-  const name = rel.replace(/^plans\//, '')
+  const dir = isArchivedPlan(rel) ? PLANS_ARCHIVE : PLANS
+  const name = rel.replace(/^plans\/(archive\/)?/, '')
   if (!name || name.includes('/') || !name.endsWith('.md')) return null
-  return path.join(PLANS, name)
+  return path.join(dir, name)
 }
 
 /** Name the next plan: allocate an id, and answer with the file it goes in. The file itself
@@ -87,22 +98,54 @@ export function dropPlan(rel: string): boolean {
   }
 }
 
-/** The file a missing plan was renamed to — the newest `plans/<id>-*.md` with its id. */
+/** The file a missing plan is really in — the newest `<id>-*.md` under either folder. It
+ *  follows a rename, and it follows the move into `plans/archive/`, so a card or a screen
+ *  holding the old path still reaches the file (#551). */
 function renamedPlan(rel: string): string | null {
-  const id = /^(\d+)-/.exec(rel.replace(/^plans\//, ''))?.[1]
+  const id = /^(\d+)-/.exec(rel.replace(/^plans\/(archive\/)?/, ''))?.[1]
   if (!id) return null
-  let names: string[]
-  try {
-    names = fs.readdirSync(PLANS)
-  } catch {
-    return null
+  const found: { rel: string; at: number }[] = []
+  for (const [dir, prefix] of [
+    [PLANS, 'plans/'],
+    [PLANS_ARCHIVE, ARCHIVED],
+  ] as const) {
+    let names: string[]
+    try {
+      names = fs.readdirSync(dir)
+    } catch {
+      continue
+    }
+    for (const n of names) {
+      if (!n.startsWith(`${id}-`) || !n.endsWith('.md')) continue
+      found.push({ rel: `${prefix}${n}`, at: fs.statSync(path.join(dir, n)).mtimeMs })
+    }
   }
-  const same = names.filter((n) => n.startsWith(`${id}-`) && n.endsWith('.md'))
-  if (!same.length) return null
-  const newest = same
-    .map((n) => ({ n, at: fs.statSync(path.join(PLANS, n)).mtimeMs }))
-    .sort((a, b) => b.at - a.at)[0]
-  return `plans/${newest.n}`
+  if (!found.length) return null
+  return found.sort((a, b) => b.at - a.at)[0]!.rel
+}
+
+/** File one plan away: its run has written its cards, so it moves to `plans/archive/` and
+ *  the path answered is what those cards should name in `## Source` (#551).
+ *
+ *  A plan already filed, or one whose file is no longer there, answers its own path — the
+ *  move is done, or there is nothing to move, and either way the caller has nothing to
+ *  repoint. Null only when the path is not a plan of this board's. */
+export function archivePlan(rel: string): string | null {
+  const found = readPlan(rel)
+  if (!found) return null
+  if (isArchivedPlan(found.path)) return found.path
+  const from = planFile(found.path)
+  if (!from || !fs.existsSync(from)) return found.path
+  const name = path.basename(from)
+  try {
+    fs.mkdirSync(PLANS_ARCHIVE, { recursive: true })
+    fs.renameSync(from, path.join(PLANS_ARCHIVE, name))
+  } catch {
+    // Left where it is — the cards go on naming a path that still reads, and the next pass
+    // over this discussion tries the move again.
+    return found.path
+  }
+  return `${ARCHIVED}${name}`
 }
 
 /** The plan's path as an agent and a card should spell it — from the project root, so a

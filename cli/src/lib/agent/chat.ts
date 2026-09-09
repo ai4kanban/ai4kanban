@@ -133,6 +133,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
     plans: plansOf(raw),
     title: typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : undefined,
     archived: raw.archived === true,
+    archivedBy: raw.archived === true && raw.archivedBy === 'board' ? 'board' : undefined,
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
@@ -341,15 +342,19 @@ export function setChatPlan(
 }
 
 /** The run this plan was handed to has started, and which answer handed it over (#481). The
- *  ask is answered by it, so it goes; the plan is held until that run has written a card. */
-export function setChatPlanRun(cardId: ChatTarget, sessionId: string, answer: PlanAnswer): void {
+ *  ask is answered by it, so it goes; the plan is held until that run has written a card.
+ *
+ *  Answers whether there was a live plan to hand over — the caller archives the discussion
+ *  on a handoff (#551), and one with nothing in flight has nothing to bring it back. */
+export function setChatPlanRun(cardId: ChatTarget, sessionId: string, answer: PlanAnswer): boolean {
   const chat = readChat(cardId)
   const live = chatPlan(chat)
-  if (!live) return
+  if (!live) return false
   writePlans(
     cardId,
     (chat?.plans ?? []).map((p) => (p.path === live.path ? { ...p, run: sessionId, answer } : p)),
   )
+  return true
 }
 
 /** Let the live plan go — its cards are written, and the next idea starts a file of its own.
@@ -375,11 +380,16 @@ export function setChatTitle(cardId: ChatTarget, title: string): void {
 }
 
 /** Take one discussion out of the list, or put it back (#496). The transcript stays where it
- *  is — archiving only ever hides the row. */
-export function setChatArchived(cardId: ChatTarget, archived: boolean): void {
+ *  is — archiving only ever hides the row.
+ *
+ *  `by` is `board` for the archive a plan handoff makes (#551), which is the only one the
+ *  board ever undoes. Left off, the row is out because someone put it there, and putting a
+ *  board-archived row back or re-archiving it by hand drops the mark. */
+export function setChatArchived(cardId: ChatTarget, archived: boolean, by?: 'board'): void {
   const chat = readChat(cardId)
   if (!chat) return
   chat.archived = archived
+  chat.archivedBy = archived ? by : undefined
   writeChat(chat)
 }
 

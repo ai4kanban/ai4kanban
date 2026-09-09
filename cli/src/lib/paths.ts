@@ -110,6 +110,10 @@ export let DELIVERIES = ''
 // next-id like a card. Tracked in git: a card's `## Source` names one, so a board that left
 // its plans behind would carry cards pointing at nothing.
 export let PLANS = ''
+// Where a plan goes once the run it was handed to has written its cards (#551). Same file,
+// one folder down, so `plans/` stays a short list of what is still live and the cards that
+// name the plan in `## Source` are repointed at it here.
+export let PLANS_ARCHIVE = ''
 // One rule per agent, in the user's own words, appended to the end of every run that agent
 // does (#306, #420) — `rules/<agent>.md`, named by a role the board ships or a specialist a
 // card asks for. Tracked in git so a team shares them, and inside docs/kanban/, which every
@@ -239,6 +243,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   DELIVERIES = path.join(KANBAN, 'deliveries')
   RULES = path.join(KANBAN, 'rules')
   PLANS = path.join(KANBAN, 'plans')
+  PLANS_ARCHIVE = path.join(PLANS, 'archive')
   TRIAGE = path.join(KANBAN, 'triage')
   SIGNAL_INBOX = path.join(TRIAGE, 'inbox')
   SIGNALS_HANDLED = path.join(TRIAGE, 'handled.md')

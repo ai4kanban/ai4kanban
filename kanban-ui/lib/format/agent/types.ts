@@ -785,6 +785,11 @@ export interface Chat {
   /** It has been taken out of the discussion list — by hand, or because it fell past the
    *  20 spoken to most recently (#496). Its transcript stays where it is. */
   archived?: boolean
+  /** `board` marks the one archive the board undoes: the one a plan handoff made (#551).
+   *  It is dropped the moment that run settles — the discussion comes back to the rail, or
+   *  it stays out as if the user had put it there. Absent on every other archive, which is
+   *  the user's and is never undone. */
+  archivedBy?: 'board'
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number
