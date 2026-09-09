@@ -311,8 +311,13 @@ export interface BoardRules {
   editDraftComment?(id: number, draft: string, commentId: string, words: string): DraftComment[];
   dropDraftComment?(id: number, draft: string, commentId: string): DraftComment[];
   /** Submit the batch — one `polish` run over that one draft. The board clears the comments
-   *  when it ends `done`, so nothing here does. */
-  polishDraft?(id: number, draft: string): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }>;
+   *  when it ends `done`, so nothing here does. `note` is what was typed about the whole
+   *  batch (#573); rules older than it take the argument and ignore it. */
+  polishDraft?(
+    id: number,
+    draft: string,
+    note?: string,
+  ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }>;
 
   /** What this board's work IS (#407) — `product` or `marketing`. Optional: a copy of the
    *  rules older than the release that added solutions has only ever run product boards. */

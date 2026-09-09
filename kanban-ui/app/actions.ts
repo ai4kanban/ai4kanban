@@ -1136,10 +1136,11 @@ export async function dropDraftCommentAction(id: number, draft: string, commentI
 export async function polishDraftAction(
   id: number,
   draft: string,
+  note?: string,
 ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
   if (!Number.isInteger(id)) return { ok: false, error: "a polish names the topic by number" };
   if (typeof draft !== "string" || !draft) return { ok: false, error: "a polish names a draft" };
-  return polishDraft(id, draft);
+  return polishDraft(id, draft, typeof note === "string" ? note.trim() || undefined : undefined);
 }
 
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once

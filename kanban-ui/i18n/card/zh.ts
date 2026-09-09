@@ -150,6 +150,7 @@ const zh: CardCopy = {
       save: "保存",
       hint: "修改期间暂不可编辑",
       submit: (n) => `提交 ${n} 条意见`,
+      notePlaceholder: "对整篇的补充说明（可选）…",
       polishing: (n) => `正在按 ${n} 条意见修改`,
       failed: "未能启动这次润色",
     },

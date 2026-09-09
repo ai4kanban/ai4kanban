@@ -140,9 +140,10 @@ export interface ScreenActions {
   /** Change what one comment asks for. Its passage stays. */
   editDraftComment(id: number, draft: string, commentId: string, words: string): Promise<CommentBatch>;
   dropDraftComment(id: number, draft: string, commentId: string): Promise<CommentBatch>;
-  /** Submit the batch: one `polish` run over that draft. The board clears the comments when
-   *  it ends `done`, so a run that failed leaves them to submit again. */
-  polishDraft(id: number, draft: string): Promise<RepurposeAnswer>;
+  /** Submit the batch: one `polish` run over that draft, with what was typed about the batch
+   *  as a whole (#573). The board clears the comments when it ends `done`, so a run that
+   *  failed leaves them to submit again. */
+  polishDraft(id: number, draft: string, note?: string): Promise<RepurposeAnswer>;
 }
 
 /** The passage a comment is left on: the words, and where they sat when it was left. */

@@ -264,8 +264,11 @@ export function dropDraftComment(id: number, draft: string, commentId: string): 
  * The batch is NOT cleared here. The run has to finish for the polished draft to be the
  * answer, so the watcher clears it on a `done` ending (`agent/watch.ts`); one that failed,
  * was stopped or was cut off leaves the comments to submit again.
+ *
+ * `note` is what the user typed about the whole batch on the way out (#573) — optional,
+ * carried into this one run's prompt and stored nowhere, like a repurpose's own note.
  */
-export async function polishDraft(id: number, draft: string): Promise<RepurposeResult> {
+export async function polishDraft(id: number, draft: string, note?: string): Promise<RepurposeResult> {
   try {
     if (solution() !== 'marketing') {
       die(`a polish is the marketing solution's — this board is \`${solution()}\`, and its cards are built, not written.`, {
@@ -282,7 +285,7 @@ export async function polishDraft(id: number, draft: string): Promise<RepurposeR
     if (!readComments(id, draft).length) {
       die(`no comments are waiting on ${rel(file)} — leave one on a passage first.`, { kind: 'no-comments', id, draft })
     }
-    const req: AgentRequest = { action: 'polish', id, title: titleOf(id), draft }
+    const req: AgentRequest = { action: 'polish', id, title: titleOf(id), draft, notes: note?.trim() || undefined }
     const started = await startRun(req)
     if ('error' in started) return { ok: false, error: started.error }
     if (!started.spawned) return { ok: false, error: `couldn't start a process to run ${started.run.sessionId}` }

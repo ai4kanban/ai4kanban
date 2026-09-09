@@ -10,6 +10,7 @@ and every Markdown file under `memory/writing/`, recursively.
 
 - **Read the whole batch**: `quote` anchors the passage, `from`/`to` are hints, and `words` is the request. Use the current text; skip a comment if its passage is gone and no clear target remains.
 - **Apply the feedback**: follow explicit later corrections; otherwise resolve conflicting requests using your judgment. Use factual claims supplied by the user without requiring supporting information. Preserve unrelated text, intent, language and format unless feedback changes them; invent no claims of your own.
+- **A note on the batch**: the ask may carry one. It applies to the whole pass, not to a passage, and a per-passage comment wins where the two disagree.
 - **Check every comment**: reread against the batch and applicable writing rules. Feedback overrides rules for this draft; a local exception does not repeal them.
 
 ## Save structured memories

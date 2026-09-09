@@ -919,16 +919,17 @@ function Draft({
     setComments(res.comments);
   };
 
-  /** Submit the batch: one polish over this draft, with every comment on it. The board
-   *  clears them when the run ends `done`, so nothing is cleared here — a polish that
-   *  failed leaves the batch to submit again. */
-  const submitComments = (from: HTMLElement | null) =>
+  /** Submit the batch: one polish over this draft, with every comment on it and whatever
+   *  was typed about the batch as a whole (#573). The board clears them when the run ends
+   *  `done`, so nothing is cleared here — a polish that failed leaves the batch to submit
+   *  again. */
+  const submitComments = (from: HTMLElement | null, note: string) =>
     // What is typed goes to disk first: the run is about to write this same file, and a
     // save landing after it would put the words back over what the polish wrote.
     afterSave("submit", from, async () => {
       if (!actions || !comments.length) return;
       setMoving(true);
-      const res = await actions.polishDraft(card.id, tab);
+      const res = await actions.polishDraft(card.id, tab, note.trim() || undefined);
       setMoving(false);
       if (!res.ok) return onError(res.error ?? c.comment.failed);
       onError(null);
@@ -1266,7 +1267,7 @@ function Draft({
           refusal={refusal("submit", "right", "up")}
           onEdit={(commentId, words) => void editComment(commentId, words)}
           onDrop={(commentId) => void dropComment(commentId)}
-          onSubmit={(from) => void submitComments(from)}
+          onSubmit={(from, note) => void submitComments(from, note)}
         />
       )}
 

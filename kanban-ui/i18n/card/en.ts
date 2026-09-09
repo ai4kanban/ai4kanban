@@ -152,6 +152,7 @@ const en: CardCopy = {
       save: "Save",
       hint: "Not editable while it is being rewritten",
       submit: (n) => (n === 1 ? "Submit 1 comment" : `Submit ${n} comments`),
+      notePlaceholder: "Anything about the whole draft (optional)…",
       polishing: (n) => (n === 1 ? "Rewriting to 1 comment" : `Rewriting to ${n} comments`),
       failed: "the polish could not be started",
     },

@@ -147,6 +147,12 @@ describe('submitting the batch', () => {
     assert.match(prompt, /rewrite docs\/kanban\/content\/2-a-topic\/x\.md/)
   })
 
+  it('carries the note left on the whole batch, and says nothing without one', () => {
+    const req = { action: 'polish', id: 2, title: 'A topic', draft: 'x' } as const
+    assert.doesNotMatch(buildPrompt(req), /Extra notes on this batch/)
+    assert.match(buildPrompt({ ...req, notes: 'keep it under 200 words' }), /Extra notes on this batch: keep it under 200 words/)
+  })
+
   it('names the writing memory the polish files its rules in', () => {
     const prompt = buildPrompt({ action: 'polish', id: 2, title: 'A topic', draft: 'x' })
     assert.match(prompt, /docs\/kanban\/memory\/writing\.md/)

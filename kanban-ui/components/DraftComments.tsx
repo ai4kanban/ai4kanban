@@ -345,10 +345,15 @@ export function DraftComments({
   refusal?: React.ReactNode;
   onEdit: (commentId: string, words: string) => void;
   onDrop: (commentId: string) => void;
-  /** The button pressed, so the refusal above knows what to hang off. */
-  onSubmit: (from: HTMLElement | null) => void;
+  /** The button pressed, so the refusal above knows what to hang off, and the note typed
+   *  about the whole batch, if any (#573). */
+  onSubmit: (from: HTMLElement | null, note: string) => void;
 }) {
   const c = useCopy().card.marketing;
+  // What the batch as a whole asks for, beside the passages (#573). It belongs to this
+  // submission, so it lives here and goes nowhere else: a polish that failed leaves it
+  // typed, and one that worked takes the batch — and this band with it — away.
+  const [note, setNote] = useState("");
   if (!comments.length) return null;
   return (
     <div className="shrink-0 bg-nb-wash px-5 pb-4 pt-3" style={{ borderTop: `1px solid ${HAIRLINE}` }}>
@@ -368,7 +373,7 @@ export function DraftComments({
             <>
               <span className="text-[11.5px] text-nb-ink-soft">{c.comment.hint}</span>
               <span className="relative">
-                <Button size="xs" disabled={disabled} onClick={(e) => onSubmit(e.currentTarget)}>
+                <Button size="xs" disabled={disabled} onClick={(e) => onSubmit(e.currentTarget, note)}>
                   <FiMessageSquare className="text-[12px]" aria-hidden />
                   {c.comment.submit(comments.length)}
                 </Button>
@@ -378,6 +383,18 @@ export function DraftComments({
           )}
         </span>
       </div>
+      {/* The note on the whole batch (#573) — one line, always there rather than behind a
+          toggle, and empty is the normal case. Above the list and outside its scroll: it is
+          about all of them, and a long read-through must not scroll it out of sight. */}
+      {!polishing && (
+        <input
+          value={note}
+          disabled={disabled}
+          placeholder={c.comment.notePlaceholder}
+          onChange={(e) => setNote(e.target.value)}
+          className="mb-2 w-full rounded-[8px] bg-nb-paper px-3 py-2 text-[12.5px] text-nb-ink placeholder:text-nb-ink-soft/70 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:opacity-70"
+        />
+      )}
       {/* Capped, because a long read-through is exactly when this band would otherwise eat
           the draft it is about. */}
       <div className="flex max-h-[34vh] flex-col gap-1.5 overflow-y-auto">

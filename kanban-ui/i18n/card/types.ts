@@ -378,6 +378,8 @@ export type MarketingCopy = {
     /** The line beside Submit, and the button itself with the batch's count. */
     hint: string;
     submit: (n: number) => string;
+    /** The one-line note the whole batch carries, which is usually left empty. */
+    notePlaceholder: string;
     /** While the polish is running, in Submit's place. */
     polishing: (n: number) => string;
     failed: string;

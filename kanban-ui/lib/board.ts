@@ -563,11 +563,12 @@ export async function dropDraftComment(
 export async function polishDraft(
   id: number,
   draft: string,
+  note?: string,
 ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
   try {
     const rules = await boardRules();
     if (!rules.polishDraft) return { ok: false, error: await tooOldForDrafts() };
-    return await rules.polishDraft(id, draft);
+    return await rules.polishDraft(id, draft, note);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

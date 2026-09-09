@@ -590,6 +590,9 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Work every comment in that batch into one pass over the draft, then record only reusable corrections in the board's writing memory following the guide.`,
         `Write only that draft and the files those corrections need in \`docs/kanban/memory/writing.md\` or under \`docs/kanban/memory/writing/\`. Leave the card, other drafts and the comments file alone.`,
         `Don't ask me questions with human-in-the-loop — the review is me reading the polished draft.`,
+        // What the user said about the batch as a whole, if anything (#573). It is not in the
+        // comments file: it belongs to this submission, not to a passage.
+        req.notes ? `Extra notes on this batch: ${req.notes}` : '',
       ]
         .filter(Boolean)
         .join(' ')
