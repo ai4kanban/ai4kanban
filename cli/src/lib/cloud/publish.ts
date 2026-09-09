@@ -10,12 +10,15 @@
 //   • actionable, on record, only its revision moved → write the revision through, quietly
 //   • on record, no longer actionable       → retire it as `stale`
 //
-// Actionable means waiting for a person with NOTHING WORKING ON IT (./snapshot.ts). A run
-// picking a card up puts its row down, and the run ending picks it back up — which is the
-// one thing the bell interrupts anybody over, because it is the one moment the board has
-// finished and the user has not. A delivery HELD AT LANDING is the one thing that holds a
-// card without working it (#565): it is finished but for the card's open questions, so the
-// card is raised as if nothing held it.
+// Actionable means waiting for a person WITH A WAY TO ANSWER (./snapshot.ts). A run picking
+// a card up puts its row down, and the run ending picks it back up — which is the one thing
+// the bell interrupts anybody over, because it is the one moment the board has finished and
+// the user has not. Two things bend that rule in opposite directions:
+//
+//   • a delivery HELD AT LANDING holds a card without working it (#565) — finished but for
+//     the card's open questions, so the card is raised as if nothing held it, and
+//   • a live run that merely NAMES a card puts it down even when it holds nothing (#568),
+//     because the card page turns its controls off for one either way.
 //
 // One task means one row. A card revised twice before anyone looks must not leave three
 // rows asking about revisions two of them no longer bind, and answering the last question
@@ -26,7 +29,7 @@
 import crypto from 'node:crypto'
 
 import { cardsHeldAtLanding } from '../agent/deliveries'
-import { cardsAtWork } from '../agent/store'
+import { cardsAtWork, cardsWithLiveRun } from '../agent/store'
 import { board } from '../board'
 import { KANBAN } from '../paths'
 import { cloudBoardFor, type CloudBoard } from './boards'
@@ -190,7 +193,7 @@ const sleep = (ms: number) =>
     timer.unref?.()
   })
 
-/** Of the cards a delivery is carrying, the ones that raise nothing — every one but a
+/** The cards that raise nothing: every one a delivery is carrying but a
  *  delivery held at landing (#565), which is built, reviewed and queued with only the card's
  *  open questions left, so its card is raised as if nothing held it. `cardsAtWork` itself is
  *  left whole: a delivery is still carrying these cards, which is what `writeOffAbandoned`
@@ -198,7 +201,14 @@ const sleep = (ms: number) =>
  *  re-judged on the same terms that queued it. */
 function silenced(atWork: ReadonlySet<number>): Set<number> {
   const heldAtLanding = cardsHeldAtLanding()
-  return new Set([...atWork].filter((id) => !heldAtLanding.has(id)))
+  const quiet = new Set([...atWork].filter((id) => !heldAtLanding.has(id)))
+  // …and any card a live run merely NAMES on top of those (#568). A specialist holds no card,
+  // so `atWork` leaves it out — but the card page turns its controls off for one all the same,
+  // and a row asking a question the card offers no way to answer is worse than silence. Added
+  // after the filter, so it also holds back a card held at landing. The run ending raises it
+  // again, which is where a question still open is heard about.
+  for (const id of cardsWithLiveRun()) quiet.add(id)
+  return quiet
 }
 
 async function queueDifference(

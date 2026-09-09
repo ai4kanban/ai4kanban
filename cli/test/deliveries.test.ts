@@ -23,7 +23,7 @@ import {
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { resumePrompt } from '../src/lib/agent/prompts.ts'
 import { cancelDelivery } from '../src/lib/agent/sessions.ts'
-import { cardsAtWork, readStore, withStore } from '../src/lib/agent/store.ts'
+import { cardsAtWork, cardsWithLiveRun, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
 
@@ -302,6 +302,32 @@ describe('the cards the board is working on', () => {
   it('is held by no spec run — it fills one section and never the plan', () => {
     withStore((store) => store.runs.push(live({ cardId: 7, action: 'spec' })))
     assert.deepEqual([...cardsAtWork()], [])
+  })
+
+  // The wider set (#568): not what may start, but what a person can act on. A spec run holds
+  // no card and the card page still turns its controls off, so Cloud reads this one too.
+  it('names a card under a spec run, which the narrower set lets go', () => {
+    withStore((store) => store.runs.push(live({ cardId: 7, action: 'spec' })))
+    assert.deepEqual([...cardsWithLiveRun()], [7])
+  })
+
+  it('names nothing once that run has ended, so the card comes back', () => {
+    const run = live({ cardId: 7, action: 'spec' })
+    withStore((store) => store.runs.push(run))
+    withStore((store) => {
+      const held = store.runs.find((r) => r.sessionId === run.sessionId)!
+      held.status = 'done'
+    })
+    assert.deepEqual([...cardsWithLiveRun()], [])
+  })
+
+  it('names no card for a delivery between its runs — a person can act on that one', () => {
+    const id = start(session({ cardId: 5 }))
+    withStore((store) => {
+      for (const r of store.runs) r.status = 'done'
+    })
+    assert.deepEqual([...cardsWithLiveRun()], [])
+    endDelivery(id, 'finished')
   })
 })
 

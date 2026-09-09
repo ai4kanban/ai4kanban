@@ -6,11 +6,13 @@
 //
 //   • a task the board's watch covers — every card, or one release's, and
 //   • either at `ready`, or carrying questions only the user can answer, and
-//   • nothing in its way: no run working it, and no open card it waits on.
+//   • nothing in its way: no run over it, and no open card it waits on.
 //
 // `atWork` is the caller's answer to the third rule, because what counts as working a card
 // is the delivery record's to say rather than this file's — a delivery held at landing holds
-// its card and works it no longer, and the publisher leaves those out of the set (#565).
+// its card and works it no longer, and the publisher leaves those out of the set (#565),
+// while a specialist run holds no card and still goes in, because the card page offers no
+// way to answer one while it runs (#568).
 //
 // Narrowed to one release, a task in another — or promised to none — is not what the user
 // asked to be told about. A task that is BOTH `ready` and asking raises the question:
@@ -85,8 +87,8 @@ export function userQuestions(card: Card): CloudEventQuestion[] {
   return out
 }
 
-/** Is this a card the board raises an event about right now? `atWork` is what the board is
- *  working on (agent/store.ts) — a card in it is nobody's decision yet. */
+/** Is this a card the board raises an event about right now? `atWork` is what the caller says
+ *  the user cannot act on yet (../cloud/publish.ts) — a card in it is nobody's decision. */
 export function actionableKind(
   card: Card,
   board: CloudBoard,

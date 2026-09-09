@@ -259,6 +259,26 @@ export function cardsAtWork(): Set<number> {
   return held
 }
 
+/**
+ * Every card a live run NAMES, whether or not the run holds it.
+ *
+ * The wider set, and a different question from `cardsAtWork`: not "may something else start
+ * on this card" but "can a person act on it right now". A specialist run holds nothing, yet
+ * the card page turns every control off while one is live — so a card mid-spec is one the
+ * user is offered no way to answer (#568).
+ *
+ * What Cloud raises reads this as well, so the bell and the card agree about when a question
+ * can be answered. The card comes back when the run ends, like any other.
+ */
+export function cardsWithLiveRun(): Set<number> {
+  const named = new Set<number>()
+  for (const run of readStore().runs) {
+    if (run.cardId === null || !runIsLive(run)) continue
+    named.add(run.cardId)
+  }
+  return named
+}
+
 function readDeliveryRows(raw: unknown): DeliveryRecord[] {
   if (!Array.isArray(raw)) return []
   const rows: DeliveryRecord[] = []

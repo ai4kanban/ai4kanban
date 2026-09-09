@@ -718,6 +718,88 @@ describe('a delivery held at landing', () => {
   })
 })
 
+// A run that NAMES a card without holding it (#568). A specialist is out of every lock, so
+// the card's own loop carries on around it — but the card page turns its controls off all
+// the same, and a row asking a question the card offers no way to answer is worse than
+// silence.
+describe('a card a specialist run is drafting', () => {
+  const ASKING = '[user] Which shade of blue?'
+
+  /** A card asking the user, in the watched release, with `drafting` deciding whether a
+   *  `spec` run is live over it. */
+  function asking({ drafting = false, landing = false } = {}): void {
+    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    writeCardFile('0.8.0', [ASKING])
+    setBoardProvider({
+      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+    } as never)
+    if (landing) {
+      withStore((store) =>
+        store.deliveries.push({
+          deliveryId: 'd-12',
+          cardId: 12,
+          title: 'A task',
+          status: 'active',
+          startedAt: Date.now(),
+          sessions: [],
+          approved: '',
+          steps: [],
+          commitMode: 'auto',
+          targetBranch: 'main',
+          landing: { status: 'waiting', attempts: 0, at: Date.now() },
+        } as DeliveryRecord),
+      )
+    }
+    if (drafting) working(12, 'spec')
+  }
+
+  /** What the pass queued for card 12, if anything. */
+  const queued = () => readOutbox().pending.find((p) => p.kind === 'publish' && p.snapshot.taskId === 12)
+  const retired = () => readOutbox().pending.find((p) => p.kind === 'retire' && p.eventId === 'e-12')
+
+  it('raises nothing while the spec is still being written', async () => {
+    asking({ drafting: true })
+
+    await recordBoardEvents()
+
+    assert.equal(queued(), undefined)
+  })
+
+  it('takes down a row already up, since the card stopped offering an answer', async () => {
+    asking({ drafting: true })
+    notePublication(12, 'e-12', 'actionable')
+
+    await recordBoardEvents()
+
+    const retirement = retired()
+    assert.ok(retirement, 'the row comes down rather than sitting there unanswerable')
+    assert.equal(retirement.kind === 'retire' && retirement.state, 'stale')
+  })
+
+  it('raises it once the drafting run ends and the question is still open', async () => {
+    asking({ drafting: true })
+    await recordBoardEvents()
+    assert.equal(queued(), undefined)
+
+    withStore((store) => store.runs.splice(0, store.runs.length))
+    await recordBoardEvents()
+
+    const publication = queued()
+    assert.ok(publication, 'the run is over and the question is the user\u2019s again')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
+  })
+
+  it('holds a card held at landing back too, for the same reason', async () => {
+    // #565 raises this one as if nothing held it. A live run over it still says no: the
+    // controls the answer would be typed into are off.
+    asking({ drafting: true, landing: true })
+
+    await recordBoardEvents()
+
+    assert.equal(queued(), undefined)
+  })
+})
+
 function writeCardFile(release = '0.8.0', questions: string[] = []): void {
   const dir = path.join(root, 'docs', 'kanban', 'todo', 'features')
   fs.mkdirSync(dir, { recursive: true })
@@ -746,12 +828,12 @@ function writeCardFile(release = '0.8.0', questions: string[] = []): void {
 }
 
 /** Write down a live run on a card, the way `openRun` would. */
-function working(cardId: number): void {
+function working(cardId: number, action: RunRecord['action'] = 'resolve'): void {
   withStore((store) =>
     store.runs.push({
       sessionId: `s-${cardId}`,
       cardId,
-      action: 'resolve',
+      action,
       status: 'running',
       startedAt: Date.now(),
       pid: process.pid,
