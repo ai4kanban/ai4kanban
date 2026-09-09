@@ -1530,7 +1530,7 @@ export function CardPage({
             )}
 
             {error && (
-              <div className="nb-section bg-nb-peach-soft p-3.5 text-[13px] text-nb-peach-ink">
+              <div className="nb-section whitespace-pre-line break-words bg-nb-peach-soft p-3.5 text-[13px] text-nb-peach-ink">
                 {error}
               </div>
             )}

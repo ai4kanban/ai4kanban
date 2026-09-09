@@ -109,8 +109,15 @@ export interface DeliveryStart {
 export const deliveryCwd = (delivery: { worktree?: string }): string =>
   delivery.worktree ? worktreeDir(delivery.worktree) : REPO_ROOT
 
-const names = (files: string[]): string =>
-  `${files.slice(0, MAX_NAMED).join(', ')}${files.length > MAX_NAMED ? `, and ${files.length - MAX_NAMED} more` : ''}`
+// What a dirty checkout refuses with (#544): the move first, the paths under it. Plain and
+// unquoted, one per line, so a long path reads as a path rather than as prose.
+const dirtyRefusal = (files: string[]): string =>
+  [
+    'Commit or stash your changes before starting.',
+    '',
+    ...files.slice(0, MAX_NAMED),
+    ...(files.length > MAX_NAMED ? [`and ${files.length - MAX_NAMED} more`] : []),
+  ].join('\n')
 
 /** Why this checkout can give a delivery no worktree of its own, or nothing when it can.
  *  The dialog says it before the click and `prepareDelivery` acts on it after, so what the
@@ -181,11 +188,7 @@ export function prepareDelivery(
   const targetBranch = currentBranch() as string
   const dirty = dirtyPaths(false)
   if (dirty.length) {
-    return {
-      error:
-        `you have uncommitted changes in ${names(dirty)}. A delivery forks from your last commit and never copies ` +
-        `work you have not committed, so commit or stash these first.`,
-    }
+    return { error: dirtyRefusal(dirty) }
   }
   // `.akb/` is where the worktrees go, and it must be ignored before the first one lands.
   // Boards set up before that line existed get it here.
@@ -232,10 +235,7 @@ function manualRefusal(cardId: number | null, hasBase: boolean): string | undefi
   // delivery's own work.
   const dirty = dirtyPaths(true)
   if (dirty.length) {
-    return (
-      `you have uncommitted changes in ${names(dirty)}. A build without a branch of its own works in this checkout, ` +
-      `so review can only tell its work from yours if you start from a clean tree — commit or stash these first.`
-    )
+    return dirtyRefusal(dirty)
   }
   return undefined
 }

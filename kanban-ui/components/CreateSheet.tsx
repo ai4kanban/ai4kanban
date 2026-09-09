@@ -696,7 +696,7 @@ function Composer({
       {/* A start that was refused, said where the press was rather than behind the
           sheet. The sentence is still in the box above it. */}
       {error && (
-        <p className="nb-panel-sm mt-2.5 bg-nb-peach-soft p-2.5 text-[12px] leading-relaxed text-nb-peach-ink">
+        <p className="nb-panel-sm mt-2.5 whitespace-pre-line break-words bg-nb-peach-soft p-2.5 text-[12px] leading-relaxed text-nb-peach-ink">
           {error}
         </p>
       )}

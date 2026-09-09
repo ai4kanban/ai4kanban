@@ -215,7 +215,10 @@ export function CreateTask({
 
       {error && (
         <div
-          className="nb-panel-sm absolute right-0 top-full z-30 mt-2 max-w-[300px] cursor-pointer p-2.5 text-[12px]"
+          // Wide enough for short lines rather than a tall column (#544), and clamped to the
+          // viewport so it stays on screen. `pre-line` keeps the paths the board listed under
+          // the sentence on their own lines; `break-words` keeps a long one inside the panel.
+          className="nb-panel-sm absolute right-0 top-full z-30 mt-2 w-[min(420px,calc(100vw-32px))] cursor-pointer whitespace-pre-line break-words p-3 text-[12px] leading-relaxed"
           style={{ background: "var(--color-nb-peach-soft)" }}
           onClick={() => setError(null)}
         >
