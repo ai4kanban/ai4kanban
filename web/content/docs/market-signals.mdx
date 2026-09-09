@@ -3,7 +3,7 @@ title: "Market signals"
 title_tag: "AI4Kanban market signals — pull Reddit, X and Xiaohongshu leads into your board"
 description: "Point the board at a signal endpoint and it pulls what people are saying into an inbox beside your cards. Signals are leads, not tasks: read them, open the post, dismiss the ones that don't matter."
 lead: "The board can pull what people are saying on Reddit, X, Xiaohongshu and anywhere else into an inbox beside your cards. A signal is a lead, not a task."
-last_updated: "September 7, 2026"
+last_updated: "September 9, 2026"
 nav_label: "Market signals"
 icon: "inbox"
 ---
@@ -97,3 +97,19 @@ The first successful pull makes `docs/kanban/triage/inbox/` and seeds a recurrin
 **Fetch market signals**, in `todo/recurring/`. Give that card a cadence and the board pulls on
 its own; leave it without one and nothing runs until you ask. Delete the card if you don't want
 the job — nothing puts it back.
+
+## Put something in yourself
+
+The endpoint is not the only way in. **Add to inbox** on the page takes a pasted link, some
+typed text, or a dropped file, and from a terminal:
+
+```bash
+akb signals add --title "What it is" --text "Its own words." --source "where it came from"
+```
+
+`--file <path>` takes the body from a file when it is longer than a line or two. Neither needs
+an endpoint or a Cloud account. An item the inbox already holds is refused rather than doubled.
+
+This is also where the board's own **Proposer** writes: with it switched on, every card you
+archive is reflected on and what should follow it lands here, carrying the card that prompted
+it. See [Agents](/docs/agents).

@@ -65,6 +65,19 @@ export function locate(id: number): Found | null {
   return null
 }
 
+// The same, in `.archive/` — for the one flow that reads a card AFTER it has left the board
+// (#534). The archive keeps the shape `todo/` had, so a group is still a folder holding
+// `root.md` and everything else is a file. Null on a board that has archived nothing.
+export function locateArchived(id: number): Found | null {
+  if (!fs.existsSync(ARCHIVE)) return null
+  const groupDir = walkDirs(ARCHIVE).find(
+    (d) => idPrefix(path.basename(d)) === id && fs.existsSync(path.join(d, 'root.md')),
+  )
+  if (groupDir) return { kind: 'group', target: groupDir, rel: path.relative(ARCHIVE, groupDir) }
+  const hit = walkMd(ARCHIVE).find((f) => idPrefix(path.basename(f)) === id)
+  return hit ? { kind: 'file', target: hit, rel: path.relative(ARCHIVE, hit) } : null
+}
+
 // If `file` is a subtask nested inside a group task, return that group's root.md
 // (the nearest ancestor folder holding one). Null for a standalone card. Used so
 // archiving a subtask can tick it off in the group's tracking card.

@@ -27,6 +27,7 @@ import { readyGateOn, silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter, writeRunsAfter } from './follow'
+import { reflectRunsAfter } from './propose'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
@@ -571,7 +572,13 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // already ready when it started, so it is not a card that entered.
       const gate =
         status === 'done' ? (buildAfterGate(record) ?? (stagesBefore && gateRunAfter(stagesBefore))) : null
-      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate)
+      // And the proposer (#534): every card that reached the archive while this run was up —
+      // the one it archived itself, the one its landing completed, a group closed by either.
+      // `before` is the board as it stood at the spawn, which is the only record of what was
+      // still open then; the dispatcher cannot answer this, because a completed card is
+      // exactly what it no longer sees.
+      const reflect = status === 'done' ? reflectRunsAfter(before.keys()) : []
+      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate, reflect)
       resolve(status === 'done' ? 0 : 1)
     }
 
@@ -765,6 +772,7 @@ async function followUp(
   carryOn: AgentRequest | null,
   landing: AgentRequest | null = null,
   gate: AgentRequest | null = null,
+  reflect: AgentRequest[] = [],
 ): Promise<void> {
   // A request that already names its flow keeps it — a refinement pass carries its loop's
   // id, and that loop is this flow anyway.
@@ -786,6 +794,9 @@ async function followUp(
     // Last: the gate reads the board as this close left it, so it picks its card after the
     // refinements above have taken theirs.
     if (gate) await startRun(join(gate))
+    // And after it, the reflections — they read the open cards and the inbox to decide what
+    // is worth proposing, so they run once everything this close starts is on the board.
+    for (const req of reflect) await startRun(join(req))
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
   }

@@ -41,6 +41,7 @@ import pruneMemory from '../guide/prune-memory.md'
 import qaLightweight from '../guide/qa-lightweight.md'
 import qaLoop from '../guide/qa-loop.md'
 import recurringTask from '../guide/recurring-task.md'
+import reflect from '../guide/reflect.md'
 import reject from '../guide/reject.md'
 import review from '../guide/review.md'
 import releases from '../guide/releases.md'
@@ -94,6 +95,7 @@ export const GUIDES: Guide[] = [
   { name: 'changelog', when: "write a closed version's changelog from what its close wrote down", text: changelog },
   { name: 'document-feature', when: 'which docs a change has to update', text: documentFeature },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
+  { name: 'reflect', when: 'propose the work a just-completed card leaves behind', text: reflect },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the agent that owns it", text: specAgent },
   { name: 'module-map', when: 'write or rebuild docs/kanban/modules.md', text: moduleMap },
   { name: 'setup', when: "setup's own steps, while the checklist is still there", text: setup },
@@ -119,6 +121,7 @@ const GONE: Record<Solution, readonly string[]> = {
   marketing: [
     'setup',
     'add-task',
+    'reflect',
     'extract-ideas',
     'evaluate-task',
     'writing',

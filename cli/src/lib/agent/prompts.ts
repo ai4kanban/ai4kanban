@@ -5,12 +5,12 @@
 // skill — follows the agent that runs; everything after it is the same for all of them.
 
 import path from 'node:path'
-import { locate } from '../cards'
+import { locate, locateArchived } from '../cards'
 import { agentMemoryDir, boardMemoryFiles } from '../memory'
 import { channelLanguage } from '../channels'
 import { draftDir, draftFile, SOURCE } from '../content'
 import { findGuide } from '../guide'
-import { COMMENTS, boardText, rel, GOAL, MEMORY } from '../paths'
+import { ARCHIVE, COMMENTS, boardText, rel, GOAL, MEMORY } from '../paths'
 import {
   agentMemoryBlock,
   findSpecAgent,
@@ -248,6 +248,16 @@ function draftFolder(cardId: number | undefined): string | null {
 // module's decisions and rejections — and neither writes a line of it back.
 const boardMemory = (): string => [rel(GOAL), ...boardMemoryFiles()].join(', ')
 
+// Where a completed card is now (#534). Named outright rather than left to a search: the
+// ordinary card read no longer finds it, so a run told only the folder would hunt through
+// every card the board has ever finished. The folder is the fallback for the one case that
+// cannot happen — a reflection whose card is not in the archive.
+function archivedCardFile(id: number | undefined): string {
+  const found = id === undefined ? null : locateArchived(id)
+  if (!found) return `${rel(ARCHIVE)}/`
+  return rel(found.kind === 'group' ? path.join(found.target, 'root.md') : found.target)
+}
+
 // `<spec-agents>` asks which solution this board is: `ui-designer` and `tech-stack-advisor`
 // answer nothing a marketing topic asks. `<write-agents>` does not — the roster is empty on
 // a product board by itself, since `kind: write` does not parse there.
@@ -437,6 +447,19 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `${kb}. Prune this board's memory following \`akb guide prune-memory\`.`,
         `Cover the project's own memory at \`${rel(MEMORY)}/\`, each module's beside it, and the agents' at \`${rel(MEMORY)}/agents/<agent>/\`.`,
         `Change nothing but those files: no card, no \`verify:\` line, no question for anyone.`,
+      ].join(' ')
+    // Reflecting on a card the board has just completed (#534). The card is off the board,
+    // so the ask names the archive: nothing else can find it. What it may write is inbox
+    // items and nothing else — a proposal is triaged like anything else that arrives there,
+    // so the run never creates, edits or archives a card, and proposing nothing is the
+    // result it reports as often as not.
+    case 'reflect':
+      return [
+        `${kb}. Task ${req.id} ${named} has just been completed. Propose the work that should follow it, following \`akb guide reflect\`.`,
+        `It has left the board — read it at \`${archivedCardFile(req.id)}\`, and take nothing else as input.`,
+        `Judge what is worth proposing against ${boardMemory()}, and skip anything already on the board, already in the inbox, or turned down before.`,
+        `Write each survivor with \`${command} signals add\`: that is the whole of what you may write — no card is created, edited or archived, and finding nothing worth proposing is a complete result.`,
+        `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
     // Inject the shared contract, specialty instructions, and selected references.
     case 'spec': {

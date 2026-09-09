@@ -96,6 +96,7 @@ const VERB: Record<AgentAction, string> = {
   'plan-release': 'planned',
   setup: 'set up',
   'prune-memory': 'pruned',
+  reflect: 'reflected on',
   spec: 'specified',
   write: 'written for',
   channel: 'repurposed',

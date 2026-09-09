@@ -156,6 +156,11 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every answer Decider gives — "when it is close, take the smaller change".',
         when: "a card is left with nothing but questions waiting on you, a sent-back delivery's included.",
       },
+      proposer: {
+        gloss: "Proposes the work a finished card leaves behind.",
+        rule: 'Added to the end of every reflection Proposer makes — "never propose more tests".',
+        when: "a card is archived. It reads that one card and puts what should follow it in the Inbox, where you triage it like anything else that arrives.",
+      },
       "memory-pruner": {
         gloss: "Squeezes the memory back down to what helps planning.",
         rule: 'Added to the end of every prune — "never drop a line about a paying customer".',

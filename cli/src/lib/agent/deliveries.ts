@@ -41,6 +41,7 @@ import { completeCard } from './complete'
 import { insideRun } from './env'
 import { DELIVERY_FLOWS } from './flows'
 import { answeredStop, deliveryState, type DeliveryState } from './pause'
+import { reflectOnCompletion } from './propose'
 import { deliveryRules } from './rules'
 import {
   aiReviewOn,
@@ -749,7 +750,10 @@ export function manualSettled(delivery: DeliveryRecord): string | undefined {
  *  Reading a card must not write the board, so this is the awaited step that comes first:
  *  the Local board's `readCard` calls it, and the read that follows finds a card the
  *  delivery has already let go. The delivery is ended before the archive, so nothing is
- *  holding the card when it goes. */
+ *  holding the card when it goes.
+ *
+ *  This is the one completion with no run closing behind it, so it hands its own reflection
+ *  over (#534) rather than leaving the card unreflected on every manual-commit board. */
 export async function settleManualCommit(cardId: number): Promise<void> {
   const delivery = awaitingCommit(activeDelivery(cardId))
   if (!delivery) return
@@ -757,6 +761,7 @@ export async function settleManualCommit(cardId: number): Promise<void> {
   if (state !== 'landed' && !(state === 'changed' && !aiReviewOn(delivery))) return
   endDelivery(delivery.deliveryId, 'finished')
   await completeCard(delivery.cardId as number, delivery.deliveryId)
+  await reflectOnCompletion(delivery.cardId as number)
 }
 
 // ---- the hold a delivery puts on its card -----------------------------------

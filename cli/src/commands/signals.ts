@@ -5,12 +5,16 @@
 // and a hand-typed one do exactly the same thing. The other way in is **Add to inbox** on
 // the page (#499), which writes the same files without an endpoint.
 //
+// `add` is the third way in (#534): one item written from words the caller already has,
+// which is what the proposer's reflection uses. It asks Cloud nothing — the endpoint is what
+// admission is about, and **Add to inbox** on the page has never asked either.
+//
 // Nothing in the inbox is a task: nothing here creates a card, ranks anything, or touches
 // the board's counts. Turning one into a card is #454's.
 
 import fs from 'node:fs'
 
-import { fetchSignals, sayGap, signalConfigGaps, signalsAccess } from '../lib/signals'
+import { addToInbox, fetchSignals, sayGap, signalConfigGaps, signalsAccess } from '../lib/signals'
 import { signalEndpoint } from '../lib/signals/config'
 import { say } from '../lib/io'
 import { withBoardLock } from '../lib/lock'
@@ -57,4 +61,37 @@ export async function cmdSignalsFetch(): Promise<MoveResult> {
     inbox: rel(SIGNAL_INBOX),
     recurring_card: seeded?.id ?? null,
   }
+}
+
+/** `akb signals add`, as its command declares it. */
+export interface SignalsAddOptions {
+  title?: string
+  text?: string
+  file?: string
+  source?: string
+}
+
+/** Write one item into the inbox. The body comes from `--text` for a line or two and from
+ *  `--file` when it is longer, the same pair `akb release changelog` takes. */
+export function cmdSignalsAdd(opts: SignalsAddOptions): MoveResult {
+  const title = (opts.title ?? '').trim()
+  if (!title) die('say what it is: --title "<one line>"', { kind: 'needs-input' })
+  if (opts.file !== undefined && opts.text !== undefined) die('pass --file or --text, not both', { kind: 'needs-input' })
+
+  let body = opts.text
+  if (opts.file !== undefined) {
+    try {
+      body = fs.readFileSync(opts.file, 'utf8')
+    } catch {
+      die(`can't read ${opts.file} — write the item to a file, then pass its path`, { kind: 'needs-input' })
+    }
+  }
+  if (!body?.trim()) {
+    die('the item has to say something: --text ".." , or --file <path> for a longer one', { kind: 'needs-input' })
+  }
+
+  const done = addToInbox({ title, text: body, source: opts.source })
+  if (!done.ok) die(done.error, { kind: 'signal-refused' })
+  say(`added to the inbox: ${done.signal.relPath}`)
+  return { title: done.signal.title, source_id: done.signal.sourceId, file: done.signal.relPath }
 }

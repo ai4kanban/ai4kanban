@@ -31,11 +31,12 @@ export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
   /** The key in `ui.config.json` this role is switched on under, when it can be switched
-   *  off at all (#447, #493, #509). Most cannot: a board without a planner plans nothing.
-   *  Three can. Two stand in for the user rather than doing a flow's work — the gater judges
-   *  a card the way you would, the decider answers what you would have answered — so each is
-   *  off until you ask for it. The reviewer does a flow's work and ships on, because judging
-   *  a build is a paid run a board may decline. Each reads its own key. */
+   *  off at all (#447, #493, #509, #534). Most cannot: a board without a planner plans
+   *  nothing. Four can. Three spend a run the user never asked for — the gater judges a card
+   *  the way you would, the decider answers what you would have answered, the proposer
+   *  reflects on what you just finished — so each is off until you ask for it. The reviewer
+   *  does a flow's work and ships on, because judging a build is a paid run a board may
+   *  decline. Each reads its own key. */
   switch?: RoleSwitch
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
@@ -124,6 +125,22 @@ const MEMORY_PRUNER: AgentRole = {
   memory: [],
 }
 
+// The role that looks back at finished work (#534). Like the gater and the decider it is
+// off until asked for — a board that turns it on spends one run per completion — and like
+// them it owns no memory: what it proposes goes into the inbox to be triaged, and a
+// proposal nobody took up leaves nothing written down. It READS the goal and the planner's
+// memory to judge what is worth proposing; owning neither is the point.
+//
+// `reflect` is in its list the way `chat` is in the discussion helper's: no flow a person
+// types, and the role's work all the same — a card reaching the archive is what starts one.
+const PROPOSER: AgentRole = {
+  name: 'proposer',
+  gloss: 'proposes the work a finished card leaves behind',
+  flows: ['reflect'],
+  memory: [],
+  switch: 'proposer',
+}
+
 const PRODUCT_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
@@ -140,10 +157,11 @@ const PRODUCT_ROLES: AgentRole[] = [
   },
   REVIEWER,
   MEMORY_PRUNER,
-  // Last, and only on a product board: it has no `gate` flow, and a topic carries no
-  // questions to answer.
+  // Last, and only on a product board: it has no `gate` flow, a topic carries no questions
+  // to answer, and a published topic leaves no follow-up card to propose.
   GATER,
   DECIDER,
+  PROPOSER,
 ]
 
 const MARKETING_ROLES: AgentRole[] = [
@@ -206,7 +224,7 @@ export interface RosterEntry {
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
   /** Whether this entry can be switched off. Every specialist can; of the roles, the gater,
-   *  the decider (#447, #493) and the reviewer (#509). */
+   *  the decider (#447, #493), the reviewer (#509) and the proposer (#534). */
   switchable: boolean
   /** A switchable role's own key in `ui.config.json` — what says whether it is on. Absent
    *  on every other entry: a specialist's switch is its `specAgents` entry. */

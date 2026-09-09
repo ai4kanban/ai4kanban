@@ -45,7 +45,7 @@ import {
   cmdStop,
   cmdWatch,
 } from '../../commands/run'
-import { cmdSignalsFetch } from '../../commands/signals'
+import { cmdSignalsAdd, cmdSignalsFetch } from '../../commands/signals'
 import { cmdSpec } from '../../commands/spec'
 import { cmdWrite } from '../../commands/write'
 import { cmdTelemetry } from '../../commands/telemetry'
@@ -284,6 +284,22 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     )
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdSignalsFetch())
+    })
+
+  withShared(signals.command('add'))
+    .summary('write one item into the inbox')
+    .description(
+      'One item, from words you already have — no endpoint, and nothing is pulled. The body is ' +
+        '`--text` for a line or two, `--file <path>` when it is longer. `--source` says where it came ' +
+        'from, and a reflection puts the card that prompted it there. It is not a task: it waits in ' +
+        'the inbox until somebody triages it. An item the inbox already holds is refused.',
+    )
+    .requiredOption('--title <text>', 'what it is, in one line')
+    .option('--text <text>', 'its own words')
+    .option('--file <path>', 'its own words, written to a file first')
+    .option('--source <text>', 'where it came from')
+    .action(async function (this: Command) {
+      await onBoard(this, cli, () => cmdSignalsAdd(this.opts()))
     })
 
   // ---- Cloud ----------------------------------------------------------------

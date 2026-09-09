@@ -27,12 +27,12 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { idPrefix, locate } from '../cards'
+import { idPrefix, locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
 import { boardMemoryFiles } from '../memory'
-import { die, rel, AGENT_MEMORY, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO } from '../paths'
+import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, SIGNAL_INBOX, TODO } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
@@ -84,13 +84,19 @@ interface CardFacts {
   recurring: boolean
 }
 
-function readCard(id: number): CardFacts {
-  const found = locate(id)
+// Where one flow reads its card. Everything works a card still on the board; a reflection
+// works one that has just left it (#534), which `locate` no longer finds.
+type CardHome = 'board' | 'archive'
+
+function readCard(id: number, home: CardHome = 'board'): CardFacts {
+  const found = home === 'archive' ? locateArchived(id) : locate(id)
   if (!found) {
-    die(`no card #${id} on this board. \`akb raw list\` says what is open.`, {
-      kind: 'card-not-found',
-      id,
-    })
+    die(
+      home === 'archive'
+        ? `no card #${id} in ${rel(ARCHIVE)}. A reflection reads the card the archive holds.`
+        : `no card #${id} on this board. \`akb raw list\` says what is open.`,
+      { kind: 'card-not-found', id },
+    )
   }
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   let text: string
@@ -489,6 +495,10 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // A prune gets the memory set's own definition and the rules for squeezing it, and NOT
   // the rest of `board`: it rewrites memory files and writes no card at all.
   'prune-memory': ['board', 'prune-memory'],
+  // A reflection gets its own flow and `evaluate-task`, the bar an idea is held to before
+  // it is worth anyone's time. NOT `board`: what it writes is an inbox item, and the card
+  // format and the memory set are a page about work it may not do.
+  reflect: ['reflect', 'evaluate-task'],
   // Specialist instructions apply to both printed flows and separate runs.
   spec: ['spec-agent'],
   // A repurpose gets its own flow and NOT `board`: it writes one file under `content/` and
@@ -528,7 +538,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
   const facts: string[] = []
   const close: string[] = []
   const next: string[] = []
-  const card = req.id !== undefined ? readCard(req.id) : null
+  const card = req.id !== undefined ? readCard(req.id, req.action === 'reflect' ? 'archive' : 'board') : null
 
   // The refine a job hands over to. A run starts each follow-up refine as its own run,
   // never inside the job that wrote the card — so the handover says fresh run, or an
@@ -866,6 +876,20 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         'rewrite the files above in place — that is the whole job',
         'raise nothing for anyone: there is no card to question, so what you cannot settle stays in the file',
         'change nothing else — not a card, not the goal, not the code',
+      )
+      break
+    }
+    // Reflecting on a card that has just completed (#534). The facts are the card as the
+    // archive holds it and the three places a follow-up may already be accounted for; the
+    // close is the one thing it may write, and the permission to write nothing at all.
+    case 'reflect': {
+      facts.push(...field('goal', rel(GOAL)))
+      facts.push(...field('memory', boardMemoryFiles()))
+      facts.push(...field('inbox', `${rel(SIGNAL_INBOX)}/ — what is already waiting to be triaged`))
+      close.push(
+        `${self} signals add --title ".." --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
+        'propose nothing at all when nothing follows: that is a complete result, and most completions are it',
+        'change nothing else — no card is created, edited or archived, and no memory file is written',
       )
       break
     }

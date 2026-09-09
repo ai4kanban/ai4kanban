@@ -188,19 +188,39 @@ export const deciderOn = (): boolean => switchedOn('decider')
 /** Save it. Turning it back off drops the key rather than writing `false`. */
 export const setDecider = (on: boolean): { ok: boolean; error?: string } => setSwitch('decider', on)
 
-// ---- a switchable role's own key (#493, #509) ------------------------------
+// ---- the proposer: does a finished card propose what comes next? (#534) -----
 //
-// Three of the switches above are roles that can be switched off: the gater runs the ready
-// gate, the decider answers for the user, the reviewer judges what was built. Each keeps the
-// key it has always had, so a board that already answered any of them keeps its answer, and
-// the roster reads a role through its own key rather than asking one role's question of them
-// all.
+//   "proposer": true
 //
-// They do not all ship the same way round. The two that stand in for the user are off until
-// asked for; the reviewer ships on. Either way the file records only what somebody changed.
+// OFF by default, and only written down when somebody turned it on — the same call the
+// ready gate and the decider made. With it ON, every card that reaches the archive starts
+// one `reflect` run over that card alone, which is a paid run per completion.
+//
+// What it writes lands in `docs/kanban/triage/inbox/`, never on the board: a proposal is
+// triaged like anything else that arrives there, so a weak one costs a dismissal. Turning
+// it off again leaves nothing behind — there is no state but this key.
+
+/** True only when somebody switched the proposer on. A file that won't parse reads as off:
+ *  a setting nobody can read is not a reason to start spending a run per completion. */
+export const proposerOn = (): boolean => switchedOn('proposer')
+
+/** Save it. Turning it back off drops the key rather than writing `false`. */
+export const setProposer = (on: boolean): { ok: boolean; error?: string } => setSwitch('proposer', on)
+
+// ---- a switchable role's own key (#493, #509, #534) ------------------------
+//
+// Four of the switches above are roles that can be switched off: the gater runs the ready
+// gate, the decider answers for the user, the reviewer judges what was built, the proposer
+// reflects on what was finished. The three that predate the split keep the key they have
+// always had, so a board that already answered any of them keeps its answer, and the roster
+// reads a role through its own key rather than asking one role's question of them all.
+//
+// They do not all ship the same way round. The three that spend a run the user never asked
+// for are off until asked for; the reviewer ships on. Either way the file records only what
+// somebody changed.
 
 /** The keys a switchable role is saved under (./roles.ts). */
-export type RoleSwitch = 'readyGate' | 'decider' | 'aiReview'
+export type RoleSwitch = 'readyGate' | 'decider' | 'aiReview' | 'proposer'
 
 /** The keys whose role ships ON, so only switching it OFF is written down. */
 const ON_BY_DEFAULT = new Set<RoleSwitch>(['aiReview'])

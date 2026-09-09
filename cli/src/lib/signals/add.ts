@@ -13,6 +13,9 @@
 // A dropped file is copied rather than referenced where it sat: a browser drop hands over
 // bytes and no path at all, and a board is markdown in git — a path into somebody's
 // Downloads folder would be dead the moment the file moved or the board was cloned.
+//
+// A caller may say the title and the source outright instead of leaving them to be read off
+// the input (#534): `akb signals add` does, so a proposal carries the card that prompted it.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -101,7 +104,15 @@ export function addToInbox(drop: InboxDrop): InboxAddResult {
     return { ok: false, error: `${path.basename(file.name)} is over ${MAX_BYTES / 1024 / 1024} MB — too big for the board.` }
   }
 
-  const { incoming, keep } = describe(typed, file)
+  const read = describe(typed, file)
+  const keep = read.keep
+  // A caller that knows the two facts says them rather than leaving them to be read off the
+  // words (#534): `akb signals add` is given a title and the card the item came from.
+  const incoming = {
+    ...read.incoming,
+    ...(drop.title?.trim() ? { title: oneLine(drop.title) } : {}),
+    ...(drop.source?.trim() ? { source: drop.source.trim() } : {}),
+  }
   if (!incoming.title || !incoming.summary) return { ok: false, error: 'nothing to add — that had no words in it.' }
 
   const sourceId = derivedSourceId(incoming.url || `${incoming.title}\n${incoming.summary}`)

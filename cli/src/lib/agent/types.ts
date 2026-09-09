@@ -91,6 +91,12 @@ export type AgentAction =
    *  started from the agent's own page or by the cadence that page carries. It raises
    *  nothing for a human — what it cannot settle stays in the memory file. */
   | 'prune-memory'
+  /** Reflect on a card the board has just completed (#534) — the proposer's one flow. It
+   *  names the completed card, which is no longer on the board, so it reads it at its
+   *  `.archive/` path; what it writes is inbox items for the work that should follow, and
+   *  finding nothing worth proposing is a valid result. Only runs while the proposer is
+   *  switched on. */
+  | 'reflect'
   /** One `write` agent writing part of a topic's draft folder (#424) — an image for a
    *  post, a chart, a caption file. It is named by `specAgent`, it starts clean, and it
    *  writes files under `content/<id>/` and nothing else. The writer asks for one;
@@ -103,15 +109,16 @@ export type AgentAction =
  *  both are named by an agent rather than run by a role. */
 export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'write'])
 
-/** The actions that write no card at all: the two specialists, and the two that work one
- *  channel's draft file and never the plan — a repurpose (#457) and a polish loop (#520).
- *  None of them holds the card it names, so several may work one card side by side — and
- *  the source tab's one action starts a repurpose per channel that way.
+/** The actions that write no card at all: the two specialists, the two that work one
+ *  channel's draft file and never the plan — a repurpose (#457) and a polish loop (#520) —
+ *  and a reflection, whose card has left the board altogether (#534). None of them holds
+ *  the card it names, so several may work one card side by side — and the source tab's one
+ *  action starts a repurpose per channel that way.
  *
  *  It is not `SPECIALIST_ACTIONS`: that set also picks the agent a run is done by
  *  (`agent/runner.ts`) and the rule it is handed, and a repurpose is neither named by an
  *  agent nor given a specialist's flow. */
-const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([...SPECIALIST_ACTIONS, 'channel', 'marketing-polish-loop'])
+const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([...SPECIALIST_ACTIONS, 'channel', 'marketing-polish-loop', 'reflect'])
 
 /** Whether a run of this action holds the card it names. The one answer every lock reads,
  *  so a card-free run is exempt everywhere or nowhere. */

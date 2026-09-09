@@ -23,14 +23,15 @@ docs/kanban/
 │                   kept after the card is archived; nobody edits one by hand
 ├── rules/          one rule per agent, in the user's own words — `<agent>.md`: a role the
 │                   board ships (`discussion-helper`, `planner`, `builder`, `reviewer`,
-│                   `memory-pruner`, `gater`, `decider`) or a spec agent. It is appended to
-│                   the end of every run that agent does, so every flow it runs reads it.
-│                   Tracked in git; a missing or empty file means the run goes unchanged.
-│                   Written from the board UI or `akb raw rule`
+│                   `memory-pruner`, `gater`, `decider`, `proposer`) or a spec agent. It is
+│                   appended to the end of every run that agent does, so every flow it runs
+│                   reads it. Tracked in git; a missing or empty file leaves the run
+│                   unchanged. Written from the board UI or `akb raw rule`
 ├── triage/         the inbox waiting to be looked at (#453, #499) — `inbox/` holds one
 │                   file each, `handled.md` the source ids that have left it. Anything that
-│                   might become work goes in: `akb signals fetch` pulls it, or somebody
-│                   drops a file or pastes a link on the Inbox page. It is NOT a card:
+│                   might become work goes in: `akb signals fetch` pulls it, somebody drops
+│                   a file or pastes a link on the Inbox page, or `akb signals add` writes
+│                   one — which is where a reflection's proposals land. It is NOT a card:
 │                   never scheduled, never counted, and never turned into a card by
 │                   anything but the flow that does that. An empty inbox has no folder
 ├── modules.md      one line per module — `akb guide module-map` writes it
