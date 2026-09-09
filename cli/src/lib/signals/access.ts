@@ -26,6 +26,12 @@ export async function signalsAccess(): Promise<SignalsAccess> {
     }
   }
   const account = await readCloudAccount()
+  // `signed-in` with an error is what this machine LAST knew, not an admission Cloud just
+  // made. Admission has to be confirmed to open the inbox, so an unreachable Cloud closes it
+  // rather than leaving the feature standing for an account that was never invited.
+  if (account.error) {
+    return { open: false, why: `The inbox is open to invited Cloud accounts, and Cloud could not be reached to check: ${account.error}` }
+  }
   switch (account.state) {
     case 'signed-in':
       return { open: true }
