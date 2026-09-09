@@ -182,6 +182,8 @@ interface AppBridge {
   }>;
   projects(): Promise<ProjectEntry[]>;
   openProject(dir: string): Promise<string | null>;
+  /** Absent on an app older than the second project window (#570). */
+  openProjectWindow?(dir: string): Promise<string | null>;
   /** Put another of this project's boards in front (#407): the window already on it, or
    *  this one when none is — what a bell row for another board lands on. Optional — an app
    *  older than the second board knows only projects, and the badge stays a label there. */
@@ -423,6 +425,18 @@ function openBoardFrom(dir: string): void {
   else void app?.openBoard?.(dir);
 }
 
+/** Pick another project: it opens in a window of its own and this one stays where it is
+ *  (#570), the same trade the board switcher makes — ordinary back-and-forth leaves
+ *  windows to close by hand, and two projects can be read side by side.
+ *
+ *  An app older than the second window has no window to open, and switches this one in
+ *  place, which is what the list has always done. */
+function openProjectFrom(dir: string): void {
+  const app = bridge();
+  if (app?.openProjectWindow) void app.openProjectWindow(dir);
+  else void app?.openProject(dir);
+}
+
 /** Which board of this project is open, and — in the app, when the project holds
  *  more than one — the switcher onto the others (#407).
  *
@@ -519,8 +533,8 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
  *  and its folder has gone, in which case the only thing offered is taking the
  *  line off the list.
  *
- *  Picking one hands the whole window to the app, which loads that project's own
- *  board. Nothing here re-renders into the new project; the page is replaced.
+ *  Picking one opens that project in a window of its own (#570); this window keeps the
+ *  board, the card and the chat it was on.
  *
  *  It is the board's own dropdown (ui/dropdown-menu) rather than a panel of its
  *  own, so it dismisses the way every other menu here does — outside click,
@@ -570,7 +584,7 @@ function ProjectsMenu({ projectRoot, children }: { projectRoot: string; children
             <ProjectRow
               key={p.path}
               project={p}
-              onOpen={() => void bridge()?.openProject(p.path)}
+              onOpen={() => openProjectFrom(p.path)}
               onForget={() => {
                 bridge()
                   ?.forgetProject(p.path)
@@ -608,7 +622,7 @@ function ProjectRow({
   return (
     <DropdownMenuItem
       className={`group flex-col items-stretch gap-0 pr-8 font-[400] ${inert ? "cursor-default" : ""}`}
-      title={missing ? c.missing(path) : path}
+      title={missing ? c.missing(path) : open ? path : c.openWindow}
       onSelect={(e) => (inert ? e.preventDefault() : onOpen())}
       // The ✕ is a pointer target inside a menu row, where the keyboard can't
       // reach it — Tab leaves the menu. Delete is the same verb for the hands

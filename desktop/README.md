@@ -42,9 +42,12 @@ What the app adds, and all it adds:
   launch, or a folder since moved away — the window is the launcher (`src/lib/launcher.ts`):
   artwork down the left, and on the right the app's mark, **Open Folder**, and the projects
   opened before. The picture is `resources/art/launcher.png`, inlined at launch; with no
-  file there the app draws its own panel instead. The folder badge in the
-  header opens another one later; so does **File → Open Project…**. A folder with no board
-  lands on the make-a-board screen.
+  file there the app draws its own panel instead. The folder badge in the header opens
+  another one later, in a window of its own (#570), the way the board badge does — the
+  window it was pressed in keeps its board. Picking one from the launcher, from **File →
+  Open Recent**, or through a picker (**File → Open Project…**, **Open folder…**) replaces
+  the window instead: none of those is a switch away from a project you are reading. A
+  folder with no board lands on the make-a-board screen.
 - **A window per board.** A project can hold more than one board, and the board badge beside
   the folder badge switches between them (#407). Picking one opens it in a window of its own
   and leaves the window it was pressed in where it was (#495) — a new window every time, in

@@ -219,6 +219,9 @@ export const CHANNELS = {
   info: "a4k:info",
   projects: "a4k:projects",
   openProject: "a4k:open-project",
+  /** Open another project in a WINDOW OF ITS OWN (#570) — the header's projects list,
+   *  which never takes the window it was pressed in. */
+  openProjectWindow: "a4k:open-project-window",
   /** Put another board of this project in front (#407): the window already on it,
    *  or this one when none is (#495). */
   openBoard: "a4k:open-board",
@@ -325,6 +328,10 @@ export interface Ai4kanbanBridge {
   /** Show a project from that list. Returns the folder now open, which is the
    *  old one when the project's folder has gone. */
   openProject(dir: string): Promise<string | null>;
+  /** Open another project in a window of its own (#570), leaving this window on its
+   *  board — the same trade the board switcher makes. Returns the folder it opened on,
+   *  or null when there was nothing to open. */
+  openProjectWindow(dir: string): Promise<string | null>;
   /** Put another of this project's boards in front (#407) — `marketing/kanban`
    *  beside `docs/kanban`. The window already on that board is raised; when none
    *  is, this window takes it and the page is replaced. What a bell row and a

@@ -32,6 +32,8 @@ export type ChromeCopy = {
     missingLabel: string;
     /** The dot on the project this window is showing. */
     openHere: string;
+    /** Every other row: picking it opens that project in a window of its own (#570). */
+    openWindow: string;
     /** The dot on a project an agent is still working in. */
     runningHere: string;
     forget: string;

@@ -525,6 +525,29 @@ async function openProject(w: Win | null, repo: unknown): Promise<string | null>
   return w.board;
 }
 
+/** Open another project in a window of its own (#570) — the header's projects list.
+ *
+ *  The same trade the board switcher makes (#495): a new window every time, with no
+ *  modifier, so two projects can be read side by side, and the window it was pressed in
+ *  keeps its board, its history, its card and its chat. A project some window is already
+ *  on is not offered — the list marks it open — and a folder that has gone is refused
+ *  here rather than opened onto nothing. */
+async function openProjectWindow(from: Win | null, repo: unknown): Promise<string | null> {
+  if (!from || typeof repo !== "string" || !repo) return null;
+  if (repo === from.board || repo === from.project) return null;
+  if (projects.describe(repo).missing) {
+    await messageBox(from, {
+      type: "warning",
+      message: copy().dialog.folderGone.message(path.basename(repo)),
+      detail: copy().dialog.folderGone.detail(repo),
+    });
+    return null;
+  }
+  const w = createWindow(from);
+  await open(w, repo);
+  return w.board;
+}
+
 /** The path a board's server is started on. A project's own `docs/kanban` is opened as the
  *  PROJECT, which is the spelling every other way in uses: two spellings of one board would
  *  start it a second server, and a board's runs, locks and files are the board's — one
@@ -1057,6 +1080,8 @@ ipcMain.handle(CHANNELS.info, (e): AppInfo => {
 ipcMain.handle(CHANNELS.projects, () => listProjects());
 
 ipcMain.handle(CHANNELS.openProject, (e, repo: unknown) => openProject(asking(e), repo));
+
+ipcMain.handle(CHANNELS.openProjectWindow, (e, repo: unknown) => openProjectWindow(asking(e), repo));
 
 ipcMain.handle(CHANNELS.openBoard, (e, dir: unknown) => showBoard(asking(e), dir));
 

@@ -21,6 +21,7 @@ const zh: ChromeCopy = {
     missing: (path) => `${path}——文件夹已不存在`,
     missingLabel: "文件夹已不存在",
     openHere: "已在此窗口打开",
+    openWindow: "在新窗口中打开",
     runningHere: "这里有任务正在运行",
     forget: "把这个项目移出列表——磁盘上的文件不受影响",
   },

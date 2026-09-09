@@ -21,6 +21,7 @@ const en: ChromeCopy = {
     missing: (path) => `${path} — the folder is gone`,
     missingLabel: "folder is gone",
     openHere: "Open in this window",
+    openWindow: "Open in a new window",
     runningHere: "A run is going here",
     forget: "Take this project off the list — nothing on disk is touched",
   },
