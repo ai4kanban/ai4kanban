@@ -257,9 +257,10 @@ export function SetupFlow({
   // starts on it as usual.
   const [byHand, setByHand] = useState(false);
   // Stepping off the conversation carries what it had on screen into the boxes, so a
-  // correction already made is not lost by choosing to finish by hand.
+  // correction already made is not lost by choosing to finish by hand. An unsure turn
+  // carries too: its name field is the folder name, edited or not.
   const fillItIn = useCallback((seed?: SetupProposal) => {
-    if (seed && !seed.unsure) {
+    if (seed) {
       setDraft((d) =>
         d
           ? {

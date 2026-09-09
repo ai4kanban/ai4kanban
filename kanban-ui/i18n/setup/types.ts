@@ -61,6 +61,16 @@ export type SetupCopy = {
       hint: string;
       yes: string;
       send: string;
+      /** The turn for a repository that said nothing about itself: no finding to confirm,
+       *  so it is headed by the folder and offers a name to keep. */
+      unsure: {
+        /** The heading, over the folder the board was opened on. */
+        ask: (folder: string) => string;
+        /** The label over the editable project name. */
+        name: string;
+        /** The way on: keep the name, leave the description empty, go to the goal. */
+        go: string;
+      };
     };
     goal: {
       ask: string;

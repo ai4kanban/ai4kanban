@@ -14,6 +14,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { chatPrompt } from '../src/lib/agent/chat.ts'
 import { parseSetupProposal, setupOpening } from '../src/lib/agent/setup-chat.ts'
+import { readProject, readSetupDraft, saveProject } from '../src/lib/view/first-run.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-first-run-'))
@@ -118,5 +119,22 @@ describe('reading one reply', () => {
     assert.equal(parseSetupProposal(block({ ok: true })), null)
     // A name with no sentence to lead the view with is not an answer to this question.
     assert.equal(parseSetupProposal(block({ ...GOOD, summary: '' })), null)
+  })
+})
+
+// A repo the agent cannot place is a valid new project, not a failure, so the turn has to
+// end somewhere other than a question the user may have no answer to (#557).
+describe('a repository that says nothing about itself', () => {
+  it('is offered the folder name, and keeps it with no description behind it', () => {
+    const read = parseSetupProposal(
+      block({ summary: 'The folder is empty.', name: '', description: '', unsure: true, ask: 'What is this?' }),
+    )
+    assert.equal(read?.unsure, true)
+    // What the name field opens on: the draft, which falls back to the folder.
+    const folder = path.basename(root)
+    assert.equal(readSetupDraft().project.name, folder)
+    // Continue, in full — the same save the confident turn makes, with nothing invented.
+    assert.deepEqual(saveProject(folder, ''), { ok: true })
+    assert.deepEqual(readProject(), { name: folder, description: '' })
   })
 })

@@ -52,6 +52,11 @@ const en: SetupCopy = {
       hint: "Describe any changes",
       yes: "Confirm",
       send: "Request changes",
+      unsure: {
+        ask: (folder) => `Set up ${folder}`,
+        name: "Project name",
+        go: "Continue",
+      },
     },
     goal: {
       ask: "What is the project goal?",

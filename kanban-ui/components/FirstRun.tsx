@@ -315,6 +315,7 @@ function AgentTurn({
 // with one sentence about the project; the user agrees or says what is wrong. Nothing is
 // written until Yes.
 function ProjectTurn({
+  draft,
   onSaved,
   onNoTalk,
   onProposal,
@@ -331,6 +332,9 @@ function ProjectTurn({
   const c = t.setup.firstRun;
   const [read, setRead] = useState<SetupChatRead | null>(null);
   const [said, setSaid] = useState("");
+  // The name an unrecognized repository is offered under: the folder name `readProject`
+  // already falls back to, editable, and what Continue saves.
+  const [name, setName] = useState(draft.project.name);
   const [busy, setBusy] = useState(false);
   // Why the last turn could not be sent — the conversation itself went wrong, so the whole
   // view is the failure.
@@ -387,6 +391,15 @@ function ProjectTurn({
     };
   }, [onNoTalk, onProposal]);
 
+  // "Enter details manually" opens on the name that was on screen, so an edit to it is what
+  // gets handed up — the poll above reports the agent's own answer again on every tick. An
+  // emptied field carries the folder name instead: a blank one is not an answer, and it
+  // would leave the form it steps onto with no name at all.
+  useEffect(() => {
+    const p = read?.proposal;
+    if (p?.unsure) onProposal({ ...p, name: name.trim() || draft.project.name });
+  }, [read, name, onProposal, draft.project.name]);
+
   const say = useCallback(
     async (text: string) => {
       setError(null);
@@ -415,13 +428,11 @@ function ProjectTurn({
     poll.current();
   }, []);
 
-  const agree = async () => {
-    const proposal = read?.proposal;
-    if (!proposal) return;
+  const save = async (projectName: string, description: string) => {
     setBusy(true);
     setSaveError(null);
     try {
-      const res = await saveSetupProjectAction(proposal.name, proposal.description);
+      const res = await saveSetupProjectAction(projectName, description);
       if (!res.ok) {
         setSaveError(res.error || t.setup.project.saveFailed);
         return;
@@ -432,6 +443,11 @@ function ProjectTurn({
     } finally {
       setBusy(false);
     }
+  };
+
+  const agree = () => {
+    const proposal = read?.proposal;
+    if (proposal) void save(proposal.name, proposal.description);
   };
 
   const waiting = sent || !read || read.answering;
@@ -474,16 +490,35 @@ function ProjectTurn({
   }
 
   const proposal = read.proposal;
-  // A repo with nothing to read: what little it saw, one question, and no finding dressed
-  // up as one.
+  // A repo with nothing to read. The heading is the folder, not the agent's shrug: a valid
+  // new project is not a failure, so what little the agent saw is body copy and Continue
+  // takes the name as it stands with no description behind it.
   if (proposal.unsure) {
+    const u = c.project.unsure;
     return (
       <>
-        <Ask>{proposal.summary}</Ask>
+        <Ask>{u.ask(draft.project.name)}</Ask>
+        {proposal.summary && <Under>{proposal.summary}</Under>}
         {proposal.ask && <Under>{proposal.ask}</Under>}
+        <label className="mt-6 block">
+          <span className="text-[13px] font-[700] text-nb-ink-soft">{u.name}</span>
+          <input
+            className={cn(
+              "mt-1.5 w-full rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper px-3.5 py-2.5",
+              "text-[14px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent",
+            )}
+            value={name}
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
         <Box value={said} onChange={setSaid} hint={c.yourWords} rows={3} />
-        <div className="mt-5">
-          <Button disabled={!said.trim()} onClick={() => void say(said)}>
+        {saveError && <Failure text={saveError} />}
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Button disabled={busy || !name.trim()} onClick={() => void save(name, "")}>
+            {busy ? t.shared.saving : u.go}
+          </Button>
+          <Button variant="ghost" disabled={busy || !said.trim()} onClick={() => void say(said)}>
             {c.project.send}
           </Button>
         </div>

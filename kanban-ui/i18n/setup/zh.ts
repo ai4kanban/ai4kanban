@@ -49,6 +49,11 @@ const zh: SetupCopy = {
       hint: "需要修改的地方",
       yes: "确认",
       send: "发送",
+      unsure: {
+        ask: (folder) => `设置 ${folder}`,
+        name: "项目名称",
+        go: "继续",
+      },
     },
     goal: {
       ask: "项目目标是什么？",
