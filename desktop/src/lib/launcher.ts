@@ -219,16 +219,17 @@ function page({ mac, language, languages, location }: LauncherOptions): string {
   .lockup { display: flex; align-items: center; gap: 13px; }
   h1 { margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -0.015em; }
 
-  /* The two moves, side by side: opening what is already there, and making what
+  /* The two moves, stacked: opening what is already there, then making what
      isn't. Open Folder keeps the accent — it is the one most launches want — and
      Create new project is the same block in outline. */
-  .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 30px; }
+  .actions { align-self: stretch; display: flex; flex-direction: column; gap: 10px; margin-top: 30px; }
   .actions[hidden] { display: none; }
 
   .open {
     -webkit-app-region: no-drag;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 9px;
     padding: 12px 18px;
     border: 1.5px solid var(--ink);
