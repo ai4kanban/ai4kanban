@@ -47,6 +47,16 @@ const zh: BoardCopy = {
     needsYouMany: (n) => `${n} 个待你决定`,
     verify: (n) => `${n} 项需人工验收`,
     decided: (n) => `Decider 代你答了 ${n} 题`,
+    creating: {
+      mark: "创建中",
+      markHint: "正在创建——创建完成后才能打开",
+      unfinished: "创建未完成",
+      unfinishedHint: "创建它的那次运行没写完，这张卡还不完整",
+      resume: "继续创建",
+      resuming: "正在继续…",
+      resumeFailed: "未能继续那次运行",
+      stopped: "上次运行没写完",
+    },
   },
   create: {
     button: "新建任务",

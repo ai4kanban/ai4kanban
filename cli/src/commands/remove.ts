@@ -10,6 +10,8 @@ import path from 'node:path'
 import { clearChat } from '../lib/agent/chat'
 import { dropComments } from '../lib/comments'
 import { heldByDelivery } from '../lib/agent/deliveries'
+import { cardCreation } from '../lib/agent/store'
+import { creationRefusal } from '../lib/view/rules'
 import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
 import { say } from '../lib/io'
@@ -228,6 +230,10 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   // of the delivery itself, whose last step is archiving the card it just built.
   const held = heldByDelivery(id)
   if (held) die(held, { kind: 'card-held' })
+  // …and a card its creator has not finished writing doesn't leave the board either (#564):
+  // nothing has read a plan yet, so neither shipping it nor dropping it is a call to make.
+  const creating = creationRefusal(id, cardCreation(id), metric === 'completed' ? 'archive' : 'reject')
+  if (creating) die(creating, { kind: 'card-being-created' })
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   // Archive keeps the card (moved out of todo/), reject deletes it. Resolve the

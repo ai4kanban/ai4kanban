@@ -10,6 +10,13 @@ const zh: CardCopy = {
   landedNothing: "已合入——没有需要提交的改动",
   ended: "已结束",
   offBoard: { line: "这张卡片已离开看板。", open: "在归档中打开" },
+  creating: {
+    title: (id) => `#${id} 还在创建中`,
+    blurb: "写它的那次运行结束后，这个页面才会打开。",
+    unfinishedTitle: (id) => `#${id} 没有创建完`,
+    unfinishedBlurb: "写它的那次运行没写完。回到看板，把那次运行接着跑完。",
+    back: "回到看板",
+  },
   hold: (handle, until) => `@${handle} 正在占用这张卡片，到 ${until} 为止。现在保存会被拒绝。`,
   supersedes: "此前批准的成果已经与这张卡片不符，因此本次运行从当前版本重新开始。",
   waitingOnYou: "等你决定",

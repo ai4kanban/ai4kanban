@@ -10,6 +10,13 @@ const en: CardCopy = {
   landedNothing: "Landed — nothing to commit",
   ended: "Ended",
   offBoard: { line: "This card left the board.", open: "Open in archive" },
+  creating: {
+    title: (id) => `#${id} is still being created`,
+    blurb: "Its page opens once the run writing it finishes.",
+    unfinishedTitle: (id) => `#${id} was never finished`,
+    unfinishedBlurb: "The run writing it stopped short. Pick that run back up from the board.",
+    back: "Back to the board",
+  },
   hold: (handle, until) => `@${handle} is holding this card until ${until}. A save now is refused.`,
   supersedes:
     "Earlier approved work no longer matched this card, so this run started fresh from the current version.",

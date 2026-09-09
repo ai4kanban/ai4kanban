@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { CardBeingCreated } from "@/components/CardBeingCreated";
 import { CardWindow } from "@/components/CardWindow";
 import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
@@ -44,6 +45,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     if (archived) redirect(`/archive/${cardId}`);
     notFound();
   }
+
+  // A card its creator has not finished writing has no page (#564). Refused here, before the
+  // window is drawn: every control in it acts on a card, and this is not yet one.
+  if (screen.card.creation) return <CardBeingCreated id={cardId} creation={screen.card.creation} />;
 
   // …and what only this machine can answer, for the window drawn around that screen. The
   // mockups are here for the same reason the agent is: a mockup is a file on this disk, and

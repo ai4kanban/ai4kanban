@@ -215,6 +215,8 @@ export function QueueView({
                     card={card}
                     liveSession={runningSessionForCard(sessions, card.id)}
                     onOpenLog={onOpenLog}
+                    creator={creatorOf(sessions, card)}
+                    onResumed={onOpenLog}
                   />
                 ))}
               </div>
@@ -419,6 +421,13 @@ function QueueColumn({
   );
 }
 
+// The run that created a card and did not finish it (#564) — what the card's own Resume
+// picks back up. Nothing for an ordinary card: the field is only on one that is unfinished.
+function creatorOf(sessions: SessionView[], card: Card): SessionView | undefined {
+  const runId = card.creation?.runId;
+  return runId ? sessions.find((s) => s.sessionId === runId) : undefined;
+}
+
 function Bands({
   bands,
   sessions,
@@ -474,6 +483,8 @@ function ModuleBand({
             card={card}
             liveSession={runningSessionForCard(sessions, card.id)}
             onOpenLog={onOpenLog}
+            creator={creatorOf(sessions, card)}
+            onResumed={onOpenLog}
           />
         ))}
       </div>

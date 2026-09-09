@@ -51,6 +51,16 @@ const en: BoardCopy = {
     needsYouMany: (n) => `${n} need you`,
     verify: (n) => `${n} to check by hand`,
     decided: (n) => `Decider answered ${n} for you`,
+    creating: {
+      mark: "creating",
+      markHint: "Being created — it opens once its creator finishes",
+      unfinished: "unfinished",
+      unfinishedHint: "Its creator stopped short, so this card was never finished",
+      resume: "Resume creating",
+      resuming: "Resuming…",
+      resumeFailed: "could not pick that run back up",
+      stopped: "the last run stopped short",
+    },
   },
   create: {
     button: "Create task",

@@ -16,6 +16,7 @@ import { approvalCovers } from '../agent/approval'
 import { activeDelivery, listDeliveries, manualSettled } from '../agent/deliveries'
 import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
+import { cardsBeingCreated } from '../agent/store'
 import type { DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
 import { idPrefix, isGroupFolder, subtaskLines } from '../cards'
@@ -182,6 +183,13 @@ function collectCards(): { board: Card[]; every: Card[] } {
   // The two arrays hold the same card objects, so annotating `every` covers the board cards
   // as well.
   attachBlockers(every)
+  // …and how far each card's creation got (#564), read off the live runs rather than the
+  // file: a card is on the board before the run that called for it has finished writing it.
+  const creating = cardsBeingCreated()
+  for (const card of every) {
+    const state = creating.get(card.id)
+    if (state) card.creation = state
+  }
   return { board, every }
 }
 

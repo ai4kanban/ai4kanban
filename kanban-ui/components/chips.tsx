@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
+import { FiAlertTriangle, FiBox, FiCheckCircle, FiClock, FiEdit3, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import { type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import type { ChipsCopy } from "@/i18n/chips/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { QuestionTag } from "@/lib/questions";
 import { NO_RELEASE, type CardStatus } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // Meaning-coded chips + level selects, all built from the design language's
@@ -199,6 +200,38 @@ export function PendingPill({ label, detailed = false }: { label: string; detail
     >
       <FiClock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       <span className="truncate">{detailed ? label : copy.pending}</span>
+    </span>
+  );
+}
+
+// The mark on a card that is not finished being created (#564). It stands where the status
+// pill stands, because a card being written HAS no stage yet — one mark to a card, and this
+// is the one that matters. Sky while its creator is going (the same quiet blue a run wears),
+// peach once that creator stopped short: nothing is happening any more, and something is.
+export function CreatingChip({
+  state,
+  label,
+  hint,
+}: {
+  state: "creating" | "unfinished";
+  label: string;
+  hint: string;
+}) {
+  const going = state === "creating";
+  const Icon = going ? FiEdit3 : FiAlertTriangle;
+  return (
+    <span
+      className={cn("nb-chip nb-tip", going && "a4k-creating")}
+      tabIndex={0}
+      data-tip={hint}
+      style={{
+        ...ELASTIC_CHIP,
+        background: going ? "var(--color-nb-sky-soft)" : "var(--color-nb-peach-soft)",
+        color: going ? "var(--color-nb-sky-ink)" : "var(--color-nb-peach-ink)",
+      }}
+    >
+      <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+      <span className="truncate">{label}</span>
     </span>
   );
 }

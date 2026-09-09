@@ -64,6 +64,22 @@ export type BoardCopy = {
     verify: (n: number) => string;
     /** Questions the decider answered in the user's place (#447). */
     decided: (n: number) => string;
+    /** A card its creator has not finished writing (#564). It stands in for the status
+     *  pill, and the card does nothing when clicked. */
+    creating: {
+      mark: string;
+      markHint: string;
+      /** …and the same card once its creator stopped short. */
+      unfinished: string;
+      unfinishedHint: string;
+      /** The one control such a card carries: pick its creator back up. There is no page
+       *  to offer it on, so it lives on the card. */
+      resume: string;
+      resuming: string;
+      resumeFailed: string;
+      /** The line beside it, saying what went wrong. */
+      stopped: string;
+    };
   };
   create: {
     button: string;

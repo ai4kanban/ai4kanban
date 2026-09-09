@@ -19,10 +19,11 @@ import { repointReadmeLink } from '../readme'
 import { setSubtreeRelease, validRelease } from '../releases'
 import { RECURRING } from '../recurring'
 import { flowRefusal } from '../agent/flows'
+import { cardCreation } from '../agent/store'
 import { normalizeSchedule } from '../schedule'
 import { LEVELS, normalizeRelease } from '../validate'
 import { findCard } from './read'
-import { canRefine, scheduleRefusal } from './rules'
+import { canRefine, creationRefusal, scheduleRefusal } from './rules'
 import type { Meta } from '../types'
 import type { CardPatch, CardSchedule } from './types'
 
@@ -34,6 +35,10 @@ export function patchCard(id: number, patch: CardPatch): void {
   if (!Number.isInteger(id)) die('a card is edited by its number', 'bad-id')
   const found = locate(id)
   if (!found) die(`no open card #${id}`, { kind: 'card-not-found', id })
+  // A card its creator has not finished writing is not one to edit (#564): the run is still
+  // typing the plan this edit would be made against.
+  const creating = creationRefusal(id, cardCreation(id), 'edit')
+  if (creating) die(creating, { kind: 'card-being-created', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`, { kind: 'no-frontmatter', id })
@@ -101,6 +106,10 @@ export function setCardSchedule(id: number, schedule: CardSchedule | null): Card
   if (schedule && !wanted) die('a schedule names the action to run: implement or refine', 'bad-schedule')
   const found = locate(id)
   if (!found) die(`no open card #${id}`, { kind: 'card-not-found', id })
+  // A run queued onto a card still being created would fire on half a plan (#564). Both
+  // ways round: taking a mark OFF one is refused too, so a schedule survives its creator.
+  const creating = creationRefusal(id, cardCreation(id), 'schedule')
+  if (creating) die(creating, { kind: 'card-being-created', id })
   // The board's own rule, read off the whole board — whether the action would still move
   // this card depends on what else is open, not on this file alone.
   if (wanted) {

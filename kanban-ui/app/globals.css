@@ -320,6 +320,27 @@ body {
   }
 }
 
+/* The mark on a card still being created (#564). The card itself is sunk and still — the
+   only thing that breathes is the mark, so a column of them stays scannable rather than
+   shimmering. Off for a reader who asked for less motion, and the mark still reads. */
+@keyframes nbCreatingPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.a4k-creating {
+  animation: nbCreatingPulse 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .a4k-creating {
+    animation: none;
+  }
+}
+
 /* The subtask map's live chip: an ember ring that swells out of the frame and fades.
    It is drawn on ::after so the chip keeps the press shadow `nb-press` gives it on
    hover, and it is slow — the node is already tinted and carries the running dot, so

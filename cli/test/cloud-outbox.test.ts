@@ -800,6 +800,95 @@ describe('a card a specialist run is drafting', () => {
   })
 })
 
+// A card its creator has not finished writing (#564). The same reason as above, carried
+// further: this card has no page at all, so a row about it would link to a screen that
+// refuses to draw. Neither state is a run HOLDING the card — a creator names it in
+// `createdCardIds`, and an unfinished one has no live run left.
+describe('a card that is not finished being created', () => {
+  const ASKING = '[user] Which shade of blue?'
+
+  /** A card asking the user, written by a run that is still going or stopped short. */
+  function askingMidCreation(state: 'creating' | 'unfinished'): void {
+    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    writeCardFile('0.8.0', [ASKING])
+    setBoardProvider({
+      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+    } as never)
+    creating(12, state)
+  }
+
+  const queued = () => readOutbox().pending.find((p) => p.kind === 'publish' && p.snapshot.taskId === 12)
+
+  it('raises nothing while its creator is still writing the plan', async () => {
+    askingMidCreation('creating')
+
+    await recordBoardEvents()
+
+    assert.equal(queued(), undefined)
+  })
+
+  it('raises nothing either when its creator stopped short', async () => {
+    askingMidCreation('unfinished')
+
+    await recordBoardEvents()
+
+    assert.equal(queued(), undefined, 'nothing but picking that run back up makes this a card')
+  })
+
+  it('takes down a row already up, since the card no longer offers an answer', async () => {
+    askingMidCreation('creating')
+    notePublication(12, 'e-12', 'actionable')
+
+    await recordBoardEvents()
+
+    const retirement = readOutbox().pending.find((p) => p.kind === 'retire' && p.eventId === 'e-12')
+    assert.ok(retirement, 'the row comes down rather than sitting there unanswerable')
+    assert.equal(retirement.kind === 'retire' && retirement.state, 'stale')
+  })
+
+  it('raises it once the creator finishes and the question is still open', async () => {
+    askingMidCreation('creating')
+    await recordBoardEvents()
+    assert.equal(queued(), undefined)
+
+    withStore((store) => {
+      for (const r of store.runs) {
+        r.status = 'done'
+        r.pid = undefined
+        r.endedAt = Date.now()
+      }
+    })
+    await recordBoardEvents()
+
+    const publication = queued()
+    assert.ok(publication, 'the card is finished and the question is the user’s')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
+  })
+})
+
+/** Write down the run that created a card, the way `akb raw create` inside one would. */
+function creating(cardId: number, state: 'creating' | 'unfinished'): void {
+  const live = state === 'creating'
+  // The record drops a finished run whose log is gone, so an ended creator needs one.
+  const logPath = path.join(root, 'docs', 'kanban', '.sessions', `c-${cardId}.log`)
+  fs.mkdirSync(path.dirname(logPath), { recursive: true })
+  fs.writeFileSync(logPath, '')
+  withStore((store) =>
+    store.runs.push({
+      sessionId: `c-${cardId}`,
+      cardId: null,
+      createdCardIds: [cardId],
+      action: 'create',
+      status: live ? 'running' : 'error',
+      startedAt: Date.now(),
+      endedAt: live ? undefined : Date.now(),
+      pid: live ? process.pid : undefined,
+      harness: 'claude-code',
+      logPath,
+    } as RunRecord),
+  )
+}
+
 function writeCardFile(release = '0.8.0', questions: string[] = []): void {
   const dir = path.join(root, 'docs', 'kanban', 'todo', 'features')
   fs.mkdirSync(dir, { recursive: true })

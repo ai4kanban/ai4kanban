@@ -343,6 +343,21 @@ export interface CardLanding {
   overlap?: number[]
 }
 
+/** How far a card's creation got (#564).
+ *
+ *  A card appears on the board the moment `akb raw create` writes its file, while the run
+ *  that called for it carries on filling in the plan. Until that run finishes successfully
+ *  the card is not a card to act on — this is what says so, and it is absent on every card
+ *  whose creation is complete.
+ *
+ *  `creating` is a creator still going; `unfinished` is one that ended any other way, and
+ *  it never clears itself — the run has to be picked back up. */
+export interface CardCreation {
+  state: 'creating' | 'unfinished'
+  /** The run that created the card — what a recovery picks back up. */
+  runId: string
+}
+
 export interface Card {
   id: number
   /** What version of this card was read (#312). A write passes it back as the revision it
@@ -414,6 +429,10 @@ export interface Card {
   /** For a subtask nested in a group folder: a link back up to the group root. Absent on a
    *  standalone card or a root. */
   parent?: CardRef
+  /** This card is not finished being created (#564): its creator is still going, or it
+   *  stopped short. Absent on every ordinary card — including one created outside a run,
+   *  which is complete as soon as its file exists. */
+  creation?: CardCreation
   /** The delivery in flight on this card, when one is. While it is there the card is held:
    *  Edit, Refine, Resolve, Reject and Archive are off, and Discard is what takes
    *  the card back. Absent on every card nothing is building. */

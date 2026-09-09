@@ -1,17 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { FiClipboard, FiHelpCircle, FiSkipForward } from "react-icons/fi";
+import { useState } from "react";
+import { FiClipboard, FiHelpCircle, FiPlay, FiSkipForward } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { type Card, type SessionView } from "@/lib/types";
+import { useActions } from "@/lib/screen";
+import { type Card, type CardCreation, type SessionView } from "@/lib/types";
 import { parseQuestion } from "@/lib/questions";
 import { scheduleLabel } from "@/lib/schedule";
 import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
 import { ChannelRow } from "./channels";
 import { useSolution } from "./solution";
+import { Button } from "./button";
 import {
   BlockedChip,
+  CreatingChip,
   GroupChip,
   PendingPill,
   PriorityChip,
@@ -44,10 +48,16 @@ export function BoardCard({
   card,
   liveSession,
   onOpenLog,
+  creator,
+  onResumed,
 }: {
   card: Card;
   liveSession?: SessionView;
   onOpenLog: (sessionId: string) => void;
+  /** The run that created this card, when it has not finished creating it (#564). What
+   *  Resume creating picks back up; absent on every ordinary card. */
+  creator?: SessionView;
+  onResumed?: (sessionId: string) => void;
 }) {
   // A group root's progress comes from its own todo checklist, not from counting
   // subtask files: a finished subtask gets archived and its file removed, so the
@@ -64,6 +74,11 @@ export function BoardCard({
   // board's own solution decides it, not the card — a product card has no channels to draw
   // either way, and a marketing topic whose channels question is unanswered draws no row.
   const marketing = useSolution() === "marketing";
+  // Not finished being created (#564): a different card entirely, and the branch is taken
+  // before anything below reads a field the creator has not written yet.
+  if (card.creation) {
+    return <BeingCreatedCard card={card} creation={card.creation} creator={creator} onResumed={onResumed} />;
+  }
   return (
     <Link
       href={cardHref(card.id)}
@@ -196,5 +211,98 @@ export function BoardCard({
         </div>
       )}
     </Link>
+  );
+}
+
+// A card its creator has not finished writing (#564).
+//
+// It is a card that has sunk INTO the board rather than a card with a warning on it: the
+// wash ground, a hairline instead of the ink frame, no shadow and no press. That is what
+// says "not a thing to press" without a disabled cursor or a dimmed title — the title stays
+// full ink and full weight, because reading which card this is is the one thing that still
+// works on it.
+//
+// A `div`, never the `Link` an ordinary card is: nothing to click means no href to follow,
+// no middle-click, no keyboard focus that leads somewhere refusing to draw.
+//
+// What it drops is everything the creator has not settled yet — the ranking, the todo bar,
+// the questions. A plan half written has nothing true to say with them.
+function BeingCreatedCard({
+  card,
+  creation,
+  creator,
+  onResumed,
+}: {
+  card: Card;
+  creation: CardCreation;
+  creator?: SessionView;
+  onResumed?: (sessionId: string) => void;
+}) {
+  const c = useCopy().board.card.creating;
+  const going = creation.state === "creating";
+  return (
+    <div
+      className="nb-inset flex flex-col rounded-[13px] p-3"
+      style={{ background: "var(--color-nb-wash)" }}
+      aria-disabled
+    >
+      <div className="mb-1.5 flex items-center justify-between gap-1.5">
+        <span className="shrink-0 text-[11.5px] font-[800] text-nb-ink-soft">#{card.id}</span>
+        <CreatingChip
+          state={creation.state}
+          label={going ? c.mark : c.unfinished}
+          hint={going ? c.markHint : c.unfinishedHint}
+        />
+      </div>
+      <p className="text-[13px] font-[700] leading-snug tracking-[-0.01em] break-words">{card.title}</p>
+      {!going && <ResumeCreation creator={creator} onResumed={onResumed} />}
+    </div>
+  );
+}
+
+// The one thing you can press on such a card, and the reason it lives here: the card has no
+// page, so the way to pick its creator back up has nowhere else to be (#564).
+//
+// Drawn only when the record still has that run to continue — a creator too old to resume,
+// or one this board can no longer start, leaves the line and no button rather than a control
+// that would refuse.
+function ResumeCreation({
+  creator,
+  onResumed,
+}: {
+  creator?: SessionView;
+  onResumed?: (sessionId: string) => void;
+}) {
+  const c = useCopy().board.card.creating;
+  const actions = useActions();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const canResume = !!actions && !!creator?.canResume;
+
+  const resume = async () => {
+    if (!actions || !creator || busy) return;
+    setBusy(true);
+    setError(null);
+    const res = await actions.resumeSession(creator.sessionId);
+    setBusy(false);
+    if (res.ok && res.sessionId) onResumed?.(res.sessionId);
+    else setError(res.error || c.resumeFailed);
+  };
+
+  return (
+    <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+      {canResume && (
+        <Button
+          size="sm"
+          onClick={() => void resume()}
+          disabled={busy}
+          className="gap-1.5 rounded-[8px] px-2 py-1 text-[11.5px] font-[700]"
+        >
+          <FiPlay className="text-[12px]" aria-hidden />
+          {busy ? c.resuming : c.resume}
+        </Button>
+      )}
+      <span className="text-[10.5px] text-nb-ink-soft">{error ?? c.stopped}</span>
+    </div>
   );
 }

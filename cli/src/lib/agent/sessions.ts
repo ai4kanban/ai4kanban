@@ -45,7 +45,8 @@ import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from
 import { agentForRun } from './runner'
 import { readRuntimes, runtimeById } from './runtimes'
 import { stampMemoryPrune } from './settings'
-import { logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
+import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
+import { creationRefusal } from '../view/rules'
 import { holdsCard, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
@@ -467,6 +468,12 @@ function lockedBy(
   if (cardId !== null && holdsCard(action)) {
     const live = runs.find((r) => r.status === 'running' && r.cardId === cardId && holdsCard(r.action))
     if (live) return `#${cardId} is already being ${VERB[live.action]}`
+  }
+  // A card its creator has not finished writing takes no run at all (#564) — not the
+  // specialists either, since a section written onto half a plan answers the wrong plan.
+  if (cardId !== null) {
+    const refusal = creationRefusal(cardId, creationOf(runs, cardId), action)
+    if (refusal) return refusal
   }
   if (SINGLETON_ACTIONS.has(action)) {
     const live = runs.find((r) => r.status === 'running' && r.action === action)

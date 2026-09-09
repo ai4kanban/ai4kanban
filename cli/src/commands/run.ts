@@ -19,6 +19,7 @@ import {
   titleOf,
 } from '../lib/agent/sessions'
 import { startResume, startRun } from '../lib/agent/start'
+import { cardCreation } from '../lib/agent/store'
 import type {
   AgentRequest,
   CommandAction,
@@ -32,6 +33,7 @@ import { die, BOARD_FLAG } from '../lib/paths'
 import { holdCloudClaims } from '../lib/cloud/requests'
 import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
+import { creationRefusal } from '../lib/view/rules'
 import type { MoveResult } from '../lib/types'
 import { approveDelivery, cancelDelivery, discardDelivery } from '../lib/view/api'
 
@@ -59,6 +61,13 @@ export async function cmdStartRun(
   const gone = flowRefusal(action, program)
   if (gone) die(gone, { kind: 'run-refused', action })
   const { req, follow, print } = readRequest(action, args, opts)
+  // A card its creator has not finished writing takes no flow (#564) — printed here, or
+  // started below. `cardCreation` lets the creating run itself through, which is what keeps
+  // a create that goes on to refine its own card working.
+  if (Number.isInteger(req.id)) {
+    const creating = creationRefusal(req.id as number, cardCreation(req.id as number), action)
+    if (creating) die(creating, { kind: 'card-being-created', action })
+  }
   const runnable = action === 'refine' ? refinementRequest(req) : (req as AgentRequest)
   if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })
   const inside = insideRun()

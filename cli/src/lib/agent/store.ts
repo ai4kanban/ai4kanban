@@ -20,6 +20,7 @@ import path from 'node:path'
 
 import { pidAlive, withLock } from '../lock'
 import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
+import { insideRun } from './env'
 import { asUsage } from './log'
 import { holdsCard } from './types'
 import type {
@@ -38,6 +39,7 @@ import type {
   RunRetry,
   RunStatus,
 } from './types'
+import type { CardCreation } from '../view/types'
 
 /** How many finished runs the record keeps. Match KEEP_LOGS: a run whose log is gone is
  *  dropped here too, so the smaller of the two is what the Run dialog actually shows. */
@@ -233,6 +235,58 @@ export function cardsHeldElsewhere(sessionId: string): Set<number> {
     for (const id of run.createdCardIds ?? []) held.add(id)
   }
   return held
+}
+
+/**
+ * How far each card's creation got, for every card no run has finished creating (#564).
+ *
+ * `akb raw create` writes a card's file and attaches the id to the run that called it; the
+ * run then carries on writing the plan. So the file existing is not the card being made —
+ * the creating run ending WELL is. A run that failed, was cut off or was stopped leaves the
+ * card unfinished, and nothing clears that but picking the run back up.
+ *
+ * Two cards are never in here:
+ *   • one created outside a run — `akb raw create` typed by a person attaches to nothing,
+ *     so writing its file is the whole of its creation;
+ *   • one the run has taken as its own (`cardId`) — a **Build now** run writes its card and
+ *     then builds it (`adoptDirectCard`), and from that moment the card is being built.
+ *
+ * The newest run naming a card wins, so a resume of the creator speaks for it.
+ */
+export function cardsBeingCreated(runs: RunRecord[] = readRuns()): Map<number, CardCreation> {
+  const newest = new Map<number, RunRecord>()
+  for (const run of runs) {
+    for (const id of run.createdCardIds ?? []) {
+      if (run.cardId === id) continue
+      const best = newest.get(id)
+      if (!best || run.startedAt >= best.startedAt) newest.set(id, run)
+    }
+  }
+  const out = new Map<number, CardCreation>()
+  for (const [id, run] of newest) {
+    if (runIsLive(run)) out.set(id, { state: 'creating', runId: run.sessionId })
+    else if (run.status !== 'done') out.set(id, { state: 'unfinished', runId: run.sessionId })
+  }
+  return out
+}
+
+/** How far one card's creation got, or undefined once it is complete. */
+export const creationOf = (runs: RunRecord[], cardId: number): CardCreation | undefined =>
+  cardsBeingCreated(runs).get(cardId)
+
+/**
+ * The same, read fresh off the record — for a writer or a command that holds no run list of
+ * its own, and with one exemption: the run doing the creating is not refused its own card.
+ *
+ * That is what keeps the create flow working. A run writes a card and then goes on to work
+ * it — `akb card refine <id> --print` inline, the plan filled in around it — and a rule that
+ * fenced the creator out of its own card would refuse the very run that finishes it.
+ * `lockedBy` takes the strict reading instead: nothing may SPAWN an agent on such a card,
+ * and a run never spawns another anyway.
+ */
+export const cardCreation = (cardId: number): CardCreation | undefined => {
+  const state = creationOf(readRuns(), cardId)
+  return state && state.runId === insideRun() ? undefined : state
 }
 
 /**

@@ -23,8 +23,10 @@ import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
 import { RECURRING } from '../lib/recurring'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
+import { cardCreation } from '../lib/agent/store'
 import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
 import { findCard } from '../lib/view/read'
+import { creationRefusal } from '../lib/view/rules'
 import type { ScheduledAction } from '../lib/view/types'
 import { TASKS_HEADING, addReadmeRef, stripReadmeRefs, repointReadmeLink } from '../lib/readme'
 import { reconcileBoard } from '../lib/reconcile'
@@ -259,6 +261,11 @@ function channelsFlag(names: string[], current: Meta['channels']): Meta['channel
 // Rewrite a card's frontmatter fields. Also the sanctioned way to rename a card (--slug).
 // Body is untouched, and so is the question list — that's cmdUpdateQuestions' job.
 export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
+  // The terminal's spelling of the edit `patchCard` refuses (#564): one card, one answer,
+  // whichever door the write comes through. The creator itself is let past — this is what it
+  // fills the card in with.
+  const creating = creationRefusal(id, cardCreation(id), 'edit')
+  if (creating) die(creating, { kind: 'card-being-created', id })
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
   const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target

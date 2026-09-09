@@ -29,7 +29,7 @@
 import crypto from 'node:crypto'
 
 import { cardsHeldAtLanding } from '../agent/deliveries'
-import { cardsAtWork, cardsWithLiveRun } from '../agent/store'
+import { cardsAtWork, cardsBeingCreated, cardsWithLiveRun } from '../agent/store'
 import { board } from '../board'
 import { KANBAN } from '../paths'
 import { cloudBoardFor, type CloudBoard } from './boards'
@@ -208,6 +208,11 @@ function silenced(atWork: ReadonlySet<number>): Set<number> {
   // after the filter, so it also holds back a card held at landing. The run ending raises it
   // again, which is where a question still open is heard about.
   for (const id of cardsWithLiveRun()) quiet.add(id)
+  // …and a card its creator has not finished writing (#564), for the same reason carried
+  // further: that card has no page at all, so a row about it would link to a screen that
+  // refuses to draw. Neither state is covered above — a creator names its card in
+  // `createdCardIds` rather than holding it, and an unfinished one has no live run left.
+  for (const id of cardsBeingCreated().keys()) quiet.add(id)
   return quiet
 }
 

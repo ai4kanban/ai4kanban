@@ -9,7 +9,28 @@
 // to offer Refine, and the refine that follows a run decides which cards it is worth
 // starting on, from this one set of rules rather than two that agree until they don't.
 
-import type { Card, OptionsQuestion, Question, QuestionTag, ScheduledAction } from './types'
+import type { Card, CardCreation, OptionsQuestion, Question, QuestionTag, ScheduledAction } from './types'
+
+// ---- a card that is not finished being created -----------------------------
+
+/**
+ * Why nothing may `what` this card yet, or null when its creation is complete (#564).
+ *
+ * The one sentence both sides refuse in: the command checks it before it starts a run or
+ * writes a card, and the board draws the same words. `what` is the move being refused —
+ * `implement`, `edit`, `archive` — so the refusal names what did not happen as well as why.
+ *
+ * Taken as an argument rather than read off `Card`, because the run engine holds the record
+ * and not the card when it has to answer this.
+ */
+export function creationRefusal(id: number, creation: CardCreation | undefined | null, what: string): string | null {
+  if (!creation) return null
+  const run = creation.runId.slice(0, 8)
+  return creation.state === 'creating'
+    ? `#${id} is still being created by run ${run} — \`${what}\` is refused until that run finishes.`
+    : `#${id} was never finished being created: run ${run} stopped short. \`${what}\` is refused until ` +
+      'that run is picked back up from the board and finishes.'
+}
 
 // ---- questions -------------------------------------------------------------
 

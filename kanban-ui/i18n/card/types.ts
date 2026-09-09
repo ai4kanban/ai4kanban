@@ -15,6 +15,16 @@ export type CardCopy = {
    *  archived it, or a group root went with its last subtask. The page stays put and says
    *  so; the archive holds what it became. */
   offBoard: { line: string; open: string };
+  /** The card is not finished being created (#564), so there is no page to draw — a
+   *  half-written plan read as a finished one is the mistake this refusal exists to stop.
+   *  The reason, and the way back to the board. */
+  creating: {
+    title: (id: number) => string;
+    blurb: string;
+    unfinishedTitle: (id: number) => string;
+    unfinishedBlurb: string;
+    back: string;
+  };
   /** Somebody else is holding this card (#375) — a Cloud board only, and only while the
    *  hold is live. A hint, not a gate: what protects the card is the refusal a save meets,
    *  so this says who to wait for and until when, and nothing about asking them. */

@@ -75,6 +75,7 @@ export type {
   Card,
   CardApproval,
   CardChannel,
+  CardCreation,
   CardDecision,
   CardDelivery,
   CardDeliveryStage,

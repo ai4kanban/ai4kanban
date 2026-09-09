@@ -166,6 +166,10 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // anyway — so we move on to the next candidate.
   const busy = new Set<number>()
   for (const r of runs) if (r.status === 'running' && r.cardId !== null) busy.add(r.cardId)
+  // …and a card its creator has not finished writing (#564). Skipped here rather than left
+  // to the refusal at start: `dueScheduled` takes a card's mark off in the pass that hands
+  // its run back, and a start refused after that would lose the schedule for good.
+  for (const c of cards) if (c.creation) busy.add(c.id)
 
   const work: AgentRequest[] = []
   let scheduled: AgentRequest | null = null
