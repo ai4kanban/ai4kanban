@@ -175,6 +175,37 @@ describe('an agent with a runtime of its own', () => {
   })
 })
 
+describe('marketing writing runtimes', () => {
+  beforeEach(() => {
+    config({
+      runtimes: [
+        runtime('global', 'claude-code', { model: 'claude-opus-5' }),
+        runtime('writer_codex', 'codex', { model: 'gpt-6-astra' }),
+      ],
+      agentRuntime: { writer: 'writer_codex' },
+    })
+    fs.writeFileSync(path.join(kanban(), 'config.md'), '# Project\n\n- **Solution** — marketing\n')
+  })
+
+  for (const action of ['polish', 'channel', 'run'] as const) {
+    it(`runs ${action} on the Writer's selected runtime and model`, () => {
+      const run = plan({ action })
+      assert.equal(run.agent, 'writer')
+      assert.equal(run.runtime, 'writer_codex')
+      assert.equal(run.harness, 'codex')
+      assert.ok(run.argv.includes('gpt-6-astra'))
+      assert.ok(!run.argv.includes('claude-opus-5'))
+    })
+  }
+
+  it('keeps verification on the Reviewer runtime', () => {
+    const run = plan({ action: 'marketing-polish-loop' })
+    assert.equal(run.agent, 'reviewer')
+    assert.equal(run.runtime, 'global')
+    assert.equal(run.harness, 'claude-code')
+  })
+})
+
 describe('two runtimes on one harness', () => {
   beforeEach(() => {
     config({

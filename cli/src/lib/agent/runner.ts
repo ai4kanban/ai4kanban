@@ -32,17 +32,17 @@ export function agentForRun(ask: RunAsk = {}): string | undefined {
   if (!action) return undefined
   // A specialist runs as itself, whichever hook it is on.
   if (SPECIALIST_ACTIONS.has(action)) return specAgent
-  const flow = action === 'marketing-polish-loop' ? action : flowOf(ask, action)
-  return flow ? roleForFlow(flow)?.name : undefined
+  return roleForFlow(flowOf(ask, action))?.name
 }
 
 // The flow this run belongs to. A pass belongs to the flow that spawned it, never to a flow
 // of its own name: `resolve` is both a pass of a refine and a command a user types, and only
 // the round tells them apart. `clarify` and `writing` are passes either way, which is what
 // `flowByAction` already says.
-function flowOf(ask: RunAsk, action: AgentAction): string | undefined {
+function flowOf(ask: RunAsk, action: AgentAction): string {
   if (ask.refineRound !== undefined && REFINE_ACTIONS.has(action)) return 'refine'
-  return flowByAction(action)?.command
+  // Flows outside the card command list, such as polish and channel, name themselves.
+  return flowByAction(action)?.command ?? action
 }
 
 /** What each of the create sheet's two run modes can do with a picture (#517): Add task runs
