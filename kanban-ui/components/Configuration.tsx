@@ -139,8 +139,8 @@ const SECTIONS: { id: Section; icon: IconType }[] = [
 // the gear.
 //
 // A request may also name the agent whose page to open on (#514): Prune memory in the rail
-// is one press, and landing on the Agents grid with nothing selected would leave the reader
-// to find the character themselves.
+// is one press, and the Agents pane would otherwise open on its first Always on row rather
+// than on the agent that press named.
 let openRequest: { at: number; section: Section; agent?: string } | null = null;
 // The last request the dialog has opened on. The store outlives the dialog — the header
 // remounts on every page change — so without this a fresh mount would replay the previous
@@ -305,6 +305,7 @@ export function Configuration({
                 info={agent}
                 openOn={pickAgent}
                 onPicked={() => setPickAgent("")}
+                onRuntimes={() => setSection("runtimes")}
                 onError={onError}
               />
             )}

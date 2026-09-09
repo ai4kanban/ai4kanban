@@ -141,31 +141,41 @@ export type ConfigurationCopy = {
    *  and the page one opens — its rule, what it remembers, its settings, and a project
    *  agent's own `AGENT.md`. */
   agents: {
-    /** The two sections the grid is split into: the agents the board's own flows are run
-     *  by, which are never switched off, and the ones a project switches on. */
+    /** The two groups the picker column is split into: the agents the board's own flows are
+     *  run by, which are never switched off, and the ones a project switches on. */
     always: string;
     optional: string;
+    /** How many specialists are on, beside that group's caption. */
+    onCount: (n: number) => string;
+    /** A column row's own state, read there and flipped on the page beside it. */
+    rowOn: string;
+    rowOff: string;
+    /** Beside the switch in the page header. */
+    enabled: string;
     blurb: string;
     loading: string;
     tooOld: string;
     /** One line per problem the board reports about its agents — a malformed AGENT.md, a
      *  name twice over, a folder still where agents used to live. */
     problems: string;
-    /** Only read out loud: the tile that opens an agent's page, and its switch. */
+    /** Only read out loud: the column row that opens an agent's page, and its switch. */
     open: (agent: string) => string;
     switchOn: (agent: string) => string;
     switchOff: (agent: string) => string;
     flipFailedOn: (agent: string) => string;
     flipFailedOff: (agent: string) => string;
 
-    /** The page under the grid. */
+    /** The page beside the column: the group its settings sit in, then the settings. */
+    configuration: string;
     /** What this agent runs (#467): one runtime, which carries its harness and its model. */
     runtime: string;
     /** The right-end note on the list's first entry — an agent that named none runs
      *  Global default. Every other row notes its model id there. */
     boardsOwn: string;
-    /** Under the row: where the pick lands, and where a runtime is set up. */
+    /** Under the row: where the pick lands. */
     runtimeBlurb: string;
+    /** The way across to Configuration → Runtimes, on the runtime row. Only read out loud. */
+    openRuntimes: string;
     /** The runtime the board holds for this agent is one it no longer has. */
     unknownHarness: (runtime: string) => string;
     harnessFailed: (agent: string) => string;
@@ -235,16 +245,14 @@ export type ConfigurationCopy = {
     };
     saved: string;
     ruleFailed: (agent: string) => string;
+    /** The memory row, and how many paths the agent declares. */
     remembers: string;
+    memoryCount: (n: number) => string;
     file: string;
     fileLabel: (agent: string) => string;
     /** Before the board's own reason a save was refused. */
     notSaved: string;
 
-    /** One setting's line, before it is opened. */
-    change: string;
-    setting: (label: string, value: string) => string;
-    settingWithCost: (label: string, value: string, cost: string) => string;
     saveFailed: (agent: string) => string;
 
     /** Add a specialist. */

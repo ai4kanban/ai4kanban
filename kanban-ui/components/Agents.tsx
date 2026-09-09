@@ -3,8 +3,8 @@
 // The board's team, in one pane (#422).
 //
 // Everyone working on your cards is here: the roles the board's own flows are run by, the
-// specialists the command ships, then the ones this project added. One grid of characters,
-// and a page under whichever one you select.
+// specialists the command ships, then the ones this project added. A narrow picker column
+// holding the whole roster, and the selected agent's page filling the space beside it.
 //
 // It replaces two screens. The Spec agents tile listed the specialists and switched them;
 // the Rules pane wrote a rule per FLOW, in a column of command names. A rule belongs to an
@@ -29,9 +29,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiAlertCircle,
+  FiArrowUpRight,
   FiCheck,
   FiChevronDown,
+  FiChevronRight,
   FiClock,
+  FiFolder,
   FiPlus,
   FiScissors,
   FiTrash2,
@@ -50,7 +53,6 @@ import {
   setSpecAgentSettingAction,
   startPruneMemoryAction,
 } from "@/app/actions";
-import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type {
   AgentInfo,
@@ -68,6 +70,7 @@ import {
   Group,
   Loading,
   Note,
+  Panel,
   QUIET_BTN,
   Switch,
 } from "./settings";
@@ -89,17 +92,19 @@ export function AgentsPanel({
   info,
   openOn = "",
   onPicked,
+  onRuntimes,
   onError,
 }: {
   /** The connectors this board can run, and which one is its default (#443) — what the
    *  runtime row on an agent's page offers. */
   info: AgentInfo;
   /** The agent to open the page on, when the pane was opened by a deep link (#514). Empty
-   *  the rest of the time: the grid is the answer to "who works on this board", and a page
-   *  opened for you is a page you did not ask for. */
+   *  the rest of the time, and then the column's first **Always on** row is selected. */
   openOn?: string;
-  /** Taken, so selecting another character afterwards is never undone. */
+  /** Taken, so selecting another row afterwards is never undone. */
   onPicked?: () => void;
+  /** Cross to Configuration → Runtimes — where a runtime is actually set up. */
+  onRuntimes?: () => void;
   onError?: (msg: string) => void;
 }) {
   const c = useCopy().configuration.agents;
@@ -107,14 +112,10 @@ export function AgentsPanel({
   const [problems, setProblems] = useState<string[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  // Which agent's page is open. The pane opens with none: the grid is the answer to "who
-  // works on this board", and a page opened for you is a page you did not ask for.
+  // Which agent's page is drawn beside the column. Never empty once the roster is in: a
+  // column beside an empty half is half a pane.
   const [picked, setPicked] = useState("");
-  // A page opened by a deep link is scrolled to (#514): it is drawn under two grids, so the
-  // pane would otherwise open on the roster with the page the link named off screen.
-  const [reveal, setReveal] = useState(false);
-  const page = useRef<HTMLDivElement>(null);
-  // What the two boxes hold right now, by agent, so selecting another tile never loses an
+  // What the two boxes hold right now, by agent, so selecting another row never loses an
   // edit that has not been saved yet.
   const [rules, setRules] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, string>>({});
@@ -157,14 +158,23 @@ export function AgentsPanel({
   }, []);
 
   // The agent a deep link named (#514) — Prune memory in the rail opens this pane on the
-  // pruner's page. It waits for the roster: selecting a name the grid does not hold yet
-  // would draw no page at all.
+  // pruner's page. It selects the row rather than scrolling to it: the page sits beside the
+  // column, so there is nothing off screen to reveal. It waits for the roster, because
+  // selecting a name the column does not hold yet would draw no page at all.
   useEffect(() => {
     if (!openOn || !agents?.some((a) => a.name === openOn)) return;
     setPicked(openOn);
-    setReveal(true);
     onPicked?.();
   }, [openOn, agents, onPicked]);
+
+  // The pane opens on the first **Always on** agent — entering Agents lands you on a page
+  // you did not ask for, which is the price of never drawing the column beside an empty
+  // half. Runs again when a delete leaves nothing selected.
+  useEffect(() => {
+    if (picked || !agents?.length) return;
+    if (openOn && agents.some((a) => a.name === openOn)) return;
+    setPicked((agents.find((a) => !a.switchable) ?? agents[0]!).name);
+  }, [agents, picked, openOn]);
 
   // Saving what a page holds when it is left. Read off a ref rather than off the render the
   // callback was made in, because one of the callers below fires as the pane is coming
@@ -215,7 +225,7 @@ export function AgentsPanel({
     return true;
   });
 
-  // Save the page being left, whether or not a blur comes: selecting another tile blurs the
+  // Save the page being left, whether or not a blur comes: selecting another row blurs the
   // box, but closing the dialog takes it off screen with the caret still in it. A refusal at
   // that point drops the text — the file keeps its last accepted version, so the pane can
   // never leave an agent broken behind it.
@@ -227,12 +237,12 @@ export function AgentsPanel({
     };
   }, [picked]);
 
-  // One page at a time: another tile swaps the page, the open tile closes it. A refused
+  // One page at a time, and always one: pressing the selected row does nothing. A refused
   // `AGENT.md` holds the selection where it is, with the reason showing.
   const select = async (name: string) => {
-    if (!picked) return setPicked(name);
-    if (!(await leave.current(picked))) return;
-    setPicked(picked === name ? "" : name);
+    if (name === picked) return;
+    if (picked && !(await leave.current(picked))) return;
+    setPicked(name);
   };
 
   // Flip one switch: on screen at once, saved behind it, and put back if the save fails. A
@@ -308,8 +318,8 @@ export function AgentsPanel({
     }
   };
 
-  // Opening the new tile leaves the page that is open, so a refused `AGENT.md` holds the
-  // selection here the way selecting another character does.
+  // Naming the new agent leaves the page that is open, so a refused `AGENT.md` holds the
+  // selection here the way selecting another row does.
   const openAdd = async () => {
     if (picked && !(await leave.current(picked))) return;
     setAdding(true);
@@ -327,9 +337,10 @@ export function AgentsPanel({
     return "";
   };
 
-  // Delete the agent whose page is open. The roster is read again BEFORE the page is closed,
-  // so the save-on-leave under it finds no such agent and writes nothing back into the
-  // folder that has just gone.
+  // Delete the agent whose page is open. The roster is read again BEFORE the selection is
+  // cleared, so the save-on-leave under it finds no such agent and writes nothing back into
+  // the folder that has just gone. Clearing it hands the page back to the first Always on
+  // row, which is where the pane started.
   const remove = async (name: string) => {
     setSaving((names) => [...names, name]);
     try {
@@ -347,24 +358,15 @@ export function AgentsPanel({
   };
 
   const agent = agents?.find((a) => a.name === picked);
-
-  useEffect(() => {
-    if (!reveal || !agent) return;
-    page.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-    setReveal(false);
-  }, [reveal, agent]);
-
   const always = agents?.filter((a) => !a.switchable) ?? [];
   const optional = agents?.filter((a) => a.switchable) ?? [];
 
-  const tile = (a: AgentView) => (
-    <Tile
+  const row = (a: AgentView) => (
+    <PickRow
       key={a.name}
       agent={a}
       held={a.name === picked}
-      busy={saving.includes(a.name)}
       onOpen={() => void select(a.name)}
-      onFlip={(next) => flip(a, next)}
     />
   );
 
@@ -378,70 +380,74 @@ export function AgentsPanel({
 
       {agents && (
         <>
-          {/* Two grids, because the two halves are answered differently: the top one is who
-              runs this board and cannot be switched off, the bottom one is everything that
-              can be — the reviewer, the two roles that stand in for you, the specialists the
-              command ships, then this project's own. Fixed tracks, so a short row leaves
-              empty ones rather than stretching its tiles. */}
-          <Group title={c.always}>
-            <div className="grid grid-cols-5 gap-3 max-sm:grid-cols-3">
-              {always.map(tile)}
-            </div>
-          </Group>
-
-          <Group
-            title={c.optional}
-            action={
-              !adding ? (
+          <div className="flex items-start gap-5 max-sm:flex-col">
+            {/* The whole roster in one narrow column, split the way the two halves are
+                answered: who runs this board and cannot be switched off, then everything
+                that can be. A row says which agent it is and whether it is on; the page
+                beside it is where anything is actually changed. */}
+            <div className="w-[214px] shrink-0 max-sm:w-full">
+              <Group title={c.always}>
+                <div className="flex flex-col">{always.map(row)}</div>
+              </Group>
+              <div className="mt-4">
+                <Group
+                  title={c.optional}
+                  action={
+                    <span className="text-[11px] font-[700] text-nb-ink-soft">
+                      {c.onCount(optional.filter((a) => a.enabled).length)}
+                    </span>
+                  }
+                >
+                  <div className="flex flex-col">{optional.map(row)}</div>
+                </Group>
+              </div>
+              {adding ? (
+                <NewRow onCreate={create} onCancel={() => setAdding(false)} />
+              ) : (
                 <button
                   type="button"
-                  className={QUIET_BTN}
+                  className={`${QUIET_BTN} mt-2.5 w-full justify-center`}
                   onClick={() => void openAdd()}
                 >
                   <FiPlus aria-hidden />
                   {c.add}
                 </button>
-              ) : undefined
-            }
-          >
-            <div className="grid grid-cols-5 gap-3 max-sm:grid-cols-3">
-              {optional.map(tile)}
-              {adding && (
-                <NewTile onCreate={create} onCancel={() => setAdding(false)} />
               )}
             </div>
-          </Group>
 
-          {agent && (
-            <div ref={page}>
-              <Page
-                agent={agent}
-                rule={rules[agent.name] ?? ""}
-                file={files[agent.name]}
-                saved={savedRule === agent.name}
-                refusal={
-                  refusal && refusal.agent === agent.name ? refusal.why : ""
-                }
-                focusFile={focusFile}
-                onFocused={() => setFocusFile(false)}
-                onRule={(text) => {
-                  setRules((all) => ({ ...all, [agent.name]: text }));
-                  setSavedRule("");
-                }}
-                onFile={(text) =>
-                  setFiles((all) => ({ ...all, [agent.name]: text }))
-                }
-                onLeave={() => void leave.current(agent.name)}
-                onPick={(key, value) => void pick(agent, key, value)}
-                info={info}
-                onRuntime={(runtime) => void bind(agent, runtime)}
-                onError={onError}
-                onDelete={() => remove(agent.name)}
-                deleting={saving.includes(agent.name)}
-                busy={(key) => saving.includes(`${agent.name}/${key}`)}
-              />
+            <div className="min-w-0 flex-1">
+              {agent && (
+                <Page
+                  agent={agent}
+                  rule={rules[agent.name] ?? ""}
+                  file={files[agent.name]}
+                  saved={savedRule === agent.name}
+                  refusal={
+                    refusal && refusal.agent === agent.name ? refusal.why : ""
+                  }
+                  focusFile={focusFile}
+                  onFocused={() => setFocusFile(false)}
+                  onRule={(text) => {
+                    setRules((all) => ({ ...all, [agent.name]: text }));
+                    setSavedRule("");
+                  }}
+                  onFile={(text) =>
+                    setFiles((all) => ({ ...all, [agent.name]: text }))
+                  }
+                  onLeave={() => void leave.current(agent.name)}
+                  onPick={(key, value) => void pick(agent, key, value)}
+                  info={info}
+                  onRuntime={(runtime) => void bind(agent, runtime)}
+                  onRuntimes={onRuntimes}
+                  onError={onError}
+                  onFlip={(next) => flip(agent, next)}
+                  onDelete={() => remove(agent.name)}
+                  busySwitch={saving.includes(agent.name)}
+                  busy={(key) => saving.includes(`${agent.name}/${key}`)}
+                />
+              )}
             </div>
-          )}
+          </div>
 
           {problems.length > 0 && (
             <Note icon={<FiAlertCircle />}>
@@ -460,106 +466,68 @@ export function AgentsPanel({
   );
 }
 
-// --- one agent in the grid ---------------------------------------------------
+// --- one agent in the picker column ------------------------------------------
 
-// The character and the name. The switch sits in the tile's corner, over it but OUTSIDE its
-// select target, so flipping it never opens or closes a page. An always-on agent has no
-// switch: a board without a planner plans nothing. A paused agent keeps its character,
-// greyed, and keeps its page.
-//
-// No state line under the name: the switch says whether it is on, the grey says it is off,
-// and the section it sits in says whether it can be switched off at all.
-//
-// Two lines are reserved for the name, so `Tech stack advisor` wraps in full and every
-// tile keeps one height. Nothing here is ever cut off.
-function Tile({
+// The character, the name and whether the agent is on. The state is read here and flipped
+// on the page beside it, so selecting an agent and switching it are never the same press.
+// A paused agent keeps its character, greyed, and keeps its page.
+function PickRow({
   agent,
   held,
-  busy,
   onOpen,
-  onFlip,
 }: {
   agent: AgentView;
   held: boolean;
-  busy: boolean;
   onOpen: () => void;
-  onFlip: (next: boolean) => Promise<void>;
 }) {
   const c = useCopy().configuration.agents;
   const title = agentTitle(agent.name);
   const off = !agent.enabled;
-  const anchor = useRef<HTMLSpanElement>(null);
-  const [asking, setAsking] = useState(false);
-  const asks = agent.name === COSTLY;
   return (
-    <div
-      // No frame: the tile is a plate on the pane, and the ember wash is what says which one
-      // is open.
-      className={`relative rounded-[12px] ${held ? "bg-nb-accent-soft" : "bg-nb-sheet"}`}
+    <button
+      type="button"
+      aria-current={held}
+      // The state too: the row prints it, and a label naming only the agent would take that
+      // word off the one list where every agent's is read at once.
+      aria-label={`${c.open(title)} · ${agent.enabled ? c.rowOn : c.rowOff}`}
+      onClick={onOpen}
+      // No frame: the ember wash and the bar at the left edge are what say which row the
+      // page beside the column belongs to.
+      className={`flex w-full cursor-pointer items-center gap-2 rounded-[9px] py-[5px] pl-1 pr-2 text-left transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent ${
+        held ? "bg-nb-accent-soft" : "hover:bg-nb-sheet"
+      }`}
     >
-      {agent.switchable && (
-        <span ref={anchor} className="absolute right-[7px] top-[7px] z-10">
-          <span className="block scale-[0.62] origin-top-right">
-            <Switch
-              on={agent.enabled}
-              busy={busy}
-              label={(agent.enabled ? c.switchOn : c.switchOff)(title)}
-              // Switching the costly one ON asks once; switching it off, and every other
-              // switch either way, goes straight through.
-              onFlip={async (next) => {
-                if (!asks || !next) return onFlip(next);
-                setAsking(true);
-              }}
-            />
-          </span>
-          {asks && (
-            <ConfirmationPopover
-              open={asking}
-              anchorRef={anchor}
-              confirm="filled"
-              title={c.decider.confirmTitle}
-              description={c.decider.confirmBody}
-              cancelLabel={c.cancel}
-              confirmLabel={c.decider.turnOn}
-              busy={busy}
-              onDismiss={() => setAsking(false)}
-              onConfirm={() => {
-                setAsking(false);
-                void onFlip(true);
-              }}
-            />
-          )}
-        </span>
-      )}
-      <button
-        type="button"
-        aria-expanded={held}
-        aria-label={c.open(title)}
-        onClick={onOpen}
-        className="flex h-[96px] w-full cursor-pointer flex-col items-center rounded-[11px] px-2 pb-[7px] pt-[7px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
+      <span
+        aria-hidden
+        className={`h-[20px] w-[3px] shrink-0 rounded-full ${held ? "bg-nb-accent" : "bg-transparent"}`}
+      />
+      <span
+        className={`flex size-[26px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}
       >
-        <span
-          className={`flex h-[48px] shrink-0 items-end ${off ? "opacity-30 grayscale" : ""}`}
-        >
-          <Character name={agent.name} />
-        </span>
-        <span
-          className={`mt-[6px] flex h-[28px] w-full items-start justify-center text-center text-[12.5px] font-[700] leading-[14px] break-words ${
-            off ? "text-nb-ink-soft" : "text-nb-ink"
-          }`}
-        >
-          {title}
-        </span>
-      </button>
-    </div>
+        <Character name={agent.name} size={26} />
+      </span>
+      <span
+        className={`min-w-0 flex-1 truncate text-[12.5px] font-[700] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}
+      >
+        {title}
+      </span>
+      <span className="shrink-0 text-[11px] font-[700] text-nb-ink-soft">
+        {agent.enabled ? c.rowOn : c.rowOff}
+      </span>
+      <FiChevronRight
+        size={12}
+        aria-hidden
+        className="shrink-0 text-nb-ink-soft/60"
+      />
+    </button>
   );
 }
 
-// Add a specialist finishes here: the tile the new agent will occupy asks for its name, and
-// a name already taken — by a bundled agent, by a role, or by a folder already under
-// `docs/kanban/agents/` — is refused right in this cell, so the pane never creates the clash
-// it would then have to report as a problem.
-function NewTile({
+// Add a specialist finishes here: the row the new agent will take asks for its name, and a
+// name already taken — by a bundled agent, by a role, or by a folder already under
+// `docs/kanban/agents/` — is refused right in the column, so the pane never creates the
+// clash it would then have to report as a problem.
+function NewRow({
   onCreate,
   onCancel,
 }: {
@@ -579,7 +547,7 @@ function NewTile({
   };
 
   return (
-    <div className="flex min-h-[96px] flex-col rounded-[12px] bg-nb-sheet px-2 pb-1.5 pt-[7px]">
+    <div className="mt-2.5 rounded-[10px] bg-nb-sheet px-2.5 py-2">
       <span
         className={`${CAPTION} text-[10px] tracking-[0.08em] text-nb-ink-soft`}
       >
@@ -605,7 +573,7 @@ function NewTile({
       <span className="mt-[3px] block text-[10.5px] leading-[13px] text-nb-ink-soft">
         {why || c.nameHint}
       </span>
-      <span className="mt-auto flex items-center gap-1.5 pt-1.5">
+      <span className="mt-1.5 flex items-center gap-1.5">
         <button
           type="button"
           disabled={busy}
@@ -626,10 +594,10 @@ function NewTile({
   );
 }
 
-// --- the page under the grid -------------------------------------------------
+// --- the page beside the column ----------------------------------------------
 
-// Everything the selected agent is: the files it remembers in, the settings it declares,
-// and ONE box to write in.
+// Everything the selected agent is, as one screen: who it is and its switch across the top,
+// then the settings it declares, the one box you write in, and what it remembers.
 //
 // Which box depends on whose the agent is. A bundled agent's prompt ships inside the
 // command, so what you write for it is an instruction appended to the end of its every run.
@@ -653,9 +621,11 @@ function Page({
   onLeave,
   onPick,
   onRuntime,
+  onRuntimes,
   onError,
+  onFlip,
   onDelete,
-  deleting,
+  busySwitch,
   busy,
 }: {
   agent: AgentView;
@@ -673,12 +643,15 @@ function Page({
   onPick: (key: string, value: string) => void;
   /** Give this agent a connector of its own, or "" to put it back on the board's default. */
   onRuntime: (runtime: string) => void;
+  /** Cross to Configuration → Runtimes, from the runtime row. */
+  onRuntimes?: () => void;
   /** Where a failure the page cannot show in place goes — the dialog's error strip. */
   onError?: (msg: string) => void;
-  /** One of its model settings, on this computer. */
+  /** Switch this agent on or off. Only ever called on one that may be. */
+  onFlip: (next: boolean) => Promise<void>;
   onDelete: () => Promise<void>;
-  /** The delete is in flight. */
-  deleting: boolean;
+  /** The switch, or the delete, is in flight — they are the same agent-wide save. */
+  busySwitch: boolean;
   busy: (key: string) => boolean;
 }) {
   const c = useCopy().configuration.agents;
@@ -710,78 +683,95 @@ function Page({
         ? c.specialistRule.write(title)
         : c.rulePlaceholder(title));
 
-  // Which box this page writes through, and whether anything at all sits beside the file
-  // one — an added agent with no memory and no settings gives its `AGENT.md` the width.
+  // Which box this page writes through: an added agent owns its whole file, a bundled one
+  // owns only the words appended to its runs.
   const writesRule = !agent.file;
-  const beside =
-    writesRule || agent.memory.length > 0 || agent.settings.length > 0;
+  const off = !agent.enabled;
 
   return (
-    <div className="border-t border-nb-ink/10 pt-3">
-      <div className="mb-2.5 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <span className="text-[13.5px] font-[800] text-nb-ink">
-              {title}
-            </span>
-            <span className="min-w-0 text-[11.5px] text-nb-ink-soft">
+    <div className="flex flex-col gap-4">
+      {/* Narrow, the switch and the action drop under the name rather than squeezing it to
+          one word a line. */}
+      <div className="flex items-start justify-between gap-4 max-sm:flex-col max-sm:gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={`flex size-[44px] shrink-0 items-end justify-center ${off ? "opacity-30 grayscale" : ""}`}
+          >
+            <Character name={agent.name} size={44} />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-[14px] font-[800] text-nb-ink">{title}</span>
+              {agent.file && (
+                <span className="min-w-0 font-mono text-[11px] text-nb-ink-soft">
+                  {c.yours} · {agent.file.path}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 max-w-[74ch] text-[12px] leading-snug text-nb-ink-soft">
               {gloss}
-            </span>
-            {agent.file && (
-              <span className="min-w-0 font-mono text-[11px] text-nb-ink-soft">
-                {c.yours} · {agent.file.path}
-              </span>
+            </p>
+            {/* A specialist is asked for by its own trigger, so the page says when. A role is
+                called by its flows and normally has nothing to say here — the two that stand
+                in for you (#493) and the one you talk to (#502) say it in their own copy. */}
+            {(agent.when || role?.when) && (
+              <p className="mt-0.5 max-w-[74ch] text-[11.5px] leading-snug text-nb-ink-soft">
+                <span className="font-[700]">{c.runsWhen}</span>{" "}
+                {agent.when ? clause(agent.when.replace(/^use when\s+/i, "")) : role!.when}
+              </p>
             )}
           </div>
-          {/* A specialist is asked for by its own trigger, so the page says when. A role is
-            called by its flows and normally has nothing to say here — the two that stand in
-            for you (#493) and the one you talk to (#502) say it in their own copy. */}
-          {(agent.when || role?.when) && (
-            <p className="mt-0.5 max-w-[80ch] text-[11.5px] leading-snug text-nb-ink-soft">
-              <span className="font-[700]">{c.runsWhen}</span>{" "}
-              {agent.when ? clause(agent.when.replace(/^use when\s+/i, "")) : role!.when}
-            </p>
-          )}
         </div>
 
-        {/* The pruner's own action (#514), where an added agent's Delete sits: it is the one
-            agent whose page is a thing to press rather than only settings to fill in. */}
-        {agent.name === PRUNER && <PruneControls onError={onError} />}
-
-        {/* Only an agent this project added: a role runs the board's own flows and a bundled
-            agent ships inside the command, so neither is this board's to remove. */}
-        {agent.file && (
-          <span ref={anchor} className="relative shrink-0">
-            <button
-              type="button"
-              className={DANGER_BTN}
-              disabled={deleting}
-              onClick={() => setAsking(true)}
-            >
-              <FiTrash2 aria-hidden />
-              {c.delete}
-            </button>
-            <ConfirmationPopover
-              open={asking}
-              anchorRef={anchor}
-              align="right"
-              confirm="filled"
-              title={c.deleteTitle(title)}
-              description={c.deleteBlurb}
-              cancelLabel={c.cancel}
-              confirmLabel={c.delete}
-              busy={deleting}
-              onDismiss={() => setAsking(false)}
-              onConfirm={() => void onDelete()}
+        {/* The switch first — an agent that is off is the first thing to know about it —
+            then the pruner's own action (#514) or an added agent's Delete, each keeping the
+            place it already had. */}
+        <div className="flex shrink-0 items-start gap-3 max-sm:flex-wrap">
+          {agent.switchable && (
+            <EnabledSwitch
+              agent={agent}
+              busy={busySwitch}
+              onFlip={onFlip}
             />
-          </span>
-        )}
+          )}
+
+          {agent.name === PRUNER && <PruneControls onError={onError} />}
+
+          {/* Only an agent this project added: a role runs the board's own flows and a
+              bundled agent ships inside the command, so neither is this board's to remove. */}
+          {agent.file && (
+            <span ref={anchor} className="relative shrink-0">
+              <button
+                type="button"
+                className={DANGER_BTN}
+                disabled={busySwitch}
+                onClick={() => setAsking(true)}
+              >
+                <FiTrash2 aria-hidden />
+                {c.delete}
+              </button>
+              <ConfirmationPopover
+                open={asking}
+                anchorRef={anchor}
+                align="right"
+                confirm="filled"
+                title={c.deleteTitle(title)}
+                description={c.deleteBlurb}
+                cancelLabel={c.cancel}
+                confirmLabel={c.delete}
+                busy={busySwitch}
+                onDismiss={() => setAsking(false)}
+                onConfirm={() => void onDelete()}
+              />
+            </span>
+          )}
+        </div>
       </div>
 
       {/* The one switch that stops nothing for you (#447), so its page says what that costs
           before the box that trains it — the only peach strip in this dialog. */}
       {agent.name === COSTLY && (
-        <p className="mb-3 flex items-start gap-2.5 rounded-[10px] bg-nb-peach-soft px-3.5 py-3">
+        <p className="flex items-start gap-2.5 rounded-[10px] bg-nb-peach-soft px-3.5 py-3">
           <FiAlertCircle className="mt-[2px] shrink-0 text-nb-peach-ink" aria-hidden />
           <span className="min-w-0">
             <span className="block text-[12.5px] font-[800] text-nb-peach-ink">
@@ -792,99 +782,72 @@ function Page({
         </p>
       )}
 
-      {/* What this agent runs (#469): one runtime, from the board's file, which already says
-          the harness, the endpoint and the model. Above the box that trains it — it is the
-          first thing about an agent you set, and the last thing you change.
-
-          Absent on rules older than the release that added it: the row is left out rather
-          than drawn empty with buttons that could only fail. */}
-      {agent.runs && (
-        <div className="mb-3">
-          <Cap>{c.runtime}</Cap>
-          <RunRow
-            agent={agent}
-            info={info}
-            busy={busy}
-            onRuntime={onRuntime}
-          />
-        </div>
+      {/* Everything this agent is set to, as rows: what the setting is on the left, its
+          control on the right, and under the control the value in effect — what the runtime
+          resolves to, what the pick costs. The runtime row is absent on rules older than the
+          release that added it (#469), rather than drawn empty with a list that could only
+          fail. */}
+      {(agent.runs || agent.settings.length > 0) && (
+        <Group title={c.configuration}>
+          <Panel>
+            {agent.runs && (
+              <SettingRow
+                label={c.runtime}
+                help={
+                  agent.runs.unknownRuntime
+                    ? c.unknownHarness(agent.runs.unknownRuntime)
+                    : c.runtimeBlurb
+                }
+                effect={runtimeEffect(agent, info)}
+                control={
+                  <RuntimePick
+                    agent={agent}
+                    info={info}
+                    busy={busy("runtime")}
+                    onRuntime={onRuntime}
+                    onRuntimes={onRuntimes}
+                  />
+                }
+              />
+            )}
+            {agent.settings.map((setting: SpecAgentSettingView) => (
+              <SettingPick
+                key={setting.key}
+                setting={setting}
+                value={agent.values?.[setting.key] ?? setting.default}
+                off={off}
+                busy={busy(setting.key)}
+                onPick={(value) => onPick(setting.key, value)}
+              />
+            ))}
+          </Panel>
+        </Group>
       )}
 
-      <div className="flex items-start gap-4 max-sm:flex-col">
-        {beside && (
-          <div className="min-w-0 flex-1">
-            {writesRule && (
-              <>
-                <Cap
-                  right={
-                    saved && (
-                      <span className="flex items-center gap-1 text-[11px] font-[700] text-nb-mint-ink">
-                        <FiCheck aria-hidden />
-                        {c.saved}
-                      </span>
-                    )
-                  }
-                >
-                  {c.rule}
-                </Cap>
-                <textarea
-                  key={`rule/${agent.name}`}
-                  value={rule}
-                  onChange={(e) => onRule(e.target.value)}
-                  onBlur={onLeave}
-                  spellCheck={false}
-                  aria-label={c.ruleLabel(agent.name)}
-                  placeholder={placeholder}
-                  className="h-[64px] w-full resize-none rounded-[10px] bg-nb-wash px-3 py-2 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
-                />
-              </>
-            )}
-
-            {agent.name === COSTLY && (
-              <p className="mt-2.5 max-w-[74ch] text-[11.5px] leading-relaxed text-nb-ink-soft">
-                {c.decider.note}
-              </p>
-            )}
-
-            {agent.name === PER_DELIVERY && (
-              <p className="mt-2.5 max-w-[74ch] text-[11.5px] leading-relaxed text-nb-ink-soft">
-                {frozen}
-              </p>
-            )}
-
-            {agent.memory.length > 0 && (
-              <div className={writesRule ? "mt-3" : undefined}>
-                <Cap>{c.remembers}</Cap>
-                <MemoryTree paths={agent.memory} />
-              </div>
-            )}
-
-            {agent.settings.length > 0 && (
-              <div
-                className={`flex flex-col gap-2 ${writesRule || agent.memory.length > 0 ? "mt-3" : ""}`}
-              >
-                {agent.settings.map((setting: SpecAgentSettingView) => (
-                  <SettingLine
-                    key={setting.key}
-                    setting={setting}
-                    value={agent.values?.[setting.key] ?? setting.default}
-                    off={!agent.enabled}
-                    busy={busy(setting.key)}
-                    onPick={(value) => onPick(setting.key, value)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {agent.file && (
-          <div
-            className={
-              beside ? "w-[330px] shrink-0 max-sm:w-full" : "min-w-0 flex-1"
-            }
-          >
-            <Cap>{c.file}</Cap>
+      <Group
+        title={writesRule ? c.rule : c.file}
+        action={
+          saved && writesRule ? (
+            <span className="flex items-center gap-1 text-[11px] font-[700] text-nb-mint-ink">
+              <FiCheck aria-hidden />
+              {c.saved}
+            </span>
+          ) : undefined
+        }
+      >
+        {writesRule ? (
+          <textarea
+            key={`rule/${agent.name}`}
+            value={rule}
+            onChange={(e) => onRule(e.target.value)}
+            onBlur={onLeave}
+            spellCheck={false}
+            aria-label={c.ruleLabel(agent.name)}
+            placeholder={placeholder}
+            className="h-[76px] w-full resize-none rounded-[10px] bg-nb-wash px-3 py-2 text-[12px] leading-[17px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
+          />
+        ) : (
+          <>
             <textarea
               ref={box}
               key={`file/${agent.name}`}
@@ -893,9 +856,7 @@ function Page({
               onBlur={onLeave}
               spellCheck={false}
               aria-label={c.fileLabel(agent.name)}
-              className={`w-full resize-none rounded-[10px] bg-nb-wash px-2.5 py-2 font-mono text-[11px] leading-[15px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent ${
-                beside ? "h-[132px]" : "h-[180px]"
-              }`}
+              className="h-[190px] w-full resize-none rounded-[10px] bg-nb-wash px-2.5 py-2 font-mono text-[11px] leading-[15px] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent"
             />
             {/* The board reads the text the way its catalog reads an agent. A save it would
                 refuse keeps every word of it, keeps this page open, and says what is wrong. */}
@@ -907,10 +868,215 @@ function Page({
                 </span>
               </p>
             )}
-          </div>
+          </>
+        )}
+      </Group>
+
+      {agent.name === COSTLY && (
+        <p className="max-w-[74ch] text-[11.5px] leading-relaxed text-nb-ink-soft">
+          {c.decider.note}
+        </p>
+      )}
+
+      {agent.name === PER_DELIVERY && (
+        <p className="max-w-[74ch] text-[11.5px] leading-relaxed text-nb-ink-soft">
+          {frozen}
+        </p>
+      )}
+
+      {agent.memory.length > 0 && <MemoryRow paths={agent.memory} />}
+    </div>
+  );
+}
+
+// The agent's switch, in the page header. Switching the costly one (#447) ON asks once;
+// switching it off, and every other switch either way, goes straight through.
+function EnabledSwitch({
+  agent,
+  busy,
+  onFlip,
+}: {
+  agent: AgentView;
+  busy: boolean;
+  onFlip: (next: boolean) => Promise<void>;
+}) {
+  const c = useCopy().configuration.agents;
+  const title = agentTitle(agent.name);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const [asking, setAsking] = useState(false);
+  const asks = agent.name === COSTLY;
+  return (
+    <span ref={anchor} className="relative flex shrink-0 items-center gap-2">
+      <Switch
+        on={agent.enabled}
+        busy={busy}
+        label={(agent.enabled ? c.switchOn : c.switchOff)(title)}
+        onFlip={async (next) => {
+          if (!asks || !next) return onFlip(next);
+          setAsking(true);
+        }}
+      />
+      <span
+        className={`text-[12px] font-[700] ${agent.enabled ? "text-nb-ink" : "text-nb-ink-soft"}`}
+      >
+        {c.enabled}
+      </span>
+      {asks && (
+        <ConfirmationPopover
+          open={asking}
+          anchorRef={anchor}
+          align="right"
+          confirm="filled"
+          title={c.decider.confirmTitle}
+          description={c.decider.confirmBody}
+          cancelLabel={c.cancel}
+          confirmLabel={c.decider.turnOn}
+          busy={busy}
+          onDismiss={() => setAsking(false)}
+          onConfirm={() => {
+            setAsking(false);
+            void onFlip(true);
+          }}
+        />
+      )}
+    </span>
+  );
+}
+
+// --- one setting on an agent's page ------------------------------------------
+
+// One row: what the setting is and what it does on the left, its control on the right, and
+// under the control the value in effect — what the pick costs, or what the runtime it names
+// actually resolves to. The answer reads beside the thing that sets it rather than folded
+// away behind a Change.
+function SettingRow({
+  label,
+  help,
+  control,
+  effect,
+  off,
+}: {
+  label: React.ReactNode;
+  help?: React.ReactNode;
+  control: React.ReactNode;
+  /** Read under the control, in soft ink — never a second control. */
+  effect?: React.ReactNode;
+  /** The agent is paused. Its settings stay set-able: setting an agent you have paused is
+   *  how it is ready for the day you switch it back on. */
+  off?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-start justify-between gap-5 border-b border-nb-ink/10 py-3 last:border-b-0 max-sm:flex-col max-sm:gap-2 ${off ? "opacity-70" : ""}`}
+    >
+      <div className="min-w-0 pt-[7px]">
+        <p className="text-[13px] font-[700] leading-tight text-nb-ink">{label}</p>
+        {help && (
+          <p className="mt-1 max-w-[46ch] text-[11.5px] leading-snug text-nb-ink-soft">
+            {help}
+          </p>
+        )}
+      </div>
+      <div className="flex w-[236px] shrink-0 flex-col gap-1 max-sm:w-full">
+        {control}
+        {effect && (
+          <span className="text-[11.5px] leading-snug text-nb-ink-soft">{effect}</span>
         )}
       </div>
     </div>
+  );
+}
+
+// One of the settings an agent declares (#257). Each choice carries its own cost, so the
+// list says what a pick means before it is made and the row says it again once it is.
+function SettingPick({
+  setting,
+  value,
+  off,
+  busy,
+  onPick,
+}: {
+  setting: SpecAgentSettingView;
+  /** The choice in effect — the saved one, or the setting's own default. */
+  value: string;
+  off: boolean;
+  /** A save for this setting is in flight. */
+  busy: boolean;
+  onPick: (value: string) => void;
+}) {
+  const picked = setting.choices.find((choice) => choice.value === value);
+  return (
+    <SettingRow
+      off={off}
+      label={setting.label}
+      help={setting.help}
+      effect={picked?.cost}
+      control={
+        <Select value={value} disabled={busy} onValueChange={onPick}>
+          <SelectTrigger
+            aria-label={setting.label}
+            className={`${FLAT_CONTROL} h-[32px] w-full text-[12.5px] disabled:cursor-wait`}
+          >
+            {/* A value the agent no longer offers still reads as itself rather than as an
+                empty box. */}
+            <SelectValue placeholder={value} />
+          </SelectTrigger>
+          <SelectContent>
+            {setting.choices.map((choice) => (
+              <SelectItem
+                key={choice.value}
+                value={choice.value}
+                hint={
+                  choice.cost ? (
+                    <span className="max-w-[34ch] text-[11px] font-[400] leading-snug text-nb-ink-soft">
+                      {choice.cost}
+                    </span>
+                  ) : undefined
+                }
+              >
+                {choice.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      }
+    />
+  );
+}
+
+// --- what an agent remembers --------------------------------------------------
+
+// One row saying how many files, opening in place to the tree of them. Closed by default:
+// the paths are read-only, so the count is the whole answer at a glance and the tree is
+// there for the time you want to know exactly which files.
+function MemoryRow({ paths }: { paths: string[] }) {
+  const c = useCopy().configuration.agents;
+  const [open, setOpen] = useState(false);
+  return (
+    <Panel>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => !was)}
+        className="flex w-full cursor-pointer items-center gap-2.5 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
+      >
+        <FiFolder size={14} aria-hidden className="shrink-0 text-nb-ink-soft" />
+        <span className="text-[13px] font-[700] text-nb-ink">{c.remembers}</span>
+        <span className="text-[12px] text-nb-ink-soft">
+          {c.memoryCount(paths.length)}
+        </span>
+        <FiChevronRight
+          size={13}
+          aria-hidden
+          className={`ml-auto shrink-0 text-nb-ink-soft transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="border-t border-nb-ink/10 py-3">
+          <MemoryTree paths={paths} />
+        </div>
+      )}
+    </Panel>
   );
 }
 
@@ -1189,69 +1355,76 @@ function RecurrencePopover({
 // default. Picking that first row is how an agent goes back to having no pick of its own.
 // Install state is left off: a pick travels with the repository, so one computer's PATH is
 // not the board's answer.
-function RunRow({
+//
+// Beside it, the way across to Configuration → Runtimes, which is the one place a runtime is
+// actually set up.
+function RuntimePick({
   agent,
   info,
   busy,
   onRuntime,
+  onRuntimes,
 }: {
   agent: AgentView;
   info: AgentInfo;
-  busy: (key: string) => boolean;
+  busy: boolean;
   onRuntime: (runtime: string) => void;
+  onRuntimes?: () => void;
 }) {
   const c = useCopy().configuration.agents;
   const nameOf = useRuntimeName();
-  const moving = busy("runtime");
-  const picked = info.runtimes.find((r) => r.id === agent.runs.runtime);
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-2">
-        {/* `runs.runtime` is already the runtime in effect — Global default for an agent that
-            named none — and handing that first row back drops the agent's own pick, so the
-            list is drawn once with nothing mapped in or out. */}
-        <Select value={agent.runs.runtime} disabled={moving} onValueChange={onRuntime}>
-          <SelectTrigger
-            aria-label={c.runtime}
-            className={`${FLAT_CONTROL} h-[34px] w-[190px] shrink-0 disabled:cursor-wait`}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {info.runtimes.map((row) => (
-              <SelectItem
-                key={row.id}
-                value={row.id}
-                note={row.fixed ? c.boardsOwn : row.model}
-              >
-                <span className="flex items-center gap-1.5">
-                  <AgentMark src={row.icon} size={13} />
-                  {nameOf(row)}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="flex w-full items-center gap-1.5">
+      {/* `runs.runtime` is already the runtime in effect — Global default for an agent that
+          named none — and handing that first row back drops the agent's own pick, so the
+          list is drawn once with nothing mapped in or out. */}
+      <Select value={agent.runs.runtime} disabled={busy} onValueChange={onRuntime}>
+        <SelectTrigger
+          aria-label={c.runtime}
+          className={`${FLAT_CONTROL} h-[32px] min-w-0 flex-1 text-[12.5px] disabled:cursor-wait`}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {info.runtimes.map((row) => (
+            <SelectItem
+              key={row.id}
+              value={row.id}
+              note={row.fixed ? c.boardsOwn : row.model}
+            >
+              <span className="flex items-center gap-1.5">
+                <AgentMark src={row.icon} size={13} />
+                {nameOf(row)}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        {/* Enough of the picked row to know what it is — the rest of it is edited in
-            Configuration → Runtimes, which is the one place a runtime is set up. */}
-        <span className="text-[12px] text-nb-ink-soft">
-          {[picked?.label, picked?.model].filter(Boolean).join(" · ")}
-        </span>
-      </div>
-
-      <p className="mt-1.5 text-[11.5px] leading-snug text-nb-ink-soft">
-        {agent.runs.unknownRuntime
-          ? c.unknownHarness(agent.runs.unknownRuntime)
-          : c.runtimeBlurb}
-      </p>
+      {onRuntimes && (
+        <button
+          type="button"
+          title={c.openRuntimes}
+          aria-label={c.openRuntimes}
+          onClick={onRuntimes}
+          className="flex size-[28px] shrink-0 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink-soft transition-colors duration-100 hover:bg-nb-wash hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
+        >
+          <FiArrowUpRight size={15} aria-hidden />
+        </button>
+      )}
     </div>
   );
 }
 
+// Enough of the picked runtime to know what it is — its name and the model it runs. The rest
+// of it is edited in Configuration → Runtimes.
+function runtimeEffect(agent: AgentView, info: AgentInfo): string {
+  const picked = info.runtimes.find((r) => r.id === agent.runs.runtime);
+  return [picked?.label, picked?.model].filter(Boolean).join(" · ");
+}
 
-// --- the files an agent remembers in ------------------------------------------
+// --- the tree the memory row opens to -----------------------------------------
 
 // Printed the way they sit on disk, because that IS the answer: the folder they share once,
 // then a line per file under it. No badge on each row — everything here is read-only, and a
@@ -1345,38 +1518,23 @@ function branch(nodes: TreeNode[], indent: string, rows: TreeRow[]): void {
   });
 }
 
-function Cap({
-  children,
-  right,
-}: {
-  children: React.ReactNode;
-  right?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-[5px] flex items-center justify-between gap-2">
-      <span className={`${CAPTION} text-nb-ink-soft`}>{children}</span>
-      {right}
-    </div>
-  );
-}
-
 // --- the characters ----------------------------------------------------------
 
 // The art is one PNG per agent at `public/agent-art/<name>.png`, drawn on a shared canvas
 // with a shared pixel size — `agent-art.md` beside `design.md` is the recipe. An agent with
 // no file of its own is the same character holding a card with its initial, so the pane is
 // never a row of broken images and two art-less agents still differ.
-function Character({ name }: { name: string }) {
+function Character({ name, size = 48 }: { name: string; size?: number }) {
   const [art, setArt] = useState(true);
   useEffect(() => setArt(true), [name]);
-  if (!art) return <Lettered name={name} />;
+  if (!art) return <Lettered name={name} size={size} />;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={`/agent-art/${name}.png`}
       alt=""
-      width={48}
-      height={48}
+      width={size}
+      height={size}
       onError={() => setArt(false)}
       style={{ imageRendering: "pixelated" }}
     />
@@ -1441,26 +1599,26 @@ const GLYPHS: Record<string, string> = {
 //
 // The rectangles are in the PNG's own 96x96 coordinates: the card sits on the torso, below
 // the visor and above the legs, where every bundled character carries its prop.
-function Lettered({ name }: { name: string }) {
+function Lettered({ name, size = 48 }: { name: string; size?: number }) {
   const rows = (GLYPHS[name[0]?.toLowerCase() ?? ""] ?? GLYPHS.a!).split(" ");
   const ink =
     INKS[
       [...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % INKS.length
     ]!;
   return (
-    <span className="relative block h-[48px] w-[48px]">
+    <span className="relative block" style={{ height: size, width: size }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/agent-art/base.png"
         alt=""
-        width={48}
-        height={48}
+        width={size}
+        height={size}
         style={{ imageRendering: "pixelated" }}
       />
       <svg
         className="absolute inset-0"
-        width={48}
-        height={48}
+        width={size}
+        height={size}
         viewBox="0 0 96 96"
         shapeRendering="crispEdges"
         aria-hidden
@@ -1483,122 +1641,6 @@ function Lettered({ name }: { name: string }) {
         )}
       </svg>
     </span>
-  );
-}
-
-// --- one setting on an agent's page ------------------------------------------
-
-// A line saying what the setting is set to and what that choice costs, and a Change that
-// opens the choices in place.
-//
-// Folded by default, because the answer is the thing worth reading. Open, every choice says
-// its own cost in the agent's own words, so a pick is made by comparing rather than by
-// trying one.
-//
-// A switched-off agent keeps its settings, greyed and still working: setting an agent you
-// have paused is how it is ready for the day you switch it back on.
-function SettingLine({
-  setting,
-  value,
-  off,
-  busy,
-  onPick,
-}: {
-  setting: SpecAgentSettingView;
-  /** The choice in effect — the saved one, or the setting's own default. */
-  value: string;
-  off: boolean;
-  /** A save for this setting is in flight. */
-  busy: boolean;
-  onPick: (value: string) => void;
-}) {
-  const copy = useCopy().configuration.agents;
-  const [open, setOpen] = useState(false);
-  const picked = setting.choices.find((c) => c.value === value);
-  const shown = picked?.label ?? value;
-
-  return (
-    <div
-      className={`rounded-[10px] bg-nb-sheet px-3 py-2 ${off ? "opacity-70" : ""}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        {/* Closed, the line carries the cost too — that is the whole answer, and it wraps
-            rather than trailing off in an ellipsis. Open, the cost is dropped: every
-            choice below says its own, and repeating the picked one says it twice. */}
-        <p
-          className={`min-w-0 text-[12px] leading-relaxed text-nb-ink-soft [&_strong]:font-[700] ${
-            off ? "[&_strong]:text-nb-ink-soft" : "[&_strong]:text-nb-ink"
-          }`}
-        >
-          <Rich>
-            {!open && picked?.cost
-              ? copy.settingWithCost(setting.label, shown, picked.cost)
-              : copy.setting(setting.label, shown)}
-          </Rich>
-        </p>
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((was) => !was)}
-          className="flex shrink-0 cursor-pointer items-center gap-1.5 pt-[1px] text-[12px] font-[700] text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent"
-        >
-          {copy.change}
-          <FiChevronDown
-            aria-hidden
-            className={`shrink-0 text-nb-ink-soft transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          />
-        </button>
-      </div>
-
-      {open && (
-        <div
-          role="radiogroup"
-          aria-label={setting.label}
-          className="mt-2.5 flex flex-col gap-1 border-t border-nb-ink/14 pt-2.5"
-        >
-          {setting.choices.map((choice) => {
-            const on = choice.value === value;
-            return (
-              <button
-                key={choice.value}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                disabled={busy}
-                onClick={() => onPick(choice.value)}
-                className="flex cursor-pointer items-start gap-2 rounded-[8px] px-2 py-1.5 text-left transition-colors duration-100 hover:bg-nb-wash focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait disabled:opacity-60"
-              >
-                <span
-                  aria-hidden
-                  className={`mt-[3px] flex size-[13px] shrink-0 items-center justify-center rounded-full ${
-                    on ? "bg-nb-accent" : "bg-nb-ink/20"
-                  }`}
-                >
-                  {on && (
-                    <span className="size-[4px] rounded-full bg-nb-paper" />
-                  )}
-                </span>
-                <span className="min-w-0">
-                  <span
-                    className={`block text-[12px] ${on ? "font-[800] text-nb-ink" : "font-[700] text-nb-ink"}`}
-                  >
-                    {choice.label}
-                  </span>
-                  <span className="block text-[12px] leading-relaxed text-nb-ink-soft">
-                    {choice.cost}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-          {setting.help && (
-            <p className="mt-1 px-2 text-[12px] leading-relaxed text-nb-ink-soft">
-              {setting.help}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
 

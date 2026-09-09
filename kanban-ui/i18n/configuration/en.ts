@@ -101,8 +101,12 @@ const en: ConfigurationCopy = {
   },
   agents: {
     always: "Always on",
-    optional: "Optional",
-    blurb: "Select an agent to set it up.",
+    optional: "Specialists",
+    onCount: (n) => `${n} on`,
+    rowOn: "On",
+    rowOff: "Off",
+    enabled: "Enabled",
+    blurb: "Pick an agent to set it up.",
     loading: "Loading agents…",
     tooOld:
       "The board's rules in this project are too old to list its agents. Update the command and reopen this dialog.",
@@ -113,10 +117,11 @@ const en: ConfigurationCopy = {
     flipFailedOn: (agent) => `couldn't switch ${agent} on`,
     flipFailedOff: (agent) => `couldn't switch ${agent} off`,
 
+    configuration: "Configuration",
     runtime: "Runtime",
     boardsOwn: "the board's",
-    runtimeBlurb:
-      "The pick travels with the repository. Set a runtime up — its endpoint, key and model — in Configuration → Runtimes.",
+    runtimeBlurb: "The pick travels with the repository.",
+    openRuntimes: "Set runtimes up",
     unknownHarness: (runtime) => `Set to "${runtime}", which this board no longer has.`,
     harnessFailed: (agent) => `couldn't save what ${agent} runs`,
     runsWhen: "Runs when",
@@ -198,14 +203,12 @@ const en: ConfigurationCopy = {
     },
     saved: "Saved",
     ruleFailed: (agent) => `couldn't save ${agent}'s instructions`,
-    remembers: "Remembers",
+    remembers: "Memory",
+    memoryCount: (n) => (n === 1 ? "1 file" : `${n} files`),
     file: "AGENT.md",
     fileLabel: (agent) => `${agent}'s AGENT.md`,
     notSaved: "Not saved —",
 
-    change: "Change",
-    setting: (label, value) => `${label}: **${value}**`,
-    settingWithCost: (label, value, cost) => `${label}: **${value}** — ${cost}`,
     saveFailed: (agent) => `couldn't save ${agent}'s setting`,
 
     add: "Add a specialist",
