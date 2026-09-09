@@ -48,6 +48,10 @@ const en: HomeCopy = {
         title: "Agents handle the details. You sign off.",
         body: "Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and delivery approvals brought back to you in the app or Slack.",
       },
+      {
+        title: "An agent team, working together.",
+        body: "Bring discussion, planning, building, and review into one team. Enable the specialists you need, choose a runtime and model for each role, and add your own instructions.",
+      },
     ],
   },
 

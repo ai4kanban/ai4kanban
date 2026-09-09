@@ -23,11 +23,15 @@ Independent tasks run in parallel across your agents, so one task finishing is n
 
 ### Plan the way you think.
 
-Want a technical comparison or a working UI mockup before committing to a direction? Use built-in skills or add your own, and let the agent work through requirements using your approach.
+Want a technical comparison or a working UI mockup before committing to a direction? Use the built-in spec agents or add your own, and let the board work through requirements using your approach.
 
 ### Agents handle the details. You sign off.
 
 Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and delivery approvals brought back to you in the app or Slack.
+
+### An agent team, working together.
+
+Bring discussion, planning, building, and review into one team. Enable the specialists you need, choose a runtime and model for each role, and add your own instructions.
 
 ## Understands you better as you build
 

@@ -54,6 +54,10 @@ const es: HomeCopy = {
         title: "Los agentes resuelven los detalles. Tú apruebas.",
         body: "La mayoría de los detalles se resuelven a partir del código y las decisiones anteriores. El trabajo avanza en segundo plano y recibes las decisiones de producto y las entregas pendientes de aprobación en la aplicación o en Slack.",
       },
+      {
+        title: "Un equipo de agentes que avanza unido.",
+        body: "Discusión, planificación, desarrollo y revisión: cada agente cumple su función. Activa los especialistas que necesites, elige una herramienta de ejecución y un modelo para cada rol y añade tus propias instrucciones.",
+      },
     ],
   },
 

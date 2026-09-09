@@ -6,32 +6,18 @@ import { ShotApprovalEvent } from "../shots/ShotApprovalEvent";
 import { ShotSessions } from "../shots/ShotSessions";
 import { ShotSpecAgents } from "../shots/ShotSpecAgents";
 import { ShotTaskGraph } from "../shots/ShotTaskGraph";
+import { ShotAgentTeam } from "../shots/ShotAgentTeam";
 import type { WashName } from "./washes";
 import type { HomeCopy } from "@/i18n/home/types";
 
-// Keep work moving — title and lead stacked like every other section, then the
-// steps as a zigzag: shot and words swap sides row after row.
-//
-// Words and shot split the row evenly, so the zigzag has one seam running down
-// the middle of the section for every row to alternate across. An uneven
-// split gave the picture more room, but it also moved the seam every row and
-// left the words in a column too narrow for the sentence they carry. There is
-// no rail and no sticky title: the alternation is what ties the rows together.
-
-// One artwork per step, used as the mat the shot is mounted on. Nothing here is
-// a panel: the title and body sit bare on the page beside the mat, and the mat
-// carries no outline and no hard shadow either. It is a picture, and an ink
-// frame around a watercolour is a frame around a frame. What holds the mat
-// together instead is its own bleed to the edge, and the soft shadow the print
-// casts onto it. Each step gets its own texture so the shots read as a set
-// without repeating.
-//
+// Alternate the copy and illustration, with a distinct wash for each step.
 const SHOTS: { mat: WashName; art: ReactNode }[] = [
   { mat: "mintSky", art: <ShotTaskGraph /> },
   { mat: "peachEmber", art: <ShotCardQuestions /> },
   { mat: "skyLilac", art: <ShotSessions /> },
   { mat: "emberMint", art: <ShotSpecAgents /> },
   { mat: "peachEmber", art: <ShotApprovalEvent /> },
+  { mat: "mintSky", art: <ShotAgentTeam /> },
 ];
 
 // The two sides of the zigzag. Explicit column starts rather than `order`, so
