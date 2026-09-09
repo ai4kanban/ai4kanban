@@ -228,7 +228,10 @@ function draftPaths(cardId: number | undefined, channel: string): { source: stri
 function polishPaths(cardId: number | undefined, draft: string): { file: string; comments: string } | null {
   const found = cardId === undefined ? null : locate(cardId)
   if (!found || found.kind !== 'file') return null
-  return { file: rel(draftFile(found.target, draft)), comments: rel(path.join(COMMENTS, `${cardId}.json`)) }
+  return {
+    file: rel(draftFile(found.target, draft)),
+    comments: rel(path.join(COMMENTS, String(cardId), `${draft}.md`)),
+  }
 }
 
 // The folder a `write` agent may write in, resolved here rather than described: `akb write`
@@ -585,7 +588,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Polish the \`${name}\` draft of task ${req.id} ${named} following \`akb guide polish\`.`,
         files
-          ? `Read ${files.file} and the comments under \`"${name}"\` in ${files.comments}, then rewrite ${files.file}.`
+          ? `Read ${files.file} and the comments in ${files.comments}, then rewrite ${files.file}.`
           : '',
         `Work every comment in that batch into one pass over the draft, then record only reusable corrections in the board's writing memory following the guide.`,
         `Write only that draft and the files those corrections need in \`docs/kanban/memory/writing.md\` or under \`docs/kanban/memory/writing/\`. Leave the card, other drafts and the comments file alone.`,

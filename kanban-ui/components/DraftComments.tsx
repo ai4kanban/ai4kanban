@@ -14,14 +14,16 @@
 //     every one of OverType's own renders.
 //   • DraftComments — the list under the editor, and Submit.
 //
-// The QUOTE is the anchor, not the offsets: a comment records where its passage sat, and it
-// is re-found from there, so an edit elsewhere in the draft leaves it in place. One whose
-// passage is gone keeps its words, loses its marks, and still goes to the polish.
+// The QUOTE is the anchor and there are no offsets: a comment carries its passage and
+// enough of the draft around it to tell repeats apart, and it is re-found on every draw
+// (`lib/format/view/anchor.ts`), so an edit elsewhere in the draft leaves it in place. One
+// whose passage is gone keeps its words, loses its marks, and still goes to the polish.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiCheck, FiEdit3, FiMessageSquare, FiTrash2 } from "react-icons/fi";
 import type { OverTypeInstance } from "overtype";
 import { useCopy } from "@/i18n/use-copy";
+import { anchorOf, passageOf } from "@/lib/format/view/anchor";
 import type { DraftPassage } from "@/lib/screen";
 import type { DraftComment } from "@/lib/types";
 import { Button } from "./button";
@@ -35,22 +37,6 @@ const MARK = "a4k-commented";
  *  rather than a class: it covers characters, not lines, and paints without splitting the
  *  preview's HTML. Its look is in `app/globals.css` too. */
 const PICKED = "a4k-picked";
-
-// ---- where a comment sits now ----------------------------------------------
-
-/** The offsets a comment's passage occupies in the draft as it now reads, or null when the
- *  passage is no longer in it. The search starts where the passage sat and takes whichever
- *  copy of the quote is nearer, so an edit above a comment does not move it. */
-export function anchorOf(text: string, comment: DraftComment): { from: number; to: number } | null {
-  const { quote, from } = comment;
-  if (!quote) return null;
-  if (text.startsWith(quote, from)) return { from, to: from + quote.length };
-  const after = text.indexOf(quote, from);
-  const before = text.lastIndexOf(quote, from);
-  if (after < 0 && before < 0) return null;
-  const at = after < 0 ? before : before < 0 ? after : after - from <= from - before ? after : before;
-  return { from: at, to: at + quote.length };
-}
 
 /** Which source line an offset falls on, counting from zero. */
 function lineAt(text: string, at: number): number {
@@ -225,7 +211,7 @@ export function LeaveComment({
   onLeave: (passage: DraftPassage) => void;
 }) {
   const c = useCopy().card.marketing;
-  const [picked, setPicked] = useState<{ from: number; to: number; text: string } | null>(null);
+  const [picked, setPicked] = useState<{ from: number; to: number } | null>(null);
   const [open, setOpen] = useState(false);
   const [words, setWords] = useState("");
   const box = editor.textarea;
@@ -235,12 +221,12 @@ export function LeaveComment({
   useEffect(() => {
     const check = () => {
       if (document.activeElement !== box) return;
-      const { selectionStart: from, selectionEnd: to, value } = box;
+      const { selectionStart: from, selectionEnd: to } = box;
       if (from === to) {
         setPicked(null);
         setOpen(false);
       } else {
-        setPicked({ from, to, text: value.slice(from, to) });
+        setPicked({ from, to });
       }
     };
     document.addEventListener("selectionchange", check);
@@ -265,7 +251,7 @@ export function LeaveComment({
 
   const leave = () => {
     if (!words.trim()) return;
-    onLeave({ quote: picked.text, from: picked.from, to: picked.to, words: words.trim() });
+    onLeave({ ...passageOf(box.value, picked.from, picked.to), words: words.trim() });
     setWords("");
     setOpen(false);
     setPicked(null);

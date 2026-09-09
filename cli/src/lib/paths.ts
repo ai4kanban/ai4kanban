@@ -60,7 +60,8 @@ export let LEGACY_AGENTS = ''
 // question comes back, so it is never something the repo carries or a teammate pulls.
 export let MOCKUPS = ''
 export const MOCKUP_IGNORE_LINE = '.mockups/'
-// The comments left on a topic's drafts, waiting to be polished (#458) — one file per card.
+// The comments left on a topic's drafts, waiting to be polished (#458) — one markdown file
+// per draft, under a folder per card (#572).
 // Dotted and ignored like `.chats/`: a batch is consumed by the next polish and then gone,
 // so it is this machine's working state and never the repository's.
 export let COMMENTS = ''

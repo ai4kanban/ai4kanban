@@ -134,8 +134,8 @@ export interface ScreenActions {
   // ---- the comments on one draft, and the polish they go to (#458) ---------
   // Only ever called where `CardDrafts.canComment` said yes: a board whose rules predate
   // the move draws no comment control, so the page never reaches these.
-  /** Leave one comment on a passage. `from`/`to` are where it was selected — kept as the
-   *  place the quote is looked for next time, since the quote is the anchor. */
+  /** Leave one comment on a passage. The passage carries its own context, so the file keeps
+   *  no offsets and the quote is re-found wherever it has moved to. */
   commentOnDraft(id: number, draft: string, passage: DraftPassage): Promise<CommentBatch>;
   /** Change what one comment asks for. Its passage stays. */
   editDraftComment(id: number, draft: string, commentId: string, words: string): Promise<CommentBatch>;
@@ -146,11 +146,12 @@ export interface ScreenActions {
   polishDraft(id: number, draft: string, note?: string): Promise<RepurposeAnswer>;
 }
 
-/** The passage a comment is left on: the words, and where they sat when it was left. */
+/** The passage a comment is left on: the words, enough of the draft around them to tell
+ *  repeats apart, and where they start inside that (`lib/format/view/anchor.ts`). */
 export interface DraftPassage {
   quote: string;
-  from: number;
-  to: number;
+  context: string;
+  at: number;
   words: string;
 }
 

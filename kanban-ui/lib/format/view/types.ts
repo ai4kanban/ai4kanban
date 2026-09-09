@@ -129,20 +129,22 @@ export interface CardChannel {
 
 /** One remark left on a passage of a draft (#458), waiting for the polish that answers it.
  *
- *  The QUOTE is the anchor: `from`/`to` are where the passage sat when the comment was
- *  left, and a reader re-finds the quote from there — so an edit elsewhere in the draft
- *  leaves the comment where it belongs. A comment whose passage is gone keeps its words,
+ *  The QUOTE is the anchor and there are no offsets (#572): the passage is stored with as
+ *  much of its own line as tells two copies of the same words apart, and it is re-found in
+ *  the draft whenever the marks are drawn. A comment whose passage is gone keeps its words,
  *  loses its marks, and still goes to the polish. */
 export interface DraftComment {
   /** This comment's own key, so edit and delete name one and not a position. */
   id: string
   /** The passage commented on, exactly as it read then. */
   quote: string
-  from: number
-  to: number
+  /** The passage with enough of the draft around it to tell repeats apart. Equal to
+   *  `quote` when the passage is its own context. */
+  context: string
+  /** Where `quote` starts inside `context`. */
+  at: number
   /** What the user wants done with that passage. */
   words: string
-  at: number
 }
 
 /** One file under `content/<id>/` (#411): `source`, or a channel's name. `text` is

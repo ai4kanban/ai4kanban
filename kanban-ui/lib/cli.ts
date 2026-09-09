@@ -306,7 +306,7 @@ export interface BoardRules {
   commentOnDraft?(
     id: number,
     draft: string,
-    passage: { quote: string; from: number; to: number; words: string },
+    passage: { quote: string; context: string; at: number; words: string },
   ): DraftComment[];
   editDraftComment?(id: number, draft: string, commentId: string, words: string): DraftComment[];
   dropDraftComment?(id: number, draft: string, commentId: string): DraftComment[];

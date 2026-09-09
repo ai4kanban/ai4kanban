@@ -216,19 +216,20 @@ export function setChannels(id: number, names: string[]) {
 // ---- the comments left on a draft, and the polish they go to (#458) --------
 //
 // A comment is SAVED on its passage rather than sent, so a whole read-through is one pass
-// over the draft. The batch lives in `docs/kanban/.comments/<id>.json` (../comments.ts) —
-// beside the board, never inside the draft, and out of git.
+// over the draft. The batch lives in `docs/kanban/.comments/<id>/<draft>.md`
+// (../comments.ts) — beside the board, never inside the draft, and out of git.
 //
-// Each write answers with the batch as it now reads, so the page draws from the answer
-// rather than reading again. Nothing here re-anchors a comment: the offsets are where the
-// passage SAT, and the page re-finds the quote from them.
+// Each write reads that file first and answers with the batch as it now reads, so a comment
+// somebody added or removed by hand is in the answer the page draws from. Nothing here
+// re-anchors a comment: the passage carries its own context, and the page re-finds it.
 
-/** Leave one comment on a passage of a draft. `from`/`to` are the offsets it was selected
- *  at, kept as the place the quote is looked for next time. */
+/** Leave one comment on a passage of a draft. `context` is the passage with as much of the
+ *  draft around it as tells repeats apart, and `at` is where the passage starts inside it
+ *  (../view/anchor.ts). */
 export function commentOnDraft(
   id: number,
   draft: string,
-  passage: { quote: string; from: number; to: number; words: string },
+  passage: { quote: string; context: string; at: number; words: string },
 ): DraftComment[] {
   mustBeADraft(draft)
   folderOf(id) // the card, or the refusal that names it

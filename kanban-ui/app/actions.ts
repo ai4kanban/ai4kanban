@@ -1096,7 +1096,7 @@ export async function setChannelsAction(id: number, names: string[]): Promise<{ 
 export async function commentOnDraftAction(
   id: number,
   draft: string,
-  passage: { quote: string; from: number; to: number; words: string },
+  passage: { quote: string; context: string; at: number; words: string },
 ): Promise<CommentBatch> {
   if (!Number.isInteger(id)) return { comments: [], error: "a comment is left by card number" };
   if (typeof draft !== "string" || !draft) return { comments: [], error: "a comment is left on a named draft" };
@@ -1104,9 +1104,12 @@ export async function commentOnDraftAction(
   const words = typeof passage?.words === "string" ? passage.words : "";
   if (!quote) return { comments: [], error: "a comment is left on a passage" };
   if (!words.trim()) return { comments: [], error: "a comment says what to do with the passage" };
-  const from = Number.isInteger(passage?.from) ? passage.from : 0;
-  const to = Number.isInteger(passage?.to) ? passage.to : 0;
-  return commentOnDraft(id, draft, { quote, from, to, words });
+  // A context that does not hold its own passage says nothing about where it sat, so the
+  // passage stands alone rather than anchoring off a string it is not in.
+  const given = typeof passage?.context === "string" ? passage.context : "";
+  const at = Number.isInteger(passage?.at) ? passage.at : 0;
+  const held = given.slice(at, at + quote.length) === quote;
+  return commentOnDraft(id, draft, { quote, context: held ? given : quote, at: held ? at : 0, words });
 }
 
 export async function editDraftCommentAction(

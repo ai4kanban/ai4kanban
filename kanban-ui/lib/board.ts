@@ -518,7 +518,7 @@ export async function setChannelStatus(
 export async function commentOnDraft(
   id: number,
   draft: string,
-  passage: { quote: string; from: number; to: number; words: string },
+  passage: { quote: string; context: string; at: number; words: string },
 ): Promise<{ comments: DraftComment[]; error?: string }> {
   try {
     const rules = await boardRules();

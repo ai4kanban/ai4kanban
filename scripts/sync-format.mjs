@@ -50,6 +50,9 @@ const TO = path.join(ROOT, "kanban-ui", "lib", "format");
 //   view/types, view/rules   the board as a screen draws it, and the judgments it
 //                            makes about a card — is this card refinable, where does
 //                            it sort. Both run in the browser.
+//   view/anchor              where a draft comment's passage sits in the draft (#572).
+//                            The store writes a passage with it and the editor re-finds
+//                            one with it, so neither side keeps its own idea of a passage.
 //   skill/types              whether this project can be driven from a coding agent,
 //                            and what one install wrote. The Configuration dialog
 //                            draws that answer.
@@ -85,6 +88,7 @@ const SHARED = [
   "cloud/events.ts",
   "view/types.ts",
   "view/rules.ts",
+  "view/anchor.ts",
   "board/contract.ts",
   "board/screen.ts",
   "board/assemble.ts",
