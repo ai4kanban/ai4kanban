@@ -320,23 +320,77 @@ body {
   }
 }
 
-/* The mark on a card still being created (#564). The card itself is sunk and still — the
-   only thing that breathes is the mark, so a column of them stays scannable rather than
-   shimmering. Off for a reader who asked for less motion, and the mark still reads. */
-@keyframes nbCreatingPulse {
-  0%,
+/* A card still being created (#564). Nothing here blinks a word: text that fades in and
+   out has to be re-read, and a column of these would flicker. The motion sits on three
+   small shapes instead — a dot that rings, a caret at the end of the title, and the two
+   lines standing in for the plan not written yet. Each still reads with the animation
+   off, which is what a reader who asked for less motion gets. */
+@keyframes nbCreatingRing {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-nb-sky) 60%, transparent);
+  }
+  70%,
   100% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+.a4k-creating-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-nb-sky);
+  animation: nbCreatingRing 1.9s ease-out infinite;
+}
+
+@keyframes nbCreatingCaret {
+  0%,
+  50% {
     opacity: 1;
   }
-  50% {
-    opacity: 0.55;
+  50.01%,
+  100% {
+    opacity: 0;
   }
 }
-.a4k-creating {
-  animation: nbCreatingPulse 1.8s ease-in-out infinite;
+.a4k-creating-caret {
+  display: inline-block;
+  width: 2px;
+  height: 0.85em;
+  margin-left: 3px;
+  vertical-align: -0.1em;
+  background: var(--color-nb-sky-ink);
+  animation: nbCreatingCaret 1.1s steps(1) infinite;
+}
+
+@keyframes nbCreatingSweep {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -60% 0;
+  }
+}
+.a4k-creating-line {
+  height: 7px;
+  border-radius: 4px;
+  background-color: color-mix(in srgb, var(--color-nb-ink) 9%, transparent);
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-nb-wash) 70%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 260% 100%;
+  animation: nbCreatingSweep 2.2s ease-in-out infinite;
+}
+.a4k-creating-line + .a4k-creating-line {
+  animation-delay: 0.25s;
 }
 @media (prefers-reduced-motion: reduce) {
-  .a4k-creating {
+  .a4k-creating-dot,
+  .a4k-creating-caret,
+  .a4k-creating-line {
     animation: none;
   }
 }

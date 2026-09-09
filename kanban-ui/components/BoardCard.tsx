@@ -226,7 +226,10 @@ export function BoardCard({
 // no middle-click, no keyboard focus that leads somewhere refusing to draw.
 //
 // What it drops is everything the creator has not settled yet — the ranking, the todo bar,
-// the questions. A plan half written has nothing true to say with them.
+// the questions. A plan half written has nothing true to say with them. While the creator
+// is still going, two skeleton lines stand where they will land: the card keeps the height
+// of the cards around it instead of sitting stubby, and the wait reads as "more coming"
+// rather than as "this is all there is".
 function BeingCreatedCard({
   card,
   creation,
@@ -254,8 +257,18 @@ function BeingCreatedCard({
           hint={going ? c.markHint : c.unfinishedHint}
         />
       </div>
-      <p className="text-[13px] font-[700] leading-snug tracking-[-0.01em] break-words">{card.title}</p>
-      {!going && <ResumeCreation creator={creator} onResumed={onResumed} />}
+      <p className="text-[13px] font-[700] leading-snug tracking-[-0.01em] break-words">
+        {card.title}
+        {going && <span className="a4k-creating-caret" aria-hidden />}
+      </p>
+      {going ? (
+        <div className="mt-2.5 flex flex-col gap-1.5" aria-hidden>
+          <span className="a4k-creating-line w-full" />
+          <span className="a4k-creating-line w-[58%]" />
+        </div>
+      ) : (
+        <ResumeCreation creator={creator} onResumed={onResumed} />
+      )}
     </div>
   );
 }

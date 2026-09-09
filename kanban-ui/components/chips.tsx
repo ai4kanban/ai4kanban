@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiAlertTriangle, FiBox, FiCheckCircle, FiClock, FiEdit3, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
+import { FiAlertTriangle, FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import { type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import type { ChipsCopy } from "@/i18n/chips/types";
 import { useCopy } from "@/i18n/use-copy";
 import type { QuestionTag } from "@/lib/questions";
 import { NO_RELEASE, type CardStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 // Meaning-coded chips + level selects, all built from the design language's
@@ -206,8 +205,14 @@ export function PendingPill({ label, detailed = false }: { label: string; detail
 
 // The mark on a card that is not finished being created (#564). It stands where the status
 // pill stands, because a card being written HAS no stage yet — one mark to a card, and this
-// is the one that matters. Sky while its creator is going (the same quiet blue a run wears),
-// peach once that creator stopped short: nothing is happening any more, and something is.
+// is the one that matters.
+//
+// While the creator is going it is NOT a pill: a filled block is what the board gives a
+// stage a card has reached, and this card has reached none. A sky dot and the word, both
+// unfilled, sit on the id line as the second quiet thing there — the dot breathes, so the
+// motion is on a 6px circle rather than on a word the eye has to re-read. Once the creator
+// stops short it becomes an ordinary peach chip: nothing is happening any more, and that
+// IS a state the card is in.
 export function CreatingChip({
   state,
   label,
@@ -217,20 +222,30 @@ export function CreatingChip({
   label: string;
   hint: string;
 }) {
-  const going = state === "creating";
-  const Icon = going ? FiEdit3 : FiAlertTriangle;
+  if (state !== "creating")
+    return (
+      <span
+        className="nb-chip nb-tip"
+        tabIndex={0}
+        data-tip={hint}
+        style={{
+          ...ELASTIC_CHIP,
+          background: "var(--color-nb-peach-soft)",
+          color: "var(--color-nb-peach-ink)",
+        }}
+      >
+        <FiAlertTriangle aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+        <span className="truncate">{label}</span>
+      </span>
+    );
   return (
     <span
-      className={cn("nb-chip nb-tip", going && "a4k-creating")}
+      className="nb-tip inline-flex min-w-0 items-center gap-1.5 text-[10px] font-[800] uppercase leading-none tracking-[0.08em] text-nb-sky-ink"
       tabIndex={0}
       data-tip={hint}
-      style={{
-        ...ELASTIC_CHIP,
-        background: going ? "var(--color-nb-sky-soft)" : "var(--color-nb-peach-soft)",
-        color: going ? "var(--color-nb-sky-ink)" : "var(--color-nb-peach-ink)",
-      }}
+      style={ELASTIC_CHIP}
     >
-      <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+      <span className="a4k-creating-dot" aria-hidden />
       <span className="truncate">{label}</span>
     </span>
   );
