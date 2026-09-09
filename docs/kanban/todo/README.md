@@ -33,5 +33,5 @@ the number at the front of a filename is the task id.
 - [#406 Automate the working marketing board and extract the kernel](406-marketing-board/root.md)
 - [#371 Pick the computer a run lands on](371-run-on-a-chosen-computer.md)
 - [#454 自动筛选收件箱并创建任务](454-inputbox-agent-creates-cards.md)
-- [#514 Prune the memory from the Memory panel, not from a card on the board](514-prune-the-memory-from-the-memory-panel-not-from-a-card-on-th.md)
-- [#518 Pick the runtime for an Add task or Build now run](518-pick-the-runtime-for-an-add-task-or-build-now-run.md)
+- [#551 Clear the discussion after a successful planning handoff](551-clear-the-discussion-after-a-successful-planning-handoff.md)
+- [#554 Retry notification delivery promptly after a transient failure](554-retry-notification-delivery-promptly-after-a-transient-failu.md)

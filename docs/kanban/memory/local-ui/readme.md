@@ -19,6 +19,12 @@ naming no other doc is covered there.
 - Open, reopen and drop projects from the launcher; one project open at a time, a run
   keeps going in the project it started in, and back/forward walks the views you opened:
   `desktop/README.md`.
+- **Create new project** on the launcher, beside **Open folder**: name it, say which folder
+  it goes in, and the app makes the folder, runs `git init` in it and opens it like any other
+  project — so a first project needs nothing prepared on disk. A name that is not one folder
+  name, and a destination that is already there, are refused on the form before anything is
+  written; a machine with no `git` still gets the folder and the board, and is told the
+  repository is missing: `kanban-ui/README.md`.
 - The same board in a browser with `npx ai4kanban-ui` — deprecated the day the app
   shipped, still working, and npm points at the download: `akb guide local-ui`.
 - Started where there is no board, the page says so and names the command that fixes it.

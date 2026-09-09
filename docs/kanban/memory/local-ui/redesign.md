@@ -192,3 +192,5 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Memory maintenance looks like a file row and opens a separate popover** → ✅ use a clear 整理记忆 button linking to Configuration → Agent → Memory Pruner.
 - ❌ **An agent feature mockup replaces the current roster and detail layout** → ✅ retain the current Agent pane and add the feature’s controls inside the selected agent’s detail.
 - ❌ **Optional scheduling occupies a full settings row** → ✅ keep it beside the manual action as a compact control that opens its settings on demand.
+
+- ❌ **Treat standalone CLI paths as Desktop discovery coverage** → ✅ scan reported Desktop cache paths, including hashed folders, using the same known-path approach as macOS.

@@ -13,9 +13,10 @@ Internal detail stays on the card.
 - **The writing memory is what decides quality**: `memory/writing.md` and the files under
   `memory/writing/` are where the user's taste lives, so a rule learned on one channel
   reaches every channel it fits. Nothing declares formats.
-- **A learned rule is filed inside the writing memory**: a polish appends a rule that holds
-  for every piece to `memory/writing.md` and one bound to a channel, language or format to
-  its own file under `memory/writing/` — never beside `decisions.md` in `memory/`.
+- **A learned rule is filed by topic inside the writing memory**: a polish appends a rule to
+  the `memory/writing/` file whose topic it belongs to — what the rule checks, not the
+  language, format or channel it was learned on — and one no topic file covers to
+  `memory/writing.md`; never beside `decisions.md` in `memory/`.
 - **Repurposing does not follow the write run**: the user runs `akb channel` per channel
   once `source.md` reads right.
 - **Publishing is local-first, never a channel API**: a piece goes out from a browser the user
@@ -24,9 +25,13 @@ Internal detail stays on the card.
   kept alive, so X and LinkedIn numbers stay whatever the user last typed.
 - **A repurpose run is one pass; the loop is a step of its own**: `akb channel` only shortens
   or expands `source.md` into the channel's shape and stops. `akb marketing verify` is what
-  the user runs next, and it loops — a fresh session judges the draft against the writing
-  memory, a fix run answers its report, and it repeats to three passes. There is still no
-  clarify or QA phase on a draft: the loop reads written-down rules, not the topic.
+  the user runs next, and it is one run that loops — it checks the draft against the writing
+  memory, fixes what it found and checks again, stopping on the first pass with nothing to
+  fix or after three. There is still no clarify or QA phase on a draft: the loop reads
+  written-down rules, not the topic.
+- **The board never picks a cheaper runtime for you**: every run, the draft polish loop
+  included, goes on the runtime its agent is pointed at, and on **Global default** when it
+  names none.
 - **A user `write` agent adds to the writer, never replaces it**: the bundled writer keeps
   writing the draft and calls a named specialist — an image generator, say — when one helps,
   the way a planning run asks for a spec agent.

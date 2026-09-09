@@ -18,11 +18,17 @@ re-ask a settled call.
   settings and separated from them.
 - A pane of short settings is a list of rows. A pane whose items are paragraphs is a narrow
   picker column beside one tall box.
-- **The Agents pane**: one roster replacing both Spec skills and Rules, drawn as a grid with
-  one pixelart character per agent — the switch on the tile, and the agent's rule, what it
-  remembers and its settings read by selecting the tile. It ships as characters from the
-  first release, and its art ships as files, unlike the Runs fleet.
-- **AI review is switched on the reviewer's tile**: the Agents pane is the switch's only
+- **The Agents pane**: one roster replacing both Spec skills and Rules, drawn as a narrow
+  picker column — **Always on** then **Specialists**, one pixelart character per row with its
+  name and on/off state — and the selected agent's page filling the space beside it. It ships
+  as characters from the first release, and its art ships as files, unlike the Runs fleet.
+- **The Agents pane opens on its first always-on agent**: the column is never drawn beside an
+  empty half, at the cost of opening a page you did not ask for.
+- **An agent's page is one screen you never scroll**: its character, name, gloss and
+  runs-when line with the Enabled switch in the top-right, a **Configuration** group of one
+  row per setting, the instruction box, then memory as a row that counts its files and
+  expands in place.
+- **AI review is switched on the reviewer's page**: the Agents pane is the switch's only
   home, and Configuration → General → Delivery keeps just automatic commits and diff
   approval.
 - **A specialist you add is written in the pane**: its whole `AGENT.md` is a box on its page,
@@ -48,6 +54,8 @@ re-ask a settled call.
   own bin folders the PATH already reads, and `/usr/local/bin` with the system password
   dialog only when it reads neither. A feature that asks for a password does not wait for
   a signed build, as long as declining costs nothing.
+- **A new project always gets its own repository**: creating one from the launcher runs `git init`
+  in the new folder even when its parent is already inside a repository.
 - The coding agent skill is an extra you turn on, not part of getting a board.
 - Onboarding leads with a Local board; Cloud is offered beside it, labelled, never
   preselected.
@@ -269,9 +277,13 @@ re-ask a settled call.
 
 ## Moving around the app
 
-- A mouse's back and forward buttons work wherever the system reports them. The two-finger
-  swipe moves between card pages only, because the board scrolls its columns with the very
-  same gesture.
+- A mouse's back and forward buttons work wherever the system reports them.
+- **The two-finger swipe leaves whatever covers the page**: pages, Create task, Discuss and
+  full-page overlays all answer it, one layer per gesture, while popovers and small panels
+  ignore it and a sideways scroller with room left still scrolls.
+- **Only the trackpad swipe carries that rule**: the browser's Back button and a phone's edge
+  swipe keep the back they already have, and the swipe opens the board when there is no
+  earlier page in the app.
 - A project holding more than one board shows the second inside the header's folder chip: a
   small inner badge naming the board's work — "Engineering", "Marketing" — and picking one
   opens it in a new desktop window, leaving the window it was pressed in on its own board.

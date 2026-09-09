@@ -216,6 +216,7 @@ re-ask a settled call.
   refine on every card it creates, so an external signal arrives with its plan already
   written rather than as one paragraph — the extra runs and their cost are spent
   automatically, without anyone asking.
+- **When the proposer reflects**: one run per completed card, started as that card is archived; nothing else triggers reflection.
 
 ## Agents and harnesses
 
@@ -251,6 +252,14 @@ re-ask a settled call.
 - **Turning one agent on never flips another agent's switch**: `inputbox` says on its own page
   that running it with `gater` and `decider` on lets an unread external signal reach landed
   work, and leaves both switches exactly where the user put them.
+- **The proposer ships off**: reflection on a completed card costs a run, so a board
+  proposes nothing until someone turns the proposer on.
+
+- **Retry ships on Claude Code and Codex first**: both declare the retry capability, built from
+  this board's own captured failure output; every other harness retries nothing until its
+  signals are proven.
+- **A retry gives up after 3 attempts or 15 minutes**: an ordinary provider blip recovers
+  unattended, and a real outage stops holding the card long before an hour is gone.
 
 - **A ZCode chat keeps turning a pasted picture away**: ZCode declares no image input, and
   that is the honest answer rather than a missing feature — its wire takes attachments, but

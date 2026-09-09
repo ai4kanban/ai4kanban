@@ -14,6 +14,10 @@
   exactly that, so a second frame stacked under the first is invisible. Where a card names
   two surfaces, pick the one whose layout is actually new and let the copy-only one follow
   the pattern it copies.
+- **The runs panel is not a panel beside the board, it BURIES it**: 1040 × 760 over a 42%
+  ink scrim at 1280 × 800 leaves 120px of dimmed rail at each edge. Anything that happens
+  to the rail while that panel opens has to be said inside the panel, because the rail is
+  not what the user is looking at.
 - **Draw the frame the app really has**: the board's three columns are cut at the paper's
   edge at 1280, and a card page is drawn inside the rail + chat frame, never the whole
   1280. A drawing that fits everything in is a drawing of a different app.
@@ -129,7 +133,8 @@
   comes back `undefined` as "Element type is invalid".
 - **`compile()` is async and will not read a stylesheet for you**: `compiler.build is not a
   function` means a missing `await`, and `@import "tailwindcss"` throws until the call is
-  handed a `loadStylesheet`.
+  handed a `loadStylesheet`. That loader resolves `tailwindcss` to
+  `node_modules/tailwindcss/index.css` — the package root, never `dist/`.
 - **Never add a CSS reset to the rendered page**: the built stylesheet already carries
   preflight, and an unlayered `*{margin:0}` beats every layered utility.
 - **Screenshot one frame at a time**: append `module.exports.<Name> = <Name>` and render

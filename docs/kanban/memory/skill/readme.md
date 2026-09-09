@@ -162,6 +162,10 @@ covers it, or a plain-words note.
   settled**, **Decisions that stood**, **Proposals built**, worked out on each read, with
   `not enough yet` instead of a percentage where the evidence is thin, and none of the three
   a target: "Insights" in `kanban-ui/README.md`.
+- `akb signals add --title ".." --text ".."` writes one item straight into the inbox, with
+  `--file <path>` for a longer body and `--source` for where it came from. It needs no
+  endpoint and no Cloud account, and an item the inbox already holds is refused: "Put
+  something in yourself" in `web/content/docs/market-signals.mdx`.
 
 ## Agents, runtimes and keys
 
@@ -189,6 +193,11 @@ covers it, or a plain-words note.
   10 minutes unless the board says otherwise, and `0` switches it off — whatever agent it
   runs on. It ends as a failure, so the card keeps its work and Resume picks it up:
   `web/content/docs/connectors.mdx`.
+- **Proposer** reads a card the board has just finished and puts the work that should follow
+  it in the Inbox, each item carrying its rationale and the card that prompted it. Off by
+  default and turned on in Configuration → Agents, where it costs one run per completion;
+  archiving is its only trigger, and finding nothing worth proposing is a normal result:
+  "Let the Proposer look back" in `web/content/docs/agents.mdx`.
 
 ## Spec agents
 
@@ -341,7 +350,7 @@ covers it, or a plain-words note.
   approved requirements, its title and its prompt. It works in `.akb/worktrees/delivery/<id>`
   on `delivery/<id>`, runs with AI review and diff approval off, holds and archives no card,
   and reports nothing to Cloud. `akb delivery review|conflict|cancel` take the delivery
-  itself, and `akb raw run-blocker` takes no id on one. `akb guide implement` says what such
+  itself. `akb guide implement` says what such
   a build does and does not leave behind.
 - `akb propose` is gone, and typing it now answers "unknown command". Finding new work is one
   path: idea extraction from a source you name, and with none named it reads the **Planning
