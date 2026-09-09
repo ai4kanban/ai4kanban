@@ -57,17 +57,29 @@ export type RailCopy = {
     card: { label: string; release: string; archived: string };
   };
   signals: {
-    /** The row above Archive, and the heading of the page it opens. */
+    /** The row above Archive, and the name of the page it opens. */
     row: string;
     title: string;
-    /** Under the heading: where the inbox is, how much is in it, and when the newest of it
-     *  arrived. The stamp is left off an inbox with nothing in it. */
-    meta: (folder: string, count: number) => string;
-    latestImport: (when: string) => string;
-    /** One line under the heading: what the inbox is for, and what it is not. */
-    lead: string;
-    /** Nothing in it yet. */
+    /** The two tabs and, under the ignored one, how far back it reaches. */
+    pending: string;
+    dismissed: string;
+    window: (days: number) => string;
+    /** The toolbar's search box and source picker, and what the picker calls every source. */
+    search: string;
+    allSources: string;
+    /** How many of the total are showing, while a search or a source narrows the page. */
+    hits: (shown: number, total: number) => string;
+    /** The group that holds everything nothing named a source for. It is a heading and no
+     *  more — an item under it is never given a source name or a mark of its own. */
+    noSource: string;
+    /** One source group: folding it, and the button that brings the next of it in. */
+    fold: string;
+    unfold: string;
+    more: string;
+    /** Nothing in it yet, and nothing this search and source found. */
     empty: string;
+    noHits: string;
+    clear: string;
     /** No endpoint configured: the heading, and the one line each missing setting gets.
      *  An offer, not a demand — an unconfigured board still takes what is dropped in. */
     connect: string;
@@ -75,24 +87,35 @@ export type RailCopy = {
     needToken: (file: string) => string;
     /** Read out loud as the name of the list. */
     list: string;
-    /** The three things an item offers. Dismissing cannot be undone, which is why the
-     *  word is the plain one. Open is left off one with nothing to open. */
-    viewSummary: string;
-    hideSummary: string;
+    /** One item opened in full: what the panel is called, when it was collected, and — for
+     *  one already ignored — when and why it was. */
+    detail: string;
+    collected: string;
+    dismissedAt: string;
+    dismissedWhy: string;
+    /** The two things an item offers. Dismissing cannot be undone, which is why the word is
+     *  the plain one. Open is left off one with nothing to open. */
     viewOriginal: string;
     dismiss: string;
     /** A dismissal the board refused. */
     dismissFailed: string;
-    /** Add to inbox (#499): the box that takes a dropped file, a pasted link, or text. */
+    /** Add to triage (#499, #560): the popover under the button, and what it takes. */
     add: {
+      /** The button, and the popover's own heading. */
+      open: string;
       title: string;
       placeholder: string;
-      /** The second half of the offer, and what the box says while a file is over it. */
-      drop: string;
-      dropping: string;
+      /** Staging a file: the offer, the name of the one held, and taking it back off. */
+      attach: string;
+      remove: string;
+      /** One file at a time, said where the second one was dropped. */
+      oneFile: string;
       button: string;
       /** An add the board refused for a reason it cannot put in the reader's language. */
       failed: string;
+      /** It landed somewhere this page is not showing — and the way to go to it. */
+      hidden: string;
+      show: string;
     };
   };
   memoryPage: {

@@ -5,10 +5,14 @@
 //
 // What each kind of input gives up:
 //
-//   a link   ──► title from the address, source the site, url the link
-//   text     ──► title from its first line, the whole of it as the body
-//   .md/.txt ──► title from its first line, its text as the body, source the file name
+//   a link   ──► title from the address, url the link, the domain against the source list
+//   text     ──► title from its first line, the whole of it as the body, and no source
+//   .md/.txt ──► title from its first line, its text as the body, the name as `filename`
 //   anything ──► the bytes are COPIED under `inbox/files/`, and the body names them
+//
+// A source is a key off ./sources.ts or nothing (#560). A domain the list has not got, and a
+// dropped file's name, are kept as a `meta` entry — a fact about the item, not a claim about
+// where it came from. Nothing here invents a source out of a domain or a file name.
 //
 // A dropped file is copied rather than referenced where it sat: a browser drop hands over
 // bytes and no path at all, and a board is markdown in git — a path into somebody's
@@ -24,8 +28,9 @@ import { createHash } from 'node:crypto'
 import { formatStamp } from '../cadence'
 import { SIGNAL_INBOX, rel } from '../paths'
 import { asLink, derivedSourceId, host } from './identity'
-import { readInbox, writeSignal, type IncomingSignal } from './inbox'
-import type { InboxAddResult, InboxDrop } from '../view/types'
+import { matchSourceType } from './sources'
+import { metaPair, readInbox, writeSignal, type IncomingSignal } from './inbox'
+import type { InboxAddResult, InboxDrop, SignalMeta } from '../view/types'
 
 /** Where a dropped file's bytes are copied to. */
 const FILES = (): string => path.join(SIGNAL_INBOX, 'files')
@@ -107,11 +112,17 @@ export function addToInbox(drop: InboxDrop): InboxAddResult {
   const read = describe(typed, file)
   const keep = read.keep
   // A caller that knows the two facts says them rather than leaving them to be read off the
-  // words (#534): `akb triage add` is given a title and the card the item came from.
+  // words (#534): `akb triage add` is given a title and the card the item came from. What it
+  // says about the source reads through the one match rule, and a miss — `#452`, a newsletter
+  // name — is kept as it was written rather than becoming a source of its own.
+  const said = drop.source?.trim() ?? ''
+  const hit = said ? matchSourceType(said) : ''
+  const kept = said && !hit ? metaPair('source', said) : null
   const incoming = {
     ...read.incoming,
     ...(drop.title?.trim() ? { title: oneLine(drop.title) } : {}),
-    ...(drop.source?.trim() ? { source: drop.source.trim() } : {}),
+    ...(hit ? { sourceType: hit } : {}),
+    ...(kept ? { meta: [kept, ...read.incoming.meta] } : {}),
   }
   if (!incoming.title || !incoming.summary) return { ok: false, error: 'nothing to add — that had no words in it.' }
 
@@ -136,24 +147,26 @@ function describe(
   file: InboxDrop['file'],
 ): { incoming: Omit<IncomingSignal, 'sourceId'>; keep?: { at: string; data: Uint8Array } } {
   const collectedAt = formatStamp(new Date())
+  const pair = (key: string, value: string): SignalMeta[] => {
+    const only = metaPair(key, value)
+    return only ? [only] : []
+  }
   if (file) {
     const name = path.basename(file.name)
     const text = asText(file)
     // A note typed alongside a drop goes under whatever the file gave, never over it.
     const note = typed ? `\n\n${typed}` : ''
+    // A file says what it is called and nothing about where it came from.
+    const named = { sourceType: '', meta: pair('filename', name), url: '', collectedAt }
     if (text !== null) {
-      return {
-        incoming: { title: oneLine(text) || name, summary: `${text.trim()}${note}`, source: name, url: '', collectedAt },
-      }
+      return { incoming: { title: oneLine(text) || name, summary: `${text.trim()}${note}`, ...named } }
     }
     const at = keepAt(file)
     return {
       incoming: {
         title: path.basename(name, path.extname(name)) || name,
         summary: `${name} — ${boardRel(at)}${note}`,
-        source: name,
-        url: '',
-        collectedAt,
+        ...named,
       },
       keep: { at, data: file.data },
     }
@@ -161,7 +174,18 @@ function describe(
 
   const link = asLink(typed)
   if (link) {
-    return { incoming: { title: linkTitle(link), summary: link, source: host(link), url: link, collectedAt } }
+    const site = host(link)
+    const known = matchSourceType(site)
+    return {
+      incoming: {
+        title: linkTitle(link),
+        summary: link,
+        sourceType: known,
+        meta: known ? [] : pair('domain', site),
+        url: link,
+        collectedAt,
+      },
+    }
   }
-  return { incoming: { title: oneLine(typed), summary: typed, source: '', url: '', collectedAt } }
+  return { incoming: { title: oneLine(typed), summary: typed, sourceType: '', meta: [], url: '', collectedAt } }
 }

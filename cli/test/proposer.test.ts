@@ -220,7 +220,9 @@ describe('a proposal in the inbox', () => {
     )
     const [item] = readSignals().signals
     assert.equal(item!.title, 'Let a delivery say what it skipped')
-    assert.equal(item!.source, '#1')
+    // `#1` names no source the board knows, so it is kept as it was written (#560).
+    assert.equal(item!.sourceType, '')
+    assert.deepEqual(item!.meta, [{ key: 'source', value: '#1' }])
     assert.match(item!.summary, /1-card\.md/)
   })
 

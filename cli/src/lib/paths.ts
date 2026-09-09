@@ -128,6 +128,9 @@ export let RULES = ''
 export let TRIAGE = ''
 export let SIGNAL_INBOX = ''
 export let SIGNALS_HANDLED = ''
+// Where an ignored item is kept (#559). Read here so the page can show what was ignored;
+// nothing writes it yet.
+export let SIGNALS_DISMISSED = ''
 // Delivery state that never belongs in git — #303's worktrees are the first thing in it.
 // At the REPOSITORY root, not under docs/kanban/, because docs/kanban/.gitignore cannot
 // reach outside its own folder — so this one line goes in the repo's own.
@@ -248,6 +251,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   TRIAGE = path.join(KANBAN, 'triage')
   SIGNAL_INBOX = path.join(TRIAGE, 'inbox')
   SIGNALS_HANDLED = path.join(TRIAGE, 'handled.md')
+  SIGNALS_DISMISSED = path.join(TRIAGE, 'dismissed')
   AKB_DIR = path.join(REPO_ROOT, '.akb')
   ROOT_GITIGNORE = path.join(REPO_ROOT, '.gitignore')
   return REPO_ROOT

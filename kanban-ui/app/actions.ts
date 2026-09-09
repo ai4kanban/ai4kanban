@@ -1730,11 +1730,14 @@ export async function signalsRowAction(): Promise<{ show: boolean; count: number
  *
  *  It takes a `FormData` because that is how a browser hands bytes to a server action. What
  *  it could not take is the rules' own sentence — the reader dropped the thing, so what was
- *  wrong with it is theirs to hear.
+ *  wrong with it is theirs to hear. What it took answers with the item's id, so the page can
+ *  find what it just added among a few hundred others (#560).
  *
  *  The access check is the page's: this address is only reachable from a page that already
  *  answered it, and asking again would reach Cloud on every add. */
-export async function addToInboxAction(form: FormData): Promise<{ ok: boolean; error?: string }> {
+export async function addToInboxAction(
+  form: FormData,
+): Promise<{ ok: boolean; error?: string; sourceId?: string }> {
   const c = await machineCopy();
   try {
     const typed = form.get("text");
@@ -1749,7 +1752,7 @@ export async function addToInboxAction(form: FormData): Promise<{ ok: boolean; e
           }
         : undefined;
     const done = await addToInbox({ text: typeof typed === "string" ? typed : undefined, file });
-    return done.ok ? { ok: true } : { ok: false, error: done.error };
+    return done.ok ? { ok: true, sourceId: done.signal.sourceId } : { ok: false, error: done.error };
   } catch {
     return { ok: false, error: c.rail.signals.add.failed };
   }

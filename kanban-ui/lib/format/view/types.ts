@@ -812,6 +812,14 @@ export type ScoreResult = { ok: true; view: ScoreView } | { ok: false; error: st
 
 // ---- the inbox: anything that might become work (#453, #499) ---------------
 
+/** One thing an item's source said about it (#560): the key it was written under and its
+ *  value. Free key-value pairs — the board neither validates, translates nor fills them in,
+ *  and the page draws the values alone. */
+export interface SignalMeta {
+  key: string
+  value: string
+}
+
 /** One item in the inbox — something worth turning into a card, and not yet a card. */
 export interface Signal {
   /** Its identity: two pulls of the same post carry the same one, and that is what the
@@ -820,15 +828,23 @@ export interface Signal {
   title: string
   /** Its own words — the post, the pasted text, or what the dropped file is. */
   summary: string
-  /** Where it came from — a site name, `PDF`, a newsletter, a file name. Free text, so
-   *  any endpoint can be connected. Empty when nothing said. */
-  source: string
+  /** Which source it came from (#560): a key from the board's source list, or a key an
+   *  endpoint sent that the list has not got. Empty when nothing said what it is — and an
+   *  empty one is left empty rather than filled in from a domain or a file name. */
+  sourceType: string
+  /** Whatever else its source said about it, in the order the file writes it. */
+  meta: SignalMeta[]
   /** The thing itself, when there is one to open. Empty otherwise. */
   url: string
   /** When it was collected, `YYYY-MM-DD HH:MM` local. What the list sorts on. */
   collectedAt: string
   /** When this board wrote it into the inbox, same form. */
   importedAt: string
+  /** When it was ignored, same form, for an item read out of `triage/dismissed/`. Empty on
+   *  one still waiting. Written by #559. */
+  dismissedAt: string
+  /** Why it was ignored, for one read out of `triage/dismissed/`. Empty when nothing said. */
+  dismissedWhy: string
   /** The path from the repo root, forward slashes. */
   relPath: string
 }
@@ -844,8 +860,16 @@ export interface SignalConfigGap {
 export interface SignalInbox {
   /** The folder, from the repo root — what the heading names. */
   relPath: string
-  /** Everything in it, newest collected first. */
+  /** Everything waiting, newest collected first. */
   signals: Signal[]
+  /** What has been ignored and is still inside the window below, newest judged first. Empty
+   *  until #559 writes `triage/dismissed/`. */
+  dismissed: Signal[]
+  /** How far back the ignored tab reaches, in days — what its label says. */
+  dismissedDays: number
+  /** The board's source list in its own order (#560): what orders the groups, and the keys
+   *  the page's icon table is keyed on. */
+  sourceTypes: string[]
   /** The newest import stamp among them, or empty when the inbox is. Read off the signals,
    *  so dismissing the newest one moves it back rather than forward. */
   latestImport: string

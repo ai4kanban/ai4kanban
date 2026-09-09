@@ -5,9 +5,15 @@
 // board already is markdown in git — an item diffs, reviews and reverts with everything
 // else, and a local board takes on no new dependency for it.
 //
-// Title and body are the whole requirement. `source`, `url` and `collected_at` are written
-// only when something supplies them, so a dropped PDF and a pulled Reddit post are the same
-// kind of file with different amounts filled in.
+// Title and body are the whole requirement. `source_type`, `url`, `collected_at` and `meta`
+// are written only when something supplies them, so a dropped PDF and a pulled Reddit post
+// are the same kind of file with different amounts filled in.
+//
+// `source_type` is a key off ./sources.ts and nothing else (#560); everything a source says
+// beyond that is free key-value pairs under `meta:`, which the board neither validates nor
+// translates. A file written before that carried a free-text `source` (or, older still, a
+// `platform`): it is read through the same match rule as everything else — a hit is the type,
+// a miss is a `source` meta entry — and the file on disk is not rewritten.
 //
 // `triage/handled.md` is the other half: one line per source id that has LEFT the inbox,
 // with when it went. It is what makes a dismissal stick — the item's file is gone, so the
@@ -22,12 +28,13 @@ import path from 'node:path'
 
 import { formatStamp } from '../cadence'
 import { DERIVED } from './identity'
-import { SIGNAL_INBOX, SIGNALS_HANDLED, TRIAGE, rel } from '../paths'
+import { matchSourceType, readSourceType } from './sources'
+import { SIGNAL_INBOX, SIGNALS_DISMISSED, SIGNALS_HANDLED, TRIAGE, rel } from '../paths'
 import { unquote, yamlScalar } from '../yaml'
-import type { Signal } from '../view/types'
+import type { Signal, SignalMeta } from '../view/types'
 
 /** An item as it arrives, before the board stamps its import. */
-export type IncomingSignal = Omit<Signal, 'importedAt' | 'relPath'>
+export type IncomingSignal = Omit<Signal, 'importedAt' | 'relPath' | 'dismissedAt' | 'dismissedWhy'>
 
 const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
 
@@ -40,15 +47,32 @@ export const inboxPath = (): string => boardRel(SIGNAL_INBOX)
 // What every file carries, whatever wrote it. Everything else is optional.
 const FIELDS = ['source_id', 'title', 'collected_at', 'imported_at'] as const
 
+// One `meta:` line: a key, quoted or not, and the rest of the line as its value.
+const META_LINE = /^\s+("(?:[^"\\]|\\.)*"|[^:]+):\s*(.*)$/
+
+/** One meta pair as the board will keep it, or null when it is not one a single line holds —
+ *  a key with nothing under it, or a value that arrived as an object or a list. */
+export function metaPair(key: unknown, value: unknown): SignalMeta | null {
+  const name = typeof key === 'string' ? key.trim() : ''
+  if (!name) return null
+  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') return null
+  const said = String(value).trim()
+  if (!said || said.includes('\n')) return null
+  return { key: name, value: said }
+}
+
 function serialize(signal: Signal): string {
   const lines = [
     '---',
     `source_id: ${yamlScalar(signal.sourceId)}`,
     `title: ${yamlScalar(signal.title)}`,
-    ...(signal.source ? [`source: ${yamlScalar(signal.source)}`] : []),
+    ...(signal.sourceType ? [`source_type: ${yamlScalar(signal.sourceType)}`] : []),
     ...(signal.url ? [`url: ${yamlScalar(signal.url)}`] : []),
     `collected_at: ${yamlScalar(signal.collectedAt)}`,
     `imported_at: ${yamlScalar(signal.importedAt)}`,
+    ...(signal.meta.length > 0
+      ? ['meta:', ...signal.meta.map((pair) => `  ${yamlScalar(pair.key)}: ${yamlScalar(pair.value)}`)]
+      : []),
     '---',
   ]
   return `${lines.join('\n')}\n\n${signal.summary.trim()}\n`
@@ -66,13 +90,35 @@ function parse(file: string): Signal | null {
   const lines = text.split('\n')
   if (lines[0]!.trim() !== '---') return null
   const held: Record<string, string> = {}
+  const written: SignalMeta[] = []
+  let inMeta = false
   let i = 1
   for (; i < lines.length && lines[i]!.trim() !== '---'; i++) {
-    const m = lines[i]!.match(/^([a-z_]+):\s*(.*)$/)
+    const line = lines[i]!
+    if (inMeta) {
+      const entry = line.match(META_LINE)
+      if (entry) {
+        const pair = metaPair(unquote(entry[1]!), unquote(entry[2]!))
+        if (pair) written.push(pair)
+        continue
+      }
+      inMeta = false
+    }
+    if (/^meta:\s*$/.test(line)) {
+      inMeta = true
+      continue
+    }
+    const m = line.match(/^([a-z_]+):\s*(.*)$/)
     if (m) held[m[1]!] = unquote(m[2]!)
   }
   if (i >= lines.length) return null
   if (FIELDS.some((field) => !held[field])) return null
+
+  // A file written before #560 carried a free-text source — `source`, or `platform` before
+  // #499 renamed it. It reads through the one match rule: a hit is the type, a miss keeps
+  // the words as a `source` meta entry, ahead of whatever the file wrote under `meta:`.
+  const legacy = held.source_type ? '' : held.source || held.platform || ''
+  const missed = legacy && !matchSourceType(legacy) ? metaPair('source', legacy) : null
   return {
     sourceId: held.source_id!,
     title: held.title!,
@@ -81,11 +127,13 @@ function parse(file: string): Signal | null {
       .join('\n')
       .replace(/^\n+/, '')
       .replace(/\s+$/, ''),
-    // `platform` is what files written before #499 called it.
-    source: held.source || held.platform || '',
+    sourceType: held.source_type ? readSourceType(held.source_type) : matchSourceType(legacy),
+    meta: missed ? [missed, ...written] : written,
     url: held.url || '',
     collectedAt: held.collected_at!,
     importedAt: held.imported_at!,
+    dismissedAt: held.dismissed_at || '',
+    dismissedWhy: held.dismissed_why || '',
     relPath: boardRel(file),
   }
 }
@@ -131,6 +179,38 @@ export function readInbox(): Signal[] {
 /** The newest import stamp the inbox holds, or empty when it holds nothing. */
 export const latestImport = (signals: Signal[]): string =>
   signals.reduce((newest, signal) => (signal.importedAt > newest ? signal.importedAt : newest), '')
+
+/** How far back the ignored tab reaches. The files are kept for good; this is only what is
+ *  drawn, and the page says the window out loud. */
+export const DISMISSED_DAYS = 30
+
+/** What has been ignored recently, newest judged first (#560).
+ *
+ *  The same kind of file, read the same way, out of `triage/dismissed/` — the folder #559
+ *  moves an ignored item into. Empty until that lands, and empty is the whole of what the
+ *  tab then shows. An item with no judged stamp sorts last rather than being dropped: a
+ *  missing stamp is a gap in the record, not a reason to lose the item. */
+export function readDismissed(now = new Date()): Signal[] {
+  let names: string[]
+  try {
+    names = fs.readdirSync(SIGNALS_DISMISSED)
+  } catch {
+    return []
+  }
+  const since = formatStamp(new Date(now.getTime() - DISMISSED_DAYS * 24 * 60 * 60 * 1000))
+  const signals = names
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => parse(path.join(SIGNALS_DISMISSED, name)))
+    .filter((signal): signal is Signal => signal !== null)
+    .filter((signal) => !signal.dismissedAt || signal.dismissedAt >= since)
+  signals.sort(
+    (a, b) =>
+      Number(Boolean(b.dismissedAt)) - Number(Boolean(a.dismissedAt)) ||
+      b.dismissedAt.localeCompare(a.dismissedAt) ||
+      a.sourceId.localeCompare(b.sourceId),
+  )
+  return signals
+}
 
 // ---- what has left the inbox -----------------------------------------------
 
@@ -180,7 +260,7 @@ export function markHandled(sourceId: string, when = formatStamp(new Date())): v
 /** Write one item into the inbox, stamped with the moment it was imported. */
 export function writeSignal(incoming: IncomingSignal, importedAt: string): Signal {
   fs.mkdirSync(SIGNAL_INBOX, { recursive: true })
-  const signal: Signal = { ...incoming, importedAt, relPath: '' }
+  const signal: Signal = { ...incoming, importedAt, dismissedAt: '', dismissedWhy: '', relPath: '' }
   const file = path.join(SIGNAL_INBOX, fileName(signal))
   fs.writeFileSync(file, serialize({ ...signal, relPath: boardRel(file) }))
   return { ...signal, relPath: boardRel(file) }

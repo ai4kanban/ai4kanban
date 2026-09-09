@@ -5,7 +5,8 @@
 // from the read because it reaches Cloud and a page read does not.
 
 import { signalConfigGaps } from './config'
-import { dropSignal, inboxPath, latestImport, readInbox } from './inbox'
+import { DISMISSED_DAYS, dropSignal, inboxPath, latestImport, readDismissed, readInbox } from './inbox'
+import { sourceTypeKeys } from './sources'
 import type { SignalInbox } from '../view/types'
 
 export { addToInbox } from './add'
@@ -13,14 +14,19 @@ export { signalsAccess, type SignalsAccess } from './access'
 export { fetchSignals, type FetchReport, type SignalFailure } from './fetch'
 export { ENDPOINT_SETTING, TOKEN_KEY, sayGap, signalConfigGaps } from './config'
 export { markHandled, readHandled } from './inbox'
+export { SOURCE_TYPES, matchSourceType, sourceTypeKeys, type SourceType } from './sources'
 
-/** What the inbox holds, and what is still to be filled in before it can hold more. Read on
- *  every call rather than held: a fetch adds files behind the page's back. */
+/** What triage holds — what is waiting, what was ignored recently, and what is still to be
+ *  filled in before it can hold more. Read on every call rather than held: a fetch adds
+ *  files behind the page's back. */
 export function readSignals(): SignalInbox {
   const signals = readInbox()
   return {
     relPath: inboxPath(),
     signals,
+    dismissed: readDismissed(),
+    dismissedDays: DISMISSED_DAYS,
+    sourceTypes: sourceTypeKeys(),
     latestImport: latestImport(signals),
     missing: signalConfigGaps(),
   }

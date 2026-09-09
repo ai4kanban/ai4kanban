@@ -1,64 +1,70 @@
 "use client";
 
-// The inbox (#453, #499) — anything that might become work, in
-// `docs/kanban/triage/inbox/`, newest collected first.
+// Triage (#453, #499, #560) — anything that might become work, in `docs/kanban/triage/`.
 //
-// Two ways in, one folder: `akb triage fetch` pulls from the endpoint the board is pointed
-// at, and **Add to triage** at the top of this page takes a dropped file, a pasted link or
-// pasted text. Both write the same Markdown file, so nothing below the box knows which way
-// something came in.
+// The page is a board, not a document: a few hundred items, grouped by the source they came
+// from, three light cards to a row. A source's name and mark are drawn once, on the group
+// heading, so a card carries only what is its own — its title, and up to three of the values
+// its source sent with it. Everything longer is behind the card.
 //
-// It is drawn in the archive page's frame, for the same reason that page is: these are whole
-// documents, and a rail row is a couple of hundred pixels wide. A page rather than a pane, so
-// Back, Forward and a reload keep you where you were.
+// The whole main area is the list. There is no standing heading, lead paragraph or compose
+// box above it: **Add** opens a small popover under its own button, and that is where a link,
+// some words or a file goes in.
 //
 // Nothing here is a card: nothing on this page creates one, ranks one, or touches the board's
 // counts. Turning one into a card is #454's.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { FiChevronDown, FiChevronRight, FiExternalLink, FiGlobe, FiPlus, FiTrash2 } from "react-icons/fi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  SiReddit,
-  SiSinaweibo,
-  SiX,
-  SiXiaohongshu,
-  SiYoutube,
-  SiZhihu,
-} from "react-icons/si";
+  FiChevronDown,
+  FiChevronRight,
+  FiExternalLink,
+  FiPaperclip,
+  FiPlus,
+  FiSearch,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { addToInboxAction, dismissSignalAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { useLanguage } from "@/components/language";
-import { LANGUAGE_TAGS, type AgentInfo, type Language, type MemoryModule, type Signal, type SignalInbox } from "@/lib/types";
-import { Button, PanelAction } from "./button";
-import { HAIRLINE } from "./chrome";
+import {
+  LANGUAGE_TAGS,
+  type AgentInfo,
+  type Language,
+  type MemoryModule,
+  type Signal,
+  type SignalInbox,
+} from "@/lib/types";
+import { Button } from "./button";
+import { CHROME, HAIRLINE } from "./chrome";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
+import { useOverRail } from "@/lib/over-rail";
 import { runningCardIds, useAgentSessions, useOnTabFocus } from "./sessions";
 import { reloadSignalsRow } from "./signals-row";
+import { SourceMark, sourceName } from "./signal-sources";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Window } from "./Window";
 
-// --- the marks a source is known by ------------------------------------------
-// A small table, matched on the `source` field as it was written. Nothing below knows a
-// source at all — it is free text, so any endpoint connects and a dropped file names itself —
-// and the price of that is a generic mark for anything not in this table.
+type Tab = "pending" | "dismissed";
 
-const MARKS: { match: RegExp; Icon: typeof SiReddit; color: string }[] = [
-  { match: /reddit/i, Icon: SiReddit, color: "#ff4500" },
-  { match: /(^|\W)(x|twitter)(\W|$)/i, Icon: SiX, color: "#0f0f0f" },
-  { match: /xiaohongshu|小红书|rednote/i, Icon: SiXiaohongshu, color: "#ff2442" },
-  { match: /weibo|微博/i, Icon: SiSinaweibo, color: "#e6162d" },
-  { match: /zhihu|知乎/i, Icon: SiZhihu, color: "#0084ff" },
-  { match: /youtube/i, Icon: SiYoutube, color: "#ff0000" },
-];
+// Radix will not take an empty string as a value, and the empty string is already the key of
+// the group nothing named a source for — so the picker carries two words of its own.
+const EVERY = "*";
+const NONE = "-";
 
-function SourceMark({ source }: { source: string }) {
-  const known = MARKS.find((mark) => mark.match.test(source));
-  if (!known) return <FiGlobe size={13} className="shrink-0 text-nb-ink-soft" aria-hidden />;
-  const { Icon, color } = known;
-  return <Icon size={13} color={color} className="shrink-0" aria-hidden />;
-}
+/** How much of a group is drawn before **More**, and how much each press brings in. */
+const FIRST = 6;
+const MORE = 12;
 
 // A collected stamp is `YYYY-MM-DD HH:MM` in the board's own local time, so it is read back
 // as local time and drawn in the language the app is set to — an English date under a Chinese
@@ -72,6 +78,50 @@ function when(stamp: string, language: Language): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+/** A stamp as a number to sort on. One that will not read is the smallest there is, so an
+ *  item with a broken or missing time sits at the end of its group rather than the top. */
+function order(stamp: string): number {
+  const at = new Date(stamp.replace(" ", "T")).getTime();
+  return Number.isNaN(at) ? -Infinity : at;
+}
+
+/** Everything the search looks at: what it says, where it came from, and the values its
+ *  source sent. Never the keys — they are not drawn, so they are not searched. */
+function matches(signal: Signal, query: string): boolean {
+  if (!query) return true;
+  const parts = [
+    signal.title,
+    signal.summary,
+    signal.sourceType,
+    ...signal.meta.map((pair) => pair.value),
+  ];
+  return parts.some((part) => part.toLowerCase().includes(query));
+}
+
+interface Group {
+  type: string;
+  items: Signal[];
+}
+
+/** The items in source groups: the board's own list in its own order first, then whatever
+ *  keys came in from elsewhere by key, then the one group nothing named a source for. */
+function groupBySource(signals: Signal[], listed: string[]): Group[] {
+  const by = new Map<string, Signal[]>();
+  for (const signal of signals) {
+    const held = by.get(signal.sourceType);
+    if (held) held.push(signal);
+    else by.set(signal.sourceType, [signal]);
+  }
+  const known = new Set(listed);
+  const rest = [...by.keys()].filter((type) => type && !known.has(type)).sort();
+  const order = [
+    ...listed.filter((type) => by.has(type)),
+    ...rest,
+    ...(by.has("") ? [""] : []),
+  ];
+  return order.map((type) => ({ type, items: by.get(type)! }));
 }
 
 // --- the page ---------------------------------------------------------------
@@ -102,7 +152,9 @@ function SignalsFrame({
   const { sessions } = useAgentSessions(noRunsOfOurOwn);
   const prevRunning = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const now = new Set(sessions.filter((r) => r.status === "running").map((r) => r.sessionId));
+    const now = new Set(
+      sessions.filter((r) => r.status === "running").map((r) => r.sessionId),
+    );
     let finished = false;
     for (const id of prevRunning.current) if (!now.has(id)) finished = true;
     prevRunning.current = now;
@@ -120,13 +172,15 @@ function SignalsFrame({
         goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
-          <Header agent={agent} projectRoot={projectRoot} goalWritten={goalWritten} desktop={desktop} />
+          <Header
+            agent={agent}
+            projectRoot={projectRoot}
+            goalWritten={goalWritten}
+            desktop={desktop}
+          />
         }
       >
-        <div className="h-full overflow-y-auto">
-          <RunningNotice desktop={desktop} />
-          <main className="mx-auto w-full max-w-[840px] px-6 py-6 max-md:px-4 max-md:py-4">{children}</main>
-        </div>
+        {children}
       </Window>
     </OpenIdsProvider>
   );
@@ -151,17 +205,104 @@ export function SignalsPage({
 }) {
   const c = useCopy().rail.signals;
   const router = useRouter();
+
+  const [tab, setTab] = useState<Tab>("pending");
+  const [query, setQuery] = useState("");
+  const [source, setSource] = useState(EVERY);
+  // Folded by hand, this visit only: one page's browsing state, not a setting.
+  const [folded, setFolded] = useState<Set<string>>(new Set());
+  const [shown, setShown] = useState<Record<string, number>>({});
+  const [open, setOpen] = useState<string | null>(null);
   // Dismissing is a write, so the list is redrawn from the server rather than from what this
-  // page had. Held here only so the row goes the instant it is pressed.
+  // page had. Held here only so the card goes the instant it is pressed.
   const [gone, setGone] = useState<Set<string>>(new Set());
   const [failed, setFailed] = useState("");
+  const [lit, setLit] = useState("");
+
+  // Add, as a draft that outlives the popover: closing it is not throwing it away.
+  const addRef = useRef<HTMLSpanElement>(null);
+  const [openAdd, setOpenAdd] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [addNote, setAddNote] = useState("");
+  const [landed, setLanded] = useState("");
+  const [hidden, setHidden] = useState("");
+
+  // What each tab holds, less anything just ignored: the counts have to agree with the page
+  // the instant a card goes, not one server round trip later.
+  const live = useCallback((signals: Signal[]) => signals.filter((s) => !gone.has(s.sourceId)), [gone]);
+  const waiting = live(inbox.signals);
+  const ignored = live(inbox.dismissed);
+  const held = tab === "pending" ? inbox.signals : inbox.dismissed;
+  const all = useMemo(() => {
+    const live = held.filter((signal) => !gone.has(signal.sourceId));
+    const stamp = (signal: Signal) =>
+      tab === "dismissed" ? signal.dismissedAt : signal.collectedAt;
+    return [...live].sort(
+      (a, b) =>
+        order(stamp(b)) - order(stamp(a)) ||
+        a.sourceId.localeCompare(b.sourceId),
+    );
+  }, [held, gone, tab]);
+
+  const needle = query.trim().toLowerCase();
+  const picked = source === NONE ? "" : source;
+  const narrowed = useMemo(
+    () =>
+      all.filter(
+        (signal) =>
+          matches(signal, needle) &&
+          (source === EVERY || signal.sourceType === picked),
+      ),
+    [all, needle, source, picked],
+  );
+  const groups = useMemo(
+    () => groupBySource(narrowed, inbox.sourceTypes),
+    [narrowed, inbox.sourceTypes],
+  );
+  // Every source the page could offer, in the same order the groups come in — read off
+  // everything in this tab, not off what the search left, so narrowing never empties it.
+  const sources = useMemo(
+    () => groupBySource(all, inbox.sourceTypes).map((group) => group.type),
+    [all, inbox.sourceTypes],
+  );
+
+  // A search unfolds what it found, and leaves the fold as it was for when it is cleared.
+  const searching = needle.length > 0;
+  const isFolded = (type: string) => !searching && folded.has(`${tab}:${type}`);
+  const fold = (type: string) =>
+    setFolded((was) => {
+      const next = new Set(was);
+      const key = `${tab}:${type}`;
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+
+  // A different tab, search or source is a different list — how far each group was loaded
+  // said nothing about this one.
+  useEffect(() => setShown({}), [tab, needle, source]);
+
+  const narrowing = searching || source !== EVERY;
+  const clear = () => {
+    setQuery("");
+    setSource(EVERY);
+  };
 
   const dismiss = async (sourceId: string) => {
-    setGone((held) => new Set(held).add(sourceId));
+    // Where the focus goes once the card is gone: the next one on the page, or the one before
+    // it at the end of the list.
+    const flat = groups.flatMap((group) =>
+      isFolded(group.type) ? [] : group.items.map((s) => s.sourceId),
+    );
+    const at = flat.indexOf(sourceId);
+    const near = flat[at + 1] ?? flat[at - 1] ?? "";
+
+    setGone((was) => new Set(was).add(sourceId));
     const done = await dismissSignalAction(sourceId);
     if (!done.ok) {
-      setGone((held) => {
-        const next = new Set(held);
+      setGone((was) => {
+        const next = new Set(was);
         next.delete(sourceId);
         return next;
       });
@@ -169,23 +310,123 @@ export function SignalsPage({
       return;
     }
     setFailed("");
+    setOpen(null);
+    if (near)
+      requestAnimationFrame(() =>
+        document.getElementById(`signal-${near}`)?.focus(),
+      );
     reloadSignalsRow();
     router.refresh();
   };
 
-  // An add is a write too, and what it wrote is a file this page reads from the server.
-  const added = useCallback(() => {
+  /** Take one item back into view, whatever is currently hiding it. */
+  const show = useCallback((sourceId: string, type: string) => {
+    setTab("pending");
+    setQuery("");
+    setSource(EVERY);
+    setFolded((was) => {
+      const next = new Set(was);
+      next.delete(`pending:${type}`);
+      return next;
+    });
+    setShown((was) => ({
+      ...was,
+      [`pending:${type}`]: Number.MAX_SAFE_INTEGER,
+    }));
+    setHidden("");
+    setLit(sourceId);
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`signal-${sourceId}`)
+        ?.scrollIntoView({ block: "center" }),
+    );
+  }, []);
+
+  // What was just added: lit where it is showing, and offered where it is not. It is looked
+  // for only once the server has handed the page a list that holds it.
+  useEffect(() => {
+    if (!landed) return;
+    const item = inbox.signals.find((signal) => signal.sourceId === landed);
+    if (!item) return;
+    setLanded("");
+    if (
+      narrowed.some((signal) => signal.sourceId === landed) &&
+      tab === "pending" &&
+      !isFolded(item.sourceType)
+    ) {
+      setLit(landed);
+      return;
+    }
+    setHidden(landed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landed, inbox.signals, narrowed, tab]);
+
+  useEffect(() => {
+    if (!lit) return;
+    const stop = setTimeout(() => setLit(""), 2400);
+    return () => clearTimeout(stop);
+  }, [lit]);
+
+  const add = async () => {
+    if (adding) return;
+    if (!draft.trim() && !file) return;
+    setAdding(true);
+    setAddNote("");
+    const form = new FormData();
+    if (draft.trim()) form.set("text", draft.trim());
+    if (file) {
+      form.set("file", file);
+      form.set("name", file.name);
+    }
+    const done = await addToInboxAction(form).catch(() => ({
+      ok: false,
+      error: c.add.failed,
+      sourceId: "",
+    }));
+    setAdding(false);
+    if (!done.ok) {
+      // The draft is kept: whatever was wrong with it, it is still the reader's to fix.
+      setAddNote(done.error ?? c.add.failed);
+      return;
+    }
+    setDraft("");
+    setFile(null);
+    setOpenAdd(false);
     setFailed("");
+    setLanded(done.sourceId ?? "");
     reloadSignalsRow();
     router.refresh();
-  }, [router]);
+  };
 
-  const signals = inbox.signals.filter((signal) => !gone.has(signal.sourceId));
+  const closeAdd = useCallback(() => {
+    setOpenAdd(false);
+    requestAnimationFrame(() =>
+      addRef.current?.querySelector<HTMLButtonElement>("button")?.focus(),
+    );
+  }, []);
+
+  /** One file staged, from the button or from anywhere on the page. A second one is refused
+   *  where it landed, and what was already there is left alone. */
+  const stage = (files: FileList | File[]) => {
+    const picked = Array.from(files);
+    setOpenAdd(true);
+    if (picked.length === 0) return;
+    if (picked.length > 1 || file) {
+      setAddNote(c.add.oneFile);
+      return;
+    }
+    setAddNote("");
+    setFile(picked[0]!);
+  };
+
+  const opened = open
+    ? all.find((signal) => signal.sourceId === open)
+    : undefined;
   // No endpoint is not an empty inbox: one is a board nothing has been pulled into, the other
   // is a board that was never pointed anywhere. They read differently or the second one looks
-  // like the first and nobody goes looking for the setting. It is drawn UNDER the add box and
-  // never instead of it — a board with no endpoint still takes what is dropped in (#499).
-  const unconfigured = inbox.missing.length > 0 && signals.length === 0;
+  // like the first and nobody goes looking for the setting. A board with no endpoint still
+  // takes what is added by hand (#499), so this is an offer and never a demand.
+  const unconfigured = inbox.missing.length > 0 && inbox.signals.length === 0;
 
   return (
     <SignalsFrame
@@ -196,184 +437,627 @@ export function SignalsPage({
       memoryModules={memoryModules}
       desktop={desktop}
     >
-      <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">{c.title}</h1>
-      <p className="mt-1 break-all font-mono text-[11.5px] text-nb-ink-soft">
-        {c.meta(inbox.relPath, signals.length)}
-        {inbox.latestImport && ` · ${c.latestImport(inbox.latestImport)}`}
-      </p>
-      <p className="mt-2.5 text-[11.5px] leading-relaxed text-nb-ink-soft">{c.lead}</p>
+      <div
+        className="relative flex h-full min-h-0 flex-col"
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+        }}
+        onDrop={(e) => {
+          // Text dragged around the page is the caret's, and never an item.
+          if (!e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          stage(e.dataTransfer.files);
+        }}
+      >
+        <RunningNotice desktop={desktop} />
 
-      {failed && (
-        <p className="mt-3 rounded-[9px] bg-nb-peach-soft px-3.5 py-2 text-[12px] leading-[16px] text-nb-ink">
-          {failed}
-        </p>
-      )}
+        <div
+          className="flex shrink-0 items-center gap-2 px-6 py-2.5 max-md:px-4"
+          style={{ borderBottom: `1px solid ${HAIRLINE}` }}
+        >
+          <span
+            className={`inline-flex h-7 shrink-0 overflow-hidden rounded-[8px] bg-nb-paper ${CHROME}`}
+          >
+            <TabButton
+              label={c.pending}
+              count={waiting.length}
+              on={tab === "pending"}
+              onClick={() => setTab("pending")}
+            />
+            <TabButton
+              label={c.dismissed}
+              count={ignored.length}
+              on={tab === "dismissed"}
+              onClick={() => setTab("dismissed")}
+              divided
+            />
+          </span>
+          {tab === "dismissed" && (
+            <span className="shrink-0 text-[11.5px] text-nb-ink-soft">
+              {c.window(inbox.dismissedDays)}
+            </span>
+          )}
+          {narrowing && (
+            <span className="shrink-0 text-[11.5px] tabular-nums text-nb-ink-soft">
+              {c.hits(narrowed.length, all.length)}
+            </span>
+          )}
+          <span className="flex-1" />
 
-      <AddToInbox onFailed={setFailed} onAdded={added} />
+          <label className="relative inline-flex h-7 min-w-0 shrink items-center">
+            <FiSearch
+              size={13}
+              className="absolute left-2.5 text-nb-ink-soft"
+              aria-hidden
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={c.search}
+              aria-label={c.search}
+              className="h-7 w-[220px] min-w-[92px] rounded-[8px] bg-nb-paper pl-7 pr-2.5 text-[12px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_22%,transparent)] placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none max-md:w-[140px]"
+            />
+          </label>
 
-      {signals.length === 0 ? (
-        <div className="nb-panel-sm mt-4 p-5 max-md:p-4">
-          <p className="text-[13px] leading-relaxed text-nb-ink-soft">{c.empty}</p>
+          <Select value={source} onValueChange={setSource}>
+            <SelectTrigger
+              aria-label={c.allSources}
+              className="h-7 w-auto max-w-[160px] shrink-0 gap-1.5 rounded-[8px] border-0 bg-nb-paper px-2.5 py-0 text-[12px] font-[600] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_22%,transparent)]"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={EVERY}>{c.allSources}</SelectItem>
+              {sources.map((type) => (
+                <SelectItem key={type || NONE} value={type || NONE}>
+                  {sourceName(type, c.noSource)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <span ref={addRef} className="relative inline-flex shrink-0">
+            <Button
+              size="xs"
+              aria-expanded={openAdd}
+              onClick={() => (openAdd ? closeAdd() : setOpenAdd(true))}
+            >
+              <FiPlus size={13} aria-hidden />
+              {c.add.open}
+            </Button>
+            {openAdd && (
+              <AddPopover
+                draft={draft}
+                file={file}
+                note={addNote}
+                busy={adding}
+                onDraft={setDraft}
+                onPick={stage}
+                onDrop={() => setFile(null)}
+                onClose={closeAdd}
+                onAdd={() => void add()}
+              />
+            )}
+          </span>
         </div>
-      ) : (
-        <ul aria-label={c.list} className="mt-4 flex flex-col gap-2.5">
-          {signals.map((signal) => (
-            <SignalRow key={signal.sourceId} signal={signal} onDismiss={() => dismiss(signal.sourceId)} />
-          ))}
-        </ul>
-      )}
 
-      {unconfigured && (
-        <div className="nb-panel-sm mt-2.5 p-5 max-md:p-4">
-          <p className="text-[13px] font-[700]">{c.connect}</p>
-          <ul className="mt-1.5 flex flex-col gap-1">
-            {inbox.missing.map((gap) => (
-              <li key={gap.what} className="text-[13px] leading-relaxed text-nb-ink-soft">
-                {gap.what === "endpoint" ? c.needEndpoint(gap.file) : c.needToken(gap.file)}
-              </li>
-            ))}
-          </ul>
+        {(failed || hidden) && (
+          <div className="shrink-0 px-6 pt-2.5 max-md:px-4">
+            {failed && (
+              <p className="rounded-[9px] bg-nb-peach-soft px-3.5 py-2 text-[12px] leading-[16px] text-nb-ink">
+                {failed}
+              </p>
+            )}
+            {hidden && (
+              <p className="flex items-center gap-2 rounded-[9px] bg-nb-peach-soft px-3.5 py-2 text-[12px] leading-[16px] text-nb-ink">
+                {c.add.hidden}
+                <button
+                  type="button"
+                  onClick={() =>
+                    show(
+                      hidden,
+                      inbox.signals.find((s) => s.sourceId === hidden)
+                        ?.sourceType ?? "",
+                    )
+                  }
+                  className="cursor-pointer font-[700] text-nb-accent-deep underline underline-offset-2"
+                >
+                  {c.add.show}
+                </button>
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="relative min-h-0 flex-1">
+          <div className="h-full overflow-y-auto px-6 py-4 max-md:px-4">
+            {groups.length === 0 ? (
+              <div className="nb-panel-sm p-5 max-md:p-4">
+                <p className="text-[13px] leading-relaxed text-nb-ink-soft">
+                  {narrowing ? c.noHits : c.empty}
+                </p>
+                {narrowing && (
+                  <button
+                    type="button"
+                    onClick={clear}
+                    className="mt-2 cursor-pointer text-[12px] font-[700] text-nb-accent-deep"
+                  >
+                    {c.clear}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-5">
+                {groups.map((group) => (
+                  <SourceSection
+                    key={group.type || "none"}
+                    group={group}
+                    folded={isFolded(group.type)}
+                    shown={shown[`${tab}:${group.type}`] ?? FIRST}
+                    lit={lit}
+                    onFold={() => fold(group.type)}
+                    onMore={() =>
+                      setShown((was) => ({
+                        ...was,
+                        [`${tab}:${group.type}`]:
+                          (was[`${tab}:${group.type}`] ?? FIRST) + MORE,
+                      }))
+                    }
+                    onOpen={setOpen}
+                  />
+                ))}
+              </div>
+            )}
+
+            {unconfigured && (
+              <div className="nb-panel-sm mt-4 p-5 max-md:p-4">
+                <p className="text-[13px] font-[700]">{c.connect}</p>
+                <ul className="mt-1.5 flex flex-col gap-1">
+                  {inbox.missing.map((gap) => (
+                    <li
+                      key={gap.what}
+                      className="text-[13px] leading-relaxed text-nb-ink-soft"
+                    >
+                      {gap.what === "endpoint"
+                        ? c.needEndpoint(gap.file)
+                        : c.needToken(gap.file)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {opened && (
+            <SignalDetail
+              signal={opened}
+              readOnly={tab === "dismissed"}
+              onClose={() => {
+                const back = opened.sourceId;
+                setOpen(null);
+                requestAnimationFrame(() =>
+                  document.getElementById(`signal-${back}`)?.focus(),
+                );
+              }}
+              onDismiss={() => void dismiss(opened.sourceId)}
+            />
+          )}
         </div>
-      )}
+      </div>
     </SignalsFrame>
   );
 }
 
-/** Add to inbox (#499): one box that takes all three ways in.
- *
- *  Paste a link or type a line and press Add; or drop a file anywhere on the box, which adds
- *  it the moment it lands — a drop is already a decision, and asking for a second press after
- *  one would be a step for nothing. Whatever is typed goes along with a dropped file as a note.
- *
- *  What it could not take is said in the page's one error line, in the board's own words: what
- *  was dropped is the reader's, so the reason has to be the real one. */
-function AddToInbox({ onFailed, onAdded }: { onFailed: (why: string) => void; onAdded: () => void }) {
-  const c = useCopy().rail.signals;
-  const [text, setText] = useState("");
-  const [over, setOver] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  const send = async (file?: File) => {
-    if (busy) return;
-    setBusy(true);
-    const form = new FormData();
-    if (text.trim()) form.set("text", text.trim());
-    if (file) {
-      form.set("file", file);
-      form.set("name", file.name);
-    }
-    const done = await addToInboxAction(form).catch(() => ({ ok: false, error: c.add.failed }));
-    setBusy(false);
-    if (!done.ok) {
-      onFailed(done.error ?? c.add.failed);
-      return;
-    }
-    setText("");
-    onAdded();
-  };
-
+/** One of the two tabs, with what it holds. */
+function TabButton({
+  label,
+  count,
+  on,
+  divided,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  on: boolean;
+  divided?: boolean;
+  onClick: () => void;
+}) {
   return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setOver(true);
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className="flex h-full cursor-pointer items-center gap-1.5 px-3 text-[12px] font-[700] transition-colors"
+      style={{
+        background: on ? "var(--color-nb-peach-soft)" : undefined,
+        color: on ? "var(--color-nb-accent-deep)" : "var(--color-nb-ink-soft)",
+        boxShadow: divided ? `inset 1px 0 0 ${HAIRLINE}` : undefined,
       }}
-      // Leaving for a child of the box is not leaving the box — without this the highlight
-      // flickers as the pointer crosses the text area.
-      onDragLeave={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        setOver(false);
-        // One at a time: each file is its own item, and a batch that half-failed would have
-        // no honest single answer.
-        const [first] = Array.from(e.dataTransfer.files);
-        if (first) void send(first);
-      }}
-      className="nb-panel-sm mt-4 p-4 transition-colors max-md:p-3.5"
-      style={over ? { backgroundColor: "color-mix(in srgb, var(--color-nb-accent) 10%, transparent)" } : undefined}
     >
-      <p className="text-[13px] font-[700]">{over ? c.add.dropping : c.add.title}</p>
-      <div className="mt-2 flex items-end gap-2">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={2}
-          disabled={busy}
-          placeholder={c.add.placeholder}
-          aria-label={c.add.title}
-          className="min-w-0 flex-1 resize-none rounded-[10px] bg-nb-paper px-2.5 py-2 text-[13px] leading-[1.5] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none disabled:opacity-60"
-        />
-        <Button size="sm" disabled={busy || !text.trim()} onClick={() => void send()}>
-          <FiPlus size={13} aria-hidden />
-          {c.add.button}
-        </Button>
-      </div>
-      <p className="mt-1.5 text-[11px] text-nb-ink-soft">{c.add.drop}</p>
-    </div>
+      {label}
+      <span className="tabular-nums opacity-75">{count}</span>
+    </button>
   );
 }
 
-/** One item: what it says, where it came from, and what you may do with it.
+/** One source: its mark and name once, then its items three to a row.
  *
- *  The body is folded by default — a page of whole documents is a page nobody scans — and
- *  **Read** is what opens this one. Open is left off something with no address to open, which
- *  a dropped file has none of. Dismissing takes no confirmation and offers no undo: the page
- *  says so once at the top, and nothing in the inbox is worth a dialog. */
-function SignalRow({ signal, onDismiss }: { signal: Signal; onDismiss: () => void }) {
+ *  The count on the heading is everything the current search and source found in this group,
+ *  whatever part of it is drawn — folding a group or leaving the rest of it unloaded is not
+ *  the same as it holding less. */
+function SourceSection({
+  group,
+  folded,
+  shown,
+  lit,
+  onFold,
+  onMore,
+  onOpen,
+}: {
+  group: Group;
+  folded: boolean;
+  shown: number;
+  lit: string;
+  onFold: () => void;
+  onMore: () => void;
+  onOpen: (sourceId: string) => void;
+}) {
   const c = useCopy().rail.signals;
-  const language = useLanguage();
-  const [open, setOpen] = useState(false);
+  const name = sourceName(group.type, c.noSource);
+  const drawn = folded ? [] : group.items.slice(0, shown);
 
   return (
-    <li className="rounded-[12px] bg-nb-sheet px-4 py-3.5" style={{ border: `1px solid ${HAIRLINE}` }}>
-      <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 text-[13px] font-[700] leading-[19px]">{signal.title}</p>
-        <span className="shrink-0 font-mono text-[11px] leading-[19px] tabular-nums text-nb-ink-soft">
-          {when(signal.collectedAt, language)}
+    <section>
+      <button
+        type="button"
+        onClick={onFold}
+        aria-expanded={!folded}
+        // The source is what tells one heading from the next, so it stays in the name the
+        // button is read out by; the word for the press follows it.
+        aria-label={`${name} ${folded ? c.unfold : c.fold}`}
+        className="mb-2 flex h-6 w-full cursor-pointer items-center gap-2 text-[12px] font-[700]"
+      >
+        {folded ? (
+          <FiChevronRight size={13} className="text-nb-ink-soft" aria-hidden />
+        ) : (
+          <FiChevronDown size={13} className="text-nb-ink-soft" aria-hidden />
+        )}
+        <SourceMark type={group.type} size={14} />
+        <span className="truncate">{name}</span>
+        <span className="font-[400] tabular-nums text-nb-ink-soft">
+          {group.items.length}
         </span>
-      </div>
-      {open && (
-        <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-[18px]">{signal.summary}</p>
-      )}
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-        <span className="flex min-w-0 items-center gap-2 text-[11.5px] text-nb-ink-soft">
-          {signal.source && (
-            <>
-              <SourceMark source={signal.source} />
-              <span className="truncate">{signal.source}</span>
-            </>
-          )}
-        </span>
-        <span className="flex shrink-0 items-center gap-1">
-          <PanelAction
-            icon={open ? <FiChevronDown size={12} aria-hidden /> : <FiChevronRight size={12} aria-hidden />}
-            label={open ? c.hideSummary : c.viewSummary}
-            aria-expanded={open}
-            onClick={() => setOpen(!open)}
-          />
-          {signal.url && (
-            <a
-              href={signal.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[12px] font-[700] text-nb-accent-deep transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] max-md:h-11 max-md:px-3"
+        <span className="ml-1 h-px flex-1" style={{ background: HAIRLINE }} />
+      </button>
+      {!folded && (
+        <>
+          <ul
+            aria-label={name}
+            className="grid grid-cols-3 gap-3 max-[1200px]:grid-cols-2 max-md:grid-cols-1"
+          >
+            {drawn.map((signal) => (
+              <SignalCard
+                key={signal.sourceId}
+                signal={signal}
+                lit={lit === signal.sourceId}
+                onOpen={onOpen}
+              />
+            ))}
+          </ul>
+          {group.items.length > drawn.length && (
+            <button
+              type="button"
+              onClick={onMore}
+              className="mt-2 inline-flex h-7 cursor-pointer items-center text-[12px] font-[700] text-nb-accent-deep"
             >
-              <FiExternalLink size={12} aria-hidden />
-              {c.viewOriginal}
-            </a>
+              {c.more}
+            </button>
           )}
+        </>
+      )}
+    </section>
+  );
+}
+
+/** One item, as small as it can be and still be worth reading: two lines of title, and up to
+ *  three of the values its source sent. The keys are not drawn — `r/productivity` says what
+ *  it is and `subreddit:` in front of it says it twice. */
+function SignalCard({
+  signal,
+  lit,
+  onOpen,
+}: {
+  signal: Signal;
+  lit: boolean;
+  onOpen: (sourceId: string) => void;
+}) {
+  const said = signal.meta
+    .slice(0, 3)
+    .map((pair) => pair.value)
+    .join(" · ");
+  return (
+    <li>
+      <button
+        type="button"
+        id={`signal-${signal.sourceId}`}
+        onClick={() => onOpen(signal.sourceId)}
+        className="flex h-[80px] w-full cursor-pointer flex-col rounded-[9px] bg-nb-wash px-3 py-2.5 text-left transition-shadow hover:shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--color-nb-ink)_18%,transparent)] focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)]"
+        style={
+          lit
+            ? { boxShadow: "inset 0 0 0 1.5px var(--color-nb-accent)" }
+            : undefined
+        }
+      >
+        <p className="line-clamp-2 text-[13px] font-[600] leading-[19px]">
+          {signal.title}
+        </p>
+        {said && (
+          <p className="mt-auto truncate text-[11.5px] leading-[17px] text-nb-ink-soft">
+            {said}
+          </p>
+        )}
+      </button>
+    </li>
+  );
+}
+
+/** One item in full, in a panel over the right of the page: everything the card had to cut,
+ *  and the two things you may do with it. What has already been ignored is read only, and
+ *  says when and why it was. */
+function SignalDetail({
+  signal,
+  readOnly,
+  onClose,
+  onDismiss,
+}: {
+  signal: Signal;
+  readOnly: boolean;
+  onClose: () => void;
+  onDismiss: () => void;
+}) {
+  const copy = useCopy();
+  const c = copy.rail.signals;
+  const language = useLanguage();
+  useOverRail();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const line = (label: string, said: string) =>
+    said ? (
+      <p className="text-[12px] leading-[18px] text-nb-ink-soft">
+        <span className="font-[700]">{label}</span> {said}
+      </p>
+    ) : null;
+
+  return (
+    <aside
+      role="dialog"
+      aria-label={c.detail}
+      className="absolute inset-y-0 right-0 z-30 flex w-[420px] max-w-full flex-col bg-nb-paper max-md:w-full"
+      style={{ borderLeft: `1px solid ${HAIRLINE}` }}
+    >
+      <div
+        className="flex shrink-0 items-center gap-2 px-4 py-2.5"
+        style={{ borderBottom: `1px solid ${HAIRLINE}` }}
+      >
+        {/* Nothing said a source: the panel says nothing either. "No source given" is the
+            name of a group and never of an item. */}
+        <SourceMark type={signal.sourceType} size={14} />
+        <span className="min-w-0 flex-1 truncate text-[12px] font-[700]">
+          {sourceName(signal.sourceType, "")}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={copy.shared.close}
+          className="inline-flex size-7 cursor-pointer items-center justify-center rounded-[8px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+        >
+          <FiX size={14} aria-hidden />
+        </button>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
+        <h2 className="text-[14px] font-[700] leading-[20px]">
+          {signal.title}
+        </h2>
+        <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-[19px]">
+          {signal.summary}
+        </p>
+        {signal.meta.length > 0 && (
+          <p className="mt-3 text-[12px] leading-[18px] text-nb-ink-soft">
+            {signal.meta.map((pair) => pair.value).join(" · ")}
+          </p>
+        )}
+        <div className="mt-3 flex flex-col gap-1">
+          {line(c.collected, when(signal.collectedAt, language))}
+          {line(
+            c.dismissedAt,
+            signal.dismissedAt ? when(signal.dismissedAt, language) : "",
+          )}
+          {line(c.dismissedWhy, signal.dismissedWhy)}
+        </div>
+      </div>
+
+      <div
+        className="flex shrink-0 items-center gap-1 px-4 py-2.5"
+        style={{ borderTop: `1px solid ${HAIRLINE}` }}
+      >
+        {signal.url && (
+          <a
+            href={signal.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-accent-deep transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-accent-deep)_16%,transparent)] max-md:h-11 max-md:px-3"
+          >
+            <FiExternalLink size={12} aria-hidden />
+            {c.viewOriginal}
+          </a>
+        )}
+        {!readOnly && (
           <button
             type="button"
             onClick={onDismiss}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:text-nb-ink max-md:h-11 max-md:px-3"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] hover:text-nb-ink max-md:h-11 max-md:px-3"
           >
             <FiTrash2 size={12} aria-hidden />
             {c.dismiss}
           </button>
-        </span>
+        )}
       </div>
-    </li>
+    </aside>
+  );
+}
+
+/** Add to triage (#499, #560): a small panel under the button that opened it.
+ *
+ *  One box takes all three ways in — a link, some words, or a note alongside a file — and
+ *  nothing is written until **Add** is pressed. A file dropped anywhere on the page is held
+ *  here by name until then: a drop is an intention, not a decision, and an item written the
+ *  moment something landed could not be taken back. */
+function AddPopover({
+  draft,
+  file,
+  note,
+  busy,
+  onDraft,
+  onPick,
+  onDrop,
+  onClose,
+  onAdd,
+}: {
+  draft: string;
+  file: File | null;
+  note: string;
+  busy: boolean;
+  onDraft: (text: string) => void;
+  onPick: (files: FileList | File[]) => void;
+  onDrop: () => void;
+  onClose: () => void;
+  onAdd: () => void;
+}) {
+  const copy = useCopy();
+  const c = copy.rail.signals;
+  const box = useRef<HTMLDivElement>(null);
+  const text = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const [composing, setComposing] = useState(false);
+  useOverRail();
+
+  useEffect(() => {
+    text.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      const at = e.target as Node;
+      if (
+        !box.current?.contains(at) &&
+        !box.current?.parentElement?.contains(at)
+      )
+        onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [onClose]);
+
+  const ready = Boolean(draft.trim() || file);
+
+  return (
+    <div
+      ref={box}
+      role="dialog"
+      aria-label={c.add.title}
+      className="nb-panel-sm absolute right-0 top-[calc(100%+8px)] z-40 w-[min(328px,calc(100vw-32px))] bg-nb-paper p-4 text-left"
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-[13px] font-[700]">{c.add.title}</p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={copy.shared.close}
+          className="inline-flex size-6 cursor-pointer items-center justify-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
+        >
+          <FiX size={13} aria-hidden />
+        </button>
+      </div>
+
+      <textarea
+        ref={text}
+        value={draft}
+        onChange={(e) => onDraft(e.target.value)}
+        onCompositionStart={() => setComposing(true)}
+        onCompositionEnd={() => setComposing(false)}
+        // Enter is a new line. Only the modifier sends it — and never while an input method
+        // still has the keystroke, where Enter is choosing a word.
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey)) return;
+          if (composing || e.nativeEvent.isComposing) return;
+          e.preventDefault();
+          if (ready && !busy) onAdd();
+        }}
+        rows={4}
+        disabled={busy}
+        placeholder={c.add.placeholder}
+        aria-label={c.add.title}
+        className="w-full resize-none rounded-[8px] bg-nb-paper px-3 py-2.5 text-[13px] leading-[20px] text-nb-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-nb-ink)_22%,transparent)] placeholder:text-nb-ink-soft/70 focus:shadow-[inset_0_0_0_1.5px_var(--color-nb-accent)] focus:outline-none disabled:opacity-60"
+      />
+
+      {file && (
+        <div className="mt-2.5 flex">
+          <span className="inline-flex h-7 max-w-full items-center gap-2 rounded-[7px] bg-nb-wash px-2 text-[11.5px] text-nb-ink-soft">
+            <FiPaperclip size={12} aria-hidden />
+            <span className="truncate">{file.name}</span>
+            <button
+              type="button"
+              onClick={onDrop}
+              aria-label={c.add.remove}
+              disabled={busy}
+              className="inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-[6px] hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] disabled:cursor-not-allowed"
+            >
+              <FiX size={11} aria-hidden />
+            </button>
+          </span>
+        </div>
+      )}
+
+      {note && (
+        <p className="mt-2 text-[11.5px] leading-[16px] text-nb-ink">{note}</p>
+      )}
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <input
+          ref={picker}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) onPick(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => picker.current?.click()}
+          disabled={busy}
+          className="inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-[600] text-nb-ink-soft transition-colors hover:text-nb-ink disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <FiPaperclip size={13} aria-hidden />
+          {c.add.attach}
+        </button>
+        <Button size="xs" disabled={busy || !ready} onClick={onAdd}>
+          {c.add.button}
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -16,6 +16,7 @@ import { addToInbox } from '../src/lib/signals/add.ts'
 import { signalConfigGaps } from '../src/lib/signals/config.ts'
 import { fetchSignals } from '../src/lib/signals/fetch.ts'
 import { readHandled } from '../src/lib/signals/inbox.ts'
+import { matchSourceType } from '../src/lib/signals/sources.ts'
 import { dismissSignal, readSignals } from '../src/lib/signals/index.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-signals-'))
@@ -93,7 +94,7 @@ describe('what a pull writes', () => {
     assert.equal(inboxNow.signals.length, 2)
     const [first] = inboxNow.signals
     assert.equal(first!.title, 'Signal a1')
-    assert.equal(first!.source, 'Reddit')
+    assert.equal(first!.sourceType, 'reddit')
     assert.equal(first!.summary, 'What somebody said, in their own words.')
     assert.match(first!.collectedAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
     assert.equal(inboxNow.latestImport, first!.importedAt)
@@ -147,7 +148,8 @@ describe('what the endpoint may leave out (#499)', () => {
     const report = await fetchSignals()
     assert.equal(report.added.length, 1)
     const [only] = readSignals().signals
-    assert.equal(only!.source, '')
+    assert.equal(only!.sourceType, '')
+    assert.deepEqual(only!.meta, [])
     assert.equal(only!.url, '')
     assert.match(only!.sourceId, /^derived-[0-9a-f]{16}$/)
     assert.match(only!.collectedAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
@@ -160,16 +162,67 @@ describe('what the endpoint may leave out (#499)', () => {
     assert.equal((await fetchSignals()).skipped, 1)
   })
 
-  it('names the site as the source when nothing else does', async () => {
-    answerWith({ signals: [{ title: 'A post', summary: 'Words.', url: 'https://www.example.test/a/b' }] })
+  it('reads the link\'s domain against the source list when nothing else says a type', async () => {
+    answerWith({
+      signals: [
+        { title: 'A post', summary: 'Words.', url: 'https://old.reddit.com/r/a/comments/b/' },
+        { title: 'Elsewhere', summary: 'Words.', url: 'https://www.example.test/a/b' },
+      ],
+    })
     await fetchSignals()
-    assert.equal(readSignals().signals[0]!.source, 'example.test')
+    const by = new Map(readSignals().signals.map((s) => [s.title, s]))
+    assert.equal(by.get('A post')!.sourceType, 'reddit')
+    // A domain the list has not got names no source, and the board no longer stands one in.
+    assert.equal(by.get('Elsewhere')!.sourceType, '')
+    assert.deepEqual(by.get('Elsewhere')!.meta, [])
   })
 
   it('still reads `platform` from an endpoint written before the rename', async () => {
-    answerWith({ signals: [{ title: 'A post', summary: 'Words.', platform: 'Zhihu' }] })
+    answerWith({ signals: [{ title: 'A post', summary: 'Words.', platform: '知乎' }] })
     await fetchSignals()
-    assert.equal(readSignals().signals[0]!.source, 'Zhihu')
+    assert.equal(readSignals().signals[0]!.sourceType, 'zhihu')
+  })
+
+  it('keeps a `platform` the list has not got as a meta entry rather than losing it', async () => {
+    answerWith({ signals: [{ title: 'A post', summary: 'Words.', platform: 'Hacker News' }] })
+    await fetchSignals()
+    const [only] = readSignals().signals
+    assert.equal(only!.sourceType, '')
+    assert.deepEqual(only!.meta, [{ key: 'source', value: 'Hacker News' }])
+  })
+
+  it('takes a `source_type` the list has not got exactly as it was sent', async () => {
+    answerWith({ signals: [{ title: 'A post', summary: 'Words.', source_type: 'customer-forum' }] })
+    await fetchSignals()
+    assert.equal(readSignals().signals[0]!.sourceType, 'customer-forum')
+  })
+
+  it('takes any `meta` pairs in order, and leaves out what a line will not hold', async () => {
+    answerWith({
+      signals: [
+        {
+          title: 'A post',
+          summary: 'Words.',
+          source_type: 'Reddit',
+          meta: {
+            subreddit: 'r/productivity',
+            author: 'u/mira',
+            score: 312,
+            comments: { count: 4 },
+            tags: ['a', 'b'],
+            note: 'two\nlines',
+          },
+        },
+      ],
+    })
+    await fetchSignals()
+    const [only] = readSignals().signals
+    assert.equal(only!.sourceType, 'reddit')
+    assert.deepEqual(only!.meta, [
+      { key: 'subreddit', value: 'r/productivity' },
+      { key: 'author', value: 'u/mira' },
+      { key: 'score', value: '312' },
+    ])
   })
 
   it('refuses one with no words in it, and the rest of the batch still lands', async () => {
@@ -272,8 +325,22 @@ describe('adding to the inbox by hand (#499)', () => {
     assert.equal(done.ok, true)
     const [only] = readSignals().signals
     assert.equal(only!.title, 'example.test/blog/why-x')
-    assert.equal(only!.source, 'example.test')
+    // A domain the source list has not got is a fact about the item, not a source (#560).
+    assert.equal(only!.sourceType, '')
+    assert.deepEqual(only!.meta, [{ key: 'domain', value: 'example.test' }])
     assert.equal(only!.url, 'https://www.example.test/blog/why-x')
+  })
+
+  it('reads a pasted link on a site the list knows as that source', () => {
+    assert.equal(addToInbox({ text: 'https://www.xiaohongshu.com/explore/abc' }).ok, true)
+    const [only] = readSignals().signals
+    assert.equal(only!.sourceType, 'xiaohongshu')
+    assert.deepEqual(only!.meta, [])
+  })
+
+  it('reads what `--source` says through the same rule', () => {
+    assert.equal(addToInbox({ title: 'A post', text: 'Words.', source: '小红书' }).ok, true)
+    assert.equal(readSignals().signals[0]!.sourceType, 'xiaohongshu')
   })
 
   it('takes pasted text, titled by its first line', () => {
@@ -284,11 +351,12 @@ describe('adding to the inbox by hand (#499)', () => {
     assert.equal(only!.url, '')
   })
 
-  it('reads a dropped text file as the body, and names the file as the source', () => {
+  it('reads a dropped text file as the body, and keeps the file name as a meta entry', () => {
     assert.equal(addToInbox(dropped('issue-42.md', '# Newsletter 42\n\nWhat it said.')).ok, true)
     const [only] = readSignals().signals
     assert.equal(only!.title, 'Newsletter 42')
-    assert.equal(only!.source, 'issue-42.md')
+    assert.equal(only!.sourceType, '')
+    assert.deepEqual(only!.meta, [{ key: 'filename', value: 'issue-42.md' }])
     assert.match(only!.summary, /What it said\./)
     assert.equal(fs.existsSync(path.join(inbox(), 'files')), false)
   })
@@ -298,7 +366,7 @@ describe('adding to the inbox by hand (#499)', () => {
     assert.equal(addToInbox(pdf).ok, true)
     const [only] = readSignals().signals
     assert.equal(only!.title, 'q3')
-    assert.equal(only!.source, 'q3.pdf')
+    assert.deepEqual(only!.meta, [{ key: 'filename', value: 'q3.pdf' }])
     assert.match(only!.summary, /docs\/kanban\/triage\/inbox\/files\/q3-[0-9a-f]{8}\.pdf/)
     assert.equal(fs.readdirSync(path.join(inbox(), 'files')).length, 1)
     // The copy is beside the inbox, not in it: the list still holds one item.
@@ -330,5 +398,98 @@ describe('adding to the inbox by hand (#499)', () => {
     assert.deepEqual(dismissSignal(id), { ok: true })
     assert.deepEqual(readSignals().signals, [])
     assert.equal(readHandled().has(id), true)
+  })
+})
+
+describe('the one source rule (#560)', () => {
+  it('matches a key, an alias in any language, and a domain — and nothing else', () => {
+    assert.equal(matchSourceType('reddit'), 'reddit')
+    assert.equal(matchSourceType('  Reddit '), 'reddit')
+    assert.equal(matchSourceType('小红书'), 'xiaohongshu')
+    assert.equal(matchSourceType('推特'), 'x')
+    assert.equal(matchSourceType('youtu.be'), 'youtube')
+    assert.equal(matchSourceType('www.zhihu.com'), 'zhihu')
+    assert.equal(matchSourceType('zhuanlan.zhihu.com'), 'zhihu')
+    assert.equal(matchSourceType('notzhihu.com'), '')
+    assert.equal(matchSourceType('a post on reddit'), '')
+    assert.equal(matchSourceType(''), '')
+  })
+})
+
+describe('a file written before the source list (#560)', () => {
+  const write = (name: string, front: string) =>
+    fs.writeFileSync(path.join(inbox(), name), `---\n${front}\n---\n\nWhat it said.\n`)
+
+  beforeEach(() => fs.mkdirSync(inbox(), { recursive: true }))
+
+  const stamps = 'collected_at: 2026-09-06 21:40\nimported_at: 2026-09-06 21:41'
+
+  it('reads a free-text source the list knows as that type', () => {
+    write('old.md', `source_id: old\ntitle: An old one\nsource: 知乎\n${stamps}`)
+    const [only] = readSignals().signals
+    assert.equal(only!.sourceType, 'zhihu')
+    assert.deepEqual(only!.meta, [])
+  })
+
+  it('reads one the list has not got as a source meta entry, and leaves the file alone', () => {
+    write('old.md', `source_id: old\ntitle: An old one\nplatform: A newsletter\n${stamps}`)
+    const [only] = readSignals().signals
+    assert.equal(only!.sourceType, '')
+    assert.deepEqual(only!.meta, [{ key: 'source', value: 'A newsletter' }])
+    assert.match(fs.readFileSync(path.join(inbox(), 'old.md'), 'utf8'), /platform: A newsletter/)
+  })
+
+  it('reads a meta block in the order it was written, and skips a key with no value', () => {
+    write(
+      'new.md',
+      `source_id: new\ntitle: A new one\nsource_type: reddit\n${stamps}\nmeta:\n  subreddit: r/productivity\n  author: u/mira\n  empty: ""`,
+    )
+    const [only] = readSignals().signals
+    assert.deepEqual(only!.meta, [
+      { key: 'subreddit', value: 'r/productivity' },
+      { key: 'author', value: 'u/mira' },
+    ])
+  })
+
+  it('writes a meta block a second read gives back unchanged', () => {
+    assert.equal(addToInbox({ text: 'https://www.example.test/a' }).ok, true)
+    const written = readSignals().signals[0]!
+    assert.deepEqual(written.meta, [{ key: 'domain', value: 'example.test' }])
+    assert.deepEqual(readSignals().signals[0]!.meta, written.meta)
+  })
+})
+
+describe('what has been ignored (#559 writes it, #560 draws it)', () => {
+  const dismissed = () => path.join(kanban(), 'triage', 'dismissed')
+  const day = (back: number) => {
+    const at = new Date(Date.now() - back * 24 * 60 * 60 * 1000)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} 09:00`
+  }
+
+  it('is empty on a board with no dismissed folder', () => {
+    const inboxNow = readSignals()
+    assert.deepEqual(inboxNow.dismissed, [])
+    assert.equal(inboxNow.dismissedDays, 30)
+    assert.deepEqual(inboxNow.sourceTypes, ['reddit', 'x', 'xiaohongshu', 'weibo', 'zhihu', 'youtube'])
+  })
+
+  it('reads the window newest first, and leaves out what fell out of it', () => {
+    fs.mkdirSync(dismissed(), { recursive: true })
+    const write = (id: string, at: string, why: string) =>
+      fs.writeFileSync(
+        path.join(dismissed(), `${id}.md`),
+        `---\nsource_id: ${id}\ntitle: Item ${id}\nsource_type: reddit\ncollected_at: ${day(40)}\nimported_at: ${day(40)}\ndismissed_at: ${at}\ndismissed_why: ${why}\n---\n\nWords.\n`,
+      )
+    write('recent', day(2), 'not work')
+    write('older', day(20), 'a duplicate')
+    write('gone', day(45), 'long ago')
+
+    const held = readSignals().dismissed
+    assert.deepEqual(
+      held.map((s) => s.sourceId),
+      ['recent', 'older'],
+    )
+    assert.equal(held[0]!.dismissedWhy, 'not work')
   })
 })

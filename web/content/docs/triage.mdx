@@ -3,15 +3,21 @@ title: "Triage"
 title_tag: "AI4Kanban triage — pull Reddit, X and Xiaohongshu leads into your board"
 description: "Point the board at a triage endpoint and it pulls what people are saying into a list beside your cards. What lands there is a lead, not a task: read it, open the post, dismiss the ones that don't matter."
 lead: "The board can pull what people are saying on Reddit, X, Xiaohongshu and anywhere else into Triage, beside your cards. What lands there is a lead, not a task."
-last_updated: "September 9, 2026"
+last_updated: "September 10, 2026"
 nav_label: "Triage"
 icon: "inbox"
 ---
 
-**Triage** sits above **Archive** in the rail, with a count. The page lists what the
-board last pulled, newest collected first: a title, the post's own words, which platform it
-came from, and three things you can do with it — read the summary, open the original, or
-dismiss it.
+**Triage** sits above **Archive** in the rail, with a count. The page groups what the board
+holds by the source it came from — Reddit, X, 小红书 — with the source's mark and name on the
+group's heading and three light cards to a row under it. A card shows its title and up to
+three of the values its source sent with it; click it for the whole thing, the original, and
+**Ignore**.
+
+Two tabs: **Waiting**, and **Ignored** for the last 30 days. Search covers everything in the
+tab — titles, bodies, sources and those values — including folded groups and the part of a
+group still behind **More**. The source picker narrows to one source and combines with the
+search.
 
 Free to invited Cloud accounts on an Engineering board while it is a preview. On a Marketing
 board, and on an account that is signed out or not yet invited, there is no rail row and
@@ -24,10 +30,10 @@ counted in your board numbers, and never becomes a card on its own — it is som
 sentence, waiting for you to decide whether there is work in it. Cards are what you have
 decided to build.
 
-That means triage needs looking at, the way a mailbox does. Dismissing an item is
-permanent: its file goes, its id is written to `docs/kanban/triage/handled.md`, and no later
-pull brings it back. There is no undo, and that is the point — a list you can never empty
-is one you stop opening.
+That means triage needs looking at, the way a mailbox does. Ignoring an item takes it out of
+**Waiting** for good: its id is written to `docs/kanban/triage/handled.md`, and no later pull
+brings it back. There is no undo, and that is the point — a list you can never empty is one
+you stop opening. The **Ignored** tab is a record of the last 30 days of that, read only.
 
 ## Connect a source
 
@@ -63,27 +69,42 @@ JSON shaped like this:
 {
   "signals": [
     {
-      "source_id": "t3_1abcdef",
       "title": "Three of us run Claude Code and the conventions keep getting reverted",
       "summary": "We each have Claude Code open on the same repo…",
-      "platform": "Reddit",
+      "source_type": "reddit",
+      "meta": { "subreddit": "r/ClaudeAI", "author": "u/mira", "score": "312 upvotes" },
       "url": "https://www.reddit.com/r/ClaudeAI/comments/1abcdef/",
-      "collected_at": "2026-09-06T21:40:00Z"
+      "collected_at": "2026-09-06T21:40:00Z",
+      "source_id": "t3_1abcdef"
     }
   ]
 }
 ```
 
-All six fields are required, and a signal missing any of them is not imported — the pull
-counts it as a failure and names what was missing. `collected_at` is when the data platform
-collected the post, not when your board pulled it; the board records the import time itself.
+Only **`title`** and **`summary`** are required, and a signal missing either is not imported —
+the pull counts it as a failure and names what was missing. Everything else is optional.
 
-- **`source_id`** is the signal's identity. The board dedupes on it, against the inbox, the
+- **`source_type`** is one key off the board's source list. It ships with `reddit`, `x`,
+  `xiaohongshu`, `weibo`, `zhihu` and `youtube`; a key that is not on it is kept exactly as
+  you sent it and drawn as itself, with no mark. Leave it out and the board reads the link's
+  domain against the same list — and if that matches nothing, the item simply has no source.
+  Nothing is invented from a domain or a file name.
+- **`meta`** is free key-value pairs — `subreddit`, `author`, whatever your source has. The
+  board does not validate, translate or fill them in, and takes only values a single line
+  holds; objects and lists are left out. The page draws the values, never the keys, so write
+  values that read on their own.
+- **`url`** is the thing itself, opened by **Open**. **`collected_at`** is when the data
+  platform collected the post, not when your board pulled it; the board records the import
+  time itself.
+- **`source_id`** is the signal's identity. The board dedupes on it, against triage, the
   handled record, and the rest of the same batch — so the same post sent on ten pulls is one
-  file.
-- **`platform`** is free text. The board recognises none of them: it draws a mark for the ones
-  it knows and a neutral one for everything else, which is what lets any source be connected.
+  file. Left out, it is derived from the link or the words.
 - There is no paging and no ceiling. What the endpoint sends is what the board takes.
+
+An endpoint written before the source list may still send **`platform`** or **`source`** as
+free text. Both are read through the same list: a match is that source, and anything else is
+kept as a `meta` entry under `source` rather than guessed at. Files already in triage are read
+the same way, and are not rewritten.
 
 Turning what a platform actually returns into this shape is yours to write — that converter is
 the reason the board never has to know a platform.
@@ -105,15 +126,26 @@ the job — nothing puts it back.
 
 ## Put something in yourself
 
-The endpoint is not the only way in. **Add to triage** on the page takes a pasted link, some
-typed text, or a dropped file, and from a terminal:
+The endpoint is not the only way in. **Add** in the toolbar opens a small box under the
+button: paste a link, write it out, or attach a file — one box for all three, and a note
+typed alongside a file goes in with it. A file dropped anywhere on the page is held there by
+name until you press **Add**; nothing is written before that, and closing the box keeps the
+draft. `⌘/Ctrl + Enter` adds it, plain Enter is a new line.
+
+A pasted link's domain is read against the source list. A match is that source; anything else
+keeps the domain as a `meta` entry under `domain`. A file keeps its name under `filename`, and
+neither is given a source.
+
+From a terminal:
 
 ```bash
 akb triage add --title "What it is" --text "Its own words." --source "where it came from"
 ```
 
-`--file <path>` takes the body from a file when it is longer than a line or two. Neither needs
-an endpoint or a Cloud account. An item triage already holds is refused rather than doubled.
+`--source` goes through the same list — `小红书` is `xiaohongshu`, and anything the list has
+not got is kept as a `meta` entry under `source`. `--file <path>` takes the body from a file
+when it is longer than a line or two. Neither needs an endpoint or a Cloud account. An item
+triage already holds is refused rather than doubled.
 
 This is also where the board's own **Proposer** writes: with it switched on, every card you
 archive is reflected on and what should follow it lands here, carrying the card that prompted
