@@ -14,7 +14,7 @@
 
 import { KANBAN } from '../paths'
 import { connectCloudLive, type LiveConnection } from './live'
-import { flushCloudOutbox } from './publish'
+import { flushCloudOutbox, stopOutboxWake } from './publish'
 import { catchUpCloudRequests, renewCloudClaims, RENEW_MS, takeCloudRequest } from './requests'
 import { attachBoardServer, readBoardServer, serverForBoard, wantsServerHere } from './servers'
 import { readSession } from './session'
@@ -122,6 +122,7 @@ async function claimTheBoard(boardDir: string): Promise<void> {
  *  building here carries on — the local board is never touched by this. */
 export function stopCloudServer(): void {
   const held = state()
+  stopOutboxWake()
   held.live?.close()
   held.live = null
   if (held.timer) clearInterval(held.timer)

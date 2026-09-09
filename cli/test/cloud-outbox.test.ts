@@ -58,6 +58,7 @@ beforeEach(() => {
 
 afterEach(() => {
   mock.restoreAll()
+  mock.timers.reset()
   setBoardProvider(null)
   stopCloudServer()
   fs.rmSync(home, { recursive: true, force: true })
@@ -104,6 +105,17 @@ function card(over: Partial<Card> = {}): Card {
     todos: { total: 0, done: 0 },
     ...over,
   } as Card
+}
+
+/** How many times a queued item is tried before the board gives up on it (MAX_ATTEMPTS). */
+const ATTEMPTS = 54
+
+/** Bring everything queued forward, so the next pass tries it without waiting out its
+ *  backoff for real. */
+function due(): void {
+  const held = readOutbox()
+  for (const item of held.pending) item.nextAt = Date.now() - 1
+  fs.writeFileSync(path.join(root, '.akb', 'cloud-outbox.json'), `${JSON.stringify(held, null, 2)}\n`)
 }
 
 /** Queue one publication for a card, exactly as the publisher would. */
@@ -162,7 +174,8 @@ describe('a board change made while Cloud is unreachable', () => {
     // One attempt, not three: the second and third passes found it inside its backoff.
     assert.equal(readOutbox().pending[0]?.attempts, 1)
     assert.equal(duePending().length, 0)
-    assert.equal(duePending(Date.now() + 61_000).length, 1)
+    // And that wait is seconds, not a minute — the first failure is usually a passing one.
+    assert.equal(duePending(Date.now() + 6_500).length, 1)
   })
 
   it('reaches Cloud on a board that makes no further write, from the board’s own tick', async () => {
@@ -192,18 +205,24 @@ describe('a board change made while Cloud is unreachable', () => {
 describe('a queued item whose attempts have run out', () => {
   it('is not abandoned in silence — the board says it is out of step with Cloud', async () => {
     BOARD()
-    const item = queuePublish(12)
+    queuePublish(12)
     fakeCloud(unreachable)
 
-    // Every attempt but the last, spent.
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      const held = readOutbox()
-      const queued = held.pending.find((p) => p.opId === item.opId)
-      if (!queued) break
-      queued.nextAt = Date.now() - 1
-      fs.writeFileSync(path.join(root, '.akb', 'cloud-outbox.json'), `${JSON.stringify(held, null, 2)}\n`)
+    // Every attempt but the last, spent, adding up the waits between them.
+    let waited = 0
+    for (let attempt = 0; attempt < ATTEMPTS - 1; attempt += 1) {
+      const before = Date.now()
       await flushCloudOutbox()
+      waited += (readOutbox().pending[0]?.nextAt ?? 0) - before
+      due()
     }
+    assert.equal(readOutbox().pending.length, 1, 'the budget is not spent before the outage is over')
+    // Roughly four hours of outage recovery, unchanged by the shorter waits at the front:
+    // more attempts fit inside the same window.
+    assert.ok(waited > 3.5 * 60 * 60_000, `only ${Math.round(waited / 60_000)} minutes of outage`)
+    assert.ok(waited < 4.5 * 60 * 60_000, `${Math.round(waited / 60_000)} minutes of outage`)
+
+    await flushCloudOutbox()
 
     assert.equal(readOutbox().pending.length, 0)
     const [unsent] = unsentToCloud()
@@ -216,14 +235,7 @@ describe('a queued item whose attempts have run out', () => {
     BOARD()
     queuePublish(12)
     fakeCloud(unreachable)
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      const held = readOutbox()
-      const queued = held.pending[0]
-      if (!queued) break
-      queued.nextAt = Date.now() - 1
-      fs.writeFileSync(path.join(root, '.akb', 'cloud-outbox.json'), `${JSON.stringify(held, null, 2)}\n`)
-      await flushCloudOutbox()
-    }
+    await exhaust()
     assert.equal(unsentToCloud().length, 1)
 
     fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
@@ -236,12 +248,9 @@ describe('a queued item whose attempts have run out', () => {
 
 /** Spend every attempt on whatever is queued, ignoring the backoff between them. */
 async function exhaust(): Promise<void> {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const held = readOutbox()
-    const queued = held.pending[0]
-    if (!queued) break
-    queued.nextAt = Date.now() - 1
-    fs.writeFileSync(path.join(root, '.akb', 'cloud-outbox.json'), `${JSON.stringify(held, null, 2)}\n`)
+  for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
+    if (readOutbox().pending.length === 0) break
+    due()
     await flushCloudOutbox()
   }
 }
@@ -263,6 +272,119 @@ describe('an outcome that never got out', () => {
     await flushCloudOutbox()
 
     assert.deepEqual(unsentToCloud(), [])
+  })
+})
+
+describe('how long a failed send waits before it is tried again', () => {
+  it('starts at five seconds, doubles, and caps at five minutes', async () => {
+    BOARD()
+    queuePublish(12)
+    fakeCloud(unreachable)
+
+    const waits: number[] = []
+    for (let attempt = 0; attempt < 9; attempt += 1) {
+      const before = Date.now()
+      await flushCloudOutbox()
+      waits.push((readOutbox().pending[0]?.nextAt ?? 0) - before)
+      due()
+    }
+
+    // Each wait is moved by up to a fifth either way, so a Cloud that dropped every board on
+    // the account does not get all of them back on the same second.
+    const want = [5, 10, 20, 40, 80, 160, 300, 300, 300]
+    waits.forEach((wait, at) => {
+      const target = want[at]! * 1_000
+      const how = `attempt ${at + 1} waited ${wait}ms, wanted about ${target}ms`
+      assert.ok(wait >= target * 0.8, how)
+      // Plus the pass's own time, which the wait is measured from.
+      assert.ok(wait <= target * 1.2 + 1_000, how)
+    })
+    assert.ok(new Set(waits.slice(6)).size > 1, 'the cap is jittered too')
+  })
+})
+
+describe('a failed send whose backoff is up', () => {
+  it('wakes the sender itself rather than waiting for the board\u2019s minute tick', async () => {
+    BOARD()
+    queuePublish(12)
+    fakeCloud(unreachable)
+    mock.timers.enable({ apis: ['setTimeout'] })
+    await flushCloudOutbox()
+
+    const nextAt = readOutbox().pending[0]?.nextAt ?? 0
+    const waited = nextAt - Date.now()
+    assert.ok(waited > 0, 'the failed send is inside its backoff')
+
+    // Cloud is back. Nothing writes to the board and no tick runs, so the wake the outbox
+    // scheduled for itself is the only thing left that can send it.
+    let reached = (): void => {}
+    const sent = new Promise<void>((resolve) => {
+      reached = resolve
+    })
+    fakeCloud((url) => {
+      if (!url.endsWith('/v1/events')) return ok({})
+      reached()
+      return publishedEvent('e-1', 12)
+    })
+    // The wake is what fires; the clock it fires on is the only thing this hurries along.
+    due()
+    mock.timers.tick(waited + 1)
+    await sent
+    await flushCloudOutbox()
+
+    assert.deepEqual(readOutbox().pending, [])
+    assert.equal(readOutbox().published['12']?.eventId, 'e-1', 'the retry raised the alert')
+  })
+})
+
+describe('a publication that waited out a backoff', () => {
+  /** One publication queued for card 12, failed once, and due again. */
+  async function waited(): Promise<void> {
+    BOARD()
+    writeCardFile()
+    queuePublish(12)
+    fakeCloud(unreachable)
+    await flushCloudOutbox()
+    due()
+  }
+
+  it('is checked against the board, and dropped when the card no longer needs a person', async () => {
+    await waited()
+    // A run picked the card up while the send was waiting. Raising it now would ask about
+    // work that is already being done.
+    working(12)
+
+    const calls = fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
+    await flushCloudOutbox()
+
+    assert.ok(!calls.some((c) => c.endsWith('/v1/events')), 'nothing was raised')
+    assert.deepEqual(readOutbox().pending, [])
+    assert.equal(readOutbox().published['12'], undefined)
+    assert.deepEqual(unsentToCloud(), [], 'a card nobody is waiting on is not a lost change')
+  })
+
+  it('goes out when the card is still waiting', async () => {
+    await waited()
+
+    fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
+    await flushCloudOutbox()
+
+    assert.equal(readOutbox().published['12']?.eventId, 'e-1')
+  })
+
+  it('goes out as it stands when the board read says nothing', async () => {
+    BOARD()
+    // No card on disk: a board does not empty, a read does, and a read that says nothing must
+    // not drop what is queued.
+    queuePublish(12)
+    fakeCloud(unreachable)
+    await flushCloudOutbox()
+    due()
+
+    fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
+    await flushCloudOutbox()
+
+    assert.equal(readOutbox().published['12']?.eventId, 'e-1')
   })
 })
 
@@ -511,7 +633,7 @@ describe('widening the watched scope', () => {
     await watchRelease(ALL_RELEASES)
     assert.equal(summaries().length, 1)
 
-    for (let attempt = 0; attempt < 8; attempt += 1) {
+    for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
       const held = readOutbox()
       const queued = held.pending.find((p) => p.kind === 'summary')
       if (!queued) break
@@ -570,6 +692,19 @@ describe('a delivery held at landing', () => {
     assert.ok(publication, 'the card is raised while it waits on the user')
     assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
     assert.equal(publication.kind === 'publish' && publication.snapshot.decision, 'answer')
+  })
+
+  it('keeps a retried publication, which is re-judged on the same terms that queued it', async () => {
+    held({ status: 'waiting', attempts: 0, at: Date.now() })
+    queuePublish(12)
+    fakeCloud(unreachable)
+    await flushCloudOutbox()
+    due()
+
+    fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
+    await flushCloudOutbox()
+
+    assert.equal(readOutbox().published['12']?.eventId, 'e-1', 'the card still waits on the user')
   })
 
   it('stays quiet while the delivery is still building it', async () => {

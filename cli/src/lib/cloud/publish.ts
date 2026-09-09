@@ -56,6 +56,7 @@ import {
   noteState,
   publishedFor,
   queue,
+  readOutbox,
   settle,
   type Pending,
   type PublishedEvent,
@@ -67,17 +68,25 @@ import { snapshotFor } from './snapshot'
 import { traceCloud } from './trace'
 
 /** How many times a queued item is tried before this board gives up on it. Spread over the
- *  backoff below, so it is most of an afternoon of Cloud being unreachable rather than eight
- *  tries in eight minutes. Past it the item is written down as unsent (#329): a publication
- *  is queued again by the next board write, and an action or an outcome is queued once and
- *  by nobody else, so dropping one in silence loses it. */
-const MAX_ATTEMPTS = 8
+ *  backoff below, so it is roughly four hours of Cloud being unreachable rather than 54 tries
+ *  in a few minutes. Past it the item is written down as unsent (#329): a publication is
+ *  queued again by the next board write, and an action or an outcome is queued once and by
+ *  nobody else, so dropping one in silence loses it. */
+const MAX_ATTEMPTS = 54
 
-/** How long a failed item waits before it is tried again, by attempt. Eight attempts spend
- *  seven of these, which is just under four hours — long enough to carry a lost network and
- *  a Cloud having a bad afternoon. A closed laptop costs no attempt at all: nothing ticks
- *  while it is shut, so what it comes back to is the wait it went to sleep in. */
-const BACKOFF_MS = [60_000, 2 * 60_000, 5 * 60_000, 15 * 60_000, 30 * 60_000, 60 * 60_000, 2 * 60 * 60_000]
+/** How long a failed item waits before it is tried again: five seconds, doubling, capped at
+ *  five minutes. Short at the front because the failure a send usually meets is a passing one
+ *  — a notification the board already promised must arrive within seconds of Cloud coming
+ *  back, not after a minute. 53 waits still add up to a little over four hours, which is what
+ *  carries a lost network and a Cloud having a bad afternoon. A closed laptop costs no attempt
+ *  at all: nothing ticks while it is shut, so what it comes back to is the wait it went to
+ *  sleep in. */
+const FIRST_BACKOFF_MS = 5_000
+const MAX_BACKOFF_MS = 5 * 60_000
+
+/** How far each wait is moved either way. A Cloud that dropped every board on the account at
+ *  once must not get all of them back on the same second. */
+const BACKOFF_JITTER = 0.2
 
 /** How many items one pass sends before it stops and leaves the rest for the next.
  *
@@ -181,6 +190,17 @@ const sleep = (ms: number) =>
     timer.unref?.()
   })
 
+/** Of the cards a delivery is carrying, the ones that raise nothing — every one but a
+ *  delivery held at landing (#565), which is built, reviewed and queued with only the card's
+ *  open questions left, so its card is raised as if nothing held it. `cardsAtWork` itself is
+ *  left whole: a delivery is still carrying these cards, which is what `writeOffAbandoned`
+ *  asks. Every reader of the actionable set goes through here, so a queued publication is
+ *  re-judged on the same terms that queued it. */
+function silenced(atWork: ReadonlySet<number>): Set<number> {
+  const heldAtLanding = cardsHeldAtLanding()
+  return new Set([...atWork].filter((id) => !heldAtLanding.has(id)))
+}
+
 async function queueDifference(
   enabled: CloudBoard,
   reconcile: boolean,
@@ -194,12 +214,7 @@ async function queueDifference(
   // Read once for the whole pass: a card the board is working on raises nothing, and asking
   // per card would read the same record as many times as the board has cards.
   const atWork = cardsAtWork()
-  // …except a delivery held at landing (#565). It is built, reviewed and queued, and the only
-  // thing left is the card's open questions — the same wait a card with no delivery raises,
-  // arrived at from the other end. `atWork` itself is left whole: a delivery is still
-  // carrying these cards, which is what `writeOffAbandoned` below asks.
-  const heldAtLanding = cardsHeldAtLanding()
-  const raising = new Set([...atWork].filter((id) => !heldAtLanding.has(id)))
+  const raising = silenced(atWork)
   const seen = new Set<number>()
   // How many cards this switch brought into view — what the summary counts, and what says
   // whether there is a summary at all.
@@ -560,6 +575,8 @@ function releaseLocalAction(taskId: number, outcome: CloudEventState): void {
 // ---- sending ----------------------------------------------------------------
 
 let flushing: Promise<void> | null = null
+let wake: ReturnType<typeof setTimeout> | null = null
+let wakeAt = 0
 
 /** Send everything the outbox is holding, one item at a time, never twice at once. */
 export function flushCloudOutbox(): Promise<void> {
@@ -571,17 +588,68 @@ export function flushCloudOutbox(): Promise<void> {
     .catch(() => {})
     .finally(() => {
       flushing = null
+      scheduleWake()
     })
   return flushing
+}
+
+/**
+ * Come back by ourselves when the earliest backoff is up.
+ *
+ * The outbox is otherwise only sent by new activity and by the board's own minute tick, so a
+ * five-second wait would really have been a minute — the whole point of a short backoff is
+ * lost without this. Only an item INSIDE its backoff is waited for: something due right now
+ * is left to the tick, which is what still paces the first fill of a busy board over an
+ * afternoon (see SEND_PER_PASS).
+ */
+function scheduleWake(now = Date.now()): void {
+  let soonest = 0
+  for (const item of readOutbox().pending) {
+    if (!item.nextAt || item.nextAt <= now) continue
+    if (!soonest || item.nextAt < soonest) soonest = item.nextAt
+  }
+  if (!soonest || (wake && wakeAt <= soonest)) return
+  if (wake) clearTimeout(wake)
+  wakeAt = soonest
+  // Floored, because a timer that fires a millisecond early would find nothing due and
+  // schedule itself again for the same moment.
+  wake = setTimeout(() => {
+    wake = null
+    wakeAt = 0
+    void flushCloudOutbox()
+  }, Math.max(soonest - now, 50))
+  // A pending retry never holds a terminal `akb` open: what does not get out stays queued.
+  wake.unref?.()
+}
+
+/** Drop that wake — what signing out, turning the board off and quitting do. */
+export function stopOutboxWake(): void {
+  if (wake) clearTimeout(wake)
+  wake = null
+  wakeAt = 0
 }
 
 async function run(): Promise<void> {
   if (!readSession()) return
   let sent = 0
+  // The board as this pass reads it, read at most once and only if something asks — see
+  // `stillNeededNow`.
+  let atNow: BoardNow | null = null
   for (const item of duePending()) {
     if (item.attempts >= MAX_ATTEMPTS) {
       giveUp(item.opId, item.lastError ?? 'Cloud did not answer.')
       continue
+    }
+    // A publication that waited out a backoff describes a card as it was minutes ago. If the
+    // card has stopped needing a person since — a run picked it up, a blocker opened, someone
+    // moved it — sending it now would raise a row about work nobody is waiting on.
+    if (item.kind === 'publish' && item.attempts > 0) {
+      atNow ??= await boardNow()
+      if (!stillNeededNow(item.snapshot.taskId, atNow)) {
+        traceCloud(`dropped ${describe(item)}: the card no longer needs a person`)
+        settle(item.opId)
+        continue
+      }
     }
     // The rest of the queue is the next pass's. See SEND_PER_PASS.
     if (sent >= SEND_PER_PASS) return
@@ -606,7 +674,39 @@ async function run(): Promise<void> {
   }
 }
 
-const backoff = (attempts: number): number => BACKOFF_MS[Math.min(attempts, BACKOFF_MS.length - 1)]!
+const backoff = (attempts: number): number => {
+  const wait = Math.min(FIRST_BACKOFF_MS * 2 ** attempts, MAX_BACKOFF_MS)
+  return Math.round(wait * (1 + (Math.random() * 2 - 1) * BACKOFF_JITTER))
+}
+
+/** Which cards need a person as the board reads NOW, for a pass sending publications that
+ *  were written down minutes ago. `read` is false when there is nothing to compare against —
+ *  the board is off, unreadable, or read as empty — and then nothing is dropped. */
+interface BoardNow {
+  needed: ReadonlySet<number>
+  read: boolean
+}
+
+const NOTHING_READ: BoardNow = { needed: new Set(), read: false }
+
+async function boardNow(): Promise<BoardNow> {
+  const enabled = cloudBoardFor(KANBAN)
+  if (!enabled || !enabled.release) return NOTHING_READ
+  try {
+    const cards = await board().readCards()
+    // A board does not empty; a read does. See the sweep in `queueDifference`.
+    if (cards.length === 0) return NOTHING_READ
+    const home = eventHome(enabled)
+    const raising = silenced(cardsAtWork())
+    const needed = new Set<number>()
+    for (const card of cards) if (snapshotFor(card, enabled, raising, home)) needed.add(card.id)
+    return { needed, read: true }
+  } catch {
+    return NOTHING_READ
+  }
+}
+
+const stillNeededNow = (taskId: number, now: BoardNow): boolean => !now.read || now.needed.has(taskId)
 
 /** One queued item, as the trace names it. */
 function describe(item: Pending): string {
