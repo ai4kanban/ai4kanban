@@ -548,7 +548,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       return [
         `${kb}. Repurpose task ${req.id} ${named} for ${name} following \`akb guide repurpose\`.`,
         files ? `Read ${files.source} and write ${files.target}, in ${language}.` : '',
-        `One pass: shorten or expand the piece into that channel's shape, in that language, and stop.`,
+        `Adapt the presentation while preserving the source's meaning. Compare the result with the source before finishing.`,
         `Write that one file and nothing else — not the card, not \`source.md\`, and not another channel's draft.`,
         req.notes ? `Extra notes: ${req.notes}` : '',
         `Don't ask me questions with human-in-the-loop — the review is me editing the draft.`,
@@ -567,7 +567,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       const files = draftPaths(req.id, req.channel ?? '')
       return [
         `${kb}. Polish the ${req.channel} draft of task ${req.id} following \`akb guide marketing-polish-loop\`.`,
-        files ? `Edit only ${files.target}. Keep its language and meaning.` : '',
+        files ? `Read ${files.source} and edit only ${files.target}. Keep its language and preserve the source's meaning unless the user requests a change.` : '',
         'Check it against docs/kanban/memory/writing.md and the files under docs/kanban/memory/writing/ that apply to it, then fix what you found, and repeat.',
         'Stop on the first check that finds nothing, or after 3 passes — whichever comes first. Never a 4th.',
         'A fix is not its own verdict: every pass re-reads the draft off disk before it judges it.',

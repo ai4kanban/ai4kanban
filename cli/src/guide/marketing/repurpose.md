@@ -1,9 +1,11 @@
 # Repurpose a topic
 
-Read the topic's `source.md`, `memory/decisions.md`, `memory/writing.md` and every
-Markdown file under `memory/writing/`, recursively. Follow the instructions supplied with the run.
+Read the topic's `source.md`, `memory/decisions.md`, `memory/writing.md` and applicable
+files under `memory/writing/`, recursively.
 
-Write only the draft or supporting files named in the run, inside the supplied topic
-folder. Use the supplied language and match the readers' idiom and applicable writing rules.
+Preserve the source's positioning, main argument and intended takeaway unless the user
+requests a change. Adapt language and presentation to the channel; style rules do not
+authorize changing meaning or inventing claims.
 
-Finish the requested files and stop. Change no card, source, other draft or memory.
+Compare the result with the source before finishing. Write only the requested files
+inside the supplied topic folder; change nothing else.
