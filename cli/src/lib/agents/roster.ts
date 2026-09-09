@@ -39,6 +39,7 @@ export function readAgents(): { agents: AgentView[]; problems: string[] } {
     const agent = byName.get(entry.name)
     return {
       name: entry.name,
+      title: entry.title,
       gloss: entry.gloss,
       when: entry.when,
       kind: entry.kind,

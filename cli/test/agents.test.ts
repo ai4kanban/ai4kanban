@@ -136,7 +136,14 @@ describe("what an agent says to a reader who doesn't read English", () => {
     // Only `owns` was translated, so the other line stays the English the file declares
     // rather than going blank.
     assert.equal(zh.description, agent.description)
-    assert.deepEqual(agentLines(agent, 'en'), { description: agent.description, owns: agent.owns })
+    // A name it never said stays empty rather than falling back: the screen drawing it
+    // spells the agent's own name out, which is the answer in English too.
+    assert.equal(zh.title, '')
+    assert.deepEqual(agentLines(agent, 'en'), {
+      title: '',
+      description: agent.description,
+      owns: agent.owns,
+    })
 
     // The block is drawn, never run: what a spec run is handed is the English pair and the
     // instructions under the frontmatter.
@@ -147,6 +154,7 @@ describe("what an agent says to a reader who doesn't read English", () => {
   it('ships both bundled agents with their Chinese lines', () => {
     for (const name of ['ui-designer', 'tech-stack-advisor']) {
       const said = agentLines(findSpecAgent(name)!, 'zh')
+      assert.match(said.title, /[\u4e00-\u9fa5]/, name)
       assert.match(said.description, /[\u4e00-\u9fa5]/, name)
       assert.match(said.owns, /[\u4e00-\u9fa5]/, name)
     }

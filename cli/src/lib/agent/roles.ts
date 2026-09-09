@@ -214,6 +214,10 @@ export function roleFlowsInOrder(role: AgentRole): string[] {
 /** One agent as a roster reads it — a role, or one of the specialists a card asks for. */
 export interface RosterEntry {
   name: string
+  /** What it is called in the language this machine reads, or empty. Only a specialist can
+   *  say one, in its own `akb.i18n`; a role is a closed set the command ships, so the screen
+   *  drawing it names it. Empty means "spell the name out". */
+  title: string
   /** What it does, in one clause: a role's line, or a specialist's `akb.owns`. */
   gloss: string
   /** When the board calls it — a specialist's own `description`. Empty on a role, which is
@@ -246,6 +250,7 @@ export function agentRoster(): RosterEntry[] {
     const said = agentLines(agent)
     return {
       name: agent.name,
+      title: said.title,
       gloss: said.owns,
       when: said.description,
       kind: agent.kind,
@@ -258,6 +263,7 @@ export function agentRoster(): RosterEntry[] {
   return [
     ...roles().map((role) => ({
       name: role.name,
+      title: '',
       gloss: role.gloss,
       when: '',
       kind: 'role' as const,

@@ -29,12 +29,22 @@ export type { AgentKind, SpecAgent } from './parse'
 /** Every agent on this board, in the board's order. */
 export const specAgents = (): SpecAgent[] => specAgentCatalog().agents
 
-/** An agent's two user-facing lines in the language this machine reads (#334), falling back
- *  to the English its file declares. Only ever DRAWN — every run is handed the English pair,
- *  so a board reads in one language and its agents are asked in another. */
-export function agentLines(agent: SpecAgent, language: Language = readLanguage()): { description: string; owns: string } {
+/** An agent's user-facing words in the language this machine reads (#334), falling back to
+ *  the English its file declares. Only ever DRAWN — every run is handed the English, so a
+ *  board reads in one language and its agents are asked in another.
+ *
+ *  `title` is empty unless the agent says one: a screen that has no translated name spells
+ *  the agent's own out, which is the right answer in English and never a blank. */
+export function agentLines(
+  agent: SpecAgent,
+  language: Language = readLanguage(),
+): { title: string; description: string; owns: string } {
   const said = agent.i18n[language]
-  return { description: said?.description || agent.description, owns: said?.owns || agent.owns }
+  return {
+    title: said?.title || '',
+    description: said?.description || agent.description,
+    owns: said?.owns || agent.owns,
+  }
 }
 
 /** The settings an agent declares, as a screen reads them: the words in the language this

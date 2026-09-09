@@ -6,6 +6,7 @@ akb:
   owns: the screen a card changes — one layout drawn by default, alternatives only when requested
   i18n:
     zh:
+      title: 界面设计师
       description: 当卡片要设计或改动任何面向用户的功能时使用，包括页面、布局、交互和流程。只有极小的改动才跳过，例如错别字，或不涉及任何设计决策的单个间距修正。计划写得详细、或已有现成组件，都不是跳过的理由。
       owns: 卡片改动的那块界面——默认只画一版布局，只有你明确要求时才给备选方案
       settings:

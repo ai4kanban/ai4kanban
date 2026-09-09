@@ -1317,7 +1317,12 @@ export interface SpecAgentView {
  *  card asks for. One shape for both, because the pane draws one roster — what parts them is
  *  `kind` and whether there is a switch, not two lists. */
 export interface AgentView {
+  /** Its id — the folder, the rule file, the word a run is asked for by. Never translated. */
   name: string
+  /** What it is called in the language this machine reads, or empty when it says no name in
+   *  that language. A role leaves this empty: the pane's own copy names the closed set the
+   *  command ships. */
+  title: string
   /** What it does, in one clause: a role's line, or a specialist's `akb.owns`. */
   gloss: string
   /** When the board calls it — a specialist's own `description`. Empty on a role, which is

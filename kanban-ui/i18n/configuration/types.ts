@@ -151,12 +151,12 @@ export type ConfigurationCopy = {
     optional: string;
     /** How many specialists are on, beside that group's caption. */
     onCount: (n: number) => string;
-    /** A column row's own state, read there and flipped on the page beside it. */
+    /** A column row's own state, read there and flipped on the page beside it. Only a
+     *  switchable agent prints it — an always-on row has no state to read. */
     rowOn: string;
     rowOff: string;
     /** Beside the switch in the page header. */
     enabled: string;
-    blurb: string;
     loading: string;
     tooOld: string;
     /** One line per problem the board reports about its agents — a malformed AGENT.md, a
@@ -169,30 +169,35 @@ export type ConfigurationCopy = {
     flipFailedOn: (agent: string) => string;
     flipFailedOff: (agent: string) => string;
 
-    /** The page beside the column: the group its settings sit in, then the settings. */
-    configuration: string;
     /** What this agent runs (#467): one runtime, which carries its harness and its model. */
     runtime: string;
     /** The right-end note on the list's first entry — an agent that named none runs
      *  Global default. Every other row notes its model id there. */
     boardsOwn: string;
-    /** Under the row: where the pick lands. */
+    /** Beside the label: what a runtime is, so the row is a sentence and a control rather
+     *  than a word and a gap. */
     runtimeBlurb: string;
-    /** The way across to Configuration → Runtimes, on the runtime row. Only read out loud. */
+    /** The link across to Configuration → Runtimes, under the runtime control. */
     openRuntimes: string;
     /** The runtime the board holds for this agent is one it no longer has. */
     unknownHarness: (runtime: string) => string;
     harnessFailed: (agent: string) => string;
-    /** Before a specialist's own trigger, on its page. */
+    /** Before an agent's own trigger, on its page. The trigger reads as one sentence and
+     *  opens in place — the whole of it is a paragraph, and a header is not where a
+     *  paragraph belongs. */
     runsWhen: string;
+    viewRules: string;
+    hideRules: string;
     yours: string;
     /** Words appended to the end of every run this agent does. Only a bundled agent has
      *  one: an agent this project added is its own AGENT.md, written right here. */
     rule: string;
+    /** Under the box: where what you write is kept. */
+    savedHere: string;
     ruleLabel: (agent: string) => string;
     /** A role the pane does not know — one shipped after this copy was written. */
     rulePlaceholder: (agent: string) => string;
-    /** A role's own line, and the box that trains it saying WHERE the words land: which
+    /** A role's own NAME and line, and the box that trains it saying WHERE the words land: which
      *  runs on this board actually read them, in the names the Runs screen uses. The board
      *  ships the roles, so the pane can carry their words; a specialist says both in its
      *  own `AGENT.md`, which is the only place a project can write them.
@@ -201,7 +206,7 @@ export type ConfigurationCopy = {
      *  (#493) and the proposer (#534) are started by something you can point at, the
      *  discussion helper by you talking to it (#502), and every other role is called by its
      *  flows. */
-    roles: Record<AgentRoleName, { gloss: string; rule: string; when?: string }>;
+    roles: Record<AgentRoleName, { name: string; gloss: string; rule: string; when?: string }>;
     /** The decider (#447) — the one switch on this board that stops nothing for you, so its
      *  page carries what that costs and its switch asks once before it goes on. */
     decider: {

@@ -42,6 +42,9 @@ export interface SpecAgent {
 
 /** An agent's user-facing words, as one language says them. */
 export interface AgentLines {
+  /** What it is CALLED here. Its `name` is an id — the folder, the rule file, the word a
+   *  run is asked for by — and stays English everywhere; this is only ever drawn. */
+  title?: string
   description?: string
   owns?: string
   /** What its settings say here, by setting key. */
@@ -168,6 +171,7 @@ function readTranslations(raw: YamlValue | undefined): Record<string, AgentLines
     if (!said) continue
     const settings = readSettingTranslations(said.settings)
     const lines: AgentLines = {
+      ...(str(said.title) ? { title: str(said.title) } : {}),
       ...(str(said.description) ? { description: str(said.description) } : {}),
       ...(str(said.owns) ? { owns: str(said.owns) } : {}),
       ...(Object.keys(settings).length ? { settings } : {}),
