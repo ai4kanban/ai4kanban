@@ -19,8 +19,9 @@ import type { CardScreen } from "@/lib/format/board/screen";
 import type { NotificationRow } from "@/lib/notifications";
 import { ScreenActionsProvider, ScreenControlsProvider } from "@/lib/screen";
 import { HOSTED_CONTROLS, hostedActions } from "../lib/actions";
+import type { HostedAccount } from "../lib/cloud";
 import type { HostedCopy } from "../lib/copy";
-import { CopyProvider, OpenInApp, TopRow } from "./Frame";
+import { AccountProvider, CopyProvider, OpenInApp, TopRow } from "./Frame";
 
 function Shell({ children, ...chrome }: CardChrome & { children: ReactNode }) {
   const workspace = chrome.screen.id;
@@ -51,11 +52,14 @@ export function CardView({
   event,
   /** The app link this page offers, for a machine that holds a copy of this workspace. */
   workspace,
+  /** Who the top row names (#575). Null when that one read did not answer. */
+  account,
 }: {
   screen: CardScreen;
   copy: HostedCopy;
   event: NotificationRow | null;
   workspace: string;
+  account: HostedAccount | null;
 }) {
   const router = useRouter();
   const rows = useMemo(() => (event ? [event] : []), [event]);
@@ -73,19 +77,21 @@ export function CardView({
 
   return (
     <CopyProvider value={copy}>
-      {/* The card's own links — its group root, its blockers, its subtasks and the `#12`s
-          in its body — lead to cards under this same workspace. */}
-      <BoardBaseProvider value={`/${screen.id}`}>
-        <CardEventsProvider value={rows}>
-          {/* A card with no live decision is handed no writer at all, so every control on the
-              page is gone rather than dead — the same read-only page #322 drew. */}
-          <ScreenActionsProvider value={event ? actions : null}>
-            <ScreenControlsProvider value={HOSTED_CONTROLS}>
-              <CardPage screen={screen} shell={Shell} />
-            </ScreenControlsProvider>
-          </ScreenActionsProvider>
-        </CardEventsProvider>
-      </BoardBaseProvider>
+      <AccountProvider value={account}>
+        {/* The card's own links — its group root, its blockers, its subtasks and the `#12`s
+            in its body — lead to cards under this same workspace. */}
+        <BoardBaseProvider value={`/${screen.id}`}>
+          <CardEventsProvider value={rows}>
+            {/* A card with no live decision is handed no writer at all, so every control on
+                the page is gone rather than dead — the same read-only page #322 drew. */}
+            <ScreenActionsProvider value={event ? actions : null}>
+              <ScreenControlsProvider value={HOSTED_CONTROLS}>
+                <CardPage screen={screen} shell={Shell} />
+              </ScreenControlsProvider>
+            </ScreenActionsProvider>
+          </CardEventsProvider>
+        </BoardBaseProvider>
+      </AccountProvider>
     </CopyProvider>
   );
 }

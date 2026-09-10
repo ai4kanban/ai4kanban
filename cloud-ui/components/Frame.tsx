@@ -16,9 +16,16 @@
 
 import Link from "next/link";
 import { createContext, useContext, type ReactNode } from "react";
-import { FiArrowLeft } from "react-icons/fi";
+import { FiArrowLeft, FiUser } from "react-icons/fi";
 import { LogoMark } from "@/components/Logo";
 import { CHROME } from "@/components/chrome";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -28,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { useCopy } from "@/i18n/use-copy";
 import type { ReleasePick } from "@/lib/release-pick";
+import { accountAddress, accountName, type HostedAccount } from "../lib/cloud";
 import type { HostedCopy } from "../lib/copy";
 
 // The frame's own words. A context rather than a prop, so the shells that use it can be
@@ -39,6 +47,12 @@ export const CopyProvider = CopyContext.Provider;
 
 /** The frame's words. Always there: every page under this frame provides them. */
 export const useHostedCopy = (): HostedCopy => useContext(CopyContext)!;
+
+/** Who the top row names (#575). Null wherever the account could not be read, and on the
+ *  pages drawn for nobody — a refusal and a signed-out landing. */
+const AccountContext = createContext<HostedAccount | null>(null);
+
+export const AccountProvider = AccountContext.Provider;
 
 /** Radix refuses an empty value, so No release carries one no version id can be — a release
  *  line is cut at an em dash, so an id can never hold one. */
@@ -97,7 +111,7 @@ export function TopRow({
       <div className="flex shrink-0 items-center gap-2">
         {children}
         {workspaceName !== undefined && readOnly && <ReadOnlyMark />}
-        {signedOut ? <SignIn /> : <SignOut />}
+        {signedOut ? <SignIn /> : <AccountMenu />}
       </div>
     </header>
   );
@@ -135,17 +149,90 @@ export function OpenInApp({ workspace, card }: { workspace: string; card: number
   );
 }
 
-/** A form rather than a link: signing a reader out is a change, and a link somebody else put
- *  on a page must not be able to make it. `SameSite=Lax` carries the cookie on a link and not
- *  on a cross-site POST, which is what makes that true. */
-function SignOut() {
+/**
+ * The account, on every signed-in page (#575) — the avatar, and under it who this is,
+ * Settings and the way out.
+ *
+ * It is drawn whether or not the account could be read: the reader IS signed in, so the way
+ * out has to be on the page, and an unread account costs the identity block rather than the
+ * menu.
+ *
+ * Sign out stays a form rather than becoming a link: signing a reader out is a change, and a
+ * link somebody else put on a page must not be able to make it. `SameSite=Lax` carries the
+ * cookie on a link and not on a cross-site POST, which is what makes that true.
+ */
+function AccountMenu() {
   const copy = useHostedCopy();
+  const account = useContext(AccountContext);
+  const name = account ? accountName(account) : "";
+  const address = account ? accountAddress(account) : null;
   return (
-    <form action="/signout" method="post">
-      <button type="submit" className={`${WAY_OUT} ${CHROME}`}>
-        {copy.signOut}
-      </button>
-    </form>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={copy.account}
+          className={`size-7 shrink-0 cursor-pointer overflow-hidden rounded-[8px] bg-nb-paper max-md:size-9 ${CHROME}`}
+        >
+          <Avatar account={account} className="size-full rounded-none text-[11px]" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[13rem]">
+        {account && (name || address) && (
+          <>
+            <div className="flex items-center gap-2 px-2.5 py-2">
+              <Avatar account={account} />
+              <span className="flex min-w-0 flex-col">
+                {name && <span className="truncate text-[13px] font-[700] text-nb-ink">{name}</span>}
+                {address && (
+                  <span className="truncate text-[11px] font-[600] text-nb-ink-soft">{address}</span>
+                )}
+              </span>
+            </div>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuItem asChild>
+          <Link href="/settings">{copy.settings}</Link>
+        </DropdownMenuItem>
+        <form action="/signout" method="post">
+          <DropdownMenuItem asChild>
+            <button type="submit" className="w-full">
+              {copy.signOut}
+            </button>
+          </DropdownMenuItem>
+        </form>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** The account's picture, its initials under that, and a neutral mark under both — so a
+ *  provider that attests no picture shows a name, and an account that could not be read at
+ *  all still shows something a reader can aim at. */
+export function Avatar({
+  account,
+  className = "size-[26px] rounded-[8px] text-[11px]",
+}: {
+  account: HostedAccount | null;
+  className?: string;
+}) {
+  const initials = (account ? accountName(account) : "")
+    .split(/[\s-]+/)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
+  return (
+    <span
+      className={`relative grid shrink-0 place-items-center overflow-hidden bg-nb-ink/8 font-[800] text-nb-ink ${className}`}
+      aria-hidden
+    >
+      {initials || <FiUser className="size-[55%]" />}
+      {account?.avatarUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={account.avatarUrl} alt="" className="absolute inset-0 size-full object-cover" />
+      )}
+    </span>
   );
 }
 
@@ -213,19 +300,21 @@ export function Releases({
  */
 export function NoticePage({
   copy,
+  account = null,
   workspaceName,
   back,
   signedOut,
   children,
 }: {
   copy: HostedCopy;
+  account?: HostedAccount | null;
   workspaceName?: string;
   back?: string;
   signedOut?: boolean;
   children: ReactNode;
 }) {
   return (
-    <Page copy={copy} workspaceName={workspaceName} back={back} signedOut={signedOut}>
+    <Page copy={copy} account={account} workspaceName={workspaceName} back={back} signedOut={signedOut}>
       <p className="text-[15px] leading-relaxed text-nb-ink">{children}</p>
     </Page>
   );
@@ -235,12 +324,14 @@ export function NoticePage({
  *  it that fills the height. */
 export function Page({
   copy,
+  account = null,
   workspaceName,
   back,
   signedOut,
   children,
 }: {
   copy: HostedCopy;
+  account?: HostedAccount | null;
   workspaceName?: string;
   back?: string;
   signedOut?: boolean;
@@ -248,12 +339,14 @@ export function Page({
 }) {
   return (
     <CopyProvider value={copy}>
-      <div className="flex min-h-dvh flex-col">
-        <TopRow workspaceName={workspaceName} back={back} signedOut={signedOut} />
-        <main className="mx-auto flex w-full max-w-[52ch] flex-1 flex-col justify-center gap-4 px-6">
-          {children}
-        </main>
-      </div>
+      <AccountProvider value={account}>
+        <div className="flex min-h-dvh flex-col">
+          <TopRow workspaceName={workspaceName} back={back} signedOut={signedOut} />
+          <main className="mx-auto flex w-full max-w-[52ch] flex-1 flex-col justify-center gap-4 px-6">
+            {children}
+          </main>
+        </div>
+      </AccountProvider>
     </CopyProvider>
   );
 }

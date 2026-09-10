@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { boardScreenFrom } from "@/lib/format/board/assemble";
 import { BoardView } from "../../components/BoardView";
 import { NoticePage } from "../../components/Frame";
-import { readBoard } from "../../lib/cloud";
+import { readAccount, readBoard } from "../../lib/cloud";
 import { getHostedCopy } from "../../lib/copy";
 import { languageFor } from "../../lib/reader";
 import { SESSION_COOKIE, decodeSession } from "../../lib/session";
@@ -21,16 +21,25 @@ export default async function Page({ params }: { params: Promise<{ workspace: st
   const session = decodeSession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session) redirect(`/signin?next=${encodeURIComponent(`/${workspace}`)}`);
 
-  const read = await readBoard(workspace, session.accessToken);
+  // The board, and who is reading it (#575) — together, so the top row's avatar is in the
+  // first paint rather than appearing under the reader.
+  const [read, account] = await Promise.all([
+    readBoard(workspace, session.accessToken),
+    readAccount(session.accessToken),
+  ]);
   // Refused and unavailable are two different sentences on purpose. The first is what a
   // signed-out visitor, an account with no claim, a deleted workspace and a made-up id all
   // get, so none of them learns anything from the difference; the second never says a board
   // does not exist, because a member's live board must never be reported as gone.
   if (!read.ok) {
-    return <NoticePage copy={copy}>{read.why === "refused" ? copy.refused : copy.unavailable}</NoticePage>;
+    return (
+      <NoticePage copy={copy} account={account}>
+        {read.why === "refused" ? copy.refused : copy.unavailable}
+      </NoticePage>
+    );
   }
 
   // A pure function over that one read: no filesystem, no git and no coding agent anywhere
   // in this path (`cli/src/lib/board/assemble.ts`).
-  return <BoardView screen={boardScreenFrom(read.value)} copy={copy} />;
+  return <BoardView screen={boardScreenFrom(read.value)} copy={copy} account={account} />;
 }

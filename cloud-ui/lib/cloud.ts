@@ -151,3 +151,45 @@ export async function pressEvent(
   if (response.status >= 500) return { ok: false, why: "unavailable", error: UNREACHABLE };
   return { ok: false, why: "refused", error: said?.error?.message ?? "" };
 }
+
+// ---- who the reader is (#575) -----------------------------------------------
+
+/** The account the header names — `GET /v1/session`'s own fields, narrowed to the four a
+ *  menu draws. The route is open to a sign-in Cloud has not admitted, so a refused account
+ *  still sees which one it is signed in as. */
+export interface HostedAccount {
+  handle: string | null;
+  name: string | null;
+  email: string | null;
+  avatarUrl: string | null;
+}
+
+/**
+ * Who this browser is signed in as, or null.
+ *
+ * Null on every failure. The header is not the page: a member whose board reads fine gets
+ * the neutral avatar when this one call does not answer, rather than a board that refuses to
+ * draw because the name to put on it could not be fetched.
+ */
+export async function readAccount(token: string): Promise<HostedAccount | null> {
+  const answer = await get<{ session?: Partial<HostedAccount> }>("/v1/session", token);
+  if (!answer.ok || !answer.value.session) return null;
+  const { handle, name, email, avatarUrl } = answer.value.session;
+  return {
+    handle: handle ?? null,
+    name: name ?? null,
+    email: email ?? null,
+    avatarUrl: avatarUrl ?? null,
+  };
+}
+
+/** What to call this account on screen: the name it gave, else the handle the provider
+ *  attests, else the address. Empty when it has none of the three, and the menu drops the
+ *  line rather than drawing a blank one. */
+export const accountName = (account: HostedAccount): string =>
+  account.name || account.handle || account.email || "";
+
+/** The address to draw under that name, or null when the name IS the address — an account
+ *  with neither a name nor a handle would otherwise be drawn its email twice. */
+export const accountAddress = (account: HostedAccount): string | null =>
+  account.email && account.email !== accountName(account) ? account.email : null;

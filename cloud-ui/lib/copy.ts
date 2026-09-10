@@ -40,6 +40,15 @@ export interface HostedCopy {
   /** A press refused with no words of its own: the browser session ran out, or this page is
    *  showing a card that has moved on. The redraw that follows says what it is now. */
   pressRefused: string;
+  /** The avatar in the top row, for a reader who cannot see it (#575). */
+  account: string;
+  settings: string;
+  /** What `/settings` says under the account: everything else about a board and a machine is
+   *  the app's, and nothing hosted is writable. */
+  settingsInApp: string;
+  /** The account itself could not be read. Only `/settings` says it — in the top row the
+   *  neutral avatar is the whole of the answer. */
+  accountUnavailable: string;
 }
 
 const en: HostedCopy = {
@@ -59,6 +68,10 @@ const en: HostedCopy = {
   openInApp: "Open in the app",
   pressUnavailable: "That could not be sent just now. Nothing was decided — try again shortly.",
   pressRefused: "This card has moved on. Reload to see where it stands.",
+  account: "Account",
+  settings: "Settings",
+  settingsInApp: "Board and machine settings live in the AI4Kanban app.",
+  accountUnavailable: "Your account could not be read just now. Try again shortly.",
 };
 
 const zh: HostedCopy = {
@@ -77,6 +90,10 @@ const zh: HostedCopy = {
   openInApp: "在应用中打开",
   pressUnavailable: "暂时无法提交，尚未做出决定，请稍后重试。",
   pressRefused: "该任务卡已发生变化，请刷新查看当前状态。",
+  account: "账号",
+  settings: "设置",
+  settingsInApp: "看板与机器设置在 AI4Kanban 应用中。",
+  accountUnavailable: "暂时无法读取账号信息，请稍后重试。",
 };
 
 export const getHostedCopy = (language: Language): HostedCopy => (language === "zh" ? zh : en);

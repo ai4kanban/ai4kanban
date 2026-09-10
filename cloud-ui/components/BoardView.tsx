@@ -11,8 +11,9 @@ import type { ReactNode } from "react";
 import { Board, type BoardChrome } from "@/components/Board";
 import { BoardBaseProvider } from "@/components/board-links";
 import type { BoardScreen } from "@/lib/format/board/screen";
+import type { HostedAccount } from "../lib/cloud";
 import type { HostedCopy } from "../lib/copy";
-import { CopyProvider, Releases, TopRow } from "./Frame";
+import { AccountProvider, CopyProvider, Releases, TopRow } from "./Frame";
 
 /** Declared here rather than inside the component below: a shell built during a render is a
  *  new component type every time, and React would tear the board down and build it again. */
@@ -34,14 +35,26 @@ function Shell({ children, ...chrome }: BoardChrome & { children: ReactNode }) {
   );
 }
 
-export function BoardView({ screen, copy }: { screen: BoardScreen; copy: HostedCopy }) {
+export function BoardView({
+  screen,
+  copy,
+  account,
+}: {
+  screen: BoardScreen;
+  copy: HostedCopy;
+  /** Who the top row names (#575). Null when that one read did not answer — the board is
+   *  drawn either way. */
+  account: HostedAccount | null;
+}) {
   return (
     <CopyProvider value={copy}>
-      {/* A card lives under its workspace here, not at `/<id>` as it does in the app, so
-          every link the screen draws to one is told where that is. */}
-      <BoardBaseProvider value={`/${screen.id}`}>
-        <Board screen={screen} shell={Shell} />
-      </BoardBaseProvider>
+      <AccountProvider value={account}>
+        {/* A card lives under its workspace here, not at `/<id>` as it does in the app, so
+            every link the screen draws to one is told where that is. */}
+        <BoardBaseProvider value={`/${screen.id}`}>
+          <Board screen={screen} shell={Shell} />
+        </BoardBaseProvider>
+      </AccountProvider>
     </CopyProvider>
   );
 }

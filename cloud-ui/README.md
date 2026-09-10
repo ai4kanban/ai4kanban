@@ -19,6 +19,7 @@ stay in the app.
 | `/<workspace-id>` | That workspace's board — the columns and the release picker |
 | `/<workspace-id>/<card-id>` | One card, whole: the human half, the folded agent half, its subtasks and its open questions — with Implement and Resolve where the board is raising a decision for it |
 | `/<workspace-id>/<card-id>/decide` | Where a press is recorded. A route handler, because the session is an `httpOnly` cookie the page cannot read |
+| `/settings` | The signed-in account, and the line saying board and machine settings are the app's. Nothing on it is writable (#575) |
 | `/signin`, `/signin/callback` | The browser's own GitHub sign-in |
 | `/signout` | Ends the browser session and nothing else |
 

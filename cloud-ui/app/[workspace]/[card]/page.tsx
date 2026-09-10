@@ -5,7 +5,7 @@ import { bandLabel, eventLabel, type CloudEvent } from "@/lib/format/cloud/event
 import type { NotificationRow } from "@/lib/notifications";
 import { CardView } from "../../../components/CardView";
 import { NoticePage } from "../../../components/Frame";
-import { readBoard, readEvents } from "../../../lib/cloud";
+import { readAccount, readBoard, readEvents } from "../../../lib/cloud";
 import { getHostedCopy } from "../../../lib/copy";
 import { languageFor } from "../../../lib/reader";
 import { SESSION_COOKIE, decodeSession } from "../../../lib/session";
@@ -27,12 +27,17 @@ export default async function Page({
   // somewhere else settles an event without the board changing at all. Together, because a
   // card page draws both and a second round trip after the first paint would leave the
   // controls appearing under the reader.
-  const [read, events] = await Promise.all([
+  const [read, events, account] = await Promise.all([
     readBoard(workspace, session.accessToken),
     readEvents(workspace, session.accessToken),
+    readAccount(session.accessToken),
   ]);
   if (!read.ok) {
-    return <NoticePage copy={copy}>{read.why === "refused" ? copy.refused : copy.unavailable}</NoticePage>;
+    return (
+      <NoticePage copy={copy} account={account}>
+        {read.why === "refused" ? copy.refused : copy.unavailable}
+      </NoticePage>
+    );
   }
 
   // A card the board does not hold is its OWN answer, not the refusal above: this reader can
@@ -42,7 +47,12 @@ export default async function Page({
   const screen = Number.isInteger(id) ? cardScreenFrom(read.value, id) : null;
   if (!screen) {
     return (
-      <NoticePage copy={copy} workspaceName={read.value.workspace.name} back={`/${workspace}`}>
+      <NoticePage
+        copy={copy}
+        account={account}
+        workspaceName={read.value.workspace.name}
+        back={`/${workspace}`}
+      >
         {copy.noSuchCard}
       </NoticePage>
     );
@@ -54,6 +64,7 @@ export default async function Page({
       copy={copy}
       workspace={workspace}
       event={rowFor(events, id)}
+      account={account}
     />
   );
 }

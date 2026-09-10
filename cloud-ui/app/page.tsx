@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { NoticePage, Page as Frame } from "../components/Frame";
-import { readWorkspaces } from "../lib/cloud";
+import { readAccount, readWorkspaces } from "../lib/cloud";
 import { getHostedCopy } from "../lib/copy";
 import { languageFor } from "../lib/reader";
 import { SESSION_COOKIE, SIGNED_OUT, SIGN_IN_FAILED, decodeSession } from "../lib/session";
@@ -41,18 +41,35 @@ export default async function Page({
     redirect("/signin?next=%2F");
   }
 
-  const read = await readWorkspaces(session.accessToken);
-  if (!read.ok) return <NoticePage copy={copy}>{copy.unavailable}</NoticePage>;
+  // The account beside the read, not after it: the top row names who this is on every
+  // signed-in page (#575), and a second round trip would draw the header twice.
+  const [read, account] = await Promise.all([
+    readWorkspaces(session.accessToken),
+    readAccount(session.accessToken),
+  ]);
+  if (!read.ok) {
+    return (
+      <NoticePage copy={copy} account={account}>
+        {copy.unavailable}
+      </NoticePage>
+    );
+  }
 
   const workspaces = read.value;
   // One workspace is not a list: the reader came here to open their board, so open it.
   if (workspaces.length === 1) redirect(`/${workspaces[0]!.id}`);
   // None is a plain sentence, never a refusal: an account with nothing to open has not been
   // turned away, and an account we have not admitted to the preview reaches none either.
-  if (workspaces.length === 0) return <NoticePage copy={copy}>{copy.noWorkspace}</NoticePage>;
+  if (workspaces.length === 0) {
+    return (
+      <NoticePage copy={copy} account={account}>
+        {copy.noWorkspace}
+      </NoticePage>
+    );
+  }
 
   return (
-    <Frame copy={copy}>
+    <Frame copy={copy} account={account}>
       <h1 className="text-[13px] font-[700] uppercase tracking-[0.08em] text-nb-ink-soft">
         {copy.chooseWorkspace}
       </h1>
