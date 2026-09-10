@@ -416,7 +416,8 @@ export async function addToInbox(drop: InboxDrop): Promise<InboxAddResult> {
   return rules.addToInbox(drop);
 }
 
-/** Ignore one signal for good — its file goes, and no later pull brings it back.
+/** Ignore one signal for good — its file moves to `triage/dismissed/`, where it is kept, and
+ *  no later pull brings it back.
  *
  *  A refusal is answered in the page's own copy, not the rules'. The rules say why in
  *  English — the id is not in the inbox, the file would not go — and none of that is a

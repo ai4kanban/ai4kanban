@@ -1,6 +1,6 @@
 "use client";
 
-// Triage (#453, #499, #560) — anything that might become work, in `docs/kanban/triage/`.
+// Triage (#453, #499, #559, #560) — anything that might become work, in `docs/kanban/triage/`.
 //
 // The page is a board, not a document: a few hundred items, grouped by the source they came
 // from, three light cards to a row. A source's name and mark are drawn once, on the group
@@ -10,6 +10,11 @@
 // The whole main area is the list. There is no standing heading, lead paragraph or compose
 // box above it: **Add** opens a small popover under its own button, and that is where a link,
 // some words or a file goes in.
+//
+// **Ignored** is the same board, read only: what you or an agent judged, over the last 30
+// days. A card there draws the judgement in place of the values a waiting one draws — the
+// agent's own reason, or "you ignored it" — and there is no way back from it. Pasting the
+// link in again is the way back, which is why **Add** stays on that tab too (#559).
 //
 // Nothing here is a card: nothing on this page creates one, ranks one, or touches the board's
 // counts. Turning one into a card is #454's.
@@ -87,14 +92,18 @@ function order(stamp: string): number {
   return Number.isNaN(at) ? -Infinity : at;
 }
 
-/** Everything the search looks at: what it says, where it came from, and the values its
- *  source sent. Never the keys — they are not drawn, so they are not searched. */
+/** Everything the search looks at: what it says, where it came from, the values its source
+ *  sent, and — on the ignored side — why it was ignored. Never the keys: they are not drawn,
+ *  so they are not searched. A record whose own words were never kept has only its source id
+ *  to find it by, and that is what the id in the title position is. */
 function matches(signal: Signal, query: string): boolean {
   if (!query) return true;
   const parts = [
     signal.title,
     signal.summary,
     signal.sourceType,
+    signal.dismissedReason,
+    ...(signal.contentKept ? [] : [signal.sourceId]),
     ...signal.meta.map((pair) => pair.value),
   ];
   return parts.some((part) => part.toLowerCase().includes(query));
@@ -575,7 +584,11 @@ export function SignalsPage({
             {groups.length === 0 ? (
               <div className="nb-panel-sm p-5 max-md:p-4">
                 <p className="text-[13px] leading-relaxed text-nb-ink-soft">
-                  {narrowing ? c.noHits : c.empty}
+                  {narrowing
+                    ? c.noHits
+                    : tab === "dismissed"
+                      ? c.emptyDismissed
+                      : c.empty}
                 </p>
                 {narrowing && (
                   <button
@@ -593,6 +606,7 @@ export function SignalsPage({
                   <SourceSection
                     key={group.type || "none"}
                     group={group}
+                    dismissed={tab === "dismissed"}
                     folded={isFolded(group.type)}
                     shown={shown[`${tab}:${group.type}`] ?? FIRST}
                     lit={lit}
@@ -688,6 +702,7 @@ function TabButton({
  *  the same as it holding less. */
 function SourceSection({
   group,
+  dismissed,
   folded,
   shown,
   lit,
@@ -696,6 +711,7 @@ function SourceSection({
   onOpen,
 }: {
   group: Group;
+  dismissed: boolean;
   folded: boolean;
   shown: number;
   lit: string;
@@ -740,6 +756,7 @@ function SourceSection({
               <SignalCard
                 key={signal.sourceId}
                 signal={signal}
+                dismissed={dismissed}
                 lit={lit === signal.sourceId}
                 onOpen={onOpen}
               />
@@ -760,22 +777,33 @@ function SourceSection({
   );
 }
 
-/** One item, as small as it can be and still be worth reading: two lines of title, and up to
- *  three of the values its source sent. The keys are not drawn — `r/productivity` says what
- *  it is and `subreddit:` in front of it says it twice. */
+/** One item, as small as it can be and still be worth reading: two lines of title, and one
+ *  line under it. Waiting, that line is up to three of the values its source sent — the keys
+ *  are not drawn, because `r/productivity` says what it is and `subreddit:` says it twice.
+ *  Ignored, it is the judgement instead: the agent's own reason, or that you ignored it.
+ *
+ *  A record carried over from a board that kept only source ids has neither a title nor its
+ *  own words, so the id stands in the title position — monospaced, because that is what it
+ *  is — and a chip says its content was not kept and when it was judged. */
 function SignalCard({
   signal,
+  dismissed,
   lit,
   onOpen,
 }: {
   signal: Signal;
+  dismissed: boolean;
   lit: boolean;
   onOpen: (sourceId: string) => void;
 }) {
-  const said = signal.meta
-    .slice(0, 3)
-    .map((pair) => pair.value)
-    .join(" · ");
+  const c = useCopy().rail.signals;
+  const language = useLanguage();
+  const said = dismissed
+    ? signal.dismissedReason || (signal.dismissedBy === "user" ? c.byYou : "")
+    : signal.meta
+        .slice(0, 3)
+        .map((pair) => pair.value)
+        .join(" · ");
   return (
     <li>
       <button
@@ -789,13 +817,26 @@ function SignalCard({
             : undefined
         }
       >
-        <p className="line-clamp-2 text-[13px] font-[600] leading-[19px]">
-          {signal.title}
-        </p>
-        {said && (
-          <p className="mt-auto truncate text-[11.5px] leading-[17px] text-nb-ink-soft">
-            {said}
+        {signal.contentKept ? (
+          <p className="line-clamp-2 text-[13px] font-[600] leading-[19px]">
+            {signal.title}
           </p>
+        ) : (
+          <p className="truncate font-mono text-[12px] font-[600] leading-[19px] text-nb-ink-soft">
+            {signal.sourceId}
+          </p>
+        )}
+        {signal.contentKept ? (
+          said && (
+            <p className="mt-auto truncate text-[11.5px] leading-[17px] text-nb-ink-soft">
+              {said}
+            </p>
+          )
+        ) : (
+          <span className="mt-auto inline-flex max-w-full items-center truncate rounded-[6px] bg-[color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)] px-1.5 py-0.5 text-[11px] leading-[15px] text-nb-ink-soft">
+            {c.contentGone}
+            {signal.dismissedAt && ` · ${when(signal.dismissedAt, language)}`}
+          </span>
         )}
       </button>
     </li>
@@ -864,12 +905,27 @@ function SignalDetail({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
-        <h2 className="text-[14px] font-[700] leading-[20px]">
-          {signal.title}
-        </h2>
-        <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-[19px]">
-          {signal.summary}
-        </p>
+        {/* A record whose own words were never kept has nothing to head it but its id, and
+            saying so once is better than an empty heading over an empty body. */}
+        {signal.contentKept ? (
+          <h2 className="text-[14px] font-[700] leading-[20px]">
+            {signal.title}
+          </h2>
+        ) : (
+          <>
+            <h2 className="break-all font-mono text-[13px] font-[700] leading-[20px]">
+              {signal.sourceId}
+            </h2>
+            <p className="mt-2 text-[12px] leading-[18px] text-nb-ink-soft">
+              {c.contentGone}
+            </p>
+          </>
+        )}
+        {signal.summary && (
+          <p className="mt-2 whitespace-pre-wrap text-[12.5px] leading-[19px]">
+            {signal.summary}
+          </p>
+        )}
         {signal.meta.length > 0 && (
           <p className="mt-3 text-[12px] leading-[18px] text-nb-ink-soft">
             {signal.meta.map((pair) => pair.value).join(" · ")}
@@ -881,7 +937,11 @@ function SignalDetail({
             c.dismissedAt,
             signal.dismissedAt ? when(signal.dismissedAt, language) : "",
           )}
-          {line(c.dismissedWhy, signal.dismissedWhy)}
+          {line(
+            c.dismissedWhy,
+            signal.dismissedReason ||
+              (signal.dismissedBy === "user" ? c.byYou : ""),
+          )}
         </div>
       </div>
 

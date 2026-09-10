@@ -819,8 +819,8 @@ export interface SignalMeta {
 
 /** One item in the inbox — something worth turning into a card, and not yet a card. */
 export interface Signal {
-  /** Its identity: two pulls of the same post carry the same one, and that is what the
-   *  inbox and `handled.md` are keyed on. Derived when nothing supplies one. */
+  /** Its identity: two pulls of the same post carry the same one, and that is what every
+   *  duplicate check across triage is keyed on. Derived when nothing supplies one. */
   sourceId: string
   title: string
   /** Its own words — the post, the pasted text, or what the dropped file is. */
@@ -838,10 +838,18 @@ export interface Signal {
   /** When this board wrote it into the inbox, same form. */
   importedAt: string
   /** When it was ignored, same form, for an item read out of `triage/dismissed/`. Empty on
-   *  one still waiting. Written by #559. */
+   *  one still waiting, and on a record migrated from a board that never wrote one. */
   dismissedAt: string
-  /** Why it was ignored, for one read out of `triage/dismissed/`. Empty when nothing said. */
-  dismissedWhy: string
+  /** Who ignored it: `user` from the page, `agent` from a run. Empty when the record does
+   *  not say — a migrated one never did. */
+  dismissedBy: 'user' | 'agent' | ''
+  /** Why, in the agent's own words. Empty on one the user ignored: the page says who did it
+   *  and never asks for a reason. */
+  dismissedReason: string
+  /** False on a record carried over from the old handled list, which held a source id and a
+   *  time and nothing else. The page draws such an item as the stub it is rather than as an
+   *  item with an empty title. */
+  contentKept: boolean
   /** The path from the repo root, forward slashes. */
   relPath: string
 }
@@ -859,8 +867,8 @@ export interface SignalInbox {
   relPath: string
   /** Everything waiting, newest collected first. */
   signals: Signal[]
-  /** What has been ignored and is still inside the window below, newest judged first. Empty
-   *  until #559 writes `triage/dismissed/`. */
+  /** What has been ignored and is still inside the window below, newest judged first. The
+   *  files are kept for good; this is only what is drawn. */
   dismissed: Signal[]
   /** How far back the ignored tab reaches, in days — what its label says. */
   dismissedDays: number

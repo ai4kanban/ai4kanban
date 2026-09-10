@@ -196,7 +196,7 @@ export const setDecider = (on: boolean): { ok: boolean; error?: string } => setS
 // ready gate and the decider made. With it ON, every card that reaches the archive starts
 // one `reflect` run over that card alone, which is a paid run per completion.
 //
-// What it writes lands in `docs/kanban/triage/inbox/`, never on the board: a proposal is
+// What it writes lands in `docs/kanban/triage/`, never on the board: a proposal is
 // triaged like anything else that arrives there, so a weak one costs a dismissal. Turning
 // it off again leaves nothing behind — there is no state but this key.
 

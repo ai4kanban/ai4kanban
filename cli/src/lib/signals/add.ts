@@ -8,7 +8,7 @@
 //   a link   ──► title from the address, url the link, the domain against the source list
 //   text     ──► title from its first line, the whole of it as the body, and no source
 //   .md/.txt ──► title from its first line, its text as the body, the name as `filename`
-//   anything ──► the bytes are COPIED under `inbox/files/`, and the body names them
+//   anything ──► the bytes are COPIED under `triage/files/`, and the body names them
 //
 // A source is a key off ./sources.ts or nothing (#560). A domain the list has not got, and a
 // dropped file's name, are kept as a `meta` entry — a fact about the item, not a claim about
@@ -20,20 +20,24 @@
 //
 // A caller may say the title and the source outright instead of leaving them to be read off
 // the input (#534): `akb triage add` does, so a proposal carries the card that prompted it.
+//
+// Something already waiting, or already made into a card, is refused and told where it is.
+// Something only IGNORED is taken: pasting a link back in is the one way out of a dismissal,
+// so it has to work, and it costs one more file — the `dismissed/` record stays where it is
+// and the item waits again beside it (#559).
 
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { createHash } from 'node:crypto'
 import { formatStamp } from '../cadence'
-import { SIGNAL_INBOX, rel } from '../paths'
+import { SIGNALS_FILES, rel } from '../paths'
+import { checkSource, sayHit } from './check'
 import { asLink, derivedSourceId, host } from './identity'
+import { migrateTriage } from './migrate'
 import { matchSourceType } from './sources'
-import { metaPair, readInbox, writeSignal, type IncomingSignal } from './inbox'
+import { metaPair, writeSignal, type IncomingSignal } from './inbox'
 import type { InboxAddResult, InboxDrop, SignalMeta } from '../view/types'
-
-/** Where a dropped file's bytes are copied to. */
-const FILES = (): string => path.join(SIGNAL_INBOX, 'files')
 
 /** As much of a file as the board will take into git. Past this it belongs somewhere else,
  *  and the answer says so rather than committing it. */
@@ -94,13 +98,15 @@ function fileName(name: string, data: Uint8Array): string {
   return `${word}-${hash}${ext}`
 }
 
-/** Where a dropped file's bytes WILL go. Worked out before anything is written, so a drop
- *  the inbox already holds leaves no copy behind. */
-const keepAt = (file: NonNullable<InboxDrop['file']>): string => path.join(FILES(), fileName(file.name, file.data))
+/** Where a dropped file's bytes WILL go — `triage/files/`, shared by every state an item can
+ *  be in, so the copy stays put when the item moves and the path in its body is written once.
+ *  Worked out before anything is written, so a drop triage already holds leaves no copy. */
+const keepAt = (file: NonNullable<InboxDrop['file']>): string => path.join(SIGNALS_FILES, fileName(file.name, file.data))
 
 /** Take one thing into the inbox. Never throws: what it could not take is one sentence for
  *  the page to show, and the inbox is left as it was. */
 export function addToInbox(drop: InboxDrop): InboxAddResult {
+  migrateTriage()
   const typed = (drop.text ?? '').trim()
   const file = drop.file
   if (!typed && !file) return { ok: false, error: 'nothing to add — paste a link or some text, or drop a file.' }
@@ -127,11 +133,12 @@ export function addToInbox(drop: InboxDrop): InboxAddResult {
   if (!incoming.title || !incoming.summary) return { ok: false, error: 'nothing to add — that had no words in it.' }
 
   const sourceId = derivedSourceId(incoming.url || `${incoming.title}\n${incoming.summary}`)
-  if (readInbox().some((held) => held.sourceId === sourceId)) return { ok: false, error: 'that is already in the inbox.' }
+  const seen = checkSource(sourceId)
+  if (seen.status === 'pending' || seen.status === 'archived') return { ok: false, error: `${sayHit(seen)}.` }
 
   try {
     if (keep) {
-      fs.mkdirSync(FILES(), { recursive: true })
+      fs.mkdirSync(SIGNALS_FILES, { recursive: true })
       fs.writeFileSync(keep.at, keep.data)
     }
     return { ok: true, signal: writeSignal({ ...incoming, sourceId }, formatStamp(new Date())) }

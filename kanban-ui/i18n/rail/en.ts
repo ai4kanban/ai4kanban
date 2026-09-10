@@ -60,6 +60,8 @@ const en: RailCopy = {
     unfold: "Unfold",
     more: "More",
     empty: "Nothing here yet. Add a link, some text, or a file.",
+    emptyDismissed:
+      "Nothing has been ignored yet. What you or the agent ignores stays here, and never comes back to Waiting.",
     noHits: "Nothing matches.",
     clear: "Clear",
     connect: "Pull from an endpoint too",
@@ -70,6 +72,8 @@ const en: RailCopy = {
     collected: "Collected",
     dismissedAt: "Ignored",
     dismissedWhy: "Why",
+    byYou: "Dismissed by you",
+    contentGone: "Content not kept",
     viewOriginal: "Open",
     dismiss: "Ignore",
     dismissFailed: "could not ignore that",

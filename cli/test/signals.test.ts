@@ -1,9 +1,13 @@
-// The inbox (#453, #499).
+// Triage (#453, #499, #559).
 //
 // The halves that have to agree: what the endpoint sends becomes a file, the same thing sent
-// twice becomes one file, something ignored never comes back, and what is dropped or pasted
-// in by hand lands as the same kind of file. The fetch is driven against a stubbed `fetch`,
-// so these fix the shape of the request and the answers to a refusal without a network.
+// twice becomes one file, something ignored never comes back to a pull but can be pasted in
+// again by hand, and what is dropped or pasted in lands as the same kind of file. The fetch
+// is driven against a stubbed `fetch`, so these fix the shape of the request and the answers
+// to a refusal without a network.
+//
+// The other half of #559 is the board written before it: an `inbox/` folder and a
+// `handled.md` list, migrated on the first read and re-entrant when that read is cut short.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -11,17 +15,32 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { setBoardDir, setBoardRoot } from '../src/lib/paths.ts'
 import { addToInbox } from '../src/lib/signals/add.ts'
 import { signalConfigGaps } from '../src/lib/signals/config.ts'
 import { fetchSignals } from '../src/lib/signals/fetch.ts'
-import { readHandled } from '../src/lib/signals/inbox.ts'
+import { archiveInboxItem, dismissInboxItem, readAllDismissed } from '../src/lib/signals/inbox.ts'
+import { checkSource } from '../src/lib/signals/check.ts'
+import { migrateTriage } from '../src/lib/signals/migrate.ts'
 import { matchSourceType } from '../src/lib/signals/sources.ts'
 import { dismissSignal, readSignals } from '../src/lib/signals/index.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-signals-'))
 const kanban = () => path.join(root, 'docs', 'kanban')
-const inbox = () => path.join(kanban(), 'triage', 'inbox')
+const triage = () => path.join(kanban(), 'triage')
+const dismissed = () => path.join(triage(), 'dismissed')
+const archived = () => path.join(triage(), 'archived')
+const files = () => path.join(triage(), 'files')
+
+/** Every item file waiting to be sorted — the folder holds subfolders too. */
+const waiting = () => fs.readdirSync(triage()).filter((name) => name.endsWith('.md'))
+
+/** A board stamp so many days back, for the 30-day window. */
+const day = (back: number) => {
+  const at = new Date(Date.now() - back * 24 * 60 * 60 * 1000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} 09:00`
+}
 
 const ENDPOINT = 'https://signals.example.test/pull'
 
@@ -87,10 +106,10 @@ describe('what a pull writes', () => {
     assert.equal(report.added.length, 2)
     assert.equal(asked!.url, ENDPOINT)
     assert.equal((asked!.init!.headers as Record<string, string>).authorization, 'Bearer a-secret')
-    assert.equal(fs.readdirSync(inbox()).length, 2)
+    assert.equal(waiting().length, 2)
 
     const inboxNow = readSignals()
-    assert.equal(inboxNow.relPath, 'docs/kanban/triage/inbox')
+    assert.equal(inboxNow.relPath, 'docs/kanban/triage')
     assert.equal(inboxNow.signals.length, 2)
     const [first] = inboxNow.signals
     assert.equal(first!.title, 'Signal a1')
@@ -101,11 +120,11 @@ describe('what a pull writes', () => {
   })
 
   it('makes the folder on the first pull and not before', async () => {
-    assert.equal(fs.existsSync(inbox()), false)
+    assert.equal(fs.existsSync(triage()), false)
     assert.deepEqual(readSignals().signals, [])
     answerWith({ signals: [wire('a1')] })
     await fetchSignals()
-    assert.equal(fs.existsSync(inbox()), true)
+    assert.equal(fs.existsSync(triage()), true)
   })
 
   it('sorts newest collected first', async () => {
@@ -251,13 +270,13 @@ describe('a pull that fails', () => {
   it('writes nothing when the request is refused', async () => {
     answerWith({ signals: [wire('a1')] }, 401)
     await assert.rejects(fetchSignals(), /answered 401/)
-    assert.equal(fs.existsSync(inbox()), false)
+    assert.equal(fs.existsSync(triage()), false)
   })
 
   it('writes nothing when the answer carries no signals list', async () => {
     answerWith({ items: [] })
     await assert.rejects(fetchSignals(), /`signals` list/)
-    assert.equal(fs.existsSync(inbox()), false)
+    assert.equal(fs.existsSync(triage()), false)
   })
 
   it('names what is missing before it asks anything', async () => {
@@ -280,8 +299,8 @@ describe('a pull that fails', () => {
   })
 })
 
-describe('ignoring a signal', () => {
-  it('takes the file away and keeps it away', async () => {
+describe('ignoring a signal (#559)', () => {
+  it('moves the file into dismissed/ rather than deleting it, and keeps it out of a pull', async () => {
     answerWith({ signals: [wire('a1'), wire('a2')] })
     await fetchSignals()
 
@@ -290,32 +309,138 @@ describe('ignoring a signal', () => {
       readSignals().signals.map((s) => s.sourceId),
       ['a2'],
     )
-    assert.equal(readHandled().has('a1'), true)
+    const [kept] = readAllDismissed()
+    assert.equal(kept!.sourceId, 'a1')
+    assert.equal(kept!.title, 'Signal a1')
+    assert.equal(kept!.dismissedBy, 'user')
+    assert.equal(kept!.dismissedReason, '')
+    assert.match(kept!.dismissedAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/)
+    assert.equal(waiting().length, 1)
 
     answerWith({ signals: [wire('a1'), wire('a2')] })
     const again = await fetchSignals()
     assert.equal(again.added.length, 0)
     assert.equal(again.skipped, 2)
-    assert.deepEqual(
-      readSignals().signals.map((s) => s.sourceId),
-      ['a2'],
-    )
   })
 
-  it('keeps the record when the signal file is deleted by hand', async () => {
+  it('records the reason and the judge when an agent is the one ignoring it', async () => {
+    answerWith({ signals: [wire('a1')] })
+    await fetchSignals()
+    const done = dismissInboxItem('a1', 'agent', '  already a card  ')
+    assert.equal(done.ok, true)
+    const [kept] = readAllDismissed()
+    assert.equal(kept!.dismissedBy, 'agent')
+    assert.equal(kept!.dismissedReason, 'already a card')
+    assert.equal(kept!.contentKept, true)
+  })
+
+  it('keeps one record per source id, judged afresh, when the same thing is ignored twice', async () => {
+    answerWith({ signals: [wire('a1')] })
+    await fetchSignals()
+    dismissInboxItem('a1', 'agent', 'the first call')
+    // Pasted back in by hand — which a dismissal never blocks — then ignored again.
+    assert.equal(addToInbox({ title: 'Signal a1', text: 'What somebody said, in their own words.' }).ok, true)
+    const back = readSignals().signals[0]!.sourceId
+    dismissInboxItem(back, 'user')
+    const held = readAllDismissed()
+    assert.equal(held.filter((s) => s.sourceId === back).length, 1)
+    assert.equal(held.find((s) => s.sourceId === back)!.dismissedBy, 'user')
+    assert.equal(held.find((s) => s.sourceId === back)!.dismissedReason, '')
+  })
+
+  it('leaves fields it does not know about exactly where they were', async () => {
+    fs.mkdirSync(triage(), { recursive: true })
+    fs.writeFileSync(
+      path.join(triage(), 'odd.md'),
+      `---\nsource_id: odd\ntitle: An odd one\ncollected_at: 2026-09-06 21:40\nimported_at: 2026-09-06 21:41\nfuture_field: kept\n---\n\nWords.\n`,
+    )
+    assert.equal(dismissInboxItem('odd', 'user').ok, true)
+    const written = fs.readFileSync(path.join(dismissed(), 'odd.md'), 'utf8')
+    assert.match(written, /future_field: kept/)
+    assert.match(written, /dismissed_by: user/)
+    assert.match(written, /\nWords\./)
+  })
+
+  it('refuses an id nothing is waiting under', () => {
+    assert.equal(dismissSignal('nobody').ok, false)
+    assert.equal(dismissSignal('').ok, false)
+  })
+
+  it('reads only the last 30 days back, and counts nothing older', async () => {
+    fs.mkdirSync(dismissed(), { recursive: true })
+    const write = (id: string, at: string) =>
+      fs.writeFileSync(
+        path.join(dismissed(), `${id}.md`),
+        `---\nsource_id: ${id}\ntitle: Item ${id}\ncollected_at: ${day(40)}\nimported_at: ${day(40)}\ndismissed_at: ${at}\n---\n\nWords.\n`,
+      )
+    write('inside', day(29))
+    write('edge', day(31))
+    assert.deepEqual(
+      readSignals().dismissed.map((s) => s.sourceId),
+      ['inside'],
+    )
+    // Out of the window is not out of the record: the older one still holds a pull off.
+    assert.equal(readAllDismissed().length, 2)
+    answerWith({ signals: [{ source_id: 'edge', title: 'Edge', summary: 'Words.' }] })
+    assert.equal((await fetchSignals()).skipped, 1)
+  })
+})
+
+describe('the one duplicate rule (#559)', () => {
+  it('answers unseen, pending, archived and dismissed, with the file that says so', async () => {
+    assert.deepEqual(checkSource('a1'), { status: 'unseen', relPath: '' })
+
+    answerWith({ signals: [wire('a1'), wire('a2'), wire('a3')] })
+    await fetchSignals()
+    const pending = checkSource('a1')
+    assert.equal(pending.status, 'pending')
+    assert.match(pending.relPath, /^docs\/kanban\/triage\/[^/]+\.md$/)
+
+    assert.equal(dismissSignal('a2').ok, true)
+    assert.equal(checkSource('a2').status, 'dismissed')
+    assert.match(checkSource('a2').relPath, /^docs\/kanban\/triage\/dismissed\//)
+
+    assert.equal(archiveInboxItem('a3', 91).ok, true)
+    assert.equal(checkSource('a3').status, 'archived')
+    assert.match(fs.readFileSync(path.join(archived(), fs.readdirSync(archived())[0]!), 'utf8'), /card_id: 91/)
+  })
+
+  it('reports the first of pending, archived, dismissed when a source id is in two places', async () => {
     answerWith({ signals: [wire('a1')] })
     await fetchSignals()
     dismissSignal('a1')
-    fs.rmSync(path.join(kanban(), 'triage', 'handled.md'))
-    // Without the record the signal comes back — which is the whole reason the record is a
-    // file of its own rather than the inbox.
-    answerWith({ signals: [wire('a1')] })
-    assert.equal((await fetchSignals()).added.length, 1)
+    // Pasted back in: the dismissed record stays, and the waiting copy is what is reported.
+    fs.writeFileSync(
+      path.join(triage(), 'again.md'),
+      `---\nsource_id: a1\ntitle: Signal a1\ncollected_at: 2026-09-06 21:40\nimported_at: 2026-09-06 21:41\n---\n\nWords.\n`,
+    )
+    assert.equal(checkSource('a1').status, 'pending')
+    assert.equal(checkSource('a1').relPath, 'docs/kanban/triage/again.md')
   })
 
-  it('refuses an id the inbox does not hold', () => {
-    assert.equal(dismissSignal('nobody').ok, false)
-    assert.equal(dismissSignal('').ok, false)
+  it('refuses a hand-written add that is already waiting or already a card, and says where', async () => {
+    assert.equal(addToInbox({ text: 'https://example.test/a' }).ok, true)
+    const already = addToInbox({ text: 'https://example.test/a' })
+    assert.equal(already.ok, false)
+    assert.match(already.ok ? '' : already.error, /already waiting in triage — docs\/kanban\/triage\//)
+
+    const id = readSignals().signals[0]!.sourceId
+    assert.equal(archiveInboxItem(id, 92).ok, true)
+    const carded = addToInbox({ text: 'https://example.test/a' })
+    assert.equal(carded.ok, false)
+    assert.match(carded.ok ? '' : carded.error, /a card was already made of that — docs\/kanban\/triage\/archived\//)
+  })
+
+  it('takes a hand-written add of something only ignored, and leaves the record where it is', () => {
+    assert.equal(addToInbox({ text: 'https://example.test/a' }).ok, true)
+    const id = readSignals().signals[0]!.sourceId
+    assert.equal(dismissSignal(id).ok, true)
+    assert.equal(addToInbox({ text: 'https://example.test/a' }).ok, true)
+    assert.deepEqual(
+      readSignals().signals.map((s) => s.sourceId),
+      [id],
+    )
+    assert.equal(readAllDismissed().filter((s) => s.sourceId === id).length, 1)
   })
 })
 
@@ -358,7 +483,7 @@ describe('adding to the inbox by hand (#499)', () => {
     assert.equal(only!.sourceType, '')
     assert.deepEqual(only!.meta, [{ key: 'filename', value: 'issue-42.md' }])
     assert.match(only!.summary, /What it said\./)
-    assert.equal(fs.existsSync(path.join(inbox(), 'files')), false)
+    assert.equal(fs.existsSync(files()), false)
   })
 
   it('copies a file it cannot read into the board, and the body says where', () => {
@@ -367,18 +492,18 @@ describe('adding to the inbox by hand (#499)', () => {
     const [only] = readSignals().signals
     assert.equal(only!.title, 'q3')
     assert.deepEqual(only!.meta, [{ key: 'filename', value: 'q3.pdf' }])
-    assert.match(only!.summary, /docs\/kanban\/triage\/inbox\/files\/q3-[0-9a-f]{8}\.pdf/)
-    assert.equal(fs.readdirSync(path.join(inbox(), 'files')).length, 1)
-    // The copy is beside the inbox, not in it: the list still holds one item.
+    assert.match(only!.summary, /docs\/kanban\/triage\/files\/q3-[0-9a-f]{8}\.pdf/)
+    assert.equal(fs.readdirSync(files()).length, 1)
+    // The copy is in a folder of its own, not in the list: the list still holds one item.
     assert.equal(readSignals().signals.length, 1)
   })
 
   it('leaves no copy behind when it refuses a file the inbox already holds', () => {
     const pdf = () => ({ file: { name: 'q3.pdf', type: 'application/pdf', data: new Uint8Array([0x25, 0x50, 0x44, 0x46]) } })
     assert.equal(addToInbox(pdf()).ok, true)
-    const kept = fs.readdirSync(path.join(inbox(), 'files'))
+    const kept = fs.readdirSync(files())
     assert.equal(addToInbox(pdf()).ok, false)
-    assert.deepEqual(fs.readdirSync(path.join(inbox(), 'files')), kept)
+    assert.deepEqual(fs.readdirSync(files()), kept)
     assert.equal(readSignals().signals.length, 1)
   })
 
@@ -386,7 +511,7 @@ describe('adding to the inbox by hand (#499)', () => {
     assert.equal(addToInbox({ text: 'https://example.test/a' }).ok, true)
     const again = addToInbox({ text: 'https://example.test/a' })
     assert.equal(again.ok, false)
-    assert.match(again.ok ? '' : again.error, /already in the inbox/)
+    assert.match(again.ok ? '' : again.error, /already waiting in triage/)
     assert.equal(addToInbox({ text: '   ' }).ok, false)
     assert.equal(addToInbox({}).ok, false)
   })
@@ -397,7 +522,7 @@ describe('adding to the inbox by hand (#499)', () => {
     const id = readSignals().signals[0]!.sourceId
     assert.deepEqual(dismissSignal(id), { ok: true })
     assert.deepEqual(readSignals().signals, [])
-    assert.equal(readHandled().has(id), true)
+    assert.equal(readAllDismissed()[0]!.sourceId, id)
   })
 })
 
@@ -418,9 +543,9 @@ describe('the one source rule (#560)', () => {
 
 describe('a file written before the source list (#560)', () => {
   const write = (name: string, front: string) =>
-    fs.writeFileSync(path.join(inbox(), name), `---\n${front}\n---\n\nWhat it said.\n`)
+    fs.writeFileSync(path.join(triage(), name), `---\n${front}\n---\n\nWhat it said.\n`)
 
-  beforeEach(() => fs.mkdirSync(inbox(), { recursive: true }))
+  beforeEach(() => fs.mkdirSync(triage(), { recursive: true }))
 
   const stamps = 'collected_at: 2026-09-06 21:40\nimported_at: 2026-09-06 21:41'
 
@@ -436,7 +561,7 @@ describe('a file written before the source list (#560)', () => {
     const [only] = readSignals().signals
     assert.equal(only!.sourceType, '')
     assert.deepEqual(only!.meta, [{ key: 'source', value: 'A newsletter' }])
-    assert.match(fs.readFileSync(path.join(inbox(), 'old.md'), 'utf8'), /platform: A newsletter/)
+    assert.match(fs.readFileSync(path.join(triage(), 'old.md'), 'utf8'), /platform: A newsletter/)
   })
 
   it('reads a meta block in the order it was written, and skips a key with no value', () => {
@@ -460,13 +585,6 @@ describe('a file written before the source list (#560)', () => {
 })
 
 describe('what has been ignored (#559 writes it, #560 draws it)', () => {
-  const dismissed = () => path.join(kanban(), 'triage', 'dismissed')
-  const day = (back: number) => {
-    const at = new Date(Date.now() - back * 24 * 60 * 60 * 1000)
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} 09:00`
-  }
-
   it('is empty on a board with no dismissed folder', () => {
     const inboxNow = readSignals()
     assert.deepEqual(inboxNow.dismissed, [])
@@ -479,7 +597,7 @@ describe('what has been ignored (#559 writes it, #560 draws it)', () => {
     const write = (id: string, at: string, why: string) =>
       fs.writeFileSync(
         path.join(dismissed(), `${id}.md`),
-        `---\nsource_id: ${id}\ntitle: Item ${id}\nsource_type: reddit\ncollected_at: ${day(40)}\nimported_at: ${day(40)}\ndismissed_at: ${at}\ndismissed_why: ${why}\n---\n\nWords.\n`,
+        `---\nsource_id: ${id}\ntitle: Item ${id}\nsource_type: reddit\ncollected_at: ${day(40)}\nimported_at: ${day(40)}\ndismissed_at: ${at}\ndismissed_by: agent\ndismissed_reason: ${why}\n---\n\nWords.\n`,
       )
     write('recent', day(2), 'not work')
     write('older', day(20), 'a duplicate')
@@ -490,6 +608,154 @@ describe('what has been ignored (#559 writes it, #560 draws it)', () => {
       held.map((s) => s.sourceId),
       ['recent', 'older'],
     )
-    assert.equal(held[0]!.dismissedWhy, 'not work')
+    assert.equal(held[0]!.dismissedReason, 'not work')
+    assert.equal(held[0]!.dismissedBy, 'agent')
+  })
+
+  it('reads a record with a source id and a judged time and nothing else', () => {
+    fs.mkdirSync(dismissed(), { recursive: true })
+    fs.writeFileSync(
+      path.join(dismissed(), 'stub.md'),
+      `---\nsource_id: t3_gone\ndismissed_at: ${day(3)}\ncontent_kept: false\n---\n`,
+    )
+    const [only] = readSignals().dismissed
+    assert.equal(only!.sourceId, 't3_gone')
+    assert.equal(only!.title, '')
+    assert.equal(only!.contentKept, false)
+    assert.equal(only!.sourceType, '')
+  })
+
+  it('sorts one with no judged time to the end rather than dropping it', () => {
+    fs.mkdirSync(dismissed(), { recursive: true })
+    const write = (id: string, at: string) =>
+      fs.writeFileSync(path.join(dismissed(), `${id}.md`), `---\nsource_id: ${id}\ndismissed_at: ${at}\n---\n`)
+    write('dated', day(5))
+    fs.writeFileSync(path.join(dismissed(), 'undated.md'), '---\nsource_id: undated\n---\n')
+    assert.deepEqual(
+      readSignals().dismissed.map((s) => s.sourceId),
+      ['dated', 'undated'],
+    )
+  })
+})
+
+describe('a board written before #559', () => {
+  const oldInbox = () => path.join(triage(), 'inbox')
+  const handled = () => path.join(triage(), 'handled.md')
+
+  const item = (id: string, body = 'Words.') =>
+    `---\nsource_id: ${id}\ntitle: Item ${id}\ncollected_at: 2026-09-06 21:40\nimported_at: 2026-09-06 21:41\n---\n\n${body}\n`
+
+  const seed = (ids: string[]) => {
+    fs.mkdirSync(oldInbox(), { recursive: true })
+    for (const id of ids) fs.writeFileSync(path.join(oldInbox(), `${id}.md`), item(id))
+  }
+
+  it('lifts the items up, moves the dropped files beside them, and takes the old folder away', () => {
+    seed(['a1', 'a2'])
+    fs.mkdirSync(path.join(oldInbox(), 'files'), { recursive: true })
+    fs.writeFileSync(path.join(oldInbox(), 'files', 'q3-deadbeef.pdf'), 'bytes')
+    fs.writeFileSync(
+      path.join(oldInbox(), 'a3.md'),
+      item('a3', 'q3.pdf — docs/kanban/triage/inbox/files/q3-deadbeef.pdf'),
+    )
+
+    assert.deepEqual(
+      readSignals().signals.map((s) => s.sourceId).sort(),
+      ['a1', 'a2', 'a3'],
+    )
+    assert.equal(fs.existsSync(oldInbox()), false)
+    assert.deepEqual(fs.readdirSync(files()), ['q3-deadbeef.pdf'])
+    // The path written into the body is rewritten once, and is good from then on.
+    assert.match(
+      readSignals().signals.find((s) => s.sourceId === 'a3')!.summary,
+      /docs\/kanban\/triage\/files\/q3-deadbeef\.pdf/,
+    )
+  })
+
+  it('turns every handled id with no file into a record that says its words were not kept', () => {
+    seed(['a1'])
+    fs.writeFileSync(handled(), `# Handled\n\n- a1 — 2026-09-01 08:00\n- t3_gone — 2026-09-02 09:30\n`)
+
+    const held = readSignals()
+    // `a1` still has a file, so the list said nothing the file does not already say.
+    assert.deepEqual(
+      held.signals.map((s) => s.sourceId),
+      ['a1'],
+    )
+    const [only] = readAllDismissed()
+    assert.equal(only!.sourceId, 't3_gone')
+    assert.equal(only!.dismissedAt, '2026-09-02 09:30')
+    assert.equal(only!.title, '')
+    assert.equal(only!.summary, '')
+    assert.equal(only!.dismissedBy, '')
+    assert.equal(only!.dismissedReason, '')
+    assert.equal(only!.contentKept, false)
+    assert.equal(fs.existsSync(handled()), false)
+  })
+
+  it('still keeps a migrated id out of a later pull', async () => {
+    fs.mkdirSync(triage(), { recursive: true })
+    fs.writeFileSync(handled(), `# Handled\n\n- t3_gone — 2026-09-02 09:30\n`)
+    migrateTriage()
+    answerWith({ signals: [{ source_id: 't3_gone', title: 'Back again', summary: 'Words.' }] })
+    const report = await fetchSignals()
+    assert.equal(report.added.length, 0)
+    assert.equal(report.skipped, 1)
+  })
+
+  it('runs again over a board it half-migrated without doubling anything', () => {
+    seed(['a1', 'a2'])
+    fs.writeFileSync(handled(), `# Handled\n\n- t3_gone — 2026-09-02 09:30\n`)
+    // The state an interrupted run leaves: one item already lifted, the rest still below.
+    fs.writeFileSync(path.join(triage(), 'a1.md'), item('a1'))
+
+    migrateTriage()
+    migrateTriage()
+    assert.deepEqual(
+      readSignals().signals.map((s) => s.sourceId).sort(),
+      ['a1', 'a2'],
+    )
+    assert.equal(waiting().length, 2)
+    assert.equal(readAllDismissed().length, 1)
+  })
+
+  it('never writes over a file name that is taken', () => {
+    seed(['a1'])
+    // A different item under the same name, already lifted.
+    fs.writeFileSync(path.join(triage(), 'a1.md'), item('other'))
+    migrateTriage()
+    assert.deepEqual(
+      readSignals().signals.map((s) => s.sourceId).sort(),
+      ['a1', 'other'],
+    )
+    assert.equal(fs.readFileSync(path.join(triage(), 'a1.md'), 'utf8'), item('other'))
+  })
+
+  it('repoints a board that is not at docs/kanban at its own new files folder', () => {
+    // A board named outright by `--board` (#407): the path an item body carries is that
+    // board's, so what the migration looks for has to be too.
+    const board = path.join(root, 'product', 'kanban')
+    fs.mkdirSync(path.join(board, 'triage', 'inbox', 'files'), { recursive: true })
+    setBoardDir(board, root)
+    fs.writeFileSync(path.join(board, 'triage', 'inbox', 'files', 'q3-deadbeef.pdf'), 'bytes')
+    fs.writeFileSync(
+      path.join(board, 'triage', 'inbox', 'a3.md'),
+      item('a3', 'q3.pdf — product/kanban/triage/inbox/files/q3-deadbeef.pdf'),
+    )
+
+    migrateTriage()
+    assert.equal(
+      readSignals().signals.find((s) => s.sourceId === 'a3')!.summary,
+      'q3.pdf — product/kanban/triage/files/q3-deadbeef.pdf',
+    )
+    fs.rmSync(path.join(root, 'product'), { recursive: true, force: true })
+  })
+
+  it('does nothing at all to a board that is already there', () => {
+    fs.mkdirSync(triage(), { recursive: true })
+    fs.writeFileSync(path.join(triage(), 'a1.md'), item('a1'))
+    migrateTriage()
+    assert.equal(waiting().length, 1)
+    assert.equal(fs.existsSync(dismissed()), false)
   })
 })

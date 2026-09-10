@@ -1,9 +1,22 @@
-// The inbox on disk (#453, #499).
+// Triage on disk (#453, #499, #559).
 //
-// One item is one Markdown file under `docs/kanban/triage/inbox/`: what is known about it
-// in the frontmatter, its own words below. Markdown rather than a database because the
-// board already is markdown in git — an item diffs, reviews and reverts with everything
-// else, and a local board takes on no new dependency for it.
+// One item is one Markdown file: what is known about it in the frontmatter, its own words
+// below. Markdown rather than a database because the board already is markdown in git — an
+// item diffs, reviews and reverts with everything else, and a local board takes on no new
+// dependency for it.
+//
+// Where the file sits IS its state:
+//
+//   triage/<id>.md            waiting to be sorted
+//   triage/archived/<id>.md   a card was made of it — `card_id`, `archived_at`
+//   triage/dismissed/<id>.md  ignored — `dismissed_at`, `dismissed_by`, `dismissed_reason`
+//   triage/files/             the bytes of anything dropped in, shared by all three
+//
+// Leaving the list is a move, never a delete: the file that says "this was ignored" is the
+// item itself, so nothing has to be listed anywhere for a dismissal to stick. `dismissed/`
+// is kept for good — the page draws a recent window of it, the fetch is held off by all of
+// it. A move rewrites nothing but the fields this file adds, so a field written by something
+// that came later survives the trip.
 //
 // Title and body are the whole requirement. `source_type`, `url`, `collected_at` and `meta`
 // are written only when something supplies them, so a dropped PDF and a pulled Reddit post
@@ -15,13 +28,8 @@
 // `platform`): it is read through the same match rule as everything else — a hit is the type,
 // a miss is a `source` meta entry — and the file on disk is not rewritten.
 //
-// `triage/handled.md` is the other half: one line per source id that has LEFT the inbox,
-// with when it went. It is what makes a dismissal stick — the item's file is gone, so the
-// file itself cannot be what says "don't import this again" (#454 writes here too, for the
-// items it has turned into cards).
-//
-// The folder is made the first time something lands in it, never by `init`: a board with an
-// empty inbox carries no folder.
+// The folder is made the first time something lands in it, never by `init`: a board with
+// nothing in triage carries no folder.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -29,22 +37,25 @@ import path from 'node:path'
 import { formatStamp } from '../cadence'
 import { DERIVED } from './identity'
 import { matchSourceType, readSourceType } from './sources'
-import { SIGNAL_INBOX, SIGNALS_DISMISSED, SIGNALS_HANDLED, TRIAGE, rel } from '../paths'
+import { SIGNALS_ARCHIVED, SIGNALS_DISMISSED, TRIAGE, rel } from '../paths'
 import { unquote, yamlScalar } from '../yaml'
 import type { Signal, SignalMeta } from '../view/types'
 
 /** An item as it arrives, before the board stamps its import. */
-export type IncomingSignal = Omit<Signal, 'importedAt' | 'relPath' | 'dismissedAt' | 'dismissedWhy'>
+export type IncomingSignal = Omit<
+  Signal,
+  'importedAt' | 'relPath' | 'dismissedAt' | 'dismissedBy' | 'dismissedReason' | 'contentKept'
+>
 
 const boardRel = (file: string): string => rel(file).split(path.sep).join('/')
 
-/** The inbox folder, from the repo root — what the page's heading names, whether or not the
+/** The triage folder, from the repo root — what the page's heading names, whether or not the
  *  folder is there yet. */
-export const inboxPath = (): string => boardRel(SIGNAL_INBOX)
+export const triagePath = (): string => boardRel(TRIAGE)
 
 // ---- one file -------------------------------------------------------------
 
-// What every file carries, whatever wrote it. Everything else is optional.
+// What an item waiting to be sorted carries, whatever wrote it. Everything else is optional.
 const FIELDS = ['source_id', 'title', 'collected_at', 'imported_at'] as const
 
 // One `meta:` line: a key, quoted or not, and the rest of the line as its value.
@@ -79,8 +90,12 @@ function serialize(signal: Signal): string {
 }
 
 /** One item read back off disk, or null when the file is not one — a stray file in the
- *  folder is skipped rather than drawn with empty fields. */
-function parse(file: string): Signal | null {
+ *  folder is skipped rather than drawn with empty fields.
+ *
+ *  A record migrated out of the old handled list has a source id and a judged time and
+ *  nothing else, so a dismissed file is read on that alone: a gap in the record is not a
+ *  reason to lose what the record does hold. */
+export function parse(file: string, lenient = false): Signal | null {
   let text: string
   try {
     text = fs.readFileSync(file, 'utf8')
@@ -112,7 +127,8 @@ function parse(file: string): Signal | null {
     if (m) held[m[1]!] = unquote(m[2]!)
   }
   if (i >= lines.length) return null
-  if (FIELDS.some((field) => !held[field])) return null
+  const required = lenient ? (['source_id'] as const) : FIELDS
+  if (required.some((field) => !held[field])) return null
 
   // A file written before #560 carried a free-text source — `source`, or `platform` before
   // #499 renamed it. It reads through the one match rule: a hit is the type, a miss keeps
@@ -121,7 +137,7 @@ function parse(file: string): Signal | null {
   const missed = legacy && !matchSourceType(legacy) ? metaPair('source', legacy) : null
   return {
     sourceId: held.source_id!,
-    title: held.title!,
+    title: held.title ?? '',
     summary: lines
       .slice(i + 1)
       .join('\n')
@@ -130,10 +146,12 @@ function parse(file: string): Signal | null {
     sourceType: held.source_type ? readSourceType(held.source_type) : matchSourceType(legacy),
     meta: missed ? [missed, ...written] : written,
     url: held.url || '',
-    collectedAt: held.collected_at!,
-    importedAt: held.imported_at!,
+    collectedAt: held.collected_at ?? '',
+    importedAt: held.imported_at ?? '',
     dismissedAt: held.dismissed_at || '',
-    dismissedWhy: held.dismissed_why || '',
+    dismissedBy: held.dismissed_by === 'user' || held.dismissed_by === 'agent' ? held.dismissed_by : '',
+    dismissedReason: held.dismissed_reason || '',
+    contentKept: held.content_kept !== 'false',
     relPath: boardRel(file),
   }
 }
@@ -142,8 +160,8 @@ function parse(file: string): Signal | null {
 // as typed: the readable part for a person browsing the folder, the hash so two ids that
 // scrub down to the same word still get two files. A derived id says nothing to a reader,
 // so what is readable then is the title.
-function fileName(signal: Signal): string {
-  const day = signal.collectedAt.slice(0, 10)
+export function fileName(signal: { sourceId: string; title: string; collectedAt: string }): string {
+  const day = (signal.collectedAt || formatStamp(new Date())).slice(0, 10)
   const said = signal.sourceId.startsWith(DERIVED) ? signal.title : signal.sourceId
   const word = said
     .toLowerCase()
@@ -155,28 +173,50 @@ function fileName(signal: Signal): string {
   return `${day}-${word || 'item'}-${hash.toString(16).padStart(8, '0')}.md`
 }
 
+/** A name nothing in `dir` has yet, from the one wanted. A collision is two different items,
+ *  so the second one is renamed rather than written over the first. */
+export function freeName(dir: string, wanted: string): string {
+  const ext = path.extname(wanted)
+  const stem = wanted.slice(0, wanted.length - ext.length)
+  let name = wanted
+  for (let n = 2; fs.existsSync(path.join(dir, name)); n++) name = `${stem}-${n}${ext}`
+  return name
+}
+
 // ---- reading ---------------------------------------------------------------
 
-/** Everything in the inbox, newest collected first. Empty on a board that has never put
- *  anything in it, which is the same answer as an inbox somebody has emptied. */
-export function readInbox(): Signal[] {
-  let names: string[]
+/** Every item file in one folder. Subfolders and anything that is not an item are skipped,
+ *  which is what lets the waiting list live in `triage/` beside `archived/` and the rest. */
+export function readFolder(dir: string, lenient = false): Signal[] {
+  let entries: fs.Dirent[]
   try {
-    names = fs.readdirSync(SIGNAL_INBOX)
+    entries = fs.readdirSync(dir, { withFileTypes: true })
   } catch {
     return []
   }
-  const signals = names
-    .filter((name) => name.endsWith('.md'))
-    .map((name) => parse(path.join(SIGNAL_INBOX, name)))
+  return entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+    .map((entry) => parse(path.join(dir, entry.name), lenient))
     .filter((signal): signal is Signal => signal !== null)
+}
+
+/** Everything waiting to be sorted, newest collected first. Empty on a board that has never
+ *  put anything in it, which is the same answer as a list somebody has emptied. */
+export function readInbox(): Signal[] {
+  const signals = readFolder(TRIAGE)
   // Ties keep a stable order, so a redraw never shuffles two items collected in the same
   // minute past each other.
   signals.sort((a, b) => b.collectedAt.localeCompare(a.collectedAt) || a.sourceId.localeCompare(b.sourceId))
   return signals
 }
 
-/** The newest import stamp the inbox holds, or empty when it holds nothing. */
+/** Every item a card was made of. Read for the duplicate check; nothing draws it yet. */
+export const readArchived = (): Signal[] => readFolder(SIGNALS_ARCHIVED)
+
+/** Every item ever ignored, however long ago. What holds the fetch off. */
+export const readAllDismissed = (): Signal[] => readFolder(SIGNALS_DISMISSED, true)
+
+/** The newest import stamp the list holds, or empty when it holds nothing. */
 export const latestImport = (signals: Signal[]): string =>
   signals.reduce((newest, signal) => (signal.importedAt > newest ? signal.importedAt : newest), '')
 
@@ -184,25 +224,13 @@ export const latestImport = (signals: Signal[]): string =>
  *  drawn, and the page says the window out loud. */
 export const DISMISSED_DAYS = 30
 
-/** What has been ignored recently, newest judged first (#560).
+/** What has been ignored recently, newest judged first (#559, #560).
  *
- *  The same kind of file, read the same way, out of `triage/dismissed/` — the folder #559
- *  moves an ignored item into. Empty until that lands, and empty is the whole of what the
- *  tab then shows. An item with no judged stamp sorts last rather than being dropped: a
- *  missing stamp is a gap in the record, not a reason to lose the item. */
+ *  An item with no judged stamp sorts last rather than being dropped: a missing stamp is a
+ *  gap in the record, not a reason to lose the item. */
 export function readDismissed(now = new Date()): Signal[] {
-  let names: string[]
-  try {
-    names = fs.readdirSync(SIGNALS_DISMISSED)
-  } catch {
-    return []
-  }
   const since = formatStamp(new Date(now.getTime() - DISMISSED_DAYS * 24 * 60 * 60 * 1000))
-  const signals = names
-    .filter((name) => name.endsWith('.md'))
-    .map((name) => parse(path.join(SIGNALS_DISMISSED, name)))
-    .filter((signal): signal is Signal => signal !== null)
-    .filter((signal) => !signal.dismissedAt || signal.dismissedAt >= since)
+  const signals = readAllDismissed().filter((signal) => !signal.dismissedAt || signal.dismissedAt >= since)
   signals.sort(
     (a, b) =>
       Number(Boolean(b.dismissedAt)) - Number(Boolean(a.dismissedAt)) ||
@@ -212,66 +240,77 @@ export function readDismissed(now = new Date()): Signal[] {
   return signals
 }
 
-// ---- what has left the inbox -----------------------------------------------
-
-const HANDLED_HEAD = [
-  '# Handled',
-  '',
-  'The source ids that have left the inbox, and when. Anything listed here is never',
-  'pulled again, however many times the endpoint sends it.',
-  '',
-]
-
-const HANDLED_LINE = /^-\s+(.+?)\s+—\s+(.+)$/
-
-/** The source ids the board has already dealt with. */
-export function readHandled(): Set<string> {
-  let text: string
-  try {
-    text = fs.readFileSync(SIGNALS_HANDLED, 'utf8')
-  } catch {
-    return new Set()
-  }
-  const ids = new Set<string>()
-  for (const line of text.split('\n')) {
-    const m = line.match(HANDLED_LINE)
-    if (m) ids.add(m[1]!.trim())
-  }
-  return ids
-}
-
-/** Write one source id down as handled. Silent about an id already there — the record only
- *  has to hold it once. */
-export function markHandled(sourceId: string, when = formatStamp(new Date())): void {
-  if (readHandled().has(sourceId)) return
-  fs.mkdirSync(TRIAGE, { recursive: true })
-  let text: string
-  try {
-    text = fs.readFileSync(SIGNALS_HANDLED, 'utf8')
-  } catch {
-    text = `${HANDLED_HEAD.join('\n')}\n`
-  }
-  const separator = text.endsWith('\n') ? '' : '\n'
-  fs.writeFileSync(SIGNALS_HANDLED, `${text}${separator}- ${sourceId} — ${when}\n`)
-}
-
 // ---- writing ---------------------------------------------------------------
 
-/** Write one item into the inbox, stamped with the moment it was imported. */
+/** Write one item into triage, stamped with the moment it was imported. */
 export function writeSignal(incoming: IncomingSignal, importedAt: string): Signal {
-  fs.mkdirSync(SIGNAL_INBOX, { recursive: true })
-  const signal: Signal = { ...incoming, importedAt, dismissedAt: '', dismissedWhy: '', relPath: '' }
-  const file = path.join(SIGNAL_INBOX, fileName(signal))
+  fs.mkdirSync(TRIAGE, { recursive: true })
+  const signal: Signal = {
+    ...incoming,
+    importedAt,
+    dismissedAt: '',
+    dismissedBy: '',
+    dismissedReason: '',
+    contentKept: true,
+    relPath: '',
+  }
+  const file = path.join(TRIAGE, freeName(TRIAGE, fileName(signal)))
   fs.writeFileSync(file, serialize({ ...signal, relPath: boardRel(file) }))
   return { ...signal, relPath: boardRel(file) }
 }
 
-/** Take one item out of the inbox for good: its file goes, its source id is written down,
- *  and the next fetch leaves it alone. False when the inbox holds no such item. */
-export function dropSignal(sourceId: string): boolean {
+/** Add or replace frontmatter fields on an item file, leaving everything else — including
+ *  fields nothing here knows about — exactly as it was written. */
+function stamp(file: string, fields: Record<string, string>): void {
+  const text = fs.readFileSync(file, 'utf8')
+  const lines = text.split('\n')
+  const close = lines.indexOf('---', 1)
+  if (close < 0) return
+  const kept = lines.slice(1, close).filter((line) => {
+    const key = line.match(/^([a-z_]+):/)
+    return !key || fields[key[1]!] === undefined
+  })
+  const added = Object.entries(fields).map(([key, value]) => `${key}: ${yamlScalar(value)}`)
+  fs.writeFileSync(file, ['---', ...kept, ...added, ...lines.slice(close)].join('\n'))
+}
+
+/** Move one item file into a folder beside it, stamping what the move means onto it. The
+ *  path it lands at, or empty when the source file has gone. */
+function moveSignal(from: string, into: string, fields: Record<string, string>): string {
+  if (!fs.existsSync(from)) return ''
+  fs.mkdirSync(into, { recursive: true })
+  const at = path.join(into, freeName(into, path.basename(from)))
+  fs.renameSync(from, at)
+  stamp(at, fields)
+  return boardRel(at)
+}
+
+/** What one move gives back: where the file went, or why it did not go. */
+export type MoveOutcome = { ok: true; relPath: string } | { ok: false; error: string }
+
+/** Ignore one item: its file moves into `dismissed/` and is kept there for good, so no later
+ *  fetch brings it back. Ignoring the same source again keeps the one record, judged afresh. */
+export function dismissInboxItem(sourceId: string, by: 'user' | 'agent', reason = ''): MoveOutcome {
   const found = readInbox().find((signal) => signal.sourceId === sourceId)
-  if (!found) return false
-  markHandled(sourceId)
-  fs.rmSync(path.join(SIGNAL_INBOX, path.basename(found.relPath)), { force: true })
-  return true
+  if (!found) return { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+  const already = readAllDismissed().find((signal) => signal.sourceId === sourceId)
+  if (already) fs.rmSync(path.join(SIGNALS_DISMISSED, path.basename(already.relPath)), { force: true })
+  const at = moveSignal(path.join(TRIAGE, path.basename(found.relPath)), SIGNALS_DISMISSED, {
+    dismissed_at: formatStamp(new Date()),
+    dismissed_by: by,
+    ...(reason.trim() ? { dismissed_reason: reason.trim() } : {}),
+  })
+  return at ? { ok: true, relPath: at } : { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+}
+
+/** Record that a card was made of one item: its file moves into `archived/`, carrying the
+ *  card it became. The flow that creates the card is #561's; this is only the record. */
+export function archiveInboxItem(sourceId: string, cardId: number): MoveOutcome {
+  const found = readInbox().find((signal) => signal.sourceId === sourceId)
+  if (!found) return { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+  const at = moveSignal(path.join(TRIAGE, path.basename(found.relPath)), SIGNALS_ARCHIVED, {
+    card_id: String(cardId),
+    archived_at: formatStamp(new Date()),
+  })
+  return at ? { ok: true, relPath: at } : { ok: false, error: `nothing waiting in triage is ${sourceId}` }
 }

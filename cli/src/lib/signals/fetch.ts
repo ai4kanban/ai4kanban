@@ -22,7 +22,9 @@ import { die } from '../paths'
 import { signalConfigGaps, signalEndpoint, signalToken } from './config'
 import { derivedSourceId, host } from './identity'
 import { matchSourceType, readSourceType } from './sources'
-import { metaPair, readHandled, readInbox, writeSignal, type IncomingSignal } from './inbox'
+import { triageIndex } from './check'
+import { migrateTriage } from './migrate'
+import { metaPair, writeSignal, type IncomingSignal } from './inbox'
 import type { Signal, SignalMeta } from '../view/types'
 
 /** One item the fetch would not take, and why. */
@@ -35,7 +37,9 @@ export interface SignalFailure {
 /** What one pull did. */
 export interface FetchReport {
   added: Signal[]
-  /** Already in the inbox, already handled, or a repeat inside this same batch. */
+  /** Already waiting, already made into a card, already ignored, or a repeat inside this
+   *  same batch. A pull is held off by all three states — the item was seen and judged, and
+   *  the endpoint sending it again is not new information (#559). */
   skipped: number
   failed: SignalFailure[]
 }
@@ -106,6 +110,7 @@ function read(raw: Wire): { ok: true; signal: IncomingSignal } | { ok: false; wh
  *  when the answer is not the shape it must be. The token is never in a refusal: what a
  *  reader is told is that it is missing, not what it is. */
 export async function fetchSignals(): Promise<FetchReport> {
+  migrateTriage()
   const gaps = signalConfigGaps()
   if (gaps.length > 0) die('the board is not set up to pull triage items yet', { kind: 'triage-not-configured' })
 
@@ -133,7 +138,9 @@ export async function fetchSignals(): Promise<FetchReport> {
     die(`${endpoint} did not answer with a \`signals\` list.`, { kind: 'triage-unreadable' })
   }
 
-  const seen = new Set([...readInbox().map((signal) => signal.sourceId), ...readHandled()])
+  // One scan of triage for the whole batch, added to as the batch lands so a repeat inside
+  // it is caught on the same terms as one across two pulls.
+  const seen = new Set(triageIndex().keys())
   const importedAt = formatStamp(new Date())
   const report: FetchReport = { added: [], skipped: 0, failed: [] }
   wire.forEach((raw, at) => {

@@ -529,10 +529,10 @@ export interface BoardRules {
    *  added them, and the archive then says so rather than reading as an empty archive. */
   readArchive?(): Promise<ArchiveList>;
   readArchivedCard?(id: number): Promise<ArchivedCardFile | null>;
-  /** The inbox (#453, #499): whether it is open to this board and this account at all, what
-   *  it holds, adding to it by hand, and ignoring one for good. Optional: a board can be
+  /** Triage (#453, #499): whether it is open to this board and this account at all, what it
+   *  holds, adding to it by hand, and ignoring one for good. Optional: a board can be
    *  running rules older than the release that added them, and the rail then offers no
-   *  Inbox row — `addToInbox` alone can be missing on rules that have the other three. */
+   *  Triage row — `addToInbox` alone can be missing on rules that have the other three. */
   signalsAccess?(): Promise<SignalsAccess>;
   readSignals?(): SignalInbox;
   addToInbox?(drop: InboxDrop): InboxAddResult;

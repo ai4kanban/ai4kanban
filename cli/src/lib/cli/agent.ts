@@ -45,7 +45,7 @@ import {
   cmdStop,
   cmdWatch,
 } from '../../commands/run'
-import { cmdTriageAdd, cmdTriageFetch } from '../../commands/triage'
+import { cmdTriageAdd, cmdTriageCheck, cmdTriageFetch } from '../../commands/triage'
 import { cmdSpec } from '../../commands/spec'
 import { cmdWrite } from '../../commands/write'
 import { cmdTelemetry } from '../../commands/telemetry'
@@ -269,8 +269,10 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     'triage',
     'what is waiting to be sorted',
     'What is in triage is not a task: it never enters the card list, is never scheduled, ' +
-      'and counts towards nothing. Triage is `docs/kanban/triage/inbox/`, one file each, ' +
-      'and the board UI is where they are added, read and ignored.',
+      'and counts towards nothing. Triage is `docs/kanban/triage/`, one file each, with ' +
+      '`archived/` for what became a card and `dismissed/` for what was ignored — kept for ' +
+      'good, and what holds a later pull off. The board UI is where items are added, read ' +
+      'and ignored.',
   )
 
   withShared(triage.command('fetch'))
@@ -278,8 +280,9 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .description(
       'Reads the endpoint from `- **Triage endpoint** — <url>` in the board’s `config.md` and its ' +
         'token from `TRIAGE_ENDPOINT_TOKEN` in `docs/kanban/.env`, and takes everything that comes ' +
-        'back. Only `title` and `summary` are required. Something already in triage, or already ' +
-        'ignored, is skipped; one with no words in it is counted and explained. A request that fails ' +
+        'back. Only `title` and `summary` are required. Something already waiting, already made into ' +
+        'a card, or already ignored is skipped; one with no words in it is counted and explained. ' +
+        'A request that fails ' +
         'writes nothing at all. Free to invited Cloud accounts on an Engineering board, for now.',
     )
     .action(async function (this: Command) {
@@ -292,7 +295,8 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       'One item, from words you already have — no endpoint, and nothing is pulled. The body is ' +
         '`--text` for a line or two, `--file <path>` when it is longer. `--source` says where it came ' +
         'from, and a reflection puts the card that prompted it there. It is not a task: it waits in ' +
-        'triage until somebody sorts it. An item triage already holds is refused.',
+        'triage until somebody sorts it. One already waiting, or already made into a card, is refused ' +
+        'and told where it is; one only ignored is taken, and its `dismissed/` record is left alone.',
     )
     .requiredOption('--title <text>', 'what it is, in one line')
     .option('--text <text>', 'its own words')
@@ -300,6 +304,19 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .option('--source <text>', 'where it came from')
     .action(async function (this: Command) {
       await onBoard(this, cli, () => cmdTriageAdd(this.opts()))
+    })
+
+  withShared(triage.command('check'))
+    .summary('where triage already holds one source id')
+    .description(
+      'Scans triage, `archived/` and `dismissed/` for the id and answers `pending`, `archived`, ' +
+        '`dismissed` or `unseen`, with the file that says so. Hit in more than one place, the first ' +
+        'of those wins. This is the rule the pull and both ways of adding read — a pull is held off ' +
+        'by all three, an add by everything but a dismissal.',
+    )
+    .argument('<source-id>', 'the id to look for')
+    .action(async function (this: Command, sourceId: string) {
+      await onBoard(this, cli, () => cmdTriageCheck(sourceId))
     })
 
   // ---- Cloud ----------------------------------------------------------------

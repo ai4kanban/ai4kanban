@@ -1758,7 +1758,8 @@ export async function addToInboxAction(
   }
 }
 
-/** Ignore one signal for good. There is no undo — the page says so before it is pressed. */
+/** Ignore one signal for good: its file moves into `triage/dismissed/` and stays there. There
+ *  is no undo on the page — pasting the link in again is the only way back (#559). */
 export async function dismissSignalAction(sourceId: string): Promise<{ ok: boolean; error?: string }> {
   if (typeof sourceId !== "string" || !sourceId) {
     return { ok: false, error: (await machineCopy()).rail.signals.dismissFailed };

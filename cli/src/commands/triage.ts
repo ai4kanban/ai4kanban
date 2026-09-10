@@ -9,16 +9,20 @@
 // which is what the proposer's reflection uses. It asks Cloud nothing — the endpoint is what
 // admission is about, and **Add to triage** on the page has never asked either.
 //
+// `check` is the one duplicate rule all three read (#559): it scans the item files and says
+// where a source id already is. A pull is held off by all three states; a hand-written add
+// only by the two that are not a dismissal.
+//
 // Nothing in triage is a task: nothing here creates a card, ranks anything, or touches
 // the board's counts. Turning one into a card is #454's.
 
 import fs from 'node:fs'
 
-import { addToInbox, fetchSignals, sayGap, signalConfigGaps, signalsAccess } from '../lib/signals'
+import { addToInbox, checkSource, fetchSignals, migrateTriage, sayGap, signalConfigGaps, signalsAccess } from '../lib/signals'
 import { signalEndpoint } from '../lib/signals/config'
 import { say } from '../lib/io'
 import { withBoardLock } from '../lib/lock'
-import { die, rel, SIGNAL_INBOX } from '../lib/paths'
+import { die, rel, TRIAGE } from '../lib/paths'
 import { writeSignalsFetchCard } from '../lib/recurring'
 import type { MoveResult } from '../lib/types'
 
@@ -36,9 +40,9 @@ export async function cmdTriageFetch(): Promise<MoveResult> {
     })
   }
 
-  // Whether this is the pull that makes the inbox, asked before it does. The recurring card
+  // Whether this is the pull that makes the folder, asked before it does. The recurring card
   // below is seeded exactly once, on that pull.
-  const fresh = !fs.existsSync(SIGNAL_INBOX)
+  const fresh = !fs.existsSync(TRIAGE)
   const report = await fetchSignals()
 
   say(`Pulled ${signalEndpoint()}.`)
@@ -47,7 +51,7 @@ export async function cmdTriageFetch(): Promise<MoveResult> {
       `skipped ${report.skipped}, failed ${report.failed.length}.`,
   )
   for (const failed of report.failed) say(`  ${failed.which} — ${failed.why}`)
-  if (report.added.length > 0) say(`  ${rel(SIGNAL_INBOX)}/`)
+  if (report.added.length > 0) say(`  ${rel(TRIAGE)}/`)
 
   const seeded = fresh && report.added.length > 0 ? withBoardLock(() => writeSignalsFetchCard()) : null
   if (seeded) {
@@ -58,7 +62,7 @@ export async function cmdTriageFetch(): Promise<MoveResult> {
     added: report.added.length,
     skipped: report.skipped,
     failed: report.failed,
-    inbox: rel(SIGNAL_INBOX),
+    inbox: rel(TRIAGE),
     recurring_card: seeded?.id ?? null,
   }
 }
@@ -94,4 +98,17 @@ export function cmdTriageAdd(opts: TriageAddOptions): MoveResult {
   if (!done.ok) die(done.error, { kind: 'triage-item-refused' })
   say(`added to triage: ${done.signal.relPath}`)
   return { title: done.signal.title, source_id: done.signal.sourceId, file: done.signal.relPath }
+}
+
+/** `akb triage check` — where triage already holds one source id, if it holds it at all.
+ *
+ *  The answer the three ways in share, said out loud so a caller can ask it before writing.
+ *  `unseen` is an answer and never a failure: it is what most ids are. */
+export function cmdTriageCheck(sourceId: string): MoveResult {
+  const said = sourceId.trim()
+  if (!said) die('say which one: `check <source-id>`', { kind: 'needs-input' })
+  migrateTriage()
+  const hit = checkSource(said)
+  say(hit.status === 'unseen' ? `${said} — unseen` : `${said} — ${hit.status}: ${hit.relPath}`)
+  return { source_id: said, status: hit.status, file: hit.relPath || null }
 }

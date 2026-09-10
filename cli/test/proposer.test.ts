@@ -230,7 +230,7 @@ describe('a proposal in the inbox', () => {
     const twice = () =>
       said(() => cmdTriageAdd({ title: 'The same idea', source: '#1', text: 'The same words.' }))
     twice()
-    assert.throws(twice, /already in the inbox/)
+    assert.throws(twice, /already waiting in triage — docs\/kanban\/triage\//)
     assert.equal(readSignals().signals.length, 1)
   })
 

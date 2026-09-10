@@ -15,9 +15,9 @@ three of the values its source sent with it; click it for the whole thing, the o
 **Ignore**.
 
 Two tabs: **Waiting**, and **Ignored** for the last 30 days. Search covers everything in the
-tab — titles, bodies, sources and those values — including folded groups and the part of a
-group still behind **More**. The source picker narrows to one source and combines with the
-search.
+tab — titles, bodies, sources, those values, and on **Ignored** the reason it was ignored —
+including folded groups and the part of a group still behind **More**. The source picker
+narrows to one source and combines with the search.
 
 Free to invited Cloud accounts on an Engineering board while it is a preview. On a Marketing
 board, and on an account that is signed out or not yet invited, there is no rail row and
@@ -31,9 +31,42 @@ sentence, waiting for you to decide whether there is work in it. Cards are what 
 decided to build.
 
 That means triage needs looking at, the way a mailbox does. Ignoring an item takes it out of
-**Waiting** for good: its id is written to `docs/kanban/triage/handled.md`, and no later pull
+**Waiting** for good: its file moves to `docs/kanban/triage/dismissed/`, and no later pull
 brings it back. There is no undo, and that is the point — a list you can never empty is one
-you stop opening. The **Ignored** tab is a record of the last 30 days of that, read only.
+you stop opening. The **Ignored** tab is a record of the last 30 days of that, read only —
+open one to read it in full, and create a card by hand if it turns out to matter after all.
+
+## Where triage keeps things
+
+```
+docs/kanban/triage/
+├── <item>.md      waiting to be sorted — this is what Triage lists
+├── archived/      a card was made of it: `card_id`, `archived_at`
+├── dismissed/     ignored: `dismissed_at`, `dismissed_by`, `dismissed_reason`
+└── files/         the bytes of anything dropped in, shared by all three
+```
+
+Leaving the list is a move, never a delete — the file itself is the record. `dismissed/` is
+kept for good and never pruned: the **Ignored** tab draws the last 30 days of it, and *all* of
+it holds a later pull off. A dropped file's copy stays in `files/` when the item moves, so the
+path written into the item's body is good for as long as the item is.
+
+Ask where one thing already is:
+
+```bash
+akb triage check t3_1abcdef
+```
+
+It answers `pending`, `archived`, `dismissed` or `unseen`, with the file that says so — the
+same rule all three ways in read. A pull is held off by all three; adding by hand only by the
+first two, so pasting a link back in is the way out of an accidental ignore. It costs one
+extra file: the `dismissed/` record stays where it is, and the item waits again beside it.
+
+A board written before this moves itself the first time triage is read: items come up out of
+`triage/inbox/`, its dropped files into `triage/files/`, and every `handled.md` id with no file
+left becomes a `dismissed/` record carrying the id and the time and nothing else — the words
+were never kept, and the page says so rather than inventing them. Nothing is overwritten, and a
+migration cut short carries on the next time.
 
 ## Connect a source
 
@@ -96,9 +129,10 @@ the pull counts it as a failure and names what was missing. Everything else is o
 - **`url`** is the thing itself, opened by **Open**. **`collected_at`** is when the data
   platform collected the post, not when your board pulled it; the board records the import
   time itself.
-- **`source_id`** is the signal's identity. The board dedupes on it, against triage, the
-  handled record, and the rest of the same batch — so the same post sent on ten pulls is one
-  file. Left out, it is derived from the link or the words.
+- **`source_id`** is the signal's identity. The board dedupes on it, against everything
+  waiting, everything made into a card, everything ever ignored, and the rest of the same
+  batch — so the same post sent on ten pulls is one file. Left out, it is derived from the
+  link or the words.
 - There is no paging and no ceiling. What the endpoint sends is what the board takes.
 
 An endpoint written before the source list may still send **`platform`** or **`source`** as
@@ -119,7 +153,7 @@ It reports what it did — `Added 12 items, skipped 3, failed 1.` — and explai
 on its own line. A request that fails, an answer it cannot read, and a setting still to be
 filled in all write nothing at all: triage is left exactly as it was.
 
-The first successful pull makes `docs/kanban/triage/inbox/` and seeds a recurring card,
+The first successful pull makes `docs/kanban/triage/` and seeds a recurring card,
 **Fetch triage items**, in `todo/recurring/`. Give that card a cadence and the board pulls on
 its own; leave it without one and nothing runs until you ask. Delete the card if you don't want
 the job — nothing puts it back.
@@ -145,7 +179,8 @@ akb triage add --title "What it is" --text "Its own words." --source "where it c
 `--source` goes through the same list — `小红书` is `xiaohongshu`, and anything the list has
 not got is kept as a `meta` entry under `source`. `--file <path>` takes the body from a file
 when it is longer than a line or two. Neither needs an endpoint or a Cloud account. An item
-triage already holds is refused rather than doubled.
+already waiting, or already made into a card, is refused and told where it is; one only
+ignored is taken.
 
 This is also where the board's own **Proposer** writes: with it switched on, every card you
 archive is reflected on and what should follow it lands here, carrying the card that prompted

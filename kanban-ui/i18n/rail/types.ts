@@ -76,8 +76,10 @@ export type RailCopy = {
     fold: string;
     unfold: string;
     more: string;
-    /** Nothing in it yet, and nothing this search and source found. */
+    /** Nothing in it yet, and nothing this search and source found. The ignored tab has an
+     *  empty line of its own: what lands there is not something you add. */
     empty: string;
+    emptyDismissed: string;
     noHits: string;
     clear: string;
     /** No endpoint configured: the heading, and the one line each missing setting gets.
@@ -93,6 +95,13 @@ export type RailCopy = {
     collected: string;
     dismissedAt: string;
     dismissedWhy: string;
+    /** On an ignored card, in place of the values a waiting one draws: the agent's own
+     *  reason, or this line when the user was the one who ignored it. */
+    byYou: string;
+    /** A record carried over from a board that kept only source ids and times (#559): its
+     *  own words were never saved, so the id stands in for the title and this chip — with
+     *  the judged time after it — stands in for the reason. */
+    contentGone: string;
     /** The two things an item offers. Dismissing cannot be undone, which is why the word is
      *  the plain one. Open is left off one with nothing to open. */
     viewOriginal: string;

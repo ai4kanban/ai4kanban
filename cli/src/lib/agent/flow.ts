@@ -32,7 +32,7 @@ import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
 import { boardMemoryFiles } from '../memory'
-import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, SIGNAL_INBOX, TODO } from '../paths'
+import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
@@ -885,7 +885,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     case 'reflect': {
       facts.push(...field('goal', rel(GOAL)))
       facts.push(...field('memory', boardMemoryFiles()))
-      facts.push(...field('inbox', `${rel(SIGNAL_INBOX)}/ — what is already waiting to be triaged`))
+      facts.push(...field('triage', `${rel(TRIAGE)}/ — what is already waiting to be triaged`))
       close.push(
         `${self} triage add --title ".." --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
         'propose nothing at all when nothing follows: that is a complete result, and most completions are it',

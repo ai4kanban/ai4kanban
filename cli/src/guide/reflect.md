@@ -31,7 +31,7 @@ Check `docs/kanban/memory/goal.md` and the module memory beside it for the direc
 drop every candidate that is already accounted for:
 
 - `akb raw list` — already on the board, planned or in flight.
-- `docs/kanban/triage/inbox/` — already waiting to be triaged.
+- `akb triage check <source-id>` — already waiting, already made into a card, or ignored before.
 - `docs/kanban/memory/rejected.md`, and each module's — turned down before.
 
 **Rules**:

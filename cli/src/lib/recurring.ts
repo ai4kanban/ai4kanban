@@ -56,7 +56,7 @@ const SIGNALS_TITLE = 'Fetch triage items'
 
 function signalsBody() {
   return boardText(`Pull what the board is pointed at into
-\`docs/kanban/triage/inbox/\`. Set a cadence to have it run on its own; without one it runs
+\`docs/kanban/triage/\`. Set a cadence to have it run on its own; without one it runs
 only when you run it. Delete this card if you don't want the job — nothing puts it back.
 
 ## Run state

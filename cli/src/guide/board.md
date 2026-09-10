@@ -27,13 +27,18 @@ docs/kanban/
 │                   appended to the end of every run that agent does, so every flow it runs
 │                   reads it. Tracked in git; a missing or empty file leaves the run
 │                   unchanged. Written from the board UI or `akb raw rule`
-├── triage/         what is waiting to be sorted (#453, #499) — `inbox/` holds one
-│                   file each, `handled.md` the source ids that have left it. Anything that
-│                   might become work goes in: `akb triage fetch` pulls it, somebody drops
-│                   a file or pastes a link on the Triage page, or `akb triage add` writes
-│                   one — which is where a reflection's proposals land. It is NOT a card:
-│                   never scheduled, never counted, and never turned into a card by
-│                   anything but the flow that does that. Empty triage has no folder
+├── triage/         what is waiting to be sorted (#453, #499, #559) — one file each.
+│   │               Anything that might become work goes in: `akb triage fetch` pulls it,
+│   │               somebody drops a file or pastes a link on the Triage page, or
+│   │               `akb triage add` writes one — which is where a reflection's proposals
+│   │               land. It is NOT a card: never scheduled, never counted, and never
+│   │               turned into a card by anything but the flow that does that. Empty
+│   │               triage has no folder. `akb triage check <source-id>` says where one
+│   │               source id already is — the one duplicate rule every way in reads
+│   ├── archived/   moved here once a card was made of it — `card_id`, `archived_at`
+│   ├── dismissed/  moved here once ignored, and kept for good — every record in it holds
+│   │               a later pull off, however long ago it was judged
+│   └── files/      the bytes of anything dropped in, shared by all three
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user
 ├── releases.md     the open releases, in the order they ship — one line each

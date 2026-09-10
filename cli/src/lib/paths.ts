@@ -121,16 +121,20 @@ export let PLANS_ARCHIVE = ''
 // delivery worktree leaves out. Never created up front: a missing or empty file means the
 // run goes unchanged.
 export let RULES = ''
-// The inbox waiting to be looked at (#453, #499) — what was pulled from the endpoint the
-// board is pointed at, one Markdown file each under `triage/inbox/`, and `triage/handled.md`
-// recording the source ids that have left it. Tracked in git like the cards, and made by the
-// first thing to land in it rather than by `init`: an empty inbox has no folder.
+// What is waiting to be sorted (#453, #499, #559) — one Markdown file per item, directly
+// under `triage/`. Three folders beside them say what has left the list: `archived/` once a
+// card was made of it, `dismissed/` once somebody or an agent ignored it, and `files/` the
+// bytes of anything dropped in, shared by all three. Tracked in git like the cards, and made
+// by the first thing to land in it rather than by `init`: empty triage has no folder.
 export let TRIAGE = ''
-export let SIGNAL_INBOX = ''
-export let SIGNALS_HANDLED = ''
-// Where an ignored item is kept (#559). Read here so the page can show what was ignored;
-// nothing writes it yet.
+export let SIGNALS_ARCHIVED = ''
 export let SIGNALS_DISMISSED = ''
+export let SIGNALS_FILES = ''
+// What a board written before #559 had: every item under `inbox/`, its dropped files under
+// `inbox/files/`, and a `handled.md` listing the source ids that had left. Read only by the
+// migration, which moves them into the four above and then removes them.
+export let SIGNALS_OLD_INBOX = ''
+export let SIGNALS_OLD_HANDLED = ''
 // Delivery state that never belongs in git — #303's worktrees are the first thing in it.
 // At the REPOSITORY root, not under docs/kanban/, because docs/kanban/.gitignore cannot
 // reach outside its own folder — so this one line goes in the repo's own.
@@ -249,9 +253,11 @@ function setBoard(kanban: string, root: string, flag: string): string {
   PLANS = path.join(KANBAN, 'plans')
   PLANS_ARCHIVE = path.join(PLANS, 'archive')
   TRIAGE = path.join(KANBAN, 'triage')
-  SIGNAL_INBOX = path.join(TRIAGE, 'inbox')
-  SIGNALS_HANDLED = path.join(TRIAGE, 'handled.md')
+  SIGNALS_ARCHIVED = path.join(TRIAGE, 'archived')
   SIGNALS_DISMISSED = path.join(TRIAGE, 'dismissed')
+  SIGNALS_FILES = path.join(TRIAGE, 'files')
+  SIGNALS_OLD_INBOX = path.join(TRIAGE, 'inbox')
+  SIGNALS_OLD_HANDLED = path.join(TRIAGE, 'handled.md')
   AKB_DIR = path.join(REPO_ROOT, '.akb')
   ROOT_GITIGNORE = path.join(REPO_ROOT, '.gitignore')
   return REPO_ROOT
