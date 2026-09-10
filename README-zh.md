@@ -1,138 +1,111 @@
 <div align="center">
 
-# AI4Kanban
+# <img src="docs/images/logo-mark.svg" width="40" align="top" alt=""> AI4Kanban
 
-### 面向编码 Agent 的 AI 项目经理。
+**下一个时代的 Vibe Coding 方式**<br>*让 Agent 自己进行项目规划和实施，人类只对关键的决策进行判断。*
 
-[English](README.md) · **简体中文**
+[English](README.md) · 简体中文
 
-[下载](https://ai4kanban.dev/download) · [官网](https://ai4kanban.dev) · [使用指南](https://ai4kanban.dev/docs/daily-loop)
+[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=24231f)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=635a4e)](https://github.com/ai4kanban/ai4kanban/releases)
 
-<img src="https://cdn.ai4kanban.dev/og-image-v6.jpg" alt="AI4Kanban——面向编码 Agent 的 AI 项目经理" width="720">
+[ai4kanban.dev](https://ai4kanban.dev/zh) · [博客](https://ai4kanban.dev/blog)
+
+[![下载 macOS、Windows、Linux 版](https://img.shields.io/badge/下载-macOS_·_Windows_·_Linux-dd4f1e?style=for-the-badge&labelColor=24231f)](https://ai4kanban.dev/zh/download)
+
+![AI4Kanban 概览](docs/images/overview-grid.png)
 
 </div>
 
-AI4Kanban 是面向使用编码 Agent 的开发者的 AI 项目经理：把模糊想法变成任务计划，
-执行开发与评审，并记住项目决策。
+## 我们的哲学
 
-## 为什么使用它？
+让人在每一个项目任务上投入的精力最小化。
 
-编码 Agent 需要清晰的需求。当计划散落在冗长的聊天记录里，你就得反复解释决策、
-澄清同样的问题，还要手动协调各项工作。
+只要 AI 能够让人类在开发上投入的精力缩小到原来的 1/10，那么单人能够承担的任务量就会增加到原来的 10 倍。
 
-AI4Kanban 把任务、依赖关系和项目记忆放在同一块 Markdown 看板中，用 Git 管理版本。
-它根据代码库和已有决策澄清下一项任务，把需要你判断的取舍交给你，再让编码 Agent 执行已就绪的工作。
+AI4Kanban 帮助我们的早期用户提升了 3–6 倍实施效率。
 
-## 实际效果
+## 它是如何工作的
 
-一个模糊想法会变成一组带依赖关系和验收标准的任务。回答待澄清问题后，点击卡片上的
-**开发**，即可启动开发、评审和合入。默认情况下，这次批准覆盖直到合入的整个交付流程；
-如果希望先查看代码变更，可以开启**合入前需要批准差异**。
+1. 你可以把 AI4Kanban 当做是一个项目经理，一个中层管理。它是人和 Coding Agent 之间的桥梁。
 
-点击任意截图查看大图。
+2. 首先 AI4Kanban 会给每一个用户输入的模糊想法创建一张卡片。接着我们会通过 refine 流程去将卡片进行澄清、拆解与规划。
 
-<table>
-<tr>
-<td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-task-graph-v1.jpg" alt="带子任务依赖图的分组卡片：五张卡片由依赖箭头串联" /></a><br/>
-<sub><b>明确任务与依赖</b> — 将大目标拆成边界清晰的卡片，用依赖箭头标明哪些任务可以并行。</sub>
-</td>
-<td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-clarify-v1.jpg" alt="卡片上的待澄清问题，每个问题都带有推荐答案和备选项" /></a><br/>
-<sub><b>澄清需求</b> — 根据项目记忆和代码库回答常规问题，把产品决策交给你。</sub>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-execute-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-execute-v1.jpg" alt="运行面板：implement、review、resolve 会话及其运行日志" /></a><br/>
-<sub><b>推进执行</b> — 在独立的 git worktree 中并行执行已就绪的任务，评审变更，并在合入前解决冲突。</sub>
-</td>
-<td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-spec-agents-v1.jpg" alt="ui-designer Agent 的报告，卡片上附有两套可运行的 mockup" /></a><br/>
-<sub><b>先定关键方案</b> — 使用内置或自定义规格 Agent 比较技术方案，产出可运行的 UI 原型。</sub>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-<a href="https://cdn.ai4kanban.dev/loop-approval-v1.jpg"><img src="https://cdn.ai4kanban.dev/loop-approval-v1.jpg" alt="Slack 中的审批通知，带有 Implement 和打开卡片按钮" /></a><br/>
-<sub><b>在 Slack 中批准任务</b> — 接收问题和审批请求，直接在消息中回答或启动实施。</sub>
-</td>
-<td width="50%" valign="top"></td>
-</tr>
-</table>
+3. 如果单个 spec 太长，需要考虑的问题太多，我们会把一张卡片再拆解成子卡片；每个子卡片又可以递归拆解，直到单张卡片上的问题足够具体、可落地。
 
-## 快速开始
+4. 我们会通过类似于 [grill-me](https://github.com/mattpocock/skills) 或 [wayfinder](https://github.com/mattpocock/skills) 的流程，让 Agent 自己提出问题，并且自己进行回答，一直循环到它认为整个方案没有重大缺漏了为止。如果有一些重大的产品决策，涉及品味、产品方向和商业考量等，Agent 会请求人类做出决策。
 
-**准备工作：**一个项目文件夹，以及一个已安装并完成登录或 API 密钥配置的受支持编码 Agent。
-如需独立 worktree 和自动合入，项目应为 Git 仓库，至少有一次提交，且当前检出在一个分支上。
+5. 通常大部分的产品细节，我们允许 Agent 自行作答，最后交给人类决策的，往往只有两三个问题。对于一个简单的需求，它甚至可以自行解决所有的问题。
 
-1. **[下载并安装桌面应用](https://ai4kanban.dev/download)。** 应用内置运行环境和 `akb` CLI，
-   无需单独配置 Node.js 或 npm。
-2. **新建本地看板，打开项目文件夹。** 设置流程会尝试使用本机的编码 Agent。
-   确认或纠正它对仓库的理解，并描述你的项目目标。
-3. **点击完成设置。** AI4Kanban 会建立项目记忆、整理模块，并提出首批任务。
-4. **试着完成一项任务。** 打开一张建议的卡片，回答待澄清问题，范围明确后点击**开发**。
-   在运行面板中查看开发和评审进度。
+6. 每张卡片会被拆分为两部分：一部分交给人类 review，另一部分是 Agent 需要参照的执行计划。人类 review 的部分更像是一个简报，它只包含一些需要被人类关注的部分。
 
-当前安装包尚未签名。如果操作系统阻止启动，请按[首次启动说明](https://ai4kanban.dev/download)
-中对应平台的步骤操作。
+7. 简单来说，人类所需要做的就是提出想法，做选择题，最后 review 极扼要的简报。剩下的事情全都交给 AI。
 
-也可以通过看板 skill，直接让编码 Agent 操作：
+![Vibe coding、中间层工具与 kanban coding](docs/images/vibe-vs-kanban-coding.jpg)
 
-```text
-下一步做什么？
-细化 #4
-实现 #4
-```
+## 全自动开发工厂（实验性）
 
-将 `#4` 换成你看板中的卡片编号。应用会在打开项目时安装 skill，也可以在**配置 → 通用**中安装。
-桌面应用、skill 和 `akb` CLI 操作的是同一块看板。终端用法见 [CLI 指南](cli/README.md)。
+你可以把整个开发环节中仅有的几个需要人类参与的部分也交给 AI。
 
-## 适合我的环境吗？
+- 关于品味、商业方向等需要人类判断的问题，你可以配置 Decider Agent，让它使用最聪明、最强大的模型（Claude Fable，GPT-6 xhigh）来替你做出决策。
 
-| 项目 | 支持情况与限制 |
-| --- | --- |
-| 桌面平台 | macOS（Apple Silicon 和 Intel）、Windows、Linux。macOS 版本每次发布都会测试；Windows 和 Linux 版本发布前尚未测试。所有安装包均未签名。 |
-| 编码 Agent | Claude Code、Codex、Cursor、OpenCode、Kimi Code、DeepSeek Harness、ZCode、Grok Build。需要自行安装并完成认证。运行信息上报、权限和适配测试情况各有不同，详见[支持矩阵](https://ai4kanban.dev/docs/connectors)。 |
-| Git | 独立 worktree 用于隔离并行开发。如果没有 Git、尚无提交，或当前未检出在分支上，则直接在项目文件夹中开发，需要手动提交。 |
-| 集成 | 应用通知中心和 Slack 接收问题与审批请求。自定义规格 Agent 放在 `docs/kanban/agents/` 中。 |
-| 语言 | 应用和看板内容支持简体中文与英文，应用默认跟随系统语言。 |
-| 终端 | 桌面应用在 macOS 和 Windows 上提供 `akb` 安装入口。Linux AppImage 不会在 PATH 中留下命令，单独安装方式见 [CLI 指南](cli/README.md)。 |
+- 对于一个已经就绪的卡片，你可以让 Gater Agent 替你决定是否开始实施，它会 review 整个卡片的潜在问题，并做出最终的裁决，避免我们漏掉一些关键细节。
 
-### 本地看板与 Cloud 看板
+- 你可以开启反思流程，让 Agent 回顾已完成的卡片，并反思是否还有其他与原卡片无关，但可以让整个产品改进的地方。
 
-- **本地（默认）**：卡片、记忆、发布和配置保存在 `docs/kanban/`，由 Git 管理版本，
-  无需 Cloud 工作区。
-- **Cloud（邀请制预览）**：看板内容保存在托管工作区，可从登录后的不同机器访问。
-  编码 Agent 仍在本机操作你的仓库；AI4Kanban Cloud 不接收仓库代码，也不运行 Agent。
-- **迁移与导出**：本地与 Cloud 之间的切换通过一次经你审阅的提交完成。
-  在**配置 → 工作区**中，可以将 Cloud 看板导出为 Markdown，或删除工作区。
-  详见[本地看板与 Cloud 看板](https://ai4kanban.dev/docs/local-and-cloud-boards)。
+- 你甚至可以让需求输入源都自动化。你可以对关注的 Reddit 帖文、竞品分析、市场报告、团队讨论、会议纪要等信息源进行粗筛，并提取需求点，放入待办项。再让 Agent 从待办项中提取真正对产品有帮助的工作，放进看板。
 
-### 数据与使用情况上报
+![从外部信息源到版本迭代](docs/images/automation-inputs.png)
 
-你选择的编码 Agent 和模型服务商会按各自的配置处理所需代码。看板存储在本地，并不意味着模型调用离线运行。
+注意，全自动开发流程的问题在于，它可能会把错误的决策沉淀到项目记忆中，导致后续决策也出现偏差。对于严肃、面向生产的产品，我们建议保留必备的人类审批流程。
 
-AI4Kanban **默认开启**匿名使用情况上报，并在打开第一个看板前说明。上报内容为功能使用和失败情况，
-不包含代码、卡片内容、项目名称或文件路径。可以在首次启动时、**配置 → 通用**中，
-或通过 `akb telemetry off` 关闭。[隐私政策](https://ai4kanban.dev/privacy)列出了全部事件与字段。
+## 看板就是团队大脑
 
-## 文档与贡献
+- 你的每一个决策都会被记录到项目的记忆中。规划 Agent 会按需读取。
 
-AI4Kanban 正在持续开发。试用前可查看[发布记录](https://github.com/ai4kanban/ai4kanban/releases)
-了解已发布的变更，并留意上方的平台限制。
+- 从零开始的项目通常只有一个模块，所有记忆都会放在这个模块里。随着项目演进，一个项目中可能包含多个独立进化的模块，它们的记忆也会被自动拆分。这样，每个模块的改动和决策都只会影响对应模块的记忆。
 
-- **了解工作流**：[日常指南](https://ai4kanban.dev/docs/daily-loop)、
-  [项目目标](https://ai4kanban.dev/docs/what-makes-a-good-goal)，以及 `akb help`。
-- **报告问题或提出功能建议**：[提交 Issue](https://github.com/ai4kanban/ai4kanban/issues)。
-  报告问题时，请附上操作系统、应用版本、编码 Agent 和复现步骤。
-- **贡献修复**：阅读[仓库开发约定](AGENTS.md)，以及[桌面应用](desktop/README.md)、
-  [看板 UI](kanban-ui/README.md)或 [CLI](cli/README.md) 的开发说明。
-  运行对应检查后，[提交 Pull Request](https://github.com/ai4kanban/ai4kanban/pulls)，说明改动和验证方式。
-- **看看我们如何使用它**：浏览本仓库自己的[任务看板](docs/kanban/)。
+- 看板是所有团队成员的共享工作区，所有人共享所有的记忆。
 
-## 许可证
+## Harness 无关
 
-[Apache License 2.0](LICENSE)。可自由使用、修改和再分发。
+- 我们支持 8 个常见的 Harness。如果你所使用的 Harness 不在我们的列表中，请创建 issue 告诉我们，这对我们非常有帮助。
 
-[`web/`](web/) 下的官网是例外：源码公开仅供阅读，适用其[单独的许可证](web/LICENSE)。
+![AI4Kanban 支持的 8 个 Harness](docs/images/harnesses.png)
+
+- 所有 Harness 都运行在你自己的电脑上，这意味着你可以使用自己的 AI 订阅。我们不额外收取任何 token 费用。
+
+- 每个 Agent 都可以配置各自的 Harness 和模型，考虑到不同角色所需的智能等级不同。
+
+- 我们建议你使用至少一个 200 美金的月度 AI 订阅。考虑到你的 AI 编码效率会成倍提升，更低的档位 token 额度通常很快就会被耗光。
+
+- 如果你同时订阅了 OpenAI 和 Claude，我们建议使用 OpenAI GPT 模型做规划和讨论 Agent，用 Claude 模型做实际的编码 Agent。
+
+- 支持 Skill 和 CLI，你可以按照自己的喜好打造专属你的看板 UI，符合你的习惯。
+
+## 异步通知
+
+- 当你拥有了一个 AI 项目经理，你不需要再盯着 Coding Agent 干活。AI4Kanban 会把进度汇报给你，在你需要做决策的时候告诉你。
+
+- 基于最小精力原则，每个通知里只会包含必要信息。
+
+- 我们支持桌面通知，以及 Slack 通知。其他 IM 工具的支持后续会陆续提供。
+
+## 开源协议
+
+- 桌面端、`akb` CLI、看板 UI 与 Cloud 服务端都按 [Apache-2.0](LICENSE) 授权。
+
+- [`web/`](web/) 目录采用单独的[源码可见许可](web/LICENSE)。它公开是为了可读、可审计，但不是开源许可，不授予部署或再分发的权利。
+
+## 独立开发者：拓展你的大脑
+
+所有人都说，营销和分发是创业者最重要的事。但实际中，许多项目在开发上就至少需要 3 个月，甚至一年，才能真正被用户使用。否则，它们始终会停留在 demo 阶段，或者只能作为极其细分的产品，缺乏远见和产品竞争力。这种情况该谈何营销？
+
+AI4Kanban 致力于帮助独立开发者和小团队：
+
+- 在 2–3 周内完成一个生产可用的产品；
+- 在 30 天内单人完成 500 个提交；
+- 每周完成一次大的版本迭代。
+
+让你的产品在最短时间内，以一个构思完整、闭环的形态面向市场，这样用户不会被因为你的产品缺陷而失去兴趣。
+
+如果你的产品在使用 AI4Kanban 之后无法实现这个迭代速度，我们很乐意为你提供 60 分钟的上手指导。欢迎联系 [support@ai4kanban.dev](mailto:support@ai4kanban.dev)。
