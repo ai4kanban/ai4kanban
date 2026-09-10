@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="docs/images/logo-mark.svg" width="40" align="top" alt=""> AI4Kanban
+# <img src="https://cdn.ai4kanban.dev/readme/logo-mark.svg" width="40" align="top" alt=""> AI4Kanban
 
 **Next-gen vibe coding.**<br>*Agents plan and build. You make the key decisions.*
 
@@ -12,7 +12,7 @@ English · [简体中文](README-zh.md)
 
 [![Download for macOS, Windows and Linux](https://img.shields.io/badge/download-macOS_·_Windows_·_Linux-dd4f1e?style=for-the-badge&labelColor=24231f)](https://ai4kanban.dev/download)
 
-![AI4Kanban at a glance](docs/images/overview-grid.png)
+![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid.png)
 
 </div>
 
@@ -40,7 +40,7 @@ Our early adopters report 3–6× higher development productivity.
 
 7. You bring the ideas, make the choices, and review a short brief. AI does the rest.
 
-![Vibe coding, the middle of the curve, and kanban coding](docs/images/vibe-vs-kanban-coding.jpg)
+![Vibe coding, the middle of the curve, and kanban coding](https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding.jpg)
 
 ## A fully automated coding factory (experimental)
 
@@ -54,7 +54,7 @@ You can delegate the remaining human decisions to AI, too.
 
 - You can even automate requirements gathering. Have agents pull feature requests from Reddit threads, competitor analyses, market reports, team discussions, and meeting notes into the triage inbox. Agents review these ideas and add the most promising ones to the board.
 
-![From external inputs to release iterations](docs/images/automation-inputs.png)
+![From external inputs to release iterations](https://cdn.ai4kanban.dev/readme/automation-inputs.png)
 
 **Warning:** Bad decisions can become part of project memory and lead to more bad decisions. For production software, we recommend keeping human approval at critical steps.
 
@@ -70,7 +70,7 @@ You can delegate the remaining human decisions to AI, too.
 
 - We support 8 harnesses. Don’t see yours? Open an issue to help us prioritize support.
 
-![The 8 harnesses AI4Kanban supports](docs/images/harnesses.png)
+![The 8 harnesses AI4Kanban supports](https://cdn.ai4kanban.dev/readme/harnesses.png)
 
 - Harnesses run on your computer using your own AI subscriptions. We charge no additional token fees.
 

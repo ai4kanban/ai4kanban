@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="docs/images/logo-mark.svg" width="40" align="top" alt=""> AI4Kanban
+# <img src="https://cdn.ai4kanban.dev/readme/logo-mark.svg" width="40" align="top" alt=""> AI4Kanban
 
 **下一个时代的 Vibe Coding 方式**<br>*让 Agent 自己进行项目规划和实施，人类只对关键的决策进行判断。*
 
@@ -12,7 +12,7 @@
 
 [![下载 macOS、Windows、Linux 版](https://img.shields.io/badge/下载-macOS_·_Windows_·_Linux-dd4f1e?style=for-the-badge&labelColor=24231f)](https://ai4kanban.dev/zh/download)
 
-![AI4Kanban 概览](docs/images/overview-grid.png)
+![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid.png)
 
 </div>
 
@@ -40,7 +40,7 @@ AI4Kanban 帮助我们的早期用户提升了 3–6 倍实施效率。
 
 7. 简单来说，人类所需要做的就是提出想法，做选择题，最后 review 极扼要的简报。剩下的事情全都交给 AI。
 
-![Vibe coding、中间层工具与 kanban coding](docs/images/vibe-vs-kanban-coding.jpg)
+![Vibe coding、中间层工具与 kanban coding](https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding.jpg)
 
 ## 全自动开发工厂（实验性）
 
@@ -54,7 +54,7 @@ AI4Kanban 帮助我们的早期用户提升了 3–6 倍实施效率。
 
 - 你甚至可以让需求输入源都自动化。你可以对关注的 Reddit 帖文、竞品分析、市场报告、团队讨论、会议纪要等信息源进行粗筛，并提取需求点，放入待办项。再让 Agent 从待办项中提取真正对产品有帮助的工作，放进看板。
 
-![从外部信息源到版本迭代](docs/images/automation-inputs.png)
+![从外部信息源到版本迭代](https://cdn.ai4kanban.dev/readme/automation-inputs.png)
 
 注意，全自动开发流程的问题在于，它可能会把错误的决策沉淀到项目记忆中，导致后续决策也出现偏差。对于严肃、面向生产的产品，我们建议保留必备的人类审批流程。
 
@@ -70,7 +70,7 @@ AI4Kanban 帮助我们的早期用户提升了 3–6 倍实施效率。
 
 - 我们支持 8 个常见的 Harness。如果你所使用的 Harness 不在我们的列表中，请创建 issue 告诉我们，这对我们非常有帮助。
 
-![AI4Kanban 支持的 8 个 Harness](docs/images/harnesses.png)
+![AI4Kanban 支持的 8 个 Harness](https://cdn.ai4kanban.dev/readme/harnesses.png)
 
 - 所有 Harness 都运行在你自己的电脑上，这意味着你可以使用自己的 AI 订阅。我们不额外收取任何 token 费用。
 
