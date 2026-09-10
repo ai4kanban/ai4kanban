@@ -443,16 +443,35 @@ function Draft({
   const lockedRef = useRef(false);
   lockedRef.current = locked;
 
-  const typed = useCallback((value: string) => {
-    if (adopting.current || composing.current || lockedRef.current) return;
-    pending.current = { tab: tabRef.current, text: value };
-    setDirty(true);
-    setText(value);
-    setCaretMoved((n) => n + 1);
+  /** Start the idle save over. It waits out an IME candidate: a save re-reads the file and
+   *  puts it back into the editor, which mid-composition would take the half-typed candidate
+   *  with it and leave the caret at the end. The candidate saves itself once committed. */
+  const arm = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
-    // Nothing saves itself while a rewrite is waiting to be answered.
-    if (!conflictRef.current) timer.current = setTimeout(() => void flushRef.current(), SAVE_AFTER_MS);
+    const tick = () => {
+      if (composing.current) {
+        timer.current = setTimeout(tick, SAVE_AFTER_MS);
+        return;
+      }
+      void flushRef.current();
+    };
+    timer.current = setTimeout(tick, SAVE_AFTER_MS);
   }, []);
+
+  const typed = useCallback(
+    (value: string) => {
+      if (adopting.current || composing.current || lockedRef.current) return;
+      pending.current = { tab: tabRef.current, text: value };
+      setDirty(true);
+      setText(value);
+      setCaretMoved((n) => n + 1);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = null;
+      // Nothing saves itself while a rewrite is waiting to be answered.
+      if (!conflictRef.current) arm();
+    },
+    [arm],
+  );
   const typedRef = useRef(typed);
   typedRef.current = typed;
   // What the page last saw in the editor — every value `typed` took, and every file read into
@@ -554,9 +573,17 @@ function Draft({
       setDirty(false);
       setConflict(null);
       setSaveFailed(null);
-      if (editor && editor.getValue() !== disk) {
+      // Mid-composition the editor holds an IME candidate the page has not taken up yet, so
+      // a file that agrees with what it last saw has nothing to put back over it.
+      const onlyACandidate = composing.current && disk === textRef.current;
+      if (editor && editor.getValue() !== disk && !onlyACandidate) {
         adopting.current = true;
+        // `setValue` assigns `textarea.value`, which drops the caret at the end. Somebody
+        // typing keeps theirs where it stood, clamped to what the file now holds.
+        const box = editor.textarea;
+        const caret = document.activeElement === box ? [box.selectionStart, box.selectionEnd] : null;
         editor.setValue(disk);
+        if (caret) box.setSelectionRange(Math.min(caret[0], disk.length), Math.min(caret[1], disk.length));
         adopting.current = false;
       }
       setText(disk);
@@ -693,7 +720,7 @@ function Draft({
     base.current = conflict?.disk ?? base.current;
     setConflict(null);
     setRefused(null);
-    if (pending.current) timer.current = setTimeout(() => void flushRef.current(), SAVE_AFTER_MS);
+    if (pending.current) arm();
   };
   /** Take what the agent wrote: the words the editor was holding go with it. */
   const takeFile = () => {
