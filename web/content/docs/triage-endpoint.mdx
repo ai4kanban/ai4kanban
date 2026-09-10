@@ -1,0 +1,175 @@
+---
+title: "The triage endpoint contract"
+title_tag: "AI4Kanban triage endpoint contract — serve signals to any board"
+description: "What an endpoint has to serve for akb triage fetch to read it: one authenticated GET, one JSON list, which fields are required, what makes an item's identity, and what each error status means. Version akb-triage/1."
+lead: "Anybody can serve a board's Triage. This is the whole of what an endpoint has to keep — one authenticated GET, one JSON list — so the board never has to know what platform is behind it."
+last_updated: "September 11, 2026"
+nav_label: "Triage endpoint"
+icon: "package"
+---
+
+A board pulls its leads from one URL you choose. Keep this page's contract and
+`akb triage fetch` reads your endpoint the same way it reads any other — you write the
+part that turns Reddit, a newsletter, a search, or a PDF pipeline into the shape below.
+
+To point a board at an endpoint, see [Triage](/docs/triage). This page is the other side:
+what to serve.
+
+## The version
+
+This contract is **`akb-triage/1`**. Nothing carries it on the wire — the board neither
+sends it nor asks for it. Name it in your own documentation, so a reader knows which
+contract your endpoint answers.
+
+Inside a version:
+
+- **New fields are optional.** The board may learn to read more, and an endpoint that
+  never sends them keeps working.
+- **Unknown fields are ignored.** You may send whatever else your source has; the board
+  reads the fields it knows and drops the rest without complaint.
+- **What is required stays required, and no more.** The required list never grows, a field
+  never changes meaning, and a status never changes what it makes the board do.
+
+Anything that would break an endpoint written against `/1` is a new version with a page of
+its own.
+
+## The request
+
+```http
+GET /your/path HTTP/1.1
+Authorization: Bearer <the board's token>
+```
+
+- **One request per pull.** No query parameters, no body, no second call. Whatever state
+  your endpoint needs is yours to hold.
+- **The token is a bearer token you issue.** It is opaque to the board — any string. Match
+  it in whatever way you like; the board only ever sends it back in this header.
+- **Serve it over `https://`.** The board accepts `http://` as well, but only use that for
+  something on the same machine: a bearer token over plain HTTP is a token on the wire.
+- **Answer within 30 seconds.** A pull is a read — collect on your own schedule and serve
+  what you already have. Past 30 seconds the board gives up and writes nothing.
+
+## The answer
+
+`200`, with a JSON body carrying a `signals` list:
+
+```json
+{
+  "signals": [
+    {
+      "source_id": "t3_1abcdef",
+      "title": "Three of us run Claude Code and the conventions keep getting reverted",
+      "summary": "We each have Claude Code open on the same repo…",
+      "source_type": "reddit",
+      "url": "https://www.reddit.com/r/ClaudeAI/comments/1abcdef/",
+      "collected_at": "2026-09-06T21:40:00Z",
+      "meta": { "subreddit": "r/ClaudeAI", "author": "u/mira", "score": "312 upvotes" }
+    }
+  ]
+}
+```
+
+`signals` must be there even when there is nothing to send: `{"signals": []}` is a good
+answer, and the pull reports that it added nothing.
+
+| Field | Required | What it is |
+| --- | --- | --- |
+| `title` | yes | One line, the item's own words. A blank one is not a title. |
+| `summary` | yes | The body. Any length; the board keeps it whole. |
+| `source_id` | no — but send it | Your stable identity for the item. See below. |
+| `source_type` | no | Which source it came from. |
+| `url` | no | The thing itself, so a reader can open the original. |
+| `collected_at` | no | RFC 3339, when *you* collected it. |
+| `meta` | no | Free key-value pairs shown beside the item. |
+
+- **`source_type`** is one key off the board's list: `reddit`, `x`, `xiaohongshu`, `weibo`,
+  `zhihu`, `youtube`. Common other spellings — `twitter`, `小红书`, `rednote` — are matched
+  to their key. A key the list has not got is kept exactly as you sent it and drawn as
+  itself. Leave it out and the board reads `url`'s domain against the same list; if that
+  matches nothing, the item simply has no source. Nothing is invented.
+- **`meta`** values are single-line strings; numbers and booleans are read as their text.
+  An object, a list, or a value with a newline in it is left out. The board shows values,
+  not keys, so write values that read on their own.
+- **`collected_at`** is when the platform's post was collected, not when the board pulled
+  it — the board stamps the import itself. Send it and a reader sees how fresh the item is;
+  leave it out and the board uses the moment of the pull. A value that is not a time costs
+  that one item.
+
+Anything else you send is ignored. Two names are read for compatibility with endpoints
+written before `source_type` existed: **`platform`** and **`source`**, both free text, both
+matched against the same list and otherwise kept as a `meta` entry under `source`.
+
+## Identity is `source_id`
+
+`source_id` is the one field to get right. The board dedupes on it against everything
+waiting, everything already made into a card, everything ever ignored, and the rest of the
+same batch. An id it has seen is skipped and counted, never written twice.
+
+- **Send your own.** Use the platform's own id — a Reddit `t3_…`, a post id, a stable
+  message id. It only has to be unique inside your endpoint.
+- **The same item must keep the same id forever.** An id that changes between pulls turns
+  one item into two.
+- **Left out, it is derived** from the `url`, or from the title and summary when there is
+  no link. That is stable enough for a one-off, and fragile the moment your link or your
+  wording changes — an endpoint should not rely on it.
+
+## How much to send
+
+There is no paging and no ceiling. **You decide the batch**; the board takes all of it and
+throws away what it has already seen.
+
+That makes the simplest correct endpoint one that resends everything it holds on every
+pull. It is safe — repeats cost a skip, not a duplicate — and it costs bandwidth. Sending
+only what you collected since the last pull is an optimization, and it is entirely yours to
+implement: the board sends nothing that would tell you when it last succeeded.
+
+## Updates and withdrawals
+
+Neither can be expressed, and that is the whole rule.
+
+- **A revised item resent under the same `source_id` is skipped.** The board keeps what it
+  first read. If a revision genuinely matters, send it under a new `source_id` — it arrives
+  as a second item beside the first.
+- **Nothing can withdraw an item.** Once the board has written an item, dropping it from
+  your feed does not remove it; the reader ignores it by hand, and that decision holds
+  against every later pull.
+
+Send an item when you are willing to stand behind it.
+
+## Errors
+
+| Status | Send it when | What the board does |
+| --- | --- | --- |
+| `200` | you have a batch, even an empty one | reads it |
+| `401` | the token is missing or not one of yours | abandons the pull |
+| `403` | the token is real but not allowed here | abandons the pull |
+| `429` | the caller is asking too often | abandons the pull |
+| `503` | you are up but cannot serve right now — a collector is down, a deploy is running | abandons the pull |
+
+Everything outside `200`–`299` abandons the pull identically: the board reports the status
+and writes nothing at all, so triage is left exactly as it was. A `429` and a `503` are
+therefore not retried inside a pull — the next pull is the retry, and the board reads no
+`Retry-After`. Pick the status that describes the truth even though the board acts the same
+on each, because it is what a person reads when they ask why nothing arrived.
+
+The board does not read the body of an error, so an explanation you put there is never
+seen. The same goes for a `200` it cannot parse, or one with no `signals` list: reported,
+and nothing written.
+
+<Callout type="note" title="One bad item is not a bad answer">
+A malformed *answer* costs the whole pull. A malformed *item* costs only itself: it is
+counted and named, and the rest of the batch lands. So a single field you got wrong on one
+post does not hold up the other ninety-nine.
+</Callout>
+
+## Check yourself
+
+An endpoint keeps `akb-triage/1` when all of this is true:
+
+- **One `GET`, one list**: a bearer token gets `200` and a JSON `{"signals": [...]}`.
+- **Every item is readable**: a non-empty `title` and `summary` on each.
+- **Every item has a name**: a `source_id` that never changes for that item.
+- **Nothing to send is still an answer**: `{"signals": []}`, not `204` and not an error.
+- **A bad token gets `401`**: and no batch leaks with it.
+- **It answers within 30 seconds**: serving a store, not collecting on demand.
+- **Everything extra is expendable**: you send no field you would mind being ignored.

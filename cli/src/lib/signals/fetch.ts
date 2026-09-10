@@ -13,9 +13,13 @@
 // `source` that missed is kept as a `meta` entry, so nothing an endpoint said is dropped.
 //
 // Nothing is written until the whole answer is in hand: a request that fails, an answer
-// that will not parse and a board with the settings still to fill in all leave the inbox
-// exactly as it was. An item that fails field validation is the one exception the other
-// way — it is counted and explained, and the rest of the batch still lands.
+// that will not parse, an endpoint that goes quiet past the deadline, and a board with the
+// settings still to fill in all leave the inbox exactly as it was. An item that fails field
+// validation is the one exception the other way — it is counted and explained, and the rest
+// of the batch still lands.
+//
+// This is the `akb-triage/1` contract, published at /docs/triage-endpoint. Change what an
+// endpoint may send, or what a status means, and that page changes with it (#577).
 
 import { formatStamp } from '../cadence'
 import { die } from '../paths'
@@ -45,6 +49,11 @@ export interface FetchReport {
 }
 
 const REQUIRED = ['title', 'summary'] as const
+
+/** How long the endpoint has to answer. A pull is a read of what the provider already
+ *  collected, so anything past this is an outage, not slow work — and a recurring card must
+ *  not be able to sit on an open connection for good. */
+const ANSWER_BY_MS = 30_000
 
 type Wire = Record<string, unknown>
 
@@ -117,9 +126,18 @@ export async function fetchSignals(): Promise<FetchReport> {
   const endpoint = signalEndpoint()
   let response: Response
   try {
-    response = await fetch(endpoint, { headers: { authorization: `Bearer ${signalToken()}` } })
+    response = await fetch(endpoint, {
+      headers: { authorization: `Bearer ${signalToken()}` },
+      signal: AbortSignal.timeout(ANSWER_BY_MS),
+    })
   } catch (e) {
-    die(`could not reach ${endpoint}: ${e instanceof Error ? e.message : String(e)}`, { kind: 'triage-unreachable' })
+    // The deadline's is the only signal the request carries, so any abort is it — Node named
+    // that rejection `AbortError` before it carried the signal's own reason.
+    const late = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
+    const why = late
+      ? `did not answer within ${ANSWER_BY_MS / 1000}s`
+      : `could not be reached: ${e instanceof Error ? e.message : String(e)}`
+    die(`${endpoint} ${why}`, { kind: 'triage-unreachable' })
   }
   if (!response.ok) {
     die(`${endpoint} answered ${response.status}.`, { kind: 'triage-endpoint-refused' })

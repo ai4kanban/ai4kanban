@@ -273,6 +273,17 @@ describe('a pull that fails', () => {
     assert.equal(fs.existsSync(triage()), false)
   })
 
+  it('gives up on an endpoint that goes quiet, and writes nothing', async () => {
+    let hadDeadline = false
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      hadDeadline = init?.signal instanceof AbortSignal
+      throw Object.assign(new Error('aborted'), { name: 'TimeoutError' })
+    }) as typeof fetch
+    await assert.rejects(fetchSignals(), /did not answer within 30s/)
+    assert.equal(hadDeadline, true)
+    assert.equal(fs.existsSync(triage()), false)
+  })
+
   it('writes nothing when the answer carries no signals list', async () => {
     answerWith({ items: [] })
     await assert.rejects(fetchSignals(), /`signals` list/)
