@@ -98,6 +98,10 @@ export interface BoardNotifications {
   releases: string[];
   signedIn: boolean;
   server: BoardServer;
+  /** The board lives in a workspace, so the switch and the release are this member's rather
+   *  than this machine's (#328) — they follow them wherever they open it. False on a Local
+   *  board, and on rules that predate this. */
+  shared: boolean;
 }
 
 const OFF: NotificationCenter = {
@@ -155,12 +159,19 @@ export async function setSilenced(on: boolean): Promise<{ ok: boolean; error?: s
 export async function boardNotifications(): Promise<BoardNotifications> {
   const rules = await boardRules();
   if (!rules.readBoardNotifications) {
-    return { enabled: false, release: "", releases: [], signedIn: false, server: NO_SERVER };
+    return {
+      enabled: false,
+      release: "",
+      releases: [],
+      signedIn: false,
+      server: NO_SERVER,
+      shared: false,
+    };
   }
   const state = await rules.readBoardNotifications();
   // Rules that predate the board's server say nothing about one, and the row draws as
   // "no machine runs this" rather than failing to draw the section.
-  return { ...state, server: state.server ?? NO_SERVER };
+  return { ...state, server: state.server ?? NO_SERVER, shared: state.shared === true };
 }
 
 /** Watch a different release — what the rail asks for when the last one closed. */
@@ -168,6 +179,14 @@ export async function watchRelease(release: string): Promise<{ ok: boolean; erro
   const rules = await boardRules();
   if (!rules.watchRelease) return { ok: false, error: TOO_OLD };
   return rules.watchRelease(release);
+}
+
+/** Be told about a shared board, or not (#328). A Local board has no such switch: signed in
+ *  means on there, and the section draws none. */
+export async function setBoardNotify(on: boolean): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.setBoardNotify) return { ok: false, error: TOO_OLD };
+  return rules.setBoardNotify(on);
 }
 
 // --- this board's server (#318) -----------------------------------------------

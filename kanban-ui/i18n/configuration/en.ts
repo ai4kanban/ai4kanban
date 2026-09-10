@@ -500,6 +500,11 @@ const en: ConfigurationCopy = {
     },
     notifications: {
       title: "This board",
+      notify: "Notifications",
+      notifyOn: "Tell me what this board needs a person for — on",
+      notifyOff: "Tell me what this board needs a person for — off",
+      notifyBlurb:
+        "Yours on every machine you open this board on. Your teammates are told either way.",
       watching: "Watching",
       allReleases: "All",
       pickRelease: "— pick a release —",
@@ -507,6 +512,7 @@ const en: ConfigurationCopy = {
       onlyThisRelease: "Cards in any other release raise nothing.",
       releaseClosed:
         "The release you were watching closed. Nothing fills the bell until you pick another.",
+      sharedWatch: "Yours on every machine you open this board on.",
       saveFailed: "that could not be saved",
     },
   },

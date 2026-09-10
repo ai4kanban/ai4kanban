@@ -50,6 +50,7 @@ import {
   startCloudSignInAction,
   startLarkConnectAction,
   startSlackConnectAction,
+  setBoardNotifyAction,
   watchReleaseAction,
 } from "@/app/actions";
 import { useLanguage } from "@/components/language";
@@ -856,7 +857,9 @@ function Notifications() {
   // and then Cloud, which is long enough that a control redrawn only on the answer reads as
   // a control that did not take the press. Cleared once the board has been re-read, so what
   // is on screen after a refusal is what the board actually holds.
-  const [pending, setPending] = useState<Partial<Pick<BoardNotifications, "release">> & { here?: boolean }>({});
+  const [pending, setPending] = useState<
+    Partial<Pick<BoardNotifications, "release">> & { here?: boolean; notify?: boolean }
+  >({});
   const busy = Object.keys(pending).length > 0;
 
   const load = useCallback(async () => setState(await boardNotificationsAction()), []);
@@ -865,7 +868,7 @@ function Notifications() {
   }, [load]);
 
   const move = async (
-    shown: { release: string } | { here: boolean },
+    shown: { release: string } | { here: boolean } | { notify: boolean },
     run: () => Promise<{ ok: boolean; error?: string }>,
   ) => {
     if (busy) return;
@@ -880,13 +883,29 @@ function Notifications() {
     }
   };
 
-  if (!state?.enabled) return null;
+  // A shared board keeps drawing while the member's own switch is off (#328) — that switch is
+  // the way back on, and it lives here.
+  if (!state || (!state.enabled && !state.shared)) return null;
 
   const release = pending.release ?? state.release;
+  const notify = pending.notify ?? state.enabled;
 
   return (
     <Group title={c.title}>
       <Panel>
+        {/* Whether this member is told at all. Only a shared board has one: on a Local board
+            signed in means on, and there is nothing to switch (#319). */}
+        {state.shared && (
+          <Row label={c.notify} hint={pending.notify !== undefined ? saving : c.notifyBlurb}>
+            <Switch
+              on={notify}
+              busy={busy}
+              onFlip={(next) => move({ notify: next }, () => setBoardNotifyAction(next))}
+              label={notify ? c.notifyOn : c.notifyOff}
+            />
+          </Row>
+        )}
+
         {/* How wide this board watches. `All` is always there — it needs no release to exist —
             so the only empty answer left is a board resting on a release that closed, which
             shows the placeholder and the same prompt the rail gives where the filling stopped. */}
@@ -895,11 +914,11 @@ function Notifications() {
           hint={
             pending.release !== undefined
               ? saving
-              : release === ALL_RELEASES
-                ? c.anyRelease
-                : release
-                  ? c.onlyThisRelease
-                  : c.releaseClosed
+              : `${release === ALL_RELEASES ? c.anyRelease : release ? c.onlyThisRelease : c.releaseClosed}${
+                  // On a team board the watch is this member's rather than this machine's
+                  // (#328), and where it applies is not something the row could otherwise say.
+                  state.shared ? ` ${c.sharedWatch}` : ""
+                }`
           }
         >
           <Select

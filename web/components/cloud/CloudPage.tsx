@@ -26,8 +26,10 @@ import { jsonLd, webPage } from "@/lib/schema";
 // Every sentence describes what the release actually ships. #376 gave a
 // workspace members and two roles, so the limits below say what is still not
 // there — per-card permissions, and a way to invite somebody the preview has
-// not admitted — rather than that a board is one account's. It is short and
-// plain on purpose: a later release rewrites it as Cloud's landing page.
+// not admitted — rather than that a board is one account's. #328 routed each
+// event to the teammates who can act on it, so nothing here promises a
+// question only you can answer or one account's events. It is short and plain
+// on purpose: a later release rewrites it as Cloud's landing page.
 
 export const PATH = "/cloud";
 
@@ -35,10 +37,10 @@ export const TITLE =
   "AI4Kanban Cloud — decide from your desktop, Slack or Lark, run on your own machine";
 
 export const DESCRIPTION =
-  "Cloud carries a board's requests for judgment to the desktop notification center and to Slack and Lark, and hands your decision back to your own machine to run. The board, the repository and the agent never leave it. An invite-only preview.";
+  "Cloud carries a board's requests for judgment to the teammates who can act on them — the desktop notification center, and Slack and Lark — and hands the decision back to the machine of whoever made it. The board, the repository and the agent never leave it. An invite-only preview.";
 
 export const SOCIAL =
-  "A card ready for review, a question only you can answer — Cloud brings both to your desktop and to Slack or Lark. Your own machine still does the work.";
+  "A card ready for review reaches everyone on the board; a question reaches its owners. Cloud brings both to the desktop and to Slack or Lark, and the machine of whoever decides does the work.";
 
 const schema = jsonLd(webPage(PATH, TITLE, DESCRIPTION));
 
@@ -106,25 +108,27 @@ export function CloudPage() {
               Answer your board from anywhere.
             </h1>
             <p className="mt-6 max-w-2xl text-[1.05rem] leading-relaxed text-muted">
-              AI4Kanban runs on your machine and stops when it needs you: a card
-              ready for review, or a question only you can answer. Cloud carries
-              those two moments to your desktop and to Slack or Lark, records
-              what you decide, and hands it back to your own machine to run.
+              AI4Kanban runs on your machine and stops when it needs a person: a
+              card ready for review, or a question only a person can answer.
+              Cloud carries those two moments to whoever on the board can act on
+              them — their desktop, and their Slack or Lark — records the
+              decision, and hands it back to the machine of whoever made it.
             </p>
 
             <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Step num="01" where="Your board">
                 A card reaches{" "}
                 <span className="font-mono text-ink">ready</span>, or asks a
-                question only you can answer.
+                question only a person can answer.
               </Step>
               <Step num="02" where="Cloud">
-                The same event reaches the app&apos;s notification center and
-                the Slack or Lark conversation you connect.
+                One event reaches everyone it is for — a review goes to the
+                board&apos;s members, a question to its owners — in the app and
+                in the Slack or Lark conversation each of them connects.
               </Step>
-              <Step num="03" where="Your machine">
-                Your decision comes back, and the board builds or resolves the
-                card where it has always run.
+              <Step num="03" where="A machine">
+                The decision comes back to the machine of whoever made it, and
+                the board builds or resolves the card where it has always run.
               </Step>
             </div>
 
@@ -134,8 +138,10 @@ export function CloudPage() {
               </span>{" "}
               Cloud is off until you sign in with GitHub inside the app. The
               boards you open on that machine then raise their events, and each
-              one watches what you pick — every release, or one. Sign out and
-              the machine raises none.
+              one watches what you pick — every release, or one. On a board you
+              share, that choice is yours on every machine you open it on, and
+              it is what decides whether the board&apos;s news reaches you at
+              all. Sign out and the machine raises none.
             </p>
           </section>
         </div>
@@ -201,8 +207,10 @@ export function CloudPage() {
             <ul className="mt-6 max-w-2xl space-y-3 text-[0.95rem] leading-relaxed">
               <Point lead="No per-card permissions">
                 a workspace has two roles and no third. An owner runs its name,
-                its members and its machines; a member does everything else on
-                the board. Nothing is locked to one person card by card.
+                its members and its machines, and is who a question is put to; a
+                member does everything else on the board, and may answer any
+                question they can see. Nothing is locked to one person card by
+                card, and no card names who has to decide it.
               </Point>
               <Point lead="No way to invite somebody who is not in the preview">
                 an owner adds a GitHub handle we have already admitted. Anyone
@@ -215,8 +223,9 @@ export function CloudPage() {
                 it builds nothing and writes nothing to your repository.
               </Point>
               <Point lead="No always-on machine">
-                a decision you make while your machine is off is recorded and
-                waits, and runs once the machine is reachable again.
+                a decision you make while your own machine is off is recorded
+                and waits, and runs once one of your machines is reachable
+                again. It never runs on a teammate&apos;s.
               </Point>
             </ul>
           </section>

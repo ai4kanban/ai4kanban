@@ -611,6 +611,27 @@ describe('the routes', () => {
     ])
   })
 
+  it('reads and writes the member’s own watch (#328)', async () => {
+    const calls = fakeDatabase({ notify: true, watching: '*', carried: false, releases: [] })
+
+    await get(`${WORKSPACE}/watch`)
+    await post(`${WORKSPACE}/watch`, { notify: false, watching: '0.9.0' })
+    await post(`${WORKSPACE}/watch/carry`, { watching: '*' })
+
+    assert.deepEqual(calls.map((c) => c.fn), ['read_watch', 'set_watch', 'carry_watch'])
+    // A read costs the day's write budget nothing; both writes are counted.
+    assert.ok(!('p_daily_write_budget' in calls[0].args))
+    assert.equal(calls[1].args.p_notify, false)
+    assert.equal(calls[1].args.p_watching, '0.9.0')
+    assert.ok('p_daily_write_budget' in calls[1].args)
+    // A body that says nothing about the switch means on: a machine handing its record over
+    // is a machine that is publishing.
+    assert.equal(calls[2].args.p_notify, true)
+    assert.equal(calls[2].args.p_watching, '*')
+    // The watch a member sets is their own — nothing on the wire names an account.
+    assert.ok(calls.every((c) => !('p_account' in c.args)))
+  })
+
   it('reads the decisions this board is raising (#364)', async () => {
     const calls = fakeDatabase({ events: [] })
 

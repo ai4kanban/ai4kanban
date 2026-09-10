@@ -45,6 +45,28 @@ cloud/
   resolve to exactly one account already in `cloud.accounts`. A handle that never signed in,
   one still waiting on us, one that does not exist and one two accounts hold all meet the same
   message, so adding a member cannot be used to find out who has a Cloud account.
+- **An event is addressed to an audience, resolved when it is read**: a workspace card raises
+  one event however many members publish it, and `cloud.event_audience` is the one place that
+  says who it is for (#328) — a user-owned question reaches the OWNERS, a card ready for review
+  reaches every member, and both are filtered by what each of them asked to be told about.
+  Resolved at read time rather than stored, so a member added since is included on their next
+  read and one removed since is dropped, with nothing to keep in step. A board's event answers
+  its one owner exactly as #319 wrote it.
+- **The watch lives in the workspace, not on the machine**: `cloud.workspace_watches` holds one
+  switch and one watched release per member per workspace, so it follows them to every machine
+  and the audience above can be resolved at all. A member an owner adds starts with the switch
+  on, watching the newest open release off `releases.md`; the account that creates a workspace
+  starts on every release, like a checkout turning notifications on. A member changes their own
+  and nobody else's.
+- **A message is per DESTINATION, not per person**: `api.connector_jobs` collapses the
+  audience's Slack and Lark connections onto their destinations, so two members reading one
+  channel share one message and a five-person team with five chats spends five. Every reference
+  a job carries — the delivery, the card's message, the top of the thread — is looked up in the
+  destination it is for.
+- **A decision runs on a machine of whoever took it**: the request an action raises names the
+  answering member (`event_requests.actor_id`), so any of their machines may claim it and none
+  of anybody else's. With none of theirs up it waits, which is the state every surface already
+  draws. A board's request is still addressed to that board's one server.
 - **One transaction per change, and one line of trail per change**: authorization, lifecycle
   rules, operation uniqueness and the expected revision are checked, the change is applied,
   revisions advance and an attributed audit event is appended — all of it or none of it. A
@@ -216,9 +238,19 @@ workspace, deleting it, and a node registering or renewing.
   | "member" }`. An owner's. The handle has to resolve to exactly one admitted account.
 - `POST /v1/workspaces/<id>/members/<account>/role` — `{ "opId": "…", "role": "…" }`. An
   owner's. The change that would leave the workspace with no owner is refused.
-- `POST /v1/workspaces/<id>/members/<account>/remove` — take somebody off: `{ "opId": "…" }`.
-  An owner's. Their next write and delivery confirmation are refused; nothing pushes to a
-  board they already have open.
+- `POST /v1/workspaces/<id>/members/<account>/remove` — take somebody off: `{ "opId": "…" }`. An
+  owner's. Their next write and delivery confirmation are refused; nothing pushes to a board
+  they already have open. Their watch goes with the membership, so somebody added back starts
+  on the workspace's default rather than on whatever they last chose.
+- `GET|POST /v1/workspaces/<id>/watch` — what the caller is told about in this workspace
+  (#328): `{ "notify": true, "watching": "1.0" }`, where `watching` is `*` for every release,
+  one release's name, or `""` for a member whose watched release closed. The read also carries
+  `releases`, the open ones it could narrow to, and `carried`. Their own and nobody else's —
+  an owner runs the workspace, not what a teammate hears.
+- `POST /v1/workspaces/<id>/watch/carry` — a machine handing its own record over the first
+  time it opens the workspace, so the switch a checkout already held follows the member up.
+  Taken **once**: a second call answers the watch as it stands and writes nothing, or a
+  start-up would overwrite a change made in a browser.
 - `GET /v1/workspaces/<id>/cards` — every card, each with its own revision.
 - `POST /v1/workspaces/<id>/cards` — write one card or many, in one transaction:
   `{ "opId": "…", "nodeId": "…", "cards": [{ "id": 7, "expect": "3", "data": { … } }] }`. An
@@ -626,50 +658,72 @@ person. What a board STORED in a workspace costs is above: one import of a matur
 about 1,164 writes, and after that a save is two writes per card plus two for the workspace.
 
 **What one card costs, from the board to a finished delivery.** Every budgeted write is a
-`cloud.count_write` in `migrations/`; the connector line is one delivery record per event
-change **per connected connector**, because a message is rewritten whenever the event moves.
-The table counts one connector; an account with both Slack and Lark connected roughly doubles
-the `+ 1`s.
+`cloud.count_write` in `migrations/`. Two halves: the CORE writes a card costs once however
+many people are told, and the CONNECTOR writes — one delivery record per event change **per
+connected connector, per chat destination** (#328), because a message is rewritten whenever
+the event moves and each destination keeps its own. The table counts one of each; an account
+with both Slack and Lark connected roughly doubles the `+ 1`s, and a team multiplies them by
+its number of distinct destinations.
 
-| Step | Writes |
+| Step | Core + connector |
 | --- | --- |
 | Published, and its message | 1 + 1 |
-| The card's own message, once — Slack's, until #360 gives Lark one | 1 |
+| The card's own message, once — Slack's, until #360 gives Lark one | 0 + 1 |
 | Each revision before anyone looks | 1 + 1 |
 | Decided in the app | 2 + 1 |
 | Decided in a chat — the extra one raises the request | 3 + 1 |
-| Claimed by the board's server | 1 |
+| Claimed by the machine that runs it | 1 |
 | `running`, and the outcome | (2 + 1) × 2 |
 | Each five minutes the delivery runs | 1 |
-| An ending that did not land, logged once — Slack's, until #360 gives Lark one | 1 |
+| An ending that did not land, logged once — Slack's, until #360 gives Lark one | 0 + 1 |
 | Retired as `stale` instead | 1 + 1 |
 
-So a card decided in a chat, revised twice, with a half-hour delivery, is about **24 writes**
-with one connector connected — one more where that delivery did not land.
-A card nobody acts on is **5**.
+So a card decided in a chat, revised twice, with a half-hour delivery, is **17 core + 7
+connector = about 24 writes** on a solo board with one connector connected — one more where
+that delivery did not land. A card nobody acts on is **3 + 2 = 5**.
 
-**A day, and a year of them.** Ten cards through and five retired is about **265 writes a
-day** for one busy account. Against `DAILY_WRITE_BUDGET`:
+**What a team costs.** The core half is paid once for the whole workspace: one card raises one
+event however many members publish it, and one decision settles it. Only the connector half
+multiplies, and it multiplies by DESTINATIONS rather than by people — two members reading one
+channel share one message. So a five-person team with five separate destinations is 17 + (7 ×
+5) = **52** for that card and 3 + (2 × 5) = **13** for one nobody acts on.
 
-- **20,000 ÷ 265 ≈ 75 accounts**, if every one of them is busy every day.
+Two small additions of their own: adding a member is 4 writes rather than 3 (their watch row
+goes with the membership), and each time somebody changes what they are told about is 1.
+
+**A day, and a year of them.** Ten cards through and five retired is:
+
+- **about 265 writes a day** for one busy solo board — 10 × 24 + 5 × 5;
+- **about 585** for one busy five-person team — 10 × 52 + 5 × 13, which is **117 a person**.
+
+A team is cheaper per person than the same people on five solo boards (1,325), because only
+the fan-out multiplies. Against `DAILY_WRITE_BUDGET`:
+
+- **20,000 ÷ 265 ≈ 75 busy solo boards**, or **20,000 ÷ 585 ≈ 34 busy five-person teams**
+  — about 170 people.
 - The largest burst is the **first fill** — turning Cloud on for a board that already holds
-  actionable cards costs 3 writes each, so a 200-card board is 600. The publisher sends at
-  most 20 items a pass (`SEND_PER_PASS` in `cli/src/lib/cloud/publish.ts`), so it spreads over
-  minutes rather than arriving at once, but the day's total is unchanged: **invite in batches
-  of a few, not twenty at a time**, or one afternoon of first fills spends the day's budget.
+  actionable cards costs 3 writes each plus one per destination, so a 200-card board is 600 on
+  a solo board and 1,000 with five destinations. The publisher sends at most 20 items a pass
+  (`SEND_PER_PASS` in `cli/src/lib/cloud/publish.ts`), so it spreads over minutes rather than
+  arriving at once, but the day's total is unchanged: **invite in batches of a few, not twenty
+  at a time**, or one afternoon of first fills spends the day's budget.
 
 **Storage.** An event carries a bounded snapshot — 4,000 characters of summary and 4,000 of
 notes at most, plus the questions — so a row and everything hanging off it is about **3 KB
 typically and 15 KB at the ceiling**. Events are kept 30 days past their outcome, so a busy
-account holds ~450 of them: **1.4 MB typically, 6.8 MB at the ceiling**. Leaving half of
-Supabase Free's 500 MB for indexes, WAL and the `auth` schema:
+board holds ~450 of them: **1.4 MB typically, 6.8 MB at the ceiling**. A team stores no more
+than that — one card is one row for the whole workspace — plus a delivery row per destination
+and one watch row a member, both of which are tens of bytes. Leaving half of Supabase Free's
+500 MB for indexes, WAL and the `auth` schema:
 
-- **250 MB ÷ 1.4 MB ≈ 180 accounts** typically, **÷ 6.8 MB ≈ 37** if every card is a long one.
+- **250 MB ÷ 1.4 MB ≈ 180 boards** typically, **÷ 6.8 MB ≈ 37** if every card is a long one.
 
-**The ceiling to invite up to: about 30 accounts.** Writes give out around 75 and storage
-around 37 in the worst case, and neither number has any real traffic behind it — 30 leaves
-room for both to be wrong. Past it, read `select writes from cloud.daily_writes order by day
-desc limit 7` and the project's database size before inviting anybody else.
+**The ceiling to invite up to: about 30 accounts.** Writes give out around 75 busy boards and
+storage around 37 in the worst case, and neither number has any real traffic behind it — 30
+leaves room for both to be wrong. A team spends less per person than the same people working
+alone, so it is boards rather than accounts that the ceiling is really about. Past it, read
+`select writes from cloud.daily_writes order by day desc limit 7` and the project's database
+size before inviting anybody else.
 
 ## Standing up a new project
 

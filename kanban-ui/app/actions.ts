@@ -125,6 +125,7 @@ import {
   readAllNotifications,
   recordCloudAction,
   resumeCloudRequest,
+  setBoardNotify,
   setBoardServer,
   setSilenced,
   watchRelease,
@@ -2209,6 +2210,7 @@ export async function boardNotificationsAction(): Promise<BoardNotifications> {
       releases: [],
       signedIn: false,
       server: { attached: false, here: false, machineName: "", thisMachine: "" },
+      shared: false,
     };
   }
 }
@@ -2218,6 +2220,15 @@ export async function watchReleaseAction(release: string): Promise<WriteResult> 
   if (typeof release !== "string") return { ok: false, error: "that is not a release" };
   try {
     return await watchRelease(release.trim());
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Be told about a shared board, or not (#328). Their own switch, inside the workspace. */
+export async function setBoardNotifyAction(on: boolean): Promise<WriteResult> {
+  try {
+    return await setBoardNotify(!!on);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

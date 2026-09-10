@@ -32,7 +32,7 @@ import { cardsHeldAtLanding } from '../agent/deliveries'
 import { cardsAtWork, cardsBeingCreated, cardsWithLiveRun } from '../agent/store'
 import { board } from '../board'
 import { KANBAN } from '../paths'
-import { cloudBoardFor, type CloudBoard } from './boards'
+import { ALL_RELEASES, cloudBoardFor, type CloudBoard } from './boards'
 import {
   isTerminal,
   listEvents,
@@ -111,6 +111,10 @@ const newOpId = (): string => crypto.randomUUID()
 function publishing(): CloudBoard | null {
   const enabled = cloudBoardFor(KANBAN)
   if (!enabled || !enabled.release) return null
+  // A workspace member whose own switch is off publishes nothing from this machine (#328),
+  // exactly as a Local board with notifications off does. `watchOff` is the mirror of the
+  // answer the workspace holds; a Local board's switch is whether the record exists at all.
+  if (enabled.watchOff) return null
   return readSession() ? enabled : null
 }
 
@@ -148,9 +152,17 @@ export async function publishBoardEvents({ reconcile = false, broughtIn = false 
 export async function recordBoardEvents({ reconcile = false, broughtIn = false } = {}): Promise<void> {
   const enabled = cloudBoardFor(KANBAN)
   if (!enabled || !readSession()) return
+  // A member whose own switch is off publishes nothing from this machine (#328) — and retires
+  // nothing either: a workspace card's decision belongs to the team, so going quiet must not
+  // take a row out from under the teammates still waiting on it.
+  if (enabled.watchOff) return
   try {
-    if (enabled.release) await queueDifference(enabled, reconcile, broughtIn)
-    else retireLive()
+    // A workspace board goes through the pass whatever this member watches — including the
+    // nothing a closed release leaves (#328). Only a Local board's empty release means the
+    // machine has stopped raising events and its own rows come down.
+    if (enabled.release || eventHome(enabled).workspaceId) {
+      await queueDifference(enabled, reconcile, broughtIn)
+    } else retireLive()
   } catch {
     // A board we could not read this second is a board the next write reads again.
   }
@@ -230,15 +242,23 @@ async function queueDifference(
   // per card would read the same record as many times as the board has cards.
   const atWork = cardsAtWork()
   const raising = silenced(atWork)
+  // What the BOARD still holds a decision for, whatever this member watches. On a Local board
+  // that is the same thing as what this machine raises. On a workspace board it is not: the
+  // event belongs to the team, so a card outside this member's release is one they are not
+  // told about (`cloud.event_audience`) and never one whose row they take down (#328).
+  const team = home.workspaceId ? { ...enabled, release: ALL_RELEASES } : enabled
   const seen = new Set<number>()
   // How many cards this switch brought into view — what the summary counts, and what says
   // whether there is a summary at all.
   let broughtInCount = 0
 
   for (const card of cards) {
-    const snapshot = snapshotFor(card, enabled, raising, home)
+    const snapshot = snapshotFor(card, team, raising, home)
     if (!snapshot) continue
     seen.add(card.id)
+    // Raised from THIS machine only while its own member watches the card's release. What
+    // the rest of the team watches is theirs to raise, and the row stays either way.
+    if (enabled.release !== ALL_RELEASES && card.release !== enabled.release) continue
     const held = publishedFor(card.id)
     // What the scope change BROUGHT IN, as against what it merely passed over: a card this
     // board held no live event for when the switch moved. One already on record whose own

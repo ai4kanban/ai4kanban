@@ -283,6 +283,7 @@ export {
   disableBoardNotifications,
   enableBoardNotifications,
   readBoardNotifications,
+  setBoardNotify,
   setBoardServer,
   watchRelease,
 } from './lib/cloud/notifications'

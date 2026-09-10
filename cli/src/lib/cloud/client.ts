@@ -414,6 +414,43 @@ export const setWorkspaceMemberRole = (
     role,
   })
 
+// ---- what this member is told about (#328) ------------------------------------
+
+/** One member's notification switch and watched release inside one workspace. It lives in the
+ *  workspace rather than in `~/.ai4kanban/`, so it follows them to every machine and Cloud can
+ *  resolve who is watching a release. */
+export interface WireWatch {
+  notify: boolean
+  /** `*` for every release, one release's name, or empty when the watched one closed. */
+  watching: string
+  /** A machine of theirs has already handed its own record over. */
+  carried: boolean
+  /** The open releases it could narrow to, off the workspace's own `releases.md`. */
+  releases: string[]
+}
+
+export const readWorkspaceWatch = (
+  workspaceId: string,
+): Promise<CloudCall<{ watch: WireWatch }>> =>
+  send('GET', `/v1/workspaces/${encodeURIComponent(workspaceId)}/watch`)
+
+export const setWorkspaceWatch = (
+  workspaceId: string,
+  notify: boolean,
+  watching: string,
+): Promise<CloudCall<{ watch: WireWatch }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/watch`, { notify, watching })
+
+/** Hand this machine's own record over the first time it opens the workspace. The service
+ *  takes it once: a record carried on every start-up would overwrite a change the member made
+ *  in a browser with whatever the last machine to wake up believes. */
+export const carryWorkspaceWatch = (
+  workspaceId: string,
+  notify: boolean,
+  watching: string,
+): Promise<CloudCall<{ watch: WireWatch }>> =>
+  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/watch/carry`, { notify, watching })
+
 /** Claim a new workspace for one source board, by the fingerprint the machine derived from
  *  it. A workspace already holding a board is refused unless it holds this one. */
 export const beginImport = (

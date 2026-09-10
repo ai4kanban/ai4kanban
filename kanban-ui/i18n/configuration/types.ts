@@ -575,6 +575,11 @@ export type ConfigurationCopy = {
     notifications: {
       /** The caption over the board's rows. */
       title: string;
+      /** Whether this member is told at all — a shared board's switch only (#328). */
+      notify: string;
+      notifyOn: string;
+      notifyOff: string;
+      notifyBlurb: string;
       watching: string;
       /** The picker's widest entry — every card, whatever release. */
       allReleases: string;
@@ -585,6 +590,7 @@ export type ConfigurationCopy = {
       anyRelease: string;
       onlyThisRelease: string;
       releaseClosed: string;
+      sharedWatch: string;
       saveFailed: string;
     };
   };

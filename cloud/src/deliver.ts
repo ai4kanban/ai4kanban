@@ -4,8 +4,10 @@
  * Every message is sent from the Worker, never from the machine holding the board: no chat
  * credential reaches a checkout, and a message keeps moving while that machine is off.
  *
- * One event keeps ONE message per connector however many attempts it takes. The delivery
- * record holds the id the chat answered with, so a message that exists is edited in place —
+ * One event keeps ONE message per connector per DESTINATION however many attempts it takes: a
+ * board's one owner is one destination, and a workspace event is one per destination across its
+ * audience's connections, so two members reading one channel still see one message (#328). The
+ * delivery record holds the id the chat answered with, so a message that exists is edited in place —
  * which is also the whole of keeping it in step with the card's newest revision, the decision
  * and the delivery's outcome. What is due is decided in `api.connector_jobs`, by comparing
  * when the event's content last moved against the version its message is showing.
@@ -31,8 +33,15 @@ export interface DeliveryRun {
 
 /** One message a connector owes, as `api.connector_jobs` answers it. */
 export interface ConnectorJob<Posts> {
+  /** The RECIPIENT this message is for — a workspace event is addressed to the audience it
+   *  resolved to (#328), so one event yields one job per destination and `ownerId` is the
+   *  member whose connection posts it. A board event's is its one owner, as it always was. */
   ownerId: string
   eventId: string
+  /** Which chat destination this job is for. Every reference the job carries is scoped to it,
+   *  so a redraw aimed at one member's channel never edits another's message. Empty on a board
+   *  event, which has one destination and one delivery record. */
+  destination?: string
   /** When any field of the event last moved, as it was when this job was read — `content_at`,
    *  not `changed_at`: a message follows a quiet refresh too, because an edit in a chat pings
    *  nobody and a message naming the wrong release is one somebody would review from.
@@ -145,6 +154,7 @@ export const recordCardMessage = <Posts>(
     p_workspace: job.event.workspaceId || null,
     p_task_id: job.event.taskId,
     p_connector: connector,
+    p_destination: job.destination ?? '',
     p_external_ref: ref,
   })
 
@@ -165,6 +175,7 @@ export const recordDeliveryEnding = <Posts>(
     p_subject: job.ownerId,
     p_event: job.eventId,
     p_connector: connector,
+    p_destination: job.destination ?? '',
     p_external_ref: ref,
   })
 
@@ -179,6 +190,7 @@ const record = <Posts>(
     p_subject: job.ownerId,
     p_event: job.eventId,
     p_connector: connector.name,
+    p_destination: job.destination ?? '',
     p_state: outcome.state,
     p_external_ref: outcome.ref ?? null,
     p_last_error: outcome.error ?? '',

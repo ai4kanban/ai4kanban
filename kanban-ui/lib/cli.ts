@@ -693,6 +693,8 @@ export interface BoardRules {
   readAllNotifications?(): void;
   setNotificationsSilenced?(on: boolean): WriteResult;
   readBoardNotifications?(): Promise<BoardNotifications>;
+  /** Be told about a shared board, or not (#328). Absent from rules that predate it. */
+  setBoardNotify?(on: boolean): Promise<{ ok: boolean; error?: string }>;
   watchRelease?(release: string): Promise<WriteResult>;
   /** The one durable action a live event carries, recorded from a click on this machine.
    *  Never waits on the network: the board's own outbox retries it. */

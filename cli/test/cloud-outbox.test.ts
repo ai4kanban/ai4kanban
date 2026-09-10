@@ -19,7 +19,13 @@ import { board, setBoardProvider } from '../src/lib/board/index.ts'
 import { closeRelease, dropRelease } from '../src/lib/releases.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { DeliveryRecord, RunRecord } from '../src/lib/agent/types.ts'
-import { ALL_RELEASES, cloudBoardFor, defaultBoardDir, enableCloudBoard } from '../src/lib/cloud/boards.ts'
+import {
+  ALL_RELEASES,
+  cloudBoardFor,
+  defaultBoardDir,
+  enableCloudBoard,
+  setCloudBoardRelease,
+} from '../src/lib/cloud/boards.ts'
 import { startCloudServer, stopCloudServer } from '../src/lib/cloud/board-server.ts'
 import type { CloudEventState } from '../src/lib/cloud/events.ts'
 import { duePending, notePublication, queue, readOutbox, unsentToCloud, type Pending } from '../src/lib/cloud/outbox.ts'
@@ -32,7 +38,12 @@ import {
   reportCloudRunEnd,
   takeWatchFill,
 } from '../src/lib/cloud/publish.ts'
-import { watchRelease } from '../src/lib/cloud/notifications.ts'
+import {
+  disableBoardNotifications,
+  readBoardNotifications,
+  setBoardNotify,
+  watchRelease,
+} from '../src/lib/cloud/notifications.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { snapshotFor } from '../src/lib/cloud/snapshot.ts'
 import { setBoardDir, setBoardRoot } from '../src/lib/paths.ts'
@@ -646,6 +657,190 @@ describe('widening the watched scope', () => {
 
     assert.equal(summaries().length, 0)
     assert.deepEqual(unsentToCloud(), [], 'a lost summary is not a change the board must report')
+  })
+})
+
+// The watch a Cloud checkout does not own (#328).
+//
+// On a board that lives in a workspace, the switch and the release belong to the MEMBER
+// inside it rather than to this machine, so they follow them everywhere they open the board.
+// This machine's record becomes the mirror of that answer: every read pulls it down, every
+// move writes through, and the publisher — which cannot reach the network — reads the mirror.
+describe('a shared board’s watch', () => {
+  /** A checkout pointed at a workspace, with a card waiting in `0.8.0`. */
+  function shared(): void {
+    fs.writeFileSync(
+      path.join(root, '.ai4kanban.json'),
+      `${JSON.stringify({ version: 1, workspace: WORKSPACE }, null, 2)}\n`,
+    )
+    BOARD()
+    writeCardFile()
+    setBoardProvider({ readCards: async () => [card()] } as never)
+  }
+
+  /** What the workspace answers for this member's watch. */
+  const watch = (over: Record<string, unknown> = {}) =>
+    ok({ watch: { notify: true, watching: '0.8.0', carried: true, releases: ['0.8.0'], ...over } })
+
+  /** The Worker, answering the watch and whatever else the section reads on the way. */
+  const cloud = (over: Record<string, unknown> = {}) =>
+    fakeCloud((url) => {
+      if (url.endsWith('/v1/servers')) return ok({ servers: [] })
+      if (url.endsWith('/watch/carry')) return watch({ ...over, carried: true })
+      if (url.endsWith('/watch')) return watch(over)
+      return ok({})
+    })
+
+  it('is pulled down into this machine’s record, and hands a chosen one over once', async () => {
+    shared()
+    // The user picked this release on this machine, so it is worth carrying up.
+    setCloudBoardRelease(defaultBoardDir(root), '0.8.0')
+    const seen = cloud({ carried: false })
+
+    const state = await readBoardNotifications()
+
+    assert.ok(
+      seen.some((at) => at.endsWith(`/v1/workspaces/${WORKSPACE}/watch/carry`)),
+      'a watch the workspace has never been handed is handed this machine’s',
+    )
+    assert.equal(state.shared, true)
+    assert.equal(state.enabled, true)
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, '0.8.0')
+  })
+
+  it('hands nothing over from a fresh clone, so an added member keeps the default', async () => {
+    shared()
+    const seen = cloud({ carried: false, watching: '1.0' })
+
+    await readBoardNotifications()
+
+    assert.equal(
+      seen.filter((at) => at.endsWith('/watch/carry')).length,
+      0,
+      'the every-release default a signed-in machine mints is not a choice worth carrying',
+    )
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, '1.0')
+  })
+
+  it('is not handed over a second time, so a change made elsewhere stands', async () => {
+    shared()
+    const seen = cloud({ watching: ALL_RELEASES })
+
+    await readBoardNotifications()
+
+    assert.equal(seen.filter((at) => at.endsWith('/watch/carry')).length, 0)
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, ALL_RELEASES)
+  })
+
+  it('switched off, publishes nothing from this machine', async () => {
+    shared()
+    cloud({ notify: false })
+    await readBoardNotifications()
+
+    const state = await readBoardNotifications()
+    assert.equal(state.enabled, false, 'the switch is what the workspace says, not whether the record is here')
+
+    await recordBoardEvents()
+    assert.deepEqual(readOutbox().pending, [], 'a member whose own switch is off raises nothing')
+  })
+
+  it('turned off, leaves the workspace’s events alone', async () => {
+    shared()
+    const seen = fakeCloud((url, body) => {
+      if (url.endsWith('/v1/servers')) return ok({ servers: [] })
+      if (url.endsWith(`/v1/workspaces/${WORKSPACE}/watch`)) {
+        return watch({ notify: (body as { notify?: boolean })?.notify !== false })
+      }
+      return ok({})
+    })
+
+    const done = await disableBoardNotifications()
+
+    assert.equal(done.ok, true)
+    assert.ok(
+      seen.some((at) => at.endsWith(`/v1/workspaces/${WORKSPACE}/watch`)),
+      'the switch is turned off in the workspace',
+    )
+    assert.equal(
+      seen.some((at) => at.includes('/retire')),
+      false,
+      'one member going quiet must not retire a decision the rest of the team is still waiting on',
+    )
+    // The record stays, because it is the mirror of an answer that lives in the workspace.
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.watchOff, true)
+  })
+
+  it('is turned back on from the same switch, and fills quietly', async () => {
+    shared()
+    let notify = false
+    const seen = fakeCloud((url, body) => {
+      if (url.endsWith('/v1/servers')) return ok({ servers: [] })
+      if (url.endsWith(`/v1/workspaces/${WORKSPACE}/watch`)) {
+        if (body) notify = (body as { notify?: boolean }).notify !== false
+        return watch({ notify })
+      }
+      if (url.endsWith('/v1/events')) return publishedEvent('e-1', 12)
+      return ok({})
+    })
+
+    assert.equal((await setBoardNotify(false)).ok, true)
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.watchOff, true)
+
+    assert.equal((await setBoardNotify(true)).ok, true)
+
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.watchOff, undefined)
+    const publication = readOutbox().pending.find((p) => p.kind === 'publish')
+    const filled = seen.some((at) => at.endsWith('/v1/events'))
+    assert.ok(
+      publication || filled,
+      'turning them back on fills the bell with what the board is already holding',
+    )
+  })
+
+  it('watching another release, leaves the team’s row where it is', async () => {
+    shared()
+    // The workspace's card is live and was published from this very machine. Its member has
+    // since narrowed to a release the card is not in.
+    notePublication(12, 'e-12', 'actionable')
+    cloud({ watching: '1.0' })
+
+    await readBoardNotifications()
+    await recordBoardEvents()
+
+    assert.deepEqual(
+      readOutbox().pending.filter((p) => p.kind === 'retire'),
+      [],
+      'a decision belongs to the workspace, so one member’s narrower watch must not take it down',
+    )
+    assert.deepEqual(
+      readOutbox().pending.filter((p) => p.kind === 'publish'),
+      [],
+      'this machine still raises only what its own member watches',
+    )
+  })
+
+  it('with nothing left to watch, still leaves them where they are', async () => {
+    shared()
+    notePublication(12, 'e-12', 'actionable')
+    // The release this member was watching closed and they have not picked another — #319's
+    // own state, and not a reason to empty the rest of the team's bell.
+    cloud({ watching: '' })
+
+    await readBoardNotifications()
+    await recordBoardEvents()
+
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.release, '')
+    assert.deepEqual(readOutbox().pending.filter((p) => p.kind === 'retire'), [])
+  })
+
+  it('carries no switch on a Local board, where signed in means on', async () => {
+    BOARD()
+    fakeCloud(() => ok({}))
+
+    const done = await setBoardNotify(false)
+
+    assert.equal(done.ok, false)
+    assert.equal(cloudBoardFor(defaultBoardDir(root))?.watchOff, undefined)
   })
 })
 

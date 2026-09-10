@@ -122,8 +122,8 @@ begin
            B, 'op-b2', v_event, 'completed', '', BUDGET),
     'AKB02', 'record_event_outcome');
   perform pg_temp.refuses(
-    format('select api.record_event_delivery(%L, %L, %L, %L, %L, %L, now(), %s)',
-           B, v_event, 'slack', 'sent', 'ts', '', BUDGET),
+    format('select api.record_event_delivery(%L, %L, %L, %L, %L, %L, %L, now(), %s)',
+           B, v_event, 'slack', '', 'sent', 'ts', '', BUDGET),
     'AKB02', 'record_event_delivery');
   perform pg_temp.refuses(
     format('select api.register_board(%L, %L, %L, %s)', B, BOARD_A, 'stolen', BUDGET),
@@ -188,7 +188,7 @@ begin
   assert json_array_length(api.connector_jobs('slack', null, 10, 5)) = 0,
     'connector_jobs answered Slack for a Lark connection';
   -- A message that got through is not owed again until the event moves past what it shows.
-  perform api.record_event_delivery(A, v_event, 'lark', 'sent', 'om_1', '',
+  perform api.record_event_delivery(A, v_event, 'lark', '', 'sent', 'om_1', '',
                                     (api.read_event(A, v_event) ->> 'changedAt')::timestamptz, BUDGET);
   assert json_array_length(api.connector_jobs('lark', null, 10, 5)) = 0,
     'connector_jobs owed a message the chat already shows';
@@ -284,7 +284,7 @@ begin
   assert (v_json ->> 'state') = 'stale', 'a retirement did not leave the event stale';
   assert (select content_at from cloud.events where id = v_retired) > v_content,
     'a retired card left the chat offering a decision nobody can take';
-  perform api.record_event_delivery(A, v_retired, 'slack', 'sent', 'ts-retired', '',
+  perform api.record_event_delivery(A, v_retired, 'slack', '', 'sent', 'ts-retired', '',
                                     v_content, BUDGET);
   assert (api.connector_jobs('slack', v_retired, 10, 5) -> 0) is not null,
     'a retired card owed a rewrite was not due';
@@ -499,9 +499,9 @@ begin
 
   insert into cloud.slack_connections (owner_id, team_id, bot_token, channel_id, slack_user_id)
   values (A, 'T1', 'xoxb', 'C1', 'U1');
-  perform api.record_event_delivery(A, v_event, 'slack', 'sent', 'ts-first', '',
+  perform api.record_event_delivery(A, v_event, 'slack', '', 'sent', 'ts-first', '',
                                     now() - interval '2 hours', BUDGET);
-  perform api.record_event_delivery(A, v_second, 'slack', 'sent', 'ts-second', '',
+  perform api.record_event_delivery(A, v_second, 'slack', '', 'sent', 'ts-second', '',
                                     now() - interval '1 hour', BUDGET);
   -- Aged, because every now() in this transaction answers the same instant and the earliest
   -- message is the one the order is taken from.
@@ -534,7 +534,7 @@ begin
   perform api.lark_begin_connect(A, 'state-topic', 'feishu', BUDGET);
   perform api.lark_finish_connect('state-topic', 'feishu', 'T1', 'ou_1', 'on_1', 'Wu',
                                   'oc_1', 'Team chat', false, BUDGET);
-  perform api.record_event_delivery(A, v_second, 'lark', 'sent', 'oc_1:om-second', '',
+  perform api.record_event_delivery(A, v_second, 'lark', '', 'sent', 'oc_1:om-second', '',
                                     now() - interval '1 hour', BUDGET);
   -- Aged, because every now() in this transaction answers the same instant and the earliest
   -- message is the one the order is taken from.
@@ -588,23 +588,23 @@ begin
   assert v_json ->> 'cardRef' is null, 'a card with no message recorded was handed one';
 
   -- One record per card and connector, rewritten in place, and the account's own.
-  perform api.record_card_message(A, BOARD_A, null, 329, 'slack', 'ts-card', BUDGET);
-  perform api.record_card_message(A, BOARD_A, null, 329, 'slack', 'ts-card-2', BUDGET);
+  perform api.record_card_message(A, BOARD_A, null, 329, 'slack', '', 'ts-card', BUDGET);
+  perform api.record_card_message(A, BOARD_A, null, 329, 'slack', '', 'ts-card-2', BUDGET);
   select count(*) into v_count from cloud.card_messages
    where board_id = BOARD_A and task_id = 329 and connector = 'slack';
   assert v_count = 1, 'a card kept two messages for one connector';
   assert ((api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'cardRef') = 'ts-card-2',
     'the card''s message was not handed to the job that has to rewrite it';
   perform pg_temp.refuses(
-    format('select api.record_card_message(%L, %L, null, 329, %L, %L, %s)', B, BOARD_A, 'slack', 'ts', BUDGET),
+    format('select api.record_card_message(%L, %L, null, 329, %L, %L, %L, %s)', B, BOARD_A, 'slack', '', 'ts', BUDGET),
     'AKB02', 'record_card_message');
 
   -- Lark keeps a record of its own, scoped to the chat this connection posts to now — the
   -- account moved to `oc_2` above, so one left behind in `oc_1` is never offered.
-  perform api.record_card_message(A, BOARD_A, null, 329, 'lark', 'oc_1:om-card', BUDGET);
+  perform api.record_card_message(A, BOARD_A, null, 329, 'lark', '', 'oc_1:om-card', BUDGET);
   assert (api.connector_jobs('lark', v_second, 10, 5) -> 0) ->> 'cardRef' is null,
     'a card message left in the chat the connection moved away from was still offered';
-  perform api.record_card_message(A, BOARD_A, null, 329, 'lark', 'oc_2:om-card', BUDGET);
+  perform api.record_card_message(A, BOARD_A, null, 329, 'lark', '', 'oc_2:om-card', BUDGET);
   assert ((api.connector_jobs('lark', v_second, 10, 5) -> 0) ->> 'cardRef') = 'oc_2:om-card',
     'a card message in the chat this connection posts to was not offered';
 
@@ -629,12 +629,12 @@ begin
 
   assert (api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'endingRef' is null,
     'a delivery with no ending logged was not offered one to log';
-  perform api.record_delivery_ending(A, v_second, 'slack', 'ts-ended', BUDGET);
+  perform api.record_delivery_ending(A, v_second, 'slack', '', 'ts-ended', BUDGET);
   assert ((api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'endingRef') = 'ts-ended',
     'an ending already logged was not handed back to the job that must not log it again';
 
   -- Written once: a row that already names an ending keeps the one it has.
-  perform api.record_delivery_ending(A, v_second, 'slack', 'ts-ended-2', BUDGET);
+  perform api.record_delivery_ending(A, v_second, 'slack', '', 'ts-ended-2', BUDGET);
   assert ((api.connector_jobs('slack', v_second, 10, 5) -> 0) ->> 'endingRef') = 'ts-ended',
     'an ending was rewritten by a later pass';
 
@@ -643,7 +643,7 @@ begin
     'one connector''s ending was offered to another';
 
   perform pg_temp.refuses(
-    format('select api.record_delivery_ending(%L, %L, %L, %L, %s)', B, v_second, 'slack', 'ts', BUDGET),
+    format('select api.record_delivery_ending(%L, %L, %L, %L, %L, %s)', B, v_second, 'slack', '', 'ts', BUDGET),
     'AKB02', 'record_delivery_ending');
 
   -- -------------------------------------------------------------------------
@@ -758,7 +758,7 @@ begin
   -- A message that already exists goes on following its card. An edit costs no message and
   -- pings nobody, and a chat showing "No longer waiting" over a card that is waiting is
   -- 0015's defect the other way round.
-  perform api.record_event_delivery(A, v_quiet, 'slack', 'sent', 'ts-quiet', '',
+  perform api.record_event_delivery(A, v_quiet, 'slack', '', 'sent', 'ts-quiet', '',
                                     now() - interval '1 hour', BUDGET);
   assert (api.connector_jobs('slack', v_quiet, 10, 5) -> 0) is not null,
     'a message the card already has stopped following it';
@@ -1915,7 +1915,8 @@ $members$;
 --
 -- The event, its request and the machines that may claim it, once the home is a workspace
 -- rather than one checkout's board: one live row per card however many machines publish it,
--- every member reads and answers it, and any live machine picks the work up.
+-- every member reads and answers it, and the answering member's own machines pick the work up
+-- (#328).
 
 do $decisions$
 declare
@@ -2014,6 +2015,9 @@ begin
     'the request did not name the workspace';
   assert (select server_id from cloud.event_requests where id = v_request) is null,
     'a workspace request was addressed to one machine';
+  -- #328: bound to the member who pressed, so it runs where the decision was taken.
+  assert (select actor_id from cloud.event_requests where id = v_request) = MEMBER_B,
+    'the request was not bound to the member who answered';
   assert (select owner_id from cloud.event_actions where event_id = v_event) = MEMBER_B,
     'the action was not attributed to the member who pressed it';
   assert (select count(*) from cloud.workspace_audit
@@ -2027,17 +2031,18 @@ begin
            OWNER_A, 'd-op-2', v_event, 'implement', 'r1', '[]', 'accepted', BUDGET),
     'AKB04', 'a second press on one event');
 
-  -- Every one of the workspace's machines sees the request, whoever registered it.
-  assert json_array_length(api.list_requests(OWNER_A, v_node_1)) = 1,
-    'the workspace''s own machine was not offered the request';
+  -- Only the answering member's machines see it (#328). A teammate's laptop running a
+  -- decision it did not take attributes the work to the wrong person.
   assert json_array_length(api.list_requests(MEMBER_B, v_node_2)) = 1,
-    'a second machine of the workspace was not offered the request';
+    'the answering member''s machine was not offered the request';
+  assert json_array_length(api.list_requests(OWNER_A, v_node_1)) = 0,
+    'another member''s machine was offered a decision it did not take';
 
-  -- The first to claim it runs it; the other is told it is already running.
-  assert (api.claim_request(MEMBER_B, v_node_2, v_request, 900, BUDGET) ->> 'claimed')::boolean,
-    'a live machine could not claim the workspace''s request';
+  -- Theirs runs it; anybody else's is told whose decision it is.
   assert not (api.claim_request(OWNER_A, v_node_1, v_request, 900, BUDGET) ->> 'claimed')::boolean,
-    'two machines claimed one request';
+    'another member''s machine claimed the decision';
+  assert (api.claim_request(MEMBER_B, v_node_2, v_request, 900, BUDGET) ->> 'claimed')::boolean,
+    'the answering member''s machine could not claim its own request';
   assert (api.renew_claim(MEMBER_B, v_node_2, v_request, 900, BUDGET) ->> 'renewed')::boolean,
     'the machine holding the claim could not renew it';
   assert not (api.renew_claim(OWNER_A, v_node_1, v_request, 900, BUDGET) ->> 'renewed')::boolean,
@@ -2052,7 +2057,7 @@ begin
   -- Everything goes with the workspace
   -- -------------------------------------------------------------------------
 
-  perform api.record_card_message(OWNER_A, null, v_ws, 364, 'slack', 'ts-ws', BUDGET);
+  perform api.record_card_message(OWNER_A, null, v_ws, 364, 'slack', '', 'ts-ws', BUDGET);
   assert (select count(*) from cloud.card_messages where workspace_id = v_ws) = 1,
     'a workspace card kept no message of its own';
   perform api.delete_workspace(OWNER_A, v_ws);
@@ -2066,5 +2071,200 @@ begin
   raise notice 'sql checks: #364 workspace decision checks passed';
 end
 $decisions$;
+
+-- ---------------------------------------------------------------------------
+-- Notifying a workspace's owners and members (#328)
+-- ---------------------------------------------------------------------------
+--
+-- The audience an event is addressed to, the watch that filters it, and the one message each
+-- distinct destination gets. Everything here is a property of the schema: who a question
+-- reaches, who a review reaches, and what a member added or removed since sees.
+
+do $audience$
+declare
+  OWNER_A constant uuid := 'a3280000-3333-4333-8333-000000000001';
+  OWNER_C constant uuid := 'a3280000-3333-4333-8333-000000000002';
+  MEMBER_B constant uuid := 'a3280000-3333-4333-8333-000000000003';
+  MEMBER_D constant uuid := 'a3280000-3333-4333-8333-000000000004';
+  ALL_WATCHED constant text := '*';
+  BUDGET constant integer := 100000;
+  v_ws uuid;
+  v_ready uuid;
+  v_question uuid;
+  v_watch json;
+begin
+  insert into cloud.accounts (id, handle) values
+    (OWNER_A, 'n-owner'), (OWNER_C, 'n-owner-2'), (MEMBER_B, 'n-member'), (MEMBER_D, 'n-member-2');
+  v_ws := (api.create_workspace(OWNER_A, 'n-create', 'A team board', BUDGET) ->> 'id')::uuid;
+
+  -- The board is shipping 1.0 — `releases.md` lists the open releases in ship order, so the
+  -- newest is its last line.
+  insert into cloud.workspace_documents (workspace_id, path, kind, body)
+  values (v_ws, 'releases.md', 'config',
+          E'# Releases\n\n- **0.9.0** — the one before\n- **1.0** — what we are shipping\n');
+  assert cloud.newest_open_release(v_ws) = '1.0',
+    format('the newest open release read as %L', cloud.newest_open_release(v_ws));
+
+  -- -------------------------------------------------------------------------
+  -- The watch lives in the workspace
+  -- -------------------------------------------------------------------------
+
+  -- Whoever turned Cloud on watches every release, like a checkout does.
+  v_watch := api.read_watch(OWNER_A, v_ws);
+  assert (v_watch ->> 'notify')::boolean, 'the account that created the workspace was left silent';
+  assert (v_watch ->> 'watching') = '*', 'the creator did not start on every release';
+
+  -- A member an owner adds starts with the switch ON, watching the newest open release.
+  perform api.add_member(OWNER_A, v_ws, 'n-add-b', 'n-member', 'member', BUDGET);
+  v_watch := api.read_watch(MEMBER_B, v_ws);
+  assert (v_watch ->> 'notify')::boolean, 'a member an owner added started silent';
+  assert (v_watch ->> 'watching') = '1.0',
+    format('an added member started watching %L rather than the newest open release', v_watch ->> 'watching');
+  assert (v_watch -> 'releases')::text like '%0.9.0%1.0%',
+    format('the watch offered %s to narrow to', (v_watch -> 'releases')::text);
+
+  -- A machine hands its own record over ONCE. A second start-up answers the watch as it
+  -- stands, so a change made in a browser is not overwritten by whatever a laptop believes.
+  assert (api.carry_watch(MEMBER_B, v_ws, true, '0.9.0', BUDGET) ->> 'watching') = '0.9.0',
+    'a machine could not hand its own watch over';
+  assert (api.carry_watch(MEMBER_B, v_ws, true, '*', BUDGET) ->> 'watching') = '0.9.0',
+    'a second start-up overwrote the watch the workspace holds';
+  assert (api.set_watch(MEMBER_B, v_ws, true, '1.0', BUDGET) ->> 'watching') = '1.0',
+    'a member could not change their own watch';
+
+  -- A member changes their own and nobody else's — reading or writing one from outside the
+  -- workspace is the membership refusal.
+  perform pg_temp.refuses(
+    format('select api.set_watch(%L, %L, true, %L, %s)', MEMBER_D, v_ws, '*', BUDGET),
+    'AKB13', 'set_watch from outside the workspace');
+  perform pg_temp.refuses(
+    format('select api.read_watch(%L, %L)', MEMBER_D, v_ws), 'AKB13', 'read_watch');
+
+  -- -------------------------------------------------------------------------
+  -- A question goes to the owners, a review to every member
+  -- -------------------------------------------------------------------------
+
+  perform api.add_member(OWNER_A, v_ws, 'n-add-c', 'n-owner-2', 'owner', BUDGET);
+  -- Answering for themselves is the last word: this owner has carried nothing, and a machine
+  -- of theirs waking up with an older record hands nothing over afterwards.
+  assert (api.set_watch(OWNER_C, v_ws, true, '1.0', BUDGET) ->> 'carried')::boolean,
+    'a watch the member set themselves is not marked as answered';
+  assert (api.carry_watch(OWNER_C, v_ws, true, ALL_WATCHED, BUDGET) ->> 'watching') = '1.0',
+    'a machine handed its record over after the member had answered for themselves';
+
+  v_ready := (api.publish_event(MEMBER_B, null, v_ws, 328, 'Ready for review', '1.0', 'r1',
+                                'ready_for_review', 'implement', '[]'::jsonb, '', '', 'f1', false, BUDGET)
+              ->> 'id')::uuid;
+  v_question := (api.publish_event(MEMBER_B, null, v_ws, 329, 'Which one?', '1.0', 'r1',
+                                   'question', 'answer', '[]'::jsonb, '', '', 'f2', false, BUDGET)
+                 ->> 'id')::uuid;
+
+  assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_ready) = 3,
+    'a card ready for review did not reach every member';
+  assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_question) = 2,
+    'a user-owned question did not reach the owners alone';
+  assert not exists (select 1 from cloud.events e, cloud.event_audience(e) a
+                      where e.id = v_question and a.account_id = MEMBER_B),
+    'a plain member was told about a question addressed to the owners';
+
+  -- The catch-up read answers what each of them is in the audience of. The member's own
+  -- machine published both, and one of them is still not theirs to be told about.
+  assert json_array_length(api.list_events(OWNER_A)) = 2, 'an owner''s bell lost one of the two';
+  assert json_array_length(api.list_events(MEMBER_B)) = 1,
+    'a member''s bell carried the question as well as the review';
+  assert json_array_length(api.list_events(MEMBER_D)) = 0,
+    'somebody outside the workspace read its events';
+
+  -- -------------------------------------------------------------------------
+  -- The watch filters both audiences
+  -- -------------------------------------------------------------------------
+
+  perform api.set_watch(OWNER_C, v_ws, true, '0.9.0', BUDGET);
+  assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_question) = 1,
+    'an owner watching another release was told about a 1.0 question';
+  perform api.set_watch(OWNER_A, v_ws, false, '*', BUDGET);
+  assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_question) = 0,
+    'a question no owner is watching for reached somebody anyway';
+  assert json_array_length(api.list_events(OWNER_A)) = 0,
+    'a member whose switch is off still read the workspace''s events';
+  perform api.set_watch(OWNER_A, v_ws, true, '*', BUDGET);
+
+  -- -------------------------------------------------------------------------
+  -- One message per distinct destination
+  -- -------------------------------------------------------------------------
+
+  -- Three connections, two destinations: the two owners read one shared channel, and the
+  -- member has their own.
+  insert into cloud.slack_connections (owner_id, team_id, bot_token, channel_id, slack_user_id)
+  values (OWNER_A, 'T1', 'xoxb-a', 'C-shared', 'U1'),
+         (OWNER_C, 'T1', 'xoxb-c', 'C-shared', 'U2'),
+         (MEMBER_B, 'T1', 'xoxb-b', 'C-member', 'U3');
+
+  assert json_array_length(api.connector_jobs('slack', v_ready, 10, 5)) = 2,
+    'the review did not reach one message per destination';
+  assert json_array_length(api.connector_jobs('slack', v_question, 10, 5)) = 1,
+    'the question reached a destination no owner watching it reads';
+
+  -- Each destination keeps its OWN message, and one that is up to date is owed nothing while
+  -- the other is still due.
+  perform api.record_event_delivery(OWNER_A, v_ready, 'slack', 'T1:C-shared', 'sent', 'ts-shared', '',
+                                    (select content_at from cloud.events where id = v_ready), BUDGET);
+  assert json_array_length(api.connector_jobs('slack', v_ready, 10, 5)) = 1,
+    'a destination whose message is current was owed another';
+  assert ((api.connector_jobs('slack', v_ready, 10, 5) -> 0) ->> 'destination') = 'T1:C-member',
+    'the destination still owed a message was not the one left';
+
+  perform api.record_event_delivery(MEMBER_B, v_ready, 'slack', 'T1:C-member', 'sent', 'ts-member', '',
+                                    (select content_at from cloud.events where id = v_ready), BUDGET);
+  assert json_array_length(api.connector_jobs('slack', v_ready, 10, 5)) = 0,
+    'a message every destination already shows was owed another';
+
+  -- A decision taken anywhere makes every destination due again, so every other recipient's
+  -- surface redraws as answered rather than still asking.
+  perform api.record_event_action(MEMBER_B, 'n-act', v_ready, 'implement', 'r1',
+                                 '[]'::jsonb, 'accepted', BUDGET);
+  -- `now()` is frozen inside one transaction, so the action's own `content_at` lands on the
+  -- instant these messages were rendered at rather than after it. A real press is a
+  -- transaction of its own; the second here is what the clock would have given it.
+  update cloud.events set content_at = content_at + interval '1 second' where id = v_ready;
+  assert json_array_length(api.connector_jobs('slack', v_ready, 10, 5)) = 2,
+    'a settled decision left a destination showing a press that no longer works';
+
+  -- -------------------------------------------------------------------------
+  -- A member the workspace removed stops being delivered to
+  -- -------------------------------------------------------------------------
+
+  perform api.remove_member(OWNER_A, v_ws, 'n-remove', MEMBER_B, BUDGET);
+  -- Only OWNER_A is left of the three: OWNER_C is watching another release.
+  assert (select count(*) from cloud.events e, cloud.event_audience(e) a where e.id = v_ready) = 1,
+    'a removed member was still in the audience';
+  assert json_array_length(api.list_events(MEMBER_B)) = 0,
+    'a removed member still read the workspace''s events';
+  assert (select count(*) from cloud.workspace_watches
+           where workspace_id = v_ws and account_id = MEMBER_B) = 0,
+    'a removed member kept their watch';
+  -- The message already posted in their chat stays where it is.
+  assert (select count(*) from cloud.event_deliveries where event_id = v_ready) > 0,
+    'removing a member took a message that was already posted';
+
+  -- -------------------------------------------------------------------------
+  -- An event is taken down with the card it is about
+  -- -------------------------------------------------------------------------
+
+  insert into cloud.workspace_cards (workspace_id, card_id, data) values (v_ws, 328, '{}'::jsonb);
+  perform api.sweep_events();
+  assert (select state from cloud.events where id = v_question) = 'stale',
+    'a decision about a card the workspace no longer holds went on asking';
+  assert (select state from cloud.events where id = v_ready) <> 'stale',
+    'the sweep retired a decision about a card that is still on the board';
+
+  update cloud.workspace_cards set archived_at = now() where workspace_id = v_ws and card_id = 328;
+  perform api.sweep_events();
+  assert (select state from cloud.events where id = v_ready) = 'stale',
+    'a decision about an archived card went on asking';
+
+  raise notice 'sql checks: #328 audience checks passed';
+end
+$audience$;
 
 rollback;

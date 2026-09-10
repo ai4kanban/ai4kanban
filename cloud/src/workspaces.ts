@@ -410,6 +410,53 @@ export async function setMemberRole(env: Env, owner: Owner, id: string, accountI
   }
 }
 
+// ---- what each member is told about -----------------------------------------
+
+/** One member's notification switch and watched release inside one workspace (#328). It lives
+ *  here rather than on their machine so it follows them, and so Cloud can resolve the members
+ *  watching a release when a card raises a decision. */
+export interface Watch {
+  /** The switch. Off means this member is told nothing, whatever the workspace raises. */
+  notify: boolean
+  /** `*` for every release, one release's name, or empty for a member whose watched release
+   *  closed and who has not picked another — the state #319's rail asks about. */
+  watching: string
+  /** One of this member's machines has already handed its own record over, so no other one
+   *  will. */
+  carried: boolean
+  /** The open releases it could narrow to, off the board's own list, so a browser draws the
+   *  picker without reading the whole board back. */
+  releases: string[]
+}
+
+/** This member's own watch. A member with no row yet reads the default rather than nothing. */
+export const readWatch = (env: Env, owner: Owner, id: string): Promise<Watch> =>
+  call<Watch>(env, 'read_watch', {
+    p_subject: owner.accountId,
+    p_workspace: uuid(id, 'workspace'),
+  })
+
+/** A member changes their OWN watch and nobody else's: an owner manages the workspace, not
+ *  what a teammate is told about. */
+export const setWatch = (env: Env, owner: Owner, id: string, body: unknown): Promise<Watch> =>
+  mutate<Watch>(env, 'set_watch', {
+    p_subject: owner.accountId,
+    p_workspace: uuid(id, 'workspace'),
+    p_notify: held(body).notify !== false,
+    p_watching: watching(held(body).watching),
+  })
+
+/** What a machine already holds, handed over the first time it opens the workspace — once.
+ *  A record carried on every start-up would overwrite a change made in a browser with
+ *  whatever the last machine to wake up believes. */
+export const carryWatch = (env: Env, owner: Owner, id: string, body: unknown): Promise<Watch> =>
+  mutate<Watch>(env, 'carry_watch', {
+    p_subject: owner.accountId,
+    p_workspace: uuid(id, 'workspace'),
+    p_notify: held(body).notify !== false,
+    p_watching: watching(held(body).watching),
+  })
+
 // ---- delivery attempts ------------------------------------------------------
 
 export async function openDelivery(env: Env, owner: Owner, id: string, body: unknown): Promise<{ delivery: DeliveryAttempt }> {
@@ -817,6 +864,20 @@ export async function routeWorkspace(env: Env, owner: Owner, request: Request, u
     return json(await registerNode(env, owner, id, await bodyOf(request)))
   }
 
+  // What this member is told about (#328). Their own and nobody else's, so it sits beside the
+  // members list rather than inside it: an owner manages the workspace, not what a teammate
+  // hears. `carry` is a machine handing its own record over the first time it opens the board.
+  if (section === 'watch' && !name) {
+    if (request.method === 'GET') return json({ watch: await readWatch(env, owner, id) })
+    requireMethod(request, 'POST')
+    return json({ watch: await setWatch(env, owner, id, await bodyOf(request)) })
+  }
+
+  if (section === 'watch' && name === 'carry' && !move) {
+    requireMethod(request, 'POST')
+    return json({ watch: await carryWatch(env, owner, id, await bodyOf(request)) })
+  }
+
   if (section === 'members' && !name) {
     if (request.method === 'GET') return json(await listMembers(env, owner, id))
     requireMethod(request, 'POST')
@@ -887,6 +948,12 @@ function handle(value: unknown): string {
   if (!named) throw badRequest('That names no GitHub handle.')
   return named
 }
+
+/** What a watch may point at: every release, one release's name, or nothing. A name is not
+ *  checked against the board's list here — a release closes while a machine is off, and the
+ *  answer to that is the rail asking for another one, not a refused start-up. */
+const watching = (value: unknown): string =>
+  typeof value === 'string' ? value.trim().slice(0, 100) : ''
 
 /** Which of the two roles. Refused here rather than folded into `member`, so a typo is a
  *  refusal instead of a quiet demotion. */

@@ -2,7 +2,7 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-09-08
+effective: 2026-09-10
 ---
 
 <TLDR title="The short version">
@@ -10,7 +10,7 @@ effective: 2026-09-08
 - **This site counts two things.** A page was loaded, and a download button was pressed — so we can see whether the landing page works. No cookies, no accounts, nothing stored in your browser, and no identifier of any kind, so one visit is never tied to another. It is static files served by Cloudflare.
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out.
 - **Anonymous usage reporting is on by default**, in the app and in the `akb` command. It sends which features are used and which of them fail, tied to a random install id and to nothing about you. It never carries your code, your card text, your project names, or your file paths. The app discloses it in a step you answer before your first board opens, and you can turn it off there, in **Configuration → General**, or with `akb telemetry off`.
-- **AI4Kanban Cloud is an invite-only preview** that relays one signed-in account's task events — a review to approve, a question to answer — and the decisions made on them, on servers we run in Frankfurt. [What Cloud is](/cloud).
+- **AI4Kanban Cloud is an invite-only preview** that relays a board's task events — a review to approve, a question to answer — to the people who can act on them, and the decisions they make, on servers we run in Frankfurt. On a board you share, a review reaches its members and a question reaches its owners. [What Cloud is](/cloud).
 - **A Cloud board is one you asked us to hold.** Its cards, memory, releases and history live in a workspace on those servers instead of in your repository. It is a deliberate choice, made board by board; you can export the whole board as Markdown at any time, and an owner can delete the workspace and everything in it.
 - **A workspace can hold more than one person.** An owner adds a teammate by GitHub handle — but only one we have already admitted to the preview. Everyone in a workspace reads the whole board and the whole record of who changed what, including your GitHub handle.
 - **An event carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
@@ -138,25 +138,33 @@ AI4Kanban Cloud is an **invite-only preview**. It relays the task events a board
 
 Using it is a deliberate choice: you install the app on a local board, sign in, and turn Cloud on for a board afterwards. If you never do, nothing in this section applies to you.
 
-**A workspace can hold more than one person; everything else belongs to one account.** A workspace answers the people an owner has added to it, in one of two roles — an owner, who runs its name, its members and its machines, and a member, who does everything else on the board. Every other record described below — your account, your admission, your invite request, your Slack and Lark connections, and the boards and events of the 0.8.0 relay — belongs to one signed-in account, and Cloud answers that account alone.
+**A workspace can hold more than one person; what is yours alone stays yours alone.** A workspace answers the people an owner has added to it, in one of two roles — an owner, who runs its name, its members and its machines, and a member, who does everything else on the board. A workspace's board, its history, and the events its cards raise answer every member of it. Every other record described below — your account, your admission, your invite request, your Slack and Lark connections, what you have asked to be told about, and the boards and events of a board kept on your own machine — belongs to one signed-in account, and Cloud answers that account alone.
 
 **What the other people in a workspace can see.** Everyone in it reads the whole board — every card, every memory file, every release and the whole history — and the workspace's record of who did what, which carries **each person's GitHub handle** beside every change. Adding somebody to a workspace shows them your handle and everything you have done in it. Nobody outside it sees any of it.
 
 ### What an event holds
 
-Turning Cloud on for a board sends Cloud one **event** per task that needs a person: a task that reaches `ready`, or one that raises a question only you can answer. An event holds that task's **number, title, release, and current revision**, the decision it asks for, and — when it is a question — **each question with its options and the board's recommendation**.
+Turning Cloud on for a board sends Cloud one **event** per task that needs a person: a task that reaches `ready`, or one that raises a question only a person can answer. An event holds that task's **number, title, release, and current revision**, the decision it asks for, and — when it is a question — **each question with its options and the board's recommendation**.
+
+On a board you share, one event belongs to the workspace rather than to the machine that raised it, and **who it reaches is worked out each time it is read** from who is in the workspace then: a task ready for review reaches its members, and a question reaches its owners. Somebody an owner added since is included on their next read; somebody removed since is dropped. Nobody outside the workspace is ever told.
 
 It also holds enough of the card to review it away from your machine: the card's **opening paragraph** and its **review notes** — the sections a card writes under *Worth noting* — shortened before they are sent. Approving a build off a title alone is not a review, and the machine that raised the event may be switched off when you read it.
 
 **Those are your own words leaving your machine**, stored as you wrote them. Everything else stays behind: not the plan, not the todo list, not the rest of the body, not your memory files, not your releases, and not the board's configuration. Treat a card's opening paragraph the way you would treat a line in a shared document.
 
-Once you act on an event, Cloud also holds **the decision you made and the answers you gave**, and **how the run it started ended**. Where the event was delivered — a Slack or Lark message, say — is recorded against it too.
+Once you act on an event, Cloud also holds **the decision you made and the answers you gave** — attributed to you on the workspace's own record of who changed what — and **how the run it started ended**. Where the event was delivered is recorded against it too, once **for each chat destination** it went to, so a board two people share leaves one record per chat rather than one per person.
 
 An event is kept while it is unresolved, and **deleted 30 days after it reaches a final outcome** — completed, failed, cancelled, interrupted, or retired because the task stopped needing you. An event no machine ever reports on reaches no final outcome, so it is kept rather than swept. Deleting it takes its answers, its outcome, and any message it was delivered as with it.
 
+### What you have asked to be told about
+
+On a board you share, **whether you want to be told at all, and which release you want to be told about**, are held in the workspace rather than on your computer — so they follow you to every machine you open that board on, and so Cloud can work out who a card's decision should reach. That is two values and nothing else: a switch, and either one release's name or *every release*. Turning the switch off stops Cloud telling you anything about that board and leaves the rest of the workspace untouched.
+
+An owner adding you sets both once — the switch on, watching the version the team is shipping now — and either of you can change them afterwards. They are deleted when your membership is, and when the workspace is.
+
 ### Which message in a chat is the card's
 
-A task keeps one message in each chat you connected, and its events are logged in the thread under it. So Cloud holds **which message that is**: the board, the task number, the chat you connected, and **the chat's own identifier for that message**. It holds none of the message's words, and nothing about who read it or replied to it. It is deleted when the task's last event is, and it goes with the board and the account it belongs to.
+A task keeps one message in each chat it was sent to, and its events are logged in the thread under it. So Cloud holds **which message that is**: the board, the task number, the chat, and **the chat's own identifier for that message**. On a board you share, that is one message per chat the board's people connected — two of them reading the same channel share one message rather than getting two. It holds none of the message's words, and nothing about who read it or replied to it. It is deleted when the task's last event is, and it goes with the board and the account it belongs to.
 
 ### What a board is registered as
 
@@ -237,7 +245,7 @@ Each processes data on our behalf under its published data processing agreement.
 
 ### Slack, Lark, and anywhere else you choose to send board content
 
-You can connect **Slack** or **Lark** — which is 飞书 in China and Lark internationally — so that a question or a review request is posted into a channel, a group, or a direct message you already read, and decided from there. **One connection per chat belongs to your account**, and every board you turn Cloud on for shares it. You can connect both at once. You connect each one and you disconnect it; nobody else can.
+You can connect **Slack** or **Lark** — which is 飞书 in China and Lark internationally — so that a question or a review request is posted into a channel, a group, or a direct message you already read, and decided from there. **One connection per chat belongs to your account**, and every board you turn Cloud on for shares it. A connection is never a workspace's: on a board you share, each person is reached in their own connected chat, and a chat two of them picked gets one message. You can connect both at once. You connect each one and you disconnect it; nobody else can.
 
 When Cloud posts, the content of that message — the card's title, its opening paragraph, its review notes, the question being asked, and a link back into the app — leaves Cloud and goes to that chat **on your own instruction**. Anyone who can see that conversation can read it.
 
@@ -255,7 +263,7 @@ A decision pressed in either chat comes back as a callback that chat signs and t
 
 Nothing else in the app deletes anything. Signing out stops that machine reaching Cloud and removes no record. Turning Cloud off for a board, or moving the board to another machine, removes no record either.
 
-**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, which message in a chat each task is, your Slack and Lark connections, your invite request, and your membership of every workspace you are in. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
+**Everything else we remove by hand**, on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev). What that removes is **your whole account and everything under it**: your Cloud account row and your admission, your board rows with their names, every machine record those boards registered, every event with its questions, decisions, answers and outcomes, which message in a chat each task is, your Slack and Lark connections, your invite request, and your membership of every workspace you are in with what you asked to be told about in it. Your sign-in record goes alongside them, as its own step in Supabase rather than by the same operation.
 
 **What it does not remove is a workspace, or your name on what you did in one.** A workspace you are in belongs to the people in it, so removing your account takes your membership and your machines out of it and leaves the workspace and its board where they are. The workspace's record of what happened keeps **the GitHub handle you had at the time**, written into each line as it happened, so the people still in it can read their own history. If you own a workspace, we cannot remove your account until you have made somebody else an owner or deleted it — otherwise a board a whole team is using would go with you.
 
@@ -332,6 +340,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **Which message in a chat is a task's** — the board, the task number, the chat, and the chat's own identifier for that message. Kept while the task has any event on Cloud, and deleted with the last of them.
 - **A board's machine record** — the machine identifier and the hostname described above, kept until we remove them by hand. Every machine a board registered keeps its record, including one the board has moved away from.
 - **Your Slack and Lark connections** — kept until you disconnect them, which deletes each one at once, or until we remove your records.
+- **What you have asked to be told about in a workspace** — the switch and the release described above, kept while you are in that workspace, and deleted when your membership is or when the workspace is.
 - **The API's own request log** — retained by Cloudflare under Cloudflare's policy. It carries no board content, no handle, and no email address.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 

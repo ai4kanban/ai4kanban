@@ -377,7 +377,10 @@ export function readCloudCenter(): NotificationCenter {
 
   return {
     signedIn: !!readSession(),
-    enabled: !!enabled,
+    // On a Cloud checkout the record is kept while the member's switch is off, because it is
+    // the mirror of an answer that lives in the workspace (#328). So the switch is what it
+    // says rather than whether the record is there.
+    enabled: !!enabled && !enabled.watchOff,
     boardId,
     release: enabled?.release ?? '',
     silenced: notificationsSilenced(),

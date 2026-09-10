@@ -46,6 +46,15 @@ export interface CloudBoard {
    *  tick. Absent on a board that simply has not been registered yet — the two look the same
    *  from `serverId` alone, and only one of them is an answer the user gave. */
   serverOff?: boolean
+  /** The notification switch is OFF. Only a Cloud checkout carries one: a Local board's switch
+   *  is whether this record exists at all, while a workspace member's lives in the workspace
+   *  (#328) and this is the mirror of it the publisher reads without reaching the network. */
+  watchOff?: boolean
+  /** The user picked this release themselves, rather than it being the every-release default a
+   *  signed-in machine starts a board on. It is what a checkout has to CARRY into a workspace
+   *  (#328): a teammate who has just cloned the repository is carrying nothing, and the
+   *  workspace's own default for an added member is what they should start on. */
+  chosen?: boolean
 }
 
 interface Held {
@@ -77,6 +86,8 @@ function held(): Held {
           release: typeof b.release === 'string' ? b.release : '',
           serverId: typeof b.serverId === 'string' ? b.serverId : undefined,
           serverOff: b.serverOff === true ? true : undefined,
+          watchOff: b.watchOff === true ? true : undefined,
+          chosen: b.chosen === true ? true : undefined,
         })),
     }
   } catch {
@@ -158,8 +169,17 @@ export function cloudBoardById(id: string): CloudBoard | null {
 
 /** Turn notifications on for this board, watching one open release. Idempotent: a board
  *  already on keeps its Cloud ID, so turning it off and on again does not orphan its
- *  events. */
-export function enableCloudBoard(boardDir: string, project: string, release: string): CloudBoard {
+ *  events.
+ *
+ *  `chosen` is the user picking the release rather than the machine starting the board on
+ *  every one of them — the difference between a record worth carrying into a workspace and
+ *  one that is only a default (#328). */
+export function enableCloudBoard(
+  boardDir: string,
+  project: string,
+  release: string,
+  chosen = false,
+): CloudBoard {
   const folder = canonical(boardDir)
   const root = canonical(project)
   const state = held()
@@ -168,6 +188,7 @@ export function enableCloudBoard(boardDir: string, project: string, release: str
     existing.release = release
     existing.path = root
     existing.boardDir = folder
+    if (chosen) existing.chosen = true
     write(state)
     return existing
   }
@@ -177,6 +198,7 @@ export function enableCloudBoard(boardDir: string, project: string, release: str
     boardDir: folder,
     name: boardName(root, folder),
     release,
+    ...(chosen ? { chosen: true } : {}),
   }
   state.boards.push(board)
   write(state)
@@ -223,6 +245,28 @@ export function setCloudBoardRelease(boardDir: string, release: string): CloudBo
   const board = state.boards.find((b) => canonical(b.boardDir) === folder)
   if (!board) return null
   board.release = release
+  // The user picked it, so it is worth carrying into a workspace this board later joins.
+  board.chosen = true
+  write(state)
+  return board
+}
+
+/**
+ * What the WORKSPACE says this member is told about, written down here (#328).
+ *
+ * The watch lives in the workspace so it follows the member to every machine, and the
+ * publisher is a synchronous pass that cannot reach the network — so the answer is mirrored
+ * into this machine's record and read from there. The record is never the authority: every
+ * pull overwrites it.
+ */
+export function mirrorWatch(boardDir: string, watch: { notify: boolean; watching: string }): CloudBoard | null {
+  const folder = canonical(boardDir)
+  const state = held()
+  const board = state.boards.find((b) => canonical(b.boardDir) === folder)
+  if (!board) return null
+  board.release = watch.watching
+  if (watch.notify) delete board.watchOff
+  else board.watchOff = true
   write(state)
   return board
 }

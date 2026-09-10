@@ -9,6 +9,12 @@
 // already holding, swapping the release republishes against the new one, and turning them
 // off retires this board's live events before the record of them is dropped.
 //
+// On a Cloud checkout the switch and the release are not this machine's (#328). They belong to
+// the MEMBER inside the workspace, so they follow them to every machine they open the board on
+// and Cloud can resolve which members are watching a release when a card raises a decision.
+// This machine's record becomes the mirror of that answer — every read pulls it down, every
+// move writes through — and the first read hands over whatever the record already held.
+//
 // Every fill is QUIET (#451). What a switch brings into view was already waiting, so it lands
 // in the bell read, raises nothing, and costs one summary in the chat instead of a message a
 // card. Only a card that starts waiting after the switch is raised.
@@ -21,8 +27,12 @@ import {
   cloudBoardFor,
   disableCloudBoard,
   enableCloudBoard,
+  mirrorWatch,
   setCloudBoardRelease,
+  type CloudBoard,
 } from './boards'
+import { carryWorkspaceWatch, readWorkspaceWatch, setWorkspaceWatch } from './client'
+import { readPointer } from './pointer'
 import { publishBoardEvents, retireBoardEvents, startPublishing } from './publish'
 import { attachBoardServer, detachBoardServer, readBoardServer, type BoardServer } from './servers'
 import { readSession } from './session'
@@ -42,6 +52,48 @@ export interface BoardNotifications {
   /** Which machine runs this board's work (#318) — an approval taken anywhere else runs
    *  there and nowhere else. */
   server: BoardServer
+  /** This board lives in a workspace, so the switch and the release above are this member's
+   *  inside it and not this machine's (#328). What a screen says about them is the same
+   *  either way; what changes is who else the same answer follows. */
+  shared: boolean
+}
+
+/** The workspace this checkout's board lives in, or empty on a Local board. */
+const workspaceHere = (): string => readPointer(REPO_ROOT)?.workspace ?? ''
+
+/**
+ * Pull the workspace's answer down into this machine's record, handing this machine's own over
+ * the first time.
+ *
+ * The publisher is a synchronous pass that cannot reach the network, so it reads the mirror.
+ * The carry is once, and the service is what remembers that: a record handed over on every
+ * start-up would overwrite a change made in a browser with whatever the last machine to wake
+ * up believes.
+ *
+ * Best effort. A Cloud we cannot reach this second leaves the mirror as it stands, which is
+ * the answer the last read wrote.
+ */
+async function pullWatch(workspaceId: string, held: CloudBoard): Promise<void> {
+  const read = await readWorkspaceWatch(workspaceId)
+  if (!read.ok) return
+  let watch = read.value.watch
+  // Only a record the user actually chose is worth carrying. A teammate who has just cloned
+  // the repository holds the every-release default a signed-in machine mints for any board,
+  // and handing that over would overwrite the narrower default an owner adding them set.
+  if (!watch.carried && held.chosen) {
+    const carried = await carryWorkspaceWatch(workspaceId, !held.watchOff, held.release)
+    if (carried.ok) watch = carried.value.watch
+  }
+  mirrorWatch(KANBAN, watch)
+}
+
+/** Write a move through to the workspace, and mirror what it answers. The workspace is the
+ *  authority: a move this machine could not get out is a move that did not happen. */
+async function pushWatch(workspaceId: string, notify: boolean, release: string): Promise<WriteResult> {
+  const written = await setWorkspaceWatch(workspaceId, notify, release)
+  if (!written.ok) return { ok: false, error: written.error }
+  mirrorWatch(KANBAN, written.value.watch)
+  return { ok: true }
 }
 
 /**
@@ -60,7 +112,12 @@ export async function ensureBoardNotifications(): Promise<void> {
 
 export async function readBoardNotifications(): Promise<BoardNotifications> {
   await ensureBoardNotifications()
-  const held = cloudBoardFor(KANBAN)
+  let held = cloudBoardFor(KANBAN)
+  const workspace = workspaceHere()
+  if (held && workspace) {
+    await pullWatch(workspace, held)
+    held = cloudBoardFor(KANBAN)
+  }
   let releases: string[] = []
   try {
     releases = await board().readReleases()
@@ -68,11 +125,15 @@ export async function readBoardNotifications(): Promise<BoardNotifications> {
     // A board we cannot read this second offers no releases; the section says so.
   }
   return {
-    enabled: !!held,
+    // On a Cloud checkout the record is kept while the switch is off, because it is the mirror
+    // of an answer that lives in the workspace — so the switch is what it says, not whether
+    // the record is there.
+    enabled: !!held && !held.watchOff,
     release: held?.release ?? '',
     releases,
     signedIn: !!readSession(),
     server: await readBoardServer(),
+    shared: !!workspace,
   }
 }
 
@@ -102,7 +163,12 @@ const NOT_WATCHABLE = 'Watch every release, or one of this board’s open ones.'
 export async function enableBoardNotifications(release: string): Promise<WriteResult> {
   if (!readSession()) return { ok: false, error: 'Sign in to Cloud first.' }
   if (!(await watchable(release))) return { ok: false, error: NOT_WATCHABLE }
-  enableCloudBoard(KANBAN, REPO_ROOT, release)
+  enableCloudBoard(KANBAN, REPO_ROOT, release, true)
+  const workspace = workspaceHere()
+  if (workspace) {
+    const written = await pushWatch(workspace, true, release)
+    if (!written.ok) return written
+  }
   await startPublishing()
   return { ok: true }
 }
@@ -112,21 +178,55 @@ export async function enableBoardNotifications(release: string): Promise<WriteRe
  *
  *  Whatever the wider scope brings in was already waiting, so none of it is raised (#451). */
 export async function watchRelease(release: string): Promise<WriteResult> {
-  if (!cloudBoardFor(KANBAN)) return { ok: false, error: 'Notifications are off for this board.' }
+  const held = cloudBoardFor(KANBAN)
+  if (!held || held.watchOff) return { ok: false, error: 'Notifications are off for this board.' }
   if (!(await watchable(release))) return { ok: false, error: NOT_WATCHABLE }
-  setCloudBoardRelease(KANBAN, release)
+  const workspace = workspaceHere()
+  if (workspace) {
+    const written = await pushWatch(workspace, true, release)
+    if (!written.ok) return written
+  } else {
+    setCloudBoardRelease(KANBAN, release)
+  }
   await publishBoardEvents({ reconcile: true, broughtIn: true })
+  return { ok: true }
+}
+
+/**
+ * Be told about this SHARED board, or not (#328).
+ *
+ * A Local board has no such switch and never had: signed in means on, and the record's
+ * existence is the whole of it (#319). A workspace member has one, because their teammates go
+ * on being told either way — so going quiet is theirs to choose and theirs alone.
+ *
+ * Turning them back on fills the bell with whatever the board is already holding and raises
+ * none of it (#451): all of that was waiting before the switch moved.
+ */
+export async function setBoardNotify(on: boolean): Promise<WriteResult> {
+  const held = cloudBoardFor(KANBAN)
+  if (!held) return { ok: false, error: 'Notifications are off for this board.' }
+  const workspace = workspaceHere()
+  if (!workspace) return { ok: false, error: 'Only a board in a workspace carries that switch.' }
+  const written = await pushWatch(workspace, on, held.release)
+  if (!written.ok) return written
+  if (on) await publishBoardEvents({ reconcile: true, broughtIn: true })
   return { ok: true }
 }
 
 /** Turn them off. This board's live events are retired first — a board with notifications
  *  off must not leave a row in the bell asking about it. */
 export async function disableBoardNotifications(): Promise<WriteResult> {
-  if (!cloudBoardFor(KANBAN)) return { ok: true }
-  await retireBoardEvents()
+  const held = cloudBoardFor(KANBAN)
+  if (!held) return { ok: true }
+  const workspace = workspaceHere()
+  // A workspace card's decision belongs to the team, so one member going quiet must not retire
+  // it out from under the others. Their switch is turned off and the rest of the audience goes
+  // on being told.
+  if (!workspace) await retireBoardEvents()
   // A board that raises no events has no approvals to run either, so this machine stops
   // being its server (#318). Whatever is already building here finishes where it is.
   await detachBoardServer()
+  if (workspace) return pushWatch(workspace, false, held.release)
   disableCloudBoard(KANBAN)
   return { ok: true }
 }
