@@ -7,7 +7,9 @@
   them here only goes stale.
 - **Reuse a sibling card's `.mockups/` instead of drawing the page again**: siblings under
   one parent are drawn side by side, so look again just before rendering. Two versions of
-  one page read as two products, not two moments.
+  one page read as two products, not two moments. A second TAB of one page is that same
+  page — redraw it from the sibling's frame and change only what its cards carry and what
+  they let you do.
 - **Draw in Chinese, in the board's own words**: take them from `kanban-ui/i18n/*/zh.ts`.
   Invented copy is sent back.
 - **A mockup file is ONE 1280 × 800 screen**: the card page draws it in an iframe clipped to
@@ -130,7 +132,7 @@
   `--force-device-scale-factor=2`. A layout that overflows its dialog is only caught here.
 - **`kanban-ui/render-mockup.mjs` is untracked and gets deleted between sessions**: when it
   is gone, write it again from this recipe rather than reaching for a new approach.
-- **Triage needs order as well as capacity**: repeated heavy card frames look crowded and scattered; use date groups, aligned rows and quiet separators, keep Add on demand, and drop arbitrary first-screen item quotas.
+- **Capacity needs visual order**: heavy card walls look crowded, while sparse full-width rows waste space; use meaningful groups, aligned lightweight cards and no arbitrary first-screen quota.
 - **The render script must SIT in `kanban-ui/` and be RUN from there**: Node looks beside
   the script, so one in `/tmp` cannot resolve `sucrase`, `tailwindcss` or `react-dom/server`.
 - **Give sucrase the `imports` transform too** (`['typescript', 'jsx', 'imports']`), or the

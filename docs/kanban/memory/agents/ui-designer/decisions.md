@@ -37,3 +37,5 @@
   nothing.
 - **营销稿文案**：移除"改写各频道"；保留"记下"的语气，选区入口用"记条意见"，避免"记下这段"读成收藏原文；
   改写状态用"正在按 N 条意见修改"，提示用"修改期间暂不可编辑"。
+
+- **Triage**: source groups contain three columns of lightweight cards; Add opens a small anchored composer, and dropped files are staged until the user submits.

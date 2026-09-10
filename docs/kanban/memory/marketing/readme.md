@@ -77,3 +77,9 @@ covers it, or a plain-words note.
   empty source now shows what a channel's does — the stopped-run notice, when a polish over it
   ended unfinished — and the invitation at the caret is all a blank one says. An `implement`
   still in a board's run log reads as an ordinary run.
+- **The comments on a draft are a markdown file you can edit**: they live in
+  `docs/kanban/.comments/<id>/<draft>.md`, one file per draft, and an entry is a quoted
+  passage with the change written under it — `[[…]]` marking the exact words inside a wider
+  quote. Add, reword or delete one in any editor and the page shows it; a save from the page
+  keeps what you wrote, and an entry it cannot read stays in the file and out of the polish.
+  There are no character offsets: a passage is found again wherever the draft has moved it.

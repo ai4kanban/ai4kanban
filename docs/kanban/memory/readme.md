@@ -22,3 +22,6 @@ covers it, or a plain-words note.
   minute of a card sitting unannounced. It still gives up after about four hours and says the
   board is out of step. A retry about a card somebody has since dealt with is dropped rather
   than raised.
+- Submitting a batch of draft comments can carry one optional note about the whole draft. The
+  field sits above the comment list, empty by default; what you type goes to that one polish
+  alongside the comments, and a comment on a passage wins where the two disagree.

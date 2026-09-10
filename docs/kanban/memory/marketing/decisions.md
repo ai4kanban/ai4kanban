@@ -66,6 +66,9 @@ Internal detail stays on the card.
   exactly as it sits in the file the agent wrote.
 - **A batch of draft comments is cleared once its polish returns**: the polished draft is
   the answer, so no comment stays behind as resolved and there is no list to dismiss.
+- **Machine-local state is dropped, not migrated**: a format change under `.comments/` loses
+  whatever was left unsubmitted rather than shipping a converter, and the same goes for the
+  other ignored working files beside the board.
 - **New topic replaces Create task everywhere on a marketing board**: the header, the empty
   board and the rail all offer New topic, so the planning entry never shows there.
 - **An unwanted topic is discarded by hand**: it leaves the board from the topic page's `…`

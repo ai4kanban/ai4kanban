@@ -100,6 +100,10 @@ covers it, or a plain-words note.
   for, a deleted workspace and a made-up id all meet the same sentence, so none of them learns
   whether that workspace exists; every page is `noindex`, and a link pasted into a chat
   previews nothing of the board.
+- Every signed-in hosted page carries the account in the top row, phone width included: the
+  avatar opens a menu naming who you are signed in as, with Settings and Sign out under it.
+  `cloud.ai4kanban.dev/settings` shows that account and says board and machine settings are
+  the AI4Kanban app's — nothing hosted is writable.
 
 ## What Cloud says about a board's machine
 

@@ -5,7 +5,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## What the UI does
 
-- ❌ **Triage wastes space on a standing form, then overcorrects with a wall of heavy card boxes** → ✅ use grouped, aligned rows with quiet separators, search and filters; open Add on demand and prioritize scan order over a first-screen item quota.
+- ❌ **Triage alternates between heavy card walls and sparse full-width rows** → ✅ group lightweight cards by source, use the available width, and open one explicit-submit composer for typed or dropped input.
+- ❌ **A second tab of one page gets its own layout** (Dismissed drawn as a narrow single-column list beside the grouped Pending grid) → ✅ both tabs are the same page: same toolbar, same source groups, same cards. Only what the card's second line carries and which actions it offers may differ.
 
 - ❌ **The UI lets people hand-edit the board** (toggle todos, write cards, mark done) → ✅
   the UI spawns agent runs to do the kanban work; only priority, ROI and a title/body edit

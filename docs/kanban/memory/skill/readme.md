@@ -434,3 +434,10 @@ covers it, or a plain-words note.
   unfinished until it is picked back up; a create typed by a person is complete at once, and a
   **Build now** card is being built rather than written. The creating run is the one caller
   those refusals let through, so it can still refine the card it just wrote.
+
+- A desktop alert survives a Cloud read that failed. The socket hint carries an event id and the
+  contents are read through the Worker; a read that did not get through is tried again a second
+  later, then two and four, and a refusal Cloud will keep giving is given up on at once. The
+  durable five-minute read now runs under a joined socket too, so a hint lost on the wire costs
+  five minutes rather than waiting for a reconnect, and it raises the alert once. Signing out or
+  quitting drops whatever was still waiting.

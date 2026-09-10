@@ -11,6 +11,8 @@ Internal detail stays on the card.
   requests and their outcomes.
 - Shared Cloud boards, membership, roles, imports and multi-user conflict handling have no
   release yet — they follow the single-user relay.
+- The hosted pages hold no setting a reader may write: Settings there is the account alone —
+  the signed-in identity and Sign out — and board and machine configuration stays in the app.
 - Onboarding leads with a Local board; Cloud is an explicit choice beside it. Leading with
   Cloud is a later change that waits on pricing and the open-source support policy.
 - The notification flow was proven in the desktop notification center first, so messages and
