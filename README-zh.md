@@ -40,7 +40,7 @@ AI4Kanban 帮助我们的早期用户提升了 3–6 倍实施效率。
 
 7. 简单来说，人类所需要做的就是提出想法，做选择题，最后 review 极扼要的简报。剩下的事情全都交给 AI。
 
-![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid-v1.png)
+![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid-v2.png)
 
 ## 全自动开发工厂（实验性）
 
