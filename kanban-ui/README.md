@@ -404,12 +404,11 @@ top of it. A board that has archived nothing says so.
 ### Mockups on a card
 
 A card that changes a screen can carry **mockups** of it — small files under
-`mockups/<card id>/` in this board's own folder on the machine (#590), each drawing one layout
-the card could take. The card body points at each one with a tag on a line of its own, and the
-card page draws the screen that file holds where the tag sits, so you pick a layout by looking
-at it. The `ui-designer` agent writes
-one by default and alternatives only when explicitly requested; only a card page shows them,
-and the card file is never written to.
+`mockups/<card id>/` in this board's own folder on the machine (#590), each drawing one screen of
+the design the card takes. The card body points at each one with a tag on a line of its own, and
+the card page draws the screen that file holds where the tag sits, so you read the design by
+looking at it. The `ui-designer` agent writes one design, one file per page or state it changes,
+each named for what it shows; only a card page shows them, and the card file is never written to.
 
 A mockup is written as one of two things:
 
@@ -418,10 +417,10 @@ A mockup is written as one of two things:
 | **`.tsx`** | One React component drawing the whole screen, styled with Tailwind and importing React and nothing else. This is the one an agent writes. |
 | **`.html`** | A whole page carrying its own styling — for a drawing that already exists as a page. |
 
-Both get the same frame: the mockup's **label** and its **file name** across the top, a switch to
-the **code** the file holds, and under that one desktop screen — 1280 by 800 — scaled down to fit
-the width the card page gives it. Every option is the same size on the page, because that is the
-only way they compare. A mockup taller than one screen scrolls inside its own frame, and never
+Both get the same frame: the mockup's **label** — the screen's name — and its **file name** across
+the top, a switch to the **code** the file holds, and under that one desktop screen — 1280 by 800 —
+scaled down to fit the width the card page gives it. Every screen is the same size on the page, so
+they read as one design. A mockup taller than one screen scrolls inside its own frame, and never
 sideways. Switching one to its code leaves the others as they are.
 
 **Click the file name to see that mockup on its own, at full size** — a page with nothing else on
@@ -437,7 +436,7 @@ usual.
 
 The folder is gitignored — a mockup is a working drawing, not something the repo carries. A card
 pulled from someone else's board shows its tags as those notes until `ui-designer` draws the
-options again here.
+screens again here.
 
 **Which of the two styles `ui-designer` draws in is the board's Mockup style setting**, under
 Configuration → Agents (`mockupStyle` in `ui.config.json`). It is board-wide, so a card carries
@@ -445,8 +444,8 @@ one style throughout. It starts at the rendered screen above; the other choice i
 drawing**, which costs a much shorter run and reads as itself in a terminal, at the price of the
 product's own look.
 
-A plain-text drawing is **not a file**. It is written straight into the card, as a block under a
-heading naming its layout, and shown exactly as the card holds it — nothing points at it, nothing
+A plain-text drawing is **not a file**. It is written straight into the card, one block per screen
+under a heading naming it, and shown exactly as the card holds it — nothing points at it, nothing
 opens it on its own, and a window too narrow for it scrolls sideways rather than breaking its
 columns. Because it is in the card, it travels with the card through git.
 

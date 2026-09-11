@@ -44,10 +44,11 @@ and `rejected.md` — on top of the card.
 while a card is being planned — never while it is being built — writes one named section of that
 card, and changes nothing else. The board ships two, and `akb spec` lists them:
 
-- **`ui-designer`** — draws the screen a card needs as one layout by default, with alternatives
-  only when you ask for them, and nothing written under the drawing. Its **mockup** is either a
-  rendered screen or a plain-text drawing depending on the board's **Mockup style** setting
-  (Configuration → Agents). See "Mockups on a card" in `kanban-ui/README.md`.
+- **`ui-designer`** — draws the screen a card needs as one design, one drawing per page or state
+  it changes and each named for what it shows, with nothing written under the drawings. Its
+  **mockup** is either a rendered screen or a plain-text drawing depending on the board's
+  **Mockup style** setting (Configuration → Agents). See "Mockups on a card" in
+  `kanban-ui/README.md`.
 - **`tech-stack-advisor`** — picks the library, tool, or service a card leans on. Its answer is
   one table — a row per candidate, with what it is, its pros and its cons — and one line naming
   the pick. Keeping what the project already uses and writing it yourself are rows too, so a card

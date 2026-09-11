@@ -3,12 +3,12 @@ name: ui-designer
 description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, and flows. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision. A detailed plan or an existing component is not a reason to skip.
 akb:
   kind: spec
-  owns: the screen a card changes — one layout drawn by default, alternatives only when requested
+  owns: the screen a card changes — one design, drawn one screen per file
   i18n:
     zh:
       title: 界面设计师
       description: 当卡片要设计或改动任何面向用户的功能时使用，包括页面、布局、交互和流程。只有极小的改动才跳过，例如错别字，或不涉及任何设计决策的单个间距修正。计划写得详细、或已有现成组件，都不是跳过的理由。
-      owns: 卡片改动的那块界面——默认只画一版布局，只有你明确要求时才给备选方案
+      owns: 卡片改动的那块界面——一个方案，每屏画成一张
       settings:
         mockupStyle:
           label: 原型样式
@@ -53,16 +53,17 @@ on the card is yours.
 
 ## What to answer
 
-Give exactly one mockup, labelled `A`. Only give alternatives when the user explicitly asks
-for them; use the requested count, or two when they give no count, labelled `A`, `B`, `C` in
-order. With alternatives, name the option you recommend on one line.
+Give one design. Every page and state in it that has to be reviewed on its own is one mockup,
+named for the page or state it shows. There are no alternatives and nothing to pick between:
+a second layout comes from changing the requirement and asking again.
 
-Put nothing else in the section. The drawing is the answer; do not describe it.
+Put nothing else in the section. The drawings are the answer; do not describe them.
 
 ## How much to draw
 
-Draw one screen per mockup in its normal state. Include only what the card's scope and todos
-name; every extra state, panel or page is another layout the user must judge. Do not handle
+Each mockup is one whole screen in one state, never a loose piece of one. Draw the pages and
+states the card's scope and todos name and no others; there is no cap on how many that is, but
+a state a reader can already see from another drawing is not its own mockup. Do not handle
 clicks, load from the network, or read board data.
 
 ## What to leave out
@@ -73,14 +74,14 @@ not project components or wiring notes.
 ## Where the drawing goes
 
 The board picks one mockup format for the whole board, and the reference below is the one it
-picked. Follow that reference and no other format. The count, the labels and the
-recommendation above do not change with it.
+picked. Follow that reference and no other format. One design, one screen per mockup, each
+named for what it shows — none of that changes with the format.
 
 ## Run again on the same card
 
 Leave `docs/kanban/.mockups/<card id>/` holding only the files your new answer points at.
-Delete dropped options and anything the other mockup format left there — a format that writes
-no file leaves the folder empty.
+Delete screens the new design renamed or dropped, and anything the other mockup format left
+there — a format that writes no file leaves the folder empty.
 
 Mockup files are keyed by card id, so they survive track changes. They are kept on this machine
 and not in the repository, so a rendered screen can go missing and need redrawing; a plain-text
@@ -88,7 +89,5 @@ drawing sits in the card and travels with it. Record the final design in the car
 
 ## When the pick is the user's
 
-The default single mockup is the proposed layout. Do not leave an open question just to confirm
-it. When the user explicitly asks for alternatives, leave the choice as the one open question,
-classified and written by `akb guide update-questions`, using only the mockup labels as its
-options and pointing at your section.
+Never. Your drawings are the proposed design, not a shortlist: leave no open question asking
+which one to take, and none asking to confirm it either.

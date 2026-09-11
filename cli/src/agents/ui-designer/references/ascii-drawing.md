@@ -1,8 +1,8 @@
 ## Mockup format: a plain-text drawing
 
-Each mockup goes in the card body itself, in a fenced block under a `###` heading naming its
-label. Write no file — this format leaves `docs/kanban/.mockups/<card id>/` empty, so the
-drawing travels with the card through git.
+Each mockup goes in the card body itself, in a fenced block under a `###` heading naming the
+page or state it draws. Write no file — this format leaves `docs/kanban/.mockups/<card id>/`
+empty, so the drawing travels with the card through git.
 
 - Draw the boxes, labels, controls and real-looking data the user sees, not boxes named
   "content area".

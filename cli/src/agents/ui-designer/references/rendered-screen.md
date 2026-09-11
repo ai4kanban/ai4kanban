@@ -1,7 +1,7 @@
 ## Mockup format: a rendered screen
 
-Each mockup is one file in `docs/kanban/.mockups/<card id>/`, named for its label: `a` for
-`A`, `b` for `B`.
+Each mockup is one file in `docs/kanban/.mockups/<card id>/`, named for the page or state it
+draws in lowercase ASCII with dashes: `board-empty`, `card-run-failed`.
 
 - **`.tsx`**: one default-exported React component using only React, Tailwind classes, and
   inline icons.
@@ -13,11 +13,12 @@ Point at each file from your section with one `<Mockup>` tag standing in a parag
 own — a blank line above it and a blank line below:
 
 ```
-<Mockup src=".mockups/<card id>/a.tsx" label="A" />
+<Mockup src=".mockups/<card id>/board-empty.tsx" label="Board, nothing on it" />
 
-<Mockup src=".mockups/<card id>/b.tsx" label="B" />
+<Mockup src=".mockups/<card id>/card-run-failed.tsx" label="Card page, run failed" />
 ```
 
 A tag sharing a line or paragraph with prose is printed as text. `src` is the drawing's name,
-written exactly as above and resolved by the board; `label` is optional. `<Mockup>` is the only HTML tag allowed in a card
+written exactly as above and resolved by the board; `label` is required and is the screen's
+name for a reader, in the board's language. `<Mockup>` is the only HTML tag allowed in a card
 body; inside backticks or a fenced block, it remains text.

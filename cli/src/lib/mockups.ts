@@ -2,7 +2,7 @@
 //
 // A card body draws a mockup only where the tag stands alone in its own paragraph:
 //
-//   <Mockup src=".mockups/306/a.tsx" label="A" />
+//   <Mockup src=".mockups/306/board-empty.tsx" label="Board, nothing on it" />
 //
 //   Folded rows: fourteen one-line rows …
 //
