@@ -16,11 +16,12 @@ import { readyGateOn } from '../agent/settings'
 import { recordCreatedCards } from '../agent/store'
 import { board, moveTarget, openBoard, setCardStatusOn, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
+import { allowedSolution } from '../cloud/admission'
 import { BoardError, say, warn } from '../io'
 import { KANBAN } from '../paths'
 import { resolveBoard, sayIfOffline, useBoard } from '../board-cli'
 import { SCHEDULED_ACTIONS } from '../schedule'
-import { SOLUTIONS } from '../solution'
+import { SOLUTIONS, type Solution } from '../solution'
 import { LEVELS, STATUSES } from '../validate'
 import { QUESTION_TAGS } from '../view/rules'
 import {
@@ -562,7 +563,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
   // ---- the board itself ----------------------------------------------------
 
   move('init')
-    .option('--solution <name>', `what this board's work is: ${SOLUTIONS.join(' | ')}`, oneOf(SOLUTIONS))
+    .option('--solution <name>', `what this board's work is: ${SOLUTIONS.join(' | ')} (marketing is an invite-only alpha)`, oneOf(SOLUTIONS))
     .summary('scaffold docs/kanban/; on an existing board add only what is missing')
     .description(
       'Scaffold the board — the folders, the project-wide memory set in memory/, and a blank config.md ' +
@@ -571,6 +572,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
         "fresh board only: what an existing one is, its own config.md says.",
     )
     .action(async function (this: Command) {
+      await allowedSolution((this.opts() as { solution?: Solution }).solution)
       await dispatch('init', this, [], this.opts(), cli)
     })
 

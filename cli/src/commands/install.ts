@@ -21,6 +21,7 @@ import { takeLocalModels } from '../lib/agent/local'
 import { migrateRuntimes, repairEnvFile } from '../lib/agent/runtimes'
 import { agentNames } from '../lib/agent/roles'
 import { runBoard } from '../lib/board-cli'
+import { allowedSolution } from '../lib/cloud/admission'
 import { missingConfigKeys } from '../lib/config-template'
 import { BoardError, say } from '../lib/io'
 import { setBoardRoot } from '../lib/paths'
@@ -129,6 +130,7 @@ function boardAbove(root: string): string | null {
  *  written: driving the board from one is an extra, and `akb skill` is how it is asked for.
  *  That is what keeps a board made from the UI free of a folder nobody chose. */
 export async function cmdInstall(ctx: SetupContext): Promise<MoveResult> {
+  await allowedSolution(ctx.solution)
   const report = new Report()
   const board = ctx.board ?? null
   const where = board ? path.relative(ctx.dir, board) || board : 'docs/kanban'
