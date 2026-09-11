@@ -202,22 +202,32 @@ re-ask a settled call.
 
 - The GitHub Projects backend is wanted but parked; Notion is a later idea that gets a card
   when a user asks for it.
-- We require and ship no Obsidian community plugin, so the board shows there as a grouped
-  table, never as drag-and-drop columns.
+- **External input sources**: Obsidian notes and GitHub Issues feed Triage alongside dist0 API and the mock provider; source material never directly edits the board.
+
 - The memory set, `metrics.csv` and `next-id` stay local markdown on every backend — only
   cards ever move. One backend per project.
+- Machine-local state the board cleans up itself — the run record and its logs, the chats and
+  their attachments, the mockups, the comments and every lock — lives under `~/.ai4kanban/`,
+  one directory per project, so two projects on a machine never read each other's. Only the
+  user's own configuration stays in `docs/kanban/`: the API keys and the per-machine model.
+- Those directories are keyed by the project's path. Moving or renaming a project starts its
+  records over and the old directory is moved across by hand — nothing in the project records
+  a stable identity to find them back by.
 
 ## The market signal inbox
 
 - **The board reaches one endpoint the user configures, not a platform we integrate**: the
   board fixes the signal format it accepts and the user points an endpoint and a token at
   it, so any platform that returns that format works and none of them is named in the code.
+- **Connecting a provider is free and local**: the endpoint and the token are files in the board, so any board reaches any provider with no account; dist0, the paid provider we sell, is watched from inside Cloud instead, so a subscriber keeps one dashboard and one account.
+- **dist0's paid signals are not billed separately**: dist0 is ours, so its cost sits inside the AI4Kanban cloud subscription rather than a provider account the user holds and pays; the published provider contract therefore documents credentials and never billing, quota or plan terms.
 - **A signal that passes triage becomes a card that refines itself**: triage schedules a
   refine on every card it creates, so an external signal arrives with its plan already
   written rather than as one paragraph — the extra runs and their cost are spent
   automatically, without anyone asking.
 - **When the proposer reflects**: one run per completed card, started as that card is archived; nothing else triggers reflection.
 - **A dismissal only blocks the automatic pull**: a dismissed item is never fetched again, but a user adding the same thing by hand is always let through — re-pasting the link is the only way back from a wrong dismissal, and no screen offers a restore.
+- **Triage has a demo mode anyone can turn on**: the mock provider we develop against ships with the board as an opt-in demo, so a user can try triage before paying for a provider, and every synthetic item is marked as such for good so a demo item can never be read as a real lead.
 
 ## Agents and harnesses
 

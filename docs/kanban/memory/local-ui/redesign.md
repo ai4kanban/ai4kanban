@@ -191,6 +191,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Runtime and agent controls
 
+- ❌ **Auto triage appears among always-on agents** → ✅ show it as an optional specialist, off by default, with its actual enabled state and switch.
 - ❌ **Runtime Delete sits below a long settings form** → ✅ place it at the right of the runtime title; use the existing hard-shadow button for Test connection.
 - ❌ **Memory maintenance looks like a file row and opens a separate popover** → ✅ use a clear 整理记忆 button linking to Configuration → Agent → Memory Pruner.
 - ❌ **An agent feature mockup replaces the current roster and detail layout** → ✅ retain the current Agent pane and add the feature’s controls inside the selected agent’s detail.

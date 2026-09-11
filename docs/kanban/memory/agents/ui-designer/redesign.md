@@ -72,6 +72,10 @@
   you are stuck on, so an overlay ends at the composer's top edge.
 - **One way off, in the pane's own head; one way back, in the top row.** Where a sheet's
   close ✕ already sits in that corner, a second ✕ is unreadable — use a labelled toggle.
+- **The Agents page's confirmation buries the top of the page it opens on**: 320px hanging
+  off the switch in the header's right corner covers the gloss, the trigger line, the rule
+  under them and the strip below it. Anything that must be read BEFORE the flip cannot sit
+  there, so an agent gets the peach strip or the confirmation, never both.
 - **A hover bubble must not land on a band's rule**: a tip drawn above the FIRST card of a
   module band covers that band's caption and hairline and reads as a broken render — hang it
   off a card that has another card above it.
@@ -106,6 +110,10 @@
   to a few under.
 - **The notification rows' event words are English inside the Chinese window**, and are
   never translated. Only the chrome around them is Chinese.
+- **A delivery's pill and the line under it are written by the CLI**
+  (`cli/src/lib/agent/pause.ts`), not by `i18n/`, so they are drawn in English on the Chinese
+  card page — backticked names and all. Only the chrome round them — tabs, buttons, meta
+  captions — is Chinese, so a new delivery state is worded in that file's voice.
 - **Never set a delivery id in an uppercase heading**: the ids are lowercase 8 characters
   from an alphabet with no look-alikes.
 
@@ -156,6 +164,10 @@
   `<img src="/…">` draws nothing and an emoji lands as tofu. The harness logos are paths in
   `public/agents/*.svg`; the channel marks come out of `react-icons` through
   `react-dom/server`.
+- **A PNG only travels as a `data:` URI**: that is the one `<img>` the sandbox and the card
+  page's sandboxed iframe both draw, so the agent roster's real characters are reachable —
+  `sips -Z 52` each PNG first (26px rows at 2x, ~6KB of base64 each) and splice the map in
+  with a script rather than typing it. `base.png` stays at 96 for the lettered fallback.
 - **A scrolling row clips everything that hangs off it**: draw the row twice — the real one
   inside the scroller, and a hidden copy over it carrying the popover — rather than guessing
   an anchor's `left`.

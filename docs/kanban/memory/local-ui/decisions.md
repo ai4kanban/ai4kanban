@@ -170,6 +170,7 @@ re-ask a settled call.
 - Keys live in `docs/kanban/.env` and nowhere else, kept out of git by the board's own
   gitignore, and a saved key is never shown back. What `.env` names wins for a run; a
   variable it doesn't name is left alone.
+- **A triage provider's status is read, not monitored**: the UI shows what the last import returned — configured, reachable, when it last collected — and runs no watcher, so a provider that stopped collecting shows up on the next import.
 - **Deleting a runtime clears its key**: the key lines that row owns in `docs/kanban/.env` go
   with the row, and the confirmation says so before the delete.
 - ZCode signs in with a Coding Plan key alone. The *the login ZCode has* pick was dropped
@@ -197,6 +198,9 @@ re-ask a settled call.
 
 ## Mockups on a card page
 
+- A card's `<Mockup src>` keeps naming `.mockups/<card id>/…` whatever the folder is really
+  at: the drawings live under `~/.ai4kanban/` with the rest of this machine's state, and the
+  UI resolves the tag there, so cards written before the move still draw.
 - A `.txt` mockup is drawn as its own characters — unscaled, with no switch to "the code
   behind it", because the file is the drawing — and a narrow window scrolls it sideways
   rather than re-wrapping columns that would stop being the drawing.

@@ -30,6 +30,9 @@ before proposing so you don't re-suggest them.
   picture before the provider call and says so in the answer. The provider agrees: asked
   straight, GLM-5.3 answers "Blue" for a green square. Declaring the input would swap an
   honest gap on the agent page for a paste that is accepted and silently thrown away.
+- **OpenDesign as a third mockup style for `ui-design`** — our own `ui-design` agent comes
+  first; until it draws well, a style that spawns a second coding agent with its own sign-in
+  and its own tokens buys a shared look on top of a foundation we are still changing.
 
 ## Chat
 

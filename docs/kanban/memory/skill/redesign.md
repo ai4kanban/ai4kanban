@@ -50,6 +50,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Idea intake
 
+- ❌ **Give each external source a separate task-creation or board-editing path** → ✅ treat Obsidian, GitHub Issues, dist0 API and mock as peer inputs to the shared Triage lifecycle.
+
 - ❌ **Send an article, analysis or complaint straight to add-task** → ✅ treat it as
   evidence: extract the user problems, route them to modules, and validate them against
   shipped, planned, rejected and remembered work before creating cards.

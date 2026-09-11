@@ -25,3 +25,6 @@ covers it, or a plain-words note.
 - Submitting a batch of draft comments can carry one optional note about the whole draft. The
   field sits above the comment list, empty by default; what you type goes to that one polish
   alongside the comments, and a comment on a passage wins where the two disagree.
+- Triage sorting is an optional agent, off by default. Switched on in Configuration → Agents
+  (it asks first), the board judges a batch of new items itself and keeps going until nothing
+  is waiting; switched off, `akb triage run` still sorts by hand.

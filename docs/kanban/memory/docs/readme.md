@@ -42,3 +42,8 @@ covers it, or a plain-words note.
   `/docs/market-signals` is not redirected — the old address 404s. It carries the new command,
   the two renamed settings, the **Fetch triage items** recurring card, and a note that the old
   command and settings are gone and are yours to update: `web/content/docs/triage.mdx`.
+- Triage's page has **Let it sort by itself**: the switch, the batch that triggers a sort, the
+  three things that end the chain, and the cost of one refine per card it writes. Agents lists
+  Triage among the four roles you can switch off and gives it a section of its own. Both say
+  running it beside the Gater and the Decider is not recommended and why:
+  `web/content/docs/triage.mdx`, `web/content/docs/agents.mdx`.

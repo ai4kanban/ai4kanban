@@ -22,3 +22,5 @@ don't re-ask a settled call.
   board starting a `ready` card with no click at all, which waits on limits for concurrent
   runs, card count and spend. Letting it reject a card is a separate feature: nothing today
   ever decides a card should be rejected.
+- A delivery that cannot land does not become a question: the board resolves the conflict
+  and lands it itself, and only asks when the work is genuinely at risk.

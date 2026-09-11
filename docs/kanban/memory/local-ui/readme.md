@@ -387,3 +387,11 @@ naming no other doc is covered there.
   reason and a way back. A creator that stopped short leaves the card marked **unfinished** with
   **Resume creating** on the card itself, since there is no page to offer it on. Both marks go
   the moment the creator finishes and the card draws as any other.
+- **Typing with an IME in a marketing draft is uninterrupted**: the autosave waits out a
+  half-typed candidate instead of writing through it, so the candidate survives and the caret
+  stays where you are typing. A rewrite that lands under an open draft also keeps the caret.
+- **Triage is an agent you can switch on**: its row is in **Configuration → Agents** under
+  **Optional**, and only on a board where Triage is open at all. Its page says it cards items
+  itself and what that costs, and the switch asks once on the way on — which is now a property
+  the board declares per agent rather than a name the pane keeps, so the Decider and Triage ask
+  through the same control.

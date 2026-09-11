@@ -441,3 +441,9 @@ covers it, or a plain-words note.
   durable five-minute read now runs under a joined socket too, so a hint lost on the wire costs
   five minutes rather than waiting for a reconnect, and it raises the alert once. Signing out or
   quitting drops whatever was still waiting.
+- Triage can sort itself. **Configuration → Agents → Triage** carries a switch, off by default
+  and asking once before it goes on: with it on, every batch of new items — a pull, **Add** on
+  the page, `akb triage add` — starts one sort, and that sort's close starts the next until
+  nothing is waiting. A sort that judged nothing, one that failed, one that was stopped, and the
+  switch going off each end the chain; switching it on sweeps nothing already waiting.
+  `akb triage run` works either way: `web/content/docs/triage.mdx`.
