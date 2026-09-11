@@ -141,6 +141,17 @@ const PROPOSER: AgentRole = {
   switch: 'proposer',
 }
 
+// The role that sorts what is waiting in triage (#561). Product boards only, and it carries
+// no switch: `akb triage run` is asked for by hand, and the board starting one by itself is
+// #562's. It owns no memory — what it judged is on the card it wrote or in the `dismissed/`
+// record that says why it did not.
+const TRIAGER: AgentRole = {
+  name: 'triage',
+  gloss: 'sorts what is waiting in triage into cards and ignores',
+  flows: ['triage'],
+  memory: [],
+}
+
 const PRODUCT_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
@@ -162,6 +173,7 @@ const PRODUCT_ROLES: AgentRole[] = [
   GATER,
   DECIDER,
   PROPOSER,
+  TRIAGER,
 ]
 
 const MARKETING_ROLES: AgentRole[] = [

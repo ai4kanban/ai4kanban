@@ -171,7 +171,9 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
         'There is no separate id-reservation mode. --blocked-by and --related take ids of existing open ' +
         'cards; for a group, create the root first, then create each subtask related to its id (see ' +
         '"Group task" in `akb guide board`). The script owns the frontmatter and writes the body ' +
-        'scaffold — recurring cards get Run state + Process; fill only the body by hand.',
+        'scaffold — recurring cards get Run state + Process; fill only the body by hand. ' +
+        '--body-file writes the body with the card instead, so a card is never left scaffolded ' +
+        'with a run already scheduled on it.',
     )
     .requiredOption('--title <title>', 'what the card is called')
     .option('--recurring', 'a job that repeats: it goes in recurring/ and gets a Run state + Process body')
@@ -190,6 +192,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--mode <mode>', 'how many choices the --question before it takes: single | multi', inOrder('mode'))
     .option('--slug <slug>', 'the filename to write it under (default: from the title)')
     .option('--no-body', 'write the frontmatter and no body template')
+    .option('--body-file <path>', "the card's whole body, written to a file first, instead of the template")
     .option('--cadence <cadence>', `how often a recurring card repeats: ${CADENCE_FORMS}. --recurring only`)
     .option('--proposed', 'the board went looking for this work rather than a person asking for it')
     .option(

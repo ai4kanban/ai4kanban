@@ -26,7 +26,7 @@ import type { AgentAction, CommandAction } from './types'
 
 /** The nouns the commands are grouped under. A flow acts on one of these, or on nothing
  *  yet — see `Flow.group`. */
-export type FlowGroup = 'card' | 'delivery' | 'release'
+export type FlowGroup = 'card' | 'delivery' | 'release' | 'triage'
 
 /** One option a flow takes, as its command declares it. `flags` is Commander's own
  *  notation, so `--effort <level>` takes a value and `--and-implement` does not. */
@@ -212,6 +212,21 @@ export const FLOWS: Flow[] = [
     more: [
       'The project, the modules and the agents, in one run. Configuration → Agents → Memory pruner is ' +
         'where it is started and where a recurring pass is switched on.',
+    ],
+  },
+  // The triager's one flow (#561). Typed under `triage`, beside the words that put items
+  // there: it acts on what is waiting rather than on a card, so it names nothing.
+  {
+    command: 'triage',
+    group: 'triage',
+    verb: 'run',
+    action: 'triage',
+    argument: '',
+    gloss: 'judge what is waiting in triage: card the worthwhile, ignore the rest',
+    more: [
+      'Product boards with triage open only. One item at a time: a survivor becomes a card with a ' +
+        'refine scheduled on it, and everything else moves to `dismissed/` with a reason. Only one ' +
+        'of these runs at a time.',
     ],
   },
   { command: 'archive', group: 'card', action: 'archive', argument: '<id>', gloss: 'finish the card' },

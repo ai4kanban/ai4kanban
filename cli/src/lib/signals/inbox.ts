@@ -303,14 +303,27 @@ export function dismissInboxItem(sourceId: string, by: 'user' | 'agent', reason 
   return at ? { ok: true, relPath: at } : { ok: false, error: `nothing waiting in triage is ${sourceId}` }
 }
 
+/** Where the record of a card landed: the item moved into `archived/`, or — when the user
+ *  ignored it while the card was being written — the `dismissed/` record it stayed in. */
+export type ArchiveOutcome = { ok: true; relPath: string; where: 'archived' | 'dismissed' } | { ok: false; error: string }
+
 /** Record that a card was made of one item: its file moves into `archived/`, carrying the
- *  card it became. The flow that creates the card is #561's; this is only the record. */
-export function archiveInboxItem(sourceId: string, cardId: number): MoveOutcome {
+ *  card it became.
+ *
+ *  One item is judged once, by whoever lands first (#561). An item ignored on the page
+ *  between the card being written and this call is NOT pulled back out of `dismissed/`: the
+ *  card exists either way, so the ignore keeps its record and takes the card id onto it. */
+export function archiveInboxItem(sourceId: string, cardId: number): ArchiveOutcome {
   const found = readInbox().find((signal) => signal.sourceId === sourceId)
-  if (!found) return { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+  if (!found) {
+    const ignored = readAllDismissed().find((signal) => signal.sourceId === sourceId)
+    if (!ignored) return { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+    stamp(path.join(SIGNALS_DISMISSED, path.basename(ignored.relPath)), { card_id: String(cardId) })
+    return { ok: true, relPath: ignored.relPath, where: 'dismissed' }
+  }
   const at = moveSignal(path.join(TRIAGE, path.basename(found.relPath)), SIGNALS_ARCHIVED, {
     card_id: String(cardId),
     archived_at: formatStamp(new Date()),
   })
-  return at ? { ok: true, relPath: at } : { ok: false, error: `nothing waiting in triage is ${sourceId}` }
+  return at ? { ok: true, relPath: at, where: 'archived' } : { ok: false, error: `nothing waiting in triage is ${sourceId}` }
 }

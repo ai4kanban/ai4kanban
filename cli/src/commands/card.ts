@@ -119,6 +119,8 @@ export interface CreateOptions {
   slug?: string
   /** `--no-body`: Commander stores the negation, so this is false only when it was typed. */
   body?: boolean
+  /** `--body-file`: the whole body, written to a file first (#561). */
+  bodyFile?: string
   cadence?: string
   proposed?: boolean
   schedule?: ScheduledAction
@@ -147,6 +149,25 @@ function createSchedule(action: ScheduledAction, recurring: boolean, questions: 
     die('a refine would not move a card whose every question is a [user] call — leave --schedule off')
   }
   return action
+}
+
+// The whole body, written to a file first (#561) — one call that leaves a finished card,
+// rather than a scaffold to fill in afterwards. It is read BEFORE the id is allocated, so a
+// path that is not there leaves no half-made card behind.
+//
+// `--no-body` is the opposite instruction, so the two are refused together rather than one
+// quietly winning.
+function bodyFromFile(opts: CreateOptions): string | null {
+  if (opts.bodyFile === undefined) return null
+  if (opts.body === false) die('pass --body-file or --no-body, not both')
+  let text: string
+  try {
+    text = fs.readFileSync(opts.bodyFile, 'utf8')
+  } catch {
+    die(`can't read ${opts.bodyFile} — write the body to a file, then pass its path`, { kind: 'needs-input' })
+  }
+  if (!text!.trim()) die(`${opts.bodyFile} is empty — a card's body has to say something`)
+  return `${text!.trim()}\n`
 }
 
 // Where a card came from. `--proposed` is what the flows that go looking for work pass —
@@ -186,6 +207,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   // derived from it — so the title lives in frontmatter only and a retitle moves nothing. A
   // recurring job is the same job on either board, so it keeps its slug.
   if (opts.slug !== undefined) refuseTopicSlug(recurring)
+  const written = bodyFromFile(opts)
   const slug = slugify(opts.slug !== undefined ? opts.slug : title)
   const fileRel = recurring
     ? path.join(RECURRING, `${start}-${slug}.md`)
@@ -202,8 +224,8 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   // A marketing topic card carries no body: the piece is the deliverable, and it lives in
   // `content/<id>/` (#435). A recurring job is the same job on either board, so it
   // still gets its `## Process`.
-  const scaffolded = opts.body !== false && (recurring || solution() !== 'marketing')
-  const body = !scaffolded ? '' : recurring ? recurringBody() : defaultBody()
+  const scaffolded = !written && opts.body !== false && (recurring || solution() !== 'marketing')
+  const body = written ?? (!scaffolded ? '' : recurring ? recurringBody() : defaultBody())
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   if (countsForRecord(file)) recordFact('card-created', start, originOf(opts))
   // A recurring card is a job, not one of the open tasks — it never archives and the index
@@ -221,10 +243,10 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   say(start)
   say(
     `  wrote ${rel(file)} — frontmatter is set` +
-      (scaffolded ? '; fill the body with your editor, leave the frontmatter to the script' : ''),
+      (written ? '; the body came from --body-file' : scaffolded ? '; fill the body with your editor, leave the frontmatter to the script' : ''),
   )
   if (scheduled) say(`  ${scheduleReceipt(start, scheduled)}`)
-  if (scaffolded && !recurring && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
+  if ((scaffolded || written) && !recurring && !TODO_ITEM.test(body)) warn(`#${start} has no todos — every task needs a \`- [ ]\` list under ## Todo`)
   if (indexed) say(`  indexed under "## ${TASKS_HEADING}"`)
   reconcileBoard()
   return { id: start, ids: [start], title, file: rel(file), indexed, schedule: scheduled }

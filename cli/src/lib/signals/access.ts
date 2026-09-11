@@ -4,9 +4,9 @@
 // what turns it into a paid feature, and Marketing boards are not in it at all — a topic
 // board plans content, not engineering work.
 //
-// One answer, asked in both directions: the local UI hides the rail row with it, and
-// `akb triage fetch` refuses with it. Nothing else decides — Cloud is asked every time,
-// through the admission check every preview shares (../cloud/admission.ts).
+// One answer, asked wherever triage is used: the local UI hides the rail row with it, and
+// `akb triage fetch` and `akb triage run` refuse with it. Nothing else decides — Cloud is
+// asked every time, through the admission check every preview shares (../cloud/admission.ts).
 
 import { cloudAdmission } from '../cloud/admission'
 import { SOLUTION_WORK, solution } from '../solution'

@@ -11,6 +11,7 @@
 //   delivery <verb>     the build in flight on one
 //   run <verb>          the agent processes
 //   release <verb>      a version being planned
+//   triage <verb>       what is waiting to be sorted
 //
 // A command that acts on nothing yet is typed bare — `create`, `setup`.
 //
@@ -45,7 +46,7 @@ import {
   cmdStop,
   cmdWatch,
 } from '../../commands/run'
-import { cmdTriageAdd, cmdTriageCheck, cmdTriageFetch } from '../../commands/triage'
+import { cmdTriageAdd, cmdTriageArchive, cmdTriageCheck, cmdTriageDismiss, cmdTriageFetch } from '../../commands/triage'
 import { cmdSpec } from '../../commands/spec'
 import { cmdWrite } from '../../commands/write'
 import { cmdTelemetry } from '../../commands/telemetry'
@@ -102,8 +103,8 @@ const positional = (vals: unknown[]): unknown[] => vals.slice(0, -2)
 export function declareRuns(program: Command, cli: AgentCliOptions): void {
   // ---- the nouns, and the flows under them ----------------------------------
   //
-  // Declared before the flows so the four of them head the help in this order, and so a
-  // flow only has to say which noun it belongs to.
+  // Declared before the flows so the nouns head the help in this order, and so a flow only
+  // has to say which noun it belongs to.
 
   const noun = (name: string, summary: string, description?: string): Command => {
     const cmd = withShared(program.command(name)).summary(summary)
@@ -135,6 +136,16 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
         `delivery in flight — \`${cli.program} delivery cancel\` is what ends that.`,
     ),
     release: noun('release', 'a version being planned'),
+    // What is waiting to be sorted (#453, #499), and the flow that sorts it (#561).
+    triage: noun(
+      'triage',
+      'what is waiting to be sorted',
+      'What is in triage is not a task: it never enters the card list, is never scheduled, ' +
+        'and counts towards nothing. Triage is `docs/kanban/triage/`, one file each, with ' +
+        '`archived/` for what became a card and `dismissed/` for what was ignored — kept for ' +
+        'good, and what holds a later pull off. The board UI is where items are added, read ' +
+        'and ignored.',
+    ),
   }
 
   for (const flow of FLOWS) declareFlow(flow.group ? groups[flow.group] : program, flow, cli)
@@ -264,16 +275,10 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   declareAgent(program, cli)
 
   // ---- what is waiting to be sorted (#453, #499) ----------------------------
+  //
+  // `run` is a flow and is declared with the rest of them, above.
 
-  const triage = noun(
-    'triage',
-    'what is waiting to be sorted',
-    'What is in triage is not a task: it never enters the card list, is never scheduled, ' +
-      'and counts towards nothing. Triage is `docs/kanban/triage/`, one file each, with ' +
-      '`archived/` for what became a card and `dismissed/` for what was ignored — kept for ' +
-      'good, and what holds a later pull off. The board UI is where items are added, read ' +
-      'and ignored.',
-  )
+  const triage = groups.triage
 
   withShared(triage.command('fetch'))
     .summary('pull what the board is pointed at into triage')
@@ -317,6 +322,33 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .argument('<source-id>', 'the id to look for')
     .action(async function (this: Command, sourceId: string) {
       await onBoard(this, cli, () => cmdTriageCheck(sourceId))
+    })
+
+  withShared(triage.command('archive'))
+    .summary('record that a card was made of one item')
+    .description(
+      'The second half of one judgement: write the card first, then name it here. The item moves to ' +
+        '`archived/` carrying `card_id` and `archived_at`. One already ignored keeps its `dismissed/` ' +
+        'record and takes the card id onto it — the card exists either way. One that has left the list ' +
+        'some other way is refused: somebody else judged it first.',
+    )
+    .argument('<source-id>', 'the item the card was made of')
+    .requiredOption('--card <id>', 'the card it became', cardId)
+    .action(async function (this: Command, sourceId: string) {
+      await onBoard(this, cli, () => cmdTriageArchive(sourceId, Number(this.opts().card)))
+    })
+
+  withShared(triage.command('dismiss'))
+    .summary('ignore one item, with the reason')
+    .description(
+      "The agent's own Ignore — the record carries `dismissed_by: agent` and the reason, where the " +
+        "page's Ignore is the user's and records none. The file moves to `dismissed/` and is kept for " +
+        'good, so no later pull brings it back.',
+    )
+    .argument('<source-id>', 'the item to ignore')
+    .requiredOption('--reason <why>', 'why it is not worth a card')
+    .action(async function (this: Command, sourceId: string) {
+      await onBoard(this, cli, () => cmdTriageDismiss(sourceId, String(this.opts().reason)))
     })
 
   // ---- Cloud ----------------------------------------------------------------

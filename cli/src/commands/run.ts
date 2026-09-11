@@ -31,6 +31,7 @@ import type {
 import { say } from '../lib/io'
 import { die, BOARD_FLAG } from '../lib/paths'
 import { holdCloudClaims } from '../lib/cloud/requests'
+import { reconcileTriage, signalsAccess } from '../lib/signals'
 import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
 import { creationRefusal } from '../lib/view/rules'
@@ -60,6 +61,13 @@ export async function cmdStartRun(
   // flow that can be refused is named the same as the action it starts.
   const gone = flowRefusal(action, program)
   if (gone) die(gone, { kind: 'run-refused', action })
+  // Sorting triage is refused by ADMISSION rather than by solution (#561), so it asks the
+  // one answer a fetch asks — a marketing board and a signed-out one are turned away in the
+  // same words, printing or starting.
+  if (action === 'triage') {
+    const access = await signalsAccess()
+    if (!access.open) die(access.why, { kind: 'triage-closed' })
+  }
   const { req, follow, print } = readRequest(action, args, opts)
   // A card its creator has not finished writing takes no flow (#564) — printed here, or
   // started below. `cardCreation` lets the creating run itself through, which is what keeps
@@ -79,6 +87,12 @@ export async function cmdStartRun(
   if (inside || print) {
     if (!print) say(`inside run ${short(inside!)} — a run never starts another, so here is the flow instead.`)
     return printFlow(runnable, program)
+  }
+  // A sort reconciles before it starts (#561): an item a card already names is archived onto
+  // that card, so nothing is judged a second time. It moves files, so it belongs to the run
+  // being started and not to a `--print` that starts nothing.
+  if (action === 'triage') {
+    for (const item of reconcileTriage()) say(`${item.sourceId} is already on #${item.cardId} — archived: ${item.relPath}`)
   }
   sayBeforeStart(req, program)
   sayIfHeld(req, program)
@@ -223,8 +237,9 @@ function readRequest(
     if (refusal) die(refusal, { kind: 'no-changelog', release })
     return { req: { action, release }, follow, print }
   }
-  // The last of them: setting the board up names nothing at all. The checklist says what is left.
-  if (action === 'setup') return { req: { action }, follow, print }
+  // The last of them: setting the board up names nothing at all. The checklist says what is
+  // left — and sorting triage names nothing either, because what is waiting is the whole job.
+  if (action === 'setup' || action === 'triage') return { req: { action }, follow, print }
 
   // A delivery verb is aimed at the delivery its command already looked up (#428) — never
   // at a card id, because a build with no card has none. It carries both: the card where

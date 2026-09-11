@@ -184,6 +184,12 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every prune — "never drop a line about a paying customer".',
         when: "you press Run now, and on the cadence you opt into here. Nothing else starts it.",
       },
+      triage: {
+        name: "Triage",
+        gloss: "Sorts what is waiting in Triage into cards and ignores.",
+        rule: 'Added to the end of every sort — "never card anything that only one person asked for".',
+        when: "you run `akb triage run`. Each item becomes a card with a refine scheduled on it, or is ignored with the reason.",
+      },
     },
     decider: {
       costTitle: "While this is on, nothing stops for you",

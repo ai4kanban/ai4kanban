@@ -56,7 +56,11 @@ describe('the roles', () => {
       for (const flow of FLOWS) {
         const owners = roles().filter((role) => role.flows.includes(flow.command))
         // A flow this solution refuses is a flow nothing runs, so no role claims it (#435).
-        const wanted = flowRefusal(flow.command) ? 0 : 1
+        // `triage` is the one refused by ADMISSION instead (#561) — `signalsAccess()` turns a
+        // marketing board away — so the GONE table says nothing about it and the roster is
+        // where it is absent.
+        const closed = flowRefusal(flow.command) || (flow.command === 'triage' && name === 'marketing')
+        const wanted = closed ? 0 : 1
         assert.equal(owners.length, wanted, `${name}: ${flow.command} is run by ${owners.length} agents`)
       }
     }
@@ -79,7 +83,7 @@ describe('the roles', () => {
     solution('product')
     assert.deepEqual(
       roles().map((r) => r.name),
-      ['discussion-helper', 'planner', 'builder', 'reviewer', 'memory-pruner', 'gater', 'decider', 'proposer'],
+      ['discussion-helper', 'planner', 'builder', 'reviewer', 'memory-pruner', 'gater', 'decider', 'proposer', 'triage'],
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
     assert.equal(roleForFlow('prune-memory')!.name, 'memory-pruner')
@@ -107,6 +111,8 @@ describe('the roles', () => {
     assert.equal(roleForFlow('gate'), undefined)
     assert.equal(roleForFlow('decide'), undefined)
     assert.equal(roleForFlow('reflect'), undefined)
+    // And sorting triage is the product board's alone (#561).
+    assert.equal(roleForFlow('triage'), undefined)
   })
 
   it('says what each role remembers, in files that are the board it is on', () => {
@@ -137,6 +143,7 @@ describe('the roles', () => {
       'gater',
       'decider',
       'proposer',
+      'triage',
       'tech-stack-advisor',
       'ui-designer',
     ])
@@ -146,7 +153,7 @@ describe('the roles', () => {
   it('rosters the roles first, then the specialists the command ships', () => {
     solution('product')
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 8), [
+    assert.deepEqual(names.slice(0, 9), [
       'discussion-helper',
       'planner',
       'builder',
@@ -155,15 +162,16 @@ describe('the roles', () => {
       'gater',
       'decider',
       'proposer',
+      'triage',
     ])
-    assert.deepEqual(names.slice(8), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(names.slice(9), ['tech-stack-advisor', 'ui-designer'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      ['role', 'role', 'role', 'role', 'role', 'role', 'role', 'role', 'spec', 'spec'],
+      ['role', 'role', 'role', 'role', 'role', 'role', 'role', 'role', 'role', 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[8]!.flows, [])
+    assert.deepEqual(agentRoster()[9]!.flows, [])
     // Four roles can be switched off, and each reads a key of its own (#447, #493, #509, #534).
     assert.deepEqual(
       agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => [a.name, a.setting]),

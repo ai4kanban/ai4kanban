@@ -13,7 +13,8 @@ export type AgentRoleName =
   | "gater"
   | "decider"
   | "proposer"
-  | "memory-pruner";
+  | "memory-pruner"
+  | "triage";
 
 export type ConfigurationCopy = {
   open: string;

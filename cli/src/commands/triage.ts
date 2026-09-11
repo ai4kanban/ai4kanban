@@ -13,12 +13,26 @@
 // where a source id already is. A pull is held off by all three states; a hand-written add
 // only by the two that are not a dismissal.
 //
-// Nothing in triage is a task: nothing here creates a card, ranks anything, or touches
-// the board's counts. Turning one into a card is #454's.
+// `archive` and `dismiss` are how a judgement lands (#561): `akb triage run` calls one of
+// them per item, so the wording of a refusal and the fields a move writes live in one place
+// rather than in the flow's own head. Neither creates a card — `raw create` does that first,
+// and `archive` only records which card the item became.
+//
+// Nothing else in triage is a task: nothing here ranks anything or touches the board's counts.
 
 import fs from 'node:fs'
 
-import { addToInbox, checkSource, fetchSignals, migrateTriage, sayGap, signalConfigGaps, signalsAccess } from '../lib/signals'
+import {
+  addToInbox,
+  archiveInboxItem,
+  checkSource,
+  dismissInboxItem,
+  fetchSignals,
+  migrateTriage,
+  sayGap,
+  signalConfigGaps,
+  signalsAccess,
+} from '../lib/signals'
 import { signalEndpoint } from '../lib/signals/config'
 import { say } from '../lib/io'
 import { withBoardLock } from '../lib/lock'
@@ -111,4 +125,39 @@ export function cmdTriageCheck(sourceId: string): MoveResult {
   const hit = checkSource(said)
   say(hit.status === 'unseen' ? `${said} — unseen` : `${said} — ${hit.status}: ${hit.relPath}`)
   return { source_id: said, status: hit.status, file: hit.relPath || null }
+}
+
+/** `akb triage archive` — record that a card was made of one item.
+ *
+ *  The card is written first, so this is the second half of a judgement and never the whole
+ *  of one. An item somebody ignored in between keeps its `dismissed/` record and takes the
+ *  card id onto it: the card exists either way, and one item is judged once. */
+export function cmdTriageArchive(sourceId: string, cardId: number): MoveResult {
+  const said = sourceId.trim()
+  if (!said) die('say which one: `archive <source-id> --card <id>`', { kind: 'needs-input' })
+  migrateTriage()
+  const done = archiveInboxItem(said, cardId)
+  if (!done.ok) die(done.error, { kind: 'triage-item-gone' })
+  say(
+    done.where === 'dismissed'
+      ? `#${cardId} recorded on the ignored ${said} — ${done.relPath}; it stays ignored`
+      : `${said} — a card was made of it: #${cardId}, ${done.relPath}`,
+  )
+  return { source_id: said, card_id: cardId, file: done.relPath, where: done.where }
+}
+
+/** `akb triage dismiss` — ignore one item, in the agent's name and with its reason.
+ *
+ *  The page's own Ignore is the user's and records no reason; this one is a judgement, so
+ *  the reason is what the record is for. */
+export function cmdTriageDismiss(sourceId: string, reason: string): MoveResult {
+  const said = sourceId.trim()
+  if (!said) die('say which one: `dismiss <source-id> --reason "<why>"`', { kind: 'needs-input' })
+  const why = reason.trim()
+  if (!why) die('say why it is being ignored: --reason "<why>"', { kind: 'needs-input' })
+  migrateTriage()
+  const done = dismissInboxItem(said, 'agent', why)
+  if (!done.ok) die(done.error, { kind: 'triage-item-gone' })
+  say(`${said} — ignored: ${done.relPath}`)
+  return { source_id: said, reason: why, file: done.relPath }
 }

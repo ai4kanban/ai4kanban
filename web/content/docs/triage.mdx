@@ -20,8 +20,8 @@ including folded groups and the part of a group still behind **More**. The sourc
 narrows to one source and combines with the search.
 
 Free to invited Cloud accounts on an Engineering board while it is a preview. On a Marketing
-board, and on an account that is signed out or not yet invited, there is no rail row and
-`akb triage fetch` refuses.
+board, and on an account that is signed out or not yet invited, there is no rail row and both
+`akb triage fetch` and `akb triage run` refuse.
 
 ## A triage item is not a card
 
@@ -35,6 +35,43 @@ That means triage needs looking at, the way a mailbox does. Ignoring an item tak
 brings it back. There is no undo, and that is the point — a list you can never empty is one
 you stop opening. The **Ignored** tab is a record of the last 30 days of that, read only —
 open one to read it in full, and create a card by hand if it turns out to matter after all.
+
+## Sort it
+
+```bash
+akb triage run
+```
+
+One run judges every item waiting, one at a time. What survives becomes a card; everything
+else moves to `dismissed/` with the reason. Nothing starts it but this command — the board
+does not sort on its own, and there is no switch for it yet.
+
+Each item is judged twice over: first for duplicates — already supported, already covered by
+an open card, or turned down before — then for whether it would actually improve the product.
+An item that lands on work a card already owns is ignored rather than merged into that card.
+
+A survivor is created with a refine already scheduled on it, and the board starts those
+itself, one per tick. So a run leaves you cards that go on sharpening themselves — it does
+not start a build, answer a question, or touch a card that was already there.
+
+The run reports what it did: how many it judged, each new card by id, and how many it
+ignored. `akb triage run -f` follows it as it goes.
+
+Only one sort runs at a time. Ignoring an item on the page while a sort is going is safe:
+whichever lands first wins, and the other side skips that item.
+
+### What a card it wrote says
+
+A card made from an item ends with `## Source`: the item's source id and the path it moved
+to under `archived/`, its source type and the values its `meta:` carried, and the original
+link. That is how you get from a card back to the sentence somebody wrote.
+
+`archived/` means **a card was made of it** — not that the work is done. The card's own
+status says that.
+
+If a run is interrupted between writing a card and recording the item, nothing is lost and
+nothing is doubled: the next run reads the source ids off open cards' `## Source` first and
+archives anything already accounted for before it judges a thing.
 
 ## Where triage keeps things
 

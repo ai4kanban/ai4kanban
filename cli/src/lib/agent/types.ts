@@ -102,6 +102,12 @@ export type AgentAction =
    *  writes files under `content/<id>/` and nothing else. The writer asks for one;
    *  the board starts it once the writing run has ended. Marketing boards only. */
   | 'write'
+  /** Sort what is waiting in triage (#561) — the triager's one flow. It names no card: the
+   *  items in `triage/` are the whole of what it works on. Each one is judged for duplicates
+   *  and for worth; a survivor becomes a card with a refine scheduled on it, and everything
+   *  else is ignored with a reason. Product boards only, and only while triage is open to
+   *  this board — `signalsAccess()` decides, exactly as it does for a fetch. */
+  | 'triage'
 
 /** The actions a specialist run takes: one section of a card (`spec`), or one file in a
  *  topic's draft folder (`write`). Neither holds the card it names — each works beside the

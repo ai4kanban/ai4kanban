@@ -77,7 +77,7 @@ const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-re
 // to write: two plan-releases write the same missing cards, and two setups work down the
 // same checklist side by side. A create is not one of them — it writes the one card it was
 // handed, and its id and index entry are the board lease's problem, not this lock's.
-const SINGLETON_ACTIONS = new Set<AgentAction>(['plan-release', 'setup', 'prune-memory'])
+const SINGLETON_ACTIONS = new Set<AgentAction>(['plan-release', 'setup', 'prune-memory', 'triage'])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
 // implemented".
@@ -97,6 +97,7 @@ const VERB: Record<AgentAction, string> = {
   'plan-release': 'planned',
   setup: 'set up',
   'prune-memory': 'pruned',
+  triage: 'sorted',
   reflect: 'reflected on',
   spec: 'specified',
   write: 'written for',
@@ -114,6 +115,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   'plan-release': 'a release is already being planned',
   setup: 'this board is already being set up',
   'prune-memory': 'the memory is already being pruned',
+  triage: 'triage is already being sorted',
 }
 
 // A run's action maps to the saved stage it puts the card in while it goes. Only a

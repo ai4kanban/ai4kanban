@@ -39,6 +39,8 @@ import type { Meta, MoveResult } from '../types'
 import { carriesField, namedById, solution } from '../solution'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
+import { readInbox } from '../signals/inbox'
+import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
 import { deliveryFor } from './deliveries'
@@ -500,6 +502,10 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // it is worth anyone's time. NOT `board`: what it writes is an inbox item, and the card
   // format and the memory set are a page about work it may not do.
   reflect: ['reflect', 'evaluate-task'],
+  // Sorting triage writes cards, so it gets what a create gets — the board's own rules, the
+  // bar an idea is held to, and how a card is written — plus its own flow, which is the
+  // bookkeeping that makes each judgement land exactly once.
+  triage: ['board', 'triage', 'evaluate-task', 'add-task', 'writing'],
   // Specialist instructions apply to both printed flows and separate runs.
   spec: ['spec-agent'],
   // A repurpose gets its own flow and NOT `board`: it writes one file under `content/` and
@@ -890,6 +896,39 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${self} triage add --title ".." --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
         'propose nothing at all when nothing follows: that is a complete result, and most completions are it',
         'change nothing else — no card is created, edited or archived, and no memory file is written',
+      )
+      break
+    }
+    // Sorting what is waiting in triage (#561). The facts are the items themselves, because
+    // the items ARE the job — a run handed only the folder would spend its first calls
+    // listing what could have been printed here — plus the three places a duplicate hides.
+    case 'triage': {
+      migrateTriage()
+      const waiting = readInbox()
+      facts.push(
+        ...field(
+          'waiting',
+          waiting.length === 0
+            ? `(nothing) — ${rel(TRIAGE)}/ holds no item to judge`
+            : [
+                `${waiting.length} in ${rel(TRIAGE)}/, judge each one:`,
+                ...waiting.map((item) => `  ${item.sourceId} — ${item.title}${item.sourceType ? ` (${item.sourceType})` : ''} — ${item.relPath}`),
+              ],
+        ),
+      )
+      facts.push(...field('goal', rel(GOAL)))
+      facts.push(...field('memory', boardMemoryFiles()))
+      facts.push(...field('modules', rel(MODULES_MD)))
+      if (waiting.length === 0) {
+        close.push('write nothing — there is nothing waiting, and that is a complete result')
+        break
+      }
+      close.push(
+        `${raw} create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --proposed --schedule refine --body-file <path> — one call per survivor, body written first`,
+        `${self} triage archive <source-id> --card <id> — straight after the card it became`,
+        `${self} triage dismiss <source-id> --reason ".." — everything else, in one clause each`,
+        'change nothing else — no existing card is edited, no question answered, and no build started',
+        'report the count judged, each new card by id, and the count ignored',
       )
       break
     }
