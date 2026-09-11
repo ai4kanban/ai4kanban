@@ -5,6 +5,8 @@ covers it, or a plain-words note.
 
 ## The board and the flows
 
+- Module splits carry their existing memory with them; renames move the memory folder,
+  and removing a module returns its remaining notes to project memory: `akb guide module-map`.
 - The flows ship with the `akb` command, not with the project: `akb guide` lists them, a
   printed flow carries the ones its action needs in full, and a project holds only a short
   note pointing there, so an update upgrades every flow at once: `skill/SKILL.md`.
@@ -155,13 +157,10 @@ covers it, or a plain-words note.
 - One writer at a time on a board: a move waits its turn and says which process it is
   waiting on. A lock left by a killed run is taken over the moment that process is gone. No
   published doc covers this yet.
-- The board keeps `docs/kanban/record.csv` in git beside `metrics.csv` — one appended line
-  per card created, archived or rejected, per question cleared, per call that stood or was
-  overruled, and per release closed — written by board commands as they run.
-- The board scores its own planning from that record, one set per release: **Details
-  settled**, **Decisions that stood**, **Proposals built**, worked out on each read, with
-  `not enough yet` instead of a percentage where the evidence is thin, and none of the three
-  a target: "Insights" in `kanban-ui/README.md`.
+- The board no longer scores its own planning, and no longer keeps `docs/kanban/record.csv`:
+  the three per-release figures said nothing about whether shipped work met the need, so the
+  view, the whole calculation and every line written only to feed it are gone. `akb update`
+  deletes an older board's leftover copy. `metrics.csv` is untouched.
 - `akb triage add --title ".." --text ".."` writes one item straight into triage, with
   `--file <path>` for a longer body and `--source` for where it came from. It needs no
   endpoint and no Cloud account, and an item triage already holds is refused: "Put
@@ -447,3 +446,8 @@ covers it, or a plain-words note.
   nothing is waiting. A sort that judged nothing, one that failed, one that was stopped, and the
   switch going off each end the chain; switching it on sweeps nothing already waiting.
   `akb triage run` works either way: `web/content/docs/triage.mdx`.
+- `ui-designer` answers with one design instead of A/B/C alternatives. Every page or state the
+  card changes that is worth reviewing on its own is its own mockup, named for what it shows —
+  one file per screen in a rendered screen, one `###` block per screen in a plain-text drawing —
+  and no open question is left asking which layout to take: "Mockups on a card" in
+  `kanban-ui/README.md`.

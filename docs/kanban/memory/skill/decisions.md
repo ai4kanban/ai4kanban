@@ -113,6 +113,12 @@ re-ask a settled call.
   check — and only one that shares a file with the delivery, or a resolved conflict, takes a
   review, scoped to that intersection. A board that wants its own check on every rebase gets a
   hook to plug one into later.
+- **A landing conflict is retried forever, never handed back**: a `conflict` run that fails
+  is reopened after a backoff wait, without limit, until the rebase goes through — nobody
+  is asked, at the price of a conflict nothing can resolve holding runs and cost
+  indefinitely. The wait reuses the run-retry curve, capped at two minutes, so landing and
+  run retries share one set of numbers rather than each having their own. The separate cap
+  on rebases against a target branch that keeps moving still asks.
 
 ## Open questions
 
@@ -197,6 +203,9 @@ re-ask a settled call.
   Updating still refreshes a skill already there.
 - The board installs a git `pre-commit` hook wherever the skill is installed and without
   asking, writing it only when there is none and printing one line saying it did.
+- **A retired board file is deleted, not left behind**: when a release drops a board file for
+  good, `akb update`'s repair step removes it from the user's board and says so, the same way
+  it clears other leftovers from an older layout.
 
 ## Storage
 
@@ -209,7 +218,11 @@ re-ask a settled call.
 - Machine-local state the board cleans up itself — the run record and its logs, the chats and
   their attachments, the mockups, the comments and every lock — lives under `~/.ai4kanban/`,
   one directory per project, so two projects on a machine never read each other's. Only the
-  user's own configuration stays in `docs/kanban/`: the API keys and the per-machine model.
+  user's own configuration remains active in `docs/kanban/`: the API keys and the per-machine model.
+- **Switch storage without migrating history**: finish existing runs and deliveries before
+  switching all processes; new versions use only the machine directory. Legacy project
+  state stays unread and untouched, with its ignore and transfer protections retained
+  until the user cleans it up.
 - Those directories are keyed by the project's path. Moving or renaming a project starts its
   records over and the old directory is moved across by hand — nothing in the project records
   a stable identity to find them back by.
@@ -256,6 +269,10 @@ re-ask a settled call.
   upgrade rewrites the lines it finds — off the runtimes list rather than off the migration, so a
   second computer is repaired too. A rename then stays lossless on every computer, at the cost of
   the board rewriting the user's key file on each computer it is pulled to (#467).
+- **The stale sweep is its own `sweeper` agent, and it drops cards without asking**: a card
+  it judges already done or not worth the investment is rejected with no sign-off and no
+  `rejected.md` line, so the idea can be raised again; a card it keeps comes back refined,
+  with a note in the human half on what direction has to change first (#116).
 
 - **A signal the `inputbox` agent turns down is not deleted**: it moves out of the inbox into
   a junkbox with the reason, and is cleared 30 days later — long enough to catch a wrong
@@ -303,6 +320,9 @@ re-ask a settled call.
   `akb guide board` would cost every flow the context for a rule only screen cards need.
 - **One design system per app**: a mockup style that draws against a saved design system reads
   `docs/kanban/design/<app>.md`, picked from the card's module, and extracts one per app.
+- Revising a single screen by selecting it on the card page is not planned work: a mockup
+  is re-drawn by re-running the agent with the change said in words, until splitting a design
+  across screens has been used enough to show the chat handoff is the thing that hurts.
 
 ## Chat
 

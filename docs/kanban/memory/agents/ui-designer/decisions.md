@@ -39,3 +39,9 @@
   改写状态用"正在按 N 条意见修改"，提示用"修改期间暂不可编辑"。
 
 - **Triage**: source groups contain three columns of lightweight cards; Add opens a small anchored composer, and dropped files are staged until the user submits.
+
+## Deliveries on the card page
+
+- **一个没有上限的重试只说"第几次"**：落地冲突的重开不设上限，所以卡片上不再写"第 2/3 次"这种
+  分母；退避等待那一刻按运行重试的样子画 — 交付块里一条 peach 条，写下还剩多少秒、下一次是第几次、
+  卡在哪个文件上，并说明等待期间不占合入位。标题下的那行仍是安静的一行文字，因为没有要用户做的事。

@@ -5,6 +5,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## What the UI does
 
+- ❌ **An archived discussion remains open after its rail entry disappears** → ✅ when the currently viewed discussion is archived, manually or after Build now, return to Create task; archiving another discussion must not interrupt the current view.
 - ❌ **Triage alternates between heavy card walls and sparse full-width rows** → ✅ group lightweight cards by source, use the available width, and open one explicit-submit composer for typed or dropped input.
 - ❌ **A second tab of one page gets its own layout** (Dismissed drawn as a narrow single-column list beside the grouped Pending grid) → ✅ both tabs are the same page: same toolbar, same source groups, same cards. Only what the card's second line carries and which actions it offers may differ.
 
@@ -48,9 +49,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **A new expressive view replaces the plain list it was meant to enliven** → ✅ it is a
   second view beside the list, switched where the dialog is titled. The expressive one may
   be what opens; the plain one is never taken away.
-- ❌ **A character is invented from scratch for a thing the app already ships a mark for** (a
-  generic figure per run, beside `public/agents/*.svg`) → ✅ build the character on the mark
-  that already exists — no new art, and the agents tell themselves apart for free.
+- ❌ **Large logo figures crowd the Runs scene with logs and steps** → ✅ use small animated pixel sprites with recognizable harness identity; keep details in List and allow sprite art.
 - ❌ **A card that replaces a whole screen names the screen's parts in prose and leaves the
   layout to the build** → ✅ the screen is drawn before the card is settled — where each part
   sits, what fills the empty space, and how the screen is entered and left. Scope lines say
@@ -70,6 +69,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Runs and deliveries
 
+- ❌ **Notify between agents while the same card still has follow-up work** → ✅ wait until the card's entire chain of work ends and needs a person; handoffs and queued follow-ups must not interrupt the user.
 - ❌ **A run's log is a moment** (in memory, or gone once the run ends) → ✅ the log is a
   place: written to a gitignored file, reopenable after a restart, and browsable live and
   past from one runs panel.
@@ -199,3 +199,4 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 - ❌ **Treat standalone CLI paths as Desktop discovery coverage** → ✅ scan reported Desktop cache paths, including hashed folders, using the same known-path approach as macOS.
 - ❌ **An attachment spec targets an old Create task dialog** → ✅ inspect the current composer, modes and runtime selection before designing its file input.
+- ❌ **Optional task linking and feedback fill the ordinary create screen** → ✅ use a compact disclosure button, not a settings switch; reveal fields on request and clear linking and consent through an explicit cancel action.

@@ -41,8 +41,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 - ❌ **Accept that a fact the board never wrote down cannot be shown** → ✅ when a view needs a
   fact the card does not carry, stamp it on the card at the moment it becomes true — an
-  optional frontmatter field written only when set, the way `last_run` is. `record.csv` counts
-  events for the score; it is not where a card's own facts live.
+  optional frontmatter field written only when set, the way `last_run` is. A tally the board
+  keeps for its own bookkeeping is not where a card's own facts live.
 - ❌ **A path is named off a title the user has not decided yet, and a rename fixes it
   later** → ✅ name the file off the id alone. A rename has to pick the instant a title
   counts as written, and a title box that saves as it is typed makes that instant the first
@@ -60,6 +60,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   in `plans/` says who wrote it, and the shared `next-id` leaves no range to infer it from.
 
 ## The command
+
+- ❌ **A temporary machine home makes migration tests safe** → ✅ isolate the board path too; defer migration while runs are active and preserve records written through old paths.
 
 - ❌ **Assume the command can find the board from where its own file sits** → ✅ it locates
   `docs/kanban/` from the working directory. Anything moving per-project state out of the
@@ -120,6 +122,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Expose an automatic score record as an agent guide** → ✅ keep its schema and
   validation inside the CLI, and put only the facts an agent must supply in the flow that
   supplies them.
+- ❌ **Retire a score but keep the record it reads, because other code still touches that
+  file** → ✅ follow every writer and reader to its purpose first; when all of them exist
+  only to feed the feature being retired, the file goes with it.
 
 ## Deliveries
 

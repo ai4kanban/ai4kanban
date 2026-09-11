@@ -200,10 +200,13 @@ re-ask a settled call.
 
 - A card's `<Mockup src>` keeps naming `.mockups/<card id>/…` whatever the folder is really
   at: the drawings live under `~/.ai4kanban/` with the rest of this machine's state, and the
-  UI resolves the tag there, so cards written before the move still draw.
+  UI resolves the tag there. Legacy project drawings are not migrated or read as a fallback.
 - A `.txt` mockup is drawn as its own characters — unscaled, with no switch to "the code
   behind it", because the file is the drawing — and a narrow window scrolls it sideways
   rather than re-wrapping columns that would stop being the drawing.
+- The canvas that holds a card's screens ships as look-only: screens are laid out
+  automatically, pan and zoom work, and nothing is saved. Dragging screens into place and
+  keeping that layout waits until the canvas has been used in anger.
 
 ## Views and filters
 
@@ -268,6 +271,8 @@ re-ask a settled call.
 
 ## Notifications
 
+- **The pane is Cloud & Notifications**（中文「云端与通知」）, carrying cloud storage and
+  notifications as two independent switches — the name says what the page holds.
 - The desktop notification center came first, proving complete messages and actions without
   Slack; Slack reuses the same event contract as the first external connector.
 - It is a right-hand rail of rows carrying the card's number and title with the event's name
@@ -285,6 +290,12 @@ re-ask a settled call.
 - A card the watched scope merely brought into view does not interrupt: it lands in the bell
   already read, with no system notification. Only a card that starts waiting after the switch
   is raised the ordinary way.
+- The rail is two tabs — 「待处理」and 「已落地」— and opens on the first. Only a landed
+  delivery sits on the second; not landed, interrupted and waiting for a machine stay with
+  the work that needs a person, because a problem is something to look at, not a record.
+- The bell counts the first tab alone. A new landed event shows as a dot on the second tab
+  that switching there clears, which reads the whole group at once — which rows were new is
+  not recoverable.
 
 ## Moving around the app
 
@@ -333,3 +344,12 @@ re-ask a settled call.
 - `kanban-ui/README.md` is the user-facing guide, and any card that changes visible UI
   behavior updates it. `akb guide local-ui` covers installation only.
 - **Document attachments**: let the selected runtime attempt PDF/Word reading and surface its errors; do not disable document formats by model or require the board to convert them first.
+
+## Feedback
+
+- **Feedback never requires a task**: linking the landed task and sharing the problem
+  description are both optional when a fix task is created, and a standing Feedback button
+  beside New task takes general feedback that belongs to no task.
+- **Feedback collects no way to reply**: no email box and no other contact field, so the
+  site can still say no form on it asks for your email; the team cannot follow up, and
+  vague feedback is simply dropped.

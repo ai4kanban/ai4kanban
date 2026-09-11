@@ -14,8 +14,11 @@
   Invented copy is sent back.
 - **A mockup file is ONE 1280 × 800 screen**: the card page draws it in an iframe clipped to
   exactly that, so a second frame stacked under the first is invisible. Where a card names
-  two surfaces, pick the one whose layout is actually new and let the copy-only one follow
-  the pattern it copies.
+  two surfaces, give each its own file.
+- **Three missing surfaces are one screen at the moment all three are true**: before drawing
+  three, look for the single state where they co-exist — a submit panel whose send just
+  failed, with its picker still resting and nothing yet attached, is the entry, the picker
+  and the failure in one frame.
 - **The runs panel is not a panel beside the board, it BURIES it**: 1040 × 760 over a 42%
   ink scrim at 1280 × 800 leaves 120px of dimmed rail at each edge. Anything that happens
   to the rail while that panel opens has to be said inside the panel, because the rail is
@@ -56,6 +59,9 @@
 - **A refused move is answered where it was pressed**, in the confirmation-popover shape
   hung off that control. The page's peach band is for what has no control to hang from.
 - **A refusal says the block and the way out, and nothing the screen already says.**
+- **A refusal keeps its own ground when it fills a whole tile**: a screen-sized block of
+  peach is the loudest thing on the page and is read as an alarm — the tile keeps the
+  wash it would have had, and the note is a compact peach block inside it.
 - **An empty list drops the standing note**: the empty panel's own line already says what
   would be there, and both together read as the same sentence twice.
 - **A hint that is only true sometimes is drawn only then**: the chat's hint line exists
@@ -158,6 +164,9 @@
   inside a `data:` page is blocked.
 - **A frame that takes props needs a wrapper export**, not a bare one: rendering the
   component name alone hands it `undefined` props and quietly draws the empty variant.
+- **A screen drawn inside a screen has no room for a scrim**: at ~25% a dialog over a
+  full-bleed ink scrim is one grey plate, not a screen. Draw it as a paper block over a
+  list that still reads, and let the miniatures be a handful of bars at ink 8% and 16%.
 - **Only plain Tailwind is compiled**: the board's `nb-*` tokens do not exist there, so
   declare the palette as hex constants and pass colours through `style={{}}`.
 - **Art must be inline SVG**: the sandbox has no scripts, network, fonts or images, so an
@@ -178,3 +187,7 @@
 - **Correct direction can still be misleading UI**: preserve the current screen’s complete layout and control sizes when adding a feature; do not replace it with a simplified settings page.
 - **定期整理独占一行太丑**：收成「立即整理」旁的小控件，点击才展开周期设置。
 - **Attachment designs used an obsolete Create task view**: inspect the current composer and per-mode runtime controls before drawing the attachment.
+
+- **An animated scene was delivered as oversized static figures with a detail timeline**: propose spatial layout, sprite scale and motion first; use small pixel sprites for Runs and keep detailed inspection in List.
+- ❌ **Optional linking exposes fields by default or looks like a persistent setting** → ✅ use a compact disclosure button and draw its expanded contents in the mockup; cancel explicitly clears linking and consent.
+- ❌ **A home shot drawing the card page tried to fit two mockups at their true 1.6∶1** → ✅ `nb.tsx`'s `CROP` is 1.5 and its bottom 30% is a fade: one screen compressed to ~3∶1, then the next screen's caption row clear of the fade and its picture dissolving. A drawn screen only reads as a screen when its ground is the board's canvas and its cards are paper — bare grey bars on paper read as a form.

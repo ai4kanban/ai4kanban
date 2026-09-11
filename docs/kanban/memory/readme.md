@@ -28,3 +28,8 @@ covers it, or a plain-words note.
 - Triage sorting is an optional agent, off by default. Switched on in Configuration → Agents
   (it asks first), the board judges a batch of new items itself and keeps going until nothing
   is waiting; switched off, `akb triage run` still sorts by hand.
+- The Reject dialog has a **Just discard** tick: the card is dropped and no memory is written
+  at all, the reason becomes optional, and the button says Discard. A plain reject still asks
+  for the reason and records it only when it is worth keeping for later planning. In the
+  terminal it is `akb card reject <id> --discard`. Covered in
+  `web/content/docs/daily-loop.mdx`.

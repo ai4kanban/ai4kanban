@@ -152,6 +152,12 @@ Internal detail stays on the card.
   when it was last read, and refuses every write until Cloud answers. It comes back live on the
   next read that reaches the workspace, with nothing to press. Only a call that never reached
   the service counts as offline; anything the workspace answered is shown as it stands.
+- **Turning cloud storage off migrates the board back in full**, through the same migration
+  page the way in uses. The cloud workspace is kept rather than deleted, so a mis-click loses
+  nothing and deleting it is a separate act — the cost is a stale copy left in the cloud.
+- **A migration waits for the runs already going**, in both directions: the board lists what
+  is still running and starts moving only once they finish, so nothing written during the
+  window is missed and a long run makes the user wait.
 
 ## Cloud first, a team second
 

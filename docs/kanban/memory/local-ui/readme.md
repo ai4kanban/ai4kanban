@@ -45,10 +45,9 @@ naming no other doc is covered there.
 - A card page opens on the human half; everything below the `<!-- agent -->` boundary folds
   behind **what the agent worked out**, and a search hit below it opens the fold for that
   visit: "Reading a card".
-- **Insights** holds two charts: Daily progress (30 days of completed, created, rejected)
-  and Planning quality (details settled, decisions that stood, proposals built, per
-  release), worked out on each read from that repo's `record.csv` and never fetched from
-  anywhere: "Insights".
+- **Insights** holds one chart: Daily progress (30 days of completed, created, rejected),
+  read on each open from that repo's `metrics.csv` and never fetched from anywhere:
+  "Insights".
 - Read what the agent remembers from the **Memory** panel — the four project files and one
   row per module, each opening as its own page, read-only and starting no run: "The board's memory".
 - A group root's page draws a map of its subtasks in build order, one chip per subtask with
