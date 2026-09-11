@@ -51,6 +51,12 @@ import {
   dismissSignal,
 } from "@/lib/board";
 import {
+  feedbackDiagnostics,
+  feedbackOffered,
+  searchArchived,
+  sendFeedback,
+} from "@/lib/feedback";
+import {
   type ChatRead,
   addChatImage,
   clearChat,
@@ -200,6 +206,7 @@ import { isLanguage } from "@/lib/types";
 import type {
   AgentInfo,
   AgentView,
+  ArchivedCard,
   BoardScreen,
   CardDrafts,
   CardPatch,
@@ -218,6 +225,9 @@ import type {
   DiscussionTarget,
   DiscussRead,
   DropPlan,
+  FeedbackDiagnostics,
+  FeedbackSent,
+  FeedbackToSend,
   FillPlan,
   HarnessOption,
   Language,
@@ -2131,6 +2141,62 @@ export async function recordUsageDisclosureAction(on: boolean): Promise<WriteRes
     return saved;
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- feedback on a landed task (#603) ----------------------------------------
+// Three asks, answered one at a time: which archived card this is about, what that card has
+// to attach, and the send itself. Nothing here decides anything — every authorisation is a
+// tick on the screen, and this layer only refuses a request whose shape is wrong.
+
+export async function feedbackOfferedAction(): Promise<boolean> {
+  try {
+    return await feedbackOffered();
+  } catch {
+    return false;
+  }
+}
+
+/** Archived cards matching what is typed — by number or by a word in the title. The search
+ *  runs here for the reason the card search does: no page holds the archive to search.
+ *
+ *  An archive that would not read is answered as a failure, never as an empty one: "nothing
+ *  matches" and "the board could not be read" are different things to tell a reader, and the
+ *  second is worth a Try again. */
+export async function searchArchivedAction(
+  query: string,
+): Promise<{ ok: true; cards: ArchivedCard[] } | { ok: false }> {
+  if (typeof query !== "string") return { ok: true, cards: [] };
+  try {
+    return { ok: true, cards: await searchArchived(query) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** What one archived card has to attach, listed before the second authorisation is given.
+ *  Null is "nothing to offer" — an older board's rules, or a card with no diagnostics at
+ *  all — and the screen leaves the attachment rows out rather than showing empty ones. */
+export async function feedbackDiagnosticsAction(cardId: number): Promise<FeedbackDiagnostics | null> {
+  if (!Number.isInteger(cardId)) return null;
+  try {
+    return await feedbackDiagnostics(cardId);
+  } catch {
+    return null;
+  }
+}
+
+/** Send one piece of feedback. Whatever comes back, the task it was written beside is
+ *  already created — a failure here reaches nothing but the sentence itself. */
+export async function sendFeedbackAction(feedback: FeedbackToSend): Promise<FeedbackSent> {
+  if (!feedback || typeof feedback.text !== "string" || !feedback.text.trim()) {
+    return { ok: false, reason: "empty" };
+  }
+  if (feedback.source !== "task" && feedback.source !== "board") return { ok: false, reason: "refused" };
+  try {
+    return await sendFeedback(feedback);
+  } catch {
+    return { ok: false, reason: "unreachable" };
   }
 }
 

@@ -16,7 +16,7 @@ const en: SetupCopy = {
   privacy: {
     title: "Help improve AI4Kanban",
     blurb:
-      "Share anonymous feature use and failures. Never code, card text, project names or file paths.",
+      "Share anonymous feature use and failures — counts and names of events, nothing you write. Never code, card text, project names or file paths.",
     share: "Share anonymous usage",
     shareNote: "On by default. You can change this later in General.",
     switchOn: (name) => `${name} is on`,

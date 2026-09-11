@@ -15,7 +15,7 @@ const zh: SetupCopy = {
   reading: "正在读取看板…",
   privacy: {
     title: "帮助改进 AI4Kanban",
-    blurb: "上报匿名的功能使用与失败情况。绝不包含代码、卡片内容、项目名称或文件路径。",
+    blurb: "上报匿名的功能使用与失败情况——只有次数与事件名称，不含你写下的任何文字。绝不包含代码、卡片内容、项目名称或文件路径。",
     share: "共享匿名使用情况",
     shareNote: "默认开启。之后可在「通用」中修改。",
     switchOn: (name) => `${name}已开启`,

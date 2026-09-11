@@ -41,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Copied, useCopyText } from "./copy";
+import { LandedFeedbackBlock, type LandedFeedback } from "./Feedback";
 import { Markdown } from "./Markdown";
 
 /** How wide the conversation reads, whatever the window is. Standing the plan beside it
@@ -85,6 +86,10 @@ interface Props {
     /** The runtime picked for this one run (#518), or undefined for the agent's own. */
     runtime?: string,
   ) => Promise<{ ok: boolean; error?: string }>;
+  /** The Link-a-landed-task block (#603), held by Create task so its outcome outlives this
+   *  screen. Drawn under the box in the two modes that write a card — never in Discuss,
+   *  which writes none and has nothing for feedback to ride on. */
+  feedback: LandedFeedback;
   /** Start planning: close and start the run that writes the plan's cards. */
   onPlan: () => void;
   /** Build now off the plan (#481): close and start the run that writes one card from it and
@@ -104,6 +109,7 @@ export function CreateSheet(props: Props) {
 function Sheet({
   release,
   discussion,
+  feedback,
   onClose,
   onSend,
   onPlan,
@@ -326,6 +332,7 @@ function Sheet({
       onGuardDismiss={() => setGuard(false)}
       onGuardConfirm={() => void send("build")}
       error={error}
+      feedback={discussing ? null : feedback}
     />
   );
 
@@ -510,6 +517,7 @@ function Composer({
   onGuardDismiss,
   onGuardConfirm,
   error,
+  feedback,
 }: {
   mode: CreateMode;
   onPick(mode: CreateMode): void;
@@ -541,6 +549,8 @@ function Composer({
   onGuardConfirm(): void;
   /** A start that was refused, in the board's words. */
   error: string | null;
+  /** The Link-a-landed-task block (#603), or null in Discuss. */
+  feedback: LandedFeedback | null;
 }) {
   const c = useCopy().board.create.sheet;
   const chat = useCopy().chat;
@@ -693,6 +703,10 @@ function Composer({
           </span>
         }
       />
+      {/* One collapsed button under the box (#603). What it opens links the landed task this
+          one is about and offers to pass the description on, and it is drawn here — after the
+          box, before a refusal — because it is about what was just typed. */}
+      {feedback && <LandedFeedbackBlock feedback={feedback} />}
       {/* A start that was refused, said where the press was rather than behind the
           sheet. The sentence is still in the box above it. */}
       {error && (

@@ -118,6 +118,51 @@ const en: BoardCopy = {
       },
     },
   },
+  feedback: {
+    button: "Feedback",
+    sheet: {
+      title: "Tell the AI4Kanban team",
+      blurb:
+        "Goes to t.ai4kanban.dev, this submission only. No card, no conversation and no run log is sent with it, and there is no box for an address — we cannot write back.",
+      placeholder: "What went wrong, or what would make this better…",
+      send: "Send feedback",
+      sending: "Sending…",
+      sent: "Sent. It reaches the team one way — no reply comes back.",
+      noReply: "One way. You will not get a reply.",
+    },
+    link: {
+      expand: "Link a landed task",
+      cancel: "Cancel linking and feedback",
+      search: "Search archived cards by number or title",
+      empty: "No archived card matches.",
+      failed: "The archive could not be read.",
+      retry: "Try again",
+      clear: "Unlink this task",
+      share: "Share this description with the AI4Kanban team",
+      shareNote:
+        "This submission only, to t.ai4kanban.dev. No card, conversation or run log goes with it.",
+      diagnostics: "Attach diagnostics · this submission only",
+      diagnosticsNote: "Open one to read exactly what would be sent, or take it out.",
+      parts: {
+        card: "Card body",
+        chat: "Conversation",
+        trace: "Run log",
+        environment: "Environment",
+      },
+      size: (bytes) => (bytes < 1024 ? `${bytes} B` : `${Math.round(bytes / 1024)} kB`),
+      partCut: "shortened",
+      drop: "Remove",
+      restore: "Put back",
+    },
+    taskSent: "Your task was created, and the feedback went. It reaches the team one way — no reply comes back.",
+    failed: {
+      task: "Your task was created. The feedback did not go:",
+      standing: "The feedback did not go:",
+      tooLarge: "it is too large — take an attachment out and try again.",
+      refused: "the endpoint refused it.",
+      unreachable: "the endpoint could not be reached.",
+    },
+  },
   release: {
     which: "Which release to show",
     whichHint:

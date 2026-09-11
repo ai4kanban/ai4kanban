@@ -321,7 +321,9 @@ const en: ConfigurationCopy = {
   },
   privacy: {
     title: "Usage reporting",
-    body: "Share anonymous feature use and failures. Never code, card text, project names or file paths.",
+    body: "Share anonymous feature use and failures — counts and names of events, nothing you write. Never code, card text, project names or file paths.",
+    feedback:
+      "Feedback is separate and this switch does not reach it: it carries what you wrote, it goes only when you press send, and it works with reporting off.",
     switchOn: (name) => `${name} is on`,
     switchOff: (name) => `${name} is off`,
     unreadable:

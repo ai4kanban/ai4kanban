@@ -184,7 +184,10 @@ export function PrivacyGroup({ onError }: { onError?: (msg: string) => void }) {
   return (
     <Group title={caption}>
       <Panel>
-        <Row label={c.title} hint={c.body}>
+        {/* What this switch covers, and — under it — what it does not (#603). Feedback is a
+            press, not a report, and a reader who turned this off has to be able to see that
+            the button beside Create task still works. */}
+        <Row label={c.title} hint={c.body} below={<p className="text-[12px] leading-snug text-nb-ink-soft">{c.feedback}</p>}>
           {!tooOld && !unreadable && (
             <Switch
               on={held ? held.on : null}

@@ -8,8 +8,8 @@
 // on. Reporting has to be switched off after asking, not before: switching off forgets the
 // id, and then there is nothing left to name.
 //
-// What goes is the raw events, and with them that install's place in every day still open
-// for late events — the next daily run rewrites those summaries without it. A day already
+// What goes is the raw events and the feedback that install sent (#603), and with the events
+// that install's place in every day still open for late events — the next daily run rewrites those summaries without it. A day already
 // settled keeps the counts it reported: no summary names an install, its events are gone,
 // and rewriting settled history would change numbers already read.
 //
@@ -45,6 +45,13 @@ wrangler(['r2', 'bucket', 'info', copy.bucket])
 
 const [answer] = statement(copy, `DELETE FROM events WHERE install_id = '${id}'`)
 const gone = answer?.meta?.changes ?? 0
+
+// And the feedback that install sent (#603), body and attachments alike. It is in no
+// archive file, so these two statements are the whole of it.
+const [files] = statement(copy, `DELETE FROM feedback_files WHERE install_id = '${id}'`)
+const [bodies] = statement(copy, `DELETE FROM feedback WHERE install_id = '${id}'`)
+const feedbackGone = bodies?.meta?.changes ?? 0
+const attachmentsGone = files?.meta?.changes ?? 0
 
 // The rows go first: an archive file rewritten while the events are still stored would be
 // undone by nothing, but a run that dies here leaves the files to a second `forget`.
@@ -82,6 +89,7 @@ try {
 
 process.stdout.write(
   `forget: ${gone} event(s) deleted from ${copy.database}.\n` +
+    `forget: ${feedbackGone} piece(s) of feedback and ${attachmentsGone} attachment(s) deleted.\n` +
     `forget: ${read} archive file(s) read in ${copy.bucket}, ${rewritten} rewritten` +
     (absent > 0 ? `, ${absent} day(s) the archive has not written yet` : '') +
     '.\n' +

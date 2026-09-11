@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HAIRLINE, PHONE_ROW } from "./chrome";
 import { configDialog, PRUNER } from "./Configuration";
+import { FeedbackButton } from "./Feedback";
 import { Goal } from "./Goal";
 import { Insights } from "./Insights";
 
@@ -358,12 +359,13 @@ export function MoreScreen({
         </span>
       </div>
 
-      {/* The two things from the top row that a phone can still do: read what the board is
-          for — or write it, when it is empty (#437) — and read how it is going. Both open
-          the very dialogs the window opens. */}
+      {/* The things from the top row that a phone can still do: read what the board is
+          for — or write it, when it is empty (#437) — read how it is going, and say what is
+          wrong (#603). All three open the very dialogs the window opens. */}
       <div className="mt-2 flex flex-col gap-1">
         <Goal written={goalWritten} offer={goalOffered} row onSaved={onGoalSaved} />
         <Insights row />
+        <FeedbackButton row />
       </div>
 
       <GroupLabel text={c.atTheComputer} divider />

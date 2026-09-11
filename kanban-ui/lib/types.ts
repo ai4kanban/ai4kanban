@@ -319,3 +319,49 @@ export interface SessionView {
    *  and the step row says nothing extra for either. */
   trigger?: ReviewTrigger;
 }
+
+// ---- feedback (#603) --------------------------------------------------------
+//
+// Declared here rather than copied from `lib/format/`: the rules' own modules reach for the
+// filesystem and the board's paths, so they are not shareable — these are the shapes the
+// screens name what comes back by.
+
+/** What a diagnostic attachment holds. Each is listed with its size, previewed, and removed
+ *  on its own before anything is sent. */
+export type FeedbackPart = "card" | "chat" | "trace" | "environment";
+
+/** Where the feedback was written: the block on New task, or the board's Feedback button. */
+export type FeedbackSource = "task" | "board";
+
+/** One attachment, exactly as it would be sent — so the preview IS the submission. */
+export interface FeedbackAttachment {
+  part: FeedbackPart;
+  text: string;
+  /** What this machine holds, in bytes. Larger than `text` when it was cut. */
+  bytes: number;
+  cut: boolean;
+}
+
+/** What one archived card has to attach. A part with nothing behind it is absent. */
+export interface FeedbackDiagnostics {
+  cardId: number;
+  attachments: FeedbackAttachment[];
+}
+
+/** Why a submission did not go, as a name the screen says in its own language. */
+export type FeedbackFailure = "empty" | "too-large" | "refused" | "unreachable";
+
+export interface FeedbackSent {
+  ok: boolean;
+  reason?: FeedbackFailure;
+  /** The status or network error behind it. Never the whole of what a screen shows. */
+  detail?: string;
+}
+
+/** What a screen hands the sender. Everything optional is a separate authorisation. */
+export interface FeedbackToSend {
+  text: string;
+  source: FeedbackSource;
+  cardId?: number;
+  parts?: { part: FeedbackPart; text: string }[];
+}

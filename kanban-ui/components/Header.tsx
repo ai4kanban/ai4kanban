@@ -6,6 +6,7 @@ import { ChatButton } from "./Chat";
 import { ToolCluster } from "./chrome";
 import { Configuration, ConfigurationButton } from "./Configuration";
 import { CreateTask } from "./CreateTask";
+import { FeedbackButton } from "./Feedback";
 import { ProjectPath, UpdateChip } from "./desktop";
 import { GitHubLink } from "./GitHubLink";
 import { Goal } from "./Goal";
@@ -246,6 +247,11 @@ export function Header({
             <ConfigurationButton />
           </ToolCluster>
           <ChatButton />
+          {/* Feedback (#603), beside Create task: the two things a reader does when a landed
+              task came out wrong are write the fix and say so, and they belong next to each
+              other. It is not part of the tool cluster — that frame is the board's machinery,
+              and this one is addressed to us. */}
+          <FeedbackButton />
         </span>
         {/* The phone keeps the bell and nothing else from that cluster: it is the one
             control there that changes on its own, and the three beside it are all things

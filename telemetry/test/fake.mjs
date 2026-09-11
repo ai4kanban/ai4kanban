@@ -10,6 +10,7 @@ import { AddressHour } from '../src/index.ts'
 export function fakeDatabase() {
   const db = new DatabaseSync(':memory:')
   db.exec(readFileSync(new URL('../migrations/0001_events.sql', import.meta.url), 'utf8'))
+  db.exec(readFileSync(new URL('../migrations/0002_feedback.sql', import.meta.url), 'utf8'))
 
   const d1 = {
     sqlite: db,

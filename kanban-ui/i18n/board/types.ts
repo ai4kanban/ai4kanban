@@ -169,6 +169,69 @@ export type BoardCopy = {
       };
     };
   };
+  /** Feedback on a landed task (#603): the board's standing Feedback button and the sheet
+   *  behind it, and the block on New task that links the landed task a fix is about. */
+  feedback: {
+    /** The standing button in the top row. */
+    button: string;
+    sheet: {
+      title: string;
+      /** Who takes it, what goes with it, and how long the permission lasts. Said above the
+       *  box rather than under the button. */
+      blurb: string;
+      placeholder: string;
+      send: string;
+      sending: string;
+      /** Shown in place of the box once it has gone. Says the feedback is one way. */
+      sent: string;
+      /** Beside the send button, before it is pressed. */
+      noReply: string;
+    };
+    link: {
+      /** The collapsed button, and the heading it becomes when it is open. */
+      expand: string;
+      /** Folds it and forgets both ticks; what was typed stays in the box. */
+      cancel: string;
+      search: string;
+      /** No archived card matches what was typed — including on a board that has archived
+       *  nothing, which is the same answer to the same search. */
+      empty: string;
+      /** The archive could not be read — not the same answer as "nothing matches", and the
+       *  one worth offering again. Neither stops an ordinary task being created. */
+      failed: string;
+      retry: string;
+      /** Takes the linked card back off. */
+      clear: string;
+      /** The first authorisation, and what it costs. */
+      share: string;
+      shareNote: string;
+      /** The second, given separately. */
+      diagnostics: string;
+      diagnosticsNote: string;
+      /** Each attachment by name. */
+      parts: { card: string; chat: string; trace: string; environment: string };
+      /** How large one attachment is. */
+      size: (bytes: number) => string;
+      /** Marked on an attachment this machine held more of than could be sent. */
+      partCut: string;
+      /** Take one attachment out of this submission, and put it back. */
+      drop: string;
+      restore: string;
+    };
+    /** A submission that went, said on New task where the sheet has already closed. The
+     *  standing sheet says its own in place of the box. */
+    taskSent: string;
+    /** A submission that did not go: what happened, then why. */
+    failed: {
+      /** On New task — the task was created all the same. */
+      task: string;
+      /** On the standing sheet, where nothing else was happening. */
+      standing: string;
+      tooLarge: string;
+      refused: string;
+      unreachable: string;
+    };
+  };
   release: {
     which: string;
     whichHint: string;

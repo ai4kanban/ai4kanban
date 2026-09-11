@@ -394,6 +394,17 @@ export type { UsageReporting } from './lib/machine/types'
 export { reportAppOpen, reportUsage, sendUsage } from './lib/machine/usage'
 export type { Surface as UsageSurface } from './lib/machine/usage'
 
+// Feedback (#603) — what a person wrote, on its own route, awaited and answered. It does
+// NOT go through the queue above: nobody waits on a number, and somebody is waiting on this.
+// `readFeedbackDiagnostics` is what the screen lists before the second authorisation — the
+// four parts, their sizes, and exactly the text each one would send.
+export { sendFeedback } from './lib/machine/feedback'
+export type { FeedbackFailure, FeedbackSent, FeedbackToSend } from './lib/machine/feedback'
+export { readFeedbackDiagnostics } from './lib/view/feedback'
+export type { FeedbackAttachment, FeedbackDiagnostics } from './lib/view/feedback'
+export { FEEDBACK_PARTS } from '../../telemetry/contract'
+export type { FeedbackPart, FeedbackSource, SentFeedbackPart } from '../../telemetry/contract'
+
 // The spec agents (#191, #403): the list a screen draws — each one's two lines and whether
 // it is switched on — and the switch itself. The words and the order come from each agent's
 // own AGENT.md, so the Agents section in the Configuration dialog and `akb spec` can never

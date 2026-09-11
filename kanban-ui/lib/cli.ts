@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { getCopy } from "@/i18n";
 import { kanbanDir, repoRoot } from "./paths";
 import { DEFAULT_LANGUAGE } from "./types";
+import type { FeedbackDiagnostics, FeedbackSent, FeedbackToSend } from "./types";
 import type {
   AgentInfo,
   AgentRequest,
@@ -536,6 +537,11 @@ export interface BoardRules {
    *  added them, and the archive then says so rather than reading as an empty archive. */
   readArchive?(): Promise<ArchiveList>;
   readArchivedCard?(id: number): Promise<ArchivedCardFile | null>;
+  /** Feedback (#603): what one archived card has to attach, and sending one piece. Optional
+   *  — a board running older rules offers no Feedback button and no block on New task, the
+   *  same way it offers no archive. */
+  readFeedbackDiagnostics?(cardId: number): FeedbackDiagnostics;
+  sendFeedback?(feedback: FeedbackToSend): Promise<FeedbackSent>;
   /** Triage (#453, #499): whether it is open to this board and this account at all, what it
    *  holds, adding to it by hand, and ignoring one for good. Optional: a board can be
    *  running rules older than the release that added them, and the rail then offers no

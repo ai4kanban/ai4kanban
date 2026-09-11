@@ -18,6 +18,12 @@
 // the sentence has to stay in the box to be sent again. Start planning (#427) is the one that
 // cannot: it closes the sheet first, so its refusal is said under the button.
 //
+// Feedback on a landed task (#603) rides here rather than in the sheet, because the sheet
+// closes the moment a run starts: the block is drawn in the sheet and its state is held
+// here, so a submission that did not go is said under this button, where there is still
+// something on screen to say it on. The task is created either way — the feedback goes after
+// the run has started, and nothing about it can stop a card being written.
+//
 // On a marketing board this is New topic instead (#507), and it opens nothing: marketing work
 // starts from source material, so the press writes the card and lands in its editor. There is
 // no sheet, no discussion and no agent — everything the sheet asks for is a decision about a
@@ -42,6 +48,7 @@ import type { AgentReq } from "./agent-shared";
 import { Button } from "./button";
 import { useChatRailHere } from "./Chat";
 import { CreateSheet } from "./CreateSheet";
+import { useLandedFeedback, useTaskFailureLine } from "./Feedback";
 import { sessionsPanel, useAgentSessions } from "./sessions";
 import { useSolution } from "./solution";
 
@@ -69,6 +76,15 @@ export function CreateTask({
   // has no box to go back to — it is said under the button instead. A refused create still
   // goes to the sheet, which is still up.
   const [error, setError] = useState<string | null>(null);
+  // A feedback submission that went (#603). The sheet is gone by then, so the only place
+  // left to say it is under this button — and it has to be said, because a send with no
+  // answer reads as a send that vanished.
+  const [notice, setNotice] = useState<string | null>(null);
+  // The Link-a-landed-task block on the sheet (#603) — held here so its outcome outlives the
+  // sheet, and reset only once a send has actually taken it.
+  const feedback = useLandedFeedback();
+  const failureLine = useTaskFailureLine();
+  const feedbackCopy = useCopy().board.feedback;
 
   // The discussion this screen is holding, readable after an await — a rail row may have
   // handed over another one while a run was starting (#610).
@@ -84,8 +100,10 @@ export function CreateTask({
     setOpen(false);
     setDiscussion(null);
     setError(null);
+    setNotice(null);
+    feedback.reset();
     dropDraft("create");
-  }, []);
+  }, [feedback]);
 
   // The rail and this screen are never both up. Pressing Chat asks for the board's
   // conversation or a card's — and on the board the sheet is already showing the board's, so
@@ -112,6 +130,7 @@ export function CreateTask({
   const phone = usePhone();
   const openFresh = useCallback(async () => {
     setError(null);
+    setNotice(null);
     if (phone && discussion) return setOpen(true);
     // Opened after the discussion is in hand, so the sheet never paints a frame of the last
     // subject's exchange on its way to the new one.
@@ -198,9 +217,16 @@ export function CreateTask({
       // Pop the sessions panel open on the new session so it's visibly working
       // from the first frame — it tails live there until the agent finishes.
       if (res.sessionId) sessionsPanel.open(res.sessionId);
+      // The feedback goes after the run is going, and only if it was ticked (#603). Whatever
+      // comes of it the card is already being written; a refusal is said under this button
+      // rather than retried.
+      const sent = await feedback.submit(req.description ?? "");
+      feedback.reset();
+      if (sent?.ok) setNotice(feedbackCopy.taskSent);
+      else if (sent) setError(failureLine(sent));
       return { ok: true };
     },
-    [start, c],
+    [start, c, feedback, failureLine, feedbackCopy],
   );
 
   // The two answers under the plan handoff that start a run (#427, #481): the same handoff Add
@@ -259,6 +285,18 @@ export function CreateTask({
         </div>
       )}
 
+      {/* A feedback submission that went (#603), said where its failure would have been. It
+          carries the one-way sentence, because this path never showed it: the standing sheet
+          says it in place of its box, and here there is no box left. */}
+      {!error && notice && (
+        <div
+          className="nb-panel-sm absolute right-0 top-full z-30 mt-2 w-[min(420px,calc(100vw-32px))] cursor-pointer break-words p-3 text-[12px] leading-relaxed"
+          onClick={() => setNotice(null)}
+        >
+          {notice}
+        </div>
+      )}
+
       {/* The sheet and its discuss / plan / build modes are the product board's (#507): on a
           marketing board the press above has already written the topic and moved the page. */}
       {open && !marketing && (
@@ -266,6 +304,7 @@ export function CreateTask({
           release={release}
           projectRoot={projectRoot}
           discussion={discussion}
+          feedback={feedback}
           onClose={() => setOpen(false)}
           onSend={(description, mode, pictures, runtime) =>
             startSession(

@@ -208,7 +208,8 @@ window width the rail, the header and the side-by-side columns are unchanged.
   mounted, so the board keeps its scroll and a card page its state while the reader looks
   something up.
 - **The top row holds four controls**: the mark, the release picker, the bell and Create
-  task. The rest of it moves to More, which also names what is done at the computer.
+  task. The rest of it moves to More — Goal, Insights and Feedback as rows there — which
+  also names what is done at the computer.
 - **One column at a time, swiped**: full-width scroll-snap pages under a band that names
   the column, carries its count, and shows which of them you are on. Those dots are
   buttons — a swipe is not reachable from a keyboard.
