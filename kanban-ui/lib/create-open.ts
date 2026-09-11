@@ -15,7 +15,12 @@ import type { DiscussionTarget } from "./types";
 // The same shape as the runs panel's and the Configuration dialog's, for the same reason.
 
 let request: { at: number; discussion: DiscussionTarget | null } | null = null;
+let dropped: { at: number; discussion: DiscussionTarget } | null = null;
 const subs = new Set<() => void>();
+
+function tell() {
+  for (const fn of subs) fn();
+}
 
 export const createSheet = {
   /** Open the header's create sheet. A fresh object every time, so asking twice still
@@ -23,18 +28,37 @@ export const createSheet = {
    *  told none, the press opens a fresh one. */
   open(discussion: DiscussionTarget | null = null) {
     request = { at: request ? request.at + 1 : 1, discussion };
-    for (const fn of subs) fn();
+    tell();
   },
+
+  /** This discussion has left the list (#610). A discussion has no page of its own, so a
+   *  row archived from the rail would leave the sheet reading a subject that is over — the
+   *  screen holding this one closes and goes back to a fresh Create task. */
+  archived(discussion: DiscussionTarget) {
+    dropped = { at: dropped ? dropped.at + 1 : 1, discussion };
+    tell();
+  },
+};
+
+const subscribe = (fn: () => void) => {
+  subs.add(fn);
+  return () => subs.delete(fn);
 };
 
 /** The last ask, for whoever draws the sheet. */
 export function useCreateSheetRequest(): { at: number; discussion: DiscussionTarget | null } | null {
   return useSyncExternalStore(
-    (fn) => {
-      subs.add(fn);
-      return () => subs.delete(fn);
-    },
+    subscribe,
     () => request,
     () => request,
+  );
+}
+
+/** The last discussion taken out of the list, for whoever is holding one. */
+export function useArchivedDiscussion(): { at: number; discussion: DiscussionTarget } | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => dropped,
+    () => dropped,
   );
 }

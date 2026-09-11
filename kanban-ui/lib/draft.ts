@@ -9,6 +9,14 @@ import { useCallback, useEffect, useState } from "react";
 
 const PREFIX = "kanban-draft:";
 
+/** Throw a draft away from outside the box that holds it — the create sheet's, once the
+ *  discussion it was typed for has left the list (#610). */
+export function dropDraft(key: string): void {
+  try {
+    window.localStorage.removeItem(PREFIX + key);
+  } catch {}
+}
+
 // A single text draft (implement notes, a reject reason, the create description…).
 export function useDraft(key: string): [string, (v: string) => void, () => void] {
   const storageKey = PREFIX + key;
@@ -37,10 +45,8 @@ export function useDraft(key: string): [string, (v: string) => void, () => void]
 
   const clear = useCallback(() => {
     setValue("");
-    try {
-      window.localStorage.removeItem(storageKey);
-    } catch {}
-  }, [storageKey]);
+    dropDraft(key);
+  }, [key]);
 
   return [value, set, clear];
 }

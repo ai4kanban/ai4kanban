@@ -36,6 +36,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
 import {
   FiArchive,
   FiChevronRight,
@@ -52,7 +53,7 @@ import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
 import type { OpenCard } from "@/lib/open-cards";
-import { MEMORY_FILES, type MemoryModule } from "@/lib/types";
+import { MEMORY_FILES, type DiscussionTarget, type MemoryModule } from "@/lib/types";
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
 import { createSheet } from "@/lib/create-open";
@@ -112,6 +113,21 @@ export function Rail({
   // The discussions this board is holding (#496). They are not cards, so what is typed in
   // the box above never takes them away. A marketing board holds none to draw (#507).
   const discussions = useDiscussions(useSolution() === "marketing");
+  // A refused archive left the row where it was, so it says why rather than looking like a
+  // press that did nothing (#610). Click it away; the next archive replaces it.
+  const [archiveFailed, setArchiveFailed] = useState<string | null>(null);
+  const { archive } = discussions;
+  const archiveRow = useCallback(
+    async (target: DiscussionTarget) => {
+      setArchiveFailed(null);
+      const done = await archive(target);
+      // The screen holding this one has no page of its own to stay on, so it hears about it
+      // and goes back to a fresh Create task.
+      if (done.ok) createSheet.archived(target);
+      else setArchiveFailed(done.error || c.discussions.archiveFailed);
+    },
+    [archive, c],
+  );
 
   // Closing the row you are standing on has to say where to stand instead: the
   // card after it, else the one before, else the board. Closing a row you are
@@ -193,9 +209,18 @@ export function Rail({
                 name={row.name || c.discussions.unnamed}
                 answering={row.answering}
                 onOpen={() => createSheet.open(row.target)}
-                onArchive={() => void discussions.archive(row.target)}
+                onArchive={() => void archiveRow(row.target)}
               />
             ))}
+            {archiveFailed && (
+              <p
+                role="alert"
+                onClick={() => setArchiveFailed(null)}
+                className="mx-2.5 mt-1 cursor-pointer break-words rounded-[8px] bg-nb-peach-soft px-2.5 py-[6px] text-[11.5px] leading-[16px] text-nb-peach-ink"
+              >
+                {archiveFailed}
+              </p>
+            )}
           </>
         )}
       </nav>

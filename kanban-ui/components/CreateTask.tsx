@@ -33,7 +33,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { useCreateSheetRequest } from "@/lib/create-open";
+import { useArchivedDiscussion, useCreateSheetRequest } from "@/lib/create-open";
+import { dropDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import { armNewTopic } from "@/lib/new-topic";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
@@ -68,6 +69,23 @@ export function CreateTask({
   // has no box to go back to — it is said under the button instead. A refused create still
   // goes to the sheet, which is still up.
   const [error, setError] = useState<string | null>(null);
+
+  // The discussion this screen is holding, readable after an await — a rail row may have
+  // handed over another one while a run was starting (#610).
+  const held = useRef(discussion);
+  useEffect(() => {
+    held.current = discussion;
+  }, [discussion]);
+
+  // Back to a fresh Create task. A discussion has no page of its own, so the sheet closing is
+  // the whole of "the discussion is over" — and what it was holding goes with it, transcript,
+  // selection and box alike, or the next press opens on a subject that is finished.
+  const freshen = useCallback(() => {
+    setOpen(false);
+    setDiscussion(null);
+    setError(null);
+    dropDraft("create");
+  }, []);
 
   // The rail and this screen are never both up. Pressing Chat asks for the board's
   // conversation or a card's — and on the board the sheet is already showing the board's, so
@@ -122,6 +140,17 @@ export function CreateTask({
     armNewTopic(res.id);
     router.push(`/${res.id}`);
   }, [writing, router, c]);
+
+  // Archived from the rail (#610). Only the one this screen is holding: archiving another
+  // discussion, or this one after the reader has already moved to a different subject, leaves
+  // the screen where it is.
+  const dropped = useArchivedDiscussion();
+  const seenDropped = useRef(dropped);
+  useEffect(() => {
+    if (!dropped || dropped === seenDropped.current) return;
+    seenDropped.current = dropped;
+    if (dropped.discussion === held.current) freshen();
+  }, [dropped, freshen]);
 
   const asked = useCreateSheetRequest();
   const seen = useRef(asked);
@@ -188,12 +217,16 @@ export function CreateTask({
         return;
       }
       if (!res.sessionId) return;
+      // The run is going, which is where the board archives the discussion it was handed
+      // (#551) — so the screen lets go of it too (#610). Unless the reader has picked up
+      // another subject in the meantime; that one is not over.
+      if (held.current === discussion) freshen();
       // The server started it, so it is `watch` and not `start` that takes it on — otherwise
       // the card it writes would not reach the board until something else re-read it.
       watch(res.sessionId, answer === "build" ? "Build now" : "Start planning");
       sessionsPanel.open(res.sessionId);
     },
-    [release, discussion, watch, c],
+    [release, discussion, watch, freshen, c],
   );
 
   // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357). Narrow

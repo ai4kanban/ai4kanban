@@ -20,6 +20,7 @@ const en: RailCopy = {
     answering: "replying",
     menu: (name) => `What to do with ${name}`,
     archive: "Archive",
+    archiveFailed: "Could not archive that discussion.",
   },
   memory: {
     heading: "Memory",

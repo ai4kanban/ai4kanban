@@ -21,8 +21,10 @@ const IDLE_MS = 6000;
 
 export interface DiscussionList {
   rows: DiscussionRow[];
-  /** Take one out of the list, and drop its row on the spot rather than waiting out a tick. */
-  archive(target: DiscussionTarget): Promise<void>;
+  /** Take one out of the list, and drop its row on the spot rather than waiting out a tick.
+   *  A refusal puts the row back and says why, so nothing is lost off the rail that is still
+   *  on disk (#610). */
+  archive(target: DiscussionTarget): Promise<{ ok: boolean; error?: string }>;
 }
 
 /** `off` is a board that holds no discussions at all — a marketing one (#507), where every
@@ -79,8 +81,10 @@ export function useDiscussions(off = false): DiscussionList {
 
   const archive = useCallback(async (target: DiscussionTarget) => {
     setRows((was) => was.filter((row) => row.target !== target));
-    await archiveDiscussionAction(target);
+    const done = await archiveDiscussionAction(target);
+    // Either way the list is re-read: it puts a refused row back, and confirms the rest.
     kickRef.current();
+    return done;
   }, []);
 
   return { rows, archive };

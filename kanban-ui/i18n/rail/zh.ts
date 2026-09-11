@@ -20,6 +20,7 @@ const zh: RailCopy = {
     answering: "正在回复",
     menu: (name) => `对${name}的操作`,
     archive: "归档",
+    archiveFailed: "这条讨论没能归档。",
   },
   memory: {
     heading: "记忆",

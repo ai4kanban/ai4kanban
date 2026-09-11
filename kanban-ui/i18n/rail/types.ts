@@ -24,6 +24,8 @@ export type RailCopy = {
     /** The ⋯ on a row, and its one item. */
     menu: (name: string) => string;
     archive: string;
+    /** The archive was refused and the row is back — said under the list (#610). */
+    archiveFailed: string;
   };
   memory: {
     heading: string;
