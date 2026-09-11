@@ -1180,17 +1180,18 @@ function MemoryRow({ paths }: { paths: string[] }) {
 // One pass, and the schedule that repeats it.
 //
 // Pruning is the only agent work nothing on the board asks for, so this is the whole of how
-// it is reached: **Run now** starts a pass, and the chip beside it opens the opt-in that
+// it is reached: **Run now** starts a pass, and the chip under it opens the opt-in that
 // makes the board start one by itself. The chip is compact and closed by default — a
 // standing switch row would give a setting that is off on almost every board the width of
 // the page — and it says the cadence once one is running, which is the only state worth
-// reading at a glance.
+// reading at a glance. Stacked rather than side by side (#569): the two are the same one
+// column wide, and the header's name and gloss get the width back.
 //
 // Recurrence is OFF until it is asked for, and opening the popover enables nothing: a pass
 // rewrites every memory file.
 //
 // The quiet line under the group is the last pass that PASSED. A run that failed or was
-// stopped leaves it exactly where it was and says so beside the button, so a schedule that
+// stopped leaves it exactly where it was and says so on that same line, so a schedule that
 // is not getting through is visible without opening Runs.
 function PruneControls({ onError }: { onError?: (msg: string) => void }) {
   const c = useCopy().configuration.agents.pruner;
@@ -1281,46 +1282,44 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
 
   return (
     <div className="flex shrink-0 flex-col items-end gap-1.5">
-      <div className="flex items-center gap-2">
-        {!tooOld && (
-          <span ref={anchor} className="relative">
-            <button
-              type="button"
-              aria-expanded={open}
-              title={c.chipLabel(on ? schedule!.cadence : c.off)}
-              aria-label={c.chipLabel(on ? schedule!.cadence : c.off)}
-              onClick={() => setOpen((was) => !was)}
-              // Neutral while off, ember once it is running: the closed chip's whole job is
-              // to say whether anything starts by itself, and what.
-              className={`flex h-[28px] cursor-pointer items-center gap-1.5 rounded-[8px] px-2 text-[11.5px] font-[700] transition-colors duration-100 ${
-                on ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft hover:bg-nb-canvas"
-              }`}
-            >
-              <FiClock size={12} aria-hidden />
-              {on ? schedule!.cadence : c.recurring}
-              <FiChevronDown size={11} aria-hidden />
-            </button>
-            {open && (
-              <RecurrencePopover
-                schedule={schedule}
-                busy={saving}
-                why={why}
-                copy={c}
-                anchorRef={anchor}
-                onDismiss={() => {
-                  setOpen(false);
-                  setWhy("");
-                }}
-                onSave={save}
-              />
-            )}
-          </span>
-        )}
-        <button type="button" className={ACCENT_BTN} disabled={running} onClick={() => void start()}>
-          <FiScissors aria-hidden />
-          {running ? c.running : c.run}
-        </button>
-      </div>
+      <button type="button" className={ACCENT_BTN} disabled={running} onClick={() => void start()}>
+        <FiScissors aria-hidden />
+        {running ? c.running : c.run}
+      </button>
+      {!tooOld && (
+        <span ref={anchor} className="relative">
+          <button
+            type="button"
+            aria-expanded={open}
+            title={c.chipLabel(on ? schedule!.cadence : c.off)}
+            aria-label={c.chipLabel(on ? schedule!.cadence : c.off)}
+            onClick={() => setOpen((was) => !was)}
+            // Neutral while off, ember once it is running: the closed chip's whole job is
+            // to say whether anything starts by itself, and what.
+            className={`flex h-[28px] cursor-pointer items-center gap-1.5 rounded-[8px] px-2 text-[11.5px] font-[700] transition-colors duration-100 ${
+              on ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft hover:bg-nb-canvas"
+            }`}
+          >
+            <FiClock size={12} aria-hidden />
+            {on ? schedule!.cadence : c.recurring}
+            <FiChevronDown size={11} aria-hidden />
+          </button>
+          {open && (
+            <RecurrencePopover
+              schedule={schedule}
+              busy={saving}
+              why={why}
+              copy={c}
+              anchorRef={anchor}
+              onDismiss={() => {
+                setOpen(false);
+                setWhy("");
+              }}
+              onSave={save}
+            />
+          )}
+        </span>
+      )}
       <span className="text-[11px] text-nb-ink-soft">
         {failed && !running ? `${c.failed} · ` : ""}
         {schedule?.lastRun ? c.lastRun(schedule.lastRun) : c.neverRun}
