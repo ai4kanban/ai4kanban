@@ -76,17 +76,18 @@ export type RailCopy = {
     fold: string;
     unfold: string;
     more: string;
-    /** Nothing in it yet, and nothing this search and source found. The ignored tab has an
-     *  empty line of its own: what lands there is not something you add. */
+    /** An empty page: a heading, and the line under it saying what fills it. Nothing this
+     *  search and source found gets the heading alone. The ignored tab has a pair of its
+     *  own: what lands there is not something you add. */
     empty: string;
+    emptyHint: string;
     emptyDismissed: string;
+    emptyDismissedHint: string;
     noHits: string;
     clear: string;
-    /** No endpoint configured: the heading, and the one line each missing setting gets.
+    /** No endpoint configured: one link to the docs that say how to serve and point at one.
      *  An offer, not a demand — an unconfigured board still takes what is dropped in. */
     connect: string;
-    needEndpoint: (file: string) => string;
-    needToken: (file: string) => string;
     /** Read out loud as the name of the list. */
     list: string;
     /** One item opened in full: what the panel is called, when it was collected, and — for

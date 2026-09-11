@@ -19,11 +19,19 @@
 // Nothing here is a card: nothing on this page creates one, ranks one, or touches the board's
 // counts. Turning one into a card is #454's.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   FiChevronDown,
   FiChevronRight,
   FiExternalLink,
+  FiInbox,
   FiPaperclip,
   FiPlus,
   FiSearch,
@@ -580,26 +588,37 @@ export function SignalsPage({
         )}
 
         <div className="relative min-h-0 flex-1">
-          <div className="h-full overflow-y-auto px-6 py-4 max-md:px-4">
+          <div className="flex h-full flex-col overflow-y-auto px-6 py-4 max-md:px-4">
             {groups.length === 0 ? (
-              <div className="nb-panel-sm p-5 max-md:p-4">
-                <p className="text-[13px] leading-relaxed text-nb-ink-soft">
-                  {narrowing
+              <Empty
+                title={
+                  narrowing
                     ? c.noHits
                     : tab === "dismissed"
                       ? c.emptyDismissed
-                      : c.empty}
-                </p>
-                {narrowing && (
+                      : c.empty
+                }
+                hint={
+                  narrowing
+                    ? ""
+                    : tab === "dismissed"
+                      ? c.emptyDismissedHint
+                      : c.emptyHint
+                }
+                searched={narrowing}
+              >
+                {narrowing ? (
                   <button
                     type="button"
                     onClick={clear}
-                    className="mt-2 cursor-pointer text-[12px] font-[700] text-nb-accent-deep"
+                    className="cursor-pointer text-[12px] font-[700] text-nb-accent-deep underline underline-offset-2"
                   >
                     {c.clear}
                   </button>
+                ) : (
+                  unconfigured && <EndpointLink label={c.connect} />
                 )}
-              </div>
+              </Empty>
             ) : (
               <div className="flex flex-col gap-5">
                 {groups.map((group) => (
@@ -624,22 +643,10 @@ export function SignalsPage({
               </div>
             )}
 
-            {unconfigured && (
-              <div className="nb-panel-sm mt-4 p-5 max-md:p-4">
-                <p className="text-[13px] font-[700]">{c.connect}</p>
-                <ul className="mt-1.5 flex flex-col gap-1">
-                  {inbox.missing.map((gap) => (
-                    <li
-                      key={gap.what}
-                      className="text-[13px] leading-relaxed text-nb-ink-soft"
-                    >
-                      {gap.what === "endpoint"
-                        ? c.needEndpoint(gap.file)
-                        : c.needToken(gap.file)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {unconfigured && groups.length > 0 && (
+              <p className="mt-4">
+                <EndpointLink label={c.connect} />
+              </p>
             )}
           </div>
 
@@ -660,6 +667,58 @@ export function SignalsPage({
         </div>
       </div>
     </SignalsFrame>
+  );
+}
+
+/** Where to read about serving and pointing at an endpoint. */
+const ENDPOINT_DOCS = "https://ai4kanban.dev/docs/triage-endpoint";
+
+/** A page with nothing on it: one centered block, no frame. A panel drawn across the pane
+ *  reads as content that failed to load rather than as a page waiting to be filled. */
+function Empty({
+  title,
+  hint,
+  searched,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  /** A search that found nothing, drawn with the search's own mark. */
+  searched?: boolean;
+  children?: ReactNode;
+}) {
+  const Mark = searched ? FiSearch : FiInbox;
+  return (
+    <div className="m-auto flex max-w-[420px] flex-col items-center px-4 py-10 text-center">
+      <span
+        className={`flex h-11 w-11 items-center justify-center rounded-[12px] bg-nb-peach-soft ${CHROME}`}
+      >
+        <Mark size={18} aria-hidden />
+      </span>
+      <p className="mt-3 text-[14px] font-[800] tracking-[-0.01em]">{title}</p>
+      {hint && (
+        <p className="mt-1 text-[12.5px] leading-relaxed text-nb-ink-soft">
+          {hint}
+        </p>
+      )}
+      {children && <span className="mt-3 inline-flex">{children}</span>}
+    </div>
+  );
+}
+
+/** The offer to pull from an endpoint: the docs, and nothing about which setting is missing
+ *  — the page they open says what to serve and where the two settings go. */
+function EndpointLink({ label }: { label: string }) {
+  return (
+    <a
+      href={ENDPOINT_DOCS}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 text-[12px] font-[700] text-nb-accent-deep underline underline-offset-2"
+    >
+      {label}
+      <FiExternalLink size={11} aria-hidden />
+    </a>
   );
 }
 
