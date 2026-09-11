@@ -203,6 +203,14 @@ const en: CardCopy = {
       keep: "Keep it",
       failed: "could not discard the delivery",
     },
+    conflict: {
+      resolving: (attempt) => `Resolving the landing conflict · attempt ${attempt}`,
+      waiting: (seconds, attempt) => `Retrying in ${seconds}s · attempt ${attempt}`,
+      starting: (attempt) => `Starting attempt ${attempt}`,
+      stuck: (files, waiting) =>
+        (files.length === 1 ? `\`${files[0]}\` is still conflicted.` : `${files.length} files are still conflicted.`) +
+        (waiting ? " It holds no landing slot while it waits — another delivery can land." : ""),
+    },
     approval: {
       approved: "Approved — it lands from here.",
       approvedBody: (covers) =>

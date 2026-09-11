@@ -84,6 +84,7 @@ export type {
   CardDrafts,
   CardFinished,
   CardLanding,
+  CardLandingConflict,
   CardPatch,
   CardRef,
   CardSchedule,

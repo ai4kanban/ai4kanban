@@ -448,6 +448,11 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
     commit: text(box.commit),
     onto: text(box.onto),
     overlap: Array.isArray(box.overlap) ? box.overlap.filter((n) => Number.isInteger(n)) : undefined,
+    conflictFiles: Array.isArray(box.conflictFiles)
+      ? box.conflictFiles.filter((f): f is string => typeof f === 'string')
+      : undefined,
+    conflictFails: num(box.conflictFails),
+    conflictAt: num(box.conflictAt),
     checks: Array.isArray(box.checks)
       ? box.checks.flatMap((c) =>
           c && typeof c.name === 'string' ? [{ name: c.name, ok: c.ok === true, at: num(c.at) ?? 0 }] : [],

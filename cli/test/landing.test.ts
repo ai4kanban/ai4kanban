@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { activeDelivery, adoptDirectCard, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding, repairLanding } from '../src/lib/agent/landing.ts'
+import { deliveryState } from '../src/lib/agent/pause.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
@@ -114,6 +115,25 @@ const statusOf = (deliveryId: string): string =>
   listDeliveries().find((d) => d.deliveryId === deliveryId)!.status
 
 const log = (ref = 'main'): string[] => git(['log', '--format=%s', ref]).split('\n')
+
+const cardPath = (id: number): string => path.join(root, 'docs', 'kanban', 'todo', 'features', `${id}-card.md`)
+
+const cardText = (id: number): string => fs.readFileSync(cardPath(id), 'utf8')
+
+const write = (id: number, title: string): void => fs.writeFileSync(cardPath(id), card(id, title))
+
+// Where the card page would say this delivery stands (`agent/pause.ts`).
+const stageOf = (deliveryId: string): string =>
+  deliveryState(listDeliveries().find((d) => d.deliveryId === deliveryId)!, 0).stage
+
+// The clock, moved on to the end of a conflict's wait. Real time would cost the suite a
+// minute of doing nothing, and the wait is the only thing being held still.
+const waitOver = (deliveryId: string): void => {
+  withStore((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)!
+    delivery.landing!.conflictAt = Date.now() - 1
+  })
+}
 
 // A build with no card (#428): a **Build now** run that ended before it wrote its own card
 // (#470). It lands the same way and leaves nothing on the board behind it — there is no card
@@ -568,22 +588,119 @@ describe('a conflict', () => {
     assert.equal(landingOf(second.deliveryId)?.status, 'landed')
   })
 
-  it('retries unresolved conflicts without asking the user or discarding work', async () => {
+  it('waits before reopening an unresolved conflict, and never asks the user', async () => {
     await reviewed(1, 'card one', 'one\n')
     const second = await reviewed(2, 'card two', 'two\n')
     await advanceLanding()
 
-    const session = run('conflict', 2, 'card two')
-    await end(session, 'error')
-    assert.equal((await advanceLanding())?.action, 'conflict')
+    await end(run('conflict', 2, 'card two'), 'error')
+    // No second run back to back: the slot goes back and the next attempt is a wait away.
+    assert.equal(await advanceLanding(), null)
+    const first = landingOf(second.deliveryId)!
+    assert.equal(first.status, 'waiting')
+    assert.equal(first.conflictFails, 1)
+    const wait = first.conflictAt! - Date.now()
+    assert.ok(wait > 0 && wait <= 15_000, `first wait was ${wait}ms`)
+    assert.equal(await advanceLanding(), null)
 
-    const live = listDeliveries().find((d) => d.deliveryId === second.deliveryId)!
-    assert.equal(live.landing?.status, 'landing')
-    assert.equal(live.review?.stopped, undefined)
+    // The work and the rebase are untouched, and nothing was asked of anybody.
+    assert.equal(listDeliveries().find((d) => d.deliveryId === second.deliveryId)!.review?.stopped, undefined)
     assert.equal(rebaseInProgress(worktreeDir(second.worktree!)), true)
     assert.deepEqual(log(second.branch!), ['card two (#2)', 'start'])
-    const text = fs.readFileSync(path.join(root, 'docs', 'kanban', 'todo', 'features', '2-card.md'), 'utf8')
-    assert.doesNotMatch(text, /\[user\]/)
+    assert.doesNotMatch(cardText(2), /\[user\]/)
+
+    // The wait is over: the agent opens again, and the wait after the next failure is longer.
+    waitOver(second.deliveryId)
+    assert.equal((await advanceLanding())?.action, 'conflict')
+    assert.equal(landingOf(second.deliveryId)?.conflictAt, undefined)
+    await end(run('conflict', 2, 'card two'), 'error')
+    assert.equal(await advanceLanding(), null)
+    const again = landingOf(second.deliveryId)!
+    assert.equal(again.conflictFails, 2)
+    assert.ok(again.conflictAt! - Date.now() > 15_000, 'the second wait is longer than the first')
+    assert.doesNotMatch(cardText(2), /\[user\]/)
+  })
+
+  it('gives the landing slot up while it waits, and says so rather than "in line"', async () => {
+    write(3, 'card three')
+    await reviewed(1, 'card one', 'one\n')
+    const second = await reviewed(2, 'card two', 'two\n')
+    const third = await reviewed(3, 'card three', 'three\n')
+    await advanceLanding()
+    await end(run('conflict', 2, 'card two'), 'error')
+
+    // The waiter is passed over and the delivery behind it takes the slot.
+    assert.equal((await advanceLanding())?.action, 'conflict')
+    assert.equal(landingOf(second.deliveryId)?.status, 'waiting')
+    assert.equal(landingOf(third.deliveryId)?.status, 'landing')
+
+    // And the pass that finds the slot taken leaves the waiter's own line alone: it is
+    // waiting on its next attempt, not queued behind card three.
+    run('conflict', 3, 'card three')
+    assert.equal(await advanceLanding(), null)
+    assert.match(landingOf(second.deliveryId)?.why ?? '', /is not resolved yet/)
+    assert.equal(stageOf(second.deliveryId), 'retry')
+    assert.equal(stageOf(third.deliveryId), 'conflict')
+
+    // Still its own line once the wait is over and the slot is somebody else's: the failure
+    // is what the next attempt opens on, and the queue must not write over it.
+    waitOver(second.deliveryId)
+    assert.equal(await advanceLanding(), null)
+    assert.match(landingOf(second.deliveryId)?.why ?? '', /is not resolved yet/)
+    assert.equal(stageOf(second.deliveryId), 'retry')
+  })
+
+  it('lets a disjoint delivery land while a conflict waits', async () => {
+    write(3, 'card three')
+    await reviewed(1, 'card one', 'one\n')
+    const second = await reviewed(2, 'card two', 'two\n')
+    const third = await reviewed(3, 'card three', 'three\n', 'mergeable.txt')
+    await advanceLanding()
+    await end(run('conflict', 2, 'card two'), 'error')
+
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(third.deliveryId)?.status, 'landed')
+    assert.equal(landingOf(second.deliveryId)?.status, 'waiting')
+    assert.equal(rebaseInProgress(worktreeDir(second.worktree!)), true)
+  })
+
+  it('clears the wait and the failure count once the rebase goes through', async () => {
+    await reviewed(1, 'card one', 'one\n')
+    const second = await reviewed(2, 'card two', 'two\n')
+    await advanceLanding()
+    await end(run('conflict', 2, 'card two'), 'error')
+    assert.equal(await advanceLanding(), null)
+
+    waitOver(second.deliveryId)
+    assert.equal((await advanceLanding())?.action, 'conflict')
+    const dir = worktreeDir(second.worktree!)
+    const session = run('conflict', 2, 'card two')
+    fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\ntwo\n')
+    git(['add', 'shared.txt'], dir)
+    await end(session)
+
+    assert.equal((await advanceLanding())?.action, 'review')
+    const landing = landingOf(second.deliveryId)!
+    assert.equal(landing.conflictFails, undefined)
+    assert.equal(landing.conflictAt, undefined)
+    assert.equal(landing.conflictFiles, undefined)
+    await passReview(2, 'card two')
+    await advanceLanding()
+    assert.equal(landingOf(second.deliveryId)?.status, 'landed')
+  })
+
+  it('leaves a rebase between two attempts alone as the board comes up', async () => {
+    await reviewed(1, 'card one', 'one\n')
+    const second = await reviewed(2, 'card two', 'two\n')
+    await advanceLanding()
+    const dir = worktreeDir(second.worktree!)
+    fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\n<<<<<<< still conflicted\n')
+    await end(run('conflict', 2, 'card two'), 'error')
+    assert.equal(await advanceLanding(), null)
+
+    assert.deepEqual(repairLanding(), [])
+    assert.equal(rebaseInProgress(dir), true)
+    assert.equal(landingOf(second.deliveryId)?.conflictFails, 1)
   })
 
   it('hands damaged rebase state back to the agent and reviews after recovery', async () => {
@@ -597,11 +714,13 @@ describe('a conflict', () => {
     const saved = fs.readFileSync(headName)
     fs.unlinkSync(headName)
 
-    assert.equal((await advanceLanding())?.action, 'conflict')
+    assert.equal(await advanceLanding(), null)
     const live = listDeliveries().find((d) => d.deliveryId === second.deliveryId)!
     assert.match(live.landing?.why ?? '', /head-name/)
     assert.equal(live.review?.stopped, undefined)
     assert.equal(fs.readFileSync(path.join(dir, 'shared.txt'), 'utf8'), 'one\ntwo\n')
+    waitOver(second.deliveryId)
+    assert.equal((await advanceLanding())?.action, 'conflict')
     const sink = startCollecting()
     try {
       printFlow({ action: 'conflict', id: 2, deliveryId: second.deliveryId })

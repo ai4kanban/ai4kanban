@@ -34,6 +34,7 @@ import {
 } from './deliveries'
 import { HELD_ON_APPROVAL, HELD_ON_QUESTIONS, IN_LINE } from './pause'
 import { aiReviewOn, askUser, reviewOf, type Ask } from './review'
+import { backoffMs } from './retry'
 import { readStore, withStore } from './store'
 import type { AgentRequest, DeliveryLanding, DeliveryRecord } from './types'
 import {
@@ -77,11 +78,19 @@ const them = (n: number): string => (n === 1 ? 'it' : 'them')
 
 // ---- the slot ---------------------------------------------------------------
 
+/** True while a delivery is waiting out a `conflict` run that failed (#595). Its rebase and
+ *  the resolutions staged in it are untouched; it simply holds no landing slot until the
+ *  wait is over, so every other delivery lands while it waits. */
+function waitingOut(delivery: DeliveryRecord, now: number = Date.now()): boolean {
+  return !!delivery.landing?.conflictAt && delivery.landing.conflictAt > now
+}
+
 // The delivery to work on this pass: the one already holding the slot when nothing of its
 // own is running, or — when the slot is free — the oldest waiter. A waiter whose review has
 // stopped is passed over: it is waiting on a person, not on the queue. So is one held on
 // its card's open questions (#307), for the same reason.
 function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefined {
+  const now = Date.now()
   return withStore((store) => {
     const holder = store.deliveries.find((d) => d.status === 'active' && d.landing?.status === 'landing')
     if (holder) {
@@ -100,10 +109,14 @@ function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefi
         !d.review?.stopped &&
         !skip.has(d.deliveryId) &&
         !held.has(d.deliveryId) &&
+        !waitingOut(d, now) &&
         wantsLanding(d),
     )
     if (!waiter) return undefined
-    waiter.landing = { ...(waiter.landing as DeliveryLanding), status: 'landing', why: undefined, at: Date.now() }
+    const was = waiter.landing as DeliveryLanding
+    // A conflict picked back up after its wait keeps the last failure's `why`: it is why
+    // this attempt exists, and the flow hands it to the agent that opens on it (#595).
+    waiter.landing = { ...was, status: 'landing', why: was.conflictAt ? was.why : undefined, at: Date.now() }
     return { ...waiter }
   })
 }
@@ -124,10 +137,17 @@ function patchLanding(deliveryId: string, change: (landing: DeliveryLanding) => 
 // Put the slot back, saying why. The delivery stays ACTIVE and queued: whatever stopped it
 // — a dirty checkout, a target that would not take the commit — is a thing the user fixes,
 // and the next pass tries again.
+//
+// Whatever a conflict was in the middle of goes with it (#595). Every caller here is a
+// reason OUTSIDE the conflict, so the card must stop saying an attempt is coming — the wait
+// between two attempts gives the slot back on its own, and never through this.
 function giveUpSlot(delivery: DeliveryRecord, why: string): void {
   patchLanding(delivery.deliveryId, (landing) => {
     landing.status = 'waiting'
     landing.why = why
+    landing.conflictFiles = undefined
+    landing.conflictFails = undefined
+    landing.conflictAt = undefined
   })
 }
 
@@ -335,6 +355,11 @@ function noteQueue(held: Set<string>): void {
     if (delivery.deliveryId === holder.deliveryId) continue
     if (delivery.status !== 'active' || delivery.landing?.status !== 'waiting') continue
     if (held.has(delivery.deliveryId) || delivery.review?.stopped || !wantsLanding(delivery)) continue
+    // One between two conflict attempts is not in line: it gave the slot up on purpose and
+    // says so itself, and overwriting that would hide the retry behind "in line behind" and
+    // hand the next agent the queue as the reason it was opened (#595). Whether or not its
+    // wait is over — the tick that picks it back up is exactly the one this would spoil.
+    if (delivery.landing.conflictAt) continue
     if (delivery.landing.why === why) continue
     patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
   }
@@ -402,8 +427,12 @@ async function landStep(delivery: DeliveryRecord): Promise<Step> {
     return { done: true }
   }
   // A rebase stopped part-way through is a conflict somebody has been resolving — or a
-  // crash. Either way it is finished before anything else is decided.
-  if (rebaseInProgress(dir)) return await finishConflict(delivery, dir)
+  // crash. Either way it is finished before anything else is decided, unless the slot was
+  // just taken back after a wait: nothing has touched the worktree since the last failure,
+  // so what that needs is another agent, not another `--continue` (#595).
+  if (rebaseInProgress(dir)) {
+    return delivery.landing?.conflictAt ? reopenConflict(delivery, dir) : await finishConflict(delivery, dir)
+  }
 
   const refusal = landingRefusal(delivery)
   if (refusal) {
@@ -600,6 +629,9 @@ async function afterRebase(
     landing.rebasedFrom = from
     landing.rebaseKind = kind
     landing.why = undefined
+    landing.conflictFiles = undefined
+    landing.conflictFails = undefined
+    landing.conflictAt = undefined
     landing.at = at
     if (reviews && kind !== 'disjoint') {
       reviewOf(live).stopped = { reason: 'landing', why: rebaseWhy(delivery, kind), at }
@@ -637,14 +669,40 @@ const rebaseWhy = (delivery: DeliveryRecord, kind: 'overlap' | 'conflict'): stri
 function startConflict(delivery: DeliveryRecord, target: string, files: string[]): Step {
   patchLanding(delivery.deliveryId, (landing) => {
     landing.onto = target
+    landing.conflictFiles = files
     landing.why = `resolving a conflict with ${delivery.targetBranch} in ${names(files)}`
   })
-  return {
-    start: { action: 'conflict', id: delivery.cardId ?? undefined, deliveryId: delivery.deliveryId, title: delivery.title },
-  }
+  return { start: conflictRun(delivery) }
+}
+
+const conflictRun = (delivery: DeliveryRecord): AgentRequest => ({
+  action: 'conflict',
+  id: delivery.cardId ?? undefined,
+  deliveryId: delivery.deliveryId,
+  title: delivery.title,
+})
+
+// The wait is over and the slot is back. The agent opens again on the conflict its last
+// attempt left staged in the worktree; clearing the time is what says this delivery is being
+// worked on rather than waited on, and what sends the run's close back to `finishConflict`.
+//
+// The last failure's `why` stays exactly as it was: it is what went wrong, it is what the
+// flow hands the agent, and this attempt exists because of it.
+function reopenConflict(delivery: DeliveryRecord, dir: string): Step {
+  const files = conflictedPaths(dir)
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.conflictAt = undefined
+    if (files.length) landing.conflictFiles = files
+  })
+  return { start: conflictRun(delivery) }
 }
 
 // Continue staged resolutions; return failures to the agent without discarding its work.
+//
+// A failure never reaches the user (#595). The delivery keeps its rebase, gives the landing
+// slot back so nothing else is held behind it, and the next attempt opens after a wait that
+// doubles — capped, jittered, and unbounded in number, because the only end this path has is
+// the conflict going through.
 async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<Step> {
   const left = conflictedPaths(dir)
   const done = left.length ? { ok: false, why: `${names(left)} ${are(left.length)} still conflicted` } : continueRebase(dir)
@@ -654,13 +712,18 @@ async function finishConflict(delivery: DeliveryRecord, dir: string): Promise<St
     // resolution itself is code no review has seen.
     return await afterRebase(delivery, delivery.landing?.onto ?? delivery.base!, 'conflict')
   }
-  const why =
-    `the conflict between ${deliveryName(delivery)} and ${delivery.targetBranch} was not resolved — ` +
-    `${done.why ?? 'the rebase would not go through'}`
-  patchLanding(delivery.deliveryId, (landing) => { landing.why = why })
-  return {
-    start: { action: 'conflict', id: delivery.cardId ?? undefined, deliveryId: delivery.deliveryId, title: delivery.title },
-  }
+  const fails = (delivery.landing?.conflictFails ?? 0) + 1
+  const at = Date.now() + backoffMs(fails + 1)
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.status = 'waiting'
+    landing.conflictFails = fails
+    landing.conflictAt = at
+    if (left.length) landing.conflictFiles = left
+    landing.why =
+      `the conflict between ${deliveryName(delivery)} and ${delivery.targetBranch} is not resolved yet — ` +
+      `${done.why ?? 'the rebase would not go through'}`
+  })
+  return { done: true }
 }
 
 // ---- moving the target branch -----------------------------------------------
@@ -768,6 +831,10 @@ function repairIdleLanding(): string[] {
     if (d.status !== 'active' || !d.worktree || !worktreeExists(d.worktree)) continue
     if (!rebaseInProgress(worktreeDir(d.worktree))) continue
     if (store.runs.some((r) => r.status === 'running' && r.deliveryId === d.deliveryId)) continue
+    // A conflict between attempts is not half-done work: the wait is the board's own, and
+    // aborting the rebase would throw away what the last agent staged. The time is cleared
+    // the moment an agent opens on it, so a crashed attempt still reaches the abort (#595).
+    if (d.landing?.conflictAt) continue
     abortRebase(worktreeDir(d.worktree))
     giveUpSlot(d, 'a rebase was interrupted and has been put back — the landing will be tried again')
     complaints.push(

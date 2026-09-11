@@ -240,6 +240,13 @@ function attachDelivery(card: Card): void {
       why: live.landing.why,
       commit: live.landing.commit,
       overlap: live.landing.overlap?.length ? live.landing.overlap : undefined,
+      conflict: live.landing.conflictFiles?.length
+        ? {
+            attempt: (live.landing.conflictFails ?? 0) + 1,
+            files: live.landing.conflictFiles,
+            at: live.landing.conflictAt,
+          }
+        : undefined,
     },
     approval: cardApproval(live),
   }

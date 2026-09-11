@@ -200,6 +200,14 @@ const zh: CardCopy = {
       keep: "保留",
       failed: "未能放弃这次交付",
     },
+    conflict: {
+      resolving: (attempt) => `正在解决合入冲突 · 第 ${attempt} 次`,
+      waiting: (seconds, attempt) => `${seconds} 秒后重开解冲突 · 第 ${attempt} 次`,
+      starting: (attempt) => `正在重开第 ${attempt} 次解冲突`,
+      stuck: (files, waiting) =>
+        (files.length === 1 ? `\`${files[0]}\` 还有冲突没解开。` : `${files.length} 个文件还有冲突没解开。`) +
+        (waiting ? "等待期间不占合入位，别的交付照常合入。" : ""),
+    },
     approval: {
       approved: "已批准——接下来会自动合入。",
       approvedBody: (covers) =>

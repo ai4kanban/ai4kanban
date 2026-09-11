@@ -498,6 +498,16 @@ export interface DeliveryLanding {
   overlap?: number[]
   /** The checks that ran for this landing, with their results. */
   checks?: LandingCheck[]
+  /** The files a conflict with the target branch is being resolved in (#595). Set while an
+   *  agent is on it and while the board waits to reopen one, and cleared the moment the
+   *  rebase goes through — so it is also what says a landing is on the conflict path. */
+  conflictFiles?: string[]
+  /** `conflict` runs that ended without finishing the rebase, in a row. Never bounded: a
+   *  conflict is retried until it lands, and `afterRebase` clears this. */
+  conflictFails?: number
+  /** When the next `conflict` run may open. The delivery gives the landing slot back until
+   *  then, so another delivery lands while it waits. */
+  conflictAt?: number
   at: number
 }
 

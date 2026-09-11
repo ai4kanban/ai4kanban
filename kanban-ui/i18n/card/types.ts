@@ -131,6 +131,17 @@ export type CardCopy = {
       keep: string;
       failed: string;
     };
+    /** A landing conflict the board resolves by itself (#595): the attempt running, the
+     *  countdown to the next one, and what is still conflicted. No denominator anywhere —
+     *  the attempts do not run out. */
+    conflict: {
+      resolving: (attempt: number) => string;
+      waiting: (seconds: number, attempt: number) => string;
+      starting: (attempt: number) => string;
+      /** The files still conflicted — one is named, more are counted — and, while the board
+       *  is waiting, that the wait costs no other delivery its turn. */
+      stuck: (files: string[], waiting: boolean) => string;
+    };
     approval: {
       approved: string;
       approvedBody: (covers: string) => string;

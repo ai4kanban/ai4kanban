@@ -33,6 +33,12 @@ export type DeliveryStage =
   /** Reviewed and queued, and landing refused it — a dirty checkout, a target branch that
    *  is gone. The refusal already says what clears it, and the next pass tries again. */
   | 'refused'
+  /** An agent is resolving a conflict with the target branch, in the delivery's own
+   *  worktree (#595). Nothing is asked of the user. */
+  | 'conflict'
+  /** That agent could not resolve it, and the board waits before opening the next one
+   *  (#595). It holds no landing slot while it waits, so another delivery lands. */
+  | 'retry'
   /** Reviewed and queued behind the card that holds the landing slot. Nothing is asked of
    *  the user: it moves the moment the one in front of it lands. */
   | 'queued'
@@ -70,6 +76,9 @@ export const HELD_ON_APPROVAL = 'held on your approval'
 export const IN_LINE = 'in line behind'
 
 const count = (n: number): string => `${n} open question${n === 1 ? '' : 's'}`
+
+// The conflicted files, the way landing names them: one is worth naming, more are counted.
+const some = (files: string[]): string => (files.length === 1 ? `\`${files[0]}\`` : `${files.length} files`)
 
 const upper = (text: string): string => (text ? text[0]!.toUpperCase() + text.slice(1) : text)
 
@@ -218,6 +227,34 @@ export function deliveryState(
         `Landing waits for your approval — read the tree on \`Diff\`, then \`Approve this tree\`.` +
         (again ? ` The tree moved, so the last approval was cancelled.` : ''),
       paused: true,
+    }
+  }
+  // The board resolving a landing conflict by itself (#595) — the run working on it, and
+  // the wait between one that failed and the next. Neither is a pause: the retries are
+  // unbounded, so there is nothing for the user to answer and nothing to press. Before the
+  // queue and the refusal below, both of which would otherwise claim these `why`s.
+  if (landing?.conflictFiles?.length) {
+    const files = landing.conflictFiles
+    const attempt = (landing.conflictFails ?? 0) + 1
+    const where = `${some(files)} against \`${delivery.targetBranch ?? 'the target branch'}\``
+    if (landing.status === 'waiting' && landing.conflictAt) {
+      const left = Math.max(0, Math.round((landing.conflictAt - Date.now()) / 1_000))
+      return {
+        stage: 'retry',
+        label: 'Waiting to retry',
+        line:
+          `Attempt ${attempt - 1} left ${where} conflicted. It gave the landing slot up and opens attempt ` +
+          `${attempt} ${left ? `in ${left}s` : 'now'} — another delivery can land while it waits.`,
+        paused: false,
+      }
+    }
+    if (landing.status === 'landing') {
+      return {
+        stage: 'conflict',
+        label: 'Resolving a conflict',
+        line: `Attempt ${attempt}: resolving ${where}. It lands by itself once the conflict is out — nothing is asked of you.`,
+        paused: false,
+      }
     }
   }
   // Queued behind whichever card holds the landing slot. Before the refusal below, because

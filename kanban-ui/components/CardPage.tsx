@@ -30,6 +30,7 @@ import {
   type CardDelivery,
   type CardDeliveryStage,
   type CardFinished,
+  type CardLandingConflict,
   type CardPatch,
   type CardScreen,
   type DeliveryDiff,
@@ -712,6 +713,8 @@ const PILL_TONE: Record<CardDeliveryStage, keyof typeof PILL_SKIN> = {
   commit: "live",
   rereview: "warn",
   refused: "warn",
+  conflict: "live",
+  retry: "warn",
   queued: "live",
   landed: "done",
 };
@@ -914,6 +917,38 @@ function DeliveryFoot({ children }: { children: React.ReactNode }) {
   );
 }
 
+// A landing conflict the board is resolving by itself (#595).
+//
+// Drawn under the tab strip, where a run's own retry wait is drawn (`agent-shared`): during
+// the wait there IS no run, so the countdown, the attempt coming and the file still
+// conflicted are the only things moving in the block. No denominator — the attempts do not
+// run out, and a number over one would be a promise the board does not make.
+function ConflictRetry({ conflict }: { conflict: CardLandingConflict }) {
+  const c = useCopy().card.delivery.conflict;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+  const left = conflict.at ? Math.max(0, Math.round((conflict.at - now) / 1000)) : 0;
+  return (
+    <div className="px-4 py-3">
+      <div role="status" className="rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
+        <p className="nb-tag mb-1.5 text-nb-peach-ink">
+          {!conflict.at
+            ? c.resolving(conflict.attempt)
+            : left > 0
+              ? c.waiting(left, conflict.attempt)
+              : c.starting(conflict.attempt)}
+        </p>
+        <p className="text-[12.5px] leading-relaxed text-nb-ink">
+          {marked(c.stuck(conflict.files, !!conflict.at))}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function DeliveryBlock({
   delivery,
   diff,
@@ -945,21 +980,31 @@ function DeliveryBlock({
   // stopped leaves the block folded to its strip — the state is said beside the title, and
   // the log is there for whoever wants it.
   const live = session?.status === "running";
-  const [open, setOpen] = useState(!!live || waitingOnApproval);
+  // A landing conflict keeps the block open through the wait between attempts (#595):
+  // nothing is running then, but the countdown under the strip is what moves. Only while
+  // the board is on it: a delivery held on its card's questions keeps the conflict it will
+  // come back to, and a countdown to an attempt nothing is going to open would be a lie.
+  const onConflict = delivery.state.stage === "conflict" || delivery.state.stage === "retry";
+  const conflict = onConflict ? delivery.landing?.conflict : undefined;
+  const inConflict = !!conflict;
+  const [open, setOpen] = useState(!!live || waitingOnApproval || inConflict);
   // A delivery that STARTS waiting while the page is open opens on the diff too, and a run
   // that starts or stops swings the fold with it. Only on the change: whatever the user
   // picked or folded afterwards is theirs until the delivery moves again.
   const wasWaiting = useRef(waitingOnApproval);
   const wasLive = useRef(live);
+  const wasConflict = useRef(inConflict);
   useEffect(() => {
     if (waitingOnApproval && !wasWaiting.current) {
       setTab("diff");
       setOpen(true);
     }
-    if (live !== wasLive.current) setOpen(!!live || waitingOnApproval);
+    if (inConflict && !wasConflict.current) setOpen(true);
+    if (live !== wasLive.current) setOpen(!!live || waitingOnApproval || inConflict);
     wasWaiting.current = waitingOnApproval;
     wasLive.current = live;
-  }, [waitingOnApproval, live]);
+    wasConflict.current = inConflict;
+  }, [waitingOnApproval, live, inConflict]);
   const tabs: DeliveryTab[] = [
     ...(diff ? [{ key: "diff" as const, label: c.tabDiff }] : []),
     { key: "log" as const, label: c.tabLog },
@@ -1017,6 +1062,7 @@ function DeliveryBlock({
           )
         }
       />
+      {open && conflict && <ConflictRetry conflict={conflict} />}
       {open &&
         (current === "approval" && approval ? (
           <ApprovalPane delivery={delivery} approval={approval} onApproved={onApproved} onError={onError} />

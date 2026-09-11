@@ -34,8 +34,12 @@ const CAP_MS = 120_000
 const JITTER = 0.25
 
 /** The wait before attempt `attempt`, in ms — `random` is the roll, injected so a test can
- *  hold it still. */
-function backoffMs(attempt: number, random: () => number): number {
+ *  hold it still.
+ *
+ *  Landing's own conflict retries borrow this curve (#595): the same first wait, the same
+ *  ceiling and the same jitter, without the attempt and window bounds above — a conflict is
+ *  retried until it lands. */
+export function backoffMs(attempt: number, random: () => number = Math.random): number {
   const step = Math.min(CAP_MS, BASE_MS * 2 ** Math.max(0, attempt - 2))
   return Math.round(step * (1 - JITTER * random()))
 }
