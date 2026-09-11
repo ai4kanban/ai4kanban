@@ -16,6 +16,8 @@ by upstream, so an update overwrites it wholesale; this file is never touched. S
   is unfinished: create no cards. `akb guide setup` says what to do instead.
 - **Project** — {{PROJECT_NAME}}: {{PROJECT_GOAL}}
   _(default: this repository; its goal is whatever the README states.)_
+- **Stale after** — 30 days
+  _(how long a card may sit untouched before `akb raw list --stale` calls it stuck.)_
 - **Planning sources** — what to read when proposing new work:
   the README and package manifests, the codebase, project documentation, and board memory.
 - **Reference docs** — optional files the flows read when they exist:

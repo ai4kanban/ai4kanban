@@ -11,6 +11,8 @@ set here.
   without moving the board's files to match.)_
 - **Project** — {{PROJECT_NAME}}: {{PROJECT_GOAL}}
   _(default: this repository; its goal is whatever the README states.)_
+- **Stale after** — 30 days
+  _(how long a card may sit untouched before `akb raw list --stale` calls it stuck.)_
 - **Planning sources** — what to read when proposing new topics:
   the product board's `docs/kanban/memory/goal.md` and `memory/readme.md` (what shipped →
   what to launch), the site's own docs, and this board's `memory/published.md` and

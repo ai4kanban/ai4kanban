@@ -406,9 +406,14 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .summary('the open cards: id, title, meta, summary, path')
     .description(
       'The open cards at a glance — one block per card with its id, title, meta (status, priority, roi, ' +
-        'release, blockers, open questions, hand-checks), summary line and file path.',
+        'release, blockers, open questions, hand-checks), summary line and file path.\n\n' +
+        "`--stale` asks the other question: which cards have sat untouched past the board's **Stale after** " +
+        'setting (config.md, 30 days by default), stalest first, each with the days it has sat and what is ' +
+        'holding it — a blocker, an unanswered [user] question, or a build. Age is the date git last saw ' +
+        "the card's file; group roots, recurring cards and cards git cannot date are left out.",
     )
     .option('-m, --module <name>', 'only the cards tagged with that module, validated against modules.md')
+    .option('--stale', 'only the cards untouched past the threshold, stalest first, with the days each has sat')
     .action(async function (this: Command) {
       await dispatch('list', this, [], this.opts(), cli)
     })
