@@ -155,8 +155,6 @@ export type RailCopy = {
   insights: {
     open: string;
     title: string;
-    tabDaily: string;
-    tabQuality: string;
     daily: {
       reading: string;
       empty: string;
@@ -166,19 +164,6 @@ export type RailCopy = {
       rejected: string;
       totals: (days: number, completed: number, created: number, rejected: number) => string;
       chart: (days: number) => string;
-    };
-    quality: {
-      reading: string;
-      empty: string;
-      /** Only read out loud: how the chart is moved through. */
-      chart: string;
-      stillOpen: string;
-      axisOpen: string;
-      notEnough: string;
-      needed: (floor: number) => string;
-      percent: (value: number) => string;
-      cards: (ids: string) => string;
-      noCards: string;
     };
   };
 };

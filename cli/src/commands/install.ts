@@ -365,6 +365,8 @@ async function repairBoard(root: string, report: Report): Promise<void> {
   // the move below needs, so it goes first.
   await boardMove(root, ['init'])
   moveRuntimes(root, board, report)
+  const dropped = dropRecordFile(board)
+  if (dropped) report.did.push(dropped)
   dropModuleGoals(board, report)
   checkConfig(board, report)
   checkModules(board, report)
@@ -422,6 +424,16 @@ function moveLegacyMemory(board: string, report: Report): void {
     }
   }
   if (moved.length) report.did.push(`moved the memory set into docs/kanban/memory/: ${moved.join(', ')}`)
+}
+
+/** `record.csv` was written only to score the board's own planning (#604). The score is gone,
+ *  nothing reads the file and no move writes it, so an older board's copy goes. Null when the
+ *  board has none — there is nothing to report. */
+export function dropRecordFile(board: string): string | null {
+  const file = path.join(board, 'record.csv')
+  if (!fs.existsSync(file)) return null
+  fs.rmSync(file)
+  return 'removed docs/kanban/record.csv (the planning scores it fed are gone)'
 }
 
 // `goal.md` lives at the board root of `memory/` only. An older layout gave every module a

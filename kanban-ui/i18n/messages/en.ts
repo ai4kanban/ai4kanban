@@ -12,7 +12,6 @@ const en: MessagesCopy = {
     tooOldForCloud: "The board's rules in this project are too old to sign in to Cloud.",
     tooOldForChat: "This board's copy of the board's rules is too old to hold a conversation.",
     tooOldForHandChecks: "This board's copy of the rules is older than editing hand-checks.",
-    tooOldForScores: "This board's copy of the rules is older than the planning scores.",
     tooOldForMemory: "The board's rules this board runs are too old to read its memory.",
     tooOldForArchive: "The board's rules this board runs are too old to read its archive.",
     tooOldForSignals: "The board's rules this board runs are too old to use triage.",

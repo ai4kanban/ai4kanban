@@ -13,7 +13,6 @@ export type MessagesCopy = {
     tooOldForCloud: string;
     tooOldForChat: string;
     tooOldForHandChecks: string;
-    tooOldForScores: string;
     tooOldForMemory: string;
     tooOldForArchive: string;
     tooOldForSignals: string;

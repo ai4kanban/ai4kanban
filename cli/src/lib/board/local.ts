@@ -82,7 +82,6 @@ import { readGoalText, writeGoalText } from '../view/goal'
 import { readMemoryFile, readMemoryModules, writeMemoryFile } from '../view/memory'
 import { readMetricsView } from '../view/metrics'
 import { allCards, findCard, readBoard, readSetupState } from '../view/read'
-import { readScoreView } from '../view/score'
 import { boardStamp } from '../view/stamp'
 import { NO_RELEASE, normalizeRelease } from '../validate'
 import type { Typed } from '../cli/shared'
@@ -272,7 +271,6 @@ export function localBoard(): BoardProvider {
     readSetupState: () => Promise.resolve(readSetupState()),
     readSetupDraft: () => Promise.resolve(readSetupDraft()),
     readMetricsView: () => Promise.resolve(readMetricsView()),
-    readScoreView: () => Promise.resolve(readScoreView()),
 
     fillPlan: () =>
       read(

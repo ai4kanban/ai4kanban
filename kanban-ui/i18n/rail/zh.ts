@@ -115,8 +115,6 @@ const zh: RailCopy = {
   insights: {
     open: "统计",
     title: "统计",
-    tabDaily: "每日进度",
-    tabQuality: "规划质量",
     daily: {
       reading: "正在读取 metrics.csv…",
       empty:
@@ -127,19 +125,6 @@ const zh: RailCopy = {
       totals: (days, completed, created, rejected) =>
         `最近 ${days} 天——**已完成 ${completed}**、**已创建 ${created}**、**已否决 ${rejected}**。`,
       chart: (days) => `最近 ${days} 天的看板每日活动：完成、创建和否决的卡片数。`,
-    },
-    quality: {
-      reading: "正在读取 record.csv…",
-      empty:
-        "还没有规划记录。看板每定下一个问题、提出一张卡片或关闭一个版本，都会往 `record.csv` 写入一行——三项分数正是由这些行算出来的。",
-      chart: "按版本统计的规划质量。用左右方向键在版本之间切换；下方的读数给出该版本的三项分数。",
-      stillOpen: " · 尚未关闭",
-      axisOpen: " · 进行中",
-      notEnough: "样本不足",
-      needed: (floor) => `——还需要 ${floor} 个`,
-      percent: (value) => `${value}%`,
-      cards: (ids) => `卡片 ${ids}`,
-      noCards: "暂无卡片",
     },
   },
 };

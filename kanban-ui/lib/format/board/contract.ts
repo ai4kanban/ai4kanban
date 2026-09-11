@@ -43,7 +43,6 @@ import type {
   MemoryModule,
   MetricsResult,
   SaveProjectResult,
-  ScoreResult,
   SetupDraft,
   SetupState,
 } from '../view/types'
@@ -175,7 +174,6 @@ export interface BoardProvider {
   readSetupState(): Promise<SetupState | null>
   readSetupDraft(): Promise<SetupDraft>
   readMetricsView(): Promise<MetricsResult>
-  readScoreView(): Promise<ScoreResult>
   fillPlan(): Promise<FillPlan>
   closePlan(id: string): Promise<ClosePlan>
   dropPlan(id: string): Promise<DropPlan>

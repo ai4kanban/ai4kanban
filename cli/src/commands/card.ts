@@ -9,7 +9,6 @@ import path from 'node:path'
 import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
-import { countsForRecord, recordFact, type Answerer, type Origin } from '../lib/record'
 import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
 import { CHANNEL_NAMES, CHANNEL_STATUSES, asChannelStatus, chooseChannels } from '../lib/channels'
 import { flowRefusal } from '../lib/agent/flows'
@@ -170,11 +169,6 @@ function bodyFromFile(opts: CreateOptions): string | null {
   return `${text!.trim()}\n`
 }
 
-// Where a card came from. `--proposed` is what the flows that go looking for work pass —
-// extract-ideas, plan-release; every other way of adding a card is a person
-// asking for it. Kept for the board's own score (lib/record.ts), not shown on the card.
-const originOf = (opts: CreateOptions): Origin => (opts.proposed ? 'proposed' : 'asked')
-
 // Create allocates one id, writes one card's frontmatter + body template, and indexes it.
 // The script owns the meta; fill the body with your editor and leave the frontmatter alone.
 export function cmdCreate(opts: CreateOptions): MoveResult {
@@ -227,7 +221,6 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   const scaffolded = !written && opts.body !== false && (recurring || solution() !== 'marketing')
   const body = written ?? (!scaffolded ? '' : recurring ? recurringBody() : defaultBody())
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
-  if (countsForRecord(file)) recordFact('card-created', start, originOf(opts))
   // A recurring card is a job, not one of the open tasks — it never archives and the index
   // is the task list, so it stays out of it (the same cards `reconcile` never asks for).
   const indexed = recurring ? false : addReadmeRef(start, title, fileRel)
@@ -514,20 +507,13 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
 
   const changes: string[] = []
-  // Who cleared each question, in the order the ops ran. A question the board handed over
-  // carries the `[user]` tag, so the card already says whether the person answered it or
-  // the board settled it — no flag, and nothing for a flow to remember to pass.
-  const closed: Answerer[] = []
-  const answerer = (q: Question): Answerer => (parseQuestion(q.text).tag === 'user' ? 'user' : 'board')
   let moved = 0
   for (const op of ops) {
     if (op.kind === 'clear') {
-      closed.push(...meta.questions.map(answerer))
       meta.questions = []
       changes.push('cleared')
     } else if (op.kind === 'drop') {
       const ns = parseQuestionPositions(op.ns, meta.questions.length, 'drop')
-      closed.push(...meta.questions.filter((_, i) => ns.includes(i + 1)).map(answerer))
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`dropped ${ns.join(',')}`)
     } else if (op.kind === 'to-verify') {
@@ -538,7 +524,6 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
         const line = parseQuestion(q.text).text.trim()
         if (!line) die(`question ${ns.join(',')} on #${id} is empty — there is nothing to move to verify`)
         meta.verify.push(line)
-        closed.push('verify')
         moved++
       }
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
@@ -561,7 +546,6 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
   }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   if (scheduleRefineOnBlock(id)) changes.push('schedule→refine when unblocked')
-  if (countsForRecord(file)) for (const by of closed) recordFact('question-closed', id, by)
   say(
     `updated #${id} questions: ${changes.join(', ')} (${meta.questions.length} open` +
       (moved ? `, ${meta.verify.length} to check by hand` : '') +

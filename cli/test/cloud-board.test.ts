@@ -110,8 +110,7 @@ const SNAPSHOT = {
 const HISTORY = {
   revision: '7',
   documents: [
-    { path: 'record.csv', kind: 'history', revision: 'h1', body: 'date,action,card,detail\n' },
-    { path: 'metrics.csv', kind: 'history', revision: 'h2', body: 'date,created\n' },
+    { path: 'metrics.csv', kind: 'history', revision: 'h1', body: 'date,created\n' },
   ],
 }
 

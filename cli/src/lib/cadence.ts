@@ -64,7 +64,7 @@ export function formatCadence(c: Cadence): string {
 }
 
 /** A day — `2026-08-02`, local time. Every date the board writes down is this one: a
- *  `metrics.csv` row, a `record.csv` line, the day a release shipped.
+ *  `metrics.csv` row, the day a release shipped.
  *
  *  Local rather than UTC, for the same reason the stamps above are. The board is one
  *  person's tool on one machine, and the day it means is the day they are having — east of

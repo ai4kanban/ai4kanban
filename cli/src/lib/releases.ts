@@ -24,7 +24,6 @@ import { formatDay } from './cadence'
 import { walkMd, idPrefix } from './cards'
 import { parseFrontmatter, serializeFrontmatter } from './frontmatter'
 import { NO_RELEASE, normalizeRelease } from './validate'
-import { recordFact } from './record'
 import { cloudBoardFor, setCloudBoardRelease } from './cloud/boards'
 
 // One release as the list carries it: its id, and what it is for. Read by `board/assemble.ts`,
@@ -488,10 +487,6 @@ export function closeRelease(raw: string | undefined) {
   // The field is cleared: the work is not promised to a version nobody has picked yet.
   for (const card of left) setCardRelease(card.file, NO_RELEASE)
   removeReleaseLine(id)
-  // The boundary in the board's own record: everything counted before this line belongs to
-  // the version that just shipped. Its place in the file is what separates one version from
-  // the next, so two closed on the same day are still told apart.
-  recordFact('release-closed', null, id)
   return { id, shipped, left, summary, remaining: readReleases() }
 }
 

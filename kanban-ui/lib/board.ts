@@ -21,7 +21,6 @@ import type {
   InboxDrop,
   MemoryFile,
   MetricsResult,
-  ScoreResult,
   ScreenBoard,
   SetupDraft,
   SetupState,
@@ -299,23 +298,6 @@ export async function readReleases(): Promise<string[]> {
 export async function readMetrics(): Promise<MetricsResult> {
   try {
     return await (await boardRules()).readMetricsView();
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** The planning scores, release by release (#224). A failure comes back as `{ ok:false }`
- *  for the same reason the daily numbers do — an empty chart on a damaged record would read
- *  as a board that has planned nothing. Rules older than the score say so in the one line
- *  that names the update, so the Daily progress chart above it still draws. */
-export async function readScore(): Promise<ScoreResult> {
-  try {
-    const rules = await boardRules();
-    if (!rules.readScoreView) {
-      const c = (await machineCopy()).messages.rules;
-      return { ok: false, error: `${c.tooOldForScores} ${c.updateIt}` };
-    }
-    return await rules.readScoreView();
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

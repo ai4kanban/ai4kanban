@@ -8,7 +8,7 @@
 // Every call answers rather than throwing. A publisher that threw would make a board write
 // fail over a network the board was never waiting for.
 
-import type { CardPayload, DeliveryPayload, DocumentPayload, EventPayload } from '../board/transfer'
+import type { CardPayload, DeliveryPayload, DocumentPayload } from '../board/transfer'
 import { cloudConfigured, cloudEndpoints, NOT_CONFIGURED } from './config'
 import type { CloudEvent, CloudEventAnswer, CloudEventState } from './events'
 import type { CloudRequest } from './requests'
@@ -459,15 +459,6 @@ export const beginImport = (
   fingerprint: string,
 ): Promise<CloudCall<ImportState>> =>
   send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/import/begin`, { opId, fingerprint })
-
-/** One pass of the source board's own history. Each row carries its own key, so a retried
- *  pass finds its own work rather than appending it again. */
-export const importEvents = (
-  workspaceId: string,
-  opId: string,
-  events: EventPayload[],
-): Promise<CloudCall<{ added: number }>> =>
-  send('POST', `/v1/workspaces/${encodeURIComponent(workspaceId)}/import/events`, { opId, events })
 
 /** The source board's finished deliveries, arriving whole rather than through the
  *  open-and-confirm pair a live one goes through. Idempotent on the id the source board gave

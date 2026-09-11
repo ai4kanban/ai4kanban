@@ -31,7 +31,6 @@ import {
   exportEvents,
   finishImport,
   importDeliveries,
-  importEvents,
   writeWorkspaceCards,
   writeWorkspaceDocuments,
   type CloudCall,
@@ -50,7 +49,6 @@ const DELIVERIES_PER_PASS = 200
 export interface BoardMoved {
   cards: number
   documents: number
-  events: number
   deliveries: number
   /** The board files an import left on the machine, because neither half recognised them. */
   leftBehind?: string[]
@@ -104,14 +102,6 @@ export async function importBoard(workspaceId: string, say: Progress = () => {})
     say(`documents: ${pass.length}`)
   }
 
-  let events = 0
-  for (const pass of chunk(payload.events, EVENTS_PER_PASS)) {
-    const wrote = await importEvents(workspaceId, newOpId(), pass)
-    if (!wrote.ok) return { ok: false, error: wrote.error }
-    events += wrote.value.added
-    say(`history: ${wrote.value.added} new of ${pass.length}`)
-  }
-
   let deliveries = 0
   for (const pass of chunk(payload.deliveries, DELIVERIES_PER_PASS)) {
     const wrote = await importDeliveries(
@@ -144,7 +134,6 @@ export async function importBoard(workspaceId: string, say: Progress = () => {})
     moved: {
       cards: payload.cards.length,
       documents: payload.documents.length,
-      events,
       deliveries,
       leftBehind: payload.leftBehind,
       ...(resumed ? { resumed: true } : {}),
@@ -221,7 +210,6 @@ export async function exportBoard(
     moved: {
       cards: written.cards,
       documents: written.documents,
-      events: trail.length,
       deliveries: written.deliveries,
       dir: kanban,
     },
@@ -231,8 +219,7 @@ export async function exportBoard(
 /** A whole workspace read back as a board on disk. Shared by the export above and by
  *  leaving Cloud (#317), which writes the same payload into the checkout it is leaving from.
  *
- *  The trail is not in it: that is Cloud's own record of what happened there, and `record.csv`
- *  travels as a document and comes back exactly as it was. */
+ *  The trail is not in it: that is Cloud's own record of what happened there. */
 export async function readWorkspacePayload(
   workspaceId: string,
 ): Promise<{ ok: true; payload: BoardPayload } | { ok: false; error: string }> {
@@ -249,7 +236,6 @@ export async function readWorkspacePayload(
           : [],
       ),
       documents: read.value.documents,
-      events: [],
       leftBehind: [],
       deliveries: read.value.deliveries.map((d) => ({ ...d, deliveryId: deliveryIdOf(d) })),
     },

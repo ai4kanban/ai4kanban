@@ -116,8 +116,6 @@ const en: RailCopy = {
   insights: {
     open: "Insights",
     title: "Insights",
-    tabDaily: "Daily progress",
-    tabQuality: "Planning quality",
     daily: {
       reading: "Reading metrics.csv…",
       empty:
@@ -129,20 +127,6 @@ const en: RailCopy = {
         `Last ${days} days — **${completed} completed**, **${created} created**, **${rejected} rejected**.`,
       chart: (days) =>
         `Daily board activity over the last ${days} days: completed, created, and rejected cards.`,
-    },
-    quality: {
-      reading: "Reading record.csv…",
-      empty:
-        "No planning evidence yet. The board writes a row to `record.csv` as it settles a question, proposes a card, or closes a release — the three scores are worked out from those rows.",
-      chart:
-        "Planning quality by release. Use the left and right arrow keys to move from release to release; the readout below gives that release's three scores.",
-      stillOpen: " · still open",
-      axisOpen: " · open",
-      notEnough: "not enough yet",
-      needed: (floor) => ` — ${floor} needed`,
-      percent: (value) => `${value}%`,
-      cards: (ids) => `Cards ${ids}`,
-      noCards: "No cards yet",
     },
   },
 };

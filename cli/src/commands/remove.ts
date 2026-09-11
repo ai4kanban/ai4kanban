@@ -16,7 +16,6 @@ import { formatDay } from '../lib/cadence'
 import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
-import { countDecisions, countsForRecord, originOf, recordFact } from '../lib/record'
 import { walkMd, walkDirs, idPrefix, locate, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
 import { groupCloseCall } from '../lib/group-close'
 import { stripReadmeRefs } from '../lib/readme'
@@ -174,29 +173,12 @@ function leavingCards(id: number, found: Found): { id: number; file: string }[] 
   return cards
 }
 
-// What the board's score is worked out from, written while the cards are still there:
-// where each one came from, and how many of its own calls stood as against how many the
-// user overruled. A card with no origin on file was created before any of this existed —
-// it is counted neither as a proposal that was built nor as one that was dropped.
-function recordLeaving(id: number, found: Found, metric: Metric): void {
-  const event = metric === 'completed' ? 'card-archived' : 'card-rejected'
-  for (const card of leavingCards(id, found)) {
-    if (!countsForRecord(card.file)) continue
-    const origin = originOf(card.id)
-    if (origin) recordFact(event, card.id, origin)
-    const { body } = parseFrontmatter(fs.existsSync(card.file) ? fs.readFileSync(card.file, 'utf8') : '')
-    const { stood, overruled } = countDecisions(body)
-    recordFact('decisions-stood', card.id, stood)
-    recordFact('decisions-overruled', card.id, overruled)
-  }
-}
-
 // What an archived card carries out with it: the day it left, and no stage a run was
 // holding.
 //
-// The date is the card's own, not `record.csv`'s — the read that opens an archived card
-// answers it, and it travels with a clone the way a file time does not. Nothing is
-// backfilled, so every card archived before this existed keeps an empty date.
+// The date is written onto the card itself — the read that opens an archived card answers
+// it, and it travels with a clone the way a file time does not. Nothing is backfilled, so
+// every card archived before this existed keeps an empty date.
 //
 // `implementing` is a stage a run holds, not one a card keeps. A card can leave the board
 // mid-run — the agent building it archives it at the end of its own pass — and then the
@@ -274,9 +256,6 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   // no card under `todo/` left to write. A reject gets none — the file is about to be
   // deleted.
   if (dest) stampLeaving(leavingCards(id, found))
-  // The last moment the cards still exist: a reject deletes them outright, so what the
-  // board's score is worked out from has to be written now, not after the move.
-  recordLeaving(id, found, metric)
   if (dest) {
     fs.mkdirSync(ARCHIVE, { recursive: true })
     fs.renameSync(found.target, dest)

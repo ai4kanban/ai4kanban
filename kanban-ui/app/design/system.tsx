@@ -377,7 +377,7 @@ export function DesignSystem() {
   const [release, setRelease] = useState("v0.6");
   const [cadence, setCadence] = useState("1d at 09:30");
   const [agent, setAgent] = useState("claude-code");
-  const [tab, setTab] = useState<"daily" | "quality">("daily");
+  const [tab, setTab] = useState<"goal" | "no-goal">("goal");
   const [pick, setPick] = useState("board");
   const [dialog, setDialog] = useState(false);
   const [phoneTab, setPhoneTab] = useState<PhoneTab>("board");
@@ -906,14 +906,14 @@ export function DesignSystem() {
           </div>
           <div>
             {/* Replicas, not imports: the tab strip is drawn inline wherever it is
-                worn (Insights, New release) and the pick chips likewise. Change them
-                there and change them here. */}
+                worn (New release, Create task) and the pick chips likewise. Change
+                them there and change them here. */}
             <Label>the tab strip — a hairline under both, an ember lap under the live one</Label>
             <div className="mb-4 flex max-w-md gap-5 border-b border-nb-ink/12" role="tablist">
               {(
                 [
-                  { key: "daily", label: "Daily progress" },
-                  { key: "quality", label: "Planning quality" },
+                  { key: "goal", label: "From a goal" },
+                  { key: "no-goal", label: "No goal" },
                 ] as const
               ).map((t) => {
                 const active = tab === t.key;

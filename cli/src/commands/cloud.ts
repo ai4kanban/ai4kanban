@@ -86,11 +86,8 @@ async function moveIn(args: string[], program: string): Promise<MoveResult> {
   if (!workspace) die(`\`${program} cloud import\` needs the workspace to import into.`, { kind: 'bad-args' })
   const res = await importBoard(workspace, (line) => say(`  ${line}`))
   if (!res.ok) die(res.error, { kind: 'cloud-refused' })
-  const { cards, documents, events, deliveries, resumed } = res.moved
-  say(
-    `${resumed ? 'Carried on' : 'Imported'}: ${cards} cards, ${documents} files, ` +
-      `${events} history rows, ${deliveries} deliveries.`,
-  )
+  const { cards, documents, deliveries, resumed } = res.moved
+  say(`${resumed ? 'Carried on' : 'Imported'}: ${cards} cards, ${documents} files, ${deliveries} deliveries.`)
   say('Nothing on this board changed — its files are still the record.')
   return { imported: res.moved }
 }

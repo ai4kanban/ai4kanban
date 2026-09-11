@@ -63,7 +63,6 @@ import type {
   MemoryFile,
   MetricsResult,
   SaveProjectResult,
-  ScoreResult,
   SetupDraft,
   SetupState,
   SignalInbox,
@@ -551,10 +550,6 @@ export interface BoardRules {
   deliveryDiff?(deliveryId: string): Promise<DeliveryDiff | null>;
   readModules(): Promise<string[]>;
   readMetricsView(): Promise<MetricsResult>;
-  /** The planning scores, release by release (#224). Optional: a board can be running rules
-   *  from before the score existed, and the chart says so in one line rather than drawing an
-   *  empty panel that would read as a board that has planned nothing. */
-  readScoreView?(): Promise<ScoreResult>;
   readReleases(): Promise<string[]>;
   readGoalText(): Promise<string>;
   /** One of the four memory files, whole — the project's copy, or a module's when `module`

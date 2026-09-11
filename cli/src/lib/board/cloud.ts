@@ -280,9 +280,9 @@ const stateOf = (ctx: Context): CloudBoardState => ({
  *
  * Three reads, not one. The snapshot is the LIVE board — its cards and the documents being
  * worked on now — and the history and summary files come beside it because the board's own
- * rules append to `record.csv` and `metrics.csv` on almost every move and read `archive.md`
- * on every board draw. The ARCHIVE is the one part left out: this board holds three times as
- * many archived cards as live ones, and closing a release is the only thing that reads them.
+ * rules append to `metrics.csv` on almost every move and read `archive.md` on every board
+ * draw. The ARCHIVE is the one part left out: this board holds three times as many archived
+ * cards as live ones, and closing a release is the only thing that reads them.
  *
  * The copy is cleared first, so a checkout that still holds committed cards opens the
  * workspace's board and not a mixture of the two — unless a run on this machine is working
@@ -327,7 +327,6 @@ async function hydrate(
         nextCardId: snapshot.value.workspace.nextCardId,
         cards: snapshot.value.cards.flatMap(cardOf),
         documents: documents.map((d) => ({ path: d.path, kind: d.kind, body: d.body })),
-        events: [],
         deliveries: [],
         leftBehind: [],
       },
@@ -477,7 +476,7 @@ function cloudBoard(ctx: Context): BoardProvider {
     const cards = read.value.cards.flatMap(cardOf)
     if (cards.length) {
       unpackBoard(
-        { fingerprint: '', nextCardId: nextId(), cards, documents: [], events: [], deliveries: [], leftBehind: [] },
+        { fingerprint: '', nextCardId: nextId(), cards, documents: [], deliveries: [], leftBehind: [] },
         ctx.root,
       )
     }
@@ -661,7 +660,6 @@ function cloudBoard(ctx: Context): BoardProvider {
     readSetupState: () => local.readSetupState(),
     readSetupDraft: () => local.readSetupDraft(),
     readMetricsView: () => local.readMetricsView(),
-    readScoreView: () => local.readScoreView(),
     fillPlan: () => local.fillPlan(),
 
     // All four read `.archive/` — the one part of the board a snapshot leaves out — so each
@@ -1103,7 +1101,7 @@ async function reread(ctx: Context, cardId: number): Promise<void> {
   const card = found ? cardOf(found) : []
   if (card.length) {
     unpackBoard(
-      { fingerprint: '', nextCardId: nextId(), cards: card, documents: [], events: [], deliveries: [], leftBehind: [] },
+      { fingerprint: '', nextCardId: nextId(), cards: card, documents: [], deliveries: [], leftBehind: [] },
       ctx.root,
     )
   }

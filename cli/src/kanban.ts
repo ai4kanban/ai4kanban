@@ -434,7 +434,6 @@ export {
   readMetricsView,
   readModules,
   readReleases,
-  readScoreView,
   readSetupDraft,
   readSetupState,
   saveGoal,

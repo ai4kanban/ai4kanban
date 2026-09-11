@@ -107,8 +107,7 @@ The header carries seven things:
   can be continued with a follow-up prompt; that starts a new run. A job with no card shows
   the sentence it was started with where a `#id` would be — a **Build now** does only until
   its run has written the card, and reads as `#id` from then on.
-- **Insights** (the chart) — two read-only charts, a tab each: **Daily progress** and
-  **Planning quality**; see below.
+- **Insights** (the chart) — one read-only chart, **Daily progress**; see below.
 - **Configuration** (the gear) — see below.
 - **Chat** — a conversation about this project that also does the board work, in a rail down
   the right; see below.
@@ -452,42 +451,12 @@ columns. Because it is in the card, it travels with the card through git.
 
 ### Insights
 
-The header's chart button opens **Insights**, which holds two charts, one per tab — they answer
-different questions, so neither is read past to reach the other. It opens on Daily progress.
-Both only read what the board has already written; neither ever writes.
+The header's chart button opens **Insights**, one read-only chart of what the board has
+already written. It never writes.
 
 **Daily progress** — the last 30 days as a line each for completed, created and rejected cards,
 with totals above. The numbers come from `docs/kanban/metrics.csv`. A board with nothing recorded
 yet says so.
-
-**Planning quality** — how well the board planned each release, one point per release in the
-order they closed, and the release still open at the right end, marked `open`. The numbers are
-worked out from `docs/kanban/record.csv`, which board commands append to as they run. Three
-series, each with its own line style and marker so they are told apart without colour:
-
-| Series | What it counts | What it leaves out | Drawn after |
-| --- | --- | --- | --- |
-| **Details settled** | Of the card questions closed in the release, the share the board settled itself rather than handing to you. | A question moved to a card's `verify:` list — it was never answered, only turned into a hand-check. | 20 closed questions |
-| **Decisions that stood** | Of the calls the agent made on its own, the share you left standing rather than overruling. Both counts land in the release where the card was archived or rejected. | Nothing; every call on a card that left the board in the window counts. | 20 calls |
-| **Proposals built** | Of the cards the board proposed itself, the share that were built rather than rejected. | A card you asked for, a card created before the record existed, and a proposal still open. | 10 decided proposals |
-
-**A missing point means too little evidence, not zero.** Below the figure in the last column a
-series has no point at all and its line stops, restarting at the next release that has one. The
-readout says `not enough yet` there, with the two counts it does have.
-
-**A high number is not proof of good planning.** Asking only easy questions raises Details
-settled. A decision nobody reviews is never overruled, so Decisions that stood rises when the
-agent's calls go unread. Proposing only safe work raises Proposals built. Read each one beside
-what the release actually shipped.
-
-Click or hover a release to read it out; the chart is also one Tab stop, where **←** and **→**
-move release to release and **Home** and **End** jump to the ends. The readout under the chart
-gives the chosen release's three percentages, the counts behind each, and every card that
-contributed — enough to recalculate any figure from `record.csv` by hand. It opens on the release
-still open, because that is the score still worth acting on.
-
-A board whose installed `akb` predates these scores says so in one line, inside this tab; Daily
-progress is still drawn in its own.
 
 ## Releases
 

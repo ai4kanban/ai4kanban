@@ -47,9 +47,7 @@ docs/kanban/
 │                   setup's own steps, while setup is unfinished (`akb guide setup`) —
 │                   completing the last item deletes the file
 ├── next-id         the next free task id — NEVER edit by hand; only `akb raw` writes it
-├── metrics.csv     one row per day: completed, created, rejected — never touch
-└── record.csv      what board commands counted as they ran — they own it, nobody edits
-                    it by hand
+└── metrics.csv     one row per day: completed, created, rejected — never touch
 ```
 
 ## Configuration
@@ -196,10 +194,10 @@ not a planning note — it follows "Finish a task" below.
 drops it from the index, counts the completion, and prints every line that still points at
 the id so you can fix them.
 
-**Never finish a task by hand.** Deleting the card file, or writing a line into `next-id`,
-`metrics.csv` or `record.csv` yourself, leaves other cards' `blocked_by:` and `related:`
-pointing at a card that no longer exists — the command is what finds those, and nothing
-else will. A run that does this is reported as having broken the board.
+**Never finish a task by hand.** Deleting the card file, or writing a line into `next-id`
+or `metrics.csv` yourself, leaves other cards' `blocked_by:` and `related:` pointing at a
+card that no longer exists — the command is what finds those, and nothing else will. A run
+that does this is reported as having broken the board.
 
 This applies only to one-shot tasks. For recurring cards, see `akb guide recurring-task`.
 

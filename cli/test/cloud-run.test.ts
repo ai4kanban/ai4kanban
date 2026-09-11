@@ -125,8 +125,7 @@ const snapshot = () => ({
 const HISTORY = {
   revision: '7',
   documents: [
-    { path: 'record.csv', kind: 'history', revision: 'h1', body: 'date,action,card,detail\n' },
-    { path: 'metrics.csv', kind: 'history', revision: 'h2', body: 'date,created\n' },
+    { path: 'metrics.csv', kind: 'history', revision: 'h1', body: 'date,created\n' },
   ],
 }
 
@@ -468,7 +467,7 @@ describe("a run's close", () => {
     write(cardFile(3), `${serializeFrontmatter(meta({ title: 'Card 3' }))}\nThe agent wrote this.\n`)
     write(cardFile(4), `${serializeFrontmatter(meta({ title: 'Card 4' }))}\nA neighbouring run wrote this.\n`)
     write(path.join(root, 'docs', 'kanban', 'memory', 'skill', 'readme.md'), '# Shipped\n\n- one line\n')
-    write(path.join(root, 'docs', 'kanban', 'record.csv'), 'date,action,card,detail\n2026-09-03,edit,3,\n')
+    write(path.join(root, 'docs', 'kanban', 'metrics.csv'), 'date,created\n2026-09-03,1\n')
 
     // The card moved under the run — its own `akb raw` moves each write it — so the close
     // has to send against what the workspace holds now, not what it read at the start.

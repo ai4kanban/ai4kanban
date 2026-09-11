@@ -30,7 +30,6 @@ import path from 'node:path'
 import type { DeliveryRecord } from '../agent/types'
 import { parseFrontmatter, serializeFrontmatter } from '../frontmatter'
 import { DELIVERIES, KANBAN, readNextId } from '../paths'
-import { EVENTS, recordFile } from '../record'
 import { solutionIn } from '../solution'
 import type { Meta } from '../types'
 import { revisionOf } from './revision'
@@ -59,17 +58,6 @@ export interface DocumentPayload {
   body: string
 }
 
-/** One line of the board's own history, as `record.csv` wrote it. `key` is the line's
- *  position in that file, which is what makes a retried import find its own work: the file
- *  is append-only, so a line's position never moves. */
-export interface EventPayload {
-  key: string
-  at: string
-  action: string
-  cardId: number | null
-  detail: Record<string, string>
-}
-
 /** One delivery, without its repository half. Cloud strips that itself; this leaves it out
  *  so nothing sends what would only be thrown away. */
 export interface DeliveryPayload {
@@ -88,7 +76,6 @@ export interface BoardPayload {
   nextCardId: number
   cards: CardPayload[]
   documents: DocumentPayload[]
-  events: EventPayload[]
   deliveries: DeliveryPayload[]
   /** The committed files `kindOf` does not recognise, so a board file nobody has named
    *  travels as a line the person running the import reads rather than as nothing at all. */
@@ -116,14 +103,12 @@ const KEPT_LOCAL = new Set([
   'ui.config.json',
 ])
 
-/** Where each committed file goes, by the folder it is in. `record.csv` travels as a
- *  document as well as becoming the trail: the file is what the board reads, and the trail
- *  is what a person reads — two things, not one copy of one. */
+/** Where each committed file goes, by the folder it is in. */
 function kindOf(rel: string): DocumentKind | null {
   if (rel.startsWith('memory/')) return 'memory'
   if (rel.startsWith('rules/')) return 'rule'
   if (rel.startsWith('.release-summaries/') || rel === 'archive.md') return 'summary'
-  if (rel === 'metrics.csv' || rel === 'record.csv') return 'history'
+  if (rel === 'metrics.csv') return 'history'
   // A plan a discussion wrote (#427). Board content like the rest of `config`: a card's
   // `## Source` names one, so a board that left its plans behind would carry cards pointing
   // at nothing. It has no kind of its own — a Cloud that has never heard of one would refuse
@@ -194,7 +179,6 @@ export function packBoard(): BoardPayload {
     nextCardId: nextId(),
     cards: cards.sort((a, b) => a.id - b.id),
     documents: documents.sort((a, b) => a.path.localeCompare(b.path)),
-    events: packEvents(),
     deliveries: packDeliveries(),
     leftBehind: leftBehind.sort((a, b) => a.localeCompare(b)),
   }
@@ -242,36 +226,6 @@ function cardAt(rel: string): CardPayload | null {
   const { meta, body } = parseFrontmatter(read(path.join(KANBAN, rel)))
   if (!meta) return null
   return { id, archived, path: rel, meta, body }
-}
-
-/**
- * `record.csv` as the board's own history — one event per line, keeping the day it was
- * written and carrying no author, because nobody in Cloud did it: it happened on a machine,
- * before the board was there.
- *
- * A line's position in the file is its key. The file is append-only and a line is never
- * rewritten or taken out, so that position is stable for as long as the board is.
- */
-function packEvents(): EventPayload[] {
-  const text = read(recordFile())
-  if (!text.trim()) return []
-  const out: EventPayload[] = []
-  const lines = text.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-    if (!line || line.startsWith('date,')) continue
-    const [at = '', action = '', card = '', ...rest] = line.split(',')
-    if (!EVENTS[action as keyof typeof EVENTS]) continue
-    const id = Number(card)
-    out.push({
-      key: String(i + 1),
-      at,
-      action,
-      cardId: Number.isInteger(id) && id > 0 ? id : null,
-      detail: { value: rest.join(',') },
-    })
-  }
-  return out
 }
 
 /** The committed delivery records, without the fields that mean something only where the
@@ -335,9 +289,8 @@ export function portableDelivery(record: DeliveryRecord): Record<string, unknown
  * off the `config.md` in this payload, not off the board this process happens to be on
  * (#435). Everything else is written to the path it travelled under.
  *
- * The trail is deliberately not written back: `record.csv` travels as a document and comes
- * back exactly as it was, while the workspace's own trail is a record of what happened in
- * Cloud and belongs where it happened.
+ * The workspace's own trail is deliberately not written back: it is a record of what
+ * happened in Cloud and belongs where it happened.
  *
  * Every name this writes under came off a wire — a card carries the path it is written back
  * to, and a delivery's own id is its file name — so the folder is the boundary and it is

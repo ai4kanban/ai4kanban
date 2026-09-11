@@ -213,7 +213,6 @@ describe('packing a board', () => {
     write('.gitignore', '.env\nui.config.json\n')
     write('.release-summaries/0.8.0.md', '# 0.8.0\n')
     write('metrics.csv', 'date,completed,created,rejected\n2026-04-02,1,0,0\n')
-    write('record.csv', 'date,event,card,detail\n2026-04-02,card-created,12,asked\n2026-04-09,card-archived,9,7\n')
   })
 
   it('carries every card under its own number, and says which have left the board', () => {
@@ -246,18 +245,6 @@ describe('packing a board', () => {
     assert.equal(kinds.get('rules/revise.md'), 'rule')
     assert.equal(kinds.get('.release-summaries/0.8.0.md'), 'summary')
     assert.equal(kinds.get('metrics.csv'), 'history')
-    assert.equal(kinds.get('record.csv'), 'history')
-  })
-
-  it('turns record.csv into history that keeps its own dates and its own place', () => {
-    const events = packBoard().events
-    assert.deepEqual(
-      events.map((e) => [e.key, e.at, e.action, e.cardId]),
-      [
-        ['2', '2026-04-02', 'card-created', 12],
-        ['3', '2026-04-09', 'card-archived', 9],
-      ],
-    )
   })
 
   it('leaves behind everything the board keeps out of git', () => {
@@ -310,7 +297,6 @@ describe('writing a board back out', () => {
     card('todo/features/12-first.md', 12, { status: 'ready', release: '0.9.0', modules: ['cloud'] })
     card('.archive/9-shipped.md', 9)
     write('rules/revise.md', 'Say what changed.\n')
-    write('record.csv', 'date,event,card,detail\n2026-04-02,card-created,12,asked\n')
   })
 
   it('reads the same as the board it came from', () => {
@@ -324,7 +310,6 @@ describe('writing a board back out', () => {
       assert.deepEqual(again.cards.map((c) => [c.id, c.path, c.archived]), payload.cards.map((c) => [c.id, c.path, c.archived]))
       assert.deepEqual(again.cards.map((c) => c.meta), payload.cards.map((c) => c.meta))
       assert.deepEqual(again.documents, payload.documents)
-      assert.deepEqual(again.events, payload.events)
       assert.equal(again.nextCardId, payload.nextCardId)
     } finally {
       setBoardRoot(root)

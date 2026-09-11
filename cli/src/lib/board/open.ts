@@ -168,7 +168,6 @@ function refusing(error: string): import('./contract').BoardProvider {
     readSetupState: () => Promise.resolve(null),
     readSetupDraft: no,
     readMetricsView: () => Promise.resolve({ ok: false, error }),
-    readScoreView: () => Promise.resolve({ ok: false, error }),
     fillPlan: () => Promise.resolve({ fill: [], skipped: [] }),
     closePlan: () => Promise.resolve({ left: [], shipped: 0 }),
     dropPlan: () => Promise.resolve({ archived: [], left: [] }),

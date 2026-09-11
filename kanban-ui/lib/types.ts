@@ -115,12 +115,6 @@ export type {
   QuestionTag,
   SaveProjectResult,
   ScheduledAction,
-  ScoreCount,
-  ScoreResult,
-  ScoreSeries,
-  ScoreSeriesKey,
-  ScoreView,
-  ScoreWindow,
   SetupDraft,
   SetupState,
   // The board's own name for a checklist box; `SetupStepView` there only because the
@@ -136,7 +130,7 @@ export type {
   VerifyResult,
   WriteResult,
 } from "./format/view/types";
-export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SCORE_SERIES, SOLUTIONS, UNTITLED } from "./format/view/types";
+export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SOLUTIONS, UNTITLED } from "./format/view/types";
 
 // The one read each screen makes (#374) — what the board screen draws, and what a card page
 // draws. The server fills them (lib/board.ts) and the screens take them as one prop.
