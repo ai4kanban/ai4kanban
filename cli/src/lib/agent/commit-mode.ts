@@ -26,7 +26,6 @@ import {
   rel,
   REPO_ROOT,
   ROOT_GITIGNORE,
-  writeRootIgnoreIfMissing,
 } from '../paths'
 import { candidateOf, candidateDiff, candidateMark } from './candidate'
 import { aiReviewEnabled, autoCommitAllowed, diffApprovalRequired } from './settings'
@@ -191,9 +190,8 @@ export function prepareDelivery(
     return { error: dirtyRefusal(dirty) }
   }
   // `.akb/` is where the worktrees go, and it must be ignored before the first one lands.
-  // Boards set up before that line existed get it here.
+  // Boards set up before that line existed get it here — `ensureAkbDir` writes both.
   try {
-    writeRootIgnoreIfMissing()
     ensureAkbDir()
   } catch {
     return { error: `couldn't prepare ${rel(AKB_DIR)} — check that ${rel(ROOT_GITIGNORE)} and the project folder are writable.` }

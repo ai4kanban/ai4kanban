@@ -6,8 +6,9 @@
 // folder — the cards, the memory, the plans, the deliveries — plus the two files that are
 // this machine's and the user's to write, `.env` and `.local.json`. What the board keeps and
 // cleans up ITSELF — the run record and its logs, the chats, the drawings, the comment
-// batches, the locks — is machine state, and lives outside every repository under
-// `machine/project.ts` (#590).
+// batches — is machine state, and lives outside every repository under `machine/project.ts`
+// (#590). Each of those has a lock beside it; the lock over the board's own files is the one
+// exception, and sits in the project under `.akb/` so a sandboxed run can take it (#622).
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -15,7 +16,6 @@ import { fileURLToPath } from 'node:url'
 
 import { BoardError, warn as sayWarning, type BoardErrorOptions } from './io'
 import {
-  BOARD_LOCK,
   CHATS_FOLDER,
   COMMENTS_FOLDER,
   INDEX_LOCK as INDEX_LOCK_NAME,
@@ -93,6 +93,9 @@ export let AGENT_MEMORY = ''
 // The one goal file — board root only, never per module (see PROJECT_MEMORY_SET).
 export let GOAL = ''
 // The lock every writing move takes, so two of them never hand out the same id (lock.ts).
+// Inside the project, under `.akb/` and named after the board: it guards the board's own
+// files, and a run whose sandbox allows only the project must still be able to take it
+// (#622).
 export let LOCK = ''
 // Which agent runs the board, what it is set to, and whether refining happens on its own.
 // The local UI has written this file since it existed; the CLI reads and writes the same
@@ -160,11 +163,26 @@ export let AKB_DIR = ''
 export let ROOT_GITIGNORE = ''
 export const AKB_IGNORE_LINE = '.akb/'
 
-/** `.akb/`, made if it isn't there. Whatever a delivery needs on disk and must never
- *  commit goes in here — #303's worktrees first. Nothing creates it up front: an empty
- *  ignored folder is a folder git wouldn't carry anyway. */
+/** What this board's writing lock is called inside `.akb/`. Named after where the board sits
+ *  in the project, because `.akb/` is the PROJECT's: two boards in one repository share the
+ *  folder and must not share a lock, or working on one would make the other wait. */
+function boardLockName(kanban: string, root: string): string {
+  const from = path.relative(root, kanban)
+  const name = from && !from.startsWith('..') ? from : path.basename(kanban)
+  return `${name.split(path.sep).join('-')}.lock`
+}
+
+/** `.akb/`, made if it isn't there, with the repository's ignore line alongside it.
+ *  Whatever a delivery needs on disk and must never commit goes in here — #303's worktrees
+ *  first, and the board's own writing lock since #622. Nothing creates it up front: an
+ *  empty ignored folder is a folder git wouldn't carry anyway.
+ *
+ *  The ignore line goes with the folder rather than beside each caller, because the lock is
+ *  made by every write of the board — a repository that never delivered would otherwise have
+ *  `.akb/` show up in `git status`. */
 export function ensureAkbDir(): string {
   fs.mkdirSync(AKB_DIR, { recursive: true })
+  writeRootIgnoreIfMissing()
   return AKB_DIR
 }
 
@@ -262,7 +280,6 @@ function setBoard(kanban: string, root: string, flag: string): string {
   // home. Worked out here and made nowhere: `useProjectState` below is what puts the folder
   // on disk, so resolving a board never writes anything.
   const machine = projectStateDir(KANBAN)
-  LOCK = path.join(machine, BOARD_LOCK)
   MOCKUPS = path.join(machine, MOCKUPS_FOLDER)
   COMMENTS = path.join(machine, COMMENTS_FOLDER)
   SESSIONS = path.join(machine, SESSIONS_FILE)
@@ -282,6 +299,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   SIGNALS_OLD_HANDLED = path.join(TRIAGE, 'handled.md')
   AKB_DIR = path.join(REPO_ROOT, '.akb')
   ROOT_GITIGNORE = path.join(REPO_ROOT, '.gitignore')
+  LOCK = path.join(AKB_DIR, boardLockName(KANBAN, REPO_ROOT))
   return REPO_ROOT
 }
 

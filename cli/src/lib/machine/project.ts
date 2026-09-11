@@ -1,9 +1,9 @@
 // One project's machine state — where the board keeps what it cleans up itself (#590).
 //
 // The run record and its logs, the chats, the working drawings, the comment batches and the
-// locks are this machine's answer to what has been done in one project. None of it is the
-// repository's, and all of it used to sit in `docs/kanban/` behind a list of ignore rules
-// that grew with every new kind of local state. It lives under the machine folder now, one
+// locks over them are this machine's answer to what has been done in one project. None of it
+// is the repository's, and all of it used to sit in `docs/kanban/` behind a list of ignore
+// rules that grew with every new kind of local state. It lives under the machine folder now, one
 // folder per project, so a checkout carries only what it commits.
 //
 // A project IS its board folder, resolved through symlinks: two checkouts of one repository
@@ -33,14 +33,15 @@ const ID_LENGTH = 10
 /** The path record, so a user who moved a project can find what the old one left. */
 const RECORD = 'board.json'
 
-/** What the board keeps in there. The locks are folders like the rest — `withLock` makes
- *  one with `mkdir` and removes it when the write is done. */
+/** What the board keeps in there. The two locks are folders like the rest — `withLock`
+ *  makes one with `mkdir` and removes it when the write is done. They guard machine files,
+ *  which is why they are here; the lock over the board's OWN files sits in the project,
+ *  under `.akb/` (#622). */
 export const SESSIONS_FILE = 'sessions.json'
 export const SESSIONS_FOLDER = 'sessions'
 export const CHATS_FOLDER = 'chats'
 export const MOCKUPS_FOLDER = 'mockups'
 export const COMMENTS_FOLDER = 'comments'
-export const BOARD_LOCK = 'board.lock'
 export const SESSIONS_LOCK = 'sessions.lock'
 export const INDEX_LOCK = 'index.lock'
 
@@ -107,9 +108,40 @@ export function projectStateDir(board: string): string {
  *  has since deleted the folder for. */
 export function ensureProjectState(board: string): string {
   const dir = projectStateDir(board)
-  fs.mkdirSync(dir, { recursive: true, mode: 0o700 })
-  writeRecord(dir, board)
+  writable = true
+  onMachine(() => {
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 })
+    writeRecord(dir, board)
+  })
   return dir
+}
+
+// ---- a machine folder nothing may write (#622) ------------------------------
+//
+// A sandboxed run may write the project and nothing else, so `~/.ai4kanban` is refused.
+// None of what lives there is the repository's, so a refusal costs this machine's own
+// record of the run and costs the command nothing: every write below is skipped and the
+// move it belonged to finishes. What the board has to be told instead goes through the
+// run's outbox, inside the project (agent/outbox.ts).
+//
+// Settled by the `ensureProjectState` every command starts with, and again by any write
+// that turns out to be refused after it — a folder can be readable and its contents not.
+
+const DENIED = new Set(['EACCES', 'EPERM', 'EROFS'])
+
+let writable = true
+
+/** Run one write of machine state, or skip it when the machine folder refuses writes.
+ *  Undefined is what a skipped write answers. */
+export function onMachine<T>(write: () => T): T | undefined {
+  if (!writable) return undefined
+  try {
+    return write()
+  } catch (err) {
+    if (!DENIED.has((err as NodeJS.ErrnoException).code ?? '')) throw err
+    writable = false
+    return undefined
+  }
 }
 
 /** Which board a machine folder belongs to, as it was recorded. Null when the folder has no

@@ -59,6 +59,9 @@ beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-card-diff-'))
   fs.mkdirSync(path.join(root, 'docs', 'kanban', 'todo', 'features'), { recursive: true })
   fs.writeFileSync(path.join(root, 'shared.txt'), 'base\n')
+  // What every board's repository carries: `.akb/` ignored, so the delivery state the board
+  // writes there — the writing lock included (#622) — never shows up in this diff.
+  fs.writeFileSync(path.join(root, '.gitignore'), '.akb/\n')
   git(['init', '--quiet', '-b', 'main'])
   git(['config', 'user.email', 'test@example.com'])
   git(['config', 'user.name', 'test'])

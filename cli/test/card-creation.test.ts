@@ -8,6 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
+import { collectReports } from '../src/lib/agent/collect.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
 import { cardsBeingCreated, logPathOf, withStore } from '../src/lib/agent/store.ts'
@@ -58,6 +59,9 @@ async function createdInRun(over: Partial<RunRecord> = {}): Promise<number> {
   process.env[RUN_ENV] = run.sessionId
   const made = await move(root, ['create', '--title', 'A card being written'])
   delete process.env[RUN_ENV]
+  // The run reports its cards into the project and the process watching it applies them
+  // (#622). Nothing watches a test, so the collection is made here.
+  await collectReports(run.sessionId)
   return made.id as number
 }
 

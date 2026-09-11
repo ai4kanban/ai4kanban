@@ -7,8 +7,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, afterEach, beforeEach, describe, it } from 'node:test'
 
+import { collectReports } from '../src/lib/agent/collect.ts'
 import { joinDelivery, listDeliveries } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
+import { outboxDir } from '../src/lib/agent/outbox.ts'
 import { peekRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
@@ -104,6 +106,8 @@ describe('card creation owns its id', () => {
     assert.doesNotMatch(help, /--count/)
   })
 
+  // A run reports its cards through its outbox in the project, and the process watching it
+  // applies them (#622) — so every case below creates, then collects, the way a real run does.
   it('attaches a card made through the CLI to its cardless create run', async () => {
     const owner: RunRecord = {
       sessionId: 'create-run',
@@ -121,6 +125,10 @@ describe('card creation owns its id', () => {
       await runBoard(['create', '--title', 'Owned card'], { cwd: root }),
       0,
     )
+    // Reported into the project, not written straight onto the record.
+    assert.equal(fs.readdirSync(outboxDir(owner.sessionId)).length, 1)
+    assert.equal(peekRun(owner.sessionId)?.createdCardIds, undefined)
+    await collectReports(owner.sessionId)
     assert.deepEqual(peekRun(owner.sessionId)?.createdCardIds, [8])
   })
 
@@ -144,6 +152,7 @@ describe('card creation owns its id', () => {
     process.env[RUN_ENV] = build.sessionId
 
     assert.equal(await runBoard(['create', '--title', typed], { cwd: root }), 0)
+    await collectReports(build.sessionId)
     assert.equal(peekRun(build.sessionId)?.cardId, 8)
     assert.equal(listDeliveries().find((d) => d.deliveryId === deliveryId)?.cardId, 8)
     assert.match(fs.readFileSync(path.join(todo, '8-rename-the-heading.md'), 'utf8'), /status: implementing/)

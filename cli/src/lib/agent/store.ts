@@ -20,6 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { pidAlive, withLock } from '../lock'
+import { onMachine } from '../machine/project'
 import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { insideRun } from './env'
 import { asUsage } from './log'
@@ -577,17 +578,21 @@ function asDeliveryStatus(value: unknown): DeliveryStatus {
   return value === 'finished' || value === 'failed' || value === 'cancelled' ? value : 'active'
 }
 
+// Skipped whole when the machine folder refuses writes (#622): a sandboxed run keeps
+// working, and what it has to tell the board goes through its outbox (agent/outbox.ts).
 function writeStore(store: Store): void {
   const kept = {
     runs: prune(store.runs),
     deliveries: pruneDeliveries(store.deliveries),
     marks: store.marks,
   }
-  fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
-  const tmp = `${SESSIONS}.tmp`
-  fs.writeFileSync(tmp, JSON.stringify(kept, null, 2) + '\n')
-  // Rename rather than write in place, so a reader never catches half a file.
-  fs.renameSync(tmp, SESSIONS)
+  onMachine(() => {
+    fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
+    const tmp = `${SESSIONS}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(kept, null, 2) + '\n')
+    // Rename rather than write in place, so a reader never catches half a file.
+    fs.renameSync(tmp, SESSIONS)
+  })
 }
 
 // Bound the record: keep every live run and the newest KEEP_RUNS finished ones, and

@@ -27,6 +27,7 @@ import type { Readable, Writable } from 'node:stream'
 import { locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { pidAlive } from '../lock'
+import { onMachine } from '../machine/project'
 import { reportChatMessage } from '../machine/usage'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { planFile } from '../plans'
@@ -197,13 +198,17 @@ function imagesOf(value: unknown): string[] | undefined {
   return names.length ? names : undefined
 }
 
-// Write, then rename, so a UI polling the file never catches half of one.
+// Write, then rename, so a UI polling the file never catches half of one. Skipped when the
+// machine folder refuses writes (#622) — a sandboxed run says what it has to say through its
+// outbox, and the board process writes the transcript.
 function writeChat(chat: Chat): void {
-  fs.mkdirSync(CHATS_DIR, { recursive: true })
-  const file = chatFile(chat.cardId)
-  const tmp = `${file}.tmp`
-  fs.writeFileSync(tmp, JSON.stringify(chat, null, 2) + '\n')
-  fs.renameSync(tmp, file)
+  onMachine(() => {
+    fs.mkdirSync(CHATS_DIR, { recursive: true })
+    const file = chatFile(chat.cardId)
+    const tmp = `${file}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(chat, null, 2) + '\n')
+    fs.renameSync(tmp, file)
+  })
 }
 
 /** Forget a conversation and start fresh. True when there was one to forget.
@@ -213,7 +218,7 @@ function writeChat(chat: Chat): void {
 export function clearChat(cardId: ChatTarget): boolean {
   // The pictures go with the transcript that named them (#441) — the ones already sent and
   // the ones still waiting in the box, which is the whole of what this folder holds.
-  fs.rmSync(imagesDir(cardId), { recursive: true, force: true })
+  onMachine(() => fs.rmSync(imagesDir(cardId), { recursive: true, force: true }))
   try {
     fs.unlinkSync(chatFile(cardId))
     return true
@@ -583,11 +588,18 @@ function ownerOf(dir: string): number | undefined {
 
 // Take the marker, or hand back nothing when someone else already has it. mkdir settles
 // which of two callers gets it, the same way it settles every other lock on this board.
+//
+// A machine folder that refuses writes has no marker to take and none to collide with, so
+// the turn goes ahead unmarked (#622) — the same nothing an unnamed marker already means.
 function startAnswering(cardId: ChatTarget): (() => void) | null {
   const dir = busyDir(cardId)
   if (answeringOn(cardId)) return null
-  fs.mkdirSync(CHATS_DIR, { recursive: true })
   try {
+    const made = onMachine(() => {
+      fs.mkdirSync(CHATS_DIR, { recursive: true })
+      return true
+    })
+    if (!made) return () => {}
     fs.mkdirSync(dir, { recursive: false })
   } catch {
     return null
@@ -598,7 +610,7 @@ function startAnswering(cardId: ChatTarget): (() => void) | null {
     // Unnamed. The age rule above covers it — it is believed for a few seconds and then
     // taken away, rather than holding the conversation shut for good.
   }
-  return () => fs.rmSync(dir, { recursive: true, force: true })
+  return () => onMachine(() => fs.rmSync(dir, { recursive: true, force: true }))
 }
 
 // ---- sending one message ---------------------------------------------------

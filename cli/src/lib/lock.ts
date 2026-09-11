@@ -19,7 +19,7 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, rel, KANBAN, LOCK } from './paths'
+import { die, rel, ensureAkbDir, KANBAN, LOCK } from './paths'
 
 // How long to keep trying before giving up. A board move is milliseconds of work, so any
 // real wait here means another process is mid-write, not that the board is slow.
@@ -139,6 +139,26 @@ export function tryLock(dir: string): (() => void) | undefined {
   }
 }
 
+// A lock folder this process is refused — the machine folder in a sandbox that allows only
+// the project (#622). There is nothing to serialize: the write this lock guards is machine
+// state, and it is skipped for the same reason.
+const refused = (err: unknown): boolean => {
+  const code = (err as NodeJS.ErrnoException).code
+  return code === 'EACCES' || code === 'EPERM' || code === 'EROFS'
+}
+
+// And a lock already sitting in a folder we may not write — one left by a run from before
+// the sandbox. It can neither be taken nor broken, so waiting on it would only turn a
+// refusal into a ten-second one.
+const unwritable = (dir: string): boolean => {
+  try {
+    fs.accessSync(path.dirname(dir), fs.constants.W_OK)
+    return false
+  } catch {
+    return true
+  }
+}
+
 // Take one lock folder, run `fn`, release it however `fn` ends — so a refused move never
 // leaves anything locked. `what` names the lock in the refusal, since a board has more
 // than one now: the writing lock below, and the record of what is running.
@@ -159,12 +179,19 @@ export function withLock<T>(dir: string, what: string, fn: () => T): T {
       break
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code
+      if (refused(err)) return fn()
       if (code === 'ENOENT') {
         // The board folder isn't there yet — make it and race again.
-        fs.mkdirSync(path.dirname(dir), { recursive: true })
+        try {
+          fs.mkdirSync(path.dirname(dir), { recursive: true })
+        } catch (e) {
+          if (!refused(e)) throw e
+          return fn()
+        }
         continue
       }
       if (code !== 'EEXIST') throw err
+      if (unwritable(dir)) return fn()
       // The backstop, for every lock the check below can't judge: one from a CLI too old to
       // name its holder, and one whose breaker died mid-break.
       if (ageOf(dir) > STALE_MS) {
@@ -213,6 +240,14 @@ export function withBoardLock<T>(fn: () => T): T {
   // creating the folder here would make `init` think the board already exists.
   if (!fs.existsSync(KANBAN)) return fn()
   if (depth > 0) return fn()
+  // The lock lives in the project's `.akb/` (#622), which is also where the ignore line for
+  // it is written — so the folder every board write makes never shows up in `git status`.
+  try {
+    ensureAkbDir()
+  } catch {
+    // A project nothing may write is a project this move is about to fail on anyway, in its
+    // own words rather than in a lock's.
+  }
   depth++
   try {
     return withLock(LOCK, 'writing this board', fn)

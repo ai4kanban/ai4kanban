@@ -10,11 +10,12 @@
 // once each get their own file and the agent can never stamp the wrong one.
 
 import { setChatPlan } from '../lib/agent/chat'
-import { insideDiscussion } from '../lib/agent/env'
+import { insideDiscussion, insideRun } from '../lib/agent/env'
 import { asDiscussion } from '../lib/agent/discussions'
+import { report } from '../lib/agent/outbox'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
-import { newPlan, planPathInText } from '../lib/plans'
+import { newPlan, planFile, planPathInText } from '../lib/plans'
 import type { ChatTarget } from '../lib/agent/types'
 import type { MoveResult } from '../lib/types'
 
@@ -38,8 +39,17 @@ function planNew(opts: PlanOptions): MoveResult {
   const plan = newPlan(title, opts.slug)
   // The title names the discussion too: it is what the agent called this subject once it had
   // read the exchange, which is a better row than the line the user opened on.
-  const held = setChatPlan(discussionHere(), plan.path, title)
-  if ('error' in held) die(held.error)
+  const target = discussionHere()
+  // Inside a run the transcript is written by the process watching it, off the run's outbox
+  // (#622): a sandboxed run may write the project and not the machine folder the transcript
+  // lives in. Everywhere else this command IS the board process and writes it here.
+  if (insideRun()) {
+    if (!planFile(plan.path)) die(`${plan.path} is not a plan of this board's.`)
+    report({ kind: 'plan', path: plan.path, title, target })
+  } else {
+    const held = setChatPlan(target, plan.path, title)
+    if ('error' in held) die(held.error)
+  }
   say(planPathInText(plan.path))
   say(`  #${plan.id} is this plan's — write a short outcome-focused plan and revise it as the discussion moves`)
   return { id: plan.id, file: planPathInText(plan.path), path: plan.path }

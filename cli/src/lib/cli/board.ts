@@ -10,11 +10,10 @@
 import { CADENCE_FORMS } from '../cadence'
 import { CHANNEL_NAMES, CHANNEL_STATUSES } from '../channels'
 import { insideRun } from '../agent/env'
-import { adoptDirectCard } from '../agent/deliveries'
 import { cardStages, startGateAfter } from '../agent/gate'
+import { report } from '../agent/outbox'
 import { readyGateOn } from '../agent/settings'
-import { recordCreatedCards } from '../agent/store'
-import { board, moveTarget, openBoard, setCardStatusOn, withLease, type MoveOutput, type OpResult } from '../board'
+import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
 import { allowedSolution } from '../cloud/admission'
 import { BoardError, say, warn } from '../io'
@@ -83,25 +82,18 @@ async function dispatch(
     // A read answers straight off the board. A write is one operation of the contract, under
     // a lease taken for it — whoever typed this never read the card, so the lease is what
     // hands them the revision they write against (lib/board/ops.ts).
-    const owner = move === 'create' ? insideRun() : null
+    const inRun = move === 'create' && insideRun() !== null
     const data = READ_ONLY_MOVES.has(move)
       ? await board().readMove(move, input)
-      : unwrap(
-          await withLease(moveTarget(move, args), async (env) => {
-            const result = await board().runMove(move, input, env)
-            // A cardless create run cannot hold its cards through `cardId`. Attach each new
-            // id before giving the board lease back, so another close cannot adopt it first.
-            if (result.ok && owner && Array.isArray(result.data.ids)) {
-              recordCreatedCards(owner, result.data.ids.filter((id): id is number => Number.isInteger(id)))
-            }
-            return result
-          }),
-        )
-    // A **Build now** run writes its own card and then builds it (#470). The delivery it
-    // opened before there was a card takes the id here, the moment the create lands, and the
-    // card goes to `implementing` under it — outside the lease above, because the stage is a
-    // board write of its own.
-    if (owner) await adoptCreatedCard(owner, data.ids)
+      : unwrap(await withLease(moveTarget(move, args), (env) => board().runMove(move, input, env)))
+    // What a run's create owes the board: the ids it wrote, so the run's record can hold
+    // them and a **Build now** delivery can take its card (#470). Left in the run's outbox
+    // inside the project, for the process watching the run to apply — the run itself may be
+    // sandboxed out of the machine folder the record lives in (#622). So the card reaches
+    // `implementing` one collection later rather than on this very command.
+    if (inRun && Array.isArray(data.ids)) {
+      report({ kind: 'cards', ids: data.ids.filter((id): id is number => Number.isInteger(id)) })
+    }
     // A board that ran the move somewhere else sends its prose back rather than printing it;
     // Local printed as it went and has none to add.
     const { output, warnings, ...fields } = data
@@ -114,22 +106,6 @@ async function dispatch(
     return { board: KANBAN, ...fields, ...(gated ? { gate: gated.sessionId } : {}) }
   })
   cli.onAnswer?.(data)
-}
-
-// The card a **Build now** run just wrote, handed to the delivery it is already building in
-// (#470). Nothing happens on any other run: `adoptDirectCard` takes only a run holding a
-// card-less delivery of its own.
-//
-// Best-effort at the last step: the card exists and the record already names it, and failing
-// the create over a stage would leave the run with no card to build.
-async function adoptCreatedCard(owner: string, ids: unknown): Promise<void> {
-  const id = Array.isArray(ids) ? ids[0] : undefined
-  if (!Number.isInteger(id) || !adoptDirectCard(owner, id as number)) return
-  try {
-    await setCardStatusOn(id as number, 'implementing')
-  } catch {
-    // the board would not take the write — the delivery holds the card either way
-  }
 }
 
 // What a mutation answered with: the move's own fields, or the refusal thrown so the door
