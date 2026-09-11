@@ -98,12 +98,12 @@ You can delegate the remaining human decisions to AI, too.
 
 ## Solo developers, scale your brain
 
-Founders are told to focus on marketing and distribution. But it can take 3–12 months to build a product users want. Until then, many projects remain demos or very niche tools that aren’t developed enough to compete. What do you market when the product isn’t there yet?
+Founders are told to focus on marketing and distribution. But it can take 3–12 months to build a product users want. Until then, many projects remain demos or very niche tools that aren’t developed enough to compete. How can marketing help at that stage?
 
 AI4Kanban aims to help solo developers and small businesses:
 
 - Build a production-ready product in 2–3 weeks.
-- Make 500 commits in 30 days as a solo developer.
+- Make 500 commits per person in 30 days.
 - Ship a major release every week.
 
 Launch sooner with a coherent product that users can use from start to finish, so their feedback tells you whether the idea works—not just what’s broken or missing.
