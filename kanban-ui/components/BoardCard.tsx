@@ -259,7 +259,6 @@ function BeingCreatedCard({
       </div>
       <p className="text-[13px] font-[700] leading-snug tracking-[-0.01em] break-words">
         {card.title}
-        {going && <span className="a4k-creating-caret" aria-hidden />}
       </p>
       {going ? (
         <div className="mt-2.5 flex flex-col gap-1.5" aria-hidden>

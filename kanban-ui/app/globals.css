@@ -320,11 +320,10 @@ body {
   }
 }
 
-/* A card still being created (#564). Nothing here blinks a word: text that fades in and
-   out has to be re-read, and a column of these would flicker. The motion sits on three
-   small shapes instead — a dot that rings, a caret at the end of the title, and the two
-   lines standing in for the plan not written yet. Each still reads with the animation
-   off, which is what a reader who asked for less motion gets. */
+/* A card still being created (#564). Nothing here blinks: text that fades in and out has
+   to be re-read, and a column of these would flicker. The motion sits on a dot that rings
+   and the two lines standing in for the plan not written yet. Each still reads with the
+   animation off, which is what a reader who asked for less motion gets. */
 @keyframes nbCreatingRing {
   0% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-nb-sky) 60%, transparent);
@@ -341,26 +340,6 @@ body {
   border-radius: 50%;
   background: var(--color-nb-sky);
   animation: nbCreatingRing 1.9s ease-out infinite;
-}
-
-@keyframes nbCreatingCaret {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  50.01%,
-  100% {
-    opacity: 0;
-  }
-}
-.a4k-creating-caret {
-  display: inline-block;
-  width: 2px;
-  height: 0.85em;
-  margin-left: 3px;
-  vertical-align: -0.1em;
-  background: var(--color-nb-sky-ink);
-  animation: nbCreatingCaret 1.1s steps(1) infinite;
 }
 
 @keyframes nbCreatingSweep {
@@ -389,7 +368,6 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .a4k-creating-dot,
-  .a4k-creating-caret,
   .a4k-creating-line {
     animation: none;
   }
