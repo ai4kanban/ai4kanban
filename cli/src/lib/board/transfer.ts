@@ -5,11 +5,11 @@
 // opens as a Local one. Cloud's import and export are those two with a network in between
 // (#315).
 //
-// What travels is what the board COMMITS, and nothing else. The run state a board keeps out
-// of git — `.env`, the run record and its logs, the chats, the mockups, the locks, and
-// `ui.config.json`, which is this machine's own answer to which coding agent runs the board —
-// stays on the machine that made it. `docs/kanban/.gitignore` is the list, and `KEPT_LOCAL`
-// below is that list read as code.
+// What travels is what the board COMMITS, and nothing else. This machine's own files —
+// `.env`, `.local.json` and `ui.config.json`, its answer to which coding agent runs the
+// board — stay where they are, and so does whatever a board written before #590 still holds
+// beside them. `docs/kanban/.gitignore` is the list, and `KEPT_LOCAL` below is that list
+// read as code.
 //
 // Two rules the shapes here exist to keep:
 //
@@ -83,16 +83,24 @@ export interface BoardPayload {
 }
 
 /**
- * What a board keeps out of git, and therefore out of a workspace: the API keys, the record
- * of what is running and its logs, the conversations, the working drawings, the locks, and
- * this machine's own answer to which coding agent runs the board.
+ * What a board keeps out of git, and therefore out of a workspace: the API keys, the model
+ * each agent runs on this computer, and this machine's own answer to which coding agent runs
+ * the board.
  *
- * Names relative to `docs/kanban/`, matched at the top level. It is `docs/kanban/.gitignore`
- * read as code, which is deliberate — the two say the same thing, and a board that uploaded
- * either of the first two would be a board that uploaded a key.
+ * The rest of the list is what a board written before #590 left behind — the run record and
+ * its logs, the conversations, the drawings, the comment batches, the locks. Nothing writes
+ * or reads those any more, and they stay here for exactly that reason: they are still on the
+ * machine, still the user's to delete, and an import that uploaded one or a hydrate that
+ * deleted one would be doing it to a file nobody asked about.
+ *
+ * Names relative to `docs/kanban/`, matched at the top level. It is
+ * `docs/kanban/.gitignore` read as code, which is deliberate: a board that uploaded the
+ * first of them would be a board that uploaded a key.
  */
 const KEPT_LOCAL = new Set([
   '.env',
+  '.local.json',
+  'ui.config.json',
   '.sessions.json',
   '.sessions',
   '.sessions.lock',
@@ -100,7 +108,7 @@ const KEPT_LOCAL = new Set([
   '.index.lock',
   '.chats',
   '.mockups',
-  'ui.config.json',
+  '.comments',
 ])
 
 /** Where each committed file goes, by the folder it is in. */
@@ -190,9 +198,9 @@ export function packBoard(): BoardPayload {
  *
  * Exactly what `packBoard` reads is what this removes — the cards, the archive, the
  * documents and anything else committed under the folder — so the two cannot drift. What it
- * never touches is `KEPT_LOCAL` and `deliveries/`: the keys, the run record, the chats and
- * the drawings are this machine's, and a Cloud board hydrating over them (#316) would throw
- * away work no workspace holds.
+ * never touches is `KEPT_LOCAL` and `deliveries/`: the keys, this machine's own settings and
+ * whatever a board written before #590 left beside them are not the workspace's, and a Cloud
+ * board hydrating over them (#316) would throw away what no workspace holds.
  *
  * Used by nothing that MOVES a board: import reads and writes nothing here, and export
  * refuses a folder that already holds one. It is the first half of hydrating a copy.

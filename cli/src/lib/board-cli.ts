@@ -15,7 +15,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, projectRootOf, setBoardDir, setBoardRoot } from './paths'
+import { die, projectRootOf, setBoardDir, setBoardRoot, useProjectState } from './paths'
 import { BoardError, warn, type Sink } from './io'
 import { boardState, when } from './board'
 import { readPointer } from './cloud/pointer'
@@ -74,6 +74,10 @@ const boardFromEnv = (): string | null => {
 export function useBoard(found: FoundBoard, dirNamed: boolean): void {
   if (!found.named && found.board === path.join(found.root, 'docs', 'kanban')) setBoardRoot(found.root, dirNamed)
   else setBoardDir(found.board, found.root)
+  // The run record, the logs, the chats and the rest live outside the repository, one folder
+  // per project (#590). This makes that folder, once per board per process, before anything
+  // reads it. Whatever an older version left in the board folder is left there.
+  useProjectState()
 }
 
 // A board with no `todo/` is half a board — a folder someone deleted from, or one an

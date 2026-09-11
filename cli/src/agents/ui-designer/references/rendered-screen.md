@@ -18,6 +18,6 @@ own — a blank line above it and a blank line below:
 <Mockup src=".mockups/<card id>/b.tsx" label="B" />
 ```
 
-A tag sharing a line or paragraph with prose is printed as text. `src` is relative to
-`docs/kanban/`, and `label` is optional. `<Mockup>` is the only HTML tag allowed in a card
+A tag sharing a line or paragraph with prose is printed as text. `src` is the drawing's name,
+written exactly as above and resolved by the board; `label` is optional. `<Mockup>` is the only HTML tag allowed in a card
 body; inside backticks or a fenced block, it remains text.

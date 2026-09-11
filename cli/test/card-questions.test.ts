@@ -10,7 +10,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { buildBoardProgram } from '../src/lib/cli/board.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { move, refuses } from './helpers/board.ts'
+import { forgetMachineState, move, refuses } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-card-questions-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -18,6 +18,7 @@ const todo = path.join(kanban, 'todo')
 
 beforeEach(async () => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
   setBoardRoot(root)

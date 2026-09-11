@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { readCloudWorkspace } from '../src/lib/cloud/workspace-life.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 const SUPABASE = 'https://cloud.test'
 const API = 'https://api.test'
@@ -40,7 +41,7 @@ beforeEach(() => {
 afterEach(() => {
   mock.restoreAll()
   fs.rmSync(home, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   delete process.env.AI4KANBAN_SUPABASE_URL
   delete process.env.AI4KANBAN_SUPABASE_ANON_KEY
   delete process.env.AI4KANBAN_CLOUD_URL

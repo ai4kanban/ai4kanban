@@ -1,7 +1,7 @@
 // Turn a card's `<Mockup>` tag into a picture of the screen (#239).
 //
-// A mockup is one file under `docs/kanban/.mockups/<card id>/`, and it is drawn here, on
-// this machine, with nothing fetched and nothing installed:
+// A mockup is one file in this board's own folder on the machine, under `mockups/<card id>/`
+// (#590), and it is drawn here with nothing fetched and nothing installed:
 //
 //   .tsx   one React component, styled with Tailwind. Transpiled, run once to draw
 //          itself, and turned into markup. The Tailwind it used is worked out from that
@@ -29,7 +29,7 @@ import { transform } from "sucrase";
 import { compile } from "tailwindcss";
 import type { MockupSet, MockupView } from "./mockup-tag";
 import { mockupSources } from "./mockup-tag";
-import { mockupsDir } from "./paths";
+import { mockupsDir } from "./cli";
 
 /** `.mockups/<folder>/<file>.tsx|html|txt`, and nothing else — no `.`, no `..`, nothing that
  *  climbs. A mockup is read off the user's disk, so the only files we open are the drawings
@@ -71,7 +71,13 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
     };
   }
   const [, folder, name, ext] = match;
-  const root = mockupsDir();
+  let root: string;
+  try {
+    root = await mockupsDir();
+  } catch {
+    // No rules to ask where the drawings are. A note, not a throw: this page has one job.
+    return { src, error: c.missing(src) };
+  }
   const file = path.join(root, folder!, `${name}.${ext}`);
   // The regex already refuses a path that climbs; this is the check that answers for it.
   if (!file.startsWith(root + path.sep)) {

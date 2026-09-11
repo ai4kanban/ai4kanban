@@ -24,7 +24,8 @@ import {
   sendChatMessage,
 } from '../src/lib/agent/chat.ts'
 import { addRunPicture, pictureBox, runPictureFile } from '../src/lib/agent/pictures.ts'
-import { setBoardRoot, SESSIONS_DIR } from '../src/lib/paths.ts'
+import { CHATS_DIR, setBoardRoot, SESSIONS_DIR } from '../src/lib/paths.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 let root = ''
 let home = ''
@@ -85,7 +86,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   fs.rmSync(root, { recursive: true, force: true })
   fs.rmSync(home, { recursive: true, force: true })
 })
@@ -94,7 +95,7 @@ describe('a picture saved beside a conversation', () => {
   it('is filed under a name of the board’s own, holding the bytes that came in', () => {
     const name = paste()
     const file = chatImageFile(null, name)!
-    assert.ok(file.includes(path.join('.chats', 'board.images')))
+    assert.ok(file.startsWith(path.join(CHATS_DIR, 'board.images') + path.sep))
     assert.deepEqual(fs.readFileSync(file), PNG)
   })
 

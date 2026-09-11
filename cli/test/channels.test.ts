@@ -21,7 +21,7 @@ import { markChannelDrafted, openRun } from '../src/lib/agent/sessions.ts'
 import { parseFrontmatter } from '../src/lib/frontmatter.ts'
 import { setBoardProvider } from '../src/lib/board/index.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { move, refuses, run } from './helpers/board.ts'
+import { forgetMachineState, move, refuses, run } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-channels-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -48,6 +48,7 @@ const CARD = [
 
 function board(which = 'marketing'): void {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '3\n')
   fs.writeFileSync(path.join(kanban, 'config.md'), `# Project\n\n- **Name**: Test\n- **Solution** — ${which}\n`)

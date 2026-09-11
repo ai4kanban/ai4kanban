@@ -184,6 +184,14 @@ export interface BoardRules {
   /** Point the rules at a board folder rather than a project (#407). Optional: a copy of
    *  the rules older than that release knows only `<root>/docs/kanban`. */
   setBoardDir?(board: string): string;
+  /** Make this board's folder on the machine — the run record, the logs, the chats, the
+   *  drawings (#590). Called once, right after the board is pointed at, because nothing here
+   *  goes through a command line. Optional: a copy of the rules older than the move keeps it
+   *  all in the project folder instead. */
+  useProjectState?(): string;
+  /** Where this board's drawings are kept. The `src` a card writes is unchanged; this is
+   *  what resolves it, and it is asked for rather than built so there is one answer. */
+  mockupsDir?(): string;
   /** Every board this project holds, and what each one's work is called. Optional for the
    *  same reason — an older copy answers with nothing and the header draws a plain label. */
   listBoards?(root: string): BoardEntry[];
@@ -860,6 +868,10 @@ export function boardRules(): Promise<BoardRules> {
       const root = repoRoot();
       if (mod.setBoardDir && kanbanDir() !== path.join(root, "docs", "kanban")) mod.setBoardDir(kanbanDir());
       else mod.setBoardRoot?.(root);
+      // And then the folder this board keeps on the machine (#590), made once for the life
+      // of the server, in the same breath: every read below it — a run's log, a chat, a
+      // drawing — is a read of that folder.
+      mod.useProjectState?.();
       return mod as BoardRules;
     },
   );
@@ -886,6 +898,14 @@ export function boardRules(): Promise<BoardRules> {
 async function opened(rules: BoardRules): Promise<BoardRules> {
   await rules.openBoard?.(repoRoot());
   return rules;
+}
+
+/** Where this board's drawings are kept (#590) — the rules' own answer, so the board and
+ *  the page never disagree about which folder a `<Mockup src>` names. A copy of the rules
+ *  older than the move still keeps them in the board folder, which is what the fallback is. */
+export async function mockupsDir(): Promise<string> {
+  const rules = await boardRules();
+  return rules.mockupsDir?.() ?? path.join(kanbanDir(), ".mockups");
 }
 
 /** What went wrong, in one line a strip can show. */

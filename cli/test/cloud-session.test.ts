@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { readCloudAccount, signOutOfCloud } from '../src/lib/cloud/account.ts'
 import { finishSignIn, startSignIn } from '../src/lib/cloud/signin.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 import {
   accessToken,
   clearSession,
@@ -43,7 +44,7 @@ beforeEach(() => {
 afterEach(() => {
   globalThis.fetch = realFetch
   fs.rmSync(home, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   delete process.env.AI4KANBAN_SUPABASE_URL
   delete process.env.AI4KANBAN_SUPABASE_ANON_KEY
   delete process.env.AI4KANBAN_CLOUD_URL

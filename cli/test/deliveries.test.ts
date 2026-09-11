@@ -26,6 +26,7 @@ import { cancelDelivery } from '../src/lib/agent/sessions.ts'
 import { cardsAtWork, cardsWithLiveRun, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-delivery-'))
 const todo = path.join(root, 'docs', 'kanban', 'todo')
@@ -72,6 +73,7 @@ const CARD = [
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(path.join(todo, 'features'), { recursive: true })
   fs.writeFileSync(file, CARD)
   setBoardRoot(root)

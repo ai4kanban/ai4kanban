@@ -7,7 +7,7 @@
 //
 // The create sheet's pictures are written as they are pasted, under a box the sheet holds,
 // and the box is renamed after the run when one starts. That is the whole of why they are
-// in `.sessions/`: the log prune then takes a run's pictures with its log, and nothing has
+// in `sessions/`: the log prune then takes a run's pictures with its log, and nothing has
 // to remember them separately.
 
 import { randomUUID } from 'node:crypto'

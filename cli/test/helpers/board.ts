@@ -5,9 +5,30 @@
 // options, their readers, and the refusals — and not only the function underneath.
 
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
 
 import { runAgent } from '../../src/lib/agent-cli.ts'
 import { runBoard } from '../../src/lib/board-cli.ts'
+import { projectStateDir } from '../../src/lib/machine/project.ts'
+
+// The machine home the test runner handed this process (scripts/test.mjs). A test that sets
+// one of its own has to put THIS back, not clear the variable: clearing it would point every
+// test after it at the real `~/.ai4kanban/` (#590).
+const SHARED_HOME = process.env.AI4KANBAN_HOME
+
+/** Put the run's own machine home back, after a test set one of its own. */
+export function restoreMachineHome(): void {
+  if (SHARED_HOME === undefined) delete process.env.AI4KANBAN_HOME
+  else process.env.AI4KANBAN_HOME = SHARED_HOME
+}
+
+/** Forget what this machine holds for the board under `root` — the run record, the logs, the
+ *  chats, the drawings (#590). A case that resets itself by deleting `docs/` has to delete
+ *  this too: the two are in different folders now. */
+export function forgetMachineState(root: string): void {
+  fs.rmSync(projectStateDir(path.join(root, 'docs', 'kanban')), { recursive: true, force: true })
+}
 
 // A refusal goes to stderr as one line. Holding it aside is what lets a test assert on the
 // words rather than on an exit code, and lets a refusal read as a rejected promise.

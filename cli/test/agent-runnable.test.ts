@@ -14,6 +14,7 @@ import { HARNESSES } from '../src/lib/agent/harnesses/index.ts'
 import { commandBinary } from '../src/lib/agent/installed.ts'
 import { runnableAgents, runnableHarnesses } from '../src/lib/agent/resolve.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-runnable-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -58,6 +59,7 @@ const rows = (...list: { id: string; harness: string; settings?: Record<string, 
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
 })
 
 after(() => {

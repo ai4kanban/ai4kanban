@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { writeSession, type CloudSession } from '../src/lib/cloud/session.ts'
 import { allowedSolution } from '../src/lib/cloud/admission.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 const SUPABASE = 'https://project.supabase.co'
 const API = 'https://api.example.test'
@@ -46,7 +47,7 @@ afterEach(() => {
   globalThis.fetch = realFetch
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(board, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   delete process.env.AI4KANBAN_SUPABASE_URL
   delete process.env.AI4KANBAN_SUPABASE_ANON_KEY
   delete process.env.AI4KANBAN_CLOUD_URL

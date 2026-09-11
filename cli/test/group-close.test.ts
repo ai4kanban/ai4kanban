@@ -16,6 +16,7 @@ import type { RunRecord } from '../src/lib/agent/types.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { MoveResult } from '../src/lib/types.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-group-close-'))
 const kanban = () => path.join(root, 'docs', 'kanban')
@@ -24,6 +25,7 @@ const archive = () => path.join(kanban(), '.archive')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(path.join(todo(), 'features'), { recursive: true })
   fs.writeFileSync(path.join(kanban(), 'next-id'), '90\n')
   setBoardRoot(root)

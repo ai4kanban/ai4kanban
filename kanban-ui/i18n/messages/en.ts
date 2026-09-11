@@ -51,9 +51,9 @@ const en: MessagesCopy = {
     pickFailed: "what this conversation runs on could not be changed.",
   },
   mockup: {
-    notAMockup: (src) => `${src} — a mockup is a .tsx, .html or .txt file under docs/kanban/.mockups/`,
+    notAMockup: (src) => `${src} — a mockup is named .mockups/<card id>/<name>.tsx, .html or .txt`,
     outside: (src) =>
-      `${src} — a mockup is read from docs/kanban/.mockups/, and this points outside it`,
+      `${src} — a mockup is read from this board's mockups folder, and this points outside it`,
     missing: (src) => `${src} — no such file on this machine (mockups are not in git)`,
     notDrawn: (src, why) => `${src} — this mockup could not be drawn: ${why}`,
     importsOther: (id) => `it imports "${id}", and a mockup may import React and nothing else`,

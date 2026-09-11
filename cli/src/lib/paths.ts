@@ -1,11 +1,31 @@
 // Where everything lives, plus the tiny helpers every module needs (die/warn/rel,
-// next-id read/write). Imported by every other module; imports only io.ts.
+// next-id read/write). Imported by every other module; imports only io.ts and the machine
+// folder's own two, which import nothing of the board's.
+//
+// Two halves, and the line between them is git. What the project COMMITS is under the board
+// folder — the cards, the memory, the plans, the deliveries — plus the two files that are
+// this machine's and the user's to write, `.env` and `.local.json`. What the board keeps and
+// cleans up ITSELF — the run record and its logs, the chats, the drawings, the comment
+// batches, the locks — is machine state, and lives outside every repository under
+// `machine/project.ts` (#590).
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { BoardError, warn as sayWarning, type BoardErrorOptions } from './io'
+import {
+  BOARD_LOCK,
+  CHATS_FOLDER,
+  COMMENTS_FOLDER,
+  INDEX_LOCK as INDEX_LOCK_NAME,
+  MOCKUPS_FOLDER,
+  SESSIONS_FILE,
+  SESSIONS_FOLDER,
+  SESSIONS_LOCK as SESSIONS_LOCK_NAME,
+  ensureProjectState,
+  projectStateDir,
+} from './machine/project'
 
 // The skill folder — the built file sits in it, next to SKILL.md and the config.md
 // template, so the folder holding them is this file's own.
@@ -56,14 +76,12 @@ export let AGENTS = ''
 export let LEGACY_AGENTS = ''
 // Drawings of the screens cards change — one folder per card id (see the `ui-designer` spec
 // agent). Keyed by id, so a card leaving the board takes its folder.
-// Dotted and ignored: a mockup is a working drawing, redrawn from the card whenever the
-// question comes back, so it is never something the repo carries or a teammate pulls.
+// Machine state: a mockup is a working drawing, redrawn from the card whenever the question
+// comes back, so it is never something the repo carries or a teammate pulls.
 export let MOCKUPS = ''
-export const MOCKUP_IGNORE_LINE = '.mockups/'
 // The comments left on a topic's drafts, waiting to be polished (#458) — one markdown file
 // per draft, under a folder per card (#572).
-// Dotted and ignored like `.chats/`: a batch is consumed by the next polish and then gone,
-// so it is this machine's working state and never the repository's.
+// Machine state like the chats: a batch is consumed by the next polish and then gone.
 export let COMMENTS = ''
 // All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
 // itself, each module's set in a subfolder named after the module.
@@ -234,20 +252,24 @@ function setBoard(kanban: string, root: string, flag: string): string {
   SETUP_CHECKLIST = path.join(KANBAN, 'setup-checklist.md')
   AGENTS = path.join(KANBAN, 'agents')
   LEGACY_AGENTS = path.join(KANBAN, 'skills')
-  MOCKUPS = path.join(KANBAN, '.mockups')
-  COMMENTS = path.join(KANBAN, '.comments')
   MEMORY = path.join(KANBAN, 'memory')
   AGENT_MEMORY = path.join(MEMORY, 'agents')
   GOAL = path.join(MEMORY, 'goal.md')
-  LOCK = path.join(KANBAN, '.lock')
   UI_CONFIG = path.join(KANBAN, 'ui.config.json')
   LOCAL_CONFIG = path.join(KANBAN, '.local.json')
   ENV_FILE = path.join(KANBAN, '.env')
-  SESSIONS = path.join(KANBAN, '.sessions.json')
-  SESSIONS_DIR = path.join(KANBAN, '.sessions')
-  SESSIONS_LOCK = path.join(KANBAN, '.sessions.lock')
-  CHATS_DIR = path.join(KANBAN, '.chats')
-  INDEX_LOCK = path.join(KANBAN, '.index.lock')
+  // Everything from here on is machine state, under this board's own folder in the machine
+  // home. Worked out here and made nowhere: `useProjectState` below is what puts the folder
+  // on disk, so resolving a board never writes anything.
+  const machine = projectStateDir(KANBAN)
+  LOCK = path.join(machine, BOARD_LOCK)
+  MOCKUPS = path.join(machine, MOCKUPS_FOLDER)
+  COMMENTS = path.join(machine, COMMENTS_FOLDER)
+  SESSIONS = path.join(machine, SESSIONS_FILE)
+  SESSIONS_DIR = path.join(machine, SESSIONS_FOLDER)
+  SESSIONS_LOCK = path.join(machine, SESSIONS_LOCK_NAME)
+  CHATS_DIR = path.join(machine, CHATS_FOLDER)
+  INDEX_LOCK = path.join(machine, INDEX_LOCK_NAME)
   DELIVERIES = path.join(KANBAN, 'deliveries')
   RULES = path.join(KANBAN, 'rules')
   PLANS = path.join(KANBAN, 'plans')
@@ -298,7 +320,14 @@ export function warn(msg: unknown): void {
   sayWarning(msg)
 }
 
-export const rel = (p: string): string => path.relative(REPO_ROOT, p) || p
+/** A path as it is worth showing: from the project root when it is inside it, whole when it
+ *  is not. The machine state a board keeps is outside every repository (#590), and
+ *  `../../../.ai4kanban/...` is not a path anyone can act on. */
+export const rel = (p: string): string => {
+  const from = path.relative(REPO_ROOT, p)
+  if (!from) return p
+  return from.startsWith('..') ? p : from
+}
 
 /** This board's folder as the text an agent should read: `docs/kanban` on the default one,
  *  the real path on any other. The shipped flow text spells `docs/kanban` throughout, so
@@ -310,9 +339,16 @@ export function boardPath(): string {
   return rel(KANBAN).split(path.sep).join('/')
 }
 
+/** Where the drawings used to sit, as a shipped reference still spells it. They are machine
+ *  state now (#590), so the literal is swapped for the real folder alongside the board swap
+ *  above — an agent told to write into a folder nothing reads draws nothing. The `src` a card
+ *  writes is untouched: it is a name, not a path, and the board resolves it. */
+const MOCKUPS_PATH_IN_TEXT = 'docs/kanban/.mockups'
+
 export function boardText(text: string): string {
+  const drawn = text.split(MOCKUPS_PATH_IN_TEXT).join(rel(MOCKUPS))
   const here = boardPath()
-  return here === BOARD_PATH_IN_TEXT ? text : text.split(BOARD_PATH_IN_TEXT).join(here)
+  return here === BOARD_PATH_IN_TEXT ? drawn : drawn.split(BOARD_PATH_IN_TEXT).join(here)
 }
 
 export function readNextId(): number {
@@ -326,18 +362,10 @@ export function writeNextId(value: number): void {
   fs.writeFileSync(NEXT_ID, `${value}\n`)
 }
 
-// What a run leaves on disk, and none of it belongs in git: the record is this machine's
-// answer to "what is running", and the logs are one agent's output on one afternoon. The two
-// locks are transient — they exist for the milliseconds a write takes, and only ever reach
-// git if a process is killed mid-write.
-//
-// It sits here, beside the paths it names, rather than with the run record that writes them:
-// `init` is what puts these lines in the board's ignore file, and the run record reaches the
-// board, which reaches `init`. A ring of imports around a plain list is a list that can be
-// read before it exists.
-export const RUN_IGNORE_LINES = [
-  { line: '.sessions.json', comment: '# What is running on this machine, and what ran lately.' },
-  { line: '.sessions/', comment: "# One log per run — the agent's own output." },
-  { line: '.sessions.lock/', comment: '# The lock that record is written under.' },
-  { line: '.index.lock/', comment: '# Held by the one run at a time that may rewrite the board index.' },
-]
+/** Make this board's folder on the machine (#590). Called once per command, after the board
+ *  is resolved and before it is read — and by the board UI server when it points the rules at
+ *  its board, since nothing there goes through a command line. It touches nothing under the
+ *  board folder: what a board held there before the move stays there, unread. */
+export function useProjectState(): string {
+  return ensureProjectState(KANBAN)
+}

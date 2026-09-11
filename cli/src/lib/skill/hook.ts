@@ -19,6 +19,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { SKILL_VERSION } from '../../version'
+import { SESSIONS_FILE, projectStateDir } from '../machine/project'
 import type { CommitHook, CommitHookResult, CommitHookState } from './types'
 
 /** The line that says the board wrote this file. An update rewrites a hook carrying it and
@@ -113,7 +114,12 @@ function hasOwnHooksPath(root: string): boolean {
   return !out.error && out.status === 0 && !!out.stdout.trim()
 }
 
-const sessionsPath = (root: string): string => path.join(root, 'docs', 'kanban', '.sessions.json')
+/** The run record this project's board keeps, which is outside the repository (#590) and so
+ *  is written into the hook whole. The hook reads it directly and lets the commit through
+ *  when it cannot — a machine that has never run the board has no file yet, and that is a
+ *  commit with no delivery to move under. */
+const sessionsPath = (root: string): string =>
+  path.join(projectStateDir(path.join(root, 'docs', 'kanban')), SESSIONS_FILE)
 
 /** Where the commit guard stands in a project. Spawns git twice, so it is asked for by name
  *  rather than folded into `readSkillState`. */

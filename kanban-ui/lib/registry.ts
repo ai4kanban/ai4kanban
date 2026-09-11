@@ -5,7 +5,8 @@ import type { CardDeliveryState, DeliveryRecord, SessionView } from "./types";
 // --- the runs, through the CLI (#168) ----------------------------------------
 // The board no longer runs agents itself. Starting one, watching it, listing them,
 // stopping one and continuing one all go through the CLI, and so does the record they live
-// in — docs/kanban/.sessions.json, which every process reads and writes.
+// in — sessions.json in this board's own folder on the machine (#590), which every process
+// reads and writes.
 //
 // That is what makes a card being implemented from a terminal show as busy here, and a run
 // started here stoppable from a terminal. It is also why the board's rules hold across the

@@ -4,10 +4,10 @@
 // found costs a rewrite of the whole file per remark, each one unaware of the rest — so a
 // comment is SAVED on its passage, and the batch goes to a single polish run together.
 //
-// One markdown file per draft, `docs/kanban/.comments/<id>/<draft>.md`, so submitting one
-// draft never touches another. Never inside the draft — an agent and a person write that
-// file byte for byte, and a marker in it would be text the next repurpose has to read
-// around.
+// One markdown file per draft, `comments/<id>/<draft>.md` in this board's own folder on the
+// machine (#590), so submitting one draft never touches another. Never inside the draft — an
+// agent and a person write that file byte for byte, and a marker in it would be text the next
+// repurpose has to read around.
 //
 // The file is the format a person would write by hand: an entry is a quoted passage and
 // the change asked for under it. `[[…]]` picks the exact words out of a wider quote, and an
@@ -18,9 +18,8 @@
 // Anything the reader below cannot make an entry of is kept BYTE FOR BYTE and put back
 // where it was, so a half-written comment stays in the file and out of the polish batch.
 //
-// Dotted and ignored like `.chats/`: a batch is consumed by the next polish and then gone,
-// so it is this machine's working state and not the repository's, and it leaves with its
-// card.
+// Machine state like the chats: a batch is consumed by the next polish and then gone, so it
+// is this machine's working state and not the repository's, and it leaves with its card.
 
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
@@ -28,13 +27,6 @@ import path from 'node:path'
 
 import { COMMENTS } from './paths'
 import type { DraftComment } from './view/types'
-
-/** A batch is this machine's record of what the reader wants changed, the same kind of
- *  thing as a conversation — and no more the repo's business than one. */
-export const COMMENT_IGNORE_LINE = {
-  line: '.comments/',
-  comment: '# The comments left on a draft, waiting for the polish that answers them.',
-}
 
 const OPEN = '[['
 const CLOSE = ']]'

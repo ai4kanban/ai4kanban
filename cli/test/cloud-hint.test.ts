@@ -26,6 +26,7 @@ import {
 import type { CloudEvent } from '../src/lib/cloud/events.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 const SUPABASE = 'https://cloud.test'
 const API = 'https://api.test'
@@ -66,7 +67,7 @@ afterEach(() => {
   else global.WebSocket = hadWebSocket
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(root, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   delete process.env.AI4KANBAN_SUPABASE_URL
   delete process.env.AI4KANBAN_SUPABASE_ANON_KEY
   delete process.env.AI4KANBAN_CLOUD_URL

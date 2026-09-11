@@ -193,7 +193,8 @@ when you want another agent to take it independently.
 
 Every message is its own command, so a conversation is picked up from any terminal and
 survives closing one. The board's conversation and each card's are separate, both under
-`docs/kanban/.chats/`, on your machine and out of git.
+`~/.ai4kanban/projects/<project>/chats/` — on your machine, and outside the repository along
+with the run record, the logs, the mockups and the comment batches.
 
 A chat is not a run: it never shows in `akb run list` and never holds a card. A change to a card a
 run is already working on is refused, and the refusal names the card and what that run is

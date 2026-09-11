@@ -17,6 +17,7 @@ import { restartPrompt, resumePrompt } from '../src/lib/agent/prompts.ts'
 import { createAcpClient } from '../src/lib/agent/wire/acp.ts'
 import type { TurnEnd } from '../src/lib/agent/wire/client.ts'
 import { obj, str, type Json } from '../src/lib/agent/wire/json.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 type Answer = { result?: unknown; error?: { code: number; message: string } }
 
@@ -171,7 +172,7 @@ describe('the prompt a restarted run is given', () => {
   })
 
   afterEach(() => {
-    delete process.env.AI4KANBAN_HOME
+    restoreMachineHome()
     fs.rmSync(home, { recursive: true, force: true })
   })
 

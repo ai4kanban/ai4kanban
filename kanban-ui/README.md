@@ -404,9 +404,10 @@ top of it. A board that has archived nothing says so.
 ### Mockups on a card
 
 A card that changes a screen can carry **mockups** of it — small files under
-`docs/kanban/.mockups/<card id>/`, each drawing one layout the card could take. The card body
-points at each one with a tag on a line of its own, and the card page draws the screen that file
-holds where the tag sits, so you pick a layout by looking at it. The `ui-designer` agent writes
+`mockups/<card id>/` in this board's own folder on the machine (#590), each drawing one layout
+the card could take. The card body points at each one with a tag on a line of its own, and the
+card page draws the screen that file holds where the tag sits, so you pick a layout by looking
+at it. The `ui-designer` agent writes
 one by default and alternatives only when explicitly requested; only a card page shows them,
 and the card file is never written to.
 

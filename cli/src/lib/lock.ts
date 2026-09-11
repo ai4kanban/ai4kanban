@@ -221,7 +221,3 @@ export function withBoardLock<T>(fn: () => T): T {
   }
 }
 
-// The lock folder is transient — it exists for the milliseconds a write takes. It only
-// ever reaches git if a process is killed mid-write, which is exactly when nobody should
-// be asked to think about it.
-export const LOCK_IGNORE_LINE = '.lock/'

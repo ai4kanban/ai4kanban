@@ -4,7 +4,7 @@
 // and its own plans. A board holds many at once, so Create task opens a new one on every
 // press and the rail lists the ones already going.
 //
-// There is no index file. The list IS the `.chats/discussion-*.json` files — one read of a
+// There is no index file. The list IS the `chats/discussion-*.json` files — one read of a
 // folder that never holds more than a couple of dozen entries — so nothing can drift out of
 // step with the conversations themselves.
 

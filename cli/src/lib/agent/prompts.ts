@@ -221,10 +221,11 @@ function draftPaths(cardId: number | undefined, channel: string): { source: stri
   return { source: rel(draftFile(found.target, SOURCE)), target: rel(draftFile(found.target, channel)) }
 }
 
-// The one file a polish works over, and the batch of comments it answers, as paths from the
-// project root (#458). Named outright rather than described: the run reads the comments off
-// disk, the way a repurpose reads `source.md`, and a run left to work its own paths out is a
-// run that polishes a file nobody is looking at.
+// The one file a polish works over, and the batch of comments it answers (#458). Named
+// outright rather than described: the run reads the comments off disk, the way a repurpose
+// reads `source.md`, and a run left to work its own paths out is a run that polishes a file
+// nobody is looking at. The draft is a path from the project root; the batch is this
+// machine's and sits outside it, so `rel` gives that one whole (#590).
 function polishPaths(cardId: number | undefined, draft: string): { file: string; comments: string } | null {
   const found = cardId === undefined ? null : locate(cardId)
   if (!found || found.kind !== 'file') return null

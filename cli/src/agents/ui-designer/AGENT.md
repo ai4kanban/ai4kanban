@@ -82,9 +82,9 @@ Leave `docs/kanban/.mockups/<card id>/` holding only the files your new answer p
 Delete dropped options and anything the other mockup format left there — a format that writes
 no file leaves the folder empty.
 
-Mockup files are keyed by card id, so they survive track changes. `.mockups/` is gitignored,
-so a rendered screen can go missing and need redrawing; a plain-text drawing sits in the card
-and travels with it. Record the final design in the card itself.
+Mockup files are keyed by card id, so they survive track changes. They are kept on this machine
+and not in the repository, so a rendered screen can go missing and need redrawing; a plain-text
+drawing sits in the card and travels with it. Record the final design in the card itself.
 
 ## When the pick is the user's
 

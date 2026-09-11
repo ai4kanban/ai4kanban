@@ -13,8 +13,8 @@
 // `adoptDirectCard` hands over (#470); until then, and for a run that ends before it, the
 // delivery holds nothing and archives nothing.
 //
-// It leaves two records. The live row sits in docs/kanban/.sessions.json, where the lock
-// and the card page read it. The permanent one is a JSON file per delivery under
+// It leaves two records. The live row sits in the machine's sessions.json (#590), where the
+// lock and the card page read it. The permanent one is a JSON file per delivery under
 // docs/kanban/deliveries/, tracked in git, kept after the card is archived, and never
 // pruned while the delivery is unfinished.
 

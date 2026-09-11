@@ -66,7 +66,7 @@ describe('a picture pasted into the create sheet', () => {
   it('is filed in its box under a name of the board’s own, holding the bytes that came in', () => {
     const name = paste()
     const file = runPictureFile(BOX, name)!
-    assert.ok(file.includes(path.join('.sessions', `${BOX}.images`)))
+    assert.ok(file.startsWith(path.join(SESSIONS_DIR, `${BOX}.images`) + path.sep))
     assert.deepEqual(fs.readFileSync(file), PNG)
   })
 

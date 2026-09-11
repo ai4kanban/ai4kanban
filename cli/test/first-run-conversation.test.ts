@@ -16,6 +16,7 @@ import { chatPrompt } from '../src/lib/agent/chat.ts'
 import { parseSetupProposal, setupOpening } from '../src/lib/agent/setup-chat.ts'
 import { readProject, readSetupDraft, saveProject } from '../src/lib/view/first-run.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState, restoreMachineHome } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-first-run-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -23,6 +24,7 @@ let home = ''
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(path.join(kanban, 'todo', 'features'), { recursive: true })
   fs.mkdirSync(path.join(kanban, 'todo', 'platform'), { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '1\n')
@@ -34,7 +36,7 @@ beforeEach(() => {
 })
 
 after(() => {
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   fs.rmSync(root, { recursive: true, force: true })
   if (home) fs.rmSync(home, { recursive: true, force: true })
 })

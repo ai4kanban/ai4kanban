@@ -1,4 +1,5 @@
-// docs/kanban/.sessions.json — the live record every process on this board shares.
+// sessions.json in this board's own folder on the machine (#590) — the live record every
+// process on this board shares.
 //
 // It holds two lists and a set of marks. The RUNS are agent invocations: what is running,
 // and what ran lately. The DELIVERIES are the jobs those runs belong to — one Implement
@@ -57,6 +58,14 @@ const TRIGGERS: ReadonlySet<ReviewTrigger> = new Set<ReviewTrigger>(['rebase', '
 
 /** Where a run's log is written, from its id alone. */
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
+
+/** A run's log as the record has it, or this folder's own copy of it when the record names
+ *  another folder. The record and the logs sit in the same folder (#590), so a history
+ *  carried by hand into a renamed project arrives holding the paths it had where it was —
+ *  and `prune` drops a finished run whose log it cannot find. */
+function logPathIn(held: unknown, sessionId: string): string {
+  return typeof held === 'string' && held.startsWith(SESSIONS_DIR + path.sep) ? held : logPathOf(sessionId)
+}
 
 // Names the clarify session went by in older builds: the whole refine flow as one action,
 // then `raise-questions`. A board's history outlives a version, so those records stay
@@ -140,7 +149,7 @@ export function readStore(): Store {
       runtime: typeof entry.runtime === 'string' && entry.runtime ? entry.runtime : undefined,
       agent: typeof entry.agent === 'string' && entry.agent ? entry.agent : undefined,
       resumeId: typeof entry.resumeId === 'string' ? entry.resumeId : undefined,
-      logPath: typeof entry.logPath === 'string' && entry.logPath ? entry.logPath : logPathOf(entry.sessionId),
+      logPath: logPathIn(entry.logPath, entry.sessionId),
       resumedFrom: typeof entry.resumedFrom === 'string' ? entry.resumedFrom : undefined,
       formatRepair: entry.formatRepair && typeof entry.formatRepair === 'object'
         && Number.isInteger(entry.formatRepair.attempt) && entry.formatRepair.attempt >= 0

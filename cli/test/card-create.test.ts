@@ -15,7 +15,7 @@ import type { RunRecord } from '../src/lib/agent/types.ts'
 import { buildBoardProgram } from '../src/lib/cli/board.ts'
 import { runBoard } from '../src/lib/board-cli.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { move, refuses } from './helpers/board.ts'
+import { forgetMachineState, move, refuses } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-card-create-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -25,6 +25,7 @@ const nextId = path.join(kanban, 'next-id')
 beforeEach(() => {
   delete process.env[RUN_ENV]
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(path.join(todo, 'features'), { recursive: true })
   fs.mkdirSync(path.join(todo, 'recurring'), { recursive: true })
   fs.mkdirSync(path.join(todo, '7-group', 'features'), { recursive: true })

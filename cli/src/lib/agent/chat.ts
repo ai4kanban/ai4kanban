@@ -84,13 +84,6 @@ export const keyOf = (target: ChatTarget): string =>
 
 export const chatFile = (target: ChatTarget): string => path.join(CHATS_DIR, `${keyOf(target)}.json`)
 
-// A conversation is this machine's record of what was said to an agent on it — the same
-// kind of thing as a run's log, and no more the repo's business than one.
-export const CHAT_IGNORE_LINE = {
-  line: '.chats/',
-  comment: '# The conversations held with the agent, on this machine.',
-}
-
 // ---- the file --------------------------------------------------------------
 
 /** One conversation as it stands, or null when there has never been one. Reads only, and

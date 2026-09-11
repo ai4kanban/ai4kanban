@@ -16,6 +16,7 @@ import { parseFrontmatter } from '../src/lib/frontmatter.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { readArchive, readArchivedCard } from '../src/lib/view/archive.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-archive-read-'))
 const kanban = () => path.join(root, 'docs', 'kanban')
@@ -31,6 +32,7 @@ function today(): string {
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(path.join(todo(), 'features'), { recursive: true })
   fs.writeFileSync(path.join(kanban(), 'next-id'), '90\n')
   setBoardRoot(root)

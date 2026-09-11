@@ -22,7 +22,7 @@ import { withStore } from '../src/lib/agent/store.ts'
 import { rebaseInProgress, worktreeDir } from '../src/lib/agent/worktree.ts'
 import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 
 let root = ''
 
@@ -530,7 +530,7 @@ describe('a conflict', () => {
     const dir = worktreeDir(second.worktree!)
     fs.writeFileSync(path.join(dir, 'shared.txt'), 'one\ntwo\n')
     git(['add', 'shared.txt'], dir)
-    const lock = path.join(root, 'docs/kanban/.sessions/.landing.lock')
+    const lock = path.join(SESSIONS_DIR, '.landing.lock')
     const child = spawn(process.execPath, ['-e', `
       const fs = require('node:fs');
       const dir = process.argv[1];

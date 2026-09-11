@@ -21,6 +21,7 @@ import { readStore, withStore } from '../src/lib/agent/store.ts'
 import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
 import { move } from './helpers/board.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-review-'))
 
@@ -65,6 +66,7 @@ const git = (...args: string[]): void => {
 beforeEach(() => {
   git('reset', '--hard', '--quiet')
   git('clean', '-qfd')
+  forgetMachineState(root)
   fs.mkdirSync(path.join(todo, 'features'), { recursive: true })
   fs.writeFileSync(file, CARD)
   setBoardRoot(root)

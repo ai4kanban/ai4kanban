@@ -16,6 +16,7 @@ import { LIMITS, VERSION } from '../../telemetry/contract.ts'
 import type { SentBatch, SentEvent } from '../../telemetry/contract.ts'
 import { SKILL_VERSION } from '../src/version.ts'
 import { runAgent } from '../src/lib/agent-cli.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 import {
   readUsageReporting,
   recordUsageDisclosure,
@@ -33,9 +34,26 @@ import {
 } from '../src/lib/machine/usage.ts'
 
 let home = ''
+let project = ''
+
+/** A board of this suite's own, for the command lines below to find.
+ *
+ *  `runAgent` resolves a board from the folder the command was typed in, and the default is
+ *  this process's own working folder — a checkout of some project, whose real board it would
+ *  then open, write a run into and clean up after (#602). Every command line here names this
+ *  one instead. */
+function makeProject(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-usage-project-'))
+  const board = path.join(dir, 'docs', 'kanban')
+  fs.mkdirSync(path.join(board, 'todo'), { recursive: true })
+  fs.writeFileSync(path.join(board, 'config.md'), '# Configuration\n\n- **Project** — a project.\n')
+  fs.writeFileSync(path.join(board, 'next-id'), '1\n')
+  return dir
+}
 
 beforeEach(() => {
   home = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-usage-'))
+  project = makeProject()
   process.env.AI4KANBAN_HOME = home
   // An `akb` an agent typed inside a run reports nothing, and this suite is not one.
   delete process.env.KANBAN_RUN
@@ -45,7 +63,8 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(home, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  fs.rmSync(project, { recursive: true, force: true })
+  restoreMachineHome()
   delete process.env.AI4KANBAN_USAGE_URL
   delete process.env.KANBAN_DESKTOP
 })
@@ -167,10 +186,10 @@ describe('what is queued', () => {
     // started it — and on the app an open is counted on every launch, not once a day.
     process.env.KANBAN_DESKTOP = '1'
     assert.deepEqual(recordUsageDisclosure(true), { ok: true })
-    await quietly(() => runAgent(['__watch', 'no-such-run']))
-    await quietly(() => runAgent(['__watch', 'another-run']))
+    await quietly(() => runAgent(['__watch', 'no-such-run'], { cwd: project }))
+    await quietly(() => runAgent(['__watch', 'another-run'], { cwd: project }))
     assert.deepEqual(names(), [])
-    await quietly(() => runAgent(['--help']))
+    await quietly(() => runAgent(['--help'], { cwd: project }))
     assert.deepEqual(names(), ['app_day', 'app_open'])
   })
 

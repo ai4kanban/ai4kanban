@@ -13,9 +13,13 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { installCommitHook, readCommitHook } from '../src/lib/skill/hook.ts'
+import { SESSIONS_FILE, projectStateDir } from '../src/lib/machine/project.ts'
 import type { DeliveryRecord } from '../src/lib/agent/types.ts'
 
 let root = ''
+
+/** The run record the hook reads — this board's, outside the repository (#590). */
+const sessionsFile = (): string => path.join(projectStateDir(path.join(root, 'docs', 'kanban')), SESSIONS_FILE)
 
 const git = (args: string[], cwd = root): string => {
   const out = spawnSync('git', args, { cwd, encoding: 'utf8' })
@@ -42,7 +46,9 @@ const delivery = (over: Partial<DeliveryRecord> = {}): DeliveryRecord =>
   }) as DeliveryRecord
 
 const record = (deliveries: DeliveryRecord[]): void => {
-  fs.writeFileSync(path.join(root, 'docs', 'kanban', '.sessions.json'), JSON.stringify({ runs: [], deliveries, marks: {} }))
+  const file = sessionsFile()
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, JSON.stringify({ runs: [], deliveries, marks: {} }))
 }
 
 /** Try to commit a change, and hand back what git said. */
@@ -123,9 +129,10 @@ describe('what the guard refuses', () => {
   })
 
   it('lets a commit through when it cannot read the record', () => {
-    fs.writeFileSync(path.join(root, 'docs', 'kanban', '.sessions.json'), 'half a file {')
+    record([])
+    fs.writeFileSync(sessionsFile(), 'half a file {')
     assert.equal(commit('malformed').ok, true)
-    fs.rmSync(path.join(root, 'docs', 'kanban', '.sessions.json'))
+    fs.rmSync(sessionsFile())
     assert.equal(commit('no record at all').ok, true)
   })
 })
@@ -137,7 +144,7 @@ describe('where it is installed', () => {
     assert.equal(result.note, undefined)
     const text = fs.readFileSync(path.join(root, HOOK), 'utf8')
     assert.match(text, /^# ai4kanban commit guard /m)
-    assert.ok(text.includes(path.join(root, 'docs', 'kanban', '.sessions.json')))
+    assert.ok(text.includes(sessionsFile()))
     assert.ok(fs.statSync(path.join(root, HOOK)).mode & 0o111)
   })
 

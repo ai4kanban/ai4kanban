@@ -12,6 +12,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { SILENCE_MINUTES, setSilenceMinutes, silenceMinutes } from '../src/lib/agent/settings.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-silence-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -26,6 +27,7 @@ const saved = (): Record<string, unknown> => JSON.parse(fs.readFileSync(config, 
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(kanban, { recursive: true })
   setBoardRoot(root)
 })

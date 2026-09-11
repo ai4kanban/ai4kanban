@@ -550,8 +550,8 @@ export interface DeliveryApproval {
 /** One delivery: one end-to-end effort to implement an exact version of a card. It has an
  *  id, a card has at most one active one, and it is several runs long.
  *
- *  It lives twice. This row sits in `docs/kanban/.sessions.json`, where the lock and the
- *  card page read it. The permanent copy is one JSON file per delivery under
+ *  It lives twice. This row sits in the machine's `sessions.json` (#590), where the lock and
+ *  the card page read it. The permanent copy is one JSON file per delivery under
  *  `docs/kanban/deliveries/`, tracked in git and kept after the card is archived. */
 export interface DeliveryRecord {
   deliveryId: string
@@ -722,7 +722,7 @@ export interface ChatMessage {
    *  arithmetic from tokens at list prices, never a bill. */
   costUsd?: number
   /** The pictures pasted into this message (#441), in the order they went into the box —
-   *  file names inside this conversation's own folder under `.chats/`, never paths. A name
+   *  file names inside this conversation's own folder under `chats/`, never paths. A name
    *  whose file has since gone is kept: the message still reads the way it was sent, and
    *  the slot says the picture is no longer here. */
   images?: string[]

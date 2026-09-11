@@ -13,12 +13,14 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { boardComplaints } from '../src/lib/reconcile.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-reconcile-'))
 const todo = () => path.join(root, 'docs', 'kanban', 'todo')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(todo(), { recursive: true })
   setBoardRoot(root)
 })

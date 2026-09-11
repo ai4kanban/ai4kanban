@@ -51,6 +51,7 @@ const pruneCard = (cadence: string): void => {
 
 /** One finished prune run in the record, so the dispatcher can see what the last pass did. */
 const pastRun = (status: string, startedAt: number): void => {
+  fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
   fs.writeFileSync(
     SESSIONS,
     JSON.stringify({

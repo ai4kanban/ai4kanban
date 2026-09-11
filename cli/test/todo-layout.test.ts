@@ -12,6 +12,7 @@ import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { Meta } from '../src/lib/types.ts'
 import { readBoard } from '../src/lib/view/read.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-todo-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -19,6 +20,7 @@ const todo = path.join(kanban, 'todo')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '20\n')
   fs.writeFileSync(path.join(kanban, 'modules.md'), '# Modules\n\n- **skill** — the board.\n- **site** — the site.\n')

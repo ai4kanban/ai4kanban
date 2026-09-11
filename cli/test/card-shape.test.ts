@@ -10,13 +10,14 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { claimChanges, markBoard, refinementAfter } from '../src/lib/agent/refine.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { move } from './helpers/board.ts'
+import { forgetMachineState, move } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-shape-'))
 const todo = path.join(root, 'docs', 'kanban', 'todo')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(path.join(todo, 'skill'), { recursive: true })
   setBoardRoot(root)
 })

@@ -29,6 +29,54 @@ When an ask can't run, the answer names the one line that fixes it — `akb inst
 with no board, `npm install -g ai4kanban@latest` for an `akb` that is behind, `akb agent test` for
 an agent that isn't installed, `akb agent` for a key or provider that isn't set.
 
+## Where a run's record is kept
+
+A run's record and its log are this machine's, not the repository's — and they live outside it,
+in `~/.ai4kanban/projects/<project>/`, one folder per board. The chats, the mockups and the
+comment batches are there too. The project keeps only what it commits, so nothing has to be
+kept out of git by hand.
+
+```
+~/.ai4kanban/projects/my-app-3f9c1b2a04/
+  board.json      which board this folder is for
+  sessions.json   what is running, and what ran lately
+  sessions/       one log per run
+  chats/          the conversations held on this machine
+  mockups/        the drawings a card points at
+  comments/       the comment batches waiting for a polish
+```
+
+Two checkouts of one repository are two folders, and so are two boards in one repository: runs
+started in one are never listed by the other.
+
+**Move or rename the project and it starts fresh.** The old folder stays where it is, with the
+old path in its own `board.json`, so bringing the history across is one move you make yourself:
+
+```bash
+grep -l /old/path ~/.ai4kanban/projects/*/board.json   # which folder was the old one
+mv ~/.ai4kanban/projects/<old>/sessions* ~/.ai4kanban/projects/<new>/
+mv ~/.ai4kanban/projects/<old>/chats ~/.ai4kanban/projects/<new>/
+```
+
+Open the board once at the new path first, so the new folder is there to move into. Leave
+`board.json` behind — each folder's own says which board it is for.
+
+### Upgrading from a version that kept them in the project
+
+Nothing is moved for you, and nothing you already have is read, changed or deleted. The new
+folder starts empty: the runs it lists are the runs you start after the switch, and a chat from
+before the switch cannot be carried on.
+
+1. Finish what is in flight on the old version — the runs going, and the review and landing of
+   each delivery they belong to.
+2. Stop everything still running it: the app, any board server, any watcher.
+3. Switch the command and the app together. Don't run the two versions side by side.
+
+What the old version left in `docs/kanban/` — `.sessions.json`, `.sessions/`, `.chats/`,
+`.mockups/`, `.comments/` and the lock folders — stays exactly where it is, still ignored by
+git and still left alone by import and export. Delete it yourself once you are sure you are
+done with that history; the lines in `docs/kanban/.gitignore` that cover it can go with it.
+
 ## Which runtime each agent runs on
 
 Every run belongs to one agent: a flow is run by the role that owns it — planner, builder,

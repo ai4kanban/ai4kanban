@@ -25,15 +25,18 @@ import {
   polishDraft,
   readDrafts,
 } from '../src/lib/view/drafts.ts'
-import { move } from './helpers/board.ts'
+import { COMMENTS } from '../src/lib/paths.ts'
+import { forgetMachineState, move } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-comments-'))
 const kanban = path.join(root, 'docs', 'kanban')
 const todo = path.join(kanban, 'todo')
 const card = path.join(todo, '2-a-topic.md')
 const drafts = path.join(kanban, 'content', '2-a-topic')
-const batchDir = path.join(kanban, '.comments', '2')
-const batchFile = path.join(batchDir, 'source.md')
+// The batch is machine state and lives outside the project (#590) — read off the board's
+// own path so the test and the board never disagree about where it is.
+const batchDir = (): string => path.join(COMMENTS, '2')
+const batchFile = (): string => path.join(batchDir(), 'source.md')
 
 const CARD = [
   '---',
@@ -54,6 +57,7 @@ const CARD = [
 
 function board(which = 'marketing'): void {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '3\n')
   fs.writeFileSync(path.join(kanban, 'config.md'), `# Project\n\n- **Name**: Test\n- **Solution** — ${which}\n`)
@@ -81,11 +85,11 @@ function leave(name: string, quote: string, words: string) {
   return leaveAt(name, quote, words, text, Math.max(text.indexOf(quote), 0))
 }
 
-const batchText = (): string => fs.readFileSync(batchFile, 'utf8')
+const batchText = (): string => fs.readFileSync(batchFile(), 'utf8')
 
 const handWrite = (name: string, body: string): void => {
-  fs.mkdirSync(batchDir, { recursive: true })
-  fs.writeFileSync(path.join(batchDir, `${name}.md`), body)
+  fs.mkdirSync(batchDir(), { recursive: true })
+  fs.writeFileSync(path.join(batchDir(), `${name}.md`), body)
 }
 
 beforeEach(() => board())
@@ -119,7 +123,7 @@ describe('leaving a comment on a draft', () => {
       ],
     )
     clearComments(2, 'source')
-    assert.ok(!fs.existsSync(batchFile))
+    assert.ok(!fs.existsSync(batchFile()))
     assert.deepEqual(readDrafts(2).drafts.map((d) => d.comments!.length), [0, 1])
   })
 
@@ -137,8 +141,8 @@ describe('leaving a comment on a draft', () => {
       ['and this'],
     )
     dropDraftComment(2, 'source', left[0]!.id)
-    assert.ok(!fs.existsSync(batchFile))
-    assert.ok(!fs.existsSync(batchDir))
+    assert.ok(!fs.existsSync(batchFile()))
+    assert.ok(!fs.existsSync(batchDir()))
   })
 
   it('names two comments that read the same apart, so one edit is one comment', () => {
@@ -161,7 +165,7 @@ describe('leaving a comment on a draft', () => {
     assert.throws(() => leave('source', '', 'shorter'), /a comment is left on a passage/)
     assert.throws(() => leave('source', 'the piece', '   '), /a comment says what to do/)
     assert.throws(() => editDraftComment(2, 'source', 'x', ' '), /a comment says what to do/)
-    assert.ok(!fs.existsSync(batchFile))
+    assert.ok(!fs.existsSync(batchFile()))
   })
 })
 
@@ -222,7 +226,7 @@ describe('the file is the format, so a person can write it', () => {
     assert.match(file, /^> a passage nobody finished$/m)
     // And the polish that answers the batch does not take them with it.
     clearComments(2, 'source')
-    const left = fs.readFileSync(batchFile, 'utf8')
+    const left = fs.readFileSync(batchFile(), 'utf8')
     assert.match(left, /^A note to myself, with nothing quoted\.$/m)
     assert.match(left, /^> a passage nobody finished$/m)
     assert.doesNotMatch(left, /say it shorter/)
@@ -273,7 +277,7 @@ describe('submitting the batch', () => {
     const prompt = buildPrompt({ action: 'polish', id: 2, title: 'A topic', draft: 'x' })
     assert.match(prompt, /akb guide polish/)
     assert.match(prompt, /Read docs\/kanban\/content\/2-a-topic\/x\.md/)
-    assert.match(prompt, /the comments in docs\/kanban\/\.comments\/2\/x\.md/)
+    assert.ok(prompt.includes(`the comments in ${path.join(COMMENTS, '2', 'x.md')}`))
     assert.match(prompt, /rewrite docs\/kanban\/content\/2-a-topic\/x\.md/)
   })
 
@@ -296,6 +300,6 @@ describe('the batch leaves with its card', () => {
     leave('source', 'the piece', 'say it shorter')
     const out = await move(root, ['archive', '2'])
     assert.deepEqual(out.comments_removed, [2])
-    assert.ok(!fs.existsSync(batchDir))
+    assert.ok(!fs.existsSync(batchDir()))
   })
 })

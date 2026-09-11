@@ -15,6 +15,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 import { HARNESSES, harnessByName, type Harness } from '../src/lib/agent/harnesses/index.ts'
 import { readLogin, toAsk } from '../src/lib/agent/login.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-login-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -47,6 +48,7 @@ const asked = (): string[] => toAsk().map((one) => one.harness.name)
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
 })
 
 after(() => {

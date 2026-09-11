@@ -22,6 +22,7 @@ import { readInbox } from '../src/lib/signals/inbox.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import { writeSession, type CloudSession } from '../src/lib/cloud/session.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 const SUPABASE = 'https://project.supabase.co'
 const API = 'https://api.example.test'
@@ -124,7 +125,7 @@ afterEach(() => {
   globalThis.fetch = realFetch
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(root, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   delete process.env.AI4KANBAN_SUPABASE_URL
   delete process.env.AI4KANBAN_SUPABASE_ANON_KEY
   delete process.env.AI4KANBAN_CLOUD_URL

@@ -11,9 +11,10 @@
 //
 // A comment is SAVED on its passage, not sent: a read-through that finds six things is one
 // polish over the file rather than six rewrites of it, each unaware of the other five. The
-// comments live beside the board (`docs/kanban/.comments/<id>/<draft>.md`) and never inside
-// the draft, and the board clears the batch when the polish it went to ends. That file is
-// ordinary markdown somebody can open and edit, so every read of it is a fresh one.
+// comments live in this board's own folder on the machine (`comments/<id>/<draft>.md`, #590)
+// and never inside the draft, and the board clears the batch when the polish it went to ends.
+// That file is ordinary markdown somebody can open and edit, so every read of it is a fresh
+// one.
 //
 // It is a page of its own rather than a branch of `CardPage`, so the two boards' pages are
 // free to be different shapes; the cost is that the top row, the rail wiring and the run

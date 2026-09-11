@@ -22,7 +22,7 @@ import { setLanguage } from '../src/lib/machine/settings.ts'
 import { setBoardRoot, TODO } from '../src/lib/paths.ts'
 import { validateSpec } from '../src/lib/spec-contract.ts'
 import type { Meta } from '../src/lib/types.ts'
-import { move, refuses } from './helpers/board.ts'
+import { move, refuses, restoreMachineHome } from './helpers/board.ts'
 
 let root = ''
 
@@ -120,7 +120,7 @@ describe('a marketing card', () => {
       assert.doesNotMatch(ask, /--slug/)
       assert.doesNotMatch(buildPrompt({ action: 'implement', id: 3, title: '一个选题' }), /--slug/)
     } finally {
-      delete process.env.AI4KANBAN_HOME
+      restoreMachineHome()
       fs.rmSync(home, { recursive: true, force: true })
     }
   })

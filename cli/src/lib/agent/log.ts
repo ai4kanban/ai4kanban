@@ -1,11 +1,11 @@
 // A run's log file — the durable record, and the only thing every process can read.
 //
-// One file per run, under docs/kanban/.sessions/. The run writes it as it goes, so anyone
-// can follow any run, including one they did not start; and it outlives both the command
-// that started the run and the process that watched it.
+// One file per run, under `sessions/` in this board's own folder on the machine (#590). The
+// run writes it as it goes, so anyone can follow any run, including one they did not start;
+// and it outlives both the command that started the run and the process that watched it.
 //
 // A few bookkeeping stamps go in at the close, each on its own marker line. The record in
-// .sessions.json answers these while it holds the run, but it keeps only the newest — the
+// sessions.json answers these while it holds the run, but it keeps only the newest — the
 // log file is what is left afterwards, so the numbers are stamped here too and read back
 // out. They are stripped before the log is shown, so they never read as agent output.
 

@@ -12,6 +12,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { agentInfo, openPlan, planRun } from '../src/lib/agent/resolve.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-run-env-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -30,6 +31,7 @@ const runEnv = (): NodeJS.ProcessEnv => openPlan(planRun('s1', root)).env
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   delete process.env.ANTHROPIC_API_KEY
 })
 

@@ -14,11 +14,12 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { board, withLease, type OpEnvelope, type OpResult } from '../src/lib/board/index.ts'
-import { boardFingerprint, packBoard, portableDelivery, unpackBoard } from '../src/lib/board/transfer.ts'
+import { boardFingerprint, clearBoardCopy, packBoard, portableDelivery, unpackBoard } from '../src/lib/board/transfer.ts'
 import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { DeliveryRecord } from '../src/lib/agent/types.ts'
 import type { Meta } from '../src/lib/types.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-content-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -27,6 +28,7 @@ after(() => fs.rmSync(root, { recursive: true, force: true }))
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   setBoardRoot(root)
   write('next-id', '44\n')
   write('config.md', '# Project\n\n- **Name**: Test board\n')
@@ -43,6 +45,22 @@ function write(rel: string, body: string): void {
 }
 
 const read = (rel: string): string => fs.readFileSync(path.join(kanban, rel), 'utf8')
+
+const payloadLeftBehind = (): string[] => packBoard().leftBehind
+
+/** What a board written before #590 keeps beside its cards, top-level name by top-level
+ *  name — the run record and its logs, the chats, the drawings, the comment batches, the
+ *  locks. Nothing writes or reads them now, and nothing may upload or delete them either. */
+const LEGACY_STATE = ['.sessions.json', '.sessions', '.sessions.lock', '.lock', '.index.lock', '.chats', '.mockups', '.comments']
+
+function writeLegacyState(): void {
+  write('.sessions.json', '{"runs":[{"sessionId":"r1"}]}\n')
+  write('.sessions/r1.log', 'what the agent said\n')
+  write('.chats/board.json', '{"messages":[]}\n')
+  write('.mockups/12/a.tsx', 'export default () => null\n')
+  write('.comments/12/post.md', '# Comments\n')
+  for (const lock of ['.sessions.lock', '.lock', '.index.lock']) fs.mkdirSync(path.join(kanban, lock), { recursive: true })
+}
 
 function card(rel: string, id: number, over: Partial<Meta> = {}): void {
   const meta: Partial<Meta> = {
@@ -249,20 +267,45 @@ describe('packing a board', () => {
 
   it('leaves behind everything the board keeps out of git', () => {
     write('.env', 'ANTHROPIC_API_KEY=sk-ant-secret\n')
+    write('.local.json', '{"config":{"builder":{"claude-code":{"model":"opus"}}}}\n')
     write('ui.config.json', '{"harness":"claude-code","apiKey":"sk-ant-secret"}\n')
-    write('.sessions.json', '{"runs":[]}\n')
-    write('.sessions/3f2a.log', 'a run log\n')
-    write('.chats/board.json', '{"messages":[]}\n')
-    write('.mockups/12/screen.html', '<html></html>\n')
 
     const packed = JSON.stringify(packBoard())
-    for (const secret of ['sk-ant-secret', 'a run log', 'ANTHROPIC_API_KEY', 'harness']) {
+    for (const secret of ['sk-ant-secret', 'ANTHROPIC_API_KEY', 'harness', 'opus']) {
       assert.ok(!packed.includes(secret), `${secret} left the machine`)
     }
     const paths = packBoard().documents.map((d) => d.path)
-    for (const kept of ['.env', 'ui.config.json', '.sessions.json']) {
+    for (const kept of ['.env', '.local.json', 'ui.config.json']) {
       assert.ok(!paths.includes(kept), `${kept} was packed`)
     }
+  })
+
+  it('leaves behind what a board written before the move still holds', () => {
+    // The run record, the logs, the chats, the drawings and the comment batches live outside
+    // the repository now (#590). A board from before that keeps its own copies, which nothing
+    // reads any more — and which are still this machine's, not a workspace's.
+    writeLegacyState()
+
+    const packed = JSON.stringify(packBoard())
+    assert.ok(!packed.includes('what the agent said'), "a run's log left the machine")
+    const paths = packBoard().documents.map((d) => d.path)
+    for (const kept of LEGACY_STATE) {
+      assert.ok(!paths.some((p) => p === kept || p.startsWith(`${kept}/`)), `${kept} was packed`)
+      assert.ok(!payloadLeftBehind().includes(kept), `${kept} was reported as an unknown board file`)
+    }
+  })
+
+  it('deletes none of it when a copy is cleared for a workspace to hydrate over', () => {
+    write('.env', 'ANTHROPIC_API_KEY=sk-ant-secret\n')
+    writeLegacyState()
+
+    clearBoardCopy()
+
+    assert.ok(fs.existsSync(path.join(kanban, '.env')))
+    for (const kept of LEGACY_STATE) assert.ok(fs.existsSync(path.join(kanban, kept)), `${kept} was deleted`)
+    assert.equal(read('.sessions/r1.log'), 'what the agent said\n')
+    // …while the committed half is gone, which is what clearing is for.
+    assert.equal(fs.existsSync(path.join(kanban, 'todo')), false)
   })
 
   it('says which committed files neither half recognised', () => {

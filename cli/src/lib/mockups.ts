@@ -11,6 +11,14 @@
 // A spec agent gets that wrong often enough that the shape is repaired here rather than
 // asked for — `spec-write` runs this over every section it takes.
 
+import { MOCKUPS } from './paths'
+
+/** Where this board's drawings are kept — one folder per card id. Under the board's own
+ *  folder on this machine (#590), not in the project: a mockup is redrawn from the card
+ *  whenever the question comes back, so it is never something a teammate pulls. The `src` a
+ *  card writes is unchanged and still reads `.mockups/<id>/<file>`; only this resolves it. */
+export const mockupsDir = (): string => MOCKUPS
+
 // A self-closing tag with no `<` or `>` inside it, the same one the reader matches.
 const TAG = /<Mockup\b[^<>]*?\/>/
 const FENCE = /^\s*(```|~~~)/

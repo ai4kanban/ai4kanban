@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { chatPrompt } from '../src/lib/agent/chat.ts'
 import { setAgentRule } from '../src/lib/agent/rules.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 // A conversation carries the board's language on every turn (#337), so the machine is
 // pinned here — the developer's own pick must not change what these prompts say.
@@ -24,7 +25,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   fs.rmSync(home, { recursive: true, force: true })
 })
 

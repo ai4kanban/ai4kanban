@@ -33,6 +33,7 @@ import { rememberBoardCopy } from '../src/lib/cloud/copy.ts'
 import { actionableKind, snapshotFor, userQuestions } from '../src/lib/cloud/snapshot.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { Card, Question } from '../src/lib/view/types.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 const WORKSPACE = '99999999-9999-4999-8999-999999999999'
 
@@ -45,7 +46,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(home, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
 })
 
 const BOARD = {

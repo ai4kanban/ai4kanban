@@ -151,7 +151,7 @@ export { clearChatPlan, noteChatMessage } from './lib/agent/chat'
 
 // The discussions a board is holding (#496). A board holds many at once — each with its own
 // transcript, agent session and plans — so the rail lists them and Create task opens a new
-// one on every press. The list is the `.chats/` files themselves: there is no index to drift.
+// one on every press. The list is the `chats/` files themselves: there is no index to drift.
 export {
   archiveDiscussion,
   asDiscussion,
@@ -220,6 +220,13 @@ export { agentHarness } from './lib/agent/resolve'
 // nowhere, so this is a read and there is no writer beside it.
 export { runRuntimePick } from './lib/agent/resolve'
 export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
+// What this board keeps on this machine and cleans up itself (#590) — the run record, the
+// logs, the chats, the drawings, the comment batches and the locks, in one folder per
+// project outside every repository. The board UI server calls `useProjectState` once, after
+// it points the rules at its board, because nothing there goes through a command line; and
+// it reads `mockupsDir` rather than building the path itself, so there is one answer.
+export { useProjectState } from './lib/paths'
+export { mockupsDir } from './lib/mockups'
 // Which boards this project holds, and what each one's work is called (#407). The folder
 // chip's badge is drawn from these: one board gets a label, two get a switcher.
 export { listBoards } from './lib/boards'

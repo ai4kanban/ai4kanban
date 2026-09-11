@@ -10,7 +10,7 @@ import { parseFrontmatter, serializeFrontmatter } from '../src/lib/frontmatter.t
 import { setBoardRoot } from '../src/lib/paths.ts'
 import { setCardSchedule } from '../src/lib/view/edit.ts'
 import type { Meta, Question } from '../src/lib/types.ts'
-import { move, refuses } from './helpers/board.ts'
+import { forgetMachineState, move, refuses } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-blocked-refine-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -18,6 +18,7 @@ const todo = path.join(kanban, 'todo')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '20\n')
   setBoardRoot(root)

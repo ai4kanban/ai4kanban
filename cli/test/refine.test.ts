@@ -28,6 +28,7 @@ import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
 import { setBoardProvider } from '../src/lib/board/index.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-refine-'))
 const track = path.join(root, 'docs', 'kanban', 'todo', 'skill')
@@ -35,6 +36,7 @@ const cardFile = path.join(track, '7-a-card-to-refine.md')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(track, { recursive: true })
   fs.writeFileSync(path.join(root, 'docs', 'kanban', 'todo', 'README.md'), '# Open tasks\n')
   fs.writeFileSync(path.join(root, 'docs', 'kanban', 'next-id'), '8\n')

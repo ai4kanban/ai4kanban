@@ -11,6 +11,7 @@ import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { Meta } from '../src/lib/types.ts'
 import { nextWork } from '../src/lib/view/dispatch.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-dispatch-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -19,6 +20,7 @@ const groupTrack = path.join(kanban, 'todo', '10-a-group', 'features')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(groupTrack, { recursive: true })
   fs.mkdirSync(track, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '20\n')

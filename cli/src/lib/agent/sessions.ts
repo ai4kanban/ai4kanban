@@ -1,12 +1,11 @@
 // What is running, and the rules that decide what may start.
 //
-// The record itself is a file — docs/kanban/.sessions.json — and agent/store.ts owns it.
-// This is everything around it: which run may start on which card, the bookkeeping either
-// side of one, and the delivery a run belongs to.
+// The record itself is a file — sessions.json in this board's own folder on the machine
+// (#590) — and agent/store.ts owns it. This is everything around it: which run may start on
+// which card, the bookkeeping either side of one, and the delivery a run belongs to.
 //
-// Alongside the record sits docs/kanban/.sessions/: one log per run, and, while one is
-// starting, the plan it was started with. Both are the run's own; the record points at
-// them.
+// Alongside the record sits `sessions/`: one log per run, and, while one is starting, the
+// plan it was started with. Both are the run's own; the record points at them.
 
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'

@@ -27,7 +27,7 @@ import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import { RULES, setBoardRoot } from '../src/lib/paths.ts'
-import { run as akb } from './helpers/board.ts'
+import { restoreMachineHome, run as akb } from './helpers/board.ts'
 
 let root = ''
 // This machine, for the tests that read the language off it (#337). Pinned for every test
@@ -69,7 +69,7 @@ beforeEach(() => {
 
 afterEach(() => {
   delete process.env[RUN_ENV]
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(root, { recursive: true, force: true })
 })

@@ -11,7 +11,7 @@ import type { DiscussionRow, DiscussionTarget } from "./types";
 // its agent is answering, both of which move while nobody is looking — a reply started in the
 // Create sheet goes on arriving after the sheet is shut, and a terminal writes the same files.
 //
-// Nothing is held here. The list is the `.chats/` files on this machine, read through the
+// Nothing is held here. The list is the `chats/` files on this machine, read through the
 // board's own rules, so two windows on one board draw the same rows.
 
 /** How often the rows are re-read: quick while a reply is being written somewhere, slow

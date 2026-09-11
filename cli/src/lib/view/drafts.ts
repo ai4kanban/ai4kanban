@@ -216,8 +216,8 @@ export function setChannels(id: number, names: string[]) {
 // ---- the comments left on a draft, and the polish they go to (#458) --------
 //
 // A comment is SAVED on its passage rather than sent, so a whole read-through is one pass
-// over the draft. The batch lives in `docs/kanban/.comments/<id>/<draft>.md`
-// (../comments.ts) — beside the board, never inside the draft, and out of git.
+// over the draft. The batch lives in `comments/<id>/<draft>.md` in this board's own folder
+// on the machine (../comments.ts, #590) — never inside the draft, and outside the project.
 //
 // Each write reads that file first and answers with the batch as it now reads, so a comment
 // somebody added or removed by hand is in the answer the page draws from. Nothing here

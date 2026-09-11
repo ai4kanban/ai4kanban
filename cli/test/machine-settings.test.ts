@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { languageChosen, readLanguage, setLanguage, settingsFile } from '../src/lib/machine/settings.ts'
 import { languageForTag } from '../src/lib/machine/types.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 let home = ''
 
@@ -26,7 +27,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(home, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
 })
 
 const write = (text: string): void => {

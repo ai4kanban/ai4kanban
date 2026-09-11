@@ -25,6 +25,7 @@ import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { Meta } from '../src/lib/types.ts'
 import { patchCard as screenPatchCard, saveProject } from '../src/lib/view/api.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-contract-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -32,6 +33,7 @@ const track = path.join(kanban, 'todo', 'features')
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(track, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '20\n')
   setBoardRoot(root)

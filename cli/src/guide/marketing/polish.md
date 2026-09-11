@@ -5,8 +5,8 @@ Write only that draft and relevant writing-memory files.
 
 ## Polish the draft
 
-Read the draft, its comments in `docs/kanban/.comments/<id>/<draft>.md`, `memory/writing.md`
-and every Markdown file under `memory/writing/`, recursively.
+Read the draft, the comments file the ask names, `memory/writing.md` and every Markdown file
+under `memory/writing/`, recursively.
 
 - **Read the whole batch**: each entry quotes a passage — `[[…]]` marking the exact words inside a wider quote — and the lines under it are the request. Use the current text; skip a comment if its passage is gone and no clear target remains.
 - **Apply the feedback**: follow explicit later corrections; otherwise resolve conflicting requests using your judgment. Use factual claims supplied by the user without requiring supporting information. Preserve unrelated text, intent, language and format unless feedback changes them; invent no claims of your own.

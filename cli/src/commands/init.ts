@@ -6,16 +6,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MOCKUPS, MOCKUP_IGNORE_LINE, MODULES_MD, RUN_IGNORE_LINES, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, RULES, AGENTS, SETUP_CHECKLIST } from '../lib/paths'
+import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, RULES, AGENTS, SETUP_CHECKLIST } from '../lib/paths'
 import { configTemplateFor } from '../lib/config-template'
 // Where a marketing board's drafts go — one folder per card, tracked in git and kept after
 // the card is archived (#406). Only that solution has one.
 import { contentDir } from '../lib/content'
 import { solution, type Solution } from '../lib/solution'
 import { say } from '../lib/io'
-import { LOCK_IGNORE_LINE } from '../lib/lock'
-import { CHAT_IGNORE_LINE } from '../lib/agent/chat'
-import { COMMENT_IGNORE_LINE } from '../lib/comments'
 import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
 import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
 import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
@@ -96,9 +93,12 @@ function writeModulesIfMissing() {
 // thing that can promise that on a board nobody has opened the UI on is `init`. A key
 // written into the file by hand is covered from the first day, before anything else runs.
 //
-// The second line is the write lock (lib/lock.mjs): it exists for the milliseconds a write
-// takes, and only outlives that if a process is killed mid-write — exactly when nobody
-// should have to think about it.
+// Two lines, and the list stops growing there (#590): everything the board writes and cleans
+// up itself — the run record and its logs, the chats, the drawings, the comment batches, the
+// locks — is machine state now and lives outside the repository (lib/machine/project.ts), so
+// it never needed a rule. A board made before that move keeps the lines it was given, and so
+// do the files they cover: nothing is written to them any more, nothing reads them, and both
+// the lines and the files are the user's own to delete.
 //
 // The rules go in the board's own ignore file, never the repo's root one. An existing file
 // gets the missing line added, not replaced: comments, order and every other rule in it are
@@ -107,32 +107,7 @@ function writeModulesIfMissing() {
 const IGNORE_RULES = [
   { line: '.env', comment: "# The board's API keys — never commit them." },
   { line: LOCAL_IGNORE_LINE, comment: "# The model each agent runs — this computer's answer, not the repo's." },
-  { line: LOCK_IGNORE_LINE, comment: '# The write lock, held for as long as one command takes.' },
-  ...RUN_IGNORE_LINES,
-  CHAT_IGNORE_LINE,
-  COMMENT_IGNORE_LINE,
-  { line: MOCKUP_IGNORE_LINE, comment: '# Drawings of the screens cards change — redrawn, never read back from git.' },
 ]
-
-// A board made before the folder was dotted keeps its drawings at docs/kanban/mockups/,
-// tracked in git. Move them under the ignored name so its cards still draw — the old path
-// then shows up as deleted, which is the whole point: mockups leave the repo. A card that
-// has a folder on both sides keeps the dotted one, the newer of the two, and the old copy
-// goes with the rest: one run, and there is one place mockups live.
-function moveMockupsIfOld(): string | null {
-  const old = path.join(KANBAN, 'mockups')
-  if (!fs.existsSync(old)) return null
-  if (!fs.existsSync(MOCKUPS)) {
-    fs.renameSync(old, MOCKUPS)
-    return rel(MOCKUPS)
-  }
-  for (const name of fs.readdirSync(old)) {
-    const to = path.join(MOCKUPS, name)
-    if (!fs.existsSync(to)) fs.renameSync(path.join(old, name), to)
-  }
-  fs.rmSync(old, { recursive: true, force: true })
-  return rel(MOCKUPS)
-}
 
 function writeGitignoreIfMissing(): boolean {
   fs.mkdirSync(KANBAN, { recursive: true })
@@ -231,7 +206,6 @@ export function cmdInit(named?: Solution): MoveResult {
     // it stops reading as one nobody wrote.
     const goalRepaired = marketing ? null : repairGoal()
     const prunedCard = migratePruneMemoryCard()
-    const movedMockups = moveMockupsIfOld()
     say(
       added.length
         ? `board already exists at ${rel(KANBAN)}/ — added the missing ${added.join(', ')} (safe to re-run)`
@@ -239,7 +213,6 @@ export function cmdInit(named?: Solution): MoveResult {
     )
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
     if (goalRepaired) say(`  ${rel(GOAL)}: ${goalRepaired} — the agent judges the goal and edits the field`)
-    if (movedMockups) say(`  moved the mockups to ${movedMockups}/ — they are out of git now, so commit the old path as deleted`)
     if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Agents); its cadence is kept there, switched off`)
     if (added.includes(rel(MODULES_MD))) {
       say(`  next: fill in ${rel(MODULES_MD)} (see "The module map"), then re-run init for the memory paths`)

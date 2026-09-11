@@ -10,12 +10,12 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
-import { cardsBeingCreated, withStore } from '../src/lib/agent/store.ts'
+import { cardsBeingCreated, logPathOf, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord, RunStatus } from '../src/lib/agent/types.ts'
 import { patchCard, setCardSchedule } from '../src/lib/view/edit.ts'
 import { findCard } from '../src/lib/view/read.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
-import { move, refuses, run } from './helpers/board.ts'
+import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { forgetMachineState, move, refuses, run } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-card-creation-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -24,6 +24,7 @@ const todo = path.join(kanban, 'todo')
 beforeEach(() => {
   delete process.env[RUN_ENV]
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '8\n')
   setBoardRoot(root)
@@ -43,13 +44,16 @@ const creator = (over: Partial<RunRecord> = {}): RunRecord => ({
   startedAt: Date.now(),
   pid: process.pid,
   harness: 'test',
-  logPath: '/dev/null',
+  logPath: logPathOf('creator-run'),
   ...over,
 })
 
 /** Write a card the way a run does: `akb raw create` from inside it. */
 async function createdInRun(over: Partial<RunRecord> = {}): Promise<number> {
   const run = creator(over)
+  // With its log where a run's log goes: the record drops a finished run whose log is gone.
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  fs.writeFileSync(run.logPath, '')
   withStore((store) => store.runs.push(run))
   process.env[RUN_ENV] = run.sessionId
   const made = await move(root, ['create', '--title', 'A card being written'])

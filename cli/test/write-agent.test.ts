@@ -20,7 +20,7 @@ import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { askForWrite, clearAsks, openRun, readWriteAsks } from '../src/lib/agent/sessions.ts'
 import { setBoardProvider } from '../src/lib/board/index.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
-import { run } from './helpers/board.ts'
+import { forgetMachineState, run } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-write-agent-'))
 const kanban = path.join(root, 'docs', 'kanban')
@@ -66,6 +66,7 @@ const CHARTER = POSTER.replace('name: poster', 'name: charter')
 /** A board of one solution, with the two write agents on it. */
 function board(which = 'marketing', cfg: Record<string, unknown> = {}): void {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(todo, { recursive: true })
   fs.writeFileSync(path.join(kanban, 'next-id'), '3\n')
   fs.writeFileSync(path.join(kanban, 'config.md'), `# Project\n\n- **Name**: Test\n- **Solution** — ${which}\n`)

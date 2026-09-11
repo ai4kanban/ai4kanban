@@ -36,8 +36,9 @@ import { heldLease, stampHolder } from '../src/lib/cloud/holds.ts'
 import { writePointer } from '../src/lib/cloud/pointer.ts'
 import { writeSession } from '../src/lib/cloud/session.ts'
 import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { SESSIONS, SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import type { Meta } from '../src/lib/types.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 const SUPABASE = 'https://cloud.test'
 const API = 'https://api.test'
@@ -71,7 +72,7 @@ afterEach(async () => {
   await openBoard(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-cloudrun-local-')))
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(root, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   delete process.env.AI4KANBAN_SUPABASE_URL
   delete process.env.AI4KANBAN_SUPABASE_ANON_KEY
   delete process.env.AI4KANBAN_CLOUD_URL
@@ -206,17 +207,16 @@ const pointed = (): void => writePointer(root, { workspace: WORKSPACE, name: 'Sh
 /** The runs on this machine, live: no pid yet and started a moment ago, which is what the
  *  record calls running while the command that wrote it is still spawning its watcher. */
 function running(...runs: { sessionId: string; cardId: number | null }[]): void {
-  const dir = path.join(root, 'docs', 'kanban')
-  fs.mkdirSync(dir, { recursive: true })
+  fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
   fs.writeFileSync(
-    path.join(dir, '.sessions.json'),
+    SESSIONS,
     JSON.stringify({
       runs: (runs.length ? runs : [{ sessionId: RUN, cardId: 3 }]).map((r) => ({
         ...r,
         action: 'implement',
         status: 'running',
         startedAt: Date.now(),
-        logPath: path.join(dir, '.sessions', `${r.sessionId}.log`),
+        logPath: path.join(SESSIONS_DIR, `${r.sessionId}.log`),
         flowId: 'flow-1',
       })),
       deliveries: [],

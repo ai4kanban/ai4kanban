@@ -24,6 +24,7 @@ import { checkSource } from '../src/lib/signals/check.ts'
 import { migrateTriage } from '../src/lib/signals/migrate.ts'
 import { matchSourceType } from '../src/lib/signals/sources.ts'
 import { dismissSignal, readSignals } from '../src/lib/signals/index.ts'
+import { forgetMachineState } from './helpers/board.ts'
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-signals-'))
 const kanban = () => path.join(root, 'docs', 'kanban')
@@ -87,6 +88,7 @@ function configure({ endpoint = true, token = true }: { endpoint?: boolean; toke
 
 beforeEach(() => {
   fs.rmSync(path.join(root, 'docs'), { recursive: true, force: true })
+  forgetMachineState(root)
   fs.mkdirSync(path.join(kanban(), 'todo'), { recursive: true })
   fs.writeFileSync(path.join(kanban(), 'next-id'), '90\n')
   setBoardRoot(root)

@@ -46,8 +46,8 @@ const zh: MessagesCopy = {
     pickFailed: "未能更改此对话使用的智能体或模型。",
   },
   mockup: {
-    notAMockup: (src) => `${src}——原型图应是 docs/kanban/.mockups/ 下的 .tsx、.html 或 .txt 文件`,
-    outside: (src) => `${src}——原型图只从 docs/kanban/.mockups/ 读取，而这个路径指向了它之外`,
+    notAMockup: (src) => `${src}——原型图的写法是 .mockups/<卡片号>/<名字>.tsx、.html 或 .txt`,
+    outside: (src) => `${src}——原型图只从本看板的原型图目录读取，而这个路径指向了它之外`,
     missing: (src) => `${src}——这台机器上没有这个文件（原型图不纳入 git）`,
     notDrawn: (src, why) => `${src}——这张原型图无法绘制：${why}`,
     importsOther: (id) => `它导入了 "${id}"，而原型图只能导入 React`,

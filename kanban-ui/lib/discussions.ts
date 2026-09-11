@@ -3,7 +3,7 @@ import type { DiscussionRow, DiscussionTarget } from "./types";
 
 // --- the discussions a board is holding (#496) --------------------------------
 //
-// The list itself is the command's (cli/src/lib/agent/discussions.ts): the `.chats/` files,
+// The list itself is the command's (cli/src/lib/agent/discussions.ts): the `chats/` files,
 // the 20 spoken to most recently, and the one that fell past them. This is the board's door
 // onto it, so the rail, the Create sheet and `akb chat` all read one list.
 //

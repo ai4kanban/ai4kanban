@@ -23,6 +23,7 @@ import { writeSession } from '../src/lib/cloud/session.ts'
 import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 import type { Meta } from '../src/lib/types.ts'
+import { restoreMachineHome } from './helpers/board.ts'
 
 const SUPABASE = 'https://cloud.test'
 const API = 'https://api.test'
@@ -48,7 +49,7 @@ afterEach(async () => {
   await openBoard(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-cloudboard-local-')))
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(root, { recursive: true, force: true })
-  delete process.env.AI4KANBAN_HOME
+  restoreMachineHome()
   delete process.env.AI4KANBAN_SUPABASE_URL
   delete process.env.AI4KANBAN_SUPABASE_ANON_KEY
   delete process.env.AI4KANBAN_CLOUD_URL
