@@ -22,7 +22,7 @@ import {
 } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { resumePrompt } from '../src/lib/agent/prompts.ts'
-import { cancelDelivery } from '../src/lib/agent/sessions.ts'
+import { cancelDelivery, recoverOrphanedDeliveries } from '../src/lib/agent/sessions.ts'
 import { cardsAtWork, cardsWithLiveRun, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
@@ -76,6 +76,8 @@ beforeEach(() => {
   forgetMachineState(root)
   fs.mkdirSync(path.join(todo, 'features'), { recursive: true })
   fs.writeFileSync(file, CARD)
+  // The board refuses every write without it, and handing a card back is a board write.
+  fs.writeFileSync(path.join(root, 'docs', 'kanban', 'next-id'), '6\n')
   setBoardRoot(root)
   delete process.env[RUN_ENV]
 })
@@ -464,11 +466,105 @@ describe('a delivery with no card', () => {
   })
 })
 
+// A delivery the live record lost — the index file went missing under it, so nothing that
+// reads the record can reach it and its card sat at `implementing` with nothing running.
+describe('a delivery the live record lost', () => {
+  // The permanent record as a delivery cut off mid-build leaves it, written straight to
+  // disk: the live row is exactly what these deliveries no longer have.
+  const orphan = (id: string, over: Record<string, unknown> = {}): string => {
+    const worktree = path.join('.akb', 'worktrees', '5', id)
+    fs.mkdirSync(DELIVERIES, { recursive: true })
+    fs.writeFileSync(
+      path.join(DELIVERIES, `${id}.json`),
+      JSON.stringify({
+        deliveryId: id,
+        cardId: 5,
+        title: 'A card',
+        status: 'active',
+        startedAt: 1_000,
+        approved: '# A card\n',
+        steps: [{ step: 'implement', at: 1_000 }],
+        priorStatus: 'ready',
+        commitMode: 'auto',
+        worktree,
+        branch: `card/5/${id}`,
+        sessions: [{ sessionId: `${id}-1`, action: 'implement', status: 'running', startedAt: 1_000, log: 'x.log' }],
+        ...over,
+      }),
+    )
+    return worktree
+  }
+
+  // What `worktreeExists` looks for: the folder, still git's.
+  const onThisMachine = (worktree: string): string => {
+    const dir = path.join(root, worktree)
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(path.join(dir, '.git'), 'gitdir: elsewhere\n')
+    return dir
+  }
+
+  const atImplementing = (): void => fs.writeFileSync(file, CARD.replace('status: ready', 'status: implementing'))
+
+  it('fails the record and interrupts the sessions nobody saw end', async () => {
+    onThisMachine(orphan('lost1111'))
+    await recoverOrphanedDeliveries()
+    const record = readAudit('lost1111')
+    assert.equal(record.status, 'failed')
+    assert.ok(record.endedAt)
+    assert.deepEqual(record.sessions.map((s) => s.status), ['interrupted'])
+  })
+
+  it('leaves its branch and worktree exactly where they are', async () => {
+    const dir = onThisMachine(orphan('lost2222'))
+    await recoverOrphanedDeliveries()
+    assert.equal(fs.existsSync(dir), true)
+    assert.equal(readAudit('lost2222').branch, 'card/5/lost2222')
+  })
+
+  it('hands the card back to the stage the delivery took it from', async () => {
+    atImplementing()
+    onThisMachine(orphan('lost3333'))
+    await recoverOrphanedDeliveries()
+    assert.match(fs.readFileSync(file, 'utf8'), /status: ready/)
+  })
+
+  // `deliveries/` is in git, so a delivery running on a colleague's machine arrives here as
+  // an `active` record too. Its worktree is theirs, and that is what tells the two apart.
+  it('leaves a delivery whose worktree is not on this machine alone', async () => {
+    atImplementing()
+    orphan('lost4444') // the record, with no worktree beside it
+    assert.deepEqual(await recoverOrphanedDeliveries(), [])
+    assert.equal(readAudit('lost4444').status, 'active')
+    assert.match(fs.readFileSync(file, 'utf8'), /status: implementing/)
+  })
+
+  it('leaves a delivery the record still has a row for alone', async () => {
+    const id = start(session())
+    onThisMachine(path.join('.akb', 'worktrees', '5', id))
+    withStore((store) => {
+      store.deliveries.find((d) => d.deliveryId === id)!.worktree = path.join('.akb', 'worktrees', '5', id)
+    })
+    assert.deepEqual(await recoverOrphanedDeliveries(), [])
+    assert.equal(readAudit(id).status, 'active')
+  })
+
+  it('does not hand back a card another delivery has taken over', async () => {
+    onThisMachine(orphan('lost5555'))
+    start(session()) // the delivery building #5 now, which put it at `implementing`
+    atImplementing()
+    const closed = await recoverOrphanedDeliveries()
+    assert.deepEqual(closed.map((d) => d.deliveryId), ['lost5555'])
+    assert.match(fs.readFileSync(file, 'utf8'), /status: implementing/)
+  })
+})
+
 function readAudit(id: string): {
   status: string
   cardId: number | null
   approved: string
-  sessions: { sessionId: string; log: string }[]
+  endedAt?: number
+  branch?: string
+  sessions: { sessionId: string; log: string; status: string }[]
 } {
   return JSON.parse(fs.readFileSync(path.join(DELIVERIES, `${id}.json`), 'utf8'))
 }

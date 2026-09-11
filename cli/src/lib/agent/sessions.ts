@@ -25,6 +25,7 @@ import { reportRun } from '../machine/usage'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
 import {
   activeDelivery,
+  closeOrphanedDeliveries,
   endDelivery,
   findDelivery,
   joinActive,
@@ -404,7 +405,37 @@ export async function listRuns(): Promise<RunView[]> {
   // permanent record is the only place that ending is written down.
   for (const run of restore) await restoreCardStatus(run)
   for (const run of reaped) await settleDelivery(run)
+  // And the deliveries no row is left of at all, which reaping cannot reach: it reads the
+  // record, and these are the ones the record lost.
+  if (Date.now() - scannedOrphansAt >= ORPHAN_SCAN_MS) {
+    scannedOrphansAt = Date.now()
+    await recoverOrphanedDeliveries()
+  }
   return runs.map((r) => toView(r))
+}
+
+// How often one process rescans the permanent records for deliveries it lost track of. A
+// scan reads every file under docs/kanban/deliveries/, which only ever grows, and the board's
+// screens poll `listRuns` twice a second — a minute is soon enough for a card that has been
+// stuck since the index went missing.
+const ORPHAN_SCAN_MS = 60_000
+let scannedOrphansAt = 0
+
+/** Close the deliveries this board lost the live record for, and hand their cards back.
+ *
+ *  `listRuns` calls this, at most once a minute per process — nothing else reaches these
+ *  deliveries, because everything else reads the record and the record is what they fell
+ *  out of.
+ *
+ *  A card another delivery has taken over since is left where it is: the stage it reads is
+ *  that delivery's, not this one's to put back. */
+export async function recoverOrphanedDeliveries(): Promise<DeliveryRecord[]> {
+  const closed = closeOrphanedDeliveries()
+  for (const delivery of closed) {
+    if (delivery.cardId !== null && activeDelivery(delivery.cardId)) continue
+    await releaseCard(delivery)
+  }
+  return closed
 }
 
 /** One run by id, or by any prefix of one that names exactly one run. `last` is the newest

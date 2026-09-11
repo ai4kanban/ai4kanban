@@ -57,6 +57,7 @@ import type {
   DirectBuild,
   RunRecord,
 } from './types'
+import { worktreeExists } from './worktree'
 
 // ---- the permanent record ---------------------------------------------------
 
@@ -111,13 +112,24 @@ export function writeAudit(delivery: DeliveryRecord, runs: RunRecord[]): void {
       },
     ]
   })
+  // an unwritable folder is not worth failing over — the live row is still the truth for the lock
+  writeAuditFile({ ...delivery, sessions })
+}
+
+/** The permanent record as it sits on disk: the delivery, with each of its sessions spelled
+ *  out rather than named. */
+type DeliveryAudit = Omit<DeliveryRecord, 'sessions'> & { sessions: DeliverySessionEntry[] }
+
+// Write one whole and move it into place, so no reader ever sees half of it.
+function writeAuditFile(record: DeliveryAudit): boolean {
   try {
     fs.mkdirSync(DELIVERIES, { recursive: true })
-    const tmp = `${auditPath(delivery.deliveryId)}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify({ ...delivery, sessions }, null, 2) + '\n')
-    fs.renameSync(tmp, auditPath(delivery.deliveryId))
+    const tmp = `${auditPath(record.deliveryId)}.tmp`
+    fs.writeFileSync(tmp, JSON.stringify(record, null, 2) + '\n')
+    fs.renameSync(tmp, auditPath(record.deliveryId))
+    return true
   } catch {
-    // an unwritable folder — the live row is still the truth for the lock
+    return false
   }
 }
 
@@ -142,6 +154,80 @@ export function syncAudit(deliveryId: string, just?: RunRecord): void {
   if (!delivery) return
   const runs = just ? [just, ...store.runs.filter((r) => r.sessionId !== just.sessionId)] : store.runs
   writeAudit(delivery, runs)
+}
+
+// ---- the deliveries this board lost track of --------------------------------
+
+/** Every delivery the permanent record still calls `active`, read from the files
+ *  themselves: the live record is exactly the thing that may have lost them. */
+function activeAudits(): DeliveryAudit[] {
+  let names: string[]
+  try {
+    names = fs.readdirSync(DELIVERIES)
+  } catch {
+    return []
+  }
+  const out: DeliveryAudit[] = []
+  for (const name of names) {
+    if (!name.endsWith('.json')) continue
+    try {
+      const data = JSON.parse(fs.readFileSync(path.join(DELIVERIES, name), 'utf8')) as DeliveryAudit
+      if (data?.status === 'active' && typeof data.deliveryId === 'string' && Array.isArray(data.sessions)) {
+        out.push(data)
+      }
+    } catch {
+      // half-written, or not a record at all — nothing here is ours to judge
+    }
+  }
+  return out
+}
+
+/** Close every delivery this board has lost the live record for, and hand back what was
+ *  closed so the caller can release the cards.
+ *
+ *  ORPHANED means three things at once. Its permanent record says `active`; the live record
+ *  has no row for it, neither the delivery's nor a run's — and an `active` row is never
+ *  pruned, so only a lost index reads that way; and its own worktree is still on this
+ *  machine. The last is what keeps a colleague's delivery safe: `deliveries/` is in git, so
+ *  a delivery running on their machine arrives here as an `active` record too, and only the
+ *  worktree says the delivery was ours.
+ *
+ *  Only records are written. The record is failed, sessions nobody saw end are interrupted,
+ *  and the branch and worktree are left exactly where they are — what an orphaned delivery
+ *  built is often the only copy of it. */
+export function closeOrphanedDeliveries(): DeliveryRecord[] {
+  // The records first, the live index second, and the index under its own lock. A delivery
+  // starting right now writes its record and then its row, both inside that lock — read in
+  // the other order, or without the lock, and a scan can land between the two and fail a
+  // build that is a second old.
+  const audits = activeAudits()
+  const known = withStore((store) => {
+    const ids = new Set<string>(store.deliveries.map((d) => d.deliveryId))
+    for (const run of store.runs) if (run.deliveryId) ids.add(run.deliveryId)
+    return ids
+  })
+  const closed: DeliveryRecord[] = []
+  for (const audit of audits) {
+    if (known.has(audit.deliveryId) || !worktreeExists(audit.worktree)) continue
+    // We only know it ended by the time we noticed, so these stamps are an upper bound —
+    // the same bound `reap` puts on a run whose watcher died.
+    const endedAt = Date.now()
+    const record: DeliveryAudit = {
+      ...audit,
+      status: 'failed',
+      endedAt,
+      sessions: audit.sessions.map((s) =>
+        s.status === 'running' ? { ...s, status: 'interrupted', endedAt: s.endedAt ?? endedAt } : s,
+      ),
+    }
+    if (!writeAuditFile(record)) continue
+    closed.push({ ...record, sessions: record.sessions.map((s) => s.sessionId) })
+    // Against the Cloud event whose action started it (#319), like any other ending: a
+    // request nobody reports on is one Cloud waits for forever. A no-op on a card Cloud
+    // never asked about, which is most of them.
+    if (record.cardId !== null) recordCloudDeliveryState(record.cardId, 'failed')
+  }
+  return closed
 }
 
 // ---- the approved requirements ----------------------------------------------
