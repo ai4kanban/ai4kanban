@@ -28,6 +28,7 @@ import { advanceLanding } from './landing'
 import { runEnv } from './flow'
 import { refineRunsAfter, specRunsAfter, writeRunsAfter } from './follow'
 import { reflectRunsAfter } from './propose'
+import { triageRunAfter, triageWaiting } from './auto-triage'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
@@ -176,6 +177,10 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // is off, which is also what stops a gate switched on MID-run from reading the whole
   // backlog as newly settled: this run watches nothing, and the next one watches properly.
   const stagesBefore = readyGateOn() ? cardStages() : null
+  // And, on a sort, the items it was handed (#562). A sort reads the list once at its spawn,
+  // so the close compares this against what is waiting then: a sort that judged none of them
+  // starts no other, and anything that arrived while it went is what the next one is for.
+  const sorting = record.action === 'triage' ? triageWaiting() : null
   const sources = snapshotSpecs()
   // And the board's own files as they stand, on a Cloud board: the difference between this
   // and the same read at the close is what this run wrote with its own tools, and what its
@@ -575,7 +580,12 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       // still open then; the dispatcher cannot answer this, because a completed card is
       // exactly what it no longer sees.
       const reflect = status === 'done' ? reflectRunsAfter(before.keys()) : []
-      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate, reflect)
+      // And the rest of what is waiting in triage (#562): a sort sees only the items it
+      // spawned with, so the batch it was held off from judging — and anything written while
+      // it went — is carried on here. Only a sort that FINISHED: one that failed or was
+      // stopped judged nothing, and the items are still where they were.
+      const sortOn = status === 'done' && sorting ? await triageRunAfter(sorting) : null
+      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate, reflect, sortOn)
       resolve(status === 'done' ? 0 : 1)
     }
 
@@ -770,6 +780,7 @@ async function followUp(
   landing: AgentRequest | null = null,
   gate: AgentRequest | null = null,
   reflect: AgentRequest[] = [],
+  sortOn: AgentRequest | null = null,
 ): Promise<void> {
   // A request that already names its flow keeps it — a refinement pass carries its loop's
   // id, and that loop is this flow anyway.
@@ -794,6 +805,10 @@ async function followUp(
     // And after it, the reflections — they read the open cards and the inbox to decide what
     // is worth proposing, so they run once everything this close starts is on the board.
     for (const req of reflect) await startRun(join(req))
+    // Last, the next sort (#562), and NOT joined: what starts it is a list of items rather
+    // than the flow this run belonged to, so it is its own group, its own cost and its own
+    // notification — the same sort a new batch of items would have started.
+    if (sortOn) await startRun(sortOn)
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
   }

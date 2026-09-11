@@ -537,6 +537,10 @@ export interface BoardRules {
   readSignals?(): SignalInbox;
   addToInbox?(drop: InboxDrop): InboxAddResult;
   dismissSignal?(sourceId: string): { ok: boolean; error?: string };
+  /** Sort what was just added, when the triager is switched on (#562). Called after an add
+   *  lands, never instead of it: a run that will not start leaves the item waiting, and the
+   *  add succeeded either way. Optional like the four above. */
+  triageAfterAdding?(added: number): Promise<void>;
   /** What an Implement click would do on this board right now (#307): the branch the change
    *  would land on, and whether it lands at all. Optional: a board can be running rules from
    *  before the one-click flow, and the dialog then says only what it always said. */

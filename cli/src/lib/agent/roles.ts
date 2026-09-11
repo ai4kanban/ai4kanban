@@ -31,13 +31,22 @@ export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
   /** The key in `ui.config.json` this role is switched on under, when it can be switched
-   *  off at all (#447, #493, #509, #534). Most cannot: a board without a planner plans
-   *  nothing. Four can. Three spend a run the user never asked for — the gater judges a card
+   *  off at all (#447, #493, #509, #534, #562). Most cannot: a board without a planner plans
+   *  nothing. Five can. Four spend a run the user never asked for — the gater judges a card
    *  the way you would, the decider answers what you would have answered, the proposer
-   *  reflects on what you just finished — so each is off until you ask for it. The reviewer
-   *  does a flow's work and ships on, because judging a build is a paid run a board may
-   *  decline. Each reads its own key. */
+   *  reflects on what you just finished, the triager judges what just arrived — so each is
+   *  off until you ask for it. The reviewer does a flow's work and ships on, because judging
+   *  a build is a paid run a board may decline. Each reads its own key. */
   switch?: RoleSwitch
+  /** Whether switching this role ON asks first (#447, #562). A property of the role rather
+   *  than a name a screen keeps: the decider stops the board asking you anything, the
+   *  triager turns items into cards with a refine each, and a third would otherwise be a
+   *  third name written into a component. Switching one back off never asks. */
+  confirm?: boolean
+  /** What has to be open on this board for this role to be on its roster at all (#562).
+   *  `triage` is `signalsAccess()` — the answer the Triage rail row and `akb triage fetch`
+   *  read. Absent on every role that works wherever its solution does. */
+  needs?: 'triage'
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
   /** The flows it runs, by flow name (./flows.ts). `channel` and `polish` are in the
@@ -89,6 +98,7 @@ const DECIDER: AgentRole = {
   flows: ['decide'],
   memory: [],
   switch: 'decider',
+  confirm: true,
 }
 
 // The one role that runs a flow and can still be switched off (#509). Review is a paid run
@@ -141,15 +151,22 @@ const PROPOSER: AgentRole = {
   switch: 'proposer',
 }
 
-// The role that sorts what is waiting in triage (#561). Product boards only, and it carries
-// no switch: `akb triage run` is asked for by hand, and the board starting one by itself is
-// #562's. It owns no memory — what it judged is on the card it wrote or in the `dismissed/`
-// record that says why it did not.
+// The role that sorts what is waiting in triage (#561, #562). It owns no memory — what it
+// judged is on the card it wrote or in the `dismissed/` record that says why it did not.
+//
+// Its switch is not whether it runs: `akb triage run` is typed by hand whatever the switch
+// says. It is whether a batch of new items starts one by ITSELF, which is why turning it on
+// asks first — a sort that runs unasked writes cards unasked, and each of those carries a
+// refine. And it is on the roster only where triage is open at all (./access), so a board
+// that has no Triage row has no agent for it either.
 const TRIAGER: AgentRole = {
   name: 'triage',
   gloss: 'sorts what is waiting in triage into cards and ignores',
   flows: ['triage'],
   memory: [],
+  switch: 'autoTriage',
+  confirm: true,
+  needs: 'triage',
 }
 
 const PRODUCT_ROLES: AgentRole[] = [
@@ -240,11 +257,18 @@ export interface RosterEntry {
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
   /** Whether this entry can be switched off. Every specialist can; of the roles, the gater,
-   *  the decider (#447, #493), the reviewer (#509) and the proposer (#534). */
+   *  the decider (#447, #493), the reviewer (#509), the proposer (#534) and the triager
+   *  (#562). */
   switchable: boolean
+  /** Whether switching it ON asks first — the role's own `confirm`. False on every
+   *  specialist: one fills a section of a card and starts nothing on its own. */
+  confirm: boolean
   /** A switchable role's own key in `ui.config.json` — what says whether it is on. Absent
    *  on every other entry: a specialist's switch is its `specAgents` entry. */
   setting?: RoleSwitch
+  /** What has to be open on this board for this entry to be offered — a role's own `needs`
+   *  (#562). Absent on every entry that works wherever its board does. */
+  needs?: 'triage'
   /** A role's flows. Empty on a specialist: it is asked for by name, never by a flow. */
   flows: string[]
   /** The memory files it owns, repo-relative — a role's are the files its own flows already
@@ -268,6 +292,7 @@ export function agentRoster(): RosterEntry[] {
       kind: agent.kind,
       builtIn: agent.builtIn,
       switchable: true,
+      confirm: false,
       flows: [],
       memory: agent.memory ? agentMemoryFiles(agent.name).map(rel) : [],
     }
@@ -281,7 +306,9 @@ export function agentRoster(): RosterEntry[] {
       kind: 'role' as const,
       builtIn: true,
       switchable: role.switch !== undefined,
+      confirm: role.confirm === true,
       ...(role.switch ? { setting: role.switch } : {}),
+      ...(role.needs ? { needs: role.needs } : {}),
       flows: role.flows,
       memory: role.memory.map((file) => rel(path.join(KANBAN, file))),
     })),

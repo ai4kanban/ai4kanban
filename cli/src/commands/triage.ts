@@ -9,6 +9,10 @@
 // which is what the proposer's reflection uses. It asks Cloud nothing — the endpoint is what
 // admission is about, and **Add to triage** on the page has never asked either.
 //
+// All three go on to start a sort when the triager is switched on (#562, ../lib/agent/
+// auto-triage.ts). The trigger sits here rather than in `addToInbox` because it is the
+// WRITE that starts one, and a batch is a write however many items it carried.
+//
 // `check` is the one duplicate rule all three read (#559): it scans the item files and says
 // where a source id already is. A pull is held off by all three states; a hand-written add
 // only by the two that are not a dismissal.
@@ -22,6 +26,7 @@
 
 import fs from 'node:fs'
 
+import { triageAfterAdding } from '../lib/agent/auto-triage'
 import {
   addToInbox,
   archiveInboxItem,
@@ -72,6 +77,11 @@ export async function cmdTriageFetch(): Promise<MoveResult> {
     say(`  recurring card: #${seeded.id} ${rel(seeded.file)} — set a cadence on it to pull on its own`)
   }
 
+  // And the sort over what just landed (#562), when the triager is switched on. A pull that
+  // brought nothing new starts none, and a sort that will not start does not make the pull
+  // a failure.
+  await triageAfterAdding(report.added.length)
+
   return {
     added: report.added.length,
     skipped: report.skipped,
@@ -91,7 +101,7 @@ export interface TriageAddOptions {
 
 /** Write one item into triage. The body comes from `--text` for a line or two and from
  *  `--file` when it is longer, the same pair `akb release changelog` takes. */
-export function cmdTriageAdd(opts: TriageAddOptions): MoveResult {
+export async function cmdTriageAdd(opts: TriageAddOptions): Promise<MoveResult> {
   const title = (opts.title ?? '').trim()
   if (!title) die('say what it is: --title "<one line>"', { kind: 'needs-input' })
   if (opts.file !== undefined && opts.text !== undefined) die('pass --file or --text, not both', { kind: 'needs-input' })
@@ -111,6 +121,7 @@ export function cmdTriageAdd(opts: TriageAddOptions): MoveResult {
   const done = addToInbox({ title, text: body, source: opts.source })
   if (!done.ok) die(done.error, { kind: 'triage-item-refused' })
   say(`added to triage: ${done.signal.relPath}`)
+  await triageAfterAdding(1)
   return { title: done.signal.title, source_id: done.signal.sourceId, file: done.signal.relPath }
 }
 

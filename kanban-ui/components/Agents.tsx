@@ -83,9 +83,9 @@ import {
 } from "./ui/select";
 
 // The one agent on this board whose switch stops the board asking you anything (#447). Its
-// page carries a red strip saying what that costs, and turning it ON asks once. Named here
-// because there is exactly one: a second would be a shape in the roster, not a name in a
-// component.
+// page carries the only red strip in this dialog. Named here because there is exactly one.
+// Asking before a switch goes on used to be named the same way; a second agent wanted it
+// (#562), so it became a property of the role instead — `AgentView.confirm`.
 const COSTLY = "decider";
 
 // The one agent whose switch is a delivery setting (#509). Review is a paid run per
@@ -709,7 +709,14 @@ function Page({
   // own `AGENT.md`, which is the only place a project can write them, so it falls through to
   // the board's own answer and to a placeholder keyed by the hook it plugs into.
   const role = c.roles[agent.name as keyof typeof c.roles] as
-    { gloss: string; rule: string; when?: string } | undefined;
+    | {
+        gloss: string;
+        rule: string;
+        when?: string;
+        confirm?: { title: string; body: string; turnOn: string };
+        note?: string;
+      }
+    | undefined;
   const title = useAgentTitle()(agent);
   const gloss = role?.gloss ?? sentence(agent.gloss);
   const placeholder =
@@ -771,6 +778,7 @@ function Page({
           {agent.switchable && (
             <EnabledSwitch
               agent={agent}
+              confirm={role?.confirm}
               busy={busySwitch}
               onFlip={onFlip}
             />
@@ -915,9 +923,12 @@ function Page({
         )}
       </section>
 
-      {agent.name === COSTLY && (
+      {/* What this role has left to say — how the decider chooses (#447), what the triager
+          costs beside the other two switches (#562). Its own copy, so a third role saying
+          something here adds no branch. */}
+      {role?.note && (
         <p className="max-w-[74ch] shrink-0 text-[11.5px] leading-relaxed text-nb-ink-soft">
-          {c.decider.note}
+          {role.note}
         </p>
       )}
 
@@ -932,14 +943,21 @@ function Page({
   );
 }
 
-// The agent's switch, in the page header. Switching the costly one (#447) ON asks once;
-// switching it off, and every other switch either way, goes straight through.
+// The agent's switch, in the page header. A switch the BOARD says asks (#447, #562) asks
+// once on the way ON; switching it off, and every other switch either way, goes straight
+// through. Which agents those are is the roster's answer and the words are that role's own,
+// so neither is a name written down here.
 function EnabledSwitch({
   agent,
+  confirm,
   busy,
   onFlip,
 }: {
   agent: AgentView;
+  /** What this role asks, in the reader's language. Absent on every role that asks nothing,
+   *  and on a role this copy has never heard of — which switches straight through rather
+   *  than opening a popover with no words in it. */
+  confirm?: { title: string; body: string; turnOn: string };
   busy: boolean;
   onFlip: (next: boolean) => Promise<void>;
 }) {
@@ -947,7 +965,7 @@ function EnabledSwitch({
   const title = useAgentTitle()(agent);
   const anchor = useRef<HTMLSpanElement>(null);
   const [asking, setAsking] = useState(false);
-  const asks = agent.name === COSTLY;
+  const asks = agent.confirm && !!confirm;
   return (
     <span ref={anchor} className="relative flex shrink-0 items-center gap-2">
       <Switch
@@ -970,10 +988,10 @@ function EnabledSwitch({
           anchorRef={anchor}
           align="right"
           confirm="filled"
-          title={c.decider.confirmTitle}
-          description={c.decider.confirmBody}
+          title={confirm!.title}
+          description={confirm!.body}
           cancelLabel={c.cancel}
-          confirmLabel={c.decider.turnOn}
+          confirmLabel={confirm!.turnOn}
           busy={busy}
           onDismiss={() => setAsking(false)}
           onConfirm={() => {

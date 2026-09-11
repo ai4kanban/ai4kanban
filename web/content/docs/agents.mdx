@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "September 9, 2026"
+last_updated: "September 11, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -14,7 +14,7 @@ settings, and — for one you added — its own instructions.
 
 There are two kinds.
 
-**Roles** are the agents the board's own flows are run by. You do not add or remove one, and three
+**Roles** are the agents the board's own flows are run by. You do not add or remove one, and four
 of them can be switched off:
 
 - **Planner** — plans and refines cards. It runs create, refine, resolve, revise, the release
@@ -30,13 +30,15 @@ of them can be switched off:
   boards only: a topic carries no questions.
 - **Proposer** — reads a card the board has just finished and proposes the work that should follow
   it. Off by default. Product boards only.
-- **Triage** — sorts what is waiting in Triage into cards and ignores, when you run
-  `akb triage run`. Nothing else starts it. Product boards with [Triage](/docs/triage) open only.
+- **Triage** — sorts what is waiting in Triage into cards and ignores. Switched on, it sorts each
+  batch of new items itself and keeps going until nothing is waiting; `akb triage run` sorts either
+  way. Off by default. Product boards with [Triage](/docs/triage) open only, and it is not on the
+  roster at all where Triage is closed.
 
-The Gater, the Decider and the Proposer are the three roles you can switch off. None of them does a
-flow's work: each spends a run you never asked for, so each has its own switch and its own
-connector, and each reads the whole board — the goal, and every module's `decisions.md` and
-`rejected.md` — on top of the card.
+The Gater, the Decider, the Proposer and the Triage agent are the four roles you can switch off.
+None of them does a flow's work: each spends a run you never asked for, so each has its own switch
+and its own connector, and each reads the whole board — the goal, and every module's `decisions.md`
+and `rejected.md` — on top of the card.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
 while a card is being planned — never while it is being built — writes one named section of that
@@ -63,8 +65,8 @@ release plan (each card's own refine asks instead). A card that needs neither a
 screen nor a library goes through all of those without a spec run, and nothing tells you it did.
 
 When you do want one: **"put the ui-designer agent on #4"**, or `akb spec ui-designer 4`. Pausing one
-and setting what it produces are both on its page in **Configuration → Agents**; a role is always
-on except the Gater, the Decider and the Proposer, because a board without a planner plans nothing.
+and setting what it produces are both on its page in **Configuration → Agents**; a role is always on
+except the four above, because a board without a planner plans nothing.
 
 ## Let the Decider answer for you
 
@@ -116,6 +118,24 @@ module memory, and puts each survivor in **Triage**.
 Each item it writes carries a short rationale and the card that prompted it, so you can read what
 the proposal came from before deciding. Switching the Proposer off leaves nothing behind — items
 already in Triage stay there, like any other.
+
+## Let Triage sort for you
+
+**Triage** is the switch that empties the list you would otherwise read. Off, items wait until you
+type `akb triage run`. On, a batch of new items starts one sort by itself, and that sort's close
+starts the next until nothing is waiting.
+
+- **A new item is the only trigger.** A pull, **Add** on the page and `akb triage add` alike, so
+  what the Proposer writes is judged like anything from outside. Switching it on sweeps nothing
+  that is already waiting.
+- **One sort per batch, plus one more per sort that judged something.** A sort that judged nothing,
+  one that failed, and one you stopped all end the chain rather than starting another.
+- **Each card it writes carries a refine.** That is what it costs beyond the sort itself, and the
+  reason the switch asks once before it goes on.
+
+Running it alongside the Gater and the Decider is not recommended, and the board does not stop you:
+with all three on, an item somebody outside your team wrote can go from Triage to built without one
+human confirmation. [Triage](/docs/triage) has the whole of what a sort does.
 
 ## Give an agent a rule
 
@@ -227,8 +247,8 @@ akb:
 Say only what you want translated: anything you leave out keeps the English the agent declares.
 Whichever language your machine is set to is what the Agents pane draws. Every run is handed the
 English lines whatever you add here, so a translation can never change what an agent is asked to
-do. The roles the board ships — Planner, Builder, Writer, Reviewer, Gater, Decider, Proposer — are
-translated with the rest of the product and carry no block of their own.
+do. The roles the board ships — Planner, Builder, Writer, Reviewer, Gater, Decider, Proposer and
+Triage — are translated with the rest of the product and carry no block of their own.
 
 Agents used to live in `docs/kanban/skills/<name>/SKILL.md`. That folder still works for one
 release, and every agent found there is listed with a line telling you to move it.

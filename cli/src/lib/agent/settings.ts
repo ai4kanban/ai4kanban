@@ -207,20 +207,40 @@ export const proposerOn = (): boolean => switchedOn('proposer')
 /** Save it. Turning it back off drops the key rather than writing `false`. */
 export const setProposer = (on: boolean): { ok: boolean; error?: string } => setSwitch('proposer', on)
 
+// ---- auto triage: does a new item get judged by itself? (#562) --------------
+//
+//   "autoTriage": true
+//
+// OFF by default, and only written down when somebody turned it on. With it ON, a batch of
+// items landing in `triage/` starts one `triage` run, and that run's close starts the next
+// while it keeps judging things down — so the list empties itself.
+//
+// It costs more than the sort: every card the sort writes carries a refine, so a run that
+// cards three items is four runs. Turning it off again leaves nothing behind — there is no
+// state but this key, and what was already judged stays judged.
+
+/** True only when somebody switched auto triage on. A file that won't parse reads as off:
+ *  a setting nobody can read is not a reason to start judging items unasked. */
+export const autoTriageOn = (): boolean => switchedOn('autoTriage')
+
+/** Save it. Turning it back off drops the key rather than writing `false`. */
+export const setAutoTriage = (on: boolean): { ok: boolean; error?: string } => setSwitch('autoTriage', on)
+
 // ---- a switchable role's own key (#493, #509, #534) ------------------------
 //
-// Four of the switches above are roles that can be switched off: the gater runs the ready
+// Five of the switches above are roles that can be switched off: the gater runs the ready
 // gate, the decider answers for the user, the reviewer judges what was built, the proposer
-// reflects on what was finished. The three that predate the split keep the key they have
-// always had, so a board that already answered any of them keeps its answer, and the roster
-// reads a role through its own key rather than asking one role's question of them all.
+// reflects on what was finished, the triager sorts what is waiting. The three that predate
+// the split keep the key they have always had, so a board that already answered any of them
+// keeps its answer, and the roster reads a role through its own key rather than asking one
+// role's question of them all.
 //
-// They do not all ship the same way round. The three that spend a run the user never asked
+// They do not all ship the same way round. The four that spend a run the user never asked
 // for are off until asked for; the reviewer ships on. Either way the file records only what
 // somebody changed.
 
 /** The keys a switchable role is saved under (./roles.ts). */
-export type RoleSwitch = 'readyGate' | 'decider' | 'aiReview' | 'proposer'
+export type RoleSwitch = 'readyGate' | 'decider' | 'aiReview' | 'proposer' | 'autoTriage'
 
 /** The keys whose role ships ON, so only switching it OFF is written down. */
 const ON_BY_DEFAULT = new Set<RoleSwitch>(['aiReview'])

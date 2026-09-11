@@ -34,8 +34,13 @@ const dismissed = (): string => path.join(kanban(), 'triage', 'dismissed')
 const archived = (): string => path.join(kanban(), 'triage', 'archived')
 
 /** One item waiting to be sorted, and the source id it was given. */
-function waiting(title: string): string {
-  quiet(() => cmdTriageAdd({ title, text: `https://example.test/${title.replace(/\s+/g, '-')}` }))
+async function waiting(title: string): Promise<string> {
+  startCollecting()
+  try {
+    await cmdTriageAdd({ title, text: `https://example.test/${title.replace(/\s+/g, '-')}` })
+  } finally {
+    stopCollecting()
+  }
   return readInbox().find((item) => item.title === title)!.sourceId
 }
 
@@ -71,8 +76,8 @@ describe('the flow', () => {
     assert.equal(flowRefusal('triage'), null)
   })
 
-  it('prints the items themselves, and what each judgement lands through', () => {
-    const id = waiting('Conventions keep getting reverted')
+  it('prints the items themselves, and what each judgement lands through', async () => {
+    const id = await waiting('Conventions keep getting reverted')
     const { said } = quiet(() => printFlow({ action: 'triage' }))
     assert.match(said, new RegExp(`${id} — Conventions keep getting reverted`))
     assert.match(said, /--proposed --schedule refine --body-file/)
@@ -129,38 +134,38 @@ describe('a card written in one call', () => {
 })
 
 describe('landing one judgement', () => {
-  it('archives the item onto the card it became', () => {
-    const id = waiting('Conventions keep getting reverted')
+  it('archives the item onto the card it became', async () => {
+    const id = await waiting('Conventions keep getting reverted')
     const { value } = quiet(() => cmdTriageArchive(id, 7))
     assert.equal(value.where, 'archived')
     assert.equal(readInbox().length, 0)
     assert.match(fs.readFileSync(path.join(archived(), fs.readdirSync(archived())[0]!), 'utf8'), /card_id: 7/)
   })
 
-  it('ignores one in the agent’s name, with the reason', () => {
-    const id = waiting('A duplicate')
+  it('ignores one in the agent’s name, with the reason', async () => {
+    const id = await waiting('A duplicate')
     quiet(() => cmdTriageDismiss(id, '  already on #4  '))
     const record = fs.readFileSync(path.join(dismissed(), fs.readdirSync(dismissed())[0]!), 'utf8')
     assert.match(record, /dismissed_by: agent/)
     assert.match(record, /dismissed_reason: already on #4/)
   })
 
-  it('refuses a dismissal with no reason', () => {
-    const id = waiting('A duplicate')
+  it('refuses a dismissal with no reason', async () => {
+    const id = await waiting('A duplicate')
     assert.throws(() => quiet(() => cmdTriageDismiss(id, '   ')), /say why it is being ignored/)
     assert.equal(readInbox().length, 1)
   })
 
-  it('treats an item somebody else landed as gone, not as a failure of this run', () => {
-    const id = waiting('Taken already')
+  it('treats an item somebody else landed as gone, not as a failure of this run', async () => {
+    const id = await waiting('Taken already')
     dismissSignal(id)
     assert.throws(() => quiet(() => cmdTriageDismiss(id, 'too small')), /nothing waiting in triage is/)
   })
 })
 
 describe('a card that was written and an item that was ignored (#561)', () => {
-  it('records the card on the ignore and leaves it ignored', () => {
-    const id = waiting('Ignored mid-run')
+  it('records the card on the ignore and leaves it ignored', async () => {
+    const id = await waiting('Ignored mid-run')
     dismissSignal(id)
     const { value, said } = quiet(() => cmdTriageArchive(id, 11))
     assert.equal(value.where, 'dismissed')
@@ -172,8 +177,8 @@ describe('a card that was written and an item that was ignored (#561)', () => {
 })
 
 describe('the reconciliation a run starts with', () => {
-  it('archives an item an open card already names, so nothing is judged twice', () => {
-    const id = waiting('Already carded')
+  it('archives an item an open card already names, so nothing is judged twice', async () => {
+    const id = await waiting('Already carded')
     fs.writeFileSync(
       path.join(todo(), '4-already-carded.md'),
       `---\ntitle: Already carded\n---\n\nWords.\n\n## Source\n- ${id} — docs/kanban/triage/archived/x.md\n`,
@@ -188,8 +193,8 @@ describe('the reconciliation a run starts with', () => {
     assert.deepEqual(reconcileTriage(), [])
   })
 
-  it('leaves an item a card only mentions outside its ## Source', () => {
-    const id = waiting('Only mentioned')
+  it('leaves an item a card only mentions outside its ## Source', async () => {
+    const id = await waiting('Only mentioned')
     fs.writeFileSync(
       path.join(todo(), '5-mentions.md'),
       `---\ntitle: Mentions it\n---\n\nSomebody said ${id} once.\n\n## Source\n- #12\n`,
@@ -198,8 +203,8 @@ describe('the reconciliation a run starts with', () => {
     assert.equal(readInbox().length, 1)
   })
 
-  it('does not take a longer id for a shorter one', () => {
-    const long = waiting('Longer')
+  it('does not take a longer id for a shorter one', async () => {
+    const long = await waiting('Longer')
     fs.writeFileSync(
       path.join(todo(), '6-prefix.md'),
       `---\ntitle: Prefix\n---\n\nWords.\n\n## Source\n- ${long.slice(0, 6)}\n`,

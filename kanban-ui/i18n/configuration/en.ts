@@ -171,6 +171,12 @@ const en: ConfigurationCopy = {
         gloss: "Answers the questions on a card that are waiting on you.",
         rule: 'Added to the end of every answer Decider gives — "when it is close, take the smaller change".',
         when: "a card is left with nothing but questions waiting on you, a sent-back delivery's included.",
+        confirm: {
+          title: "Turn Decider on?",
+          body: "From now on the questions waiting on you are answered for you and a card never stops. Switch it off whenever you like — a card already built does not come back.",
+          turnOn: "Turn on",
+        },
+        note: "It answers from the project's goal, every module's decisions.md and rejected.md, and each question's own options and recommendation, and takes the recommendation when none of those settle it.",
       },
       proposer: {
         name: "Proposer",
@@ -188,17 +194,18 @@ const en: ConfigurationCopy = {
         name: "Triage",
         gloss: "Sorts what is waiting in Triage into cards and ignores.",
         rule: 'Added to the end of every sort — "never card anything that only one person asked for".',
-        when: "you run `akb triage run`. Each item becomes a card with a refine scheduled on it, or is ignored with the reason.",
+        when: "this is on and new items arrive — it sorts them itself, and keeps going until nothing is waiting. Each item becomes a card with a refine scheduled on it, or is ignored with the reason. `akb triage run` sorts whether it is on or off.",
+        confirm: {
+          title: "Turn Triage on?",
+          body: "From now on a new item is judged before you see it: the ones worth doing become cards by themselves, each costing one more refine run. Switch it off whenever you like.",
+          turnOn: "Turn on",
+        },
+        note: "Running it alongside Gater and Decider is not recommended: an item from outside can then go from Triage all the way to built without one human confirmation.",
       },
     },
     decider: {
       costTitle: "While this is on, nothing stops for you",
       cost: "An idea runs all the way to landed without asking you — a wrong direction included. What it chose, you read afterwards on the card.",
-      note: "It answers from the project's goal, every module's decisions.md and rejected.md, and each question's own options and recommendation, and takes the recommendation when none of those settle it.",
-      confirmTitle: "Turn Decider on?",
-      confirmBody:
-        "From now on the questions waiting on you are answered for you and a card never stops. Switch it off whenever you like — a card already built does not come back.",
-      turnOn: "Turn on",
     },
     pruner: {
       run: "Run now",

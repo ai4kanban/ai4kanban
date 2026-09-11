@@ -250,7 +250,11 @@ export { cloudConfigured, SIGN_IN_REDIRECT as CLOUD_SIGN_IN_REDIRECT, URL_SCHEME
 // holds, adding to it, and ignoring one — which moves its file into `triage/dismissed/` and
 // keeps it there. `checkSource` is the one duplicate rule all of them read. Pulling is
 // `akb triage fetch` and nothing else calls it.
+// `triageAfterAdding` is what the page calls once an add lands (#562): with the triager
+// switched on, a batch of new items starts one sort. It is a separate call rather than part
+// of `addToInbox` because it starts a RUN — every other move here writes files and returns.
 export { addToInbox, checkSource, dismissSignal, readSignals, signalsAccess } from './lib/signals'
+export { triageAfterAdding } from './lib/agent/auto-triage'
 export type { SignalsAccess, TriageCheck, TriageStatus } from './lib/signals'
 
 // The Cloud notification center (#319): the events this machine's boards raise, and the bell

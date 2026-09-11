@@ -416,6 +416,15 @@ export async function addToInbox(drop: InboxDrop): Promise<InboxAddResult> {
   return rules.addToInbox(drop);
 }
 
+/** Start a sort over what was just added, if the board's triager is switched on (#562).
+ *  Best-effort and silent: the add has already landed, and a run that will not start is one
+ *  more batch of items waiting, not a failure to report. */
+export async function triageAfterAdding(added: number): Promise<void> {
+  const rules = await boardRules();
+  if (!rules.triageAfterAdding) return;
+  await rules.triageAfterAdding(added);
+}
+
 /** Ignore one signal for good — its file moves to `triage/dismissed/`, where it is kept, and
  *  no later pull brings it back.
  *

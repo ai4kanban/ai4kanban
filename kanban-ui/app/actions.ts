@@ -47,6 +47,7 @@ import {
   setChannels,
   setChannelStatus,
   signalsOpen,
+  triageAfterAdding,
   addToInbox,
   dismissSignal,
 } from "@/lib/board";
@@ -1753,7 +1754,11 @@ export async function addToInboxAction(
           }
         : undefined;
     const done = await addToInbox({ text: typeof typed === "string" ? typed : undefined, file });
-    return done.ok ? { ok: true, sourceId: done.signal.sourceId } : { ok: false, error: done.error };
+    if (!done.ok) return { ok: false, error: done.error };
+    // And the sort over it, when the triager is switched on (#562). Awaited so the spawn is
+    // out before this action returns, never reported: the item is in triage either way.
+    await triageAfterAdding(1);
+    return { ok: true, sourceId: done.signal.sourceId };
   } catch {
     return { ok: false, error: c.rail.signals.add.failed };
   }

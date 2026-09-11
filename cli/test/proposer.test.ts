@@ -72,14 +72,14 @@ const openNow = (): number[] =>
     .map((name) => Number(name.split('-')[0]))
 
 /** Everything printed while `work` ran — a command that says rather than returns. */
-function said(work: () => void): string {
+async function said(work: () => unknown): Promise<string> {
   const lines: string[] = []
   const wasLog = console.log
   console.log = (line: unknown) => {
     lines.push(String(line))
   }
   try {
-    work()
+    await work()
   } finally {
     console.log = wasLog
   }
@@ -193,10 +193,10 @@ describe('the flow', () => {
     assert.match(ask, /triage add/)
   })
 
-  it('reads the card the archive holds, which the board no longer has', () => {
+  it('reads the card the archive holds, which the board no longer has', async () => {
     open(1)
     complete(1)
-    const printed = said(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }))
+    const printed = await said(() => printFlow({ action: 'reflect', id: 1, title: 'card 1' }))
     assert.match(printed, /docs\/kanban\/\.archive\/1-card\.md/)
     assert.match(printed, /triage add/)
     // And it is told outright that proposing nothing is a finished job.
@@ -210,8 +210,8 @@ describe('the flow', () => {
 })
 
 describe('a proposal in the inbox', () => {
-  it('lands as an ordinary item carrying the card that prompted it', () => {
-    said(() =>
+  it('lands as an ordinary item carrying the card that prompted it', async () => {
+    await said(() =>
       cmdTriageAdd({
         title: 'Let a delivery say what it skipped',
         source: '#1',
@@ -226,16 +226,16 @@ describe('a proposal in the inbox', () => {
     assert.match(item!.summary, /1-card\.md/)
   })
 
-  it('refuses the same proposal twice', () => {
+  it('refuses the same proposal twice', async () => {
     const twice = () =>
       said(() => cmdTriageAdd({ title: 'The same idea', source: '#1', text: 'The same words.' }))
-    twice()
-    assert.throws(twice, /already waiting in triage — docs\/kanban\/triage\//)
+    await twice()
+    await assert.rejects(twice, /already waiting in triage — docs\/kanban\/triage\//)
     assert.equal(readSignals().signals.length, 1)
   })
 
-  it('refuses one with nothing written in it', () => {
-    assert.throws(() => cmdTriageAdd({ title: 'A title alone' }), /has to say something/)
-    assert.throws(() => cmdTriageAdd({ text: 'Words with no title.' }), /--title/)
+  it('refuses one with nothing written in it', async () => {
+    await assert.rejects(() => cmdTriageAdd({ title: 'A title alone' }), /has to say something/)
+    await assert.rejects(() => cmdTriageAdd({ text: 'Words with no title.' }), /--title/)
   })
 })

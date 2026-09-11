@@ -204,22 +204,30 @@ export type ConfigurationCopy = {
      *  own `AGENT.md`, which is the only place a project can write them.
      *
      *  `when` only on a role something other than a flow starts: the gater, the decider
-     *  (#493) and the proposer (#534) are started by something you can point at, the
-     *  discussion helper by you talking to it (#502), and every other role is called by its
-     *  flows. */
-    roles: Record<AgentRoleName, { name: string; gloss: string; rule: string; when?: string }>;
+     *  (#493), the proposer (#534) and the triager (#562) are started by something you can
+     *  point at, the discussion helper by you talking to it (#502), and every other role is
+     *  called by its flows.
+     *
+     *  `confirm` only on a role whose switch asks before it goes on — the board says which
+     *  ones (`AgentView.confirm`), and these are the words it asks in. `note` is the quiet
+     *  line under the instructions box, on a role with something left to say there. */
+    roles: Record<
+      AgentRoleName,
+      {
+        name: string;
+        gloss: string;
+        rule: string;
+        when?: string;
+        confirm?: { title: string; body: string; turnOn: string };
+        note?: string;
+      }
+    >;
     /** The decider (#447) — the one switch on this board that stops nothing for you, so its
-     *  page carries what that costs and its switch asks once before it goes on. */
+     *  page carries what that costs in a strip nothing else draws. */
     decider: {
       /** The red strip: what it costs while it is on. */
       costTitle: string;
       cost: string;
-      /** How it chooses, under the instructions box. */
-      note: string;
-      /** The one confirmation, hanging off the switch. */
-      confirmTitle: string;
-      confirmBody: string;
-      turnOn: string;
     };
     /** The memory pruner (#514) — the one agent whose page carries an action rather than
      *  only settings: it prunes when you press Run now, and on the cadence you opt into. */

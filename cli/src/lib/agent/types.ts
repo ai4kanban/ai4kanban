@@ -1344,6 +1344,10 @@ export interface AgentView {
   builtIn: boolean
   /** Whether it may be switched off. A role runs the board's own flows, so it never is. */
   switchable: boolean
+  /** Whether switching it ON asks first (#562) — the decider, which stops the board asking
+   *  you anything, and the triager, which turns items into cards unasked. The role says so
+   *  itself, so a screen never keeps a list of names. Off never asks. */
+  confirm: boolean
   enabled: boolean
   /** The rule it carries, in the user's own words, or empty when it has none. */
   rule: string

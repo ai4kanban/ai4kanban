@@ -172,7 +172,8 @@ describe('the roles', () => {
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
     assert.deepEqual(agentRoster()[9]!.flows, [])
-    // Four roles can be switched off, and each reads a key of its own (#447, #493, #509, #534).
+    // Five roles can be switched off, and each reads a key of its own (#447, #493, #509,
+    // #534, #562).
     assert.deepEqual(
       agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => [a.name, a.setting]),
       [
@@ -180,7 +181,14 @@ describe('the roles', () => {
         ['gater', 'readyGate'],
         ['decider', 'decider'],
         ['proposer', 'proposer'],
+        ['triage', 'autoTriage'],
       ],
+    )
+    // And two of them ask before they go on — a property of the role, so no screen keeps a
+    // list of names (#562).
+    assert.deepEqual(
+      agentRoster().filter((a) => a.confirm).map((a) => a.name),
+      ['decider', 'triage'],
     )
   })
 })
@@ -189,35 +197,36 @@ describe('the roles', () => {
 // three keys. The keys are the ones the board has always written, so a project that answered
 // any of them before the split finds the same agent as it left it.
 describe('the roles that can be switched off', () => {
-  const on = (name: string): boolean => readAgents().agents.find((a) => a.name === name)!.enabled
+  const on = async (name: string): Promise<boolean> =>
+    (await readAgents()).agents.find((a) => a.name === name)!.enabled
 
-  it('starts on the side its role ships, and every role that has no switch stays on', () => {
+  it('starts on the side its role ships, and every role that has no switch stays on', async () => {
     solution('product')
-    assert.equal(on('gater'), false)
-    assert.equal(on('decider'), false)
-    assert.equal(on('proposer'), false)
+    assert.equal(await on('gater'), false)
+    assert.equal(await on('decider'), false)
+    assert.equal(await on('proposer'), false)
     // The one switchable role that ships ON: review is declined, not asked for.
-    assert.equal(on('reviewer'), true)
-    for (const always of ['discussion-helper', 'planner', 'builder']) assert.equal(on(always), true, always)
+    assert.equal(await on('reviewer'), true)
+    for (const always of ['discussion-helper', 'planner', 'builder']) assert.equal(await on(always), true, always)
   })
 
-  it('reads the key the board already wrote, so a switch survives the split', () => {
+  it('reads the key the board already wrote, so a switch survives the split', async () => {
     solution('product')
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ readyGate: true }))
-    assert.equal(on('gater'), true)
-    assert.equal(on('decider'), false)
+    assert.equal(await on('gater'), true)
+    assert.equal(await on('decider'), false)
 
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ decider: true }))
-    assert.equal(on('gater'), false)
-    assert.equal(on('decider'), true)
+    assert.equal(await on('gater'), false)
+    assert.equal(await on('decider'), true)
 
     // And the reviewer the other way round: its key is only ever written to turn it off.
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ aiReview: false }))
-    assert.equal(on('reviewer'), false)
+    assert.equal(await on('reviewer'), false)
     assert.equal(aiReviewEnabled(), false)
   })
 
-  it('switches one without touching the other, each under its own key', () => {
+  it('switches one without touching the other, each under its own key', async () => {
     solution('product')
     assert.equal(setSpecAgentEnabled('gater', true).ok, true)
     assert.equal(readyGateOn(), true)
@@ -231,11 +240,11 @@ describe('the roles that can be switched off', () => {
 
   // The reviewer's key is the one **AI review** was always written under, and it keeps that
   // polarity (#509): switching it off writes `false`, switching it back on drops the key.
-  it("writes the reviewer's key only when review is off", () => {
+  it("writes the reviewer's key only when review is off", async () => {
     solution('product')
     assert.equal(setSpecAgentEnabled('reviewer', false).ok, true)
     assert.equal(aiReviewEnabled(), false)
-    assert.equal(on('reviewer'), false)
+    assert.equal(await on('reviewer'), false)
     assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).aiReview, false)
 
     assert.equal(setSpecAgentEnabled('reviewer', true).ok, true)
@@ -243,7 +252,7 @@ describe('the roles that can be switched off', () => {
     assert.equal('aiReview' in JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')), false)
   })
 
-  it('refuses to switch off a role the board runs on', () => {
+  it('refuses to switch off a role the board runs on', async () => {
     solution('product')
     const refused = setSpecAgentEnabled('planner', false)
     assert.equal(refused.ok, false)

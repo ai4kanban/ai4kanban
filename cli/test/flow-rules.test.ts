@@ -151,7 +151,7 @@ describe('the files', () => {
 
   it("carries each agent's rule on the roster, and nothing for the ones without one", async () => {
     setAgentRule('builder', 'Install first.')
-    const { agents } = readAgents()
+    const { agents } = await readAgents()
     assert.equal(agents.find((a) => a.name === 'builder')!.rule, 'Install first.')
     assert.equal(agents.find((a) => a.name === 'planner')!.rule, '')
     // One rule, every flow that agent runs.

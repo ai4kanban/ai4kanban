@@ -722,12 +722,12 @@ describe("who a spec agent's output is for", () => {
     assert.equal(readSpecAgents().find((a) => a.name === 'ui-designer')?.values.output, 'human')
   })
 
-  it("is on the spec agents in the pane's roster, and on none of the roles", () => {
-    const rows = (name: string): string[] =>
-      readAgents().agents.find((a) => a.name === name)!.settings.map((setting) => setting.key)
-    assert.deepEqual(rows('ui-designer'), ['output', 'mockupStyle'])
-    assert.deepEqual(rows('tech-stack-advisor'), ['output'])
-    assert.deepEqual(rows('planner'), [])
+  it("is on the spec agents in the pane's roster, and on none of the roles", async () => {
+    const rows = async (name: string): Promise<string[]> =>
+      (await readAgents()).agents.find((a) => a.name === name)!.settings.map((setting) => setting.key)
+    assert.deepEqual(await rows('ui-designer'), ['output', 'mockupStyle'])
+    assert.deepEqual(await rows('tech-stack-advisor'), ['output'])
+    assert.deepEqual(await rows('planner'), [])
   })
 
   it('starts `ui-designer` at human review and every other agent at agent use', () => {

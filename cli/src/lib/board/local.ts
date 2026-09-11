@@ -448,7 +448,7 @@ export function localBoard(): BoardProvider {
 
     // ---- the team, and the rule each of them carries -------------------------
 
-    readAgents: () => Promise.resolve(readAgents()),
+    readAgents: () => readAgents(),
 
     // A rule is the board's, not one card's, so it is written under the board's own lease
     // like the module map and the release list beside it. An agent's own file and the
