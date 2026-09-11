@@ -274,9 +274,14 @@ const en: RunsCopy = {
     },
     reject: {
       title: (id) => `Reject #${id}`,
-      blurb: "The agent adds a one-line note to rejected.md and removes the card.",
+      blurb:
+        "The agent removes the card, and notes it in rejected.md only if the reason is worth keeping for future planning.",
       placeholder: "Why are you rejecting this?",
       confirm: "Reject",
+      discard: "Just discard — write no memory",
+      discardHint: "Clearing the backlog, not a decision. Nothing is recorded and the idea can come back.",
+      discardPlaceholder: "Note for the agent (optional)…",
+      confirmDiscard: "Discard",
     },
     archive: {
       title: (id) => `Archive #${id}`,

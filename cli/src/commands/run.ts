@@ -201,6 +201,8 @@ export interface StartOptions {
   andImplement?: boolean
   /** The runtime this one run spawns on (#518), on the two flows that take one. */
   runtime?: string
+  /** reject: drop the card without writing any memory (#601). */
+  discard?: boolean
 }
 
 // Turn what was typed into the request the run is started from. The command line has been
@@ -264,8 +266,13 @@ function readRequest(
   // Everything else works on one card.
   const id = args[0] as number
   const req: CommandRequest = { action, id, title: titleOf(id) }
-  if (action === 'reject') req.reason = words(1)
-  else req.notes = words(1)
+  if (action === 'reject') {
+    req.reason = words(1)
+    // A discard is a backlog clear-out, so it needs no why (#601). A plain reject still does:
+    // the note it may earn is written from it, and so is the receipt's last word on the card.
+    if (opts.discard === true) req.discard = true
+    else if (!req.reason) die('say why the card is being dropped, or pass --discard to just drop it')
+  } else req.notes = words(1)
   // The one run's own runtime (#518) — declared by `implement` alone among these, so
   // nothing else can be given one.
   if (action === 'implement') req.runtime = opts.runtime

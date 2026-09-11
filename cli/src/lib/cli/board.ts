@@ -459,6 +459,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
         'Deleting is final — the receipt prints the card so its note can still be written from its own ' +
         'words.',
     )
+    .option('--discard', 'just drop it: the receipt asks for no memory note and names no rejected.md')
     .action(async function (this: Command, id: number) {
       await dispatch('reject', this, [String(id)], this.opts(), cli)
     })

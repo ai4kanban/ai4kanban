@@ -174,8 +174,9 @@ the lesson or the decision it supports.
 Memory holds only what improves a future planning choice. Writing nothing is a normal,
 complete outcome — never manufacture a lesson to satisfy a closing step.
 
-- **Honor an opt-out**: told not to record — "do not record", "no memory", or the like —
-  write no memory at all for that action, and finish the board action that was asked for.
+- **Honor an opt-out**: told not to record — "do not record", "no memory", a reject started
+  as a discard, or the like — write no memory at all for that action, and finish the board
+  action that was asked for.
 - **Require lasting value**: `decisions.md`, `redesign.md`, `rejected.md` and the agent
   memories take a durable preference, constraint, decision, or lesson that would materially
   change a later planning call. Nothing else.

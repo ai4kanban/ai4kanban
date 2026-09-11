@@ -189,6 +189,12 @@ export type RunsCopy = {
       blurb: string;
       placeholder: string;
       confirm: string;
+      /** Drop the card and write nothing to memory (#601) — the tick, what it costs, the
+       *  placeholder a now-optional reason gets, and the word the button changes to. */
+      discard: string;
+      discardHint: string;
+      discardPlaceholder: string;
+      confirmDiscard: string;
     };
     archive: {
       title: (id: number) => string;

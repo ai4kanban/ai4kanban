@@ -922,6 +922,9 @@ export function ActionDialog({
   // default every Implement opens with. Like the acks, it isn't persisted: closing the
   // dialog drops it and the next open asks the board again.
   const [ownBranch, setOwnBranch] = useState(plan.commitMode === "auto");
+  // Whether a Reject writes no memory at all (#601) — the Reject dialog's own box, off until
+  // the user says so, and dropped on close like the acks above.
+  const [discard, setDiscard] = useState(false);
   const run = (req: AgentReq, label: string) => {
     clearDraft();
     onRun(req, label);
@@ -1207,16 +1210,37 @@ export function ActionDialog({
   }
 
   if (dialog.kind === "reject") {
+    // One dialog, two moves (#601). Ticking the box makes this a discard: the card goes and
+    // nothing is written to memory, so the reason stops being required and the button says
+    // what it now does. Not persisted like the note draft — every open asks again.
     const c = d.reject;
     return (
       <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
         <p className={INTRO}>{c.blurb}</p>
-        <textarea className={INPUT} rows={3} placeholder={c.placeholder} value={text} onChange={(e) => setText(e.target.value)} />
+        <ChoiceBox on={discard} onFlip={setDiscard} label={c.discard} hint={c.discardHint} />
+        <textarea
+          className={INPUT}
+          rows={3}
+          placeholder={discard ? c.discardPlaceholder : c.placeholder}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
         <DialogButtons
           onClose={onClose}
-          confirmLabel={c.confirm}
-          disabled={!text.trim()}
-          onConfirm={() => run({ action: "reject", id: dialog.card.id, title: dialog.card.title, reason: text.trim() }, `Reject #${dialog.card.id}`)}
+          confirmLabel={discard ? c.confirmDiscard : c.confirm}
+          disabled={!discard && !text.trim()}
+          onConfirm={() =>
+            run(
+              {
+                action: "reject",
+                id: dialog.card.id,
+                title: dialog.card.title,
+                reason: text.trim() || undefined,
+                ...(discard ? { discard: true } : {}),
+              },
+              `${discard ? "Discard" : "Reject"} #${dialog.card.id}`,
+            )
+          }
         />
       </Dialog>
     );

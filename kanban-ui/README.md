@@ -707,7 +707,7 @@ you never type into a running session.
 | **Review again** | Only while a delivery has stopped and is waiting on the question its review left. |
 | **Continue delivery** | Only when a delivery's next session never started — the process watching the last one died. |
 | **Archive** | Once every todo is checked (a group root: once every subtask is resolved). Never on a recurring card. |
-| **Reject** | Always. |
+| **Reject** | Always. Tick **Just discard** to drop the card without writing any memory — then the reason is optional. |
 
 A card can only have one session at a time; while one is going the button is off and the badge
 beside the title says what's going on. A session outside a delivery never commits — it leaves its

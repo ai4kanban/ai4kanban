@@ -47,7 +47,7 @@ import type { Solution } from '../solution'
 import { cmdList, type ListOptions } from '../../commands/list'
 import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
 import { cmdRelease, type ReleaseOptions } from '../../commands/release'
-import { cmdRemove } from '../../commands/remove'
+import { cmdRemove, type RemoveOptions } from '../../commands/remove'
 import { cmdRule, type RuleOptions } from '../../commands/rule'
 import { cmdDiscussion, type DiscussionOptions } from '../../commands/discussion'
 import { cmdPlan, type PlanOptions } from '../../commands/plan'
@@ -142,7 +142,7 @@ const MOVES: Record<string, RunMove> = {
   release: ({ args, opts }) => cmdRelease(args, as<ReleaseOptions>(opts)),
   migrate: ({ opts }) => cmdMigrate(as<MigrateOptions>(opts)),
   archive: ({ args }) => cmdRemove(Number(args[0]), 'completed'),
-  reject: ({ args }) => cmdRemove(Number(args[0]), 'rejected'),
+  reject: ({ args, opts }) => cmdRemove(Number(args[0]), 'rejected', as<RemoveOptions>(opts)),
   'record-run': ({ args }) => cmdRun(Number(args[0])),
   'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
   rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),

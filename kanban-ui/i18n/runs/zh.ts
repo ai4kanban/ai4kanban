@@ -265,9 +265,13 @@ const zh: RunsCopy = {
     },
     reject: {
       title: (id) => `否决 #${id}`,
-      blurb: "Agent 会在 rejected.md 里追加一行说明，并移除这张卡片。",
+      blurb: "Agent 会移除这张卡片；只有当理由值得长期参考时，才写进 rejected.md。",
       placeholder: "为什么否决它？",
       confirm: "否决",
+      discard: "仅丢弃，不写入记忆",
+      discardHint: "只是清理积压，不是结论。什么都不记录，以后还能重新提出。",
+      discardPlaceholder: "给 Agent 的备注（可选）…",
+      confirmDiscard: "丢弃",
     },
     archive: {
       title: (id) => `归档 #${id}`,

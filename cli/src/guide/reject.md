@@ -3,6 +3,12 @@
 Start with `akb raw reject <id>`. It deletes the card file. Before deleting, it prints the
 whole card — that printout is your copy, and you write the note from it.
 
+**A discard writes no memory.** When the run was started as a discard — `akb card reject <id>
+--discard` — the card is being cleared off the board, not turned down: pass `--discard` to
+`akb raw reject <id>` too, skip job 1 entirely, and do job 2 as usual. Nothing is judged, no
+`rejected.md` is touched, and the idea may be proposed again. Never widen a discard into a
+lasting no.
+
 The rest of its output names two jobs.
 
 **1. Write the note, if this rejection earns one.** Judge it against "What earns a note" in

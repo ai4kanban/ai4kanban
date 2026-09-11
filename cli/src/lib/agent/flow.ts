@@ -934,11 +934,19 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     case 'reject': {
       facts.push(...field('reason', req.reason ?? '(none given)'))
-      facts.push(...field('memory', memoryFiles(card!.meta.modules, 'rejected.md')))
-      close.push(
-        'write the rejection note first when this rejection earns one — the idea and why we said no; a duplicate or a routine drop earns none, and writing nothing is a complete result',
-        `${raw} reject ${req.id} — this deletes the card; the receipt prints it out one last time`,
-      )
+      // A discard writes no memory at all (#601), so it is handed no memory file to write
+      // into and nothing is judged — the one difference between the two is right here.
+      if (req.discard === true) {
+        close.push(
+          `${raw} reject ${req.id} --discard — this deletes the card and writes no memory; the receipt prints it out one last time`,
+        )
+      } else {
+        facts.push(...field('memory', memoryFiles(card!.meta.modules, 'rejected.md')))
+        close.push(
+          'write the rejection note first when this rejection earns one — the idea and why we said no; a duplicate or a routine drop earns none, and writing nothing is a complete result',
+          `${raw} reject ${req.id} — this deletes the card; the receipt prints it out one last time`,
+        )
+      }
       break
     }
   }

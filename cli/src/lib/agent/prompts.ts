@@ -344,7 +344,9 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         .join(' ')
     case 'reject':
       return [
-        `${kb}. Reject task ${req.id} ${named}. Reason: ${req.reason || '(none given)'}.`,
+        req.discard === true
+          ? `${kb}. Discard task ${req.id} ${named} — drop it and write no memory. Reason: ${req.reason || '(none given)'}.`
+          : `${kb}. Reject task ${req.id} ${named}. Reason: ${req.reason || '(none given)'}.`,
         `Follow \`akb guide reject\`.`,
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')

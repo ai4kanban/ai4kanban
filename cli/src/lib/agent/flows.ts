@@ -234,9 +234,15 @@ export const FLOWS: Flow[] = [
     command: 'reject',
     group: 'card',
     action: 'reject',
-    argument: '<id> <why...>',
-    argumentNote: 'why the card is being dropped',
+    argument: '<id> [why...]',
+    argumentNote: 'why the card is being dropped — required unless --discard',
     gloss: 'drop the card',
+    options: [
+      {
+        flags: '--discard',
+        description: 'just drop it: no memory note is written, and the why may be left off',
+      },
+    ],
   },
 ]
 

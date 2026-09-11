@@ -222,6 +222,10 @@ export interface RemoveOptions {
    *  restate them. The sentences still naming the root are reported by the subtask's
    *  receipt instead, in one list with its own. */
   closing?: boolean
+  /** This rejection is a plain discard (#601): the card goes and nothing is written to
+   *  memory. Clearing the backlog is not a conclusion worth keeping, so the receipt asks for
+   *  no note and names no `rejected.md`. The mentions still have to be rewritten. */
+  discard?: boolean
 }
 
 export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {}): MoveResult {
@@ -290,6 +294,7 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   bumpMetric(metric)
   const what = found.kind === 'group' ? `folder ${found.rel}/` : `file ${found.rel}`
   if (dest) say(`archived #${id}: moved ${what} → ${rel(dest)}${found.kind === 'group' ? '/' : ''}`)
+  else if (options.discard) say(`discarded #${id}: removed ${what} — no memory written`)
   else say(`rejected #${id}: removed ${what}`)
   if (removedRefs.length) say(`  dropped ${removedRefs.length} README ${removedRefs.length === 1 ? 'entry' : 'entries'}`)
   else say('  no README entry (subtask or untracked)')
@@ -309,7 +314,7 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   const mentions = options.closing ? [] : findMentions(gone)
   // A closing root asks for no note of its own, and its sentences are in the list the
   // subtask's receipt prints — so it hands nothing over.
-  const note = options.closing ? null : printHandoff(gone, metric, cardMeta, mentions)
+  const note = options.closing ? null : printHandoff(gone, metric, cardMeta, mentions, options.discard === true)
   if (!dest) printEpitaph(id, rel(cardFile), cardText, alsoRemoved)
   return {
     id,
@@ -394,12 +399,19 @@ function quoteLine(text: string, width = 96): string {
   return `${(lastSpace > width / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
 }
 
-function printHandoff(ids: number[], metric: Metric, meta: Meta | null, mentions: Mention[]): { what: string; files: string[] } {
+function printHandoff(
+  ids: number[],
+  metric: Metric,
+  meta: Meta | null,
+  mentions: Mention[],
+  discard: boolean,
+): { what: string; files: string[] } | null {
   const kind = NOTE_KIND[metric]
-  const targets = memoryTargets(meta?.modules ?? [], kind.file)
+  const targets = discard ? [] : memoryTargets(meta?.modules ?? [], kind.file)
   say(`\nnext — what the script can't do:\n`)
 
-  say(`  1. ${kind.what} — follow ${kind.guide}`)
+  if (discard) say('  1. nothing — this is a discard: no memory is written, and nothing judges whether it earned one')
+  else say(`  1. ${kind.what} — follow ${kind.guide}`)
   for (const t of targets) {
     say(`       file    ${rel(t.file)}`)
     if (!kind.topics) continue
@@ -410,7 +422,7 @@ function printHandoff(ids: number[], metric: Metric, meta: Meta | null, mentions
     say('       both, because the card named two modules — one note each, in its own words')
   }
 
-  const note = { what: kind.what, files: targets.map((t) => rel(t.file)) }
+  const note = discard ? null : { what: kind.what, files: targets.map((t) => rel(t.file)) }
   const which = ids.map((x) => `#${x}`).join(' or ')
   if (!mentions.length) {
     say(`\n  2. nothing — no other card or note mentions ${which}, so there is nothing to rewrite`)

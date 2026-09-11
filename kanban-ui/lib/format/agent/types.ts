@@ -169,6 +169,10 @@ export interface AgentRequest {
   deliveryId?: string
   notes?: string // implement, edit, clarify, resolve, archive, run
   reason?: string // reject
+  /** reject: drop the card and write no memory at all (#601) — a backlog clear-out, not a
+   *  conclusion worth keeping. The reason may be empty under it, and nothing judges whether
+   *  the idea earned a note. */
+  discard?: boolean
   /** create: what the user wants, in their own words. implement with no `id`: the typed
    *  sentence a **Build now** is approved to build (#428) — its requirements, its prompt and
    *  its delivery's title at once, and the card the run writes from it (#470). */
