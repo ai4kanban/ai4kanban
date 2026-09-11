@@ -14,7 +14,7 @@ import path from 'node:path'
 import { locate } from '../cards'
 import { draftFile } from '../content'
 import type { CloudEventState } from '../cloud/events'
-import { reportCloudRunEnd } from '../cloud/publish'
+import { reportCloudRunEnd, reportCloudRunStart } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
 import { dropRunCard, recordCardRun, runBoardMove, setCardStatusOn, takeRunCard } from '../board'
 import { cardFile } from '../board/revision'
@@ -731,6 +731,8 @@ export function openRun(
   // A run started (#295), on the surface that asked for it: the agent's name, and nothing
   // about the card.
   reportRun('started', record.harness)
+  // And the card is at work again, so a row Cloud is still holding about it comes down (#611).
+  void reportCloudRunStart(cardId)
   return { run: record, spec }
 }
 
@@ -856,6 +858,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   // A resume spawns a process and works like any other run, so it counts as one — and
   // started stays ahead of finished plus failed (#295).
   reportRun('started', record.harness)
+  void reportCloudRunStart(record.cardId)
   return { run: record, spec }
 }
 
@@ -1005,7 +1008,12 @@ export function peekRun(sessionId: string): RunRecord | undefined {
 }
 
 /** Close a run out: its outcome, the card's stage put back, a recurring card stamped, and
- *  the old logs trimmed. Whichever path gets here first wins and the rest are no-ops. */
+ *  the old logs trimmed. Whichever path gets here first wins and the rest are no-ops.
+ *
+ *  `reportEnd` false leaves Cloud to the caller. The watcher takes it, because what Cloud is
+ *  told is that the CARD stopped being worked, and a close that hands straight on to another
+ *  agent has not stopped anything (#611) — it reports once its follow-ups are written down,
+ *  through `reportRunEnded`. Every other path here ends the chain by ending. */
 export async function closeRun(
   sessionId: string,
   res: {
@@ -1016,6 +1024,7 @@ export async function closeRun(
     note?: string
     endedAt?: number
   },
+  { reportEnd = true } = {},
 ): Promise<void> {
   const closed = withRuns((runs) => {
     const run = runs.find((r) => r.sessionId === sessionId)
@@ -1045,13 +1054,24 @@ export async function closeRun(
   // Last, because it is the only step that reads what the four above left behind: a card is
   // raised on Cloud once nothing is working on it (#319), and this run stops holding its
   // card here. Whatever it decides is best effort — a run never fails over Cloud.
-  await reportCloudRunEnd(sessionId, closed.cardId, RUN_OUTCOME[closed.status] ?? 'failed')
+  if (reportEnd) await reportRunEnded(sessionId, closed.cardId, closed.status)
   // And the card's workspace lock, after every board write above has presented it. It stays
   // held while anything else on this machine is holding that card; a session that never gets
   // here leaves the 30-minute expiry as the fallback (#398).
   await dropRunCard(sessionId)
   dropSpec(sessionId)
   pruneLogs()
+}
+
+/** Tell Cloud the card stopped being worked, in the run's own outcome. Separate from
+ *  `closeRun` so the watcher can hold it until the follow-ups this close starts are on the
+ *  record, and the handoff between two agents raises nothing (#611). */
+export async function reportRunEnded(
+  sessionId: string,
+  cardId: number | null,
+  status: RunStatus,
+): Promise<void> {
+  await reportCloudRunEnd(sessionId, cardId, RUN_OUTCOME[status] ?? 'failed')
 }
 
 /** Ask a run to end. The watcher is signalled; the record is marked so whichever path

@@ -225,7 +225,34 @@ function silenced(atWork: ReadonlySet<number>): Set<number> {
   // refuses to draw. Neither state is covered above — a creator names its card in
   // `createdCardIds` rather than holding it, and an unfinished one has no live run left.
   for (const id of cardsBeingCreated().keys()) quiet.add(id)
+  // …and a card mid-handover (#611). The run that held it is already closed and the agent
+  // taking it over is not written down yet, so the record says nobody has it — while the
+  // close itself writes the board (the stage put back, a recurring card stamped) and that
+  // write is a pass. Held in memory by the watcher across the whole handover.
+  for (const id of handover()) quiet.add(id)
   return quiet
+}
+
+/** The cards a close is holding open while it starts what comes next (#611).
+ *
+ *  On `globalThis` for the reason `fill` below is: the rules bundle can be evaluated twice
+ *  in one board server, and the hold has to be seen by whichever copy the pass runs in. A
+ *  process that dies mid-handover loses it, which leaves the card to the next board write —
+ *  where it would have been raised anyway. */
+function handover(): Set<number> {
+  const g = globalThis as unknown as { __akbHandover?: Set<number> }
+  g.__akbHandover ??= new Set()
+  return g.__akbHandover
+}
+
+/** Hold a card at work for the length of a handover, and let it go again. Paired by the
+ *  watcher: the second is what puts the card back in reach of the pass that raises it. */
+export function holdCardAtWork(cardId: number | null): void {
+  if (cardId !== null) handover().add(cardId)
+}
+
+export function releaseCardAtWork(cardId: number | null): void {
+  if (cardId !== null) handover().delete(cardId)
 }
 
 async function queueDifference(
@@ -565,6 +592,29 @@ export function recordCloudDeliveryState(taskId: number, outcome: CloudEventStat
 }
 
 /**
+ * A card is being worked again (#611) — take down whatever Cloud is still holding about it.
+ *
+ * A row goes up when a card stops being worked and comes down when something picks it up,
+ * and until this the second half only happened on the next board write. A card handed
+ * straight to another agent makes no such write, so a row raised a moment before the handoff
+ * would sit there until the whole chain ended. Clicking it asks Cloud to act on a card an
+ * agent already has.
+ *
+ * Only a card this board holds a live event for costs a pass — every other run start reads
+ * one record and returns. The pass itself is never awaited by a caller: a run does not wait
+ * on the network.
+ */
+export function reportCloudRunStart(cardId: number | null): Promise<void> {
+  try {
+    if (cardId === null || !isLive(publishedFor(cardId))) return Promise.resolve()
+    return afterBoardWrite()
+  } catch {
+    // A run never fails over Cloud. The next pass takes down whatever this missed.
+    return Promise.resolve()
+  }
+}
+
+/**
  * A run has ended (#318, #319) — the moment the board may be waiting for a person again.
  *
  * Two things close here. A request this board's server claimed reports its outcome, which is
@@ -573,8 +623,13 @@ export function recordCloudDeliveryState(taskId: number, outcome: CloudEventStat
  * machine lets go of its event, so the card it was granted against can be raised afresh.
  *
  * The pass at the end is not optional. A card goes quiet while the board works it, so the
- * write that left it `ready` raised nothing — this is where it is raised. Called from
- * `closeRun`, which is the one place a run ends.
+ * write that left it `ready` raised nothing — this is where it is raised.
+ *
+ * "Ended" means the whole chain, not one agent (#611). The watcher calls this once every
+ * follow-up this close starts — the retry, the format repair, the delivery's next step, the
+ * landing, the gate, the reflections, the next sort — is written down, so a card handed on
+ * is still at work when the pass reads it and the handoff raises nothing. A follow-up that
+ * would not start leaves nothing holding the card, and the card is raised as it stands.
  */
 export async function reportCloudRunEnd(
   sessionId: string,
@@ -675,10 +730,14 @@ async function run(): Promise<void> {
       giveUp(item.opId, item.lastError ?? 'Cloud did not answer.')
       continue
     }
-    // A publication that waited out a backoff describes a card as it was minutes ago. If the
-    // card has stopped needing a person since — a run picked it up, a blocker opened, someone
-    // moved it — sending it now would raise a row about work nobody is waiting on.
-    if (item.kind === 'publish' && item.attempts > 0) {
+    // A publication describes the card as it was when it was written down. If the card has
+    // stopped needing a person since — a run picked it up, a blocker opened, someone moved
+    // it — sending it now would raise a row about work nobody is waiting on.
+    //
+    // Every send, not only one that waited out a backoff (#611). A queue drains a tick after
+    // the write that filled it, and one agent handing a card to the next is exactly that long:
+    // the first send is as capable of describing a card that has moved as the fifty-fourth.
+    if (item.kind === 'publish') {
       atNow ??= await boardNow()
       if (!stillNeededNow(item.snapshot.taskId, atNow)) {
         traceCloud(`dropped ${describe(item)}: the card no longer needs a person`)
@@ -715,7 +774,7 @@ const backoff = (attempts: number): number => {
 }
 
 /** Which cards need a person as the board reads NOW, for a pass sending publications that
- *  were written down minutes ago. `read` is false when there is nothing to compare against —
+ *  were written down before it. `read` is false when there is nothing to compare against —
  *  the board is off, unreadable, or read as empty — and then nothing is dropped. */
 interface BoardNow {
   needed: ReadonlySet<number>
@@ -726,15 +785,23 @@ const NOTHING_READ: BoardNow = { needed: new Set(), read: false }
 
 async function boardNow(): Promise<BoardNow> {
   const enabled = cloudBoardFor(KANBAN)
-  if (!enabled || !enabled.release) return NOTHING_READ
+  if (!enabled || enabled.watchOff) return NOTHING_READ
+  const home = eventHome(enabled)
+  // The same board the pass judges — including a workspace board this member watches no
+  // release of (#328). Reading only a board with a release left that one passing everything
+  // through, which is the one board where the queue holds the team's rows.
+  if (!enabled.release && !home.workspaceId) return NOTHING_READ
   try {
     const cards = await board().readCards()
     // A board does not empty; a read does. See the sweep in `queueDifference`.
     if (cards.length === 0) return NOTHING_READ
-    const home = eventHome(enabled)
+    // What the BOARD holds a decision for, as `queueDifference` reads it. The question here
+    // is whether the card still needs a person, not whose release it is in: the item was
+    // this member's to raise when it was written down.
+    const team = home.workspaceId ? { ...enabled, release: ALL_RELEASES } : enabled
     const raising = silenced(cardsAtWork())
     const needed = new Set<number>()
-    for (const card of cards) if (snapshotFor(card, enabled, raising, home)) needed.add(card.id)
+    for (const card of cards) if (snapshotFor(card, team, raising, home)) needed.add(card.id)
     return { needed, read: true }
   } catch {
     return NOTHING_READ

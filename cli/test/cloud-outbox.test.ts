@@ -36,6 +36,7 @@ import {
   recordCloudActionFor,
   recordBoardEvents,
   reportCloudRunEnd,
+  reportCloudRunStart,
   takeWatchFill,
 } from '../src/lib/cloud/publish.ts'
 import {
@@ -1059,6 +1060,156 @@ describe('a card that is not finished being created', () => {
     const publication = queued()
     assert.ok(publication, 'the card is finished and the question is the user’s')
     assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
+  })
+})
+
+// A whole chain of agents on one card, rather than the one agent that happens to stop first
+// (#611). The board hands a card straight on — a refine to a spec agent, a build to its
+// review, a landing to the run it wants — and the run ending is not the card being free.
+
+describe('a card handed straight to the next agent', () => {
+  const ASKING = '[user] Which shade of blue?'
+
+  /** A card asking the user, with `holder` deciding what is working it right now. */
+  function asking(): void {
+    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    writeCardFile('0.8.0', [ASKING])
+    setBoardProvider({
+      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+    } as never)
+  }
+
+  /** What the pass queued for card 12, if anything. */
+  const queued = () => readOutbox().pending.find((p) => p.kind === 'publish' && p.snapshot.taskId === 12)
+
+  it('raises nothing in the gap, because the next agent is already written down', async () => {
+    asking()
+    // The run that just closed is gone from the record, and the one it started is on it —
+    // which is the order the watcher reports in.
+    working(12, 'spec')
+
+    await reportCloudRunEnd('s-done', 12, 'completed')
+
+    assert.equal(queued(), undefined, 'the chain is still going')
+  })
+
+  it('raises the card when the follow-up would not start, so a broken chain is not silence', async () => {
+    asking()
+
+    await reportCloudRunEnd('s-done', 12, 'completed')
+
+    const publication = queued()
+    assert.ok(publication, 'nothing holds the card, so the user hears about it')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
+  })
+
+  it('raises a card its delivery is holding at landing, which the chain has left behind', async () => {
+    asking()
+    withStore((store) =>
+      store.deliveries.push({
+        deliveryId: 'd-12',
+        cardId: 12,
+        title: 'A task',
+        status: 'active',
+        startedAt: Date.now(),
+        sessions: [],
+        approved: '',
+        steps: [],
+        commitMode: 'auto',
+        targetBranch: 'main',
+        landing: { status: 'waiting', attempts: 0, at: Date.now() },
+      } as DeliveryRecord),
+    )
+
+    await reportCloudRunEnd('s-done', 12, 'completed')
+
+    assert.ok(queued(), 'built, reviewed and queued — the questions are all that is left')
+  })
+
+  it('raises it once, however many endings the chain has left to report', async () => {
+    asking()
+    fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-12', 12) : ok({})))
+
+    await reportCloudRunEnd('s-one', 12, 'completed')
+    await flushCloudOutbox()
+    await reportCloudRunEnd('s-two', 12, 'completed')
+
+    assert.equal(readOutbox().published['12']?.eventId, 'e-12')
+    assert.equal(queued(), undefined, 'the row is up; a second ending is not a second message')
+  })
+
+  it('takes the row down again when the card goes back to work', async () => {
+    asking()
+    notePublication(12, 'e-12', 'actionable')
+    working(12, 'spec')
+
+    await reportCloudRunStart(12)
+
+    const retirement = readOutbox().pending.find((p) => p.kind === 'retire' && p.eventId === 'e-12')
+    assert.ok(retirement, 'a row nobody can act on comes down as the run picks the card up')
+    assert.equal(retirement.kind === 'retire' && retirement.state, 'stale')
+  })
+
+  it('costs no pass at all when this board holds no row for the card', async () => {
+    asking()
+    const calls = fakeCloud(() => ok({}))
+
+    await reportCloudRunStart(12)
+
+    assert.deepEqual(calls, [])
+    assert.deepEqual(readOutbox().pending, [])
+  })
+})
+
+describe('a publication on its very first send', () => {
+  it('is checked against the board too, and dropped when a run has the card', async () => {
+    BOARD()
+    writeCardFile()
+    queuePublish(12)
+    // The card went back to work between the write that queued this and the send — which is
+    // exactly the length of one handoff.
+    working(12)
+
+    const calls = fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
+    await flushCloudOutbox()
+
+    assert.ok(!calls.some((c) => c.endsWith('/v1/events')), 'nothing was raised')
+    assert.equal(readOutbox().published['12'], undefined)
+    assert.deepEqual(unsentToCloud(), [], 'a card nobody is waiting on is not a lost change')
+  })
+
+  it('goes out when the card is still waiting', async () => {
+    BOARD()
+    writeCardFile()
+    queuePublish(12)
+
+    fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
+    await flushCloudOutbox()
+
+    assert.equal(readOutbox().published['12']?.eventId, 'e-1')
+  })
+
+  it('is checked on a workspace board this member watches no release of', async () => {
+    // The pass itself runs on such a board (#328). The check used to read it as no board at
+    // all and let everything through, which is the one board where the queue holds the
+    // team's rows.
+    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    fs.writeFileSync(
+      path.join(root, '.ai4kanban.json'),
+      `${JSON.stringify({ version: 1, workspace: WORKSPACE }, null, 2)}\n`,
+    )
+    const snapshot = snapshotFor(card(), { ...cloudBoardFor(defaultBoardDir(root))!, release: ALL_RELEASES })
+    assert.ok(snapshot)
+    queue({ opId: 'op-12', kind: 'publish', attempts: 0, snapshot })
+    setCloudBoardRelease(defaultBoardDir(root), '')
+    setBoardProvider({ readCards: async () => [card()] } as never)
+    working(12)
+
+    const calls = fakeCloud(() => ok({}))
+    await flushCloudOutbox()
+
+    assert.ok(!calls.some((c) => c.endsWith('/v1/events')), 'the board was read, and the card is at work')
+    assert.deepEqual(readOutbox().pending, [])
   })
 })
 

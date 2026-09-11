@@ -55,11 +55,13 @@ import {
   readSpec,
   readSpecAsks,
   readWriteAsks,
+  reportRunEnded,
   resumeSessionId,
   setCardStatus,
   titleOf,
   type CardClaim,
 } from './sessions'
+import { holdCardAtWork, releaseCardAtWork } from '../cloud/publish'
 import { startResume, startRun } from './start'
 import type { TurnEnd } from './wire'
 import { holdsCard } from './types'
@@ -532,60 +534,72 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         status === 'done' ? joinNotes(settled?.stalled, brokeBoard(wasBroken)) : undefined,
         carried ?? undefined,
       )
-      await closeRun(sessionId, {
-        status,
-        // `ok` stays unset on a stopped run, as it does on one that was cut off: it
-        // neither passed nor failed, it was ended.
-        ok: asked ? undefined : status === 'done',
-        code: asked ? null : code,
-        // What went wrong, in whoever's words know: ours when the command wouldn't start or
-        // when it went quiet, the agent's own when the conversation ended badly or its
-        // stream said so.
-        error: takenOver
-          ? TAKEN_OVER(record.cardId)
-          : joinNotes(contractError, spawnError ??
-            (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure))),
-        note,
-        endedAt,
-      })
-      letGo()
-      if (contractError && repairable && !takenOver && !carried
-        && (record.formatRepair?.attempt ?? 0) < MAX_FORMAT_REPAIRS) {
-        const next = await resume(sessionId)
-        if ('error' in next) patch(sessionId, (r) => { r.error = `${contractError}\nCannot resume format repair: ${next.error}` })
+      // The close and every follow-up it starts go inside the try, and Cloud is told the
+      // card stopped being worked in the finally (#611). The card is held at work for all
+      // of it: the close writes the board itself — the stage put back, a recurring card
+      // stamped — and that write is a pass like any other, so without the hold the handoff
+      // is exactly the interruption this was meant to stop. A follow-up that would not
+      // start leaves nothing holding the card, and it is raised as it stands.
+      holdCardAtWork(record.cardId)
+      try {
+        await closeRun(sessionId, {
+          status,
+          // `ok` stays unset on a stopped run, as it does on one that was cut off: it
+          // neither passed nor failed, it was ended.
+          ok: asked ? undefined : status === 'done',
+          code: asked ? null : code,
+          // What went wrong, in whoever's words know: ours when the command wouldn't start or
+          // when it went quiet, the agent's own when the conversation ended badly or its
+          // stream said so.
+          error: takenOver
+            ? TAKEN_OVER(record.cardId)
+            : joinNotes(contractError, spawnError ??
+              (asked ? undefined : silent ? silenceSaid(silenceFor) : (spoken?.error ?? failure))),
+          note,
+          endedAt,
+        }, { reportEnd: false })
+        letGo()
+        if (contractError && repairable && !takenOver && !carried
+          && (record.formatRepair?.attempt ?? 0) < MAX_FORMAT_REPAIRS) {
+          const next = await resume(sessionId)
+          if ('error' in next) patch(sessionId, (r) => { r.error = `${contractError}\nCannot resume format repair: ${next.error}` })
+        }
+        // The next attempt (#525), started the instant the failed one is written down — the
+        // same handoff a format repair makes, so the card is between runs for as long as one
+        // record write takes and no longer. A retry and a repair are never both on: a repair
+        // follows a run that finished, and this one failed.
+        if (retrying) {
+          const next = await resume(sessionId)
+          if ('error' in next) patch(sessionId, (r) => { r.error = joinNotes(r.error, `Could not try again: ${next.error}`) })
+        }
+        // The delivery's own next run first, when it has one — the review after a build. It is
+        // read from the record the close just wrote, so it is taken once and started once.
+        const carryOn = status === 'done' ? deliveryRunAfter(record) : null
+        // Then the landing queue (#304): a delivery review has just passed takes the slot and
+        // lands here, and what it hands back is the run that landing wants — conflict
+        // resolution, or the focused review an overlapping rebase owes.
+        const landing = status === 'done' ? await advanceLanding() : null
+        // And the ready gate (#440): the build a gate this run WAS has just let through, or a
+        // gate on the card this run took to `ready`. Never both — a gate run's own card was
+        // already ready when it started, so it is not a card that entered.
+        const gate =
+          status === 'done' ? (buildAfterGate(record) ?? (stagesBefore && gateRunAfter(stagesBefore))) : null
+        // And the proposer (#534): every card that reached the archive while this run was up —
+        // the one it archived itself, the one its landing completed, a group closed by either.
+        // `before` is the board as it stood at the spawn, which is the only record of what was
+        // still open then; the dispatcher cannot answer this, because a completed card is
+        // exactly what it no longer sees.
+        const reflect = status === 'done' ? reflectRunsAfter(before.keys()) : []
+        // And the rest of what is waiting in triage (#562): a sort sees only the items it
+        // spawned with, so the batch it was held off from judging — and anything written while
+        // it went — is carried on here. Only a sort that FINISHED: one that failed or was
+        // stopped judged nothing, and the items are still where they were.
+        const sortOn = status === 'done' && sorting ? await triageRunAfter(sorting) : null
+        if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate, reflect, sortOn)
+      } finally {
+        releaseCardAtWork(record.cardId)
+        await reportRunEnded(sessionId, record.cardId, status)
       }
-      // The next attempt (#525), started the instant the failed one is written down — the
-      // same handoff a format repair makes, so the card is between runs for as long as one
-      // record write takes and no longer. A retry and a repair are never both on: a repair
-      // follows a run that finished, and this one failed.
-      if (retrying) {
-        const next = await resume(sessionId)
-        if ('error' in next) patch(sessionId, (r) => { r.error = joinNotes(r.error, `Could not try again: ${next.error}`) })
-      }
-      // The delivery's own next run first, when it has one — the review after a build. It is
-      // read from the record the close just wrote, so it is taken once and started once.
-      const carryOn = status === 'done' ? deliveryRunAfter(record) : null
-      // Then the landing queue (#304): a delivery review has just passed takes the slot and
-      // lands here, and what it hands back is the run that landing wants — conflict
-      // resolution, or the focused review an overlapping rebase owes.
-      const landing = status === 'done' ? await advanceLanding() : null
-      // And the ready gate (#440): the build a gate this run WAS has just let through, or a
-      // gate on the card this run took to `ready`. Never both — a gate run's own card was
-      // already ready when it started, so it is not a card that entered.
-      const gate =
-        status === 'done' ? (buildAfterGate(record) ?? (stagesBefore && gateRunAfter(stagesBefore))) : null
-      // And the proposer (#534): every card that reached the archive while this run was up —
-      // the one it archived itself, the one its landing completed, a group closed by either.
-      // `before` is the board as it stood at the spawn, which is the only record of what was
-      // still open then; the dispatcher cannot answer this, because a completed card is
-      // exactly what it no longer sees.
-      const reflect = status === 'done' ? reflectRunsAfter(before.keys()) : []
-      // And the rest of what is waiting in triage (#562): a sort sees only the items it
-      // spawned with, so the batch it was held off from judging — and anything written while
-      // it went — is carried on here. Only a sort that FINISHED: one that failed or was
-      // stopped judged nothing, and the items are still where they were.
-      const sortOn = status === 'done' && sorting ? await triageRunAfter(sorting) : null
-      if (status === 'done') await followUp(sessionId, record.flowId, settled?.runs ?? [], carryOn, landing, gate, reflect, sortOn)
       resolve(status === 'done' ? 0 : 1)
     }
 
