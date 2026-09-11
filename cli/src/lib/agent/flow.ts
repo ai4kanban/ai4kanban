@@ -924,7 +924,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         break
       }
       close.push(
-        `${raw} create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --proposed --schedule refine --body-file <path> — one call per survivor, body written first`,
+        `${raw} create --title ".." --slug <english-slug> --modules <modules> --priority <level> --roi <level> --schedule refine --body-file <path> — one call per survivor, body written first`,
         `${self} triage archive <source-id> --card <id> — straight after the card it became`,
         `${self} triage dismiss <source-id> --reason ".." — everything else, in one clause each`,
         'change nothing else — no existing card is edited, no question answered, and no build started',

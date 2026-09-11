@@ -80,7 +80,7 @@ describe('the flow', () => {
     const id = await waiting('Conventions keep getting reverted')
     const { said } = quiet(() => printFlow({ action: 'triage' }))
     assert.match(said, new RegExp(`${id} — Conventions keep getting reverted`))
-    assert.match(said, /--proposed --schedule refine --body-file/)
+    assert.match(said, /--schedule refine --body-file/)
     assert.match(said, /triage archive <source-id> --card <id>/)
     assert.match(said, /triage dismiss <source-id> --reason/)
     assert.match(said, /report the count judged/)

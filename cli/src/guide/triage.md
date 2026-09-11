@@ -36,7 +36,7 @@ scaffolded with a refine already scheduled on it:
 ```text
 akb raw create --title "<one line>" --slug <short-english-slug> \
   --modules <modules> --priority <low|med|high> --roi <low|med|high> \
-  --proposed --schedule refine --body-file <path>
+  --schedule refine --body-file <path>
 ```
 
 Write the body by `akb guide writing` — the whole skeleton, not a summary: the opening

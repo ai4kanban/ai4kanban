@@ -121,7 +121,6 @@ export interface CreateOptions {
   /** `--body-file`: the whole body, written to a file first (#561). */
   bodyFile?: string
   cadence?: string
-  proposed?: boolean
   schedule?: ScheduledAction
   /** `--question` and the choices that qualify it, in the order they were typed. */
   asked: [key: string, value: string][]

@@ -194,7 +194,6 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--no-body', 'write the frontmatter and no body template')
     .option('--body-file <path>', "the card's whole body, written to a file first, instead of the template")
     .option('--cadence <cadence>', `how often a recurring card repeats: ${CADENCE_FORMS}. --recurring only`)
-    .option('--proposed', 'the board went looking for this work rather than a person asking for it')
     .option(
       '--schedule <action>',
       `hand the new card's first run to the board: ${SCHEDULED_ACTIONS.join(' | ')}`,
