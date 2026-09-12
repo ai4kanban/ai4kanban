@@ -27,6 +27,7 @@ const ja: SharedCopy = {
     privacy: "Privacy",
     terms: "Terms",
     credit: "Tao Wu が作成",
+    launchkiwi: "LaunchKiwi 掲載の AI4Kanban",
     x: "Tao Wu の X",
   },
   code: {

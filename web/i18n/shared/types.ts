@@ -37,6 +37,9 @@ export type SharedCopy = {
     /** The terms page. English-only, like the blog. */
     terms: string;
     credit: string;
+    /** Only read out loud: the label on the LaunchKiwi badge, which the
+     *  landing page carries and no other page does. */
+    launchkiwi: string;
     /** Label for the X link on the credit line. */
     x: string;
   };

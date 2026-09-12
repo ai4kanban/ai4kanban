@@ -27,6 +27,7 @@ const zh: SharedCopy = {
     privacy: "Privacy",
     terms: "Terms",
     credit: "created by Tao Wu",
+    launchkiwi: "AI4Kanban 已收录于 LaunchKiwi",
     x: "Tao Wu 的 X 主页",
   },
   code: {
