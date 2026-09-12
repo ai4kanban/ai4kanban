@@ -36,6 +36,7 @@ import { cmdMarketingVerify } from '../../commands/marketing'
 import { cmdCloud } from '../../commands/cloud'
 import { cmdGuide } from '../../commands/guide'
 import {
+  cmdAnswered,
   cmdApprove,
   cmdCancel,
   cmdDiscard,
@@ -533,6 +534,26 @@ function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [named] = positional(vals) as [string]
       await onBoard(this, cli, () => cmdApprove(named))
+    })
+
+  verb('answered')
+    .argument('<delivery>', DELIVERY)
+    .summary('say what a round of applied answers did to its requirements')
+    .description(
+      'Written by the run that put the answers on the card, before it drops the questions — it read both the ' +
+        'question and what it wrote, so it is the one thing that can tell a confirmation from a change. The ' +
+        'review an answer resumes and the landing queue read this and never the card’s text. Exactly one of ' +
+        'the two flags, each with its own one-line reason.',
+    )
+    .addOption(
+      new Option('--unchanged <why>', 'nothing it was approved to build moved — the delivery carries on').conflicts(
+        'changed',
+      ),
+    )
+    .option('--changed <why>', 'a requirement was added, dropped or changed — the board reopens it on the new card')
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [named] = positional(vals) as [string]
+      await onBoard(this, cli, () => cmdAnswered(named, this.opts()))
     })
 
   verb('cancel')

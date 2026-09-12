@@ -26,6 +26,7 @@ import { asUsage } from './log'
 import { holdsCard } from './types'
 import type {
   AgentAction,
+  AnswerVerdict,
   DeliveryApproval,
   DeliveryLanding,
   DeliveryRecord,
@@ -374,6 +375,9 @@ function readDeliveryRows(raw: unknown): DeliveryRecord[] {
       steps: readSteps(entry.steps),
       base: typeof entry.base === 'string' && entry.base ? entry.base : undefined,
       review: readReview(entry.review),
+      // What each round of answers concluded (#637). A delivery from before this has none,
+      // and a round nothing judged is a round the board will not guess at.
+      answers: readAnswers(entry.answers),
       priorStatus: typeof entry.priorStatus === 'string' && entry.priorStatus ? entry.priorStatus : undefined,
       next: entry.next === 'review' ? 'review' : undefined,
       // A delivery written down before #303 names no mode. It ran in the user's checkout
@@ -510,6 +514,27 @@ function readApproval(raw: unknown): DeliveryRecord['approval'] {
         )
       : [],
   }
+}
+
+// What each round of answers concluded about this delivery's requirements (#637). A row
+// missing either half is dropped rather than read as `unchanged`: a conclusion nobody can
+// read is a round nobody judged, and the board holds for one rather than guessing.
+function readAnswers(raw: unknown): AnswerVerdict[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const answers = raw.flatMap((entry: Partial<AnswerVerdict>) => {
+    if (!entry || (entry.outcome !== 'changed' && entry.outcome !== 'unchanged')) return []
+    const why = text(entry.why)
+    if (!why) return []
+    return [
+      {
+        outcome: entry.outcome,
+        why,
+        at: typeof entry.at === 'number' ? entry.at : 0,
+        actedAt: typeof entry.actedAt === 'number' ? entry.actedAt : undefined,
+      },
+    ]
+  })
+  return answers.length ? answers : undefined
 }
 
 // What review has said about this delivery (#302). Rebuilt field by field like everything

@@ -17,6 +17,8 @@ import {
   joinDelivery,
   settleDelivery,
 } from '../src/lib/agent/deliveries.ts'
+import { answerOutcome, recordAnswer } from '../src/lib/agent/answers.ts'
+import { deliveryState } from '../src/lib/agent/pause.ts'
 import { readStore, withStore } from '../src/lib/agent/store.ts'
 import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
@@ -26,6 +28,12 @@ import { forgetMachineState } from './helpers/board.ts'
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-review-'))
 
 const ask = (argv: string[]): Promise<Record<string, unknown>> => move(root, ['update-questions', '5', ...argv])
+
+// What the run that applied the answers says about them (#637). The board reads this rather
+// than the card's text, so nothing carries on until it is written.
+const said = (outcome: 'unchanged' | 'changed', why = 'the option it confirms was already built'): void => {
+  recordAnswer(activeDelivery(5)!.deliveryId, outcome, why)
+}
 const todo = path.join(root, 'docs', 'kanban', 'todo')
 const file = path.join(todo, 'features', '5-a-card.md')
 const code = path.join(root, 'src.txt')
@@ -251,9 +259,11 @@ describe('stopping for the user', () => {
     await close(first)
     assert.ok(deliveryWaiting(5))
 
-    // What `akb card resolve` leaves behind: the answer is on the card and the question is gone.
-    // It joins no delivery, so nothing but the card says the stop is over.
+    // What `akb card resolve` leaves behind: the answer is on the card, the question is gone,
+    // and it has said what the answer did to the build. It joins no delivery, so nothing but
+    // the card and that conclusion say the stop is over.
     await ask(['--drop', '1'])
+    said('unchanged')
     assert.equal(deliveryWaiting(5), undefined)
     // The request names the delivery as well as the card: that is what a build with no card
     // is found by, and a carded one carries it just the same (#428). It also names why the
@@ -288,6 +298,7 @@ describe('stopping for the user', () => {
     // Exactly what `watchRun` holds: the record as it was claimed, still `running`.
     const asClaimed: RunRecord = { ...answering }
     await ask(['--drop', '1'])
+    said('unchanged')
     await close(answering)
 
     assert.equal(asClaimed.status, 'running')
@@ -316,6 +327,75 @@ describe('stopping for the user', () => {
 
     assert.equal(deliveryRunAfter(asClaimed), null)
     assert.match(deliveryWaiting(5) ?? '', /open decision/)
+  })
+
+  // What the answers DID is what decides, and it is read rather than worked out (#637).
+  describe('what the answers did', () => {
+    // Get to the stop review leaves on the card, with its question answered.
+    async function stopped(): Promise<void> {
+      const built = build()
+      await close(built)
+      const first = carryOn(built)
+      await ask(['--append', '[user] Which retry behavior should apply?', '--recommended-option', 'Retry once', '--option', 'Do not retry'])
+      await close(first)
+      await ask(['--drop', '1'])
+    }
+
+    it('reviews the same build again when the answers changed nothing', async () => {
+      await stopped()
+      said('unchanged')
+      assert.equal(answeredWork().length, 1)
+      assert.equal(deliveryState(activeDelivery(5)!, 0).stage, 'rereview')
+    })
+
+    // Every delivery here commits in the user's own checkout, so no landing pass can reopen
+    // one: a change has nothing to act on it, and the review the answer asked for still runs
+    // rather than the build wedging on a supersede nobody can make. What a change does to a
+    // delivery that CAN be reopened is `one-click.test.ts`.
+    it('records the change, and still reviews a build nothing can reopen', async () => {
+      await stopped()
+      said('changed', 'the retry policy it was approved to build is now a queue')
+      assert.equal(activeDelivery(5)!.commitMode, 'manual')
+      assert.equal(answerOutcome(activeDelivery(5)!), 'changed')
+      assert.equal(answeredWork().length, 1)
+    })
+
+    it('guesses at nothing when no run said, and asks to be told', async () => {
+      await stopped()
+      assert.equal(answerOutcome(activeDelivery(5)!), 'none')
+      assert.deepEqual(answeredWork(), [])
+      const state = deliveryState(activeDelivery(5)!, 0)
+      assert.equal(state.paused, true)
+      assert.match(state.line, /delivery answered/)
+    })
+
+    it('takes a conclusion once, so a second pass carries nothing on', async () => {
+      await stopped()
+      said('unchanged')
+      const again = session('review')
+      withStore((store) => {
+        store.runs.push(again)
+        joinActive(store, again, 'review')
+      })
+      // The run it asked for has started, so the conclusion has had its effect.
+      assert.equal(answerOutcome(activeDelivery(5)!), 'none')
+      assert.deepEqual(answeredWork(), [])
+    })
+
+    it('keeps a real change from being answered away by the round after it', async () => {
+      await stopped()
+      said('changed', 'the approved retry policy is now a queue')
+      said('unchanged', 'and this one only confirmed the wording')
+      assert.equal(answerOutcome(activeDelivery(5)!), 'changed')
+    })
+
+    it('refuses a conclusion with no reason, and one about a delivery that has ended', async () => {
+      await stopped()
+      const id = activeDelivery(5)!.deliveryId
+      assert.equal(recordAnswer(id, 'unchanged', '  ').ok, false)
+      assert.equal(recordAnswer('nothing-here', 'unchanged', 'why').ok, false)
+      assert.equal(answerOutcome(activeDelivery(5)!), 'none')
+    })
   })
 
   it('goes on waiting while any question is still open', async () => {

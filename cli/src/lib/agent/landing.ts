@@ -19,6 +19,7 @@ import { setCardStatusOn } from '../board'
 import { say } from '../io'
 import { tryLock } from '../lock'
 import { REPO_ROOT, SESSIONS_DIR } from '../paths'
+import { answerOutcome, takeUnchanged, UNJUDGED, unjudgedWhy } from './answers'
 import { approvalStands, cancelApproval } from './approval'
 import { boardCommand } from './command'
 import { deliveryMessage, deliveryName } from './commit-mode'
@@ -182,8 +183,11 @@ async function handOver(
 const questionWhy = (cardId: number, asked: number): string =>
   `${HELD_ON_QUESTIONS}: #${cardId} has ${asked} of them, and landing waits until ${asked === 1 ? 'it is' : 'they are'} answered`
 
+// Landing was waiting on this card's answers — on the questions themselves, or on what a
+// round of them concluded (#637). Both are the same wait: the delivery stands outside the
+// queue until the card's answers are in and something has said what they did.
 const wasHeldOnQuestions = (delivery: DeliveryRecord): boolean =>
-  !!delivery.landing?.why?.startsWith(HELD_ON_QUESTIONS)
+  !!delivery.landing?.why?.startsWith(HELD_ON_QUESTIONS) || !!delivery.landing?.why?.startsWith(UNJUDGED)
 
 /** The deliveries whose card still has an open question. They are built and reviewed, and
  *  landing is the step that waits for the answer — so one holding the slot gives it back
@@ -199,11 +203,47 @@ function holdForQuestions(): Set<string> {
     const asked = openQuestions(delivery.cardId)
     if (!asked) continue
     held.add(delivery.deliveryId)
+    // A fresh round of questions opens here, so a round before it that moved nothing is
+    // spent (#637). Taking it now is what stops the old conclusion from answering for the
+    // new round when nothing judges that one — and a `changed` stays, because the supersede
+    // it asks for has not happened yet.
+    takeUnchanged(delivery)
     const why = questionWhy(delivery.cardId, asked)
     if (delivery.landing.status === 'landing') giveUpSlot(delivery, why)
     else if (delivery.landing.why !== why) patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
   }
   return held
+}
+
+/** The deliveries whose answers are all in and whose round nothing judged (#637).
+ *
+ *  There is no guessing here and no fallback: comparing the card's text against the copy the
+ *  delivery froze is exactly the judgement this replaces, cancelling the delivery would throw
+ *  away a build over a missing line, and landing it would ship work the answers may have
+ *  changed. So it waits, outside the queue, saying the one command that settles it.
+ *
+ *  Normally unreachable: `resolve` and `decide` record the conclusion before they drop a
+ *  question. What reaches it is a run cut off between the two, a question answered by hand in
+ *  the card file, and a delivery recorded before any of this existed. */
+function holdForVerdict(already: Set<string>): Set<string> {
+  const held = new Set<string>()
+  for (const delivery of readStore().deliveries) {
+    if (delivery.status !== 'active' || !delivery.landing || delivery.landing.status === 'landed') continue
+    if (already.has(delivery.deliveryId) || delivery.cardId === null) continue
+    if (!answersAreIn(delivery) || answerOutcome(delivery) !== 'none') continue
+    held.add(delivery.deliveryId)
+    const why = unjudgedWhy(delivery)
+    if (delivery.landing.status === 'landing') giveUpSlot(delivery, why)
+    else if (delivery.landing.why !== why) patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
+  }
+  return held
+}
+
+/** This delivery's round of answers is in: it was waiting on the card's questions — at
+ *  landing, or at the stop its own review left — and the card has none left. */
+function answersAreIn(delivery: DeliveryRecord): boolean {
+  if (delivery.cardId === null || openQuestions(delivery.cardId) > 0) return false
+  return delivery.review?.stopped?.reason === 'ask' || wasHeldOnQuestions(delivery)
 }
 
 // ---- held on your approval of the tree (#308) -------------------------------
@@ -245,14 +285,24 @@ function holdForApproval(already: Set<string>): Set<string> {
 const hasStep = (delivery: DeliveryRecord, step: string): boolean =>
   delivery.steps.some((s) => s.step === step)
 
-/** A delivery whose hold has just been answered, but whose card no longer says what it was
- *  approved to build. It ends here and a fresh delivery starts on the card as it now
- *  reads; the request is handed back for the caller to start.
+/** A delivery whose answers are in and CHANGED what it was approved to build. It ends here
+ *  and a fresh delivery starts on the card as it now reads; the request is handed back for
+ *  the caller to start.
  *
- *  Only ever asked of a delivery that was HELD on its card's questions and is not any more:
- *  answering is the one thing that rewrites a card under a delivery, so it is the one
- *  moment the copy can have moved. A card edited in the user's own editor while its code is
+ *  Only ever asked of a delivery that was waiting on the card's answers and is not any more:
+ *  answering is the one thing that rewrites a card under a delivery, so it is the one moment
+ *  its requirements can have moved. A card edited in the user's own editor while its code is
  *  being written still changes nothing — the delivery builds from its copy.
+ *
+ *  WHAT THE ANSWERS DID IS READ, NOT WORKED OUT (#637). The run that wrote them onto the card
+ *  said so with `delivery answered`, and nothing here compares the card's text: a tidied
+ *  sentence is not a changed requirement, and a card written from a plan never matched the
+ *  plan it was written from. A round nothing judged is held by `holdForVerdict` rather than
+ *  guessed at, and the conclusion is TAKEN as it is acted on, so one supersede is one
+ *  supersede however many passes look at it.
+ *
+ *  Both waits count: a review that stopped to ask, and a landing held on the card's
+ *  questions. They are the same wait on the same answers.
  *
  *  The card is handed back as it goes. The delivery put `implementing` there and nothing
  *  else takes it off, so a card whose replacement does not start would otherwise rest at a
@@ -260,25 +310,35 @@ const hasStep = (delivery: DeliveryRecord, step: string): boolean =>
 async function supersededDelivery(held: Set<string>): Promise<AgentRequest | null> {
   for (const delivery of readStore().deliveries) {
     if (delivery.status !== 'active' || !wantsLanding(delivery) || delivery.cardId === null) continue
-    if (!delivery.landing || delivery.landing.status === 'landed') continue
-    if (held.has(delivery.deliveryId) || delivery.review?.stopped) continue
-    if (!wasHeldOnQuestions(delivery)) continue
-    const now = approvedRequirements(delivery.cardId)
-    if (!now || now === delivery.approved) continue
-    withStore((store) => {
+    if (delivery.landing?.status === 'landed') continue
+    if (held.has(delivery.deliveryId)) continue
+    if (!answersAreIn(delivery) || answerOutcome(delivery) !== 'changed') continue
+    const why = withStore((store) => {
       const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-      if (live) live.steps.push({ step: 'superseded', at: Date.now() })
+      // Read again under the lock: another pass may have taken this very conclusion between
+      // the read above and here, and two supersedes of one delivery is two builds.
+      if (!live || live.status !== 'active' || answerOutcome(live) !== 'changed') return null
+      const said = pendingWhy(live)
+      const now = Date.now()
+      live.steps.push({ step: 'superseded', at: now })
+      for (const answer of live.answers ?? []) if (!answer.actedAt) answer.actedAt = now
+      return said
     })
+    if (why === null) continue
     endDelivery(delivery.deliveryId, 'cancelled')
     await handBackCard(delivery)
     say(
-      `delivery ${delivery.deliveryId} was approved to build a #${delivery.cardId} that has since changed — ` +
-        `it ends here, and a fresh delivery starts on the card as it now reads.`,
+      `delivery ${delivery.deliveryId} was approved to build a #${delivery.cardId} your answer has since changed ` +
+        `— ${why}. It ends here, and a fresh delivery starts on the card as it now reads.`,
     )
     return { action: 'implement', id: delivery.cardId as number, title: delivery.title }
   }
   return null
 }
+
+// What the round that changed the requirements said, for the line the supersede prints.
+const pendingWhy = (delivery: DeliveryRecord): string =>
+  (delivery.answers ?? []).find((a) => !a.actedAt && a.outcome === 'changed')?.why ?? 'the answers changed it'
 
 // The stage the card had before this delivery took it, put back now that nothing is
 // building it. Best-effort, like every other card write a delivery's ending makes: the
@@ -389,6 +449,10 @@ export async function advanceLanding(): Promise<AgentRequest | null> {
     const held = holdForQuestions()
     const fresh = await supersededDelivery(held)
     if (fresh) return fresh
+    // And the ones whose answers are in but whose round nothing judged (#637). After the
+    // supersede, which is the conclusion this one is the absence of — and before the queue,
+    // because landing work the answers may have changed is the thing it exists to stop.
+    for (const id of holdForVerdict(held)) held.add(id)
     // Then the approval each delivery still owes (#308). After the superseded check, which
     // reads the `why` a question hold left behind.
     for (const id of holdForApproval(held)) held.add(id)

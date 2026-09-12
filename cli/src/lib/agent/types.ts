@@ -471,6 +471,30 @@ export interface DeliveryReview {
   }
 }
 
+// ---- what one round of answers concluded (#637) -----------------------------
+
+/** What applying the user's answers did to a delivery's requirements. */
+export type AnswerOutcome =
+  /** Nothing about what is to be built moved: an option already implemented was confirmed, a
+   *  decision already on the card was written down again, or the prose was tidied. */
+  | 'unchanged'
+  /** A requirement was added, dropped or changed. */
+  | 'changed'
+
+/** One round of answers, as the run that applied them concluded (#637).
+ *
+ *  It belongs to ONE delivery and one round: it never reaches the fresh delivery a supersede
+ *  opens, and `actedAt` is what keeps it from concluding twice. */
+export interface AnswerVerdict {
+  outcome: AnswerOutcome
+  /** Why, in one short sentence, from the run that applied the answers. */
+  why: string
+  at: number
+  /** When the board acted on it — the run it started, the new round that replaced it, or the
+   *  supersede it caused. Unstamped is a conclusion still owed its effect. */
+  actedAt?: number
+}
+
 // ---- landing a delivery on the target branch (#304) -------------------------
 
 /** Where a delivery stands on landing.
@@ -605,6 +629,11 @@ export interface DeliveryRecord {
   base?: string
   /** What each completed review concluded (#302). */
   review?: DeliveryReview
+  /** What each round of applied answers concluded about these requirements (#637), oldest
+   *  first. The run that writes the answers onto the card is the one that can tell, so it
+   *  says so with `delivery answered` before it drops the questions — and the review an
+   *  answer resumes and the landing queue both read THIS rather than comparing card text. */
+  answers?: AnswerVerdict[]
   /** The card's stage the instant before the delivery's FIRST run overwrote it with
    *  `implementing`, so the end of the delivery puts back what was there — not the
    *  `implementing` its own second run would otherwise have found and saved. */

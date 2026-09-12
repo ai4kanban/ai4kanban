@@ -27,6 +27,7 @@ import { recordCloudDeliveryState } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
 import { DELIVERIES, rel } from '../paths'
 import { solution } from '../solution'
+import { answerOutcome } from './answers'
 import { candidateBase } from './candidate'
 import { decideRunAfter, decidingOn } from './decide'
 import { boardCommand } from './command'
@@ -509,6 +510,11 @@ export function joinActive(
   delivery.sessions.push(run.sessionId)
   delivery.steps.push({ step, at: run.startedAt })
   if (delivery.review?.stopped) delivery.review.stopped = undefined
+  // The run the answers asked for is this one, so what they concluded has had its effect
+  // (#637). Taken here rather than where it was read, so a conclusion that never started
+  // anything is still waiting on the next pass.
+  const now = Date.now()
+  for (const answer of delivery.answers ?? []) if (!answer.actedAt) answer.actedAt = now
   joinFlow(run, delivery)
   writeAudit(delivery, store.runs)
   return delivery
@@ -630,7 +636,14 @@ export async function settleDelivery(run: RunRecord): Promise<void> {
     }
     if ('stop' in next) {
       const review = reviewOf(delivery)
-      review.stopped = { reason: next.stop, why: next.why, at: Date.now() }
+      const at = Date.now()
+      review.stopped = { reason: next.stop, why: next.why, at }
+      // A fresh round of questions starts here, so a round before it that moved nothing is
+      // finished with (#637) — an old conclusion must never stand in for one nobody wrote.
+      // A `changed` stays: the supersede it asks for is still owed.
+      for (const answer of delivery.answers ?? []) {
+        if (!answer.actedAt && answer.outcome === 'unchanged') answer.actedAt = at
+      }
       delivery.next = undefined
       // A re-review that stops waits on a person, and a landing queue that waits with it
       // stops every other card on the board — so the slot goes back (#304).
@@ -719,12 +732,24 @@ export function cardsHeldAtLanding(): Set<number> {
  *
  *  Derived, never stored (`pause.ts`): the card's questions are the whole of that stop, so
  *  a card with none left is a delivery whose next step is another look. Nothing is written
- *  here — the run that starts clears the stop (`joinActive`), and until one does, every
- *  read of this says the same thing. */
+ *  here — the run that starts clears the stop and takes the conclusion with it (`joinActive`),
+ *  and until one does, every read of this says the same thing.
+ *
+ *  Owed only when the answers left the requirements alone (#637). Answers that CHANGED them
+ *  are not something to review this build against — the landing pass ends the delivery and
+ *  opens a fresh one — and a round nothing judged is not reviewed on a guess.
+ *
+ *  Manual commit mode is the exception, and only because the supersede lives in the landing
+ *  pass a manual delivery never enters (`wantsLanding`): there a change has nothing to act
+ *  on it, so the answered review is still what comes next rather than a wait for a supersede
+ *  nobody can make. */
 export function answeredReview(cardId: number): AgentRequest | null {
   const delivery = activeDelivery(cardId)
   if (!delivery || delivery.next) return null
   if (!answeredStop(delivery, openQuestions(cardId))) return null
+  const outcome = answerOutcome(delivery)
+  if (outcome === 'none') return null
+  if (outcome === 'changed' && wantsLanding(delivery)) return null
   return { action: 'review', id: cardId, deliveryId: delivery.deliveryId, title: delivery.title, trigger: 'answered' }
 }
 

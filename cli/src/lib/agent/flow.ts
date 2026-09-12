@@ -44,7 +44,7 @@ import { readInbox } from '../signals/inbox'
 import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
-import { deliveryFor } from './deliveries'
+import { activeDelivery, deliveryFor } from './deliveries'
 import { aiReviewOn, owesFocusedReview } from './review'
 import { field, metaLine, numbered } from './facts'
 import { translating } from './language'
@@ -388,10 +388,49 @@ function conflictField(delivery: DeliveryRecord | undefined): string[] {
   ])
 }
 
+// What a delivery already building this card is judged against, said to the pass that is
+// about to rewrite that card (#637).
+//
+// Applying answers is the one thing that moves a card under a build, so this pass is the one
+// thing that can say whether the build is still the right build: it read the question, it
+// read what it wrote, and nobody downstream has either. The board used to work it out by
+// comparing text, which called a tidied sentence a changed plan and never matched a card
+// written from a plan at all (#613).
+function answeringField(delivery: DeliveryRecord, self: string): string[] {
+  const approved = delivery.approved.trim()
+  const say = (flag: string) => `  ${self} delivery answered ${delivery.deliveryId} ${flag}`
+  return [
+    ...field('delivery', [
+      `${delivery.deliveryId} is already building this card, from the copy below — frozen when it started.`,
+      `once your answers are on the card, say what they did to it:`,
+      `${say('--unchanged "<why>"')} — it carries on`,
+      `${say('--changed "<why>"')} — the board ends it and builds the card as it then reads`,
+      `judge the MEANING, not the words. Confirming an option that is already built, writing down a decision`,
+      `the card already carries and tidying prose are all --unchanged. Adding, dropping or changing a`,
+      `requirement is --changed — and so is confirming an implementation that contradicts the copy below,`,
+      `however finished it is.`,
+      `until you have said, the board neither reviews this build again nor lands it.`,
+    ]),
+    ...field(
+      'approved',
+      approved
+        ? [`what ${delivery.deliveryId} is building:`, '', ...approved.split('\n')]
+        : 'nothing was captured when this delivery started',
+    ),
+  ]
+}
+
+// The closing step a pass that applies answers owes the build under it (#637): the
+// conclusion, written down before the questions go, because dropping the last one is what
+// puts the board back in motion.
+const answeredClose = (delivery: DeliveryRecord, self: string): string =>
+  `${self} delivery answered ${delivery.deliveryId} --changed|--unchanged "<why>" — before you drop the questions; ` +
+  `the build waits until you have said, and never on a guess`
+
 // The card's post-implementation notes as they read right now — NOT part of the approved
 // copy, and the one place the user records an exception they have approved for this exact
 // candidate. A reviewer that never reads them re-raises what has already been settled.
-function notesField(card: CardFacts): string[] {
+function notesLines(card: CardFacts): string[] {
   const lines: string[] = []
   let inside = false
   for (const line of card.text.split('\n')) {
@@ -401,6 +440,11 @@ function notesField(card: CardFacts): string[] {
     }
     if (inside && line.trim()) lines.push(line)
   }
+  return lines
+}
+
+function notesField(card: CardFacts): string[] {
+  const lines = notesLines(card)
   return field(
     'notes',
     lines.length
@@ -578,6 +622,11 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         )
         break
       }
+      // The decisions an earlier delivery on this card already settled (#637). They sit
+      // outside the approved copy, so a delivery reopened over the top of one would drop them
+      // on the floor without this. Most cards carry none, and say nothing here.
+      const settled = notesLines(card).length > 0
+      if (settled) facts.push(...notesField(card))
       facts.push(...stepsField(card))
       if (card.meta.questions.length) facts.push(...questionsField(card.meta))
       facts.push(...verifyField(card.meta))
@@ -591,6 +640,9 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       const reviewed = !!delivery && aiReviewOn(delivery)
       close.push(
         ...committingClose(delivery),
+        ...(settled
+          ? ['honour the notes above as requirements — they are decisions already settled on this card, and nothing here reopens them']
+          : []),
         ...(cardCarriesBody() ? ['tick each box in ## Todo as you finish it — they are the record of what was built'] : []),
         `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
@@ -689,7 +741,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     case 'resolve': {
       facts.push(...questionsField(card!.meta))
+      // The build these answers land on top of, where there is one (#637).
+      const building = activeDelivery(req.id!)
+      if (building) {
+        facts.push(...answeringField(building, self))
+        facts.push(...notesField(card!))
+      }
       facts.push(...field('memory', memoryFiles(card!.meta.modules, 'decisions.md')))
+      if (building) close.push(answeredClose(building, self))
       next.push(
         req.refineRound !== undefined
           ? refineNext(req.id!, 'continue the programmatic refinement flow')
@@ -705,9 +764,15 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // the user rather than writing one card, so the memory is the whole board's (#493).
     case 'decide': {
       facts.push(...questionsField(card!.meta))
+      const decidingOnBuild = activeDelivery(req.id!)
+      if (decidingOnBuild) {
+        facts.push(...answeringField(decidingOnBuild, self))
+        facts.push(...notesField(card!))
+      }
       facts.push(...field('goal', rel(GOAL)))
       facts.push(...field('memory', boardMemoryFiles()))
       close.push(
+        ...(decidingOnBuild ? [answeredClose(decidingOnBuild, self)] : []),
         `${raw} update-decided ${req.id} --question ".." --chose ".." [--from ".."] — one call per question, before you drop it`,
         `${raw} update-questions ${req.id} --drop <n> — every \`[user]\` question goes, and the card leaves this run with none`,
         'write no lasting decision: nothing you chose belongs in a `decisions.md` or in a spec agent\'s memory',

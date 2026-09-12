@@ -16,10 +16,20 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { activeDelivery, listDeliveries, openQuestions } from '../src/lib/agent/deliveries.ts'
+import { recordAnswer } from '../src/lib/agent/answers.ts'
+import {
+  activeDelivery,
+  adoptDirectCard,
+  answeredReview,
+  findDelivery,
+  listDeliveries,
+  openQuestions,
+} from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
+import { printFlow } from '../src/lib/agent/flow.ts'
 import { advanceLanding } from '../src/lib/agent/landing.ts'
 import { deliveryState } from '../src/lib/agent/pause.ts'
+import { buildPrompt } from '../src/lib/agent/prompts.ts'
 import { claimCard, closeRun, discardDelivery, openRun, peekRun, stopRun } from '../src/lib/agent/sessions.ts'
 import { setAutoCommit } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
@@ -27,7 +37,8 @@ import type { AgentAction, DeliveryRecord } from '../src/lib/agent/types.ts'
 import { watchRun } from '../src/lib/agent/watch.ts'
 import { worktreeDir } from '../src/lib/agent/worktree.ts'
 import { board } from '../src/lib/board/index.ts'
-import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { PLANS, SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { move } from './helpers/board.ts'
 import { findCard } from '../src/lib/view/read.ts'
 
@@ -39,6 +50,9 @@ const cardText = (
   questions: string[] = [],
   scope = 'a requirement',
   status = 'ready',
+  // `## Worth noting after implementation` — decisions the build's own review settled, which
+  // sit outside the approved copy and travel to the next delivery on the card (#637).
+  notes: string[] = [],
 ): string =>
   [
     '---',
@@ -55,6 +69,7 @@ const cardText = (
     '',
     'What this card is for.',
     '',
+    ...(notes.length ? ['## Worth noting after implementation', ...notes, ''] : []),
     '<!-- agent -->',
     '',
     '## Scope',
@@ -132,9 +147,17 @@ const archived = (id: number): boolean =>
 const setStatus = (id: number, status: string): void =>
   fs.writeFileSync(cardPath(id), fs.readFileSync(cardPath(id), 'utf8').replace(/^status: .*$/m, `status: ${status}`))
 
+// What the run that applied the answers concluded about them (#637). The board reads this
+// rather than the card's text, so nothing carries on or reopens until it is written.
+const said = (id: number, outcome: 'unchanged' | 'changed', why = 'what it is building is unchanged'): void => {
+  recordAnswer(activeDelivery(id)!.deliveryId, outcome, why)
+}
+
 // The card as it reads once the question has been answered and the answer moved the plan.
-const answered = (id: number, scope: string, status = 'ready'): void =>
+const answered = (id: number, scope: string, status = 'ready'): void => {
+  said(id, 'changed', 'the requirement it was approved to build is a different one now')
   fs.writeFileSync(cardPath(id), cardText(id, 'card one', [], scope, status))
+}
 
 describe('completion is the last step', () => {
   it('leaves the card on the board while review passes, and archives it once it has landed', async () => {
@@ -185,6 +208,7 @@ describe('a card with an open question', () => {
 
     // Answered — the same delivery carries on, with no second click.
     fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
+    said(1, 'unchanged')
     assert.equal(openQuestions(1), 0)
     // The other card landed in a file this one never touched, so the rebase keeps the
     // review it passed and the same pass lands it.
@@ -211,6 +235,7 @@ describe('an answer that changed the plan', () => {
     assert.equal(landingOf(first.deliveryId)?.status, 'waiting')
 
     // Answered, and the answer rewrote what the card asks for.
+    said(1, 'changed', 'the requirement it was approved to build is a different one now')
     fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
     const wants = await advanceLanding()
 
@@ -282,12 +307,339 @@ describe('an answer that changed the plan', () => {
     await advanceLanding()
 
     fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
+    said(1, 'unchanged')
     assert.equal(await advanceLanding(), null)
 
     assert.equal(listDeliveries().find((d) => d.deliveryId === first.deliveryId)?.status, 'finished')
     assert.deepEqual(log(), ['card one (#1)', 'start'])
     assert.equal(archived(1), true)
   })
+
+  // What the answer DID is read, never worked out from the card's text (#637). The two cases
+  // that used to get it wrong are the ones the board now gets from the run that applied it.
+  it('lands a build whose answer rewrote the card without changing what it asks for', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    // Every approved section reads differently, and none of it asks for anything new: the
+    // wording was tidied and the decision already on the card was written down again.
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a requirement, said more plainly'))
+    said(1, 'unchanged', 'the wording moved; what it asks for did not')
+    assert.equal(await advanceLanding(), null)
+
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+    assert.equal(archived(1), true)
+  })
+
+  it('reopens a build whose answer changed it even when the card reads the same', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    // The card's approved sections are byte for byte what the delivery froze — the answer
+    // landed in a spec section's wording — and the answer still changed a requirement.
+    said(1, 'changed', 'the answer picked the behaviour the approved copy rules out')
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
+    assert.deepEqual(await advanceLanding(), { action: 'implement', id: 1, title: 'card one' })
+    assert.deepEqual(log(), ['start'])
+  })
+
+  it('reopens once, however many passes look at it', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+    answered(1, 'a different requirement')
+
+    await advanceLanding()
+    const ended = listDeliveries().find((d) => d.deliveryId === first.deliveryId)!
+    assert.equal(ended.steps.filter((s) => s.step === 'superseded').length, 1)
+    // Every pass after it offers the same restart rather than superseding again — the
+    // conclusion was taken when it was acted on.
+    await advanceLanding()
+    assert.equal(ended.answers?.every((a) => a.actedAt), true)
+    assert.equal(
+      listDeliveries().find((d) => d.deliveryId === first.deliveryId)!.steps.filter((s) => s.step === 'superseded').length,
+      1,
+    )
+  })
+
+  it('holds, lands nothing and says what settles it when no run judged the answers', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    // Answered by hand in the card file, so nothing recorded what it did.
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
+    assert.equal(await advanceLanding(), null)
+
+    // Not landed, not cancelled: the board waits to be told rather than comparing text.
+    assert.equal(landingOf(first.deliveryId)?.status, 'waiting')
+    assert.match(landingOf(first.deliveryId)?.why ?? '', /delivery answered/)
+    assert.equal(listDeliveries().find((d) => d.deliveryId === first.deliveryId)?.status, 'active')
+    assert.deepEqual(log(), ['start'])
+    const state = deliveryState(listDeliveries().find((d) => d.deliveryId === first.deliveryId)!, 0)
+    assert.equal(state.paused, true)
+    assert.match(state.line, /delivery answered/)
+
+    // And carries straight on once it is.
+    said(1, 'changed', 'the requirement it was approved to build is a different one now')
+    assert.deepEqual(await advanceLanding(), { action: 'implement', id: 1, title: 'card one' })
+  })
+
+  it('keeps a real change from being answered away by the round after it', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    said(1, 'changed', 'the first round dropped a requirement')
+    said(1, 'unchanged', 'the second only tidied the wording')
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
+    assert.deepEqual(await advanceLanding(), { action: 'implement', id: 1, title: 'card one' })
+  })
+
+  it('starts the fresh delivery with no conclusion of its own', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+    answered(1, 'a different requirement')
+    await advanceLanding()
+
+    const next = run('implement', 1, 'card one')
+    assert.equal(activeDelivery(1)?.answers, undefined)
+    await end(next)
+  })
+
+  // The other wait on the same answers: review stopped to ask, so the delivery has no landing
+  // record at all. One conclusion covers both (#637).
+  it('reopens a delivery its own review stopped, once the answer is judged a change', async () => {
+    const built = run('implement', 1, 'card one')
+    const first = activeDelivery(1)!
+    fs.writeFileSync(path.join(worktreeDir(first.worktree!), 'shared.txt'), 'one\n')
+    await end(built)
+
+    // Review appends a decision for the user and stops on it.
+    const review = run('review', 1, 'card one')
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    await end(review)
+    assert.equal(listDeliveries().find((d) => d.deliveryId === first.deliveryId)?.review?.stopped?.reason, 'ask')
+    assert.equal(landingOf(first.deliveryId), undefined)
+
+    said(1, 'changed', 'the answer asks for a behaviour the approved copy rules out')
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
+    // Nothing reviews this build against the copy it froze — the landing pass reopens it.
+    assert.equal(answeredReview(1), null)
+    assert.deepEqual(await advanceLanding(), { action: 'implement', id: 1, title: 'card one' })
+    assert.equal(listDeliveries().find((d) => d.deliveryId === first.deliveryId)?.status, 'cancelled')
+  })
+
+  it('leaves a delivery nobody asked a question of alone, however the card is edited', async () => {
+    const first = await reviewed(1, 'card one', 'one\n')
+    // No question was ever open on this card, so no answer is in and nothing is judged: an
+    // edit in the user's own editor never reaches any of this.
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+  })
+
+  it('waits while part of the round is still open, conclusion or not', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade?', '[user] and which size?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    // One answered, one still open, and the first round already judged a change.
+    said(1, 'changed', 'the first answer dropped a requirement')
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] and which size?'], 'a different requirement'))
+    assert.equal(await advanceLanding(), null)
+    assert.equal(listDeliveries().find((d) => d.deliveryId === first.deliveryId)?.status, 'active')
+    assert.match(landingOf(first.deliveryId)?.why ?? '', /open question/)
+    assert.deepEqual(log(), ['start'])
+  })
+
+  it('reopens once the rest of that round is answered, whatever the round after it says', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade?', '[user] and which size?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    // A change with a question still open: the pass that holds on that question must not
+    // spend the conclusion the supersede is still owed.
+    said(1, 'changed', 'the first answer dropped a requirement')
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] and which size?'], 'a different requirement'))
+    assert.equal(await advanceLanding(), null)
+
+    // The round that closes the card only tidied the wording, and the change still stands.
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
+    said(1, 'unchanged', 'this one only tidied the wording')
+    assert.deepEqual(await advanceLanding(), { action: 'implement', id: 1, title: 'card one' })
+    assert.equal(listDeliveries().find((d) => d.deliveryId === first.deliveryId)?.status, 'cancelled')
+  })
+
+  it('does not let an earlier round answer for a later one', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
+    said(1, 'unchanged')
+
+    // A second question opens before the board acted on the first round, and nothing judged
+    // this one. The old conclusion is spent, so the build waits rather than landing on it.
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] and which size?']))
+    assert.equal(await advanceLanding(), null)
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
+    assert.equal(await advanceLanding(), null)
+
+    assert.match(landingOf(first.deliveryId)?.why ?? '', /delivery answered/)
+    assert.deepEqual(log(), ['start'])
+  })
+
+  it('is unmoved by the delivery writing its own card', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
+    said(1, 'unchanged')
+
+    // A ticked todo and a verify line the build left behind: the delivery's own bookkeeping,
+    // written after the copy was frozen and no part of what it was approved to build.
+    fs.appendFileSync(cardPath(1), '\n## Todo\n- [x] the one step\n\n')
+    await move(root, ['update-verify', '1', '--append', 'check the shade by hand'])
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+  })
+
+  it('hands the reopened delivery the decisions the card already settled', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    // The build's review settled this one, so it sits outside the approved copy — and the
+    // answer that follows changes a requirement, so a fresh delivery is opened over the top.
+    said(1, 'changed', 'the requirement it was approved to build is a different one now')
+    fs.writeFileSync(
+      cardPath(1),
+      cardText(1, 'card one', [], 'a different requirement', 'ready', ['- **Which timeout?**: two seconds.']),
+    )
+    await advanceLanding()
+
+    const sink = startCollecting()
+    try {
+      printFlow({ action: 'implement', id: 1, title: 'card one' })
+    } finally {
+      stopCollecting()
+    }
+    const flow = sink.out.join('\n')
+    assert.match(flow, /Which timeout\?/)
+    assert.match(flow, /decisions already settled on this card/)
+
+    // And says none of it on a card that settled nothing — which is most of them.
+    const plain = startCollecting()
+    try {
+      printFlow({ action: 'implement', id: 2, title: 'card two' })
+    } finally {
+      stopCollecting()
+    }
+    assert.doesNotMatch(plain.out.join('\n'), /decisions already settled on this card/)
+  })
+})
+
+// What the pass that applies the answers is given, so it can judge them (#637).
+describe('answering a card with a build on it', () => {
+  it('hands the resolve the delivery, the copy it is building and the command', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    const sink = startCollecting()
+    try {
+      printFlow({ action: 'resolve', id: 1, title: 'card one' })
+    } finally {
+      stopCollecting()
+    }
+    const flow = sink.out.join('\n')
+    assert.match(flow, new RegExp(`${delivery.deliveryId} is already building this card`))
+    // The copy it froze, so the judgement is made against what was approved…
+    assert.match(flow, /what .* is building:[\s\S]*A requirement/)
+    // …and both ways to record the conclusion, in the flow and in its closing steps.
+    assert.match(flow, new RegExp(`delivery answered ${delivery.deliveryId} --unchanged`))
+    assert.match(flow, new RegExp(`delivery answered ${delivery.deliveryId} --changed`))
+    assert.match(flow, /before you drop the questions/)
+
+    // A spawned run is told the same thing in its own words.
+    assert.match(buildPrompt({ action: 'resolve', id: 1 }), new RegExp(`delivery answered ${delivery.deliveryId}`))
+    assert.match(buildPrompt({ action: 'decide', id: 1 }), new RegExp(`delivery answered ${delivery.deliveryId}`))
+  })
+
+  it('says none of it on a card nothing is building', () => {
+    const sink = startCollecting()
+    try {
+      printFlow({ action: 'resolve', id: 2, title: 'card two' })
+    } finally {
+      stopCollecting()
+    }
+    // The guide still carries the rule — every resolve reads it. What is absent is this
+    // board's own answer: no delivery, no copy to judge against, no closing step.
+    assert.doesNotMatch(sink.out.join('\n'), /is already building this card/)
+    assert.doesNotMatch(buildPrompt({ action: 'resolve', id: 2 }), /delivery answered/)
+  })
+})
+
+// The #613 case: a **Build now** starts from a typed sentence and writes its own card, so the
+// copy it froze and the card it is judged against are two different documents. Nothing
+// compares them any more (#637) — the conclusion is the same one either way in.
+describe('a build that wrote its own card', () => {
+  const TYPED = 'add a widget'
+  const PLAN = '# Add a widget\n\nThe whole plan, in a file of its own.\n'
+
+  // A **Build now** off a typed sentence, and one off a plan — the two ways in, and the
+  // only difference between them is where the words came from.
+  async function wrote(from: 'sentence' | 'plan'): Promise<DeliveryRecord> {
+    let opened
+    if (from === 'plan') {
+      fs.mkdirSync(PLANS, { recursive: true })
+      fs.writeFileSync(path.join(PLANS, '7-a-widget.md'), PLAN)
+      opened = openRun({ action: 'implement', plan: 'plans/7-a-widget.md' }, 'prompt', [])
+    } else {
+      opened = openRun({ action: 'implement', description: TYPED }, 'prompt', [])
+    }
+    if ('error' in opened) throw new Error(opened.error)
+    const deliveryId = opened.run.deliveryId as string
+    // The copy it froze is the words it was handed, and on a plan it is a whole document no
+    // card body could ever match.
+    assert.equal(findDelivery(deliveryId)?.approved, from === 'plan' ? PLAN.trim() : TYPED)
+
+    // `raw create` lands on a card that is still the scaffold; the run writes the body after.
+    adoptDirectCard(opened.run.sessionId, 3)
+    fs.writeFileSync(cardPath(3), cardText(3, 'card three', ['[user] which shade of blue?']))
+    fs.writeFileSync(path.join(worktreeDir(findDelivery(deliveryId)!.worktree!), 'three.txt'), 'three\n')
+    await end(opened.run.sessionId)
+    return findDelivery(deliveryId)!
+  }
+
+  for (const from of ['sentence', 'plan'] as const) {
+    it(`lands when the answer on a ${from} build confirms what it already built`, async () => {
+      const delivery = await wrote(from)
+      await advanceLanding()
+      assert.match(landingOf(delivery.deliveryId)?.why ?? '', /open question/)
+
+      fs.writeFileSync(cardPath(3), cardText(3, 'card three'))
+      said(3, 'unchanged', 'the option it confirms is the one already built')
+      assert.equal(await advanceLanding(), null)
+
+      assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
+      assert.equal(archived(3), true)
+    })
+
+    it(`reopens when the answer on a ${from} build really changed the card`, async () => {
+      const delivery = await wrote(from)
+      await advanceLanding()
+
+      said(3, 'changed', 'the answer asks for a second widget')
+      fs.writeFileSync(cardPath(3), cardText(3, 'card three', [], 'a different requirement'))
+      assert.equal((await advanceLanding())?.id, 3)
+      assert.equal(listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)?.status, 'cancelled')
+      assert.equal(fs.existsSync(cardPath(3)), true)
+    })
+  }
 })
 
 describe('discarding a build', () => {
@@ -379,6 +731,27 @@ describe('where a delivery stands', () => {
 
 describe('a manual delivery waiting on the user\'s commit', () => {
   beforeEach(() => setAutoCommit(false))
+
+  // The supersede lives in the landing pass, and a manual delivery never enters it: the
+  // commit is the user's. So a change has nothing to act on it here, and the answered review
+  // is still what comes next — waiting for a supersede nobody can make is a wedged build.
+  it('reviews again on an answer that changed the plan, because nothing can reopen it', async () => {
+    const built = run('implement', 1, 'card one')
+    const first = activeDelivery(1)!
+    assert.equal(first.worktree, undefined)
+    fs.writeFileSync(path.join(root, 'shared.txt'), 'one\n')
+    await end(built)
+
+    const review = run('review', 1, 'card one')
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
+    await end(review)
+    assert.equal(listDeliveries().find((d) => d.deliveryId === first.deliveryId)?.review?.stopped?.reason, 'ask')
+
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
+    said(1, 'changed', 'the answer asks for a different requirement')
+    assert.equal(answeredReview(1)?.action, 'review')
+    assert.equal(deliveryState(activeDelivery(1)!, 0).stage, 'rereview')
+  })
 
   it('leaves the card alone while the code is still uncommitted', async () => {
     const delivery = await reviewed(1, 'card one', 'one\n')

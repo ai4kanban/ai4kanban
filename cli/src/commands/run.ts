@@ -5,7 +5,8 @@
 // run's id and exits — the run outlives it — so the same run can be followed, stopped or
 // continued from anywhere, by anyone, including a process that never saw it start.
 
-import { activeDelivery, deliveryAcceptsAnswers, heldByDelivery } from '../lib/agent/deliveries'
+import { recordAnswer } from '../lib/agent/answers'
+import { activeDelivery, deliveryAcceptsAnswers, heldByDelivery, namedDelivery } from '../lib/agent/deliveries'
 import { flowRefusal } from '../lib/agent/flows'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { readLogTail, splitLog } from '../lib/agent/log'
@@ -23,6 +24,7 @@ import { unstickStop } from '../lib/agent/unstick'
 import { cardCreation } from '../lib/agent/store'
 import type {
   AgentRequest,
+  AnswerOutcome,
   CommandAction,
   CommandRequest,
   DeliveryRecord,
@@ -329,6 +331,35 @@ export async function cmdApprove(named: string): Promise<MoveResult> {
   say(`delivery ${res.deliveryId} approved — ${res.covers}.`)
   say('It lands from here. Change the tree or the commit it forked from and the approval is cancelled.')
   return { deliveryId: res.deliveryId, approved: true }
+}
+
+/** Say what a round of applied answers did to a delivery's requirements (#637).
+ *
+ *  Written by the run that put the answers on the card, before it drops the questions — it
+ *  read both the question and what it wrote, so it is the one thing that can tell a
+ *  confirmation from a change. The review an answer resumes and the landing queue read this
+ *  and never the card's text: a tidied sentence is not a changed requirement.
+ *
+ *  `--unchanged` carries the delivery on; `--changed` ends it and opens a fresh one on the
+ *  card as it then reads. Exactly one of them, each with its own one-line reason. */
+export async function cmdAnswered(
+  named: string,
+  opts: { changed?: string; unchanged?: string },
+): Promise<MoveResult> {
+  const outcome: AnswerOutcome | undefined = opts.changed ? 'changed' : opts.unchanged ? 'unchanged' : undefined
+  if (!outcome || (opts.changed && opts.unchanged)) {
+    die('say exactly one of --changed "<why>" or --unchanged "<why>".', { kind: 'run-refused' })
+  }
+  const delivery = namedDelivery(named)
+  if (!delivery) die(`no delivery here answers to "${named}"`, { kind: 'unknown-delivery' })
+  const res = recordAnswer(delivery.deliveryId, outcome, (opts.changed ?? opts.unchanged) as string)
+  if (!res.ok) die(res.error, { kind: 'run-refused' })
+  say(
+    outcome === 'unchanged'
+      ? `delivery ${delivery.deliveryId} carries on — the answers changed nothing it was approved to build.`
+      : `delivery ${delivery.deliveryId} is superseded — the board ends it and builds the card as it now reads.`,
+  )
+  return { deliveryId: delivery.deliveryId, answered: outcome }
 }
 
 /** Throw a delivery's checkout away: its worktree and its branch, and everything only they

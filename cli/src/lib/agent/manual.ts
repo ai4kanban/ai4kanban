@@ -77,7 +77,9 @@ What a delivery is
   \`card/<card>/<delivery>\` — so several run at once. Once review passes it lands as one squash
   commit on the branch you were on, one card at a time, and nothing is pushed. A card built
   with open questions holds outside the landing queue until they are answered; an answer that
-  changed what the card asks for ends that delivery and starts a fresh one.
+  changed what the card asks for ends that delivery and starts a fresh one. What the answer
+  did is said by the run that applied it — \`${program} delivery answered\` — never worked out
+  from the card's text, and the build waits rather than guessing when nothing has said.
 
   Two switches in Configuration change this: **Allow automatic Git commits** off builds in
   your checkout, one at a time; **Approve diffs before landing** on holds every delivery after

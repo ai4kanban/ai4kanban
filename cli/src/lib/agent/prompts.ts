@@ -21,7 +21,7 @@ import {
 } from '../agents'
 import { solution } from '../solution'
 import { boardCommand, boardCommandFor, commandNote } from './command'
-import { deliveryFor, findDelivery } from './deliveries'
+import { activeDelivery, deliveryFor, findDelivery } from './deliveries'
 import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
@@ -286,6 +286,20 @@ function deliveryAim(
   }
   const id = req.deliveryId ?? delivery?.deliveryId ?? ''
   return { subject: `Delivery ${id} (a build with no card)`, arg: id }
+}
+
+/** What a pass applying answers is told when a delivery is already building the card (#637).
+ *  It is the one thing that can tell a confirmation from a change, and the board waits for it
+ *  rather than comparing the card's text. Empty when nothing is building the card. */
+function answeredNote(cardId: number | undefined, command: string): string {
+  const delivery = cardId === undefined ? undefined : activeDelivery(cardId)
+  if (!delivery) return ''
+  return (
+    `Delivery ${delivery.deliveryId} is already building this card. Once your answers are on it, say what they did ` +
+    `to what it was approved to build: \`${command} delivery answered ${delivery.deliveryId} ` +
+    `--changed|--unchanged "<why>"\`, before you drop the questions. Judge the meaning, not the words — the board ` +
+    `neither reviews the build again nor lands it until you have said.`
+  )
 }
 
 function actionPrompt(req: AgentRequest, command: string, notes: string[]): string {
@@ -662,6 +676,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'resolve':
       return [
         `${kb}. Apply my answers to the open questions on task ${req.id} ${named} following \`akb guide resolve\`, then validate the updated plan following \`akb guide qa-lightweight\`.`,
+        answeredNote(req.id, command),
         req.notes ? `Extra notes: ${req.notes}` : '',
         req.andImplement
           ? `Continue into implementation only if applying the answers leaves no open question.`
@@ -675,11 +690,14 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'decide':
       return [
         `${kb}. Answer the open questions on task ${req.id} ${named} in my place, following \`akb guide decide\`.`,
+        answeredNote(req.id, command),
         `You are standing in for me: leave no \`[user]\` question open, and do not hand the card back.`,
         `Choose from ${boardMemory()}, and from each question's own options and recommendation on the card.`,
         `Record every choice with \`${command} raw update-decided\`, and write no lasting decision anywhere.`,
         `Don't ask me questions with human-in-the-loop, and raise no new question.`,
-      ].join(' ')
+      ]
+        .filter(Boolean)
+        .join(' ')
     // The gater's verdict (#440, #493). It is a verdict, not a pass over the card: the whole
     // of what it may write is one `[user]` question, and finishing with the card untouched IS
     // the other answer. Nothing here says what the card should say — that is `akb guide

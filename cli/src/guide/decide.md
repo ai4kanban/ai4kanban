@@ -38,6 +38,10 @@ Follow `akb guide resolve` from "Apply each answer", with one step left out: **r
 lasting decision**. What you chose is yours, not the user's, so nothing goes into any
 `memory/<module>/decisions.md` or into a spec agent's memory.
 
+"Say what the answers did to a build in flight" is not left out. Answering in the user's
+place still moves the card under a delivery, so the same conclusion is owed — and a decider
+that cancels a build by saying nothing is the worst way to stand in for them.
+
 ## Write down what you chose
 
 Before dropping each answered question, record the choice on the card:

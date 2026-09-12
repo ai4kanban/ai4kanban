@@ -33,7 +33,7 @@ session without `--print`. Explicit user requests take precedence.
 | `spec <agent> <id> [note]` | In-session (`--print`); continue the parent workflow afterward |
 | `guide <topic>`, `help`, `spec`, `agent`, `raw …` | Direct |
 | `run list`, `run log`, `run stop`, `run resume` | Direct; resume restarts a separate run |
-| `delivery approve`, `delivery cancel`, `delivery discard` | Direct |
+| `delivery answered`, `delivery approve`, `delivery cancel`, `delivery discard` | Direct |
 
 ## Route ambiguous requests
 

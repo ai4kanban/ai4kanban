@@ -22,6 +22,32 @@ options and their spec-tmp files. Leave the surviving section in the half that a
 `Output` setting names — `akb spec` prints it — so a section only set to agent use goes back
 below the boundary once no unanswered `[user]` question points at it.
 
+## Say what the answers did to a build in flight
+
+A delivery builds the card as it was approved when it started, and applying answers is the
+only thing that rewrites that card underneath it. You read the question and you wrote the
+answer, so you are the only one who can tell a confirmation from a change — the board reads
+your conclusion and never the card's text.
+
+```text
+akb delivery answered <delivery> --unchanged "<why>"
+akb delivery answered <delivery> --changed "<why>"
+```
+
+- **Record it before you drop the questions**: dropping the last one is what puts the board
+  back in motion, and until the conclusion is written the build neither goes back through
+  review nor lands.
+- **Judge the meaning, not the words**: confirming an option that is already built, writing
+  down a decision the card already carries, and tidying prose are all `--unchanged`.
+  Adding, dropping or changing a requirement is `--changed`.
+- **A wrong implementation confirmed is still a change**: an answer that blesses work
+  contradicting the approved copy is `--changed`, however finished that work is.
+- **One conclusion per round**: it covers every answer you applied in this session. The
+  delivery a `--changed` reopens starts on the card as it then reads, with none of its own.
+
+`akb card implement <id> --print` prints the delivery's id and the copy it is building.
+Nothing to record when no delivery is in flight.
+
 ## Curate the human half
 
 Classify each answer with `akb guide update-questions`. Put answers classified as `Worth noting`

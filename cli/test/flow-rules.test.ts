@@ -331,6 +331,23 @@ describe('the prompt', () => {
     assert.match(guide, /rerun only the checks those paths affect/)
   })
 
+  // Applying answers is the one thing that moves a card under a build, so the pass that does
+  // it is the one thing that can say whether the build is still the right build (#637).
+  it('makes the pass that applies answers say what they did to a build in flight', () => {
+    const resolve = findGuide('resolve')!.text
+    assert.match(resolve, /delivery answered <delivery> --unchanged "<why>"/)
+    assert.match(resolve, /delivery answered <delivery> --changed "<why>"/)
+    assert.match(resolve, /Record it before you drop the questions/)
+    assert.match(resolve, /Judge the meaning, not the words/)
+    // Confirming work that contradicts what was approved is a change, however finished.
+    assert.match(resolve, /A wrong implementation confirmed is still a change/)
+    // And the decider owes the same conclusion: it answers in the user's place, so it moves
+    // the card in the user's place too.
+    assert.match(findGuide('decide')!.text, /is not left out/)
+    // Nothing here asks anyone to compare the card's text against the approved copy.
+    assert.doesNotMatch(resolve, /compare[\s\S]{0,40}approved copy/)
+  })
+
   it('starts resolve and revise with lightweight QA in the same session', () => {
     for (const [action, guide] of [['resolve', 'resolve'], ['edit', 'revise']] as const) {
       const req = { action, id: 1, notes: 'Use A.' }
