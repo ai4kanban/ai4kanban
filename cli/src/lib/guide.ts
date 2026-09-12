@@ -52,6 +52,7 @@ import revise from '../guide/revise.md'
 import setup from '../guide/setup.md'
 import specAgent from '../guide/spec-agent.md'
 import triage from '../guide/triage.md'
+import unstick from '../guide/unstick.md'
 import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
 import writing from '../guide/writing.md'
@@ -102,6 +103,7 @@ export const GUIDES: Guide[] = [
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
   { name: 'reflect', when: 'propose the work a just-completed card leaves behind', text: reflect },
   { name: 'triage', when: 'judge what is waiting in triage: card the worthwhile, ignore the rest', text: triage },
+  { name: 'unstick', when: 'settle a card that sat too long: keep it rewritten, or discard it', text: unstick },
   { name: 'spec-agent', when: "fill one part of a card's spec, as the agent that owns it", text: specAgent },
   { name: 'module-map', when: 'write or rebuild docs/kanban/modules.md', text: moduleMap },
   { name: 'setup', when: "setup's own steps, while the checklist is still there", text: setup },
@@ -130,6 +132,7 @@ const GONE: Record<Solution, readonly string[]> = {
     'feedback',
     'reflect',
     'triage',
+    'unstick',
     'extract-ideas',
     'evaluate-task',
     'writing',

@@ -184,6 +184,20 @@ const FEEDBACK: AgentRole = {
   memory: [],
 }
 
+// The role that settles a card nobody has touched in a month (#118). It has no switch, for
+// the planner's reason: nothing it does happens unasked — one card at a time, named by
+// whoever typed it, until #119's cadence is turned on.
+//
+// It owns no memory. What it judged is on the card it rewrote, or gone with the card it
+// discarded: a card the board has simply moved past earns no lasting no, which is exactly
+// why it discards rather than rejects.
+const SWEEPER: AgentRole = {
+  name: 'sweeper',
+  gloss: 'settles the cards that have sat too long',
+  flows: ['unstick'],
+  memory: [],
+}
+
 const PRODUCT_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
@@ -200,6 +214,7 @@ const PRODUCT_ROLES: AgentRole[] = [
   },
   REVIEWER,
   MEMORY_PRUNER,
+  SWEEPER,
   FEEDBACK,
   // Last, and only on a product board: it has no `gate` flow, a topic carries no questions
   // to answer, and a published topic leaves no follow-up card to propose.

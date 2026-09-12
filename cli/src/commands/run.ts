@@ -19,6 +19,7 @@ import {
   titleOf,
 } from '../lib/agent/sessions'
 import { startResume, startRun } from '../lib/agent/start'
+import { unstickStop } from '../lib/agent/unstick'
 import { cardCreation } from '../lib/agent/store'
 import type {
   AgentRequest,
@@ -75,6 +76,18 @@ export async function cmdStartRun(
   if (Number.isInteger(req.id)) {
     const creating = creationRefusal(req.id as number, cardCreation(req.id as number), action)
     if (creating) die(creating, { kind: 'card-being-created', action })
+  }
+  // The cards an unstick will not judge (#118). Read before anything starts or prints: a
+  // refused card was never the sweeper's, and a held one is waiting rather than forgotten,
+  // so saying the hold IS the whole answer — a sweep over the stale list reads as verdicts,
+  // not as errors.
+  if (action === 'unstick') {
+    const stop = unstickStop(req.id as number, program)
+    if (stop?.kind === 'refused') die(stop.why, { kind: 'run-refused', action })
+    if (stop) {
+      say(stop.why)
+      return { action, cardId: req.id, held: true }
+    }
   }
   const runnable = action === 'refine' ? refinementRequest(req) : (req as AgentRequest)
   if ('error' in runnable) die(runnable.error, { kind: 'run-refused', action })

@@ -92,7 +92,9 @@ describe('a card reads as being discussed while its chat answers', () => {
 })
 
 describe('the runs a discussed card refuses', () => {
-  const refused = ['implement', 'clarify', 'writing', 'resolve', 'decide', 'archive', 'reject'] as const
+  // `unstick` is here because it rewrites the card or drops it (#118) — both are moves on
+  // words the reply in flight is about to change.
+  const refused = ['implement', 'clarify', 'writing', 'resolve', 'decide', 'archive', 'reject', 'unstick'] as const
 
   for (const action of refused) {
     it(`refuses ${action}, and says what frees it`, async () => {

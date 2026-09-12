@@ -23,10 +23,10 @@ docs/kanban/
 │                   kept after the card is archived; nobody edits one by hand
 ├── rules/          one rule per agent, in the user's own words — `<agent>.md`: a role the
 │                   board ships (`discussion-helper`, `planner`, `builder`, `reviewer`,
-│                   `memory-pruner`, `gater`, `decider`, `proposer`, `triage`) or a spec
-│                   agent. It is appended to the end of every run that agent does, so
-│                   every flow it runs reads it. Tracked in git; a missing or empty file
-│                   leaves the run unchanged. Written from the board UI or `akb raw rule`
+│                   `memory-pruner`, `sweeper`, `gater`, `decider`, `proposer`, `triage`)
+│                   or a spec agent. It is appended to every run that agent does, so every
+│                   flow it runs reads it. Tracked in git; a missing or empty file leaves
+│                   the run unchanged. Written from the board UI or `akb raw rule`
 ├── triage/         what is waiting to be sorted (#453, #499, #559, #561) — one file each.
 │   │               Anything that might become work goes in: `akb triage fetch` pulls it,
 │   │               somebody drops a file or pastes a link on the Triage page, or

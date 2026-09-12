@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "September 11, 2026"
+last_updated: "September 12, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -24,6 +24,8 @@ of them can be switched off:
 - **Builder** — builds cards and lands them: implement, conflict, run. On a marketing board a
   **Writer** takes its place, and also runs `akb channel`.
 - **Reviewer** — checks what was built.
+- **Sweeper** — settles a card that has sat too long: it rewrites the card for the project as it
+  stands today, or discards it. `akb card unstick <id>` runs it on one card. Product boards only.
 - **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
   default. Product boards only.
 - **Decider** — answers the questions on a card that are waiting on you. Off by default. Product

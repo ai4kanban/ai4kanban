@@ -72,7 +72,9 @@ export { logPathOf, readAction, readRuns, withRuns } from './store'
 // interleave safely. What needs the whole run serialized is a run that writes several
 // cards off one read of the board — plan-release, setup — plus archive/reject and a
 // recurring run's close, which reconcile the index against the board they read.
-const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-release', 'setup'])
+// An unstick is one of them because a discard is how half its verdicts end (#118): the card
+// file goes, and the index has to be reconciled against the board the run read.
+const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-release', 'setup', 'unstick'])
 
 // Actions that may run only one at a time across the whole board. None has a card id, so
 // the per-card rule can't catch a duplicate, and each reads the whole board to decide what
@@ -109,6 +111,7 @@ const VERB: Record<AgentAction, string> = {
   changelog: 'written up',
   review: 'reviewed',
   conflict: 'unblocked',
+  unstick: 'settled',
 }
 
 // The refusal a one-at-a-time action gets when one of its own is already going, where the
@@ -498,6 +501,8 @@ const HELD_BY_DISCUSSION = new Set<AgentAction>([
   'decide',
   'archive',
   'reject',
+  // An unstick is both at once (#118): it rewrites the card or discards it.
+  'unstick',
 ])
 
 // `clarify` and `writing` are refine's own two passes — the user asked for a refine, so that

@@ -19,7 +19,7 @@ import { moduleNames } from '../lib/validate'
 import { parseFrontmatter } from '../lib/frontmatter'
 import { walkMd, idPrefix } from '../lib/cards'
 import { cardAges, staleAfter, type Age } from '../lib/card-age'
-import { parseQuestion } from '../lib/view/rules'
+import { heldBy, type Hold } from '../lib/card-holds'
 import type { MoveResult, Question } from '../lib/types'
 
 // One open card as the list shows it — the frontmatter fields it prints, plus where the
@@ -102,18 +102,11 @@ function openRows(): Row[] {
   return rows.sort((a, b) => a.id - b.id)
 }
 
-// What is keeping a card where it is, in the order the card reads them. Nothing here is a
-// filter: a card waiting on the user is still listed, with its reason, and the sweeper
-// decides what to skip.
-function heldBy(row: Row, open: Set<number>): string[] {
-  const holds: string[] = []
-  const blockers = row.blocked_by.filter((id) => open.has(id))
-  if (blockers.length) holds.push(`blocked by ${blockers.map((n) => `#${n}`).join(', ')}`)
-  // Every question on a card is unanswered — answering takes it off the list.
-  if (row.questions.some((q) => parseQuestion(q.text).tag === 'user')) holds.push('waiting on you')
-  if (row.status === 'implementing') holds.push('being built')
-  return holds
-}
+// What is keeping a card where it is, in the order the card reads them (lib/card-holds.ts).
+// Nothing here is a filter: a card waiting on the user is still listed, with its reason, and
+// the sweeper decides what to skip.
+const holdsOn = (row: Row, open: Set<number>): Hold[] =>
+  heldBy({ blockers: row.blocked_by.filter((id) => open.has(id)), questions: row.questions, status: row.status })
 
 // The cards `--stale` reports on. A group root closes itself once its subtasks do and a
 // recurring card repeats by design, so neither sits stuck the way a subtask can.
@@ -142,10 +135,10 @@ function cmdStale(rows: Row[], all: Row[], scope: string, mod: string | null): M
 
   say(`${plural(stale.length, 'stale card')} ${scope} — untouched ${days}+ days, stalest first:`)
   for (const { row, age } of stale) {
-    const holds = heldBy(row, open)
+    const holds = holdsOn(row, open)
     say('')
     say(`#${row.id} ${row.title}  (${rel(row.file)})`)
-    say(`    sat ${plural(age.days, 'day')} · last touched ${age.lastTouched} · ${holds.join(' · ') || 'nothing holding it'}`)
+    say(`    sat ${plural(age.days, 'day')} · last touched ${age.lastTouched} · ${holds.map((h) => h.text).join(' · ') || 'nothing holding it'}`)
     if (row.summary) say(`    ${row.summary}`)
   }
   return { cards, module: mod, staleAfter: days }

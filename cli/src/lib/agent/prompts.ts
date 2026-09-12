@@ -692,6 +692,16 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Change nothing else: you are not refining this card, you write no memory, and a clean finish is how you say "build it".`,
         `Don't ask me questions with human-in-the-loop — the one question you append to the card is how you defer to me.`,
       ].join(' ')
+    // Settling a card that sat too long (#118). It is a verdict on one card, so the ask says
+    // the two ways to give one and the line that separates this from a refine: what it may
+    // not do is research the card into a better plan or hand it on to anybody.
+    case 'unstick':
+      return [
+        `${kb}. Task ${req.id} ${named} has sat untouched too long. Settle it now, following \`akb guide unstick\`.`,
+        `Judge how much of it is already done and whether the rest is still worth the effort, then keep it — rewritten for the project as it stands today, under a dated ## By \`sweeper\` agent note — or discard it with \`${command} raw reject ${req.id} --discard\`.`,
+        `Change only what you can show is out of date: this is not a refine, so run no planning QA, touch no \`- [x]\` todo, and set no status by hand.`,
+        `Don't ask me questions with human-in-the-loop, and raise no new question — the verdict is the whole of what you leave behind.`,
+      ].join(' ')
     case 'writing':
       return [
         `${kb}. Improve the writing of task ${req.id} ${named} following \`akb guide writing\`.`,

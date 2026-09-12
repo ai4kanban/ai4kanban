@@ -31,6 +31,7 @@ import { idPrefix, locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
+import { cardAges } from '../card-age'
 import { boardMemoryFiles } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
@@ -506,6 +507,10 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // bar an idea is held to, and how a card is written — plus its own flow, which is the
   // bookkeeping that makes each judgement land exactly once.
   triage: ['board', 'triage', 'evaluate-task', 'add-task', 'writing'],
+  // Settling a stale card rewrites one card and may drop it, so it gets the board's rules,
+  // how a card is written, its own flow, and the two pages its verdicts end in — `reject`
+  // for a discard, `add-task` for the split a kept card sometimes needs.
+  unstick: ['board', 'unstick', 'writing', 'update-questions', 'add-task', 'reject'],
   // Specialist instructions apply to both printed flows and separate runs.
   spec: ['spec-agent'],
   // A repurpose gets its own flow and NOT `board`: it writes one file under `content/` and
@@ -929,6 +934,32 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         `${self} triage dismiss <source-id> --reason ".." — everything else, in one clause each`,
         'change nothing else — no existing card is edited, no question answered, and no build started',
         'report the count judged, each new card by id, and the count ignored',
+      )
+      break
+    }
+    // Settling a card that sat too long (#118). The facts are what the verdict is made of:
+    // how long it sat, what the plan still claims, and the direction to judge the rest
+    // against — so it is given the goal and every module's memory, like the gater, and
+    // writes none of it. The close is the two verdicts and the rule that separates them
+    // from a refine.
+    case 'unstick': {
+      const age = cardAges()?.get(path.resolve(REPO_ROOT, card!.file))
+      facts.push(
+        ...field(
+          'sat',
+          age
+            ? `${age.days} days — last touched ${age.lastTouched}, the date of the commit that wrote it`
+            : 'unknown — git has never committed this card, so nothing can date it',
+        ),
+      )
+      facts.push(...stepsField(card!), ...questionsField(card!.meta))
+      facts.push(...field('goal', rel(GOAL)))
+      facts.push(...field('memory', boardMemoryFiles()))
+      close.push(
+        'keep it: rewrite the body for the project as it stands today, and rewrite its ## By `sweeper` agent section whole — still worth doing, what must change first, and the date',
+        `discard it: \`${raw} reject ${req.id} --discard\` — no memory note, no \`rejected.md\` line, and nobody to sign it off`,
+        'never touch a `- [x]` todo, never change the status by hand, and never append a question: this is a verdict, not a refine',
+        'end with one line — kept or discarded, and why — so a sweep over the stale cards can report it',
       )
       break
     }

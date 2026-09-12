@@ -190,6 +190,12 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every prune — "never drop a line about a paying customer".',
         when: "you press Run now, and on the cadence you opt into here. Nothing else starts it.",
       },
+      sweeper: {
+        name: "Sweeper",
+        gloss: "Settles the cards that have sat too long.",
+        rule: 'Added to the end of every verdict Sweeper gives — "never discard a card in the current release".',
+        when: "you unstick a card by hand. It rewrites the card for the project as it is today, or discards it — one card, one verdict.",
+      },
       triage: {
         name: "Triage",
         gloss: "Sorts what is waiting in Triage into cards and ignores.",

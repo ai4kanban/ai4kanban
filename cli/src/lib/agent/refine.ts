@@ -250,6 +250,10 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   // A decide is a resolve with the choosing done for the user (#447): it settled the card's
   // questions in its own session, so the card it answered is not one to refine again.
   'decide',
+  // An unstick is a verdict, not a refine (#118). It rewrites the card it keeps for the
+  // project as it stands today and raises no question, so refining that card afterwards
+  // would re-plan a card the sweeper just settled.
+  'unstick',
   'writing',
   'spec',
   'channel',

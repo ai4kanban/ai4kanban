@@ -89,6 +89,7 @@ describe('the roles', () => {
         'builder',
         'reviewer',
         'memory-pruner',
+        'sweeper',
         'feedback',
         'gater',
         'decider',
@@ -98,6 +99,8 @@ describe('the roles', () => {
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
     assert.equal(roleForFlow('prune-memory')!.name, 'memory-pruner')
+    // Settling a stale card is the sweeper's, and the product board's alone (#118).
+    assert.equal(roleForFlow('unstick')!.name, 'sweeper')
     // Every conversation is the discussion helper's, and `chat` is no flow anyone types.
     assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
     // The gater and the decider are the product board's alone: a topic is never gated, and
@@ -122,8 +125,10 @@ describe('the roles', () => {
     assert.equal(roleForFlow('gate'), undefined)
     assert.equal(roleForFlow('decide'), undefined)
     assert.equal(roleForFlow('reflect'), undefined)
-    // And sorting triage is the product board's alone (#561).
+    // And sorting triage is the product board's alone (#561), as is settling a stale one.
     assert.equal(roleForFlow('triage'), undefined)
+    assert.equal(roleForFlow('unstick'), undefined)
+    assert.match(flowRefusal('unstick')!, /is not a `marketing` flow/)
   })
 
   it('says what each role remembers, in files that are the board it is on', () => {
@@ -151,6 +156,7 @@ describe('the roles', () => {
       'builder',
       'reviewer',
       'memory-pruner',
+      'sweeper',
       'feedback',
       'gater',
       'decider',
@@ -165,26 +171,27 @@ describe('the roles', () => {
   it('rosters the roles first, then the specialists the command ships', () => {
     solution('product')
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 10), [
+    assert.deepEqual(names.slice(0, 11), [
       'discussion-helper',
       'planner',
       'builder',
       'reviewer',
       'memory-pruner',
+      'sweeper',
       'feedback',
       'gater',
       'decider',
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(10), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(names.slice(11), ['tech-stack-advisor', 'ui-designer'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(10).fill('role'), 'spec', 'spec'],
+      [...Array(11).fill('role'), 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[10]!.flows, [])
+    assert.deepEqual(agentRoster()[11]!.flows, [])
     // Five roles can be switched off, and each reads a key of its own (#447, #493, #509,
     // #534, #562).
     assert.deepEqual(

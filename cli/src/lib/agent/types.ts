@@ -108,6 +108,12 @@ export type AgentAction =
    *  else is ignored with a reason. Product boards only, and only while triage is open to
    *  this board — `signalsAccess()` decides, exactly as it does for a fetch. */
   | 'triage'
+  /** Settle one card that has sat too long (#118) — the sweeper's one flow. It judges how
+   *  much of the card is already done and whether the rest is still worth the effort, then
+   *  either keeps the card — rewritten for the project as it stands today, under a dated
+   *  note of its own — or discards it. It raises no question and hands the card to nobody:
+   *  the verdict IS the run. Product boards only. */
+  | 'unstick'
 
 /** The actions a specialist run takes: one section of a card (`spec`), or one file in a
  *  topic's draft folder (`write`). Neither holds the card it names — each works beside the
