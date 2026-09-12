@@ -342,20 +342,18 @@ const en: ConfigurationCopy = {
     body: "Share the related conversation and code when you report a problem, so we can see where we misread what you meant.",
     terms: "See what is shared",
     consent: {
-      title: "Turn on partner feedback",
+      title: "Help us improve AI4Kanban",
       blurb:
-        "Helps us see where we misread what you meant, and write better specs. With it on, whether to share is still your call each time, in the discussion.",
-      terms: (email) => [
-        "The related conversation and code are shared with the AI4Kanban team to look into the problem.",
-        "What you share is kept long-term and used to improve spec quality.",
+        "When AI misunderstands your needs, you can share related material to help us improve requirements planning.",
+      choice: "You decide whether to share each time, in the discussion.",
+      terms: [
+        "Related conversations and project code are shared with the AI4Kanban team for analysis and improvement.",
         "The analysis runs on the AI service you have set up.",
-        `Email ${email} with a feedback number to have what you shared deleted.`,
+        "Shared material is kept long-term.",
       ],
-      warnLead: "What is shared includes project code.",
-      warnRest: "The material is gathered for you, and not listed item by item before it goes.",
-      reversible: "You can turn it off at any time.",
+      reversible: "You can turn this off at any time in Settings.",
       cancel: "Cancel",
-      confirm: "Turn it on",
+      confirm: "Turn on feedback",
     },
     switchOn: (name) => `${name} is on`,
     switchOff: (name) => `${name} is off`,

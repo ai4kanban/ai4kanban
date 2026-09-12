@@ -389,11 +389,8 @@ export type ConfigurationCopy = {
     consent: {
       title: string;
       blurb: string;
-      /** What taking part means, one clause each. `email` is the only address offered. */
-      terms: (email: string) => string[];
-      /** The one thing worth stopping at: it carries code, and nothing is previewed. */
-      warnLead: string;
-      warnRest: string;
+      choice: string;
+      terms: string[];
       /** Under the buttons — that this is not a one-way door. */
       reversible: string;
       cancel: string;

@@ -16,7 +16,7 @@
 // pressed through the step has one obvious place to go back to.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FiAlertCircle, FiFileText, FiShield } from "react-icons/fi";
+import { FiFileText, FiShield } from "react-icons/fi";
 import {
   partnerFeedbackAction,
   recordUsageDisclosureAction,
@@ -301,13 +301,7 @@ export function PartnerRow({ onError }: { onError?: (msg: string) => void }) {
   );
 }
 
-/**
- * The one page read before partner feedback goes on, and the same page any time after.
- *
- * It says what the user gets, what is shared, what happens to it, and the one way to have it
- * deleted — and nothing else. No endpoint, no storage, no retention machinery and no second
- * address: those are ours, and a page that recites them is a page nobody finishes.
- */
+/** Shared disclosure for enabling partner feedback and reading its terms later. */
 export function PartnerTerms({
   ask,
   onClose,
@@ -324,22 +318,17 @@ export function PartnerTerms({
   return (
     <Dialog title={c.title} onClose={onClose} width={560}>
       <div className="flex flex-col gap-3.5">
-        <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">{c.blurb}</p>
+        <p className="text-[12.5px] leading-relaxed text-nb-ink-soft">
+          {c.blurb} <strong className="font-[800] text-nb-ink">{c.choice}</strong>
+        </p>
         <ul className="flex flex-col gap-2">
-          {c.terms(CASE_EMAIL).map((line) => (
+          {c.terms.map((line) => (
             <li key={line} className="flex items-start gap-2 text-[12.5px] leading-relaxed">
               <span className="mt-[7px] size-[5px] shrink-0 rounded-full bg-nb-ink/35" aria-hidden />
               <span>{line}</span>
             </li>
           ))}
         </ul>
-        {/* The one thing worth stopping at, and the reason this page exists at all. */}
-        <div className="flex items-start gap-2.5 rounded-[10px] bg-nb-peach-soft px-3.5 py-3">
-          <FiAlertCircle size={14} className="mt-[3px] shrink-0 text-nb-peach-ink" aria-hidden />
-          <p className="text-[12.5px] leading-relaxed">
-            <span className="font-[800] text-nb-peach-ink">{c.warnLead}</span> {c.warnRest}
-          </p>
-        </div>
         <div className="flex items-center justify-between gap-4">
           <span className="text-[11.5px] text-nb-ink-soft">{c.reversible}</span>
           {ask ? (
