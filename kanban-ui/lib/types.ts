@@ -181,7 +181,7 @@ export { answerNotes, bandLabel, CARD_BAND_STATES, eventLabel, isFinalEventState
  *  browser importing a constant out of it would drag `node:fs` into the client bundle. */
 export const ALL_RELEASES = "*";
 
-export type { Language, UsageReporting } from "./format/machine/types";
+export type { Language, PartnerFeedback, UsageReporting } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
 
 /** What New topic or Discard did (#507): the topic's id, or the reason nothing was written.
@@ -364,4 +364,39 @@ export interface FeedbackToSend {
   source: FeedbackSource;
   cardId?: number;
   parts?: { part: FeedbackPart; text: string }[];
+}
+
+// ---- partner feedback (#628) ------------------------------------------------
+//
+// A different thing from the feedback above, and never mixed with it. That one is a sentence
+// and four small attachments the user reads before they go; this one is the material that
+// would REPRODUCE one refine going wrong — the raw traces of its runs and the project files
+// they read — collected by the `feedback` agent after the user says, in a discussion, that a
+// spec missed what they meant.
+//
+// Two answers are required and neither implies the other: this machine takes part at all
+// (Configuration → General → Partner feedback), and the user ticked share on this one
+// message. Either alone collects nothing.
+
+/** How far one submission has got. `collecting` also covers the agent having asked a
+ *  question instead — nothing is settled, so nothing has been collected. */
+export type CaseStatus = "collecting" | "sent" | "failed";
+
+/** Why a submission did not go. */
+export type CaseFailure = "too-large" | "refused" | "unreachable" | "nothing-collected";
+
+/** One submission, as the discussion holds it. `id` is what the screen shows and what the
+ *  user quotes to have the material deleted. */
+export interface CaseRecord {
+  id: string;
+  discussion: string;
+  cardId: number;
+  text: string;
+  status: CaseStatus;
+  reason?: CaseFailure;
+  /** Everything the pack could not establish — a trace already cleaned up, a file that only
+   *  went as this checkout's copy. Written down rather than dropped. */
+  gaps?: string[];
+  startedAt: number;
+  sentAt?: number;
 }

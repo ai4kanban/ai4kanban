@@ -13,12 +13,14 @@ export const COPIES = {
   production: {
     database: 'ai4kanban-telemetry',
     bucket: 'ai4kanban-telemetry-archive',
+    cases: 'ai4kanban-cases',
     endpoint: 'https://t.ai4kanban.dev',
     flags: [],
   },
   development: {
     database: 'ai4kanban-telemetry-dev',
     bucket: 'ai4kanban-telemetry-archive-dev',
+    cases: 'ai4kanban-cases-dev',
     endpoint: 'https://t-dev.ai4kanban.dev',
     flags: ['--env', 'dev'],
   },

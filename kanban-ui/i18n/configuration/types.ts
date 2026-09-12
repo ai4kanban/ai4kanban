@@ -375,6 +375,34 @@ export type ConfigurationCopy = {
     failedOn: string;
     failedOff: string;
   };
+  /** Partner feedback (#628) — the machine-level switch beside usage reporting, and the one
+   *  page of terms read before it goes on. It says what the user does and what is shared;
+   *  never an endpoint, a storage, a run id or a file path. */
+  partner: {
+    title: string;
+    /** The one line under the row's name. */
+    body: string;
+    /** Opens the terms, whichever way the switch is set. */
+    terms: string;
+    /** The page read before it is turned on. Turning it back off never shows it. */
+    consent: {
+      title: string;
+      blurb: string;
+      /** What taking part means, one clause each. `email` is the only address offered. */
+      terms: (email: string) => string[];
+      /** The one thing worth stopping at: it carries code, and nothing is previewed. */
+      warnLead: string;
+      warnRest: string;
+      /** Under the buttons — that this is not a one-way door. */
+      reversible: string;
+      cancel: string;
+      confirm: string;
+    };
+    switchOn: (name: string) => string;
+    switchOff: (name: string) => string;
+    failedOn: string;
+    failedOff: string;
+  };
   language: {
     /** Only read out loud: the group of language choices. */
     group: string;

@@ -6,6 +6,10 @@ export interface Env {
   LIMITER: DurableObjectNamespace
   /** One file a day of raw events, written out before the sweep deletes them. */
   ARCHIVE: R2Bucket
+  /** The partners' refine cases (#628), one object per submission under its own id. Private,
+   *  and its own bucket: nothing in it is a usage number, and deleting one submission must
+   *  never be able to touch the archive. */
+  CASES: R2Bucket
   /**
    * The day's own requests and rows written. Kept here rather than in D1 because a row per
    * request would spend the whole day's allowance measuring itself; the daily job reads a

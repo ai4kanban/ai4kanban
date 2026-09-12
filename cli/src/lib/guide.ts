@@ -31,6 +31,7 @@ import discussIdea from '../guide/discuss-idea.md'
 import documentFeature from '../guide/document-feature.md'
 import evaluateTask from '../guide/evaluate-task.md'
 import extractIdeas from '../guide/extract-ideas.md'
+import feedback from '../guide/feedback.md'
 import followUp from '../guide/follow-up.md'
 import gate from '../guide/gate.md'
 import implement from '../guide/implement.md'
@@ -79,6 +80,7 @@ export const GUIDES: Guide[] = [
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
   { name: 'follow-up', when: 'place additional work and prepare context for a follow-up card', text: followUp },
   { name: 'discuss-idea', when: 'help decide whether an idea is worth building, and hand what it settled to planning', text: discussIdea },
+  { name: 'feedback', when: 'understand what a spec got wrong, and collect the case for it', text: feedback },
   { name: 'next-card', when: 'name which cards already on the board to build now', text: nextCard },
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },
   { name: 'extract-ideas', when: 'pull task ideas out of an article, a report, or feedback', text: extractIdeas },
@@ -125,6 +127,7 @@ const GONE: Record<Solution, readonly string[]> = {
   marketing: [
     'setup',
     'add-task',
+    'feedback',
     'reflect',
     'triage',
     'extract-ideas',

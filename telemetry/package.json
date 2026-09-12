@@ -14,6 +14,7 @@
     "tail": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler tail",
     "numbers": "node scripts/numbers.mjs",
     "forget": "node scripts/forget.mjs",
+    "forget:case": "node scripts/forget-case.mjs",
     "burst": "node scripts/burst.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "npm run typecheck",

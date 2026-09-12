@@ -26,7 +26,7 @@ import { randomUUID } from 'node:crypto'
 import type { WriteResult } from '../view/types'
 import { machineHome } from './home'
 import { heldSettings, saveSettings, settingsFile } from './settings'
-import type { UsageReporting } from './types'
+import type { PartnerFeedback, UsageReporting } from './types'
 
 /** Where the events waiting to be sent are kept (#295). Named here because turning
  *  reporting off is what empties it, and that switch is this file's. */
@@ -93,6 +93,39 @@ export function ensureUsageInstallId(): string {
   if (held.installId) return held.installId
   const id = randomUUID()
   return saveSettings({ usageInstallId: id }).ok ? id : ''
+}
+
+// ---- partner feedback (#628) ------------------------------------------------
+//
+// A fourth key in the same file, for the same reason the three above are there: the answer
+// is about the MACHINE and not about any board, and a board is committed to git.
+//
+// It is the mirror image of usage reporting. That one is on when absent, because counts with
+// no words in them cost the user nothing; this one is OFF when absent, because what it
+// shares is a refine's conversation and the project files that refine read. So an absent key
+// and an unreadable file give the same answer here — no — and neither can ever be read as a
+// yes nobody gave.
+
+/** What this machine has answered about partner feedback. */
+export function readPartnerFeedback(): PartnerFeedback {
+  const { unreadable, values } = heldSettings()
+  if (unreadable) return { on: false, unreadable: true }
+  return { on: values.partnerFeedback === true, unreadable: false }
+}
+
+/** Whether a submission may collect anything at all — what the board asks before it packs
+ *  one run's trace or reads one project file. */
+export function partnerFeedbackOn(): boolean {
+  return readPartnerFeedback().on
+}
+
+/** Turn it on or off. On is only ever written by the consent page, which is what the user
+ *  read before this call; off writes nothing else — a pack already sent is not this switch's
+ *  to withdraw, and the id it handed back is how it is deleted instead. */
+export function setPartnerFeedback(on: boolean): WriteResult {
+  const held = readPartnerFeedback()
+  if (held.unreadable) return { ok: false, error: `${settingsFile()} cannot be read — fix or remove it, then try again` }
+  return saveSettings({ partnerFeedback: !!on })
 }
 
 function write(on: boolean, disclosed: boolean): WriteResult {

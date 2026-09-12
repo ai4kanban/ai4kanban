@@ -41,7 +41,13 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Copied, useCopyText } from "./copy";
-import { LandedFeedbackBlock, type LandedFeedback } from "./Feedback";
+import {
+  DiscussFeedbackBlock,
+  LandedFeedbackBlock,
+  useDiscussFeedback,
+  type DiscussFeedback,
+  type LandedFeedback,
+} from "./Feedback";
 import { Markdown } from "./Markdown";
 
 /** How wide the conversation reads, whatever the window is. Standing the plan beside it
@@ -103,7 +109,11 @@ interface Props {
 // it — the server owns every reply, so nothing is cut off by the screen it is not on.
 export function CreateSheet(props: Props) {
   const rail = useChatRail({ projectRoot: props.projectRoot, cardId: props.discussion });
-  return <Sheet {...props} rail={rail} />;
+  // The partner submission this discussion is holding (#628). Held beside the rail rather
+  // than inside the composer: it outlives the mode switch, and reopening a discussion whose
+  // case landed has to show the number again.
+  const partner = useDiscussFeedback(props.discussion);
+  return <Sheet {...props} rail={rail} partner={partner} />;
 }
 
 function Sheet({
@@ -115,7 +125,8 @@ function Sheet({
   onPlan,
   onBuildPlan,
   rail,
-}: Props & { rail: ChatRail }) {
+  partner,
+}: Props & { rail: ChatRail; partner: DiscussFeedback }) {
   const c = useCopy().board.create.sheet;
   const startFailed = useCopy().board.create.startFailed;
   const close = useCopy().shared.close;
@@ -190,6 +201,13 @@ function Sheet({
   useSwipeBack(true, () => (full ? toggleFull() : onClose()));
 
   const read = rail.read;
+  // Whether the conversation is still answering, told to the partner block (#628): a
+  // submission that has not settled means "gathering" while the turn runs and "it asked you
+  // something" once it has ended, and nothing in the record tells those apart.
+  const setPartnerAnswering = partner.setAnswering;
+  useEffect(() => {
+    setPartnerAnswering(rail.answering || rail.live !== null);
+  }, [setPartnerAnswering, rail.answering, rail.live]);
   // Send again and an edited message go the way the box's own words do: as discussion.
   const say = rail.say;
   const sayInDiscussion = useCallback(
@@ -247,12 +265,18 @@ function Sheet({
         discuss: true,
         images: shots,
         box: shots.length ? pictures.box : undefined,
+        // The linked card and this one message's tick (#628). Nothing else travels: whether
+        // anything may be collected is the rules' answer, not this screen's.
+        feedback: partner.sending,
       });
       setSending(false);
       if (!went) {
         pictures.takeBack();
         return;
       }
+      // A shared message is one the agent will submit from inside its own turn, so the
+      // screen starts watching for what it came to.
+      if (partner.sending?.share) partner.watch();
       clearDraft();
       pictures.sent();
       plan.refresh();
@@ -333,6 +357,7 @@ function Sheet({
       onGuardConfirm={() => void send("build")}
       error={error}
       feedback={discussing ? null : feedback}
+      partner={discussing ? partner : null}
     />
   );
 
@@ -518,6 +543,7 @@ function Composer({
   onGuardConfirm,
   error,
   feedback,
+  partner,
 }: {
   mode: CreateMode;
   onPick(mode: CreateMode): void;
@@ -551,6 +577,8 @@ function Composer({
   error: string | null;
   /** The Link-a-landed-task block (#603), or null in Discuss. */
   feedback: LandedFeedback | null;
+  /** The partner submission block (#628) — Discuss only, where the complaint is written. */
+  partner: DiscussFeedback | null;
 }) {
   const c = useCopy().board.create.sheet;
   const chat = useCopy().chat;
@@ -707,6 +735,9 @@ function Composer({
           one is about and offers to pass the description on, and it is drawn here — after the
           box, before a refusal — because it is about what was just typed. */}
       {feedback && <LandedFeedbackBlock feedback={feedback} />}
+      {/* And its counterpart in Discuss (#628): the card this complaint is about, and what
+          came of sharing it. Same place under the box, because it is about what was typed. */}
+      {partner && <DiscussFeedbackBlock feedback={partner} />}
       {/* A start that was refused, said where the press was rather than behind the
           sheet. The sentence is still in the box above it. */}
       {error && (

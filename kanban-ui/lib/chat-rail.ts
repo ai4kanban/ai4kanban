@@ -140,7 +140,17 @@ export interface ChatRail {
    *  front of the words; `images` are the pictures the message being sent again carried —
    *  the same files, not a second copy of them (#441) — or, with `box`, the ones still in
    *  the create sheet's own box, which this send moves over (#530). */
-  say(text: string, opts?: { discuss?: boolean; images?: string[]; box?: string }): Promise<boolean>;
+  say(
+    text: string,
+    opts?: {
+      discuss?: boolean;
+      images?: string[];
+      box?: string;
+      /** The card this message is a complaint about (#628), and whether share was ticked on
+       *  it. Only Discuss sends one. */
+      feedback?: { cardId: number; share?: boolean };
+    },
+  ): Promise<boolean>;
   /** Run this conversation on another runtime (#272, #467), or on the board's again with
    *  `null`. A row on another CLI starts the conversation over — the caller asks first when
    *  there is something to lose — and one on the same CLI carries it on. */
@@ -502,10 +512,16 @@ export function useChatRail({
   // One message out of the door, whether it came from the box or from a "send again" on a
   // reply that stopped short. The answer is whether it left.
   const post = useCallback(
-    async (text: string, discuss = false, images: string[] = [], box?: string) => {
+    async (
+      text: string,
+      discuss = false,
+      images: string[] = [],
+      box?: string,
+      feedback?: { cardId: number; share?: boolean },
+    ) => {
       setError(null);
       setHeld(null);
-      const res = await sendChatAction(cardId, text, discuss, images, box);
+      const res = await sendChatAction(cardId, text, discuss, images, box, feedback);
       if (!res.ok) setError(res.error ?? c.sendFailed);
       kickRef.current();
       return res.ok;
@@ -535,8 +551,15 @@ export function useChatRail({
   // exchange above is left as it was — the message lands at the foot. A message sent again
   // carries the pictures it carried, by the same names: no second copy is written.
   const say = useCallback(
-    (text: string, opts: { discuss?: boolean; images?: string[]; box?: string } = {}) =>
-      post(text, opts.discuss, opts.images, opts.box),
+    (
+      text: string,
+      opts: {
+        discuss?: boolean;
+        images?: string[];
+        box?: string;
+        feedback?: { cardId: number; share?: boolean };
+      } = {},
+    ) => post(text, opts.discuss, opts.images, opts.box, opts.feedback),
     [post],
   );
 

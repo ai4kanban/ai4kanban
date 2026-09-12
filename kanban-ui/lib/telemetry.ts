@@ -1,6 +1,6 @@
 import { boardRules } from "./cli";
 import { machineCopy } from "./language";
-import type { UsageReporting, WriteResult } from "./types";
+import type { PartnerFeedback, UsageReporting, WriteResult } from "./types";
 
 // --- optional usage reporting (#293) -----------------------------------------
 // Not a board setting: one answer covers every project this machine opens and every
@@ -50,4 +50,21 @@ export async function recordUsageDisclosure(on: boolean): Promise<WriteResult> {
 export async function reportAppOpen(): Promise<void> {
   const rules = await boardRules();
   rules.reportAppOpen?.();
+}
+
+// --- partner feedback (#628) -------------------------------------------------
+// A second machine-level answer beside the one above, and the mirror image of it: absent
+// means OFF, because what this shares is the conversation and the code behind one refine.
+// `null` from the read still means the rules predate it, and the row says so rather than
+// offering a switch that writes nowhere.
+
+export async function partnerFeedback(): Promise<PartnerFeedback | null> {
+  const rules = await boardRules();
+  return rules.readPartnerFeedback?.() ?? null;
+}
+
+export async function setPartnerFeedback(on: boolean): Promise<WriteResult> {
+  const rules = await boardRules();
+  if (!rules.setPartnerFeedback) return { ok: false, error: (await machineCopy()).messages.tooOld.usageReporting };
+  return rules.setPartnerFeedback(on);
 }

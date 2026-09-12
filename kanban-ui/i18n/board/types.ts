@@ -232,6 +232,49 @@ export type BoardCopy = {
       unreachable: string;
     };
   };
+  /** The partner submission written in a discussion (#628) — the link area under the box,
+   *  and what the send came to. It says what the user did and what came back; never an
+   *  endpoint, a storage, a flow id or a run. */
+  partner: {
+    /** The collapsed button, and the heading it becomes when it is open. */
+    expand: string;
+    /** Folds it, forgets the link and the tick, and takes the submission off this
+     *  discussion. What was typed stays in the box. */
+    cancel: string;
+    search: string;
+    /** Beside a card that has not been archived yet. */
+    onBoard: string;
+    empty: string;
+    failed: string;
+    retry: string;
+    clear: string;
+    /** The one authorisation, off until it is ticked. */
+    share: string;
+    /** Under it, when partner feedback is on: what riding along with it means. */
+    shareNote: string;
+    /** …and when it is off: nothing is offered to tick, only the way to turn it on. */
+    off: string;
+    turnOn: string;
+    /** Opens the same terms the switch does. */
+    terms: string;
+    /** While the agent is working out what went wrong and gathering the material. */
+    working: string;
+    sent: {
+      title: string;
+      /** The number, and the two things to do with it. */
+      number: string;
+      copy: string;
+      copied: string;
+      /** How to have it deleted — the one address, handed in. */
+      erase: (email: string) => string;
+    };
+    notSent: {
+      title: string;
+      retry: string;
+      /** The way out of a pack too large to send. */
+      textOnly: string;
+    };
+  };
   release: {
     which: string;
     whichHint: string;

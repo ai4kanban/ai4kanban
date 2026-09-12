@@ -51,8 +51,13 @@ import {
   dismissSignal,
 } from "@/lib/board";
 import {
+  dropCase,
   feedbackDiagnostics,
   feedbackOffered,
+  readCase,
+  retryCase,
+  searchLinkable,
+  sendTextOnlyCase,
   searchArchived,
   sendFeedback,
 } from "@/lib/feedback";
@@ -119,6 +124,8 @@ import { machineCopy, setMachineLanguage } from "@/lib/language";
 import {
   recordUsageDisclosure,
   reportAppOpen,
+  partnerFeedback,
+  setPartnerFeedback,
   setUsageReporting,
   usageReporting,
 } from "@/lib/telemetry";
@@ -203,6 +210,7 @@ import {
 } from "@/lib/agents";
 import { testConnection } from "@/lib/test-connection";
 import { isLanguage } from "@/lib/types";
+import { isDiscussion } from "@/lib/types";
 import type {
   AgentInfo,
   AgentView,
@@ -225,7 +233,9 @@ import type {
   DiscussionTarget,
   DiscussRead,
   DropPlan,
+  CaseRecord,
   FeedbackDiagnostics,
+  PartnerFeedback,
   FeedbackSent,
   FeedbackToSend,
   FillPlan,
@@ -556,6 +566,9 @@ export async function sendChatAction(
    *  them into this conversation's folder. Left out by the rail, whose box IS this
    *  conversation's. */
   box?: string,
+  /** The card this message is a complaint about (#628), and whether share was ticked on it.
+   *  Only Discuss sends one, and only once a card was linked. */
+  feedback?: { cardId: number; share?: boolean },
 ): Promise<{ ok: boolean; error?: string }> {
   const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
@@ -563,10 +576,17 @@ export async function sendChatAction(
   if (typeof message !== "string" || (!message.trim() && names.length === 0)) {
     return { ok: false, error: (await machineCopy()).messages.actions.emptyChat };
   }
+  // A linked card only counts in a discussion — a card's own chat is already about that card,
+  // and a complaint written there would name one twice.
+  const complaint =
+    feedback && Number.isInteger(feedback.cardId) && isDiscussion(target)
+      ? { cardId: feedback.cardId, share: feedback.share === true }
+      : undefined;
   return sendChat(target, message.trim(), {
     guide: discuss ? DISCUSS_GUIDE : undefined,
     images: names,
     box: names.length && typeof box === "string" ? box : undefined,
+    feedback: complaint,
   });
 }
 
@@ -2144,6 +2164,25 @@ export async function recordUsageDisclosureAction(on: boolean): Promise<WriteRes
   }
 }
 
+/** Whether this machine takes part in partner feedback (#628). Its own answer, never
+ *  derived from the one above: that switch is about counts with no words in them. */
+export async function partnerFeedbackAction(): Promise<PartnerFeedback | null> {
+  try {
+    return await partnerFeedback();
+  } catch {
+    return null;
+  }
+}
+
+/** Turn it on or off. On is only ever called from the terms the user just read. */
+export async function setPartnerFeedbackAction(on: boolean): Promise<WriteResult> {
+  try {
+    return await setPartnerFeedback(on === true);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 // --- feedback on a landed task (#603) ----------------------------------------
 // Three asks, answered one at a time: which archived card this is about, what that card has
 // to attach, and the send itself. Nothing here decides anything — every authorisation is a
@@ -2197,6 +2236,61 @@ export async function sendFeedbackAction(feedback: FeedbackToSend): Promise<Feed
     return await sendFeedback(feedback);
   } catch {
     return { ok: false, reason: "unreachable" };
+  }
+}
+
+// --- partner feedback (#628) --------------------------------------------------
+// Two answers, asked separately and neither implying the other: whether this machine takes
+// part at all (`partnerFeedbackAction` above), and whether the user ticked share on this one
+// message. The rules hold that rule — nothing here decides it, and nothing here collects
+// anything.
+
+/** The cards a discussion can be linked to — open ones and archived ones, because a
+ *  complaint about a spec is usually about the card in front of you. A board that would not
+ *  read is a failure, never an empty result: "nothing matches" and "the board could not be
+ *  read" are different things to tell a reader, and the second is worth a Try again. */
+export async function searchLinkableAction(
+  query: string,
+): Promise<{ ok: true; cards: ArchivedCard[] } | { ok: false }> {
+  if (typeof query !== "string") return { ok: true, cards: [] };
+  try {
+    return { ok: true, cards: await searchLinkable(query) };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** The submission this discussion is holding. Polled while a complaint is being answered:
+ *  the agent submits from inside its own turn, so this is how the screen learns it landed. */
+export async function readCaseAction(discussion: string): Promise<CaseRecord | null> {
+  if (typeof discussion !== "string" || !discussion) return null;
+  try {
+    return await readCase(discussion);
+  } catch {
+    return null;
+  }
+}
+
+/** Post the same pack again, under the same id the user was already shown. */
+export async function retryCaseAction(discussion: string): Promise<CaseRecord | null> {
+  if (typeof discussion !== "string" || !discussion) return null;
+  return await retryCase(discussion);
+}
+
+/** Post the question description on its own. */
+export async function sendTextOnlyCaseAction(discussion: string): Promise<CaseRecord | null> {
+  if (typeof discussion !== "string" || !discussion) return null;
+  return await sendTextOnlyCase(discussion);
+}
+
+/** Take the submission off this discussion — what cancelling the link does. */
+export async function dropCaseAction(discussion: string): Promise<void> {
+  if (typeof discussion !== "string" || !discussion) return;
+  try {
+    await dropCase(discussion);
+  } catch {
+    // Nothing to drop, or a board that cannot be written. Either way the screen has already
+    // forgotten the link.
   }
 }
 

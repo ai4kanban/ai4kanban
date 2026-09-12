@@ -56,6 +56,7 @@ archive:
 ```sh
 npx wrangler d1 create ai4kanban-telemetry                 # paste the id into wrangler.jsonc
 npx wrangler r2 bucket create ai4kanban-telemetry-archive  # the daily event archive
+npx wrangler r2 bucket create ai4kanban-cases              # the partners' refine cases
 npm run migrate                                            # apply migrations/ to the database
 npm run deploy
 ```
@@ -85,6 +86,7 @@ npm run deploy             # the endpoint at t.ai4kanban.dev
 npm run deploy:dev         # the copy development builds post into
 npm run numbers            # the last 14 days; --days N, --dev, --json
 npm run forget -- <id>     # delete one install's events and feedback, archive files included
+npm run forget:case -- <fb_id>  # delete one partner case and every eval case made from it
 npm run burst              # a bounded release-day burst, development copy only
 npm test                   # the Worker's checks, and the SQL against a real SQLite
 ```
@@ -101,6 +103,14 @@ install's place in every day still open for late events; a settled day keeps the
 reported. `forget` then reads back every archive file the install could appear in and
 rewrites the ones that carried it, and says how many of each. That walk covers every day from `archiveFrom` to the retention edge, so it reads a few
 hundred megabytes and takes minutes.
+
+**A partner case is deleted by its own number, not by an install id.** `/v1/case` (#628)
+takes the material behind one refine — that refine's raw traces and the project files they
+read — and writes it as one object under `pending/<fb_id>/` in the cases bucket. Nothing about
+it is in D1 and nothing about it is in the archive, so the id is the whole address:
+`forget:case` deletes that prefix and `evals/<fb_id>/`, which is where a submission that was
+entered into the eval set lives. Keep eval cases under that prefix or a deletion request will
+not reach them.
 
 ## The archive
 

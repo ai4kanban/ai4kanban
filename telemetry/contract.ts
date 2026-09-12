@@ -55,6 +55,15 @@ export const LIMITS = {
   feedbackPartBytes: 256 * 1024,
   /** Characters of the feedback the user actually wrote. */
   feedbackTextChars: 4_000,
+  /** One posted case (#628), traces and project files together. Far larger than a piece of
+   *  feedback, because one refine's raw traces alone run to megabytes — and a whole number
+   *  of them, because the refusal is the WHOLE pack: nothing here is truncated behind the
+   *  user's back, and a pack over this is answered 413 with the question description still
+   *  offered on its own. */
+  caseBytes: 24 * 1024 * 1024,
+  /** What one collected project file may carry. A file longer than this is left out and
+   *  named as a gap rather than sent as a half of itself. */
+  caseFileBytes: 512 * 1024,
   /** The first day the archive holds — the day #489 published the archive and its indefinite
    *  limit on #293's privacy page. A day before it was taken under wording that promised
    *  deletion, so the sweep takes it unwritten. */
@@ -206,4 +215,94 @@ export interface SentFeedback {
   card?: number
   text: string
   parts?: SentFeedbackPart[]
+}
+
+// ---- a partner's refine case (#628) -----------------------------------------
+//
+// The third thing this service takes, and the only one that carries project files. A piece
+// of feedback is a sentence and four small attachments; a case is everything needed to
+// REPRODUCE one refine going wrong — the raw traces of that refine's runs and the project
+// files those runs read. It shares nothing with the two above: its own route, its own size
+// limit, its own private bucket, and its own deletion key.
+//
+// The key is the SUBMISSION id, not an install id. A machine with usage reporting off still
+// gets one, so the deletion request works from any machine — and the same id posted twice is
+// the same object, which is what makes a retry safe.
+
+/** Where one case is posted. Its own route, never `/v1/feedback`: that one is a handful of
+ *  D1 rows and this is an object in a bucket nothing else writes. */
+export const CASE_ENDPOINT = {
+  production: 'https://t.ai4kanban.dev/v1/case',
+  development: 'https://t-dev.ai4kanban.dev/v1/case',
+} as const
+
+/** The one address a deletion request goes to. Written on the consent page and beside every
+ *  submitted id, and nowhere is a second one offered. */
+export const CASE_EMAIL = 'support@ai4kanban.dev'
+
+/** A submission id as the sender mints it and the user reads it back: `fb_` and eight
+ *  characters of an alphabet with no pair anyone misreads. It is the delete key, so it has
+ *  to survive being copied out of a screen and typed into an email. */
+export const CASE_ID = /^fb_[0-9abcdefghjkmnpqrstvwxyz]{8}$/
+
+/** The alphabet that id is drawn from: the digits and the letters, less `i`, `l`, `o` and
+ *  `u` — the four nobody reads back off a screen reliably. Thirty-two, so one character is
+ *  five bits and an id is forty. */
+export const CASE_ALPHABET = '0123456789abcdefghjkmnpqrstvwxyz'
+
+/** One run of the refine the case is about, as the sender posts it. `trace` is the agent's
+ *  own raw transcript of that run, which is the only place the prompt it was given survives
+ *  — the board deletes a run's prompt file when the run ends. */
+export interface SentCaseRun {
+  action: string
+  startedAt: number
+  harness: string
+  runtime?: string
+  sessionId: string
+  resumeId?: string
+  cwd?: string
+  argv?: string[]
+  /** The akb version the run went on, recorded when it started. Absent on a run older than
+   *  that record, which the pack then names as a gap. */
+  version?: string
+  /** What the user typed for it, as the run recorded it. */
+  input?: string
+  /** The raw trace, as the agent read it back off that harness's own store. */
+  trace?: string
+}
+
+/** One project file the refine read, collected after the agent named it. */
+export interface SentCaseFile {
+  path: string
+  bytes: number
+  text: string
+  /** `read` is the version the refine saw; `current` is this checkout's copy standing in for
+   *  it, and `missing` is a file that is no longer there. Marked rather than passed off. */
+  version: 'read' | 'current' | 'missing'
+  /** Why the agent says this file was read — the line of the trace it found it on. */
+  evidence?: string
+}
+
+/** One case, as a sender posts it. `install` is absent throughout: the submission id is the
+ *  key, so a machine with usage reporting off is not a machine we cannot delete for. */
+export interface SentCase {
+  v: number
+  id: string
+  day: string
+  submittedAt: string
+  surface: string
+  version: string
+  /** The card the user linked, by its number on their board. */
+  card: number
+  /** The refine the agent settled on, by the board's own flow id. */
+  flowId?: string
+  /** What the user wrote in the discussion. */
+  text: string
+  /** The agent's reading of where the spec and the user's expectation came apart. */
+  analysis?: string
+  /** Everything the pack could not establish — a trace that is gone, a read it could not
+   *  confirm, a run with no version recorded. Never silently dropped. */
+  gaps?: string[]
+  runs?: SentCaseRun[]
+  files?: SentCaseFile[]
 }

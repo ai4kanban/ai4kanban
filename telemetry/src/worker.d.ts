@@ -51,7 +51,7 @@ declare interface R2Bucket {
   put(
     key: string,
     value: string,
-    options?: { httpMetadata?: { contentType?: string } },
+    options?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> },
   ): Promise<R2Object>
   list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<R2Objects>
 }

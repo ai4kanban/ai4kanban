@@ -331,6 +331,31 @@ const en: ConfigurationCopy = {
     failedOn: "usage reporting could not be turned on",
     failedOff: "usage reporting could not be turned off",
   },
+  partner: {
+    title: "Partner feedback",
+    body: "Share the related conversation and code when you report a problem, so we can see where we misread what you meant.",
+    terms: "See what is shared",
+    consent: {
+      title: "Turn on partner feedback",
+      blurb:
+        "Helps us see where we misread what you meant, and write better specs. With it on, whether to share is still your call each time, in the discussion.",
+      terms: (email) => [
+        "The related conversation and code are shared with the AI4Kanban team to look into the problem.",
+        "What you share is kept long-term and used to improve spec quality.",
+        "The analysis runs on the AI service you have set up.",
+        `Email ${email} with a feedback number to have what you shared deleted.`,
+      ],
+      warnLead: "What is shared includes project code.",
+      warnRest: "The material is gathered for you, and not listed item by item before it goes.",
+      reversible: "You can turn it off at any time.",
+      cancel: "Cancel",
+      confirm: "Turn it on",
+    },
+    switchOn: (name) => `${name} is on`,
+    switchOff: (name) => `${name} is off`,
+    failedOn: "partner feedback could not be turned on",
+    failedOff: "partner feedback could not be turned off",
+  },
   language: {
     group: "Language",
     saveFailed: "couldn't save that language",

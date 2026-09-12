@@ -5,7 +5,13 @@ import { pathToFileURL } from "node:url";
 import { getCopy } from "@/i18n";
 import { kanbanDir, repoRoot } from "./paths";
 import { DEFAULT_LANGUAGE } from "./types";
-import type { FeedbackDiagnostics, FeedbackSent, FeedbackToSend } from "./types";
+import type {
+  CaseRecord,
+  FeedbackDiagnostics,
+  FeedbackSent,
+  FeedbackToSend,
+  PartnerFeedback,
+} from "./types";
 import type {
   AgentInfo,
   AgentRequest,
@@ -46,6 +52,7 @@ import type { Language, UsageReporting } from "./format/machine/types";
 import type { CommandState, SkillInstall, SkillState } from "./format/skill/types";
 import type {
   ArchiveList,
+  ArchivedCard,
   ArchivedCardFile,
   Board,
   Card,
@@ -376,6 +383,12 @@ export interface BoardRules {
       /** The pictures pasted into this message (#441), as the names `addChatImage` filed
        *  them under. Rules from before it ignore them, and the words go on their own. */
       images?: string[];
+      /** The card this message is a complaint about (#628), and whether the user ticked
+       *  share on it. The rules hand the turn to the `feedback` agent on it — same session,
+       *  same runtime, same transcript — and open a submission only where sharing was
+       *  ticked AND this machine takes part. Rules from before it ignore it, and the turn
+       *  is an ordinary discussion. */
+      feedback?: { cardId: number; share?: boolean };
     },
   ): Promise<ChatReply | { error: string }>;
   clearChat?(cardId: ChatTarget): boolean;
@@ -542,6 +555,25 @@ export interface BoardRules {
    *  same way it offers no archive. */
   readFeedbackDiagnostics?(cardId: number): FeedbackDiagnostics;
   sendFeedback?(feedback: FeedbackToSend): Promise<FeedbackSent>;
+  /** Partner feedback (#628): the cards a discussion can be linked to, the submission one
+   *  discussion is holding, and the machine's own switch. Optional — a board running older
+   *  rules draws no Partner feedback row and offers no link area in Discuss.
+   *
+   *  The switch gates SHARING, not linking. Whether anything may be collected is the rules'
+   *  answer — the tick on the message is the other half of it, and the screen holds neither
+   *  rule. */
+  searchLinkable?(query: string): ArchivedCard[];
+  readCase?(discussion: string): CaseRecord | null;
+  /** Post the pack that was already collected, again, under the same id. */
+  retryCase?(discussion: string): Promise<CaseRecord | null>;
+  /** Post the question description on its own — what a pack too large to send leaves the
+   *  user able to do. */
+  sendTextOnlyCase?(discussion: string): Promise<CaseRecord | null>;
+  /** Take the submission off this discussion, which is what cancelling the link does. A pack
+   *  already sent is not withdrawn by it. */
+  dropCase?(discussion: string): void;
+  readPartnerFeedback?(): PartnerFeedback;
+  setPartnerFeedback?(on: boolean): WriteResult;
   /** Triage (#453, #499): whether it is open to this board and this account at all, what it
    *  holds, adding to it by hand, and ignoring one for good. Optional: a board can be
    *  running rules older than the release that added them, and the rail then offers no

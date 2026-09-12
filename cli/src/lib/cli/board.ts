@@ -322,6 +322,24 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       await dispatch('plan', this, [sub], this.opts(), cli)
     })
 
+  move('case')
+    .argument('<move>', 'refines or submit')
+    .argument('[card-id]', 'the card, on refines')
+    .summary("the partner submission this discussion's user shared")
+    .description(
+      'Only inside the discussion turn answering it, and only where the user ticked share. ' +
+        '`case refines <card-id>` lists every refine recorded on that card with the clues for finding ' +
+        "each run's raw trace — harness, session id, resume id, working folder and the argv it spawned. " +
+        '`case submit --file <path>` hands back the findings as JSON: `flowId`, `analysis`, `gaps`, ' +
+        '`runs` (each `sessionId` with the `traceFile` you found or wrote), and `reads` (each `path` ' +
+        'with the `evidence` you saw it read on). The board checks the paths, collects the files and ' +
+        'sends the pack.',
+    )
+    .option('--file <path>', 'the findings, as JSON')
+    .action(async function (this: Command, sub: string, cardId?: string) {
+      await dispatch('case', this, cardId === undefined ? [sub] : [sub, cardId], this.opts(), cli)
+    })
+
   move('discussion')
     .argument('<move>', 'new, list, title or archive')
     .summary('the discussions this board is holding')

@@ -233,7 +233,14 @@ export async function sendChat(
    *  which rides in front of the words and reaches no transcript. `images`: the pictures
    *  pasted into it (#441), by the names they were filed under. `box`: those pictures are
    *  still in the create sheet's own box (#530) and this send is what brings them over. */
-  opts: { fromBoard?: boolean; guide?: string; images?: string[]; box?: string } = {},
+  opts: {
+    fromBoard?: boolean;
+    guide?: string;
+    images?: string[];
+    box?: string;
+    /** The card this message is a complaint about (#628), and whether share was ticked. */
+    feedback?: { cardId: number; share?: boolean };
+  } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   let rules;
   try {
@@ -279,6 +286,7 @@ export async function sendChat(
     title: typeof cardId === "number" ? rules.titleOf(cardId) : undefined,
     fromBoard: opts.fromBoard,
     guide: opts.guide,
+    feedback: opts.feedback,
     images,
     onText: (chunk) => {
       // Frozen on a stop, so the words on screen are the words that were there when the

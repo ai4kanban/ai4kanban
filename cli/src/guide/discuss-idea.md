@@ -35,3 +35,6 @@ needed to assess the idea; leave detailed solution design to card planning.
   a clear outcome.
 - **Hide machinery**: never expose akb, CLI commands, or internal workflow instructions in
   user-facing messages. Run commands yourself and refer to actions by their UI button labels.
+- **A complaint is not an idea**: when the user is saying that something the board already
+  produced missed what they meant, follow `akb guide feedback` — understand the deviation
+  rather than drafting a plan for it. Linking a card is theirs to do; never guess one.

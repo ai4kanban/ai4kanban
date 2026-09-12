@@ -148,6 +148,12 @@ export function readStore(): Store {
       // resumes on its agent's own row inside the harness it went on.
       runtime: typeof entry.runtime === 'string' && entry.runtime ? entry.runtime : undefined,
       agent: typeof entry.agent === 'string' && entry.agent ? entry.agent : undefined,
+      // What it ran as and where (#628). Whitelisted here like every other field: a reader
+      // that did not name them would drop them on the next write, and a case built a week
+      // later would have no way back to the run's raw trace.
+      version: typeof entry.version === 'string' && entry.version ? entry.version : undefined,
+      cwd: typeof entry.cwd === 'string' && entry.cwd ? entry.cwd : undefined,
+      argv: Array.isArray(entry.argv) && entry.argv.every((a: unknown) => typeof a === 'string') ? entry.argv : undefined,
       resumeId: typeof entry.resumeId === 'string' ? entry.resumeId : undefined,
       logPath: logPathIn(entry.logPath, entry.sessionId),
       resumedFrom: typeof entry.resumedFrom === 'string' ? entry.resumedFrom : undefined,

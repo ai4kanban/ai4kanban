@@ -2,7 +2,7 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-09-11
+effective: 2026-09-12
 ---
 
 <TLDR title="The short version">
@@ -11,6 +11,7 @@ effective: 2026-09-11
 - **The app runs on your machine.** Your board is a folder of Markdown files in your own repository. With Cloud off, the app asks GitHub once whether a newer release is out.
 - **Anonymous usage reporting is on by default**, in the app and in the `akb` command. It sends which features are used and which of them fail — counts and the names of events, never a word you wrote — tied to a random install id and to nothing about you. It never carries your code, your card text, your project names, or your file paths. The app discloses it in a step you answer before your first board opens, and you can turn it off there, in **Configuration → General**, or with `akb telemetry off`.
 - **Feedback is the one thing you can send us from the app, and only by pressing send.** Nothing is collected for it in the background and nothing is guessed. You choose whether to share what you typed, and separately whether to attach diagnostics — the card, the conversation, the run log, the environment — each listed with its size and readable in full before it goes, and each removable. Both permissions are for that one submission. It is one-way: there is no box for an address and we cannot write back.
+- **Partner feedback is off unless you turn it on, and it is the only thing that sends us project files.** With it on, saying in a discussion that a spec missed what you meant — and ticking share on that message — lets the app gather what would let us reproduce it: the raw traces of that one refine's runs, and the project files those runs read. It is not previewed before it goes, it is kept until you ask for it back, and the app gives you a feedback number to quote when you do.
 - **AI4Kanban Cloud is an invite-only preview** that relays a board's task events — a review to approve, a question to answer — to the people who can act on them, and the decisions they make, on servers we run in Frankfurt. On a board you share, a review reaches its members and a question reaches its owners. [What Cloud is](/cloud).
 - **A Cloud board is one you asked us to hold.** Its cards, memory, releases and history live in a workspace on those servers instead of in your repository. It is a deliberate choice, made board by board; you can export the whole board as Markdown at any time, and an owner can delete the workspace and everything in it.
 - **A workspace can hold more than one person.** An owner adds a teammate by GitHub handle — but only one we have already admitted to the preview. Everyone in a workspace reads the whole board and the whole record of who changed what, including your GitHub handle.
@@ -71,6 +72,7 @@ The AI4Kanban desktop app and the `akb` command run on your own machine. A board
 - **No account and no sign-in** are needed to install or use the app on a local board.
 - **Anonymous usage reporting is on unless you turn it off.** It says which features are used and which of them fail. It carries no part of your board and nothing that identifies you, and the whole of what it does carry is listed under "What usage reporting sends" below.
 - **Feedback is sent only when you press send.** The **Feedback** button beside Create task, and the block on New task that links a landed task, are the whole of it. Nothing is queued, nothing is collected in the background, and the usage-reporting switch does not reach it — it works either way. "Feedback you send us" below says what one submission carries.
+- **Partner feedback is sent only when you have turned it on and ticked share on that message.** It is off out of the box, and turning it on is a page of terms you read first. "Partner feedback" below says what one submission carries.
 - **The other network request the app makes on its own** is to `api.github.com`, once, to ask which release of AI4Kanban is newest, so it can tell you when a newer build is out. That request is unauthenticated, carries no identifier of yours, and sends nothing about your board or your machine. If it fails, the app carries on without a notice. GitHub sees the request as it would see any anonymous visitor: your IP address, a static user agent, and a timestamp. **Turning usage reporting off does not stop it** — it is the app telling you something, not a report about you.
 
 **Turning Cloud on for a board is what changes that**, and it reaches two destinations rather than one. Neither is contacted for a board you have not turned Cloud on for:
@@ -83,6 +85,8 @@ The coding agent you point at your board is separate software with its own accou
 **That agent's traffic and usage reporting are not the same thing, and it is worth saying which is which.** Asking an agent to work on a card sends your prompt, and as much of your code as the agent decides it needs, to that agent's model provider — because that is the work you asked for. Usage reporting sends us none of it: not a prompt, not a line of code, not a card's text, not a file path, not a project name. It sends the names of things that happened, and the fields listed below.
 
 **Feedback is the third thing, and the only one that carries words you wrote.** Usage reporting never does, on any event, whatever you type or build. Feedback does — that is what it is for — and it goes nowhere until you press send. The two are separate the whole way: separate permissions, a separate route, separate storage, and separate retention.
+
+**Partner feedback is the fourth, and the only one that carries your code.** It is off unless you turn it on, and separate again the whole way down: its own switch, its own terms, its own route, its own private storage, and its own deletion key.
 
 ### What usage reporting sends
 
@@ -157,6 +161,28 @@ It goes to `t.ai4kanban.dev`, the same endpoint the anonymous numbers go to, on 
 **It is one-way.** We read feedback; we cannot reply to it, and nothing we store would let us. If you want an answer, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev) instead.
 
 **How long it is kept.** The words you wrote are kept **indefinitely** — they are the whole reason the feature exists, and a note deleted at 90 days would be a report we could not act on a year later. Diagnostic attachments are deleted after **90 days**, on the same sweep the raw usage events get; deleting them leaves the words beside them untouched. To have feedback you sent deleted, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev) with your **install id** — the same id, and the same request, that deletes your events. Feedback sent from a machine with reporting off carries no id, so there is nothing we could find it by.
+
+### Partner feedback
+
+**It is off out of the box, and turning it on is a page you read first.** The switch is **Configuration → General → Partner feedback**. The page it opens says what is shared, that it is kept long-term, that the analysis runs on the AI service you have set up, and how to have it deleted. Turning it off takes no page and stops any further collection at once.
+
+**It is asked for one message at a time.** With the switch on, it still does nothing until you say in a discussion that a spec missed what you meant, link the card it is about, and tick **Share this description with the AI4Kanban team** on that message. The switch alone shares nothing; the tick alone, on a machine that never opted in, shares nothing either.
+
+**What one submission carries.** The `feedback` agent on your machine works out which refine of that card went wrong, and the app gathers:
+
+| What | Detail |
+| --- | --- |
+| **What you wrote** | The problem as you described it in the discussion. |
+| **The number of the card you linked** | And nothing else about your board. |
+| **The raw traces of that one refine's runs** | As your own coding agent recorded them — including the instructions each run was given, which survive nowhere else. Only the runs of the refine that was settled on. |
+| **The project files that refine read** | The files, at the version that refine saw them where your repository can still answer for it, and this checkout's copy otherwise — which the submission says. Only files the agent could evidence as read, and never the board's `.env`. |
+| **What could not be established** | A trace already cleaned up, a file no longer there, a run too old to record its version. Written down rather than left out. |
+
+**What it never carries.** An address or any way to reach you; anything about a card you did not link; anything from a refine other than the one you were describing; and your install id — this one does not use it, which is why it works with usage reporting off.
+
+**It is not previewed.** The material is gathered for you and sent when it is ready. That is the trade the terms page states plainly, and it is why the switch is off until you turn it on.
+
+**How long it is kept, and how to have it deleted.** It is kept until you ask for it back — a case we cannot reproduce a year from now is a case that taught us nothing. When a submission lands, the app shows you a **feedback number** and the address to send it to. Email [support@ai4kanban.dev](mailto:support@ai4kanban.dev) with that number and we delete the material that submission sent **and anything we had already made from it**. The number is minted on your machine and does not depend on an install id, so a machine with usage reporting off can still have its submissions deleted.
 
 ## Using AI4Kanban Cloud
 
@@ -319,6 +345,7 @@ We use information to:
 
 - **Run the Service** — serve the site, tell the app whether a newer release exists, and relay a board's events and the decisions made on them, to and from the account they belong to.
 - **Read and act on feedback you send us** — the words you chose to share, and any diagnostics you chose to attach, so we can find what went wrong and fix it. We do not use feedback to identify you, and we cannot reply to it.
+- **Reproduce and fix what a partner feedback submission reports** — the traces and project files you chose to share, so we can see where a spec misread what you meant and improve how specs are written. We do not use it to identify you.
 - **Understand whether the product works** — count how the app and the `akb` command are used and where they fail, and how many people who reach a page with a download button press it, from the anonymous reports described above, so we can decide what to build and what to fix. We read these as totals, never as one machine's or one visitor's story, and we do not attempt to work out who an install id belongs to.
 - **Keep the Service safe** — verify a sign-in, check that a record belongs to the account asking for it, detect abuse, and stay inside the capacity the preview runs on.
 - **Send you a service notice** — the answer to the invite request you made, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
@@ -361,6 +388,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **Site visits** — the two counts described above are kept for 90 days and then deleted, and the daily totals worked out from them are kept indefinitely. Neither holds an identifier, so nothing in them is about a particular person. Cloudflare's own delivery logs are kept under Cloudflare's policy and are not ours to query.
 - **Usage reporting events** — kept for 90 days in the database and then deleted. A daily archive file of those same raw events, install id and all, is written to object storage before that deletion and kept indefinitely. The daily totals worked out from them carry no install id and are kept indefinitely. Turning reporting off deletes what is still queued on your machine and forgets your install id; the events already with us are deleted on request, quoting that id.
 - **Feedback you sent us** — the words you wrote are kept indefinitely. Any diagnostic attachments are deleted 90 days after the submission, and deleting them leaves the words untouched. Neither is written into the daily archive. Both are deleted on request, quoting the install id the submission carried; one sent from a machine with reporting off carries none and cannot be found.
+- **Partner feedback you sent us** — kept until you ask for it back, in private storage of its own that holds nothing else. Deleted on request, quoting the feedback number the app showed you; the deletion covers the submission and anything we had already made from it.
 - **The rest of app use** — nothing is retained, because nothing else is collected. Apart from usage reporting and feedback you chose to send, a board you have not turned Cloud on for sends us nothing to retain.
 - **Your sign-in record** — held by Supabase Auth, kept while your account can sign in. Only a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev) removes it, and removing it is its own step: it does not go with your Cloud records automatically.
 - **Your Cloud account row and your admission** — kept until we remove them by hand on a request to [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
@@ -404,7 +432,7 @@ Depending on where you live, you may have the right to:
 
 To exercise any of these rights, email [support@ai4kanban.dev](mailto:support@ai4kanban.dev). We will respond within the time applicable law requires — typically within 30 days, with one extension permitted under the GDPR. We may need to verify your identity before acting on a request. We will not discriminate against you for exercising any of these rights.
 
-Three things you can do without asking us: **turn anonymous usage reporting off**, which stops it at once and deletes what is queued on your machine; **disconnect Slack or Lark**, which deletes that connection at once; and **turn Cloud off for a board**, which stops it sending anything more. Feedback needs nothing turned off: it is sent only when you press send. A copy, a correction, or a removal of what we already hold is a request to us.
+Four things you can do without asking us: **turn anonymous usage reporting off**, which stops it at once and deletes what is queued on your machine; **turn partner feedback off**, which stops any further collection at once; **disconnect Slack or Lark**, which deletes that connection at once; and **turn Cloud off for a board**, which stops it sending anything more. Feedback needs nothing turned off: it is sent only when you press send. A copy, a correction, or a removal of what we already hold is a request to us — for partner feedback, quoting the feedback number the app showed you.
 
 ### United Kingdom and European Economic Area
 
@@ -422,7 +450,7 @@ In the past 12 months, the categories of personal information we have collected,
 
 - **Identifiers** — a GitHub username and numeric id, a display name, an avatar URL, and an email address where the sign-in returns one; and, for a board on Cloud, the name of the folder that board sits in, the identifier the computer running it generated for itself, and that computer's hostname.
 - **Internet or network activity** — the site's two counts and the app's anonymous usage reporting, neither of which identifies a person; what our subprocessors log to deliver a request; and the API's own request log described above.
-- **Other information you choose to provide** — the part of a card an event carries (its title, its opening paragraph, its review notes, and its questions), the decisions and answers you record against it, feedback you press send on and anything you chose to attach to it, and anything you write to us in an email.
+- **Other information you choose to provide** — the part of a card an event carries (its title, its opening paragraph, its review notes, and its questions), the decisions and answers you record against it, feedback you press send on and anything you chose to attach to it, the traces and project files a partner feedback submission carries, and anything you write to us in an email.
 
 We collect no commercial information, no geolocation, no biometric data, and we draw no inferences about you. We share these categories only with the service providers described above.
 

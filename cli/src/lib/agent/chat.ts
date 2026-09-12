@@ -46,7 +46,8 @@ import {
   skillPrompt,
   type RunPlan,
 } from './resolve'
-import { DISCUSSION_ROLE } from './roles'
+import { caseOffered, openCase } from '../case'
+import { DISCUSSION_ROLE, FEEDBACK_ROLE } from './roles'
 import { chatRuleBlock } from './rules'
 import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
@@ -75,6 +76,11 @@ const CHAT_AGENT = DISCUSSION_ROLE
  *  discuss-idea`). The Discuss screen names it on every turn; a terminal names nothing, so
  *  it is the default here and the same agent answers either way. */
 export const DISCUSSION_GUIDE = 'discuss-idea'
+
+/** And the brief the `feedback` agent follows when a discussion turn is a complaint about a
+ *  card (#628) — it replaces the discussion's own, because the turn is no longer about
+ *  whether to build something. */
+export const FEEDBACK_GUIDE = 'feedback'
 
 /** A conversation's file is named by what it is about, so the board's conversation, the
  *  first run's, each card's and each discussion's are separate by construction and one can
@@ -626,6 +632,11 @@ export interface SendOptions {
    *  under. They are sent again rather than saved again on a resend, so one whose file has
    *  gone since is dropped here rather than failing the turn. */
   images?: string[]
+  /** The card this message is a complaint about (#628), and whether the user ticked share on
+   *  it. Present only from Discuss, and only once they linked one. It hands the turn to the
+   *  `feedback` agent: the same session, the same runtime and the same transcript, answered
+   *  under that agent's rule and its own brief. */
+  feedback?: { cardId: number; share?: boolean }
 }
 
 /** What one turn sends.
@@ -653,17 +664,23 @@ export function chatPrompt(
     harness?: string
     guide?: string
     pictures?: string[]
+    /** The agent answering this turn — the discussion helper, or the `feedback` agent on a
+     *  turn that is a complaint about a card (#628). It picks the rule the turn reads. */
+    role?: string
+    /** What the complaint is about, when it is one. */
+    feedback?: { cardId: number; share: boolean }
   } = {},
 ): string {
   const language = languageNote()
   const flow = guideLine(opts.guide ?? defaultGuide(cardId))
-  const rule = chatRuleBlock(CHAT_AGENT)
+  const rule = chatRuleBlock(opts.role ?? CHAT_AGENT)
   const shots = pictureLines(opts.pictures)
+  const complaint = feedbackLines(opts.feedback)
   if (opts.resuming) {
     // The first run's later turns carry one more line: the session already holds the
     // instructions, and what a long conversation drifts away from is the answer's shape.
     const reminder = cardId === 'setup' ? SETUP_REMINDER : ''
-    return [flow, language, rule, shots, message, reminder].filter(Boolean).join('\n\n')
+    return [flow, language, rule, shots, complaint, message, reminder].filter(Boolean).join('\n\n')
   }
   const title = opts.title ?? (typeof cardId === 'number' ? cardTitle(cardId) : undefined)
   const subject =
@@ -674,7 +691,25 @@ export function chatPrompt(
         : `This is a chat about task #${cardId}${title ? ` ("${title}")` : ''} on this project's board. ` +
           `Read the card before you answer, and take "it", "this" and "this task" to mean that card ` +
           `unless I name another.`
-  return skillPrompt([subject, flow, language, rule, shots, message].filter(Boolean).join('\n\n'), opts.harness)
+  return skillPrompt(
+    [subject, flow, language, rule, shots, complaint, message].filter(Boolean).join('\n\n'),
+    opts.harness,
+  )
+}
+
+/** What the turn is a complaint about (#628) — the card the user linked, and whether they
+ *  authorised this one submission. Said on every turn of the complaint, not only the first:
+ *  the share is per submission, and a session told once drifts.
+ *
+ *  `share` false is not silence. An agent that was told nothing would be free to read the
+ *  card's runs anyway, so the line that says not to is the one that matters. */
+function feedbackLines(feedback: { cardId: number; share: boolean } | undefined): string {
+  if (!feedback) return ''
+  return feedback.share
+    ? `This message is about task #${feedback.cardId} on this board, and the user has shared it ` +
+        `with the AI4Kanban team for this one submission. Follow \`akb guide feedback\`.`
+    : `This message is about task #${feedback.cardId} on this board. The user has NOT shared it, ` +
+        `so collect nothing and submit nothing — read the card and answer them in the discussion.`
 }
 
 /** The flow a conversation follows when the screen naming one didn't (#502). A discussion is
@@ -790,10 +825,23 @@ export async function sendChatMessage(
     // handed them on the command line and told nothing.
     const files = shots.map((name) => path.join(imagesDir(cardId), name))
     const takes = harnessImages(held.runtime)
+    // A complaint about a card is answered by the `feedback` agent (#628) — the same session,
+    // the same runtime, the same transcript, and that agent's rule and brief in front of the
+    // words. Collecting is gated separately: the submission is opened only where this machine
+    // takes part AND the user ticked share on this one message, so the switch alone shares
+    // nothing and a tick on a machine that never opted in shares nothing either.
+    const discussion = isDiscussion(cardId) ? cardId : undefined
+    const complaint =
+      options.feedback && discussion
+        ? { cardId: options.feedback.cardId, share: options.feedback.share === true && caseOffered() }
+        : undefined
+    if (discussion && complaint?.share) openCase(discussion, complaint.cardId, text)
     const say = {
       title: options.title,
       harness: held.runtime,
-      guide: options.guide,
+      guide: complaint ? FEEDBACK_GUIDE : options.guide,
+      role: complaint ? FEEDBACK_ROLE : undefined,
+      feedback: complaint,
       pictures: takes?.as === 'message' ? files : [],
     }
     const prompt = chatPrompt(cardId, text, { ...say, resuming: Boolean(held.resumeId) })

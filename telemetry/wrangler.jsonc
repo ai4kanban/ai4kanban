@@ -28,9 +28,13 @@
     }
   ],
 
-  // One file a day of raw events, written out before the sweep deletes them and kept
-  // indefinitely. Created by `wrangler r2 bucket create` — see README.md.
-  "r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "ai4kanban-telemetry-archive" }],
+  // Two buckets: the daily archive of raw events, and the partners' refine cases (#628),
+  // which carry project files and are kept until a deletion request names one. Both created
+  // by `wrangler r2 bucket create` — see README.md.
+  "r2_buckets": [
+    { "binding": "ARCHIVE", "bucket_name": "ai4kanban-telemetry-archive" },
+    { "binding": "CASES", "bucket_name": "ai4kanban-cases" }
+  ],
 
   // The per-address hourly limit. It holds a number in memory and never calls storage, so
   // nothing about an address outlives the hour.
@@ -64,7 +68,10 @@
           "migrations_dir": "migrations"
         }
       ],
-      "r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "ai4kanban-telemetry-archive-dev" }],
+      "r2_buckets": [
+        { "binding": "ARCHIVE", "bucket_name": "ai4kanban-telemetry-archive-dev" },
+        { "binding": "CASES", "bucket_name": "ai4kanban-cases-dev" }
+      ],
       "durable_objects": { "bindings": [{ "name": "LIMITER", "class_name": "AddressHour" }] },
       "vars": { "COPY": "development" }
     }

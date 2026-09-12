@@ -169,6 +169,21 @@ const TRIAGER: AgentRole = {
   needs: 'triage',
 }
 
+// The role that hears a complaint about a spec (#628). It holds no flow anyone types and
+// has no switch: a user saying "this is not what I meant" in Discuss is what starts it, and
+// a board that never hears one never runs it. Partner feedback's own switch is a privacy
+// answer about the MACHINE (Configuration -> General), not a roster entry — this agent
+// understands the problem either way, and only the collecting is gated on it.
+//
+// It owns no memory. What one user's spec got wrong is that card's business, and the case it
+// packs goes to the team rather than into this board's planning notes.
+const FEEDBACK: AgentRole = {
+  name: 'feedback',
+  gloss: 'works out what a spec got wrong, and packs the case for it',
+  flows: ['feedback'],
+  memory: [],
+}
+
 const PRODUCT_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
@@ -185,6 +200,7 @@ const PRODUCT_ROLES: AgentRole[] = [
   },
   REVIEWER,
   MEMORY_PRUNER,
+  FEEDBACK,
   // Last, and only on a product board: it has no `gate` flow, a topic carries no questions
   // to answer, and a published topic leaves no follow-up card to propose.
   GATER,
@@ -214,6 +230,11 @@ const MARKETING_ROLES: AgentRole[] = [
 /** The role every conversation is held by — whose runtime a chat runs on and whose rule it
  *  reads. Named here so `akb chat`, the chat rail and Discuss all read the same one. */
 export const DISCUSSION_ROLE = DISCUSSION_HELPER.name
+
+/** The role a discussion turn is handed to when the user is reporting a spec that missed
+ *  what they meant (#628). The runtime stays the discussion's — this is the same
+ *  conversation, answered by a different agent's rule and brief. */
+export const FEEDBACK_ROLE = FEEDBACK.name
 
 /** Every role name the board ships, on either solution. Reserved: a rule is keyed by the
  *  agent's name, so a project agent taking one would share that role's rule file

@@ -83,7 +83,18 @@ describe('the roles', () => {
     solution('product')
     assert.deepEqual(
       roles().map((r) => r.name),
-      ['discussion-helper', 'planner', 'builder', 'reviewer', 'memory-pruner', 'gater', 'decider', 'proposer', 'triage'],
+      [
+        'discussion-helper',
+        'planner',
+        'builder',
+        'reviewer',
+        'memory-pruner',
+        'feedback',
+        'gater',
+        'decider',
+        'proposer',
+        'triage',
+      ],
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
     assert.equal(roleForFlow('prune-memory')!.name, 'memory-pruner')
@@ -140,6 +151,7 @@ describe('the roles', () => {
       'builder',
       'reviewer',
       'memory-pruner',
+      'feedback',
       'gater',
       'decider',
       'proposer',
@@ -153,25 +165,26 @@ describe('the roles', () => {
   it('rosters the roles first, then the specialists the command ships', () => {
     solution('product')
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 9), [
+    assert.deepEqual(names.slice(0, 10), [
       'discussion-helper',
       'planner',
       'builder',
       'reviewer',
       'memory-pruner',
+      'feedback',
       'gater',
       'decider',
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(9), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(names.slice(10), ['tech-stack-advisor', 'ui-designer'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      ['role', 'role', 'role', 'role', 'role', 'role', 'role', 'role', 'role', 'spec', 'spec'],
+      [...Array(10).fill('role'), 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[9]!.flows, [])
+    assert.deepEqual(agentRoster()[10]!.flows, [])
     // Five roles can be switched off, and each reads a key of its own (#447, #493, #509,
     // #534, #562).
     assert.deepEqual(

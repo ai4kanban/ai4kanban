@@ -50,6 +50,7 @@ import { cmdRelease, type ReleaseOptions } from '../../commands/release'
 import { cmdRemove, type RemoveOptions } from '../../commands/remove'
 import { cmdRule, type RuleOptions } from '../../commands/rule'
 import { cmdDiscussion, type DiscussionOptions } from '../../commands/discussion'
+import { cmdCase, type CaseOptions } from '../../commands/case'
 import { cmdPlan, type PlanOptions } from '../../commands/plan'
 import { cmdSetupDone, cmdSetupStatus } from '../../commands/setup'
 import { cmdValidate } from '../../commands/validate'
@@ -146,6 +147,7 @@ const MOVES: Record<string, RunMove> = {
   'spec-write': ({ args, opts }) => cmdSpecWrite(Number(args[0]), args[1] ?? '', as<SpecWriteOptions>(opts)),
   rule: ({ args, opts }) => cmdRule(args[0] ?? '', as<RuleOptions>(opts)),
   plan: ({ args, opts }) => cmdPlan(args, as<PlanOptions>(opts)),
+  case: ({ args, opts }) => cmdCase(args, as<CaseOptions>(opts)),
   discussion: ({ args, opts }) => cmdDiscussion(args, as<DiscussionOptions>(opts)),
   peek: () => {
     const id = readNextId()

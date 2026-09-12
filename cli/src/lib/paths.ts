@@ -110,6 +110,10 @@ export let SESSIONS_LOCK = ''
 // The conversations the user has had with the agent — one file per conversation, beside
 // the run logs (lib/agent/chat.ts). A chat is not a run and is nowhere in the record above.
 export let CHATS_DIR = ''
+// The partner submissions this board is holding (#628) — one record per discussion and the
+// pack it built. Machine state like the chats: a pack is this machine's copy of what it
+// posted, and a retry reads it rather than collecting a second time.
+export let CASES = ''
 // Held by the one run at a time that may rewrite the board's shared files (next-id,
 // the README index, metrics.csv). Across processes, so the UI and a terminal wait for each
 // other and not only for themselves.
@@ -273,6 +277,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   SESSIONS_DIR = path.join(machine, SESSIONS_FOLDER)
   SESSIONS_LOCK = path.join(machine, SESSIONS_LOCK_NAME)
   CHATS_DIR = path.join(machine, CHATS_FOLDER)
+  CASES = path.join(machine, 'cases')
   INDEX_LOCK = path.join(machine, INDEX_LOCK_NAME)
   DELIVERIES = path.join(KANBAN, 'deliveries')
   RULES = path.join(KANBAN, 'rules')

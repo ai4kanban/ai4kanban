@@ -22,6 +22,7 @@ import { cardFile } from '../board/revision'
 import { pidAlive } from '../lock'
 import { planFromText, planTitle, readPlan } from '../plans'
 import { reportRun } from '../machine/usage'
+import { SKILL_VERSION } from '../../version'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
 import {
   activeDelivery,
@@ -670,6 +671,11 @@ export function openRun(
     // one this run was started with.
     runtime: plan.runtime,
     agent: plan.agent,
+    // And what this build was, where it worked and what it spawned (#628) — the only clues
+    // left once the run's own prompt file is deleted at its close.
+    version: SKILL_VERSION,
+    cwd,
+    argv: plan.argv,
     // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs
     // none, and one that mints its own has nothing to record yet.
     logPath: logPathOf(sessionId),
@@ -795,6 +801,11 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     harness: plan.harness,
     runtime: plan.runtime,
     agent: plan.agent,
+    // This build, not the one the run being continued went on: a resume is a fresh spawn,
+    // and the version that answers for its output is the one doing the spawning.
+    version: SKILL_VERSION,
+    cwd: deliveryCwd(resuming ?? {}),
+    argv: plan.argv,
     resumeId: plan.resumeId ?? undefined,
     resumedFrom: prev.sessionId,
     formatRepair: prev.formatRepair ? { ...prev.formatRepair, attempt: prev.formatRepair.attempt + 1 } : undefined,

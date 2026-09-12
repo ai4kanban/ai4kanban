@@ -45,6 +45,21 @@ export function languageForTag(tag: string): Language | null {
 
 // ---- optional usage reporting (#293) ----------------------------------------
 
+/** Whether this MACHINE takes part in partner feedback (#628).
+ *
+ *  Its own answer, beside the anonymous numbers and never derived from them: that switch is
+ *  about counts with no words in them, and this one is about sharing a refine's conversation
+ *  and the project files it read. Off until somebody turns it on, and turning it on is a
+ *  consent page they read first. */
+export interface PartnerFeedback {
+  /** Whether the material collection is offered at all. OFF when the machine has never
+   *  answered — the opposite default from usage reporting, for the opposite reason. */
+  on: boolean
+  /** The settings file is there and cannot be read. Nothing is collected and every write
+   *  refuses until it can be read again. */
+  unreadable: boolean
+}
+
 /** What this machine has answered about usage reporting. The board UI draws the disclosure
  *  step and the Configuration row from it, so the shape is here rather than beside the file
  *  it is read from (./telemetry.ts, which touches disk). */

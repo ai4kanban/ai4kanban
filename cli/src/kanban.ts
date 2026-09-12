@@ -401,6 +401,30 @@ export type { FeedbackAttachment, FeedbackDiagnostics } from './lib/view/feedbac
 export { FEEDBACK_PARTS } from '../../telemetry/contract'
 export type { FeedbackPart, FeedbackSource, SentFeedbackPart } from '../../telemetry/contract'
 
+// Partner feedback (#628) — the switch, and the submission one discussion is holding.
+//
+// It is NOT the route above. That one takes a sentence and four small attachments on this
+// machine's usage install id; this one takes a refine's raw traces and the project files
+// behind them, keyed by a submission id the user is shown and quotes to have it deleted. So
+// the switch is its own answer too: `readPartnerFeedback` is off until somebody turns it on,
+// which is the opposite default from the anonymous numbers and the opposite reason.
+//
+// `searchLinkable` is the Discuss link: open cards as well as archived ones, because a
+// complaint about a spec is usually about the card in front of you. It is offered whichever
+// way the switch is set — linking is what hands the turn to the `feedback` agent, and the
+// switch gates only what may be collected, which is this side's answer and not the screen's.
+export { readPartnerFeedback, setPartnerFeedback } from './lib/machine/telemetry'
+export type { PartnerFeedback } from './lib/machine/types'
+export {
+  dropCase,
+  readCase,
+  retryCase,
+  searchLinkable,
+  sendTextOnlyCase,
+} from './lib/case'
+export type { CaseFailure, CaseRecord, CaseStatus } from './lib/case'
+export { CASE_EMAIL } from '../../telemetry/contract'
+
 // The spec agents (#191, #403): the list a screen draws — each one's two lines and whether
 // it is switched on — and the switch itself. The words and the order come from each agent's
 // own AGENT.md, so the Agents section in the Configuration dialog and `akb spec` can never

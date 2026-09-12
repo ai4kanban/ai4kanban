@@ -80,6 +80,9 @@ export const fakeEnv = (over = {}) => ({
   DB: fakeDatabase(),
   LIMITER: fakeLimiter(),
   ARCHIVE: fakeBucket(),
+  // The partners' refine cases (#628) — its own bucket, so a test that reads one back can
+  // also show nothing of it landed in the archive.
+  CASES: fakeBucket(),
   COPY: 'production',
   ...over,
 })

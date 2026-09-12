@@ -1,17 +1,19 @@
 /**
- * The endpoint. One route takes batches, one takes feedback (#603), one says the service is
- * up, and there is no fourth: nothing here answers a request that returns a number. The
+ * The endpoint. One route takes batches, one takes feedback (#603), one takes a partner's
+ * refine case (#628), one says the service is up, and there is no fifth: nothing here
+ * answers a request that returns a number. The
  * numbers are read from this repository with the Cloudflare account we already hold
  * (`npm run numbers`), which is the only way #292's promise that nobody outside the project
  * reads them can hold.
  *
- * The two posting routes never meet. A batch is taken whatever came of it, because a number
- * nobody notices losing is not worth a retry; a piece of feedback is answered honestly,
- * because a person is waiting on the screen it was written on and is told when it did not
- * go.
+ * The three posting routes never meet. A batch is taken whatever came of it, because a
+ * number nobody notices losing is not worth a retry; a piece of feedback and a case are
+ * answered honestly, because a person is waiting on the screen either was written on and is
+ * told when it did not go.
  */
 
 import { LIMITS } from '../contract.ts'
+import { BadCase, storeCase, takeCase } from './case.ts'
 import { runDaily } from './daily.ts'
 import { BadFeedback, storeFeedback, takeFeedback } from './feedback.ts'
 import type { Env } from './env.ts'
@@ -77,6 +79,7 @@ async function route(request: Request, env: Env, now: Date): Promise<Handled> {
     return said(200, { service: 'ai4kanban-telemetry', ok: true })
   }
   if (pathname === '/v1/feedback') return feedback(request, env, now, said)
+  if (pathname === '/v1/case') return partnerCase(request, env, now, said)
   if (pathname !== '/v1/batch') return said(404, { ok: false })
   if (request.method === 'OPTIONS') return said(204, null)
   if (request.method !== 'POST') return said(405, { ok: false })
@@ -156,6 +159,45 @@ async function feedback(request: Request, env: Env, now: Date, said: Said): Prom
     }
   } catch (error) {
     console.error('telemetry: feedback not stored', error)
+    return said(500, { ok: false })
+  }
+}
+
+/**
+ * One partner's refine case, taken or refused in so many words (#628).
+ *
+ * Its own limit, and the refusal is the WHOLE pack: a case cut down to fit is a
+ * reproduction that no longer reproduces, so 413 goes back and the sender offers to send the
+ * question description on its own instead. The same id posted twice writes the same object,
+ * which is what makes the sender's retry safe.
+ */
+async function partnerCase(request: Request, env: Env, now: Date, said: Said): Promise<Handled> {
+  if (request.method === 'OPTIONS') return said(204, null)
+  if (request.method !== 'POST') return said(405, { ok: false })
+
+  const origin = request.headers.get('origin')
+  if (origin && !allowed(origin, env)) return said(403, { ok: false })
+
+  if (Number(request.headers.get('content-length') ?? 0) > LIMITS.caseBytes) {
+    return said(413, { ok: false })
+  }
+  const bytes = await request.arrayBuffer()
+  if (bytes.byteLength > LIMITS.caseBytes) return said(413, { ok: false })
+
+  let taken
+  try {
+    const body: unknown = JSON.parse(new TextDecoder().decode(bytes))
+    taken = takeCase(body, now.toISOString().slice(0, 10))
+  } catch (error) {
+    if (error instanceof SyntaxError || error instanceof BadCase) return said(400, { ok: false })
+    throw error
+  }
+
+  try {
+    await storeCase(env.CASES, taken)
+    return said(202, { ok: true, id: taken.id })
+  } catch (error) {
+    console.error('telemetry: case not stored', error)
     return said(500, { ok: false })
   }
 }

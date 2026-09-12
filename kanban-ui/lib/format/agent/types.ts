@@ -341,6 +341,18 @@ export interface RunRecord {
   /** The agent it was run by — a role, or a specialist by name (#443). Absent on a run that
    *  belongs to no agent, and on one written before agents picked a connector. */
   agent?: string
+  /** The akb version this run went on, written down when it started (#628). A refine is
+   *  reproduced against the guides and the rules of the release that ran it, so the version
+   *  has to be the run's own — reading today's off the package would answer for a build that
+   *  never touched this card. A run recorded before this field carries none, and a case built
+   *  from it names that as a gap rather than guessing. */
+  version?: string
+  /** Where it worked and what it spawned (#628) — the project or a delivery's worktree, and
+   *  the argv behind `harness`. Kept because the run's own prompt file is deleted when the
+   *  run ends, so these are the only clues left for finding that harness's raw trace of it.
+   *  Absent on a run written before them. */
+  cwd?: string
+  argv?: string[]
   /** The run's SECOND id: the one that harness's own CLI resumes by. Set only when it
    *  isn't ours to know — the harness minted its own mid-run, or this run continues an
    *  earlier conversation and inherited that one's id. */
