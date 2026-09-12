@@ -1,6 +1,6 @@
 import { boardRules } from "./cli";
 import { alertsAllowed, autoWorkAllowed } from "./desktop";
-import type { CloudEventAnswer } from "./types";
+import type { CloudEventAnswer, NotificationGroup } from "./types";
 
 // --- the notification center (#319) ------------------------------------------
 // The bell, and what each board fills it with. Signing in is what turns a board on — the
@@ -68,6 +68,8 @@ export interface NotificationCenter {
   release: string;
   silenced: boolean;
   rows: NotificationRow[];
+  /** How many rows waiting for a person have not been opened — the bell's count. Landed
+   *  deliveries are outside it (#613); the rail dots their tab instead. */
   unread: number;
   alerts: NotificationAlert[];
   /** The scope change that just filled the bell (#451), handed out once. Absent when no
@@ -140,10 +142,12 @@ export async function openNotification(
   return rules.openNotification ? rules.openNotification(eventId) : null;
 }
 
-/** Mark every row read at once. The rows stay where they are — only the count empties. */
-export async function readAllNotifications(): Promise<void> {
+/** Mark one tab's rows read at once, or every tab's when no group is named (#613). The rows
+ *  stay where they are — only the count empties. Rules that predate the tabs take no group
+ *  and empty both; the tabs still draw, since the rail groups the rows itself. */
+export async function readAllNotifications(group?: NotificationGroup): Promise<void> {
   const rules = await boardRules();
-  rules.readAllNotifications?.();
+  rules.readAllNotifications?.(group);
 }
 
 /** Stop every board's system notifications while the bell keeps filling. One switch for the

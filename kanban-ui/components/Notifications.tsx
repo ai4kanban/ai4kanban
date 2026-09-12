@@ -28,6 +28,14 @@
 // One line sits above the rows when a scope change has just filled them (#451): those cards
 // were already waiting, so they arrive read and raise nothing, and the line is the whole of
 // what says so. It goes when the rail is folded.
+//
+// Two small tabs beside the title split the list (#613): **To do** is everything that wants a
+// person, **Landed** the record of deliveries that succeeded. A success is worth finding and
+// worth nobody's attention, so it neither counts in the bell nor sits in the way of the card
+// asking a question. The tab dots itself when it holds something new and switching to it
+// clears the dot — the same move as marking that tab read, so there is no second piece of
+// state saying which tab has been looked at. The tabs do not remember: the rail opens on
+// **To do** every time, rather than on last week's successes.
 
 import { useEffect, useState } from "react";
 import { FiBell, FiBellOff, FiCheck, FiChevronRight, FiSlash, FiX } from "react-icons/fi";
@@ -37,7 +45,7 @@ import { useCopy } from "@/i18n/use-copy";
 import { useBell } from "@/lib/card-event";
 import type { BellRail } from "@/lib/bell-rail";
 import type { NotificationRow } from "@/lib/notifications";
-import { ALL_RELEASES } from "@/lib/types";
+import { ALL_RELEASES, notificationGroup, type CloudEventState, type NotificationGroup } from "@/lib/types";
 import { Button } from "./button";
 import { HAIRLINE, TOOL_BTN } from "./chrome";
 import { Loading } from "./settings";
@@ -84,12 +92,31 @@ export function BellButton() {
 export function BellPane({ rail }: { rail: BellRail }) {
   const c = useCopy().notifications;
   const { center } = rail;
+  const [tab, setTab] = useState<NotificationGroup>("todo");
   // The rail draws what is waiting for a person. `center.rows` carries every live event
   // because the card page reads its own out of the same list.
   const rows = center.rows.filter((row) => row.onRail !== false);
+  // The rules' own call, so the tabs and the bell's count can never split a row two ways.
+  // Rules older than the tabs still hand back a state, which is all this reads.
+  const shown = rows.filter((row) => notificationGroup(row.state as CloudEventState) === tab);
+  const landedNew = rows.some(
+    (row) => row.unread && notificationGroup(row.state as CloudEventState) === "landed",
+  );
+  const unread = shown.filter((row) => row.unread).length;
+  // Switching to a tab is reading it: the dot and the read marks are one thing.
+  const pick = (next: NotificationGroup) => {
+    setTab(next);
+    if (next === "landed") void rail.readAll("landed");
+  };
+  const live = rail.ready && !center.unavailable && center.signedIn && (center.enabled || rows.length > 0);
   return (
     <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3 max-md:pl-3">
-      <Head c={c} silenced={center.silenced} onFold={rail.fold} />
+      <Head
+        c={c}
+        silenced={center.silenced}
+        onFold={rail.fold}
+        tabs={live ? { tab, landedNew, pick } : null}
+      />
       {/* Before the first read lands the rail has been told nothing — least of all that
           nobody is signed in. It says it is looking. */}
       {!rail.ready ? (
@@ -132,30 +159,30 @@ export function BellPane({ rail }: { rail: BellRail }) {
               </p>
             </div>
           )}
-          {rows.length === 0 ? (
+          {shown.length === 0 ? (
             <Empty
               icon={<FiBell size={20} aria-hidden />}
-              title={c.empty.title}
-              body={c.empty.body}
+              title={tab === "landed" ? c.emptyLanded.title : c.empty.title}
+              body={tab === "landed" ? c.emptyLanded.body : c.empty.body}
             />
           ) : (
             <>
-              {/* How many are waiting, and the one move over the whole list: empty the count
-                  without opening anything. The two ends of one bar — the state on the left
+              {/* How many are waiting in THIS tab, and the one move over it: empty its count
+                  without opening anything, leaving the other tab where it stands. The two ends of one bar — the state on the left
                   where the rows' own ink starts, the action on the right where the header's
                   buttons are — so the chrome reads as two columns rather than a ragged stack.
                   The list needs no heading of its own: every row wears its time. */}
-              {center.unread > 0 && (
+              {unread > 0 && (
                 <div
                   className="flex h-[26px] shrink-0 items-center justify-between px-2"
                   style={{ borderBottom: `1px solid ${HAIRLINE}` }}
                 >
                   <span className="text-[11.5px] font-[700] text-nb-ink-soft">
-                    {c.newCount(center.unread)}
+                    {c.newCount(unread)}
                   </span>
                   <button
                     type="button"
-                    onClick={() => void rail.readAll()}
+                    onClick={() => void rail.readAll(tab)}
                     className="-mr-1.5 inline-flex cursor-pointer items-center gap-1 rounded-[7px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] hover:text-nb-ink"
                   >
                     <FiCheck size={11} aria-hidden />
@@ -164,7 +191,7 @@ export function BellPane({ rail }: { rail: BellRail }) {
                 </div>
               )}
               <div className="min-h-0 flex-1 overflow-y-auto">
-                {rows.map((row) => (
+                {shown.map((row) => (
                   <Row
                     key={row.eventId}
                     row={row}
@@ -194,34 +221,103 @@ export function BellPane({ rail }: { rail: BellRail }) {
   );
 }
 
-/** The rail's title row: what this is, and the one way out of it. The count is not here —
- *  it belongs with the button that empties it, over the list it counts. */
-function Head({ c, silenced, onFold }: { c: NotificationsCopy; silenced: boolean; onFold: () => void }) {
+/** The rail's title row: what this is, which half of it is on screen, and the one way out.
+ *  The count is not here — it belongs with the button that empties it, over the list it
+ *  counts. The title gives way first when the rail is dragged narrow: the tabs are a control
+ *  and the word above them is not. */
+function Head({
+  c,
+  silenced,
+  onFold,
+  tabs,
+}: {
+  c: NotificationsCopy;
+  silenced: boolean;
+  onFold: () => void;
+  /** Null while the rail is drawing an end rather than a list — there is nothing to split. */
+  tabs: { tab: NotificationGroup; landedNew: boolean; pick: (next: NotificationGroup) => void } | null;
+}) {
   return (
     <div className="mb-1 flex h-[30px] shrink-0 items-center gap-2 px-2">
-      <FiBell size={13} aria-hidden />
-      <span className="text-[12.5px] font-[700] text-nb-ink">{c.title}</span>
-      {/* The machine's silencing switch is a fact worth stating where its effect is felt:
-          the bell keeps filling and nothing interrupts. */}
-      {silenced && (
-        <span
-          className="nb-tip inline-flex items-center gap-1 text-[11px] font-[700] text-nb-ink-soft"
-          tabIndex={0}
-          data-tip={c.silencedTip}
-        >
-          <FiSlash size={11} aria-hidden />
-          {c.silenced}
-        </span>
+      <FiBell size={13} className="shrink-0" aria-hidden />
+      <span className="truncate text-[12.5px] font-[700] text-nb-ink">{c.title}</span>
+      {tabs && (
+        <div className="flex shrink-0 items-center gap-0.5" role="tablist">
+          <Tab label={c.tabs.todo} on={tabs.tab === "todo"} onPick={() => tabs.pick("todo")} />
+          <Tab
+            label={c.tabs.landed}
+            on={tabs.tab === "landed"}
+            onPick={() => tabs.pick("landed")}
+            dot={tabs.landedNew && tabs.tab !== "landed" ? c.tabNew : undefined}
+          />
+        </div>
       )}
-      <button
-        type="button"
-        aria-label={c.close}
-        onClick={onFold}
-        className="-mr-1 ml-auto inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] hover:text-nb-ink"
-      >
-        <FiX size={14} aria-hidden />
-      </button>
+      {/* Pinned right together, so the silencing note never drifts into the middle of the
+          row when both it and the tabs are up. */}
+      <div className="-mr-1 ml-auto flex shrink-0 items-center gap-2">
+        {/* The machine's silencing switch is a fact worth stating where its effect is felt:
+            the bell keeps filling and nothing interrupts. */}
+        {silenced && (
+          <span
+            className="nb-tip inline-flex items-center gap-1 text-[11px] font-[700] text-nb-ink-soft"
+            tabIndex={0}
+            data-tip={c.silencedTip}
+          >
+            <FiSlash size={11} aria-hidden />
+            {c.silenced}
+          </span>
+        )}
+        <button
+          type="button"
+          aria-label={c.close}
+          onClick={onFold}
+          className="inline-flex size-6 cursor-pointer items-center justify-center rounded-[7px] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] hover:text-nb-ink"
+        >
+          <FiX size={14} aria-hidden />
+        </button>
+      </div>
     </div>
+  );
+}
+
+/** One tab. Small, quiet, and the same shape as the tool buttons in the top row — the pair
+ *  is a switch between two lists, not a heading. The dot is what says the other one holds
+ *  something new, and it is read out loud as well as drawn. */
+function Tab({
+  label,
+  on,
+  onPick,
+  dot,
+}: {
+  label: string;
+  on: boolean;
+  onPick: () => void;
+  /** What the dot means, said for a reader who cannot see it. Absent draws no dot. */
+  dot?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={on}
+      aria-label={dot ? `${label} · ${dot}` : undefined}
+      onClick={onPick}
+      className={`inline-flex cursor-pointer items-center gap-1 rounded-[7px] px-1.5 py-[3px] text-[11.5px] font-[700] ${
+        on
+          ? "text-nb-ink"
+          : "text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_7%,transparent)] hover:text-nb-ink"
+      }`}
+      style={on ? { background: "color-mix(in srgb, var(--color-nb-ink) 8%, transparent)" } : undefined}
+    >
+      {label}
+      {dot && (
+        <span
+          aria-hidden
+          className="size-[5px] shrink-0 rounded-full"
+          style={{ background: "var(--color-nb-accent)" }}
+        />
+      )}
+    </button>
   );
 }
 

@@ -15,7 +15,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { alertFor } from '../src/lib/cloud/center.ts'
-import { needsPerson, onTheRail } from '../src/lib/cloud/events.ts'
+import { CLOUD_EVENT_STATES, needsPerson, notificationGroup, onTheRail } from '../src/lib/cloud/events.ts'
 import type { CloudEvent, CloudEventState } from '../src/lib/cloud/events.ts'
 
 const event = (over: Partial<CloudEvent> = {}): CloudEvent =>
@@ -187,5 +187,17 @@ describe('what the rail draws', () => {
     assert.equal(onTheRail(event({ state: 'accepted', acted: true })), false)
     assert.equal(onTheRail(event({ state: 'cancelled', acted: true })), false)
     assert.equal(onTheRail(event({ state: 'stale' })), false)
+  })
+})
+
+describe('which tab a row lands in (#613)', () => {
+  it('puts a delivery that landed on its own, away from the count', () => {
+    assert.equal(notificationGroup('completed'), 'landed')
+  })
+
+  it('leaves everything a person still has to look at where the count is', () => {
+    for (const state of CLOUD_EVENT_STATES.filter((s) => s !== 'completed')) {
+      assert.equal(notificationGroup(state), 'todo', state)
+    }
   })
 })

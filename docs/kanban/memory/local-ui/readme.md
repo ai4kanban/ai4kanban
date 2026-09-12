@@ -121,6 +121,9 @@ naming no other doc is covered there.
   Configuration → General sets the wait — 10 minutes unless you change it, **Off** leaves
   the card held until you stop the run — and the run it ends is a failure you resume from
   the button.
+- Runs opens on a pixel office where every live job is a bot at a desk: click one for its
+  work log on the right, **Completed** for the records on the left, and more than eight jobs
+  pair up at desks before the office pages on. `kanban-ui/README.md`.
 
 ## Cards
 
@@ -394,3 +397,10 @@ naming no other doc is covered there.
   itself and what that costs, and the switch asks once on the way on — which is now a property
   the board declares per agent rather than a name the pane keeps, so the Decider and Triage ask
   through the same control.
+- **The bell splits into To do and Landed**: the notification rail carries two tabs beside its
+  title — **To do / 待处理** for anything still wanting a person (to review, to answer, a
+  delivery that did not land, one interrupted, one waiting on a machine) and **Landed /
+  已落地** for deliveries that succeeded. The bell's number and the Dock badge count **To do**
+  alone; a new landed record dots the **Landed** tab instead, and switching to it clears the
+  dot. **Mark all read** works on the tab you are on, and the rail opens on **To do** every
+  time.

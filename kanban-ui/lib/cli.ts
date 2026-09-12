@@ -37,7 +37,7 @@ import type {
   SetupProposal,
   SpecAgentView,
 } from "./format/agent/types";
-import type { CloudEventAnswer } from "./format/cloud/events";
+import type { CloudEventAnswer, NotificationGroup } from "./format/cloud/events";
 import type {
   CloudAccount,
   CloudMove,
@@ -743,7 +743,7 @@ export interface BoardRules {
     eventId: string,
   ): { boardPath: string | null; boardDir: string | null; taskId: number } | null;
   /** Mark every row read without opening any of them. */
-  readAllNotifications?(): void;
+  readAllNotifications?(group?: NotificationGroup): void;
   setNotificationsSilenced?(on: boolean): WriteResult;
   readBoardNotifications?(): Promise<BoardNotifications>;
   /** Be told about a shared board, or not (#328). Absent from rules that predate it. */

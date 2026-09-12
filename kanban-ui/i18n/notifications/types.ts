@@ -13,6 +13,10 @@ export type NotificationsCopy = {
    *  saying why none of them raised anything. `scope` is a release, or `everyRelease`. */
   filled: (scope: string, cards: number) => string;
   everyRelease: string;
+  /** The two tabs beside the title (#613): what still wants a person, and what landed. */
+  tabs: { todo: string; landed: string };
+  /** Read out loud on the landed tab while it holds something new — the dot alone. */
+  tabNew: string;
   /** The unread count over the list, and the one click that empties it. */
   newCount: (unread: number) => string;
   markAllRead: string;
@@ -28,6 +32,8 @@ export type NotificationsCopy = {
   signedOut: { title: string; body: string; hint: string };
   noRelease: { title: string; body: string };
   empty: { title: string; body: string };
+  /** Nothing has landed yet — the other tab's end. */
+  emptyLanded: { title: string; body: string };
   /** Cloud answered with less than the whole truth. */
   unreachable: (why: string) => string;
   unsent: (changes: number) => string;

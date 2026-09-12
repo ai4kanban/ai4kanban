@@ -9,6 +9,7 @@ import {
 import { CHAT_MAX, CHAT_MIN, CHAT_W } from "./chat-rail";
 import { useMatches } from "./media";
 import type { NotificationAlert, NotificationCenter, WatchFill } from "./notifications";
+import { notificationGroup, type CloudEventState, type NotificationGroup } from "./types";
 
 // The bell's own state (#319): whether the rail is up, how wide it is, and the events it is
 // showing — this board's, which is what the rules hand back.
@@ -73,8 +74,9 @@ export interface BellRail {
    *  lands on, and those DO come from other boards — so it switches the app first when the
    *  event is not this board's. */
   openRow(eventId: string): Promise<void>;
-  /** Mark every row read at once. The rows stay; only the count empties. */
-  readAll(): Promise<void>;
+  /** Mark one tab's rows read at once, or every tab's when no group is named. The rows stay;
+   *  only the count empties. */
+  readAll(group?: NotificationGroup): Promise<void>;
   /** Force a read now, rather than waiting out the tick already running. */
   refresh(): void;
   panel: ReturnType<typeof usePanelRef>;
@@ -194,9 +196,14 @@ export function useBellRail({
 
   // The click empties the count here first: the marks are written on the machine and the
   // next poll is up to 2.5s away, which is long enough to look like the button missed.
-  const readAll = useCallback(async () => {
-    setCenter((was) => ({ ...was, rows: was.rows.map((r) => ({ ...r, unread: false })), unread: 0 }));
-    await readAllNotificationsAction();
+  const readAll = useCallback(async (group?: NotificationGroup) => {
+    setCenter((was) => {
+      const tabOf = (r: { state: string }) => notificationGroup(r.state as CloudEventState);
+      const rows = was.rows.map((r) => (!group || tabOf(r) === group ? { ...r, unread: false } : r));
+      // The bell counts `todo` alone, so emptying the landed tab leaves the number where it is.
+      return { ...was, rows, unread: rows.filter((r) => r.unread && tabOf(r) === "todo").length };
+    });
+    await readAllNotificationsAction(group);
     kickRef.current();
   }, []);
 

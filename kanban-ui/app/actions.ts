@@ -252,6 +252,7 @@ import type {
   MemoryPruneSchedule,
   MemberRoleWire,
   MetricsResult,
+  NotificationGroup,
   PlanAnswer,
   RunPick,
   SaveProjectResult,
@@ -2383,9 +2384,9 @@ export async function openNotificationAction(
 }
 
 /** Mark every row read at once. The rows stay — only the bell's count empties. */
-export async function readAllNotificationsAction(): Promise<void> {
+export async function readAllNotificationsAction(group?: NotificationGroup): Promise<void> {
   try {
-    await readAllNotifications();
+    await readAllNotifications(group);
   } catch {
     // A read mark we could not save is a row that stays bold. Not worth an error.
   }

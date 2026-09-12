@@ -173,8 +173,16 @@ export type {
   CloudEventKind,
   CloudEventQuestion,
   CloudEventState,
+  NotificationGroup,
 } from "./format/cloud/events";
-export { answerNotes, bandLabel, CARD_BAND_STATES, eventLabel, isFinalEventState } from "./format/cloud/events";
+export {
+  answerNotes,
+  bandLabel,
+  CARD_BAND_STATES,
+  eventLabel,
+  isFinalEventState,
+  notificationGroup,
+} from "./format/cloud/events";
 
 /** Watch every card, whatever release it is promised to — mirrored from the rules' own
  *  `ALL_RELEASES`, since the release picker has to name it before any rules are loaded.

@@ -37,7 +37,15 @@ import { KANBAN } from '../paths'
 import { cloudBoardById, cloudBoardFor, readCloudBoards } from './boards'
 import { readBoardCopy } from './copy'
 import { isTerminal, listEvents, readEvent } from './client'
-import { eventLabel, needsPerson, onTheRail, type CloudEvent, type CloudEventState } from './events'
+import {
+  eventLabel,
+  needsPerson,
+  notificationGroup,
+  onTheRail,
+  type CloudEvent,
+  type CloudEventState,
+  type NotificationGroup,
+} from './events'
 import { eventHome, inHome } from './home'
 import { connectCloudLive, type LiveConnection } from './live'
 import { ensureBoardNotifications } from './notifications'
@@ -100,7 +108,9 @@ export interface NotificationCenter {
   /** This board's live events, newest change first. The rail draws the ones marked `onRail`;
    *  the card page reads the rest for its own title band. */
   rows: NotificationRow[]
-  /** How many rows are waiting for a person and have not been opened — the bell's count. */
+  /** How many `todo` rows have not been opened — the bell's count. A landed delivery is a
+   *  record rather than a thing to do, so it never grows this number; the rail marks its own
+   *  tab with a dot instead (#613). */
   unread: number
   /** Alerts to raise now, handed out once. */
   alerts: NotificationAlert[]
@@ -385,7 +395,7 @@ export function readCloudCenter(): NotificationCenter {
     release: enabled?.release ?? '',
     silenced: notificationsSilenced(),
     rows,
-    unread: rows.filter((r) => r.unread).length,
+    unread: rows.filter((r) => r.unread && notificationGroup(r.state) === 'todo').length,
     alerts,
     ...(filled ? { filled } : {}),
     error: held.error,
@@ -427,16 +437,23 @@ function checkoutOf(event: {
   return board ? { path: board.path, boardDir: board.boardDir } : null
 }
 
-/** Mark every row read at once, without opening any of them. The rows stay — what they are
- *  waiting for has not changed — and the bell's count empties. The rows this board's, like
- *  the bell: emptying the count here must not empty another project's. */
-export function readAllNotifications(): void {
+/** Mark rows read at once, without opening any of them. The rows stay — what they are
+ *  waiting for has not changed — and the count over them empties. The rows this board's, like
+ *  the bell: emptying the count here must not empty another project's.
+ *
+ *  `group` narrows it to one tab (#613), which is both what the tab's own button does and
+ *  what switching to **Landed** does: clearing that tab's dot and marking it read are one
+ *  move, not a second piece of state saying which tab has been looked at. No group is every
+ *  tab. */
+export function readAllNotifications(group?: NotificationGroup): void {
   const enabled = cloudBoardFor(KANBAN)
   if (!enabled) return
   const home = eventHome(enabled)
   const marks = reads()
   for (const event of state().events.values()) {
-    if (inHome(event, home) && needsPerson(event)) marks[event.id] = event.changedAt
+    if (!inHome(event, home) || !needsPerson(event)) continue
+    if (group && notificationGroup(event.state) !== group) continue
+    marks[event.id] = event.changedAt
   }
   writeReads(marks)
 }

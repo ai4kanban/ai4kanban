@@ -294,3 +294,22 @@ export function needsPerson(event: Pick<CloudEvent, 'state' | 'acted' | 'decisio
 export function onTheRail(event: Pick<CloudEvent, 'state' | 'acted' | 'decision'>): boolean {
   return needsPerson(event) || event.state === 'waiting_for_server'
 }
+
+/** The rail's two tabs (#613). `todo` is what a person still has to look at; `landed` is the
+ *  record of a delivery that succeeded. */
+export type NotificationGroup = 'todo' | 'landed'
+
+/**
+ * Which tab a row belongs to.
+ *
+ * `completed` is the one ending that asks nothing of anybody — the delivery landed, and the
+ * row is there to be found rather than acted on. Everything else the rail draws is a card
+ * asking, a delivery that did not land, one interrupted, or a decision no machine has
+ * claimed: all of them want a person, so they stay where the count is.
+ *
+ * The bell counts `todo` alone, and the tabs split the rows by the same call, so the number
+ * and the list can never disagree about what is waiting.
+ */
+export function notificationGroup(state: CloudEventState): NotificationGroup {
+  return state === 'completed' ? 'landed' : 'todo'
+}

@@ -11,6 +11,8 @@ const zh: NotificationsCopy = {
   silencedTip: "这台机器上所有看板的系统通知都已静音。",
   filled: (scope, cards) => `跟踪范围已改为「${scope}」——${cards} 张卡片早已在等你`,
   everyRelease: "全部版本",
+  tabs: { todo: "待处理", landed: "已落地" },
+  tabNew: "有新记录",
   newCount: (unread) => `${unread} 条新消息`,
   markAllRead: "全部标为已读",
   justNow: "刚刚",
@@ -30,7 +32,11 @@ const zh: NotificationsCopy = {
   },
   empty: {
     title: "没有待处理事项",
-    body: "需要你处理的卡片会出现在这里，完成后再保留 30 天。",
+    body: "需要你处理的卡片会出现在这里：待评审、待回答，或者没能落地的交付。",
+  },
+  emptyLanded: {
+    title: "还没有落地记录",
+    body: "交付落地后会记在这里，保留 30 天。",
   },
   unreachable: (why) => `无法连接 Cloud：${why}。以下是我们最后一次拿到的记录。`,
   unsent: (changes) => `Cloud 数据不同步：有 ${changes} 项改动始终没有送达。以这个看板为准。`,

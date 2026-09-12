@@ -14,6 +14,8 @@ const en: NotificationsCopy = {
       ? `Watching ${scope} — 1 card was already waiting for you`
       : `Watching ${scope} — ${cards} cards were already waiting for you`,
   everyRelease: "every release",
+  tabs: { todo: "To do", landed: "Landed" },
+  tabNew: "something new",
   newCount: (unread) => `${unread} new`,
   markAllRead: "Mark all read",
   justNow: "just now",
@@ -33,7 +35,11 @@ const en: NotificationsCopy = {
   },
   empty: {
     title: "Nothing waiting",
-    body: "Cards that need you appear here, and stay 30 days after they finish.",
+    body: "Cards that need you appear here — one to review, one asking a question, one that did not land.",
+  },
+  emptyLanded: {
+    title: "Nothing landed yet",
+    body: "Deliveries that landed appear here, and stay 30 days.",
   },
   unreachable: (why) => `Cloud could not be reached: ${why}. These are the rows we last knew about.`,
   unsent: (changes) =>
