@@ -339,8 +339,8 @@ export interface SessionView {
  *  on its own before anything is sent. */
 export type FeedbackPart = "card" | "chat" | "trace" | "environment";
 
-/** Where the feedback was written: the block on New task, or the board's Feedback button. */
-export type FeedbackSource = "task" | "board";
+/** Where the feedback was written: the block on New task. */
+export type FeedbackSource = "task";
 
 /** One attachment, exactly as it would be sent — so the preview IS the submission. */
 export interface FeedbackAttachment {

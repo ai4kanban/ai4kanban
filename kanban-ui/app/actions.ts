@@ -2279,7 +2279,7 @@ export async function sendFeedbackAction(feedback: FeedbackToSend): Promise<Feed
   if (!feedback || typeof feedback.text !== "string" || !feedback.text.trim()) {
     return { ok: false, reason: "empty" };
   }
-  if (feedback.source !== "task" && feedback.source !== "board") return { ok: false, reason: "refused" };
+  if (feedback.source !== "task") return { ok: false, reason: "refused" };
   try {
     return await sendFeedback(feedback);
   } catch {

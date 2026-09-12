@@ -13,9 +13,8 @@ import type {
 // diagnostic parts and for the send separately, and each of these is the answer to exactly
 // one of those asks.
 //
-// A board whose rules predate this answers `null`/`false` rather than throwing: the Feedback
-// button and the block on New task simply are not offered, the way an old board offers no
-// archive.
+// A board whose rules predate this answers `null`/`false` rather than throwing: the block on
+// New task simply is not offered, the way an old board offers no archive.
 
 /** How many archived cards one search shows. A landed task is found by its number or by a
  *  word from its title; a longer list is a list nobody reads. */

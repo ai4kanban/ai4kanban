@@ -119,17 +119,6 @@ const en: BoardCopy = {
     },
   },
   feedback: {
-    button: "Feedback",
-    sheet: {
-      title: "Tell the AI4Kanban team",
-      blurb:
-        "Goes to t.ai4kanban.dev, this submission only. No card, no conversation and no run log is sent with it, and there is no box for an address — we cannot write back.",
-      placeholder: "What went wrong, or what would make this better…",
-      send: "Send feedback",
-      sending: "Sending…",
-      sent: "Sent. It reaches the team one way — no reply comes back.",
-      noReply: "One way. You will not get a reply.",
-    },
     link: {
       expand: "Link a landed task",
       cancel: "Cancel linking and feedback",
@@ -157,7 +146,6 @@ const en: BoardCopy = {
     taskSent: "Your task was created, and the feedback went. It reaches the team one way — no reply comes back.",
     failed: {
       task: "Your task was created. The feedback did not go:",
-      standing: "The feedback did not go:",
       tooLarge: "it is too large — take an attachment out and try again.",
       refused: "the endpoint refused it.",
       unreachable: "the endpoint could not be reached.",

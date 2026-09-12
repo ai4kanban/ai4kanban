@@ -109,17 +109,6 @@ const zh: BoardCopy = {
     },
   },
   feedback: {
-    button: "反馈",
-    sheet: {
-      title: "把情况告诉 AI4Kanban 团队",
-      blurb:
-        "仅本次提交，发往 t.ai4kanban.dev。不附带卡片、对话或运行日志，界面也不收邮箱等联系方式——我们无法回信。",
-      placeholder: "哪里不对，或者怎样会更好……",
-      send: "提交反馈",
-      sending: "提交中……",
-      sent: "已提交。反馈单向送达，不会收到回复。",
-      noReply: "单向送达，不会收到回复。",
-    },
     link: {
       expand: "关联已落地任务",
       cancel: "取消关联与反馈",
@@ -146,7 +135,6 @@ const zh: BoardCopy = {
     taskSent: "任务已创建，反馈已提交。反馈单向送达，不会收到回复。",
     failed: {
       task: "任务已创建。这条反馈没发出去：",
-      standing: "这条反馈没发出去：",
       tooLarge: "内容过大，去掉一项诊断信息后重试。",
       refused: "服务端拒绝了这次提交。",
       unreachable: "连不上服务端。",

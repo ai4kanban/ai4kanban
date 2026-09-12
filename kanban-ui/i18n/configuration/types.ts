@@ -365,7 +365,7 @@ export type ConfigurationCopy = {
     title: string;
     body: string;
     /** That the switch above is about the anonymous numbers alone, and does not reach the
-     *  Feedback button (#603) — which carries what the user wrote, on a press, either way. */
+     *  feedback a user sends (#603) — which carries what they wrote, on a press, either way. */
     feedback: string;
     /** What the switch says to a screen reader — the switch itself is the only state on
      *  screen, the same as every other switch in this dialog. */

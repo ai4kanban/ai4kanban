@@ -169,24 +169,9 @@ export type BoardCopy = {
       };
     };
   };
-  /** Feedback on a landed task (#603): the board's standing Feedback button and the sheet
-   *  behind it, and the block on New task that links the landed task a fix is about. */
+  /** Feedback on a landed task (#603): the block on New task that links the landed task a
+   *  fix is about. */
   feedback: {
-    /** The standing button in the top row. */
-    button: string;
-    sheet: {
-      title: string;
-      /** Who takes it, what goes with it, and how long the permission lasts. Said above the
-       *  box rather than under the button. */
-      blurb: string;
-      placeholder: string;
-      send: string;
-      sending: string;
-      /** Shown in place of the box once it has gone. Says the feedback is one way. */
-      sent: string;
-      /** Beside the send button, before it is pressed. */
-      noReply: string;
-    };
     link: {
       /** The collapsed button, and the heading it becomes when it is open. */
       expand: string;
@@ -218,15 +203,12 @@ export type BoardCopy = {
       drop: string;
       restore: string;
     };
-    /** A submission that went, said on New task where the sheet has already closed. The
-     *  standing sheet says its own in place of the box. */
+    /** A submission that went, said on New task. */
     taskSent: string;
     /** A submission that did not go: what happened, then why. */
     failed: {
       /** On New task — the task was created all the same. */
       task: string;
-      /** On the standing sheet, where nothing else was happening. */
-      standing: string;
       tooLarge: string;
       refused: string;
       unreachable: string;
