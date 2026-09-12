@@ -154,7 +154,6 @@ const zh: BoardCopy = {
   },
   partner: {
     expand: "关联之前的卡片",
-    cancel: "取消关联与反馈",
     search: "按编号或标题搜索",
     onBoard: "进行中",
     empty: "没有匹配的卡片。",

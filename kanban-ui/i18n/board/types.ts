@@ -236,11 +236,8 @@ export type BoardCopy = {
    *  and what the send came to. It says what the user did and what came back; never an
    *  endpoint, a storage, a flow id or a run. */
   partner: {
-    /** The collapsed button, and the heading it becomes when it is open. */
+    /** The collapsed button, and the heading it becomes when it is open. Both fold. */
     expand: string;
-    /** Folds it, forgets the link and the tick, and takes the submission off this
-     *  discussion. What was typed stays in the box. */
-    cancel: string;
     search: string;
     /** Beside a card that has not been archived yet. */
     onBoard: string;

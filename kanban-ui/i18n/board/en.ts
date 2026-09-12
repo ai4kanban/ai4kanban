@@ -165,7 +165,6 @@ const en: BoardCopy = {
   },
   partner: {
     expand: "Link a previous task",
-    cancel: "Cancel linking and feedback",
     search: "Search by number or title",
     onBoard: "on the board",
     empty: "No card matches.",

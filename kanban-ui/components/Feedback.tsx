@@ -606,11 +606,13 @@ export interface DiscussFeedback {
    *  from the terms behind the link lights the tick without closing anything. */
   partnerOn: boolean;
   open: boolean;
-  expand: () => void;
-  /** Fold it, forget the link and the tick, and take the submission off this discussion. A
-   *  pack already sent is not withdrawn — the number in the transcript is how that is
-   *  deleted. What was typed is the box's, and it stays. */
-  cancel: () => void;
+  /** Fold and unfold. Folding only hides — the link and the tick are still what the next
+   *  message would carry. */
+  toggle: () => void;
+  /** Forget the link and the tick, and take the submission off this discussion. A pack
+   *  already sent is not withdrawn — the number in the transcript is how that is deleted.
+   *  What was typed is the box's, and it stays. */
+  unlink: () => void;
   card: ArchivedCard | null;
   pick: (card: ArchivedCard | null) => void;
   share: boolean;
@@ -702,8 +704,7 @@ export function useDiscussFeedback(discussion: string | null): DiscussFeedback {
     setWatching(false);
   }, [answering, watching, discussion]);
 
-  const cancel = useCallback(() => {
-    setOpen(false);
+  const unlink = useCallback(() => {
     setCard(null);
     setShare(false);
     setWatching(false);
@@ -721,7 +722,7 @@ export function useDiscussFeedback(discussion: string | null): DiscussFeedback {
     setRecord(await sendTextOnlyCaseAction(discussion));
   }, [discussion]);
 
-  const expand = useCallback(() => setOpen(true), []);
+  const toggle = useCallback(() => setOpen((on) => !on), []);
   const watch = useCallback(() => setWatching(true), []);
 
   return useMemo(
@@ -729,8 +730,8 @@ export function useDiscussFeedback(discussion: string | null): DiscussFeedback {
       offered,
       partnerOn,
       open,
-      expand,
-      cancel,
+      toggle,
+      unlink,
       card,
       pick: setCard,
       share,
@@ -748,8 +749,8 @@ export function useDiscussFeedback(discussion: string | null): DiscussFeedback {
       offered,
       partnerOn,
       open,
-      expand,
-      cancel,
+      toggle,
+      unlink,
       card,
       share,
       record,
@@ -781,7 +782,8 @@ export function DiscussFeedbackBlock({ feedback }: { feedback: DiscussFeedback }
       {!feedback.open ? (
         <button
           type="button"
-          onClick={feedback.expand}
+          onClick={feedback.toggle}
+          aria-expanded={false}
           className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
         >
           <FiChevronRight size={13} aria-hidden />
@@ -789,22 +791,20 @@ export function DiscussFeedbackBlock({ feedback }: { feedback: DiscussFeedback }
         </button>
       ) : (
         <div className="mt-2.5 rounded-[10px] bg-nb-sheet px-3.5 py-3">
-          <div className="mb-2.5 flex items-center justify-between gap-3">
-            <span className="flex items-center gap-1.5 text-[12px] font-[700]">
-              <FiChevronDown size={13} aria-hidden />
-              {c.expand}
-            </span>
-            <button
-              type="button"
-              onClick={feedback.cancel}
-              className="cursor-pointer text-[12px] text-nb-ink-soft transition-colors hover:text-nb-ink"
-            >
-              {c.cancel}
-            </button>
-          </div>
+          {/* The title folds it back up — the only control the header needs. Unlinking is the
+              ✕ on the card below, where the link itself is. */}
+          <button
+            type="button"
+            onClick={feedback.toggle}
+            aria-expanded
+            className="mb-2.5 -ml-1 flex cursor-pointer items-center gap-1.5 rounded-[8px] px-1 py-0.5 text-[12px] font-[700] transition-colors hover:bg-nb-ink/5"
+          >
+            <FiChevronDown size={13} aria-hidden />
+            {c.expand}
+          </button>
 
           {feedback.card ? (
-            <PickedCard card={feedback.card} onClear={() => feedback.pick(null)} />
+            <PickedCard card={feedback.card} onClear={feedback.unlink} />
           ) : (
             <LinkSearch onPick={feedback.pick} />
           )}
