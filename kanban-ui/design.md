@@ -166,8 +166,10 @@ shadow. Shadows never blur or change direction.
   settles 1px on activation as the shadow collapses.
 - **Keep transitions mechanical**: 120ms is the default. Open, close, fade, and slide
   motion should stay below roughly one third of a second.
-- **Move what the user touched**: avoid ambient animation. A small pulse indicating live
-  agent activity is the sole standing exception.
+- **Move what the user touched**: avoid ambient animation. Two standing exceptions: a small
+  pulse indicating live agent activity, and the Runs office, where a character's pose IS the
+  state of the job it stands for — it types while its run works, walks in when a run starts
+  and out when one ends, and holds still otherwise. Nothing else animates by itself.
 - **Use motion to preserve origin**: menus may settle from their triggers and sheets may
   enter from their attached edge; nothing should move without a spatial reason.
 - **Respect reduced motion**: motion-enhanced states must remain understandable when

@@ -103,10 +103,17 @@ The header carries seven things:
   as files beside its own log, and closing the sheet without sending leaves none behind. If the
   agent that mode runs — the planner for Add task, the builder for Build now — can't see
   pictures, the box says so and names the ones that can.
-- **Runs** — every agent session, live or finished. Open one to read its log. A finished run
-  can be continued with a follow-up prompt; that starts a new run. A job with no card shows
-  the sentence it was started with where a `#id` would be — a **Build now** does only until
-  its run has written the card, and reads as `#id` from then on.
+- **Runs** — every agent session, live or finished, drawn as an office. One pixel robot per
+  job: at a desk while it works, on the sofa for the last two that passed, out of the door
+  when it ends. Each wears its agent's name and the mark of the coding tool it runs on.
+  Click a robot to read its log beside it; **Completed** and **Unfinished** at the bottom
+  open the records. From the ninth job on they share desks two to a desk, and past sixteen
+  the office gains a second room with arrows to page between them — the count at the bottom
+  is always every room's. A finished run can be continued with a follow-up prompt; that
+  starts a new run. A job with no card shows the sentence it was started with where a `#id`
+  would be — a **Build now** does only until its run has written the card, and reads as
+  `#id` from then on. A window too small for the room, or a machine that can't draw it,
+  gets the same runs and the same log side by side instead.
 - **Insights** (the chart) — one read-only chart, **Daily progress**; see below.
 - **Configuration** (the gear) — see below.
 - **Chat** — a conversation about this project that also does the board work, in a rail down

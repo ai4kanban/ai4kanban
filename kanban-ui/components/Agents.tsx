@@ -53,6 +53,7 @@ import {
   startPruneMemoryAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
+import { spellAgent } from "@/lib/agent-name";
 import type {
   AgentInfo,
   AgentView,
@@ -354,7 +355,7 @@ export function AgentsPanel({
       const res = await deleteAgentAction(name);
       if (!res.ok)
         return onError?.(
-          res.error || c.deleteFailed(gone ? titleOf(gone) : spellOut(name)),
+          res.error || c.deleteFailed(gone ? titleOf(gone) : spellAgent(name)),
         );
       setRefusal((was) => (was?.agent === name ? null : was));
       // Reseeds both boxes off the new roster, so the deleted agent's unsaved text goes
@@ -1653,23 +1654,9 @@ function useAgentTitle(): (agent: AgentView) => string {
   const roles = useCopy().configuration.agents.roles;
   return useCallback(
     (agent: AgentView) =>
-      roles[agent.name as keyof typeof roles]?.name || agent.title || spellOut(agent.name),
+      roles[agent.name as keyof typeof roles]?.name || agent.title || spellAgent(agent.name),
     [roles],
   );
-}
-
-/** An agent's own name, as a name rather than an id: `memory-pruner` → `Memory pruner`. */
-function spellOut(name: string): string {
-  const words = name.split("-");
-  return words
-    .map((word, index) =>
-      index === 0 ? sentenceStart(displayWord(word)) : displayWord(word),
-    )
-    .join(" ");
-}
-
-function displayWord(word: string): string {
-  return word.toLowerCase() === "ui" ? "UI" : word;
 }
 
 function sentence(text: string): string {

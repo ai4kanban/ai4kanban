@@ -8,20 +8,41 @@
 // history dialog.
 
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { FiActivity, FiCheck, FiCopy, FiX } from "react-icons/fi";
+import { FiActivity, FiCheck, FiChevronLeft, FiChevronRight, FiCopy, FiX } from "react-icons/fi";
 import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import { useCopy } from "@/i18n/use-copy";
+import { spellAgent } from "@/lib/agent-name";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 import { useActions, type ScreenActions, type StartAnswer } from "@/lib/screen";
-import { flowLabel, flowOf, flowSaid, runFlows, stepLabel, triggerLabel, type RunFlow } from "@/lib/run-flows";
+import {
+  flowLabel,
+  flowOf,
+  flowSaid,
+  runFlows,
+  stepLabel,
+  triggerLabel,
+  type RunFlow,
+  type RunLabels,
+} from "@/lib/run-flows";
+import {
+  deskSpot,
+  finishedAt,
+  placeWorkers,
+  restingIds,
+  SOFA_SPOTS,
+  type Placement,
+  type SceneBot,
+} from "@/lib/run-scene";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
 import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
+import { Button } from "./button";
 import { TOOL_BTN } from "./chrome";
 import { Copied, useCopyText } from "./copy";
+import { botTargetId, RunScene } from "./RunScene";
 
 const POLL_MS = 1500; // while a run is live
 const IDLE_POLL_MS = 5000; // while nothing is running — see the effect below
@@ -330,7 +351,16 @@ function SessionDot({ session }: { session: SessionView }) {
 // nothing the row hasn't already said. A job of several always shows them, with no control
 // to hide them — the sessions are the only place to reach one, and there is nothing to save
 // by folding two or three lines away.
-function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | null }) {
+function FlowRow({
+  flow,
+  selectedId,
+  onOpen,
+}: {
+  flow: RunFlow;
+  selectedId: string | null;
+  /** Where the row is a drawer's, the press that selects also opens the log beside it. */
+  onOpen?: () => void;
+}) {
   const t = useCopy();
   const c = t.runs.panel;
   const language = useLanguage();
@@ -345,7 +375,10 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
     <div className="border-b border-nb-ink/8">
       <button
         type="button"
-        onClick={() => sessionsPanel.select(head.sessionId)}
+        onClick={() => {
+          sessionsPanel.select(head.sessionId);
+          onOpen?.();
+        }}
         className={`flex w-full cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
           holds ? "bg-nb-paper shadow-[inset_2.5px_0_0_0_var(--color-nb-accent)]" : "hover:bg-nb-wash/70"
         }`}
@@ -388,7 +421,10 @@ function FlowRow({ flow, selectedId }: { flow: RunFlow; selectedId: string | nul
               <button
                 key={s.sessionId}
                 type="button"
-                onClick={() => sessionsPanel.select(s.sessionId)}
+                onClick={() => {
+                  sessionsPanel.select(s.sessionId);
+                  onOpen?.();
+                }}
                 title={fullTime(s.startedAt, language)}
                 className={`relative flex w-full cursor-pointer items-center gap-2 py-1.5 pl-7 pr-3 text-left transition-colors ${
                   active ? "bg-nb-paper" : "hover:bg-nb-wash/70"
@@ -538,11 +574,14 @@ export function Sessions() {
   );
 }
 
-// The two-pane dialog: run list on the left, the selected run's input +
-// log tail on the right. Portaled to <body> like Dialog/SessionLogOverlay so the
-// blurred, backdrop-filtered header can't become the scrim's containing block and
-// trap it. Mounts only while open, so the selected run's log is tailed only
-// when visible.
+// The Runs dialog (#399). It opens on the office: a full-bleed pixel room with one bot per
+// job, floating controls over it, and the records and the log in drawers that float in from
+// the sides. Portaled to <body> like Dialog/SessionLogOverlay so the blurred,
+// backdrop-filtered header can't become the scrim's containing block and trap it. Mounts
+// only while open, so the selected run's log is tailed only when visible.
+//
+// A window too small for the room, or a machine the renderer won't start on, gets the
+// dialog's older two-pane form instead — the same rows and the same log, side by side.
 function SessionsDialog({
   sessions,
   onStarted,
@@ -552,9 +591,6 @@ function SessionsDialog({
   // the poll wakes at once and the new run joins the list without a wait.
   onStarted: () => void;
 }) {
-  const t = useCopy();
-  const c = t.runs.panel;
-  const language = useLanguage();
   const panel = usePanelState();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -562,18 +598,12 @@ function SessionsDialog({
   useOverRail();
   // …and over the page, so the swipe back takes the panel off before the page moves (#526).
   useSwipeBack(true, () => sessionsPanel.close());
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") sessionsPanel.close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   // Newest activity first, and a refinement is ONE row however many passes it took
-  // (lib/run-flows.ts). Default the selection to the newest run when none is set, so the
-  // panel always opens on something.
-  const flows = runFlows(sessions);
+  // (lib/run-flows.ts). Memoised because the office is built from it: a fresh array every
+  // render would restage the room on every keystroke. Default the selection to the newest
+  // run when none is set, so the dialog always opens on something.
+  const flows = useMemo(() => runFlows(sessions), [sessions]);
   const selectedId = panel.selected ?? flows[0]?.latest.sessionId ?? null;
   // Tail the selected run's log from the file — live while running, one fetch
   // when done. The list entry carries the input and (for finished runs) the
@@ -586,27 +616,333 @@ function SessionsDialog({
     sessions.find((r) => r.sessionId === selectedId) ??
     (log?.sessionId === selectedId ? log : null);
   const flow = flowOf(flows, selectedId);
-  const input = (log?.input ?? selected?.input ?? "").trim();
+
+  // Whether the room fits at all, and whether it drew. Either answer sends the dialog back
+  // to the two-pane form with everything still reachable.
+  const roomy = useRoomy();
+  const [sceneFailed, setSceneFailed] = useState(false);
 
   if (!mounted) return null;
 
+  const parts = { flows, selectedId, selected, log, flow, onStarted };
   return createPortal(
+    roomy && !sceneFailed ? (
+      <RunsOffice {...parts} onSceneFailed={() => setSceneFailed(true)} />
+    ) : (
+      <RunsPanes {...parts} note={sceneFailed} />
+    ),
+    document.body,
+  );
+}
+
+/** What both forms of the dialog are drawn from. */
+interface RunsParts {
+  flows: RunFlow[];
+  selectedId: string | null;
+  selected: SessionView | null;
+  log: SessionView | null;
+  flow: RunFlow | null;
+  onStarted: () => void;
+}
+
+// --- the office ---------------------------------------------------------------
+
+// How wide and tall the window has to be before the room is worth drawing. Under it the
+// dialog cannot hold its 1040 × 760 frame, and a cropped office says less than a list.
+const ROOMY = "(min-width: 1040px) and (min-height: 640px)";
+
+function RunsOffice({
+  flows,
+  selectedId,
+  selected,
+  log,
+  flow,
+  onStarted,
+  onSceneFailed,
+}: RunsParts & { onSceneFailed: () => void }) {
+  const t = useCopy();
+  const c = t.runs.panel;
+  const s = t.runs.scene;
+  const roleName = useRoleName();
+  // Which records the left drawer is listing, and whether the log is open on the right.
+  const [records, setRecords] = useState<"done" | "unfinished" | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  // Which drawer was touched last: Escape puts that one away first.
+  const drawer = useRef<"left" | "right" | null>(null);
+  // Which job the log drawer was opened from, so focus can go back to its bot — or, once
+  // that bot has walked out, to the entrance the job's record is now behind.
+  const opener = useRef<string | null>(null);
+
+  const office = useOffice(flows, roleName, t.runs);
+  const rooms = office.rooms;
+  const room = Math.min(page, rooms - 1);
+
+  const done = flows.filter((f) => f.latest.status === "done" && f.latest.ok);
+  const unfinished = flows.filter((f) => !isLive(f) && !(f.latest.status === "done" && f.latest.ok));
+  const shown = records === "unfinished" ? unfinished : done;
+
+  const openRecords = (which: "done" | "unfinished") => {
+    setRecords(which);
+    drawer.current = "left";
+  };
+  const closeRecords = useCallback(() => {
+    drawer.current = logOpen ? "right" : null;
+    // Focus goes back to the entrance it came in by, not to the page behind the dialog.
+    if (records) document.getElementById(records === "done" ? DONE_BTN : UNFINISHED_BTN)?.focus();
+    setRecords(null);
+  }, [logOpen, records]);
+  const closeLog = useCallback(() => {
+    setLogOpen(false);
+    drawer.current = records ? "left" : null;
+    const back = opener.current;
+    opener.current = null;
+    // Opened from a record row: that row goes with its drawer, so focus lands on the
+    // entrance the drawer is behind rather than on the page under the dialog.
+    if (!back) {
+      if (records) document.getElementById(records === "done" ? DONE_BTN : UNFINISHED_BTN)?.focus();
+      return;
+    }
+    const bot = document.getElementById(botTargetId(back));
+    if (bot) {
+      bot.focus();
+      return;
+    }
+    const gone = flows.find((f) => f.id === back);
+    const passed = gone?.latest.status === "done" && !!gone.latest.ok;
+    document.getElementById(passed ? DONE_BTN : UNFINISHED_BTN)?.focus();
+  }, [records, flows]);
+
+  // Picking a record's session opens its log beside the records, which stay where they are.
+  // `from` is the bot the log was opened from, and nothing when a record row opened it —
+  // the focus that press came from is the drawer's own, not a bot's.
+  const openLog = useCallback((from: string | null) => {
+    opener.current = from;
+    setLogOpen(true);
+    drawer.current = "right";
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (drawer.current === "right" && logOpen) closeLog();
+      else if (drawer.current === "left" && records) closeRecords();
+      else if (logOpen) closeLog();
+      else if (records) closeRecords();
+      else sessionsPanel.close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [logOpen, records, closeLog, closeRecords]);
+
+  const pick = useCallback(
+    (bot: SceneBot) => {
+      sessionsPanel.select(bot.sessionId);
+      openLog(bot.id);
+    },
+    [openLog],
+  );
+  const floor = useCallback(() => {
+    setRecords(null);
+    setLogOpen(false);
+    drawer.current = null;
+  }, []);
+
+  return (
+    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={() => sessionsPanel.close()}>
+      <div
+        className="nb-panel relative overflow-hidden"
+        // The same frame as Configuration: both are the board's big dialogs. Here every
+        // pixel of its interior is the room — no header, no padding, nothing to switch.
+        style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RunScene
+          bots={office.bots}
+          room={room}
+          selected={logOpen ? office.jobOf(selectedId) : null}
+          onPick={pick}
+          onFloor={floor}
+          onUnavailable={onSceneFailed}
+        />
+
+        {/* Nothing has ever run here: an empty room and one line over it. */}
+        {flows.length === 0 && (
+          <p className="pointer-events-none absolute inset-x-0 top-1/2 z-10 text-center text-[13px] font-[700] text-nb-ink">
+            <span className="rounded-[8px] bg-nb-paper/90 px-3 py-1.5">{c.empty}</span>
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={() => sessionsPanel.close()}
+          aria-label={t.shared.close}
+          className="absolute right-3 top-3 z-30 grid h-7 w-7 cursor-pointer place-items-center rounded-[6px] bg-nb-paper/90 text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-paper hover:text-nb-ink active:scale-90"
+        >
+          <FiX className="h-[18px] w-[18px]" />
+        </button>
+
+        {/* The bottom strip: how many are working, and the way into the records. The drawers
+            stop above it, so both entrances stay reachable with either of them up. */}
+        <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
+          <span className="rounded-[8px] bg-nb-paper/90 px-2.5 py-1 text-[12px] font-[700] text-nb-ink">
+            {office.live > 0 ? s.running(office.live) : s.idle}
+          </span>
+          <Button
+            id={DONE_BTN}
+            type="button"
+            variant="ghost"
+            size="xs"
+            aria-expanded={records === "done"}
+            onClick={() => openRecords("done")}
+          >
+            {s.completed}
+          </Button>
+          {/* Only where there is something unfinished to reach. */}
+          {unfinished.length > 0 && (
+            <Button
+              id={UNFINISHED_BTN}
+              type="button"
+              variant="ghost"
+              size="xs"
+              aria-expanded={records === "unfinished"}
+              onClick={() => openRecords("unfinished")}
+            >
+              {s.unfinished}
+            </Button>
+          )}
+        </div>
+
+        {/* More than one room's worth of work: the rest are the same office, one page on.
+            Paging moves nothing and stops nothing — the count beside it is every room's. */}
+        {rooms > 1 && (
+          <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-[8px] bg-nb-paper/90 px-1.5 py-1">
+            <button
+              type="button"
+              aria-label={s.prevRoom}
+              disabled={room === 0}
+              onClick={() => setPage(room - 1)}
+              className="grid size-6 cursor-pointer place-items-center rounded-[5px] text-nb-ink-soft hover:bg-nb-wash disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <FiChevronLeft aria-hidden />
+            </button>
+            <span className="text-[12px] font-[700] text-nb-ink">{s.page(room + 1, rooms)}</span>
+            <button
+              type="button"
+              aria-label={s.nextRoom}
+              disabled={room === rooms - 1}
+              onClick={() => setPage(room + 1)}
+              className="grid size-6 cursor-pointer place-items-center rounded-[5px] text-nb-ink-soft hover:bg-nb-wash disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <FiChevronRight aria-hidden />
+            </button>
+          </div>
+        )}
+
+        {/* The records, floating over the room rather than taking a column off it. */}
+        {records && (
+          <aside
+            className="nb-panel-sm absolute bottom-14 left-4 top-4 z-20 flex w-[240px] flex-col overflow-hidden"
+            aria-label={records === "done" ? s.completed : s.unfinished}
+            onClick={(e) => e.stopPropagation()}
+            onFocusCapture={() => (drawer.current = "left")}
+          >
+            <DrawerBar
+              title={records === "done" ? s.completed : s.unfinished}
+              onCollapse={closeRecords}
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto bg-nb-cream/70">
+              <RunList flows={shown} selectedId={selectedId} onOpen={() => openLog(null)} />
+            </div>
+          </aside>
+        )}
+
+        {/* The work log, at the width the log has always had. */}
+        {logOpen && (
+          <aside
+            className="nb-panel-sm absolute bottom-14 right-4 top-14 z-20 flex w-[740px] max-w-[calc(100%-2rem)] flex-col overflow-hidden"
+            aria-label={t.runs.log.title}
+            onClick={(e) => e.stopPropagation()}
+            onFocusCapture={() => (drawer.current = "right")}
+          >
+            <DrawerBar title={t.runs.log.title} onCollapse={closeLog} />
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-6">
+              <RunDetail
+                flow={flow}
+                selected={selected}
+                log={log}
+                selectedId={selectedId}
+                onStarted={onStarted}
+              />
+            </div>
+          </aside>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const DONE_BTN = "run-records-done";
+const UNFINISHED_BTN = "run-records-unfinished";
+
+/** A drawer's own title bar, with the one control it needs. */
+function DrawerBar({ title, onCollapse }: { title: string; onCollapse: () => void }) {
+  const s = useCopy().runs.scene;
+  return (
+    <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-3 py-2">
+      <h3 className="text-[12.5px] font-[800] tracking-[-0.02em]">{title}</h3>
+      <button
+        type="button"
+        onClick={onCollapse}
+        className="cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
+      >
+        {s.collapse}
+      </button>
+    </div>
+  );
+}
+
+// --- the two-pane form --------------------------------------------------------
+
+// What the dialog was before the office, and what it still is on a window too small for a
+// room or a machine whose renderer would not start. Nothing here is a reduced version: it is
+// the same rows and the same log, side by side.
+function RunsPanes({
+  flows,
+  selectedId,
+  selected,
+  log,
+  flow,
+  onStarted,
+  note,
+}: RunsParts & { note: boolean }) {
+  const t = useCopy();
+  const c = t.runs.panel;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") sessionsPanel.close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
     <div className="nb-scrim" style={{ alignItems: "center" }} onClick={() => sessionsPanel.close()}>
       <div
         // overflow-hidden clips the list column's edge-to-edge cream fill to the
         // panel radius — without it the square fill pokes past the rounded corner.
         className="nb-panel flex flex-col overflow-hidden"
-        // The same frame as Configuration: both are the board's two-pane dialogs, and a
-        // run's log needs at least as much room as a settings pane.
         style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-5 py-3">
+        <div className="flex shrink-0 items-center gap-2 border-b border-nb-ink/12 px-5 py-3">
           <h2 className="text-[15px] font-[800] tracking-[-0.02em]">{c.heading}</h2>
+          {/* The room could not be drawn. Said once, quietly, and nothing here waits on it. */}
+          {note && <span className="text-[11.5px] text-nb-ink-soft">{t.runs.scene.unavailable}</span>}
           <button
             onClick={() => sessionsPanel.close()}
             aria-label={t.shared.close}
-            className="-mr-1 grid h-7 w-7 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90 active:bg-nb-ink/10"
+            className="-mr-1 ml-auto grid h-7 w-7 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90 active:bg-nb-ink/10"
           >
             <FiX className="h-[18px] w-[18px]" />
           </button>
@@ -619,108 +955,235 @@ function SessionsDialog({
               raised sheet. The divider is a soft ink hairline, not a full ink
               rule: 1.5px ink borders stay reserved for structural frames. */}
           <div className="w-[240px] shrink-0 overflow-y-auto border-r border-nb-ink/10 bg-nb-cream/70">
-            {flows.length === 0 ? (
-              <p className="p-4 text-[12.5px] text-nb-ink-soft">{c.empty}</p>
-            ) : (
-              flows.map((f) => (
-                <FlowRow key={f.id} flow={f} selectedId={selectedId} />
-              ))
-            )}
+            <RunList flows={flows} selectedId={selectedId} />
           </div>
 
           {/* right: the selected run's input + log */}
           {/* Scrolled to the end, the log frame sat tight against the panel edge —
               the extra pb gives it the same air the top has. */}
           <div className="min-w-0 flex-1 overflow-y-auto p-4 pb-6">
-            {selected ? (
-              <>
-                <div className="mb-3 flex items-center gap-2">
-                  {/* A session is titled by the JOB, not by its own action: "Resolve" alone
-                      says nothing about the job it is a step of. Which step you are reading
-                      is the timeline's word, on the left. */}
-                  <span className="text-[14px] font-[800] tracking-[-0.02em]">
-                    {flow ? flowLabel(flow, t.runs) : stepLabel(selected.action, t.runs)}
-                  </span>
-                  {/* The card this run worked on, as a link to it — the same
-                      `#id` → `/id` jump the markdown bodies make, so an id reads
-                      the same wherever it appears. Not gated on the card still
-                      being open, the way a mention in prose is: this id is what
-                      the run WAS, and a card the run archived is exactly the one
-                      you'd click. The board's not-found page says so and takes
-                      you back. Navigating closes the dialog, or it would sit on
-                      top of the card you just opened. */}
-                  {selected.cardId !== null ? (
-                    <Link
-                      href={`/${selected.cardId}`}
-                      className="nb-idlink text-[12px]"
-                      onClick={() => sessionsPanel.close()}
-                    >
-                      #{selected.cardId}
-                    </Link>
-                  ) : (
-                    // No card to link to, so the sentence the job was started with stands
-                    // where the id would (#428). It is the whole account of a build with
-                    // no card, and the note below prints it in full.
-                    flow &&
-                    flowSaid(flow) && (
-                      <span className="min-w-0 truncate text-[12px] text-nb-ink-soft">{flowSaid(flow)}</span>
-                    )
-                  )}
-                  {/* A job is dated by when IT started, not by the session you happen to be
-                      reading — each session carries its own time on its step. */}
-                  <span className="text-[11px] text-nb-ink-soft">
-                    {fullTime(flow?.startedAt ?? selected.startedAt, language)}
-                  </span>
-                  {/* A run started by Resume says so — otherwise it reads as a
-                      second identical run of the same action out of nowhere. */}
-                  {selected.resumedFrom && <span className="nb-tag">{c.resumed}</span>}
-                  {/* A cancelled delivery says so rather than the run's own "stopped":
-                      the run ended because the job did. The delivery's id is internal
-                      and says nothing to read, so it stays out of the header. */}
-                  {selected.delivery?.status === "cancelled" && <span className="nb-tag">{c.cancelled}</span>}
-                  {/* Only a run that ended before finishing — failed,
-                      interrupted or stopped — offers Resume, and the freshly
-                      polled `log` wins over the list entry: the poll that drew
-                      this row may be a second and a half old. Selecting the new
-                      run moves the panel onto it, so the log tail plays on. */}
-                  {(log?.canResume ?? selected.canResume) && (
-                    <span className="ml-auto">
-                      <ResumeButton
-                        sessionId={selected.sessionId}
-                        onResumed={(id) => {
-                          sessionsPanel.select(id);
-                          onStarted();
-                        }}
-                      />
-                    </span>
-                  )}
-                </div>
-                {/* Where its delivery stands, when the delivery has no card page to say it
-                    on (#428): the stop that will not land, the refusal that clears itself,
-                    and the commands that put either back in motion. */}
-                <DeliveryStop session={log ?? selected} />
-                {/* How the job ended — its steps are the left list's job. */}
-                {flow && flow.sessions.length > 1 && <FlowEnding flow={flow} selectedId={selectedId} />}
-                {/* The note is the optional free text the user typed when
-                    starting the run (a create's description, a reject's
-                    reason, else the notes field). Most runs are started
-                    without one — so only show the section when there's actually a
-                    note, rather than a "no note" placeholder on every run. */}
-                {input && (
-                  <div className="mb-3">
-                    <div className="nb-tag mb-1.5">{c.note}</div>
-                    <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-nb-ink">{input}</p>
-                  </div>
-                )}
-                <SessionLog session={log ?? selected} flush />
-              </>
-            ) : (
-              <p className="text-[13px] text-nb-ink-soft">{c.pick}</p>
-            )}
+            <RunDetail
+              flow={flow}
+              selected={selected}
+              log={log}
+              selectedId={selectedId}
+              onStarted={onStarted}
+            />
           </div>
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   );
+}
+
+// --- the two halves both forms share ------------------------------------------
+
+/** The runs, as rows. One list, drawn the same in a column and in a drawer. */
+function RunList({
+  flows,
+  selectedId,
+  onOpen,
+}: {
+  flows: RunFlow[];
+  selectedId: string | null;
+  onOpen?: () => void;
+}) {
+  const c = useCopy().runs.panel;
+  if (flows.length === 0) return <p className="p-4 text-[12.5px] text-nb-ink-soft">{c.empty}</p>;
+  return (
+    <>
+      {flows.map((f) => (
+        <FlowRow key={f.id} flow={f} selectedId={selectedId} onOpen={onOpen} />
+      ))}
+    </>
+  );
+}
+
+/** The selected run: what it is, what it was started with, and its log. */
+function RunDetail({
+  flow,
+  selected,
+  log,
+  selectedId,
+  onStarted,
+}: {
+  flow: RunFlow | null;
+  selected: SessionView | null;
+  log: SessionView | null;
+  selectedId: string | null;
+  onStarted: () => void;
+}) {
+  const t = useCopy();
+  const c = t.runs.panel;
+  const language = useLanguage();
+  if (!selected) return <p className="text-[13px] text-nb-ink-soft">{c.pick}</p>;
+  const input = (log?.input ?? selected.input ?? "").trim();
+
+  return (
+    <>
+      <div className="mb-3 flex items-center gap-2">
+        {/* A session is titled by the JOB, not by its own action: "Resolve" alone
+            says nothing about the job it is a step of. Which step you are reading
+            is the timeline's word, on the left. */}
+        <span className="text-[14px] font-[800] tracking-[-0.02em]">
+          {flow ? flowLabel(flow, t.runs) : stepLabel(selected.action, t.runs)}
+        </span>
+        {/* The card this run worked on, as a link to it — the same
+            `#id` → `/id` jump the markdown bodies make, so an id reads
+            the same wherever it appears. Not gated on the card still
+            being open, the way a mention in prose is: this id is what
+            the run WAS, and a card the run archived is exactly the one
+            you'd click. The board's not-found page says so and takes
+            you back. Navigating closes the dialog, or it would sit on
+            top of the card you just opened. */}
+        {selected.cardId !== null ? (
+          <Link
+            href={`/${selected.cardId}`}
+            className="nb-idlink text-[12px]"
+            onClick={() => sessionsPanel.close()}
+          >
+            #{selected.cardId}
+          </Link>
+        ) : (
+          // No card to link to, so the sentence the job was started with stands
+          // where the id would (#428). It is the whole account of a build with
+          // no card, and the note below prints it in full.
+          flow &&
+          flowSaid(flow) && (
+            <span className="min-w-0 truncate text-[12px] text-nb-ink-soft">{flowSaid(flow)}</span>
+          )
+        )}
+        {/* A job is dated by when IT started, not by the session you happen to be
+            reading — each session carries its own time on its step. */}
+        <span className="text-[11px] text-nb-ink-soft">
+          {fullTime(flow?.startedAt ?? selected.startedAt, language)}
+        </span>
+        {/* A run started by Resume says so — otherwise it reads as a
+            second identical run of the same action out of nowhere. */}
+        {selected.resumedFrom && <span className="nb-tag">{c.resumed}</span>}
+        {/* A cancelled delivery says so rather than the run's own "stopped":
+            the run ended because the job did. The delivery's id is internal
+            and says nothing to read, so it stays out of the header. */}
+        {selected.delivery?.status === "cancelled" && <span className="nb-tag">{c.cancelled}</span>}
+        {/* Only a run that ended before finishing — failed,
+            interrupted or stopped — offers Resume, and the freshly
+            polled `log` wins over the list entry: the poll that drew
+            this row may be a second and a half old. Selecting the new
+            run moves the panel onto it, so the log tail plays on. */}
+        {(log?.canResume ?? selected.canResume) && (
+          <span className="ml-auto">
+            <ResumeButton
+              sessionId={selected.sessionId}
+              onResumed={(id) => {
+                sessionsPanel.select(id);
+                onStarted();
+              }}
+            />
+          </span>
+        )}
+      </div>
+      {/* Where its delivery stands, when the delivery has no card page to say it
+          on (#428): the stop that will not land, the refusal that clears itself,
+          and the commands that put either back in motion. */}
+      <DeliveryStop session={log ?? selected} />
+      {/* How the job ended — its steps are the left list's job. */}
+      {flow && flow.sessions.length > 1 && <FlowEnding flow={flow} selectedId={selectedId} />}
+      {/* The note is the optional free text the user typed when
+          starting the run (a create's description, a reject's
+          reason, else the notes field). Most runs are started
+          without one — so only show the section when there's actually a
+          note, rather than a "no note" placeholder on every run. */}
+      {input && (
+        <div className="mb-3">
+          <div className="nb-tag mb-1.5">{c.note}</div>
+          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-nb-ink">{input}</p>
+        </div>
+      )}
+      <SessionLog session={log ?? selected} flush />
+    </>
+  );
+}
+
+// --- the office, worked out from the runs -------------------------------------
+
+const isLive = (flow: RunFlow) => flow.latest.status === "running";
+
+/** One bot per job, and the rooms they are in.
+ *
+ *  Placements are remembered for as long as the dialog is open, so a job that finishes at
+ *  desk three does not shuffle everyone after it along. The room count only ever grows
+ *  here — an office that empties keeps its pages until the dialog is opened again. */
+function useOffice(flows: RunFlow[], roleName: (agent?: string) => string, copy: RunLabels) {
+  const held = useRef<Map<string, Placement>>(new Map());
+  const roomsHeld = useRef(1);
+  return useMemo(() => {
+    const working = flows.filter(isLive);
+    const { places, rooms } = placeWorkers(
+      held.current,
+      working.map((f) => f.id),
+      roomsHeld.current,
+    );
+    held.current = places;
+    roomsHeld.current = rooms;
+
+    const read = (flow: RunFlow) => ({
+      id: flow.id,
+      sessionId: flow.latest.sessionId,
+      cardId: flow.cardId,
+      label: flowLabel(flow, copy),
+      role: roleName(flow.latest.agent),
+      harness: flow.latest.harness ?? "",
+      status: flow.latest.status,
+    });
+
+    const bots: SceneBot[] = working.map((flow) => {
+      const place = places.get(flow.id)!;
+      return { ...read(flow), working: true, room: place.room, spot: deskSpot(place) };
+    });
+
+    // The sofa: the two latest jobs that actually passed. Everyone else who finished has
+    // already walked out, and is reached through the records.
+    const passed = flows.filter((f) => f.latest.status === "done" && f.latest.ok);
+    const resting = restingIds(passed.map((f) => ({ id: f.id, at: finishedAt(f.latest) })));
+    resting.forEach((id, seat) => {
+      const flow = passed.find((f) => f.id === id);
+      if (flow) bots.push({ ...read(flow), working: false, room: 0, spot: SOFA_SPOTS[seat] });
+    });
+
+    const jobOf = (sessionId: string | null) =>
+      bots.find((b) => flows.some((f) => f.id === b.id && f.sessions.some((s) => s.sessionId === sessionId)))?.id ??
+      null;
+
+    return { bots, rooms, live: working.length, jobOf };
+  }, [flows, roleName, copy]);
+}
+
+/** What the agent that ran a job is called, in the language this machine reads. A role is
+ *  one of a closed set the command ships, so the Agents pane's own copy names it; anything
+ *  else keeps its own name, spelled out. */
+function useRoleName(): (agent?: string) => string {
+  const roles = useCopy().configuration.agents.roles;
+  const none = useCopy().runs.scene.noRole;
+  return useCallback(
+    (agent?: string) =>
+      (agent && (roles[agent as keyof typeof roles]?.name || spellAgent(agent))) || none,
+    [roles, none],
+  );
+}
+
+/** Whether the window has room for the office at all. Read on the first render rather than
+ *  corrected by the effect, or a narrow window would build a renderer it is about to throw
+ *  away. */
+function useRoomy(): boolean {
+  const [roomy, setRoomy] = useState(
+    () => typeof window === "undefined" || window.matchMedia(ROOMY).matches,
+  );
+  useEffect(() => {
+    const query = window.matchMedia(ROOMY);
+    const read = () => setRoomy(query.matches);
+    read();
+    query.addEventListener("change", read);
+    return () => query.removeEventListener("change", read);
+  }, []);
+  return roomy;
 }

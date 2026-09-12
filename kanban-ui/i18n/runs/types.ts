@@ -1,4 +1,4 @@
-import type { AgentAction, ReviewTrigger } from "@/lib/types";
+import type { AgentAction, ReviewTrigger, SessionView } from "@/lib/types";
 
 /** Agent runs: the badge a busy card wears, the run log, the runs panel, and the
  *  dialogs that start a run. */
@@ -99,6 +99,34 @@ export type RunsCopy = {
     hoursAgo: (h: number) => string;
     daysAgo: (d: number) => string;
   };
+  /** The office the Runs dialog opens on (#399): the room, the bots in it, and the
+   *  controls that float over them. */
+  scene: {
+    /** What the room is, for a reader who cannot see it. */
+    office: string;
+    /** One bot, said in full: who is working, on what tool, at which task, and how it is
+     *  going. */
+    bot: (role: string, harness: string, task: string, state: string) => string;
+    /** How a job is going, keyed by the state the board records. */
+    state: Record<SessionView["status"], string>;
+    /** A connector this build ships no mark for, and a job run by no named agent. */
+    noHarness: string;
+    noRole: string;
+    /** How many jobs are working, across every room. */
+    running: (n: number) => string;
+    idle: string;
+    /** The two ways into the records, and the word that puts a drawer away. */
+    completed: string;
+    unfinished: string;
+    collapse: string;
+    /** Which room of how many is on screen. */
+    page: (n: number, of: number) => string;
+    prevRoom: string;
+    nextRoom: string;
+    /** Said once, quietly, when the room could not be drawn on this machine. */
+    unavailable: string;
+  };
+
   /** What a run with no card of its own is called — while it runs, and after. */
   cardless: {
     planning: (release: string) => string;
