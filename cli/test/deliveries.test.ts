@@ -19,6 +19,7 @@ import {
   joinDelivery,
   namedDelivery,
   settleDelivery,
+  syncAudit,
 } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { resumePrompt } from '../src/lib/agent/prompts.ts'
@@ -505,6 +506,24 @@ describe('a delivery the live record lost', () => {
 
   const atImplementing = (): void => fs.writeFileSync(file, CARD.replace('status: ready', 'status: implementing'))
 
+  // A session that had already wrapped up when the record went missing — the delivery was
+  // between steps, which is what makes it recoverable rather than failed.
+  const settled = (id: string) => ({
+    sessionId: `${id}-1`,
+    action: 'implement',
+    status: 'done',
+    startedAt: 1_000,
+    endedAt: 2_000,
+    log: 'x.log',
+  })
+
+  // An orphan whose last session ended, standing on this machine.
+  const resting = (id: string, over: Record<string, unknown> = {}): void => {
+    onThisMachine(orphan(id, { sessions: [settled(id)], ...over }))
+  }
+
+  const rowOf = (id: string) => readStore().deliveries.find((d) => d.deliveryId === id)
+
   it('fails the record and interrupts the sessions nobody saw end', async () => {
     onThisMachine(orphan('lost1111'))
     await recoverOrphanedDeliveries()
@@ -556,6 +575,135 @@ describe('a delivery the live record lost', () => {
     assert.deepEqual(closed.map((d) => d.deliveryId), ['lost5555'])
     assert.match(fs.readFileSync(file, 'utf8'), /status: implementing/)
   })
+
+  // The other ending (#638). A switched-out record loses every row at once, and the
+  // deliveries that were resting between steps are whole in `deliveries/` — so they go back
+  // in rather than being failed by the thousand.
+  it('puts a delivery whose last session ended back into the live record', async () => {
+    atImplementing()
+    resting('rest1111', { next: 'review' })
+    assert.deepEqual(await recoverOrphanedDeliveries(), [])
+    const row = rowOf('rest1111')
+    assert.equal(row?.status, 'active')
+    assert.equal(row?.cardId, 5)
+    assert.equal(row?.next, 'review')
+    assert.deepEqual(row?.sessions, ['rest1111-1'])
+    assert.equal(row?.worktree, path.join('.akb', 'worktrees', '5', 'rest1111'))
+  })
+
+  it('leaves the permanent record and the card exactly as they were', async () => {
+    atImplementing()
+    resting('rest2222')
+    await recoverOrphanedDeliveries()
+    const record = readAudit('rest2222')
+    assert.equal(record.status, 'active')
+    assert.equal(record.endedAt, undefined)
+    assert.deepEqual(record.sessions.map((s) => s.status), ['done'])
+    assert.match(fs.readFileSync(file, 'utf8'), /status: implementing/)
+  })
+
+  // The process walking it through the queue is the one that went missing, so the claim on
+  // the landing slot is nobody's. Everything else it learned on the way is kept.
+  it('puts a delivery mid-landing back in the queue', async () => {
+    atImplementing()
+    resting('rest3333', {
+      landing: { status: 'landing', attempts: 2, rebasedFrom: 'main', onto: 'abc123', at: 3_000 },
+    })
+    await recoverOrphanedDeliveries()
+    assert.deepEqual(rowOf('rest3333')?.landing, {
+      status: 'waiting',
+      attempts: 2,
+      rebasedFrom: 'main',
+      onto: 'abc123',
+      at: 3_000,
+      why: undefined,
+      rebasedAt: undefined,
+      rebaseKind: undefined,
+      commit: undefined,
+      overlap: undefined,
+      conflictFiles: undefined,
+      conflictFails: undefined,
+      conflictAt: undefined,
+      checks: undefined,
+    })
+  })
+
+  // The live record holds no run for a recovered delivery's sessions — they went with the
+  // index. The next write reads them off the permanent record instead of dropping them.
+  it('keeps its session history when the record is written again', async () => {
+    atImplementing()
+    resting('rest4444')
+    await recoverOrphanedDeliveries()
+    syncAudit('rest4444')
+    assert.deepEqual(readAudit('rest4444').sessions, [
+      { sessionId: 'rest4444-1', action: 'implement', status: 'done', startedAt: 1_000, endedAt: 2_000, log: 'x.log' },
+    ])
+  })
+
+  it('recovers once, however many scans see it', async () => {
+    atImplementing()
+    resting('rest5555')
+    await recoverOrphanedDeliveries()
+    await recoverOrphanedDeliveries()
+    assert.deepEqual(
+      readStore().deliveries.filter((d) => d.deliveryId === 'rest5555').length,
+      1,
+    )
+  })
+
+  // The recheck under the index's lock, standing in for whatever ended the delivery while
+  // the scan was reading: the second read of the record is the one the write turns on.
+  it('does not revive a delivery that ended after the scan read it', async () => {
+    atImplementing()
+    resting('rest6666')
+    const wasRead = fs.readFileSync
+    let reads = 0
+    fs.readFileSync = ((target: string, encoding: unknown) => {
+      if (typeof target === 'string' && target.endsWith('rest6666.json') && ++reads === 2) {
+        return JSON.stringify({ ...JSON.parse(wasRead(target, 'utf8') as string), status: 'cancelled' })
+      }
+      return wasRead(target, encoding as never)
+    }) as typeof fs.readFileSync
+    try {
+      await recoverOrphanedDeliveries()
+    } finally {
+      fs.readFileSync = wasRead
+    }
+    assert.equal(reads, 2, 'the recheck under the lock is the second read')
+    assert.equal(rowOf('rest6666'), undefined)
+  })
+
+  it('leaves a resting delivery whose worktree is not on this machine alone', async () => {
+    atImplementing()
+    orphan('rest7777', { sessions: [settled('rest7777')] }) // the record, with no worktree beside it
+    assert.deepEqual(await recoverOrphanedDeliveries(), [])
+    assert.equal(rowOf('rest7777'), undefined)
+    assert.equal(readAudit('rest7777').status, 'active')
+  })
+
+  it('leaves a resting delivery whose card is archived or gone alone', async () => {
+    resting('rest8888', { cardId: 404 })
+    assert.deepEqual(await recoverOrphanedDeliveries(), [])
+    assert.equal(rowOf('rest8888'), undefined)
+  })
+
+  it('leaves a resting delivery whose card another delivery has taken over alone', async () => {
+    resting('rest9999')
+    start(session()) // the delivery building #5 now
+    atImplementing()
+    assert.deepEqual(await recoverOrphanedDeliveries(), [])
+    assert.equal(rowOf('rest9999'), undefined)
+    assert.equal(readAudit('rest9999').status, 'active')
+  })
+
+  // A **Build now** delivery holds no card, so there is no card check to pass (#428).
+  it('recovers a delivery with no card', async () => {
+    resting('restaaaa', { cardId: null })
+    await recoverOrphanedDeliveries()
+    const row = rowOf('restaaaa')
+    assert.equal(row?.status, 'active')
+    assert.equal(row?.cardId, null)
+  })
 })
 
 function readAudit(id: string): {
@@ -564,6 +712,7 @@ function readAudit(id: string): {
   approved: string
   endedAt?: number
   branch?: string
+  landing?: Record<string, unknown>
   sessions: { sessionId: string; log: string; status: string }[]
 } {
   return JSON.parse(fs.readFileSync(path.join(DELIVERIES, `${id}.json`), 'utf8'))

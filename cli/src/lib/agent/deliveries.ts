@@ -50,7 +50,7 @@ import {
   nextAfterSession,
   reviewOf,
 } from './review'
-import { readStore, withStore, type Store } from './store'
+import { readDeliveryRow, readStore, withStore, type Store } from './store'
 import type {
   AgentRequest,
   DeliveryRecord,
@@ -159,6 +159,19 @@ export function syncAudit(deliveryId: string, just?: RunRecord): void {
 
 // ---- the deliveries this board lost track of --------------------------------
 
+/** One delivery's permanent record, when the file holds a whole one that still says
+ *  `active`. Null for anything else — half-written, not a record at all, or a delivery
+ *  that has already ended, none of which is ours to judge. */
+function activeAudit(file: string): DeliveryAudit | null {
+  try {
+    const data = JSON.parse(fs.readFileSync(file, 'utf8')) as DeliveryAudit
+    const whole = data?.status === 'active' && typeof data.deliveryId === 'string' && Array.isArray(data.sessions)
+    return whole ? data : null
+  } catch {
+    return null
+  }
+}
+
 /** Every delivery the permanent record still calls `active`, read from the files
  *  themselves: the live record is exactly the thing that may have lost them. */
 function activeAudits(): DeliveryAudit[] {
@@ -171,20 +184,31 @@ function activeAudits(): DeliveryAudit[] {
   const out: DeliveryAudit[] = []
   for (const name of names) {
     if (!name.endsWith('.json')) continue
-    try {
-      const data = JSON.parse(fs.readFileSync(path.join(DELIVERIES, name), 'utf8')) as DeliveryAudit
-      if (data?.status === 'active' && typeof data.deliveryId === 'string' && Array.isArray(data.sessions)) {
-        out.push(data)
-      }
-    } catch {
-      // half-written, or not a record at all — nothing here is ours to judge
-    }
+    const audit = activeAudit(path.join(DELIVERIES, name))
+    if (audit) out.push(audit)
   }
   return out
 }
 
-/** Close every delivery this board has lost the live record for, and hand back what was
- *  closed so the caller can release the cards.
+/** Was the last thing this delivery did still running when the record lost it?
+ *
+ *  The one test that tells the two endings apart. A session already wrapped up means the
+ *  delivery was between steps, so the permanent record is the whole of it and nothing is
+ *  lost by putting it back. A session still reading `running` means the record never saw
+ *  it end — nobody knows what that process did, or whether it is still going. */
+const lastSessionRunning = (audit: DeliveryAudit): boolean =>
+  audit.sessions[audit.sessions.length - 1]?.status === 'running'
+
+/** What one scan of the permanent records did: the deliveries a lost row ended, and the
+ *  ones it put back. */
+export interface OrphanScan {
+  /** Failed, and their cards are the caller's to hand back. */
+  failed: DeliveryRecord[]
+  /** Back in the live record as ordinary `active` deliveries, still holding their cards. */
+  recovered: DeliveryRecord[]
+}
+
+/** Settle every delivery this board has lost the live record for.
  *
  *  ORPHANED means three things at once. Its permanent record says `active`; the live record
  *  has no row for it, neither the delivery's nor a run's — and an `active` row is never
@@ -193,42 +217,95 @@ function activeAudits(): DeliveryAudit[] {
  *  a delivery running on their machine arrives here as an `active` record too, and only the
  *  worktree says the delivery was ours.
  *
- *  Only records are written. The record is failed, sessions nobody saw end are interrupted,
- *  and the branch and worktree are left exactly where they are — what an orphaned delivery
- *  built is often the only copy of it. */
-export function closeOrphanedDeliveries(): DeliveryRecord[] {
+ *  What happens next is the last session's to decide (#638). A delivery whose last session
+ *  had already wrapped up is RECOVERED: the permanent record is written back into the live
+ *  one and the existing flows carry it on from there. A delivery still holding a `running`
+ *  session is FAILED — the record is failed, the sessions nobody saw end are interrupted,
+ *  and its card goes back. Either way the branch and the worktree are left exactly where
+ *  they are: what an orphaned delivery built is often the only copy of it.
+ *
+ *  Losing the index WHILE a delivery runs still fails it. A `running` session is no proof
+ *  the process is alive, and a build that really did die mid-step cannot be handed to the
+ *  flows as if it were resting between them. */
+export function settleOrphanedDeliveries(): OrphanScan {
   // The records first, the live index second, and the index under its own lock. A delivery
   // starting right now writes its record and then its row, both inside that lock — read in
   // the other order, or without the lock, and a scan can land between the two and fail a
   // build that is a second old.
   const audits = activeAudits()
-  const known = withStore((store) => {
-    const ids = new Set<string>(store.deliveries.map((d) => d.deliveryId))
-    for (const run of store.runs) if (run.deliveryId) ids.add(run.deliveryId)
-    return ids
-  })
-  const closed: DeliveryRecord[] = []
-  for (const audit of audits) {
-    if (known.has(audit.deliveryId) || !worktreeExists(audit.worktree)) continue
-    // We only know it ended by the time we noticed, so these stamps are an upper bound —
-    // the same bound `reap` puts on a run whose watcher died.
-    const endedAt = Date.now()
-    const record: DeliveryAudit = {
-      ...audit,
-      status: 'failed',
-      endedAt,
-      sessions: audit.sessions.map((s) =>
-        s.status === 'running' ? { ...s, status: 'interrupted', endedAt: s.endedAt ?? endedAt } : s,
-      ),
+  if (!audits.length) return { failed: [], recovered: [] }
+  const losing: DeliveryAudit[] = []
+  const recovered: DeliveryRecord[] = []
+  withStore((store) => {
+    const known = new Set<string>(store.deliveries.map((d) => d.deliveryId))
+    for (const run of store.runs) if (run.deliveryId) known.add(run.deliveryId)
+    for (const audit of audits) {
+      if (known.has(audit.deliveryId) || !worktreeExists(audit.worktree)) continue
+      if (lastSessionRunning(audit)) {
+        losing.push(audit)
+        continue
+      }
+      // Everything the recovery turns on, read again now that nothing else can write:
+      // a `cancel` since the scan began has already ended this delivery, and putting it
+      // back would revive a card the user took off it. A second process scanning at the
+      // same time is held at the lock and finds the row this one wrote.
+      const fresh = activeAudit(auditPath(audit.deliveryId))
+      if (!fresh || lastSessionRunning(fresh) || !worktreeExists(fresh.worktree)) continue
+      const row = recoveredRow(fresh)
+      if (!row || !cardTakesItBack(store, row)) continue
+      store.deliveries.push(row)
+      recovered.push(row)
     }
-    if (!writeAuditFile(record)) continue
-    closed.push({ ...record, sessions: record.sessions.map((s) => s.sessionId) })
-    // Against the Cloud event whose action started it (#319), like any other ending: a
-    // request nobody reports on is one Cloud waits for forever. A no-op on a card Cloud
-    // never asked about, which is most of them.
-    if (record.cardId !== null) recordCloudDeliveryState(record.cardId, 'failed')
+  })
+  return { failed: losing.flatMap(failAudit), recovered }
+}
+
+/** The permanent record as a live row, read through the record's own reader so a recovered
+ *  delivery is a row nothing can tell apart from one the record wrote itself. Null when
+ *  there is no whole row in it. */
+function recoveredRow(audit: DeliveryAudit): DeliveryRecord | null {
+  const row = readDeliveryRow({ ...audit, sessions: audit.sessions.map((s) => s.sessionId) })
+  if (!row || row.status !== 'active') return null
+  // The one field the ending rewrites. `landing` means a process was walking this delivery
+  // through the landing queue, and that process is the one that went missing — left as it
+  // is, the row holds the slot against every other card on the board and nothing ever
+  // takes its turn. `waiting` puts it back in the queue for the heartbeat to pick up.
+  if (row.landing?.status === 'landing') row.landing = { ...row.landing, status: 'waiting' }
+  return row
+}
+
+/** Can this delivery have its card back? A card it cannot find — archived, or gone — and a
+ *  card another `active` delivery is building are both cards this one no longer speaks for,
+ *  and a row claiming either would hold work nobody can finish.
+ *
+ *  A **Build now** delivery (#428) holds no card, so there is nothing here to check. */
+function cardTakesItBack(store: Store, row: DeliveryRecord): boolean {
+  if (row.cardId === null) return true
+  return !!locate(row.cardId) && !activeIn(store, row.cardId)
+}
+
+/** Fail one orphaned delivery's permanent record, and hand it back so its card can be
+ *  released. Empty when the file would not write — the ending nobody could record is one
+ *  the next scan tries again. */
+function failAudit(audit: DeliveryAudit): DeliveryRecord[] {
+  // We only know it ended by the time we noticed, so these stamps are an upper bound —
+  // the same bound `reap` puts on a run whose watcher died.
+  const endedAt = Date.now()
+  const record: DeliveryAudit = {
+    ...audit,
+    status: 'failed',
+    endedAt,
+    sessions: audit.sessions.map((s) =>
+      s.status === 'running' ? { ...s, status: 'interrupted', endedAt: s.endedAt ?? endedAt } : s,
+    ),
   }
-  return closed
+  if (!writeAuditFile(record)) return []
+  // Against the Cloud event whose action started it (#319), like any other ending: a
+  // request nobody reports on is one Cloud waits for forever. A no-op on a card Cloud
+  // never asked about, which is most of them. A recovery reports nothing — the delivery
+  // has not ended, so there is no state to send.
+  if (record.cardId !== null) recordCloudDeliveryState(record.cardId, 'failed')
+  return [{ ...record, sessions: record.sessions.map((s) => s.sessionId) }]
 }
 
 // ---- the approved requirements ----------------------------------------------

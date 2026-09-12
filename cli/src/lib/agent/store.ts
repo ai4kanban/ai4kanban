@@ -352,56 +352,68 @@ export function cardsWithLiveRun(): Set<number> {
 function readDeliveryRows(raw: unknown): DeliveryRecord[] {
   if (!Array.isArray(raw)) return []
   const rows: DeliveryRecord[] = []
-  for (const entry of raw as Partial<DeliveryRecord>[]) {
-    if (!entry || typeof entry.deliveryId !== 'string' || !entry.deliveryId) continue
-    rows.push({
-      deliveryId: entry.deliveryId,
-      // A delivery with no card is a **Build now** (#428) and is kept, not dropped: its own
-      // id is what everything finds it by, and dropping the row would hand its worktree and
-      // its landing slot to nobody.
-      cardId: Number.isInteger(entry.cardId) ? (entry.cardId as number) : null,
-      title: typeof entry.title === 'string' ? entry.title : '',
-      status: asDeliveryStatus(entry.status),
-      startedAt: typeof entry.startedAt === 'number' ? entry.startedAt : Date.now(),
-      endedAt: typeof entry.endedAt === 'number' ? entry.endedAt : undefined,
-      sessions: Array.isArray(entry.sessions) ? entry.sessions.filter((s) => typeof s === 'string') : [],
-      approved: typeof entry.approved === 'string' ? entry.approved : '',
-      // The plan a card-less build was started from (#481), where it was one.
-      plan: text(entry.plan),
-      initialQuestions:
-        typeof entry.initialQuestions === 'number' && entry.initialQuestions >= 0
-          ? Math.floor(entry.initialQuestions)
-          : undefined,
-      steps: readSteps(entry.steps),
-      base: typeof entry.base === 'string' && entry.base ? entry.base : undefined,
-      review: readReview(entry.review),
-      // What each round of answers concluded (#637). A delivery from before this has none,
-      // and a round nothing judged is a round the board will not guess at.
-      answers: readAnswers(entry.answers),
-      priorStatus: typeof entry.priorStatus === 'string' && entry.priorStatus ? entry.priorStatus : undefined,
-      next: entry.next === 'review' ? 'review' : undefined,
-      // A delivery written down before #303 names no mode. It ran in the user's checkout
-      // with no worktree, which is exactly what manual commit mode is — so that is what it
-      // reads as, rather than a worktree nothing ever made.
-      commitMode: entry.commitMode === 'auto' ? 'auto' : entry.commitMode === 'manual' ? 'manual' : undefined,
-      // Whether a fresh session reviews what it built (#416). A delivery written down before
-      // the setting existed carries nothing, and every one of those was reviewed.
-      aiReview: entry.aiReview === false ? false : true,
-      manualWhy: text(entry.manualWhy),
-      targetBranch: text(entry.targetBranch),
-      worktree: text(entry.worktree),
-      branch: text(entry.branch),
-      reviewed: readReviewed(entry.reviewed),
-      landing: readLanding(entry.landing),
-      // Whether this delivery has to be approved before it lands, and the approval it has
-      // (#308). A delivery written down before diff approval existed needs none.
-      approval: readApproval(entry.approval),
-      // The flow rules this delivery froze (#306). A delivery written down before they
-      // existed has none, and its runs read the files — which is what they always did.
-      rules: readRules(entry.rules),
-    })
+  for (const entry of raw) {
+    const row = readDeliveryRow(entry)
+    if (row) rows.push(row)
   }
   return rows.sort((a, b) => a.startedAt - b.startedAt)
+}
+
+/** One delivery row, read the way the record reads every one of them: every field
+ *  whitelisted, every unreadable one dropped. Null when there is no id to find it by.
+ *
+ *  Exported because a row can come from somewhere other than the file — the permanent
+ *  record under docs/kanban/deliveries/ is the same shape, and a delivery recovered from it
+ *  (#638) has to arrive as a row nothing can tell apart from one the record wrote itself. */
+export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
+  const entry = raw as Partial<DeliveryRecord>
+  if (!entry || typeof entry.deliveryId !== 'string' || !entry.deliveryId) return null
+  return {
+    deliveryId: entry.deliveryId,
+    // A delivery with no card is a **Build now** (#428) and is kept, not dropped: its own
+    // id is what everything finds it by, and dropping the row would hand its worktree and
+    // its landing slot to nobody.
+    cardId: Number.isInteger(entry.cardId) ? (entry.cardId as number) : null,
+    title: typeof entry.title === 'string' ? entry.title : '',
+    status: asDeliveryStatus(entry.status),
+    startedAt: typeof entry.startedAt === 'number' ? entry.startedAt : Date.now(),
+    endedAt: typeof entry.endedAt === 'number' ? entry.endedAt : undefined,
+    sessions: Array.isArray(entry.sessions) ? entry.sessions.filter((s) => typeof s === 'string') : [],
+    approved: typeof entry.approved === 'string' ? entry.approved : '',
+    // The plan a card-less build was started from (#481), where it was one.
+    plan: text(entry.plan),
+    initialQuestions:
+      typeof entry.initialQuestions === 'number' && entry.initialQuestions >= 0
+        ? Math.floor(entry.initialQuestions)
+        : undefined,
+    steps: readSteps(entry.steps),
+    base: typeof entry.base === 'string' && entry.base ? entry.base : undefined,
+    review: readReview(entry.review),
+    // What each round of answers concluded (#637). A delivery from before this has none,
+    // and a round nothing judged is a round the board will not guess at.
+    answers: readAnswers(entry.answers),
+    priorStatus: typeof entry.priorStatus === 'string' && entry.priorStatus ? entry.priorStatus : undefined,
+    next: entry.next === 'review' ? 'review' : undefined,
+    // A delivery written down before #303 names no mode. It ran in the user's checkout
+    // with no worktree, which is exactly what manual commit mode is — so that is what it
+    // reads as, rather than a worktree nothing ever made.
+    commitMode: entry.commitMode === 'auto' ? 'auto' : entry.commitMode === 'manual' ? 'manual' : undefined,
+    // Whether a fresh session reviews what it built (#416). A delivery written down before
+    // the setting existed carries nothing, and every one of those was reviewed.
+    aiReview: entry.aiReview === false ? false : true,
+    manualWhy: text(entry.manualWhy),
+    targetBranch: text(entry.targetBranch),
+    worktree: text(entry.worktree),
+    branch: text(entry.branch),
+    reviewed: readReviewed(entry.reviewed),
+    landing: readLanding(entry.landing),
+    // Whether this delivery has to be approved before it lands, and the approval it has
+    // (#308). A delivery written down before diff approval existed needs none.
+    approval: readApproval(entry.approval),
+    // The flow rules this delivery froze (#306). A delivery written down before they
+    // existed has none, and its runs read the files — which is what they always did.
+    rules: readRules(entry.rules),
+  }
 }
 
 const text = (value: unknown): string | undefined =>

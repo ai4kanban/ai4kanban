@@ -26,7 +26,6 @@ import { SKILL_VERSION } from '../../version'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
 import {
   activeDelivery,
-  closeOrphanedDeliveries,
   endDelivery,
   findDelivery,
   joinActive,
@@ -34,6 +33,7 @@ import {
   listDeliveries,
   namedDelivery,
   settleDelivery,
+  settleOrphanedDeliveries,
   syncAudit,
 } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
@@ -426,7 +426,9 @@ export async function listRuns(): Promise<RunView[]> {
 const ORPHAN_SCAN_MS = 60_000
 let scannedOrphansAt = 0
 
-/** Close the deliveries this board lost the live record for, and hand their cards back.
+/** Settle the deliveries this board lost the live record for, and hand back the cards of
+ *  the ones that ended. Returns those endings — a recovered delivery still holds its card,
+ *  so there is nothing about it for a caller to put right.
  *
  *  `listRuns` calls this, at most once a minute per process — nothing else reaches these
  *  deliveries, because everything else reads the record and the record is what they fell
@@ -435,12 +437,12 @@ let scannedOrphansAt = 0
  *  A card another delivery has taken over since is left where it is: the stage it reads is
  *  that delivery's, not this one's to put back. */
 export async function recoverOrphanedDeliveries(): Promise<DeliveryRecord[]> {
-  const closed = closeOrphanedDeliveries()
-  for (const delivery of closed) {
+  const { failed } = settleOrphanedDeliveries()
+  for (const delivery of failed) {
     if (delivery.cardId !== null && activeDelivery(delivery.cardId)) continue
     await releaseCard(delivery)
   }
-  return closed
+  return failed
 }
 
 /** One run by id, or by any prefix of one that names exactly one run. `last` is the newest
