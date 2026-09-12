@@ -41,7 +41,7 @@ import {
 import { completeCard } from './complete'
 import { insideRun } from './env'
 import { DELIVERY_FLOWS } from './flows'
-import { answeredStop, deliveryState, type DeliveryState } from './pause'
+import { answeredStop, deliveryState, type DeliveryStage, type DeliveryState } from './pause'
 import { reflectOnCompletion } from './propose'
 import { deliveryRules } from './rules'
 import {
@@ -787,21 +787,28 @@ export function deliveryAcceptsAnswers(cardId: number): boolean {
   return !!state && (state.paused || state.deciding === true)
 }
 
-/** The cards whose delivery is held at landing (#565): built, reviewed, queued, and stopped
- *  on questions only the user can answer.
+/** The two stages where a delivery has stopped and only the user's answer moves it: review
+ *  sent the work back with a question (`stopped`), and landing waits on the card's open
+ *  questions (`held`). Every other pause names something outside the card — an approval, a
+ *  commit, a landing refusal — which is not an answer and not what this set is for. */
+const WAITING_ON_ANSWER: ReadonlySet<DeliveryStage> = new Set<DeliveryStage>(['stopped', 'held'])
+
+/** The cards whose delivery has stopped for an answer only the user can give — after review
+ *  (#646) or before landing (#565). Nothing is being built, and nothing will be until they
+ *  answer.
  *
  *  A delivery holds the card, so everything that asks what the board is working on counts
- *  these as busy. They are the one exception — nothing is moving, and nothing will until the
- *  user answers — which is why Cloud raises them (cloud/publish.ts). A card the decider is
- *  answering is not one of them: `paused` is what says the user is being asked. */
-export function cardsHeldAtLanding(): Set<number> {
-  const held = new Set<number>()
+ *  these as busy. They are the one exception, which is why Cloud raises them
+ *  (cloud/publish.ts). A card the decider is answering is not one of them: `paused` is what
+ *  says the user is being asked. */
+export function cardsAwaitingAnswer(): Set<number> {
+  const waiting = new Set<number>()
   for (const delivery of readStore().deliveries) {
     if (delivery.status !== 'active' || delivery.cardId === null) continue
     const state = deliveryState(delivery, openQuestions(delivery.cardId), decidingOn(delivery.cardId))
-    if (state.stage === 'held' && state.paused) held.add(delivery.cardId)
+    if (WAITING_ON_ANSWER.has(state.stage) && state.paused) waiting.add(delivery.cardId)
   }
-  return held
+  return waiting
 }
 
 /** The review this card's delivery is owed now that its question has been answered — or

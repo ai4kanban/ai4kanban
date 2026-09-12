@@ -9,10 +9,10 @@
 //   • nothing in its way: no run over it, and no open card it waits on.
 //
 // `atWork` is the caller's answer to the third rule, because what counts as working a card
-// is the delivery record's to say rather than this file's — a delivery held at landing holds
-// its card and works it no longer, and the publisher leaves those out of the set (#565),
-// while a specialist run holds no card and still goes in, because the card page offers no
-// way to answer one while it runs (#568).
+// is the delivery record's to say rather than this file's — a delivery stopped for an answer
+// holds its card and works it no longer, and the publisher leaves those out of the set
+// (#565, #646), while a specialist run holds no card and still goes in, because the card
+// page offers no way to answer one while it runs (#568).
 //
 // Narrowed to one release, a task in another — or promised to none — is not what the user
 // asked to be told about. A task that is BOTH `ready` and asking raises the question:

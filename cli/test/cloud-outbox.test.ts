@@ -17,6 +17,7 @@ import { afterEach, beforeEach, describe, it, mock } from 'node:test'
 
 import { board, setBoardProvider } from '../src/lib/board/index.ts'
 import { closeRelease, dropRelease } from '../src/lib/releases.ts'
+import { setDecider } from '../src/lib/agent/settings.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { DeliveryRecord, RunRecord } from '../src/lib/agent/types.ts'
 import {
@@ -989,14 +990,14 @@ describe('a shared board’s watch', () => {
   })
 })
 
-// The one delivery that holds a card without working it (#565). Built, reviewed and queued,
-// with nothing left to do but the card's open questions — the same wait a card with no
-// delivery raises, which is why the publisher raises this one too.
-describe('a delivery held at landing', () => {
+// A delivery that holds a card without working it. Review sent the work back with a question
+// (#646), or landing waits on the card's own (#565) — either way nothing is building and
+// nothing will until the user answers, which is the same wait a card with no delivery raises.
+describe('a delivery stopped for an answer', () => {
   const ASKING = '[user] Which shade of blue?'
 
-  /** A card asking the user, with a delivery on it in the stage `landing` gives it. */
-  function held(landing?: DeliveryRecord['landing']): void {
+  /** A card asking the user, with an active delivery on it shaped by `over`. */
+  function stopped(over: Partial<DeliveryRecord> = {}): void {
     enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
     writeCardFile('0.8.0', [ASKING])
     setBoardProvider({
@@ -1014,17 +1015,27 @@ describe('a delivery held at landing', () => {
         steps: [],
         commitMode: 'auto',
         targetBranch: 'main',
-        landing,
+        ...over,
       } as DeliveryRecord),
     )
   }
+
+  /** The delivery landing has queued and held on the card's questions. */
+  const atLanding = (): Partial<DeliveryRecord> => ({
+    landing: { status: 'waiting', attempts: 0, at: Date.now() },
+  })
+
+  /** The delivery review stopped to ask, before it ever reached landing (#399). */
+  const afterReview = (): Partial<DeliveryRecord> => ({
+    review: { rounds: [], stopped: { reason: 'ask', why: 'review left 1 open decision for you', at: Date.now() } },
+  })
 
   /** What the pass queued for card 12, if anything. */
   const queued = () =>
     readOutbox().pending.find((p) => p.kind === 'publish' && p.snapshot.taskId === 12)
 
-  it('raises its card, because the questions are all that is left', async () => {
-    held({ status: 'waiting', attempts: 0, at: Date.now() })
+  it('raises its card once review sends the work back, because the answer is all that is left', async () => {
+    stopped(afterReview())
 
     await recordBoardEvents()
 
@@ -1034,8 +1045,32 @@ describe('a delivery held at landing', () => {
     assert.equal(publication.kind === 'publish' && publication.snapshot.decision, 'answer')
   })
 
+  it('raises its card while landing waits on the questions', async () => {
+    stopped(atLanding())
+
+    await recordBoardEvents()
+
+    const publication = queued()
+    assert.ok(publication, 'the card is raised while it waits on the user')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.decision, 'answer')
+  })
+
+  it('raises one row for one wait, however many passes read it', async () => {
+    stopped(afterReview())
+    fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
+
+    await recordBoardEvents()
+    await flushCloudOutbox()
+    await recordBoardEvents()
+    await recordBoardEvents()
+
+    assert.equal(readOutbox().published['12']?.eventId, 'e-1')
+    assert.deepEqual(readOutbox().pending, [], 'a poll over an unchanged wait queues nothing')
+  })
+
   it('keeps a retried publication, which is re-judged on the same terms that queued it', async () => {
-    held({ status: 'waiting', attempts: 0, at: Date.now() })
+    stopped(atLanding())
     queuePublish(12)
     fakeCloud(unreachable)
     await flushCloudOutbox()
@@ -1048,13 +1083,33 @@ describe('a delivery held at landing', () => {
   })
 
   it('stays quiet while the delivery is still building it', async () => {
-    // No landing record: review has not passed it yet, so the questions are a warning the
-    // user already answered for rather than something the board is waiting on.
-    held()
+    // Neither stop: review has not asked anything and has not passed it either, so the
+    // questions are a warning the user already answered for.
+    stopped()
 
     await recordBoardEvents()
 
     assert.equal(queued(), undefined)
+  })
+
+  it('stays quiet on a wait that asks for something no event can carry', async () => {
+    // Manual commit mode: the delivery is paused, but what it waits for is a commit, not an
+    // answer — and an event carries no way to make one.
+    stopped({ commitMode: 'manual', reviewed: { mark: 'abc1234', at: Date.now() } })
+
+    await recordBoardEvents()
+
+    assert.equal(queued(), undefined)
+  })
+
+  it('stays quiet while the decider is answering for the user', async () => {
+    setDecider(true)
+    stopped(afterReview())
+
+    await recordBoardEvents()
+
+    assert.equal(queued(), undefined)
+    setDecider(false)
   })
 })
 

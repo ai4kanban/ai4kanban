@@ -15,8 +15,9 @@
 // the bell interrupts anybody over, because it is the one moment the board has finished and
 // the user has not. Two things bend that rule in opposite directions:
 //
-//   • a delivery HELD AT LANDING holds a card without working it (#565) — finished but for
-//     the card's open questions, so the card is raised as if nothing held it, and
+//   • a delivery STOPPED FOR AN ANSWER holds a card without working it — sent back by
+//     review (#646) or held at landing (#565), waiting on the card's own questions either
+//     way, so the card is raised as if nothing held it, and
 //   • a live run that merely NAMES a card puts it down even when it holds nothing (#568),
 //     because the card page turns its controls off for one either way.
 //
@@ -28,7 +29,7 @@
 
 import crypto from 'node:crypto'
 
-import { cardsHeldAtLanding } from '../agent/deliveries'
+import { cardsAwaitingAnswer } from '../agent/deliveries'
 import { cardsAtWork, cardsBeingCreated, cardsWithLiveRun } from '../agent/store'
 import { board } from '../board'
 import { KANBAN } from '../paths'
@@ -208,20 +209,20 @@ const sleep = (ms: number) =>
     timer.unref?.()
   })
 
-/** The cards that raise nothing: every one a delivery is carrying but a
- *  delivery held at landing (#565), which is built, reviewed and queued with only the card's
- *  open questions left, so its card is raised as if nothing held it. `cardsAtWork` itself is
- *  left whole: a delivery is still carrying these cards, which is what `writeOffAbandoned`
- *  asks. Every reader of the actionable set goes through here, so a queued publication is
- *  re-judged on the same terms that queued it. */
+/** The cards that raise nothing: every one a delivery is carrying but a delivery stopped for
+ *  an answer — sent back by review (#646) or held at landing (#565) — which has nothing left
+ *  but the card's open questions, so its card is raised as if nothing held it. `cardsAtWork`
+ *  itself is left whole: a delivery is still carrying these cards, which is what
+ *  `writeOffAbandoned` asks. Every reader of the actionable set goes through here, so a
+ *  queued publication is re-judged on the same terms that queued it. */
 function silenced(atWork: ReadonlySet<number>): Set<number> {
-  const heldAtLanding = cardsHeldAtLanding()
-  const quiet = new Set([...atWork].filter((id) => !heldAtLanding.has(id)))
+  const awaitingAnswer = cardsAwaitingAnswer()
+  const quiet = new Set([...atWork].filter((id) => !awaitingAnswer.has(id)))
   // …and any card a live run merely NAMES on top of those (#568). A specialist holds no card,
   // so `atWork` leaves it out — but the card page turns its controls off for one all the same,
   // and a row asking a question the card offers no way to answer is worse than silence. Added
-  // after the filter, so it also holds back a card held at landing. The run ending raises it
-  // again, which is where a question still open is heard about.
+  // after the filter, so it also holds back a card stopped for an answer. The run ending
+  // raises it again, which is where a question still open is heard about.
   for (const id of cardsWithLiveRun()) quiet.add(id)
   // …and a card its creator has not finished writing (#564), for the same reason carried
   // further: that card has no page at all, so a row about it would link to a screen that
