@@ -156,8 +156,7 @@ export function buildAsk(req: AgentRequest, notes: string[] = []): string {
   // name the project's own copy outright (#303). Everything else runs in the project and
   // spells the command the ordinary way.
   const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
-  const check = 'After editing a card, run `akb raw validate <id>` for each card you wrote and fix every reported format error before finishing. Background runs also validate automatically before advancing.'
-  const ask = [actionPrompt(req, command, notes), pictureNote(req), check, commandNote(command)].filter(Boolean).join(' ')
+  const ask = [actionPrompt(req, command, notes), pictureNote(req), commandNote(command)].filter(Boolean).join(' ')
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
   return boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n'))

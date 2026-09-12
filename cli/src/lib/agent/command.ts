@@ -82,26 +82,8 @@ export function noteCommand(root: string, invoked?: string): string {
   return `node ${near && !near.startsWith('..') ? near : file}`
 }
 
-/** The one sentence that tells an agent the flows' `akb` is spelled differently here, or
- *  nothing at all when it isn't. Said wherever words go out to an agent, so no run ever
- *  learns it by having a command fail.
- *
- *  Three things can make it differ, and the sentence says whichever ones apply: there is no
- *  `akb` on this machine; inside a delivery the working folder is its own worktree rather
- *  than the project, so the board is named with `--dir` (#303); and this board was named
- *  rather than found, so every command has to name it again with `--board` (#407). */
+/** Map the guides' command to this run's executable and board. */
 export function commandNote(command: string): string {
   if (command === 'akb') return ''
-  const why = [
-    command.startsWith('akb') ? '' : `there is no \`akb\` on this machine's PATH`,
-    command.includes(' --dir ') ? `the working folder here is not the project` : '',
-    // Spelled without the board's own path: this sentence is one of the few the board writes
-    // that must NOT be rewritten for the board it is about (`boardText`).
-    command.includes(' --board ') ? `this board is named rather than found` : '',
-  ].filter(Boolean)
-  return (
-    `${why.length ? `Because ${why.join(', and ')}, ` : ''}\`${command}\` is the board's command here — ` +
-    `the flows all spell it \`akb\`, and \`${command}\` is what to run wherever one does. ` +
-    `Don't install anything and don't fetch it from npm.`
-  )
+  return `In the guides, \`akb\` means \`${command}\` here.`
 }
