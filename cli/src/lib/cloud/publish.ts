@@ -21,9 +21,15 @@
 //   • a live run that merely NAMES a card puts it down even when it holds nothing (#568),
 //     because the card page turns its controls off for one either way.
 //
-// One task means one row. A card revised twice before anyone looks must not leave three
-// rows asking about revisions two of them no longer bind, and answering the last question
-// on a `ready` card turns that event into the approval rather than raising another.
+// One task means one row ASKING. A card revised twice before anyone looks must not leave
+// three rows asking about revisions two of them no longer bind, and answering the last
+// question on a `ready` card turns that event into the approval rather than raising another.
+//
+// A delivery that came from a notification is the one card that holds two (#647). Its event
+// is reporting that delivery and may not be refreshed into a question, so the stop hands the
+// event over to `delivering` in the outbox and the card is raised beside it. From there the
+// two are apart for the rest of their lives: the delivery's event reports the landing, and
+// the new one carries the question and ends when the card stops asking.
 //
 // Everything is best effort. A board write never fails because Cloud was unreachable.
 
@@ -47,23 +53,26 @@ import {
 } from './client'
 import type { CloudEventAnswer, CloudEventState } from './events'
 import {
-  claimForTask,
+  claimForEvent,
   clearPublications,
+  deliveringFor,
   dropClaim,
   dropQueuedFor,
   duePending,
-  editOutbox,
   failed,
+  forgetDelivering,
   forgetEvent,
   forgetPublication,
   giveUp,
   heldClaims,
+  holdDelivering,
   isEnded,
   livePublications,
-  noteState,
+  noteEventState,
   publishedFor,
   queue,
   readOutbox,
+  recordForEvent,
   settle,
   type Pending,
   type PublishedEvent,
@@ -273,6 +282,9 @@ async function queueDifference(
   // per card would read the same record as many times as the board has cards.
   const atWork = cardsAtWork()
   const raising = silenced(atWork)
+  // The deliveries that stopped for an answer, read once for the pass like the rest: each
+  // hands its event over below, which is what frees the card to be raised again (#647).
+  const stopped = cardsAwaitingAnswer()
   // What the BOARD still holds a decision for, whatever this member watches. On a Local board
   // that is the same thing as what this machine raises. On a workspace board it is not: the
   // event belongs to the team, so a card outside this member's release is one they are not
@@ -290,6 +302,11 @@ async function queueDifference(
     // Raised from THIS machine only while its own member watches the card's release. What
     // the rest of the team watches is theirs to raise, and the row stays either way.
     if (enabled.release !== ALL_RELEASES && card.release !== enabled.release) continue
+    // A delivery that stopped for an answer hands its event over (#647). That event goes on
+    // standing for the delivery — the Implement it carries, and the landing it will report —
+    // and the card falls through to the publication below as the question it now is. The
+    // parked state goes with it: it was about the event that has just moved.
+    if (stopped.has(card.id) && holdDelivering(card.id)) startedBeforeAction.delete(card.id)
     const held = publishedFor(card.id)
     // What the scope change BROUGHT IN, as against what it merely passed over: a card this
     // board held no live event for when the switch moved. One already on record whose own
@@ -320,7 +337,15 @@ async function queueDifference(
       else if (held.state !== 'actionable' && held.state !== 'stale') continue
     }
     if (quiet) broughtInCount += 1
-    queue({ opId: newOpId(), kind: 'publish', attempts: 0, snapshot: { ...snapshot, broughtIn: quiet } })
+    // Only the machine carrying the delivery names it. Every other one publishes without a
+    // name, finds that running event and raises nothing, so one stop asks once (#647).
+    const besides = deliveringFor(card.id)?.eventId ?? ''
+    queue({
+      opId: newOpId(),
+      kind: 'publish',
+      attempts: 0,
+      snapshot: { ...snapshot, broughtIn: quiet, besides },
+    })
   }
 
   // Everything on record whose task stopped being one this board raises events for — it
@@ -455,7 +480,7 @@ function dropSwept(events: Array<{ id: string }>, actionable: Set<number>): void
   for (const { taskId, event } of livePublications()) {
     if (actionable.has(taskId) || onCloud.has(event.eventId)) continue
     traceCloud(`record #${taskId} dropped: event ${event.eventId} is gone from Cloud`)
-    forgetPublication(taskId)
+    forgetEvent(event.eventId)
   }
 }
 
@@ -478,7 +503,7 @@ function writeOffAbandoned(
   event: { id: string; taskId: number; changedAt: string },
   atWork: ReadonlySet<number>,
 ): void {
-  if (publishedFor(event.taskId)?.eventId !== event.id) return
+  if (recordForEvent(event.id)?.taskId !== event.taskId) return
   if (atWork.has(event.taskId)) return
   const since = Date.parse(event.changedAt)
   if (!Number.isFinite(since) || Date.now() - since < ABANDONED_ACTION_MS) return
@@ -490,7 +515,7 @@ function writeOffAbandoned(
     outcome: 'interrupted',
     reason: 'Nothing on this board is carrying it.',
   })
-  noteState(event.taskId, 'interrupted')
+  noteEventState(event.id, 'interrupted')
 }
 
 // ---- turning a board on and off ---------------------------------------------
@@ -558,13 +583,13 @@ export function recordCloudActionFor(
   })
   // An action taken here reads as `accepted` on the spot, and the delivery's own states
   // follow it. `waiting for server` is reserved for one taken elsewhere.
-  noteState(taskId, 'accepted')
+  noteEventState(held.eventId, 'accepted')
   // The card page starts the delivery and records the click a moment later, so `running`
   // has usually already been reported against an event that had no action yet. Report it
   // now that it has one, rather than letting the row jump from accepted to the outcome.
   const started = startedBeforeAction.get(taskId)
   startedBeforeAction.delete(taskId)
-  if (started && started.eventId === held.eventId) recordCloudDeliveryState(taskId, started.state)
+  if (started && started.eventId === held.eventId) recordCloudEventState(held.eventId, started.state)
   void flushCloudOutbox()
 }
 
@@ -583,7 +608,29 @@ const startedBeforeAction = new Map<number, { eventId: string; state: CloudEvent
  * duplicating the other.
  */
 export function recordCloudDeliveryState(taskId: number, outcome: CloudEventState, reason = ''): void {
-  const held = publishedFor(taskId)
+  // The event a stopped delivery is carrying, when there is one (#647): that is where its
+  // landing is reported, and the question the card is asking meanwhile is not touched.
+  report(taskId, deliveringFor(taskId) ?? publishedFor(taskId), outcome, reason)
+}
+
+/**
+ * The same, against the event a claim or a request NAMES (#647).
+ *
+ * One card can hold two live events at once — the Implement its delivery is carrying, and
+ * the question that delivery stopped to ask — so which one a run's ending belongs to is the
+ * claim's to say rather than something to guess from the card number.
+ */
+export function recordCloudEventState(eventId: string, outcome: CloudEventState, reason = ''): void {
+  const on = recordForEvent(eventId)
+  if (on) report(on.taskId, on.event, outcome, reason)
+}
+
+function report(
+  taskId: number,
+  held: PublishedEvent | undefined,
+  outcome: CloudEventState,
+  reason: string,
+): void {
   if (!held || held.state === outcome) return
   if (held.state === 'actionable') {
     // Still waiting on a person, so there is nothing to report against yet. Held rather
@@ -593,12 +640,15 @@ export function recordCloudDeliveryState(taskId: number, outcome: CloudEventStat
     return
   }
   queue({ opId: newOpId(), kind: 'outcome', attempts: 0, eventId: held.eventId, outcome, reason })
-  noteState(taskId, outcome)
+  noteEventState(held.eventId, outcome)
   // An outcome that is not `running` ends the execution request too (#318) — Cloud finishes
   // it in the same transaction — so the claim this board was renewing goes with it.
   if (outcome !== 'running') {
-    const claim = claimForTask(taskId)
+    const claim = claimForEvent(held.eventId)
     if (claim) dropClaim(claim.requestId)
+    // And a delivery that is over stops being carried: the supersede a changed answer opens
+    // is a fresh delivery, and it must not report against the event this one ended.
+    if (deliveringFor(taskId)?.eventId === held.eventId) forgetDelivering(taskId)
   }
   void flushCloudOutbox()
 }
@@ -668,7 +718,7 @@ export async function reportCloudRunEnd(
 ): Promise<void> {
   try {
     const claim = heldClaims().find((c) => c.sessionId === sessionId)
-    if (claim) recordCloudDeliveryState(claim.taskId, outcome)
+    if (claim) recordCloudEventState(claim.eventId, outcome)
     else if (cardId !== null) releaseLocalAction(cardId, outcome)
   } catch {
     // A run never fails over Cloud. The reconciliation at start closes what this missed.
@@ -685,11 +735,12 @@ export async function reportCloudRunEnd(
  * raised again. What the user hears about is the card coming back, not this.
  */
 function releaseLocalAction(taskId: number, outcome: CloudEventState): void {
-  if (publishedFor(taskId)?.state !== 'accepted') return
+  const held = publishedFor(taskId)
+  if (held?.state !== 'accepted') return
   // Another run of the same click is still going, or a delivery is between its runs. The
   // action is not over until they are.
   if (cardsAtWork().has(taskId)) return
-  recordCloudDeliveryState(taskId, outcome)
+  recordCloudEventState(held.eventId, outcome)
 }
 
 // ---- sending ----------------------------------------------------------------
@@ -829,7 +880,7 @@ async function actionRefused(eventId: string, code?: string): Promise<string[]> 
   const event = answer.value.event
   traceCloud(`action ${eventId} refused as ${code ?? 'terminal'}: Cloud holds it ${event.state}`)
   if (event.acted) {
-    forget(eventId, event.state)
+    noteEventState(eventId, event.state)
     return []
   }
   return abandonAction(eventId)
@@ -925,6 +976,7 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
       notes: snapshot.notes,
       fingerprint: snapshot.fingerprint,
       broughtIn: snapshot.broughtIn,
+      besides: snapshot.besides,
     })
     if (!answer.ok) return answer
     settle(item.opId, {
@@ -957,7 +1009,7 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
     // What Cloud now holds, not what was asked for: it refuses to retire an event somebody
     // acted on and answers with the state it kept, so writing `stale` here would put this
     // board out of step with the row it just read.
-    forget(item.eventId, answer.value.event.state)
+    noteEventState(item.eventId, answer.value.event.state)
     settle(item.opId)
     return { ok: true }
   }
@@ -972,23 +1024,15 @@ async function sendOne(item: Pending): Promise<{ ok: true } | { ok: false; error
       state: 'accepted',
     })
     if (!answer.ok) return answer
-    forget(item.eventId, answer.value.event.state)
+    noteEventState(item.eventId, answer.value.event.state)
     settle(item.opId)
     return { ok: true }
   }
 
   const answer = await recordOutcome(item.opId, item.eventId, item.outcome, item.reason ?? '')
   if (!answer.ok) return answer
-  forget(item.eventId, answer.value.event.state)
+  noteEventState(item.eventId, answer.value.event.state)
   settle(item.opId)
   return { ok: true }
 }
 
-/** Write back the state Cloud now holds for an event, whichever task it belongs to. */
-function forget(eventId: string, state: CloudEventState): void {
-  editOutbox((outbox) => {
-    for (const held of Object.values(outbox.published)) {
-      if (held.eventId === eventId) held.state = state
-    }
-  })
-}

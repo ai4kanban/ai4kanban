@@ -110,6 +110,11 @@ export async function publishEvent(env: Env, owner: Owner, body: unknown): Promi
     // Whether the scope change this pass belongs to is what brought the card into view
     // (#451). Absent from a publisher older than this release, which is ordinary news.
     p_brought_in: input.broughtIn === true,
+    // The running event this publication stands beside (#647) — the one a delivery stopped
+    // for an answer is still carrying. Cloud leaves it out when it looks for the task's live
+    // row, so the card can ask again while its delivery waits. Absent on every other
+    // publication, and on a publisher older than this release.
+    p_besides: named(input.besides) ? uuid(input.besides, 'event') : null,
   })
   return { event }
 }

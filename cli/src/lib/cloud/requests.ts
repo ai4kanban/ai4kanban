@@ -27,8 +27,8 @@ import { findCard } from '../view/read'
 import type { Card, WriteResult } from '../view/types'
 import { claimRequest, listRequests, renewClaim } from './client'
 import { answeredFromEvent, answerNotes, type CloudEventAnswer, type CloudEventQuestion } from './events'
-import { claimForTask, dropClaim, heldClaims, holdClaim, notePublication, publishedFor } from './outbox'
-import { recordCloudDeliveryState } from './publish'
+import { claimForEvent, dropClaim, heldClaims, holdClaim, notePublication, recordForEvent } from './outbox'
+import { recordCloudEventState } from './publish'
 import { serverForBoard } from './servers'
 import { userQuestions } from './snapshot'
 
@@ -116,7 +116,7 @@ async function take(request: CloudRequest, serverId: string): Promise<void> {
   if (request.state === 'interrupted') {
     // Ours to take up again, and only while the work it started is still here.
     if (request.claimedBy !== serverId) return
-    const held = claimForTask(request.taskId)
+    const held = claimForEvent(request.eventId)
     if (!carrying(request.taskId, request.decision, held?.sessionId)) return
     const again = await claimRequest(request.id, serverId)
     if (again.ok && again.value.claimed) holdClaim(claimOf(request, held?.sessionId))
@@ -132,7 +132,7 @@ async function take(request: CloudRequest, serverId: string): Promise<void> {
   holdClaim(claimOf(request))
   const started = await start(request)
   if (!started.started) {
-    recordCloudDeliveryState(request.taskId, 'failed', started.reason)
+    recordCloudEventState(request.eventId, 'failed', started.reason)
     dropClaim(request.id)
   }
 }
@@ -208,7 +208,7 @@ async function start(request: CloudRequest): Promise<Started | Refusal> {
   // A resolve is not a delivery, so nothing else reports how it ended. The run it started is
   // what does (see reportCloudRunEnd in ./publish.ts).
   holdClaim(claimOf(request, run.run.sessionId))
-  recordCloudDeliveryState(request.taskId, 'running')
+  recordCloudEventState(request.eventId, 'running')
   return { started: true }
 }
 
@@ -231,8 +231,10 @@ export async function renewCloudClaims(boardDir = KANBAN): Promise<void> {
   const here = serverForBoard(boardDir)
   if (!here) return
   for (const claim of heldClaims()) {
-    const held = publishedFor(claim.taskId)
-    if (!held || held.eventId !== claim.eventId || !carrying(claim.taskId, claim.decision, claim.sessionId)) {
+    // Wherever this board keeps the event — a claim can name the one a stopped delivery is
+    // carrying as readily as the question beside it (#647).
+    const held = recordForEvent(claim.eventId)
+    if (!held || !carrying(claim.taskId, claim.decision, claim.sessionId)) {
       dropClaim(claim.requestId)
       continue
     }
@@ -296,20 +298,20 @@ export async function resumeCloudRequest(eventId: string, boardDir = KANBAN): Pr
   if (!claimed.value.claimed) return { ok: false, error: claimed.value.reason ?? 'That request could not be taken up.' }
 
   notePublication(request.taskId, request.eventId, 'accepted')
-  const held = claimForTask(request.taskId)
+  const held = claimForEvent(request.eventId)
   const sessionId = held?.requestId === request.id ? held.sessionId : undefined
   // Still going here. The claim is renewed by taking it, and reporting `running` is what
   // puts the row back in step — there is nothing to start.
   if (carrying(request.taskId, request.decision, sessionId)) {
     holdClaim(claimOf(request, sessionId))
-    recordCloudDeliveryState(request.taskId, 'running')
+    recordCloudEventState(request.eventId, 'running')
     return { ok: true }
   }
 
   holdClaim(claimOf(request))
   const started = await start(request)
   if (started.started) return { ok: true }
-  recordCloudDeliveryState(request.taskId, 'failed', started.reason)
+  recordCloudEventState(request.eventId, 'failed', started.reason)
   dropClaim(request.id)
   return { ok: false, error: started.reason }
 }
@@ -324,13 +326,12 @@ export async function resumeCloudRequest(eventId: string, boardDir = KANBAN): Pr
  */
 export function cancelCloudRequest(taskId: number, eventId: string): WriteResult {
   if (!eventId) return { ok: false, error: 'There is nothing waiting on this card.' }
-  const held = publishedFor(taskId)
   // A board that never claimed this one has no record to report against — the approval was
   // taken elsewhere and its machine never came back. One is written so the outcome has
   // somewhere to go, and the outbox retries it like every other.
-  if (held?.eventId !== eventId) notePublication(taskId, eventId, 'accepted')
-  recordCloudDeliveryState(taskId, 'cancelled')
-  const claim = claimForTask(taskId)
+  if (!recordForEvent(eventId)) notePublication(taskId, eventId, 'accepted')
+  recordCloudEventState(eventId, 'cancelled')
+  const claim = claimForEvent(eventId)
   if (claim) dropClaim(claim.requestId)
   return { ok: true }
 }

@@ -103,6 +103,10 @@ export interface PublishBody {
   /** A scope change is what brought this card into view (#451). Such a publication lands in
    *  the bell read and owes no new chat message to a destination already connected. */
   broughtIn: boolean
+  /** The running event this publication stands beside (#647) — Cloud leaves that one out
+   *  when it looks for the task's live row, so a delivery stopped for an answer can ask.
+   *  Empty on every ordinary publication. */
+  besides: string
 }
 
 /** The one message a scope change sends (#451). It belongs to no card and carries no event:

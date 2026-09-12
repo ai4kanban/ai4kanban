@@ -83,6 +83,8 @@ declare
   v_event uuid;
   v_second uuid;
   v_retired uuid;
+  v_delivering uuid;
+  v_asking uuid;
   v_server_a uuid;
   v_server_b uuid;
   v_request uuid;
@@ -290,6 +292,60 @@ begin
     'a retired card owed a rewrite was not due';
 
   delete from cloud.slack_connections where owner_id = A;
+
+  -- -------------------------------------------------------------------------
+  -- A card asks again while its delivery waits for the answer (#647)
+  -- -------------------------------------------------------------------------
+  --
+  -- One task keeps one live row, so a delivery that stops for an answer would find its own
+  -- running event and raise nothing. A publication may name the event it stands BESIDE, and
+  -- that one is left out of the look-up — but only the machine carrying the delivery names
+  -- it, so a second machine publishing the same stop still raises nothing.
+
+  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops', '0.8.0',
+                              'r1', 'ready_for_review', 'implement', '[]'::jsonb, 'why', '', 'f1',
+                              false, BUDGET);
+  v_delivering := (v_json ->> 'id')::uuid;
+  perform api.record_event_action(A, 'op-647', v_delivering, 'implement', 'r1', '[]'::jsonb,
+                                  'accepted', BUDGET);
+  perform api.record_event_outcome(A, 'op-647-running', v_delivering, 'running', '', 900, BUDGET);
+
+  -- Review sends the work back with a question. A machine that is not carrying this delivery
+  -- names nothing, finds the running row, and leaves it exactly as it is.
+  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops', '0.8.0',
+                              'r2', 'question', 'answer', '[{"text":"Which shade?"}]'::jsonb, 'why',
+                              '', 'f2', false, BUDGET);
+  assert (v_json ->> 'id')::uuid = v_delivering, 'a publication naming nothing moved the delivery''s row';
+  assert (v_json ->> 'state') = 'running', 'a publication naming nothing refreshed a running row';
+
+  -- The machine carrying it names it, and the card asks on a row of its own.
+  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops', '0.8.0',
+                              'r2', 'question', 'answer', '[{"text":"Which shade?"}]'::jsonb, 'why',
+                              '', 'f2', false, BUDGET, v_delivering);
+  v_asking := (v_json ->> 'id')::uuid;
+  assert v_asking <> v_delivering, 'the question was asked on the row the delivery is reporting against';
+  assert (v_json ->> 'state') = 'actionable', 'the question raised nothing to answer';
+  assert (v_json ->> 'kind') = 'question', 'the question was raised as something else';
+  assert (select state from cloud.events where id = v_delivering) = 'running',
+    'raising the question moved the delivery''s own row';
+
+  -- The two report apart for the rest of their lives: the answer ends the question's row, and
+  -- the delivery's own row is what says it landed.
+  v_json := api.retire_event(A, v_asking, BUDGET);
+  assert (v_json ->> 'state') = 'stale', 'an answered question left its row asking';
+  v_json := api.record_event_outcome(A, 'op-647-landed', v_delivering, 'completed', '', 900, BUDGET);
+  assert (v_json ->> 'state') = 'completed', 'the delivery that landed left no notification';
+  assert (v_json ->> 'acted')::boolean, 'the landing lost the Implement it was granted';
+
+  -- And a second stop revives the row the first one left, rather than adding a third.
+  perform api.record_event_outcome(A, 'op-647-again', v_delivering, 'running', '', 900, BUDGET);
+  v_json := api.publish_event(A, BOARD_A, null, 647, 'Notify again when a delivery stops', '0.8.0',
+                              'r3', 'question', 'answer', '[{"text":"And the other one?"}]'::jsonb,
+                              'why', '', 'f3', false, BUDGET, v_delivering);
+  assert (v_json ->> 'id')::uuid = v_asking, 'a second stop asked on a third row';
+  assert (v_json ->> 'state') = 'actionable', 'a second stop did not revive the row';
+  assert (select count(*) from cloud.events where task_id = 647) = 2,
+    'one card and one delivery left more than the two rows they own';
 
   -- -------------------------------------------------------------------------
   -- A retirement that raced a click does not lose the click (#640)

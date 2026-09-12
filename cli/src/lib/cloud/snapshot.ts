@@ -69,6 +69,12 @@ export interface EventSnapshot {
    *  by the publisher, which is the only thing that knows a switch happened — a card read on
    *  its own is always ordinary news. */
   broughtIn: boolean
+  /** The event a delivery of this card is still carrying, which the new one stands beside
+   *  (#647). Cloud keeps one live row per task and would otherwise answer with that running
+   *  row and raise nothing, so a delivery stopped for an answer could ask nobody. Empty
+   *  everywhere else — including on every other machine, which holds no delivery of its own
+   *  and must not raise a second row for the same stop. */
+  besides: string
 }
 
 /** The user-owned questions on this card, with the board's own tag taken off. */
@@ -113,7 +119,7 @@ export function snapshotFor(
   const kind = actionableKind(card, board, atWork)
   if (!kind) return null
   const questions = kind === 'question' ? userQuestions(card) : []
-  const snapshot: Omit<EventSnapshot, 'fingerprint' | 'broughtIn'> = {
+  const snapshot: Omit<EventSnapshot, 'fingerprint' | 'broughtIn' | 'besides'> = {
     boardId: home.boardId,
     workspaceId: home.workspaceId,
     boardName: board.name,
@@ -127,7 +133,7 @@ export function snapshotFor(
     summary: bound(openingParagraph(card.body), SUMMARY_LIMIT),
     notes: bound(reviewNotes(card.body), NOTES_LIMIT),
   }
-  return { ...snapshot, fingerprint: fingerprint(snapshot), broughtIn: false }
+  return { ...snapshot, fingerprint: fingerprint(snapshot), broughtIn: false, besides: '' }
 }
 
 /**
@@ -143,8 +149,9 @@ export function snapshotFor(
  *
  * `broughtIn` is out of it for the other reason: it says how this publication arrived, not
  * what the card says, and a switch flipped twice must not make one card look revised.
+ * `besides` likewise says where this publication is going, not what the card asks.
  */
-function fingerprint(snapshot: Omit<EventSnapshot, 'fingerprint' | 'broughtIn'>): string {
+function fingerprint(snapshot: Omit<EventSnapshot, 'fingerprint' | 'broughtIn' | 'besides'>): string {
   return crypto
     .createHash('sha256')
     .update(

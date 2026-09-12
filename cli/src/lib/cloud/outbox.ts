@@ -110,6 +110,13 @@ interface Outbox {
   version: 1
   /** task id → what is on record for it. */
   published: Record<string, PublishedEvent>
+  /** task id → the event a delivery is carrying while its card is raised again (#647).
+   *
+   *  A delivery that stops for an answer hands its event over to this second place, which
+   *  frees `published` for the question the card is now asking. The two are reported on
+   *  apart: the delivery's own states — and the landing notification — belong to the event
+   *  here, and a run or a request that ended belongs to the event it claimed. */
+  delivering: Record<string, PublishedEvent>
   pending: Pending[]
   /** request id → the claim this board holds on it. */
   claims: Record<string, HeldClaim>
@@ -117,7 +124,7 @@ interface Outbox {
   unsent: Unsent[]
 }
 
-const EMPTY: Outbox = { version: 1, published: {}, pending: [], claims: {}, unsent: [] }
+const EMPTY: Outbox = { version: 1, published: {}, delivering: {}, pending: [], claims: {}, unsent: [] }
 
 /**
  * Which board's outbox this is.
@@ -144,12 +151,13 @@ function read(): Outbox {
     return {
       version: 1,
       published: parsed.published && typeof parsed.published === 'object' ? parsed.published : {},
+      delivering: parsed.delivering && typeof parsed.delivering === 'object' ? parsed.delivering : {},
       pending: Array.isArray(parsed.pending) ? parsed.pending : [],
       claims: parsed.claims && typeof parsed.claims === 'object' ? parsed.claims : {},
       unsent: Array.isArray(parsed.unsent) ? parsed.unsent : [],
     }
   } catch {
-    return { ...EMPTY, published: {}, pending: [], claims: {}, unsent: [] }
+    return { ...EMPTY, published: {}, delivering: {}, pending: [], claims: {}, unsent: [] }
   }
 }
 
@@ -180,6 +188,56 @@ export const readOutbox = (): Outbox => read()
 export const publishedFor = (taskId: number): PublishedEvent | undefined =>
   read().published[String(taskId)]
 
+/** The event a delivery on one task is carrying, or undefined on every task whose delivery
+ *  has not stopped for an answer. */
+export const deliveringFor = (taskId: number): PublishedEvent | undefined =>
+  read().delivering[String(taskId)]
+
+/**
+ * Hand one task's record over to the delivery it is carrying (#647).
+ *
+ * What a delivery stopping for an answer does: the event goes on standing for that delivery
+ * — it holds the Implement the user pressed, and the landing notification is its to report —
+ * and `published` is freed, so the very next pass raises the card as the question it now is.
+ *
+ * Answers whether there was one to hand over. Only an event a delivery really ran against
+ * moves: anything else is a card asking on its own, which is already raised.
+ *
+ * One delivery, one event: a card already carrying one hands nothing over. The question
+ * raised beside it reads `accepted` from the moment it is answered until the run that
+ * answers it is written down, and a pass landing in that gap would otherwise move the
+ * QUESTION here — over the Implement the delivery reports its landing against.
+ */
+export function holdDelivering(taskId: number): boolean {
+  return editOutbox((outbox) => {
+    if (outbox.delivering[String(taskId)]) return false
+    const held = outbox.published[String(taskId)]
+    if (!held || (held.state !== 'accepted' && held.state !== 'running')) return false
+    outbox.delivering[String(taskId)] = held
+    delete outbox.published[String(taskId)]
+    return true
+  })
+}
+
+/** The delivery is over — its event stops standing for one. A supersede opens a fresh
+ *  delivery, and that one reports against whatever event it was granted, not this. */
+export function forgetDelivering(taskId: number): void {
+  editOutbox((outbox) => {
+    delete outbox.delivering[String(taskId)]
+  })
+}
+
+/** The record standing for one event, wherever this board keeps it. */
+export function recordForEvent(eventId: string): { taskId: number; event: PublishedEvent } | undefined {
+  const outbox = read()
+  for (const where of [outbox.published, outbox.delivering]) {
+    for (const [id, held] of Object.entries(where)) {
+      if (held.eventId === eventId) return { taskId: Number(id), event: held }
+    }
+  }
+  return undefined
+}
+
 /** Forget what is on record for one task, so the next pass raises a FRESH event rather than
  *  reusing this one. The event itself stays on Cloud: it is the history the bell looks back
  *  over. Only a row a delivery really ran against is ever left behind this way. */
@@ -194,8 +252,10 @@ export function forgetPublication(taskId: number): void {
  *  must not go on standing for it. */
 export function forgetEvent(eventId: string): void {
   editOutbox((outbox) => {
-    for (const [id, held] of Object.entries(outbox.published)) {
-      if (held.eventId === eventId) delete outbox.published[id]
+    for (const where of [outbox.published, outbox.delivering]) {
+      for (const [id, held] of Object.entries(where)) {
+        if (held.eventId === eventId) delete where[id]
+      }
     }
   })
 }
@@ -216,12 +276,17 @@ export function dropQueuedFor(eventId: string, kinds: ReadonlyArray<Pending['kin
   })
 }
 
-/** Every task with a live event on record — what the retirement test walks. */
+/** Every task with a live event on record, in either place — what the retirement test walks.
+ *  A task whose delivery stopped for an answer contributes two: the question it is asking,
+ *  and the delivery still carrying it. */
 export function livePublications(): Array<{ taskId: number; event: PublishedEvent }> {
+  const outbox = read()
   const out: Array<{ taskId: number; event: PublishedEvent }> = []
-  for (const [id, event] of Object.entries(read().published)) {
-    if (event.state === 'stale' || isEnded(event.state)) continue
-    out.push({ taskId: Number(id), event })
+  for (const where of [outbox.published, outbox.delivering]) {
+    for (const [id, event] of Object.entries(where)) {
+      if (event.state === 'stale' || isEnded(event.state)) continue
+      out.push({ taskId: Number(id), event })
+    }
   }
   return out
 }
@@ -362,17 +427,28 @@ export const unsentToCloud = (): Unsent[] => read().unsent
 /** Which task holds an event, as this board last knew. 0 when it holds none — the record can
  *  be dropped before the item that named it is given up on. */
 function taskHolding(outbox: Outbox, eventId: string): number {
-  for (const [id, held] of Object.entries(outbox.published)) {
-    if (held.eventId === eventId) return Number(id)
+  for (const where of [outbox.published, outbox.delivering]) {
+    for (const [id, held] of Object.entries(where)) {
+      if (held.eventId === eventId) return Number(id)
+    }
   }
   return 0
 }
 
 /** Take over the record for one task from a claim (#318): an approval acted on somewhere
  *  else never touched this board's outbox, so the delivery reporting #319 already wired has
- *  nothing to report against until this is written. */
+ *  nothing to report against until this is written.
+ *
+ *  Written where the event already stands. A claim naming the event a stopped delivery is
+ *  carrying is about that delivery, and writing it beside the question the card is asking
+ *  would take the question's own record out from under it. */
 export function notePublication(taskId: number, eventId: string, state: CloudEventState): void {
   editOutbox((outbox) => {
+    const carrying = outbox.delivering[String(taskId)]
+    if (carrying?.eventId === eventId) {
+      carrying.state = state
+      return
+    }
     const held = outbox.published[String(taskId)]
     outbox.published[String(taskId)] = {
       eventId,
@@ -384,11 +460,15 @@ export function notePublication(taskId: number, eventId: string, state: CloudEve
 }
 
 /** Record a state a surface already knows about — an action taken here, a delivery that
- *  ended — without waiting for the round trip that carries it. */
-export function noteState(taskId: number, state: CloudEventState): void {
+ *  ended — without waiting for the round trip that carries it. Named by EVENT, because one
+ *  task can hold two: what it is asking, and what its delivery is carrying. */
+export function noteEventState(eventId: string, state: CloudEventState): void {
   editOutbox((outbox) => {
-    const held = outbox.published[String(taskId)]
-    if (held) held.state = state
+    for (const where of [outbox.published, outbox.delivering]) {
+      for (const held of Object.values(where)) {
+        if (held.eventId === eventId) held.state = state
+      }
+    }
   })
 }
 
@@ -397,9 +477,11 @@ export function noteState(taskId: number, state: CloudEventState): void {
 /** Every request this board has claimed and not finished. */
 export const heldClaims = (): HeldClaim[] => Object.values(read().claims)
 
-/** The claim on one task, or undefined. */
-export const claimForTask = (taskId: number): HeldClaim | undefined =>
-  heldClaims().find((c) => c.taskId === taskId)
+/** The claim on one EVENT, or undefined. What a card whose delivery stopped for an answer
+ *  needs: it can be carrying two requests at once — the Implement behind the delivery, and
+ *  the Answer behind the question — and each ends on its own. */
+export const claimForEvent = (eventId: string): HeldClaim | undefined =>
+  heldClaims().find((c) => c.eventId === eventId)
 
 /** Write one down. Claimed and started are one edit: a claim recorded without the run it
  *  started would be renewed forever by a board building nothing. */
@@ -421,6 +503,7 @@ export function dropClaim(requestId: string): void {
 export function clearPublications(): void {
   editOutbox((outbox) => {
     outbox.published = {}
+    outbox.delivering = {}
     outbox.claims = {}
     outbox.unsent = []
   })

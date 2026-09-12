@@ -31,6 +31,7 @@ import { startCloudServer, stopCloudServer } from '../src/lib/cloud/board-server
 import type { CloudEventState } from '../src/lib/cloud/events.ts'
 import {
   duePending,
+  noteEventState,
   notePublication,
   publishedFor,
   queue,
@@ -1113,6 +1114,169 @@ describe('a delivery stopped for an answer', () => {
   })
 })
 
+// The same stop, on a delivery that came from a notification (#647). Before this the card
+// went silent: the record for it reads `running`, the publisher may not refresh a row a
+// delivery is reporting against, and Cloud answers a publication with that very row. So the
+// event is handed over to the delivery it is carrying, and the card is raised beside it as
+// the question it now is — one row asking, one row reporting, neither in the other's way.
+describe('a delivery from a notification that stops for an answer', () => {
+  const ASKING = '[user] Which shade of blue?'
+
+  /** A card asking the user, carried by an active delivery an Implement on Cloud started.
+   *  `over` shapes the stop; `state` is what this board last knew that event to be. */
+  function fromCloud(over: Partial<DeliveryRecord>, state: CloudEventState = 'running'): void {
+    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    writeCardFile('0.8.0', [ASKING])
+    setBoardProvider({
+      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+    } as never)
+    withStore((store) =>
+      store.deliveries.push({
+        deliveryId: 'd-12',
+        cardId: 12,
+        title: 'A task',
+        status: 'active',
+        startedAt: Date.now(),
+        sessions: [],
+        approved: '',
+        steps: [],
+        commitMode: 'auto',
+        targetBranch: 'main',
+        ...over,
+      } as DeliveryRecord),
+    )
+    notePublication(12, 'e-impl', state)
+  }
+
+  const afterReview = (): Partial<DeliveryRecord> => ({
+    review: { rounds: [], stopped: { reason: 'ask', why: 'review left 1 open decision for you', at: Date.now() } },
+  })
+
+  const atLanding = (): Partial<DeliveryRecord> => ({
+    landing: { status: 'waiting', attempts: 0, at: Date.now() },
+  })
+
+  /** What the pass queued for card 12, if anything. */
+  const queued = () => readOutbox().pending.find((p) => p.kind === 'publish' && p.snapshot.taskId === 12)
+
+  /** Let the question the pass queued reach Cloud, which is what puts it on record. */
+  async function ask(): Promise<void> {
+    fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-ask', 12) : ok({})))
+    await recordBoardEvents()
+    await flushCloudOutbox()
+  }
+
+  it('asks on a row of its own once review sends the work back', async () => {
+    fromCloud(afterReview())
+
+    await recordBoardEvents()
+
+    const publication = queued()
+    assert.ok(publication, 'the card is raised while it waits on the user')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
+    assert.equal(
+      publication.kind === 'publish' && publication.snapshot.besides,
+      'e-impl',
+      'the publication stands beside the running row, or Cloud answers with it and raises nothing',
+    )
+    assert.equal(readOutbox().delivering['12']?.eventId, 'e-impl')
+    assert.equal(readOutbox().delivering['12']?.state, 'running')
+    assert.equal(publishedFor(12), undefined, 'the delivery’s row is no longer what the card asks on')
+  })
+
+  it('asks the same way while landing waits on the questions', async () => {
+    fromCloud(atLanding())
+
+    await recordBoardEvents()
+
+    const publication = queued()
+    assert.ok(publication)
+    assert.equal(publication.kind === 'publish' && publication.snapshot.kind, 'question')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.besides, 'e-impl')
+  })
+
+  it('asks once, however many passes read the same stop', async () => {
+    fromCloud(afterReview())
+    await ask()
+
+    await recordBoardEvents()
+    await recordBoardEvents()
+
+    assert.equal(publishedFor(12)?.eventId, 'e-ask')
+    assert.deepEqual(readOutbox().pending, [], 'a poll over an unchanged stop queues nothing')
+  })
+
+  it('reports the landing against the row that carries the Implement', async () => {
+    fromCloud(afterReview())
+    await ask()
+
+    recordCloudDeliveryState(12, 'completed')
+
+    const outcome = readOutbox().pending.find((p) => p.kind === 'outcome')
+    assert.equal(outcome?.kind === 'outcome' && outcome.eventId, 'e-impl')
+    assert.equal(publishedFor(12)?.state, 'actionable', 'the question it asked was not touched')
+    assert.equal(readOutbox().delivering['12'], undefined, 'a delivery that ended stops being carried')
+  })
+
+  it('reports a delivery dropped mid-question the same way, and leaves the question asking', async () => {
+    fromCloud(afterReview())
+    await ask()
+
+    recordCloudDeliveryState(12, 'cancelled')
+
+    const outcome = readOutbox().pending.find((p) => p.kind === 'outcome')
+    assert.equal(outcome?.kind === 'outcome' && outcome.eventId, 'e-impl')
+    assert.equal(outcome?.kind === 'outcome' && outcome.outcome, 'cancelled')
+    assert.equal(publishedFor(12)?.eventId, 'e-ask', 'the card is still asking, because it still is')
+  })
+
+  it('asks again when one delivery stops twice', async () => {
+    fromCloud(afterReview())
+    await ask()
+    // The answer came in, the question's row came down, and review sent the work back again.
+    noteEventState('e-ask', 'stale')
+
+    await recordBoardEvents()
+
+    const publication = queued()
+    assert.ok(publication, 'a second stop asks again rather than going quiet')
+    assert.equal(publication.kind === 'publish' && publication.snapshot.besides, 'e-impl')
+  })
+
+  it('keeps carrying the Implement while the answer it is waiting on is being run', async () => {
+    // The gap between an answer being taken and the run that carries it being written down:
+    // the question's row reads `accepted` and no run holds the card yet, so a pass landing
+    // here sees the same stop it saw before. It must not hand the QUESTION over — that would
+    // take the Implement out from under the delivery, and the landing would be reported
+    // against the row the user answered on.
+    fromCloud(afterReview())
+    await ask()
+    noteEventState('e-ask', 'accepted')
+
+    await recordBoardEvents()
+
+    assert.equal(readOutbox().delivering['12']?.eventId, 'e-impl', 'the Implement stopped being carried')
+    assert.equal(publishedFor(12)?.eventId, 'e-ask', 'the question being answered was moved')
+  })
+
+  it('says nothing from a machine that is not carrying the delivery', async () => {
+    // The same card, asking, on a second checkout: no delivery of its own, and no record of
+    // the one somewhere else. It publishes naming nothing, which is how Cloud answers with
+    // the running row and raises no second question for one stop.
+    enableCloudBoard(defaultBoardDir(root), root, ALL_RELEASES)
+    writeCardFile('0.8.0', [ASKING])
+    setBoardProvider({
+      readCards: async () => [card({ release: '0.8.0', status: 'implementing', questions: [{ text: ASKING }] })],
+    } as never)
+
+    await recordBoardEvents()
+
+    const publication = queued()
+    assert.ok(publication)
+    assert.equal(publication.kind === 'publish' && publication.snapshot.besides, '')
+  })
+})
+
 // A run that NAMES a card without holding it (#568). A specialist is out of every lock, so
 // the card's own loop carries on around it — but the card page turns its controls off all
 // the same, and a row asking a question the card offers no way to answer is worse than
@@ -1488,6 +1652,9 @@ describe('what a publication carries', () => {
     )
     assert.ok(snapshot)
     assert.deepEqual(Object.keys(snapshot).sort(), [
+      // The running event a stopped delivery's publication stands beside (#647). An event id,
+      // not a path, and empty on every ordinary publication.
+      'besides',
       'boardId',
       'boardName',
       'broughtIn',
@@ -1523,6 +1690,7 @@ describe('what a publication carries', () => {
 
     const [body] = sent as Array<Record<string, unknown>>
     assert.deepEqual(Object.keys(body ?? {}).sort(), [
+      'besides',
       'boardId',
       'boardName',
       'broughtIn',
