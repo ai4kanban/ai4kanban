@@ -202,11 +202,5 @@ export type RunsCopy = {
       placeholder: string;
       confirm: string;
     };
-    edit: {
-      title: (id: number) => string;
-      blurb: string;
-      placeholder: string;
-      confirm: string;
-    };
   };
 };

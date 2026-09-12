@@ -1,5 +1,5 @@
 import { boardRules } from "./cli";
-import type { DiscussionRow, DiscussionTarget } from "./types";
+import type { ChatTarget, ConversationRow, DiscussionRow, DiscussionTarget } from "./types";
 
 // --- the discussions a board is holding (#496) --------------------------------
 //
@@ -18,6 +18,18 @@ export async function listDiscussions(): Promise<DiscussionRow[]> {
   }
 }
 
+/** Every conversation the rail lists (#633): the discussions, and one row per open card with
+ *  a chat going. Rules from before card chats joined the list answer with the discussions
+ *  alone, which is every conversation such a board can hold a row for. */
+export async function listConversations(): Promise<ConversationRow[]> {
+  try {
+    const rules = await boardRules();
+    return rules.listConversations?.() ?? rules.listDiscussions?.() ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /** Open a discussion. Nothing is written until the first message, so a press that opens the
  *  sheet and closes it again leaves no row behind. Null on rules too old to hold one. */
 export async function startDiscussion(): Promise<DiscussionTarget | null> {
@@ -28,8 +40,9 @@ export async function startDiscussion(): Promise<DiscussionTarget | null> {
   }
 }
 
-/** Take one discussion out of the list. Its transcript stays on this machine. */
-export async function archiveDiscussion(target: DiscussionTarget): Promise<{ ok: boolean; error?: string }> {
+/** Take one conversation out of the list — a discussion, or a card's own chat (#633). Its
+ *  transcript stays on this machine, and a card's card page still draws it. */
+export async function archiveDiscussion(target: ChatTarget): Promise<{ ok: boolean; error?: string }> {
   try {
     const done = (await boardRules()).archiveDiscussion?.(target);
     if (!done) return { ok: false };

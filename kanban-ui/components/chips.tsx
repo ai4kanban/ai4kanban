@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FiAlertTriangle, FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
+import { FiAlertTriangle, FiBox, FiCheckCircle, FiClock, FiFlag, FiHelpCircle, FiLayers, FiLock, FiMessageSquare, FiPlayCircle, FiTag, FiUser } from "react-icons/fi";
 import type { IconType } from "react-icons";
 import { type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import type { ChipsCopy } from "@/i18n/chips/types";
@@ -199,6 +199,28 @@ export function PendingPill({ label, detailed = false }: { label: string; detail
     >
       <FiClock aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       <span className="truncate">{detailed ? label : copy.pending}</span>
+    </span>
+  );
+}
+
+// The mark a card wears while its own chat is writing a reply (#633). It stands where the
+// status pill stands, for the same reason PendingPill does: the card keeps its stage, and
+// what the reader needs from the column is that this one is held.
+//
+// The accent, which is the board's colour for something happening right now, and the same
+// speech mark the rail's conversation rows carry — so the card on the board and its row in
+// the rail read as the one thing.
+export function DiscussingPill() {
+  const copy = useCopy().chips;
+  return (
+    <span
+      className="nb-chip nb-tip"
+      tabIndex={0}
+      data-tip={copy.discussingHint}
+      style={{ ...ELASTIC_CHIP, background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }}
+    >
+      <FiMessageSquare aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+      <span className="truncate">{copy.discussing}</span>
     </span>
   );
 }

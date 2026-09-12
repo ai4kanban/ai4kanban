@@ -578,6 +578,33 @@ export function answeringOn(cardId: ChatTarget): boolean {
   return false
 }
 
+/** The name a card conversation's marker carries, so one read of the folder says which
+ *  cards are answering. */
+const CARD_MARKER = /^card-(\d+)\.answering$/
+
+/** Every card whose own chat is writing a reply this second (#633) — what makes a card
+ *  `discussing`, which holds it the way a delivery does.
+ *
+ *  One read of `chats/` rather than a stat per card: the board asks this about every card it
+ *  draws. Each marker still goes through `answeringOn`, so one left behind by a process that
+ *  is gone is cleared here too and no card can be held for good. */
+export function cardsDiscussing(): Set<number> {
+  const cards = new Set<number>()
+  let names: string[]
+  try {
+    names = fs.readdirSync(CHATS_DIR)
+  } catch {
+    return cards
+  }
+  for (const name of names) {
+    const found = CARD_MARKER.exec(name)
+    if (!found) continue
+    const id = Number(found[1])
+    if (answeringOn(id)) cards.add(id)
+  }
+  return cards
+}
+
 function ownerOf(dir: string): number | undefined {
   try {
     const pid = Number(fs.readFileSync(path.join(dir, 'owner'), 'utf8').trim())
@@ -802,6 +829,14 @@ export async function sendChatMessage(
     // the exception: it was never said by the user, so it is not shown as though it were.
     if (!options.fromBoard) {
       held.messages.push({ role: 'you', text, at: now, ...(shots.length ? { images: shots } : {}) })
+    }
+    // A card's conversation that was put away comes back the moment somebody says something
+    // into it (#633): its card page still draws the rail, so a row taken off the list has to
+    // be able to return or the list stops being every card with a conversation. A
+    // discussion's archive is left alone — there the row IS the only way back in.
+    if (typeof cardId === 'number') {
+      held.archived = false
+      held.archivedBy = undefined
     }
     held.updatedAt = now
     writeChat(held)

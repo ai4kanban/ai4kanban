@@ -32,6 +32,28 @@ export function creationRefusal(id: number, creation: CardCreation | undefined |
       'that run is picked back up from the board and finishes.'
 }
 
+// ---- a card being discussed ------------------------------------------------
+
+/**
+ * Why nothing may `what` this card while its own chat is answering, or null when it is free
+ * (#633).
+ *
+ * A card chat is where the requirement is changed, so a card with a reply in flight is a
+ * card whose words are about to move — building or answering against them would act on
+ * something nobody has agreed to yet. The hold lasts exactly as long as the turn: it is
+ * gone when the reply lands, when it is stopped, and when the process writing it goes away.
+ *
+ * One sentence for every side, the way `creationRefusal` is: the command refuses in it, and
+ * the card page says it in the tooltip of each control it turns off.
+ */
+export function discussingRefusal(id: number, discussing: boolean | undefined, what: string): string | null {
+  if (!discussing) return null
+  return (
+    `#${id} is being discussed — its card chat is writing a reply, so \`${what}\` is refused ` +
+    'until that turn ends. It frees itself the moment the reply lands or is stopped.'
+  )
+}
+
 // ---- questions -------------------------------------------------------------
 
 /** The tags a question can carry. `[user]` is a judgment call only the human can make. */

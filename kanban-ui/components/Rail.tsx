@@ -1,13 +1,11 @@
 "use client";
 
 // The rail down the left of the window: the board at the top, a box to find a
-// card by typing, then every card this window has open, each one closeable (see
+// card by typing, then the conversations this board is holding (see
 // app/design/layouts).
 //
-// It exists because a desktop window has neither a back gesture nor a back
-// button — a trackpad swipe does nothing in an Electron window — so opening a
-// card has to leave a mark on screen that is also the way back. That mark is a
-// row here. All cards is the first row and never closes: it is the board.
+// All cards is the first row and never goes away: it is the board, and the way back out of
+// anything the rail opened.
 //
 // The rail has no surface of its own. It sits on the window's cream with the top
 // row, so the two read as one L-shaped chrome rather than as two regions that
@@ -26,16 +24,16 @@
 // be found. The Memory panel at the foot (#129) doesn't scroll with them either —
 // see MemoryPanel below.
 //
-// Under the open cards are the discussions this board is holding (#496). They are not
-// cards: they have no page of their own, a row opens one in the Create task sheet, and a
-// search never takes one away. At phone width there is no rail at all, so there is no list
-// there either — see DiscussionRow and lib/discussion-list.ts.
+// The list is every subject being talked through (#496, #633): the board's discussions, and
+// one row per card with a chat going. A discussion has no page of its own, so its row opens
+// it in the Create task sheet; a card's row opens that card's page with its conversation up.
+// A search never takes either away. At phone width there is no rail at all, so there is no
+// list there either — see ChatRow and lib/discussion-list.ts.
 //
 // A marketing board has no such list (#507): every row here opens the create sheet, and that
 // sheet is the planning step a topic does not take. Nothing is polled for it either.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import {
   FiArchive,
@@ -52,10 +50,16 @@ import {
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
-import type { OpenCard } from "@/lib/open-cards";
-import { MEMORY_FILES, type DiscussionTarget, type MemoryModule } from "@/lib/types";
+import {
+  MEMORY_FILES,
+  isDiscussion,
+  type ChatTarget,
+  type DiscussionTarget,
+  type MemoryModule,
+} from "@/lib/types";
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
+import { cardChat } from "@/lib/chat-open";
 import { createSheet } from "@/lib/create-open";
 import { useDiscussions } from "@/lib/discussion-list";
 import { Button } from "./button";
@@ -70,7 +74,6 @@ import {
 } from "./ui/dropdown-menu";
 
 export function Rail({
-  rows,
   activeId,
   activeMemory = null,
   activeArchive = false,
@@ -79,10 +82,7 @@ export function Rail({
   memoryModules = [],
   total,
   running,
-  onClose,
 }: {
-  /** The open cards, in the order they were opened. */
-  rows: OpenCard[];
   /** The card this window is showing, or null for the board. */
   activeId: number | null;
   /** The memory file this window is showing, as a memory key, or null (#129). */
@@ -104,51 +104,39 @@ export function Rail({
    *  for that one. The set comes from the page (Board, CardPage), which already
    *  polls the registry; the rail doesn't open a poll of its own for a dot. */
   running: Set<number>;
-  onClose: (id: number) => void;
 }) {
   const c = useCopy().rail;
-  const router = useRouter();
   const { query, setQuery, matches } = useCardSearch();
   const searching = query.trim().length > 0;
-  // The discussions this board is holding (#496). They are not cards, so what is typed in
-  // the box above never takes them away. A marketing board holds none to draw (#507).
+  // Every conversation this board is holding (#496, #633). What is typed in the box above
+  // never takes one away — it searches cards. A marketing board holds none to draw (#507).
   const discussions = useDiscussions(useSolution() === "marketing");
   // A refused archive left the row where it was, so it says why rather than looking like a
   // press that did nothing (#610). Click it away; the next archive replaces it.
   const [archiveFailed, setArchiveFailed] = useState<string | null>(null);
   const { archive } = discussions;
   const archiveRow = useCallback(
-    async (target: DiscussionTarget) => {
+    async (target: ChatTarget) => {
       setArchiveFailed(null);
       const done = await archive(target);
-      // The screen holding this one has no page of its own to stay on, so it hears about it
-      // and goes back to a fresh Create task.
-      if (done.ok) createSheet.archived(target);
-      else setArchiveFailed(done.error || c.discussions.archiveFailed);
+      // A discussion has no page of its own to stay on, so the screen holding it hears about
+      // it and goes back to a fresh Create task. A card's conversation has one, and the page
+      // it is on is left exactly where it was.
+      if (!done.ok) setArchiveFailed(done.error || c.discussions.archiveFailed);
+      else if (isDiscussion(target)) createSheet.archived(target);
     },
     [archive, c],
   );
 
-  // Closing the row you are standing on has to say where to stand instead: the
-  // card after it, else the one before, else the board. Closing a row you are
-  // not on moves nothing.
-  const close = (id: number) => {
-    onClose(id);
-    if (id !== activeId) return;
-    const at = rows.findIndex((c) => c.id === id);
-    const next = rows[at + 1] ?? rows[at - 1] ?? null;
-    router.push(next ? `/${next.id}` : "/");
-  };
-
   return (
     <div className="flex h-full flex-col py-2 pl-3 pr-1">
       <SearchBox value={query} onChange={setQuery} />
-      {/* What is typed replaces the open cards and nothing else. All cards stays:
+      {/* What is typed puts the matches where the conversations sit. All cards stays:
           it is the board rather than a row of the list, and taking it away would
           be taking away the way out of a search. */}
       <nav
         className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto"
-        aria-label={searching ? c.matching : c.openCards}
+        aria-label={searching ? c.matching : c.discussions.heading}
       >
         {/* A memory page is neither a card nor the board, so All cards is not where
             you are while one is open. */}
@@ -181,34 +169,25 @@ export function Rail({
               </p>
             )}
           </>
-        ) : (
-          <>
-            {rows.length > 0 && <RailLabel text={c.openCards} count={rows.length} />}
-            {rows.map((card) => (
-              <RailRow
-                key={card.id}
-                href={`/${card.id}`}
-                label={card.title}
-                id={card.id}
-                active={card.id === activeId}
-                running={running.has(card.id)}
-                onClose={() => close(card.id)}
-              />
-            ))}
-          </>
-        )}
-        {/* Under the open cards, and left where they are by a search: a discussion is not a
-            card, so nothing typed above should hide one. Each row opens that discussion in
-            the Create task sheet — there is no page of its own to go to. */}
+        ) : null}
+        {/* Left where they are by a search: what is typed finds cards, and hiding the subject
+            somebody is in the middle of talking through would be the search answering a
+            question nobody asked. */}
         {discussions.rows.length > 0 && (
           <>
             <RailLabel text={c.discussions.heading} count={discussions.rows.length} />
             {discussions.rows.map((row) => (
-              <DiscussionRow
-                key={row.target}
+              <ChatRow
+                key={row.id}
                 name={row.name || c.discussions.unnamed}
+                cardId={row.cardId}
+                active={row.cardId !== undefined && row.cardId === activeId}
                 answering={row.answering}
-                onOpen={() => createSheet.open(row.target)}
+                onOpen={() =>
+                  row.cardId === undefined
+                    ? createSheet.open(row.target as DiscussionTarget)
+                    : cardChat.open(row.cardId)
+                }
                 onArchive={() => void archiveRow(row.target)}
               />
             ))}
@@ -464,11 +443,8 @@ function SearchBox({ value, onChange }: { value: string; onChange: (v: string) =
  *  shadow: at row height a shadow reads as a lifted button instead of as where
  *  you are.
  *
- *  The ✕ is a sibling of the link and not a child of it — a button inside an
- *  anchor is neither valid nor reachable — so it is placed over the row's right
- *  edge, and the link keeps room for it. The pulse dot goes at the far end of
- *  the link's own content, which stops where that reserved room begins, so the
- *  two never sit on top of each other and a hover doesn't hide the run. */
+ *  The pulse dot goes at the far end of the link's own content, so a hover never hides the
+ *  run. */
 function RailRow({
   href,
   label,
@@ -478,7 +454,6 @@ function RailRow({
   title,
   active,
   running = false,
-  onClose,
   onOpen,
 }: {
   href: string;
@@ -492,7 +467,6 @@ function RailRow({
   title?: string;
   active: boolean;
   running?: boolean;
-  onClose?: () => void;
   /** Run just before the row opens what it points at. */
   onOpen?: () => void;
 }) {
@@ -503,9 +477,7 @@ function RailRow({
         href={href}
         onClick={onOpen}
         title={running ? c.runningRow(label) : (title ?? label)}
-        className={`flex h-[30px] w-full items-center gap-2 rounded-[8px] pl-2.5 text-left text-[12.5px] ${
-          onClose ? "pr-7" : "pr-2"
-        } ${
+        className={`flex h-[30px] w-full items-center gap-2 rounded-[8px] pl-2.5 pr-2 text-left text-[12.5px] ${
           active
             ? "bg-nb-paper font-[700] shadow-[inset_0_0_0_1.5px_var(--color-nb-ink)]"
             : "font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
@@ -537,64 +509,80 @@ function RailRow({
           </span>
         )}
       </Link>
-      {onClose && (
-        <button
-          type="button"
-          onClick={onClose}
-          title={c.close(label)}
-          aria-label={c.close(label)}
-          className={`absolute right-1 top-1/2 grid size-5 -translate-y-1/2 cursor-pointer place-items-center rounded-[5px] text-nb-ink hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)] focus-visible:opacity-100 group-hover:opacity-60 group-hover:hover:opacity-100 ${
-            active ? "opacity-40" : "opacity-0"
-          }`}
-        >
-          <FiX size={13} aria-hidden />
-        </button>
-      )}
     </div>
   );
 }
 
-/** One discussion (#496), in the open card's own geometry — same height, same corner, same
- *  truncation — so the list below the cards reads as one rail rather than as a second
- *  design that happens to sit under it.
+/** One conversation (#496, #633), in the rail row's own geometry — same height, same corner,
+ *  same truncation — so the list reads as one rail rather than as a second design that
+ *  happens to sit under the board's row.
  *
- *  It is a button, not a link: a discussion has no page of its own, and pressing the row
- *  opens it in the Create task sheet. There is no open state for the same reason — the sheet
- *  covers the window it would be marked in.
+ *  A card's row is a link: its card page is where the conversation is carried on, and it
+ *  wears the open state every other row in the rail wears. A discussion's is a button — it
+ *  has no page of its own, and pressing it opens the Create task sheet, which covers the
+ *  window an open state would be marked in.
  *
- *  The ⋯ is a sibling of the button, not a child of it, and holds the one thing there is to
- *  do to a discussion from here: take it out of the list. */
-function DiscussionRow({
+ *  The ⋯ is a sibling of the row, not a child of it — a button inside an anchor is neither
+ *  valid nor reachable — and holds the one thing there is to do from here: end the
+ *  discussion, which takes the row off the list and nothing else. */
+function ChatRow({
   name,
+  cardId,
+  active,
   answering,
   onOpen,
   onArchive,
 }: {
   name: string;
-  /** Its agent is writing a reply — the same pulse an open card's row carries while a run
-   *  is inside it. */
+  /** The card this conversation is about, or undefined for a discussion. */
+  cardId?: number;
+  /** This window is showing that card. */
+  active: boolean;
+  /** Its agent is writing a reply — the same pulse a card's row carries while a run is
+   *  inside it. */
   answering: boolean;
   onOpen: () => void;
   onArchive: () => void;
 }) {
   const c = useCopy().rail;
+  const inside = (
+    <>
+      {cardId === undefined ? (
+        <FiMessageSquare size={13} className="shrink-0" aria-hidden />
+      ) : (
+        <span
+          className="shrink-0 font-mono text-[11px] tabular-nums"
+          style={{ color: active ? "var(--color-nb-accent)" : "inherit", opacity: active ? 1 : 0.6 }}
+        >
+          {cardId}
+        </span>
+      )}
+      <span className="truncate">{name}</span>
+      {answering && (
+        <>
+          <span className={`ml-auto ${PULSE_DOT}`} aria-hidden />
+          <span className="sr-only">{c.discussions.answering}</span>
+        </>
+      )}
+    </>
+  );
+  const shape = `flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] pl-2.5 pr-7 text-left text-[12.5px] ${
+    active
+      ? "bg-nb-paper font-[700] shadow-[inset_0_0_0_1.5px_var(--color-nb-ink)]"
+      : "font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
+  }`;
+  const hover = answering ? c.discussions.answeringRow(name) : name;
   return (
     <div className="group relative">
-      <button
-        type="button"
-        onClick={onOpen}
-        title={answering ? c.discussions.answeringRow(name) : name}
-        className="flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] pl-2.5 pr-7 text-left text-[12.5px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
-      >
-        <FiMessageSquare size={13} className="shrink-0" aria-hidden />
-        <span className="truncate">{name}</span>
-        {answering && (
-          <>
-            <span className={`ml-auto ${PULSE_DOT}`} aria-hidden />
-            <span className="sr-only">{c.discussions.answering}</span>
-          </>
-        )}
-      </button>
+      {cardId === undefined ? (
+        <button type="button" onClick={onOpen} title={hover} className={shape}>
+          {inside}
+        </button>
+      ) : (
+        <Link href={`/${cardId}`} onClick={onOpen} title={hover} className={shape}>
+          {inside}
+        </Link>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

@@ -16,6 +16,7 @@ import { Button } from "./button";
 import {
   BlockedChip,
   CreatingChip,
+  DiscussingPill,
   GroupChip,
   PendingPill,
   PriorityChip,
@@ -117,6 +118,11 @@ export function BoardCard({
                 onOpenLog(liveSession.sessionId);
               }}
             />
+          ) : card.discussing ? (
+            // Its own chat is writing a reply (#633), so the card is held. Ahead of the
+            // schedule and the stage, and in their one slot: the freeze is the thing to know
+            // about this card right now.
+            <DiscussingPill />
           ) : card.schedule ? (
             // Something is queued to run on this card the moment its blockers clear (#140).
             // It stands in for the status pill — one mark per card — and the card keeps its

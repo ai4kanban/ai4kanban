@@ -39,7 +39,6 @@ import { CHAT_MAX, CHAT_MIN, CHAT_W, useChatRail, type BoardChange } from "@/lib
 import { BodySlotProvider } from "@/lib/body-slot";
 import { BellProvider, CardEventsProvider } from "@/lib/card-event";
 import { usePhone } from "@/lib/media";
-import { useOpenCards } from "@/lib/open-cards";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
 import type { MemoryModule } from "@/lib/types";
 import { ChatPane, ChatProvider } from "./Chat";
@@ -161,7 +160,6 @@ export function Window({
   // the whole body, and a rail that stays up over what it just opened is a rail nobody can
   // get out from behind (#357).
   const phone = usePhone();
-  const { rows, close } = useOpenCards(projectRoot, openIds, currentId, currentTitle);
   const { panel, onLayoutChanged, onDoubleClick } = useRailWidth();
   // The chat rail follows what this window is showing (#242): a card's page gets that
   // card's own conversation, the board and a memory file get the board's. One chat on
@@ -288,7 +286,7 @@ export function Window({
     : `rounded-tl-[14px] ${beside ? "rounded-tr-[14px]" : ""}`;
   const phoneScreen =
     !phone || cover === null ? null : cover === "find" ? (
-      <FindScreen rows={rows} />
+      <FindScreen />
     ) : cover === "memory" ? (
       <MemoryScreen active={currentMemory} modules={memoryModules} />
     ) : (
@@ -338,7 +336,6 @@ export function Window({
             style={PANE_CLIP}
           >
             <Rail
-              rows={rows}
               activeId={currentId}
               activeMemory={currentMemory}
               activeArchive={currentArchive}
@@ -347,7 +344,6 @@ export function Window({
               memoryModules={memoryModules}
               total={openIds.length}
               running={running ?? EMPTY}
-              onClose={close}
             />
           </ResizablePanel>
           <ResizableHandle aria-label={c.resize.rail} onDoubleClick={onDoubleClick} />

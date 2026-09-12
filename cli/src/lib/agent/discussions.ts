@@ -25,7 +25,7 @@ import {
   setChatTitle,
 } from './chat'
 import { filePlanOfRun } from './discuss'
-import { peekRun } from './sessions'
+import { peekRun, titleOf } from './sessions'
 import { runIsLive } from './store'
 import {
   DISCUSSION_PREFIX,
@@ -33,6 +33,8 @@ import {
   discussionTarget,
   isDiscussion,
   type Chat,
+  type ChatTarget,
+  type ConversationRow,
   type DiscussionRow,
   type DiscussionTarget,
 } from './types'
@@ -85,26 +87,57 @@ export function listDiscussions(): DiscussionRow[] {
   return over.length ? rows.filter((row) => !over.includes(row)) : rows
 }
 
+/** Every conversation the rail lists (#633): the discussions above, and one row per open
+ *  card that has a chat going. Most recently spoken to first, the two kinds in one order —
+ *  what the reader wants is the subject they last touched, whichever kind it was.
+ *
+ *  A card's row is dropped when the card leaves the board: the transcript stays on disk, but
+ *  the row would open a page that is no longer there. One put away by hand stays out until
+ *  the next message is said into it (`sendChatMessage`). */
+export function listConversations(): ConversationRow[] {
+  const rows: ConversationRow[] = [...listDiscussions()]
+  for (const cardId of cardChatFiles()) {
+    const chat = readChat(cardId)
+    if (!chat || chat.archived || !chat.messages.length) continue
+    const title = titleOf(cardId)
+    if (title === undefined) continue
+    rows.push({
+      id: keyOf(cardId),
+      target: cardId,
+      name: title,
+      updatedAt: chat.updatedAt,
+      messages: chat.messages.length,
+      answering: answeringOn(cardId),
+      cardId,
+    })
+  }
+  return rows.sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
 /** Name one discussion. The board writes this off the plan the discussion named; nothing
  *  asks the agent to spell it. */
 export function titleDiscussion(target: DiscussionTarget, title: string): void {
   setChatTitle(target, title)
 }
 
-/** Take one discussion out of the list, and its plans with it: a discussion put away is the
- *  end of the subject, and a plan nothing came of is a file nobody would ever open again —
- *  the board lists plans nowhere, so what is left in `plans/` is unreachable by hand.
+/** Take one conversation out of the list, and its plans with it: a discussion put away is
+ *  the end of the subject, and a plan nothing came of is a file nobody would ever open again
+ *  — the board lists plans nowhere, so what is left in `plans/` is unreachable by hand.
  *
  *  A plan handed to a run stays. The cards that run wrote name it in `## Source`, and that
  *  path is the only way back to the file.
  *
+ *  It is the rail's **End discussion** (#633), and it does only this: a card's conversation
+ *  put away leaves the list and nothing else — it does not free a card its reply is holding,
+ *  and the next message said into it brings the row back.
+ *
  *  Its transcript stays on disk — `akb chat --clear` is still the only thing that forgets a
  *  conversation. */
 export function archiveDiscussion(
-  target: DiscussionTarget,
+  target: ChatTarget,
 ): { ok: true; plans: string[] } | { error: string } {
   const chat = readChat(target)
-  if (!chat) return { error: `no discussion called "${target}" on this board.` }
+  if (!chat) return { error: `no conversation called "${target}" on this board.` }
   const dropped = (chat.plans ?? []).filter((p) => !p.run && dropPlan(p.path)).map((p) => p.path)
   setChatArchived(target, true)
   return { ok: true, plans: dropped }
@@ -142,13 +175,28 @@ function settleHandoff(target: DiscussionTarget, chat: Chat): boolean {
 // ---- the files -------------------------------------------------------------
 
 function discussionFiles(): DiscussionTarget[] {
-  let names: string[]
+  return chatFiles()
+    .filter((name) => FILE.test(name))
+    .map((name) => name.slice(0, -'.json'.length) as DiscussionTarget)
+}
+
+/** The name a card conversation's file carries (`agent/chat.ts` names it). */
+const CARD_FILE = /^card-(\d+)\.json$/
+
+/** Every card this board holds a conversation about (#633), whatever became of the card. */
+function cardChatFiles(): number[] {
+  return chatFiles()
+    .map((name) => CARD_FILE.exec(name))
+    .filter((found): found is RegExpExecArray => found !== null)
+    .map((found) => Number(found[1]))
+}
+
+function chatFiles(): string[] {
   try {
-    names = fs.readdirSync(CHATS_DIR)
+    return fs.readdirSync(CHATS_DIR)
   } catch {
     return []
   }
-  return names.filter((name) => FILE.test(name)).map((name) => name.slice(0, -'.json'.length) as DiscussionTarget)
 }
 
 function rowOf(target: DiscussionTarget, chat: Chat): DiscussionRow {

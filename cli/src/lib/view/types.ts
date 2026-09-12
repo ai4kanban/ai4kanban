@@ -454,6 +454,11 @@ export interface Card {
    *  stopped short. Absent on every ordinary card — including one created outside a run,
    *  which is complete as soon as its file exists. */
   creation?: CardCreation
+  /** This card's own chat is writing a reply (#633), so the requirement under discussion is
+   *  not settled: Implement, Refine, Resolve, Archive and Reject are all refused until that
+   *  turn ends. Absent on every other card, and gone the moment the reply lands, is stopped,
+   *  or its process goes away. */
+  discussing?: boolean
   /** The delivery in flight on this card, when one is. While it is there the card is held:
    *  Edit, Refine, Resolve, Reject and Archive are off, and Discard is what takes
    *  the card back. Absent on every card nothing is building. */

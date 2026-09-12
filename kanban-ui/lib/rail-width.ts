@@ -26,9 +26,9 @@ function save(px: number) {
 // have to put back. That is the same reason the panel is `preserve-pixel-size`
 // (see components/Window.tsx) — a wider window gives its new room to the body.
 //
-// Kept in the browser like the window's other state (lib/open-cards), but not
-// keyed by project root the way that one is: how wide you like the rail is about
-// the window, not about what is open in it.
+// Kept in the browser like the window's other state (lib/chat-rail), and not keyed by
+// project root: how wide you like the rail is about the window, not about the board it is
+// showing.
 export function useRailWidth() {
   const panel = usePanelRef();
 

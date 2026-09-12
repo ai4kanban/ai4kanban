@@ -3,17 +3,16 @@
 export type RailCopy = {
   search: string;
   clearSearch: string;
-  /** What a screen reader calls the list, in its two states. */
+  /** What a screen reader calls the list while a search fills it. */
   matching: string;
-  openCards: string;
   allCards: string;
   matches: string;
   noMatches: string;
   /** A row an agent is inside, and the word a screen reader gets for it. */
   runningRow: (label: string) => string;
   running: string;
-  close: (label: string) => string;
-  /** The discussions this board is holding (#496), listed under the open cards. */
+  /** The conversations this board is holding (#496, #633) — its discussions, and one row
+   *  per card with a chat going. */
   discussions: {
     heading: string;
     /** One that has said nothing the board could name it by yet. */
@@ -21,10 +20,11 @@ export type RailCopy = {
     /** Its agent is writing a reply — the hover, and the word a screen reader gets. */
     answeringRow: (name: string) => string;
     answering: string;
-    /** The ⋯ on a row, and its one item. */
+    /** The ⋯ on a row, and its one item: the row leaves the list, and nothing else
+     *  happens — a card it is holding is freed by the reply ending, never by this. */
     menu: (name: string) => string;
     archive: string;
-    /** The archive was refused and the row is back — said under the list (#610). */
+    /** It was refused and the row is back — said under the list (#610). */
     archiveFailed: string;
   };
   memory: {

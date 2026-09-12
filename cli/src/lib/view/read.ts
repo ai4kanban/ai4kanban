@@ -13,6 +13,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { approvalCovers } from '../agent/approval'
+import { cardsDiscussing } from '../agent/chat'
 import { activeDelivery, listDeliveries, manualSettled } from '../agent/deliveries'
 import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
@@ -190,6 +191,10 @@ function collectCards(): { board: Card[]; every: Card[] } {
     const state = creating.get(card.id)
     if (state) card.creation = state
   }
+  // …and which cards are being discussed right now (#633), so the board card, the card page
+  // and the board's own dispatcher all read one answer.
+  const discussing = cardsDiscussing()
+  for (const card of every) if (discussing.has(card.id)) card.discussing = true
   return { board, every }
 }
 

@@ -3,13 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { archiveDiscussionAction, listDiscussionsAction } from "@/app/actions";
 import { usePhone } from "./media";
-import type { DiscussionRow, DiscussionTarget } from "./types";
+import type { ChatTarget, ConversationRow } from "./types";
 
-// The discussions the rail lists (#496).
+// The conversations the rail lists (#496, #633): the board's discussions, and one row per
+// open card with a chat going.
 //
-// One poll for the whole window: the rows say what each discussion is called and which one
-// its agent is answering, both of which move while nobody is looking — a reply started in the
-// Create sheet goes on arriving after the sheet is shut, and a terminal writes the same files.
+// One poll for the whole window: the rows say what each one is called and which is being
+// answered, both of which move while nobody is looking — a reply started in the Create sheet
+// or on a card page goes on arriving after that screen is shut, and a terminal writes the
+// same files.
 //
 // Nothing is held here. The list is the `chats/` files on this machine, read through the
 // board's own rules, so two windows on one board draw the same rows.
@@ -20,18 +22,18 @@ const LIVE_MS = 3000;
 const IDLE_MS = 6000;
 
 export interface DiscussionList {
-  rows: DiscussionRow[];
+  rows: ConversationRow[];
   /** Take one out of the list, and drop its row on the spot rather than waiting out a tick.
    *  A refusal puts the row back and says why, so nothing is lost off the rail that is still
    *  on disk (#610). */
-  archive(target: DiscussionTarget): Promise<{ ok: boolean; error?: string }>;
+  archive(target: ChatTarget): Promise<{ ok: boolean; error?: string }>;
 }
 
-/** `off` is a board that holds no discussions at all — a marketing one (#507), where every
- *  row would open a sheet that board does not have. Nothing is read then, the way nothing is
- *  read at phone width. */
+/** `off` is a board that holds no conversations to list at all — a marketing one (#507),
+ *  where a discussion's row would open a sheet that board does not have. Nothing is read
+ *  then, the way nothing is read at phone width. */
 export function useDiscussions(off = false): DiscussionList {
-  const [rows, setRows] = useState<DiscussionRow[]>([]);
+  const [rows, setRows] = useState<ConversationRow[]>([]);
   const kickRef = useRef<() => void>(() => {});
   // At phone width there is no rail to draw them in, so nothing is read at all.
   const phone = usePhone();
@@ -79,7 +81,7 @@ export function useDiscussions(off = false): DiscussionList {
     };
   }, [phone, off, answering]);
 
-  const archive = useCallback(async (target: DiscussionTarget) => {
+  const archive = useCallback(async (target: ChatTarget) => {
     setRows((was) => was.filter((row) => row.target !== target));
     const done = await archiveDiscussionAction(target);
     // Either way the list is re-read: it puts a refused row back, and confirms the rest.

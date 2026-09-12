@@ -20,6 +20,7 @@ import type {
   ChatReply,
   ChatTarget,
   ChatView,
+  ConversationRow,
   DiscussionRow,
   DiscussionTarget,
   DiscussRead,
@@ -444,8 +445,12 @@ export interface BoardRules {
   // new one on every press, and a row's menu takes one out of the list. Optional: rules from
   // before them draw no list, and the create screen holds the board's one conversation.
   listDiscussions?(): DiscussionRow[];
+  /** The same list with each card's own chat beside it (#633) — what the rail draws.
+   *  Optional on rules from before card chats joined the list, and the rail then holds the
+   *  discussions alone. */
+  listConversations?(): ConversationRow[];
   startDiscussion?(): DiscussionTarget;
-  archiveDiscussion?(target: DiscussionTarget): { ok: true; plans?: string[] } | { error: string };
+  archiveDiscussion?(target: ChatTarget): { ok: true; plans?: string[] } | { error: string };
   titleDiscussion?(target: DiscussionTarget, title: string): void;
   /** The discussion a string names, spelled either way — null for anything this board did
    *  not write, so nothing arriving from a browser can name a file of ours by accident. */

@@ -47,7 +47,8 @@ import { agentForRun } from './runner'
 import { readRuntimes, runtimeById } from './runtimes'
 import { stampMemoryPrune } from './settings'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
-import { creationRefusal } from '../view/rules'
+import { creationRefusal, discussingRefusal } from '../view/rules'
+import { cardsDiscussing } from './chat'
 import { holdsCard, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
@@ -483,6 +484,26 @@ export async function getRun(id: string, bytes?: number): Promise<RunView | null
 
 // ---- starting --------------------------------------------------------------
 
+// The actions a card's own chat holds its card against (#633). Each one either builds the
+// card as it reads right now or takes it off the board — and the reply being written is about
+// to rewrite it, so none of them is a move on a settled card. `decide` is here with
+// `resolve`: it is the same answer with the choosing done for the user. Everything else goes
+// through — a review, a landing and a delivery's own work are not judgments about what the
+// card should say, and neither is a specialist filling one section in.
+const HELD_BY_DISCUSSION = new Set<AgentAction>([
+  'implement',
+  'clarify',
+  'writing',
+  'resolve',
+  'decide',
+  'archive',
+  'reject',
+])
+
+// `clarify` and `writing` are refine's own two passes — the user asked for a refine, so that
+// is what the refusal names.
+const REFINE_PASS = new Set<AgentAction>(['clarify', 'writing'])
+
 // The locks every new run passes, whether it's a fresh action or a resumed one: one live
 // run per card, and one live plan-release across the whole board. Checked
 // with the record's lock held, so two processes can't both slip past.
@@ -491,6 +512,8 @@ function lockedBy(
   action: AgentAction,
   cardId: number | null,
   release?: string,
+  /** This run is a delivery's own work being carried on. The discussion hold lets it by. */
+  inDelivery = false,
 ): string | undefined {
   // A specialist is out of that rule at both ends (`holdsCard`): it fills one section or
   // writes one file in the draft folder, never the plan, so it neither takes the card nor
@@ -506,6 +529,18 @@ function lockedBy(
   // specialists either, since a section written onto half a plan answers the wrong plan.
   if (cardId !== null) {
     const refusal = creationRefusal(cardId, creationOf(runs, cardId), action)
+    if (refusal) return refusal
+  }
+  // A card whose own chat is writing a reply takes none of the runs that act on what it says
+  // (#633) — the reply is about to rewrite it. Here rather than at each caller, so a button,
+  // a terminal and the board's own dispatcher are all held the same way, and the card page
+  // turns the same controls off.
+  // A delivery carrying its own run on is out of it, as the card decided: that run builds
+  // the requirement the delivery froze when it started, not the words being talked about
+  // now, and refusing it would strand a delivery on a conversation it knows nothing about.
+  if (cardId !== null && !inDelivery && HELD_BY_DISCUSSION.has(action)) {
+    const asked = REFINE_PASS.has(action) ? 'refine' : action
+    const refusal = discussingRefusal(cardId, cardsDiscussing().has(cardId), asked)
     if (refusal) return refusal
   }
   if (SINGLETON_ACTIONS.has(action)) {
@@ -826,7 +861,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   }
   const out = withStore<{ run: RunRecord } | { error: string }>((store) => {
     const all = store.runs
-    const locked = lockedBy(all, prev.action, prev.cardId, prev.input)
+    const locked = lockedBy(all, prev.action, prev.cardId, prev.input, resuming?.status === 'active')
     if (locked) return { error: locked }
     all.push(record)
     // Resume carries the DELIVERY on, rather than starting a second one: one delivery id

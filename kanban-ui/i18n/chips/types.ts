@@ -14,6 +14,9 @@ export type ChipsCopy = {
   };
   /** The mark a card wears while something is queued to run on it. */
   pending: string;
+  /** A card whose own chat is writing a reply (#633) — the chip, and what its hover says. */
+  discussing: string;
+  discussingHint: string;
   group: string;
   /** Something this card waits on is still open. */
   blockedOne: (ids: string) => string;

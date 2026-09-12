@@ -279,13 +279,6 @@ const zh: RunsCopy = {
       placeholder: "给 Agent 的备注（可选）…",
       confirm: "归档",
     },
-    edit: {
-      title: (id) => `修改 #${id}`,
-      blurb:
-        "告诉 Agent 这个任务要怎么改。它会重读卡片，并相应改写方案——摘要、范围和 todo。卡片正文只由 Agent 修改。",
-      placeholder: "这个任务要改什么？例如：把范围收窄到…、补一个 todo…",
-      confirm: "保存修改",
-    },
   },
 };
 

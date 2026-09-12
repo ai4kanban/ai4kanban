@@ -12,6 +12,8 @@ const zh: ChipsCopy = {
     implementingLong: "正在开发",
   },
   pending: "排队中",
+  discussing: "讨论中",
+  discussingHint: "聊天正在回话——这一轮回话结束前卡片冻结。",
   group: "任务组——打开卡片查看子任务",
   blockedOne: (ids) => `阻塞——${ids} 尚未完成`,
   blockedMany: (ids) => `阻塞——${ids} 尚未完成`,

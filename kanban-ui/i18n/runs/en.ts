@@ -288,13 +288,6 @@ const en: RunsCopy = {
       placeholder: "Optional note for the agent…",
       confirm: "Archive",
     },
-    edit: {
-      title: (id) => `Edit #${id}`,
-      blurb:
-        "Tell the agent how to change this task. It re-reads the card and rewrites the plan — summary, scope, and todos — to match. The card body is only ever edited by the agent.",
-      placeholder: "What should change about this task? e.g. narrow the scope to…, add a todo for…",
-      confirm: "Save edit",
-    },
   },
 };
 

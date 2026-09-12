@@ -88,7 +88,6 @@ export type DialogState =
   | { kind: "refine"; card: Card }
   | { kind: "reject"; card: Card }
   | { kind: "archive"; card: Card }
-  | { kind: "edit"; card: Card }
   | null;
 
 // A small inline "running" pill. Runs are non-blocking now (task #12):
@@ -1246,37 +1245,15 @@ export function ActionDialog({
     );
   }
 
-  if (dialog.kind === "archive") {
-    const c = d.archive;
-    return (
-      <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
-        <p className={INTRO}>{c.blurb}</p>
-        <textarea className={INPUT} rows={3} placeholder={c.placeholder} value={text} onChange={(e) => setText(e.target.value)} />
-        <DialogButtons
-          onClose={onClose}
-          confirmLabel={c.confirm}
-          onConfirm={() => run({ action: "archive", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Archive #${dialog.card.id}`)}
-        />
-      </Dialog>
-    );
-  }
-
-  const c = d.edit;
+  const c = d.archive;
   return (
     <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
       <p className={INTRO}>{c.blurb}</p>
-      <textarea
-        className={INPUT}
-        rows={4}
-        placeholder={c.placeholder}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
+      <textarea className={INPUT} rows={3} placeholder={c.placeholder} value={text} onChange={(e) => setText(e.target.value)} />
       <DialogButtons
         onClose={onClose}
         confirmLabel={c.confirm}
-        disabled={!text.trim()}
-        onConfirm={() => run({ action: "edit", id: dialog.card.id, title: dialog.card.title, notes: text.trim() }, `Edit #${dialog.card.id}`)}
+        onConfirm={() => run({ action: "archive", id: dialog.card.id, title: dialog.card.title, notes: text.trim() || undefined }, `Archive #${dialog.card.id}`)}
       />
     </Dialog>
   );

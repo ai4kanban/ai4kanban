@@ -11,6 +11,7 @@ import {
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRead } from "./chat";
+import { useCardChatRequest } from "./chat-open";
 import type { ChatTarget } from "./types";
 import { useMatches } from "./media";
 import type { PasteNote, PictureBox } from "./picture-box";
@@ -353,6 +354,26 @@ export function useChatRail({
       return false;
     });
   }, []);
+  // Somebody asked for this card's conversation (#633) — the card page's Edit, or its row in
+  // the rail's list, which navigates here first. Only ever opens: it is a press that means
+  // "show me this", and the ask is matched against the card on screen so arriving on another
+  // one leaves the rail as the reader left it.
+  //
+  // Each ask is honoured once. The count only ever climbs, so a card left with the rail
+  // folded and come back to later is the reader's fold, not an ask they made minutes ago.
+  const asked = useCardChatRequest();
+  const askedFor = asked && asked.cardId === cardId ? asked.at : 0;
+  const honoured = useRef(0);
+  useEffect(() => {
+    if (askedFor <= honoured.current) return;
+    honoured.current = askedFor;
+    setOpen(true);
+    try {
+      window.localStorage.setItem(OPEN_KEY, "1");
+    } catch {
+      // storage unavailable — the rail is up for as long as the window lives
+    }
+  }, [askedFor]);
 
   const stop = useCallback(async () => {
     // Nothing to stop is nothing to do — a reply that landed between the paint and the

@@ -39,7 +39,6 @@ import { useCopy } from "@/i18n/use-copy";
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
 import { memoryKey, memoryModuleOf, useOpenModules } from "@/lib/memory-panel";
-import type { OpenCard } from "@/lib/open-cards";
 import { MEMORY_FILES, type MemoryModule } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
@@ -148,10 +147,9 @@ function CardRow({ id, title, onOpen }: { id: number; title: string; onOpen?: ()
 /** The rail's search, as a screen (#357). The box is the first thing under the title and
  *  does not scroll; the matches do.
  *
- *  With nothing typed it shows the cards this window has open — the rail's own list, which
- *  on a phone has nowhere else to be. An empty screen under a box would be the one screen
- *  here that answers nothing until it is asked. */
-export function FindScreen({ rows }: { rows: OpenCard[] }) {
+ *  It answers what is typed and nothing else — the screen is the box, and every card on the
+ *  board is one word away. */
+export function FindScreen() {
   const c = useCopy().rail;
   const { query, setQuery, matches } = useCardSearch();
   const box = useRef<HTMLInputElement>(null);
@@ -199,18 +197,7 @@ export function FindScreen({ rows }: { rows: OpenCard[] }) {
         </div>
       }
     >
-      {!searching ? (
-        rows.length > 0 && (
-          <>
-            <GroupLabel text={c.openCards} />
-            <nav aria-label={c.openCards} className="flex flex-col gap-1">
-              {rows.map((card) => (
-                <CardRow key={card.id} id={card.id} title={card.title} />
-              ))}
-            </nav>
-          </>
-        )
-      ) : matches === null ? null : matches.length === 0 ? (
+      {!searching ? null : matches === null ? null : matches.length === 0 ? (
         <p className="pt-3 text-[13px] leading-snug text-nb-ink-soft">{c.noMatches}</p>
       ) : (
         <>

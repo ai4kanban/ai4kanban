@@ -170,6 +170,9 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // to the refusal at start: `dueScheduled` takes a card's mark off in the pass that hands
   // its run back, and a start refused after that would lose the schedule for good.
   for (const c of cards) if (c.creation) busy.add(c.id)
+  // …and a card whose own chat is answering (#633), for the same reason: the requirement is
+  // being rewritten, and a schedule taken off in this pass would be lost to a refused start.
+  for (const c of cards) if (c.discussing) busy.add(c.id)
 
   const work: AgentRequest[] = []
   let scheduled: AgentRequest | null = null

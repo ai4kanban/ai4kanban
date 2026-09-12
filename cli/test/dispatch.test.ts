@@ -8,7 +8,7 @@ import path from 'node:path'
 import { after, beforeEach, describe, it } from 'node:test'
 
 import { serializeFrontmatter } from '../src/lib/frontmatter.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { CHATS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 import type { Meta } from '../src/lib/types.ts'
 import { nextWork } from '../src/lib/view/dispatch.ts'
 import { forgetMachineState } from './helpers/board.ts'
@@ -71,6 +71,25 @@ describe('the runs the board starts on its own', () => {
     const work = await nextWork(() => Promise.resolve(true))
 
     assert.deepEqual(work, [{ action: 'clarify', id: 12, title: 'Card 12', notes: undefined, refineRound: 1 }])
+  })
+
+  // A card whose own chat is answering is held (#633), so a start would be refused. It is
+  // skipped here rather than left to that refusal: the mark comes off in the pass that hands
+  // the run back, and a run refused after that would lose the schedule for good.
+  it('skips a card its own chat is discussing, and leaves its mark on', async () => {
+    fs.writeFileSync(path.join(track, '12-plain.md'), body(12, { schedule: refine }))
+    const marker = path.join(CHATS_DIR, 'card-12.answering')
+    fs.mkdirSync(marker, { recursive: true })
+    fs.writeFileSync(path.join(marker, 'owner'), `${process.pid}\n`)
+    const cleared: number[] = []
+
+    const work = await nextWork((id) => {
+      cleared.push(id)
+      return Promise.resolve(true)
+    })
+
+    assert.deepEqual(work, [])
+    assert.deepEqual(cleared, [], 'the schedule is still there for the tick after the reply')
   })
 
   it('starts one scheduled card per tick, leaving the rest their mark', async () => {

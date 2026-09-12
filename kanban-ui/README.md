@@ -179,8 +179,10 @@ finished work, not a gate.
 
 ### Finding a card
 
-Down the left is the **rail**: **All cards** at the top, which is the board, and under it every
-card this window has opened, each one closeable. Drag its right edge to make it wider.
+Down the left is the **rail**: **All cards** at the top, which is the board, and under it
+**Discussions** — every subject being talked through, whether that is a discussion of its own or
+one card's chat. A row opens it again; its **⋯** ends it, which takes the row off the list and
+nothing else. Drag the rail's right edge to make it wider.
 
 Above those rows is a **Find a card** box. Type part of what you remember and the rail lists
 the cards that carry it, in their titles or anywhere in their bodies — case makes no
@@ -671,7 +673,7 @@ you never type into a running session.
 | **Implement** | Until every todo on the card is checked. Never on a group root or a recurring card. |
 | **Run** | On a recurring card, in place of Implement — see below. |
 | **Refine** | While a refine would still move the card — see below. |
-| **Edit** | Always. Say what to change and the agent revises the card. |
+| **Edit** | Always. It opens this card's chat — say what to change there, and the agent rewrites the card. |
 | **Resolve** | Only when the card has open questions — including while a delivery is waiting on you. |
 | **Review again** | Only while a delivery has stopped and is waiting on the question its review left. |
 | **Continue delivery** | Only when a delivery's next session never started — the process watching the last one died. |

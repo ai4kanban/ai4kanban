@@ -152,9 +152,12 @@ export { clearChatPlan, noteChatMessage } from './lib/agent/chat'
 // The discussions a board is holding (#496). A board holds many at once — each with its own
 // transcript, agent session and plans — so the rail lists them and Create task opens a new
 // one on every press. The list is the `chats/` files themselves: there is no index to drift.
+// `listConversations` is that list with each card's own chat beside it, which is what the
+// rail draws (#633).
 export {
   archiveDiscussion,
   asDiscussion,
+  listConversations,
   listDiscussions,
   startDiscussion,
   titleDiscussion,

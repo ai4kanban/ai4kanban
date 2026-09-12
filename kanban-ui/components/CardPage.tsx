@@ -67,6 +67,7 @@ import { parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
 import { useCardEvent } from "@/lib/card-event";
 import type { BoardChange } from "@/lib/chat-rail";
+import { cardChat } from "@/lib/chat-open";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
 import { useBoardHref, useCardHref } from "./board-links";
@@ -311,6 +312,9 @@ type CardButton = CardControl;
 // job rather than a piece of work: it is run again and again and never finished.
 // So Implement becomes **Run** and Archive never shows — there is no end state to
 // archive it into. Edit, Resolve and Reject stand exactly as they are.
+//
+// Edit is not a run (#633): it opens this card's conversation, which is where what the card
+// says is settled. It is here so the toolbar draws it in the place it has always had.
 function visibleActions(
   card: Card,
   marketing: boolean,
@@ -1375,9 +1379,17 @@ export function CardPage({
   const justBuilding = delivery?.state.stage === "working";
   // The one line under the title band — see where it renders for what it says.
   const deliveryLine = !!delivery && (!justBuilding || !!delivery.supersedes || !!delivery.lost);
-  // One test for every control the hold covers: a session on this card, or a delivery on it.
-  const off = busy || held;
-  const offUnlessAsked = busy || (held && !answerable);
+  // This card's own chat is writing a reply (#633), so the requirement is about to move:
+  // every control that builds the card as it reads now, or takes it off the board, is off
+  // until the turn ends. The board refuses the same runs (cli/src/lib/agent/sessions.ts), so
+  // a click that slipped through a stale read meets the same words the tooltip says.
+  const discussing = !!card.discussing;
+  // One test for every control the hold covers: a session on this card, a delivery on it, or
+  // a reply being written about it.
+  const frozen = held || discussing;
+  const frozenWhy = held ? heldWhy : discussing ? c.toolbar.discussingWhy : "";
+  const off = busy || frozen;
+  const offUnlessAsked = busy || (held && !answerable) || discussing;
   const { total, done } = card.todos;
   const buttons = visibleActions(card, marketing, offered);
   // The delivery has ended and its block is still on the page — the one that carries Discard.
@@ -1629,8 +1641,9 @@ export function CardPage({
               )}
 
               {/* title band — the card's one mark rides beside the title: a live
-                  session's badge while busy, otherwise where the delivery has got to
-                  (#307), otherwise the saved stage (nothing while `todo`). Never two. */}
+                  session's badge while busy, then the reply its own chat is writing (#633),
+                  then where the delivery has got to (#307), then the saved stage (nothing
+                  while `todo`). Never two. */}
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2">
                 <span className="shrink-0 text-[20px] font-[800]" style={{ color: "var(--color-nb-accent-deep)" }}>
                   #{card.id}
@@ -1646,6 +1659,11 @@ export function CardPage({
                         : c.workingUnknown
                     }
                   />
+                ) : discussing ? (
+                  // Its own chat is writing a reply, so the card is held (#633). Ahead of
+                  // everything below it: this is the state the reader just put the card in,
+                  // and it is why the controls under the title are off.
+                  <DeliveryPill label={c.toolbar.discussing} tone="live" />
                 ) : delivery ? (
                   // What the delivery is doing, or what it is waiting for — the board's own
                   // answer, worked out from the card's questions and the delivery's records.
@@ -1733,7 +1751,8 @@ export function CardPage({
                     <Button
                       size="sm"
                       className={ACT}
-                      disabled={busy}
+                      disabled={busy || discussing}
+                      title={discussing ? c.toolbar.discussingWhy : undefined}
                       onClick={() => setDialog({ kind: "implement", card })}
                     >
                       <FiPlay className="text-[15px]" aria-hidden />
@@ -1783,7 +1802,7 @@ export function CardPage({
                       size="sm"
                       className={ACT}
                       disabled={off}
-                      title={held ? heldWhy : c.toolbar.runHint}
+                      title={frozen ? frozenWhy : c.toolbar.runHint}
                       onClick={() => setDialog({ kind: "run", card })}
                     >
                       <FiPlay className="text-[15px]" aria-hidden />
@@ -1802,8 +1821,8 @@ export function CardPage({
                       className={ACT}
                       disabled={off}
                       title={
-                        held
-                          ? heldWhy
+                        frozen
+                          ? frozenWhy
                           : busy && liveSession
                             ? c.toolbar.alreadyRunning(t.runs.verb[liveSession.action])
                             : c.toolbar.refineHint
@@ -1829,8 +1848,18 @@ export function CardPage({
                       {moreActions ? c.toolbar.fewer : c.toolbar.more}
                     </Button>
                   )}
+                  {/* Edit IS this card's conversation (#633): the press opens the chat rail
+                      on it, and what the card should say is settled by talking. It is the one
+                      control the discussion hold leaves alone — a reply in flight is a reason
+                      to be in the conversation, not a reason to be shut out of it. */}
                   {buttons.has("edit") && !delivery && (
-                    <Button variant="ghost" size="sm" className={EXTRA} disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "edit", card })}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={EXTRA}
+                      title={c.toolbar.editHint}
+                      onClick={() => cardChat.open(card.id)}
+                    >
                       <FiEdit2 className="text-[15px]" aria-hidden />
                       {c.toolbar.edit}
                     </Button>
@@ -1856,7 +1885,7 @@ export function CardPage({
                     </Button>
                   )}
                   {buttons.has("archive") && !delivery && (
-                    <Button variant="ghost" size="sm" className={EXTRA} disabled={off} title={held ? heldWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
+                    <Button variant="ghost" size="sm" className={EXTRA} disabled={off} title={frozen ? frozenWhy : undefined} onClick={() => setDialog({ kind: "archive", card })}>
                       <FiArchive className="text-[15px]" aria-hidden />
                       {c.toolbar.archive}
                     </Button>
@@ -1867,7 +1896,7 @@ export function CardPage({
                       size="sm"
                       className={phone ? EXTRA : "ml-auto"}
                       disabled={off}
-                      title={held ? heldWhy : undefined}
+                      title={frozen ? frozenWhy : undefined}
                       style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
                       onClick={() => setDialog({ kind: "reject", card })}
                     >
@@ -2149,7 +2178,7 @@ export function CardPage({
               onOpen={() => setDeciding(true)}
               onClose={closeDeciding}
               canDecide={!!actions && buttons.has("resolve") && !offUnlessAsked}
-              disabledWhy={held ? heldWhy : busy && liveSession ? c.toolbar.alreadyRunning(t.runs.verb[liveSession.action]) : undefined}
+              disabledWhy={frozen ? frozenWhy : busy && liveSession ? c.toolbar.alreadyRunning(t.runs.verb[liveSession.action]) : undefined}
               onRun={runAgent}
             />
 

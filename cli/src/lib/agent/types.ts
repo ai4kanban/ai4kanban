@@ -763,13 +763,15 @@ export const discussionTarget = (id: string): DiscussionTarget => `${DISCUSSION_
 /** The id inside a discussion target. */
 export const discussionIdOf = (target: DiscussionTarget): string => target.slice(DISCUSSION_PREFIX.length)
 
-/** One discussion as the rail and `akb chat` list it (#496). */
-export interface DiscussionRow {
+/** One conversation as the rail lists it (#496, #633): a discussion, or one card's own
+ *  chat. Both are a subject being talked through, so the rail draws them as one list — a
+ *  discussion's row opens the Create sheet, a card's opens that card's page. */
+export interface ConversationRow {
   /** Its id, and the target its conversation is read by. */
   id: string
-  target: DiscussionTarget
-  /** What the row is called: the title its latest plan gave it, else the first line the user
-   *  typed, else nothing at all on one that has never been spoken to. */
+  target: ChatTarget
+  /** What the row is called: a card's own title, else the title its latest plan gave it,
+   *  else the first line the user typed, else nothing at all on one never spoken to. */
   name: string
   /** When it was last spoken to — what the 20 most recent are counted by. */
   updatedAt: number
@@ -779,6 +781,17 @@ export interface DiscussionRow {
   answering: boolean
   /** The plan it is writing, as a path from the project root. Absent on one writing none. */
   plan?: string
+  /** The card this conversation is about (#633) — its page is where it is carried on.
+   *  Absent on a discussion, which belongs to no card. */
+  cardId?: number
+}
+
+/** One discussion as `akb chat` and `akb raw discussion list` list it (#496) — a
+ *  conversation row narrowed to the ones that are a discussion, so nothing that reads this
+ *  list can be handed a card's chat by mistake. */
+export interface DiscussionRow extends ConversationRow {
+  target: DiscussionTarget
+  cardId?: undefined
 }
 
 /** One conversation — the board's, one card's, or the first run's. It is not a run:

@@ -81,7 +81,7 @@ import { canDiscuss, DISCUSS_GUIDE, noteAnswer, planningStarted, planToPlanFrom,
 import {
   archiveDiscussion,
   asDiscussion,
-  listDiscussions,
+  listConversations,
   startDiscussion,
 } from "@/lib/discussions";
 import { openSetupChat, readSetupChat, saySetupChat, type SetupChatRead } from "@/lib/setup-chat";
@@ -229,7 +229,7 @@ import type {
   CommentBatch,
   ConnectionTest,
   CreateImageAgents,
-  DiscussionRow,
+  ConversationRow,
   DiscussionTarget,
   DiscussRead,
   DropPlan,
@@ -688,8 +688,8 @@ export async function pickChatRuntimeAction(
 // A board holds many at once. The rail lists them, Create task opens a new one on every
 // press, and a row's menu takes one out of the list.
 
-export async function listDiscussionsAction(): Promise<DiscussionRow[]> {
-  return listDiscussions();
+export async function listDiscussionsAction(): Promise<ConversationRow[]> {
+  return listConversations();
 }
 
 /** Open a discussion — what Create task presses. Nothing is written until the first message,
@@ -698,10 +698,13 @@ export async function startDiscussionAction(): Promise<DiscussionTarget | null> 
   return startDiscussion();
 }
 
-/** Take one discussion out of the list. Its transcript stays on this machine. */
-export async function archiveDiscussionAction(target: string): Promise<{ ok: boolean; error?: string }> {
-  const named = await asDiscussion(target);
-  if (!named) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+/** Take one conversation out of the list — a discussion, or a card's own chat (#633). Its
+ *  transcript stays on this machine. */
+export async function archiveDiscussionAction(target: ChatTarget): Promise<{ ok: boolean; error?: string }> {
+  const named = await chatTarget(target);
+  if (named === undefined || named === null) {
+    return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
+  }
   return archiveDiscussion(named);
 }
 

@@ -35,6 +35,7 @@ export type {
   ChatPick,
   ChatRuntime,
   ChatTarget,
+  ConversationRow,
   DiscussionRow,
   DiscussionTarget,
   CommandAction,

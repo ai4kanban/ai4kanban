@@ -56,7 +56,14 @@ export type CardCopy = {
     refineHint: string;
     /** Another run already holds this card. `verb` is what it is doing. */
     alreadyRunning: (verb: string) => string;
+    /** Edit opens this card's own conversation (#633) — the hint says so, since the word
+     *  alone reads as a form. */
     edit: string;
+    editHint: string;
+    /** Its chat is writing a reply (#633): the mark beside the title, and what every
+     *  control the hold turns off says on hover. */
+    discussing: string;
+    discussingWhy: string;
     reviewAgain: string;
     reviewAgainHint: string;
     archive: string;
