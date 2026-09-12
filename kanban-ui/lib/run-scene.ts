@@ -27,10 +27,12 @@ export interface Spot {
 }
 
 const DESK_X = [345, 665, 980, 1302];
-/** The room reads back row left to right, then front row — the order desks are filled in. */
+/** The room reads back row left to right, then front row — the order desks are filled in.
+ *  A worker stands at the desk's near edge, close enough that its hands reach the keyboard
+ *  and its head stops below the monitor — the art's screens stay readable behind it. */
 const DESK_SPOTS: Spot[] = [
-  ...DESK_X.map((x) => ({ x, y: 535 })),
-  ...DESK_X.map((x) => ({ x, y: 770 })),
+  ...DESK_X.map((x) => ({ x, y: 505 })),
+  ...DESK_X.map((x) => ({ x, y: 740 })),
 ];
 /** How far a paired worker stands from its desk's keyboard centre. Wide enough that the two
  *  never overlap: the robot is about 64 world pixels across. */

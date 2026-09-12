@@ -20,7 +20,7 @@ import { BOT_GROUND, BOT_HEIGHT, PAIR_OFFSET, WORLD, walkPath, type SceneBot, ty
 const OFFICE = "/run-scene/office-eight-desks.png";
 const ATLAS = "/run-scene/bot-actions.json";
 
-/** The ink every nameplate is drawn in — never the connector's own brand colour. */
+/** The ink every nameplate's text is drawn in. */
 const INK = "#24231f";
 /** World pixels a second, walking. */
 const WALK = 420;
@@ -353,27 +353,33 @@ function BotTarget({
         selected ? "outline outline-2 outline-nb-accent" : ""
       }`}
     >
-      {/* Always legible, never on hover: who is at this desk and what they run on. It sits
-          outside the target's own box, and takes no clicks of its own. */}
+      {/* Always legible, never on hover: who is at this desk and what they run on. Both
+          plates stack on the floor under the feet — a worker stands close enough to its desk
+          that anything above its head would sit on the monitor. They take no clicks. */}
       <span
-        className="pointer-events-none absolute bottom-full left-1/2 mb-[3px] flex -translate-x-1/2 items-center gap-[3px] whitespace-nowrap rounded-[3px] bg-nb-paper/95 px-[5px] py-px text-[10.5px] font-[600] leading-[15px]"
-        style={{ color: INK, maxWidth: "var(--nameplate)" }}
+        className="pointer-events-none absolute left-1/2 top-full mt-px flex -translate-x-1/2 flex-col items-center gap-px"
+        style={{ width: "var(--nameplate)" }}
       >
-        <span className="min-w-0 truncate">{bot.role}</span>
-        <HarnessMark icon={mark?.icon} name={harness} />
-      </span>
-      <span
-        className="pointer-events-none absolute left-1/2 top-full mt-px block -translate-x-1/2 truncate whitespace-nowrap rounded-[3px] bg-nb-paper/95 px-[4px] text-[9.5px] leading-[14px]"
-        style={{ color: INK, maxWidth: "var(--nameplate)" }}
-      >
-        {task}
+        <span
+          className="flex max-w-full items-center gap-[3px] whitespace-nowrap rounded-[3px] bg-nb-paper/95 px-[5px] py-px text-[10.5px] font-[600] leading-[15px]"
+          style={{ color: INK }}
+        >
+          <span className="min-w-0 truncate">{bot.role}</span>
+          <HarnessMark icon={mark?.icon} name={harness} />
+        </span>
+        <span
+          className="block max-w-full truncate whitespace-nowrap rounded-[3px] bg-nb-paper/95 px-[4px] text-[9.5px] leading-[14px]"
+          style={{ color: INK }}
+        >
+          {task}
+        </span>
       </span>
     </button>
   );
 }
 
-/** The connector's mark, in ink rather than its own colour — masked, so one file serves
- *  both. A connector this build ships no mark for wears its initial instead. */
+/** The connector's mark, in its own brand colours, the way every other screen draws it. A
+ *  connector this build ships no mark for wears its initial instead. */
 function HarnessMark({ icon, name }: { icon?: string; name: string }) {
   if (!icon) {
     return (
@@ -388,22 +394,8 @@ function HarnessMark({ icon, name }: { icon?: string; name: string }) {
     );
   }
   return (
-    <span
-      aria-hidden
-      title={name}
-      className="size-[11px] shrink-0"
-      style={{
-        background: INK,
-        maskImage: `url(${icon})`,
-        WebkitMaskImage: `url(${icon})`,
-        maskSize: "contain",
-        WebkitMaskSize: "contain",
-        maskRepeat: "no-repeat",
-        WebkitMaskRepeat: "no-repeat",
-        maskPosition: "center",
-        WebkitMaskPosition: "center",
-      }}
-    />
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={icon} alt="" title={name} width={11} height={11} className="shrink-0" />
   );
 }
 
