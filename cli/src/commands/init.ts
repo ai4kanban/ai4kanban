@@ -93,12 +93,7 @@ function writeModulesIfMissing() {
 // thing that can promise that on a board nobody has opened the UI on is `init`. A key
 // written into the file by hand is covered from the first day, before anything else runs.
 //
-// Two lines, and the list stops growing there (#590): everything the board writes and cleans
-// up itself — the run record and its logs, the chats, the drawings, the comment batches, the
-// locks — is machine state now and lives outside the repository (lib/machine/project.ts), so
-// it never needed a rule. A board made before that move keeps the lines it was given, and so
-// do the files they cover: nothing is written to them any more, nothing reads them, and both
-// the lines and the files are the user's own to delete.
+// Runtime state is covered by the root .akb/ ignore rule.
 //
 // The rules go in the board's own ignore file, never the repo's root one. An existing file
 // gets the missing line added, not replaced: comments, order and every other rule in it are

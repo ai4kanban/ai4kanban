@@ -193,8 +193,13 @@ when you want another agent to take it independently.
 
 Every message is its own command, so a conversation is picked up from any terminal and
 survives closing one. The board's conversation and each card's are separate, both under
-`~/.ai4kanban/projects/<project>/chats/` — on your machine, and outside the repository along
-with the run record, the logs, the mockups and the comment batches.
+`<repo>/.akb/boards/<board-path>/chats/`, beside plans, the run record, logs, mockups, and
+comment batches. The default board uses `.akb/boards/docs/kanban/`. The ignored `.akb/`
+folder is shared by the host and sandboxed agents; no host is needed to save a plan.
+Each checkout keeps its own history, which moves or disappears with that checkout.
+Existing readable history under `~/.ai4kanban/projects/` is copied on first use; the original
+is retained. Stop old-version runs before switching. Machine settings and credentials stay
+under `~/.ai4kanban/`.
 
 A chat is not a run: it never shows in `akb run list` and never holds a card. A change to a card a
 run is already working on is refused, and the refusal names the card and what that run is

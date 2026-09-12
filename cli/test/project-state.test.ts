@@ -1,11 +1,3 @@
-// Where a board keeps what this machine knows about it (#590).
-//
-// Three promises. The project folder carries only what it commits — the run record, the
-// logs, the chats, the drawings and the comment batches are outside it. Two boards never
-// read each other's, whatever they are called and wherever they sit. And a board that once
-// held all of that in `docs/kanban/` is left holding it: nothing moves, nothing merges,
-// nothing is deleted, and the new folder starts empty.
-
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -15,7 +7,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { runAgent } from '../src/lib/agent-cli.ts'
 import { readChat } from '../src/lib/agent/chat.ts'
 import { logPathOf, readRuns, withStore } from '../src/lib/agent/store.ts'
-import { projectStateDir, recordedBoard } from '../src/lib/machine/project.ts'
+import { projectStateDir, legacyProjectStateDir, recordedBoard } from '../src/lib/machine/project.ts'
 import { mockupsDir } from '../src/lib/mockups.ts'
 import { CHATS_DIR, COMMENTS, MOCKUPS, SESSIONS, SESSIONS_DIR, setBoardDir, setBoardRoot, useProjectState } from '../src/lib/paths.ts'
 
@@ -104,17 +96,15 @@ afterEach(() => {
 })
 
 describe('which folder a board keeps its machine state in', () => {
-  it('names it after the project, under the machine home', () => {
+  it('keeps state in the checkout under its board path', () => {
     const board = makeBoard(path.join(root, 'my-app', 'docs', 'kanban'))
     const dir = projectStateDir(board)
-    assert.equal(path.dirname(path.dirname(dir)), home)
-    assert.equal(path.basename(path.dirname(dir)), 'projects')
-    assert.match(path.basename(dir), /^my-app-[0-9a-f]{10}$/)
+    assert.equal(dir, path.join(root, 'my-app/.akb/boards/docs/kanban'))
   })
 
   it('names a second board in a repository after the folder holding it', () => {
     const board = makeBoard(path.join(root, 'my-app', 'marketing', 'kanban'))
-    assert.match(path.basename(projectStateDir(board)), /^marketing-kanban-[0-9a-f]{10}$/)
+    assert.equal(projectStateDir(board, path.join(root, 'my-app')), path.join(root, 'my-app/.akb/boards/marketing/kanban'))
   })
 
   it('gives two checkouts of one name two folders', () => {
@@ -138,7 +128,7 @@ describe('which folder a board keeps its machine state in', () => {
 })
 
 describe('what the project folder is left holding', () => {
-  it('keeps the run record, the logs, the chats and the drawings out of it', () => {
+  it('keeps state outside the tracked board content', () => {
     const project = path.join(root, 'app')
     const board = makeBoard(path.join(project, 'docs', 'kanban'))
     setBoardRoot(project)
@@ -239,11 +229,7 @@ describe('a board that held it all in docs/kanban', () => {
     )
   })
 
-  it('keeps a history carried by hand into a renamed project', () => {
-    // The one move the docs describe: the old folder stays, and its record and logs are
-    // moved across by hand. The record names the folder it was written in, so the runs in it
-    // would otherwise read as logs that are not there — and a finished run whose log is gone
-    // is one the next write drops.
+  it('keeps history when the checkout is renamed', () => {
     const was = path.join(root, 'app')
     makeBoard(path.join(was, 'docs', 'kanban'))
     setBoardRoot(was)
@@ -255,8 +241,6 @@ describe('a board that held it all in docs/kanban', () => {
     setBoardRoot(path.join(root, 'renamed'))
     const now = useProjectState()
     assert.notEqual(now, old)
-    fs.renameSync(path.join(old, 'sessions.json'), path.join(now, 'sessions.json'))
-    fs.renameSync(path.join(old, 'sessions'), path.join(now, 'sessions'))
 
     assert.equal(fs.readFileSync(readRuns()[0]!.logPath, 'utf8'), 'a log\n')
     // And the write a second run makes keeps it, rather than pruning it as a dead pointer.
@@ -273,8 +257,8 @@ describe('a board that held it all in docs/kanban', () => {
 
     assert.deepEqual(readRuns(), [])
     assert.ok(fs.existsSync(path.join(board, '.sessions.json')))
-    assert.equal(CHATS_DIR, path.join(projectStateDir(board), 'chats'))
-    assert.equal(MOCKUPS, path.join(projectStateDir(board), 'mockups'))
+    assert.equal(CHATS_DIR, path.join(projectStateDir(board, path.join(root, 'app')), 'chats'))
+    assert.equal(MOCKUPS, path.join(projectStateDir(board, path.join(root, 'app')), 'mockups'))
   })
 })
 
@@ -298,3 +282,19 @@ describe('a command line typed in a folder nested inside another project', () =>
     assert.equal(fs.existsSync(projectStateDir(outer)), false)
   })
 })
+
+ it('imports machine-home history once and preserves both copies', () => {
+  const board = makeBoard(path.join(root, 'docs/kanban'))
+  const old = legacyProjectStateDir(board)
+  fs.mkdirSync(path.join(old, 'plans'), { recursive: true })
+  fs.mkdirSync(path.join(old, 'sessions.lock'))
+  fs.writeFileSync(path.join(old, 'plans/8-outcome.md'), '# Original\n')
+  setBoardRoot(root)
+  const local = useProjectState()
+  assert.equal(fs.readFileSync(path.join(local, 'plans/8-outcome.md'), 'utf8'), '# Original\n')
+  assert.equal(fs.existsSync(path.join(local, 'sessions.lock')), false)
+  fs.writeFileSync(path.join(local, 'plans/8-outcome.md'), '# Revised\n')
+  useProjectState()
+  assert.equal(fs.readFileSync(path.join(local, 'plans/8-outcome.md'), 'utf8'), '# Revised\n')
+  assert.equal(fs.readFileSync(path.join(old, 'plans/8-outcome.md'), 'utf8'), '# Original\n')
+ })

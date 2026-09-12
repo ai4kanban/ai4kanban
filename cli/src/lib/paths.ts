@@ -1,14 +1,4 @@
-// Where everything lives, plus the tiny helpers every module needs (die/warn/rel,
-// next-id read/write). Imported by every other module; imports only io.ts and the machine
-// folder's own two, which import nothing of the board's.
-//
-// Two halves, and the line between them is git. What the project COMMITS is under the board
-// folder — the cards, the memory, the plans, the deliveries — plus the two files that are
-// this machine's and the user's to write, `.env` and `.local.json`. What the board keeps and
-// cleans up ITSELF — the run record and its logs, the chats, the drawings, the comment
-// batches — is machine state, and lives outside every repository under `machine/project.ts`
-// (#590). Each of those has a lock beside it; the lock over the board's own files is the one
-// exception, and sits in the project under `.akb/` so a sandboxed run can take it (#622).
+// Tracked board content lives under the board; local state lives in the ignored .akb/.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -129,7 +119,7 @@ export let INDEX_LOCK = ''
 // SESSIONS above; this is what outlives the machine it ran on.
 export let DELIVERIES = ''
 // The plans a discussion wrote (#427) — one file per plan, `<id>-<slug>.md`, numbered off
-// next-id like a card. Bodies and discussion links belong to this machine.
+// next-id like a card. Bodies and discussion links stay in the checkout.
 export let PLANS = ''
 // Where a plan goes once the run it was handed to has written its cards (#551). Same file,
 // one folder down, so `plans/` stays a short list of what is still live and the cards that
@@ -275,10 +265,8 @@ function setBoard(kanban: string, root: string, flag: string): string {
   UI_CONFIG = path.join(KANBAN, 'ui.config.json')
   LOCAL_CONFIG = path.join(KANBAN, '.local.json')
   ENV_FILE = path.join(KANBAN, '.env')
-  // Everything from here on is machine state, under this board's own folder in the machine
-  // home. Worked out here and made nowhere: `useProjectState` below is what puts the folder
-  // on disk, so resolving a board never writes anything.
-  const machine = projectStateDir(KANBAN)
+  // Local state stays in the checkout and is shared with sandboxed agents.
+  const machine = projectStateDir(KANBAN, REPO_ROOT)
   MOCKUPS = path.join(machine, MOCKUPS_FOLDER)
   COMMENTS = path.join(machine, COMMENTS_FOLDER)
   SESSIONS = path.join(machine, SESSIONS_FILE)
@@ -337,9 +325,7 @@ export function warn(msg: unknown): void {
   sayWarning(msg)
 }
 
-/** A path as it is worth showing: from the project root when it is inside it, whole when it
- *  is not. The machine state a board keeps is outside every repository (#590), and
- *  `../../../.ai4kanban/...` is not a path anyone can act on. */
+/** Show project-relative paths inside the checkout, absolute paths elsewhere. */
 export const rel = (p: string): string => {
   const from = path.relative(REPO_ROOT, p)
   if (!from) return p
@@ -379,10 +365,8 @@ export function writeNextId(value: number): void {
   fs.writeFileSync(NEXT_ID, `${value}\n`)
 }
 
-/** Make this board's folder on the machine (#590). Called once per command, after the board
- *  is resolved and before it is read — and by the board UI server when it points the rules at
- *  its board, since nothing there goes through a command line. It touches nothing under the
- *  board folder: what a board held there before the move stays there, unread. */
+/** Initialize ignored local state before the board is used. */
 export function useProjectState(): string {
-  return ensureProjectState(KANBAN)
+  ensureAkbDir()
+  return ensureProjectState(KANBAN, REPO_ROOT)
 }

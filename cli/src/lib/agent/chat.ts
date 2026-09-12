@@ -27,7 +27,6 @@ import type { Readable, Writable } from 'node:stream'
 import { locate } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { pidAlive } from '../lock'
-import { onMachine } from '../machine/project'
 import { reportChatMessage } from '../machine/usage'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { planFile } from '../plans'
@@ -53,8 +52,6 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { discussionEnv } from './env'
-import { collectReports } from './collect'
-import { REPORT_ENV, dropOutbox } from './outbox'
 import { isDiscussion } from './types'
 import type {
   Chat,
@@ -216,7 +213,7 @@ function writeChat(chat: Chat): void {
 export function clearChat(cardId: ChatTarget): boolean {
   // The pictures go with the transcript that named them (#441) — the ones already sent and
   // the ones still waiting in the box, which is the whole of what this folder holds.
-  onMachine(() => fs.rmSync(imagesDir(cardId), { recursive: true, force: true }))
+  fs.rmSync(imagesDir(cardId), { recursive: true, force: true })
   try {
     fs.unlinkSync(chatFile(cardId))
     return true
@@ -586,18 +583,11 @@ function ownerOf(dir: string): number | undefined {
 
 // Take the marker, or hand back nothing when someone else already has it. mkdir settles
 // which of two callers gets it, the same way it settles every other lock on this board.
-//
-// A machine folder that refuses writes has no marker to take and none to collide with, so
-// the turn goes ahead unmarked (#622) — the same nothing an unnamed marker already means.
 function startAnswering(cardId: ChatTarget): (() => void) | null {
   const dir = busyDir(cardId)
   if (answeringOn(cardId)) return null
   try {
-    const made = onMachine(() => {
-      fs.mkdirSync(CHATS_DIR, { recursive: true })
-      return true
-    })
-    if (!made) return () => {}
+    fs.mkdirSync(CHATS_DIR, { recursive: true })
     fs.mkdirSync(dir, { recursive: false })
   } catch {
     return null
@@ -608,7 +598,7 @@ function startAnswering(cardId: ChatTarget): (() => void) | null {
     // Unnamed. The age rule above covers it — it is believed for a few seconds and then
     // taken away, rather than holding the conversation shut for good.
   }
-  return () => onMachine(() => fs.rmSync(dir, { recursive: true, force: true }))
+  return () => fs.rmSync(dir, { recursive: true, force: true })
 }
 
 // ---- sending one message ---------------------------------------------------
@@ -813,15 +803,7 @@ export async function sendChatMessage(
     const restart = held.resumeId ? chatPrompt(cardId, text, say) : undefined
 
     const asked = Date.now()
-    const reportId = `chat-${randomUUID()}`
-    let collecting = Promise.resolve()
-    const collect = (): Promise<void> => {
-      collecting = collecting.then(() => collectReports(reportId, cardId)).catch(() => {})
-      return collecting
-    }
-    const collector = setInterval(() => { void collect() }, 100)
     const spoken = await speak({
-      reportId,
       plan,
       prompt,
       restart,
@@ -832,9 +814,7 @@ export async function sendChatMessage(
       discussion: isDiscussion(cardId) ? cardId : undefined,
       onText: options.onText ?? (() => {}),
       onOpen: options.onOpen,
-    }).finally(() => clearInterval(collector))
-    await collect()
-    dropOutbox(reportId)
+    })
 
     // The reply as the user saw it: the agent's words, its thinking and the tool calls it
     // made, in the order they went past. The closing message stands in only for an agent
@@ -949,7 +929,6 @@ function noted(text: string): string {
 }
 
 async function speak(io: {
-  reportId: string
   plan: RunPlan
   prompt: string
   /** What to send instead when the session being carried on is gone and a fresh one opens
@@ -999,7 +978,7 @@ async function speak(io: {
       // The project, not this process's cwd: a chat runs inside the board server, whose cwd
       // is its own bundled folder in the app. See the note in agent/test.ts.
       cwd: REPO_ROOT,
-      env: { ...(io.discussion ? discussionEnv(active.env, io.discussion) : active.env), [REPORT_ENV]: io.reportId },
+      env: io.discussion ? discussionEnv(active.env, io.discussion) : active.env,
       shell: false,
       stdio,
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>

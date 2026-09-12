@@ -74,9 +74,6 @@ const boardFromEnv = (): string | null => {
 export function useBoard(found: FoundBoard, dirNamed: boolean): void {
   if (!found.named && found.board === path.join(found.root, 'docs', 'kanban')) setBoardRoot(found.root, dirNamed)
   else setBoardDir(found.board, found.root)
-  // The run record, the logs, the chats and the rest live outside the repository, one folder
-  // per project (#590). This makes that folder, once per board per process, before anything
-  // reads it. Whatever an older version left in the board folder is left there.
   useProjectState()
 }
 

@@ -1,9 +1,10 @@
-// Machine-local plans, numbered with the board and addressed by stable logical paths.
+// Checkout-local plans, numbered with the board and addressed by stable logical paths.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { PLANS, PLANS_ARCHIVE, KANBAN, boardPath, die, readNextId, writeNextId } from './paths'
+import { legacyProjectStateDir } from './machine/project'
 import { slugify } from './validate'
 
 /** One plan file, as a screen draws it. `text` is empty for a path whose file is not there
@@ -131,13 +132,15 @@ export function archivePlan(rel: string): string | null {
   return `${ARCHIVED}${name}`
 }
 
-/** A readable machine path for agents and source references. */
+/** An absolute plan path for agents and source references. */
 export const planPathInText = (rel: string): string => planFile(rel) ?? rel
 
 /** The board-relative path behind one spelled that way, or null when it is not a plan of
  *  this board's. A run carries the spelled form (`AgentRequest.plan`), and reading the file
  *  it names has to start from a path `planFile` will take. */
 export function planFromText(text: string): string | null {
+  const legacy = `${legacyProjectStateDir(KANBAN)}/`
+  if (text.startsWith(legacy)) text = text.slice(legacy.length)
   const local = `${path.dirname(PLANS)}/`
   if (text.startsWith(local)) text = text.slice(local.length)
   if (text.startsWith(`${KANBAN}/`)) text = text.slice(KANBAN.length + 1)

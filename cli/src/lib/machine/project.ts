@@ -1,42 +1,12 @@
-// One project's machine state — where the board keeps what it cleans up itself (#590).
-//
-// The run record and its logs, the chats, the working drawings, the comment batches and the
-// locks over them are this machine's answer to what has been done in one project. None of it
-// is the repository's, and all of it used to sit in `docs/kanban/` behind a list of ignore
-// rules that grew with every new kind of local state. It lives under the machine folder now, one
-// folder per project, so a checkout carries only what it commits.
-//
-// A project IS its board folder, resolved through symlinks: two checkouts of one repository
-// are two projects, `docs/kanban` and `marketing/kanban` in one repository are two, and a
-// board reached through a symlinked path is the same project as the board itself. Rename or
-// move the folder and it is a new project — the old folder stays where it is, and the path
-// written into its `board.json` is how someone finds it again.
-//
-// Nothing here moves anything. A board that held all of this in `docs/kanban/` keeps holding
-// it: the old files are not read, not merged and not deleted, and the history a new folder
-// lists starts empty. Finish the runs in flight on the old version, stop it, then switch —
-// the old files are the user's to delete once they are sure they are done with them.
-
+// Project-local state shared by the CLI, host and sandboxed agents.
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-
 import { machineHome } from './home'
 
-/** The folder under the machine home that holds them all. */
 const PROJECTS = 'projects'
-
-/** How much of the hash names the folder. Ten hex digits over the board paths on one
- *  machine: short enough to read, far past anything that collides. */
 const ID_LENGTH = 10
-
-/** The path record, so a user who moved a project can find what the old one left. */
 const RECORD = 'board.json'
-
-/** What the board keeps in there. The two locks are folders like the rest — `withLock`
- *  makes one with `mkdir` and removes it when the write is done. They guard machine files,
- *  which is why they are here; the lock over the board's OWN files sits in the project,
- *  under `.akb/` (#622). */
 export const SESSIONS_FILE = 'sessions.json'
 export const SESSIONS_FOLDER = 'sessions'
 export const CHATS_FOLDER = 'chats'
@@ -45,13 +15,6 @@ export const COMMENTS_FOLDER = 'comments'
 export const SESSIONS_LOCK = 'sessions.lock'
 export const INDEX_LOCK = 'index.lock'
 
-/** The path with every symlink resolved.
- *
- *  A folder that is not there yet is resolved as far as it goes and rebuilt from there: the
- *  board `init` is about to make, and the board a test has just deleted, are the same project
- *  as the board itself. Resolving only what exists would make the answer depend on WHEN it is
- *  asked — on macOS `/var` is a symlink, so `init` would pick one folder and the next command
- *  another. */
 function realPathOf(dir: string): string {
   const here = path.resolve(dir)
   const rest: string[] = []
@@ -75,10 +38,7 @@ const slug = (text: string): string =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 40) || 'board'
 
-/** The readable half of the folder name, off the SAME real path the id is taken from — a
- *  board reached through a symlink is one project, name and all. Every board folder on earth
- *  is called `kanban`, so the name that means something is the project's, or the folder
- *  holding a second board (`marketing/kanban` reads as `marketing-kanban`). */
+/** Legacy machine-home naming, retained only for importing existing history. */
 function readableName(real: string): string {
   const here = path.basename(real)
   const up = path.dirname(real)
@@ -86,83 +46,61 @@ function readableName(real: string): string {
   return path.basename(up) === 'docs' ? slug(path.basename(path.dirname(up))) : slug(`${path.basename(up)}-kanban`)
 }
 
-/** Where this board's machine state lives — `<name>-<id>`, the id being sha256 over the
- *  board's real path cut to ten hex digits.
- *
- *  Copied in `desktop/src/lib/projects.ts`, which reads the run record from the main process
- *  without loading the rules: change one and the app stops seeing runs.
- *
- *  Pure — it makes nothing and reads nothing but the symlinks on the way to the board — so
- *  every command can work it out up front. */
-export function projectStateDir(board: string): string {
+export function legacyProjectStateDir(board: string): string {
   const real = realPathOf(board)
   const id = createHash('sha256').update(real).digest('hex').slice(0, ID_LENGTH)
   return path.join(machineHome(), PROJECTS, `${readableName(real)}-${id}`)
 }
 
-/** Make this board's machine folder and record which board it is for. It reads and writes
- *  nothing under the board folder.
- *
- *  Idempotent, and asked of every command rather than remembered: one `mkdir` and one read
- *  of the record, against a process that would otherwise go on believing an answer someone
- *  has since deleted the folder for. */
-export function ensureProjectState(board: string): string {
-  const dir = projectStateDir(board)
-  writable = true
-  onMachine(() => {
-    fs.mkdirSync(dir, { recursive: true, mode: 0o700 })
-    writeRecord(dir, board)
-  })
+
+/** Match the explicit checkout root when supplied; otherwise find the board's repository. */
+export function stateRootOf(board: string): string {
+  let dir = realPathOf(board)
+  for (;;) {
+    if (fs.existsSync(path.join(dir, '.git'))) return dir
+    const up = path.dirname(dir)
+    if (up === dir) break
+    dir = up
+  }
+  const parent = path.dirname(realPathOf(board))
+  return path.basename(parent) === 'docs' ? path.dirname(parent) : parent
+}
+
+export function projectStateDir(board: string, root = stateRootOf(board)): string {
+  const relative = path.relative(realPathOf(root), realPathOf(board))
+  if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error('The board must be inside its project root.')
+  }
+  return path.join(realPathOf(root), '.akb', 'boards', relative || '_root')
+}
+
+/** Import old state once, retaining the original. Locks are never carried across. */
+export function ensureProjectState(board: string, root = stateRootOf(board)): string {
+  const dir = projectStateDir(board, root)
+  if (!fs.existsSync(dir)) {
+    const legacy = legacyProjectStateDir(board)
+    fs.mkdirSync(path.dirname(dir), { recursive: true })
+    const temporary = fs.mkdtempSync(`${dir}.import-`)
+    try {
+      if (fs.existsSync(legacy)) fs.cpSync(legacy, temporary, {
+        recursive: true,
+        filter: source => !['.lock', '.answering'].some(suffix => path.basename(source).endsWith(suffix)),
+      })
+      try { fs.renameSync(temporary, dir) }
+      catch (err) {
+        if (!['EEXIST', 'ENOTEMPTY'].includes((err as NodeJS.ErrnoException).code ?? '')) throw err
+      }
+    } finally { fs.rmSync(temporary, { recursive: true, force: true }) }
+  }
+  if (recordedBoard(dir) !== realPathOf(board)) {
+    fs.writeFileSync(path.join(dir, RECORD), `${JSON.stringify({ board: realPathOf(board) })}\n`)
+  }
   return dir
 }
 
-// ---- a machine folder nothing may write (#622) ------------------------------
-//
-// A sandboxed run may write the project and nothing else, so `~/.ai4kanban` is refused.
-// None of what lives there is the repository's, so a refusal costs this machine's own
-// record of the run and costs the command nothing: every write below is skipped and the
-// move it belonged to finishes. What the board has to be told instead goes through the
-// run's outbox, inside the project (agent/outbox.ts).
-//
-// Settled by the `ensureProjectState` every command starts with, and again by any write
-// that turns out to be refused after it — a folder can be readable and its contents not.
-
-const DENIED = new Set(['EACCES', 'EPERM', 'EROFS'])
-
-let writable = true
-
-/** Run one write of machine state, or skip it when the machine folder refuses writes.
- *  Undefined is what a skipped write answers. */
-export function onMachine<T>(write: () => T): T | undefined {
-  if (!writable) return undefined
-  try {
-    return write()
-  } catch (err) {
-    if (!DENIED.has((err as NodeJS.ErrnoException).code ?? '')) throw err
-    writable = false
-    return undefined
-  }
-}
-
-/** Which board a machine folder belongs to, as it was recorded. Null when the folder has no
- *  record — one made by hand, or one from a version before the record. */
 export function recordedBoard(dir: string): string | null {
   try {
-    const held: unknown = JSON.parse(fs.readFileSync(path.join(dir, RECORD), 'utf8'))
-    const board = (held as { board?: unknown } | null)?.board
-    return typeof board === 'string' && board ? board : null
-  } catch {
-    return null
-  }
-}
-
-function writeRecord(dir: string, board: string): void {
-  const real = realPathOf(board)
-  if (recordedBoard(dir) === real) return
-  try {
-    fs.writeFileSync(path.join(dir, RECORD), `${JSON.stringify({ board: real, recordedAt: new Date().toISOString() }, null, 2)}\n`)
-  } catch {
-    // A folder that cannot be written is a folder nothing else here will manage either;
-    // the failure belongs to whatever tries to use it, not to the note about it.
-  }
+    const held = JSON.parse(fs.readFileSync(path.join(dir, RECORD), 'utf8')) as { board?: unknown }
+    return typeof held.board === 'string' ? held.board : null
+  } catch { return null }
 }

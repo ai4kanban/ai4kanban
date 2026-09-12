@@ -2,17 +2,9 @@
 // it: is the folder still there, does it hold a board, and is an agent run going
 // in it.
 //
-// The run check reads the board's own session registry rather than asking the
-// server that owns the project. It has to: a project whose server this app never
-// started — one left mid-run when the app was last quit — should still say so,
-// and a file the board already keeps is a truer answer than anything the app
-// could remember on its own. That file sits outside the project now, in the
-// board's own folder under the machine home (#590), so finding it means naming
-// that folder the same way the rules do — see `stateDirOf` below.
+// Read the same checkout-local registry as the CLI.
 
-import { createHash } from "node:crypto";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import type { ProjectInfo } from "../shared/bridge";
 
@@ -91,26 +83,20 @@ function realPathOf(dir: string): string {
   }
 }
 
-/** Where one board keeps what this machine knows about it — the run record, the
- *  logs, the chats, the drawings.
- *
- *  The rules' own `projectStateDir` (cli/src/lib/machine/project.ts), copied
- *  rather than loaded: this runs in the main process, on every draw of the
- *  projects list, and `hasLiveRun` below is synchronous. Change one and change
- *  the other, or the app stops seeing runs.
- *
- *  A board folder is called `kanban` on every board there is, so the readable
- *  half of the name is the project's — or the folder holding a second board. */
-function stateDirOf(board: string): string {
+/** Match cli/src/lib/machine/project.ts without loading the CLI in Electron. */
+function stateDirOf(board: string, project?: string): string {
   const real = realPathOf(board);
-  const id = createHash("sha256").update(real).digest("hex").slice(0, 10);
-  const here = path.basename(real);
-  const up = path.dirname(real);
-  const readable =
-    here !== "kanban" ? here : path.basename(up) === "docs" ? path.basename(path.dirname(up)) : `${path.basename(up)}-kanban`;
-  const slug = readable.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "board";
-  const home = process.env.AI4KANBAN_HOME || path.join(os.homedir(), ".ai4kanban");
-  return path.join(home, "projects", `${slug}-${id}`);
+  let root = project ? realPathOf(project) : real;
+  while (!project && !fs.existsSync(path.join(root, ".git"))) {
+    const up = path.dirname(root);
+    if (up === root) {
+      const parent = path.dirname(real);
+      root = path.basename(parent) === "docs" ? path.dirname(parent) : parent;
+      break;
+    }
+    root = up;
+  }
+  return path.join(root, ".akb", "boards", path.relative(root, real) || "_root");
 }
 
 /** Whether an agent run is going in this board — a live session in its registry
@@ -120,7 +106,7 @@ export function hasLiveRun(dir: string): boolean {
   const board = sessionsBoardOf(dir);
   if (!board) return false;
   try {
-    const raw: unknown = JSON.parse(fs.readFileSync(path.join(stateDirOf(board), "sessions.json"), "utf8"));
+    const raw: unknown = JSON.parse(fs.readFileSync(path.join(stateDirOf(board, board === path.join(dir, "docs", "kanban") ? dir : undefined), "sessions.json"), "utf8"));
     const live = (raw as { live?: unknown } | null)?.live;
     if (!Array.isArray(live)) return false;
     return live.some((r) => pidAlive((r as { pid?: unknown } | null)?.pid));

@@ -25,7 +25,6 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { onMachine } from './machine/project'
 import { COMMENTS } from './paths'
 import type { DraftComment } from './view/types'
 
@@ -173,21 +172,19 @@ function read(cardId: number, draft: string): Block[] {
 // and no folder, which is also what the polish that answered the last batch leaves behind.
 function write(cardId: number, draft: string, blocks: Block[]): void {
   const file = fileOf(cardId, draft)
-  onMachine(() => {
-    if (!blocks.length) {
-      fs.rmSync(file, { force: true })
-      try {
-        fs.rmdirSync(dirOf(cardId))
-      } catch {
-        // another draft still has a batch
-      }
-      return
+  if (!blocks.length) {
+    fs.rmSync(file, { force: true })
+    try {
+      fs.rmdirSync(dirOf(cardId))
+    } catch {
+      // another draft still has a batch
     }
-    fs.mkdirSync(dirOf(cardId), { recursive: true })
-    const tmp = `${file}.tmp`
-    fs.writeFileSync(tmp, render(blocks))
-    fs.renameSync(tmp, file)
-  })
+    return
+  }
+  fs.mkdirSync(dirOf(cardId), { recursive: true })
+  const tmp = `${file}.tmp`
+  fs.writeFileSync(tmp, render(blocks))
+  fs.renameSync(tmp, file)
 }
 
 const commentsIn = (blocks: Block[]): DraftComment[] =>
@@ -254,8 +251,6 @@ const keepHandWritten = (blocks: Block[], draft: string): Block[] =>
 export function dropComments(cardId: number): boolean {
   const dir = dirOf(cardId)
   if (!fs.existsSync(dir)) return false
-  return onMachine(() => {
-    fs.rmSync(dir, { recursive: true, force: true })
-    return true
-  }) ?? false
+  fs.rmSync(dir, { recursive: true, force: true })
+  return true
 }

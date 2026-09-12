@@ -11,7 +11,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { agentInfo, openPlan, planRun } from '../src/lib/agent/resolve.ts'
+import { agentInfo, openPlan, planRun, planResume } from '../src/lib/agent/resolve.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
 
 let root = ''
@@ -186,5 +186,23 @@ describe('a command that picks the provider by hand', () => {
   it('wins, and the whole block the pick would have written is dropped', () => {
     board({ command: 'codex exec -c model_provider=mine', provider: 'endpoint', baseUrl: 'https://g/v1' })
     assert.deepEqual(overrides(), ['model_provider=mine'])
+  })
+})
+
+
+describe('checkout-local state from a delivery worktree', () => {
+  it('allows the owning board and local state on fresh and resumed runs', () => {
+    board()
+    const cwd = path.join(root, '.akb/worktrees/delivery')
+    for (const run of [planRun('s1', cwd), planResume('codex', 's1', cwd)]) {
+      assert.ok(run)
+      const dirs = run.argv.flatMap((arg, i) => arg === '--add-dir' ? [run.argv[i + 1]] : [])
+      assert.deepEqual(dirs, [path.join(root, 'docs/kanban'), path.join(root, '.akb')])
+    }
+  })
+
+  it('keeps an explicitly read-only run read-only', () => {
+    board({ command: 'codex exec --json --sandbox read-only' })
+    assert.ok(!planRun('s1', path.join(root, '.akb/worktrees/delivery')).argv.includes('--add-dir'))
   })
 })

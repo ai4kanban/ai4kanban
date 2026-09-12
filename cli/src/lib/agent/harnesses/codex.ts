@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { AKB_DIR, KANBAN, REPO_ROOT } from '../../paths'
 import { createCodexStreamRenderer } from '../wire'
 import { arr, home, modelsIn, num, obj, str } from './models'
 import { providerBlip } from './transient'
@@ -30,12 +31,25 @@ import { namesFlag, type Harness } from './types'
 // it needs an `npm install`, a `pip install` or a `git fetch` — a difference nobody could
 // explain from the board. It rides on the sandbox WE chose, so a hand-written sandbox keeps
 // choosing for itself, network included.
-function codexExtraArgs(argv: string[]): string[] {
+function codexExtraArgs(argv: string[], cwd = REPO_ROOT): string[] {
   const extra: string[] = []
   if (!namesFlag(argv, ['--json', '--experimental-json'])) extra.push('--json')
   const sandboxFlags = ['--sandbox', '-s', '--full-auto', '--dangerously-bypass-approvals-and-sandbox']
   if (!namesFlag(argv, sandboxFlags)) {
     extra.push('--sandbox', 'workspace-write', '-c', 'sandbox_workspace_write.network_access=true')
+  }
+  const flags = [...argv, ...extra]
+  const workspaceWrite = flags.some((arg, i) =>
+    arg === '--full-auto' || arg === '--sandbox=workspace-write' ||
+    ((arg === '--sandbox' || arg === '-s') && flags[i + 1] === 'workspace-write'))
+  if (workspaceWrite && path.resolve(cwd) !== path.resolve(REPO_ROOT)) {
+    // A delivery worktree updates the original board and its local state.
+    for (const dir of [KANBAN, AKB_DIR]) {
+      const relative = path.relative(cwd, dir)
+      if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+        extra.push('--add-dir', dir)
+      }
+    }
   }
   return extra
 }
@@ -227,8 +241,8 @@ export const CODEX: Harness = {
 
   // Nothing to pin: Codex mints its own thread id and takes none from us, so the generated
   // session id is ignored here and the id arrives on the run's first event instead.
-  extraArgs(argv) {
-    return codexExtraArgs(argv)
+  extraArgs(argv, _sessionId, cwd) {
+    return codexExtraArgs(argv, cwd)
   },
 
   resumes: true,
@@ -237,8 +251,8 @@ export const CODEX: Harness = {
   // thread. `resume` is a SUBCOMMAND, not a flag: everything else has to come before it
   // and the prompt comes after, which is why a run's flags are assembled command →
   // settings → harness (see startRun).
-  resumeArgs(argv, resumeId) {
-    return [...codexExtraArgs(argv), 'resume', resumeId]
+  resumeArgs(argv, resumeId, cwd) {
+    return [...codexExtraArgs(argv, cwd), 'resume', resumeId]
   },
 
   // What Codex takes, in the order Claude Code's dialog draws the same four: who pays for

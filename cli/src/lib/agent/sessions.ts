@@ -21,7 +21,6 @@ import { cardFile } from '../board/revision'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
 import { pidAlive } from '../lock'
 import { planFromText, planTitle, readPlan } from '../plans'
-import { onMachine } from '../machine/project'
 import { reportRun } from '../machine/usage'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
 import {
@@ -980,12 +979,10 @@ const validRefineEffort = (value: unknown): RefineEffort | undefined =>
   value === 'lightweight' || value === 'standard' ? value : undefined
 
 function writeAsks(sessionId: string, file: { asks: SpecAsk[]; writes: WriteAsk[]; refines: RefineAsk[] }): void {
-  onMachine(() => {
-    fs.mkdirSync(SESSIONS_DIR, { recursive: true })
-    const tmp = `${asksPathOf(sessionId)}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify(file, null, 2) + '\n')
-    fs.renameSync(tmp, asksPathOf(sessionId))
-  })
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  const tmp = `${asksPathOf(sessionId)}.tmp`
+  fs.writeFileSync(tmp, JSON.stringify(file, null, 2) + '\n')
+  fs.renameSync(tmp, asksPathOf(sessionId))
 }
 
 /** Record the process now watching a run, so a stop can reach it and a reader can tell a
@@ -1212,10 +1209,8 @@ export function repairDeliveries(): string[] {
 // ---- the plan a watcher picks up -------------------------------------------
 
 function writeSpec(spec: RunSpec): void {
-  onMachine(() => {
-    fs.mkdirSync(SESSIONS_DIR, { recursive: true })
-    fs.writeFileSync(specPathOf(spec.sessionId), JSON.stringify(spec, null, 2) + '\n')
-  })
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+  fs.writeFileSync(specPathOf(spec.sessionId), JSON.stringify(spec, null, 2) + '\n')
 }
 
 export function readSpec(sessionId: string): RunSpec | null {

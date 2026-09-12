@@ -16,12 +16,10 @@ import fs from 'node:fs'
 
 import { boardImage, carryRunEdits, holdRunCard, rereadRunCard } from '../board'
 import { clearComments } from '../comments'
-import { onMachine } from '../machine/project'
 import { rel, TODO, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-contract'
 import { withStore } from './store'
-import { collectReports } from './collect'
 import { boardCommand } from './command'
 import { deliveryRunAfter } from './deliveries'
 import { buildAfterGate, cardStages, gateRunAfter } from './gate'
@@ -34,7 +32,6 @@ import { triageRunAfter, triageWaiting } from './auto-triage'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
 import { createStderrFilter } from './wire'
 import { contractRepairPrompt, restartPrompt, resumePrompt } from './prompts'
-import { dropOutbox } from './outbox'
 import { openPlan } from './resolve'
 import { planRetry, retryLine } from './retry'
 import {
@@ -105,11 +102,6 @@ const UNSENT = (why: string): string =>
 
 const MAX_FORMAT_REPAIRS = 3
 
-// How often the run's outbox is collected while it works (agent/outbox.ts). Often enough
-// that a card the run just wrote shows up while the run is still going, and cheap: a read
-// of one small folder that is usually empty.
-const COLLECT_MS = 1_000
-
 export async function watchRun(sessionId: string, resume = startResume): Promise<number> {
   const spec = readSpec(sessionId)
   const run = peekRun(sessionId)
@@ -166,7 +158,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // The log is machine state like the record it belongs to, so a folder that refuses writes
   // costs this run its log and nothing else (#622) — the stream swallows what it cannot
   // write rather than throwing an error nothing here is listening for.
-  onMachine(() => fs.mkdirSync(SESSIONS_DIR, { recursive: true }))
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true })
   const log = fs.createWriteStream(record.logPath, { flags: 'a' })
   log.on('error', () => {})
   // What the board settled before the agent said a word — a spec agent's setting whose saved
@@ -316,16 +308,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     // The silence window: whether it ran out, and the timer it runs on.
     let silent = false
     let idle: ReturnType<typeof setTimeout> | undefined
-    // The outbox sweep, and the one already in flight — collecting takes board writes, and
-    // two passes over one report would apply it twice. Chained rather than skipped: the
-    // sweep `finish` asks for has to actually run before the outbox is dropped, or the last
-    // report the run wrote goes with it.
-    let sweep: ReturnType<typeof setInterval> | undefined
-    let collecting: Promise<void> = Promise.resolve()
-    const collect = (): Promise<void> => {
-      collecting = collecting.then(() => collectReports(sessionId)).catch(() => {})
-      return collecting
-    }
     // Whether this run's card stopped being this machine's while it went (#398). The one
     // ending that drops what the run wrote to the board rather than sending it.
     let takenOver = false
@@ -351,7 +333,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       done = true
       let asked = wanted
       if (idle) clearTimeout(idle)
-      if (sweep) clearInterval(sweep)
       if (renderer) {
         append(renderer.flush())
         // The ids may have been in the last partial line, on a very short run.
@@ -359,12 +340,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         gotModel(renderer.model?.())
       }
       append(errs.flush())
-
-      // Whatever the run reported and nothing has collected yet — the last create, the plan
-      // it named on its way out (#622). Taken before a word of the close is written: the run
-      // is still `running`, which is what lets its own cards onto its own record.
-      await collect()
-      dropOutbox(sessionId)
 
       const endedAt = Date.now()
       // A run somebody ended exits non-zero — we killed it — but that is not a failure, so
@@ -724,12 +699,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       if (typeof idle.unref === 'function') idle.unref()
     }
     touch()
-
-    // And the run's outbox, swept from here on: a card the run writes shows on the board
-    // while it is still working, rather than only once it ends (#622). Unref'd like the
-    // window above, and cleared by `finish`, which sweeps once more itself.
-    sweep = setInterval(() => void collect(), COLLECT_MS)
-    if (typeof sweep.unref === 'function') sweep.unref()
 
     // The conversation, on a run the board talks to. It is the run: a command that answers
     // back is a server and never exits on its own, so the turn's ending is the run's

@@ -11,7 +11,7 @@ import { CADENCE_FORMS } from '../cadence'
 import { CHANNEL_NAMES, CHANNEL_STATUSES } from '../channels'
 import { insideRun } from '../agent/env'
 import { cardStages, startGateAfter } from '../agent/gate'
-import { report } from '../agent/outbox'
+import { recordCards } from '../agent/created-cards'
 import { readyGateOn } from '../agent/settings'
 import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
@@ -86,13 +86,8 @@ async function dispatch(
     const data = READ_ONLY_MOVES.has(move)
       ? await board().readMove(move, input)
       : unwrap(await withLease(moveTarget(move, args), (env) => board().runMove(move, input, env)))
-    // What a run's create owes the board: the ids it wrote, so the run's record can hold
-    // them and a **Build now** delivery can take its card (#470). Left in the run's outbox
-    // inside the project, for the process watching the run to apply — the run itself may be
-    // sandboxed out of the machine folder the record lives in (#622). So the card reaches
-    // `implementing` one collection later rather than on this very command.
     if (inRun && Array.isArray(data.ids)) {
-      report({ kind: 'cards', ids: data.ids.filter((id): id is number => Number.isInteger(id)) })
+      await recordCards(insideRun()!, data.ids.filter((id): id is number => Number.isInteger(id)))
     }
     // A board that ran the move somewhere else sends its prose back rather than printing it;
     // Local printed as it went and has none to add.
@@ -317,8 +312,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
 
   move('plan')
     .argument('<move>', 'new, save or migrate')
-    .summary('save a discussion plan on this machine')
-    .description('Write a temporary draft, then use plan new --title "…" --body-file <file>. Update with plan save --path <plan> --body-file <file>. Success confirms the body and discussion link were saved. plan migrate moves legacy project plans to this machine.')
+    .summary('save a discussion plan in this checkout')
+    .description('Write a temporary draft, then use plan new --title "…" --body-file <file>. Update with plan save --path <plan> --body-file <file>. Success confirms the body and discussion link were saved. plan migrate moves legacy board plans into .akb/.')
     .option('--body-file <path>', 'the complete plan body')
     .option('--path <path>', 'the existing plan to update')
     .option('--title <title>', 'what the plan is called')

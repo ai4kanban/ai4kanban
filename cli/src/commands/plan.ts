@@ -1,11 +1,7 @@
 import fs from 'node:fs'
-import path from 'node:path'
-import { randomUUID } from 'node:crypto'
-import { setTimeout } from 'node:timers/promises'
 
 import { insideDiscussion } from '../lib/agent/env'
 import { asDiscussion } from '../lib/agent/discussions'
-import { report, reportSession, outboxDir } from '../lib/agent/outbox'
 import { savePlan } from '../lib/agent/save-plan'
 import { migratePlans } from '../lib/agent/migrate-plans'
 import { say } from '../lib/io'
@@ -34,21 +30,8 @@ export async function cmdPlan(args: string[], opts: PlanOptions): Promise<MoveRe
   const plan = sub === 'new' ? newPlan(title!, opts.slug) : { path: existing!, id: Number(/(\d+)-/.exec(existing!)?.[1]) }
   const discussion = insideDiscussion()
   const target = (discussion ? asDiscussion(discussion) : null) ?? null
-  const session = reportSession()
-  if (session) {
-    const request = randomUUID()
-    if (!report({ kind: 'plan', path: plan.path, title, target, text, request })) die(`Plan was not saved. Retry with plan save --path ${plan.path}.`)
-    const ack = path.join(outboxDir(session), `${request}.ack`)
-    const deadline = Date.now() + 30_000
-    while (!fs.existsSync(ack) && Date.now() < deadline) await setTimeout(50)
-    if (!fs.existsSync(ack)) die(`Save is unconfirmed. Keep the draft; inspect or retry plan save --path ${plan.path}.`)
-    const result = JSON.parse(fs.readFileSync(ack, 'utf8')) as { error?: string }
-    fs.rmSync(ack)
-    if (result.error) die(`Plan was not saved: ${result.error}. Retry plan save --path ${plan.path}.`)
-  } else {
-    try { savePlan(target, plan.path, text, title) }
-    catch (err) { die(`Plan was not saved: ${String(err)}. Retry plan save --path ${plan.path}.`) }
-  }
+  try { savePlan(target, plan.path, text, title) }
+  catch (err) { die(`Plan was not saved: ${String(err)}. Retry plan save --path ${plan.path}.`) }
   say(planPathInText(plan.path))
   return { id: plan.id, file: planPathInText(plan.path), path: plan.path }
 }

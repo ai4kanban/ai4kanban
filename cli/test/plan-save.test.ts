@@ -71,7 +71,7 @@ it('restores the previous body when association fails', () => {
 it('isolates project and board storage and rejects foreign absolute paths', () => {
   savePlan(null, 'plans/625-outcome.md', '# One\n')
   const original = planFile('plans/625-outcome.md')!
-  assert.ok(original.startsWith(home))
+  assert.ok(original.startsWith(path.join(fs.realpathSync(root), '.akb')))
   assert.ok(CHATS_DIR.startsWith(path.dirname(PLANS)))
   setBoardDir(path.join(root, 'marketing/kanban'), root)
   assert.notEqual(planFile('plans/625-outcome.md'), original)
@@ -80,34 +80,24 @@ it('isolates project and board storage and rejects foreign absolute paths', () =
   assert.equal(planFile('../625-outcome.md'), null)
 })
 
-it('collects a spawned chat agent’s save before completing the reply', async () => {
+it('retains a child-written plan when the host finishes the chat transcript', async () => {
   const { sendChatMessage } = await import('../src/lib/agent/chat.ts')
+  const target = startDiscussion()
   const agent = path.join(root, 'agent.mjs')
   fs.writeFileSync(agent, `
     import fs from 'node:fs';
-    import path from 'node:path';
-    import { setTimeout } from 'node:timers/promises';
-    const session = process.env.KANBAN_REPORT;
-    if (!session) throw new Error('Missing chat collector');
-    const dir = path.join(process.cwd(), '.akb/runs', session);
-    fs.mkdirSync(dir, {recursive:true});
-    const request = '11111111-1111-4111-8111-111111111111';
-    fs.writeFileSync(path.join(dir, 'save.json'), JSON.stringify({
-      kind:'plan', path:'plans/625-outcome.md', text:'# Outcome\\n', title:'Outcome',
-      target: process.env.KANBAN_DISCUSSION, request
-    }));
-    const ack = path.join(dir, request + '.ack');
-    const deadline = Date.now() + 5000;
-    while (!fs.existsSync(ack) && Date.now() < deadline) await setTimeout(20);
-    const result = JSON.parse(fs.readFileSync(ack, 'utf8'));
-    if (result.error) throw new Error(result.error);
-    fs.unlinkSync(ack);
+    const chats = ${JSON.stringify(chatFile(target))};
+    const plans = ${JSON.stringify(PLANS)};
+    fs.mkdirSync(plans, {recursive:true});
+    fs.writeFileSync(plans + '/625-outcome.md', '# Outcome\\n');
+    const chat = JSON.parse(fs.readFileSync(chats, 'utf8'));
+    chat.plans = [{path:'plans/625-outcome.md', title:'Outcome'}];
+    fs.writeFileSync(chats, JSON.stringify(chat));
     console.log(JSON.stringify({type:'result', subtype:'success', result:'Saved'}));
   `)
   fs.writeFileSync(path.join(KANBAN, 'ui.config.json'), JSON.stringify({
     harness: 'claude-code', harnessSettings: { 'claude-code': { command: `node ${agent}` } },
   }))
-  const target = startDiscussion()
   const reply = await sendChatMessage(target, 'Save this outcome')
   assert.ok(!('error' in reply))
   assert.equal((await readDiscuss(target)).plan?.text, '# Outcome\n')

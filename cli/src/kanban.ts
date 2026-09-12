@@ -220,11 +220,7 @@ export { agentHarness } from './lib/agent/resolve'
 // nowhere, so this is a read and there is no writer beside it.
 export { runRuntimePick } from './lib/agent/resolve'
 export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
-// What this board keeps on this machine and cleans up itself (#590) — the run record, the
-// logs, the chats, the drawings, the comment batches and the locks, in one folder per
-// project outside every repository. The board UI server calls `useProjectState` once, after
-// it points the rules at its board, because nothing there goes through a command line; and
-// it reads `mockupsDir` rather than building the path itself, so there is one answer.
+// Initialize checkout-local state after the UI selects its board.
 export { useProjectState } from './lib/paths'
 export { mockupsDir } from './lib/mockups'
 // Which boards this project holds, and what each one's work is called (#407). The folder
