@@ -129,8 +129,7 @@ export let INDEX_LOCK = ''
 // SESSIONS above; this is what outlives the machine it ran on.
 export let DELIVERIES = ''
 // The plans a discussion wrote (#427) — one file per plan, `<id>-<slug>.md`, numbered off
-// next-id like a card. Tracked in git: a card's `## Source` names one, so a board that left
-// its plans behind would carry cards pointing at nothing.
+// next-id like a card. Bodies and discussion links belong to this machine.
 export let PLANS = ''
 // Where a plan goes once the run it was handed to has written its cards (#551). Same file,
 // one folder down, so `plans/` stays a short list of what is still live and the cards that
@@ -289,7 +288,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   INDEX_LOCK = path.join(machine, INDEX_LOCK_NAME)
   DELIVERIES = path.join(KANBAN, 'deliveries')
   RULES = path.join(KANBAN, 'rules')
-  PLANS = path.join(KANBAN, 'plans')
+  PLANS = path.join(machine, 'plans')
   PLANS_ARCHIVE = path.join(PLANS, 'archive')
   TRIAGE = path.join(KANBAN, 'triage')
   SIGNALS_ARCHIVED = path.join(TRIAGE, 'archived')

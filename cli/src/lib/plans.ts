@@ -1,22 +1,9 @@
-// The plans a discussion writes (#427).
-//
-// A plan is one file — `docs/kanban/plans/<id>-<slug>.md` — holding the outcome a
-// conversation settled on and nothing else: the problem and the agreed behavior, short
-// enough to read in one screen. It is not a card and the board never opens one; what makes
-// it findable again is the path each card it produced names in its `## Source`.
-//
-// It lives in one of two folders and never both: `plans/` while it is still live, and
-// `plans/archive/` once the run it was handed to has written its cards (#551) — so what is
-// left in `plans/` is only what may still be answered again.
-//
-// The id comes off `next-id`, so a plan and the cards written from it are one numbering.
-// That is the only thing here that writes the board's shared files, and it writes no card:
-// `akb raw create` is the only move that does, and it always writes one.
+// Machine-local plans, numbered with the board and addressed by stable logical paths.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { PLANS, PLANS_ARCHIVE, boardPath, die, readNextId, writeNextId } from './paths'
+import { PLANS, PLANS_ARCHIVE, KANBAN, boardPath, die, readNextId, writeNextId } from './paths'
 import { slugify } from './validate'
 
 /** One plan file, as a screen draws it. `text` is empty for a path whose file is not there
@@ -38,24 +25,20 @@ export const isArchivedPlan = (rel: string): boolean => rel.startsWith(ARCHIVED)
  *  path reaches here off a conversation's own file, and a plan is only ever one file, in
  *  `plans/` while it is live and in `plans/archive/` once its cards are written. */
 export function planFile(rel: string): string | null {
+  if (!/^plans\/(archive\/)?[^/\\]+\.md$/.test(rel)) return null
   const dir = isArchivedPlan(rel) ? PLANS_ARCHIVE : PLANS
   const name = rel.replace(/^plans\/(archive\/)?/, '')
   if (!name || name.includes('/') || !name.endsWith('.md')) return null
   return path.join(dir, name)
 }
 
-/** Name the next plan: allocate an id, and answer with the file it goes in. The file itself
- *  is the agent's to write — a discussion abandoned before an outcome leaves none.
- *
- *  `slug` names the file where the title cannot: filenames are ASCII and a title follows the
- *  board's language, so a card takes one the same way (`akb raw create --slug`). */
+/** Reserve one id; persistence happens through the saving command. */
 export function newPlan(title: string, slug?: string): { id: number; path: string } {
   const name = title.trim()
   if (!name) die('--title must not be empty')
   const base = slugify(slug !== undefined ? slug : name)
   const id = readNextId()
   writeNextId(id + 1)
-  fs.mkdirSync(PLANS, { recursive: true })
   return { id, path: `plans/${id}-${base}.md` }
 }
 
@@ -148,14 +131,16 @@ export function archivePlan(rel: string): string | null {
   return `${ARCHIVED}${name}`
 }
 
-/** The plan's path as an agent and a card should spell it — from the project root, so a
- *  board that is not at `docs/kanban` names the file that is actually there. */
-export const planPathInText = (rel: string): string => `${boardPath()}/${rel}`
+/** A readable machine path for agents and source references. */
+export const planPathInText = (rel: string): string => planFile(rel) ?? rel
 
 /** The board-relative path behind one spelled that way, or null when it is not a plan of
  *  this board's. A run carries the spelled form (`AgentRequest.plan`), and reading the file
  *  it names has to start from a path `planFile` will take. */
 export function planFromText(text: string): string | null {
+  const local = `${path.dirname(PLANS)}/`
+  if (text.startsWith(local)) text = text.slice(local.length)
+  if (text.startsWith(`${KANBAN}/`)) text = text.slice(KANBAN.length + 1)
   const here = `${boardPath()}/`
   const rel = text.startsWith(here) ? text.slice(here.length) : text
   return planFile(rel) ? rel : null

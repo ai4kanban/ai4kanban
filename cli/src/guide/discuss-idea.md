@@ -15,12 +15,13 @@ needed to assess the idea; leave detailed solution design to card planning.
   useful discussion can end without creating work.
 - **Draft early**: as soon as the problem and a proposed outcome can be stated, create a
   plan; don't wait for the user to request one or for every question to be settled. Run
-  `akb raw plan new --title "<title>"` (add
+  `akb raw plan new --title "<title>" --body-file <temporary-draft>` (add
   `--slug <english-slug>` for non-English titles) and preserve the problem, the desired
   outcomes, the rationale, and the unresolved questions. Never rename or move the plan file,
   even when the title changes — the board tracks it by path.
-- **Keep it current**: update the existing plan as the discussion settles or changes the
-  outcome. Mark open decisions as unresolved; don't turn suggestions into agreed requirements.
+- **Keep it current**: revise a temporary draft, then run `akb raw plan save --path <plan>
+  --body-file <temporary-draft>`. Only report it saved after the command confirms; preserve
+  the draft and reuse the path on failure. Mark open decisions as unresolved; don't turn suggestions into agreed requirements.
 - **Plan shape**: focus on the problem and proposed outcomes, using prose, bullets, tables,
   diagrams, or whatever illustrates them best. Keep the whole plan within 200 words;
   150–200 is enough, shorter if appropriate.

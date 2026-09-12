@@ -14,7 +14,7 @@ import { resumePrompt } from '../src/lib/agent/prompts.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { AgentRequest, RunRecord } from '../src/lib/agent/types.ts'
-import { planFromText, planTitle } from '../src/lib/plans.ts'
+import { planFromText, planTitle, planPathInText } from '../src/lib/plans.ts'
 import { PLANS, setBoardRoot } from '../src/lib/paths.ts'
 
 const PLAN_REL = 'plans/12-one-outcome.md'
@@ -146,13 +146,13 @@ describe('what the plan panel does with the run it started', () => {
 
   it('holds the plan while that run is still working, card or no card', async () => {
     hold({ createdCardIds: [9] })
-    assert.equal((await readDiscuss()).plan?.path, `docs/kanban/${PLAN_REL}`)
+    assert.equal((await readDiscuss()).plan?.path, planPathInText(PLAN_REL))
   })
 
   it('offers the plan again when the run ended having written none', async () => {
     hold({ status: 'error', ok: false, endedAt: Date.now() })
     const read = await readDiscuss()
-    assert.equal(read.plan?.path, `docs/kanban/${PLAN_REL}`)
+    assert.equal(read.plan?.path, planPathInText(PLAN_REL))
     assert.equal(read.run?.running, false)
     assert.equal(read.run?.answer, 'build')
   })

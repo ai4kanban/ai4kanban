@@ -1,28 +1,38 @@
-// Applying what a run reported (#622).
-//
-// The run leaves its reports in the project (agent/outbox.ts); this is the other end, run by
-// the process watching it. Everything here is a write the RUN would have made if it could
-// reach the machine folder, so it is made on the run's behalf and in the run's name.
-//
-// Collected while the run goes and once more as it ends, so the board shows a card the
-// moment it is written rather than only when the run is over.
+// Apply agent reports on the host and acknowledge completed plan saves.
 
+import fs from 'node:fs'
+import path from 'node:path'
+import type { ChatTarget } from './types'
+import { savePlan } from './save-plan'
 import { setCardStatusOn } from '../board'
 import { setChatPlan } from './chat'
 import { adoptDirectCard } from './deliveries'
-import { takeReports } from './outbox'
+import { takeReports, outboxDir } from './outbox'
 import { recordCreatedCards } from './store'
 
-/** Apply everything one run has reported since the last collection. Best-effort throughout:
- *  a report that cannot be applied is one piece of bookkeeping missing, and failing the run
- *  over it would throw away the work the report is about. */
-export async function collectReports(sessionId: string): Promise<void> {
+/** Collect reports; plan acknowledgements carry persistence failures back to the agent. */
+export async function collectReports(sessionId: string, target?: ChatTarget): Promise<void> {
   for (const entry of takeReports(sessionId)) {
     try {
       if (entry.kind === 'cards') await takeCards(sessionId, entry.ids)
-      else setChatPlan(entry.target, entry.path, entry.title)
+      else {
+        const discussion = target === undefined ? entry.target : target
+        let error: string | undefined
+        try {
+          if (entry.text !== undefined) savePlan(discussion, entry.path, entry.text, entry.title)
+          else {
+            const result = setChatPlan(discussion, entry.path, entry.title)
+            if ('error' in result) throw new Error(result.error)
+          }
+        } catch (err) { error = String(err) }
+        if (entry.request) {
+          const ack = path.join(outboxDir(sessionId), `${entry.request}.ack`)
+          fs.writeFileSync(`${ack}.tmp`, JSON.stringify({ error }))
+          fs.renameSync(`${ack}.tmp`, ack)
+        }
+      }
     } catch {
-      // The card is written and the plan file is on disk either way.
+      // Without an acknowledgement, the saving command reports an unconfirmed result.
     }
   }
 }

@@ -1,18 +1,5 @@
-// What a run tells the board, written inside the project (#622).
-//
-// A run's agent is a child process, and a sandboxed one may write the project and nothing
-// else. Two things it does have to reach the board: the cards `akb raw create` wrote, so
-// **Build now** can take its card and the run's close can refine them, and the plan file
-// `akb raw plan new` named, so Discuss shows it. Both used to be written straight into the
-// machine folder, which is exactly the folder the sandbox refuses.
-//
-// So the run writes them here instead — one small JSON file per report, under the project's
-// own `.akb/` — and the process WATCHING the run collects them and does the machine write
-// on the run's behalf (agent/watch.ts). Every run reports this way, whether or not the
-// machine folder happens to be writable: one path, so nothing depends on the sandbox.
-//
-// A report is written once and read once. The collector deletes each file as it applies it,
-// and the run's folder goes with the run.
+// Agents submit reports inside the project; their host writes machine state.
+// Plan saves carry the body and wait for an acknowledgement from the host.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -22,6 +9,8 @@ import { insideRun } from './env'
 import type { ChatTarget } from './types'
 
 const RUNS = 'runs'
+export const REPORT_ENV = 'KANBAN_REPORT'
+export const reportSession = (): string | null => process.env[REPORT_ENV] || insideRun()
 
 /** The cards one `akb raw create` wrote. */
 export interface CardsReport {
@@ -32,6 +21,8 @@ export interface CardsReport {
 /** The plan one `akb raw plan new` named, and the conversation it belongs to. */
 export interface PlanReport {
   kind: 'plan'
+  text?: string
+  request?: string
   path: string
   title?: string
   /** The discussion the plan was written in, or null for the board's own conversation. */
@@ -50,7 +41,7 @@ export const outboxDir = (sessionId: string): string => path.join(AKB_DIR, RUNS,
  *
  *  True when a report was written. */
 export function report(entry: RunReport): boolean {
-  const sessionId = insideRun()
+  const sessionId = reportSession()
   if (!sessionId) return false
   try {
     ensureAkbDir()
@@ -117,7 +108,9 @@ function readReport(held: unknown): RunReport | null {
     const target = raw.target
     if (target !== null && typeof target !== 'string' && !Number.isInteger(target)) return null
     const title = typeof raw.title === 'string' ? raw.title : undefined
-    return { kind: 'plan', path: raw.path, title, target: target as ChatTarget }
+    return { kind: 'plan', path: raw.path, title, target: target as ChatTarget,
+      text: typeof raw.text === 'string' ? raw.text : undefined,
+      request: typeof raw.request === 'string' && /^[a-f0-9-]+$/.test(raw.request) ? raw.request : undefined }
   }
   return null
 }

@@ -677,7 +677,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
       close.push(
         'settle the plan automatically with the selected QA guide; leave only genuine user-owned questions',
-        'when no question remains, improve the body according to `akb guide writing`',
+        'after the selected QA guide converges with no user question remaining, improve the body according to `akb guide writing`',
         `${raw} update ${req.id} --status ready — after the plan is compact, clear, and internally consistent`,
       )
       break

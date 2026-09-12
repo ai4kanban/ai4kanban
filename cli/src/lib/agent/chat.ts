@@ -53,6 +53,8 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
 import { discussionEnv } from './env'
+import { collectReports } from './collect'
+import { REPORT_ENV, dropOutbox } from './outbox'
 import { isDiscussion } from './types'
 import type {
   Chat,
@@ -198,17 +200,13 @@ function imagesOf(value: unknown): string[] | undefined {
   return names.length ? names : undefined
 }
 
-// Write, then rename, so a UI polling the file never catches half of one. Skipped when the
-// machine folder refuses writes (#622) — a sandboxed run says what it has to say through its
-// outbox, and the board process writes the transcript.
+// A transcript write must be observable; plan saves depend on its success.
 function writeChat(chat: Chat): void {
-  onMachine(() => {
-    fs.mkdirSync(CHATS_DIR, { recursive: true })
-    const file = chatFile(chat.cardId)
-    const tmp = `${file}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify(chat, null, 2) + '\n')
-    fs.renameSync(tmp, file)
-  })
+  fs.mkdirSync(CHATS_DIR, { recursive: true })
+  const file = chatFile(chat.cardId)
+  const tmp = `${file}.tmp`
+  fs.writeFileSync(tmp, JSON.stringify(chat, null, 2) + '\n')
+  fs.renameSync(tmp, file)
 }
 
 /** Forget a conversation and start fresh. True when there was one to forget.
@@ -815,7 +813,15 @@ export async function sendChatMessage(
     const restart = held.resumeId ? chatPrompt(cardId, text, say) : undefined
 
     const asked = Date.now()
+    const reportId = `chat-${randomUUID()}`
+    let collecting = Promise.resolve()
+    const collect = (): Promise<void> => {
+      collecting = collecting.then(() => collectReports(reportId, cardId)).catch(() => {})
+      return collecting
+    }
+    const collector = setInterval(() => { void collect() }, 100)
     const spoken = await speak({
+      reportId,
       plan,
       prompt,
       restart,
@@ -826,7 +832,9 @@ export async function sendChatMessage(
       discussion: isDiscussion(cardId) ? cardId : undefined,
       onText: options.onText ?? (() => {}),
       onOpen: options.onOpen,
-    })
+    }).finally(() => clearInterval(collector))
+    await collect()
+    dropOutbox(reportId)
 
     // The reply as the user saw it: the agent's words, its thinking and the tool calls it
     // made, in the order they went past. The closing message stands in only for an agent
@@ -941,6 +949,7 @@ function noted(text: string): string {
 }
 
 async function speak(io: {
+  reportId: string
   plan: RunPlan
   prompt: string
   /** What to send instead when the session being carried on is gone and a fresh one opens
@@ -990,7 +999,7 @@ async function speak(io: {
       // The project, not this process's cwd: a chat runs inside the board server, whose cwd
       // is its own bundled folder in the app. See the note in agent/test.ts.
       cwd: REPO_ROOT,
-      env: io.discussion ? discussionEnv(active.env, io.discussion) : active.env,
+      env: { ...(io.discussion ? discussionEnv(active.env, io.discussion) : active.env), [REPORT_ENV]: io.reportId },
       shell: false,
       stdio,
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>

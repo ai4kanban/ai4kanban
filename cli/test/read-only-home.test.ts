@@ -1,13 +1,3 @@
-// A run whose sandbox allows only the project (#622).
-//
-// Codex, Grok, dsh and OpenCode all default to a sandbox that lets the agent write the
-// project folder and nothing else, so `~/.ai4kanban` is refused. Nothing under there is the
-// repository's, so a refusal must cost this machine's own record and cost the command
-// nothing: the card is written, the plan file is named, the board is read.
-//
-// The machine home is made genuinely read-only here rather than mocked — the failure this
-// card is about is an `EACCES` out of `mkdir`, and nothing short of a real one reproduces it.
-
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -16,11 +6,14 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { collectReports } from '../src/lib/agent/collect.ts'
 import { readChat } from '../src/lib/agent/chat.ts'
-import { RUN_ENV } from '../src/lib/agent/env.ts'
-import { outboxDir } from '../src/lib/agent/outbox.ts'
-import { peekRun } from '../src/lib/agent/sessions.ts'
+import { findDelivery } from '../src/lib/agent/deliveries.ts'
+import { readDiscuss, startedPlanning } from '../src/lib/agent/discuss.ts'
+import { planFromText, readPlan } from '../src/lib/plans.ts'
+import { RUN_ENV, DISCUSSION_ENV } from '../src/lib/agent/env.ts'
+import { REPORT_ENV, outboxDir } from '../src/lib/agent/outbox.ts'
+import { peekRun, openRun } from '../src/lib/agent/sessions.ts'
 import { logPathOf, withStore } from '../src/lib/agent/store.ts'
-import type { RunRecord } from '../src/lib/agent/types.ts'
+import type { RunRecord, AgentRequest } from '../src/lib/agent/types.ts'
 import { AKB_DIR, LOCK, ROOT_GITIGNORE, SESSIONS_DIR, setBoardDir, setBoardRoot } from '../src/lib/paths.ts'
 import { move, restoreMachineHome } from './helpers/board.ts'
 
@@ -38,6 +31,8 @@ beforeEach(() => {
   home = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-sealed-home-')))
   root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-sealed-project-')))
   process.env.AI4KANBAN_HOME = home
+  delete process.env[REPORT_ENV]
+  delete process.env[DISCUSSION_ENV]
   delete process.env[RUN_ENV]
   fs.mkdirSync(path.join(kanban(), 'todo'), { recursive: true })
   fs.writeFileSync(path.join(kanban(), 'config.md'), '# Configuration\n\n- **Project** — a project.\n')
@@ -49,6 +44,8 @@ afterEach(() => {
   fs.chmodSync(home, 0o700)
   fs.rmSync(home, { recursive: true, force: true })
   fs.rmSync(root, { recursive: true, force: true })
+  delete process.env[REPORT_ENV]
+  delete process.env[DISCUSSION_ENV]
   delete process.env[RUN_ENV]
   restoreMachineHome()
 })
@@ -68,25 +65,13 @@ describe('a command whose machine home refuses every write', () => {
     assert.equal(fs.readFileSync(nextId(), 'utf8'), '9\n')
   })
 
-  it('writes the plan file and takes its id, with no number skipped', async () => {
+  it('refuses an unpersisted plan instead of claiming success', async () => {
+    const draft = path.join(root, 'draft.md')
+    fs.writeFileSync(draft, '# An outcome\n')
     sealHome()
-    const plan = await move(root, ['plan', 'new', '--title', 'A plan written in a sandbox'])
-    assert.equal(plan.id, 8)
-    // The file is the agent's to write; what `plan new` owes it is the folder and the name.
-    assert.equal(plan.path, 'plans/8-a-plan-written-in-a-sandbox.md')
-    assert.ok(fs.existsSync(path.join(kanban(), 'plans')))
-    // The transcript is machine state and went unwritten; the number still moved by one.
+    await assert.rejects(() => move(root, ['plan', 'new', '--title', 'First', '--body-file', draft]), /not saved/)
     assert.equal(readChat(null), null)
-    assert.equal(fs.readFileSync(nextId(), 'utf8'), '9\n')
-  })
-
-  it('keeps the ids running on, one command after another', async () => {
-    sealHome()
-    await move(root, ['plan', 'new', '--title', 'First'])
-    const second = await move(root, ['create', '--title', 'Second'])
-    const third = await move(root, ['plan', 'new', '--title', 'Third'])
-    assert.deepEqual([second.id, third.id], [9, 10])
-    assert.equal(fs.readFileSync(nextId(), 'utf8'), '11\n')
+    assert.equal(fs.existsSync(path.join(kanban(), 'plans')), false)
   })
 
   it('leaves the machine folder untouched rather than half made', async () => {
@@ -141,38 +126,67 @@ describe('what a sandboxed run tells the board', () => {
     ...over,
   })
 
-  it('leaves its cards and its plan in the project, for the watcher to collect', async () => {
-    const run = runner()
-    withStore((store) => store.runs.push(run))
-    process.env[RUN_ENV] = run.sessionId
+  for (const entry of ['run', 'chat'] as const) {
+    it(`${entry} confirms the body and visible handoff through its host`, async () => {
+      const run = runner()
+      withStore((store) => store.runs.push(run))
+      fs.mkdirSync(SESSIONS_DIR, { recursive: true })
+      fs.writeFileSync(logPathOf(run.sessionId), '')
+      const session = entry === 'run' ? run.sessionId : 'chat-test'
+      process.env[entry === 'run' ? RUN_ENV : REPORT_ENV] = session
+      const target = entry === 'chat' ? 'discussion-11111111-1111-4111-8111-111111111111' : null
+      if (target) process.env[DISCUSSION_ENV] = target
+      const draft = path.join(root, 'draft.md')
+      fs.writeFileSync(draft, '# Saved outcome\n\nReady to plan or build.\n')
+      sealHome()
+      const timer = setInterval(() => {
+        if (!fs.existsSync(outboxDir(session))) return
+        fs.chmodSync(home, 0o700)
+        void collectReports(session)
+      }, 10)
+      try {
+        const plan = await move(root, ['plan', 'new', '--title', 'Saved outcome', '--body-file', draft])
+        assert.equal(plan.id, 8)
+        assert.equal(fs.readFileSync(nextId(), 'utf8'), '9\n')
+        const visible = await readDiscuss(target)
+        assert.equal(visible.plan?.text, fs.readFileSync(draft, 'utf8'))
+        assert.equal(visible.run, null)
+        assert.equal(readPlan(planFromText(visible.plan!.path)!)?.text, visible.plan?.text)
+        assert.equal(fs.existsSync(path.join(kanban(), 'plans')), false)
+        fs.writeFileSync(draft, '# Revised outcome\n')
+        await move(root, ['plan', 'save', '--path', plan.path as string, '--body-file', draft])
+        assert.equal((await readDiscuss(target)).plan?.text, '# Revised outcome\n')
+        assert.equal(readChat(target)?.plans?.length, 1)
+        assert.equal(fs.readFileSync(nextId(), 'utf8'), '9\n')
+        for (const action of ['create', 'implement'] as const) {
+          const opened = openRun({ action, plan: visible.plan!.path } as AgentRequest, 'Use the saved plan')
+          assert.ok(!('error' in opened))
+          if (action === 'implement') {
+            assert.equal(findDelivery(opened.run.deliveryId!)?.approved, '# Revised outcome')
+          }
+          startedPlanning(opened.run.sessionId, action === 'create' ? 'plan' : 'build', target)
+          assert.equal((await readDiscuss(target)).run?.running, true)
+        }
+      } finally { clearInterval(timer) }
+    })
+  }
+
+  it('reports host persistence failure and retries the reserved id', async () => {
+    const draft = path.join(root, 'draft.md')
+    fs.writeFileSync(draft, '# Keep this draft\n')
+    process.env[REPORT_ENV] = 'chat-failure'
     sealHome()
-
-    await move(root, ['create', '--title', 'A card the run wrote'])
-    await move(root, ['plan', 'new', '--title', 'A plan the run wrote'])
-    assert.equal(fs.readdirSync(outboxDir(run.sessionId)).length, 2)
-  })
-
-  it('reaches the record once the machine home takes writes again', async () => {
-    const run = runner()
-    withStore((store) => store.runs.push(run))
-    fs.mkdirSync(SESSIONS_DIR, { recursive: true })
-    fs.writeFileSync(logPathOf(run.sessionId), '')
-    process.env[RUN_ENV] = run.sessionId
-    sealHome()
-
-    const made = await move(root, ['create', '--title', 'A card the run wrote'])
-    const plan = await move(root, ['plan', 'new', '--title', 'A plan the run wrote'])
-
-    // The watcher is outside the sandbox, so its writes land.
-    fs.chmodSync(home, 0o700)
-    delete process.env[RUN_ENV]
-    await collectReports(run.sessionId)
-
-    assert.deepEqual(peekRun(run.sessionId)?.createdCardIds, [made.id])
-    assert.deepEqual(readChat(null)?.plans?.map((p) => p.path), [plan.path])
-    // And each report is applied once: a second collection finds nothing left.
-    await collectReports(run.sessionId)
-    assert.deepEqual(peekRun(run.sessionId)?.createdCardIds, [made.id])
+    const timer = setInterval(() => { void collectReports('chat-failure') }, 10)
+    try {
+      await assert.rejects(() => move(root, ['plan', 'new', '--title', 'Outcome', '--body-file', draft]), /not saved/)
+      assert.equal((await readDiscuss()).plan, null)
+      assert.equal(fs.readFileSync(draft, 'utf8'), '# Keep this draft\n')
+      fs.chmodSync(home, 0o700)
+      const saved = await move(root, ['plan', 'save', '--path', 'plans/8-outcome.md', '--body-file', draft])
+      assert.equal(saved.id, 8)
+      assert.equal(fs.readFileSync(nextId(), 'utf8'), '9\n')
+      assert.equal((await readDiscuss()).plan?.text, '# Keep this draft\n')
+    } finally { clearInterval(timer) }
   })
 
   it('drops the report rather than failing when the project refuses it too', async () => {

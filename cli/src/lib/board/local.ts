@@ -111,7 +111,7 @@ import type { CardPatch, CardSchedule, PlanCard, SaveProjectResult } from '../vi
 // so the table of what each move does belongs to the board, not to the command line that
 // happens to be in front of it today.
 
-type RunMove = (input: MoveInput) => MoveOutput | void
+type RunMove = (input: MoveInput) => MoveOutput | void | Promise<MoveOutput>
 
 // The command line has already been read by the time a move runs (lib/cli/board.ts): the
 // positional words are in `args`, and every option is in `opts`, validated against the
@@ -521,18 +521,20 @@ export function localBoard(): BoardProvider {
 
     // ---- the named `akb raw` moves ----------------------------------------
 
-    runMove(move: string, input: MoveInput, env: OpEnvelope) {
+    async runMove(move: string, input: MoveInput, env: OpEnvelope) {
       const run = MOVES[move]
       if (!run) return Promise.resolve(opRefused(new Error(`unknown command "${move}".`)))
       // A move keeps its prose: it IS the move's answer, and the dispatcher above owns
       // where it lands — a terminal, or the `output` field of a --json answer.
       const target = moveTarget(move, input.args)
       try {
-        const result = withBoardLock(() => {
+        const result = await withBoardLock(() => {
           const no = checkWrite(target, env, revisionAt(target))
           if (no) return no
-          const data = run(input) || {}
-          return opOk(revisionAt(target), { data })
+          const data = run(input)
+          // The plan id is reserved under the lock; its host acknowledgement waits outside it.
+          if (data instanceof Promise) return data.then(data => opOk(revisionAt(target), { data }))
+          return opOk(revisionAt(target), { data: data || {} })
         })
         if (!result.ok) return Promise.resolve(result)
         return afterBoardWrite().then(() => result)

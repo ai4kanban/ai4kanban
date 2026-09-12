@@ -1,3 +1,4 @@
+import { PLANS } from '../src/lib/paths.ts'
 // The discussions a board holds at once (#496).
 //
 // The promise is that a board is no longer one conversation: every subject has its own
@@ -45,14 +46,14 @@ const spoke = (target: DiscussionTarget, words: string, at?: number): void => {
 
 // A plan file this board really has, so `setChatPlan` takes it.
 const plan = (name: string): string => {
-  const plans = path.join(root, 'docs', 'kanban', 'plans')
+  const plans = PLANS
   fs.mkdirSync(plans, { recursive: true })
   fs.writeFileSync(path.join(plans, name), '# a plan\n')
   return `plans/${name}`
 }
 
 const planIsThere = (rel: string): boolean =>
-  fs.existsSync(path.join(root, 'docs', 'kanban', rel))
+  fs.existsSync(path.join(PLANS, rel.replace(/^plans\//, '')))
 
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-discussions-'))
