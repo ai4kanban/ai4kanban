@@ -117,7 +117,7 @@ function approval(record: Queued) {
       'Your request to join the AI4Kanban Cloud preview has been approved. Your account is in —',
       'there is nothing to paste and nothing more to do.',
       '',
-      'Open AI4Kanban and go to Configuration → Notifications. If you are already signed in,',
+      'Open AI4Kanban and go to Configuration → Cloud & Notifications. If you are already signed in,',
       'the pane says you are in the next time you open it.',
       '',
       'Cloud carries the moments your board needs you — a card ready for review, a question only',

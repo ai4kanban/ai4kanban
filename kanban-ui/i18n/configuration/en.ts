@@ -11,7 +11,7 @@ const en: ConfigurationCopy = {
     runtimes: "Runtimes",
     agents: "Agents",
     workspace: "Workspace",
-    cloud: "Notifications",
+    cloud: "Cloud & Notifications",
   },
   general: {
     setup: "Setup",
@@ -407,13 +407,13 @@ const en: ConfigurationCopy = {
       "The whole board as markdown, archive included. The preview keeps no backups — this is the only copy you can restore from.",
     exportButton: "Export",
     exported: (folder) => `Written to ${folder}. It opens as a Local board.`,
-    leave: "Leave Cloud",
+    leave: "Leave this workspace",
     leaveHint:
-      "Board back in docs/kanban/, pointer off, folder un-ignored — one commit you review, so git tracks the cards again.",
-    leaveButton: "Leave Cloud…",
-    leaveTitle: "Leave Cloud?",
+      "Cloud says this workspace is no longer yours. Stop pointing at it and whatever is in docs/kanban/ becomes the board again.",
+    leaveButton: "Leave…",
+    leaveTitle: "Leave this workspace?",
     leaveBlurb:
-      "The workspace stays where it is and keeps everything in it. This checkout stops reading it and becomes a Local board.",
+      "There is nothing to write back, so this only stops the checkout reading it. Your cards are in git history either way.",
     ends: "Ends the workspace",
     delete: "Delete workspace",
     deleteHint: "Everything in it goes, for everyone. Export first.",
@@ -450,6 +450,64 @@ const en: ConfigurationCopy = {
   cloud: {
     account: "Account",
     wherePosts: "Where it posts",
+    storage: {
+      title: "Cloud storage",
+      note: "Moving needs the AI4Kanban app and a Cloud invite. The board pauses while it moves and comes back at the end.",
+      checking: "Checking where this board is stored…",
+      where: "Stored in",
+      whereCloud: "Cards, archive, memory and settings live in your Cloud workspace.",
+      whereLocal: "Cards, archive, memory and settings live in this checkout.",
+      atCloud: (workspace) => `Cloud · ${workspace}`,
+      atCloudUnnamed: "Cloud",
+      atLocal: "Local · docs/kanban/",
+      store: "Store this board in Cloud",
+      storeHint:
+        "On, the whole board moves into a new Cloud workspace. Off, it all comes back to docs/kanban/.",
+      storeLabel: "Store this board in Cloud",
+      needsApp: "Moving runs in the AI4Kanban app. Open this board there to switch storage.",
+      tooOld: "This project runs an older akb that cannot move the board. Update it first.",
+
+      onTitle: "Move to Cloud",
+      onBlurb:
+        "Everything in docs/kanban/ — cards, archive, memory and board settings — moves into a new Cloud workspace.",
+      workspaceName: "Workspace name",
+      workspaceNameHint:
+        "Your project folder's name, and yours to change. A new workspace every time, never one your account already has.",
+      nameEmpty: "Name the workspace.",
+      onAction: "Move to Cloud",
+
+      offTitle: "Move back to local",
+      offBlurb: (workspace) =>
+        `Everything in ${workspace} — cards, archive, memory and board settings — is written back into docs/kanban/.`,
+      offUnnamed: "Everything in your Cloud workspace — cards, archive, memory and board settings — is written back into docs/kanban/.",
+      offKeeps:
+        "The workspace stays where it is and keeps everything in it; this checkout just stops reading it. Delete it on the Workspace page when you want it gone.",
+      offAction: "Move back to local",
+
+      repoLead: "One change is left in the repository for you to read and commit:",
+      onUntrack: "docs/kanban/ leaves git",
+      onPointer: ".ai4kanban.json is added",
+      onIgnore: "the root .gitignore gains a block",
+      offTrack: "docs/kanban/ goes back into git",
+      offPointer: ".ai4kanban.json is removed",
+      offIgnore: "the root .gitignore loses that block",
+      pauses:
+        "The board cannot be used while it moves. It comes back on the press at the end — no restart and no reopening the project.",
+      cancel: "Cancel",
+
+      waitTitle: "Waiting for work to finish",
+      waitBlurb: "The move starts as soon as these are done, so nothing written now is left behind.",
+      waitRun: (job, card) => `${job} · ${card}`,
+      movingOn: "Moving the board to Cloud",
+      movingOff: "Moving the board back to this checkout",
+      movingBlurb: "Leave this open. It takes a moment on a large board.",
+      doneOn: (workspace) => `The board is in ${workspace} now. This checkout reads it from there.`,
+      failedOn: "The board was not moved.",
+      failedOff: "The board was not moved back.",
+      failedBlurb: "Nothing changed — the board is exactly where it was. Try again once it is sorted.",
+      back: "Back to the board",
+      stop: "Don't move",
+    },
     blurb:
       "Where a card that needs you reaches you. One sign-in covers every project on this machine.",
     checking: "Checking this machine…",

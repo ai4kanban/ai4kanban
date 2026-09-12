@@ -8,6 +8,8 @@
 // Every one of them is the board's own rules. Nothing here decides what a workspace is,
 // what leaving costs, or what the offered commit carries.
 
+import path from "node:path";
+
 import { getCopy } from "@/i18n";
 import {
   boardRules,
@@ -66,6 +68,35 @@ const NOTHING: WorkspaceView = {
 export async function workspaceId(): Promise<string> {
   const rules = await boardRules();
   return rules.readBoardPointer?.(repoRoot())?.workspace ?? "";
+}
+
+/** Where this board's data is kept, for the Cloud storage switch (#614). The pointer and
+ *  the folder, no network: the switch says which side it is on before anything is asked of
+ *  Cloud, and the migration is what reaches the service. */
+export interface CloudStorage {
+  /** The project folder. The app is handed this to migrate, and its basename is what a new
+   *  workspace is called until the user types over it. */
+  root: string;
+  project: string;
+  /** It already points at a workspace. */
+  cloud: boolean;
+  /** That workspace's name, when the pointer carries one. */
+  workspace: string;
+  /** This project runs rules that predate the move, so neither direction is offered. */
+  tooOld: boolean;
+}
+
+export async function cloudStorage(): Promise<CloudStorage> {
+  const rules = await boardRules();
+  const root = repoRoot();
+  const pointer = rules.readBoardPointer?.(root) ?? null;
+  return {
+    root,
+    project: path.basename(root) || root,
+    cloud: !!pointer?.workspace,
+    workspace: pointer?.name ?? "",
+    tooOld: !rules.readBoardPointer || !rules.leaveCloud,
+  };
 }
 
 /** What Configuration → Workspace draws. */

@@ -84,7 +84,7 @@ export function stateNote(event: EventRow): string {
     case 'waiting_for_server':
       return event.serverName
         ? `On ${event.serverName}, as soon as that machine is reachable.`
-        : 'This board has no machine attached to run it. Attach one in Configuration → Notifications.'
+        : 'This board has no machine attached to run it. Attach one in Configuration → Cloud & Notifications.'
     case 'running':
       return event.serverName ? `On ${event.serverName}.` : ''
     // What the state name cannot carry: a refused approval and a broken build both read

@@ -45,7 +45,7 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
   // Where this account's tasks arrive away from the app (#320, #351). Reported for the same
   // reason as the boards below: a terminal is where somebody wonders why nothing is
   // reaching a chat, and the answer is usually a destination that chat has refused.
-  // Connecting one is the app's, under Configuration → Notifications.
+  // Connecting one is the app's, under Configuration → Cloud & Notifications.
   if (account.state === 'signed-in') {
     for (const line of await slackLines()) say(line)
     for (const line of await larkLines()) say(line)
@@ -53,7 +53,7 @@ export async function cmdCloud(args: string[], program: string): Promise<MoveRes
   // Which boards this machine publishes events for (#319). Reported here because it is a
   // fact about the machine, like the sign-in above, and because a terminal is where
   // somebody wonders why a board is or is not filling the bell. Turning one on is the
-  // app's, under Configuration → Notifications.
+  // app's, under Configuration → Cloud & Notifications.
   const boards = account.state === 'signed-in' ? readCloudBoards() : []
   // And which machine runs each board's work (#318). A board attaches exactly one server,
   // and an approval taken anywhere runs there and nowhere else — so a terminal wondering why
@@ -126,7 +126,7 @@ async function slackLines(): Promise<string[]> {
   const where = held.channelName || 'nowhere yet — pick a conversation in the app'
   return held.revoked
     ? ['', `Slack (${held.teamName}) refused the last message: ${held.lastError}`,
-       'Connect again in the AI4Kanban app, under Configuration → Notifications.']
+       'Connect again in the AI4Kanban app, under Configuration → Cloud & Notifications.']
     : ['', `Slack posts to ${where}${held.teamName ? ` in ${held.teamName}` : ''}.`]
 }
 
@@ -140,7 +140,7 @@ async function larkLines(): Promise<string[]> {
   const where = held.destinationName || 'nowhere yet — pick a chat in the app'
   return held.revoked
     ? ['', `${held.cloudName} refused the last message: ${held.lastError}`,
-       'Connect again in the AI4Kanban app, under Configuration → Notifications.']
+       'Connect again in the AI4Kanban app, under Configuration → Cloud & Notifications.']
     : ['', `${held.cloudName} posts to ${where}.`]
 }
 
@@ -172,7 +172,7 @@ function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: 
       lines.push('Not signed in to Cloud. Nothing on this machine reaches it.')
       lines.push(
         account.configured
-          ? 'Sign in from the AI4Kanban app, under Configuration → Notifications. It is once per machine.'
+          ? 'Sign in from the AI4Kanban app, under Configuration → Cloud & Notifications. It is once per machine.'
           : account.message ?? '',
       )
       break
@@ -188,13 +188,13 @@ function report(account: Awaited<ReturnType<typeof readCloudAccount>>, program: 
       lines.push(
         account.inviteRequestedAt
           ? `You asked for an invite on ${account.inviteRequestedAt.slice(0, 10)}. We answer by email.`
-          : 'Request an invite in the AI4Kanban app, under Configuration → Notifications.',
+          : 'Request an invite in the AI4Kanban app, under Configuration → Cloud & Notifications.',
       )
       lines.push(`Sign out with \`${program} cloud sign-out\`.`)
       break
     case 'expired':
       lines.push(`Your Cloud sign-in as ${who} has expired.`)
-      lines.push('Sign in again from the AI4Kanban app, under Configuration → Notifications.')
+      lines.push('Sign in again from the AI4Kanban app, under Configuration → Cloud & Notifications.')
       break
   }
   if (account.error) lines.push(`Cloud could not be reached: ${account.error}`)

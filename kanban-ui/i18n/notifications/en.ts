@@ -25,7 +25,7 @@ const en: NotificationsCopy = {
   signedOut: {
     title: "Not signed in to Cloud",
     body: "Sign in and this board's cards start filling the bell. Nothing leaves this machine until you do.",
-    hint: "Configuration → Notifications",
+    hint: "Configuration → Cloud & Notifications",
   },
   noRelease: {
     title: "No open release",

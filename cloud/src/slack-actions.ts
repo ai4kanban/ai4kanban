@@ -316,13 +316,13 @@ async function resolve(
     return {
       ok: false,
       words:
-        'AI4Kanban does not know who you are here. Connect Slack in Configuration → Notifications to press this as your account.',
+        'AI4Kanban does not know who you are here. Connect Slack in Configuration → Cloud & Notifications to press this as your account.',
     }
   }
   if (actorRow.revoked) {
     return {
       ok: false,
-      words: 'Slack refused this connection. Connect again in Configuration → Notifications.',
+      words: 'Slack refused this connection. Connect again in Configuration → Cloud & Notifications.',
     }
   }
 

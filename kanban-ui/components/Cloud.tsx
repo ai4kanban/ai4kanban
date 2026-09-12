@@ -4,11 +4,17 @@
 // through (#326). Named for the job in the nav; Cloud is the plumbing, and is said in the
 // sentences rather than on the tab.
 //
-// Three captioned groups, the same shape General is built from (components/settings.tsx):
+// Four captioned groups, the same shape General is built from (components/settings.tsx):
 // **Account** — who this machine acts as, and the silencing switch that holds for every
-// board on it. **Where it posts** — one row per chat. **This board** — the release it
+// board on it. **Cloud storage** — where this board's data is kept, and the one switch that
+// moves it (#614). **Where it posts** — one row per chat. **This board** — the release it
 // watches and the machine that runs its work. One row is one decision, so the sign-in, a
 // connection and a switch all read off the same left edge.
+//
+// The storage switch is here rather than on a page of its own because it belongs to the
+// account: it is the second thing a signed-in account can do with Cloud, and the first — the
+// sign-in above it — is what admits it at all. It is only ever drawn for an ADMITTED account,
+// which is what `SignedIn` below already means.
 //
 // The sign-in is not a board setting: one sign-in covers every project the app has open and
 // every terminal on the machine, and it is held outside every repository. That is what the
@@ -27,12 +33,13 @@
 // account row and adds one asking row (#327): approving is the whole of getting in (#350),
 // so there is one ask here and nothing to paste back.
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { FiBell, FiBellOff, FiLogOut, FiMail } from "react-icons/fi";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { FiBell, FiBellOff, FiFolder, FiLogOut, FiMail, FiUploadCloud } from "react-icons/fi";
 import { SiGithub } from "react-icons/si";
 import {
   boardNotificationsAction,
   cloudAccountAction,
+  cloudStorageAction,
   disconnectLarkAction,
   disconnectSlackAction,
   setBoardServerAction,
@@ -57,6 +64,7 @@ import { useLanguage } from "@/components/language";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { BoardNotifications } from "@/lib/notifications";
+import type { CloudStorage } from "@/lib/workspace";
 import {
   ALL_RELEASES,
   LANGUAGE_TAGS,
@@ -69,9 +77,13 @@ import {
   type SlackState,
 } from "@/lib/types";
 import { LarkMark, SlackMark } from "./brands";
+import { canMoveStorage, cloudMigration } from "./CloudMigration";
 import { Button } from "./button";
 import {
+  ACCENT_BTN,
   Alert,
+  CAPTION,
+  CONTROL,
   FLAT_CONTROL,
   Group,
   Loading,
@@ -257,6 +269,8 @@ function SignedIn({
         <Note>{c.blurb}</Note>
       </Group>
 
+      <Storage inApp={inApp} />
+
       <Group title={c.wherePosts}>
         <Panel>
           <Slack inApp={inApp} reload={slackTick} onError={onError} />
@@ -336,6 +350,218 @@ function Silencer() {
     >
       <Switch on={on} label={c.silence.title} onFlip={flip} />
     </Row>
+  );
+}
+
+// --- where the board's data is kept (#614) ------------------------------------
+//
+// Two rows: which side the data is on now, and the one switch that moves it. Both
+// directions go through that switch — on carries the board into a new Cloud workspace, off
+// writes the workspace back into `docs/kanban/` — because a user who turned it on looks for
+// the way back where they turned it on.
+//
+// Flipping it opens the confirmation UNDER the switch rather than in a popover: what the
+// move costs is four things to read and a name to type, which is a block, not a tooltip. The
+// switch shows where the flip would take it while that block is open, so the block and the
+// control agree; cancelling puts it back.
+//
+// Nothing here migrates anything. Pressing the confirmation hands the move to
+// components/CloudMigration.tsx and this pane is free to close under it.
+
+function Storage({ inApp }: { inApp: boolean }) {
+  const c = useCopy().configuration.cloud.storage;
+  const [state, setState] = useState<CloudStorage | null>(null);
+  // Which way the open confirmation would move the board, or null with none open.
+  const [asking, setAsking] = useState<"go" | "leave" | null>(null);
+
+  useEffect(() => {
+    void cloudStorageAction().then(setState);
+  }, []);
+
+  if (!state) {
+    return (
+      <Group title={c.title}>
+        <Loading>{c.checking}</Loading>
+      </Group>
+    );
+  }
+
+  // The move runs in the app and through this project's own rules. Where either is missing
+  // the rows still say where the data is — that is a fact, not a control — and the switch
+  // stands down under the line that says why.
+  const why = state.tooOld ? c.tooOld : !inApp || !canMoveStorage() ? c.needsApp : "";
+  const shown = asking ? asking === "go" : state.cloud;
+
+  return (
+    <Group title={c.title}>
+      <Panel>
+        <Row
+          icon={<FiFolder size={MARK} className="text-nb-ink-soft" aria-hidden />}
+          label={c.where}
+          hint={state.cloud ? c.whereCloud : c.whereLocal}
+        >
+          <Status ready={state.cloud}>
+            {state.cloud ? (state.workspace ? c.atCloud(state.workspace) : c.atCloudUnnamed) : c.atLocal}
+          </Status>
+        </Row>
+        <Row
+          icon={<FiUploadCloud size={MARK} className="text-nb-ink-soft" aria-hidden />}
+          label={c.store}
+          hint={c.storeHint}
+          below={
+            asking === "go" ? (
+              <TurnOn project={state.project} onCancel={() => setAsking(null)} />
+            ) : asking === "leave" ? (
+              <TurnOff workspace={state.workspace} onCancel={() => setAsking(null)} />
+            ) : null
+          }
+        >
+          <Switch
+            on={shown}
+            label={c.storeLabel}
+            busy={!!why}
+            // Off the board's own side, so a second press on an open confirmation puts the
+            // switch back rather than asking for the opposite move — a local board has no
+            // workspace to come back from.
+            onFlip={async () => setAsking(asking ? null : state.cloud ? "leave" : "go")}
+          />
+        </Row>
+      </Panel>
+      <Note>{why || c.note}</Note>
+    </Group>
+  );
+}
+
+/** The block the switch opens: what the move does, the three paths the repository gains or
+ *  loses, and the two ways out of it. */
+function Confirm({
+  title,
+  action,
+  onAct,
+  onCancel,
+  children,
+}: {
+  title: string;
+  action: string;
+  onAct: () => void;
+  onCancel: () => void;
+  children: ReactNode;
+}) {
+  const c = useCopy().configuration.cloud.storage;
+  // The block is taller than what is left of the pane below the switch, so the pane scrolls
+  // to it: an action nobody can see is an action nobody takes.
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    box.current?.scrollIntoView({ block: "nearest" });
+  }, []);
+
+  // Paper on the card's sheet: the block is the one thing on the pane you have to read right
+  // now, and its own field and list need rungs of their own under it.
+  return (
+    <div ref={box} className="rounded-[12px] bg-nb-paper px-4 py-3.5">
+      <p className="text-[13.5px] font-[800] text-nb-ink">{title}</p>
+      {children}
+      <p className="mt-3 text-[12px] leading-relaxed text-nb-ink-soft">{c.pauses}</p>
+      <div className="mt-4 flex gap-2.5">
+        <button type="button" className={ACCENT_BTN} onClick={onAct}>
+          {action}
+        </button>
+        <button type="button" className={QUIET_BTN} onClick={onCancel}>
+          {c.cancel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** One line of a confirmation's body. */
+function Line({ children }: { children: ReactNode }) {
+  return <p className="mt-2 text-[12px] leading-relaxed text-nb-ink-soft">{children}</p>;
+}
+
+/** The three paths the one offered commit carries, listed the way a diff reads them. */
+function RepoChange({ rows }: { rows: { add: boolean; text: string }[] }) {
+  const c = useCopy().configuration.cloud.storage;
+  return (
+    <>
+      <Line>{c.repoLead}</Line>
+      <ul className="mt-2 rounded-[10px] bg-nb-sheet px-3 py-2">
+        {rows.map((row) => (
+          <li key={row.text} className="flex items-center gap-2.5 py-1 text-[12px] text-nb-ink">
+            <span
+              aria-hidden
+              className={`w-[10px] shrink-0 font-mono font-[700] ${row.add ? "text-nb-mint-ink" : "text-nb-ink-soft"}`}
+            >
+              {row.add ? "+" : "\u2212"}
+            </span>
+            {row.text}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/**
+ * Turning it on: a NEW workspace every time.
+ *
+ * There is no "pick one you already have". A move has one outcome — this board, in a
+ * workspace of its own — and offering a list is offering to write two boards into one
+ * workspace, which nothing undoes.
+ */
+function TurnOn({ project, onCancel }: { project: string; onCancel: () => void }) {
+  const c = useCopy().configuration.cloud.storage;
+  const [name, setName] = useState(project);
+  const typed = name.trim();
+  return (
+    <Confirm
+      title={c.onTitle}
+      action={c.onAction}
+      onAct={() => typed && cloudMigration.start({ direction: "go", name: typed })}
+      onCancel={onCancel}
+    >
+      <Line>{c.onBlurb}</Line>
+      <label className="mt-3.5 block">
+        <span className={`${CAPTION} block text-nb-ink-soft`}>{c.workspaceName}</span>
+        <input
+          className={`${CONTROL} mt-1.5 block max-w-[320px]`}
+          value={name}
+          spellCheck={false}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </label>
+      <Line>{typed ? c.workspaceNameHint : c.nameEmpty}</Line>
+      <RepoChange
+        rows={[
+          { add: false, text: c.onUntrack },
+          { add: true, text: c.onPointer },
+          { add: true, text: c.onIgnore },
+        ]}
+      />
+    </Confirm>
+  );
+}
+
+/** Turning it off: the workspace written back whole, and left standing in Cloud. */
+function TurnOff({ workspace, onCancel }: { workspace: string; onCancel: () => void }) {
+  const c = useCopy().configuration.cloud.storage;
+  return (
+    <Confirm
+      title={c.offTitle}
+      action={c.offAction}
+      onAct={() => cloudMigration.start({ direction: "leave", name: "" })}
+      onCancel={onCancel}
+    >
+      <Line>{workspace ? c.offBlurb(workspace) : c.offUnnamed}</Line>
+      <Line>{c.offKeeps}</Line>
+      <RepoChange
+        rows={[
+          { add: true, text: c.offTrack },
+          { add: false, text: c.offPointer },
+          { add: false, text: c.offIgnore },
+        ]}
+      />
+    </Confirm>
   );
 }
 

@@ -494,6 +494,76 @@ export type ConfigurationCopy = {
     account: string;
     /** The caption over the chats a notification is posted to. */
     wherePosts: string;
+    /** Where this board's data is kept, and the one switch that moves it (#614). Both
+     *  directions go through it: on carries the board into a new workspace, off writes the
+     *  workspace back into `docs/kanban/`. */
+    storage: {
+      /** The caption over the group. */
+      title: string;
+      /** Said under it: what the move needs, and that the board pauses for it. */
+      note: string;
+      checking: string;
+      /** The row that says which side the data is on. */
+      where: string;
+      whereCloud: string;
+      whereLocal: string;
+      /** The pill beside it. */
+      atCloud: (workspace: string) => string;
+      atCloudUnnamed: string;
+      atLocal: string;
+      /** The switch itself. It carries no "Cloud storage" of its own — the caption above
+       *  already says that — so it names the move instead. */
+      store: string;
+      storeHint: string;
+      /** Read out loud in place of the switch's own position. */
+      storeLabel: string;
+      /** The move runs in the app, so a plain browser tab says so instead. */
+      needsApp: string;
+      /** This project runs rules that predate the move. */
+      tooOld: string;
+
+      /** Turning it on: what goes, where it goes, and the commit it leaves behind. */
+      onTitle: string;
+      onBlurb: string;
+      workspaceName: string;
+      workspaceNameHint: string;
+      nameEmpty: string;
+      onAction: string;
+
+      /** Turning it off: what comes back, and what stays in Cloud. */
+      offTitle: string;
+      offBlurb: (workspace: string) => string;
+      offUnnamed: string;
+      offKeeps: string;
+      offAction: string;
+
+      /** The three paths the repository gains or loses, listed as the commit carries them. */
+      repoLead: string;
+      onUntrack: string;
+      onPointer: string;
+      onIgnore: string;
+      offTrack: string;
+      offPointer: string;
+      offIgnore: string;
+      /** The board is unusable while it moves. Said on both confirmations. */
+      pauses: string;
+      cancel: string;
+
+      /** The page that takes the board over while it moves. */
+      waitTitle: string;
+      waitBlurb: string;
+      /** A run still going, as one line of that list. */
+      waitRun: (job: string, card: string) => string;
+      movingOn: string;
+      movingOff: string;
+      movingBlurb: string;
+      doneOn: (workspace: string) => string;
+      failedOn: string;
+      failedOff: string;
+      failedBlurb: string;
+      back: string;
+      stop: string;
+    };
     blurb: string;
     checking: string;
     /** Beside a control whose new value is already drawn but not yet written. */

@@ -287,13 +287,13 @@ async function resolve(
     return {
       ok: false,
       words:
-        'AI4Kanban does not know who you are here. Connect Lark in Configuration → Notifications to press this as your account.',
+        'AI4Kanban does not know who you are here. Connect Lark in Configuration → Cloud & Notifications to press this as your account.',
     }
   }
   if (actorRow.revoked) {
     return {
       ok: false,
-      words: 'Lark refused this connection. Connect again in Configuration → Notifications.',
+      words: 'Lark refused this connection. Connect again in Configuration → Cloud & Notifications.',
     }
   }
 

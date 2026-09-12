@@ -407,8 +407,8 @@ function refusalOf(call: { ok: false; error: string; code?: string }): {
       reason: 'not-a-member',
       error:
         'This account is not in this board’s workspace — it was deleted, or nobody has ' +
-        'added you. Ask an owner to add you, or leave Cloud to get the cards back as ' +
-        'markdown in docs/kanban/.',
+        'added you. Ask an owner to add you, or leave the workspace to get the cards back ' +
+        'as markdown in docs/kanban/.',
     }
   }
   return { ok: false, reason: 'refused', error: call.error }

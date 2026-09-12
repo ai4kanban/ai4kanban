@@ -1161,7 +1161,7 @@ struck through, so the outcome survives after the subtask files are gone.
 ## Configuration
 
 The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**General**, **Runtime**, **Agents** and **Notifications**. Settings live in
+**General**, **Runtime**, **Agents** and **Cloud & Notifications**. Settings live in
 `docs/kanban/ui.config.json`, next to your board, so `npx` always serves the latest UI and an update
 never touches them. Everything the dialog holds writes itself there, with three exceptions: a key
 goes to `docs/kanban/.env`, and the language and the Cloud sign-in settle this machine rather than
@@ -1822,6 +1822,34 @@ later one. What the `akb` command prints in a terminal stays English either way.
 
 A project whose copy of the board's rules predates this setting draws in English and says so when you
 try to change it — `npm install -g ai4kanban` brings that project up to date.
+
+### Cloud & Notifications → Cloud storage
+
+Where this board's cards are kept, and the one switch that moves them. It is in the app only, and
+only for an account that is in the Cloud preview — the sign-in above it is what admits it.
+
+**Stored in** says which side the data is on right now: **Local · docs/kanban/**, or **Cloud ·**
+the workspace's name.
+
+**Store this board in Cloud** moves it, both ways. It is a migration, not a setting, so it asks
+first and says what the move costs:
+
+- **On** — everything in `docs/kanban/` (cards, archive, memory and board settings) moves into a
+  **new** Cloud workspace. The name starts as your project folder's and is yours to change; it is
+  always a new workspace, never one your account already has.
+- **Off** — the workspace is written back into `docs/kanban/` whole. The workspace itself stays
+  where it is and keeps everything in it; deleting it is a separate move on the **Workspace** page.
+
+Either way the repository is left holding one change for you to read and commit — `docs/kanban/`
+entering or leaving git, the `.ai4kanban.json` pointer, and a block in the root `.gitignore`. It is
+offered when the move finishes and taken only when you press it; nothing is committed for you.
+
+While it moves, the board stops. A run still going finishes first — it is listed while you wait, so
+nothing it writes is left behind — and then the whole window becomes the migration page until the
+move ends. There is no restart and no reopening the project: pressing **Back to the board** brings
+it up reading the new storage.
+
+A move that fails leaves the board exactly where it was, and says why in the service's own words.
 
 ## When a run fails or is interrupted
 

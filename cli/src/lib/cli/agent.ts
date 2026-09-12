@@ -357,7 +357,7 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
   const cloud = withShared(program.command('cloud'))
     .summary('the account this MACHINE acts as')
     .description(
-      'A sign-in is started in the AI4Kanban app, under Configuration → Notifications, and nowhere else: ' +
+      'A sign-in is started in the AI4Kanban app, under Configuration → Cloud & Notifications, and nowhere else: ' +
         'the consent screen opens in your own browser and comes back to the app. Once per machine — every ' +
         `\`${cli.program}\` on it then acts as that account, because they read the one session the app ` +
         'wrote, outside every repository. Cloud is an invite-only preview.',

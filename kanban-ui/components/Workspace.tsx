@@ -5,8 +5,13 @@
 //
 // Three captioned groups, the same shape every other pane is built from:
 // **This board** — its name, who is in it, and the machines allowed to run its work.
-// **Your copy** — the export, and leaving Cloud. **Ends the workspace** — the deletion,
+// **Your copy** — the export, and the forced exit. **Ends the workspace** — the deletion,
 // behind a confirmation that names what goes.
+//
+// Moving the board back to `docs/kanban/` is NOT here: it is the Cloud storage switch on
+// Cloud & Notifications (#614), which is the same control that brought the board to Cloud.
+// What stays here is the one exit that switch cannot make — a workspace Cloud says is not
+// this account's, which has nothing to write back.
 //
 // A workspace has two roles. An owner runs the board's name, its members, its nodes and its
 // deletion; a member reads all of it and changes none of it. The owner-only controls are not
@@ -17,9 +22,9 @@
 // sidebar leaves the entry out (components/Configuration.tsx).
 //
 // Two of these moves end the board on screen, so each one finishes on a panel rather than
-// on a redraw: a leave says what it wrote back and offers the one commit that puts the cards
-// under git again, and only then reopens the checkout; a delete says the workspace is gone
-// and takes the window to the launcher, because there is no board left for it to show.
+// on a redraw: an exit says what it left behind and offers the one commit that puts the
+// cards under git again, and only then reopens the checkout; a delete says the workspace is
+// gone and takes the window to the launcher, because there is no board left for it to show.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiCloud, FiDownload, FiLogOut, FiServer, FiTrash2, FiUsers } from "react-icons/fi";
@@ -123,12 +128,15 @@ export function WorkspacePanel({ onError }: { onError?: (msg: string) => void })
       <Group title={c.yourCopy}>
         <Panel>
           <Export busy={busy} onError={onError} onRun={run} />
-          {/* A workspace Cloud says is not this account's has nothing to write back, so
-              leaving it is only taking the pointer off — which is one of the two ways out of
-              a checkout whose workspace was deleted or was never this account's. A workspace
-              that merely could not be reached is not that: leaving it still writes it back,
-              and failing is better than dropping the pointer on a network blip. */}
-          <Leave busy={busy} stranded={view.stranded} onError={onError} onLeft={setExit} onRun={run} />
+          {/* Leaving in the ordinary way is the Cloud storage switch's, over on Cloud &
+              Notifications (#614) — it writes the workspace back and is the same control
+              that brought the board here. What is left here is the FORCED exit: Cloud says
+              this workspace is not this account's, so there is nothing to write back and
+              taking the pointer off is the only way out of the checkout. A workspace that
+              merely could not be reached is not that, and the switch still handles it. */}
+          {view.stranded && (
+            <Leave busy={busy} onError={onError} onLeft={setExit} onRun={run} />
+          )}
         </Panel>
       </Group>
 
@@ -540,16 +548,15 @@ function Export({ busy, onError, onRun }: { busy: boolean; onError?: (msg: strin
   );
 }
 
+/** The way out of a checkout pointed at a workspace this account is not in — deleted, or
+ *  never theirs. Drawn only then: every other leave is the Cloud storage switch's. */
 function Leave({
   busy,
-  stranded,
   onError,
   onLeft,
   onRun,
 }: {
   busy: boolean;
-  /** The workspace could not be read at all. */
-  stranded: boolean;
   onError?: (msg: string) => void;
   onLeft: (exit: Exit) => void;
   onRun: Run;
@@ -559,7 +566,7 @@ function Leave({
   const anchor = useRef<HTMLSpanElement>(null);
 
   const leave = async () => {
-    const done = await onRun(() => leaveWorkspaceAction(stranded));
+    const done = await onRun(() => leaveWorkspaceAction(true));
     if (!done) return;
     setAsking(false);
     if (!done.ok) return onError?.(done.error);
@@ -643,8 +650,12 @@ function Delete({
 // --- the one commit each move offers -----------------------------------------
 
 /** What going Cloud, or leaving it, left in the repository — said before it is taken, and
- *  taken as one commit carrying those three paths and nothing else the working tree holds. */
-function Offer({
+ *  taken as one commit carrying those three paths and nothing else the working tree holds.
+ *
+ *  Exported because the storage switch finishes on the same offer (#614): a move made from
+ *  Cloud & Notifications leaves exactly the change a move made here does, and one wording of
+ *  it is one thing to keep true. */
+export function Offer({
   change,
   kind,
   onError,

@@ -244,7 +244,7 @@ export function CloudPage() {
                   Sign in with GitHub, inside the app.
                 </p>
                 <p className="mt-1.5 text-[0.95rem] leading-relaxed text-muted">
-                  Configuration → Notifications. It says straight away
+                  Configuration → Cloud & Notifications. It says straight away
                   whether your account is in the preview.
                 </p>
               </li>

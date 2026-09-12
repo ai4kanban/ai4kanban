@@ -105,6 +105,7 @@ import {
 } from "@/lib/cloud";
 import {
   addWorkspaceMember,
+  cloudStorage,
   commitCloudChange,
   deleteWorkspace,
   exportWorkspace,
@@ -116,6 +117,7 @@ import {
   setWorkspaceMemberRole,
   workspaceId,
   workspaceView,
+  type CloudStorage,
   type WorkspaceExit,
   type WorkspaceMove,
   type WorkspaceView,
@@ -1895,6 +1897,17 @@ export async function hasWorkspaceAction(): Promise<boolean> {
     return (await workspaceId()) !== "";
   } catch {
     return false;
+  }
+}
+
+/** Where this board's data is kept, and the folder a migration would work on (#614). The
+ *  pointer and the folder name, no network — the Cloud storage switch draws from this before
+ *  anything is asked of the service. */
+export async function cloudStorageAction(): Promise<CloudStorage> {
+  try {
+    return await cloudStorage();
+  } catch {
+    return { root: "", project: "", cloud: false, workspace: "", tooOld: true };
   }
 }
 

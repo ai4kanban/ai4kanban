@@ -62,6 +62,7 @@ import type {
 import { TOOL_BTN } from "./chrome";
 import { AgentsPanel } from "./Agents";
 import { CloudPanel } from "./Cloud";
+import { CloudMigration, useMigrating } from "./CloudMigration";
 import { Dialog } from "./Dialog";
 import { GeneralPanel } from "./General";
 import { RuntimesPanel } from "./Runtimes";
@@ -214,6 +215,13 @@ export function Configuration({
     setOpen(true);
   }, [request]);
 
+  // A storage move takes the whole window (#614), so the dialog it was started from gets out
+  // of the way rather than being covered by it.
+  const moving = useMigrating();
+  useEffect(() => {
+    if (moving) setOpen(false);
+  }, [moving]);
+
   // Whether this checkout points at a workspace (#317), so the Workspace entry is offered
   // only where there is one. The pointer alone rather than whether the board opened: a
   // checkout whose workspace has been deleted still needs the pane, since leaving Cloud is
@@ -320,6 +328,10 @@ export function Configuration({
           </div>
         </Dialog>
       )}
+      {/* The board's storage moving (#614). Outside the `open` above on purpose: the move is
+          started from the Cloud pane and outlives the dialog, and the page it draws covers
+          the whole window rather than sitting in one. */}
+      <CloudMigration />
     </>
   );
 }

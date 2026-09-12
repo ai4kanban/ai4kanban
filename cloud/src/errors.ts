@@ -180,7 +180,7 @@ export const slackNotConnected = () =>
   new Refusal(
     'slack_not_connected',
     404,
-    'This account has no Slack connection. Connect one in Configuration → Notifications.',
+    'This account has no Slack connection. Connect one in Configuration → Cloud & Notifications.',
   )
 
 /**
@@ -200,7 +200,7 @@ export const larkNotConnected = () =>
   new Refusal(
     'lark_not_connected',
     404,
-    'This account has no Lark connection. Connect one in Configuration → Notifications.',
+    'This account has no Lark connection. Connect one in Configuration → Cloud & Notifications.',
   )
 
 /**

@@ -17,7 +17,7 @@ import { readCloudAccount } from './account'
 /** Whether a preview is open here, and — when it is not — the one line that says why. */
 export type Admission = { open: true } | { open: false; why: string }
 
-const SIGN_IN = 'Sign in to Cloud from the AI4Kanban app, under Configuration → Notifications.'
+const SIGN_IN = 'Sign in to Cloud from the AI4Kanban app, under Configuration → Cloud & Notifications.'
 
 /** Whether this machine's Cloud account may use `feature`. `feature` opens each sentence, so
  *  it is capitalised and reads as a noun: "Triage", "The Marketing board". */
@@ -32,7 +32,7 @@ export async function cloudAdmission(feature: string): Promise<Admission> {
     case 'not-admitted':
       return {
         open: false,
-        why: `${feature} is open to invited Cloud accounts. Request an invite in the AI4Kanban app, under Configuration → Notifications.`,
+        why: `${feature} is open to invited Cloud accounts. Request an invite in the AI4Kanban app, under Configuration → Cloud & Notifications.`,
       }
     case 'expired':
       return { open: false, why: `Your Cloud sign-in has expired. ${SIGN_IN}` }

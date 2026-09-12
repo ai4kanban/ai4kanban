@@ -535,7 +535,7 @@ describe('a workspace this machine may not read', () => {
     assert.match(said, /not in this board’s workspace/)
     assert.match(said, /deleted, or nobody has added you/)
     assert.match(said, /Ask an owner to add you/)
-    assert.match(said, /leave Cloud/)
+    assert.match(said, /leave the workspace/)
 
     // And the board installed behind it answers with that, rather than with the markdown
     // left in the checkout.

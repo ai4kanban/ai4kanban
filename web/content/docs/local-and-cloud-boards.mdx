@@ -3,7 +3,7 @@ title: "Local and Cloud boards"
 title_tag: "AI4Kanban — Local and Cloud boards, and moving between them"
 description: "A Local board is Markdown in your repository. A Cloud board lives in a workspace we host, opens on every machine you sign in from, and reads in a browser. What each one is, and what moving between them costs."
 lead: "Two boards, one app. A Local board is Markdown in your repository; a Cloud board lives in a workspace we host. Onboarding leads with Local, and Cloud is a choice you take deliberately."
-last_updated: "September 5, 2026"
+last_updated: "September 12, 2026"
 nav_label: "Local and Cloud"
 icon: "layers"
 ---
@@ -54,6 +54,12 @@ Take **Create Cloud board** or **Open Cloud board** on the launcher. It walks th
 GitHub sign-in, the workspace, the folder on this machine, and — where the folder already
 holds a board — importing its cards into the workspace.
 
+**A board already open moves from Configuration → Cloud & Notifications.** The **Cloud
+storage** switch there carries the whole board — cards, archive, memory and board settings —
+into a **new** workspace, named after your project folder unless you type something else. It
+asks first, and it never joins a workspace your account already has, so one move is one
+workspace. It is in the app only, and only for an account we have admitted to the preview.
+
 Once the workspace is yours, the repository has three changes in it: the board files stop
 being tracked, `.ai4kanban.json` is added, and `docs/kanban/` joins the root `.gitignore`.
 The app offers those as **one commit**, staged by path, so nothing else in your working tree
@@ -65,6 +71,19 @@ the offer decides is whether git records the move.
 
 A folder with **no git repository** takes the same path. The workspace is made, the board
 opens and the pointer is written; the offer says there is nothing to commit to yet.
+
+## Coming back to Local
+
+The same **Cloud storage** switch, turned off. The workspace is written back into
+`docs/kanban/` whole, and the repository is left holding the reverse of those three changes —
+again as one commit you read first, so the board you get back is one git tracks. The workspace
+itself stays where it is and keeps everything in it; deleting it is a separate move on
+**Configuration → Workspace**.
+
+**The board stops while it moves, either way.** A run still going finishes first, and it is
+listed while you wait, so nothing it writes is left behind; then the whole window becomes the
+migration page until the move ends. There is no restart and no reopening the project. A move
+that fails leaves the board exactly where it was, and says why.
 
 ## Members and roles
 
@@ -104,9 +123,9 @@ loaded and meets the removal on the first thing they try to change.
 - **Export to a folder.** The whole board as Markdown, the archive included, into a folder
   you choose; that folder opens as a Local board. The preview keeps no backups, so an export
   you have made is the only copy anybody can restore from.
-- **Leave Cloud.** The board is written back into `docs/kanban/`, the pointer comes off, and
-  the `docs/kanban/` block leaves the root `.gitignore` — again as one commit you read first,
-  so the board you get back is one git tracks. The workspace stays where it is.
+- **Leave this workspace.** Offered only where Cloud says this workspace is no longer yours —
+  deleted, or never this account's. There is nothing to write back, so it only stops the
+  checkout reading it; the ordinary way back to Local is the Cloud storage switch above.
 - **Delete the workspace.** An owner's move. Everything in it goes, for everybody in it, and
   this checkout stops pointing at it. There is no grace window and no backup — export first.
 
@@ -139,8 +158,8 @@ were written.
 
 A workspace that was deleted and one this account is not in meet the same refusal, on purpose:
 nothing leaks whether a workspace ever existed. The board says so in one sentence and names the
-two ways out — ask an owner to add you, or leave Cloud and take the markdown that is in the
-folder.
+two ways out — ask an owner to add you, or leave the workspace and take the markdown that is
+in the folder.
 
 ## What Cloud never gets
 

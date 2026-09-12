@@ -22,7 +22,7 @@ const zh: NotificationsCopy = {
   signedOut: {
     title: "尚未登录 Cloud",
     body: "登录后，这个看板的卡片就会开始填充通知。在你登录之前，没有任何数据离开这台机器。",
-    hint: "配置 → 通知",
+    hint: "配置 → 云端与通知",
   },
   noRelease: {
     title: "没有进行中的版本",
