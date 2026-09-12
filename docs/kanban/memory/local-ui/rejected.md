@@ -69,6 +69,9 @@ before proposing so you don't re-suggest them.
 - **Kanbo, a desktop pet that speaks the board's notifications** — a character parked on the
   desktop only makes the desktop messy. The system notification center already delivers the
   same alerts and gets out of the way after.
+- **Laying a card's screens out side by side on a canvas** — a pan-and-zoom canvas does not
+  read better than the screens stacked down the body: it trades scrolling for panning and
+  zooming, and pays a fixed-height viewport and a gesture layer over the iframes for it.
 
 ## Runs
 

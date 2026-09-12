@@ -5,6 +5,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## What the UI does
 
+- ❌ **UI copy exposes internal files or memory bookkeeping** → ✅ describe the user's outcome and necessary choices; keep storage paths, fields and memory-writing rules out of product copy.
 - ❌ **An archived discussion remains open after its rail entry disappears** → ✅ when the currently viewed discussion is archived, manually or after Build now, return to Create task; archiving another discussion must not interrupt the current view.
 - ❌ **Triage alternates between heavy card walls and sparse full-width rows** → ✅ group lightweight cards by source, use the available width, and open one explicit-submit composer for typed or dropped input.
 - ❌ **A second tab of one page gets its own layout** (Dismissed drawn as a narrow single-column list beside the grouped Pending grid) → ✅ both tabs are the same page: same toolbar, same source groups, same cards. Only what the card's second line carries and which actions it offers may differ.
@@ -200,3 +201,4 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Treat standalone CLI paths as Desktop discovery coverage** → ✅ scan reported Desktop cache paths, including hashed folders, using the same known-path approach as macOS.
 - ❌ **An attachment spec targets an old Create task dialog** → ✅ inspect the current composer, modes and runtime selection before designing its file input.
 - ❌ **Optional task linking and feedback fill the ordinary create screen** → ✅ use a compact disclosure button, not a settings switch; reveal fields on request and clear linking and consent through an explicit cancel action.
+- ❌ **Make users select internal runs or read collection infrastructure when reporting a problem** → ✅ start from Discuss with optional linking to a previous card; keep the standing Feedback button for general reports and name only the team, sharing scope and outcome.

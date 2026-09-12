@@ -199,8 +199,8 @@ re-ask a settled call.
 ## Mockups on a card page
 
 - A card's `<Mockup src>` keeps naming `.mockups/<card id>/…` whatever the folder is really
-  at: the drawings live under `~/.ai4kanban/` with the rest of this machine's state, and the
-  UI resolves the tag there. Legacy project drawings are not migrated or read as a fallback.
+  at: the UI reads checkout-local drawings first, then the board's legacy `.mockups/`
+  folder when the file is missing. No home-directory fallback; card references stay unchanged.
 - A `.txt` mockup is drawn as its own characters — unscaled, with no switch to "the code
   behind it", because the file is the drawing — and a narrow window scrolls it sideways
   rather than re-wrapping columns that would stop being the drawing.

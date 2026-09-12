@@ -128,6 +128,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Deliveries
 
+- ❌ **Treat text differences as changed requirements** → ✅ the agent applying an answer judges whether requirements actually changed; delivery control consumes that explicit decision, not wording or section placement.
+
 - ❌ **Turn an implementation detail found by review into a card** → ✅ review fixes in-scope
   mistakes and drops unrelated discoveries; task discovery belongs to a planning flow.
 - ❌ **Keep a review verdict after rebasing onto a moved target** → ✅ review the composed
@@ -192,4 +194,5 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 - ❌ **Treat standalone CLI paths as Desktop discovery coverage** → ✅ scan reported Desktop cache paths, including hashed folders, using the same known-path approach as macOS.
 - ❌ **Keep a second handled-ID list beside retained result files** → ✅ scan the files through one CLI operation; limit the UI’s default date range without deleting the evidence needed for deduplication.
-- ❌ **Document input is disabled by an assumed harness/model format limit** → ✅ research the actual input path, pass the staged file to the agent's tools, and surface reading errors without promising universal support.
+- ❌ **Scope a feature by an assumed harness format limit — document input, a session's raw trajectory** → ✅ the agent reads the file itself, so research the actual path, hand it the staged file, and surface a reading failure as a gap instead of writing a parser per harness or shipping one harness at a time.
+- ❌ **Make users locate a refine session before reporting a bad result** → ✅ the feedback agent starts from their complaint and linked card, locates the relevant evidence, and asks about the task only when the history is ambiguous.

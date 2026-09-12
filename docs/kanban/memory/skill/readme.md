@@ -119,6 +119,12 @@ covers it, or a plain-words note.
   mistakes in scope, notes unrelated discoveries in the run log, and never creates a card.
 - A stopped delivery leaves one `[user]` question and keeps holding the card; `akb resolve`
   is the one held action let back through: `akb guide review`.
+- Answering a question no longer cancels a build over the wording. The pass that applies the
+  answers says what they did — `akb delivery answered <delivery> --changed|--unchanged
+  "<why>"` — and the board reads that rather than comparing the card's text, so confirming an
+  option already built carries the build on and only a real change reopens it. Nothing
+  recorded it, nothing is guessed: the build waits, saying the command that settles it:
+  `akb guide resolve`.
 - `akb approve <delivery-or-card-id>` signs off the tree a delivery would land on a board
   requiring diff approval. It covers the base commit and tree as they stand, so read the
   diff first, and either one moving cancels it: `akb help runs`, `akb guide review`.
@@ -451,3 +457,10 @@ covers it, or a plain-words note.
   one file per screen in a rendered screen, one `###` block per screen in a plain-text drawing —
   and no open question is left asking which layout to take: "Mockups on a card" in
   `kanban-ui/README.md`.
+- A card that sat too long can be settled in one run. **Sweeper** is a new role on
+  **Configuration → Agents**, and `akb card unstick <id>` is its one flow: it judges how much of
+  the card is already done and whether the rest is still worth the effort, then rewrites the card
+  for the project as it stands today under a dated ``## By `sweeper` agent`` note, or discards it.
+  It raises no question and never touches a ticked todo. A card being built, or blocked by an
+  unfinished one, is left alone with the hold said out loud; a group root and a recurring job are
+  refused. An unanswered `[user]` question does not protect a card: `web/content/docs/agents.mdx`.

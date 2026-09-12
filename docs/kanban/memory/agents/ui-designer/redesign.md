@@ -26,6 +26,11 @@
 - **Draw the frame the app really has**: the board's three columns are cut at the paper's
   edge at 1280, and a card page is drawn inside the rail + chat frame, never the whole
   1280. A drawing that fits everything in is a drawing of a different app.
+- ❌ **A delivery's card page drawn with an invented peach 等你决定 band and a pill nobody
+  writes** → ✅ the page's whole delivery vocabulary is `cli/src/lib/agent/pause.ts` and
+  `kanban-ui/i18n/card/zh.ts`, gated by `CardPage.tsx`: an `In progress` delivery draws no
+  line under the title at all, the toolbar is gone entirely while one is in flight, 继续
+  appears only when the record names a next run, and the strip's actions are accent-deep.
 
 ## Register
 
@@ -111,6 +116,7 @@
 
 ## Chinese copy in a fixed width
 
+- ❌ **Vague, childish phrasing about mistakes** → ✅ use professional, accessible Chinese that names the issue, such as “需求理解偏差”.
 - **Measure a Chinese line before writing it**: ~500px holds ~40 CJK characters and a 320px
   popover ~24 at 12px. Written to the limit, a line orphans two or three characters — write
   to a few under.
@@ -191,3 +197,4 @@
 - **An animated scene was delivered as oversized static figures with a detail timeline**: propose spatial layout, sprite scale and motion first; use small pixel sprites for Runs and keep detailed inspection in List.
 - ❌ **Optional linking exposes fields by default or looks like a persistent setting** → ✅ use a compact disclosure button and draw its expanded contents in the mockup; cancel explicitly clears linking and consent.
 - ❌ **A home shot drawing the card page tried to fit two mockups at their true 1.6∶1** → ✅ `nb.tsx`'s `CROP` is 1.5 and its bottom 30% is a fade: one screen compressed to ~3∶1, then the next screen's caption row clear of the fade and its picture dissolving. A drawn screen only reads as a screen when its ground is the board's canvas and its cards are paper — bare grey bars on paper read as a form.
+- ❌ **Design feedback around eval collection, payment disclaimers and run pickers** → ✅ keep partner feedback in Discuss with optional card linking; defer the separate general-feedback button to reduce complexity, show necessary sharing choices in plain words and use only support@ai4kanban.dev for contact.

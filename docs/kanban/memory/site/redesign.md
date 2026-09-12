@@ -13,6 +13,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Landing-page visuals
 
+- ❌ **Using dense gray bars as the content of a UI mockup illustration** → ✅ show recognizable screens with a clear title, a few readable labels, and real controls that remain legible at homepage size.
 - ❌ **Change a landing page's composition, sections, interactions, or visual medium while
   revising its message** → ✅ preserve the existing design unless the user explicitly approves
   that material user-facing change; copy work changes copy, not the page around it.

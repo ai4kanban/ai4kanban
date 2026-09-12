@@ -31,3 +31,7 @@ Internal detail stays on the card.
   shares an identifier with nothing a user wrote.
 - **How long is feedback kept?**: the body indefinitely, the diagnostic attachments deleted
   after 90 days on the raw events' existing clock. The privacy page states both periods.
+- **Where does a request to delete what a user sent go?**: to the existing
+  `support@ai4kanban.dev`, not a mailbox opened for one feature. Every screen and page that
+  offers the deletion names that address, and the id shown when the submission succeeded is
+  what the request quotes.

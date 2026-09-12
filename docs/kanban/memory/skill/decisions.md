@@ -272,7 +272,9 @@ re-ask a settled call.
 - **The stale sweep is its own `sweeper` agent, and it drops cards without asking**: a card
   it judges already done or not worth the investment is rejected with no sign-off and no
   `rejected.md` line, so the idea can be raised again; a card it keeps comes back refined,
-  with a note in the human half on what direction has to change first (#116).
+  with a note in the human half on what direction has to change first. It skips only a card
+  being built and one blocked by another open card — a card waiting on the user's own answer
+  is judged like any other, and can be dropped before that answer ever comes (#116).
 
 - **A signal the `inputbox` agent turns down is not deleted**: it moves out of the inbox into
   a junkbox with the reason, and is cleared 30 days later — long enough to catch a wrong
@@ -354,6 +356,9 @@ re-ask a settled call.
 - **`akb chat` reaches the board's discussions**: a board holds many rather than one, so with
   no message `akb chat` lists the discussions going and a message says which one it continues.
   The app and the terminal stay one conversation.
+- **A card's chat freezes the card for one turn**: the card is held while its chat's agent is
+  replying and free the moment that reply ends, so the board may pick it up between turns
+  rather than waiting for the discussion to be ended.
 
 ## Card format
 
@@ -385,3 +390,14 @@ re-ask a settled call.
   draft → repurpose → edit → publish, which shares little with the product's
   add-task → refine → implement → archive; what the two really do share moves into the
   kernel at the extraction, not before.
+
+## The eval set
+
+- **What is a partner promised before the collection switch goes on?**: one page, once, before
+  consent — no payment, the case stays in the closed eval set indefinitely, the analysis may pass
+  through a model provider, and a letter from the partner deletes what they submitted. The terms
+  are fixed at consent, so a later use of the cases needs consent gathered again.
+- **Only reproducible cases are admitted**: a partner's submission enters the private eval set
+  only after the team reproduces it from the files its trajectory read and reviews it against
+  the behavioral criteria; one that cannot be reproduced stays in the pending store as a lead
+  and its signal is given up, so every case in the set is reproducible.
