@@ -118,6 +118,7 @@ export function hostedActions(press: HostedPress): ScreenActions {
     resumeSession: noSuchControl,
     approveDelivery: noSuchControl,
     discardDelivery: noSuchControl,
+    resumeDelivery: noSuchControl,
     resumeCloudRequest: noSuchControl,
     cancelCloudRequest: noSuchControl,
     readDrafts: noSuchControl,

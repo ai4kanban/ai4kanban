@@ -757,3 +757,72 @@ describe('picking up after a crash', () => {
     assert.equal((await advanceLanding())?.action, 'conflict')
   })
 })
+
+// The change reached the target branch under someone else's commit while this delivery was
+// queued, stopped or ended (#569). There is nothing to land, and the delivery is over.
+describe('work that is already on the target branch', () => {
+  // Put the delivery's own change on main directly, as a separate commit.
+  const alsoOnMain = (text: string, file = 'shared.txt'): string => {
+    fs.writeFileSync(path.join(root, file), text)
+    git(['add', '-A'])
+    git(['commit', '--quiet', '-m', 'someone else landed it'])
+    return git(['rev-parse', 'main'])
+  }
+
+  it('ends the delivery on the commit that carries it, and lands nothing', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    const carrier = alsoOnMain('one\n')
+
+    assert.equal(await advanceLanding(), null)
+
+    const landing = landingOf(delivery.deliveryId)!
+    assert.equal(landing.status, 'landed')
+    assert.equal(landing.commit, carrier, 'the commit that carries the change is the landing')
+    assert.equal(landing.onto, carrier)
+    assert.match(landing.why ?? '', /already on main/)
+    assert.equal(statusOf(delivery.deliveryId), 'finished')
+    // Nothing was rebuilt: main still holds one commit of its own, not a squash on top.
+    assert.deepEqual(log(), ['someone else landed it', 'start'])
+    assert.equal(git(['rev-parse', 'main']), carrier)
+  })
+
+  it('archives the card and leaves the branch and worktree alone', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    alsoOnMain('one\n')
+    await advanceLanding()
+    assert.equal(fs.existsSync(cardPath(1)), false, 'the card is archived')
+    // The conclusion came from a comparison, so nothing is deleted on the strength of it.
+    assert.equal(fs.existsSync(worktreeDir(delivery.worktree!)), true)
+    assert.notEqual(git(['branch', '--list', delivery.branch!]), '')
+  })
+
+  it('settles a delivery stopped on a landing conflict instead of resolving it again', async () => {
+    await reviewed(1, 'card one', 'one\n')
+    const second = await reviewed(2, 'card two', 'two\n')
+    // The first lands, so the second meets a conflict on the same file.
+    await advanceLanding()
+    assert.equal(rebaseInProgress(worktreeDir(second.worktree!)), true)
+    assert.equal(landingOf(second.deliveryId)?.conflictFiles?.length, 1)
+
+    // …and while it sits there, the second card's change reaches main by hand.
+    const carrier = alsoOnMain('two\n')
+    waitOver(second.deliveryId)
+
+    assert.equal(await advanceLanding(), null, 'no conflict run is asked for')
+    assert.equal(landingOf(second.deliveryId)?.status, 'landed')
+    assert.equal(landingOf(second.deliveryId)?.commit, carrier)
+    assert.equal(statusOf(second.deliveryId), 'finished')
+    assert.deepEqual(log(), ['someone else landed it', 'card one (#1)', 'start'])
+  })
+
+  it('lands the ordinary way when what the delivery built is not there', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    // Main moved on, but not to what this delivery built — so the check must not hold.
+    alsoOnMain('a line of its own\n', 'mergeable.txt')
+
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
+    assert.equal(fs.readFileSync(path.join(root, 'shared.txt'), 'utf8'), 'one\n')
+    assert.equal(log()[0], 'card one (#1)', 'a squash commit really landed')
+  })
+})

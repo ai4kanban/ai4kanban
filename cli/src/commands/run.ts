@@ -39,7 +39,7 @@ import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
 import { creationRefusal } from '../lib/view/rules'
 import type { MoveResult } from '../lib/types'
-import { approveDelivery, cancelDelivery, discardDelivery } from '../lib/view/api'
+import { approveDelivery, cancelDelivery, discardDelivery, resumeDelivery } from '../lib/view/api'
 
 // How long a `--follow` waits between reads of a run's log. Short enough that the log
 // reads as it happens, long enough that following a run is not a busy loop.
@@ -316,6 +316,33 @@ export async function cmdCancel(named: string): Promise<MoveResult> {
   if (!res.ok) die(res.error ?? 'that delivery could not be cancelled', { kind: 'run-refused' })
   say(`delivery ${res.deliveryId} cancelled — the card is yours again.`)
   return { deliveryId: res.deliveryId }
+}
+
+/** Carry an ended delivery on from where it stopped (#639): one that failed or was
+ *  cancelled with its worktree and branch still here goes back to `active`, takes its card
+ *  back, and finishes the job — checks, review, landing and archive — without rebuilding
+ *  anything.
+ *
+ *  It looks before it carries on: work that has already reached the target branch under
+ *  another commit ends the delivery on that commit rather than landing it twice. */
+export async function cmdResumeDelivery(named: string): Promise<MoveResult> {
+  const res = await resumeDelivery(named)
+  if (!res.ok) die(res.error ?? 'that delivery could not be carried on', { kind: 'run-refused' })
+  if (res.landed) {
+    say(`delivery ${res.deliveryId} is done — its changes were already on the target branch.`)
+    return { deliveryId: res.deliveryId, landed: true }
+  }
+  say(`delivery ${res.deliveryId} carries on from where it stopped.`)
+  say(CARRY_ON_NEXT[res.carryOn ?? 'landing'](res.deliveryId as string))
+  return { deliveryId: res.deliveryId, carryOn: res.carryOn }
+}
+
+// What moves it on from here. The board picks the landing queue back up by itself; the two
+// that need a run say which command starts it, because a resume starts none.
+const CARRY_ON_NEXT: Record<string, (id: string) => string> = {
+  review: (id) => `  it has not been reviewed yet: akb delivery review ${id}`,
+  conflict: (id) => `  it stopped on a landing conflict: akb delivery conflict ${id}`,
+  landing: () => '  it is back in the landing queue, and lands on its own.',
 }
 
 /** Approve the tree a delivery would land (#308), so it may leave the landing queue's

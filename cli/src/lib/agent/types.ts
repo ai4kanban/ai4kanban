@@ -688,6 +688,10 @@ export interface DeliveryRecord {
 /** How a delivery commits its work (#303). */
 export type DeliveryCommitMode = 'auto' | 'manual'
 
+/** Where a resumed delivery picks back up (#639) — the step it stopped at, never one it
+ *  has already done. */
+export type DeliveryCarryOn = 'review' | 'landing' | 'conflict'
+
 /** One ask for a spec agent, as the run that wanted it wrote it down.
  *
  *  These do NOT live on the record. They are a handoff one process writes and one process

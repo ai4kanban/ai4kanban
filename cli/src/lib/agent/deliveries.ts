@@ -53,12 +53,13 @@ import {
 import { readDeliveryRow, readStore, withStore, type Store } from './store'
 import type {
   AgentRequest,
+  DeliveryCarryOn,
   DeliveryRecord,
   DeliveryStatus,
   DirectBuild,
   RunRecord,
 } from './types'
-import { worktreeExists } from './worktree'
+import { branchExists, worktreeExists } from './worktree'
 
 // ---- the permanent record ---------------------------------------------------
 
@@ -159,22 +160,27 @@ export function syncAudit(deliveryId: string, just?: RunRecord): void {
 
 // ---- the deliveries this board lost track of --------------------------------
 
-/** One delivery's permanent record, when the file holds a whole one that still says
- *  `active`. Null for anything else — half-written, not a record at all, or a delivery
- *  that has already ended, none of which is ours to judge. */
-function activeAudit(file: string): DeliveryAudit | null {
+/** One delivery's permanent record, when the file holds a whole one. Null for anything
+ *  else — half-written, or not a record at all. */
+function wholeAudit(file: string): DeliveryAudit | null {
   try {
     const data = JSON.parse(fs.readFileSync(file, 'utf8')) as DeliveryAudit
-    const whole = data?.status === 'active' && typeof data.deliveryId === 'string' && Array.isArray(data.sessions)
-    return whole ? data : null
+    return typeof data?.deliveryId === 'string' && Array.isArray(data.sessions) ? data : null
   } catch {
     return null
   }
 }
 
-/** Every delivery the permanent record still calls `active`, read from the files
- *  themselves: the live record is exactly the thing that may have lost them. */
-function activeAudits(): DeliveryAudit[] {
+/** The same, only when it still says `active` — a delivery that has already ended is not
+ *  the orphan scan's to judge. */
+function activeAudit(file: string): DeliveryAudit | null {
+  const audit = wholeAudit(file)
+  return audit?.status === 'active' ? audit : null
+}
+
+/** Every permanent record on disk, read from the files themselves: the live record is
+ *  exactly the thing that may have lost them. */
+function allAudits(): DeliveryAudit[] {
   let names: string[]
   try {
     names = fs.readdirSync(DELIVERIES)
@@ -184,11 +190,19 @@ function activeAudits(): DeliveryAudit[] {
   const out: DeliveryAudit[] = []
   for (const name of names) {
     if (!name.endsWith('.json')) continue
-    const audit = activeAudit(path.join(DELIVERIES, name))
+    const audit = wholeAudit(path.join(DELIVERIES, name))
     if (audit) out.push(audit)
   }
   return out
 }
+
+/** Every delivery the permanent record still calls `active`. */
+const activeAudits = (): DeliveryAudit[] => allAudits().filter((a) => a.status === 'active')
+
+/** A permanent record as a live row, read through the record's own reader so nothing can
+ *  tell it apart from a row the record wrote itself. */
+const auditRow = (audit: DeliveryAudit): DeliveryRecord | null =>
+  readDeliveryRow({ ...audit, sessions: audit.sessions.map((s) => s.sessionId) })
 
 /** Was the last thing this delivery did still running when the record lost it?
  *
@@ -264,7 +278,7 @@ export function settleOrphanedDeliveries(): OrphanScan {
  *  delivery is a row nothing can tell apart from one the record wrote itself. Null when
  *  there is no whole row in it. */
 function recoveredRow(audit: DeliveryAudit): DeliveryRecord | null {
-  const row = readDeliveryRow({ ...audit, sessions: audit.sessions.map((s) => s.sessionId) })
+  const row = auditRow(audit)
   if (!row || row.status !== 'active') return null
   // The one field the ending rewrites. `landing` means a process was walking this delivery
   // through the landing queue, and that process is the one that went missing — left as it
@@ -306,6 +320,154 @@ function failAudit(audit: DeliveryAudit): DeliveryRecord[] {
   // has not ended, so there is no state to send.
   if (record.cardId !== null) recordCloudDeliveryState(record.cardId, 'failed')
   return [{ ...record, sessions: record.sessions.map((s) => s.sessionId) }]
+}
+
+// ---- carrying an ended delivery on (#639) -----------------------------------
+
+/** A delivery by its own id, by any prefix of one, or by the card it was building — read
+ *  from the permanent records as well as the live one.
+ *
+ *  `resume` is the one move aimed at a delivery that has ENDED, and the live record keeps
+ *  only the newest thirty of those: the delivery worth carrying on is often one that
+ *  `deliveries/` alone still remembers. A card number names its last ended delivery, which
+ *  is what a person means by "the one that stopped on this card".
+ *
+ *  The permanent record wins over the live row when both exist: it is the one every ending
+ *  is written to. */
+export function endedDelivery(id: string): DeliveryRecord | undefined {
+  const key = id.trim()
+  if (!key) return undefined
+  const rows = new Map<string, DeliveryRecord>()
+  for (const row of readStore().deliveries) rows.set(row.deliveryId, row)
+  for (const audit of allAudits()) {
+    const row = auditRow(audit)
+    if (row) rows.set(row.deliveryId, row)
+  }
+  const all = [...rows.values()].sort((a, b) => a.startedAt - b.startedAt)
+  if (/^#?\d+$/.test(key)) {
+    const cardId = Number(key.replace('#', ''))
+    const mine = all.filter((d) => d.cardId === cardId)
+    // Its newest one either way, so a card whose every delivery is still in flight is
+    // refused by `resumeRefusal` — which names the delivery and what is wrong with it —
+    // rather than read as a card with no delivery at all.
+    return mine.filter((d) => d.status !== 'active').pop() ?? mine.pop()
+  }
+  return all.find((d) => d.deliveryId === key) ?? all.find((d) => d.deliveryId.startsWith(key))
+}
+
+/** Why this delivery cannot be carried on, or nothing when it can.
+ *
+ *  Resume picks an ended delivery back up where it stopped rather than building the card
+ *  again, so everything it stopped with has to still be here: an ending it did not choose,
+ *  the checkout it built in, and a card nothing else has taken over. Each refusal names the
+ *  one thing that failed and the way that is still open — discard it and start again — so a
+ *  refusal is something the reader can act on. */
+export function resumeRefusal(delivery: DeliveryRecord, store?: Store): string | undefined {
+  const id = delivery.deliveryId
+  const what = delivery.cardId === null ? 'the build' : `#${delivery.cardId}`
+  const rebuild = `Discard it with \`${boardCommand()} delivery discard ${id}\` and start ${what} again.`
+  if (delivery.status === 'active') return `delivery ${id} has not ended — it is still in flight on ${what}.`
+  if (delivery.status === 'finished') {
+    return `delivery ${id} finished; resume carries on one that ended abnormally.`
+  }
+  // Manual commit mode has no checkout of its own (#303): the work is in the user's own
+  // tree and their commit is what ends it, so there is no branch here to carry on.
+  if (delivery.commitMode !== 'auto') {
+    return `delivery ${id} committed in your own checkout, so it has no branch to carry on. Start ${what} again.`
+  }
+  if (!worktreeExists(delivery.worktree)) {
+    return `delivery ${id}'s worktree ${delivery.worktree ?? ''} is gone, so there is nothing to carry on. ${rebuild}`
+  }
+  if (!branchExists(delivery.branch)) {
+    return `delivery ${id}'s branch ${delivery.branch} is gone, so there is nothing to carry on. ${rebuild}`
+  }
+  // A **Build now** delivery holds no card (#428), so there is nothing here to check.
+  if (delivery.cardId === null) return undefined
+  if (!locate(delivery.cardId)) {
+    return `#${delivery.cardId} is no longer on the board, so delivery ${id} has nothing left to finish.`
+  }
+  const holder = activeIn(store ?? readStore(), delivery.cardId)
+  if (holder) {
+    return (
+      `delivery ${holder.deliveryId} is building #${delivery.cardId} now — ` +
+      `end that one first with \`${boardCommand()} delivery cancel ${holder.deliveryId}\`.`
+    )
+  }
+  return undefined
+}
+
+/** Whether the card page may offer this ended delivery a **Resume** (#639). */
+export const isResumable = (delivery: DeliveryRecord): boolean => !resumeRefusal(delivery)
+
+/** Put an ended delivery back into the live record as an `active` one, holding its card
+ *  again.
+ *
+ *  Everything it learned is kept — the approved copy, the base, the review rounds, the
+ *  landing, the approval, the rules and the session history — because a resume carries the
+ *  delivery ON. Only the ending is undone.
+ *
+ *  The judgement is made a second time here, under the record's lock: `resumeRefusal` ran
+ *  outside it, and a discard or a fresh delivery in between must not be overwritten.
+ *
+ *  The caller writes the card's stage, once the board lease is back. */
+export function resumeRecord(id: string): { ok: true; delivery: DeliveryRecord } | { ok: false; error: string } {
+  const found = endedDelivery(id)
+  if (!found) return { ok: false, error: `no delivery here answers to "${id}"` }
+  const refused = resumeRefusal(found)
+  if (refused) return { ok: false, error: refused }
+  const out = withStore<{ ok: true; delivery: DeliveryRecord } | { ok: false; error: string }>((store) => {
+    const audit = wholeAudit(auditPath(found.deliveryId))
+    const row = (audit && auditRow(audit)) ?? store.deliveries.find((d) => d.deliveryId === found.deliveryId)
+    if (!row) return { ok: false, error: `no delivery here answers to "${id}"` }
+    const again = resumeRefusal(row, store)
+    if (again) return { ok: false, error: again }
+    const at = Date.now()
+    const resumed: DeliveryRecord = {
+      ...row,
+      status: 'active',
+      endedAt: undefined,
+      steps: [...row.steps, { step: 'resume', at }],
+      // The process that was walking it through the queue died with the delivery, so the
+      // slot it claimed is nobody's — the same rule a recovered delivery follows (#638).
+      landing: row.landing?.status === 'landing' ? { ...row.landing, status: 'waiting', at } : row.landing,
+    }
+    const seat = store.deliveries.findIndex((d) => d.deliveryId === row.deliveryId)
+    if (seat >= 0) store.deliveries[seat] = resumed
+    else store.deliveries.push(resumed)
+    writeAudit(resumed, store.runs)
+    return { ok: true, delivery: resumed }
+  })
+  // Against the Cloud event whose action started it (#319), like every other state a
+  // delivery reaches. A no-op on a card Cloud never asked about, which is most of them.
+  if (out.ok && out.delivery.cardId !== null) recordCloudDeliveryState(out.delivery.cardId, 'running')
+  return out
+}
+
+/** Put the resumed delivery back on the step it stopped at, and say which one that is.
+ *
+ *  A landing conflict keeps its whole record: the rebase and the resolutions staged in the
+ *  worktree are untouched, and `akb delivery conflict` is what carries them through.
+ *  Anything the queue already holds goes back into it, and everything else owes a review.
+ *
+ *  The landing record is what tells the two apart, because `queueLanding` is the only thing
+ *  that writes one and it writes it exactly when the gate passed. A review ROUND is not that
+ *  test: a round whose verdict was `ask` is a review that stopped, and putting that in the
+ *  queue would land work review never passed.
+ *
+ *  Asked only after the work has been checked against the target branch, because a delivery
+ *  whose change is already in has no step left to take. */
+export function carryOnFrom(deliveryId: string): DeliveryCarryOn {
+  return withStore<DeliveryCarryOn>((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)
+    if (!delivery || delivery.status !== 'active') return 'landing'
+    if (delivery.landing?.status === 'conflict') return 'conflict'
+    if (!delivery.landing) {
+      delivery.next = 'review'
+      return 'review'
+    }
+    delivery.landing = { ...delivery.landing, status: 'waiting', why: undefined, at: Date.now() }
+    return 'landing'
+  })
 }
 
 // ---- the approved requirements ----------------------------------------------

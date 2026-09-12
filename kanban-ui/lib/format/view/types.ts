@@ -469,7 +469,9 @@ export interface Card {
   /** A delivery of this card whose worktree is still on disk and can be thrown away
    *  (#303) — the one in flight, or the newest ended one that still holds one. The card
    *  page's **Discard** says what this would lose before it asks. */
-  discard?: { id: string; worktree: string; branch?: string; active: boolean }
+  /** The delivery whose checkout could still be thrown away — and, when it has ended,
+   *  whether it can be carried on instead (#639). */
+  discard?: { id: string; worktree: string; branch?: string; active: boolean; resumable?: boolean }
   /** This card's newest delivery landed, and the card is still on the board (#307). The
    *  board archives it in the same breath, so this is normally the blink between the two —
    *  and the honest thing to show when the archive itself could not be made. `commit` is

@@ -484,6 +484,56 @@ function ResumeDelivery({
   );
 }
 
+// Carry on: the way back for a delivery that ENDED with its work still on disk (#639). It
+// failed, or somebody cancelled it, and the worktree and branch are still here — so the job
+// can be finished from where it stopped instead of built again. Same name and glyph as the
+// block's Resume, because it is the same sentence: carry this delivery on.
+//
+// It stands beside Discard, which is the other thing to do with a stopped delivery's
+// checkout, and it is a secondary button like that one — Implement is the page's CTA.
+function ResumeEndedDelivery({
+  id,
+  stack,
+  folded,
+  onResumed,
+  onError,
+}: {
+  id: string;
+  stack?: boolean;
+  folded?: boolean;
+  onResumed: () => void;
+  onError: (why: string) => void;
+}) {
+  const c = useCopy().card.delivery.resume;
+  const actions = useActions();
+  const [busy, setBusy] = useState(false);
+
+  const carryOn = async () => {
+    if (!actions) return;
+    setBusy(true);
+    const res = await actions.resumeDelivery(id);
+    setBusy(false);
+    if (!res.ok) onError(res.error || c.carryOnFailed);
+    else onResumed();
+  };
+
+  if (!actions) return null;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={cn(stack && STACKED, stack && (folded ? "hidden" : "order-1"))}
+      disabled={busy}
+      title={c.carryOnHint}
+      style={{ color: "var(--color-nb-accent-deep)", borderColor: "var(--color-nb-accent-deep)" }}
+      onClick={() => void carryOn()}
+    >
+      <FiPlay className="text-[15px]" aria-hidden />
+      {busy ? c.resuming : c.label}
+    </Button>
+  );
+}
+
 // Discard: the one way out of a delivery, and the one control on this page that throws work
 // away (#303, #313). It ends the delivery if it is still in flight — the card unlocks and
 // Implement comes back — and removes the worktree and branch it built in.
@@ -1789,6 +1839,21 @@ export function CardPage({
                       stack={phone}
                       folded={phone && !moreActions}
                       onDiscarded={() => {
+                        router.refresh();
+                        kick();
+                      }}
+                      onError={setError}
+                    />
+                  )}
+                  {/* Carry on (#639) — the other thing to do with a stopped delivery's
+                      checkout. Beside Discard, and on exactly the same card: an ended
+                      delivery whose worktree and branch are still here. */}
+                  {card.discard?.resumable && !delivery && !finishedBlock && (
+                    <ResumeEndedDelivery
+                      id={card.discard.id}
+                      stack={phone}
+                      folded={phone && !moreActions}
+                      onResumed={() => {
                         router.refresh();
                         kick();
                       }}

@@ -202,6 +202,7 @@ function refusing(error: string): import('./contract').BoardProvider {
     deliveryPlan: () => Promise.resolve({ commitMode: 'auto' }),
     deliveryDiff: () => Promise.resolve(null),
     cancelDelivery: refused,
+    resumeDelivery: refused,
     discardDelivery: refused,
     approveDelivery: refused,
     runMove: refused,

@@ -212,6 +212,23 @@ export async function cancelDelivery(id: string): Promise<StartResult> {
   }
 }
 
+/** Carry an ended delivery on from where it stopped (#639): one that failed or was
+ *  cancelled with its checkout still here goes back to work and finishes the job. Finished
+ *  steps are never redone, and work that already reached the target branch ends the delivery
+ *  on the commit that carries it rather than landing it twice. */
+export async function resumeDelivery(id: string): Promise<StartResult> {
+  try {
+    const rules = await boardRules();
+    if (!rules.resumeDelivery) {
+      return { ok: false, error: (await machineCopy()).messages.tooOld.resumeDelivery };
+    }
+    const res = await rules.resumeDelivery(id);
+    return { ok: res.ok, error: res.error };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** Throw a delivery's checkout away: its worktree, its branch, and everything only they
  *  hold (#303). It ends the delivery first if one is still in flight. The card page says
  *  what will be lost and asks before it calls this. */

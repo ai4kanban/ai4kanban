@@ -23,6 +23,7 @@ import {
   commentOnDraftAction,
   createReleaseAction,
   discardDeliveryAction,
+  resumeDeliveryAction,
   discardTopicAction,
   dropDraftCommentAction,
   dropReleaseAction,
@@ -73,6 +74,7 @@ export const appActions: ScreenActions = {
 
   approveDelivery: approveDeliveryAction,
   discardDelivery: discardDeliveryAction,
+  resumeDelivery: resumeDeliveryAction,
 
   resumeCloudRequest: resumeCloudRequestAction,
   cancelCloudRequest: cancelCloudRequestAction,

@@ -102,6 +102,8 @@ export interface ScreenActions {
   // ---- the delivery in flight ----------------------------------------------
   approveDelivery(deliveryId: string): Promise<StartAnswer>;
   discardDelivery(deliveryId: string): Promise<StartAnswer>;
+  /** Carry an ended delivery on from where it stopped (#639). */
+  resumeDelivery(deliveryId: string): Promise<StartAnswer>;
 
   // ---- an approval taken elsewhere whose machine stopped (#318) ------------
   resumeCloudRequest(eventId: string): Promise<WriteResult>;

@@ -192,6 +192,8 @@ const zh: CardCopy = {
       pickUpHint: "从中断处接着做这次交付——Agent 会接回它自己的会话",
       startHint: "启动这次交付一直没能开始的运行",
       failed: "未能继续这次运行",
+      carryOnHint: "从中断处走完这次交付——成果保留，不会重建",
+      carryOnFailed: "未能继续这次交付",
     },
     discard: {
       label: "放弃",

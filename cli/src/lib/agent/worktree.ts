@@ -16,6 +16,7 @@
 
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 import { AKB_DIR, ensureAkbDir, KANBAN, REPO_ROOT, rel } from '../paths'
@@ -365,6 +366,43 @@ export const stagedPaths = (cwd = REPO_ROOT): string[] =>
 export const changedPaths = (base: string, branch: string, cwd = REPO_ROOT): string[] | null => {
   const out = git(['diff', '--name-only', base, branch, ...outsideBoard()], cwd)
   return out === null ? null : out.split('\n').filter(Boolean)
+}
+
+/** Everything this branch changed since `base`, as a patch — the delivery's own work and
+ *  nothing else. Null when git would not answer. */
+export const branchPatch = (base: string, branch: string, cwd = REPO_ROOT): string | null =>
+  gitDiff(['diff', '--binary', base, branch, ...outsideBoard()], cwd)
+
+/** The last commit on `ref` that touched any of these files, or null when none did. */
+export const lastCommitTouching = (ref: string, files: string[], cwd = REPO_ROOT): string | null =>
+  git(['log', '-1', '--format=%H', ref, '--', ...files], cwd)?.trim() || null
+
+/** Does this patch reverse-apply cleanly onto `ref`'s tree (#639)? True means everything
+ *  the patch adds is already there — which is how a delivery whose change reached the target
+ *  branch under someone else's commit is told from one that still has to land.
+ *
+ *  Checked against a temporary index rather than a checkout, so neither the user's tree nor
+ *  the delivery's is touched and there is nothing to put back afterwards. */
+export function reverseApplies(patch: string, ref: string, cwd = REPO_ROOT): boolean {
+  if (!patch.trim()) return false
+  const index = path.join(os.tmpdir(), `akb-apply-${process.pid}-${Date.now()}.index`)
+  const env = { GIT_INDEX_FILE: index }
+  try {
+    if (!tryGit(['read-tree', ref], cwd, env).ok) return false
+    const out = spawnSync('git', ['apply', '--cached', '--reverse', '--check', '-'], {
+      cwd,
+      input: patch,
+      encoding: 'utf8',
+      maxBuffer: MAX_OUTPUT,
+      windowsHide: true,
+      env: { ...process.env, ...env },
+    })
+    return !out.error && out.status === 0
+  } catch {
+    return false
+  } finally {
+    fs.rmSync(index, { force: true })
+  }
 }
 
 /** Squash everything this branch has since `base` into ONE commit on top of it.

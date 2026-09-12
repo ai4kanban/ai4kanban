@@ -29,6 +29,7 @@ import {
   type Revision,
   type VerifyOp,
 } from '../board'
+import type { DeliveryCarryOn } from '../agent/types'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
 import type { CardPatch, SaveProjectResult, WriteResult } from './types'
 
@@ -282,6 +283,15 @@ export async function finishSetupStep(name: string, opts?: WriteOptions): Promis
 export async function cancelDelivery(deliveryId: string): Promise<WriteResult & { deliveryId?: string }> {
   return flat<{ deliveryId?: string }>(
     await answering(() => withLease({ board: true }, (env) => board().cancelDelivery(deliveryId, env))),
+  )
+}
+
+/** Carry an ended delivery on from where it stopped (#639). */
+export async function resumeDelivery(
+  deliveryId: string,
+): Promise<WriteResult & { deliveryId?: string; landed?: boolean; carryOn?: DeliveryCarryOn }> {
+  return flat(
+    await answering(() => withLease({ board: true }, (env) => board().resumeDelivery(deliveryId, env))),
   )
 }
 

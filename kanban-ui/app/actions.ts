@@ -182,6 +182,7 @@ import {
   approveDelivery,
   cancelDelivery,
   discardDelivery,
+  resumeDelivery,
   getSession,
   listSessions,
   resumeSession,
@@ -506,6 +507,14 @@ export async function cancelDeliveryAction(deliveryId: string): Promise<StartRes
 export async function discardDeliveryAction(deliveryId: string): Promise<StartResult> {
   if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
   return discardDelivery(deliveryId);
+}
+
+// Carry an ended delivery on from where it stopped (#639): one that failed or was cancelled
+// with its checkout still here goes back to work and finishes the job. Named by delivery id,
+// so a stale tab can't revive the delivery that replaced the one it was drawn from.
+export async function resumeDeliveryAction(deliveryId: string): Promise<StartResult> {
+  if (typeof deliveryId !== "string" || !deliveryId) return { ok: false, error: "no delivery named" };
+  return resumeDelivery(deliveryId);
 }
 
 // Approve the tree a delivery would land (#308), on a board that requires it. The base

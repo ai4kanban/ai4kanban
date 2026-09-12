@@ -3,6 +3,7 @@
 // delivery it isn't part of.
 
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -23,7 +24,7 @@ import {
 } from '../src/lib/agent/deliveries.ts'
 import { RUN_ENV } from '../src/lib/agent/env.ts'
 import { resumePrompt } from '../src/lib/agent/prompts.ts'
-import { cancelDelivery, recoverOrphanedDeliveries } from '../src/lib/agent/sessions.ts'
+import { cancelDelivery, recoverOrphanedDeliveries, resumeDelivery } from '../src/lib/agent/sessions.ts'
 import { cardsAtWork, cardsWithLiveRun, readStore, withStore } from '../src/lib/agent/store.ts'
 import type { RunRecord } from '../src/lib/agent/types.ts'
 import { DELIVERIES, setBoardRoot } from '../src/lib/paths.ts'
@@ -703,6 +704,214 @@ describe('a delivery the live record lost', () => {
     const row = rowOf('restaaaa')
     assert.equal(row?.status, 'active')
     assert.equal(row?.cardId, null)
+  })
+})
+
+// Carrying one on (#639): a delivery that failed or was cancelled with its work still on
+// disk goes back to `active` and finishes the job, instead of the card being rebuilt.
+describe('carrying an ended delivery on', () => {
+  // `resume` asks git whether the branch is still there, so this block needs a real one.
+  const git = (...args: string[]): string =>
+    spawnSync('git', args, { cwd: root, encoding: 'utf8' }).stdout.trim()
+
+  beforeEach(() => {
+    git('init', '--quiet', '-b', 'main')
+    git('config', 'user.email', 'test@example.com')
+    git('config', 'user.name', 'test')
+    fs.writeFileSync(path.join(root, 'code.txt'), 'one\n')
+    git('add', 'code.txt')
+    git('commit', '--quiet', '-m', 'start')
+  })
+
+  // The permanent record of a delivery that ended with its work still here, plus the
+  // worktree and branch that make it resumable.
+  const stopped = (id: string, over: Record<string, unknown> = {}): string => {
+    const worktree = path.join('.akb', 'worktrees', '5', id)
+    const branch = `card/5/${id}`
+    fs.mkdirSync(DELIVERIES, { recursive: true })
+    fs.writeFileSync(
+      path.join(DELIVERIES, `${id}.json`),
+      JSON.stringify({
+        deliveryId: id,
+        cardId: 5,
+        title: 'A card',
+        status: 'failed',
+        startedAt: 1_000,
+        endedAt: 2_000,
+        approved: '# A card\n\n## Scope\n- **A requirement**: one line.\n',
+        steps: [{ step: 'implement', at: 1_000 }],
+        priorStatus: 'ready',
+        commitMode: 'auto',
+        targetBranch: 'main',
+        worktree,
+        branch,
+        sessions: [
+          { sessionId: `${id}-1`, action: 'implement', status: 'interrupted', startedAt: 1_000, log: 'x.log' },
+        ],
+        ...over,
+      }),
+    )
+    const dir = path.join(root, worktree)
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(path.join(dir, '.git'), 'gitdir: elsewhere\n')
+    git('branch', '-f', branch, 'HEAD')
+    return id
+  }
+
+  const rowOf = (id: string) => readStore().deliveries.find((d) => d.deliveryId === id)
+
+  const atImplementing = (): void => fs.writeFileSync(file, CARD.replace('status: ready', 'status: implementing'))
+
+  it('puts a failed delivery back to work, holding its card again', async () => {
+    stopped('carry111')
+    const res = await resumeDelivery('carry111')
+    assert.equal(res.ok, true, res.error)
+    const row = rowOf('carry111')!
+    assert.equal(row.status, 'active')
+    assert.equal(row.endedAt, undefined)
+    assert.equal(activeDelivery(5)?.deliveryId, 'carry111')
+    assert.deepEqual(row.steps.map((s) => s.step), ['implement', 'resume'])
+    assert.match(fs.readFileSync(file, 'utf8'), /status: implementing/)
+    assert.equal(readAudit('carry111').status, 'active')
+  })
+
+  it('carries a cancelled one on the same way', async () => {
+    stopped('carry222', { status: 'cancelled' })
+    assert.equal((await resumeDelivery('carry222')).ok, true)
+    assert.equal(rowOf('carry222')?.status, 'active')
+  })
+
+  // Nothing is rebuilt, so nothing it was approved to build may move under it.
+  it('keeps the approved copy, the base and the session history', async () => {
+    stopped('carry333', { base: 'abc123', sessions: [
+      { sessionId: 'carry333-1', action: 'implement', status: 'done', startedAt: 1_000, endedAt: 1_500, log: 'x.log' },
+      { sessionId: 'carry333-2', action: 'review', status: 'interrupted', startedAt: 1_600, log: 'y.log' },
+    ] })
+    fs.writeFileSync(file, CARD.replace('- **A requirement**: one line.', '- **A requirement**: something else.'))
+    await resumeDelivery('carry333')
+    const row = rowOf('carry333')!
+    assert.match(row.approved, /one line/)
+    assert.doesNotMatch(row.approved, /something else/)
+    assert.equal(row.base, 'abc123')
+    assert.deepEqual(row.sessions, ['carry333-1', 'carry333-2'])
+    syncAudit('carry333')
+    assert.deepEqual(readAudit('carry333').sessions.map((s) => s.sessionId), ['carry333-1', 'carry333-2'])
+  })
+
+  // The process walking it through the queue died with the delivery, so its claim on the
+  // one landing slot is nobody's (#638).
+  it('puts a delivery that was mid-landing back in the queue', async () => {
+    stopped('carry444', { landing: { status: 'landing', attempts: 2, at: 3_000 } })
+    const res = await resumeDelivery('carry444')
+    assert.equal(res.carryOn, 'landing')
+    assert.equal(rowOf('carry444')?.landing?.status, 'waiting')
+    assert.equal(rowOf('carry444')?.landing?.attempts, 2)
+  })
+
+  // A conflict keeps its whole record: the rebase and the resolutions staged in the
+  // worktree are untouched, and `akb delivery conflict` is what carries them through.
+  it('leaves a landing conflict exactly as it was', async () => {
+    stopped('carry555', {
+      landing: { status: 'conflict', attempts: 1, conflictFiles: ['shared.txt'], why: 'a conflict', at: 3_000 },
+    })
+    const res = await resumeDelivery('carry555')
+    assert.equal(res.carryOn, 'conflict')
+    assert.deepEqual(rowOf('carry555')?.landing?.conflictFiles, ['shared.txt'])
+    assert.equal(rowOf('carry555')?.landing?.status, 'conflict')
+  })
+
+  it('sends a build nothing has reviewed to review', async () => {
+    stopped('carry666')
+    const res = await resumeDelivery('carry666')
+    assert.equal(res.carryOn, 'review')
+    assert.equal(rowOf('carry666')?.next, 'review')
+  })
+
+  // A review that ASKED is a review that stopped, not one that passed: it never queued, so
+  // carrying the delivery on owes it another review. Putting it in the queue would land work
+  // review never passed, the moment anything cleared the stop.
+  it('sends one whose review asked a question to review, not to the landing queue', async () => {
+    stopped('carry000', {
+      review: {
+        rounds: [{ sessionId: 'carry000-2', verdict: 'ask', findings: [], at: 1_700 }],
+        stopped: { reason: 'ask', why: 'review left 1 open decision for you', at: 1_700 },
+      },
+    })
+    const res = await resumeDelivery('carry000')
+    assert.equal(res.carryOn, 'review')
+    assert.equal(rowOf('carry000')?.next, 'review')
+    assert.equal(rowOf('carry000')?.landing, undefined, 'nothing put it in the queue')
+  })
+
+  it('refuses one whose worktree is gone, and says which one', async () => {
+    stopped('carry777')
+    fs.rmSync(path.join(root, '.akb', 'worktrees', '5', 'carry777'), { recursive: true, force: true })
+    const res = await resumeDelivery('carry777')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /worktree .* is gone/)
+    assert.match(res.error ?? '', /delivery discard carry777/)
+    assert.equal(rowOf('carry777'), undefined)
+  })
+
+  it('refuses one whose branch is gone', async () => {
+    stopped('carry888')
+    git('branch', '-D', 'card/5/carry888')
+    const res = await resumeDelivery('carry888')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /branch card\/5\/carry888 is gone/)
+  })
+
+  // Manual commit mode has no checkout of its own: the work is in the user's tree and
+  // their commit is what ends it.
+  it('refuses a manual-commit delivery', async () => {
+    stopped('carry999', { commitMode: 'manual' })
+    const res = await resumeDelivery('carry999')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /committed in your own checkout/)
+  })
+
+  it('refuses one whose card another delivery has taken over', async () => {
+    stopped('carryaaa')
+    start(session())
+    atImplementing()
+    const res = await resumeDelivery('carryaaa')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /is building #5 now/)
+  })
+
+  it('refuses one whose card has left the board', async () => {
+    stopped('carrybbb', { cardId: 404 })
+    const res = await resumeDelivery('carrybbb')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /#404 is no longer on the board/)
+  })
+
+  it('refuses a delivery that finished, and one still in flight', async () => {
+    stopped('carryccc', { status: 'finished' })
+    assert.match((await resumeDelivery('carryccc')).error ?? '', /finished/)
+    const live = start(session())
+    assert.match((await resumeDelivery(live)).error ?? '', /has not ended/)
+  })
+
+  // A card whose only delivery is in flight is not a card with no delivery: the refusal
+  // names it and says what is wrong with it.
+  it('names the delivery in flight when the card is asked for by number', async () => {
+    const live = start(session())
+    assert.match((await resumeDelivery('639')).error ?? '', /no delivery here answers/)
+    assert.match((await resumeDelivery('5')).error ?? '', new RegExp(`delivery ${live} has not ended`))
+  })
+
+  // The live record keeps only the newest thirty ended rows, so the delivery worth
+  // carrying on is often one that `deliveries/` alone still remembers.
+  it('finds one the live record has let go, by id or by card number', async () => {
+    stopped('carryddd')
+    assert.equal(rowOf('carryddd'), undefined, 'the live record never had it')
+    assert.equal((await resumeDelivery('5')).deliveryId, 'carryddd')
+  })
+
+  it('answers to a prefix of the delivery id', async () => {
+    stopped('carryeee')
+    assert.equal((await resumeDelivery('carrye')).deliveryId, 'carryeee')
   })
 })
 

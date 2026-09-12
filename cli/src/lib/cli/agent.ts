@@ -40,6 +40,7 @@ import {
   cmdApprove,
   cmdCancel,
   cmdDiscard,
+  cmdResumeDelivery,
   cmdLog,
   cmdResume,
   cmdRuns,
@@ -518,8 +519,8 @@ function declareRunning(run: Command, cli: AgentCliOptions): void {
 
 // ---- akb delivery <verb> --------------------------------------------------------------
 
-/** What you do to a build in flight. `review` and `conflict` are flows and are declared with
- *  the rest of them; these three start nothing. */
+/** What you do to a build in flight, or to one that stopped. `review` and `conflict` are
+ *  flows and are declared with the rest of them; these four start nothing. */
 function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
   const verb = (name: string) => withShared(delivery.command(name))
 
@@ -563,6 +564,19 @@ function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [named] = positional(vals) as [string]
       await onBoard(this, cli, () => cmdCancel(named))
+    })
+
+  verb('resume')
+    .argument('<delivery>', DELIVERY)
+    .summary('carry one on that failed or was cancelled, from where it stopped')
+    .description(
+      'Its worktree, branch, approved requirements and review all stay as they are — finished steps are ' +
+        'never redone. Work that has already reached the target branch under another commit ends the ' +
+        'delivery on that commit instead of landing it twice.',
+    )
+    .action(async function (this: Command, ...vals: unknown[]) {
+      const [named] = positional(vals) as [string]
+      await onBoard(this, cli, () => cmdResumeDelivery(named))
     })
 
   verb('discard')

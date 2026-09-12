@@ -26,12 +26,14 @@ import { SKILL_VERSION } from '../../version'
 import { INDEX_LOCK, SESSIONS_DIR } from '../paths'
 import {
   activeDelivery,
+  carryOnFrom,
   endDelivery,
   findDelivery,
   joinActive,
   joinDelivery,
   listDeliveries,
   namedDelivery,
+  resumeRecord,
   settleDelivery,
   settleOrphanedDeliveries,
   syncAudit,
@@ -39,7 +41,7 @@ import {
 import { DELIVERY_FLOWS } from './flows'
 import { deliversWithGit, solution } from '../solution'
 import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
-import { repairLanding } from './landing'
+import { repairLanding, settleAlreadyLanded } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
@@ -53,6 +55,7 @@ import { holdsCard, SPECIALIST_ACTIONS } from './types'
 import type {
   AgentAction,
   AgentRequest,
+  DeliveryCarryOn,
   DeliveryRecord,
   DirectBuild,
   RefineAsk,
@@ -1188,6 +1191,36 @@ export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliver
   // state it was in when the cancel arrived.
   syncAudit(delivery.deliveryId)
   return { ok: true, deliveryId: delivery.deliveryId }
+}
+
+/** Carry an ended delivery on (#639): one that failed or was cancelled with its work still
+ *  on disk goes back to `active`, holding its card, and finishes the job it stopped in the
+ *  middle of.
+ *
+ *  It is never automatic. The board leaves an ended delivery ended, and this is what a
+ *  person presses — on the card page, or as `akb delivery resume` — so nothing quietly
+ *  revives a build the user walked away from.
+ *
+ *  The first thing it does is look: the change may have reached the target branch under
+ *  someone else's commit while this delivery sat there (#569), and then the delivery is
+ *  over — the carrying commit is recorded and the card is archived, with nothing rebuilt.
+ *  Only when that does not hold does it pick the next step back up.
+ */
+export async function resumeDelivery(
+  id: string,
+): Promise<{ ok: boolean; deliveryId?: string; error?: string; landed?: boolean; carryOn?: DeliveryCarryOn }> {
+  if (!id.trim()) return { ok: false, error: 'name the delivery to carry on' }
+  const put = resumeRecord(id)
+  if (!put.ok) return { ok: false, error: put.error }
+  const delivery = put.delivery
+  if (await settleAlreadyLanded(delivery)) {
+    return { ok: true, deliveryId: delivery.deliveryId, landed: true }
+  }
+  const carryOn = carryOnFrom(delivery.deliveryId)
+  // The card is this delivery's again, and a delivery in flight rests at `implementing`.
+  if (delivery.cardId !== null) await setCardStatus(delivery.cardId, 'implementing')
+  syncAudit(delivery.deliveryId)
+  return { ok: true, deliveryId: delivery.deliveryId, carryOn }
 }
 
 /** What discarding this delivery would take away — its worktree and its branch — or

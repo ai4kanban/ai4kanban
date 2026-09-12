@@ -73,10 +73,11 @@ export { startRun } from './lib/agent/start'
 // board reads the live rows to hold a card still and to say what is building it; the
 // permanent record is one file per delivery under docs/kanban/deliveries/.
 export { activeDelivery, deliveryPause, heldByDelivery, listDeliveries } from './lib/agent/deliveries'
-// Ending, discarding and approving a delivery are board WRITES, so they are operations of
-// the contract below like every other one (#312) — the card page's buttons and `akb delivery cancel`,
-// `akb delivery discard` and `akb delivery approve` are the same call.
-export { approveDelivery, cancelDelivery, discardDelivery } from './lib/view/api'
+// Ending, carrying on, discarding and approving a delivery are board WRITES, so they are
+// operations of the contract below like every other one (#312) — the card page's buttons and
+// `akb delivery cancel`, `akb delivery resume`, `akb delivery discard` and
+// `akb delivery approve` are the same call.
+export { approveDelivery, cancelDelivery, discardDelivery, resumeDelivery } from './lib/view/api'
 export { spawnWatcher } from './lib/agent/launch'
 export { buildPrompt } from './lib/agent/prompts'
 export { refinementRequest } from './lib/agent/refine'

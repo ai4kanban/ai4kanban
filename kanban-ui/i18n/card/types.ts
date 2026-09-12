@@ -124,6 +124,10 @@ export type CardCopy = {
       pickUpHint: string;
       startHint: string;
       failed: string;
+      /** The same word for a delivery that ENDED (#639): the toolbar's control beside
+       *  Discard, which finishes the job rather than throwing its work away. */
+      carryOnHint: string;
+      carryOnFailed: string;
     };
     discard: {
       label: string;

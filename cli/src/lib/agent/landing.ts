@@ -40,6 +40,7 @@ import { readStore, withStore } from './store'
 import type { AgentRequest, DeliveryLanding, DeliveryRecord } from './types'
 import {
   abortRebase,
+  branchPatch,
   branchTip,
   changedPaths,
   continueRebase,
@@ -48,11 +49,13 @@ import {
   dirtyPaths,
   fastForward,
   isAncestor,
+  lastCommitTouching,
   moveBranchRef,
   pendingPaths,
   rebaseInProgress,
   rebaseOnto,
   removeWorktree,
+  reverseApplies,
   squashOnto,
   stagedPaths,
   worktreeDir,
@@ -490,6 +493,10 @@ async function landStep(delivery: DeliveryRecord): Promise<Step> {
     giveUpSlot(delivery, `its worktree ${delivery.worktree} is gone, so there is nothing to land`)
     return { done: true }
   }
+  // Whether there is anything left to land at all (#569). Asked before the rebase and
+  // before any conflict: a change already on the target branch has nothing to replay, and
+  // resolving a conflict against work that is already in is an hour spent on nothing.
+  if (await settleAlreadyLanded(delivery)) return { done: true }
   // A rebase stopped part-way through is a conflict somebody has been resolving — or a
   // crash. Either way it is finished before anything else is decided, unless the slot was
   // just taken back after a wait: nothing has touched the worktree since the last failure,
@@ -853,21 +860,71 @@ function cleanUp(delivery: DeliveryRecord): void {
 //
 // The order is the point (#307): the delivery ends first, so nothing is still holding the
 // card when the board archives it.
-async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto: string }): Promise<void> {
+async function finish(delivery: DeliveryRecord, landed: { commit?: string; onto: string; why?: string }): Promise<void> {
   patchLanding(delivery.deliveryId, (landing) => {
     landing.status = 'landed'
-    landing.why = undefined
+    landing.why = landed.why
     landing.commit = landed.commit
     landing.onto = landed.onto
   })
   endDelivery(delivery.deliveryId, 'finished')
+  // `why` is written by one path only — the check below — so it is also what tells the two
+  // endings apart: a landing that moved the branch says nothing, and one that found the
+  // work already there says so.
   say(
-    landed.commit
-      ? `delivery ${delivery.deliveryId} landed on ${delivery.targetBranch} as ${landed.commit.slice(0, 12)}.`
-      : `delivery ${delivery.deliveryId} changed nothing, so nothing landed on ${delivery.targetBranch}.`,
+    landed.why
+      ? `delivery ${delivery.deliveryId} was already on ${delivery.targetBranch}` +
+          `${landed.commit ? ` — ${landed.commit.slice(0, 12)} carries it` : ''}, so nothing was rebuilt.`
+      : landed.commit
+        ? `delivery ${delivery.deliveryId} landed on ${delivery.targetBranch} as ${landed.commit.slice(0, 12)}.`
+        : `delivery ${delivery.deliveryId} changed nothing, so nothing landed on ${delivery.targetBranch}.`,
   )
   // With no card there is nothing to archive (#428) — the delivery just ends.
   if (delivery.cardId !== null) await completeCard(delivery.cardId, delivery.deliveryId)
+}
+
+// ---- the work is already on the target branch (#569) ------------------------
+
+/** This delivery's own changes, already on the target branch — put there by some other
+ *  commit while the delivery was queued, stopped or ended. Null when they are not.
+ *
+ *  The test is the delivery's own diff read back against the target's tree: if every hunk
+ *  reverse-applies, everything this delivery changes is already in, whatever else has moved
+ *  around it. It is read-only — a temporary index, never anybody's checkout — and it is a
+ *  fact about the two trees rather than a guess from ticked todos.
+ *
+ *  The commit it hands back is the last one on the target that touched these files, which is
+ *  where a reader goes looking for the change. */
+function alreadyOnTarget(delivery: DeliveryRecord): { commit?: string; onto: string } | null {
+  if (!wantsLanding(delivery) || !delivery.base || !worktreeExists(delivery.worktree)) return null
+  const onto = branchTip(delivery.targetBranch!)
+  if (!onto) return null
+  const dir = worktreeDir(delivery.worktree!)
+  const files = changedPaths(delivery.base, delivery.branch!, dir)
+  // Nothing changed, or git would not say — neither is this check's to conclude on.
+  if (!files?.length) return null
+  const patch = branchPatch(delivery.base, delivery.branch!, dir)
+  if (!patch || !reverseApplies(patch, onto, dir)) return null
+  return { commit: lastCommitTouching(onto, files, dir) ?? undefined, onto }
+}
+
+/** End a delivery whose work is already on the target branch, and archive its card.
+ *
+ *  Nothing is squashed, rebased or moved: the commit that carries the change is recorded as
+ *  the landing, and the branch and the worktree are left exactly where they are — the
+ *  conclusion is drawn from a comparison, and a comparison is not a reason to delete
+ *  anybody's branch.
+ *
+ *  False when the check does not hold, and the ordinary landing carries on from there. */
+export async function settleAlreadyLanded(delivery: DeliveryRecord): Promise<boolean> {
+  const found = alreadyOnTarget(delivery)
+  if (!found) return false
+  await finish(delivery, {
+    commit: found.commit,
+    onto: found.onto,
+    why: `every change it makes is already on ${delivery.targetBranch}, checked against the branch itself`,
+  })
+  return true
 }
 
 // ---- picking up after a crash -----------------------------------------------

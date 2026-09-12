@@ -28,6 +28,7 @@ export type MessagesCopy = {
     silenceLimit: string;
     deliveries: string;
     worktrees: string;
+    resumeDelivery: string;
     agents: string;
     language: string;
     skillInstall: string;

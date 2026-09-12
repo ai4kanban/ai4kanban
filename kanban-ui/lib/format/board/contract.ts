@@ -26,7 +26,7 @@
 // This file is pure types and imports nothing that touches a filesystem, so it is copied
 // into the board UI by scripts/sync-format.mjs and both sides name one contract.
 
-import type { AgentRequest, AgentView, DeliveryRecord } from '../agent/types'
+import type { AgentRequest, AgentView, DeliveryCarryOn, DeliveryRecord } from '../agent/types'
 import type {
   ArchiveList,
   ArchivedCardFile,
@@ -246,6 +246,14 @@ export interface BoardProvider {
   deliveryPlan(): Promise<DeliveryPlan>
   deliveryDiff(deliveryId: string): Promise<DeliveryDiff | null>
   cancelDelivery(deliveryId: string, env: OpEnvelope): Promise<OpResult<{ deliveryId?: string }>>
+  /** Carry an ended delivery on from where it stopped (#639) — the one way back for a
+   *  delivery that failed or was cancelled with its worktree and branch still here. It
+   *  answers with where the delivery went: `landed` when its work turned out to be on the
+   *  target branch already, `carryOn` with the step it picked back up otherwise. */
+  resumeDelivery(
+    deliveryId: string,
+    env: OpEnvelope,
+  ): Promise<OpResult<{ deliveryId?: string; landed?: boolean; carryOn?: DeliveryCarryOn }>>
   discardDelivery(deliveryId: string, env: OpEnvelope): Promise<OpResult<{ deliveryId?: string }>>
   approveDelivery(
     deliveryId: string,

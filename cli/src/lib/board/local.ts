@@ -24,7 +24,7 @@ import fs from 'node:fs'
 import { approveDelivery } from '../agent/approval'
 import { deliveryPlan } from '../agent/commit-mode'
 import { activeDelivery, listDeliveries, settleManualCommit } from '../agent/deliveries'
-import { cancelDelivery, discardDelivery } from '../agent/sessions'
+import { cancelDelivery, discardDelivery, resumeDelivery } from '../agent/sessions'
 import {
   cmdChannelStatus,
   cmdCreate,
@@ -504,6 +504,16 @@ export function localBoard(): BoardProvider {
       const res = await cancelDelivery(deliveryId)
       if (!res.ok) return opRefused(new Error(res.error || 'the delivery could not be cancelled'))
       return opOk(boardRevision(), { deliveryId: res.deliveryId })
+    },
+
+    // Carrying one on is the same shape as ending one: the delivery record does the work,
+    // and the single board write in it — the card's stage — goes through `setStatus`.
+    async resumeDelivery(deliveryId: string, env: OpEnvelope) {
+      const no = checkWrite({ board: true }, env, boardRevision())
+      if (no) return no
+      const res = await resumeDelivery(deliveryId)
+      if (!res.ok) return opRefused(new Error(res.error || 'the delivery could not be carried on'))
+      return opOk(boardRevision(), { deliveryId: res.deliveryId, landed: res.landed, carryOn: res.carryOn })
     },
 
     async discardDelivery(deliveryId: string, env: OpEnvelope) {

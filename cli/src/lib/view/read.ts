@@ -14,7 +14,7 @@ import path from 'node:path'
 
 import { approvalCovers } from '../agent/approval'
 import { cardsDiscussing } from '../agent/chat'
-import { activeDelivery, listDeliveries, manualSettled } from '../agent/deliveries'
+import { activeDelivery, isResumable, listDeliveries, manualSettled } from '../agent/deliveries'
 import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
 import { cardsBeingCreated } from '../agent/store'
@@ -346,6 +346,10 @@ function attachDiscard(card: Card, active: DeliveryRecord | undefined): void {
     worktree: holder.worktree,
     branch: holder.branch,
     active: holder.status === 'active',
+    // Whether that ended delivery can be carried on instead of thrown away (#639): its
+    // checkout is really here and nothing else has taken the card. The same judgement
+    // `akb delivery resume` makes, so the button and the command never disagree.
+    resumable: holder.status !== 'active' && isResumable(holder),
   }
 }
 

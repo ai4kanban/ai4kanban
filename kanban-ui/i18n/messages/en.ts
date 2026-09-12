@@ -25,6 +25,8 @@ const en: MessagesCopy = {
     deliveries: "this board's rules are older than deliveries — run `npm install -g ai4kanban`.",
     worktrees:
       "this board's rules are older than delivery worktrees — run `npm install -g ai4kanban`.",
+    resumeDelivery:
+      "this board's rules are older than carrying a delivery on — run `npm install -g ai4kanban`.",
     agents: "the board's rules in this project are too old to read and write this board's agents",
     language:
       "this board's rules are older than the language setting — run `npm install -g ai4kanban`.",

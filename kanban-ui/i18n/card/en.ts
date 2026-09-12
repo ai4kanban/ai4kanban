@@ -195,6 +195,8 @@ const en: CardCopy = {
         "Carry this delivery on from where it stopped — the agent picks its own session back up",
       startHint: "Start the run this delivery never got to",
       failed: "could not resume that run",
+      carryOnHint: "Finish this delivery from where it stopped — its work is kept, nothing is rebuilt",
+      carryOnFailed: "could not carry that delivery on",
     },
     discard: {
       label: "Discard",
