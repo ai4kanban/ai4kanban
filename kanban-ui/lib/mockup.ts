@@ -30,6 +30,7 @@ import { compile } from "tailwindcss";
 import type { MockupSet, MockupView } from "./mockup-tag";
 import { mockupSources } from "./mockup-tag";
 import { mockupsDir } from "./cli";
+import { kanbanDir } from "./paths";
 
 /** `.mockups/<folder>/<file>.tsx|html|txt`, and nothing else — no `.`, no `..`, nothing that
  *  climbs. A mockup is read off the user's disk, so the only files we open are the drawings
@@ -86,10 +87,14 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
   let code: string;
   try {
     code = fs.readFileSync(file, "utf8");
-  } catch {
-    // Mockups are not in git, so a card pulled from someone else's board points at
-    // drawings this machine never made. Nothing is broken — the card still reads.
-    return { src, error: c.missing(src) };
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") return { src, error: c.missing(src) };
+    // Older cards keep their drawings in the board's .mockups/ folder.
+    try {
+      code = fs.readFileSync(path.join(kanbanDir(), ".mockups", folder!, `${name}.${ext}`), "utf8");
+    } catch {
+      return { src, error: c.missing(src) };
+    }
   }
   // A `.txt` mockup is the drawing itself (#256) — nothing to transpile, nothing to style,
   // and so nothing that can fail once the file has been read.

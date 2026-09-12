@@ -19,6 +19,7 @@ import path from 'node:path'
 import {
   ARCHIVE_MD,
   CONFIG,
+  KANBAN,
   MEMORY,
   MOCKUPS,
   MODULES_MD,
@@ -36,7 +37,7 @@ const MAX_DEPTH = 4
  *  nothing a screen draws has changed since the first one. */
 export function boardStamp(): string {
   const parts: string[] = []
-  for (const dir of [TODO, MEMORY, MOCKUPS]) walk(dir, parts, 0)
+  for (const dir of [TODO, MEMORY, MOCKUPS, path.join(KANBAN, '.mockups')]) walk(dir, parts, 0)
   for (const file of [RELEASES, MODULES_MD, ARCHIVE_MD, CONFIG, SETUP_CHECKLIST, NEXT_ID]) {
     stamp(file, parts)
   }
