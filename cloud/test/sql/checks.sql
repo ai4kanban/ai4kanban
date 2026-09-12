@@ -2301,4 +2301,76 @@ begin
 end
 $audience$;
 
+-- ---------------------------------------------------------------------------
+-- A rendered event reports the decision that was ACTED on (#642)
+-- ---------------------------------------------------------------------------
+--
+-- A card holding a question raises a `question` event, and pressing **Implement** on it
+-- anyway records an `implement` action. Everything downstream that asks what this event's
+-- decision was — whether the landing is worth a notification, above all — has to be told
+-- what was done, not what was asked.
+
+do $acted$
+declare
+  OWNER constant uuid := 'aa000000-6420-4420-8420-000000000001';
+  BOARD constant uuid := 'bb000000-6420-4420-8420-000000000002';
+  BUDGET constant integer := 100000;
+  ASKED constant jsonb := '[{"text": "Which option?"}]'::jsonb;
+  v_asking uuid;
+  v_answering uuid;
+  v_untouched uuid;
+  v_json json;
+begin
+  insert into cloud.accounts (id, handle) values (OWNER, 'a-owner');
+  perform api.register_board(OWNER, BOARD, 'an-acted-board', BUDGET);
+
+  -- -------------------------------------------------------------------------
+  -- Implement pressed on a card that is still asking
+  -- -------------------------------------------------------------------------
+
+  v_json := api.publish_event(OWNER, BOARD, null, 6421, 'Asking, and built anyway', '', 'r1',
+                              'question', 'answer', ASKED, '', '', 'f1', false, BUDGET);
+  v_asking := (v_json ->> 'id')::uuid;
+  assert (v_json ->> 'decision') = 'answer',
+    'an unacted question did not report the decision it asked for';
+
+  perform api.record_event_action(OWNER, 'a-op-1', v_asking, 'implement', 'r1',
+                                  '[]'::jsonb, 'accepted', BUDGET);
+  v_json := api.record_event_outcome(OWNER, 'a-op-2', v_asking, 'completed', '', 900, BUDGET);
+  assert (v_json ->> 'decision') = 'implement',
+    'a landing reported the decision the card asked for rather than the one pressed';
+  assert (v_json ->> 'kind') = 'question',
+    'reading the action rewrote what the card was asking';
+  assert (v_json ->> 'acted')::boolean, 'a landing did not carry its action';
+
+  -- -------------------------------------------------------------------------
+  -- An approved answer still reads as an answer
+  -- -------------------------------------------------------------------------
+
+  v_json := api.publish_event(OWNER, BOARD, null, 6422, 'Asking, and answered', '', 'r1',
+                              'question', 'answer', ASKED, '', '', 'f2', false, BUDGET);
+  v_answering := (v_json ->> 'id')::uuid;
+  perform api.record_event_action(OWNER, 'a-op-3', v_answering, 'answer', 'r1',
+                                  '[{"text": "the first"}]'::jsonb, 'accepted', BUDGET);
+  v_json := api.record_event_outcome(OWNER, 'a-op-4', v_answering, 'completed', '', 900, BUDGET);
+  assert (v_json ->> 'decision') = 'answer',
+    'an answer that ran reported itself as an implement';
+
+  -- -------------------------------------------------------------------------
+  -- An event nobody has acted on reports what it is asking
+  -- -------------------------------------------------------------------------
+
+  v_json := api.publish_event(OWNER, BOARD, null, 6423, 'Still waiting', '', 'r1',
+                              'ready_for_review', 'implement', '[]'::jsonb, '', '', 'f3', false, BUDGET);
+  v_untouched := (v_json ->> 'id')::uuid;
+  assert (v_json ->> 'decision') = 'implement',
+    'an unacted review did not report the decision it asked for';
+  assert (select cloud.event_json(e) ->> 'decision' from cloud.events e where e.id = v_untouched)
+         = 'implement',
+    'another event''s action reached a row of its own';
+
+  raise notice 'sql checks: #642 acted-decision checks passed';
+end
+$acted$;
+
 rollback;

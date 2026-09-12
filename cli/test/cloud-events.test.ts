@@ -25,10 +25,11 @@ import {
   readCloudBoards,
   setCloudBoardRelease,
 } from '../src/lib/cloud/boards.ts'
-import { bandLabel, CARD_BAND_STATES, CLOUD_EVENT_STATES, eventLabel, isFinalEventState } from '../src/lib/cloud/events.ts'
+import { bandLabel, CARD_BAND_STATES, CLOUD_EVENT_STATES, eventLabel, isFinalEventState, needsPerson } from '../src/lib/cloud/events.ts'
+import type { CloudEvent } from '../src/lib/cloud/events.ts'
 import { readOutbox } from '../src/lib/cloud/outbox.ts'
 import { recordCloudActionFor, recordCloudDeliveryState } from '../src/lib/cloud/publish.ts'
-import { readCloudCardLink } from '../src/lib/cloud/center.ts'
+import { alertFor, readCloudCardLink } from '../src/lib/cloud/center.ts'
 import { rememberBoardCopy } from '../src/lib/cloud/copy.ts'
 import { actionableKind, snapshotFor, userQuestions } from '../src/lib/cloud/snapshot.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
@@ -350,6 +351,59 @@ describe('the nine states this card fixes', () => {
       assert.ok(bandLabel(state), state)
     }
     assert.equal(bandLabel('running'), 'Running')
+  })
+})
+
+// Pressing **Implement** on a card that is still asking records an `implement` action on a
+// `question` event, so what the event asks and what was decided part company. Everything the
+// bell judges reads the decision, and once one is on record that is the DECISION, not the
+// question (#642).
+
+describe('a card built while it was still asking', () => {
+  const acted = (over: Partial<CloudEvent> = {}): CloudEvent =>
+    ({
+      id: 'e-642',
+      boardId: 'b-1',
+      boardName: 'ai4kanban',
+      taskId: 642,
+      taskTitle: 'Built with a question open',
+      release: '',
+      revision: 'r1',
+      kind: 'question',
+      decision: 'implement',
+      state: 'completed',
+      questions: [],
+      summary: '',
+      notes: '',
+      reason: '',
+      serverName: '',
+      createdAt: '2026-09-01T00:00:00Z',
+      changedAt: '2026-09-01T01:00:00Z',
+      acted: true,
+      ...over,
+    }) as CloudEvent
+
+  it('counts its landing as something the person has to see', () => {
+    assert.equal(needsPerson(acted()), true)
+    assert.equal(needsPerson(acted({ state: 'failed' })), true)
+    assert.equal(needsPerson(acted({ state: 'interrupted' })), true)
+  })
+
+  it('raises exactly one alert for it, whatever the machine held before', () => {
+    assert.equal(alertFor(acted({ state: 'running' }), acted(), false)?.kind, 'outcome')
+    assert.equal(alertFor(undefined, acted(), false)?.kind, 'outcome')
+    assert.equal(alertFor(acted(), acted(), false), null, 'the same outcome twice')
+  })
+
+  it('still says nothing about a cancel the user asked for themselves', () => {
+    assert.equal(needsPerson(acted({ state: 'cancelled' })), false)
+    assert.equal(alertFor(acted({ state: 'running' }), acted({ state: 'cancelled' }), false), null)
+  })
+
+  it('says nothing when the same question was ANSWERED rather than built', () => {
+    const answering = { decision: 'answer' } as Partial<CloudEvent>
+    assert.equal(needsPerson(acted(answering)), false)
+    assert.equal(alertFor(acted({ ...answering, state: 'running' }), acted(answering), false), null)
   })
 })
 

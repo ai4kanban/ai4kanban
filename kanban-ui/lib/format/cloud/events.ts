@@ -160,6 +160,9 @@ export interface CloudEvent {
    *  refused. */
   revision: string
   kind: CloudEventKind
+  /** What was decided, once `acted` — which is not always what `kind` asked for. Pressing
+   *  **Implement** on a card that is still asking is an `implement` decision on a `question`
+   *  event (#642). Before anybody acts, this is the decision the event asks for. */
   decision: CloudEventDecision
   state: CloudEventState
   /** The questions the event carries. Empty on a ready-for-review event, which asks for the
@@ -275,6 +278,9 @@ export function isOutcome(state: CloudEventState): state is CloudOutcome {
  * Only an Implement has a delivery worth reporting: an approved ANSWER ends by leaving its
  * card waiting for a person again, which the first clause already says, and saying it twice
  * is two rows for one thing.
+ *
+ * `decision` on an acted event is what was PRESSED, so a card built while it was still asking
+ * reports its landing like any other delivery (#642).
  */
 export function needsPerson(event: Pick<CloudEvent, 'state' | 'acted' | 'decision'>): boolean {
   if (event.state === 'actionable') return true
