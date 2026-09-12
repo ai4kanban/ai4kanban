@@ -292,6 +292,40 @@ begin
   delete from cloud.slack_connections where owner_id = A;
 
   -- -------------------------------------------------------------------------
+  -- A retirement that raced a click does not lose the click (#640)
+  -- -------------------------------------------------------------------------
+  --
+  -- Starting a run is itself a board write, so a retirement can reach Cloud between the
+  -- press and the action it records. `v_retired` is exactly that row: stale, and nobody
+  -- acted on it. It revives for the action on the same terms `publish_event` revives one —
+  -- stale and unacted is still this card's row — so the delivery has something to land on.
+
+  -- What the user approved is still what gets built: a revision that has moved is refused
+  -- here as anywhere else.
+  perform pg_temp.refuses(
+    format('select api.record_event_action(%L, %L, %L, %L, %L, %L, %L, %s)',
+           A, 'op-640-moved', v_retired, 'implement', 'r9', '[]', 'accepted', BUDGET),
+    'AKB03', 'an action on a retired event against a revision that has moved');
+
+  v_json := api.record_event_action(A, 'op-640', v_retired, 'implement', 'r1', '[]'::jsonb,
+                                    'accepted', BUDGET);
+  assert (v_json ->> 'state') = 'accepted', 'an unacted retirement did not revive for the action';
+  assert (select finished_at from cloud.events where id = v_retired) is null,
+    'a revived event stayed finished, so the 30-day sweep would take a live delivery with it';
+
+  -- And the landing the retirement raced now has an action to land on, which is the whole
+  -- point: before this it returned unwritten and the user was told nothing.
+  v_json := api.record_event_outcome(A, 'op-640-landed', v_retired, 'completed', '', 900, BUDGET);
+  assert (v_json ->> 'state') = 'completed', 'a delivery that landed left no notification';
+
+  -- One action per event all the same: reviving is about a row nobody acted on, and one
+  -- that carries an action is still refused.
+  perform pg_temp.refuses(
+    format('select api.record_event_action(%L, %L, %L, %L, %L, %L, %L, %s)',
+           A, 'op-640-again', v_retired, 'implement', 'r1', '[]', 'accepted', BUDGET),
+    'AKB04', 'a second action on a revived event');
+
+  -- -------------------------------------------------------------------------
   -- One action per event, against the revision it was granted on
   -- -------------------------------------------------------------------------
 

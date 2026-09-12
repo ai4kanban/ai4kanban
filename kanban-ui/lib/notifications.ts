@@ -230,3 +230,10 @@ export async function recordCloudAction(
   const rules = await boardRules();
   rules.recordCloudActionFor?.(taskId, decision, revision, answers);
 }
+
+/** The click was recorded and the work it asked for did not start. Reported so the event ends
+ *  with why, instead of staying on "Starting" with nothing behind it. */
+export async function reportCloudStartFailure(taskId: number, reason: string): Promise<void> {
+  const rules = await boardRules();
+  rules.reportCloudStartFailure?.(taskId, reason);
+}

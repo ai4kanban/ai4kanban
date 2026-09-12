@@ -28,15 +28,25 @@ import {
 } from '../src/lib/cloud/boards.ts'
 import { startCloudServer, stopCloudServer } from '../src/lib/cloud/board-server.ts'
 import type { CloudEventState } from '../src/lib/cloud/events.ts'
-import { duePending, notePublication, queue, readOutbox, unsentToCloud, type Pending } from '../src/lib/cloud/outbox.ts'
+import {
+  duePending,
+  notePublication,
+  publishedFor,
+  queue,
+  readOutbox,
+  unsentToCloud,
+  type Pending,
+} from '../src/lib/cloud/outbox.ts'
 import {
   afterBoardWrite,
   flushCloudOutbox,
   publishBoardEvents,
   recordCloudActionFor,
+  recordCloudDeliveryState,
   recordBoardEvents,
   reportCloudRunEnd,
   reportCloudRunStart,
+  reportCloudStartFailure,
   takeWatchFill,
 } from '../src/lib/cloud/publish.ts'
 import {
@@ -441,6 +451,139 @@ describe('the same button pressed twice', () => {
     const second = readOutbox().pending.filter((p) => p.kind === 'action')
     assert.equal(second.length, 1, 'the second press finds the event no longer actionable here')
     assert.equal(second[0]?.opId, first[0]?.opId)
+  })
+})
+
+describe('a click recorded before the run it starts (#640)', () => {
+  /** A board holding card 12, with one live actionable event for it — what a click finds. */
+  async function raised(): Promise<void> {
+    BOARD()
+    writeCardFile()
+    fakeCloud((url) => (url.endsWith('/v1/events') ? publishedEvent('e-1', 12) : ok({})))
+    queuePublish(12)
+    await flushCloudOutbox()
+  }
+
+  const queued = (kind: Pending['kind']) => readOutbox().pending.filter((p) => p.kind === kind)
+
+  it('leaves the row alone when the run it started picks the card up', async () => {
+    await raised()
+    recordCloudActionFor(12, 'implement', 'r1')
+    // The run the click started now holds the card, and its start is a pass.
+    working(12, 'implement')
+    await recordBoardEvents()
+
+    assert.equal(queued('retire').length, 0, 'the click’s own run retired the row it was granted on')
+    assert.equal(readOutbox().published['12']?.state, 'accepted')
+  })
+
+  it('takes back a retirement that got into the queue ahead of it', async () => {
+    await raised()
+    // The order this card was written about: the run starts first, the pass finds the card
+    // held and queues a retirement, and the click arrives behind it.
+    working(12, 'implement')
+    await recordBoardEvents()
+    assert.equal(queued('retire').length, 1)
+
+    recordCloudActionFor(12, 'implement', 'r1')
+
+    assert.equal(queued('retire').length, 0, 'the row was retired and revived, which is two notifications')
+    assert.equal(queued('action').length, 1)
+  })
+
+  it('is recorded against a record the retirement already reached', async () => {
+    await raised()
+    // The retirement got out: this board reads the row as stale, and Cloud revives it for
+    // the action rather than refusing one.
+    notePublication(12, 'e-1', 'stale')
+
+    recordCloudActionFor(12, 'implement', 'r1')
+
+    assert.equal(queued('action').length, 1)
+    assert.equal(readOutbox().published['12']?.state, 'accepted')
+  })
+
+  it('ends the event when the run never started, and the card is raised afresh', async () => {
+    await raised()
+    recordCloudActionFor(12, 'implement', 'r1')
+
+    reportCloudStartFailure(12, 'Another run is already on that card.')
+
+    const outcome = queued('outcome')[0]
+    assert.equal(outcome?.kind === 'outcome' && outcome.outcome, 'failed')
+    assert.equal(outcome?.kind === 'outcome' && outcome.reason, 'Another run is already on that card.')
+
+    // Nothing holds the card now, so the pass raises it again — as a new event, because the
+    // one the click was granted against is finished.
+    await recordBoardEvents()
+    assert.equal(publishedFor(12), undefined)
+    assert.equal(publications().length, 1)
+  })
+})
+
+describe('an action Cloud refuses for good', () => {
+  /** A click queued against e-1, and a Worker that refuses the action and answers a re-read
+   *  with `event`. `landing` queues the delivery's own state behind the click, which is what
+   *  a refusal has to decide the fate of. */
+  async function refused(
+    code: string,
+    event: Record<string, unknown>,
+    landing?: CloudEventState,
+  ): Promise<string[]> {
+    BOARD()
+    writeCardFile()
+    notePublication(12, 'e-1', 'actionable')
+    recordCloudActionFor(12, 'implement', 'r1')
+    if (landing) recordCloudDeliveryState(12, landing)
+    const seen = fakeCloud((url) => {
+      if (url.endsWith('/v1/events/e-1/action')) {
+        return new Response(JSON.stringify({ error: { code, message: 'no' } }), {
+          status: 409,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      if (url.endsWith('/v1/events/e-1')) return ok({ event: { id: 'e-1', boardId: BOARD().id, taskId: 12, ...event } })
+      return ok({ event: { id: 'e-1', boardId: BOARD().id, taskId: 12, state: 'running', acted: true } })
+    })
+    await flushCloudOutbox()
+    return seen
+  }
+
+  it('writes Cloud’s own state back when the event turns out to carry an action', async () => {
+    // Somebody else's click got there first and its delivery is already going. This board
+    // guessed `accepted`; what Cloud holds is what the record has to say.
+    await refused('already_acted', { state: 'running', acted: true })
+
+    assert.equal(readOutbox().published['12']?.state, 'running', 'the board kept its own guess')
+    // And the delivery here goes on reporting, because that action is something to report
+    // against.
+    recordCloudDeliveryState(12, 'completed')
+    assert.equal(readOutbox().pending.filter((p) => p.kind === 'outcome').length, 1)
+  })
+
+  it('drops what was queued to report against a click that was never recorded', async () => {
+    const seen = await refused('stale_revision', { state: 'actionable', acted: false }, 'running')
+
+    assert.ok(!seen.some((at) => at.endsWith('/v1/events/e-1/outcome')), 'a state was reported anyway')
+    assert.equal(readOutbox().pending.filter((p) => p.kind === 'outcome').length, 0)
+    assert.equal(publishedFor(12), undefined, 'a record naming that event would keep the card off every pass')
+  })
+
+  it('leaves the row for the reconciliation, which retires it as stale', async () => {
+    await refused('stale_revision', { state: 'actionable', acted: false }, 'running')
+    // The card is still being built here, so the pass finds it held and the row on Cloud is
+    // nobody's to answer.
+    working(12, 'implement')
+    const seen = fakeCloud((url, body) => {
+      if (url.endsWith('/v1/events') && body === undefined) {
+        return ok({ events: [{ id: 'e-1', boardId: BOARD().id, taskId: 12, state: 'actionable', acted: false }] })
+      }
+      return ok({ event: { id: 'e-1', boardId: BOARD().id, taskId: 12, state: 'stale', acted: false } })
+    })
+
+    await publishBoardEvents({ reconcile: true })
+
+    assert.ok(seen.some((at) => at.endsWith('/v1/events/e-1/retire')))
   })
 })
 

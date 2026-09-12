@@ -38,6 +38,7 @@ import {
   listEvents,
   postWatchSummary,
   publishEvent,
+  readEvent,
   recordAction,
   recordOutcome,
   registerBoard,
@@ -48,9 +49,11 @@ import {
   claimForTask,
   clearPublications,
   dropClaim,
+  dropQueuedFor,
   duePending,
   editOutbox,
   failed,
+  forgetEvent,
   forgetPublication,
   giveUp,
   heldClaims,
@@ -528,10 +531,18 @@ export function recordCloudActionFor(
   answers: CloudEventAnswer[] = [],
 ): void {
   const held = publishedFor(taskId)
-  if (!held || held.state !== 'actionable') {
+  // `stale` is accepted as well as `actionable`. A retirement queued by the pass a click of
+  // its own set off is still about the row the user pressed, and Cloud revives such a row
+  // for the action rather than refusing it — dropping the click here would be this board
+  // refusing what Cloud would have taken.
+  if (!held || (held.state !== 'actionable' && held.state !== 'stale')) {
     traceCloud(`action #${taskId} ${decision} dropped: record is ${held?.state ?? 'missing'}`)
     return
   }
+  // A retirement of this very event that has not left yet is taken back: the card is not
+  // "no longer waiting for anybody", it is being acted on. Sending both would retire the row
+  // and then revive it, which is one notification too many.
+  dropQueuedFor(held.eventId, ['retire'])
   traceCloud(
     `action #${taskId} ${decision} queued: event ${held.eventId} at ${held.revision}, clicked at ${revision}`,
   )
@@ -589,6 +600,24 @@ export function recordCloudDeliveryState(taskId: number, outcome: CloudEventStat
     if (claim) dropClaim(claim.requestId)
   }
   void flushCloudOutbox()
+}
+
+/**
+ * The run a recorded click asked for never started (#640) — say so, rather than leaving the
+ * event on `accepted` for good.
+ *
+ * A surface records its action BEFORE it starts the work, so the pass that start sets off
+ * cannot retire the row underneath it. That order owes a compensation: an event accepted
+ * with nothing behind it is one the publisher may never refresh, so the card could never be
+ * raised again. `failed` ends it, and the card is raised afresh as it stands.
+ *
+ * The same shape as a refused approval's `failed` (./requests.ts), for the same reason: what
+ * the row says is why the work did not happen, not that the build broke.
+ */
+export function reportCloudStartFailure(taskId: number, reason: string): void {
+  if (publishedFor(taskId)?.state !== 'accepted') return
+  traceCloud(`start #${taskId} failed after its action was recorded: ${reason}`)
+  recordCloudDeliveryState(taskId, 'failed', reason)
 }
 
 /**
@@ -725,9 +754,15 @@ async function run(): Promise<void> {
   // The board as this pass reads it, read at most once and only if something asks — see
   // `stillNeededNow`.
   let atNow: BoardNow | null = null
+  // What an earlier item in this pass took off the queue. The queue is read once, so an
+  // action Cloud never recorded has to be able to stop the outcomes standing behind it in
+  // this very list — they have nothing left to report against.
+  const dropped = new Set<string>()
   for (const item of duePending()) {
+    if (dropped.has(item.opId)) continue
     if (item.attempts >= MAX_ATTEMPTS) {
       giveUp(item.opId, item.lastError ?? 'Cloud did not answer.')
+      if (item.kind === 'action') for (const gone of abandonAction(item.eventId)) dropped.add(gone)
       continue
     }
     // A publication describes the card as it was when it was written down. If the card has
@@ -758,14 +793,58 @@ async function run(): Promise<void> {
     if (isTerminal(done.code)) {
       traceCloud(`refused ${describe(item)}: ${done.code ?? 'terminal'} — ${done.error}`)
       settle(item.opId)
+      if (item.kind === 'action') {
+        for (const gone of await actionRefused(item.eventId, done.code)) dropped.add(gone)
+      }
       continue
     }
     traceCloud(`failed ${describe(item)}: ${done.error}`)
-    if (item.attempts + 1 >= MAX_ATTEMPTS) giveUp(item.opId, done.error)
-    else failed(item.opId, done.error, Date.now() + backoff(item.attempts))
+    if (item.attempts + 1 >= MAX_ATTEMPTS) {
+      giveUp(item.opId, done.error)
+      if (item.kind === 'action') for (const gone of abandonAction(item.eventId)) dropped.add(gone)
+    } else failed(item.opId, done.error, Date.now() + backoff(item.attempts))
     // Cloud is not answering. Stop here rather than spending the whole queue on it.
     return
   }
+}
+
+/**
+ * An action Cloud refused for good (#640) — leave the board reading what Cloud really holds.
+ *
+ * Two refusals get here. `already_acted` means the event carries an action after all, taken
+ * by another surface or by a retry this board lost track of: the row is somebody's to report
+ * against, so Cloud's state is written back and the delivery goes on reporting against it.
+ * `stale_revision` means the card moved between the click and the send, and nothing was
+ * recorded: that click is gone, and so is anything queued to report against it.
+ *
+ * A read that cannot be made changes nothing. The next reconciliation is what closes it.
+ */
+async function actionRefused(eventId: string, code?: string): Promise<string[]> {
+  const answer = await readEvent(eventId)
+  if (!answer.ok) {
+    traceCloud(`action ${eventId} refused as ${code ?? 'terminal'}: Cloud could not be re-read`)
+    return []
+  }
+  const event = answer.value.event
+  traceCloud(`action ${eventId} refused as ${code ?? 'terminal'}: Cloud holds it ${event.state}`)
+  if (event.acted) {
+    forget(eventId, event.state)
+    return []
+  }
+  return abandonAction(eventId)
+}
+
+/** A click Cloud has no action for, and never will. What was queued to report against it has
+ *  nowhere to land, and the record naming it would keep the card off every later pass — so
+ *  both go. The row itself is left to the reconciliation, which retires it as `stale`.
+ *
+ *  Answers which queued items went, because the pass holding this one read the queue before
+ *  it. */
+function abandonAction(eventId: string): string[] {
+  traceCloud(`action ${eventId} abandoned: its outcomes and this board’s record go with it`)
+  const dropped = dropQueuedFor(eventId, ['outcome'])
+  forgetEvent(eventId)
+  return dropped
 }
 
 const backoff = (attempts: number): number => {

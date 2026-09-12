@@ -314,8 +314,9 @@ export { notificationsSilenced, setNotificationsSilenced } from './lib/machine/s
 export { readCloudBoards } from './lib/cloud/boards'
 export type { CloudBoard } from './lib/cloud/boards'
 // What a click on this machine records against a live event, so the same durable action is
-// on Cloud whichever surface took it.
-export { recordCloudActionFor } from './lib/cloud/publish'
+// on Cloud whichever surface took it — and what a surface calls when the work that click
+// asked for never started, so the row says why instead of sitting on "Starting" for good.
+export { recordCloudActionFor, reportCloudStartFailure } from './lib/cloud/publish'
 // The account's one Slack destination (#320): connect it, point it somewhere, end it. A fact
 // about the ACCOUNT like the sign-in, so every board Cloud is on for posts to it with the
 // board named on each message. Optional to the UI like every Cloud move above.

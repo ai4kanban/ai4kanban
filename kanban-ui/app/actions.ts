@@ -137,6 +137,7 @@ import {
   openNotification,
   readAllNotifications,
   recordCloudAction,
+  reportCloudStartFailure,
   resumeCloudRequest,
   setBoardNotify,
   setBoardServer,
@@ -391,17 +392,38 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   // **Review again** is the one review a person clicks for, so it says so (#417). Every
   // other review a delivery takes is started by the board, never through here.
   if (request.action === "review") request.trigger = "asked";
-  const runnable = await prepareAgentRequest(request);
-  const started = await startSession(runnable, await buildPrompt(runnable));
   // The card page acts on the spot, exactly as it always has, and the same durable action
   // is recorded against this card's live Cloud event (#319) — so every other surface
   // showing that event stops offering it. It never waits: the board's outbox retries it,
   // and a Cloud that cannot be reached changes nothing here.
-  if (started.ok && cloudRevision && Number.isInteger(req.id)) {
+  //
+  // Before the run, not after (#640). Starting one sets off a pass that finds the card held
+  // and retires its row, and an action arriving behind that retirement is refused — which
+  // left the delivery with no action to report against and no landing notification at all.
+  // A remote decision has always been recorded first; this is the same order.
+  const onCloud =
+    !!cloudRevision &&
+    Number.isInteger(req.id) &&
+    (req.action === "resolve" || req.action === "implement" || req.action === "run");
+  if (onCloud) {
     const decision = req.action === "resolve" ? "answer" : "implement";
-    if (req.action === "resolve" || req.action === "implement" || req.action === "run") {
-      await recordCloudAction(req.id as number, decision, cloudRevision, cloudAnswers ?? []);
-    }
+    await recordCloudAction(req.id as number, decision, cloudRevision!, cloudAnswers ?? []);
+  }
+  // That order owes a compensation: an action recorded for a run that never started would
+  // leave the row on "Starting" with nothing behind it, and the card could never be raised
+  // again. Whatever stopped it — the card's lock, a process that would not spawn, a throw on
+  // the way — is what the row says.
+  let started: StartResult;
+  try {
+    const runnable = await prepareAgentRequest(request);
+    started = await startSession(runnable, await buildPrompt(runnable));
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e);
+    if (onCloud) await reportCloudStartFailure(req.id as number, why);
+    throw e;
+  }
+  if (onCloud && !started.ok) {
+    await reportCloudStartFailure(req.id as number, started.error ?? "");
   }
   return started;
 }

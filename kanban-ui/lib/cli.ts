@@ -754,6 +754,9 @@ export interface BoardRules {
     revision: string,
     answers: CloudEventAnswer[],
   ): void;
+  /** The work a recorded click asked for never started. The row says why rather than sitting
+   *  on "Starting" for good. Absent from rules that predate it. */
+  reportCloudStartFailure?(taskId: number, reason: string): void;
 
   // this board's server (#318) — the machine that runs an approval taken anywhere else.
   //

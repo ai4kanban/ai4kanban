@@ -189,6 +189,33 @@ export function forgetPublication(taskId: number): void {
   })
 }
 
+/** Forget the record naming this event, whichever task holds it. What a click Cloud never
+ *  recorded leaves behind: nothing may be reported against that event again, so the record
+ *  must not go on standing for it. */
+export function forgetEvent(eventId: string): void {
+  editOutbox((outbox) => {
+    for (const [id, held] of Object.entries(outbox.published)) {
+      if (held.eventId === eventId) delete outbox.published[id]
+    }
+  })
+}
+
+/** Which event a queued item is about, or undefined on one that names none. */
+const eventOf = (p: Pending): string | undefined =>
+  p.kind === 'publish' || p.kind === 'summary' ? undefined : p.eventId
+
+/** Drop what is still queued about one event, of these kinds, and say which items went.
+ *  Nothing here has been sent, so this is a change of mind rather than a state Cloud has to
+ *  be told about: a click takes back the retirement queued a moment before it, and an action
+ *  Cloud never recorded takes back the outcomes that had nowhere to land. */
+export function dropQueuedFor(eventId: string, kinds: ReadonlyArray<Pending['kind']>): string[] {
+  return editOutbox((outbox) => {
+    const going = outbox.pending.filter((p) => kinds.includes(p.kind) && eventOf(p) === eventId)
+    outbox.pending = outbox.pending.filter((p) => !going.includes(p))
+    return going.map((p) => p.opId)
+  })
+}
+
 /** Every task with a live event on record — what the retirement test walks. */
 export function livePublications(): Array<{ taskId: number; event: PublishedEvent }> {
   const out: Array<{ taskId: number; event: PublishedEvent }> = []
