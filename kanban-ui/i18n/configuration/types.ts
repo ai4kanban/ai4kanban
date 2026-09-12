@@ -265,7 +265,7 @@ export type ConfigurationCopy = {
     ruleFailed: (agent: string) => string;
     /** The memory row, and how many paths the agent declares. */
     remembers: string;
-    memoryCount: (n: number) => string;
+    remembersHint: string;
     file: string;
     fileLabel: (agent: string) => string;
     /** Before the board's own reason a save was refused. */

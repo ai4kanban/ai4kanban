@@ -324,7 +324,7 @@ export const CODEX: Harness = {
       kind: 'secret',
       env: 'OPENAI_API_KEY',
       placeholder: 'sk-…',
-      help: 'Saved to docs/kanban/.env (kept out of git), never shown back.',
+      help: 'Stored on this computer, kept out of git, never shown back.',
     },
     {
       key: 'model',

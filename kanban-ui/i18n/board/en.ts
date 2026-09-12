@@ -178,7 +178,7 @@ const en: BoardCopy = {
     goal: {
       title: (release) => `What ${release} is for`,
       blurb:
-        "A sentence or two, in your own words — what this version is trying to ship. It sits on the release's line in `docs/kanban/releases.md`, and it is what filling the release plans against. Empty is fine.",
+        "A sentence or two, in your own words — what this version is trying to ship. It is what filling the release plans against. Empty is fine.",
       placeholder:
         "The first version worth showing someone: a board you can run end to end.",
       saveFailed: "could not save the goal",
@@ -196,14 +196,14 @@ const en: BoardCopy = {
     closing: {
       title: (release) => `Close ${release}`,
       blurb: (release) =>
-        `**${release}** shipped. What it shipped is written down in its summary file, and it comes off the list for good — a closed release can't be reopened.`,
+        `**${release}** shipped. What it shipped is recorded, and it comes off the list for good — a closed release can't be reopened.`,
       reading: "Reading what this close records…",
-      shippedNone: "No card was archived under it — the summary will say nothing shipped.",
+      shippedNone: "No card was archived under it — it goes down as having shipped nothing.",
       shippedOne: "1 archived card goes down as shipped.",
       shippedMany: (n) => `${n} archived cards go down as shipped.`,
       changelogNone: "No changelog is written — there is nothing to write it from.",
       changelog:
-        "An agent then writes a short changelog at the top of the summary, saying what the version changed. It runs in the background; watch it in the runs panel.",
+        "An agent then writes a short changelog saying what the version changed. It runs in the background; watch it in the runs panel.",
       unarchivedOne:
         "This open card has every todo ticked but was never archived, so it counts as not shipped. Cancel and archive it first if it really shipped.",
       unarchivedMany: (n) =>
@@ -219,7 +219,7 @@ const en: BoardCopy = {
     dropping: {
       title: (release) => `Drop ${release}`,
       blurb: (release) =>
-        `**${release}** will not ship. It comes off the list with no shipped record — its open cards return to no release, and no summary file is written. Cards already archived under it stay archived.`,
+        `**${release}** will not ship. It comes off the list with no shipped record — its open cards return to no release. Cards already archived under it stay archived.`,
       reading: "Reading what this drop moves…",
       archivedNone: "No card was archived under it.",
       archivedOne: "This archived card stays archived under it:",
@@ -237,7 +237,7 @@ const en: BoardCopy = {
       fromGoal: "From a goal",
       noGoal: "No goal",
       blurb:
-        "A version id, in your own words — `v1`, `0.5.0`, `august`. It joins the end of the list in `docs/kanban/releases.md`, and the board switches to it so what you write next lands in it.",
+        "A version id, in your own words — `v1`, `0.5.0`, `august`. The board switches to it, so what you write next lands in it.",
       idPlaceholder: "v1",
       goalAsk:
         "What is this version for? A sentence or two, in your own words — the agent plans the release against them.",

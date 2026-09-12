@@ -144,16 +144,16 @@ const zh: ConfigurationCopy = {
       "The address the endpoint answers on.": "接口响应的地址。",
       "The API your gateway answers in — OpenRouter and LiteLLM speak OpenAI.":
         "网关所用的 API 格式——OpenRouter 和 LiteLLM 用 OpenAI。",
-      "Saved to docs/kanban/.env (kept out of git), never shown back.":
-        "保存在 docs/kanban/.env（不进 git），不会再显示出来。",
-      "Optional — empty uses your cursor-agent CLI's own login. Saved to docs/kanban/.env, never shown back.":
-        "可选——留空则用 cursor-agent CLI 自己的登录。保存在 docs/kanban/.env，不会再显示出来。",
-      "Optional — empty uses the key dsh itself saved. Saved to docs/kanban/.env, never shown back.":
-        "可选——留空则用 dsh 自己保存的密钥。保存在 docs/kanban/.env，不会再显示出来。",
-      "Used when `grok login` has not been run — a saved login outranks it. Saved to docs/kanban/.env (kept out of git), never shown back.":
-        "在没运行过 `grok login` 时使用——已保存的登录优先。保存在 docs/kanban/.env（不进 git），不会再显示出来。",
-      "From Z.ai, or BigModel for the same plan. A `zcode login` is not enough — a run signs in with this key. Saved to docs/kanban/.env (kept out of git), never shown back.":
-        "来自 Z.ai，或同一套餐的 BigModel。只运行 `zcode login` 不够——运行是用这个密钥登录的。保存在 docs/kanban/.env（不进 git），不会再显示出来。",
+      "Stored on this computer, kept out of git, never shown back.":
+        "保存在本机（不进 git），不会再显示出来。",
+      "Optional — empty uses your cursor-agent CLI's own login. Stored on this computer, never shown back.":
+        "可选——留空则用 cursor-agent CLI 自己的登录。保存在本机，不会再显示出来。",
+      "Optional — empty uses the key dsh itself saved. Stored on this computer, never shown back.":
+        "可选——留空则用 dsh 自己保存的密钥。保存在本机，不会再显示出来。",
+      "Used when `grok login` has not been run — a saved login outranks it. Stored on this computer, kept out of git, never shown back.":
+        "在没运行过 `grok login` 时使用——已保存的登录优先。保存在本机（不进 git），不会再显示出来。",
+      "From Z.ai, or BigModel for the same plan. A `zcode login` is not enough — a run signs in with this key. Stored on this computer, kept out of git, never shown back.":
+        "来自 Z.ai，或同一套餐的 BigModel。只运行 `zcode login` 不够——运行是用这个密钥登录的。保存在本机（不进 git），不会再显示出来。",
       "Appended to the command as written, for whatever the settings above don't cover. Split on spaces; a bad one fails the run and the log says why.":
         "原样追加在命令后面，用于上面的设置覆盖不到的东西。按空格拆分；写错会让运行失败，日志里写明原因。",
       'Not in effect: this agent\'s "command" in your ui.config.json already names a model, and that wins.':
@@ -279,7 +279,7 @@ const zh: ConfigurationCopy = {
           body: "从现在起，等你决定的问题由它作答，卡片不再停下来。随时可以关掉——已经做下去的卡不会退回。",
           turnOn: "打开",
         },
-        note: "按项目目标、每个模块的 decisions.md 和 rejected.md，以及每题自己的选项和推荐项作答，都定不下来就取推荐项。",
+        note: "按项目目标、已有的决定，以及每题自己的选项和推荐项作答，都定不下来就取推荐项。",
       },
       proposer: {
         name: "选题",
@@ -333,7 +333,7 @@ const zh: ConfigurationCopy = {
     saved: "已保存",
     ruleFailed: (agent) => `${agent} 的要求保存失败`,
     remembers: "记忆",
-    memoryCount: (n) => `${n} 个文件`,
+    remembersHint: "它会记下你的更正和选择，下次作答前先读一遍。",
     file: "AGENT.md",
     fileLabel: (agent) => `${agent} 的 AGENT.md`,
     notSaved: "未保存——",
@@ -349,7 +349,7 @@ const zh: ConfigurationCopy = {
 
     delete: "删除",
     deleteTitle: (agent) => `删除 ${agent}？`,
-    deleteBlurb: "它的 AGENT.md、你为它写的要求和它记下的内容都会被删除。",
+    deleteBlurb: "这个 Agent、你为它写的要求和它记下的内容都会被删除。",
     deleteFailed: (agent) => `未能删除 ${agent}`,
   },
   delivery: {

@@ -258,7 +258,7 @@ const en: CardCopy = {
   },
   decided: {
     heading: "what decider chose for you",
-    note: "These answers stay on this card. Nothing went into the project's lasting decisions.",
+    note: "These answers apply to this card only.",
     from: "From",
     blind: "Nothing to go on — took the recommendation",
   },

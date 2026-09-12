@@ -241,7 +241,7 @@ const zh: RunsCopy = {
       blurb:
         "Agent 按顺序走完这张卡片的**流程**，记录本次运行，并改写其中一两步，让下一次运行更少地需要你。卡片会留在看板上——周期任务永远不算完成。",
       unattended:
-        "运行时没人盯着，因此需要你判断的步骤会被跳过，并写进本次运行的待澄清问题文件，留给你之后答复。",
+        "运行时没人盯着，因此需要你判断的步骤会被跳过，留作问题等你之后答复。",
       lastRun: (when) => `上次运行：${when}。`,
       neverRun: "这张卡片从未运行过。",
       notes: "本次运行的补充说明（可选）…",
@@ -265,18 +265,17 @@ const zh: RunsCopy = {
     },
     reject: {
       title: (id) => `否决 #${id}`,
-      blurb: "Agent 会移除这张卡片；只有当理由值得长期参考时，才写进 rejected.md。",
+      blurb: "这张卡片将移出看板。",
       placeholder: "为什么否决它？",
       confirm: "否决",
-      discard: "仅丢弃，不写入记忆",
-      discardHint: "只是清理积压，不是结论。什么都不记录，以后还能重新提出。",
+      discard: "仅丢弃",
+      discardHint: "以后仍可重新提出。",
       discardPlaceholder: "给 Agent 的备注（可选）…",
       confirmDiscard: "丢弃",
     },
     archive: {
       title: (id) => `归档 #${id}`,
-      blurb:
-        "所有 todo 都已完成。Agent 会把「现在你可以做什么」写进 readme.md，并把卡片移出看板，放进 .archive/。",
+      blurb: "所有 todo 都已完成。卡片就此完成，移出看板。",
       placeholder: "给 Agent 的备注（可选）…",
       confirm: "归档",
     },

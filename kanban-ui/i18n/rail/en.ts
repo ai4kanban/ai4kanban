@@ -92,8 +92,7 @@ const en: RailCopy = {
     },
   },
   memoryPage: {
-    unwritten:
-      "Nothing has been written here yet. The agent adds a line as work is finished, decided, or turned down — this file fills in as the board is used.",
+    unwritten: "Nothing here yet. It fills in as the board is used.",
     menu: "What to do with this file",
     copyPath: "Copy path",
     copyRelative: "Copy relative path",
@@ -107,7 +106,7 @@ const en: RailCopy = {
     write: "Add goal",
     writeHint: "Say what this board is for — optional, and you can add it any time",
     title: "Goal",
-    reading: "Reading goal.md…",
+    reading: "Loading…",
     editTitle: "Write the goal",
     guideTitle: "What makes a good goal",
     guideLine:
@@ -118,9 +117,8 @@ const en: RailCopy = {
     open: "Insights",
     title: "Insights",
     daily: {
-      reading: "Reading metrics.csv…",
-      empty:
-        "No activity recorded yet. The board writes a row to `metrics.csv` the first time a card is created, archived, or rejected.",
+      reading: "Loading…",
+      empty: "No activity yet. Cards you create, archive, or reject show up here.",
       completed: "Completed",
       created: "Created",
       rejected: "Rejected",

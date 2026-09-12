@@ -176,7 +176,7 @@ const en: ConfigurationCopy = {
           body: "From now on the questions waiting on you are answered for you and a card never stops. Switch it off whenever you like — a card already built does not come back.",
           turnOn: "Turn on",
         },
-        note: "It answers from the project's goal, every module's decisions.md and rejected.md, and each question's own options and recommendation, and takes the recommendation when none of those settle it.",
+        note: "It answers from the project's goal, the decisions already made, and each question's own options and recommendation, and takes the recommendation when none of those settle it.",
       },
       proposer: {
         name: "Proposer",
@@ -230,7 +230,7 @@ const en: ConfigurationCopy = {
     saved: "Saved",
     ruleFailed: (agent) => `couldn't save ${agent}'s instructions`,
     remembers: "Memory",
-    memoryCount: (n) => (n === 1 ? "1 file" : `${n} files`),
+    remembersHint: "It keeps what you corrected and what you chose, and reads it before its next answer.",
     file: "AGENT.md",
     fileLabel: (agent) => `${agent}'s AGENT.md`,
     notSaved: "Not saved —",
@@ -246,7 +246,7 @@ const en: ConfigurationCopy = {
 
     delete: "Delete",
     deleteTitle: (agent) => `Delete ${agent}?`,
-    deleteBlurb: "Its AGENT.md, your instructions for it and what it remembered are removed.",
+    deleteBlurb: "This agent, your instructions for it and what it remembered are removed.",
     deleteFailed: (agent) => `couldn't delete ${agent}`,
   },
   delivery: {

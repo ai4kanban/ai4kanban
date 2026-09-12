@@ -316,7 +316,6 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
                   type="button"
                   onClick={() => toggleModule(module.name)}
                   aria-expanded={isOpen(module.name)}
-                  title={`docs/kanban/memory/${module.name}/`}
                   className="flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] px-2.5 text-left text-[12.5px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink"
                 >
                   <FiChevronRight
@@ -384,7 +383,6 @@ function PruneButton() {
  *  names in the same order either way, so a module's set is read the way the project's is. */
 function MemoryFileRows({ module, active }: { module: string; active: string | null }) {
   const c = useCopy().rail.memory;
-  const folder = module ? `docs/kanban/memory/${module}` : "docs/kanban/memory";
   return (
     <>
       {MEMORY_FILES.map((file) => (
@@ -392,9 +390,6 @@ function MemoryFileRows({ module, active }: { module: string; active: string | n
           key={file.name}
           href={`/memory/${memoryKey(module, file.name)}`}
           label={c.files[file.name as keyof RailCopy["memory"]["files"]] ?? file.label}
-          // The path is what a hover says, not the row's own words back at it: the words
-          // are already on screen, the file they open is not.
-          title={`${folder}/${file.name}.md`}
           icon={<FiFileText size={13} className="shrink-0" aria-hidden />}
           active={active === memoryKey(module, file.name)}
         />

@@ -71,7 +71,7 @@ export const CURSOR: Harness = {
       kind: 'secret',
       env: 'CURSOR_API_KEY',
       placeholder: 'key_…',
-      help: "Optional — empty uses your cursor-agent CLI's own login. Saved to docs/kanban/.env, never shown back.",
+      help: "Optional — empty uses your cursor-agent CLI's own login. Stored on this computer, never shown back.",
     },
   ],
 

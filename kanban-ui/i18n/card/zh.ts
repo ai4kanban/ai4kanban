@@ -255,7 +255,7 @@ const zh: CardCopy = {
   },
   decided: {
     heading: "Decider 替你做的选择",
-    note: "这些答案只在这张卡片上，没有写进项目的长期决定。",
+    note: "这些答案只作用于这张卡片。",
     from: "依据",
     blind: "没有依据——取了推荐项",
   },

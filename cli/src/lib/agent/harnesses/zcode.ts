@@ -79,7 +79,7 @@ export const ZCODE: Harness = {
       env: 'ZAI_API_KEY',
       envAs: 'ANTHROPIC_API_KEY',
       placeholder: 'sk-…',
-      help: 'From Z.ai, or BigModel for the same plan. A `zcode login` is not enough — a run signs in with this key. Saved to docs/kanban/.env (kept out of git), never shown back.',
+      help: 'From Z.ai, or BigModel for the same plan. A `zcode login` is not enough — a run signs in with this key. Stored on this computer, kept out of git, never shown back.',
     },
   ],
 

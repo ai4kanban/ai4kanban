@@ -249,7 +249,7 @@ const en: RunsCopy = {
       blurb:
         "The agent works through this card's **Process** in order, records the run, and rewrites a step or two so the next run needs less of you. The card stays on the board — a recurring task is never finished.",
       unattended:
-        "Nobody watches a run, so a step that needs your judgment is left undone and written into this run's open-questions file for you to answer later.",
+        "Nobody watches a run, so a step that needs your judgment is left undone and comes back to you as a question to answer later.",
       lastRun: (when) => `Last run ${when}.`,
       neverRun: "This card has never run.",
       notes: "Optional extra notes for this run…",
@@ -274,19 +274,17 @@ const en: RunsCopy = {
     },
     reject: {
       title: (id) => `Reject #${id}`,
-      blurb:
-        "The agent removes the card, and notes it in rejected.md only if the reason is worth keeping for future planning.",
+      blurb: "This card leaves the board.",
       placeholder: "Why are you rejecting this?",
       confirm: "Reject",
-      discard: "Just discard — write no memory",
-      discardHint: "Clearing the backlog, not a decision. Nothing is recorded and the idea can come back.",
+      discard: "Just discard",
+      discardHint: "The idea can come back later.",
       discardPlaceholder: "Note for the agent (optional)…",
       confirmDiscard: "Discard",
     },
     archive: {
       title: (id) => `Archive #${id}`,
-      blurb:
-        "All todos are done. The agent writes the “what you can now do” note into readme.md and moves the card off the board into .archive/.",
+      blurb: "All todos are done. The card is finished and comes off the board.",
       placeholder: "Optional note for the agent…",
       confirm: "Archive",
     },

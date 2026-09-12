@@ -129,7 +129,7 @@ export const CLAUDE_CODE: Harness = {
       kind: 'secret',
       env: 'ANTHROPIC_API_KEY',
       placeholder: 'sk-ant-…',
-      help: 'Saved to docs/kanban/.env (kept out of git), never shown back.',
+      help: 'Stored on this computer, kept out of git, never shown back.',
     },
     // A box, with `models()` below offering what this machine knows under it. Free text is
     // what it stays: ids change between agent releases, and a list that hasn't heard of one

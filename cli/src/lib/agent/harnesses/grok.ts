@@ -87,7 +87,7 @@ export const GROK: Harness = {
       kind: 'secret',
       env: 'XAI_API_KEY',
       placeholder: 'xai-…',
-      help: 'Used when `grok login` has not been run — a saved login outranks it. Saved to docs/kanban/.env (kept out of git), never shown back.',
+      help: 'Used when `grok login` has not been run — a saved login outranks it. Stored on this computer, kept out of git, never shown back.',
     },
   ],
 

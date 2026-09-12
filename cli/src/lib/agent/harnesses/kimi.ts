@@ -161,7 +161,7 @@ export const KIMI: Harness = {
       kind: 'secret',
       env: 'KIMI_MODEL_API_KEY',
       placeholder: 'sk-…',
-      help: 'Saved to docs/kanban/.env (kept out of git), never shown back.',
+      help: 'Stored on this computer, kept out of git, never shown back.',
     },
   ],
 

@@ -91,8 +91,7 @@ const zh: RailCopy = {
     },
   },
   memoryPage: {
-    unwritten:
-      "这里还没有写下任何内容。每当有工作完成、有决策定下、有想法被否决，Agent 都会补上一行——这个文件会随着看板的使用逐渐充实。",
+    unwritten: "这里还没有内容。随着看板被使用，它会逐渐充实。",
     menu: "对这个文件的操作",
     copyPath: "复制路径",
     copyRelative: "复制相对路径",
@@ -106,7 +105,7 @@ const zh: RailCopy = {
     write: "写下目标",
     writeHint: "写下这个看板为什么而存在——可选，随时可补",
     title: "目标",
-    reading: "正在读取 goal.md…",
+    reading: "载入中…",
     editTitle: "填写目标",
     guideTitle: "什么样的目标是好目标",
     guideLine:
@@ -117,9 +116,8 @@ const zh: RailCopy = {
     open: "统计",
     title: "统计",
     daily: {
-      reading: "正在读取 metrics.csv…",
-      empty:
-        "还没有记录任何活动。第一次创建、归档或否决卡片时，看板会往 `metrics.csv` 写入一行。",
+      reading: "载入中…",
+      empty: "还没有任何活动。你创建、归档或否决的卡片会出现在这里。",
       completed: "已完成",
       created: "已创建",
       rejected: "已否决",

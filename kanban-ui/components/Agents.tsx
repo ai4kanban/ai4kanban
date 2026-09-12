@@ -32,7 +32,6 @@ import {
   FiArrowUpRight,
   FiCheck,
   FiChevronDown,
-  FiChevronRight,
   FiClock,
   FiFolder,
   FiPlus,
@@ -754,9 +753,7 @@ function Page({
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <span className="text-[14px] font-[800] text-nb-ink">{title}</span>
               {agent.file && (
-                <span className="min-w-0 font-mono text-[11px] text-nb-ink-soft">
-                  {c.yours} · {agent.file.path}
-                </span>
+                <span className="min-w-0 text-[11px] text-nb-ink-soft">{c.yours}</span>
               )}
             </div>
             <p className="mt-0.5 max-w-[74ch] text-[12px] leading-snug text-nb-ink-soft">
@@ -938,7 +935,7 @@ function Page({
         </p>
       )}
 
-      {agent.memory.length > 0 && <MemoryRow paths={agent.memory} />}
+      {agent.memory.length > 0 && <MemoryRow />}
     </div>
   );
 }
@@ -1141,36 +1138,19 @@ function SettingPick({
 
 // --- what an agent remembers --------------------------------------------------
 
-// One row saying how many files, opening in place to the tree of them. Closed by default:
-// the paths are read-only, so the count is the whole answer at a glance and the tree is
-// there for the time you want to know exactly which files.
-function MemoryRow({ paths }: { paths: string[] }) {
+// One line saying the agent remembers, and what that buys the next answer. What it keeps is
+// its own and read-only, so there is nothing here to open.
+function MemoryRow() {
   const c = useCopy().configuration.agents;
-  const [open, setOpen] = useState(false);
   return (
     <Panel>
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((was) => !was)}
-        className="flex w-full cursor-pointer items-center gap-2.5 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent"
-      >
-        <FiFolder size={14} aria-hidden className="shrink-0 text-nb-ink-soft" />
-        <span className="text-[13px] font-[700] text-nb-ink">{c.remembers}</span>
-        <span className="text-[12px] text-nb-ink-soft">
-          {c.memoryCount(paths.length)}
-        </span>
-        <FiChevronRight
-          size={13}
-          aria-hidden
-          className={`ml-auto shrink-0 text-nb-ink-soft transition-transform duration-150 ${open ? "rotate-90" : ""}`}
-        />
-      </button>
-      {open && (
-        <div className="border-t border-nb-ink/10 py-3">
-          <MemoryTree paths={paths} />
+      <div className="flex items-start gap-2.5 py-3">
+        <FiFolder size={14} aria-hidden className="mt-[2px] shrink-0 text-nb-ink-soft" />
+        <div className="min-w-0">
+          <span className="text-[13px] font-[700] text-nb-ink">{c.remembers}</span>
+          <p className="mt-0.5 text-[12px] leading-snug text-nb-ink-soft">{c.remembersHint}</p>
         </div>
-      )}
+      </div>
     </Panel>
   );
 }
@@ -1534,101 +1514,6 @@ function RuntimePick({
       </SelectContent>
     </Select>
   );
-}
-
-
-// --- the tree the memory row opens to -----------------------------------------
-
-// Printed the way they sit on disk, because that IS the answer: the folder they share once,
-// then a line per file under it. No badge on each row — everything here is read-only, and a
-// column of identical badges says nothing a caption cannot say once.
-//
-// A folder holding one thing is printed as one line, so `docs/kanban/memory/` is a heading
-// rather than three rungs of nothing.
-function MemoryTree({ paths }: { paths: string[] }) {
-  return (
-    <div className="font-mono text-[11.5px] leading-[1.65]">
-      {treeRows(paths).map((row) => (
-        <div key={row.prefix + row.name} className="whitespace-pre">
-          <span className="text-nb-ink-soft/50">{row.prefix}</span>
-          <span
-            className={
-              row.dir ? "font-[700] text-nb-accent-deep" : "text-nb-ink-soft"
-            }
-          >
-            {row.name}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-interface TreeNode {
-  name: string;
-  dir: boolean;
-  children: TreeNode[];
-}
-
-interface TreeRow {
-  prefix: string;
-  name: string;
-  dir: boolean;
-}
-
-function treeRows(paths: string[]): TreeRow[] {
-  const root: TreeNode = { name: "", dir: true, children: [] };
-  for (const path of paths) {
-    let node = root;
-    // A trailing slash is the board saying "a folder, whatever is in it" — the writer owns
-    // one — so the last segment is a folder rather than a file with no extension.
-    const folder = path.endsWith("/");
-    const parts = path.split("/").filter(Boolean);
-    parts.forEach((part, index) => {
-      const dir = folder || index < parts.length - 1;
-      let child = node.children.find((c) => c.name === part && c.dir === dir);
-      if (!child) {
-        child = { name: part, dir, children: [] };
-        node.children.push(child);
-      }
-      node = child;
-    });
-  }
-  const top = squash(root);
-  const rows: TreeRow[] = [
-    { prefix: "", name: label(top).replace(/^\//, ""), dir: top.dir },
-  ];
-  branch(top.children, "", rows);
-  return rows;
-}
-
-// Fold a chain of folders that each hold one thing into a single name.
-function squash(node: TreeNode): TreeNode {
-  const children = node.children.map(squash);
-  const only = children[0];
-  if (node.dir && children.length === 1 && only) {
-    return {
-      name: `${node.name}/${only.name}`,
-      dir: only.dir,
-      children: only.children,
-    };
-  }
-  return { ...node, children };
-}
-
-const label = (node: TreeNode): string =>
-  node.dir ? `${node.name}/` : node.name;
-
-function branch(nodes: TreeNode[], indent: string, rows: TreeRow[]): void {
-  nodes.forEach((node, index) => {
-    const last = index === nodes.length - 1;
-    rows.push({
-      prefix: `${indent}${last ? "\u2514\u2500 " : "\u251c\u2500 "}`,
-      name: label(node),
-      dir: node.dir,
-    });
-    branch(node.children, `${indent}${last ? "   " : "\u2502  "}`, rows);
-  });
 }
 
 // --- the characters ----------------------------------------------------------

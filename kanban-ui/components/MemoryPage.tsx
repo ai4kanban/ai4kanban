@@ -9,8 +9,8 @@
 // files are fixed, is all this page does.
 //
 // The heading is the panel's own words for the file, not its name: the panel calls the row
-// Settled decisions, and a page headed `decisions.md` would read as a different thing. The
-// path under it carries the file name anyway.
+// Settled decisions, and a page headed `decisions.md` would read as a different thing. Where
+// the file sits is the ⋯ menu's business, not the page's.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiCheck, FiCopy, FiMoreHorizontal } from "react-icons/fi";
@@ -120,9 +120,6 @@ export function MemoryPage({
                 <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">
                   {c.memory.files[file.name as keyof RailCopy["memory"]["files"]] ?? file.label}
                 </h1>
-                <p className="mt-1 break-all font-mono text-[12px] text-nb-ink-soft">
-                  {file.relPath}
-                </p>
               </div>
               <PathMenu file={file} />
             </div>
@@ -164,9 +161,8 @@ function PathMenu({ file }: { file: MemoryFile }) {
     navigator.clipboard
       ?.writeText(text)
       .then(() => setCopied(said))
-      // No clipboard permission, or no clipboard at all. The path is on screen above to
-      // select by hand, and saying the copy worked when it didn't would be worse than
-      // saying nothing.
+      // No clipboard permission, or no clipboard at all. Saying the copy worked when it
+      // didn't would be worse than saying nothing.
       .catch(() => {});
   };
 

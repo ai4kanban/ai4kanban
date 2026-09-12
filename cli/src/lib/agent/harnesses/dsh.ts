@@ -119,7 +119,7 @@ export const DSH: Harness = {
       kind: 'secret',
       env: 'DEEPSEEK_API_KEY',
       placeholder: 'sk-…',
-      help: 'Optional — empty uses the key dsh itself saved. Saved to docs/kanban/.env, never shown back.',
+      help: 'Optional — empty uses the key dsh itself saved. Stored on this computer, never shown back.',
     },
   ],
 
