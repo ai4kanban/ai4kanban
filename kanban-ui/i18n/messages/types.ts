@@ -57,8 +57,10 @@ export type MessagesCopy = {
     missing: (src: string) => string;
     notDrawn: (src: string, why: string) => string;
     /** The reasons a `.tsx` mockup wouldn't draw, which fill `why` above. */
-    importsOther: (id: string) => string;
     cannotImport: (id: string) => string;
+    noSuchFile: (id: string) => string;
+    outsideFolder: (id: string) => string;
+    tooManyFiles: (files: number) => string;
     noDefault: string;
     tooSlow: (seconds: number) => string;
     noStylesheet: string;

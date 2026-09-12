@@ -423,7 +423,7 @@ A mockup is written as one of two things:
 
 | The file | What it is |
 | --- | --- |
-| **`.tsx`** | One React component drawing the whole screen, styled with Tailwind and importing React and nothing else. This is the one an agent writes. |
+| **`.tsx`** | A React component drawing the whole screen, styled with Tailwind. This is the one an agent writes, and it may import the other files in its own folder. |
 | **`.html`** | A whole page carrying its own styling — for a drawing that already exists as a page. |
 
 Both get the same frame: the mockup's **label** — the screen's name — and its **file name** across
@@ -435,6 +435,14 @@ sideways. Switching one to its code leaves the others as they are.
 **Click the file name to see that mockup on its own, at full size** — a page with nothing else on
 it, where the words in a scaled-down screen can be read, and which scrolls sideways when the
 window is narrower than the mockup. Back returns to the card.
+
+**A rendered screen starts as a copy of the real one.** `ui-designer` copies the components the
+screen is actually built from into the card's folder, brings the app's stylesheet with them, takes
+the data, the network and the click handling out, and writes new markup only where the card
+changes something — so the drawing wears the product's own look instead of an approximation of it.
+The copy is a snapshot: it never reaches the running app, and it does not change when the app
+does. Alongside its own files a mockup may keep React, `react-icons`, `next/link`, `next/image`,
+`next/navigation` and the class-name helpers; everything else is trimmed out.
 
 Nothing in a mockup runs, loads anything from the network, reads anything else in the board, or
 answers a click: it is drawn inside a sandbox, and the board's own fonts, colours and layout stop

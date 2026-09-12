@@ -58,8 +58,11 @@ const en: MessagesCopy = {
       `${src} — a mockup is read from this board's mockups folder, and this points outside it`,
     missing: (src) => `${src} — no such file on this machine (mockups are not in git)`,
     notDrawn: (src, why) => `${src} — this mockup could not be drawn: ${why}`,
-    importsOther: (id) => `it imports "${id}", and a mockup may import React and nothing else`,
-    cannotImport: (id) => `cannot import "${id}"`,
+    cannotImport: (id) =>
+      `it imports "${id}", which a mockup cannot reach — bring it into the mockup's own folder, or draw that part without it`,
+    noSuchFile: (id) => `it imports "${id}", and there is no such file in the mockup's folder`,
+    outsideFolder: (id) => `it imports "${id}", and a mockup only reads the files in its own folder`,
+    tooManyFiles: (files) => `it pulls in more than ${files} files`,
     noDefault: "it exports no component as its default",
     tooSlow: (seconds) => `it did not finish drawing inside ${seconds} seconds`,
     noStylesheet: "Tailwind's stylesheet is not beside the app — the board cannot style a mockup",

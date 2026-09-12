@@ -15,7 +15,7 @@ akb:
           choices:
             full:
               label: 渲染页面
-              cost: 与产品同款样式，画得慢
+              cost: 从产品现有界面复制，与真实界面一致
             ascii:
               label: 字符草图
               cost: 纯文本，写在卡片里，画得快
@@ -28,7 +28,7 @@ akb:
       choices:
         - value: full
           label: Rendered screen
-          cost: styled like the product, slow to draw
+          cost: copied from the product's own screens, true to the real UI
           reference: references/rendered-screen.md
         - value: ascii
           label: ASCII drawing
@@ -45,8 +45,9 @@ on the card is yours.
 
 ## Describe the screen
 
-- **Match the existing product**: inspect its screens and reuse their colours, fonts, and
-  spacing. If it has no style, use a plain, neutral one.
+- **Match the existing product**: read the screens it already has and keep their layout,
+  colours, fonts, and spacing. The reference below says how far your format takes that. If
+  the product has no style yet, use a plain, neutral one.
 - **Say what the user sees and does**: not the parts the screen is built from. "Each card
   is a row with its title and a Run button", not "a CardList of CardRows".
 - **Cover empty and failure states**: say what the user sees and can do.
@@ -68,8 +69,8 @@ clicks, load from the network, or read board data.
 
 ## What to leave out
 
-Leave out implementation. A mockup is discarded when the build starts; it shows the screen,
-not project components or wiring notes.
+Leave out the wiring: data fetching, click handling, and notes on how it will be built. A
+mockup shows one screen in one fixed state, and it is discarded when the build starts.
 
 ## Where the drawing goes
 
@@ -79,9 +80,9 @@ named for what it shows — none of that changes with the format.
 
 ## Run again on the same card
 
-Leave `docs/kanban/.mockups/<card id>/` holding only the files your new answer points at.
-Delete screens the new design renamed or dropped, and anything the other mockup format left
-there — a format that writes no file leaves the folder empty.
+Leave `docs/kanban/.mockups/<card id>/` holding only the files your new answer needs. Delete
+screens the new design renamed or dropped, the copies they alone pulled in, and anything the
+other mockup format left there — a format that writes no file leaves the folder empty.
 
 Mockup files are keyed by card id, so they survive track changes. They are kept on this machine
 and not in the repository, so a rendered screen can go missing and need redrawing; a plain-text
