@@ -25,6 +25,7 @@ import {
   runFlows,
   stepLabel,
   triggerLabel,
+  unfinishedFlows,
   type RunFlow,
   type RunLabels,
 } from "@/lib/run-flows";
@@ -679,7 +680,7 @@ function RunsOffice({
   const room = Math.min(page, rooms - 1);
 
   const done = flows.filter((f) => f.latest.status === "done" && f.latest.ok);
-  const unfinished = flows.filter((f) => !isLive(f) && !(f.latest.status === "done" && f.latest.ok));
+  const unfinished = unfinishedFlows(flows);
   const shown = records === "unfinished" ? unfinished : done;
 
   const openRecords = (which: "done" | "unfinished") => {

@@ -67,6 +67,21 @@ export function runFlows(sessions: SessionView[]): RunFlow[] {
  *  refinement among them — is drawn exactly where it always was. */
 const groupOf = (s: SessionView): string => s.deliveryId ?? s.flow?.id ?? s.sessionId;
 
+/** The jobs Runs files under Unfinished: everything that is neither still going nor a
+ *  clean finish — minus the ones a landing has already settled (#673).
+ *
+ *  A card that lands leaves the board, and with it everything that was still owed on it: a
+ *  question nobody answered, a pass that failed, a run somebody stopped. Those records are
+ *  kept exactly as they ended — this is what Unfinished lists, not what the board holds. */
+export function unfinishedFlows(flows: RunFlow[]): RunFlow[] {
+  return flows.filter(
+    (f) =>
+      f.latest.status !== "running" &&
+      !(f.latest.status === "done" && f.latest.ok) &&
+      !f.latest.cardLanded,
+  );
+}
+
 /** The words the labels below are said in — `runs` out of the copy module. */
 export type RunLabels = Pick<RunsCopy, "step" | "flow" | "trigger">;
 

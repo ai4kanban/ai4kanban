@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { locate } from '../cards'
+import { locate, locateArchived } from '../cards'
 import { draftFile } from '../content'
 import type { CloudEventState } from '../cloud/events'
 import { reportCloudRunEnd, reportCloudRunStart } from '../cloud/publish'
@@ -387,7 +387,7 @@ export function resumeSessionId(run: RunRecord): string | undefined {
 const canPickUp = (r: RunRecord): boolean =>
   r.status === 'error' || r.status === 'interrupted' || r.status === 'stopped'
 
-function toView(r: RunRecord): RunView {
+function toView(r: RunRecord, landed?: ReadonlySet<number>): RunView {
   return {
     ...r,
     durationMs: r.status !== 'running' && r.endedAt ? r.endedAt - r.startedAt : undefined,
@@ -395,7 +395,22 @@ function toView(r: RunRecord): RunView {
     // the id to continue by, and the connector it ran on still resumes here. Its OWN
     // connector — re-pointing its agent since does not take the offer away (#443).
     canResume: canPickUp(r) && !!resumeIdOf(r) && resumesUnder(r.harness),
+    cardLanded: r.cardId !== null && landed?.has(r.cardId) ? true : undefined,
   }
+}
+
+// The cards, among those a run stopped short on, whose work has since landed (#673). A
+// card leaves the board for `.archive/` the moment its delivery lands, and a rejected one
+// is deleted rather than filed — so the archive answers "did this land?" on its own, for
+// every card the board has ever finished rather than the few the live record still holds.
+//
+// Asked only about the cards something stopped short on, which is almost always none.
+function landedCards(runs: RunRecord[]): ReadonlySet<number> {
+  const asking = new Set<number>()
+  for (const run of runs) if (run.cardId !== null && canPickUp(run)) asking.add(run.cardId)
+  const landed = new Set<number>()
+  for (const id of asking) if (locateArchived(id)) landed.add(id)
+  return landed
 }
 
 /** Every run the board knows about, oldest first. Reaping happens here, which is why this
@@ -419,7 +434,8 @@ export async function listRuns(): Promise<RunView[]> {
     scannedOrphansAt = Date.now()
     await recoverOrphanedDeliveries()
   }
-  return runs.map((r) => toView(r))
+  const landed = landedCards(runs)
+  return runs.map((r) => toView(r, landed))
 }
 
 // How often one process rescans the permanent records for deliveries it lost track of. A
@@ -472,7 +488,7 @@ export async function getRun(id: string, bytes?: number): Promise<RunView | null
   for (const run of restore) await restoreCardStatus(run)
   const found = findRun(runs, id)
   if (!found) return null
-  const view = toView(found)
+  const view = toView(found, landedCards([found]))
   const raw = readLogTail(found.logPath, bytes) ?? ''
   const { tail, result, durationMs, costUsd, model, usage } = splitLog(raw)
   view.tail = tail
