@@ -542,7 +542,7 @@ export function Sessions() {
       <button
         type="button"
         onClick={() => sessionsPanel.toggle()}
-        title={runningCount > 0 ? c.openRunning(runningCount) : c.open}
+        data-tip={runningCount > 0 ? c.openRunning(runningCount) : c.open}
         aria-label={c.open}
         // The middle tool in the header's cluster (components/chrome.tsx): no
         // frame of its own, a hairline on each side of it.
@@ -550,10 +550,10 @@ export function Sessions() {
       >
         <FiActivity size={15} aria-hidden />
         {/* A live run says so with an ember dot in the corner of the icon rather
-            than a counted badge on the button's shoulder: the cluster clips to
-            its own frame, so anything hanging off a tool's edge is cut in half.
-            The number moved into the tooltip and is on every row of the panel
-            this opens — what the dot has to carry is that something is going. */}
+            than a counted badge on the button's shoulder, which would hang off a
+            tool's edge and break the frame the cluster draws around all four. The
+            number moved into the tooltip and is on every row of the panel this
+            opens — what the dot has to carry is that something is going. */}
         {runningCount > 0 && (
           <span className="absolute right-[5px] top-[5px] flex size-[7px] items-center justify-center">
             <span

@@ -49,9 +49,12 @@ export const PULSE_DOT =
  *  The height is the cluster's rather than a second 28px: the frame is 28px
  *  including its 1.5px border, so a 28px button inside it overflows by 3px, gets
  *  clipped at the bottom, and leaves every icon sitting a pixel and a half below
- *  the centre of the row. */
+ *  the centre of the row.
+ *
+ *  It carries the tip too (#655): a tool is an icon and nothing else, so the only
+ *  thing that says what it does is the bubble under it. Give it a `data-tip`. */
 export const TOOL_BTN =
-  "relative inline-flex h-full w-7 max-md:w-9 shrink-0 cursor-pointer items-center justify-center text-nb-ink transition-colors duration-100 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]";
+  "nb-tip nb-tip-below relative inline-flex h-full w-7 max-md:w-9 shrink-0 cursor-pointer items-center justify-center text-nb-ink transition-colors duration-100 hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] active:bg-[color-mix(in_srgb,var(--color-nb-ink)_10%,transparent)]";
 
 /** The line between two segments of one framed control — the tools in a cluster,
  *  the release chip's picker and its ⋯ menu.
@@ -72,12 +75,17 @@ export function SegmentDivider() {
 /** The frame a run of TOOL_BTNs shares. The dividers are put in by the cluster
  *  rather than by the buttons, so no tool has to know where in the row it sits —
  *  and the dialogs those tools open (all portalled to <body>) are never in the
- *  DOM here to be given one by mistake. */
+ *  DOM here to be given one by mistake.
+ *
+ *  It does not clip: each tool's tip has to hang below the frame to be read
+ *  (#655), and `overflow-hidden` would cut it off at the sticker's edge. What the
+ *  clip was for — a segment's own fill following the frame's corners — is done by
+ *  rounding the two end segments instead, at the frame's inner radius. */
 export function ToolCluster({ children }: { children: React.ReactNode }) {
   const tools = Children.toArray(children);
   return (
     <span
-      className={`inline-flex h-7 max-md:h-9 shrink-0 items-stretch overflow-hidden rounded-[8px] bg-nb-paper ${CHROME}`}
+      className={`inline-flex h-7 max-md:h-9 shrink-0 items-stretch rounded-[8px] bg-nb-paper ${CHROME} [&>*:first-child]:rounded-l-[6.5px] [&>*:last-child]:rounded-r-[6.5px]`}
     >
       {tools.map((tool, i) => (
         <Fragment key={isValidElement(tool) ? tool.key : i}>

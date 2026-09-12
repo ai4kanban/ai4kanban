@@ -177,7 +177,7 @@ export function ConfigurationButton() {
     <button
       type="button"
       className={TOOL_BTN}
-      title={c.open}
+      data-tip={c.open}
       aria-label={c.open}
       onClick={() => configDialog.open("general")}
     >

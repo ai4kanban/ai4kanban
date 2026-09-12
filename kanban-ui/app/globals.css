@@ -217,9 +217,22 @@ body {
   transition: opacity 0.12s ease;
   z-index: 30;
 }
+/* Nothing to say, nothing drawn — an absent or empty `data-tip` would otherwise
+   paint a blank bubble. */
+.nb-tip:not([data-tip])::after,
+.nb-tip[data-tip=""]::after {
+  content: none;
+}
 .nb-tip:hover::after,
 .nb-tip:focus-visible::after {
   opacity: 1;
+}
+/* Below the element instead of above — what a control in the window's top row
+   needs, since there is nothing above it but the window's edge, which would cut
+   the bubble in half. */
+.nb-tip-below::after {
+  bottom: auto;
+  top: calc(100% + 6px);
 }
 /* Dropdowns are components/ui/select.tsx (shadcn Select restyled to this
    language) — no shared class here. Its open-list animation is the nbPopIn

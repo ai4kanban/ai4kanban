@@ -158,7 +158,8 @@ shadow. Shadows never blur or change direction.
   paper title bar, a hairline under it, and a wash well below — the same shape wherever it
   is dropped, inside a dialog or on a page.
 - **Tooltips**: use ink with cream text, appear on keyboard focus as well as hover, and
-  explain icon-only or abbreviated controls in sentence case.
+  explain icon-only or abbreviated controls in sentence case. They sit above the control,
+  and below it in the window's top row, where there is nothing above but the edge.
 
 ## Interaction and motion
 

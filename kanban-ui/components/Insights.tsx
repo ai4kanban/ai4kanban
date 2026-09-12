@@ -46,7 +46,7 @@ export function Insights({ row = false }: { row?: boolean }) {
       <button
         type="button"
         className={TOOL_BTN}
-        title={c.open}
+        data-tip={c.open}
         aria-label={c.open}
         onClick={() => setOpen(true)}
       >

@@ -59,10 +59,11 @@ export function BellButton() {
     <button
       type="button"
       aria-label={lit ? c.bellUnread(unread) : c.bell}
+      data-tip={lit ? c.bellUnread(unread) : c.bell}
       aria-pressed={rail.open}
       onClick={rail.toggle}
-      // The count rides inside the segment, so the segment grows rather than the frame
-      // being broken by a badge on its edge.
+      // The count rides inside the segment, so the segment grows rather than a badge on
+      // the frame's edge breaking it.
       className={`${TOOL_BTN} ${lit ? "w-auto gap-1 px-2" : ""}`}
       style={
         lit

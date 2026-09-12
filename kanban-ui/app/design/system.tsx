@@ -839,9 +839,18 @@ export function DesignSystem() {
               >
                 hover me
               </span>
+              <span
+                className="nb-tip nb-tip-below nb-chip"
+                tabIndex={0}
+                data-tip="add .nb-tip-below where there is no room above"
+                style={{ background: "var(--color-nb-sky-soft)", color: "var(--color-nb-sky-ink)" }}
+              >
+                below
+              </span>
               <span className="text-[12.5px] text-nb-ink-soft">
                 Un-cased on purpose, so the tip reads as a sentence even off an
-                uppercase chip.
+                uppercase chip. It sits above the control, and below it for
+                anything in the window&apos;s top row.
               </span>
             </Row>
           </div>

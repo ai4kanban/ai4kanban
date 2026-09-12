@@ -33,8 +33,7 @@ import { useSolution } from "./solution";
 //
 // The bell (#319) is the tool cluster's first segment. It opens the notification rail in
 // the chat rail's own place — the right side holds one at a time — and wears its unread
-// count inside the segment rather than as a badge on the frame, which the cluster would
-// clip.
+// count inside the segment rather than as a badge that would hang off the frame.
 //
 // The Chat button (#242) sits beside Create task and folds the chat rail down the right of
 // the window. It draws nothing of its own — the rail's state lives in the window
@@ -239,8 +238,8 @@ export function Header({
         <span className="hidden items-center gap-2 md:flex">
           <ToolCluster>
             {/* The bell leads the cluster (#319): it is the one control in it that changes
-                on its own, and its count rides inside the segment because the cluster clips
-                to its own frame. */}
+                on its own, and its count rides inside the segment rather than hanging off
+                the shared frame. */}
             <BellButton />
             <Insights />
             <Sessions />
