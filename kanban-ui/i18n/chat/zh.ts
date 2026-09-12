@@ -47,6 +47,7 @@ const zh: ChatCopy = {
   agentSaid: "Agent",
   ask: "提问，或说出你想改什么",
   askCard: (id) => `提问 #${id}，或说出你想改什么`,
+  editOpener: "修改当前卡片：\n",
   message: "你的消息",
   send: "发送",
   stop: "停止",

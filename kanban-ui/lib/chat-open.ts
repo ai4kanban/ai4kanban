@@ -10,15 +10,29 @@ import { useSyncExternalStore } from "react";
 // The same shape as the create sheet's (lib/create-open.ts), for the same reason: a fresh
 // object every ask, so asking twice still reaches a rail the user folded in between.
 
-let request: { at: number; cardId: number } | null = null;
+/** What the press meant. `edit` is the card page's Edit button, which also wants the caret
+ *  in the box and the opening line already typed; pressed again it folds the rail back
+ *  away. `open` only ever shows the conversation. */
+export type ChatAsk = "open" | "edit";
+
+let request: { at: number; cardId: number; kind: ChatAsk } | null = null;
 const subs = new Set<() => void>();
+
+function ask(cardId: number, kind: ChatAsk) {
+  request = { at: request ? request.at + 1 : 1, cardId, kind };
+  for (const fn of subs) fn();
+}
 
 export const cardChat = {
   /** Open this card's conversation. On another page it is the window arriving on that card
    *  that acts on it, so a row press and the navigation it starts are one move. */
   open(cardId: number) {
-    request = { at: request ? request.at + 1 : 1, cardId };
-    for (const fn of subs) fn();
+    ask(cardId, "open");
+  },
+  /** The card page's Edit: open this card's conversation ready to be typed in, or fold it
+   *  away again if this is what opened it. */
+  edit(cardId: number) {
+    ask(cardId, "edit");
   },
 };
 
@@ -28,7 +42,7 @@ const subscribe = (fn: () => void) => {
 };
 
 /** The last ask, for the window holding the rail. */
-export function useCardChatRequest(): { at: number; cardId: number } | null {
+export function useCardChatRequest(): { at: number; cardId: number; kind: ChatAsk } | null {
   return useSyncExternalStore(
     subscribe,
     () => request,

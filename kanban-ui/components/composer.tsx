@@ -34,6 +34,7 @@ export function MessageBox({
   foot,
   guard,
   sendRef,
+  boxRef,
   stop,
   disabled = false,
   autoFocus = false,
@@ -64,6 +65,9 @@ export function MessageBox({
   /** That box, for whatever draws the guard: it is the anchor an outside click is measured
    *  against, and where focus goes back to. */
   sendRef?: React.Ref<HTMLSpanElement>;
+  /** The text area itself, for an owner that has to reach it — the chat rail puts the caret
+   *  in it when Edit opens the conversation (#671). */
+  boxRef?: React.RefObject<HTMLTextAreaElement | null>;
   /** The corner is Stop instead of Send, and pressing it ends the reply this server owns. */
   stop?: { label: string; onStop: () => void };
   /** Shut for good — no agent that can answer, or one already held with another. */
@@ -131,7 +135,10 @@ export function MessageBox({
       >
         {head}
         <textarea
-          ref={box}
+          ref={(el) => {
+            box.current = el;
+            if (boxRef) boxRef.current = el;
+          }}
           data-chat-box={escEndsReply ? "" : undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}

@@ -1923,7 +1923,7 @@ export function CardPage({
                       size="sm"
                       className={EXTRA}
                       title={c.toolbar.editHint}
-                      onClick={() => cardChat.open(card.id)}
+                      onClick={() => cardChat.edit(card.id)}
                     >
                       <FiEdit2 className="text-[15px]" aria-hidden />
                       {c.toolbar.edit}

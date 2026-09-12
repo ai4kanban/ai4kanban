@@ -53,6 +53,10 @@ export type ChatCopy = {
   agentSaid: string;
   ask: string;
   askCard: (id: number) => string;
+  /** The opening line Edit types into the box for you (#671) — a real first line of a real
+   *  message, left for you to finish and send, not a placeholder. Ends in a newline so the
+   *  caret starts on the line under it. */
+  editOpener: string;
   message: string;
   send: string;
   /** The button Send becomes while a reply is coming. */

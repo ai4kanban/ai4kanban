@@ -52,6 +52,7 @@ const en: ChatCopy = {
   agentSaid: "Agent",
   ask: "Ask, or say what to change",
   askCard: (id) => `Ask about #${id}, or say what to change`,
+  editOpener: "Change this card:\n",
   message: "Your message",
   send: "Send",
   stop: "Stop",

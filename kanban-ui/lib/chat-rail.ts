@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 import {
   addChatImageAction,
@@ -107,6 +107,9 @@ export interface ChatRail {
   /** What the user has typed and not yet sent. */
   draft: string;
   setDraft(text: string): void;
+  /** The box itself, handed back by whatever draws it (components/composer.tsx), so Edit
+   *  can put the caret in it (#671). */
+  box: RefObject<HTMLTextAreaElement | null>;
   /** The pictures pasted into the box and not yet sent (#441), oldest first — the names
    *  they are filed under beside this conversation. Their files are already on disk, so a
    *  thumbnail and the picture the agent will read are one thing. */
@@ -179,8 +182,15 @@ export function useChatRail({
    *  or by anything else on this machine. The page re-reads itself on it. */
   onBoardChanged?(change: BoardChange): void;
 }): ChatRail {
-  const c = useCopy().messages.chat;
+  const copy = useCopy();
+  const c = copy.messages.chat;
   const [open, setOpen] = useState(false);
+  // Whether the rail on screen is the one Edit opened (#671) — what makes the same press
+  // fold it away again. Any other way of folding it gives up the claim, so the next Edit
+  // starts over at "show me this".
+  const byEdit = useRef(false);
+  const openRef = useRef(open);
+  openRef.current = open;
   const [read, setRead] = useState<ChatRead | null>(null);
   const [draft, setDraft] = useDraft(projectRoot, cardId);
   const [error, setError] = useState<string | null>(null);
@@ -207,6 +217,7 @@ export function useChatRail({
     setWalked(null);
     setPasted([]);
     setPasteNote(null);
+    byEdit.current = false;
   }
 
   const overlay = useMatches(OVERLAY_UNDER);
@@ -336,6 +347,7 @@ export function useChatRail({
   }, [open, chat, seen]);
 
   const toggle = useCallback(() => {
+    byEdit.current = false;
     setOpen((was) => {
       const now = !was;
       try {
@@ -347,6 +359,7 @@ export function useChatRail({
     });
   }, []);
   const fold = useCallback(() => {
+    byEdit.current = false;
     setOpen(() => {
       try {
         window.localStorage.setItem(OPEN_KEY, "0");
@@ -355,25 +368,58 @@ export function useChatRail({
     });
   }, []);
   // Somebody asked for this card's conversation (#633) — the card page's Edit, or its row in
-  // the rail's list, which navigates here first. Only ever opens: it is a press that means
-  // "show me this", and the ask is matched against the card on screen so arriving on another
-  // one leaves the rail as the reader left it.
+  // the rail's list, which navigates here first. The ask is matched against the card on
+  // screen, so arriving on another one leaves the rail as the reader left it.
+  //
+  // A row press only ever opens: it means "show me this". Edit is a press on the card being
+  // edited, so it also puts the caret in the box and types the opening line for you (#671),
+  // and pressing it again folds the rail it opened back away. Only the rail Edit itself
+  // opened — fold it any other way and the next press starts over at "show me this", which
+  // is also what the first press does on a rail that was already up.
   //
   // Each ask is honoured once. The count only ever climbs, so a card left with the rail
   // folded and come back to later is the reader's fold, not an ask they made minutes ago.
   const asked = useCardChatRequest();
   const askedFor = asked && asked.cardId === cardId ? asked.at : 0;
+  const askedKind = asked?.kind ?? "open";
   const honoured = useRef(0);
+  const opener = copy.chat.editOpener;
+  const [focusAt, setFocusAt] = useState(0);
+  const focused = useRef(0);
+  const box = useRef<HTMLTextAreaElement | null>(null);
   useEffect(() => {
     if (askedFor <= honoured.current) return;
     honoured.current = askedFor;
+    if (askedKind === "edit" && openRef.current && byEdit.current) {
+      fold();
+      return;
+    }
+    byEdit.current = askedKind === "edit";
     setOpen(true);
     try {
       window.localStorage.setItem(OPEN_KEY, "1");
     } catch {
       // storage unavailable — the rail is up for as long as the window lives
     }
-  }, [askedFor]);
+    if (askedKind !== "edit") return;
+    // An empty box is given the first line of the message to write; anything already typed
+    // is the user's and is left exactly as it is, opening line or not.
+    setDraft((typed) => (typed ? typed : opener));
+    setFocusAt((n) => n + 1);
+  }, [askedFor, askedKind, fold, opener, setDraft]);
+
+  // Put the caret in the box, at the end of whatever it holds — under the opening line Edit
+  // just typed, or after the draft it kept. The rail opens in the same breath as the ask, so
+  // the box may not be drawn yet; this runs again once it is and once the words are in it.
+  useEffect(() => {
+    if (focusAt <= focused.current) return;
+    const el = box.current;
+    if (!el) return;
+    focused.current = focusAt;
+    el.focus();
+    const end = el.value.length;
+    el.setSelectionRange(end, end);
+  }, [focusAt, open, draft]);
 
   const stop = useCallback(async () => {
     // Nothing to stop is nothing to do — a reply that landed between the paint and the
@@ -645,6 +691,7 @@ export function useChatRail({
     stop,
     draft,
     setDraft: type,
+    box,
     pasted,
     paste,
     dropFiles,

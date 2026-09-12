@@ -1037,6 +1037,9 @@ function Composer({
       <MessageBox
         value={rail.draft}
         onChange={rail.setDraft}
+        // Edit on the card page opens this conversation with the caret already in the box
+        // (#671), so the rail needs to be able to reach it.
+        boxRef={rail.box}
         onSend={() => void rail.send()}
         canSend={!disabled && !answering && !empty}
         disabled={disabled}
