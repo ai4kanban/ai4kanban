@@ -242,19 +242,32 @@ export async function deliveryDiff(id: string | undefined): Promise<DeliveryDiff
   }
 }
 
-/** The open cards carrying `query` in their title or body, for the rail's search box.
+/** The card id a query names, when the whole query is one — `116` or `#116` (#649). Nothing
+ *  else is an id: `11 6` is two words, and `1166` is a different card, not a near miss. */
+function queriedId(query: string): number | null {
+  const m = /^#?(\d+)$/.exec(query);
+  if (!m) return null;
+  const id = Number(m[1]);
+  return Number.isSafeInteger(id) ? id : null;
+}
+
+/** The open cards carrying `query` in their id, title or body, for the rail's search box.
  *
  *  It searches `allCards()` — every open card, a group's subtasks included — and never the
  *  archive: the rail is about what you are working on now. Read on each search rather than
  *  held as an index, so a card a run has just written matches on the words it has now.
  *
- *  Title matches lead, then the ones matched on their body alone, each by id. The word you
- *  half-remember is often in a scope line, but a card whose title says it is the one you
- *  meant. A blank query matches nothing — the rail keeps its own list — and a board with no
- *  rules to read it with comes back empty rather than throwing: a search box is no place to
- *  learn the board is unreadable, and every other screen already says so. */
+ *  The card the query names by id leads, then title matches, then the ones matched on their
+ *  body alone, each by id — and each card appears once, in the first of those it earns. A
+ *  number is how you point at one card, so that card comes first; the cards that mention it
+ *  are still worth having, which is why they stay. The word you half-remember is often in a
+ *  scope line, but a card whose title says it is the one you meant. A blank query matches
+ *  nothing — the rail keeps its own list — and a board with no rules to read it with comes
+ *  back empty rather than throwing: a search box is no place to learn the board is
+ *  unreadable, and every other screen already says so. */
 export async function searchCards(query: string): Promise<CardRef[]> {
-  const q = query.trim().toLowerCase();
+  const trimmed = query.trim();
+  const q = trimmed.toLowerCase();
   if (!q) return [];
   let cards: Card[];
   try {
@@ -262,15 +275,18 @@ export async function searchCards(query: string): Promise<CardRef[]> {
   } catch {
     return [];
   }
+  const wanted = queriedId(trimmed);
+  let named: CardRef | null = null;
   const titled: CardRef[] = [];
   const bodied: CardRef[] = [];
   for (const card of cards) {
     const hit = { id: card.id, title: card.title };
-    if (card.title.toLowerCase().includes(q)) titled.push(hit);
+    if (card.id === wanted) named = hit;
+    else if (card.title.toLowerCase().includes(q)) titled.push(hit);
     else if (card.body.toLowerCase().includes(q)) bodied.push(hit);
   }
   const byId = (a: CardRef, b: CardRef) => a.id - b.id;
-  return [...titled.sort(byId), ...bodied.sort(byId)];
+  return [...(named ? [named] : []), ...titled.sort(byId), ...bodied.sort(byId)];
 }
 
 /** The module names from `docs/kanban/modules.md`, for the create dialog's picker. A board
