@@ -1,9 +1,9 @@
 // The commit guard: a `pre-commit` hook that refuses a commit on the branch a delivery is
 // landing on (#324).
 //
-// Such a commit moves the target under the delivery, so the landing rebases — and after a
-// few rounds it gives up and leaves the landing to be finished by hand, an hour after the
-// commit that caused it. This refuses the commit instead, and names what it would break.
+// Such a commit moves the target under the delivery, so the landing gives its slot up,
+// waits and replays onto the new tip — for as long as the branch keeps moving. This refuses
+// the commit instead, and names what it would break.
 //
 // Advice with teeth, not a lock: only that one branch is refused, and `--no-verify` gets
 // past it. Anything the hook cannot judge lets the commit through — no `node`, no record, a

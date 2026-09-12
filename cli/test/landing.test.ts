@@ -26,6 +26,10 @@ import { SESSIONS_DIR, setBoardRoot } from '../src/lib/paths.ts'
 
 let root = ''
 
+// PATH as the suite found it, and the throwaway `git` shims one test puts in front of it.
+const PATH = process.env.PATH ?? ''
+const shims: string[] = []
+
 const card = (id: number, title: string): string =>
   [
     '---',
@@ -77,6 +81,9 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(root, { recursive: true, force: true })
+  process.env.PATH = PATH
+  for (const dir of shims) fs.rmSync(dir, { recursive: true, force: true })
+  shims.length = 0
 })
 
 // One session of a delivery, opened and closed the way the command and the watcher do.
@@ -133,6 +140,50 @@ const waitOver = (deliveryId: string): void => {
     const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)!
     delivery.landing!.conflictAt = Date.now() - 1
   })
+}
+
+// The same, for the wait a moved target branch leaves behind (#665).
+const retryOver = (deliveryId: string): void => {
+  withStore((store) => {
+    const delivery = store.deliveries.find((d) => d.deliveryId === deliveryId)!
+    delivery.landing!.retryAt = Date.now() - 1
+  })
+}
+
+// Move `main` on once, in the middle of the landing pass that is running — the race the
+// landing cannot win, at a moment a test cannot otherwise pick. Landing's own git calls run
+// with hooks off, so the seam is a `git` in front of the real one on PATH: it moves the
+// branch around the single command named here and then steps out of the way. The commit it
+// makes carries the tree `main` already has, so only the ref moves.
+const GIT = (spawnSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).stdout || '').trim()
+
+const raceOn = (arg: string, when: 'before' | 'after'): void => {
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-race-'))
+  const mark = path.join(bin, 'armed')
+  fs.writeFileSync(mark, '')
+  const move = [
+    `T=$("${GIT}" -C "${root}" rev-parse main^{tree})`,
+    `C=$("${GIT}" -C "${root}" commit-tree "$T" -p main -m 'someone else')`,
+    `"${GIT}" -C "${root}" update-ref refs/heads/main "$C"`,
+  ].join('\n')
+  fs.writeFileSync(
+    path.join(bin, 'git'),
+    [
+      '#!/bin/sh',
+      `case " $* " in *" ${arg} "*)`,
+      `  if [ -f "${mark}" ]; then`,
+      `    rm -f "${mark}"`,
+      ...(when === 'before' ? [move, `    exec "${GIT}" "$@"`] : [`    "${GIT}" "$@"; s=$?`, move, '    exit $s']),
+      '  fi',
+      '  ;;',
+      'esac',
+      `exec "${GIT}" "$@"`,
+      '',
+    ].join('\n'),
+  )
+  fs.chmodSync(path.join(bin, 'git'), 0o755)
+  shims.push(bin)
+  process.env.PATH = `${bin}:${process.env.PATH}`
 }
 
 // A build with no card (#428): a **Build now** run that ended before it wrote its own card
@@ -349,110 +400,116 @@ describe('a target branch that moved', () => {
     assert.equal(landing.checks?.length, 1)
   })
 
-  it('reviews again when a clean rebase touches the same file', async () => {
+  it('lands with no review when a clean rebase touches the same file', async () => {
     const base = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`)
     const firstText = [...base]
     firstText[1] = 'first changed this'
     const secondText = [...base]
     secondText[18] = 'second changed this'
-    await reviewed(1, 'card one', `${firstText.join('\n')}\n`, 'mergeable.txt')
+    const first = await reviewed(1, 'card one', `${firstText.join('\n')}\n`, 'mergeable.txt')
     const second = await reviewed(2, 'card two', `${secondText.join('\n')}\n`, 'mergeable.txt')
 
-    // Git composes both edits, then review judges the composed tree before it lands.
-    const wants = await advanceLanding()
-    assert.equal(wants?.action, 'review')
-    assert.equal(wants?.id, 2)
-    assert.equal(landingOf(second.deliveryId)?.rebaseKind, 'overlap')
-    // And it says why it is happening, so the panel can tell it from the first review (#417).
-    assert.equal(wants?.trigger, 'rebase')
-
-    // And the review is briefed on the intersection, not on the delivery all over again.
-    const sink = startCollecting()
-    try {
-      printFlow({ action: 'review', id: 2, title: 'card two' })
-    } finally {
-      stopCollecting()
-    }
-    const brief = sink.out.join('\n')
-    assert.match(brief, /focused post-rebase review after a clean rebase/)
-    assert.match(brief, /shared paths?: mergeable\.txt/)
-    assert.match(brief, /target delta: `git diff /)
-    assert.match(brief, /patch omitted for this focused rebase review/)
-    assert.doesNotMatch(brief, /build THIS, not the card file/)
-    // And so is the ask: it never claims the print carries the approved requirements.
-    assert.match(brief, /Judge only how those changes interact/)
-    assert.doesNotMatch(brief, /supplies the approved requirements/)
-
-    // If the caller dies before starting that review, another landing tick cannot reuse
-    // the verdict from before the rebase.
+    // Git composed both edits by itself, so the verdict this delivery already has still
+    // covers the tree — sharing a file is no longer a reason to judge it again (#665).
     assert.equal(await advanceLanding(), null)
-    assert.equal(landingOf(second.deliveryId)?.status, 'landing')
-    await passReview(2, 'card two')
-    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
     const landing = landingOf(second.deliveryId)!
     assert.equal(landing.status, 'landed')
     assert.equal(landing.attempts, 1)
+    // The overlap is still written down — it is what the replay WAS, not a gate on it.
+    assert.equal(landing.rebaseKind, 'overlap')
+    assert.equal(landing.rebasedFrom, first.base)
     assert.deepEqual(log(), ['card two (#2)', 'card one (#1)', 'start'])
-    assert.equal(landing.checks?.length, 2)
+    // The one review it ever needed is the one it passed in its worktree.
+    assert.equal(landing.checks?.length, 1)
   })
 
-  it('reviews rather than lands when the comparison cannot be read', async () => {
+  it('lands even when the file comparison cannot be read', async () => {
     const first = await reviewed(1, 'card one', 'one\n')
     const built = run('implement', 2, 'card two')
     const second = activeDelivery(2)!
     fs.writeFileSync(path.join(worktreeDir(second.worktree!), 'other.txt'), 'two\n')
     await end(built)
     await passReview(2, 'card two')
-    // Disjoint by its files — but git cannot say which files, because the ref the
-    // comparison names is not there.
+    // Git cannot say which files either side changed, because the ref the comparison names
+    // is not there.
     withStore((store) => {
       store.deliveries.find((d) => d.deliveryId === second.deliveryId)!.branch = 'no-such-branch'
     })
 
-    const wants = await advanceLanding()
+    // The record notes that as `overlap`, the honest answer when the comparison could not be
+    // made — and the rebase git composed without a conflict lands all the same (#665).
+    assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
-    // An unreadable comparison goes to review rather than past it.
-    assert.equal(wants?.action, 'review')
-    assert.equal(wants?.id, 2)
+    assert.equal(landingOf(second.deliveryId)?.status, 'landed')
     assert.equal(landingOf(second.deliveryId)?.rebaseKind, 'overlap')
   })
 
-  it('hands over rather than looping when the target keeps moving', async () => {
+  it('waits and retries, rather than asking, when the target moves under the move', async () => {
     const delivery = await reviewed(1, 'card one', 'one\n')
-    withStore((store) => {
-      store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)!.landing!.attempts = 3
-    })
+    // Off main, so the landing moves the ref rather than fast-forwarding a checkout — and
+    // the ref move is the write that loses the race.
+    git(['checkout', '--quiet', '-b', 'scratch'])
+    raceOn('--no-verify', 'before')
+
+    assert.equal(await advanceLanding(), null)
+    // Nothing asked, nothing stopped: the slot went back and the next attempt is a wait away.
+    const landing = landingOf(delivery.deliveryId)!
+    assert.equal(landing.status, 'waiting')
+    assert.match(landing.why ?? '', /moved again while this landing was going through/)
+    const wait = landing.retryAt! - Date.now()
+    assert.ok(wait > 0 && wait <= 15_000, `the first wait was ${wait}ms`)
+    assert.equal(listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)!.review?.stopped, undefined)
+    assert.doesNotMatch(cardText(1), /\[user\]/)
+    assert.equal(stageOf(delivery.deliveryId), 'retry')
+    // And nothing picks it up while it waits.
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'waiting')
+
+    // The wait is over: it replays onto the new tip and lands, with no review in between.
+    retryOver(delivery.deliveryId)
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
+    assert.equal(landingOf(delivery.deliveryId)?.retryAt, undefined)
+    assert.deepEqual(log(), ['card one (#1)', 'someone else', 'start'])
+  })
+
+  it('waits rather than rebasing twice in one pass', async () => {
+    const delivery = await reviewed(1, 'card one', 'one\n')
+    // Someone else commits first, so this pass has to rebase — and main moves again the
+    // moment that rebase finishes, so the pass's second look finds the target gone once more.
     fs.writeFileSync(path.join(root, 'other.txt'), 'someone else\n')
     git(['add', '-A'])
     git(['commit', '--quiet', '-m', 'someone else'])
+    raceOn('--onto', 'after')
 
     assert.equal(await advanceLanding(), null)
-    const live = listDeliveries().find((d) => d.deliveryId === delivery.deliveryId)!
-    assert.match(live.landing?.why ?? '', /moved again after 3 rebases/)
-    assert.equal(live.review?.stopped?.reason, 'landing')
-    assert.deepEqual(log(), ['someone else', 'start'])
-    // And nothing picks it up again while it waits on the user.
+    const landing = landingOf(delivery.deliveryId)!
+    assert.equal(landing.status, 'waiting')
+    assert.equal(landing.attempts, 1, 'one rebase per pass, and the next one is a wait away')
+    assert.ok(landing.retryAt! > Date.now())
+    assert.equal(stageOf(delivery.deliveryId), 'retry')
+
+    retryOver(delivery.deliveryId)
     assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(delivery.deliveryId)?.status, 'landed')
   })
 })
 
 describe('queued behind the slot', () => {
   // The slot's holder, stopped for the review its overlapping rebase owes — so it keeps the
   // slot across every pass, which is exactly when a waiter is never looked at.
-  async function holdTheSlot(): Promise<DeliveryRecord> {
-    const lines = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`)
-    const mine = [...lines]
-    mine[18] = 'card one changed this'
-    const first = await reviewed(1, 'card one', `${mine.join('\n')}\n`, 'mergeable.txt')
-    // Someone else changes the same file, far enough away to merge cleanly.
-    const theirs = [...lines]
-    theirs[1] = 'someone else changed this'
-    fs.writeFileSync(path.join(root, 'mergeable.txt'), `${theirs.join('\n')}\n`)
+  async function holdTheSlot(): Promise<{ first: DeliveryRecord; session: string }> {
+    const first = await reviewed(1, 'card one', 'card one\n')
+    // Someone else changed the same lines, so the rebase stops on a conflict and an agent
+    // opens on it — a run of its own, which holds the slot across every pass.
+    fs.writeFileSync(path.join(root, 'shared.txt'), 'someone else\n')
     git(['add', '-A'])
     git(['commit', '--quiet', '-m', 'someone else'])
-    assert.equal((await advanceLanding())?.action, 'review')
+    assert.equal((await advanceLanding())?.action, 'conflict')
+    const session = run('conflict', 1, 'card one')
     assert.equal(landingOf(first.deliveryId)?.status, 'landing')
-    return first
+    return { first, session }
   }
 
   async function waiting(): Promise<DeliveryRecord> {
@@ -488,11 +545,17 @@ describe('queued behind the slot', () => {
   })
 
   it('drops the note as soon as the slot is its own', async () => {
-    const first = await holdTheSlot()
+    const { first, session } = await holdTheSlot()
     const second = await waiting()
     assert.equal(await advanceLanding(), null)
     assert.match(landingOf(second.deliveryId)?.why ?? '', /^in line behind #1/)
 
+    // The conflict is resolved, and the delivery in front lands.
+    const dir = worktreeDir(first.worktree!)
+    fs.writeFileSync(path.join(dir, 'shared.txt'), 'someone else\ncard one\n')
+    git(['add', 'shared.txt'], dir)
+    await end(session)
+    assert.equal((await advanceLanding())?.action, 'review')
     await passReview(1, 'card one')
     await advanceLanding()
     assert.equal(landingOf(first.deliveryId)?.status, 'landed')
@@ -505,12 +568,12 @@ describe('queued behind the slot', () => {
     // Its own landing already handed over to the user; the queue is not what it waits on.
     withStore((store) => {
       const live = store.deliveries.find((d) => d.deliveryId === second.deliveryId)!
-      live.landing!.why = 'main moved again after 3 rebases, so this landing is not converging'
+      live.landing!.why = 'a tree nobody could commit is waiting on you'
       live.review = { ...(live.review ?? { rounds: [] }), stopped: { reason: 'landing', why: 'x', at: 1 } }
     })
 
     assert.equal(await advanceLanding(), null)
-    assert.match(landingOf(second.deliveryId)?.why ?? '', /^main moved again after 3 rebases/)
+    assert.match(landingOf(second.deliveryId)?.why ?? '', /^a tree nobody could commit/)
   })
 })
 
@@ -578,6 +641,28 @@ describe('a conflict', () => {
     assert.equal(wants?.id, 2)
     assert.equal(wants?.trigger, 'conflict')
     assert.equal(rebaseInProgress(dir), false)
+
+    // And that review is briefed on the intersection, not on the delivery all over again.
+    const sink = startCollecting()
+    try {
+      printFlow({ action: 'review', id: 2, title: 'card two' })
+    } finally {
+      stopCollecting()
+    }
+    const brief = sink.out.join('\n')
+    assert.match(brief, /focused post-rebase review after a conflict an agent resolved/)
+    assert.match(brief, /shared paths?: shared\.txt/)
+    assert.match(brief, /target delta: `git diff /)
+    assert.match(brief, /patch omitted for this focused rebase review/)
+    assert.doesNotMatch(brief, /build THIS, not the card file/)
+    // And so is the ask: it never claims the print carries the approved requirements.
+    assert.match(brief, /Judge only how those changes interact/)
+    assert.doesNotMatch(brief, /supplies the approved requirements/)
+
+    // If the caller dies before starting that review, another landing tick cannot reuse the
+    // verdict from before the rebase.
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(second.deliveryId)?.status, 'landing')
     await passReview(2, 'card two')
     assert.equal(await advanceLanding(), null)
 

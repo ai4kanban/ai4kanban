@@ -625,6 +625,7 @@ describe('a delivery the live record lost', () => {
       conflictFiles: undefined,
       conflictFails: undefined,
       conflictAt: undefined,
+      retryAt: undefined,
       checks: undefined,
     })
   })

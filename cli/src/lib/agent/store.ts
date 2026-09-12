@@ -55,7 +55,7 @@ const KEEP_DELIVERIES = 30
 // The triggers a review's record may carry (#417). A word this build does not know is
 // dropped rather than kept: the panel has nothing to say for it, and a run recorded before
 // triggers existed reads the same way.
-const TRIGGERS: ReadonlySet<ReviewTrigger> = new Set<ReviewTrigger>(['rebase', 'conflict', 'answered', 'asked'])
+const TRIGGERS: ReadonlySet<ReviewTrigger> = new Set<ReviewTrigger>(['conflict', 'answered', 'asked'])
 
 /** Where a run's log is written, from its id alone. */
 export const logPathOf = (sessionId: string): string => path.join(SESSIONS_DIR, `${sessionId}.log`)
@@ -484,6 +484,7 @@ function readLanding(raw: unknown): DeliveryRecord['landing'] {
       : undefined,
     conflictFails: num(box.conflictFails),
     conflictAt: num(box.conflictAt),
+    retryAt: num(box.retryAt),
     checks: Array.isArray(box.checks)
       ? box.checks.flatMap((c) =>
           c && typeof c.name === 'string' ? [{ name: c.name, ok: c.ok === true, at: num(c.at) ?? 0 }] : [],

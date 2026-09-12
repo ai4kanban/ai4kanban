@@ -117,7 +117,7 @@ A separate silence timeout ends a run that stops producing output. You choose th
 
 Yes. Claude Code agent view shows the sessions themselves. AI4Kanban decides which project tasks may start, based on card readiness and dependencies.
 
-When automatic Git commits are enabled, each task gets its own branch and worktree. Independent tasks can run together; dependent tasks wait. Reviewed changes land on the target branch one at a time. If another task changed that branch, AI4Kanban rebases the next change and reviews it again. A Git conflict gets a focused Claude Code resolution run, followed by another review before landing.
+When automatic Git commits are enabled, each task gets its own branch and worktree. Independent tasks can run together; dependent tasks wait. Reviewed changes land on the target branch one at a time. If another task changed that branch, AI4Kanban rebases the next change onto it and lands it — and keeps retrying, without asking you, for as long as the branch keeps moving. A Git conflict gets a focused Claude Code resolution run, followed by another review before landing.
 
 Worktrees prevent concurrent sessions from overwriting the same checkout. The landing process handles the separate problem of 2 branches changing the same lines or producing behavior that no longer works when combined.
 

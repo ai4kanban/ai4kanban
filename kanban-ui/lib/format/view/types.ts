@@ -348,20 +348,22 @@ export interface CardLanding {
   commit?: string
   /** Cards being built over the same files. A warning, never a reason to refuse. */
   overlap?: number[]
-  /** The landing conflict the board is resolving by itself (#595), while one is on. Absent
-   *  on every other landing, and gone the moment the rebase goes through. */
-  conflict?: CardLandingConflict
+  /** The landing retry the board is working through by itself, while one is on. Absent on
+   *  every other landing, and gone the moment the landing goes through. */
+  retry?: CardLandingRetry
 }
 
-/** A landing conflict with the target branch, as the delivery block's retry bar draws it
- *  (#595). The board resolves it with an agent, waits, and opens another — without limit and
- *  without asking, so this says which attempt, what is still conflicted, and when the next
- *  one opens. */
-export interface CardLandingConflict {
+/** A landing the board is retrying by itself, as the delivery block's retry bar draws it.
+ *  It retries without limit and without asking, so this says which attempt, what it is
+ *  waiting on, and when the next one opens. */
+export interface CardLandingRetry {
+  /** Why it is being retried: an agent is resolving a conflict with the target branch
+   *  (#595), or the target branch moved under the landing (#665). */
+  kind: 'conflict' | 'moved'
   /** The attempt running now, or the one the wait is for. One-based. */
   attempt: number
-  /** The files still conflicted, repo-relative. */
-  files: string[]
+  /** The files still conflicted, repo-relative — on a `conflict` retry only. */
+  files?: string[]
   /** When the next attempt opens, while the board is waiting between two. Absent while an
    *  agent is working, which is exactly what tells the two apart. */
   at?: number

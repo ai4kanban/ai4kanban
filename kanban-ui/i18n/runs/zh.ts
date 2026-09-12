@@ -93,7 +93,6 @@ const zh: RunsCopy = {
     writing: "澄清",
   },
   trigger: {
-    rebase: "变基之后",
     conflict: "解决冲突之后",
     answered: "你回答之后",
     asked: "你要求的",

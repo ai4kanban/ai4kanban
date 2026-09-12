@@ -216,6 +216,13 @@ const en: CardCopy = {
         (files.length === 1 ? `\`${files[0]}\` is still conflicted.` : `${files.length} files are still conflicted.`) +
         (waiting ? " It holds no landing slot while it waits — another delivery can land." : ""),
     },
+    moved: {
+      waiting: (seconds, attempt) => `Retrying in ${seconds}s · attempt ${attempt}`,
+      starting: (attempt) => `Starting attempt ${attempt}`,
+      body: (branch) =>
+        `${branch ? `\`${branch}\`` : "The target branch"} moved on while this was landing, so it starts over on ` +
+        "the new code. It holds no landing slot while it waits — another delivery can land.",
+    },
     approval: {
       approved: "Approved — it lands from here.",
       approvedBody: (covers) =>

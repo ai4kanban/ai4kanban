@@ -151,8 +151,6 @@ export const REFINE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([
  *  otherwise relabel the review the first one owed. A start site added later names its own
  *  reason here, and the runs panel draws whatever it finds a word for. */
 export type ReviewTrigger =
-  /** The target branch changed files this delivery also changes. */
-  | 'rebase'
   /** A conflict with the target branch was resolved, and the result is code nothing
    *  has judged. */
   | 'conflict'
@@ -519,17 +517,18 @@ export interface DeliveryLanding {
   status: LandingStatus
   /** Why it is waiting, or why it stopped — one plain sentence. */
   why?: string
-  /** Rebases spent on a target branch that kept moving. `MAX_LAND_ATTEMPTS` and then the
-   *  card gets an open question rather than another round. */
+  /** Rebases spent on a target branch that kept moving. Never bounded: a target that keeps
+   *  moving is a race inside the board, so the landing waits and replays until it goes
+   *  through (#665). */
   attempts: number
   /** When the last rebase finished. */
   rebasedAt?: number
   /** The base it was rebased from — what the target branch brought in is the diff between
    *  that commit and the new base. */
   rebasedFrom?: string
-  /** What the last rebase turned out to be, and so why a review did or did not follow it:
-   *  `disjoint` shares no file with the delivery, `overlap` shares one, `conflict` was
-   *  resolved by an agent. */
+  /** What the last rebase turned out to be: `disjoint` shares no file with the delivery,
+   *  `overlap` shares one, `conflict` was resolved by an agent. A record of the replay, not
+   *  a gate — only `conflict` owes a review (#665). */
   rebaseKind?: 'disjoint' | 'overlap' | 'conflict'
   /** The squash commit that landed. */
   commit?: string
@@ -550,6 +549,11 @@ export interface DeliveryLanding {
   /** When the next `conflict` run may open. The delivery gives the landing slot back until
    *  then, so another delivery lands while it waits. */
   conflictAt?: number
+  /** When the next landing attempt may open, after the target branch moved under this one
+   *  (#665). Same shape as `conflictAt` and the same slot-free wait: the delivery holds no
+   *  landing slot until then, and the wait is never bounded — the target moving is the
+   *  board's own race, and there is nothing for the user to answer. */
+  retryAt?: number
   at: number
 }
 

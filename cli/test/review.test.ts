@@ -449,7 +449,7 @@ describe('one delivery, one job', () => {
     const built = build()
     const id = activeDelivery(5)!.deliveryId
     await close(built)
-    const review = session('review', { trigger: 'rebase' })
+    const review = session('review', { trigger: 'conflict' })
     withStore((store) => {
       store.runs.push(review)
       joinActive(store, review, 'review')
@@ -457,7 +457,7 @@ describe('one delivery, one job', () => {
     await close(review)
 
     const sessions = readAudit(id).sessions as { sessionId: string; trigger?: string }[]
-    assert.equal(sessions.find((s) => s.sessionId === review.sessionId)?.trigger, 'rebase')
+    assert.equal(sessions.find((s) => s.sessionId === review.sessionId)?.trigger, 'conflict')
     // The first review after a build is the default and names none.
     assert.equal(sessions.find((s) => s.sessionId === built.sessionId)?.trigger, undefined)
   })

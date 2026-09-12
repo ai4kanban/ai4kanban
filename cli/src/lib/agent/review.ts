@@ -35,14 +35,14 @@ export const aiReviewOn = (delivery: Pick<DeliveryRecord, 'aiReview'>): boolean 
 export const lastRound = (delivery: DeliveryRecord): ReviewRound | undefined =>
   delivery.review?.rounds[delivery.review.rounds.length - 1]
 
-/** Whether the review this delivery owes is the focused post-rebase one (#415): a rebase
- *  put the target's own changes next to work that already passed, and nothing has judged
- *  the two together yet. A disjoint rebase owes no review at all, and a round recorded
- *  since the rebase has already been that pass. */
+/** Whether the review this delivery owes is the focused post-rebase one (#415): a conflict
+ *  with the target branch was resolved, and that resolution is code nothing has judged. A
+ *  rebase git composed by itself owes no review at all (#665), and a round recorded since
+ *  the rebase has already been that pass. */
 export const owesFocusedReview = (delivery: DeliveryRecord | undefined): boolean => {
   const landing = delivery?.landing
   if (!landing?.rebasedAt || !landing.rebasedFrom) return false
-  if (landing.rebaseKind !== 'overlap' && landing.rebaseKind !== 'conflict') return false
+  if (landing.rebaseKind !== 'conflict') return false
   return (lastRound(delivery!)?.at ?? 0) < landing.rebasedAt
 }
 

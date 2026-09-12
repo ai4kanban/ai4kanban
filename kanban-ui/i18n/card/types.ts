@@ -153,6 +153,15 @@ export type CardCopy = {
        *  is waiting, that the wait costs no other delivery its turn. */
       stuck: (files: string[], waiting: boolean) => string;
     };
+    /** A target branch that moved while this was landing (#665). The board starts over on
+     *  the new code by itself, so there is only ever a wait here — never a run. No
+     *  denominator either: the attempts do not run out. */
+    moved: {
+      waiting: (seconds: number, attempt: number) => string;
+      starting: (attempt: number) => string;
+      /** What moved, and that the wait costs no other delivery its turn. */
+      body: (branch?: string) => string;
+    };
     approval: {
       approved: string;
       approvedBody: (covers: string) => string;

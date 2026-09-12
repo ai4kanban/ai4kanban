@@ -299,12 +299,12 @@ function candidateField(delivery: DeliveryRecord | undefined, includePatch = tru
   ])
 }
 
-// A rebase that put the target's own changes next to the delivery's, in a file both
-// touched (#415). The delivery itself already passed, so the job is how the two interact —
-// and nothing here repeats the approved requirements, the card's steps or its questions.
+// A conflict with the target branch that an agent resolved (#415). The delivery itself
+// already passed, so the job is how the two sides interact — and nothing here repeats the
+// approved requirements, the card's steps or its questions.
 //
-// Empty for a disjoint rebase, which starts no review at all, and for a review that has
-// already passed since the rebase — that one is the ordinary full pass.
+// Empty for a rebase git composed by itself, which starts no review at all (#665), and for
+// a review that has already passed since the rebase — that one is the ordinary full pass.
 function rebaseReviewField(delivery: DeliveryRecord | undefined): string[] {
   const landing = delivery?.landing
   if (!delivery?.base || !delivery.branch || !delivery.worktree || !landing?.rebasedFrom || !owesFocusedReview(delivery)) {
@@ -315,9 +315,8 @@ function rebaseReviewField(delivery: DeliveryRecord | undefined): string[] {
   const ours = changedPaths(delivery.base, delivery.branch, dir)
   const theirs = new Set(arrived ?? [])
   const shared = arrived && ours ? ours.filter((file) => theirs.has(file)) : null
-  const was = landing.rebaseKind === 'conflict' ? 'a conflict an agent resolved' : 'a clean rebase'
   return field('scope', [
-    `focused post-rebase review after ${was} — this delivery already passed, and that verdict stands.`,
+    `focused post-rebase review after a conflict an agent resolved — this delivery already passed, and that verdict stands.`,
     `judge how ${delivery.targetBranch} changed since ${landing.rebasedFrom.slice(0, 12)} and how that interacts with the delivery — not the delivery's own design.`,
     `target delta: \`git diff ${landing.rebasedFrom.slice(0, 12)} ${delivery.base.slice(0, 12)}\`.`,
     shared?.length

@@ -37,8 +37,9 @@ export type DeliveryStage =
   /** An agent is resolving a conflict with the target branch, in the delivery's own
    *  worktree (#595). Nothing is asked of the user. */
   | 'conflict'
-  /** That agent could not resolve it, and the board waits before opening the next one
-   *  (#595). It holds no landing slot while it waits, so another delivery lands. */
+  /** The board is waiting before the next landing attempt — a `conflict` run that could not
+   *  resolve it (#595), or a target branch that moved under the landing (#665). It holds no
+   *  landing slot while it waits, so another delivery lands. */
   | 'retry'
   /** Reviewed and queued behind the card that holds the landing slot. Nothing is asked of
    *  the user: it moves the moment the one in front of it lands. */
@@ -101,9 +102,9 @@ const backInMotion = (delivery: DeliveryRecord): string => {
 /** True when a review's stop is over: it stopped to ask, and the card has no question
  *  left. The questions ARE that stop, so answering ends it — nothing has to be pressed.
  *
- *  Only `ask`. Every other reason names something outside the card — a landing that will
- *  not converge, a tree nobody could commit — and the question each one leaves already says
- *  what puts the delivery back in motion.
+ *  Only `ask`. Every other reason names something outside the card — a tree nobody could
+ *  commit, for one — and the question each one leaves already says what puts the delivery
+ *  back in motion.
  *
  *  The stop itself is left standing until the review run starts and clears it
  *  (`joinActive`), so this is derived on every read the way everything else here is. */
@@ -270,6 +271,22 @@ export function deliveryState(
         line: `Attempt ${attempt}: resolving ${where}. It lands by itself once the conflict is out — nothing is asked of you.`,
         paused: false,
       }
+    }
+  }
+  // The target branch moved under a landing (#665). The board gave its slot up and replays
+  // onto the new tip by itself, without limit and without asking — so this is not a pause
+  // either. Before the queue and the refusal below, both of which would claim this `why`.
+  if (landing?.status === 'waiting' && landing.retryAt) {
+    const left = Math.max(0, Math.round((landing.retryAt - Date.now()) / 1_000))
+    const attempt = landing.attempts + 1
+    return {
+      stage: 'retry',
+      label: 'Waiting to retry',
+      line:
+        `${delivery.targetBranch ? `\`${delivery.targetBranch}\`` : 'The target branch'} moved on while this was landing. ` +
+        `It gave the landing slot up and starts attempt ${attempt} ${left ? `in ${left}s` : 'now'} — ` +
+        `another delivery can land while it waits.`,
+      paused: false,
     }
   }
   // Queued behind whichever card holds the landing slot. Before the refusal below, because

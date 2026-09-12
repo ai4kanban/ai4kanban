@@ -3,9 +3,12 @@
 // Review passes and the work is still on the delivery's own branch. Landing is the last
 // step, and it is the BOARD's own work — no run does it. The branch is squashed to one
 // commit, rebased onto the target branch's tip when that has moved, and the target branch
-// is moved to it. A rebase keeps the verdict the delivery already has when what the target
-// brought in shares no file with it; one that does share a file — a resolved conflict
-// among them — gets a review of that intersection before it lands.
+// is moved to it. A rebase that goes through without a conflict keeps the verdict the
+// delivery already has, whichever files it touched; a conflict is resolved by an agent, and
+// that resolution — code no review has seen — is reviewed before it lands.
+//
+// A target branch that moves again under the landing is not handed back: the landing gives
+// its slot up, waits, and replays onto the new tip, for as long as it takes (#665).
 //
 // The record holds the delivery's slot across runs. A separate lock serializes Git work
 // across watcher and scheduler processes without holding the board's record lock.
@@ -34,7 +37,7 @@ import {
   wantsLanding,
 } from './deliveries'
 import { HELD_ON_APPROVAL, HELD_ON_QUESTIONS, IN_LINE } from './pause'
-import { aiReviewOn, askUser, reviewOf, type Ask } from './review'
+import { aiReviewOn, reviewOf } from './review'
 import { backoffMs } from './retry'
 import { readStore, withStore } from './store'
 import type { AgentRequest, DeliveryLanding, DeliveryRecord } from './types'
@@ -62,10 +65,6 @@ import {
   worktreeExists,
 } from './worktree'
 
-/** Rebases one delivery spends on a target branch that keeps moving. Each one costs a
- *  review, so after this many the card gets an open question instead of another round. */
-export const MAX_LAND_ATTEMPTS = 3
-
 // How many files a warning or a question names before it stops counting.
 const MAX_NAMED = 5
 
@@ -82,11 +81,14 @@ const them = (n: number): string => (n === 1 ? 'it' : 'them')
 
 // ---- the slot ---------------------------------------------------------------
 
-/** True while a delivery is waiting out a `conflict` run that failed (#595). Its rebase and
- *  the resolutions staged in it are untouched; it simply holds no landing slot until the
- *  wait is over, so every other delivery lands while it waits. */
+/** True while a delivery is waiting between two landing attempts — a `conflict` run that
+ *  failed (#595), or a target branch that moved under it (#665). Whatever the rebase left in
+ *  the worktree is untouched; it simply holds no landing slot until the wait is over, so
+ *  every other delivery lands while it waits. */
 function waitingOut(delivery: DeliveryRecord, now: number = Date.now()): boolean {
-  return !!delivery.landing?.conflictAt && delivery.landing.conflictAt > now
+  const landing = delivery.landing
+  if (!landing) return false
+  return (landing.conflictAt ?? 0) > now || (landing.retryAt ?? 0) > now
 }
 
 // The delivery to work on this pass: the one already holding the slot when nothing of its
@@ -118,9 +120,16 @@ function takeSlot(skip: Set<string>, held: Set<string>): DeliveryRecord | undefi
     )
     if (!waiter) return undefined
     const was = waiter.landing as DeliveryLanding
-    // A conflict picked back up after its wait keeps the last failure's `why`: it is why
-    // this attempt exists, and the flow hands it to the agent that opens on it (#595).
-    waiter.landing = { ...was, status: 'landing', why: was.conflictAt ? was.why : undefined, at: Date.now() }
+    // An attempt picked back up after a wait keeps the last failure's `why`: it is why this
+    // attempt exists, and the flow hands it to the agent that opens on a conflict (#595).
+    // The retry time goes, though — the wait is over the moment the slot is its own (#665).
+    waiter.landing = {
+      ...was,
+      status: 'landing',
+      why: was.conflictAt || was.retryAt ? was.why : undefined,
+      retryAt: undefined,
+      at: Date.now(),
+    }
     return { ...waiter }
   })
 }
@@ -152,30 +161,8 @@ function giveUpSlot(delivery: DeliveryRecord, why: string): void {
     landing.conflictFiles = undefined
     landing.conflictFails = undefined
     landing.conflictAt = undefined
+    landing.retryAt = undefined
   })
-}
-
-// Stop, and leave the card an open question. The slot goes back and nothing picks the
-// delivery up again until the user answers — `review.stopped` is the same gate a stopped
-// review waits at, and joining a run clears it.
-//
-// A build with no card has nowhere to put the question (#428): the stop itself is the whole
-// account, and its flow in Runs is where the reason and the way back are read.
-async function handOver(
-  delivery: DeliveryRecord,
-  status: 'waiting' | 'conflict',
-  why: string,
-  question: Ask,
-): Promise<void> {
-  withStore((store) => {
-    const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-    if (!live || live.status !== 'active') return
-    live.landing = { ...(live.landing as DeliveryLanding), status, why, at: Date.now() }
-    reviewOf(live).stopped = { reason: 'landing', why, at: Date.now() }
-    live.next = undefined
-  })
-  syncAudit(delivery.deliveryId)
-  if (delivery.cardId !== null) await askUser(delivery.cardId, question)
 }
 
 // ---- held on the card's open questions (#307) -------------------------------
@@ -418,11 +405,11 @@ function noteQueue(held: Set<string>): void {
     if (delivery.deliveryId === holder.deliveryId) continue
     if (delivery.status !== 'active' || delivery.landing?.status !== 'waiting') continue
     if (held.has(delivery.deliveryId) || delivery.review?.stopped || !wantsLanding(delivery)) continue
-    // One between two conflict attempts is not in line: it gave the slot up on purpose and
+    // One between two landing attempts is not in line: it gave the slot up on purpose and
     // says so itself, and overwriting that would hide the retry behind "in line behind" and
-    // hand the next agent the queue as the reason it was opened (#595). Whether or not its
-    // wait is over — the tick that picks it back up is exactly the one this would spoil.
-    if (delivery.landing.conflictAt) continue
+    // hand the next agent the queue as the reason it was opened (#595, #665). Whether or not
+    // its wait is over — the tick that picks it back up is exactly the one this would spoil.
+    if (delivery.landing.conflictAt || delivery.landing.retryAt) continue
     if (delivery.landing.why === why) continue
     patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
   }
@@ -487,7 +474,10 @@ export async function advanceLanding(): Promise<AgentRequest | null> {
 // landing being over (the slot is free, so try the next waiter), or neither.
 type Step = { start?: AgentRequest; done?: boolean }
 
-async function landStep(delivery: DeliveryRecord): Promise<Step> {
+// `rebased` says this pass has already replayed onto the target once. A target moving
+// faster than a rebase takes is waited out rather than chased inside one call (#665): the
+// retries are unbounded now, so a second rebase in the same pass is a loop with no exit.
+async function landStep(delivery: DeliveryRecord, rebased = false): Promise<Step> {
   const dir = worktreeDir(delivery.worktree!)
   if (!worktreeExists(delivery.worktree)) {
     giveUpSlot(delivery, `its worktree ${delivery.worktree} is gone, so there is nothing to land`)
@@ -529,8 +519,9 @@ async function landStep(delivery: DeliveryRecord): Promise<Step> {
   }
 
   if (!isAncestor(target, tip, dir)) {
-    // The target branch moved while this card was being built. Replay onto it, and review
-    // afterwards only what the replay actually put next to the delivery's own work.
+    // The target branch moved while this card was being built. Replay onto it — once per
+    // pass; a target that moved again since this pass's own rebase is waited out (#665).
+    if (rebased) return waitForTarget(delivery)
     return await replayOntoTarget(delivery, dir, target)
   }
   // The last thing read before the branch moves (#308): the base and the fingerprint the
@@ -618,12 +609,12 @@ function warnOverlap(delivery: DeliveryRecord): void {
 
 // What the rebase turns out to be — read BEFORE it runs, so a conflict never has to be
 // untangled first. The comparison is by file: what the target brought in since this
-// delivery's base, against what the delivery itself changes. Anything finer is a semantic
-// analysis the board cannot run, and the file intersection is the signal `warnOverlap`
-// already trusts.
+// delivery's base, against what the delivery itself changes.
 //
-// Git failing to answer is `overlap`. An unreadable comparison sends the rebase to review
-// rather than past it — the one direction that cannot land work nothing has judged.
+// It is a note on the landing record and nothing more (#665): a rebase git composed without
+// a conflict keeps the delivery's verdict whichever files it touched, so nothing here
+// decides whether a review runs. Git failing to answer reads as `overlap`, the honest
+// answer when the comparison could not be made.
 function rebaseKind(delivery: DeliveryRecord, dir: string, target: string): 'disjoint' | 'overlap' {
   const mine = changedPaths(delivery.base!, delivery.branch!, dir)
   const theirs = changedPaths(delivery.base!, target, dir)
@@ -632,32 +623,15 @@ function rebaseKind(delivery: DeliveryRecord, dir: string, target: string): 'dis
   return theirs.some((file) => ours.has(file)) ? 'overlap' : 'disjoint'
 }
 
-// Rebase the one squash commit onto the target's new tip. Changes in separate files cannot
-// alter the tree review passed, so a disjoint replay carries that verdict on and lands. A
-// rebase that touches a file the delivery also changes gets a focused review of that
-// intersection, and so does a conflict — the resolution is code no review has seen. A
-// delivery with AI review off (#416) has no verdict to carry over either way — `afterRebase`.
+// Rebase the one squash commit onto the target's new tip. A replay git composed by itself
+// cannot alter the tree review passed, so it carries that verdict on and lands — however
+// many files the two sides share (#665). Only a conflict owes a review: its resolution is
+// code no review has seen. A delivery with AI review off (#416) has no verdict to carry
+// over either way — `afterRebase`.
+//
+// Unbounded, and it never asks: a target branch that keeps moving is a race between two of
+// the board's own deliveries, and the user has nothing to decide about it.
 async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: string): Promise<Step> {
-  const spent = delivery.landing?.attempts ?? 0
-  if (spent >= MAX_LAND_ATTEMPTS) {
-    const why = `${delivery.targetBranch} moved again after ${spent} rebases, so this landing is not converging`
-    await handOver(
-      delivery,
-      'waiting',
-      why,
-      {
-        text:
-          `[user] Delivery ${delivery.deliveryId} could not land on ${delivery.targetBranch}: ${why}. ` +
-          `Once you have decided, \`${boardCommand()} delivery review ${delivery.deliveryId}\` puts it back in motion.`,
-        options: [
-          `I'll land it myself from ${delivery.branch}`,
-          `pause whatever keeps moving ${delivery.targetBranch}, then the board lands it`,
-          'cancel the delivery',
-        ],
-      },
-    )
-    return { done: true }
-  }
   const kind = rebaseKind(delivery, dir, target)
   const rebased = rebaseOnto(dir, target, delivery.base!)
   if ('conflict' in rebased) return startConflict(delivery, target, rebased.conflict)
@@ -670,13 +644,12 @@ async function replayOntoTarget(delivery: DeliveryRecord, dir: string, target: s
 
 // The rebase completed. Its target becomes the delivery's base — the same field, so review
 // sees everything this delivery changes against the current implementation — and the
-// record keeps the base it came from and which kind of rebase it was, so the reason a
-// review did or did not start is a fact rather than something derived afterwards.
+// record keeps the base it came from and which kind of rebase it was.
 //
-// A disjoint rebase carries the same landing pass straight on to the branch move. Anything
-// else holds the slot behind a stop while a focused review judges the intersection;
-// opening that run clears the stop, so a watcher that dies in between cannot land the
-// verdict from before the rebase.
+// A rebase git composed by itself carries the same landing pass straight on to the branch
+// move (#665). A resolved conflict holds the slot behind a stop while a focused review
+// judges the composed result; opening that run clears the stop, so a watcher that dies in
+// between cannot land the verdict from before the rebase.
 //
 // With AI review off there is no such run and nothing is stopped (#416), whatever kind the
 // rebase was: the delivery keeps the slot, and the next landing pass carries on against the
@@ -703,34 +676,44 @@ async function afterRebase(
     landing.conflictFiles = undefined
     landing.conflictFails = undefined
     landing.conflictAt = undefined
+    landing.retryAt = undefined
     landing.at = at
-    if (reviews && kind !== 'disjoint') {
-      reviewOf(live).stopped = { reason: 'landing', why: rebaseWhy(delivery, kind), at }
+    if (reviews && kind === 'conflict') {
+      reviewOf(live).stopped = { reason: 'landing', why: rebaseWhy(delivery), at }
     }
   })
   syncAudit(delivery.deliveryId)
   const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
   if (!live || live.status !== 'active') return { done: true }
   if (!reviews) return {}
-  if (kind === 'disjoint') return await landStep(live)
-  // Why this review is happening, said now rather than read back off the landing later: a
-  // second rebase overwrites `rebaseKind`, and the review the first one owed would then
-  // read as the second one's (#417).
+  if (kind !== 'conflict') return await landStep(live, true)
   return {
     start: {
       action: 'review',
       id: live.cardId ?? undefined,
       deliveryId: live.deliveryId,
       title: live.title,
-      trigger: kind === 'conflict' ? 'conflict' : 'rebase',
+      trigger: 'conflict',
     },
   }
 }
 
-const rebaseWhy = (delivery: DeliveryRecord, kind: 'overlap' | 'conflict'): string =>
-  kind === 'conflict'
-    ? `a conflict with ${delivery.targetBranch} was resolved, so the composed result must be reviewed before it lands`
-    : `${delivery.targetBranch} changed files this delivery also changes, so the rebased result must be reviewed before it lands`
+const rebaseWhy = (delivery: DeliveryRecord): string =>
+  `a conflict with ${delivery.targetBranch} was resolved, so the composed result must be reviewed before it lands`
+
+// The target branch moved under this landing. The slot goes back and the next attempt opens
+// after a wait — the same curve a conflict retry borrows, and unbounded for the same reason
+// (#665): the only end this path has is the landing going through, and a target that keeps
+// moving is a race between two of the board's own deliveries. Nothing is asked of the user,
+// so `waitingOut` keeps it out of the queue and `noteQueue` leaves its reason alone.
+function waitForTarget(delivery: DeliveryRecord): Step {
+  patchLanding(delivery.deliveryId, (landing) => {
+    landing.status = 'waiting'
+    landing.retryAt = Date.now() + backoffMs(landing.attempts + 1)
+    landing.why = `${delivery.targetBranch} moved again while this landing was going through, so it replays onto the new tip`
+  })
+  return { done: true }
+}
 
 // ---- a conflict is new work -------------------------------------------------
 
@@ -808,10 +791,9 @@ async function move(delivery: DeliveryRecord, tip: string, target: string): Prom
   const moved = here ? asMove(fastForward(tip)) : moveBranchRef(branch, tip, target)
   if ('moved' in moved) {
     // It moved again between the ancestor check and this write — a race of milliseconds.
-    // Try the whole step again against wherever it is now; the attempt count bounds it,
-    // because the next pass finds the target no longer an ancestor and rebases.
-    const live = readStore().deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-    return live && live.status === 'active' ? await landStep(live) : { done: true }
+    // Waited out rather than retried inside this call (#665): nothing bounds the retries
+    // any more, so that recursion would have no exit.
+    return waitForTarget(delivery)
   }
   if (!moved.ok) {
     giveUpSlot(delivery, moved.error)

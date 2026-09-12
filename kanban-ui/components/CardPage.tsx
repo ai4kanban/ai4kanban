@@ -30,7 +30,7 @@ import {
   type CardDelivery,
   type CardDeliveryStage,
   type CardFinished,
-  type CardLandingConflict,
+  type CardLandingRetry,
   type CardPatch,
   type CardScreen,
   type DeliveryDiff,
@@ -971,32 +971,35 @@ function DeliveryFoot({ children }: { children: React.ReactNode }) {
   );
 }
 
-// A landing conflict the board is resolving by itself (#595).
+// A landing the board is retrying by itself: a conflict an agent is resolving (#595), or a
+// target branch that moved under the landing (#665).
 //
 // Drawn under the tab strip, where a run's own retry wait is drawn (`agent-shared`): during
-// the wait there IS no run, so the countdown, the attempt coming and the file still
-// conflicted are the only things moving in the block. No denominator — the attempts do not
-// run out, and a number over one would be a promise the board does not make.
-function ConflictRetry({ conflict }: { conflict: CardLandingConflict }) {
-  const c = useCopy().card.delivery.conflict;
+// the wait there IS no run, so the countdown, the attempt coming and what it is waiting on
+// are the only things moving in the block. No denominator — the attempts do not run out, and
+// a number over one would be a promise the board does not make.
+function LandingRetry({ retry, branch }: { retry: CardLandingRetry; branch?: string }) {
+  const c = useCopy().card.delivery;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(tick);
   }, []);
-  const left = conflict.at ? Math.max(0, Math.round((conflict.at - now) / 1000)) : 0;
+  const left = retry.at ? Math.max(0, Math.round((retry.at - now) / 1000)) : 0;
+  const conflict = retry.kind === "conflict";
+  const words = conflict ? c.conflict : c.moved;
   return (
     <div className="px-4 py-3">
       <div role="status" className="rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
         <p className="nb-tag mb-1.5 text-nb-peach-ink">
-          {!conflict.at
-            ? c.resolving(conflict.attempt)
+          {conflict && !retry.at
+            ? c.conflict.resolving(retry.attempt)
             : left > 0
-              ? c.waiting(left, conflict.attempt)
-              : c.starting(conflict.attempt)}
+              ? words.waiting(left, retry.attempt)
+              : words.starting(retry.attempt)}
         </p>
         <p className="text-[12.5px] leading-relaxed text-nb-ink">
-          {marked(c.stuck(conflict.files, !!conflict.at))}
+          {marked(conflict ? c.conflict.stuck(retry.files ?? [], !!retry.at) : c.moved.body(branch))}
         </p>
       </div>
     </div>
@@ -1034,31 +1037,31 @@ function DeliveryBlock({
   // stopped leaves the block folded to its strip — the state is said beside the title, and
   // the log is there for whoever wants it.
   const live = session?.status === "running";
-  // A landing conflict keeps the block open through the wait between attempts (#595):
+  // A landing retry keeps the block open through the wait between attempts (#595, #665):
   // nothing is running then, but the countdown under the strip is what moves. Only while
-  // the board is on it: a delivery held on its card's questions keeps the conflict it will
+  // the board is on it: a delivery held on its card's questions keeps the retry it will
   // come back to, and a countdown to an attempt nothing is going to open would be a lie.
-  const onConflict = delivery.state.stage === "conflict" || delivery.state.stage === "retry";
-  const conflict = onConflict ? delivery.landing?.conflict : undefined;
-  const inConflict = !!conflict;
-  const [open, setOpen] = useState(!!live || waitingOnApproval || inConflict);
+  const onRetry = delivery.state.stage === "conflict" || delivery.state.stage === "retry";
+  const retry = onRetry ? delivery.landing?.retry : undefined;
+  const inRetry = !!retry;
+  const [open, setOpen] = useState(!!live || waitingOnApproval || inRetry);
   // A delivery that STARTS waiting while the page is open opens on the diff too, and a run
   // that starts or stops swings the fold with it. Only on the change: whatever the user
   // picked or folded afterwards is theirs until the delivery moves again.
   const wasWaiting = useRef(waitingOnApproval);
   const wasLive = useRef(live);
-  const wasConflict = useRef(inConflict);
+  const wasRetry = useRef(inRetry);
   useEffect(() => {
     if (waitingOnApproval && !wasWaiting.current) {
       setTab("diff");
       setOpen(true);
     }
-    if (inConflict && !wasConflict.current) setOpen(true);
-    if (live !== wasLive.current) setOpen(!!live || waitingOnApproval || inConflict);
+    if (inRetry && !wasRetry.current) setOpen(true);
+    if (live !== wasLive.current) setOpen(!!live || waitingOnApproval || inRetry);
     wasWaiting.current = waitingOnApproval;
     wasLive.current = live;
-    wasConflict.current = inConflict;
-  }, [waitingOnApproval, live, inConflict]);
+    wasRetry.current = inRetry;
+  }, [waitingOnApproval, live, inRetry]);
   const tabs: DeliveryTab[] = [
     ...(diff ? [{ key: "diff" as const, label: c.tabDiff }] : []),
     { key: "log" as const, label: c.tabLog },
@@ -1116,7 +1119,7 @@ function DeliveryBlock({
           )
         }
       />
-      {open && conflict && <ConflictRetry conflict={conflict} />}
+      {open && retry && <LandingRetry retry={retry} branch={delivery.targetBranch} />}
       {open &&
         (current === "approval" && approval ? (
           <ApprovalPane delivery={delivery} approval={approval} onApproved={onApproved} onError={onError} />

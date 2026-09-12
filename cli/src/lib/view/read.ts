@@ -18,7 +18,7 @@ import { activeDelivery, isResumable, listDeliveries, manualSettled } from '../a
 import { deliveryState } from '../agent/pause'
 import { readRuns } from '../agent/sessions'
 import { cardsBeingCreated } from '../agent/store'
-import type { DeliveryRecord } from '../agent/types'
+import type { DeliveryLanding, DeliveryRecord } from '../agent/types'
 import { branchExists, worktreeExists } from '../agent/worktree'
 import { idPrefix, isGroupFolder, subtaskLines } from '../cards'
 import { ARCHIVE_MD, README, TODO } from '../paths'
@@ -38,7 +38,16 @@ import {
 import { revisionOf } from '../board/revision'
 import { goalWritten } from './goal'
 import { readMemoryModules } from './memory'
-import type { ArchiveGroup, Board, Card, CardApproval, CardStatus, SetupState, Subtask } from './types'
+import type {
+  ArchiveGroup,
+  Board,
+  Card,
+  CardApproval,
+  CardLandingRetry,
+  CardStatus,
+  SetupState,
+  Subtask,
+} from './types'
 
 // Read one card file into a Card. Null when it has no id or no frontmatter.
 function readCard(file: string, relFromTodo: string): Card | null {
@@ -245,16 +254,26 @@ function attachDelivery(card: Card): void {
       why: live.landing.why,
       commit: live.landing.commit,
       overlap: live.landing.overlap?.length ? live.landing.overlap : undefined,
-      conflict: live.landing.conflictFiles?.length
-        ? {
-            attempt: (live.landing.conflictFails ?? 0) + 1,
-            files: live.landing.conflictFiles,
-            at: live.landing.conflictAt,
-          }
-        : undefined,
+      retry: landingRetry(live.landing),
     },
     approval: cardApproval(live),
   }
+}
+
+// The landing retry the block's bar draws: an agent resolving a conflict (#595), or a target
+// branch that moved under the landing (#665). The conflict comes first — it is the one with
+// an agent on it, and its own retry wait is the one `conflictAt` times.
+function landingRetry(landing: DeliveryLanding): CardLandingRetry | undefined {
+  if (landing.conflictFiles?.length) {
+    return {
+      kind: 'conflict',
+      attempt: (landing.conflictFails ?? 0) + 1,
+      files: landing.conflictFiles,
+      at: landing.conflictAt,
+    }
+  }
+  if (landing.retryAt) return { kind: 'moved', attempt: landing.attempts + 1, at: landing.retryAt }
+  return undefined
 }
 
 // This delivery's diff approval, as the block's **Approval** tab draws it (#308). Read from

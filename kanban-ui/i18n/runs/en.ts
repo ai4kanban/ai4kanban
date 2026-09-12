@@ -93,7 +93,6 @@ const en: RunsCopy = {
     writing: "Refine",
   },
   trigger: {
-    rebase: "after rebase",
     conflict: "after a conflict",
     answered: "after your answer",
     asked: "you asked",

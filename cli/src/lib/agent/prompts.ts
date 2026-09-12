@@ -648,7 +648,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         : `If a genuine user decision still blocks landing, append it to #${req.id} following \`akb guide update-questions\`; otherwise finish successfully and review passes.`
       if (owesFocusedReview(delivery)) {
         return [
-          `${kb}. ${aim.subject} is landing, and its rebase put the target branch's own changes beside a delivery that already passed review.`,
+          `${kb}. ${aim.subject} is landing, and an agent resolved a conflict between it and the target branch — a composed result nothing has judged, on a delivery that already passed review.`,
           `\`${command} delivery review ${aim.arg} --print\` names the target delta and the paths both changed.`,
           `You did not build this. Do not read the run that wrote it.`,
           `Judge only how those changes interact, following \`akb guide review\` — not the delivery's own design, which stands. Fix plain mistakes and rerun the checks those paths affect. ${defer}`,

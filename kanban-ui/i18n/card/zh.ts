@@ -213,6 +213,13 @@ const zh: CardCopy = {
         (files.length === 1 ? `\`${files[0]}\` 还有冲突没解开。` : `${files.length} 个文件还有冲突没解开。`) +
         (waiting ? "等待期间不占合入位，别的交付照常合入。" : ""),
     },
+    moved: {
+      waiting: (seconds, attempt) => `${seconds} 秒后重试合入 · 第 ${attempt} 次`,
+      starting: (attempt) => `正在重试第 ${attempt} 次合入`,
+      body: (branch) =>
+        `合入期间 ${branch ? `\`${branch}\`` : "目标分支"} 又有了新提交，这次交付会基于新代码重来一次。` +
+        "等待期间不占合入位，别的交付照常合入。",
+    },
     approval: {
       approved: "已批准——接下来会自动合入。",
       approvedBody: (covers) =>
