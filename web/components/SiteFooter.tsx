@@ -7,26 +7,30 @@ import { agentPath, getAgentPages } from "@/lib/agents";
 import { localePath, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
-// AI4Kanban's page in the LaunchKiwi directory. The badge is served from
-// `public/` rather than launchkiwi.com: the other product marks on the site are
-// local too, and a self-hosted SVG cannot slow the page down or fail to draw.
+// AI4Kanban's pages in the two directories that list it. Both badges are served
+// from `public/` rather than the directory: the other product marks on the site
+// are local too, and a self-hosted SVG cannot slow the page down or fail to
+// draw. The VerifiedDR link is the hyphen spelling — the dot spelling written
+// inside its own SVG 404s, which is also why that file is drawn through an
+// `<img>` and never inlined.
 const LAUNCHKIWI_URL =
   "https://launchkiwi.com/p/ai-project-manager-for-coding-agents";
+const VERIFIEDDR_URL = "https://verifieddr.com/website/ai4kanban-dev";
 
 // The footer under every page on the site.
 export function SiteFooter({
   c,
   locale,
   path,
-  launchkiwi = false,
+  listings = false,
 }: {
   c: SiteCopy;
   locale: Locale;
   /** The route being viewed — what the language switcher jumps between. */
   path: string;
-  /** Show the LaunchKiwi listing badge. The landing page asks for it and no
+  /** Show the directory listing badges. The landing page asks for them and no
    *  other page does — a directory badge belongs where a visitor arrives. */
-  launchkiwi?: boolean;
+  listings?: boolean;
 }) {
   const t = c.shared.footer;
 
@@ -126,35 +130,56 @@ export function SiteFooter({
             reading. The hairline is the only rule on the ink — it separates the
             columns from the line that closes them without adding a second
             colour. */}
-        <div className="mt-12 flex flex-col items-start gap-5 border-t border-elev/10 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col items-start gap-5 border-t border-elev/10 py-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-y-4">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
             <a href={BUILDER_PATH} className="transition-colors hover:text-elev">
               {t.credit}
             </a>
             {/* A third-party listing belongs beside the credit, not above the
-                columns: it is the smallest claim on the page. The badge is a
-                cream card, so on the ink it rests at the same alpha as the
-                footer's own type and comes up on hover — full strength would
-                make it the brightest block down here. Its height is set and its
-                intrinsic size is declared, so the row never jumps once the
-                file lands. */}
-            {launchkiwi && (
-              <a
-                href={LAUNCHKIWI_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="opacity-70 transition-opacity hover:opacity-100"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/launchkiwi-badge.svg"
-                  alt={t.launchkiwi}
-                  width={198}
-                  height={62}
-                  loading="lazy"
-                  className="block h-12 w-auto"
-                />
-              </a>
+                columns: it is the smallest claim on the page. The two marks are
+                one group — a tighter gap between them than the gap to the
+                credit, and they wrap together when the line runs out. Both are
+                pale cards, so on the ink they rest at the same alpha as the
+                footer's own type and come up on hover; full strength would make
+                them the brightest blocks down here. Heights are set and
+                intrinsic sizes declared, so the row never jumps once the files
+                land, and a phone drops both a step so the pair still holds one
+                line at 360px. */}
+            {listings && (
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                <a
+                  href={LAUNCHKIWI_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block opacity-70 transition-opacity hover:opacity-100"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/launchkiwi-badge.svg"
+                    alt={t.launchkiwi}
+                    width={198}
+                    height={62}
+                    loading="lazy"
+                    className="block h-10 w-auto sm:h-12"
+                  />
+                </a>
+                <a
+                  href={VERIFIEDDR_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block opacity-70 transition-opacity hover:opacity-100"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/verifieddr-badge.svg"
+                    alt={t.verifieddr}
+                    width={238}
+                    height={68}
+                    loading="lazy"
+                    className="block h-10 w-auto sm:h-12"
+                  />
+                </a>
+              </div>
             )}
           </div>
           <div className="flex items-center gap-4">

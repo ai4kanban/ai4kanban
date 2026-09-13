@@ -28,6 +28,7 @@ const es: SharedCopy = {
     terms: "Terms",
     credit: "creado por Tao Wu",
     launchkiwi: "AI4Kanban destacado en LaunchKiwi",
+    verifieddr: "Página de valoración de dominio de AI4Kanban en VerifiedDR",
     x: "Tao Wu en X",
   },
   code: {

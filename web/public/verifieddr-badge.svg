@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <svg width="238" height="68" viewBox="0 0 238 68" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="TrueDR 4 | ai4kanban.dev">
+      <title>TrueDR 4 | ai4kanban.dev</title>
+      <a xlink:href="https://verifieddr.com/website/ai4kanban.dev" target="_blank" rel="noopener noreferrer">
+        <rect x="0.5" y="0.5" rx="12" ry="12" width="237" height="67" fill="#ffffff" stroke="#e0e0e0" stroke-width="1"/>
+        <g>
+          <clipPath id="clip-text">
+            <rect x="70" y="0" width="154" height="68" rx="12" ry="12" />
+          </clipPath>
+      <text x="70" y="36" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'" font-size="22" font-weight="700" fill="#18181b" clip-path="url(#clip-text)" textLength="154" lengthAdjust="spacing">ai4kanban.dev</text>
+      <text x="70" y="52" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'" font-size="9" font-weight="600" fill="#666666" clip-path="url(#clip-text)" textLength="105" lengthAdjust="spacing">TRUE DOMAIN RATING</text>
+        </g>
+        
+      <circle cx="36" cy="34" r="19" fill="none" stroke="#e0e0e0" stroke-width="6"/>
+      <path d="M 36.00 15.00 A 19.00 19.00 0 0 1 37.66 15.07" fill="none" stroke="#ee2d2a" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 37.66 15.07 A 19.00 19.00 0 0 1 39.30 15.29" fill="none" stroke="#ef312a" stroke-width="6" stroke-linecap="round"/>
+      <path d="M 39.30 15.29 A 19.00 19.00 0 0 1 40.71 15.59" fill="none" stroke="#ef3429" stroke-width="6" stroke-linecap="round"/>
+      <text x="36" y="34" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'" font-size="18" font-weight="700" fill="#18181b">4</text>
+      </a>
+    </svg>

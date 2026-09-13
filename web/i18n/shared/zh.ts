@@ -28,6 +28,7 @@ const zh: SharedCopy = {
     terms: "Terms",
     credit: "created by Tao Wu",
     launchkiwi: "AI4Kanban 已收录于 LaunchKiwi",
+    verifieddr: "AI4Kanban 在 VerifiedDR 上的域名评级页",
     x: "Tao Wu 的 X 主页",
   },
   code: {

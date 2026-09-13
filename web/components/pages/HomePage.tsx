@@ -73,7 +73,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           <Start c={c.start} locale={locale} systems={systems} version={VERSION} />
         </Band>
       </main>
-      <SiteFooter c={copy} locale={locale} path="" launchkiwi />
+      <SiteFooter c={copy} locale={locale} path="" listings />
     </>
   );
 }

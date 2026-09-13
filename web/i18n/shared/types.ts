@@ -40,6 +40,10 @@ export type SharedCopy = {
     /** Only read out loud: the label on the LaunchKiwi badge, which the
      *  landing page carries and no other page does. */
     launchkiwi: string;
+    /** Only read out loud: the label on the VerifiedDR badge, beside the
+     *  LaunchKiwi one. It names the rating page it opens — the listing is
+     *  unverified, so nothing here may claim otherwise. */
+    verifieddr: string;
     /** Label for the X link on the credit line. */
     x: string;
   };
