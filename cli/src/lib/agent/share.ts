@@ -11,7 +11,7 @@
 
 import { caseOffered, openCase, type CaseRecord } from '../case'
 import { answeringOn, keyOf, readChat, sendChatMessage } from './chat'
-import type { Chat, ChatTarget } from './types'
+import { isDiscussion, type Chat, type ChatTarget } from './types'
 
 /** What the board says to open the submitting turn. The conversation itself is above it in
  *  the session, so this says what happened and what to do — never what was said. */
@@ -51,11 +51,37 @@ export function openEndCase(target: ChatTarget): CaseRecord | null {
   const chat = readChat(target)
   if (!chat?.shareOnEnd || !caseOffered()) return null
   // A card's conversation is about that card. A discussion is about the card the user linked
-  // — and one that linked none has nothing to file a submission under. Whether such a
-  // discussion can be shared at all is #659's open question, not this file's.
+  // — and `endBlocked` is why one that linked none never gets this far.
   const card = typeof target === 'number' ? target : chat.linkedCard
   if (!card) return null
   return openCase(keyOf(target), card, transcript(chat))
+}
+
+/** Why a conversation is not allowed to end (#659). A code, not a sentence: the screen has
+ *  its own words for it, in its own two languages. */
+export type EndBlock = 'share-needs-card'
+
+/** What the terminal says for it — `akb raw discussion archive`, which has no screen. */
+export const END_BLOCK_SAID: Record<EndBlock, string> = {
+  'share-needs-card':
+    'this discussion shares when it ends but is linked to no card. Link one, or turn sharing off.',
+}
+
+/**
+ * Whether ending this conversation is refused, and why (#659).
+ *
+ * The switch is a promise that ending submits. A discussion that linked no card has nothing
+ * to file that submission under, so ending it would keep the promise by sending nothing —
+ * the one outcome the switch must never have. It is held instead, until a card is picked or
+ * the switch goes off.
+ *
+ * Only a discussion: a card's conversation is about that card and has nothing to pick.
+ */
+export function endBlocked(target: ChatTarget): EndBlock | null {
+  if (!isDiscussion(target)) return null
+  const chat = readChat(target)
+  if (!chat?.shareOnEnd || chat.linkedCard) return null
+  return 'share-needs-card'
 }
 
 /** How long the end waits on a reply that was still being written when it came. A

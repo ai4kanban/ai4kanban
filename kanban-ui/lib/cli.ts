@@ -443,8 +443,15 @@ export interface BoardRules {
   /** The run this plan was handed to has started, and which of the handoff's answers handed
    *  it over (#481) — so reopening Discuss says it is still working rather than offering a
    *  second one, and names a build where that is what is working. Rules from before the third
-   *  answer take the id alone and record a planning run. */
-  startedPlanning?(sessionId: string, answer?: PlanAnswer, target?: ChatTarget): void;
+   *  answer take the id alone and record a planning run.
+   *
+   *  It is also an end, so it can be refused (#659): rules that answer `{ error }` did not
+   *  hand the plan over. Older rules answer nothing, which is the handoff they always made. */
+  startedPlanning?(
+    sessionId: string,
+    answer?: PlanAnswer,
+    target?: ChatTarget,
+  ): void | { ok: true } | { error: string; reason?: string };
 
   // The discussions this board is holding (#496). The rail lists them, Create task opens a
   // new one on every press, and a row's menu takes one out of the list. Optional: rules from
@@ -455,7 +462,7 @@ export interface BoardRules {
    *  discussions alone. */
   listConversations?(): ConversationRow[];
   startDiscussion?(): DiscussionTarget;
-  archiveDiscussion?(target: ChatTarget): { ok: true; plans?: string[] } | { error: string };
+  archiveDiscussion?(target: ChatTarget): { ok: true; plans?: string[] } | { error: string; reason?: string };
   titleDiscussion?(target: DiscussionTarget, title: string): void;
   /** The discussion a string names, spelled either way — null for anything this board did
    *  not write, so nothing arriving from a browser can name a file of ours by accident. */

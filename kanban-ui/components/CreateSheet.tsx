@@ -3,7 +3,7 @@
 // Create task holds ONE discussion (#496) — the one the press opened, or the one a rail row
 // picked back up — and keeps its draft across modes.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   FiChevronDown,
@@ -114,7 +114,23 @@ export function CreateSheet(props: Props) {
   // the composer, so it outlives the mode switch — and seeded from the rail's own read,
   // because the link lives beside the transcript and comes back with it (#679).
   const partner = useDiscussFeedback(props.discussion, rail.read?.chat?.linkedCard ?? null);
-  return <Sheet {...props} rail={rail} partner={partner} />;
+  // Sharing is the only thing that ever asks for a card, so turning it off takes the card
+  // with it (#659) — the board drops it beside the transcript, and the screen lets go of it
+  // here, in the one place that holds both.
+  const shared = useMemo<ChatRail>(
+    () => ({
+      ...rail,
+      share: {
+        ...rail.share,
+        flip: (next) => {
+          if (!next) partner.forget();
+          rail.share.flip(next);
+        },
+      },
+    }),
+    [rail, partner],
+  );
+  return <Sheet {...props} rail={shared} partner={partner} />;
 }
 
 function Sheet({
@@ -237,6 +253,11 @@ function Sheet({
   const beside = plan.open && plan.beside && !plan.full;
   const collapsed = plan.open && !plan.beside && !plan.full;
   const over = plan.open && !beside && !collapsed;
+  // Sharing promises that ending submits, and a submission is filed under a card — so with
+  // the switch on and nothing linked, none of the three ends is allowed to happen (#659).
+  // Two of them are here. Nothing is said about it: the card search is open under the box,
+  // which is both the reason and the way out of it.
+  const endHeld = rail.share.offered && rail.share.on && partner.offered && !partner.linked;
   // The three answers sit under the agent's own last word where the conversation has the
   // screen to itself, and under the plan's row where it does not — beside the box either
   // way, so a plan opened out never takes them away.
@@ -245,6 +266,7 @@ function Sheet({
       plan={plan}
       rail={rail}
       discussion={discussion}
+      held={endHeld}
       onPlan={onPlan}
       onBuild={onBuildPlan}
     />
@@ -363,7 +385,7 @@ function Sheet({
       onGuardConfirm={() => void send("build")}
       error={error}
       feedback={discussing ? null : feedback}
-      partner={discussing ? partner : null}
+      partner={discussing && rail.share.on ? partner : null}
     />
   );
 
@@ -901,6 +923,7 @@ function Handoff({
   plan,
   rail,
   discussion,
+  held,
   onPlan,
   onBuild,
 }: {
@@ -908,6 +931,10 @@ function Handoff({
   rail: ChatRail;
   /** Which discussion the answer is written into (#496). */
   discussion: string | null;
+  /** This discussion shares when it ends and has no card to share under (#659), so the two
+   *  answers that end it are down: nothing is written into the transcript, Build now's
+   *  "are you sure?" never opens, and no run starts. Not yet is not an end and stays. */
+  held: boolean;
   onPlan(): void;
   onBuild(): void;
 }) {
@@ -934,6 +961,7 @@ function Handoff({
     <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
       <Button
         size="xs"
+        disabled={held}
         onClick={() => {
           // Pressing it is saying it: the answer goes into the transcript with no turn
           // behind it, because the board is what acts on it.
@@ -950,6 +978,7 @@ function Handoff({
           variant="ghost"
           className="font-[700]"
           aria-expanded={guard}
+          disabled={held}
           style={{
             borderColor: "var(--color-nb-accent-deep)",
             color: "var(--color-nb-accent-deep)",

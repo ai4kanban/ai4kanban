@@ -222,7 +222,7 @@ export type BoardCopy = {
    *  its problem is about. It says what the user did and what will happen; never an
    *  endpoint, a storage, a flow id or a run. */
   partner: {
-    /** The collapsed button, and the heading it becomes when it is open. Both fold. */
+    /** The heading over the link area, which opens with sharing and folds nowhere. */
     expand: string;
     search: string;
     /** Beside a card that has not been archived yet. */
@@ -231,11 +231,10 @@ export type BoardCopy = {
     failed: string;
     retry: string;
     clear: string;
-    /** The switch under the box: what it is called while it is off, what the row reads once
-     *  it is on, and the name it is read out by. */
+    /** The switch under the box: what it says — the same either way, because what it does
+     *  does not change — and the name it is read out by. */
     team: {
-      off: string;
-      on: string;
+      name: string;
       label: string;
     };
   };

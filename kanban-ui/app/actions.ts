@@ -745,7 +745,9 @@ export async function startDiscussionAction(): Promise<DiscussionTarget | null> 
  *  It is also the end a shared conversation submits on (#679). The submission is started
  *  after the end and never waited on: the screen has already cleared, and a collection that
  *  takes a minute must not hold it there. */
-export async function archiveDiscussionAction(target: ChatTarget): Promise<{ ok: boolean; error?: string }> {
+export async function archiveDiscussionAction(
+  target: ChatTarget,
+): Promise<{ ok: boolean; error?: string; reason?: string }> {
   const named = await chatTarget(target);
   if (named === undefined || named === null) {
     return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };

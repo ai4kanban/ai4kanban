@@ -13,6 +13,7 @@ import { listRuns } from './sessions'
 import { chatPlan, clearChatPlan, readChat, setChatArchived, setChatPlanRun } from './chat'
 import { locate, locateArchived } from '../cards'
 import { archivePlan, planHeading, planPathInText, readPlan } from '../plans'
+import { endBlocked, END_BLOCK_SAID, shareOnEnd, type EndBlock } from './share'
 import { isDiscussion, type ChatTarget, type DiscussRead, type PlanAnswer } from './types'
 
 const NOTHING: DiscussRead = { plan: null, run: null }
@@ -58,10 +59,27 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
  *  subject whose run is already underway. The plan file stays where it is — the run is
  *  reading it — and the archive is marked the board's own, so a run that ends having written
  *  no card can put the row back.
+ *
+ *  That archive is an end, so it submits (#659) — the same one turn the rail's End discussion
+ *  makes, started here and never waited on. Start planning and Build now are ends too, and a
+ *  discussion whose end is refused is not handed over at all: the screen holds these two
+ *  before the run ever starts, and this is the answer behind it.
  */
-export function startedPlanning(sessionId: string, answer: PlanAnswer = 'plan', target: ChatTarget = null): void {
+export function startedPlanning(
+  sessionId: string,
+  answer: PlanAnswer = 'plan',
+  target: ChatTarget = null,
+): { ok: true } | { error: string; reason: EndBlock } {
+  const held = endBlocked(target)
+  if (held) return { error: END_BLOCK_SAID[held], reason: held }
   const handed = setChatPlanRun(target, sessionId, answer)
-  if (handed && isDiscussion(target)) setChatArchived(target, true, 'board')
+  if (handed && isDiscussion(target)) {
+    setChatArchived(target, true, 'board')
+    // Started, never waited on, and never able to take the handoff down with it: the screen
+    // has already moved on to the run, and this turn is the board's own.
+    void shareOnEnd(target).catch(() => {})
+  }
+  return { ok: true }
 }
 
 /** The run has written its cards, so the plan it was handed is finished: it is filed away

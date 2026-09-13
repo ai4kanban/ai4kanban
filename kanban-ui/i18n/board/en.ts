@@ -162,8 +162,7 @@ const en: BoardCopy = {
     retry: "Try again",
     clear: "Unlink this task",
     team: {
-      off: "Share with the team",
-      on: "Shared when it ends",
+      name: "Share with the team when it ends",
       label: "Share this conversation with the AI4Kanban team",
     },
   },

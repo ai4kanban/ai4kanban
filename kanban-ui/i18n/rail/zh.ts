@@ -19,6 +19,7 @@ const zh: RailCopy = {
     menu: (name) => `对${name}的操作`,
     archive: "结束讨论",
     archiveFailed: "这段对话没能结束。",
+    archiveNeedsCard: "打开这段讨论，选择要分享的卡片，或关闭分享。",
   },
   memory: {
     heading: "记忆",

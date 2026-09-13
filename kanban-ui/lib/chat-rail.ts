@@ -420,6 +420,9 @@ export function useChatRail({
       // moves when they are agreed to, not when they are opened.
       if (next && !agreed.current) return setAsking(true);
       setShareOn(next);
+      // Off is this conversation withdrawn (#659): the card it was to be filed under goes
+      // with it, and so does the yes — turning it on again is a fresh answer to both.
+      if (!next) agreed.current = false;
       void setChatShareAction(cardId, next);
     },
     [cardId],

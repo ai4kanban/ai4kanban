@@ -404,8 +404,10 @@ export function setChatArchived(cardId: ChatTarget, archived: boolean, by?: 'boa
 /** Turn this conversation's team feedback on or off (#679). Nothing is collected either way
  *  — the switch only says what ending it does.
  *
- *  Turning it off drops the submission the end would have made. One already sent is not
- *  withdrawn by it; the number in it is how that one is deleted.
+ *  Turning it off drops the submission the end would have made, and the card it was to be
+ *  filed under with it (#659): the link is only ever asked for by sharing, so turning sharing
+ *  back on picks again from nothing. One already sent is not withdrawn by any of it; the
+ *  number in it is how that one is deleted.
  *
  *  A conversation nobody has said anything into has no file yet, so there is nothing to write
  *  and nothing to forget: the screen holds the switch until the first message carries it. */
@@ -413,6 +415,7 @@ export function setChatShare(cardId: ChatTarget, on: boolean): void {
   const chat = readChat(cardId)
   if (!chat) return
   chat.shareOnEnd = on
+  if (!on) chat.linkedCard = undefined
   writeChat(chat)
   if (!on) dropCase(keyOf(cardId))
 }

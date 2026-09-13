@@ -25,8 +25,8 @@ export interface DiscussionList {
   rows: ConversationRow[];
   /** Take one out of the list, and drop its row on the spot rather than waiting out a tick.
    *  A refusal puts the row back and says why, so nothing is lost off the rail that is still
-   *  on disk (#610). */
-  archive(target: ChatTarget): Promise<{ ok: boolean; error?: string }>;
+   *  on disk (#610) — `reason` is a code the rail has its own words for (#659). */
+  archive(target: ChatTarget): Promise<{ ok: boolean; error?: string; reason?: string }>;
 }
 
 /** `off` is a board that holds no conversations to list at all — a marketing one (#507),

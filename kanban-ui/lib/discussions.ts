@@ -41,12 +41,17 @@ export async function startDiscussion(): Promise<DiscussionTarget | null> {
 }
 
 /** Take one conversation out of the list — a discussion, or a card's own chat (#633). Its
- *  transcript stays on this machine, and a card's card page still draws it. */
-export async function archiveDiscussion(target: ChatTarget): Promise<{ ok: boolean; error?: string }> {
+ *  transcript stays on this machine, and a card's card page still draws it.
+ *
+ *  A refusal carries the board's own sentence and, where it has one, the code behind it
+ *  (#659) — the rail has its own words for that one. */
+export async function archiveDiscussion(
+  target: ChatTarget,
+): Promise<{ ok: boolean; error?: string; reason?: string }> {
   try {
     const done = (await boardRules()).archiveDiscussion?.(target);
     if (!done) return { ok: false };
-    return "error" in done ? { ok: false, error: done.error } : { ok: true };
+    return "error" in done ? { ok: false, error: done.error, reason: done.reason } : { ok: true };
   } catch {
     return { ok: false };
   }

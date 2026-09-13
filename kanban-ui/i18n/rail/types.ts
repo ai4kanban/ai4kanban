@@ -26,6 +26,9 @@ export type RailCopy = {
     archive: string;
     /** It was refused and the row is back — said under the list (#610). */
     archiveFailed: string;
+    /** Refused because it shares when it ends and is linked to no card (#659). The card is
+     *  picked inside the discussion, so this points there. */
+    archiveNeedsCard: string;
   };
   memory: {
     heading: string;

@@ -122,8 +122,17 @@ export function Rail({
       // A discussion has no page of its own to stay on, so the screen holding it hears about
       // it and goes back to a fresh Create task. A card's conversation has one, and the page
       // it is on is left exactly where it was.
-      if (!done.ok) setArchiveFailed(done.error || c.discussions.archiveFailed);
-      else if (isDiscussion(target)) createSheet.archived(target);
+      //
+      // One that shares when it ends and links no card is refused (#659), and the card is
+      // picked inside the discussion — so that refusal says where to go rather than repeating
+      // the board's own sentence.
+      if (!done.ok) {
+        setArchiveFailed(
+          done.reason === "share-needs-card"
+            ? c.discussions.archiveNeedsCard
+            : done.error || c.discussions.archiveFailed,
+        );
+      } else if (isDiscussion(target)) createSheet.archived(target);
     },
     [archive, c],
   );

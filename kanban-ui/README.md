@@ -153,16 +153,29 @@ pointing at something.
 
 ### Sharing a conversation with the team
 
-Under the box in Discuss, and under the box in a card's chat, is a **Share with the team**
-switch. On, the row reads **Shared when it ends**: ending that conversation from the rail's
-**⋯** sends it — the whole conversation, and the code behind the change it was about — to the
-AI4Kanban team, so a spec that missed what you meant is something we can read.
+Under the box in Discuss, and under the box in a card's chat, is a **Share with the team when
+it ends** switch. Ending that conversation then sends it — the whole conversation, and the
+code behind the change it was about — to the AI4Kanban team, so a spec that missed what you
+meant is something we can read.
+
+Three things end a conversation and all three send it: **Start planning** and **Build now**
+under the plan, and **End discussion** on the rail's **⋯**. Nothing else does — closing the
+screen, pressing Esc, walking away, or a reply simply finishing leaves the conversation where
+it was. Nor does a run that never started: cancel Build now's **are you sure?** and nothing
+has ended.
 
 It is off on every new conversation, and turning it on the first time shows what is shared
 before anything is. Nothing is collected while it is on: the end is what collects and sends,
-so turning it off again, or clearing the conversation, leaves nothing behind. A card's chat
-is about that card and needs no picking; a discussion is about the card you link under
-**Link a previous task**, and one that links none sends nothing.
+so turning it off again, or clearing the conversation, leaves nothing behind.
+
+A card's chat is about that card and needs no picking. A discussion is about a card you pick:
+turning the switch on opens **Link a previous task** right under the box — no second thing to
+unfold — and turning it off again closes it and forgets the card, so switching back on picks
+afresh. Clearing the card with its **✕** leaves the switch on and goes back to the search.
+
+A discussion that shares under no card cannot end. The two answers under the plan are down and
+**End discussion** is refused until you pick a card or turn sharing off — because the switch
+promises the end sends, and an end with nothing to send under would quietly break it.
 
 ### Reading a card
 

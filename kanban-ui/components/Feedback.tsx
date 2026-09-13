@@ -484,12 +484,16 @@ export function useTaskFailureLine(): (sent: FeedbackSent) => string {
 export interface DiscussFeedback {
   /** Whether this board's rules know about team feedback at all. */
   offered: boolean;
-  open: boolean;
-  /** Fold and unfold. Folding only hides — the link is still what the next message carries. */
-  toggle: () => void;
   /** Forget the link, and take it off the discussion. What was typed is the box's, and it
    *  stays. */
   unlink: () => void;
+  /** Let go of the card on screen without writing anything — sharing going off has already
+   *  taken it off the discussion (#659), and a second write would race that one. */
+  forget: () => void;
+  /** Whether this discussion has picked a card at all (#659) — which is the whole of what
+   *  the end is allowed on. `card` is the row drawn for it, and a card that was rejected or
+   *  is simply slow to come back leaves that null while the pick still stands. */
+  linked: boolean;
   card: ArchivedCard | null;
   pick: (card: ArchivedCard | null) => void;
   /** What the send carries, or undefined when nothing is linked. */
@@ -504,8 +508,10 @@ export function useDiscussFeedback(
   linked: number | null,
 ): DiscussFeedback {
   const [offered, setOffered] = useState(false);
-  const [open, setOpen] = useState(false);
   const [card, setCard] = useState<ArchivedCard | null>(null);
+  /** The number this discussion is on, held apart from the row drawn for it: the end reads
+   *  the pick, never the search that put a title on it (#659). */
+  const [pickedId, setPickedId] = useState<number | null>(null);
   /** The discussion the link area has settled on its own: read back off the transcript, or
    *  picked by hand. Either way the read is not asked again, so a poll that is still
    *  carrying the old number cannot undo a fresh pick. */
@@ -525,6 +531,7 @@ export function useDiscussFeedback(
   // Another discussion is another problem: nothing of the last one's link carries over.
   useEffect(() => {
     setCard(null);
+    setPickedId(null);
     settled.current = null;
   }, [discussion]);
 
@@ -533,6 +540,7 @@ export function useDiscussFeedback(
   useEffect(() => {
     if (!discussion || linked === null || settled.current === discussion) return;
     settled.current = discussion;
+    setPickedId(linked);
     void searchLinkableAction(String(linked)).then((found) => {
       if (!found.ok) return;
       const one = found.cards.find((match) => match.id === linked);
@@ -546,6 +554,7 @@ export function useDiscussFeedback(
   const link = useCallback(
     (picked: ArchivedCard | null) => {
       setCard(picked);
+      setPickedId(picked?.id ?? null);
       settled.current = discussion;
       if (discussion) void setChatCardAction(discussion, picked?.id ?? null);
     },
@@ -553,58 +562,39 @@ export function useDiscussFeedback(
   );
 
   const unlink = useCallback(() => link(null), [link]);
-  const toggle = useCallback(() => setOpen((on) => !on), []);
+  const forget = useCallback(() => {
+    setCard(null);
+    setPickedId(null);
+  }, []);
 
   return useMemo(
     () => ({
       offered,
-      open,
-      toggle,
       unlink,
+      forget,
+      linked: pickedId !== null,
       card,
       pick: link,
-      sending: card ? { cardId: card.id } : undefined,
+      sending: pickedId !== null ? { cardId: pickedId } : undefined,
     }),
-    [offered, open, toggle, unlink, card, link],
+    [offered, unlink, forget, pickedId, card, link],
   );
 }
 
 /**
- * The block under the box in Discuss: one collapsed button, and the card it links.
+ * The block under the box in Discuss: the card this discussion shares under.
  *
- * Collapsed it says nothing but its own name. That is the whole of the default — a discussion
- * held without touching it links nothing and reports nothing. Sharing is not in here: it is
- * the switch on the row under the box (`ShareRow`), where a card conversation can reach it
- * too.
+ * It is what turning the switch on opens (#659), and there is nothing to fold: the switch is
+ * the answer to whether any of this is wanted, and a second one under it would only be the
+ * same question again. Off, the screen draws none of it — CreateSheet holds that.
  */
 export function DiscussFeedbackBlock({ feedback }: { feedback: DiscussFeedback }) {
   const c = useCopy().board.partner;
   if (!feedback.offered) return null;
 
-  return !feedback.open ? (
-    <button
-      type="button"
-      onClick={feedback.toggle}
-      aria-expanded={false}
-      className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
-    >
-      <FiChevronRight size={13} aria-hidden />
-      {c.expand}
-    </button>
-  ) : (
+  return (
     <div className="mt-2.5 rounded-[10px] bg-nb-sheet px-3.5 py-3">
-      {/* The title folds it back up — the only control the header needs. Unlinking is the
-          ✕ on the card below, where the link itself is. */}
-      <button
-        type="button"
-        onClick={feedback.toggle}
-        aria-expanded
-        className="mb-2.5 -ml-1 flex cursor-pointer items-center gap-1.5 rounded-[8px] px-1 py-0.5 text-[12px] font-[700] transition-colors hover:bg-nb-ink/5"
-      >
-        <FiChevronDown size={13} aria-hidden />
-        {c.expand}
-      </button>
-
+      <p className="mb-2.5 text-[12px] font-[700]">{c.expand}</p>
       {feedback.card ? (
         <PickedCard card={feedback.card} onClear={feedback.unlink} />
       ) : (
@@ -628,9 +618,7 @@ export function ShareRow({ share }: { share: ShareSwitch }) {
   return (
     <>
       <span className="flex shrink-0 items-center gap-1.5">
-        <span className={share.on ? "font-[700] text-nb-accent-deep" : undefined}>
-          {share.on ? c.on : c.off}
-        </span>
+        <span className={share.on ? "font-[700] text-nb-accent-deep" : undefined}>{c.name}</span>
         <Switch
           on={share.on}
           size="sm"

@@ -1,8 +1,11 @@
-// The switch under the box, and what ending a shared conversation does (#679).
+// The switch under the box, and what ending a shared conversation does (#679, #659).
 //
 // The promise the whole file checks is that the switch costs nothing until the end: it is off
 // on every new conversation, nothing is collected while it is on, and turning it off — or
 // clearing the conversation — takes the end's submission away again.
+//
+// And that the end is every end (#659). All three of them submit, none of the other ways out
+// of a conversation does, and a discussion that shares under no card does not end at all.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -12,16 +15,20 @@ import { after, beforeEach, describe, it } from 'node:test'
 
 import {
   carriedForward,
+  chatPlan,
   clearChat,
   noteChatMessage,
   readChat,
+  setChatArchived,
   setChatCard,
+  setChatPlan,
   setChatShare,
 } from '../src/lib/agent/chat.ts'
+import { startedPlanning } from '../src/lib/agent/discuss.ts'
 import { archiveDiscussion } from '../src/lib/agent/discussions.ts'
-import { openEndCase, replyOver } from '../src/lib/agent/share.ts'
+import { endBlocked, END_BLOCK_SAID, openEndCase, replyOver } from '../src/lib/agent/share.ts'
 import { readCase } from '../src/lib/case/state.ts'
-import { CHATS_DIR, setBoardRoot } from '../src/lib/paths.ts'
+import { CHATS_DIR, PLANS, setBoardRoot } from '../src/lib/paths.ts'
 import { forgetMachineState, restoreMachineHome } from './helpers/board.ts'
 import type { ChatTarget } from '../src/lib/agent/types.ts'
 
@@ -190,5 +197,160 @@ describe('what a reply lands on when the screen moved while it was written', () 
     const sent = readChat(7)!
     setChatShare(7, false)
     assert.equal(carriedForward(sent, readChat(7)).shareOnEnd, false)
+  })
+})
+
+// ---- the three ends, and the one that is held (#659) ------------------------
+//
+// A discussion ends three ways: Start planning, Build now, and the rail's End discussion. All
+// three submit, and none of them happens at all while the switch is on with no card to file
+// the submission under.
+
+const PLAN = 'plans/1-an-idea.md'
+
+/** A plan this discussion is writing, which is what the two handoff answers act on. */
+function planning(target: ChatTarget): void {
+  fs.mkdirSync(PLANS, { recursive: true })
+  fs.writeFileSync(path.join(PLANS, '1-an-idea.md'), '# an idea\n')
+  assert.deepEqual(setChatPlan(target, PLAN), { ok: true })
+}
+
+/** One discussion, mid-subject, with a plan under it. */
+function discussing(target: ChatTarget, ...lines: string[]): void {
+  said(target, ...lines)
+  planning(target)
+}
+
+const D = 'discussion-d1'
+
+describe('a discussion that shares but linked no card', () => {
+  it('cannot be ended from the rail, and says which of the two ways out to take', () => {
+    discussing(D, 'the spec missed archived search')
+    setChatShare(D, true)
+    assert.deepEqual(archiveDiscussion(D), {
+      error: END_BLOCK_SAID['share-needs-card'],
+      reason: 'share-needs-card',
+    })
+    assert.notEqual(readChat(D)!.archived, true)
+    assert.equal(readCase(D), null)
+  })
+
+  it('cannot be handed to a run either — no handoff is written, and the row stays', () => {
+    discussing(D, 'the spec missed archived search')
+    setChatShare(D, true)
+    assert.deepEqual(startedPlanning('s1', 'build', D), {
+      error: END_BLOCK_SAID['share-needs-card'],
+      reason: 'share-needs-card',
+    })
+    assert.equal(chatPlan(readChat(D))!.run, undefined)
+    assert.notEqual(readChat(D)!.archived, true)
+    assert.equal(readCase(D), null)
+  })
+
+  it('ends once a card is picked, and files the whole conversation under it', () => {
+    discussing(D, 'the spec missed archived search')
+    replied(D, 'which change do you mean?')
+    setChatShare(D, true)
+    setChatCard(D, 603)
+    assert.deepEqual(archiveDiscussion(D), { ok: true, plans: [PLAN] })
+    const filed = openEndCase(D)!
+    assert.equal(filed.cardId, 603)
+    assert.match(filed.text, /Agent: which change do you mean\?/)
+  })
+
+  it('ends once sharing goes off, and files nothing at all', () => {
+    discussing(D, 'the spec missed archived search')
+    setChatShare(D, true)
+    setChatShare(D, false)
+    assert.deepEqual(archiveDiscussion(D), { ok: true, plans: [PLAN] })
+    assert.equal(readChat(D)!.archived, true)
+    assert.equal(openEndCase(D), null)
+    assert.equal(readCase(D), null)
+  })
+
+  it('is the only conversation held: a card’s own chat is about that card', () => {
+    said(7, 'the spec missed archived search')
+    setChatShare(7, true)
+    assert.equal(endBlocked(7), null)
+    assert.deepEqual(archiveDiscussion(7), { ok: true, plans: [] })
+  })
+
+  it('is not held while it shares nothing', () => {
+    discussing(D, 'the spec missed archived search')
+    assert.equal(endBlocked(D), null)
+    assert.deepEqual(archiveDiscussion(D), { ok: true, plans: [PLAN] })
+  })
+})
+
+describe('turning the switch off', () => {
+  it('takes the card with it, so turning it on again picks from nothing', () => {
+    said(D, 'the spec missed archived search')
+    setChatShare(D, true)
+    setChatCard(D, 603)
+    setChatShare(D, false)
+    assert.equal(readChat(D)!.linkedCard, undefined)
+    setChatShare(D, true)
+    assert.equal(endBlocked(D), 'share-needs-card')
+  })
+})
+
+describe('a handoff is an end', () => {
+  it('files the conversation the same way the rail’s End discussion does', async () => {
+    discussing(D, 'the spec missed archived search')
+    replied(D, 'which change do you mean?')
+    setChatShare(D, true)
+    setChatCard(D, 603)
+    assert.deepEqual(startedPlanning('s1', 'plan', D), { ok: true })
+    // The submission is started by the handoff and never waited on, so the test is what
+    // waits for it.
+    await pause()
+    const chat = readChat(D)!
+    assert.equal(chat.archived, true)
+    assert.equal(chat.archivedBy, 'board')
+    assert.equal(chatPlan(chat)!.run, 's1')
+    const filed = readCase(D)!
+    assert.equal(filed.cardId, 603)
+    assert.match(filed.text, /the spec missed archived search/)
+  })
+
+  it('files nothing when the switch is off, however the plan was handed over', async () => {
+    discussing(D, 'the spec missed archived search')
+    assert.deepEqual(startedPlanning('s1', 'build', D), { ok: true })
+    await pause()
+    assert.equal(readChat(D)!.archived, true)
+    assert.equal(readCase(D), null)
+  })
+
+  it('sends what the conversation says now when a failed one is ended again', async () => {
+    discussing(D, 'the spec missed archived search')
+    setChatShare(D, true)
+    setChatCard(D, 603)
+    assert.deepEqual(startedPlanning('s1', 'plan', D), { ok: true })
+    await pause()
+    assert.match(readCase(D)!.text, /archived search/)
+    // The run wrote no card, so `settleHandoff` puts the row back and the subject goes on.
+    setChatArchived(D, false)
+    said(D, 'and the second pass missed it too')
+    // The plan stays — it was handed to a run, and the cards that run wrote name its path.
+    assert.deepEqual(archiveDiscussion(D), { ok: true, plans: [] })
+    const again = openEndCase(D)!
+    // One record, under one id — and it carries the conversation as it now is, not the words
+    // the first end went with.
+    assert.equal(again.id, readCase(D)!.id)
+    assert.match(again.text, /the second pass missed it too/)
+  })
+})
+
+describe('what is not an end', () => {
+  it('files nothing for a reply landing, or for a screen that was simply shut', () => {
+    discussing(D, 'the spec missed archived search')
+    setChatShare(D, true)
+    setChatCard(D, 603)
+    // A turn finishing, and more said after it: the switch says ending submits, and none of
+    // this is an end — nothing on this board reads it as one.
+    replied(D, 'which change do you mean?')
+    said(D, 'the one that added the search')
+    assert.equal(readCase(D), null)
+    assert.notEqual(readChat(D)!.archived, true)
   })
 })

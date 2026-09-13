@@ -151,8 +151,7 @@ const zh: BoardCopy = {
     retry: "重试",
     clear: "取消关联",
     team: {
-      off: "向团队反馈",
-      on: "结束时分享给团队",
+      name: "结束时分享给团队",
       label: "把这段对话分享给 AI4Kanban 团队",
     },
   },
