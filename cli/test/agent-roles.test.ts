@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { FLOWS, flowRefusal } from '../src/lib/agent/flows.ts'
 import { buildRun } from '../src/lib/agent/prompts.ts'
 import { agentNames, agentRoster, roleForFlow, roles } from '../src/lib/agent/roles.ts'
+import { agentForFlow } from '../src/lib/agent/stages.ts'
 import { migrateFlowRules, readRule, ruleFor } from '../src/lib/agent/rules.ts'
 import { setSpecAgentEnabled, specAgentProblems } from '../src/lib/agents/index.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
@@ -54,7 +55,7 @@ describe('the roles', () => {
     for (const name of ['product', 'marketing']) {
       solution(name)
       for (const flow of FLOWS) {
-        const owners = roles().filter((role) => role.flows.includes(flow.command))
+        const owners = roles().filter((role) => role.name === agentForFlow(flow.command))
         // A flow this solution refuses is a flow nothing runs, so no role claims it (#435).
         // `triage` is the one refused by ADMISSION instead (#561) — `signalsAccess()` turns a
         // marketing board away — so the GONE table says nothing about it and the roster is

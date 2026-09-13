@@ -598,7 +598,8 @@ function asStopReason(value: unknown): ReviewStopReason {
     value === 'no-progress' ||
     value === 'limit' ||
     value === 'uncommitted' ||
-    value === 'landing'
+    value === 'landing' ||
+    value === 'capability'
     ? value
     : 'session'
 }

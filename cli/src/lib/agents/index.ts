@@ -10,7 +10,7 @@
 
 import { agentRun } from '../agent/resolve'
 import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue, setSwitch } from '../agent/settings'
-import { roleNamed } from '../agent/roles'
+import { roleNamed, stageContractProblems } from '../agent/roles'
 import type { SpecAgentEntry } from '../agent/settings'
 import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
 import { readLanguage } from '../machine/settings'
@@ -75,9 +75,10 @@ export function agentSettingsView(
 }
 
 /** Everything wrong with the agents on this board — a malformed `AGENT.md`, a name already
- *  taken, a folder still in the place agents used to live. Shown wherever the agents are
- *  listed, and put in a run's log before it starts. */
-export const specAgentProblems = (): string[] => specAgentCatalog().problems
+ *  taken, a folder still in the place agents used to live, or a stage contract that names
+ *  somebody this board does not have (#714). Shown wherever the agents are listed, and put
+ *  in a run's log before it starts. */
+export const specAgentProblems = (): string[] => [...specAgentCatalog().problems, ...stageContractProblems()]
 
 /** The names this board answers to, for a message that has to say what there is. */
 export const specAgentNamesOnBoard = (): string[] => specAgents().map((a) => a.name)
@@ -396,7 +397,7 @@ function agentList(
   words: { lead: string; blurb: string[]; guide: string },
 ): string {
   const entries = specAgentEntries()
-  const { problems } = specAgentCatalog()
+  const problems = specAgentProblems()
   const agents = hookAgents(kind)
   const on = agents.filter((a) => specAgentEnabled(a.name, entries))
   const off = agents.filter((a) => !specAgentEnabled(a.name, entries))

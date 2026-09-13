@@ -194,7 +194,7 @@ export function migrateFlowRules(): string[] {
   }
   const notes: string[] = []
   for (const role of roles()) {
-    const from = roleFlowsInOrder(role).filter((flow) => flow !== role.name && here.has(`${flow}.md`))
+    const from = roleFlowsInOrder(role.name).filter((flow) => flow !== role.name && here.has(`${flow}.md`))
     if (!from.length) continue
     const parts = [ruleFile(role.name), ...from.map(ruleFile)].filter(Boolean)
     try {

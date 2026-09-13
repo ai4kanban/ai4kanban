@@ -474,6 +474,10 @@ export type ReviewStopReason =
   /** Landing could go no further on its own (#304): the target branch kept moving, or a
    *  conflict stayed unresolved. */
   | 'landing'
+  /** A helper the stage's contract requires wrote nothing (#714), and asking again would
+   *  not change that. The delivery stops unfinished with the card still held — there is a
+   *  person's call behind it, never a card with no way out. */
+  | 'capability'
 
 /** Review across a delivery. */
 export interface DeliveryReview {

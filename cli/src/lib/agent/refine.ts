@@ -17,6 +17,8 @@ import { flowRefusal } from './flows'
 import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
+import { endOfStage, shortLine, stageOfAction, type StageShort } from './stage-end'
+import { stageContract } from './stages'
 import { withStore } from './store'
 import { holdsCard } from './types'
 import type { AgentAction, AgentRequest, CommandRequest, RefineEffort, RunRecord } from './types'
@@ -314,8 +316,24 @@ export interface RefinementFollowUp {
   /** Every refinement session to start after a completed run, with the current loop first
    *  removed from the ordinary changed-card candidates to prevent a duplicate start. */
   runs: AgentRequest[]
-  /** One plain line for a loop that ended without settling its card. */
+  /** One plain line for a loop that ended without settling its card — unrefined, or short of
+   *  a helper the planning stage's contract requires (#714). */
   stalled?: string
+}
+
+// The planning stage's own completion check (#714). It runs when a planning run closes and
+// the loop has nothing else to do: the card is settled, so the only thing that could still
+// hold the stage open is a helper its contract requires and nobody wrote.
+//
+// Null means there is nothing to check — the run was no planning run, its card is gone, or
+// the card is still moving. Everything the command ships requires no helper, so this is
+// `{ done: true }` on both solutions today.
+function planStageEnd(run: RunRecord): ReturnType<typeof endOfStage> | null {
+  if (run.cardId === null || stageOfAction(run.action) !== 'plan') return null
+  const card = currentCard(run.cardId)
+  if (!card || card.openBlockers.length > 0 || card.questions.length > 0 || card.schedule) return null
+  if (refinementStep(card) !== 'done') return null
+  return endOfStage(stageContract('plan'), card, run.refineEffort)
 }
 
 function qaAfterSpec(run: RunRecord): AgentRequest | null {
@@ -354,15 +372,24 @@ export function refinementRunsAfter(
     (req) =>
       req.id !== run.cardId || (run.refineRound === undefined && run.action !== 'spec'),
   )
-  const resumedQa = qaAfterSpec(run)
+  // The lead resumes only once the LAST helper is done (#714): while this run still carries
+  // asks for the next one, the card is another agent's to write.
+  const resumedQa = waitingForSpec ? null : qaAfterSpec(run)
+  const carryOn = resumedQa ?? (typeof next === 'object' && next ? next : null)
+  // Nothing else follows this run, so the stage it belonged to is over — unless its contract
+  // requires a helper that wrote nothing (#714).
+  const end = waitingForSpec || carryOn || starts.length ? null : planStageEnd(run)
+  const short: StageShort | null = end && 'missing' in end ? end : null
   return {
-    runs: [...starts, ...(resumedQa ? [resumedQa] : typeof next === 'object' && next ? [next] : [])],
-    // A refinement pass or an action's embedded QA can leave the loop unfinished.
+    runs: [...starts, ...(carryOn ? [carryOn] : []), ...(end && 'ask' in end ? [end.ask] : [])],
+    // A refinement pass or an action's embedded QA can leave the loop unfinished; so can a
+    // required helper nobody could get an answer out of.
     stalled:
-      waitingForSpec
+      (short ? shortLine(short, run.cardId!) : undefined) ??
+      (waitingForSpec
         ? undefined
         : ((run.refineRound !== undefined || next === 'incomplete') &&
             stalledLine(run.cardId, next)) ||
-          undefined,
+          undefined),
   }
 }

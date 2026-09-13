@@ -44,6 +44,7 @@ import {
 } from './refine'
 import {
   acquireIndexLock,
+  askForSpec,
   claimCard,
   clearAsks,
   closeRun,
@@ -860,8 +861,8 @@ async function followUp(
   try {
     // Started first, then forgotten — so a crash between the two costs a repeated agent at
     // worst, and never a section nobody ever writes.
+    await startHelpersInTurn(specRunsAfter(readSpecAsks(sessionId)), join)
     const asked = [
-      ...specRunsAfter(readSpecAsks(sessionId)),
       ...writeRunsAfter(readWriteAsks(sessionId)),
       ...refineRunsAfter(readRefineAsks(sessionId)),
     ]
@@ -882,6 +883,39 @@ async function followUp(
     if (sortOn) await startRun(sortOn)
   } catch {
     // a spawn that wouldn't — the run it followed is done either way
+  }
+}
+
+// The spec agents one run asked for, started ONE AT A TIME (#714).
+//
+// They are the planning stage's helpers, and every one of them writes into the same card.
+// Two sessions rewriting one card at once is what a user reads as work being overwritten, so
+// only the first is started here; the rest are handed to it, and its own close starts the
+// next. The lead resumes when the last of them is done (`qaAfterSpec`), which is what makes
+// the sections one conclusion rather than several.
+//
+// A helper that will not start is skipped rather than taking the queue down with it.
+async function startHelpersInTurn(
+  helpers: AgentRequest[],
+  join: (req: AgentRequest) => AgentRequest,
+): Promise<void> {
+  let queue = helpers
+  while (queue.length) {
+    const [next, ...rest] = queue
+    const started = await startRun(join(next!))
+    if ('error' in started) {
+      queue = rest
+      continue
+    }
+    for (const req of rest) {
+      askForSpec(started.run.sessionId, {
+        specAgent: req.specAgent ?? '',
+        cardId: req.id as number,
+        ...(req.notes ? { notes: req.notes } : {}),
+        ...(req.refineEffort ? { refineEffort: req.refineEffort } : {}),
+      })
+    }
+    return
   }
 }
 

@@ -10,6 +10,10 @@
 // the delivery, and the watcher of the run that just closed starts what it says.
 
 import { appendCardQuestion } from '../board'
+import { findCard } from '../view/read'
+import { boardCommand } from './command'
+import { missingRequired } from './stage-end'
+import { stageContract, type Stage } from './stages'
 import type {
   DeliveryRecord,
   DeliveryReview,
@@ -76,12 +80,44 @@ export function nextAfterSession(delivery: DeliveryRecord, run: RunRecord, raise
     // A build that was cut off is picked up by Resume — the delivery is unfinished, not
     // wrong, and there is nothing for a reviewer to judge yet.
     if (run.status !== 'done') return HOLD
+    // The build stage ends here, so this is where its contract is read (#714).
+    const short = stageShortfall('build', delivery)
+    if (short) return short
     // With AI review off the build IS the delivery's own work, so it finishes here and the
     // caller queues it for landing exactly as a pass would (#416).
     return aiReviewOn(delivery) ? { start: 'review' } : { finish: true }
   }
   if (run.action === 'review') return afterReview(delivery, run, raisedQuestions)
   return HOLD
+}
+
+/** The stop a stage's own contract calls for, or null when it requires nothing this card is
+ *  short of (#714).
+ *
+ *  Nothing the command ships requires a helper, so this is null on both solutions today.
+ *  When a board does require one and it wrote nothing, the delivery stops UNFINISHED with
+ *  the card still held: the way out is the user's, and it is spelled out here rather than
+ *  left as a card with nowhere to go. */
+function stageShortfall(stage: Stage, delivery: DeliveryRecord): { stop: 'capability'; why: string } | null {
+  const cardId = delivery.cardId
+  if (cardId === null) return null
+  let missing: string[]
+  try {
+    const card = findCard(cardId)
+    if (!card) return null
+    missing = missingRequired(stageContract(stage), card)
+  } catch {
+    // an unreadable board — the delivery is no worse off than before this check existed
+    return null
+  }
+  if (!missing.length) return null
+  return {
+    stop: 'capability',
+    why:
+      `the ${stage} stage requires ${missing.map((name) => `\`${name}\``).join(', ')}, ` +
+      `which wrote nothing on this card. Run ${missing.length === 1 ? 'it' : 'them'} yourself, take the ` +
+      `requirement off the stage, or drop the card with \`${boardCommand()} raw archive ${cardId}\`.`,
+  }
 }
 
 function afterReview(delivery: DeliveryRecord, run: RunRecord, raisedQuestions: number): ReviewNext {
@@ -100,12 +136,14 @@ function afterReview(delivery: DeliveryRecord, run: RunRecord, raisedQuestions: 
   if (mine?.sessionId === run.sessionId) review.rounds[review.rounds.length - 1] = round
   else review.rounds.push(round)
 
-  return raisedQuestions > 0
-    ? {
-        stop: 'ask',
-        why: `review left ${raisedQuestions} open decision${raisedQuestions === 1 ? '' : 's'} for you`,
-      }
-    : { finish: true }
+  if (raisedQuestions > 0) {
+    return {
+      stop: 'ask',
+      why: `review left ${raisedQuestions} open decision${raisedQuestions === 1 ? '' : 's'} for you`,
+    }
+  }
+  // And the review stage ends here, so its contract is read before the pass stands (#714).
+  return stageShortfall('review', delivery) ?? { finish: true }
 }
 
 /** One question a run leaves on a card: the line, and the choices under it. */

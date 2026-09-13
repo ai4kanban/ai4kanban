@@ -5,10 +5,15 @@
 // because nothing about them is a project's to change: which flows the builder runs is what
 // the command does.
 //
-// A role is a name, one line, the flows it runs and the memory files it owns. It exists so
-// a rule is written once per AGENT rather than once per flow (./rules.ts): telling the
-// builder one thing used to mean writing the same sentence into `implement.md`,
-// `conflict.md` and `run.md`, and nothing in the product said who was being trained.
+// A role is a name, one line and the memory files it owns. It exists so a rule is written
+// once per AGENT rather than once per flow (./rules.ts): telling the builder one thing used
+// to mean writing the same sentence into `implement.md`, `conflict.md` and `run.md`, and
+// nothing in the product said who was being trained.
+//
+// WHICH flows a role runs is no longer written here (#714). A stage contract names its lead
+// and a shared node names its agent (./stages.ts), and that one table is read both ways —
+// `roleForFlow` off it, and a role's own flows off it too. Two lists of the same fact fall
+// out of step; one does not.
 //
 // The set is per solution. A `product` board builds code, so it has a Builder; a
 // `marketing` board writes drafts, so the same flows belong to a Writer, which also runs
@@ -23,6 +28,7 @@ import { agentMemoryFiles } from '../memory'
 import { KANBAN, rel } from '../paths'
 import { solution } from '../solution'
 import { FLOWS } from './flows'
+import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
 import type { RoleSwitch } from './settings'
 import type { AgentKind } from '../agents/parse'
 
@@ -49,32 +55,10 @@ export interface AgentRole {
   needs?: 'triage'
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
-  /** The flows it runs, by flow name (./flows.ts). `channel` and `polish` are in the
-   *  writer's list and are not among them: neither is a flow a person types — one is what
-   *  `akb channel` starts, the other what Submit on the card page starts — and both are the
-   *  writer's work, so the writer's rule reaches them. */
-  flows: string[]
   /** The memory files it owns, board-relative. Nothing moves — these are the files its own
    *  flows already write, listed so a roster can say what a role remembers. */
   memory: string[]
 }
-
-// Planning is the flows that write a card, settle it and close it out. The two solutions
-// keep their own list, because a marketing board has four of them fewer (#435): its cards
-// carry no questions to refine or resolve, and no release to plan or write up.
-const PRODUCT_PLANNER_FLOWS = [
-  'create',
-  'refine',
-  'resolve',
-  'revise',
-  'plan-release',
-  'changelog',
-  'archive',
-  'reject',
-  'setup',
-]
-
-const MARKETING_PLANNER_FLOWS = ['create', 'revise', 'archive', 'reject', 'setup']
 
 // The two roles the board ships switched OFF (#447, #493). Neither does a flow's work: each
 // stands in for the user, so each is off until asked for and each owns no memory — what
@@ -85,7 +69,6 @@ const MARKETING_PLANNER_FLOWS = ['create', 'revise', 'archive', 'reject', 'setup
 const GATER: AgentRole = {
   name: 'gater',
   gloss: 'judges whether a card can build unwatched',
-  flows: ['gate'],
   memory: [],
   switch: 'readyGate',
 }
@@ -95,7 +78,6 @@ const GATER: AgentRole = {
 const DECIDER: AgentRole = {
   name: 'decider',
   gloss: 'answers the questions waiting on you',
-  flows: ['decide'],
   memory: [],
   switch: 'decider',
   confirm: true,
@@ -107,20 +89,18 @@ const DECIDER: AgentRole = {
 const REVIEWER: AgentRole = {
   name: 'reviewer',
   gloss: 'checks what was built',
-  flows: ['review'],
   memory: [],
   switch: 'aiReview',
 }
 
-// The role every conversation is held by (#502) — `akb chat`, the chat rail and Discuss.
-// `chat` is in its list the way `channel` is in the writer's: not a flow anyone types under
-// `akb card`, and the role's work all the same. It comes first because a discussion comes
-// before a card: what it helps with is whether an idea deserves work at all, and a
+// The role every conversation is held by (#502) — `akb chat`, the chat rail and Discuss. It
+// leads the discussion stage, and `chat` is that stage's one flow: not a flow anyone types
+// under `akb card`, and the role's work all the same. It comes first because a discussion
+// comes before a card — what it helps with is whether an idea deserves work at all, and a
 // discussion that ends in nothing is a discussion that did its job.
 const DISCUSSION_HELPER: AgentRole = {
   name: 'discussion-helper',
   gloss: 'helps decide what is worth building',
-  flows: ['chat'],
   memory: [],
 }
 
@@ -131,7 +111,6 @@ const DISCUSSION_HELPER: AgentRole = {
 const MEMORY_PRUNER: AgentRole = {
   name: 'memory-pruner',
   gloss: 'squeezes the memory back down to what helps planning',
-  flows: ['prune-memory'],
   memory: [],
 }
 
@@ -141,12 +120,11 @@ const MEMORY_PRUNER: AgentRole = {
 // proposal nobody took up leaves nothing written down. It READS the goal and the planner's
 // memory to judge what is worth proposing; owning neither is the point.
 //
-// `reflect` is in its list the way `chat` is in the discussion helper's: no flow a person
-// types, and the role's work all the same — a card reaching the archive is what starts one.
+// `reflect` is an event entry rather than a stage (./stages.ts): no flow a person types, and
+// the role's work all the same — a card reaching the archive is what starts one.
 const PROPOSER: AgentRole = {
   name: 'proposer',
   gloss: 'proposes the work a finished card leaves behind',
-  flows: ['reflect'],
   memory: [],
   switch: 'proposer',
 }
@@ -162,15 +140,14 @@ const PROPOSER: AgentRole = {
 const TRIAGER: AgentRole = {
   name: 'triage',
   gloss: 'sorts what is waiting in triage into cards and ignores',
-  flows: ['triage'],
   memory: [],
   switch: 'autoTriage',
   confirm: true,
   needs: 'triage',
 }
 
-// The role that hears a complaint about a spec (#628). It holds no flow anyone types and
-// has no switch: a user saying "this is not what I meant" in Discuss is what starts it, and
+// The role that hears a complaint about a spec (#628). Its `feedback` is an event entry,
+// no flow anyone types, and it has no switch: a user saying "this is not what I meant" in Discuss is what starts it, and
 // a board that never hears one never runs it. Partner feedback's own switch is a privacy
 // answer about the MACHINE (Configuration -> General), not a roster entry — this agent
 // understands the problem either way, and only the collecting is gated on it.
@@ -180,7 +157,6 @@ const TRIAGER: AgentRole = {
 const FEEDBACK: AgentRole = {
   name: 'feedback',
   gloss: 'works out what a spec got wrong, and packs the case for it',
-  flows: ['feedback'],
   memory: [],
 }
 
@@ -194,7 +170,6 @@ const FEEDBACK: AgentRole = {
 const SWEEPER: AgentRole = {
   name: 'sweeper',
   gloss: 'settles the cards that have sat too long',
-  flows: ['unstick'],
   memory: [],
 }
 
@@ -203,13 +178,11 @@ const PRODUCT_ROLES: AgentRole[] = [
   {
     name: 'planner',
     gloss: 'plans and refines cards',
-    flows: PRODUCT_PLANNER_FLOWS,
     memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/goal.md'],
   },
   {
     name: 'builder',
     gloss: 'builds them and lands them',
-    flows: ['implement', 'conflict', 'run'],
     memory: ['memory/readme.md', 'memory/redesign.md', 'modules.md'],
   },
   REVIEWER,
@@ -229,16 +202,14 @@ const MARKETING_ROLES: AgentRole[] = [
   {
     name: 'planner',
     gloss: 'plans topics',
-    flows: MARKETING_PLANNER_FLOWS,
     memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/published.md'],
   },
   {
     name: 'writer',
     gloss: 'writes the drafts, repurposes them and polishes them',
-    flows: ['conflict', 'run', 'channel', 'polish'],
     memory: ['memory/writing.md', 'memory/writing/'],
   },
-  { ...REVIEWER, flows: [...REVIEWER.flows, 'marketing-polish-loop'] },
+  REVIEWER,
   MEMORY_PRUNER,
 ]
 
@@ -259,20 +230,33 @@ export const ROLE_NAMES: string[] = [...new Set([...PRODUCT_ROLES, ...MARKETING_
 /** This board's roles, in the order a roster draws them. */
 export const roles = (): AgentRole[] => (solution() === 'marketing' ? MARKETING_ROLES : PRODUCT_ROLES)
 
-/** The role that runs one flow, by flow name. Every flow the board has belongs to exactly
- *  one, so a rule written for a role reaches every flow it runs and no other. */
-export const roleForFlow = (flow: string): AgentRole | undefined =>
-  flow ? roles().find((role) => role.flows.includes(flow)) : undefined
+/** The role that runs one flow, by flow name — resolved through the contracts (./stages.ts),
+ *  which is the one place a flow is joined to who does it. Every flow the board has belongs
+ *  to exactly one agent, so a rule written for a role reaches every flow it runs and no
+ *  other.
+ *
+ *  Undefined when this board has no such flow, and also when the contract names a
+ *  SPECIALIST as its lead: a specialist is not a role, and `agentForFlow` is what a caller
+ *  that only wants the name should ask. */
+export const roleForFlow = (flow: string): AgentRole | undefined => {
+  const name = agentForFlow(flow)
+  return name ? roleNamed(name) : undefined
+}
 
 /** The role of a given name. */
 export const roleNamed = (name: string): AgentRole | undefined => roles().find((role) => role.name === name)
 
-/** The flows a role runs, in the order the board declares them (./flows.ts). What the
+/** The flows an agent runs, in the order the board declares them (./flows.ts). What the
  *  one-time rule migration concatenates in. */
-export function roleFlowsInOrder(role: AgentRole): string[] {
+export function roleFlowsInOrder(name: string): string[] {
   const order = FLOWS.map((flow) => flow.command)
-  return [...role.flows].sort((a, b) => order.indexOf(a) - order.indexOf(b))
+  return flowsOfAgent(name).sort((a, b) => order.indexOf(a) - order.indexOf(b))
 }
+
+/** Every reason one of this board's contracts names an agent it does not have (./stages.ts).
+ *  Read beside the agents' own problems, so a lead nobody answers to is said out loud rather
+ *  than found out as a flow with nobody to run it. */
+export const stageContractProblems = (): string[] => contractProblems(agentNames())
 
 // ---- the roster ------------------------------------------------------------
 
@@ -345,7 +329,7 @@ export function agentRoster(): RosterEntry[] {
       confirm: role.confirm === true,
       ...(role.switch ? { setting: role.switch } : {}),
       ...(role.needs ? { needs: role.needs } : {}),
-      flows: role.flows,
+      flows: flowsOfAgent(role.name),
       memory: role.memory.map((file) => rel(path.join(KANBAN, file))),
     })),
     ...specialists.filter((a) => a.builtIn),
