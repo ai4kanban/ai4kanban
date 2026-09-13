@@ -42,6 +42,7 @@ import {
   needsPerson,
   notificationGroup,
   onTheRail,
+  takenOverEndings,
   type CloudEvent,
   type CloudEventState,
   type NotificationGroup,
@@ -358,10 +359,15 @@ export function readCloudCenter(): NotificationCenter {
   const boardId = enabled?.id ?? ''
   // What this board's own events are addressed to (#364) — its workspace, or its board id.
   const home = enabled ? eventHome(enabled) : null
-  const rows: NotificationRow[] = [...held.events.values()]
+  const mine = [...held.events.values()]
     // The bell is the open board's. The connection carries the whole account, because one
     // machine holds one socket and every board's interruptions come down it.
     .filter((event) => !!home && inHome(event, home))
+  // The endings a later answer or Implement already took over (#695). Read once over the
+  // whole set, because the judgment is about the card rather than the single event, and read
+  // by both the row and its unread mark so the list and the count say the same thing.
+  const takenOver = takenOverEndings(mine)
+  const rows: NotificationRow[] = mine
     .map((event) => ({
       eventId: event.id,
       boardId: event.boardId,
@@ -370,11 +376,15 @@ export function readCloudCenter(): NotificationCenter {
       taskTitle: event.taskTitle,
       label: eventLabel(event),
       state: event.state,
-      onRail: onTheRail(event),
+      onRail: onTheRail(event) && !takenOver.has(event.id),
       // Only a state waiting for a person counts, so a delivery starting under a row the
       // user has already read leaves it read. A row a scope change brought in arrives read
       // too (#451) — it was already waiting, and the line above the list is what says so.
-      unread: needsPerson(event) && !event.broughtIn && marks[event.id] !== event.changedAt,
+      unread:
+        needsPerson(event) &&
+        !takenOver.has(event.id) &&
+        !event.broughtIn &&
+        marks[event.id] !== event.changedAt,
       changedAt: event.changedAt,
     }))
     .sort((a, b) => (a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : b.taskId - a.taskId))

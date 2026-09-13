@@ -42,14 +42,14 @@ function load(file) {
   const js = transform(code, { transforms: ["typescript", "jsx", "imports"] }).code;
   // One object for `module.exports` and `exports`, or the default export comes back undefined.
   const exports = {};
-  const module = { exports };
+  const mod = { exports };
   loaded.set(file, exports);
-  const sandbox = { React, module, exports, console, require: (id) => resolve(id, file) };
+  const sandbox = { React, module: mod, exports, console, require: (id) => resolve(id, file) };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(js, sandbox, { filename: file });
   // A module that reassigned module.exports rather than writing onto it.
-  if (module.exports !== exports) loaded.set(file, module.exports);
+  if (mod.exports !== exports) loaded.set(file, mod.exports);
   return loaded.get(file);
 }
 

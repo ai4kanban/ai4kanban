@@ -313,3 +313,46 @@ export type NotificationGroup = 'todo' | 'landed'
 export function notificationGroup(state: CloudEventState): NotificationGroup {
   return state === 'completed' ? 'landed' : 'todo'
 }
+
+/** The three endings a later handling takes over. `completed` is deliberately absent: a
+ *  landing is the record of work that succeeded, and the Landed tab keeps it. */
+const TAKEN_OVER_STATES: CloudEventState[] = ['failed', 'cancelled', 'interrupted']
+
+/** The parts of an event this judgment reads. */
+export type TakenOverEvent = Pick<
+  CloudEvent,
+  'id' | 'boardId' | 'taskId' | 'state' | 'acted' | 'changedAt'
+> & { workspaceId?: string }
+
+const taskKey = (event: TakenOverEvent): string =>
+  `${event.workspaceId ?? ''} ${event.boardId} ${event.taskId}`
+
+/**
+ * The ended events a later handling of the same card has taken over — the ids the rail stops
+ * drawing and the count stops counting (#695).
+ *
+ * A delivery that did not land leaves a row waiting for a person. Once that same card has
+ * been answered or implemented again, the row asks for something somebody already picked up,
+ * and several tries leave several of them. So an ending is dropped as soon as the same card,
+ * on the same board, carries a NEWER event somebody acted on — whatever that newer one goes
+ * on to do, because a second failure raises a row of its own.
+ *
+ * Read-only: the events stay as Cloud holds them, and why each one ended is still on the
+ * card's run and delivery record.
+ */
+export function takenOverEndings(events: TakenOverEvent[]): Set<string> {
+  const latestAction = new Map<string, string>()
+  for (const event of events) {
+    if (!event.acted) continue
+    const key = taskKey(event)
+    const held = latestAction.get(key)
+    if (held === undefined || held < event.changedAt) latestAction.set(key, event.changedAt)
+  }
+  const takenOver = new Set<string>()
+  for (const event of events) {
+    if (!TAKEN_OVER_STATES.includes(event.state)) continue
+    const newest = latestAction.get(taskKey(event))
+    if (newest !== undefined && newest > event.changedAt) takenOver.add(event.id)
+  }
+  return takenOver
+}

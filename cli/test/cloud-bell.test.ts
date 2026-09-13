@@ -15,7 +15,13 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { alertFor } from '../src/lib/cloud/center.ts'
-import { CLOUD_EVENT_STATES, needsPerson, notificationGroup, onTheRail } from '../src/lib/cloud/events.ts'
+import {
+  CLOUD_EVENT_STATES,
+  needsPerson,
+  notificationGroup,
+  onTheRail,
+  takenOverEndings,
+} from '../src/lib/cloud/events.ts'
 import type { CloudEvent, CloudEventState } from '../src/lib/cloud/events.ts'
 
 const event = (over: Partial<CloudEvent> = {}): CloudEvent =>
@@ -199,5 +205,80 @@ describe('which tab a row lands in (#613)', () => {
     for (const state of CLOUD_EVENT_STATES.filter((s) => s !== 'completed')) {
       assert.equal(notificationGroup(state), 'todo', state)
     }
+  })
+})
+
+// What a later handling does to the endings before it (#695).
+//
+// A delivery that did not land leaves a row waiting for a person, and a card tried several
+// times leaves several of them. Answering or implementing that card again is somebody
+// picking the work up, so those rows stop asking. A landing is not one of them: it is the
+// record of work that succeeded, and the Landed tab keeps it.
+
+const ended = (over: Partial<CloudEvent>): CloudEvent =>
+  event({ acted: true, state: 'failed' as CloudEventState, ...over })
+
+describe('endings a later handling took over (#695)', () => {
+  it('drops every earlier failure on the card, however many tries left one', () => {
+    const taken = takenOverEndings([
+      ended({ id: 'e-1', changedAt: '2026-08-01T01:00:00Z' }),
+      ended({ id: 'e-2', state: 'interrupted', changedAt: '2026-08-01T02:00:00Z' }),
+      ended({ id: 'e-3', state: 'cancelled', changedAt: '2026-08-01T03:00:00Z' }),
+      event({ id: 'e-4', state: 'accepted', acted: true, changedAt: '2026-08-01T04:00:00Z' }),
+    ])
+    assert.deepEqual([...taken].sort(), ['e-1', 'e-2', 'e-3'])
+  })
+
+  it('keeps the landing, which is a record rather than something to do', () => {
+    const taken = takenOverEndings([
+      ended({ id: 'e-1', state: 'completed', changedAt: '2026-08-01T01:00:00Z' }),
+      event({ id: 'e-2', state: 'accepted', acted: true, changedAt: '2026-08-01T02:00:00Z' }),
+    ])
+    assert.equal(taken.size, 0)
+  })
+
+  it('leaves another card alone, and another board carrying the same card number', () => {
+    const taken = takenOverEndings([
+      ended({ id: 'other-task', taskId: 13, changedAt: '2026-08-01T01:00:00Z' }),
+      ended({ id: 'other-board', boardId: 'b-2', changedAt: '2026-08-01T01:00:00Z' }),
+      ended({ id: 'other-workspace', workspaceId: 'w-2', changedAt: '2026-08-01T01:00:00Z' }),
+      ended({ id: 'mine', changedAt: '2026-08-01T01:00:00Z' }),
+      event({ id: 'again', state: 'accepted', acted: true, changedAt: '2026-08-01T02:00:00Z' }),
+    ])
+    assert.deepEqual([...taken], ['mine'])
+  })
+
+  it('keeps the ending of the handling that is itself the newest action', () => {
+    const taken = takenOverEndings([
+      event({ id: 'e-1', state: 'actionable', changedAt: '2026-08-01T01:00:00Z' }),
+      ended({ id: 'e-2', changedAt: '2026-08-01T02:00:00Z' }),
+    ])
+    assert.equal(taken.size, 0)
+  })
+
+  it('keeps the new failure when this handling did not land either', () => {
+    const taken = takenOverEndings([
+      ended({ id: 'first', changedAt: '2026-08-01T01:00:00Z' }),
+      ended({ id: 'second', changedAt: '2026-08-01T03:00:00Z' }),
+    ])
+    assert.deepEqual([...taken], ['first'])
+  })
+
+  it('waits for somebody to act — a card merely asking again takes nothing over', () => {
+    const taken = takenOverEndings([
+      ended({ id: 'e-1', changedAt: '2026-08-01T01:00:00Z' }),
+      event({ id: 'e-2', state: 'actionable', acted: false, changedAt: '2026-08-01T02:00:00Z' }),
+    ])
+    assert.equal(taken.size, 0)
+  })
+
+  it('says nothing to anybody — the handling that clears a row raises no alert', () => {
+    const before = event({ id: 'e-2', state: 'actionable', changedAt: '2026-08-01T02:00:00Z' })
+    const acted = event({ id: 'e-2', state: 'accepted', acted: true, changedAt: '2026-08-01T03:00:00Z' })
+    assert.equal(alertFor(before, acted, false), null)
+    assert.deepEqual(
+      [...takenOverEndings([ended({ id: 'e-1', changedAt: '2026-08-01T01:00:00Z' }), acted])],
+      ['e-1'],
+    )
   })
 })
