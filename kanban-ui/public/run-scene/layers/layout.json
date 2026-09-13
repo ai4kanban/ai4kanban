@@ -43,6 +43,11 @@
     "rightWindow": {
       "x": 879,
       "y": 0
+    },
+    "clouds": {
+      "y": 24,
+      "width": 394,
+      "height": 48
     }
   },
   "clock": {
@@ -107,25 +112,33 @@
         "id": "dawn",
         "startHour": 5,
         "endHour": 8,
-        "texture": "window-dawn.png"
+        "texture": "window-dawn.png",
+        "cloudTexture": "clouds-dawn.png",
+        "cloudSpeed": 1.2
       },
       {
         "id": "day",
         "startHour": 8,
         "endHour": 17,
-        "texture": "window-day.png"
+        "texture": "window-day.png",
+        "cloudTexture": "clouds-day.png",
+        "cloudSpeed": 1.2
       },
       {
         "id": "dusk",
         "startHour": 17,
         "endHour": 20,
-        "texture": "window-dusk.png"
+        "texture": "window-dusk.png",
+        "cloudTexture": "clouds-dusk.png",
+        "cloudSpeed": 1.2
       },
       {
         "id": "night",
         "startHour": 20,
         "endHour": 5,
-        "texture": "window-night.png"
+        "texture": "window-night.png",
+        "cloudTexture": "clouds-night.png",
+        "cloudSpeed": 1.2
       }
     ]
   }

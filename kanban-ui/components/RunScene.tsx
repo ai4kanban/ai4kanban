@@ -12,7 +12,7 @@
 // `onUnavailable`, and the dialog goes back to its list-and-log form.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Application, Container, Sprite, Spritesheet, Texture } from "pixi.js";
+import type { Application, Container, Sprite, Spritesheet, Texture, TilingSprite } from "pixi.js";
 import { installedAgentsAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import {
@@ -20,6 +20,7 @@ import {
   BOT_GROUND,
   BOT_HEIGHT,
   CLOCK,
+  CLOUDS,
   DESK,
   DESKS,
   DESK_AT,
@@ -178,22 +179,48 @@ export function RunScene({
         ]);
         const outlooks = new Map<Period, Texture>(
           await Promise.all(
-            PERIODS.map(async (p) => [p, await lib.Assets.load<Texture>(SCENERY_ART[p])] as const),
+            PERIODS.map(
+              async (p) => [p, await lib.Assets.load<Texture>(SCENERY_ART[p].window)] as const,
+            ),
           ),
+        );
+        // The clouds are the one layer allowed to go missing. A period whose band failed to
+        // load keeps its city and a still sky, rather than costing the dialog its office.
+        const drifts = new Map<Period, Texture>();
+        await Promise.all(
+          PERIODS.map(async (p) => {
+            try {
+              drifts.set(p, await lib.Assets.load<Texture>(SCENERY_ART[p].clouds));
+            } catch {
+              // Nothing to put back: the period simply keeps a still sky.
+            }
+          }),
         );
         if (dropped) return;
 
         const crisp = (t: Texture) => {
           t.source.scaleMode = "nearest";
         };
-        for (const t of [base, face, asleep, ...outlooks.values()]) crisp(t);
+        for (const t of [base, face, asleep, ...outlooks.values(), ...drifts.values()]) crisp(t);
         for (const frame of Object.values(busy.textures)) crisp(frame);
         for (const frame of Object.values(sheet.textures)) crisp(frame);
+        // `clampMargin` belongs to the texture, so every band needs its own — the one the
+        // dialog opens on is not the only one it shows. On a context without non-power-of-two
+        // wrapping the band falls to the tiling shader, where this keeps the seam off the
+        // outermost pixel column.
+        for (const t of drifts.values()) t.textureMatrix.clampMargin = -0.5;
 
-        // Back to front: the city seen through the glass, the room over it with its panes
-        // left transparent, the eight desks, the clock and its hands, then the bots.
-        const outlook = () => outlooks.get(periodAt(new Date()))!;
-        const scenery = SCENERY.at.map(() => new lib.Sprite(outlook()));
+        // Back to front: the city seen through the glass, the clouds drifting over it, the
+        // room over both with its panes left transparent, the eight desks, the clock and its
+        // hands, then the bots. Nothing masks the clouds — the room's panes are transparent,
+        // so drawing the band under it is the whole of keeping the sky inside the windows.
+        let period = periodAt(new Date());
+        const scenery = SCENERY.at.map(() => new lib.Sprite(outlooks.get(period)!));
+        const sky = SCENERY.at.map(() => {
+          const strip = new lib.TilingSprite({ texture: drifts.get(period) ?? lib.Texture.EMPTY });
+          strip.visible = drifts.has(period);
+          return strip;
+        });
         const floor = new lib.Sprite(base);
         const screens = DESK_AT.map(() => new lib.Sprite(asleep));
         const dial = new lib.Sprite(face);
@@ -202,7 +229,7 @@ export function RunScene({
         const minuteHand = new lib.Graphics().roundRect(-1.8, -24, 3.6, 27, 1.8).fill(HAND);
         hands.addChild(hourHand, minuteHand, new lib.Graphics().circle(0, 0, 2.6).fill(PIN));
         const layer = new lib.Container();
-        app.stage.addChild(...scenery, floor, ...screens, dial, hands, layer);
+        app.stage.addChild(...scenery, ...sky, floor, ...screens, dial, hands, layer);
         box.appendChild(app.canvas);
         app.canvas.style.display = "block";
 
@@ -210,6 +237,10 @@ export function RunScene({
         // and sleeps the moment the last of them stops or turns to leave — shared desks
         // included. The frame is shared: the eight screens show the same four pictures.
         let elapsed = 0;
+        // How far the clouds have drifted, in world pixels, wrapped to one tile so the
+        // number stays small however long the dialog is left open. Both windows look out on
+        // the same sky, so one figure places both bands.
+        let drifted = 0;
         const frames = busy.animations.work;
         const paintScreens = () => {
           const frame = still.current
@@ -246,13 +277,20 @@ export function RunScene({
           const at = fitCamera(wide, high);
           view.current = at;
           // Every layer is placed in world pixels and drawn at the size the room gives it.
-          const put = (sprite: Sprite, x: number, y: number, w: number, h: number) => {
+          const put = (sprite: Sprite | TilingSprite, x: number, y: number, w: number, h: number) => {
             sprite.x = at.ox + x * at.scale;
             sprite.y = at.oy + y * at.scale;
             sprite.width = w * at.scale;
             sprite.height = h * at.scale;
           };
           scenery.forEach((sprite, i) => put(sprite, SCENERY.at[i].x, SCENERY.at[i].y, SCENERY.w, SCENERY.h));
+          sky.forEach((strip, i) => {
+            put(strip, SCENERY.at[i].x, CLOUDS.y, CLOUDS.w, CLOUDS.h);
+            // `width`/`height` only say how much wall to cover; the texture itself is sized
+            // by `tileScale`, so the camera has to reach both.
+            strip.tileScale.set(at.scale);
+            strip.tilePosition.set(drifted * at.scale, 0);
+          });
           put(floor, 0, 0, WORLD.w, WORLD.h);
           screens.forEach((sprite, i) => put(sprite, DESK_AT[i].x, DESK_AT[i].y, DESK.w, DESK.h));
           put(dial, CLOCK.x, CLOCK.y, CLOCK.w, CLOCK.h);
@@ -274,8 +312,15 @@ export function RunScene({
           const turn = handAngles(now);
           hourHand.rotation = turn.hour;
           minuteHand.rotation = turn.minute;
-          const sky = outlook();
-          for (const sprite of scenery) sprite.texture = sky;
+          period = periodAt(now);
+          for (const sprite of scenery) sprite.texture = outlooks.get(period)!;
+          // The band changes with the hour and the drift carries on from where it was — the
+          // sky is the same sky, so nothing jumps as the light turns over.
+          const clouds = drifts.get(period);
+          for (const strip of sky) {
+            strip.visible = clouds !== undefined;
+            if (clouds) strip.texture = clouds;
+          }
           if (!document.hidden) minute = window.setTimeout(keepTime, untilNextMinute());
         };
         keepTime();
@@ -293,6 +338,8 @@ export function RunScene({
           if (document.hidden || still.current) return;
           const dt = Math.min(ticker.deltaMS, 120);
           elapsed += dt;
+          drifted = (drifted + (SCENERY_ART[period].cloudSpeed * dt) / 1000) % CLOUDS.w;
+          for (const strip of sky) strip.tilePosition.x = drifted * view.current.scale;
           let gone = false;
           for (const [id, actor] of cast) {
             if (actor.bot.room !== shown.current) continue;

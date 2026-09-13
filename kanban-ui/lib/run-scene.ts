@@ -195,6 +195,10 @@ export const ART = {
  *  The room's own art is drawn over it, and the view shows through the glass. */
 export const SCENERY = { w: 394, h: 197, at: [{ x: 264, y: 0 }, { x: 879, y: 0 }] };
 
+/** The band of sky the clouds drift across, at each window's own x. Its native pixels are
+ *  world pixels, so it tiles at 394 and never reaches the rooftops below y=78. */
+export const CLOUDS = { y: 24, w: 394, h: 48 };
+
 /** The wall clock's face, and the centre its two hands turn about. */
 export const CLOCK = { x: 732, y: 52, w: 72, h: 72 };
 
@@ -246,11 +250,19 @@ export function periodAt(now: Date): Period {
   return "night";
 }
 
-export const SCENERY_ART: Record<Period, string> = {
-  dawn: `${LAYERS}/window-dawn.png`,
-  day: `${LAYERS}/window-day.png`,
-  dusk: `${LAYERS}/window-dusk.png`,
-  night: `${LAYERS}/window-night.png`,
+/** What each period looks out on: the still city, and the cloud band drifting over it at
+ *  its own speed in world pixels a second. */
+export interface Outlook {
+  window: string;
+  clouds: string;
+  cloudSpeed: number;
+}
+
+export const SCENERY_ART: Record<Period, Outlook> = {
+  dawn: { window: `${LAYERS}/window-dawn.png`, clouds: `${LAYERS}/clouds-dawn.png`, cloudSpeed: 1.2 },
+  day: { window: `${LAYERS}/window-day.png`, clouds: `${LAYERS}/clouds-day.png`, cloudSpeed: 1.2 },
+  dusk: { window: `${LAYERS}/window-dusk.png`, clouds: `${LAYERS}/clouds-dusk.png`, cloudSpeed: 1.2 },
+  night: { window: `${LAYERS}/window-night.png`, clouds: `${LAYERS}/clouds-night.png`, cloudSpeed: 1.2 },
 };
 
 /** Where the hands point, in radians clockwise from noon. The minute hand carries the hour
