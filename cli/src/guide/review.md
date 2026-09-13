@@ -10,6 +10,11 @@ to the card waits for the user's answer.
    - Otherwise, compare all delivery changes with the approved requirements, run the required
      checks, and read `## Worth noting after implementation`. Do not reopen decisions the
      card already answers or report a condition the user explicitly accepted.
+   - **Trace each requirement in scope back to the code**: a requirement nobody implemented
+     leaves no diff to notice it by, so read the approved requirements and, for every one of
+     them, name where it is implemented and what shows the behavior it asks for. A passing
+     lint or typecheck and a ticked todo are not that evidence. Judge from the code where the
+     code settles it; where it does not, run a focused test or the affected path.
 2. Fix plain mistakes in the delivery's worktree, update focused tests, and rerun the
    affected checks. Route additional work through `akb guide follow-up`. Do not
    exhaustively search unaffected code or invent hypothetical issues.
