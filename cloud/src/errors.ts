@@ -24,6 +24,8 @@ export type RefusalCode =
   | 'slack_not_connected'
   | 'lark_unavailable'
   | 'lark_not_connected'
+  | 'training_slot_taken'
+  | 'training_too_many_attempts'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -262,6 +264,30 @@ export const nodeRemoved = () =>
     403,
     'This machine no longer runs this workspace’s work. Open the workspace here again to register it.',
   )
+
+/**
+ * Somebody else took the hour while this visitor was filling the form (#683). Its own code,
+ * because it is the one refusal on that page that is not a failure: the answer is to pick
+ * another hour, and what was typed is kept.
+ */
+export const trainingSlotTaken = () =>
+  new Refusal(
+    'training_slot_taken',
+    409,
+    'That hour was just booked by someone else. Pick another one — what you typed is kept.',
+  )
+
+/** Too many submits from one caller in a row. Deliberately vague about the limit. */
+export const trainingTooManyAttempts = () =>
+  new Refusal(
+    'training_too_many_attempts',
+    429,
+    'Too many booking attempts from here. Wait a few minutes and try again.',
+    TRAINING_RETRY_AFTER_SECONDS,
+  )
+
+/** What the rate refusal tells a caller to wait. Kept here beside the message it rides on. */
+const TRAINING_RETRY_AFTER_SECONDS = 5 * 60
 
 export const notFound = (message = 'No such endpoint.') => new Refusal('not_found', 404, message)
 

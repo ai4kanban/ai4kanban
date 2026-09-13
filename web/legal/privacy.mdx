@@ -2,7 +2,7 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-09-12
+effective: 2026-09-13
 ---
 
 <TLDR title="The short version">
@@ -18,8 +18,9 @@ effective: 2026-09-12
 - **An event carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
 - **The preview emails you for two things**: the answer to your invite request, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
+- **Booking a training session is the one form on this site.** It sends us your name, your email address, the hour you picked and whatever you wrote about your project, so we can hold that hour and turn up to it. No account, no cookie, and nothing stored in your browser. You can cancel it yourself from the link in your confirmation, which releases the hour.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
-- **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Disconnecting Slack or Lark is the only removal you can make for yourself; everything else we do by hand.
+- **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Cancelling a training booking and disconnecting Slack or Lark are the removals you can make for yourself; everything else we do by hand.
 
 </TLDR>
 
@@ -31,7 +32,7 @@ AI4Kanban is operated by **NULLREACH LTD**, a private limited company registered
 
 Use of the Service is also governed by our [Terms of Service](/terms).
 
-The three parts of the Service handle data very differently, so the three sections that follow answer them one at a time: the site you are reading, the app you install, and the Cloud preview a board's events can be relayed through. The rights and boilerplate sections after them apply to all three.
+The parts of the Service handle data very differently, so the sections that follow answer them one at a time: the site you are reading, the one form on it, the app you install, and the Cloud preview a board's events can be relayed through. The rights and boilerplate sections after them apply to all of it.
 
 ## Visiting the site
 
@@ -40,7 +41,7 @@ The three parts of the Service handle data very differently, so the three sectio
 - **We count page loads and download presses, and nothing else.** There is no analytics product on this site — no third-party script, no session recorder, no dashboard. The counter is a few lines of our own that post to `t.ai4kanban.dev`, the endpoint the app reports to, and the whole of what it sends is the table below. It answers one question: of the people who reach a page with a download button, how many press it.
 - **No cookies.** The site sets no cookies of any kind, essential or otherwise, and stores nothing in your browser — no local storage, no identifier. There is no cookie banner because there is nothing to consent to.
 - **No advertising or tracking pixels.** There are no ad networks, no data brokers, no retargeting tags, and no third-party trackers embedded in any page.
-- **No accounts.** There is nothing to sign up for on this site, and no form that asks for your email address.
+- **No accounts.** There is nothing to sign up for on this site. The training page's booking form is the one place it asks for your email address, and it is described in its own section below.
 
 ### What the site counts
 
@@ -62,6 +63,50 @@ The raw events are kept **90 days** and then deleted; the daily totals worked ou
 The one thing we do not control is the delivery itself. Cloudflare, as our hosting and content delivery provider, processes the technical request data that any web server sees — your IP address, the page requested, your user agent, and a timestamp — to route the request and protect the site from abuse. That processing is Cloudflare's own, under their published privacy documentation, and we do not receive, keep, or query those logs. Cloud's API is a different system with a log of its own, described below.
 
 Pages on the site link out to other places, including GitHub. Once you follow a link, the site you land on is governed by its own privacy policy, not this one.
+
+## Booking a training session
+
+The training page at [`/training`](/training) sells one-to-one guidance around your own project. Booking an hour on it is the only thing anywhere on this site that asks you for personal information, and it asks once.
+
+You need no account, and there is nothing to sign in to. The page reads which hours the coach has open, you pick one, and what you send is stored on the same servers in Frankfurt that AI4Kanban Cloud runs on — in tables of its own, separate from any board, workspace or Cloud account. Nothing about a booking reaches a board, and nothing on a board reaches a booking.
+
+### What a booking holds
+
+| Field | Why we hold it |
+| --- | --- |
+| The hour you picked | It is the appointment. It also holds that hour against anyone else booking it. |
+| Which session, and its price | So both sides agree what was booked before the coach writes to you. The price is settled by our server from the two figures printed on the page, never taken from your browser. |
+| Your name | So the coach knows who is coming. |
+| Your email address | Where the confirmation goes, and where the coach writes to arrange the meeting. It is the only way we can reach you: there is no account behind a booking. |
+| Your timezone | The IANA name your browser reports, such as `Europe/Berlin`. Every time we show you or write to you is written in it. |
+| What you wrote about your project | Optional, and read only by the coach, so the hour starts somewhere useful. |
+| A booking reference | A short code, `TR-` and six characters, so you and the coach can name the same booking. |
+
+Your browser tells us its timezone so the week is drawn in your own days and hours. That is read from the browser's own setting and nothing is stored in it — no cookie, no local storage, and no identifier that would let one visit be tied to another.
+
+### What holds a booking against a rush of them
+
+Submitting a booking is counted against a short-lived rate limit so nobody can fill the schedule from a script. What that counter is keyed on is a one-way hash of your IP address, salted with a value only our server holds; the address itself is never written down, and the counter resets on its own. It is a counter with a key, not a record of who visited.
+
+### The manage link, and cancelling
+
+Your confirmation carries a link that is the only way into your booking. It holds your reference and a random 32-byte token; we store only that token's SHA-256, so nobody with a copy of our database — including us — can rebuild a working link. Opening it shows your booking; cancelling takes two presses, releases the hour, and tells you and the coach that it is cancelled.
+
+There is no way to reach a booking without that link. A wrong reference and a wrong token are answered identically, so the pair cannot be used to find out whose bookings exist.
+
+### What a booking sends
+
+Three or four messages, and no others. There is no mailing list and no follow-up marketing.
+
+- **Your confirmation** — what you booked, when, in your own timezone, and the manage link. Sent from `training@ai4kanban.dev` through Resend, the same provider named in the subprocessor table above.
+- **The coach's copy** — the same details plus what you wrote about your project, to the one mailbox we run. Replying to it answers you directly.
+- **A cancellation notice** to each of you, if you cancel.
+
+A message the provider will not take is retried; a booking is never undone because its email failed, and the page never tells you the mail arrived, only that the hour is held.
+
+### Who can read a booking
+
+The coach, and nobody else. Reading the booking records needs an admitted AI4Kanban Cloud account whose GitHub handle is on a short list held in the service's own configuration — being in the Cloud preview is not enough. The page that shows which hours are open answers everyone, and it answers with instants and nothing else: no name, no address, no project note, and no count of how many hours the schedule holds.
 
 ## Using the app
 
@@ -349,6 +394,7 @@ We use information to:
 - **Understand whether the product works** — count how the app and the `akb` command are used and where they fail, and how many people who reach a page with a download button press it, from the anonymous reports described above, so we can decide what to build and what to fix. We read these as totals, never as one machine's or one visitor's story, and we do not attempt to work out who an install id belongs to.
 - **Keep the Service safe** — verify a sign-in, check that a record belongs to the account asking for it, detect abuse, and stay inside the capacity the preview runs on.
 - **Send you a service notice** — the answer to the invite request you made, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
+- **Arrange a training session you booked** — hold the hour, confirm it to you, give the coach what they need to turn up to it, and let you cancel it.
 - **Answer you** — handle a support message or a data request you send us.
 - **Comply with legal obligations** that apply to us.
 
@@ -356,8 +402,8 @@ We do **not** use your information for advertising, profiling, or scoring, and w
 
 For users in the EU, the UK, and Switzerland, the legal bases we rely on are:
 
-- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, and answering the invite request you made.
-- **Legitimate interests** — keeping the Service secure and working, preventing abuse, telling an account in the preview that the preview is ending or that these pages have materially changed, understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens, and the two counts this site keeps, which carry no identifier and so are about no one in particular.
+- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, answering the invite request you made, and arranging the training session you booked.
+- **Legitimate interests** — keeping the Service secure and working, preventing abuse, including the rate limit on the booking form, telling an account in the preview that the preview is ending or that these pages have materially changed, understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens, and the two counts this site keeps, which carry no identifier and so are about no one in particular.
 - **Legal obligation** — when a law applies to us.
 
 We rely on **consent** for nothing today: there is no marketing email, no non-essential cookie, and nothing the site stores in your browser to consent to. Anonymous usage reporting is optional and disclosed before your first board opens, and it rests on legitimate interests rather than on consent, so **turning it off is the choice you make and we do not ask you for one again**.
@@ -400,6 +446,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **Your Slack and Lark connections** — kept until you disconnect them, which deletes each one at once, or until we remove your records.
 - **What you have asked to be told about in a workspace** — the switch and the release described above, kept while you are in that workspace, and deleted when your membership is or when the workspace is.
 - **The API's own request log** — retained by Cloudflare under Cloudflare's policy. It carries no board content, no handle, and no email address.
+- **A training booking** — the fields in the table above, kept for 24 months after the session, so both sides have a record of what was arranged and paid for. Cancelling releases the hour at once and marks the booking cancelled; the row itself stays for the same 24 months and is deleted on request, quoting your booking reference. The rate-limit counter behind a submit is keyed on a salted hash and expires within the hour.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 
 We may keep limited information longer where we need it to comply with a legal obligation, resolve a dispute, or enforce our agreements.

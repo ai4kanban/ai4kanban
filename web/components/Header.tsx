@@ -8,7 +8,7 @@ import { GITHUB_URL } from "./content";
 import { CompareMenu } from "./CompareMenu";
 import { HeaderLanguage } from "./HeaderLanguage";
 import { MobileNav } from "./MobileNav";
-import { localeHref, localePath, type Locale } from "@/lib/i18n";
+import { localeHref, localePath, publishedIn, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
 // Whether the page has moved at all. The header only draws itself once it has —
@@ -43,6 +43,10 @@ export function Header({
 }) {
   const nav = c.shared.nav;
   const scrolled = useScrolled();
+  // The training page is published in English and Chinese only, so in the other
+  // three the link is not drawn at all — pointing a French reader at an English
+  // sales page is worse than not offering it.
+  const training = publishedIn("/training", locale);
 
   return (
     // Sticky at every width — one row of chrome is cheap to pin, and on a phone
@@ -120,6 +124,17 @@ export function Header({
             {nav.blog}
           </a>
           <CompareMenu label={nav.compare} locale={locale} />
+          {/* Last in the text run, a plain link like its neighbours: the row's
+              one filled block stays Download, so the training page is reached
+              the way the docs are rather than as a second call to action. */}
+          {training && (
+            <a
+              href={localeHref(locale, "/training")}
+              className="transition-colors hover:text-ink"
+            >
+              {nav.training}
+            </a>
+          )}
           <HeaderLanguage locale={locale} label={c.shared.language.label} />
           {/* The one way in, and the only filled block in the chrome. The
               landing page also hands out the setup prompt, under `#install`,

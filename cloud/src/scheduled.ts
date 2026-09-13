@@ -5,6 +5,8 @@ import type { Env } from './env.ts'
 import { sendPendingMail } from './invites.ts'
 import type { MailRun } from './invites.ts'
 import { redrawEverywhere } from './redraw.ts'
+import { sendPendingTrainingMail } from './training-mail.ts'
+import type { TrainingMailRun } from './training-mail.ts'
 
 /** What one pass of the 30-day sweep freed (#319): the events, and the card messages left
  *  with no event to belong to (#359). */
@@ -43,6 +45,7 @@ export async function runScheduled(
 ): Promise<{
   heartbeat: Heartbeat
   mail: MailRun
+  training: TrainingMailRun
   messages: Record<string, DeliveryRun>
   sweep: Sweep
   operations: Prune
@@ -59,6 +62,17 @@ export async function runScheduled(
     console.error('cloud: invitation mail failed', error)
   }
   if (mail.queued > 0) console.log('cloud: invitation mail', mail)
+
+  // The training page's own outbox (#683), and the retry for the same reason as the mail
+  // above: the booking is held by its row, so a message the provider refused costs an hour of
+  // delay and never the appointment. Outside the daily write budget with the rest of this run.
+  let training: TrainingMailRun = { queued: 0, sent: 0, failed: 0 }
+  try {
+    training = await sendPendingTrainingMail(env)
+  } catch (error) {
+    console.error('cloud: booking mail failed', error)
+  }
+  if (training.queued > 0) console.log('cloud: booking mail', training)
 
   // Every connector's retry (#320, #351). Like the mail above, this is not the first attempt:
   // every route that writes an event hands its own delivery to `waitUntil`. What is left for
@@ -93,5 +107,5 @@ export async function runScheduled(
   }
   if (operations.deleted > 0) console.log('cloud: pruned operation records', operations)
 
-  return { heartbeat, mail, messages, sweep, operations }
+  return { heartbeat, mail, training, messages, sweep, operations }
 }

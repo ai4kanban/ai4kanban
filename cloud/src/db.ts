@@ -25,6 +25,8 @@ import {
   serviceUnavailable,
   staleRevision,
   storageLimitReached,
+  trainingSlotTaken,
+  trainingTooManyAttempts,
 } from './errors.ts'
 
 /** SQLSTATE the schema raises when a mutation would go past the day's write budget. */
@@ -74,6 +76,12 @@ export const PG_HANDLE_NOT_ADMITTED = 'AKB15'
 
 /** SQLSTATE a change that would leave the workspace with no owner raises. */
 export const PG_LAST_OWNER = 'AKB16'
+
+/** SQLSTATE a training booking for an hour already held raises (#683). */
+export const PG_TRAINING_SLOT_TAKEN = 'AKB17'
+
+/** SQLSTATE a caller past the booking rate limit raises (#683). */
+export const PG_TRAINING_TOO_MANY_ATTEMPTS = 'AKB18'
 
 /** Postgres' own codes for a database that has stopped taking writes. */
 const PG_READ_ONLY = ['25006', '53100']
@@ -144,6 +152,8 @@ export function refusalFor(error: PostgrestError, status: number): Refusal {
   if (error.code === PG_OWNER_ONLY) return ownerOnly(error.message)
   if (error.code === PG_HANDLE_NOT_ADMITTED) return handleNotAdmitted(error.message)
   if (error.code === PG_LAST_OWNER) return lastOwner(error.message)
+  if (error.code === PG_TRAINING_SLOT_TAKEN) return trainingSlotTaken()
+  if (error.code === PG_TRAINING_TOO_MANY_ATTEMPTS) return trainingTooManyAttempts()
   if (error.code && PG_READ_ONLY.includes(error.code)) return storageLimitReached()
   console.error('cloud: database refused a call', {
     status,

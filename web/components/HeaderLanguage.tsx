@@ -4,11 +4,11 @@ import { usePathname } from "next/navigation";
 import { FiGlobe } from "react-icons/fi";
 import { Dropdown } from "./Dropdown";
 import {
-  LOCALES,
   LOCALE_NAMES,
   LOCALE_TAGS,
-  TRANSLATED_PATHS,
   localePath,
+  localesFor,
+  publishedIn,
   stripLocale,
   type Locale,
 } from "@/lib/i18n";
@@ -17,6 +17,10 @@ import {
 // being read and only changes its language; from a page that exists in English
 // alone (the docs, the blog, the recipes) there is nowhere to stay, so the links
 // go to the landing page.
+//
+// It lists the languages the page being read is published in, not the site's
+// five: on `/training`, which is English and Chinese, offering Spanish would
+// offer a URL that does not exist.
 //
 // One version at every width. On a phone it stays out in the header row rather
 // than moving inside the menu button: the globe is what a reader who can't read
@@ -35,7 +39,8 @@ export function HeaderLanguage({
   label: string;
 }) {
   const base = stripLocale(usePathname() ?? "");
-  const path = (TRANSLATED_PATHS as readonly string[]).includes(base) ? base : "";
+  const path = publishedIn(base, locale) ? base : "";
+  const locales = localesFor(path);
 
   return (
     <Dropdown
@@ -51,7 +56,7 @@ export function HeaderLanguage({
         </>
       }
     >
-      {LOCALES.map((l) =>
+      {locales.map((l) =>
         l === locale ? (
           <span
             key={l}

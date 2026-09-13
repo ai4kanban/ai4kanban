@@ -391,6 +391,34 @@ whether that board or workspace exists.
   `cloud.ai4kanban.dev`, which is signed in, works on a phone with no app, and offers the app
   link for a machine holding a copy of the workspace.
 
+The training page's bookings (#683) — the one group of routes a caller with **no account**
+reaches, because the person booking an hour of guidance on `ai4kanban.dev/training` has none.
+Each carries what it can afford to instead of a sign-in, and every answer echoes the site's
+own origin back (nothing else's) so a page elsewhere cannot read it.
+
+- `GET /v1/training/availability?from=&to=` — the hours in a window, each `open` or `booked`.
+  Open to anybody, because the answer is instants and nothing else: no name, no address, and
+  no count of how many hours the schedule holds. The window is the visitor's own week, in
+  absolute instants, and is bounded server-side.
+- `POST /v1/training/bookings` — take one. `{ "opId", "slotAt", "service", "name", "email",
+  "timezone", "project" }`. The price is settled here from `src/training-schedule.ts` and never
+  read off the body. The hold is one insert against a partial unique index, so two submits
+  racing for an hour are one booking and one `training_slot_taken`. Retrying with the same
+  `opId` is answered with the booking it already made. Answers with the booking and the one
+  copy of the manage token that will ever exist outside the visitor's mailbox.
+- `GET /v1/training/bookings/<reference>?token=` — that booking, to whoever holds the token
+  from the confirmation email. A wrong reference and a wrong token answer identically.
+- `POST /v1/training/bookings/<reference>/cancel` — `{ "token": "…" }`. Releases the hour and
+  queues the notice to both sides. Cancelling twice answers the same as cancelling once.
+- `GET /v1/training/records?from=&to=` — every booking in a window, in full. The one route here
+  behind a sign-in, and behind more than one: an admitted account whose handle is in
+  `TRAINING_OPERATORS` (`src/config.ts`). Being in the Cloud preview is not being the coach.
+
+When the coach is free is deployed configuration, not data: UTC+8 weekly hours and dated
+exceptions in `src/training-schedule.ts`. Change it and deploy — no route writes it, and the
+page carries no editor for it. What the database holds is the other half of the subtraction,
+the hours already taken.
+
 A refusal is always `{ "error": { "code": ..., "message": ... } }`, and `message` is written
 to be shown to a user as it stands. The two a client must tell apart:
 
@@ -411,6 +439,8 @@ to be shown to a user as it stands. The two a client must tell apart:
 | `slack_unavailable` / `slack_not_connected` | This service carries no Slack app, or this account has connected none. |
 | `lark_unavailable` / `lark_not_connected` | This service carries no app for that cloud, or this account has connected no Lark destination. |
 | `no_verified_address` | GitHub attests no address for this account, so a request would leave us nowhere to answer. |
+| `training_slot_taken` | Somebody booked that hour first, or the schedule no longer offers it. Not a failure: the page keeps what was typed and the reader picks another hour. |
+| `training_too_many_attempts` | Too many booking submits from one caller. Carries `retry-after`. |
 
 `GET /v1/session` answers `200` either way and carries `session.admitted`. When that is
 false it also carries `refusal`, the very refusal every other route would give, so the app

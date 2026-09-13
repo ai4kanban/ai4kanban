@@ -4,7 +4,7 @@ import { LanguageSwitcher } from "./LanguageSwitcher";
 import { BUILDER_PATH, FOOTER_SOCIALS } from "./social";
 import { column } from "./styles";
 import { agentPath, getAgentPages } from "@/lib/agents";
-import { localePath, type Locale } from "@/lib/i18n";
+import { localePath, publishedIn, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
 // AI4Kanban's pages in the two directories that list it. Both badges are served
@@ -50,6 +50,11 @@ export function SiteFooter({
       links: [
         { href: localePath(locale, "/download"), label: c.shared.nav.download },
         { href: "/cloud", label: t.cloud },
+        // Two languages only, so in the other three the row is absent rather
+        // than pointing at a page that reader cannot use.
+        ...(publishedIn("/training", locale)
+          ? [{ href: localePath(locale, "/training"), label: t.training }]
+          : []),
       ],
     },
     {

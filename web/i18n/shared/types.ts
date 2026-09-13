@@ -10,6 +10,10 @@ export type SharedCopy = {
     /** The blog index. English-only, like the docs. */
     blog: string;
     compare: string;
+    /** The training page. Published in English and Chinese only, so the link is
+     *  drawn in those two and nowhere else — `PATH_LOCALES` in `lib/i18n.ts` is
+     *  what decides, not this string. */
+    training: string;
     /** Only read out loud: the label on the phone header's menu button. */
     menu: string;
   };
@@ -28,6 +32,9 @@ export type SharedCopy = {
     blog: string;
     /** The Cloud page. English-only, like the blog. */
     cloud: string;
+    /** The training page, in the footer's Product column. Drawn only where the
+     *  page is published — see `nav.training`. */
+    training: string;
     /** The GitHub releases page. */
     changelog: string;
     /** The builder page. English-only, like the blog. */

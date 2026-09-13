@@ -14,6 +14,9 @@ import { MAIL_FROM, SUPPORT_EMAIL } from './config.ts'
 import type { Env } from './env.ts'
 
 export interface Message {
+  /** Who it comes from. Defaults to the invitation sender; a training booking (#683) sends
+   *  from its own address, because it is not an invitation and a reader sorts on the name. */
+  from?: string
   to: string
   subject: string
   text: string
@@ -36,7 +39,7 @@ export async function sendMail(env: Env, message: Message): Promise<void> {
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        from: MAIL_FROM,
+        from: message.from ?? MAIL_FROM,
         to: [message.to],
         reply_to: message.replyTo ?? SUPPORT_EMAIL,
         subject: message.subject,

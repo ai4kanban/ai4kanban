@@ -1,11 +1,10 @@
 import { FiGlobe } from "react-icons/fi";
 import { Dropdown } from "./Dropdown";
 import {
-  LOCALES,
   LOCALE_NAMES,
   LOCALE_TAGS,
-  TRANSLATED_PATHS,
   localePath,
+  localesFor,
   type Locale,
 } from "@/lib/i18n";
 
@@ -17,7 +16,8 @@ import {
 // without knowing English.
 //
 // Pages that only exist in English (the recipes) get no switcher: there'd be
-// nowhere for the links to go.
+// nowhere for the links to go. A page published in some languages and not all
+// lists the ones it has — `/training` shows English and Chinese and no more.
 export function LanguageSwitcher({
   locale,
   path,
@@ -28,7 +28,8 @@ export function LanguageSwitcher({
   path: string;
   label: string;
 }) {
-  if (!(TRANSLATED_PATHS as readonly string[]).includes(path)) return null;
+  const locales = localesFor(path);
+  if (locales.length === 0) return null;
 
   return (
     <Dropdown
@@ -45,7 +46,7 @@ export function LanguageSwitcher({
         </>
       }
     >
-      {LOCALES.map((l) =>
+      {locales.map((l) =>
         l === locale ? (
           <span
             key={l}

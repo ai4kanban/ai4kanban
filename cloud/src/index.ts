@@ -43,6 +43,7 @@ import {
   listServers,
   renewClaim,
 } from './servers.ts'
+import { corsHeaders, isTrainingPath, routeTraining } from './training.ts'
 import { deliverWatchSummary, recordWatchSummary } from './watching.ts'
 import { routeWorkspace } from './workspaces.ts'
 
@@ -53,12 +54,19 @@ interface SelfCheck {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // The training routes are the one thing here a browser on another origin calls (#683), so
+    // their answer carries the CORS headers — a refusal included, or the page reads a network
+    // error where the service gave it a sentence.
+    const cors = isTrainingPath(new URL(request.url).pathname) ? corsHeaders(request) : {}
     try {
       requireEnv(env)
-      return await route(request, env, ctx)
+      if (request.method === 'OPTIONS' && Object.keys(cors).length > 0) {
+        return new Response(null, { status: 204, headers: cors })
+      }
+      return withHeaders(await route(request, env, ctx), cors)
     } catch (error) {
       if (!(error instanceof Refusal)) console.error('cloud: request failed', error)
-      return refusalResponse(error)
+      return withHeaders(refusalResponse(error), cors)
     }
   },
 
@@ -326,6 +334,14 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     })
   }
 
+  // The training page's bookings (#683). The one group of routes a visitor with no account
+  // reaches: `src/training.ts` says what each of them proves instead of a sign-in. A booking
+  // sends its own mail here, through `waitUntil`, and the hourly run is the retry behind it.
+  const training = /^\/v1\/training(?:\/(.*))?$/.exec(pathname)
+  if (training) {
+    return routeTraining(request, env, ctx, (training[1] ?? '').replace(/\/+$/, ''))
+  }
+
   // The post-deploy check: one budgeted write through the same path every mutation uses,
   // so a deploy shows the write budget and the read-only refusal working before a client
   // meets them. Behind the owner check like every route that is not the session.
@@ -336,6 +352,15 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   }
 
   throw notFound()
+}
+
+/** Put the CORS headers on an answer that already exists. `Response` headers are immutable
+ *  once it has been constructed, so this is a copy rather than a mutation. */
+function withHeaders(response: Response, headers: Record<string, string>): Response {
+  if (Object.keys(headers).length === 0) return response
+  const merged = new Headers(response.headers)
+  for (const [name, value] of Object.entries(headers)) merged.set(name, value)
+  return new Response(response.body, { status: response.status, headers: merged })
 }
 
 /** Bring every connector's message for this event up to date, off the response. The durable

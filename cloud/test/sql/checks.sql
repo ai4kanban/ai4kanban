@@ -2429,4 +2429,168 @@ begin
 end
 $acted$;
 
+-- ---------------------------------------------------------------------------
+-- A training hour is held by one booking and nobody else (#683)
+-- ---------------------------------------------------------------------------
+--
+-- The page's whole promise is that two visitors filling the form at once come away with one
+-- appointment between them. That is the partial unique index, reached through `book_training`
+-- — plus the three rules hanging off it: a retried submit is the same booking, a manage token
+-- is the only way in, and cancelling gives the hour back.
+
+do $training$
+declare
+  BUDGET constant integer := 100000;
+  WINDOW_SECONDS constant integer := 900;
+  LIMIT_HIGH constant integer := 1000;
+  SLOT constant timestamptz := now() + interval '3 days';
+  OTHER constant timestamptz := now() + interval '4 days';
+  TOKEN constant text := 'a-token-hash';
+  ELSE_TOKEN constant text := 'another-token-hash';
+  v_first json;
+  v_again json;
+  v_read json;
+  v_reference text;
+begin
+  -- -------------------------------------------------------------------------
+  -- Two submits, one hour
+  -- -------------------------------------------------------------------------
+
+  v_first := api.book_training('op-1', SLOT, 'single', 9900, 'First Asker', 'first@example.com',
+                               'America/New_York', 'a project', TOKEN, 'fp-1',
+                               WINDOW_SECONDS, LIMIT_HIGH, BUDGET);
+  v_reference := v_first ->> 'reference';
+  assert v_reference like 'TR-%', 'a booking came back with no reference to quote';
+  assert (v_first ->> 'state') = 'booked', 'a fresh booking was not booked';
+
+  perform pg_temp.refuses(
+    $sql$select api.book_training('op-2', (select slot_at from cloud.training_bookings limit 1),
+                                  'single', 9900, 'Second Asker', 'second@example.com',
+                                  'Europe/Berlin', '', 'a-third-token', 'fp-2', 900, 1000, 100000)$sql$,
+    'AKB17', 'a second booking took an hour that was already held');
+
+  -- -------------------------------------------------------------------------
+  -- A retry of one submit is that booking, not a second one
+  -- -------------------------------------------------------------------------
+
+  v_again := api.book_training('op-1', SLOT, 'single', 9900, 'First Asker', 'first@example.com',
+                               'America/New_York', 'a project', TOKEN, 'fp-1',
+                               WINDOW_SECONDS, LIMIT_HIGH, BUDGET);
+  assert (v_again ->> 'reference') = v_reference, 'a retried submit made a second booking';
+  assert (select count(*) from cloud.training_bookings) = 1,
+    'a retried submit left two rows behind';
+
+  perform pg_temp.refuses(
+    $sql$select api.book_training('op-1', now() + interval '4 days', 'single', 9900, 'First Asker',
+                                  'first@example.com', 'America/New_York', '', 'a-token-hash',
+                                  'fp-1', 900, 1000, 100000)$sql$,
+    'AKB07', 'one submission id was allowed to book two different hours');
+
+  -- -------------------------------------------------------------------------
+  -- The availability read says which hours are taken and nothing else
+  -- -------------------------------------------------------------------------
+
+  assert json_array_length(api.training_booked_slots(now(), now() + interval '7 days')) = 1,
+    'the availability read did not report the hour that is taken';
+  assert (api.training_booked_slots(now(), now() + interval '7 days') ->> 0) is not null,
+    'the availability read answered with something other than an instant';
+  assert (api.training_booked_slots(now(), now() + interval '7 days'))::text not like '%first@example.com%',
+    'the public availability read carried a visitor address';
+  assert (api.training_booked_slots(now(), now() + interval '7 days'))::text not like '%First Asker%',
+    'the public availability read carried a visitor name';
+
+  -- -------------------------------------------------------------------------
+  -- An hour that has passed is never taken
+  -- -------------------------------------------------------------------------
+
+  perform pg_temp.refuses(
+    $sql$select api.book_training('op-past', now() - interval '1 hour', 'single', 9900, 'Late',
+                                  'late@example.com', 'Europe/Berlin', '', 'past-token', 'fp-3',
+                                  900, 1000, 100000)$sql$,
+    'AKB17', 'an hour in the past was bookable');
+
+  -- -------------------------------------------------------------------------
+  -- The token is the whole of the authorization
+  -- -------------------------------------------------------------------------
+
+  assert api.read_training_booking(v_reference, ELSE_TOKEN) is null,
+    'a wrong token read somebody else''s booking';
+  assert api.read_training_booking('TR-NOSUCH', TOKEN) is null,
+    'a reference nobody holds answered with a booking';
+  v_read := api.read_training_booking(v_reference, TOKEN);
+  assert (v_read ->> 'email') = 'first@example.com', 'the token holder could not read their own booking';
+
+  assert api.cancel_training_booking(v_reference, ELSE_TOKEN, BUDGET) is null,
+    'a wrong token cancelled somebody else''s booking';
+  assert (select state from cloud.training_bookings where reference = v_reference) = 'booked',
+    'a refused cancellation still moved the row';
+
+  -- -------------------------------------------------------------------------
+  -- Cancelling gives the hour back, and twice is the same as once
+  -- -------------------------------------------------------------------------
+
+  assert (api.cancel_training_booking(v_reference, TOKEN, BUDGET) ->> 'state') = 'cancelled',
+    'cancelling did not cancel';
+  assert json_array_length(api.training_booked_slots(now(), now() + interval '7 days')) = 0,
+    'a cancelled hour was still reported as taken';
+  assert (api.cancel_training_booking(v_reference, TOKEN, BUDGET) ->> 'state') = 'cancelled',
+    'cancelling twice answered with something other than the cancelled booking';
+  assert (select count(*) from cloud.training_notices
+           where booking_id = (select id from cloud.training_bookings where reference = v_reference)
+             and kind = 'cancelled') = 1,
+    'cancelling twice queued the message twice';
+
+  -- The freed hour is bookable again, by somebody else.
+  assert (api.book_training('op-3', SLOT, 'monthly', 34900, 'Third Asker', 'third@example.com',
+                            'Asia/Shanghai', '', 'third-token', 'fp-4',
+                            WINDOW_SECONDS, LIMIT_HIGH, BUDGET) ->> 'state') = 'booked',
+    'an hour freed by a cancellation was not offered again';
+
+  -- -------------------------------------------------------------------------
+  -- Every booking queues its two messages, and a failure keeps them queued
+  -- -------------------------------------------------------------------------
+
+  assert json_array_length(api.pending_training_mail(20, 5)) =
+         (select count(*) from cloud.training_notices where sent_at is null),
+    'the outbox did not offer every message still owed';
+
+  perform api.mark_training_mail_failed(
+    (select id from cloud.training_bookings where op_id = 'op-3'), 'visitor', 'resend said no');
+  assert (select attempts from cloud.training_notices
+           where booking_id = (select id from cloud.training_bookings where op_id = 'op-3')
+             and kind = 'visitor') = 1,
+    'a failed send was not counted';
+  assert (select state from cloud.training_bookings where op_id = 'op-3') = 'booked',
+    'a message the provider refused took the booking down with it';
+
+  perform api.mark_training_mail_sent(
+    (select id from cloud.training_bookings where op_id = 'op-3'), 'visitor');
+  assert (select sent_at from cloud.training_notices
+           where booking_id = (select id from cloud.training_bookings where op_id = 'op-3')
+             and kind = 'visitor') is not null,
+    'a sent message was not marked';
+
+  -- -------------------------------------------------------------------------
+  -- The rate limit stops at the limit rather than climbing
+  -- -------------------------------------------------------------------------
+
+  perform cloud.count_training_attempt('fp-limited', WINDOW_SECONDS, 2);
+  perform cloud.count_training_attempt('fp-limited', WINDOW_SECONDS, 2);
+  perform pg_temp.refuses(
+    $sql$select cloud.count_training_attempt('fp-limited', 900, 2)$sql$,
+    'AKB18', 'a caller past the booking limit was not refused');
+  assert (select attempts from cloud.training_attempts where fingerprint = 'fp-limited') = 2,
+    'a refused attempt was still counted against the caller';
+
+  -- A window that has run out starts the count again.
+  update cloud.training_attempts set window_start = now() - interval '1 hour'
+   where fingerprint = 'fp-limited';
+  perform cloud.count_training_attempt('fp-limited', WINDOW_SECONDS, 2);
+  assert (select attempts from cloud.training_attempts where fingerprint = 'fp-limited') = 1,
+    'a new window did not start the count again';
+
+  raise notice 'sql checks: #683 training booking checks passed';
+end
+$training$;
+
 rollback;

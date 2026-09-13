@@ -168,3 +168,52 @@ export const LARK_TOKEN_SKEW_SECONDS = 5 * 60
  *  paragraph boundary and the rest is left behind the card link. */
 export const LARK_ELEMENT_LIMIT = 40
 export const LARK_TEXT_LIMIT = 3000
+
+// --- the training page's bookings (#683) --------------------------------------
+// A visitor with no account books an hour on the public site. These are the numbers that
+// bound what a stranger's request can do; when the coach is free is `training-schedule.ts`.
+
+/** Where the training page is served from, and the only origins the booking routes answer a
+ *  browser on. Everything else gets no CORS header at all, so a page on another site cannot
+ *  read the answer even though the request reaches us. */
+export const TRAINING_ALLOWED_ORIGINS = [
+  'https://ai4kanban.dev',
+  'https://www.ai4kanban.dev',
+  'http://localhost:3000',
+]
+
+/** How far ahead the availability read will look. A visitor asks for their own current week,
+ *  so anything wider is a caller walking the calendar rather than reading a page. */
+export const TRAINING_MAX_WINDOW_DAYS = 14
+
+/** Submits from one caller inside one window, and how long that window is. Generous for a
+ *  person who mistypes an address twice, and narrow enough that nobody fills the schedule
+ *  from a script. */
+export const TRAINING_ATTEMPT_LIMIT = 8
+export const TRAINING_ATTEMPT_WINDOW_SECONDS = 15 * 60
+
+/** What the fingerprint behind that limit is salted with, so the table cannot be walked back
+ *  to a list of addresses that visited. Any deploy-time string; changing it resets the
+ *  windows and nothing else. */
+export const TRAINING_ATTEMPT_SALT = 'ai4kanban-training-v1'
+
+/** The longest the project note is stored at. A booking form is not a document. */
+export const TRAINING_MAX_PROJECT = 2000
+
+/** Who a booking's messages come from, and where the coach reads their copy. `MAIL_FROM`
+ *  above is the invitation sender; a booking is not an invitation, so it says what it is. */
+export const TRAINING_MAIL_FROM = 'AI4Kanban Training <training@ai4kanban.dev>'
+export const TRAINING_COACH_EMAIL = SUPPORT_EMAIL
+
+/** The outbox's batch and attempt ceiling. #327's numbers, for #327's reasons. */
+export const TRAINING_MAIL_BATCH = 20
+export const TRAINING_MAIL_MAX_ATTEMPTS = 5
+
+/** Where the training page lives. A manage link is this plus the booking's reference and its
+ *  token, so a message can be written from the scheduled run with no request to read it off. */
+export const TRAINING_PAGE_URL = 'https://ai4kanban.dev/training'
+
+/** The GitHub handles allowed to read the booking records. An admitted Cloud account is not
+ *  enough: these rows are other people's names, addresses and project notes, and the preview
+ *  admits people who have nothing to do with the training service. */
+export const TRAINING_OPERATORS = ['neverchanje']

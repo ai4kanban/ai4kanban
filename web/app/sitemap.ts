@@ -8,7 +8,7 @@ import { getAllPosts, postPath } from "@/lib/blog";
 import { DOCS_PATH, docPath, getAllDocs } from "@/lib/docs";
 import { getLegalDocs } from "@/lib/legal";
 import { BASE_URL } from "@/lib/site";
-import { LOCALES, TRANSLATED_PATHS, localePath } from "@/lib/i18n";
+import { PATH_LOCALES, localePath } from "@/lib/i18n";
 
 // Required for `output: export` — emit sitemap.xml at build time.
 export const dynamic = "force-static";
@@ -69,15 +69,16 @@ function routeSources(route: string, locale: string): string[] {
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
 
-  // Every translated route: one entry per language. The hreflang set is not
+  // Every translated route: one entry per language it is published in — which is
+  // not five for all of them (`/training` is English and Chinese). The hreflang set is not
   // repeated here — each page's `<head>` already carries it (`lib/metadata.ts`),
   // which is the signal Google reads either way. Declaring it in both places
   // would cost validity: the sitemaps.org schema orders `<url>` as
   // `loc, lastmod, changefreq, priority` and only then the extension wildcard,
   // but Next's serializer emits `alternates` as `<xhtml:link>` directly after
   // `<loc>` — ahead of `<lastmod>` — and the element order is not ours to set.
-  for (const route of TRANSLATED_PATHS) {
-    for (const locale of LOCALES) {
+  for (const [route, locales] of Object.entries(PATH_LOCALES)) {
+    for (const locale of locales) {
       entries.push({
         url: `${BASE_URL}${localePath(locale, route)}`,
         lastModified: gitLastModified(...routeSources(route, locale)),

@@ -2,7 +2,7 @@ import { FiMenu } from "react-icons/fi";
 import { Dropdown } from "./Dropdown";
 import { buttonClass } from "./ui/Button";
 import { COMPARISONS } from "./CompareMenu";
-import { localeHref, type Locale } from "@/lib/i18n";
+import { localeHref, publishedIn, type Locale } from "@/lib/i18n";
 import type { SiteCopy } from "@/i18n/types";
 
 // The header's links on a phone, behind one button, so the chrome stays a
@@ -38,6 +38,11 @@ export function MobileNav({ c, locale }: { c: SiteCopy; locale: Locale }) {
       <a href="/blog" className={item}>
         {nav.blog}
       </a>
+      {publishedIn("/training", locale) && (
+        <a href={localeHref(locale, "/training")} className={item}>
+          {nav.training}
+        </a>
+      )}
 
       <p className={heading}>{nav.compare}</p>
       {COMPARISONS.map((x) => (
