@@ -1,6 +1,8 @@
 /** The Configuration dialog: its sidebar and every pane in it. The settings a
  *  harness declares — their labels, help and choices — are the board's own rules
  *  and never enter this file. */
+import type { CadenceUnit } from "@/lib/cadence";
+
 /** The roles the board ships — the agents its own flows are run by, on either solution.
  *  Closed, because the command ships them; a specialist is a file and carries its own
  *  words. */
@@ -237,18 +239,31 @@ export type ConfigurationCopy = {
       /** The action, and what it reads while a pass is going. */
       run: string;
       running: string;
-      /** The compact schedule chip beside it: what it says while recurrence is off, and
-       *  what it reads out loud either way. */
+      /** The compact schedule chip beside it, and the name of the cadence list it opens. */
       recurring: string;
       chipLabel: (state: string) => string;
-      /** What the chip's read-out-loud state says while nothing repeats. */
+      /** The list's first cadence, and what the chip says while nothing repeats. */
       off: string;
-      /** Inside its popover: the opt-in, then the cadence it runs on. */
-      optIn: string;
-      cadence: string;
-      cadencePlaceholder: string;
-      /** The forms a cadence can take, under the box. */
-      cadenceHint: string;
+      /** A cadence in the reader's own words — what the chip, the ticked row and every
+       *  accessible name say in place of `6h` or `1d at 09:30`. `at` is empty when the
+       *  cadence names no time of day. */
+      cadenceLabel: (n: number, unit: CadenceUnit, at: string) => string;
+      /** The list's last row, which is the only one that opens anything to fill in. */
+      custom: string;
+      /** Inside it: how many, of which unit, and the time of day whole days may carry. */
+      every: string;
+      unit: string;
+      units: Record<CadenceUnit, string>;
+      atTime: string;
+      addTime: string;
+      dropTime: string;
+      save: string;
+      saving: string;
+      cancel: string;
+      /** Why a number cannot be saved — the only thing that ever says a range. */
+      outOfRange: (unit: string, min: number, max: number) => string;
+      /** A preset the board refused, said at the foot of the list it was pressed in. */
+      presetFailed: (cadence: string) => string;
       /** The quiet line under the action group. */
       neverRun: string;
       lastRun: (when: string) => string;

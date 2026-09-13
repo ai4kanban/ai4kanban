@@ -1,6 +1,12 @@
 // English copy for the Configuration dialog — the source of truth a second
 // language mirrors key for key. Writing rules: `i18n/index.ts`.
+import type { CadenceUnit } from "@/lib/cadence";
 import type { ConfigurationCopy } from "./types";
+
+// The prune cadence's units: the unit picker names them, the summary and the range message
+// reuse them, so "hours" is spelled once. The singular set is what "Every hour" reads off.
+const PRUNE_UNITS: Record<CadenceUnit, string> = { m: "Minutes", h: "Hours", d: "Days" };
+const PRUNE_UNIT_ONE: Record<CadenceUnit, string> = { m: "minute", h: "hour", d: "day" };
 
 const en: ConfigurationCopy = {
   open: "Configuration",
@@ -223,15 +229,27 @@ const en: ConfigurationCopy = {
       running: "Running…",
       recurring: "Recurring pruning",
       chipLabel: (state) => `Recurring pruning: ${state}`,
-      off: "off",
-      optIn: "Prune on a schedule",
-      cadence: "Every",
-      cadencePlaceholder: "1d at 09:30",
-      cadenceHint: "30m, 6h, 7d, or 1d at 09:30.",
+      off: "Off",
+      cadenceLabel: (n, unit, at) => {
+        const head = n === 1 ? `Every ${PRUNE_UNIT_ONE[unit]}` : `Every ${n} ${PRUNE_UNITS[unit].toLowerCase()}`;
+        return at ? `${head} at ${at}` : head;
+      },
+      custom: "Custom",
+      every: "Every",
+      unit: "Unit",
+      units: PRUNE_UNITS,
+      atTime: "At",
+      addTime: "Set a time",
+      dropTime: "No set time",
+      save: "Save",
+      saving: "Saving…",
+      cancel: "Cancel",
+      outOfRange: (unit, min, max) => `${unit} must be between ${min} and ${max}.`,
+      presetFailed: (cadence) => `Couldn't save "${cadence}" — pick it again to retry.`,
       neverRun: "Never run",
       lastRun: (when) => `Last run ${when}`,
       failed: "Last run did not finish",
-      saveFailed: "couldn't save the prune schedule",
+      saveFailed: "Couldn't save the prune schedule.",
       tooOld: "This board's rules are older than scheduled pruning.",
     },
     specialistRule: {

@@ -37,6 +37,7 @@ import {
   FiPlus,
   FiScissors,
   FiTrash2,
+  FiX,
 } from "react-icons/fi";
 import {
   agentsAction,
@@ -54,12 +55,14 @@ import {
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent } from "@/lib/agent-name";
+import { type Cadence, type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import type {
   AgentInfo,
   AgentView,
   MemoryPruneSchedule,
   SpecAgentSettingView,
 } from "@/lib/types";
+import { Button } from "./button";
 import { AgentMark, PRUNER, useRuntimeName } from "./Configuration";
 import { ConfirmationPopover } from "./confirm-popover";
 import {
@@ -1183,8 +1186,6 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
   // last-run line below is the record of what passed, and a failure must not move it.
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [why, setWhy] = useState("");
   const anchor = useRef<HTMLSpanElement>(null);
 
   const readSchedule = useCallback(async () => {
@@ -1241,25 +1242,21 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
     void readRuns();
   };
 
-  // Save the opt-in and the cadence together, and put the saved state back on a refusal:
-  // an invalid cadence must never leave a schedule looking active.
+  // Write the schedule and read back what landed. False is a refusal — the list says so
+  // itself, in its own words, and the state on screen is still the one that is running.
   const save = async (next: { enabled: boolean; cadence: string }) => {
-    setSaving(true);
-    setWhy("");
-    try {
-      const res = await setMemoryPruneAction(next);
-      if (!res.ok) {
-        setWhy(res.error || c.saveFailed);
-        return false;
-      }
-      await readSchedule();
-      return true;
-    } finally {
-      setSaving(false);
-    }
+    const res = await setMemoryPruneAction(next);
+    if (!res.ok) return false;
+    await readSchedule();
+    return true;
   };
 
+  // The cadence the board is really on. A schedule can only be enabled with one the parser
+  // reads, so `on` and a null `saved` cannot happen together — a cadence nothing recognises
+  // arrives here as no schedule at all, and the list starts empty.
+  const saved = parseCadence(schedule?.cadence ?? "");
   const on = schedule?.enabled ?? false;
+  const state = on && saved ? c.cadenceLabel(saved.n, saved.unit, saved.at) : "";
 
   return (
     <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -1272,30 +1269,28 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
           <button
             type="button"
             aria-expanded={open}
-            title={c.chipLabel(on ? schedule!.cadence : c.off)}
-            aria-label={c.chipLabel(on ? schedule!.cadence : c.off)}
+            aria-haspopup="listbox"
+            title={c.chipLabel(state || c.off)}
+            aria-label={c.chipLabel(state || c.off)}
             onClick={() => setOpen((was) => !was)}
             // Neutral while off, ember once it is running: the closed chip's whole job is
-            // to say whether anything starts by itself, and what.
+            // to say whether anything starts by itself, and what. Running, the cadence
+            // alone is the whole answer; off, it takes the setting's name to mean anything.
             className={`flex h-[28px] cursor-pointer items-center gap-1.5 rounded-[8px] px-2 text-[11.5px] font-[700] transition-colors duration-100 ${
-              on ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft hover:bg-nb-canvas"
+              state ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft hover:bg-nb-canvas"
             }`}
           >
             <FiClock size={12} aria-hidden />
-            {on ? schedule!.cadence : c.recurring}
+            {state || c.chipLabel(c.off)}
             <FiChevronDown size={11} aria-hidden />
           </button>
           {open && (
-            <RecurrencePopover
-              schedule={schedule}
-              busy={saving}
-              why={why}
+            <CadenceMenu
+              saved={saved}
+              enabled={on}
               copy={c}
               anchorRef={anchor}
-              onDismiss={() => {
-                setOpen(false);
-                setWhy("");
-              }}
+              onDismiss={() => setOpen(false)}
               onSave={save}
             />
           )}
@@ -1310,111 +1305,335 @@ function PruneControls({ onError }: { onError?: (msg: string) => void }) {
   );
 }
 
-// The chip's own panel: the opt-in, and — once it is asked for — the cadence it repeats on.
+// The cadence list, in order. Off first, three common cadences, then the one row that opens
+// anything — `6h` / `1d` / `7d` are the cadences themselves, so a preset row needs no table
+// of its own beyond the number and unit its words are read off.
+type Preset = "6h" | "1d" | "7d";
+type Pick = "off" | Preset | "custom";
+const PRESETS = ["6h", "1d", "7d"] as const;
+const PRESETS_AT: Record<Preset, { n: number; unit: CadenceUnit }> = {
+  "6h": { n: 6, unit: "h" },
+  "1d": { n: 1, unit: "d" },
+  "7d": { n: 7, unit: "d" },
+};
+const ROWS: Pick[] = ["off", ...PRESETS, "custom"];
+
+// What the pickers will offer per unit. A ceiling as much as a floor: a prune rewrites every
+// memory file, so minutes below five is a job that never finishes before the next one starts,
+// and a year is as far out as scheduling one still means anything.
+const RANGE: Record<CadenceUnit, [number, number]> = { m: [5, 1440], h: [1, 720], d: [1, 365] };
+
+/** What Custom is editing. `time` is null until a time is asked for, and only whole days may
+ *  carry one. `from` is the cadence it was filled back from, which the range check spares. */
+interface Draft {
+  value: string;
+  unit: CadenceUnit;
+  time: string | null;
+  from: { value: string; unit: CadenceUnit } | null;
+}
+
+const write = (n: number, unit: CadenceUnit, at: string | null): string =>
+  formatCadence({ n, unit, at: at ?? "" });
+
+// The chip's own panel: one list of cadences, and under it the only one that has anything
+// to fill in.
 //
-// Flipping the switch on is an INTENT, not a save: with no cadence yet there is nothing to
-// schedule, so the box appears and nothing is written. What saves is a cadence, and a
-// cadence the board refuses keeps the panel open with the reason under the box and the
-// schedule off — an invalid one can never activate anything.
+// Picking a row IS the save. The switch this replaces asked for an intent and then a
+// cadence, which left a schedule looking on with nothing to run on; here the two are one
+// press, and the tick moves only once the write has landed. **Custom** is the one row that
+// opens anything, and it writes on Save and nowhere else — leaving, by Escape, by Cancel,
+// by a press outside or by closing Configuration, throws the draft away and changes nothing.
 //
-// Flipping it off saves at once. Turning a schedule off is complete on its own, and a
-// setting that waited for a second action to take effect is a setting nobody can trust.
-function RecurrencePopover({
-  schedule,
-  busy,
-  why,
+// Nothing here can compose a cadence the parser refuses, so a refusal is the board failing
+// to write. It is said where it was pressed, in this copy's own words rather than the
+// parser's, with the tick still on the cadence that is really running.
+function CadenceMenu({
+  saved,
+  enabled,
   copy,
   anchorRef,
   onDismiss,
   onSave,
 }: {
-  schedule: MemoryPruneSchedule | null;
-  busy: boolean;
-  why: string;
+  /** The cadence in the config, whether or not it is switched on — a schedule that was
+   *  switched off keeps it, and Custom offers it back. */
+  saved: Cadence | null;
+  enabled: boolean;
   copy: ReturnType<typeof useCopy>["configuration"]["agents"]["pruner"];
   anchorRef: React.RefObject<HTMLSpanElement | null>;
   onDismiss: () => void;
   onSave: (next: { enabled: boolean; cadence: string }) => Promise<boolean>;
 }) {
-  const [cadence, setCadence] = useState(schedule?.cadence ?? "");
-  // What the switch shows: what is saved, or what has just been asked for and is waiting on
-  // a cadence. The two agree again the moment a save lands.
-  const [want, setWant] = useState(schedule?.enabled ?? false);
-  const box = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState<Pick | null>(null);
+  const [failed, setFailed] = useState("");
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const list = useRef<HTMLDivElement>(null);
 
-  const flip = async (next: boolean) => {
-    setWant(next);
-    // On with nothing to run on: show the box and wait. Off, or on with a cadence already
-    // saved, is the whole answer and goes straight through.
-    if (next && !cadence.trim()) return void requestAnimationFrame(() => box.current?.focus());
-    if (!(await onSave({ enabled: next, cadence }))) setWant(!next);
+  const presetOf = (c: Cadence | null): Preset | null => {
+    if (!c || c.at) return null;
+    const id = `${c.n}${c.unit}`;
+    return (PRESETS as readonly string[]).includes(id) ? (id as Preset) : null;
   };
+  const picked: Pick = !enabled ? "off" : (presetOf(saved) ?? "custom");
+  const label = (id: Pick) =>
+    id === "off" ? copy.off : id === "custom" ? copy.custom : copy.cadenceLabel(PRESETS_AT[id].n, PRESETS_AT[id].unit, "");
+  // Custom's right end: the cadence it would come back with — the saved one when it is no
+  // preset, or the one a switched-off schedule is keeping.
+  const note = saved && (picked === "custom" || !enabled) ? copy.cadenceLabel(saved.n, saved.unit, saved.at) : undefined;
 
-  // True once there is nothing left to write — either nothing changed, or what changed
-  // landed.
-  const saveCadence = async (): Promise<boolean> => {
-    if (cadence.trim() === (schedule?.cadence ?? "") && want === (schedule?.enabled ?? false)) return true;
-    if (await onSave({ enabled: want, cadence })) return true;
-    setWant(schedule?.enabled ?? false);
-    return false;
-  };
-
-  // Leaving writes a cadence typed but not yet committed: dismissing takes the box off
-  // screen before its blur can fire, and a cadence that vanished as you clicked away is a
-  // setting nobody can trust. A refusal keeps the panel open with the reason.
-  const leave = useRef(async () => {});
-  leave.current = async () => {
-    if (await saveCadence()) onDismiss();
-  };
-
+  // Leaving never writes. A draft only exists until something is pressed, so there is
+  // nothing here to lose that the user did not already decide to lose.
+  const leave = useRef(onDismiss);
+  leave.current = onDismiss;
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") void leave.current();
+    // Escape takes this list and nothing else. Configuration closes on the same key from
+    // `window`, so the press is caught on the way down and stopped there — otherwise backing
+    // out of the cadence takes the whole dialog with it. The unit list is its own layer and
+    // answers Escape first, so a press inside it is left alone.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if ((e.target as Element | null)?.closest?.("[data-radix-popper-content-wrapper]")) return;
+      e.stopPropagation();
+      leave.current();
     };
-    const onPointerDown = (event: PointerEvent) => {
-      if (!anchorRef.current?.contains(event.target as Node)) void leave.current();
+    // The unit list portals to <body>, so a press in it is a press in this panel.
+    const onPointerDown = (e: PointerEvent) => {
+      const at = e.target as Element | null;
+      if (!at || anchorRef.current?.contains(at) || at.closest("[data-radix-popper-content-wrapper]")) return;
+      leave.current();
     };
-    window.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     document.addEventListener("pointerdown", onPointerDown);
     return () => {
-      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
       document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [anchorRef]);
 
+  // Open on the cadence in effect, so a keyboard lands in the list rather than at its edge.
+  useEffect(() => {
+    const rows = list.current?.querySelectorAll<HTMLButtonElement>('[role="option"]');
+    rows?.[ROWS.indexOf(picked)]?.focus();
+    // Once, as the list opens — moving the tick afterwards must not steal focus back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const step = (e: React.KeyboardEvent) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const rows = Array.from(list.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
+    const at = rows.indexOf(document.activeElement as HTMLButtonElement);
+    const next = e.key === "ArrowDown" ? (at + 1) % rows.length : (at < 1 ? rows.length : at) - 1;
+    rows[next]?.focus();
+  };
+
+  const pick = async (id: Pick) => {
+    if (busy) return;
+    if (id === "custom") {
+      setFailed("");
+      setDraft(
+        saved
+          ? { value: String(saved.n), unit: saved.unit, time: saved.at || null, from: { value: String(saved.n), unit: saved.unit } }
+          : { value: "", unit: "d", time: null, from: null },
+      );
+      return;
+    }
+    setDraft(null);
+    // Already what is saved: there is nothing to write, and writing anyway would restate a
+    // cadence the parser never recognised.
+    if (id === picked) return onDismiss();
+    setFailed("");
+    setBusy(id);
+    // Switching off keeps the cadence, so the same one comes back when it is switched on.
+    const ok = await onSave({
+      enabled: id !== "off",
+      cadence: id === "off" ? (saved ? formatCadence(saved) : "") : id,
+    });
+    setBusy(null);
+    if (ok) onDismiss();
+    else setFailed(copy.presetFailed(label(id)));
+  };
+
   return (
-    <div className="nb-panel-sm absolute right-0 top-[calc(100%+8px)] z-40 w-[min(280px,calc(100vw-32px))] bg-nb-paper p-3 text-left">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[12.5px] font-[700] text-nb-ink">{copy.optIn}</span>
-        <Switch on={want} busy={busy} label={copy.optIn} onFlip={flip} />
+    <div className="nb-panel-sm absolute right-0 top-[calc(100%+8px)] z-40 w-[280px] bg-nb-paper p-1 text-left">
+      <div ref={list} role="listbox" aria-label={copy.recurring} onKeyDown={step} className="flex flex-col">
+        {ROWS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="option"
+            aria-selected={picked === id}
+            disabled={!!busy}
+            onClick={() => void pick(id)}
+            className={`relative flex w-full cursor-pointer select-none items-center gap-3 rounded-[7px] py-1.5 pl-2.5 pr-8 text-left text-[13px] font-[600] text-nb-ink outline-none hover:bg-nb-wash focus-visible:bg-nb-wash disabled:cursor-wait disabled:opacity-60 ${
+              id === "custom" && draft ? "bg-nb-wash" : ""
+            }`}
+          >
+            {label(id)}
+            {id === "custom" && <FiChevronDown size={11} aria-hidden className="-ml-2 shrink-0 opacity-45" />}
+            {(busy === id || (id === "custom" && note)) && (
+              <span className="ml-auto shrink-0 truncate text-[10.5px] font-[400] text-nb-ink-soft">
+                {busy === id ? copy.saving : note}
+              </span>
+            )}
+            {picked === id && (
+              <span className="absolute right-2.5 flex items-center text-nb-accent-deep">
+                <FiCheck size={13} aria-hidden />
+              </span>
+            )}
+          </button>
+        ))}
       </div>
-      {want && (
-        <div className="mt-2.5">
-          <label className={`${CAPTION} mb-[5px] block text-nb-ink-soft`} htmlFor="prune-cadence">
-            {copy.cadence}
-          </label>
-          <input
-            id="prune-cadence"
-            ref={box}
-            value={cadence}
-            disabled={busy}
-            spellCheck={false}
-            placeholder={copy.cadencePlaceholder}
-            onChange={(e) => setCadence(e.target.value)}
-            onBlur={() => void saveCadence()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void saveCadence();
-            }}
-            className="w-full rounded-[8px] bg-nb-wash px-2.5 py-1.5 font-mono text-[12px] text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
-          />
-          <p className="mt-1 text-[11px] leading-snug text-nb-ink-soft">{copy.cadenceHint}</p>
-        </div>
+
+      {draft && (
+        <CadenceEdit
+          draft={draft}
+          busy={busy === "custom"}
+          failed={failed}
+          copy={copy}
+          onChange={setDraft}
+          onCancel={onDismiss}
+          onSave={async (cadence) => {
+            setFailed("");
+            setBusy("custom");
+            const ok = await onSave({ enabled: true, cadence });
+            setBusy(null);
+            if (ok) onDismiss();
+            else setFailed(copy.saveFailed);
+          }}
+        />
       )}
-      {why && (
-        <p className="mt-2 rounded-[8px] bg-nb-peach-soft px-2.5 py-[6px] text-[11.5px] leading-[16px] text-nb-peach-ink">
-          {why}
+
+      {!draft && failed && (
+        <p className="m-1 rounded-[8px] bg-nb-peach-soft px-2.5 py-[6px] text-[11.5px] leading-[16px] text-nb-peach-ink">
+          {failed}
         </p>
       )}
+    </div>
+  );
+}
+
+// Custom's own block: how many, of which unit, and — for whole days only — the time of day
+// it lands at. A time is offered rather than sitting there empty, because most cadences
+// name none, and it is the days unit's own extra: switching to minutes or hours takes it
+// off screen and out of what gets written.
+//
+// The ranges below are the pickers' limits, not the board's. A cadence already in the file
+// keeps whatever it means; it is only checked once the number or the unit is changed, so
+// opening this on an old `2000m` cannot fail a save nobody asked for.
+function CadenceEdit({
+  draft,
+  busy,
+  failed,
+  copy,
+  onChange,
+  onCancel,
+  onSave,
+}: {
+  draft: Draft;
+  busy: boolean;
+  failed: string;
+  copy: ReturnType<typeof useCopy>["configuration"]["agents"]["pruner"];
+  onChange: (next: Draft) => void;
+  onCancel: () => void;
+  onSave: (cadence: string) => Promise<void>;
+}) {
+  const [min, max] = RANGE[draft.unit];
+  const kept = !!draft.from && draft.value === draft.from.value && draft.unit === draft.from.unit;
+  const n = Number(draft.value);
+  const numberOk = /^\d+$/.test(draft.value) && (kept ? n >= 1 : n >= min && n <= max);
+  const at = draft.unit === "d" ? draft.time : null;
+  const canSave = numberOk && at !== "";
+  // The one thing that ever says a range, and only once a number is in the box: an empty
+  // box is not a mistake yet.
+  const wrong = draft.value !== "" && !numberOk ? copy.outOfRange(copy.units[draft.unit], min, max) : "";
+
+  return (
+    <div className="mt-1 border-t border-nb-ink/12 px-1.5 pb-1.5 pt-2.5">
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-[12.5px] text-nb-ink-soft">{copy.every}</span>
+        <input
+          value={draft.value}
+          disabled={busy}
+          autoFocus
+          inputMode="numeric"
+          aria-label={copy.every}
+          aria-invalid={!!wrong}
+          onChange={(e) => onChange({ ...draft, value: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && canSave && !busy) void onSave(write(n, draft.unit, at));
+          }}
+          className={`w-[56px] shrink-0 rounded-[8px] bg-nb-wash px-2.5 py-1.5 text-center text-[12.5px] font-[700] focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait ${
+            wrong ? "text-nb-peach-ink" : "text-nb-ink"
+          }`}
+        />
+        <Select
+          value={draft.unit}
+          disabled={busy}
+          onValueChange={(unit) => onChange({ ...draft, unit: unit as CadenceUnit })}
+        >
+          <SelectTrigger aria-label={copy.unit} className={`${FLAT_CONTROL} min-w-0 flex-1 px-2.5 py-1.5 text-[12.5px]`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(["m", "h", "d"] as const).map((unit) => (
+              <SelectItem key={unit} value={unit}>
+                {copy.units[unit]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {draft.unit === "d" &&
+        (draft.time === null ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onChange({ ...draft, time: "09:00" })}
+            className="mt-2 inline-flex cursor-pointer items-center gap-1 rounded-[8px] px-1 py-1 text-[12px] font-[600] text-nb-ink-soft hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait"
+          >
+            <FiPlus size={12} aria-hidden />
+            {copy.addTime}
+          </button>
+        ) : (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="shrink-0 text-[12.5px] text-nb-ink-soft">{copy.atTime}</span>
+            <input
+              type="time"
+              value={draft.time}
+              disabled={busy}
+              aria-label={copy.atTime}
+              onChange={(e) => onChange({ ...draft, time: e.target.value })}
+              className="shrink-0 rounded-[8px] bg-nb-wash px-2.5 py-1.5 text-center font-mono text-[12.5px] font-[700] text-nb-ink focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent disabled:cursor-wait"
+            />
+            <button
+              type="button"
+              disabled={busy}
+              aria-label={copy.dropTime}
+              title={copy.dropTime}
+              onClick={() => onChange({ ...draft, time: null })}
+              className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-[7px] text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent disabled:cursor-wait"
+            >
+              <FiX size={13} aria-hidden />
+            </button>
+          </div>
+        ))}
+
+      {(wrong || failed) && (
+        <p className="mt-2 rounded-[8px] bg-nb-peach-soft px-2.5 py-[6px] text-[11.5px] leading-[16px] text-nb-peach-ink">
+          {wrong || failed}
+        </p>
+      )}
+
+      <div className="mt-2.5 flex items-center justify-end gap-2">
+        <Button variant="ghost" size="xs" disabled={busy} onClick={onCancel}>
+          {copy.cancel}
+        </Button>
+        <Button variant="accent" size="xs" disabled={!canSave || busy} onClick={() => void onSave(write(n, draft.unit, at))}>
+          {busy ? copy.saving : copy.save}
+        </Button>
+      </div>
     </div>
   );
 }

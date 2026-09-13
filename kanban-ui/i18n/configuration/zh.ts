@@ -1,6 +1,10 @@
 // 简体中文 —— the Configuration dialog, mirroring `en.ts` key for key.
 // Writing rules: `i18n/index.ts`.
+import type { CadenceUnit } from "@/lib/cadence";
 import type { ConfigurationCopy } from "./types";
+
+// 整理周期的时间单位：单位选择器和周期摘要说的是同一组词。
+const PRUNE_UNITS: Record<CadenceUnit, string> = { m: "分钟", h: "小时", d: "天" };
 
 const zh: ConfigurationCopy = {
   open: "配置",
@@ -327,10 +331,22 @@ const zh: ConfigurationCopy = {
       recurring: "定期整理",
       chipLabel: (state) => `定期整理：${state}`,
       off: "关闭",
-      optIn: "按周期整理",
-      cadence: "每",
-      cadencePlaceholder: "1d at 09:30",
-      cadenceHint: "30m、6h、7d，或 1d at 09:30。",
+      cadenceLabel: (n, unit, at) => {
+        const head = n === 1 ? `每${PRUNE_UNITS[unit]}` : `每 ${n} ${PRUNE_UNITS[unit]}`;
+        return at ? `${head} ${at}` : head;
+      },
+      custom: "自定义",
+      every: "每",
+      unit: "单位",
+      units: PRUNE_UNITS,
+      atTime: "指定时间",
+      addTime: "指定时间",
+      dropTime: "不指定时间",
+      save: "保存",
+      saving: "保存中…",
+      cancel: "取消",
+      outOfRange: (unit, min, max) => `${unit}需在 ${min} 到 ${max} 之间。`,
+      presetFailed: (cadence) => `「${cadence}」保存失败，再选一次重试。`,
       neverRun: "尚未运行",
       lastRun: (when) => `上次运行 ${when}`,
       failed: "上次运行未完成",
