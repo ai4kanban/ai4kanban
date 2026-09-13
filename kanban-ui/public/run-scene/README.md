@@ -1,6 +1,6 @@
 # Runs scene art
 
-- **Office**: `office-eight-desks.png` includes eight desks and a two-seat sofa in one background.
+- **Office**: the room is drawn as layers — see below. `bot-actions.png` is the only flat sheet left here.
 - **Robot**: `bot-actions.png` is an RGBA atlas; `bot-actions.json` supplies registered source rectangles for `type`, `walk-left`, `walk-right`, and `sit`, four frames each.
 - **Display**: render the 300 px frames at 85.5 px inside a 96 px cell with nearest-neighbor sampling; their ground line is source y=285. The mockups offset the texture by (5.25, 8.775) px. Do not slice the sheet as an equal grid.
 - **Identity**: overlay role names and harness logos in dark ink. All roles share the rear-facing work sheet; `public/agent-art/` remains the canonical role family. Green belongs only to the eyes inside the cream face, never to ear lights.
@@ -12,7 +12,7 @@ Generated with the built-in imagegen tool from this project's existing workshop 
 
 ## Layered office
 
-- **Assets**: `layers/office-base.png`, `clock-face.png`, `window-{dawn,day,dusk,night}.png`, `desk-sleep.png`, and `desk-work.png` with `desk-work.json` are ready for task 678. Keep the existing office until the layered renderer replaces it.
+- **Assets**: `layers/office-base.png`, `clock-face.png`, `window-{dawn,day,dusk,night}.png`, `desk-sleep.png`, and `desk-work.png` with `desk-work.json` are what the renderer draws.
 - **Time**: device-local dawn 05:00–08:00, day 08:00–17:00, dusk 17:00–20:00, night 20:00–05:00. Start inclusive, end exclusive; no location, weather, or seasonal inputs. All four textures are 1774×887.
 - **Placement**: `layers/layout.json` defines world anchors and crop limits. Bots move up 24 world pixels; role/harness sits above the head and the card ID below the feet.
 - **Compositing**: scenery → background → desks → clock/hands → bots/labels. Scale each scenery to 394×197, then crop through the background’s four transparent panes. Never stretch a view to a pane.

@@ -1139,7 +1139,7 @@ function useOffice(flows: RunFlow[], roleName: (agent?: string) => string, copy:
 
     const bots: SceneBot[] = working.map((flow) => {
       const place = places.get(flow.id)!;
-      return { ...read(flow), working: true, room: place.room, spot: deskSpot(place) };
+      return { ...read(flow), working: true, room: place.room, desk: place.desk, spot: deskSpot(place) };
     });
 
     // The sofa: the two latest jobs that actually passed. Everyone else who finished has
@@ -1148,7 +1148,7 @@ function useOffice(flows: RunFlow[], roleName: (agent?: string) => string, copy:
     const resting = restingIds(passed.map((f) => ({ id: f.id, at: finishedAt(f.latest) })));
     resting.forEach((id, seat) => {
       const flow = passed.find((f) => f.id === id);
-      if (flow) bots.push({ ...read(flow), working: false, room: 0, spot: SOFA_SPOTS[seat] });
+      if (flow) bots.push({ ...read(flow), working: false, room: 0, desk: null, spot: SOFA_SPOTS[seat] });
     });
 
     const jobOf = (sessionId: string | null) =>

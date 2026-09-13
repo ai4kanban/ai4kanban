@@ -29,17 +29,17 @@ export interface Spot {
 const DESK_X = [345, 665, 980, 1302];
 /** The room reads back row left to right, then front row — the order desks are filled in.
  *  A worker stands at the desk's near edge, close enough that its hands reach the keyboard
- *  and its head stops below the monitor — the art's screens stay readable behind it. */
+ *  and its head stops below the screen's top half — the code on it stays readable. */
 const DESK_SPOTS: Spot[] = [
-  ...DESK_X.map((x) => ({ x, y: 505 })),
-  ...DESK_X.map((x) => ({ x, y: 740 })),
+  ...DESK_X.map((x) => ({ x, y: 481 })),
+  ...DESK_X.map((x) => ({ x, y: 716 })),
 ];
 /** How far a paired worker stands from its desk's keyboard centre. Wide enough that the two
  *  never overlap: the robot is about 64 world pixels across. */
 export const PAIR_OFFSET = 62;
 export const SOFA_SPOTS: Spot[] = [
-  { x: 1155, y: 925 },
-  { x: 1280, y: 925 },
+  { x: 1155, y: 901 },
+  { x: 1280, y: 901 },
 ];
 /** The clear floor bots walk along, and the doorway they come in and go out by. The aisle
  *  is the strip below the crates and the sofa — the only band of the room that is floor all
@@ -78,6 +78,8 @@ export interface SceneBot {
   status: SessionView["status"];
   working: boolean;
   room: number;
+  /** The desk it works at, so the room knows which screens to wake. Null on the sofa. */
+  desk: number | null;
   spot: Spot;
 }
 
@@ -171,4 +173,98 @@ export function walkPath(spot: Spot): Spot[] {
     { x: spot.x, y: AISLE_Y },
     spot,
   ];
+}
+
+// --- the room as layers (#678) -------------------------------------------------
+//
+// The office used to be one flat picture. It is now a stack: the view out of the windows,
+// the room over it with its panes left transparent, the eight desks, the clock, then the
+// bots. Every anchor below is the one `public/run-scene/layers/layout.json` records — that
+// file is what the art was cut to, and this is the same geometry in code.
+
+const LAYERS = "/run-scene/layers";
+
+export const ART = {
+  base: `${LAYERS}/office-base.png`,
+  clock: `${LAYERS}/clock-face.png`,
+  deskSleep: `${LAYERS}/desk-sleep.png`,
+  deskWork: `${LAYERS}/desk-work.json`,
+} as const;
+
+/** Both windows look out on the same city, scaled to this box — never stretched to a pane.
+ *  The room's own art is drawn over it, and the view shows through the glass. */
+export const SCENERY = { w: 394, h: 197, at: [{ x: 264, y: 0 }, { x: 879, y: 0 }] };
+
+/** The wall clock's face, and the centre its two hands turn about. */
+export const CLOCK = { x: 732, y: 52, w: 72, h: 72 };
+
+/** One desk's picture: the sleeping frame and the four working ones share this box. */
+export const DESK = { w: 284, h: 184 };
+const DESK_AT_X = [203, 523, 838, 1160];
+/** Back row then front row, in the same order as `DESK_SPOTS`. */
+export const DESK_AT: Spot[] = [
+  ...DESK_AT_X.map((x) => ({ x, y: 323 })),
+  ...DESK_AT_X.map((x) => ({ x, y: 558 })),
+];
+/** One frame of the working screen's four-frame second (`layers/desk-work.json`). */
+export const DESK_FRAME_MS = 250;
+
+/** The two plates a bot wears, in world pixels from its feet: who it is over its head, the
+ *  card it is on under its feet. Splitting them keeps the screen it works at readable. */
+export const PLATE_ABOVE = 128;
+export const PLATE_BELOW = 3;
+
+/** How much of the room's top the dialog may cut away. Cover alone would take 63 world
+ *  pixels off a short dialog and halve the clock, so the crop is pushed down to what the
+ *  ceiling can spare and the rest comes off the floor. */
+const MAX_TOP_CROP = 40;
+
+/** Where the room sits inside a dialog interior of `w` × `h`: filled to cover, centred
+ *  across, and cropped from the top by no more than the ceiling can spare. */
+export function fitCamera(w: number, h: number): { scale: number; ox: number; oy: number } {
+  const scale = Math.max(w / WORLD.w, h / WORLD.h);
+  const over = Math.max(0, WORLD.h * scale - h);
+  return {
+    scale,
+    ox: (w - WORLD.w * scale) / 2,
+    oy: -Math.min(over / 2, MAX_TOP_CROP * scale),
+  };
+}
+
+// --- the time it is in the room ------------------------------------------------
+
+export type Period = "dawn" | "day" | "dusk" | "night";
+
+/** The four views out of the window, by the hour on the watching machine's own clock. No
+ *  location, no weather, no season: the start hour counts, the end hour does not, and night
+ *  runs on across midnight. */
+export function periodAt(now: Date): Period {
+  const hour = now.getHours();
+  if (hour >= 5 && hour < 8) return "dawn";
+  if (hour >= 8 && hour < 17) return "day";
+  if (hour >= 17 && hour < 20) return "dusk";
+  return "night";
+}
+
+export const SCENERY_ART: Record<Period, string> = {
+  dawn: `${LAYERS}/window-dawn.png`,
+  day: `${LAYERS}/window-day.png`,
+  dusk: `${LAYERS}/window-dusk.png`,
+  night: `${LAYERS}/window-night.png`,
+};
+
+/** Where the hands point, in radians clockwise from noon. The minute hand carries the hour
+ *  hand along with it, so the short hand sits between the numbers the way a real one does. */
+export function handAngles(now: Date): { hour: number; minute: number } {
+  const minutes = now.getMinutes();
+  return {
+    hour: (((now.getHours() % 12) + minutes / 60) * Math.PI) / 6,
+    minute: (minutes * Math.PI) / 30,
+  };
+}
+
+/** Milliseconds until the clock's next minute — what the redraw waits for, instead of a
+ *  ticker that would repaint the whole face sixty times a second for nothing. */
+export function untilNextMinute(now: number = Date.now()): number {
+  return 60_000 - (now % 60_000);
 }

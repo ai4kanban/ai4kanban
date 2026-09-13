@@ -15,10 +15,37 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Application, Container, Sprite, Spritesheet, Texture } from "pixi.js";
 import { installedAgentsAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
-import { BOT_GROUND, BOT_HEIGHT, PAIR_OFFSET, WORLD, walkPath, type SceneBot, type Spot } from "@/lib/run-scene";
+import {
+  ART,
+  BOT_GROUND,
+  BOT_HEIGHT,
+  CLOCK,
+  DESK,
+  DESKS,
+  DESK_AT,
+  DESK_FRAME_MS,
+  PAIR_OFFSET,
+  PLATE_ABOVE,
+  PLATE_BELOW,
+  SCENERY,
+  SCENERY_ART,
+  fitCamera,
+  handAngles,
+  periodAt,
+  untilNextMinute,
+  walkPath,
+  WORLD,
+  type Period,
+  type SceneBot,
+  type Spot,
+} from "@/lib/run-scene";
 
-const OFFICE = "/run-scene/office-eight-desks.png";
 const ATLAS = "/run-scene/bot-actions.json";
+const PERIODS: Period[] = ["dawn", "day", "dusk", "night"];
+
+/** The clock's two hands, and the pin they turn on. */
+const HAND = "#c8501d";
+const PIN = "#3a3936";
 
 /** The ink every nameplate's text is drawn in. */
 const INK = "#24231f";
@@ -87,7 +114,13 @@ export function RunScene({
   const canvasBox = useRef<HTMLDivElement>(null);
   const actors = useRef<Map<string, Actor>>(new Map());
   const view = useRef<View>({ scale: 1, ox: 0, oy: 0 });
-  const stage = useRef<{ sheet: Spritesheet; layer: Container; make: () => Sprite } | null>(null);
+  const stage = useRef<{
+    sheet: Spritesheet;
+    layer: Container;
+    make: () => Sprite;
+    /** Repaint the eight screens from who is standing at them. */
+    screens: () => void;
+  } | null>(null);
   const [cast, setCast] = useState<SceneBot[]>([]);
   const [ready, setReady] = useState(false);
   const [marks, setMarks] = useState<Map<string, Mark>>(new Map());
@@ -110,6 +143,8 @@ export function RunScene({
     let dropped = false;
     let app: Application | null = null;
     let watch: ResizeObserver | null = null;
+    let minute: number | undefined;
+    let onVisible: (() => void) | null = null;
     const cast = actors.current;
 
     void (async () => {
@@ -130,22 +165,72 @@ export function RunScene({
         // was still starting would otherwise leave this one holding a GPU context.
         if (dropped) return tearDown(made);
         app = made;
-        const office = await lib.Assets.load<Texture>(OFFICE);
-        const sheet = await lib.Assets.load<Spritesheet>(ATLAS);
+        // Every layer of the room loads together. A single piece missing throws out of
+        // here, and the dialog goes back to its list — the office is never half-drawn.
+        const [base, face, asleep] = await Promise.all([
+          lib.Assets.load<Texture>(ART.base),
+          lib.Assets.load<Texture>(ART.clock),
+          lib.Assets.load<Texture>(ART.deskSleep),
+        ]);
+        const [busy, sheet] = await Promise.all([
+          lib.Assets.load<Spritesheet>(ART.deskWork),
+          lib.Assets.load<Spritesheet>(ATLAS),
+        ]);
+        const outlooks = new Map<Period, Texture>(
+          await Promise.all(
+            PERIODS.map(async (p) => [p, await lib.Assets.load<Texture>(SCENERY_ART[p])] as const),
+          ),
+        );
         if (dropped) return;
 
-        office.source.scaleMode = "nearest";
-        for (const frame of Object.values(sheet.textures)) frame.source.scaleMode = "nearest";
+        const crisp = (t: Texture) => {
+          t.source.scaleMode = "nearest";
+        };
+        for (const t of [base, face, asleep, ...outlooks.values()]) crisp(t);
+        for (const frame of Object.values(busy.textures)) crisp(frame);
+        for (const frame of Object.values(sheet.textures)) crisp(frame);
 
-        const floor = new lib.Sprite(office);
+        // Back to front: the city seen through the glass, the room over it with its panes
+        // left transparent, the eight desks, the clock and its hands, then the bots.
+        const outlook = () => outlooks.get(periodAt(new Date()))!;
+        const scenery = SCENERY.at.map(() => new lib.Sprite(outlook()));
+        const floor = new lib.Sprite(base);
+        const screens = DESK_AT.map(() => new lib.Sprite(asleep));
+        const dial = new lib.Sprite(face);
+        const hands = new lib.Container();
+        const hourHand = new lib.Graphics().roundRect(-2.4, -16, 4.8, 19, 2).fill(HAND);
+        const minuteHand = new lib.Graphics().roundRect(-1.8, -24, 3.6, 27, 1.8).fill(HAND);
+        hands.addChild(hourHand, minuteHand, new lib.Graphics().circle(0, 0, 2.6).fill(PIN));
         const layer = new lib.Container();
-        app.stage.addChild(floor);
-        app.stage.addChild(layer);
+        app.stage.addChild(...scenery, floor, ...screens, dial, hands, layer);
         box.appendChild(app.canvas);
         app.canvas.style.display = "block";
+
+        // Which screens are awake. A desk plays while anyone standing at it is working,
+        // and sleeps the moment the last of them stops or turns to leave — shared desks
+        // included. The frame is shared: the eight screens show the same four pictures.
+        let elapsed = 0;
+        const frames = busy.animations.work;
+        const paintScreens = () => {
+          const frame = still.current
+            ? frames[0]
+            : frames[Math.floor(elapsed / DESK_FRAME_MS) % frames.length];
+          const awake = new Array<boolean>(DESKS).fill(false);
+          for (const actor of cast.values()) {
+            const bot = actor.bot;
+            if (bot.desk === null || bot.room !== shown.current) continue;
+            if (!bot.working || actor.leaving || actor.path.length > 0) continue;
+            awake[bot.desk] = true;
+          }
+          screens.forEach((sprite, at) => {
+            sprite.texture = awake[at] ? frame : asleep;
+          });
+        };
+
         stage.current = {
           sheet,
           layer,
+          screens: paintScreens,
           make: () => {
             const sprite = new lib.Sprite(sheet.animations.type[0]);
             sprite.anchor.set(0.5, BOT_GROUND);
@@ -155,29 +240,59 @@ export function RunScene({
         };
 
         const fit = () => {
-          const w = Math.max(1, box.clientWidth);
-          const h = Math.max(1, box.clientHeight);
-          app?.renderer.resize(w, h);
-          // Cover: the room fills the dialog's interior, and the crop falls outside the desks.
-          const scale = Math.max(w / WORLD.w, h / WORLD.h);
-          view.current = { scale, ox: (w - WORLD.w * scale) / 2, oy: (h - WORLD.h * scale) / 2 };
-          floor.x = view.current.ox;
-          floor.y = view.current.oy;
-          floor.width = WORLD.w * scale;
-          floor.height = WORLD.h * scale;
-          for (const actor of actors.current.values()) draw(actor, view.current, sheet);
+          const wide = Math.max(1, box.clientWidth);
+          const high = Math.max(1, box.clientHeight);
+          app?.renderer.resize(wide, high);
+          const at = fitCamera(wide, high);
+          view.current = at;
+          // Every layer is placed in world pixels and drawn at the size the room gives it.
+          const put = (sprite: Sprite, x: number, y: number, w: number, h: number) => {
+            sprite.x = at.ox + x * at.scale;
+            sprite.y = at.oy + y * at.scale;
+            sprite.width = w * at.scale;
+            sprite.height = h * at.scale;
+          };
+          scenery.forEach((sprite, i) => put(sprite, SCENERY.at[i].x, SCENERY.at[i].y, SCENERY.w, SCENERY.h));
+          put(floor, 0, 0, WORLD.w, WORLD.h);
+          screens.forEach((sprite, i) => put(sprite, DESK_AT[i].x, DESK_AT[i].y, DESK.w, DESK.h));
+          put(dial, CLOCK.x, CLOCK.y, CLOCK.w, CLOCK.h);
+          hands.x = at.ox + (CLOCK.x + CLOCK.w / 2) * at.scale;
+          hands.y = at.oy + (CLOCK.y + CLOCK.h / 2) * at.scale;
+          hands.scale.set(at.scale);
+          for (const actor of actors.current.values()) draw(actor, at, sheet);
         };
         fit();
         watch = new ResizeObserver(fit);
         watch.observe(box);
+
+        // The clock and the view outside both run off the watching machine's own time, and
+        // both are repainted on the minute — not every frame, and not while the tab is
+        // hidden. Coming back into view catches them up before anything else is drawn.
+        const keepTime = () => {
+          window.clearTimeout(minute);
+          const now = new Date();
+          const turn = handAngles(now);
+          hourHand.rotation = turn.hour;
+          minuteHand.rotation = turn.minute;
+          const sky = outlook();
+          for (const sprite of scenery) sprite.texture = sky;
+          if (!document.hidden) minute = window.setTimeout(keepTime, untilNextMinute());
+        };
+        keepTime();
+        onVisible = keepTime;
+        document.addEventListener("visibilitychange", keepTime);
+
+        paintScreens();
         setReady(true);
 
         app.ticker.add((ticker) => {
           // A hidden tab pays nothing, and neither does a room nobody is looking at.
           // Reduced motion pays nothing either: every actor is already where it belongs,
-          // so holding the frame it is on is the whole of freezing the room.
+          // so holding the frame it is on is the whole of freezing the room — the screens
+          // still wake and sleep, repainted by whatever changed the cast.
           if (document.hidden || still.current) return;
           const dt = Math.min(ticker.deltaMS, 120);
+          elapsed += dt;
           let gone = false;
           for (const [id, actor] of cast) {
             if (actor.bot.room !== shown.current) continue;
@@ -189,6 +304,7 @@ export function RunScene({
             }
             draw(actor, view.current, sheet);
           }
+          paintScreens();
           // A bot that walked out leaves the cast — a React change, not a frame one.
           if (gone) setCast((was) => was.filter((b) => cast.has(b.id)));
         });
@@ -200,6 +316,8 @@ export function RunScene({
     return () => {
       dropped = true;
       watch?.disconnect();
+      window.clearTimeout(minute);
+      if (onVisible) document.removeEventListener("visibilitychange", onVisible);
       stage.current = null;
       opened.current = false;
       for (const actor of cast.values()) actor.sprite = undefined;
@@ -274,6 +392,9 @@ export function RunScene({
       if (actor.sprite) actor.sprite.visible = actor.bot.room === room;
       draw(actor, view.current, built.sheet);
     }
+    // Arrivals and departures reach the screens on this poll, not the next frame — which is
+    // the only way they reach them at all when motion is switched off.
+    built.screens();
     setCast([...lib.values()].filter((a) => a.bot.room === room).map((a) => a.bot));
   }, [bots, ready, reduced, room]);
 
@@ -353,12 +474,12 @@ function BotTarget({
         selected ? "outline outline-2 outline-nb-accent" : ""
       }`}
     >
-      {/* Always legible, never on hover: who is at this desk and what they run on. Both
-          plates stack on the floor under the feet — a worker stands close enough to its desk
-          that anything above its head would sit on the monitor. They take no clicks. */}
+      {/* Always legible, never on hover. The two plates sit apart: who is at this desk over
+          its head, the card it is on under its feet — between them is the screen it works
+          at, and the code on it stays readable. They take no clicks. */}
       <span
-        className="pointer-events-none absolute left-1/2 top-full mt-px flex -translate-x-1/2 flex-col items-center gap-px"
-        style={{ width: "var(--nameplate)" }}
+        className="pointer-events-none absolute left-1/2 top-full flex -translate-x-1/2 flex-col items-center"
+        style={{ width: "var(--nameplate)", marginTop: "calc(-1 * var(--plate-above))" }}
       >
         <span
           className="flex max-w-full items-center gap-[3px] whitespace-nowrap rounded-[3px] bg-nb-paper/95 px-[5px] py-px text-[10.5px] font-[600] leading-[15px]"
@@ -367,6 +488,11 @@ function BotTarget({
           <span className="min-w-0 truncate">{bot.role}</span>
           <HarnessMark icon={mark?.icon} name={harness} />
         </span>
+      </span>
+      <span
+        className="pointer-events-none absolute left-1/2 top-full flex -translate-x-1/2 flex-col items-center"
+        style={{ width: "var(--nameplate)", marginTop: "var(--plate-below)" }}
+      >
         <span
           className="block max-w-full truncate whitespace-nowrap rounded-[3px] bg-nb-paper/95 px-[4px] text-[9.5px] leading-[14px]"
           style={{ color: INK }}
@@ -464,6 +590,9 @@ function place(node: HTMLButtonElement, actor: Actor, view: View) {
   // A nameplate never grows past the gap to the next bot, which is the narrowest the room
   // ever gets: two workers sharing one desk. A longer name truncates and keeps its tooltip.
   node.style.setProperty("--nameplate", `${Math.round(2 * PAIR_OFFSET * view.scale) - 6}px`);
+  // Both plates hang off the feet, so they keep their distance from the bot at every size.
+  node.style.setProperty("--plate-above", `${PLATE_ABOVE * view.scale}px`);
+  node.style.setProperty("--plate-below", `${PLATE_BELOW * view.scale}px`);
 }
 
 /** `claude-code` → `Claude code`, for a connector this build ships no mark for. */
