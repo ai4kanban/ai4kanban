@@ -47,6 +47,7 @@ import {
   clearAsks,
   closeRun,
   finishWriting,
+  leftBoardOnLanding,
   markChannelDrafted,
   needsIndexLock,
   patch,
@@ -418,12 +419,27 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
       if (!takenOver) {
         try {
           const current = snapshotSpecs()
+          const onBoard = (id: number): boolean => [...current.values()].some((card) => card.id === id)
+          // A card off the board is missing only if it did not leave the way a finished card
+          // does (#682): a delivery that lands archives its card, and a run still working on
+          // that card when it happens has destroyed nothing. Those ids are logged below and
+          // kept out of `required`, so no format repair is ever asked to restore them.
+          const departed = new Set<number>()
+          const missing = (id: number): boolean => {
+            if (onBoard(id)) return false
+            if (leftBoardOnLanding(id)) {
+              departed.add(id)
+              return false
+            }
+            return true
+          }
+          for (const id of [...required]) if (!onBoard(id) && !missing(id)) required.delete(id)
           formatErrors = validateRunSpecs(sources, current, record.cardId, heldElsewhere, required)
           for (const [file, card] of current) {
             if (card.id === record.cardId || (!heldElsewhere.has(card.id) && sources.get(file)?.text !== card.text)) required.add(card.id)
           }
           for (const id of record.formatRepair?.cardIds ?? []) {
-            if (![...current.values()].some((card) => card.id === id)) {
+            if (missing(id)) {
               formatErrors.push({ file: rel(TODO), line: 1, rule: 'missing-card', message: `Task #${id} disappeared. Restore its card file.` })
             }
           }
@@ -431,10 +447,11 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           // card it judged is meant to leave the board.
           if (record.cardId !== null && !['archive', 'reject', 'unstick'].includes(record.action)
             && [...sources.values()].some((card) => card.id === record.cardId)
-            && ![...current.values()].some((card) => card.id === record.cardId)) {
+            && missing(record.cardId)) {
             required.add(record.cardId)
             formatErrors.push({ file: rel(TODO), line: 1, rule: 'missing-card', message: `Task #${record.cardId} disappeared. Restore its card file; this run must not delete it.` })
           }
+          for (const id of departed) log.write(`\n[board] Task #${id} left the board with its landing; there is nothing to restore.\n`)
         } catch (error) {
           formatErrors = [{ file: rel(TODO), line: 1, rule: 'read-error', message: `Cannot validate the card files: ${String(error)}. Restore readable Markdown files and retry.` }]
         }

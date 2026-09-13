@@ -399,6 +399,18 @@ function toView(r: RunRecord, landed?: ReadonlySet<number>): RunView {
   }
 }
 
+/** Whether card `id` left the board the way a finished card does (#682) — its own landing
+ *  archived it, which can happen while another run is still working on it. Two answers,
+ *  either of which is proof: the card is in `.archive/`, or a delivery for it in this
+ *  machine's record landed a commit. The second is what a Cloud board has, since hydrate
+ *  leaves `.archive/` out of the local copy while `.sessions.json` stays.
+ *
+ *  A rejected card is deleted rather than filed, so it answers false here. */
+export function leftBoardOnLanding(id: number): boolean {
+  if (locateArchived(id)) return true
+  return withStore((store) => store.deliveries.some((d) => d.cardId === id && !!d.landing?.commit))
+}
+
 // The cards, among those a run stopped short on, whose work has since landed (#673). A
 // card leaves the board for `.archive/` the moment its delivery lands, and a rejected one
 // is deleted rather than filed — so the archive answers "did this land?" on its own, for
