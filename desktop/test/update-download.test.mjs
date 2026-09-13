@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fetchFile } from "../out/lib/update/download.js";
+import { failureOf } from "../out/lib/update/failure.js";
 
 const BODY = Buffer.from("a".repeat(4096));
 const SHA = crypto.createHash("sha512").update(BODY).digest("base64");
@@ -46,7 +47,7 @@ test("a whole download hashes to what the release published", async () => {
   assert.equal(seen.at(-1), BODY.length);
 });
 
-test("a download that is cut off says how far it got", async () => {
+test("a download that is cut off is a network failure", async () => {
   const { server, port } = await serve((_req, res) => {
     res.writeHead(200, { "content-length": String(BODY.length) });
     res.write(BODY.subarray(0, 1000));
@@ -61,12 +62,13 @@ test("a download that is cut off says how far it got", async () => {
       () => {},
       new AbortController().signal,
     ),
-    /of 4096 bytes|aborted|socket hang up|ECONNRESET/,
+    // Whichever way the socket dies, it is the same category to the app.
+    (e) => failureOf(e) === "network",
   );
   server.close();
 });
 
-test("a build that is not there is not a build", async () => {
+test("a build that is not there is not worth retrying", async () => {
   const { server, port } = await serve((_req, res) => {
     res.writeHead(404);
     res.end("no");
@@ -78,7 +80,8 @@ test("a build that is not there is not a build", async () => {
       () => {},
       new AbortController().signal,
     ),
-    /answered 404/,
+    // Not a category worth retrying: the release is what is wrong, not the network.
+    (e) => failureOf(e) === "unknown",
   );
   server.close();
 });

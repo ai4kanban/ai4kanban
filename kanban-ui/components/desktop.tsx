@@ -13,9 +13,10 @@
 //    there is nobody to ask, so it stays a label.
 //  - In the app, a folder with no board offers to make one. In a browser that is
 //    a command to type, which the screen already gives.
-//  - In the app, a newer release lights one chip in the header: a click downloads
-//    it, the chip fills, and the restart puts it in place (#372). A copy that
-//    cannot replace itself opens the downloads page instead.
+//  - In the app, a newer release is downloaded by the app itself, in the background
+//    and without a word, and one chip in the header offers the restart that puts it
+//    in place (#372, #701). A copy that cannot replace itself says so on the same
+//    chip — there is no manual path out of it.
 //  - In a browser, the board mentions the app and where to get it. Only
 //    mentions it: running here is a supported way to run the board, not a
 //    deprecated one. It is the same server either way, so there is no second
@@ -154,19 +155,31 @@ export interface CommandInstallResult {
   state: CommandInstall;
 }
 
-/** A newer app, and how far along installing it is (#372). Everything past the version
- *  and the link is optional: an app older than the install answers those two alone. */
+/** Why an update did not go in, as a category rather than a sentence (#701). The app
+ *  classifies it where the error is raised and sends the category, so the words the chip
+ *  shows are this side's own and no reason is shown unless its cause is certain. */
+export type UpdateFailure =
+  | "network"
+  | "timeout"
+  | "server"
+  | "disk"
+  | "permission"
+  | "checksum"
+  | "readOnly"
+  | "noBuild"
+  | "notInstallable"
+  | "unknown";
+
+/** A newer app, and how far along installing it is (#372). The app downloads it on its
+ *  own; the chip only ever draws the two ends of that — ready to install, or given up. */
 export interface UpdateStatus {
   version: string;
-  url: string;
   stage?: "idle" | "downloading" | "ready";
   received?: number;
   total?: number;
-  /** Why this copy cannot install it itself — a checkout, a disk image, a folder it
-   *  cannot write. Null when it can. */
-  blocked?: string | null;
-  /** What went wrong last time, said plainly. */
-  error?: string | null;
+  /** Why the update did not go in — a download that gave up, or a copy that cannot
+   *  replace itself at all. Null while nothing has failed. */
+  failure?: UpdateFailure | null;
 }
 
 interface AppBridge {
@@ -200,17 +213,14 @@ interface AppBridge {
   discardBoard?(): Promise<{ ok: boolean; error?: string }>;
   command(): Promise<CommandInstall>;
   installCommand(): Promise<CommandInstallResult>;
-  /** A newer app, and how far along installing it is (#372). An app older than the
-   *  install answers `{ version, url }` alone, which draws the link the notice always
-   *  was. */
+  /** A newer app, and how far along installing it is (#372). */
   update(): Promise<UpdateStatus | null>;
-  /** Download it. Nothing downloads until this is called. Optional — an older app
-   *  never installs anything itself. */
-  startUpdate?(): Promise<UpdateStatus | null>;
-  /** Install it and restart into it; the app quits behind this call. Optional for the
-   *  same reason. */
-  restartForUpdate?(): Promise<void>;
-  /** Be told each time the download moves. Returns the way to stop being told.
+  /** Install it and restart into it; the app quits behind this call. `version` is the one
+   *  the chip showed — the app refuses anything else, so a press that lands after a higher
+   *  release superseded it installs nothing. Optional — an older app installs nothing
+   *  itself. */
+  restartForUpdate?(version: string): Promise<void>;
+  /** Be told each time the update moves. Returns the way to stop being told.
    *  Optional for the same reason. */
   onUpdateStatus?(fn: (status: UpdateStatus | null) => void): () => void;
   openExternal(url: string): Promise<void>;
@@ -695,29 +705,32 @@ export function RunningNotice({ desktop }: { desktop: boolean }) {
 
 // --- the update chip --------------------------------------------------------
 
-/** A newer app, and the one click that installs it (#372) — a single 28px control
- *  in the header's row, never a band across the board. It is news, not a demand:
- *  the whole thing is one icon that lights, fills and turns green, and a user who
- *  ignores it forever loses nothing.
+/** A newer app, and the one press that puts it in (#372, #701) — a single control
+ *  in the header's row, never a band across the board.
  *
- *  Four states, one control:
+ *  The app downloads a new version on its own and says nothing while it does, so
+ *  there are only two things worth drawing: the bytes are in and a restart puts
+ *  them there, or the update gave up.
  *
- *      out          downloading        ready          cannot install
- *    ┌──────┐        ┌──────┐      ┌────────────┐      ┌──────┐
- *    │  ↓   │  ···>  │  ◔   │ ···> │ ✓ Install  │      │  ↓   │
- *    └──────┘        └──────┘      └────────────┘      └──────┘
- *     sky, lit        the ring       mint, named        plain — opens the page
+ *      ready                      failed
+ *    ┌──────────────┐          ┌──────────────┐
+ *    │ ↓  Restart   │          │ ⚠ Update…    │
+ *    └──────────────┘          └──────────────┘
+ *     mint, lit — one press     peach — a state, not a button
  *
- *  The download is the app's, not this component's: it is asked for on mount and
+ *  Everything in between is nothing at all: no chip while it checks, downloads, or
+ *  waits out a retry. A user who never looks up loses nothing.
+ *
+ *  The update is the app's, not this component's: it is asked for on mount and
  *  followed as it moves, so leaving the board for a card, coming back, or reloading
- *  either finds the same download exactly where it was. */
+ *  either finds it exactly where it was. */
 export function UpdateChip() {
   const c = useCopy().chrome.update;
   const [found, setFound] = useState<UpdateStatus | null>(null);
   useEffect(() => {
     const app = bridge();
     if (!app) return;
-    // Asked once per window. The app answers from a check it made when it
+    // Asked once per window. The app answers from the check it made when it
     // started, so this costs nothing and never blocks the board.
     app
       .update()
@@ -726,148 +739,105 @@ export function UpdateChip() {
     return app.onUpdateStatus?.(setFound);
   }, []);
   if (!found) return null;
-  const stage = found.stage ?? "idle";
-  const total = found.total ?? 0;
-  const percent = total ? Math.min(100, Math.floor(((found.received ?? 0) / total) * 100)) : 0;
 
-  if (stage === "downloading") {
+  if (found.failure) {
+    // A reason only when the app is sure of one; otherwise the state alone.
+    const why = c.reason[found.failure];
+    const tip = why ? c.failedWhy(why) : c.failed;
     return (
-      <Chip
-        title={c.downloading(percent)}
-        tint="var(--color-nb-sky-soft)"
-        ink="var(--color-nb-sky-ink)"
-        role="progressbar"
-        percent={percent}
-      >
-        <Ring percent={percent} />
-      </Chip>
+      // Not a button: there is nothing to press. It is focusable all the same, so
+      // the reason is reachable without a mouse.
+      <Tip as="span" tip={tip} role="status" tabIndex={0}>
+        <ChipBox tint="var(--color-nb-peach-soft)" ink="var(--color-nb-peach-ink)">
+          <FiAlertTriangle size={13} aria-hidden />
+          <span className="text-[11.5px] font-[800] leading-none">{c.failed}</span>
+        </ChipBox>
+      </Tip>
     );
   }
-  if (stage === "ready") {
-    return (
-      <Chip
-        title={c.ready(found.version)}
-        tint="var(--color-nb-mint-soft)"
-        ink="var(--color-nb-mint-ink)"
-        onClick={() => void bridge()?.restartForUpdate?.()}
-        wide
-      >
-        <FiDownload size={13} aria-hidden />
-        <span className="text-[11.5px] font-[800] leading-none">{c.install}</span>
-      </Chip>
-    );
-  }
+  if (found.stage !== "ready") return null;
 
-  // A copy that cannot replace itself keeps the one thing it can offer: the
-  // downloads page. It is the same chip, unlit — nothing is being asked of the
-  // user that this copy can actually do.
-  const canInstall = !found.blocked && Boolean(bridge()?.startUpdate);
-  if (!canInstall) {
-    return (
-      <Chip
-        title={c.outManual(found.version, found.blocked ?? "")}
-        onClick={() => openLink(found.url)}
-      >
-        <FiDownload size={14} aria-hidden />
-      </Chip>
-    );
-  }
-  const failed = Boolean(found.error);
+  const version = found.version;
   return (
-    <Chip
-      title={failed ? c.failed(found.error ?? "") : c.out(found.version)}
-      tint={failed ? "var(--color-nb-peach-soft)" : "var(--color-nb-sky-soft)"}
-      ink={failed ? "var(--color-nb-peach-ink)" : "var(--color-nb-sky-ink)"}
-      lit={!failed}
-      onClick={() => {
-        // Draw the download the moment it is asked for; the app's own messages
-        // carry it from here.
-        setFound({ ...found, stage: "downloading", received: 0, error: null });
-        void bridge()?.startUpdate?.();
-      }}
+    <Tip
+      as="button"
+      tip={c.ready(version)}
+      // The press is the install: it names the version the tooltip just showed, and
+      // the app quits behind it. No confirmation — the button says it restarts.
+      onClick={() => void bridge()?.restartForUpdate?.(version)}
     >
-      {failed ? <FiAlertTriangle size={14} aria-hidden /> : <FiDownload size={14} aria-hidden />}
-    </Chip>
+      <ChipBox tint="var(--color-nb-mint-soft)" ink="var(--color-nb-mint-ink)" lit>
+        <FiDownload size={13} aria-hidden />
+        <span className="text-[11.5px] font-[800] leading-none">{c.restart}</span>
+      </ChipBox>
+    </Tip>
+  );
+}
+
+/** The tooltip, and the thing it hangs on. Two layers rather than one because a
+ *  single element cannot carry two `::after`s: the bubble is one, and the glow that
+ *  sweeps across a new version is the other — and that one needs the box's
+ *  `overflow-hidden` to stay inside the chip. Hover and keyboard focus open the same
+ *  bubble, which is `.nb-tip`'s own rule and needs nothing added. */
+function Tip({
+  as,
+  tip,
+  onClick,
+  role,
+  tabIndex,
+  children,
+}: {
+  as: "button" | "span";
+  tip: string;
+  onClick?: () => void;
+  role?: "status";
+  tabIndex?: number;
+  children: React.ReactNode;
+}) {
+  const Tag = as;
+  return (
+    <Tag
+      {...(as === "button" ? { type: "button" as const } : {})}
+      data-tip={tip}
+      aria-label={tip}
+      role={role}
+      tabIndex={tabIndex}
+      onClick={onClick}
+      className={`a4k-nodrag nb-tip nb-tip-below nb-tip-start inline-flex shrink-0 rounded-[8px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent ${
+        onClick ? "cursor-pointer" : "cursor-default"
+      }`}
+    >
+      {children}
+    </Tag>
   );
 }
 
 /** The chip itself: one framed 28px box in the header's row, in whatever tone the
  *  state calls for. `lit` adds the glow that says "this is new" — a slow one, since
  *  the point is to be noticed on the next glance, not this one. */
-function Chip({
-  title,
+function ChipBox({
   tint,
   ink,
   lit = false,
-  wide = false,
-  percent,
-  role,
-  onClick,
   children,
 }: {
-  title: string;
-  tint?: string;
-  ink?: string;
+  tint: string;
+  ink: string;
   lit?: boolean;
-  wide?: boolean;
-  percent?: number;
-  role?: "progressbar";
-  onClick?: () => void;
   children: React.ReactNode;
 }) {
-  const still = !onClick;
   return (
-    <button
-      type="button"
-      title={title}
-      aria-label={title}
-      disabled={still}
-      onClick={onClick}
-      role={role}
-      aria-valuenow={percent}
-      aria-valuemin={role ? 0 : undefined}
-      aria-valuemax={role ? 100 : undefined}
-      className={`a4k-nodrag relative inline-flex h-7 shrink-0 items-center justify-center gap-1 overflow-hidden rounded-[8px] ${CHROME} ${
-        wide ? "px-2" : "w-7"
-      } ${still ? "cursor-default" : "cursor-pointer hover:brightness-[0.97] active:translate-y-[1px]"} ${
+    <span
+      className={`relative inline-flex h-7 shrink-0 items-center justify-center gap-1 overflow-hidden rounded-[8px] px-2 ${CHROME} ${
         lit ? "a4k-lit" : ""
       }`}
-      style={{ background: tint ?? "var(--color-nb-paper)", color: ink ?? "var(--color-nb-ink)" }}
+      style={{ background: tint, color: ink }}
     >
       {children}
-    </button>
+    </span>
   );
 }
 
-/** How far the download has got, drawn as the chip itself rather than beside it —
- *  the ring is the icon while it runs. */
-function Ring({ percent }: { percent: number }) {
-  const circumference = 2 * Math.PI * 8;
-  return (
-    <svg viewBox="0 0 22 22" className="size-[17px] -rotate-90" aria-hidden>
-      <circle
-        cx="11"
-        cy="11"
-        r="8"
-        fill="none"
-        strokeWidth="2.5"
-        stroke="color-mix(in srgb, currentColor 22%, transparent)"
-      />
-      <circle
-        cx="11"
-        cy="11"
-        r="8"
-        fill="none"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        stroke="currentColor"
-        strokeDasharray={circumference}
-        strokeDashoffset={circumference * (1 - percent / 100)}
-        className="transition-[stroke-dashoffset] duration-200"
-      />
-    </svg>
-  );
-}
 
 const DISMISS_KEY = "kanban-ui.app-available-dismissed";
 

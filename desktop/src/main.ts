@@ -56,12 +56,10 @@ import { BoardServers } from "./lib/server";
 import { loginShellEnv, type Env } from "./lib/shell-env";
 import * as store from "./lib/store";
 import {
-  canSkipUpdate,
   checkForUpdate,
   installUpdate,
   onUpdateChanged,
   recheckForUpdate,
-  startUpdate,
   DOWNLOADS_URL,
 } from "./lib/update";
 import {
@@ -77,7 +75,6 @@ import {
   type CreateProjectResult,
   type NotificationAlert,
   type ProjectInfo,
-  type UpdateStatus,
 } from "./shared/bridge";
 
 let servers: BoardServers | null = null;
@@ -309,6 +306,11 @@ async function start(): Promise<void> {
   else await showLauncher(first);
   // A sign-in caught before there was a page to hand it to.
   flushPendingUrl();
+  // Look for a newer version and start downloading it (#701). Never awaited and
+  // never announced: the app asks nothing of the user until the bytes are on
+  // disk, and a check that fails is no news rather than an error. Before the
+  // offer below, which can sit on screen waiting for an answer.
+  void checkForUpdate(app.getVersion());
   // And then, on a machine with no `akb`, the one offer this app makes on its own.
   await offerCommand();
 }
@@ -982,10 +984,13 @@ function refreshMenu(): void {
 
 // The menu's own "Check for updates" is the one place this is said out loud
 // either way: a user who asks deserves an answer even when the answer is "you
-// are up to date". The notice in the board says nothing when there is nothing.
+// are up to date". The chip in the board says nothing until there is something
+// to press.
 //
-// It offers the same install the notice does. A download already going is not
-// thrown away by asking about it — the answer is how far along it is.
+// Checking is all the user does here — the download starts on its own from what
+// the check found, and a version that gave up earlier gets its retries reset by
+// the same check. There is no manual path out of this dialog: an update this
+// copy cannot install is a reason and a Close.
 async function checkUpdatesFromMenu(): Promise<void> {
   const w = focusedWindow();
   const found = await recheckForUpdate(app.getVersion());
@@ -994,8 +999,13 @@ async function checkUpdatesFromMenu(): Promise<void> {
     await messageBox(w, { type: "info", message: c.newest(app.getVersion()) });
     return;
   }
-  if (found.stage === "downloading") {
-    await messageBox(w, { type: "info", message: c.out(found.version), detail: c.downloading });
+  if (found.failure) {
+    await messageBox(w, {
+      type: "info",
+      message: c.out(found.version),
+      detail: c.failed(copy().update.reason[found.failure]),
+      buttons: [c.close],
+    });
     return;
   }
   if (found.stage === "ready") {
@@ -1007,53 +1017,18 @@ async function checkUpdatesFromMenu(): Promise<void> {
       defaultId: 0,
       cancelId: 1,
     });
-    if (response === 0) restartForUpdate();
+    if (response === 0) restartForUpdate(found.version);
     return;
   }
-  // Waving a version off lives here now (#372): the board's chip is one icon with
-  // no room for a dismiss, and burying a version for good is a deliberate act
-  // rather than something to put a click away from Install.
-  const buries = canSkipUpdate();
-  const bury = (version: string, response: number) => {
-    if (buries && response === 2) store.skipVersion(version);
-  };
-  if (found.blocked) {
-    const { response } = await messageBox(w, {
-      type: "info",
-      message: c.out(found.version),
-      detail: c.detailManual(found.blocked),
-      buttons: buries ? [c.download, c.later, c.skip] : [c.download, c.later],
-      defaultId: 0,
-      cancelId: 1,
-    });
-    if (response === 0) void shell.openExternal(found.url);
-    bury(found.version, response);
-    return;
-  }
-  const { response } = await messageBox(w, {
-    type: "info",
-    message: c.out(found.version),
-    detail: c.detail,
-    buttons: buries ? [c.install, c.later, c.skip] : [c.install, c.later],
-    defaultId: 0,
-    cancelId: 1,
-  });
-  if (response === 0) void beginUpdate();
-  bury(found.version, response);
-}
-
-/** Start the download. Asking for it un-waves the version first: the menu offers
- *  the install even for one the user waved off, and the notice above the board is
- *  where the progress and the restart are. */
-function beginUpdate(): Promise<UpdateStatus | null> {
-  store.unskipVersion();
-  return startUpdate();
+  await messageBox(w, { type: "info", message: c.out(found.version), detail: c.downloading });
 }
 
 /** Put the new version in place and go. Nothing is written until this process
- *  has exited, so the quit is the install — the helper waits for it. */
-function restartForUpdate(): void {
-  if (installUpdate()) app.quit();
+ *  has exited, so the quit is the install — the helper waits for it. A request
+ *  naming a version that is no longer the one ready installs nothing, and a swap
+ *  that would not start leaves the app up with the reason on the chip. */
+function restartForUpdate(version: string): void {
+  if (installUpdate(version)) app.quit();
 }
 
 // --- what the page can ask for ----------------------------------------------
@@ -1143,30 +1118,19 @@ ipcMain.handle(CHANNELS.command, (): CommandInstall => commandState(shellEnv));
 
 ipcMain.handle(CHANNELS.installCommand, (): Promise<CommandInstallResult> => putCommandOnPath());
 
-ipcMain.handle(CHANNELS.update, async () => {
-  const found = await checkForUpdate(app.getVersion());
-  return waved(found);
-});
+ipcMain.handle(CHANNELS.update, () => checkForUpdate(app.getVersion()));
 
-ipcMain.handle(CHANNELS.startUpdate, async () => waved(await beginUpdate()));
-
-ipcMain.handle(CHANNELS.restartForUpdate, () => {
-  restartForUpdate();
+ipcMain.handle(CHANNELS.restartForUpdate, (_e, version: unknown) => {
+  if (typeof version === "string" && version) restartForUpdate(version);
   return null;
 });
 
-/** A version the user has already waved off is no notice at all. */
-function waved(found: UpdateStatus | null): UpdateStatus | null {
-  if (!found) return null;
-  return store.skippedVersion() === found.version ? null : found;
-}
-
-// The download moved, so the notice redraws — in every window, wherever in the
+// The update moved, so the chip redraws — in every window, wherever in the
 // board each is. The page asked for it, so there is nothing to hold for a late
 // listener.
 onUpdateChanged((status) => {
   for (const w of everyWindow()) {
-    if (!w.win.isDestroyed()) w.win.webContents.send(CHANNELS.updateStatus, waved(status));
+    if (!w.win.isDestroyed()) w.win.webContents.send(CHANNELS.updateStatus, status);
   }
 });
 

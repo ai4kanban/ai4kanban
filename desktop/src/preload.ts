@@ -46,7 +46,6 @@ const CHANNELS: typeof Channels = {
   command: "a4k:command",
   installCommand: "a4k:install-command",
   update: "a4k:update",
-  startUpdate: "a4k:start-update",
   restartForUpdate: "a4k:restart-for-update",
   updateStatus: "a4k:update-status",
   openExternal: "a4k:open-external",
@@ -88,8 +87,7 @@ const bridge: Ai4kanbanBridge = {
   command: () => ipcRenderer.invoke(CHANNELS.command),
   installCommand: () => ipcRenderer.invoke(CHANNELS.installCommand),
   update: () => ipcRenderer.invoke(CHANNELS.update),
-  startUpdate: () => ipcRenderer.invoke(CHANNELS.startUpdate),
-  restartForUpdate: () => ipcRenderer.invoke(CHANNELS.restartForUpdate),
+  restartForUpdate: (version) => ipcRenderer.invoke(CHANNELS.restartForUpdate, version),
   onUpdateStatus: (fn) => {
     updateWatchers.add(fn);
     return () => updateWatchers.delete(fn);

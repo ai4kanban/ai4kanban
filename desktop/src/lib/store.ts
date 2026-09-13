@@ -1,12 +1,12 @@
 // The little the app remembers between launches, in one JSON file under the
 // user's app-data folder.
 //
-// It is deliberately almost nothing: the projects the user has opened, which of
-// them was open last, and the version of an update they said "later" to. The
-// projects list lives here rather than in any repo because it spans repos — a
-// list of projects cannot belong to one of them, and it is nobody's business but
-// this machine's. Nothing about a board itself is kept here; the markdown files
-// in `docs/kanban/` stay the single source of truth.
+// It is deliberately almost nothing: the projects the user has opened and which
+// of them was open last. The projects list lives here rather than in any repo
+// because it spans repos — a list of projects cannot belong to one of them, and
+// it is nobody's business but this machine's. Nothing about a board itself is
+// kept here; the markdown files in `docs/kanban/` stay the single source of
+// truth.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -138,20 +138,4 @@ export function rememberCommandBreak(): void {
 
 export function clearCommandBreak(): void {
   if (read().commandBreakAsked) write({ commandBreakAsked: false });
-}
-
-/** The newest version the user has already been told about and waved off. */
-export function skippedVersion(): string | null {
-  const v = read().skippedVersion;
-  return typeof v === "string" ? v : null;
-}
-
-export function skipVersion(version: string): void {
-  write({ skippedVersion: version });
-}
-
-/** Forget it. Asking to install a version un-waves it, so the notice can show
- *  the download that is now going (#372). */
-export function unskipVersion(): void {
-  if (read().skippedVersion) write({ skippedVersion: null });
 }

@@ -236,6 +236,13 @@ body {
   bottom: auto;
   top: calc(100% + 6px);
 }
+/* From the element's left edge rather than centred on it — for a tip long enough
+   that centring would push it off the left of a narrow window. What sits to the
+   right of the top row's controls is fixed, so opening rightwards always fits. */
+.nb-tip-start::after {
+  left: 0;
+  transform: none;
+}
 /* Dropdowns are components/ui/select.tsx (shadcn Select restyled to this
    language) — no shared class here. Its open-list animation is the nbPopIn
    keyframe below. */

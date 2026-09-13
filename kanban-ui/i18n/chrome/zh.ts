@@ -35,12 +35,22 @@ const zh: ChromeCopy = {
     alphaHint: "营销看板仍在实验阶段，随时可能变化。",
   },
   update: {
-    out: (version) => `AI4Kanban ${version} 已发布，点击安装。`,
-    outManual: (version, reason) => `AI4Kanban ${version} 已发布。${reason}`,
-    downloading: (percent) => `正在下载 AI4Kanban…… ${percent}%`,
-    ready: (version) => `AI4Kanban ${version} 已下载完成，点击重启装上。`,
-    install: "安装",
-    failed: (error) => `${error} 点击重试。`,
+    ready: (version) => `v${version} 已下载 · 点击重启更新`,
+    restart: "重启更新",
+    failed: "更新失败",
+    failedWhy: (reason) => `更新失败 · ${reason}`,
+    reason: {
+      network: "网络连接中断",
+      timeout: "连接超时",
+      server: "更新服务暂不可用",
+      disk: "磁盘空间不足",
+      permission: "没有写入权限",
+      checksum: "更新包校验失败",
+      readOnly: "应用位于只读位置",
+      noBuild: "没有适配这台电脑的安装包",
+      notInstallable: "这份副本无法自动更新",
+      unknown: "",
+    },
   },
   app: {
     notice:

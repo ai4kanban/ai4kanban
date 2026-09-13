@@ -1,5 +1,5 @@
-// Fetching one file, with the progress the notice shows and the sha512 the
-// release published beside it.
+// Fetching one file, counting the bytes as they land and checking them against
+// the sha512 the release published beside it.
 //
 // Written on node's own http instead of a download library: the whole of it is
 // follow the redirects GitHub answers with, count the bytes, hash them on the
@@ -12,6 +12,7 @@ import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import { pipeline } from "node:stream/promises";
+import { UpdateFailed, failureOfStatus } from "./failure";
 
 /** GitHub answers an asset URL with a redirect to storage, which redirects
  *  again. Beyond this many, something is wrong rather than slow. */
@@ -32,14 +33,16 @@ function open(url: string, signal?: AbortSignal): Promise<http.IncomingMessage> 
       { headers: { "User-Agent": "ai4kanban-desktop" }, timeout: TIMEOUT_MS, signal },
       (res) => resolve(res),
     );
-    req.on("timeout", () => req.destroy(new Error("timed out")));
+    req.on("timeout", () => req.destroy(new UpdateFailed("timeout")));
     req.on("error", reject);
   });
 }
 
 /** The bytes at `url`, into `file`, hashed as they land. Resolves with the
  *  sha512 the bytes actually had — the caller is what compares it, so a
- *  mismatch is one thing to say rather than a code to translate. */
+ *  mismatch is one thing to say rather than a code to translate. Every failure
+ *  leaves here as an `UpdateFailure`, so nothing further up has to read a
+ *  message to know whether waiting would help. */
 export async function fetchFile(
   url: string,
   file: string,
@@ -60,11 +63,11 @@ export async function fetchFile(
     }
     if (status !== 200) {
       res.resume();
-      throw new Error(`the server answered ${status}`);
+      throw new UpdateFailed(failureOfStatus(status));
     }
     next = null;
   }
-  if (!res) throw new Error("too many redirects");
+  if (!res) throw new UpdateFailed("unknown");
 
   const total = Number(res.headers["content-length"]) || 0;
   const hash = crypto.createHash("sha512");
@@ -79,7 +82,7 @@ export async function fetchFile(
   // is what catches it: an incomplete file is a failed download, not a file
   // that fails its checksum three steps later.
   if (total && received !== total) {
-    throw new Error(`the connection ended after ${received} of ${total} bytes`);
+    throw new UpdateFailed("network");
   }
   return { sha512: hash.digest("base64"), size: received };
 }

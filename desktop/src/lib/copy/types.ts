@@ -4,6 +4,9 @@
  *  The board UI has a copy module of its own (`kanban-ui/i18n/`) and this process cannot
  *  read it — a menu is not a page. Same rules, though: whole sentences, product names and
  *  paths left English, and a value carried by a function rather than a hole in a template. */
+
+import type { UpdateFailure } from "../../shared/bridge";
+
 export interface DesktopCopy {
   /** The menu bar. Every standard item is named here rather than left to its role, so the
    *  whole bar reads in the picked language on every system. What the OS writes itself —
@@ -135,21 +138,15 @@ export interface DesktopCopy {
     update: {
       newest: (version: string) => string;
       out: (version: string) => string;
-      /** This copy can install it — one click, then a restart. */
-      detail: string;
-      /** It cannot, and the reason says why. */
-      detailManual: (reason: string) => string;
-      install: string;
-      download: string;
-      later: string;
-      /** Wave this version off for good. The board's chip is news and nothing else,
-       *  so this dialog is where a version gets buried. */
-      skip: string;
-      /** Asked again while a download of this version is already going. */
+      /** Asked while the app is downloading it — which it started on its own. */
       downloading: string;
       ready: (version: string) => string;
       readyDetail: string;
       restart: string;
+      later: string;
+      close: string;
+      /** The update did not go in, and this is the reason from `update.reason`. */
+      failed: (reason: string) => string;
     };
     /** The board server never came up — the app has no window to say it in. */
     startFailed: string;
@@ -177,22 +174,11 @@ export interface DesktopCopy {
     missing: (path: string) => string;
     missingScript: (path: string) => string;
   };
-  /** What the updater says for itself (#372) — why a copy cannot replace itself, and what
-   *  went wrong when a download did not finish. The board UI prints these as they arrive. */
-  update: {
-    /** A checkout: there is no app bundle to replace yet. */
-    blockedSource: string;
-    /** A Linux copy that is not running as an AppImage — there is no one file to replace. */
-    blockedNotAppImage: string;
-    blockedReadOnly: (folder: string) => string;
-    /** The release carries no build for this system and architecture. */
-    noBuild: string;
-    failedRead: string;
-    /** The reason passes through as it arrived — a status code, a byte count. */
-    failedDownload: (reason: string) => string;
-    failedChecksum: string;
-    failedUnpack: (reason: string) => string;
-  };
+  /** Why an update did not go in (#372), one sentence per category, for the app's own
+   *  dialogs. The board's chip has its own shorter words for the same categories
+   *  (`kanban-ui/i18n/chrome`) — a tooltip has one line, a dialog has room to explain.
+   *  `unknown` says only that it failed: a guessed cause is worse than none. */
+  update: { reason: Record<UpdateFailure, string> };
   /** Making a new project from the launcher (#546). The refusals are printed by the
    *  launcher's own form, so each is a finished sentence; `noGit` is the one of these the
    *  app raises as a dialog, because by then the folder is made and the board is going in. */

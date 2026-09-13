@@ -51,8 +51,12 @@ and picking the other hands the window over exactly as a project does. A board i
 under the project with `todo/` and `config.md` in it, two levels down at most —
 `akb install --board marketing/kanban` is what puts one there, and nothing registers it.
 
-When a newer version is out, a line above the board says so with a link; the app never updates
-itself. Closing the window ends every board server and agent run across the open projects.
+When a newer version is out, the app downloads it in the background and says nothing while it
+does. Once it is on disk, a **Restart** button appears in the top row and one press restarts
+into the new version. Nothing is skippable and nothing is downloaded by hand; an update that
+cannot be installed leaves an **Update failed** marker there instead, with the reason on
+hover or keyboard focus. Closing the window ends every board server and agent run across the
+open projects.
 
 ## The board
 

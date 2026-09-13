@@ -38,27 +38,49 @@ export interface ProjectInfo {
   open: boolean;
 }
 
-/** Where installing a newer app stands (#372). `idle` is a version offered and
- *  nothing started; `downloading` is the bytes coming in; `ready` has them on
- *  disk, checked, waiting for the restart the user picks. A failure goes back to
- *  `idle` carrying `error`. */
+/** Where installing a newer app stands (#372). `idle` is nothing under way;
+ *  `downloading` is the bytes coming in, retries between attempts included;
+ *  `ready` has them on disk, checked, waiting for the restart the user picks. A
+ *  download that gave up goes back to `idle` carrying `failure`. */
 export type UpdateStage = "idle" | "downloading" | "ready";
 
-/** A newer app than this one, where to get it, and how far along installing it
- *  is. Held by the app, not by a page, so moving between the board and a card
- *  neither restarts a download nor loses one. */
+/**
+ * Why an update did not go in, as a category rather than a sentence.
+ *
+ * Each surface writes its own words for these — the app's menu out of
+ * `lib/copy`, the board's chip out of `kanban-ui/i18n/chrome` — so nothing has
+ * to classify a failure by reading an English error message, and a reason only
+ * ever reaches the user when the category behind it is certain. `unknown` is
+ * the honest answer for everything else: "update failed", and no guess at why.
+ */
+export type UpdateFailure =
+  | "network"
+  | "timeout"
+  | "server"
+  | "disk"
+  | "permission"
+  | "checksum"
+  /** This copy sits somewhere it cannot write, so it cannot replace itself. */
+  | "readOnly"
+  /** The release carries no build this copy can put in place. */
+  | "noBuild"
+  /** A checkout, a disk image, a copy macOS is running from a temporary path —
+   *  there is nothing here a new version could replace. */
+  | "notInstallable"
+  | "unknown";
+
+/** A newer app than this one, and how far along installing it is. Held by the
+ *  app, not by a page, so moving between the board and a card neither restarts a
+ *  download nor loses one. The version is always the one that will actually be
+ *  installed: a higher release found mid-download supersedes the one in hand. */
 export interface UpdateStatus {
   version: string;
-  /** The downloads page — the fallback whenever this copy cannot install. */
-  url: string;
   stage: UpdateStage;
   received: number;
   total: number;
-  /** Why this copy cannot install it itself — a checkout, a disk image, a
-   *  folder it cannot write. Null when it can. */
-  blocked: string | null;
-  /** What went wrong last time, said plainly. */
-  error: string | null;
+  /** Why the update did not go in — a download that gave up, or a copy that
+   *  cannot replace itself at all. Null while nothing has failed. */
+  failure: UpdateFailure | null;
 }
 
 export type CreateBoardResult = { ok: true } | { ok: false; error: string };
@@ -257,9 +279,8 @@ export const CHANNELS = {
   command: "a4k:command",
   installCommand: "a4k:install-command",
   update: "a4k:update",
-  /** Download the new version — nothing downloads before this (#372). */
-  startUpdate: "a4k:start-update",
-  /** Put it in place and restart into it. Nothing is written before this. */
+  /** Put it in place and restart into it, naming the version the button showed.
+   *  Nothing is written before this (#372). */
   restartForUpdate: "a4k:restart-for-update",
   /** The other way: the download moved, so the notice redraws. */
   updateStatus: "a4k:update-status",
@@ -391,15 +412,16 @@ export interface Ai4kanbanBridge {
   /** Put `akb` on the PATH. On macOS this is where the system asks for an
    *  administrator password, when the folder being written needs one. */
   installCommand(): Promise<CommandInstallResult>;
-  /** A newer app, when one is out and the user hasn't waved this one off —
-   *  including a download of it already going. */
+  /** A newer app, when one is out — including the download of it the app starts
+   *  on its own. */
   update(): Promise<UpdateStatus | null>;
-  /** Download it. Nothing downloads until this is called. */
-  startUpdate(): Promise<UpdateStatus | null>;
-  /** Install it and restart into it — the app quits behind this call. */
-  restartForUpdate(): Promise<null>;
-  /** Be told each time the download moves, so the notice redraws. Returns the
-   *  way to stop being told. */
+  /** Install it and restart into it — the app quits behind this call. `version`
+   *  is the one the button showed: the app refuses a request naming anything
+   *  else, so a click that lands after a higher release superseded it does
+   *  nothing rather than installing something the user never saw. */
+  restartForUpdate(version: string): Promise<null>;
+  /** Be told each time the update moves, so the chip redraws. Returns the way to
+   *  stop being told. */
   onUpdateStatus(fn: (status: UpdateStatus | null) => void): () => void;
   /** Open a link in the user's own browser. */
   openExternal(url: string): Promise<null>;

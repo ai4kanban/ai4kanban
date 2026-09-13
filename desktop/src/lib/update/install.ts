@@ -21,7 +21,7 @@ import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { copy } from "../copy";
+import type { UpdateFailure } from "./failure";
 
 /** What the app knows about where it is running. */
 export interface AppPlace {
@@ -61,25 +61,29 @@ function writable(dir: string): boolean {
 /**
  * Why this copy cannot install a new version over itself, or null when it can.
  *
+ * A category rather than a sentence: the words belong to whichever surface says
+ * them, and a folder path is an internal detail no chip should carry.
+ *
  * The three Mac cases are the ones `lib/command.ts` already refuses a symlink
  * for, less Downloads: a link there dies when the user moves the file, while a
  * swap has nothing to leave behind — it writes where the app already is.
  */
-export function blockedReason(place: AppPlace, canWrite: (dir: string) => boolean = writable): string | null {
-  const c = copy();
-  if (!place.packaged) return c.update.blockedSource;
+export function blockedReason(
+  place: AppPlace,
+  canWrite: (dir: string) => boolean = writable,
+): UpdateFailure | null {
+  if (!place.packaged) return "notInstallable";
   if (place.platform === "win32") return null;
   if (place.platform === "linux") {
-    if (!place.appImage) return c.update.blockedNotAppImage;
-    return canWrite(path.dirname(place.appImage)) ? null : c.update.blockedReadOnly(path.dirname(place.appImage));
+    if (!place.appImage) return "notInstallable";
+    return canWrite(path.dirname(place.appImage)) ? null : "readOnly";
   }
-  if (place.platform !== "darwin") return c.update.blockedNotAppImage;
-  if (place.exe.startsWith("/Volumes/")) return c.command.blockedImage;
-  if (place.exe.includes("/AppTranslocation/")) return c.command.blockedTranslocated;
+  if (place.platform !== "darwin") return "notInstallable";
+  if (place.exe.startsWith("/Volumes/")) return "notInstallable";
+  if (place.exe.includes("/AppTranslocation/")) return "notInstallable";
   const bundle = macBundle(place.exe);
-  if (!bundle) return c.update.blockedSource;
-  const parent = path.dirname(bundle);
-  return canWrite(parent) ? null : c.update.blockedReadOnly(parent);
+  if (!bundle) return "notInstallable";
+  return canWrite(path.dirname(bundle)) ? null : "readOnly";
 }
 
 /** What a swap moves, once `blockedReason` has said it may. */
@@ -102,15 +106,26 @@ export function stageDir(t: Target): string {
   return path.join(t.parent, ".ai4kanban-update");
 }
 
-export function makeStage(t: Target): string {
-  const dir = stageDir(t);
+/** The folder one version downloads into — a folder per version, so a download
+ *  superseded by a higher release and the one that replaced it never write over
+ *  each other, and neither one's cleanup takes the other's bytes with it. */
+export function versionDir(t: Target, version: string): string {
+  return path.join(stageDir(t), version);
+}
+
+/** A fresh, empty folder for this version. Only this version's is emptied:
+ *  another version may be downloading into its own beside it. */
+export function makeStage(t: Target, version: string): string {
+  const dir = versionDir(t, version);
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
-export function clearStage(t: Target): void {
-  fs.rmSync(stageDir(t), { recursive: true, force: true });
+/** Throw away one version's download, or — with no version — everything staged,
+ *  which is what a launch does once before it starts downloading anything. */
+export function clearStage(t: Target, version?: string): void {
+  fs.rmSync(version ? versionDir(t, version) : stageDir(t), { recursive: true, force: true });
 }
 
 function run(file: string, args: string[]): Promise<void> {

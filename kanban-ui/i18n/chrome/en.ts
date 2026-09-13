@@ -35,12 +35,22 @@ const en: ChromeCopy = {
     alphaHint: "The marketing board is still experimental — expect it to change.",
   },
   update: {
-    out: (version) => `AI4Kanban ${version} is out. Click to install it.`,
-    outManual: (version, reason) => `AI4Kanban ${version} is out. ${reason}`,
-    downloading: (percent) => `Downloading AI4Kanban… ${percent}%`,
-    ready: (version) => `AI4Kanban ${version} is downloaded. Click to restart into it.`,
-    install: "Install",
-    failed: (error) => `${error} Click to try again.`,
+    ready: (version) => `v${version} downloaded · Click to restart and update`,
+    restart: "Restart",
+    failed: "Update failed",
+    failedWhy: (reason) => `Update failed · ${reason}`,
+    reason: {
+      network: "Network connection interrupted",
+      timeout: "Connection timed out",
+      server: "Update service unavailable",
+      disk: "Not enough disk space",
+      permission: "No permission to write",
+      checksum: "Update package failed its check",
+      readOnly: "App is in a read-only location",
+      noBuild: "No build for this computer",
+      notInstallable: "This copy cannot update itself",
+      unknown: "",
+    },
   },
   app: {
     notice:

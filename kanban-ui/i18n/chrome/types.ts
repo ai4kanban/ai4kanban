@@ -1,3 +1,5 @@
+import type { UpdateFailure } from "@/components/desktop";
+
 /** The frame every screen is drawn in: the window itself, the top row, the
  *  projects list behind the folder badge, the notice strip, and the screen a dead
  *  card link lands on. */
@@ -55,18 +57,23 @@ export type ChromeCopy = {
     alpha: string;
     alphaHint: string;
   };
-  /** The update chip is an icon, so all but one of these are its tooltip. */
+  /** The update chip (#701). The app downloads a new version on its own and says
+   *  nothing while it does, so the chip has two states and each is one line. */
   update: {
-    /** A newer version, and this copy can put it in place itself. */
-    out: (version: string) => string;
-    /** A newer version this copy cannot install — a checkout, a disk image, a
-     *  folder it cannot write. The reason, and the downloads page a click opens. */
-    outManual: (version: string, reason: string) => string;
-    downloading: (percent: number) => string;
+    /** The chip's tooltip once the download is in place: the version, and what
+     *  pressing it does. */
     ready: (version: string) => string;
-    /** The one word the chip ever shows, once the download is in place. */
-    install: string;
-    failed: (error: string) => string;
+    /** The word on the chip. It restarts the app, so it says so. */
+    restart: string;
+    /** The word on the chip when the update did not go in, and its tooltip when
+     *  the cause is not one we can name. */
+    failed: string;
+    /** That tooltip with a named cause: the state, then the reason. */
+    failedWhy: (reason: string) => string;
+    /** One short phrase per cause, for the line above. Short because the tooltip
+     *  is one line and must fit the narrowest window the chip is drawn in;
+     *  `unknown` is empty, which is what leaves `failed` standing on its own. */
+    reason: Record<UpdateFailure, string>;
   };
   app: {
     notice: string;

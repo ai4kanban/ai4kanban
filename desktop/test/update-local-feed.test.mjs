@@ -10,6 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fetchFile } from "../out/lib/update/download.js";
+import { UpdateFailed, failureOf } from "../out/lib/update/failure.js";
 import { assetUrl, feedBase, feedFileName, parseFeed, pickBuild } from "../out/lib/update/feed.js";
 import { UpdateSession } from "../out/lib/update/session.js";
 
@@ -63,16 +64,20 @@ async function text(url) {
 async function install(base) {
   const feed = parseFeed(await text(assetUrl(base, feedFileName("darwin", "arm64"))));
   const file = pickBuild(feed, "darwin", "arm64");
-  const found = { version: feed.version, url: "https://example.invalid", file, assetUrl: assetUrl(base, file.url) };
+  const found = { version: feed.version, file, assetUrl: assetUrl(base, file.url) };
   const into = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "a4k-stage-")), file.url);
   const session = new UpdateSession(found, null, {
     stage: () => into,
     async download(url, target, expected, onProgress) {
       const got = await fetchFile(url, target, (p) => onProgress(p.received, p.total), new AbortController().signal);
-      if (got.sha512 !== expected) throw new Error("checksum");
+      if (got.sha512 !== expected) throw new UpdateFailed("checksum");
     },
     async prepare() {},
     apply: () => {},
+    discard: () => {},
+    // A checksum is worth another try in the app; here there is nothing left to
+    // wait for, so the ladder runs straight through.
+    wait: async () => {},
     changed: () => {},
   });
   await session.start();
@@ -90,22 +95,22 @@ test("a served dist folder installs end to end", async () => {
   assert.equal(feed.version, "0.9.0");
   assert.equal(file.url, "AI4Kanban-0.9.0-arm64-mac.zip", "the arm64 build, not the one path names");
   assert.equal(session.stage, "ready");
-  assert.equal(session.status().error, null);
+  assert.equal(session.status().failure, null);
   assert.equal(fs.statSync(into).size, file.size);
 });
 
 test("a build that does not match its published sha512 installs nothing", async () => {
   const { dir } = dist({ corrupt: true });
   const { server, base } = await serve(dir);
-  const { session } = await install(base);
+  const { session, feed } = await install(base);
   server.close();
   assert.equal(session.stage, "idle");
-  assert.equal(session.status().error, "checksum");
-  assert.equal(session.install(), false);
+  assert.equal(session.status().failure, "checksum");
+  assert.equal(session.install(feed.version), false);
 });
 
 test("a feed with nothing behind it offers nothing", async () => {
   const { server, base } = await serve(fs.mkdtempSync(path.join(os.tmpdir(), "a4k-empty-")));
-  await assert.rejects(text(assetUrl(base, "latest-mac.yml")), /answered 404/);
+  await assert.rejects(text(assetUrl(base, "latest-mac.yml")), (e) => failureOf(e) === "unknown");
   server.close();
 });

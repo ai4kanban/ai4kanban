@@ -80,17 +80,24 @@ What the app adds, and all it adds:
   under them — the server child leads its own process group for exactly this reason. Closing
   one of several stops nothing: a run belongs to its board, not to the window it was started
   from.
-- **Installing a newer version.** Read from the newest GitHub release, shown as a line above
-  the board — and installed from that line (#372): one click downloads the build for this
-  system and architecture, the line shows progress while you keep working, and the restart
-  you pick puts it in place. The only integrity check is the sha512 the release publishes,
-  over HTTPS. macOS replaces its own bundle from a detached helper that waits for the app to
-  exit, so an ad-hoc-signed build can install one and the restart raises no Gatekeeper
-  warning; Windows reruns the same NSIS installer with `--updated /S`, which rewrites the
-  PATH entry; Linux replaces the file at `$APPIMAGE`. A copy that cannot replace itself — a
-  checkout, a Mac copy on a mounted disk image or translocated, a folder it cannot write, a
-  Linux copy that is not an AppImage — says why and offers the downloads page instead. A swap
-  that fails partway puts the old version back, so what starts next time is what was running.
+- **Installing a newer version.** Read from the newest GitHub release, and downloaded by the
+  app itself the moment it knows there is one (#372, #701). Nothing is shown while that
+  happens: the chip in the top row appears only once the build for this system and
+  architecture is on disk and checked, and one press on it restarts into the new version.
+  The only integrity check is the sha512 the release publishes, over HTTPS. A download that
+  fails on the network, a timeout, a 429 or 5xx, or its checksum is retried after 30s, 2min
+  and 10min before the chip turns red; everything else gives up at once. Failures travel as
+  categories (`src/lib/update/failure.ts`), never as messages to be parsed — each surface
+  writes its own words. A higher release found mid-download supersedes the one in hand: each
+  version stages in a folder of its own, the superseded one is thrown away when it lands, and
+  the chip always names the version that will actually be installed. macOS replaces its own
+  bundle from a detached helper that waits for the app to exit, so an ad-hoc-signed build can
+  install one and the restart raises no Gatekeeper warning; Windows reruns the same NSIS
+  installer with `--updated /S`, which rewrites the PATH entry; Linux replaces the file at
+  `$APPIMAGE`. A copy that cannot replace itself — a checkout, a Mac copy on a mounted disk
+  image or translocated, a folder it cannot write, a Linux copy that is not an AppImage —
+  is the same failure chip with its own reason; there is no manual path. A swap that fails
+  partway puts the old version back, so what starts next time is what was running.
 - **Installing the `akb` command.** The app carries the command (`resources/bin/akb`, a
   launcher beside the bundled CLI) and offers to put it on the PATH at the first launch that
   finds none — before the user has done anything. macOS gets one symlink at
@@ -170,17 +177,23 @@ On Windows and Linux, set the variable in the shell that launches the installed 
 instead — `set AI4KANBAN_UPDATE_FEED=http://127.0.0.1:8099/` before running the `.exe`'s
 shortcut target, or `AI4KANBAN_UPDATE_FEED=… ./AI4Kanban-0.9.0.AppImage`.
 
-The notice offers 0.9.1. Install it, restart, and the app is 0.9.1 with its board, its
-settings and its `akb` link intact.
+The app downloads 0.9.1 on its own — nothing to press, and nothing on screen until it is
+done. Press **Restart**, and the app is 0.9.1 with its board, its settings and its `akb` link
+intact.
 
-**Two failures worth producing on purpose.** Both leave the running app untouched and keep
-the downloads page on offer:
+**Two failures worth producing on purpose.** Both leave the running app untouched, and both
+are retried three times before the chip says anything, so allow ~13 minutes:
 
 - **A build that does not match its sha512** — append a byte to one file in `/tmp/feed`
   without touching its `latest*.yml`: `printf x >> /tmp/feed/AI4Kanban-0.9.1-arm64-mac.zip`.
   The download runs to the end and is thrown away.
 - **A download that is interrupted** — stop the http server partway through the download
-  (`kill %1`), or unplug the network. The notice says how far it got.
+  (`kill %1`), or unplug the network. Put it back before the third retry and the update
+  finishes on its own.
+
+To watch the supersede path instead, let 0.9.1 finish, then repoint `/tmp/feed` at a 0.9.2
+build and use **Check for Updates…**: the chip and the dialog both name 0.9.2 from there, and
+0.9.1's staging folder under `.ai4kanban-update/` is gone.
 
 **Keeping a fixture for the published feed.** The `verify:` check that proves the *real*
 release works needs a lower-version build made from the final code, kept before the version
