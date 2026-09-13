@@ -23,11 +23,26 @@ export interface StartResult {
   error?: string;
 }
 
+/** The card titles one read needs, each card looked up once (#725). `titleOf` walks `todo/`
+ *  to find the file before it reads it, and the runs of one board crowd onto a handful of
+ *  cards — so asking per run would spend most of a poll walking the same folder again. */
+function titleLookup(
+  rules: Awaited<ReturnType<typeof boardRules>>,
+): (cardId: number | null) => string | undefined {
+  const seen = new Map<number, string | undefined>();
+  return (cardId) => {
+    if (cardId === null) return undefined;
+    if (!seen.has(cardId)) seen.set(cardId, rules.titleOf(cardId));
+    return seen.get(cardId);
+  };
+}
+
 // One run as the browser reads it. The record carries a couple of fields the UI has no use
 // for (where the log file is, which agent the run was pinned to internally), and the UI
 // wants the log under the name it has always used.
 function toView(
   run: RunView,
+  titleOf: (cardId: number | null) => string | undefined,
   deliveries?: Map<string, DeliveryRecord>,
   pauses?: Map<string, CardDeliveryState>,
 ): SessionView {
@@ -38,6 +53,10 @@ function toView(
   return {
     sessionId: run.sessionId,
     cardId: run.cardId,
+    // The card's title as it reads now, so a retitled card reads by its current name. An
+    // archived card is off the board and answers nothing, and then the title its delivery
+    // froze stands in — the last thing that still knows what the run was on.
+    cardTitle: titleOf(run.cardId) ?? (cardless ? undefined : delivery?.title),
     draft: run.draft,
     channel: run.channel,
     action: run.action as SessionView["action"],
@@ -178,7 +197,7 @@ export async function listSessions(): Promise<SessionView[]> {
     const rules = await boardRules();
     const deliveries = deliveryMap(rules.listDeliveries?.());
     const pauses = pauseMap(rules, deliveries);
-    return (await rules.listRuns()).map((r) => toView(r, deliveries, pauses));
+    return (await rules.listRuns()).map((r) => toView(r, titleLookup(rules), deliveries, pauses));
   } catch {
     // No rules to load: the board has no sessions to show and says why elsewhere, rather
     // than failing the poll that draws the whole page.
@@ -194,7 +213,7 @@ export async function getSession(sessionId: string): Promise<SessionView | null>
     const run = await rules.getRun(sessionId);
     if (!run) return null;
     const deliveries = deliveryMap(rules.listDeliveries?.());
-    return toView(run, deliveries, pauseMap(rules, deliveries));
+    return toView(run, titleLookup(rules), deliveries, pauseMap(rules, deliveries));
   } catch {
     return null;
   }

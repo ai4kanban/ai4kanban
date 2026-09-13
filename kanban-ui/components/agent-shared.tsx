@@ -729,7 +729,7 @@ function StopButton({ sessionId }: { sessionId: string }) {
 // What to call a run that names no card: what it is doing while it runs,
 // what it did once it's over. A plan-release carries its version id as its
 // input, so the title says which release it planned.
-function cardlessTitle(session: SessionView, c: RunsCopy["cardless"]): string {
+export function cardlessTitle(session: SessionView, c: RunsCopy["cardless"]): string {
   const running = session.status === "running";
   const of = session.input ? ` ${session.input}` : "";
   if (session.action === "plan-release") return running ? c.planning(of) : c.plan(of);

@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import { FiActivity, FiCheck, FiChevronLeft, FiChevronRight, FiCopy, FiX } from "react-icons/fi";
 import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
+import type { UiCopy } from "@/i18n/types";
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent } from "@/lib/agent-name";
 import { useOverRail } from "@/lib/over-rail";
@@ -39,7 +40,7 @@ import {
   type SceneBot,
 } from "@/lib/run-scene";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
-import { type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
+import { cardlessTitle, type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
 import { Button } from "./button";
 import { TOOL_BTN } from "./chrome";
 import { Copied, useCopyText } from "./copy";
@@ -866,7 +867,13 @@ function RunsOffice({
             onClick={(e) => e.stopPropagation()}
             onFocusCapture={() => (drawer.current = "right")}
           >
-            <DrawerBar title={t.runs.log.title} onCollapse={closeLog} />
+            {/* The bar names the TASK, not the log: what the log is is said once, on the
+                log's own window below. */}
+            <DrawerBar
+              title={<RunHeading session={selected} flow={flow} />}
+              tip={headingText(runHeading(selected, flow, t))}
+              onCollapse={closeLog}
+            />
             <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-6">
               <RunDetail
                 flow={flow}
@@ -874,6 +881,7 @@ function RunsOffice({
                 log={log}
                 selectedId={selectedId}
                 onStarted={onStarted}
+                titled
               />
             </div>
           </aside>
@@ -886,16 +894,69 @@ function RunsOffice({
 const DONE_BTN = "run-records-done";
 const UNFINISHED_BTN = "run-records-unfinished";
 
-/** A drawer's own title bar, with the one control it needs. */
-function DrawerBar({ title, onCollapse }: { title: string; onCollapse: () => void }) {
+// --- what the open log is OF --------------------------------------------------
+
+/** The task the log on screen belongs to: its id, and what it is called. The name is the
+ *  first of these there is — a card's own title; the sentence a job with no card was
+ *  started with; what that job is doing instead; and, for a card whose title nothing can
+ *  answer for any more, the action itself. So the heading is never blank. */
+function runHeading(
+  session: SessionView | null,
+  flow: RunFlow | null,
+  t: UiCopy,
+): { id: number | null; name: string } {
+  if (!session) return { id: null, name: t.runs.log.title };
+  const action = flow ? flowLabel(flow, t.runs) : stepLabel(session.action, t.runs);
+  if (session.cardId === null) {
+    return { id: null, name: (flow && flowSaid(flow)) || cardlessTitle(session, t.runs.cardless) };
+  }
+  return { id: session.cardId, name: session.cardTitle?.trim() || action };
+}
+
+/** That heading in plain text, for a tooltip on the clipped one. */
+const headingText = (h: { id: number | null; name: string }) =>
+  h.id === null ? h.name : `#${h.id} · ${h.name}`;
+
+/** …and drawn: the id keeps the `#id` → `/id` jump every id in the UI makes, with the name
+ *  of the task beside it. Following it closes the dialog, or it would sit over the card it
+ *  just opened. */
+function RunHeading({ session, flow }: { session: SessionView | null; flow: RunFlow | null }) {
+  const t = useCopy();
+  const { id, name } = runHeading(session, flow, t);
+  if (id === null) return <>{name}</>;
+  return (
+    <>
+      <Link href={`/${id}`} className="nb-idlink" onClick={() => sessionsPanel.close()}>
+        #{id}
+      </Link>
+      {` · ${name}`}
+    </>
+  );
+}
+
+/** A drawer's own title bar, with the one control it needs. The title may run long — it is
+ *  the task's name on the log drawer — so it takes the slack and clips, and the control
+ *  beside it keeps its width whatever is in there. */
+function DrawerBar({
+  title,
+  tip,
+  onCollapse,
+}: {
+  title: React.ReactNode;
+  /** The title in plain text, for when it is clipped. */
+  tip?: string;
+  onCollapse: () => void;
+}) {
   const s = useCopy().runs.scene;
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-3 py-2">
-      <h3 className="text-[12.5px] font-[800] tracking-[-0.02em]">{title}</h3>
+    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-nb-ink/12 px-3 py-2">
+      <h3 className="min-w-0 truncate text-[12.5px] font-[800] tracking-[-0.02em]" title={tip}>
+        {title}
+      </h3>
       <button
         type="button"
         onClick={onCollapse}
-        className="cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
+        className="shrink-0 cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
       >
         {s.collapse}
       </button>
@@ -1007,52 +1068,54 @@ function RunDetail({
   log,
   selectedId,
   onStarted,
+  titled = false,
 }: {
   flow: RunFlow | null;
   selected: SessionView | null;
   log: SessionView | null;
   selectedId: string | null;
   onStarted: () => void;
+  /** Something above already names the task — the log drawer's own title bar. The header
+   *  then opens on the action instead of saying the same thing twice. */
+  titled?: boolean;
 }) {
   const t = useCopy();
   const c = t.runs.panel;
   const language = useLanguage();
   if (!selected) return <p className="text-[13px] text-nb-ink-soft">{c.pick}</p>;
   const input = (log?.input ?? selected.input ?? "").trim();
+  // A session is titled by the JOB, not by its own action: "Resolve" alone says nothing
+  // about the job it is a step of. Which step you are reading is the timeline's word, on
+  // the left.
+  const action = flow ? flowLabel(flow, t.runs) : stepLabel(selected.action, t.runs);
+  const heading = runHeading(selected, flow, t);
+  // Where the task has no name of its own the heading falls back to the action, and the
+  // action is not printed a second time beside it.
+  const showAction = titled || heading.name !== action;
 
   return (
     <>
-      <div className="mb-3 flex items-center gap-2">
-        {/* A session is titled by the JOB, not by its own action: "Resolve" alone
-            says nothing about the job it is a step of. Which step you are reading
-            is the timeline's word, on the left. */}
-        <span className="text-[14px] font-[800] tracking-[-0.02em]">
-          {flow ? flowLabel(flow, t.runs) : stepLabel(selected.action, t.runs)}
-        </span>
-        {/* The card this run worked on, as a link to it — the same
-            `#id` → `/id` jump the markdown bodies make, so an id reads
-            the same wherever it appears. Not gated on the card still
-            being open, the way a mention in prose is: this id is what
-            the run WAS, and a card the run archived is exactly the one
-            you'd click. The board's not-found page says so and takes
-            you back. Navigating closes the dialog, or it would sit on
-            top of the card you just opened. */}
-        {selected.cardId !== null ? (
-          <Link
-            href={`/${selected.cardId}`}
-            className="nb-idlink text-[12px]"
-            onClick={() => sessionsPanel.close()}
+      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+        {/* Which task this run is on (#725), leading — the id links to it the way every
+            `#id` in the UI does, and is not gated on the card still being open: a card the
+            run archived is exactly the one you'd click. The drawer form says this in its
+            own title bar, so here it would only repeat. */}
+        {!titled && (
+          <span
+            className="min-w-0 max-w-full truncate text-[14px] font-[800] tracking-[-0.02em]"
+            title={headingText(heading)}
           >
-            #{selected.cardId}
-          </Link>
-        ) : (
-          // No card to link to, so the sentence the job was started with stands
-          // where the id would (#428). It is the whole account of a build with
-          // no card, and the note below prints it in full.
-          flow &&
-          flowSaid(flow) && (
-            <span className="min-w-0 truncate text-[12px] text-nb-ink-soft">{flowSaid(flow)}</span>
-          )
+            <RunHeading session={selected} flow={flow} />
+          </span>
+        )}
+        {showAction && (
+          <span
+            className={
+              titled ? "text-[14px] font-[800] tracking-[-0.02em]" : "text-[12px] text-nb-ink-soft"
+            }
+          >
+            {action}
+          </span>
         )}
         {/* A job is dated by when IT started, not by the session you happen to be
             reading — each session carries its own time on its step. */}

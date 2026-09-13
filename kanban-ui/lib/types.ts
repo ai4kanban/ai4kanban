@@ -229,6 +229,11 @@ export interface SessionView {
   /** The card this run touches, or null for a run that names none (create, propose,
    *  plan-release). */
   cardId: number | null;
+  /** What that card is called, so a view of the run can say which task it is on rather than
+   *  its id alone (#725). The card's title as it reads now, falling back to the title its
+   *  delivery froze — which is what still names a card that has since been archived. Absent
+   *  on a run naming no card, and on one whose card is gone with no delivery behind it. */
+  cardTitle?: string;
   /** Which draft a `polish` run is working over (#458), and nothing on any other run. The
    *  card page's comment list reads it: every run locks the editor, but only the polish on
    *  THIS tab is the one working through the batch on screen. */
