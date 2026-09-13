@@ -902,6 +902,15 @@ export interface Chat {
    *  it stays out as if the user had put it there. Absent on every other archive, which is
    *  the user's and is never undone. */
   archivedBy?: 'board'
+  /** This conversation shares with the AI4Kanban team when it ends (#679). Off on every new
+   *  one, whatever this machine's partner-feedback switch says: agreeing once is not agreeing
+   *  to every conversation after it. Nothing is collected while it is on — the end is what
+   *  collects and submits. */
+  shareOnEnd?: boolean
+  /** The card a discussion was linked to (#628), kept beside the transcript so the end knows
+   *  which card the submission is about. A card's own conversation carries none: it is that
+   *  card's. */
+  linkedCard?: number
   messages: ChatMessage[]
   startedAt: number
   updatedAt: number

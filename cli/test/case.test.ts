@@ -187,6 +187,14 @@ describe('what the pack is allowed to hold', () => {
     assert.deepEqual(built.pack.runs, [])
   })
 
+  it('says how much of a long conversation was left behind', () => {
+    runs(run({ sessionId: 'a', flowId: 'f1', version: '0.9.4' }))
+    const long = openCase('d-long', 7, 'x'.repeat(LIMITS.feedbackTextChars + 1))
+    const built = buildCase(long, { flowId: 'f1' })
+    assert.equal(built.pack.text.length, LIMITS.feedbackTextChars)
+    assert.ok(built.gaps.some((g) => g.includes('only the first')))
+  })
+
   it('sends the question description alone with nothing collected beside it', () => {
     const pack = textOnlyCase(opened())
     assert.match(pack.text, /归档卡片/)
@@ -222,7 +230,7 @@ describe('the submission id', () => {
 })
 
 describe('what the turn is told', () => {
-  it('points a shared complaint at the brief, naming the card and nothing else', () => {
+  it('points the submitting turn at the brief, naming the card and nothing else', () => {
     const said = chatPrompt('discussion-d1', 'the spec missed archived search', {
       resuming: true,
       role: 'feedback',
@@ -231,17 +239,18 @@ describe('what the turn is told', () => {
     })
     assert.match(said, /akb guide feedback/)
     assert.match(said, /task #603/)
+    assert.match(said, /it has ended/)
     assert.match(said, /shared it/)
   })
 
-  it('tells an unshared one to collect nothing, rather than saying nothing at all', () => {
+  it('tells every other turn to collect nothing, rather than saying nothing at all', () => {
     const said = chatPrompt('discussion-d1', 'the spec missed archived search', {
       resuming: true,
       role: 'feedback',
       guide: 'feedback',
       feedback: { cardId: 603, share: false },
     })
-    assert.match(said, /NOT shared/)
+    assert.match(said, /Nothing has been shared/)
     assert.match(said, /collect nothing and submit nothing/)
   })
 

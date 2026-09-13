@@ -148,7 +148,12 @@ export { createImageAgents } from './lib/agent/runner'
 // and letting a finished plan go. The plan file itself is `plans/<id>-<slug>.md`, numbered
 // off next-id by `akb raw plan new` — the one move that allocates an id and writes no card.
 export { readDiscuss, startedPlanning } from './lib/agent/discuss'
-export { clearChatPlan, noteChatMessage } from './lib/agent/chat'
+export { clearChatPlan, noteChatMessage, setChatCard, setChatShare } from './lib/agent/chat'
+
+// What ending a shared conversation does (#659, #679). The switch under the box collects
+// nothing while the conversation is going; this is the whole of what it costs, and it is
+// called after the end has already happened so nothing of it holds the screen up.
+export { shareOnEnd } from './lib/agent/share'
 
 // The discussions a board is holding (#496). A board holds many at once — each with its own
 // transcript, agent session and plans — so the rail lists them and Create task opens a new

@@ -240,6 +240,9 @@ export async function sendChat(
     box?: string;
     /** The card this message is a complaint about (#628), and whether share was ticked. */
     feedback?: { cardId: number; share?: boolean };
+    /** Where the switch under the box stands as this goes (#679) — carried on the message
+     *  because a conversation nobody has spoken into yet has no file to write it to. */
+    share?: boolean;
   } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   let rules;
@@ -287,6 +290,7 @@ export async function sendChat(
     fromBoard: opts.fromBoard,
     guide: opts.guide,
     feedback: opts.feedback,
+    share: opts.share,
     images,
     onText: (chunk) => {
       // Frozen on a stop, so the words on screen are the words that were there when the

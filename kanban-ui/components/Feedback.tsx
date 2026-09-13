@@ -1,7 +1,8 @@
 "use client";
 
 // Feedback on a landed task (#603) — the block on New task that links the task a fix is
-// about.
+// about — and team feedback (#628, #679): the card a discussion links, and the switch that
+// says ending this conversation shares it.
 //
 // Two things the whole file is built around:
 //
@@ -15,30 +16,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronDown, FiChevronRight, FiPlus, FiSearch, FiX } from "react-icons/fi";
 import {
-  dropCaseAction,
   feedbackDiagnosticsAction,
   feedbackOfferedAction,
   partnerFeedbackAction,
-  readCaseAction,
-  retryCaseAction,
   searchArchivedAction,
   searchLinkableAction,
   sendFeedbackAction,
-  sendTextOnlyCaseAction,
-  setPartnerFeedbackAction,
+  setChatCardAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
+import type { ShareSwitch } from "@/lib/chat-rail";
 import type {
   ArchivedCard,
-  CaseRecord,
+  DiscussionTarget,
   FeedbackAttachment,
   FeedbackPart,
   FeedbackSent,
 } from "@/lib/types";
-import { Button } from "./button";
 import { HAIRLINE } from "./chrome";
-import { useCopyText } from "./copy";
-import { CASE_EMAIL, PartnerTerms } from "./Privacy";
+import { PartnerTerms } from "./Privacy";
+import { Switch } from "./settings";
 
 /** How long the typing has to stop before the archive is searched — the card search's own
  *  pause, so the two boxes answer at the same speed. */
@@ -485,309 +482,168 @@ export function useTaskFailureLine(): (sent: FeedbackSent) => string {
 
 /** What the Discuss block is holding. */
 export interface DiscussFeedback {
-  /** Whether this board's rules know about partner feedback at all. */
+  /** Whether this board's rules know about team feedback at all. */
   offered: boolean;
-  /** Whether this machine takes part. Re-read whenever the block is opened, so turning it on
-   *  from the terms behind the link lights the tick without closing anything. */
-  partnerOn: boolean;
   open: boolean;
-  /** Fold and unfold. Folding only hides — the link and the tick are still what the next
-   *  message would carry. */
+  /** Fold and unfold. Folding only hides — the link is still what the next message carries. */
   toggle: () => void;
-  /** Forget the link and the tick, and take the submission off this discussion. A pack
-   *  already sent is not withdrawn — the number in the transcript is how that is deleted.
-   *  What was typed is the box's, and it stays. */
+  /** Forget the link, and take it off the discussion. What was typed is the box's, and it
+   *  stays. */
   unlink: () => void;
   card: ArchivedCard | null;
   pick: (card: ArchivedCard | null) => void;
-  share: boolean;
-  setShare: (on: boolean) => void;
   /** What the send carries, or undefined when nothing is linked. */
-  sending: { cardId: number; share: boolean } | undefined;
-  /** The submission this discussion is holding. */
-  record: CaseRecord | null;
-  /** Watch it from the moment a shared message goes, until it lands or fails. */
-  watch: () => void;
-  /** Whether the turn carrying it is still being answered. The agent submits from inside its
-   *  own turn, so this is what tells "gathering the material" from "it asked you something
-   *  instead" — the two look identical from the record alone. */
-  answering: boolean;
-  setAnswering: (on: boolean) => void;
-  retry: () => Promise<void>;
-  textOnly: () => Promise<void>;
-  /** Re-read the machine's answer — what the terms dialog closing calls. */
-  reread: () => void;
+  sending: { cardId: number } | undefined;
 }
 
-/** How often the submission is re-read while the agent is working on it. The agent submits
- *  from inside its own turn, so this is the only way the screen learns it landed. */
-const WATCH_MS = 2_000;
-
-export function useDiscussFeedback(discussion: string | null): DiscussFeedback {
+export function useDiscussFeedback(
+  discussion: DiscussionTarget | null,
+  /** The card this discussion's transcript already says it is about, from the rail's read.
+   *  A link outlives the sitting it was made in (#679), so it has to be on screen in the
+   *  next one — the ✕ on it is the only way to take it off again. */
+  linked: number | null,
+): DiscussFeedback {
   const [offered, setOffered] = useState(false);
-  const [partnerOn, setPartnerOn] = useState(false);
   const [open, setOpen] = useState(false);
   const [card, setCard] = useState<ArchivedCard | null>(null);
-  const [share, setShare] = useState(false);
-  const [record, setRecord] = useState<CaseRecord | null>(null);
-  const [watching, setWatching] = useState(false);
-  const [answering, setAnswering] = useState(false);
+  /** The discussion the link area has settled on its own: read back off the transcript, or
+   *  picked by hand. Either way the read is not asked again, so a poll that is still
+   *  carrying the old number cannot undo a fresh pick. */
+  const settled = useRef<string | null>(null);
 
-  // One read answers both: `null` is rules that predate partner feedback, and the block is
-  // not drawn at all; anything else is rules that know about it, whichever way the switch is
-  // set. The link area is NOT gated on the switch — linking a card is what hands the turn to
-  // the `feedback` agent, and that happens opted out too. Only sharing needs the switch.
-  const reread = useCallback(() => {
-    void partnerFeedbackAction().then((held) => {
-      setOffered(held !== null);
-      setPartnerOn(held?.on === true);
-    });
-  }, []);
-
+  // `null` is rules that predate team feedback, and the block is not drawn at all. Linking is
+  // offered whichever way the machine's own switch is set: it is what hands the turn to the
+  // `feedback` agent, and that happens opted out too. Sharing is the switch under the box.
   useEffect(() => {
     let live = true;
-    void partnerFeedbackAction().then((held) => {
-      if (!live) return;
-      setOffered(held !== null);
-      setPartnerOn(held?.on === true);
-    });
+    void partnerFeedbackAction().then((held) => live && setOffered(held !== null));
     return () => {
       live = false;
     };
   }, []);
 
-  // The submission this discussion already has — so reopening a discussion whose case landed
-  // shows the number again rather than an empty block.
+  // Another discussion is another problem: nothing of the last one's link carries over.
   useEffect(() => {
-    if (!discussion) return setRecord(null);
-    let live = true;
-    void readCaseAction(discussion).then((held) => live && setRecord(held));
-    return () => {
-      live = false;
-    };
-  }, [discussion]);
-
-  // …and while one is being worked on. It stops itself the moment the submission is settled,
-  // so a discussion sitting open costs one read and not a poll a second forever.
-  useEffect(() => {
-    if (!watching || !discussion) return;
-    const timer = setInterval(() => {
-      void readCaseAction(discussion).then((held) => {
-        setRecord(held);
-        if (held && held.status !== "collecting") setWatching(false);
-      });
-    }, WATCH_MS);
-    return () => clearInterval(timer);
-  }, [watching, discussion]);
-
-  // A turn that ended settles it either way: the agent submitted from inside it, or it asked
-  // something instead. One last read, then the poll stops rather than running on an answer
-  // that is not coming.
-  useEffect(() => {
-    if (answering || !watching || !discussion) return;
-    void readCaseAction(discussion).then(setRecord);
-    setWatching(false);
-  }, [answering, watching, discussion]);
-
-  const unlink = useCallback(() => {
     setCard(null);
-    setShare(false);
-    setWatching(false);
-    setRecord(null);
-    if (discussion) void dropCaseAction(discussion);
+    settled.current = null;
   }, [discussion]);
 
-  const retry = useCallback(async () => {
-    if (!discussion) return;
-    setRecord(await retryCaseAction(discussion));
-  }, [discussion]);
+  // …and then what this one's transcript still says, named by its number alone. Searched by
+  // that number, which is how the box below finds a card too.
+  useEffect(() => {
+    if (!discussion || linked === null || settled.current === discussion) return;
+    settled.current = discussion;
+    void searchLinkableAction(String(linked)).then((found) => {
+      if (!found.ok) return;
+      const one = found.cards.find((match) => match.id === linked);
+      if (one) setCard(one);
+    });
+  }, [discussion, linked]);
 
-  const textOnly = useCallback(async () => {
-    if (!discussion) return;
-    setRecord(await sendTextOnlyCaseAction(discussion));
-  }, [discussion]);
+  // Written beside the transcript as it is picked, not only when a message goes: the end of a
+  // shared conversation reads the card off that file, and it may come long after the last
+  // message.
+  const link = useCallback(
+    (picked: ArchivedCard | null) => {
+      setCard(picked);
+      settled.current = discussion;
+      if (discussion) void setChatCardAction(discussion, picked?.id ?? null);
+    },
+    [discussion],
+  );
 
+  const unlink = useCallback(() => link(null), [link]);
   const toggle = useCallback(() => setOpen((on) => !on), []);
-  const watch = useCallback(() => setWatching(true), []);
 
   return useMemo(
     () => ({
       offered,
-      partnerOn,
       open,
       toggle,
       unlink,
       card,
-      pick: setCard,
-      share,
-      setShare,
-      sending: card ? { cardId: card.id, share: share && partnerOn } : undefined,
-      record,
-      watch,
-      answering,
-      setAnswering,
-      retry,
-      textOnly,
-      reread,
+      pick: link,
+      sending: card ? { cardId: card.id } : undefined,
     }),
-    [
-      offered,
-      partnerOn,
-      open,
-      toggle,
-      unlink,
-      card,
-      share,
-      record,
-      watch,
-      answering,
-      retry,
-      textOnly,
-      reread,
-    ],
+    [offered, open, toggle, unlink, card, link],
   );
 }
 
 /**
- * The block under the box in Discuss: one collapsed button, and what it holds once opened.
+ * The block under the box in Discuss: one collapsed button, and the card it links.
  *
  * Collapsed it says nothing but its own name. That is the whole of the default — a discussion
- * held without touching it links nothing, collects nothing and reports nothing.
+ * held without touching it links nothing and reports nothing. Sharing is not in here: it is
+ * the switch on the row under the box (`ShareRow`), where a card conversation can reach it
+ * too.
  */
 export function DiscussFeedbackBlock({ feedback }: { feedback: DiscussFeedback }) {
   const c = useCopy().board.partner;
-  const [terms, setTerms] = useState(false);
   if (!feedback.offered) return null;
 
-  return (
-    <>
-      {/* What came of the last submission, above the link area: it is the answer to what was
-          just sent, and the link area below it is what the next one would carry. */}
-      <CaseResult feedback={feedback} />
-      {!feedback.open ? (
-        <button
-          type="button"
-          onClick={feedback.toggle}
-          aria-expanded={false}
-          className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
-        >
-          <FiChevronRight size={13} aria-hidden />
-          {c.expand}
-        </button>
+  return !feedback.open ? (
+    <button
+      type="button"
+      onClick={feedback.toggle}
+      aria-expanded={false}
+      className="mt-2.5 inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] px-2 py-1 text-[12px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
+    >
+      <FiChevronRight size={13} aria-hidden />
+      {c.expand}
+    </button>
+  ) : (
+    <div className="mt-2.5 rounded-[10px] bg-nb-sheet px-3.5 py-3">
+      {/* The title folds it back up — the only control the header needs. Unlinking is the
+          ✕ on the card below, where the link itself is. */}
+      <button
+        type="button"
+        onClick={feedback.toggle}
+        aria-expanded
+        className="mb-2.5 -ml-1 flex cursor-pointer items-center gap-1.5 rounded-[8px] px-1 py-0.5 text-[12px] font-[700] transition-colors hover:bg-nb-ink/5"
+      >
+        <FiChevronDown size={13} aria-hidden />
+        {c.expand}
+      </button>
+
+      {feedback.card ? (
+        <PickedCard card={feedback.card} onClear={feedback.unlink} />
       ) : (
-        <div className="mt-2.5 rounded-[10px] bg-nb-sheet px-3.5 py-3">
-          {/* The title folds it back up — the only control the header needs. Unlinking is the
-              ✕ on the card below, where the link itself is. */}
-          <button
-            type="button"
-            onClick={feedback.toggle}
-            aria-expanded
-            className="mb-2.5 -ml-1 flex cursor-pointer items-center gap-1.5 rounded-[8px] px-1 py-0.5 text-[12px] font-[700] transition-colors hover:bg-nb-ink/5"
-          >
-            <FiChevronDown size={13} aria-hidden />
-            {c.expand}
-          </button>
-
-          {feedback.card ? (
-            <PickedCard card={feedback.card} onClear={feedback.unlink} />
-          ) : (
-            <LinkSearch onPick={feedback.pick} />
-          )}
-
-          {/* The tick only exists where it can do something. Opted out, the block offers the
-              way in instead — and the terms it opens are the same page the switch opens. */}
-          <div className="mt-3.5">
-            {feedback.partnerOn ? (
-              <Tick
-                on={feedback.share}
-                onFlip={feedback.setShare}
-                label={c.share}
-                note={c.shareNote}
-              />
-            ) : (
-              <p className="text-[12px] leading-relaxed text-nb-ink-soft">{c.off}</p>
-            )}
-            <button
-              type="button"
-              onClick={() => setTerms(true)}
-              className="mt-1.5 cursor-pointer text-[12px] font-[700] text-nb-accent-deep underline-offset-2 hover:underline"
-            >
-              {feedback.partnerOn ? c.terms : c.turnOn}
-            </button>
-          </div>
-        </div>
+        <LinkSearch onPick={feedback.pick} />
       )}
-      {terms && (
-        <PartnerTerms
-          ask={!feedback.partnerOn}
-          onClose={() => {
-            setTerms(false);
-            feedback.reread();
-          }}
-          onConfirm={async () => {
-            await setPartnerFeedbackAction(true);
-            feedback.reread();
-            setTerms(false);
-          }}
-        />
-      )}
-    </>
+    </div>
   );
 }
 
-/** What the send came to: nothing while nothing has been shared, the number once it landed,
- *  and two ways on when it did not. */
-function CaseResult({ feedback }: { feedback: DiscussFeedback }) {
-  const c = useCopy().board.partner;
-  const copy = useCopyText();
-  const held = feedback.record;
-  if (!held) return null;
-
-  // Still collecting only means something while the turn is running. Once it has ended with
-  // the submission unsettled, the agent asked about the card instead — and that question is
-  // in the transcript above, where the answer belongs.
-  if (held.status === "collecting") {
-    return feedback.answering ? (
-      <p className="mt-2.5 text-[12px] text-nb-ink-soft">{c.working}</p>
-    ) : null;
-  }
-
-  if (held.status === "sent") {
-    return (
-      <div className="mt-2.5 rounded-[10px] bg-nb-mint-soft px-3.5 py-3">
-        <p className="text-[12.5px] font-[700] leading-relaxed">{c.sent.title}</p>
-        <p className="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
-          <span className="text-nb-ink-soft">{c.sent.number}</span>
-          <span className="font-mono">{held.id}</span>
-          <button
-            type="button"
-            onClick={() => copy.copy(held.id)}
-            className="cursor-pointer font-[700] text-nb-accent-deep underline-offset-2 hover:underline"
-          >
-            {copy.copied ? c.sent.copied : c.sent.copy}
-          </button>
-        </p>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{c.sent.erase(CASE_EMAIL)}</p>
-      </div>
-    );
-  }
-
+/**
+ * The switch on the row under the box (#679), on both the Discuss screen and a card's chat.
+ *
+ * Off on every new conversation, and what it says is the whole of what it does: ending this
+ * conversation shares it with the AI4Kanban team. Nothing is collected while it is on, and
+ * nothing of what came of a submission is ever drawn here — the conversation it was about is
+ * over by then.
+ */
+export function ShareRow({ share }: { share: ShareSwitch }) {
+  const c = useCopy().board.partner.team;
+  if (!share.offered) return null;
   return (
-    <div className="mt-2.5 rounded-[10px] bg-nb-peach-soft px-3.5 py-3">
-      <p className="text-[12.5px] font-[700] leading-relaxed text-nb-peach-ink">{c.notSent.title}</p>
-      <div className="mt-2.5 flex flex-wrap gap-2.5">
-        <Button size="xs" onClick={() => void feedback.retry()}>
-          {c.notSent.retry}
-        </Button>
-        {/* Only where size is what stopped it: on a network failure the whole pack is still
-            the thing to send, and offering less would quietly cost the user their case. */}
-        {held.reason === "too-large" && (
-          <Button size="xs" variant="ghost" onClick={() => void feedback.textOnly()}>
-            {c.notSent.textOnly}
-          </Button>
-        )}
-      </div>
-    </div>
+    <>
+      <span className="flex shrink-0 items-center gap-1.5">
+        <span className={share.on ? "font-[700] text-nb-accent-deep" : undefined}>
+          {share.on ? c.on : c.off}
+        </span>
+        <Switch
+          on={share.on}
+          size="sm"
+          label={c.label}
+          onFlip={async (next) => share.flip(next)}
+        />
+      </span>
+      {/* The first press reads the terms — the same page the Configuration switch opens, and
+          the same yes. Saying yes here shares this one conversation and no other. */}
+      {share.asking && (
+        <PartnerTerms ask onClose={share.cancel} onConfirm={() => void share.agree()} />
+      )}
+    </>
   );
 }
 

@@ -48,13 +48,13 @@ import {
   skillPrompt,
   type RunPlan,
 } from './resolve'
-import { caseOffered, openCase } from '../case'
+import { caseOffered, dropCase } from '../case'
 import { DISCUSSION_ROLE, FEEDBACK_ROLE } from './roles'
 import { chatRuleBlock } from './rules'
 import { readRuntimes, runtimeById } from './runtimes'
 import { SETUP_REMINDER, setupSubject } from './setup-chat'
 import { createStderrFilter } from './wire'
-import { discussionEnv } from './env'
+import { caseEnv, discussionEnv } from './env'
 import { isDiscussion } from './types'
 import type {
   Chat,
@@ -137,6 +137,8 @@ export function readChat(cardId: ChatTarget): Chat | null {
     title: typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : undefined,
     archived: raw.archived === true,
     archivedBy: raw.archived === true && raw.archivedBy === 'board' ? 'board' : undefined,
+    shareOnEnd: raw.shareOnEnd === true,
+    linkedCard: Number.isInteger(raw.linkedCard) && (raw.linkedCard as number) > 0 ? raw.linkedCard : undefined,
     messages,
     startedAt: typeof raw.startedAt === 'number' ? raw.startedAt : Date.now(),
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : Date.now(),
@@ -224,6 +226,9 @@ export function clearChat(cardId: ChatTarget): boolean {
   // The pictures go with the transcript that named them (#441) — the ones already sent and
   // the ones still waiting in the box, which is the whole of what this folder holds.
   fs.rmSync(imagesDir(cardId), { recursive: true, force: true })
+  // And the submission ending it would have made (#679): there is no conversation left to
+  // share. One already sent is not withdrawn by it.
+  dropCase(keyOf(cardId))
   try {
     fs.unlinkSync(chatFile(cardId))
     return true
@@ -394,6 +399,52 @@ export function setChatArchived(cardId: ChatTarget, archived: boolean, by?: 'boa
   chat.archived = archived
   chat.archivedBy = archived ? by : undefined
   writeChat(chat)
+}
+
+/** Turn this conversation's team feedback on or off (#679). Nothing is collected either way
+ *  — the switch only says what ending it does.
+ *
+ *  Turning it off drops the submission the end would have made. One already sent is not
+ *  withdrawn by it; the number in it is how that one is deleted.
+ *
+ *  A conversation nobody has said anything into has no file yet, so there is nothing to write
+ *  and nothing to forget: the screen holds the switch until the first message carries it. */
+export function setChatShare(cardId: ChatTarget, on: boolean): void {
+  const chat = readChat(cardId)
+  if (!chat) return
+  chat.shareOnEnd = on
+  writeChat(chat)
+  if (!on) dropCase(keyOf(cardId))
+}
+
+/** The card a discussion says its problem is about (#628). A card's own conversation never
+ *  calls this — it is that card's already. */
+export function setChatCard(cardId: ChatTarget, card: number | null): void {
+  const chat = readChat(cardId)
+  if (!chat) return
+  chat.linkedCard = card ?? undefined
+  writeChat(chat)
+}
+
+/** What the turn is holding, brought up to what happened while it ran.
+ *
+ *  A turn reads the conversation when the message is sent and writes it back when the reply
+ *  lands, so everything reachable in between is newer on disk than in hand: the plan the
+ *  reply itself saved (#427), and what the user did on the row under the box while they
+ *  waited (#679). Writing the older answer back would put a switch they turned off back on,
+ *  and a conversation they ended back on the rail.
+ *
+ *  A runtime is not among them — one is only picked between turns (#467).
+ */
+export function carriedForward(held: Chat, since: Chat | null): Chat {
+  if (!since) return held
+  held.plans = since.plans
+  held.title = since.title ?? held.title
+  held.shareOnEnd = since.shareOnEnd
+  held.linkedCard = since.linkedCard
+  held.archived = since.archived
+  held.archivedBy = since.archivedBy
+  return held
 }
 
 /** Write one line into the transcript as something the user said, with no turn behind it.
@@ -663,11 +714,18 @@ export interface SendOptions {
    *  under. They are sent again rather than saved again on a resend, so one whose file has
    *  gone since is dropped here rather than failing the turn. */
   images?: string[]
-  /** The card this message is a complaint about (#628), and whether the user ticked share on
-   *  it. Present only from Discuss, and only once they linked one. It hands the turn to the
-   *  `feedback` agent: the same session, the same runtime and the same transcript, answered
-   *  under that agent's rule and its own brief. */
+  /** The card this message is a complaint about (#628). It hands the turn to the `feedback`
+   *  agent: the same session, the same runtime and the same transcript, answered under that
+   *  agent's rule and its own brief.
+   *
+   *  `share` says the conversation has ended having been shared (#679), which is the one turn
+   *  that may collect and submit. Every other turn carries it false, and the brief then says
+   *  in so many words to collect nothing. */
   feedback?: { cardId: number; share?: boolean }
+  /** Where the switch under the box stands as this message is sent (#679). It is carried on
+   *  the message because a conversation nobody has spoken into yet has no file to write it
+   *  to — this is what makes the first message the one that records it. */
+  share?: boolean
 }
 
 /** What one turn sends.
@@ -728,18 +786,20 @@ export function chatPrompt(
   )
 }
 
-/** What the turn is a complaint about (#628) — the card the user linked, and whether they
- *  authorised this one submission. Said on every turn of the complaint, not only the first:
- *  the share is per submission, and a session told once drifts.
+/** What the turn is a complaint about (#628) — the card it is about, and whether this is the
+ *  turn that submits. Said on every turn of the complaint, not only the first: a session told
+ *  once drifts.
  *
- *  `share` false is not silence. An agent that was told nothing would be free to read the
- *  card's runs anyway, so the line that says not to is the one that matters. */
+ *  `share` is true on one turn only, the one the end of a shared conversation makes (#679).
+ *  False is not silence: an agent that was told nothing would be free to read the card's runs
+ *  anyway, so the line that says not to is the one that matters. */
 function feedbackLines(feedback: { cardId: number; share: boolean } | undefined): string {
   if (!feedback) return ''
   return feedback.share
-    ? `This message is about task #${feedback.cardId} on this board, and the user has shared it ` +
-        `with the AI4Kanban team for this one submission. Follow \`akb guide feedback\`.`
-    : `This message is about task #${feedback.cardId} on this board. The user has NOT shared it, ` +
+    ? `This conversation is about task #${feedback.cardId} on this board, it has ended, and the ` +
+        `user shared it with the AI4Kanban team. Collect and submit it now — follow ` +
+        `\`akb guide feedback\`.`
+    : `This message is about task #${feedback.cardId} on this board. Nothing has been shared, ` +
         `so collect nothing and submit nothing — read the card and answer them in the discussion.`
 }
 
@@ -838,10 +898,18 @@ export async function sendChatMessage(
     // into it (#633): its card page still draws the rail, so a row taken off the list has to
     // be able to return or the list stops being every card with a conversation. A
     // discussion's archive is left alone — there the row IS the only way back in.
-    if (typeof cardId === 'number') {
+    //
+    // The board's own turn is nobody saying anything into it, so it brings nothing back: the
+    // submission an ended conversation makes must not put its row on the rail again (#679).
+    if (typeof cardId === 'number' && !options.fromBoard) {
       held.archived = false
       held.archivedBy = undefined
     }
+    if (options.share !== undefined) held.shareOnEnd = options.share === true
+    // The card a discussion linked, written down with the first message too (#628): a card
+    // picked before anything was said had no file to be written to, and the end of a shared
+    // conversation reads it off this one.
+    if (options.feedback?.cardId) held.linkedCard = options.feedback.cardId
     held.updatedAt = now
     writeChat(held)
     // Counted here, and only what the user said (#295): the name of the action and nothing
@@ -866,15 +934,11 @@ export async function sendChatMessage(
     const takes = harnessImages(held.runtime)
     // A complaint about a card is answered by the `feedback` agent (#628) — the same session,
     // the same runtime, the same transcript, and that agent's rule and brief in front of the
-    // words. Collecting is gated separately: the submission is opened only where this machine
-    // takes part AND the user ticked share on this one message, so the switch alone shares
-    // nothing and a tick on a machine that never opted in shares nothing either.
-    const discussion = isDiscussion(cardId) ? cardId : undefined
-    const complaint =
-      options.feedback && discussion
-        ? { cardId: options.feedback.cardId, share: options.feedback.share === true && caseOffered() }
-        : undefined
-    if (discussion && complaint?.share) openCase(discussion, complaint.cardId, text)
+    // words. `share` is only ever true on the turn the end of a conversation makes (#679),
+    // and only where this machine takes part: nothing is collected inside an ordinary turn.
+    const complaint = options.feedback
+      ? { cardId: options.feedback.cardId, share: options.feedback.share === true && caseOffered() }
+      : undefined
     const say = {
       title: options.title,
       harness: held.runtime,
@@ -904,6 +968,8 @@ export async function sendChatMessage(
       // The discussion this turn is answering (#496), so `akb raw plan new` called from
       // inside it lands on this discussion rather than on the board's one conversation.
       discussion: isDiscussion(cardId) ? cardId : undefined,
+      // And the submission it is collecting for, on the one turn that collects (#679).
+      caseKey: complaint?.share ? keyOf(cardId) : undefined,
       onText: options.onText ?? (() => {}),
       onOpen: options.onOpen,
     })
@@ -947,15 +1013,7 @@ export async function sendChatMessage(
         limit: spoken.context.limit ?? contextLimit(held.harness, spoken.model ?? held.model),
       }
     }
-    // The plan the reply itself named (#427): `akb raw plan` writes this same file from
-    // inside the turn, so what it left is newer than what this one has held since the
-    // message was sent. Nothing else can have moved — a runtime is only picked between
-    // turns (#467).
-    const since = readChat(cardId)
-    if (since) {
-      held.plans = since.plans
-      held.title = since.title ?? held.title
-    }
+    carriedForward(held, readChat(cardId))
     held.updatedAt = Date.now()
     writeChat(held)
     return { text: reply, stoppedWhy, model: spoken.model, chat: held }
@@ -1033,6 +1091,18 @@ function noted(text: string): string {
     .join('\n')
 }
 
+/** What a chat turn's agent is told about the board it is inside: the discussion it is
+ *  answering, and the submission it is collecting for. Both absent on an ordinary turn. */
+function chatEnv(
+  env: NodeJS.ProcessEnv,
+  io: { discussion?: string; caseKey?: string },
+): NodeJS.ProcessEnv {
+  let next = env
+  if (io.discussion) next = discussionEnv(next, io.discussion)
+  if (io.caseKey) next = caseEnv(next, io.caseKey)
+  return next
+}
+
 async function speak(io: {
   plan: RunPlan
   prompt: string
@@ -1046,6 +1116,8 @@ async function speak(io: {
   pictures?: string[]
   /** The discussion this turn is answering (#496), for the agent's own environment. */
   discussion?: string
+  /** The submission this turn is collecting for (#679), for the same environment. */
+  caseKey?: string
   onText(chunk: string): void
   onOpen?(stop: () => void): void
 }): Promise<Spoken> {
@@ -1084,7 +1156,7 @@ async function speak(io: {
       // The project, not this process's cwd: a chat runs inside the board server, whose cwd
       // is its own bundled folder in the app. See the note in agent/test.ts.
       cwd: REPO_ROOT,
-      env: io.discussion ? discussionEnv(active.env, io.discussion) : active.env,
+      env: chatEnv(active.env, io),
       shell: false,
       stdio,
     }) as ChildProcessByStdio<Writable | null, Readable, Readable>

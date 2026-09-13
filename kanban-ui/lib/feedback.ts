@@ -2,6 +2,7 @@ import { boardRules } from "./cli";
 import { readArchive } from "./board";
 import type {
   ArchivedCard,
+  ChatTarget,
   CaseRecord,
   FeedbackDiagnostics,
   FeedbackSent,
@@ -115,4 +116,51 @@ export async function sendTextOnlyCase(discussion: string): Promise<CaseRecord |
 export async function dropCase(discussion: string): Promise<void> {
   const rules = await boardRules();
   rules.dropCase?.(discussion);
+}
+
+// --- the switch under the box (#679) ------------------------------------------
+//
+// One switch per conversation, off on every new one. It collects nothing while the
+// conversation is going — it says only that ending the conversation submits it — so the whole
+// of what it does is on the two writes below and on `shareOnEnd`.
+
+/** Whether this board's rules can hold the switch at all. Older ones draw none. */
+export async function shareOffered(): Promise<boolean> {
+  try {
+    const rules = await boardRules();
+    return typeof rules.setChatShare === "function" && typeof rules.shareOnEnd === "function";
+  } catch {
+    return false;
+  }
+}
+
+/** Where the switch stands on this conversation. Turning it off drops the submission ending
+ *  it would have made; one already sent is not withdrawn. */
+export async function setChatShare(target: ChatTarget, on: boolean): Promise<void> {
+  try {
+    (await boardRules()).setChatShare?.(target, on);
+  } catch {
+    // A conversation nobody has spoken into yet has no file to write to. The first message
+    // carries the switch, so nothing is lost.
+  }
+}
+
+/** The card a discussion says its problem is about. A card's own conversation never calls
+ *  this — it is that card's already. */
+export async function setChatCard(target: ChatTarget, card: number | null): Promise<void> {
+  try {
+    (await boardRules()).setChatCard?.(target, card);
+  } catch {
+    // As above.
+  }
+}
+
+/** Submit this conversation, if it was shared. Called after the end has already happened and
+ *  never waited on: the screen has cleared, and nothing of this may hold it there. */
+export async function shareOnEnd(target: ChatTarget): Promise<void> {
+  try {
+    await (await boardRules()).shareOnEnd?.(target);
+  } catch {
+    // Nothing to tell the user: the conversation ended, which is what they asked for.
+  }
 }

@@ -151,6 +151,19 @@ the same conversation and the same plan.
 Plans are board content, so they travel with the board and a card that names one keeps
 pointing at something.
 
+### Sharing a conversation with the team
+
+Under the box in Discuss, and under the box in a card's chat, is a **Share with the team**
+switch. On, the row reads **Shared when it ends**: ending that conversation from the rail's
+**⋯** sends it — the whole conversation, and the code behind the change it was about — to the
+AI4Kanban team, so a spec that missed what you meant is something we can read.
+
+It is off on every new conversation, and turning it on the first time shows what is shared
+before anything is. Nothing is collected while it is on: the end is what collects and sends,
+so turning it off again, or clearing the conversation, leaves nothing behind. A card's chat
+is about that card and needs no picking; a discussion is about the card you link under
+**Link a previous task**, and one that links none sends nothing.
+
 ### Reading a card
 
 A card is written in two halves. The top one is what a person has to read — what the task

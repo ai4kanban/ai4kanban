@@ -44,6 +44,7 @@ import { Copied, useCopyText } from "./copy";
 import {
   DiscussFeedbackBlock,
   LandedFeedbackBlock,
+  ShareRow,
   useDiscussFeedback,
   type DiscussFeedback,
   type LandedFeedback,
@@ -109,10 +110,10 @@ interface Props {
 // it — the server owns every reply, so nothing is cut off by the screen it is not on.
 export function CreateSheet(props: Props) {
   const rail = useChatRail({ projectRoot: props.projectRoot, cardId: props.discussion });
-  // The partner submission this discussion is holding (#628). Held beside the rail rather
-  // than inside the composer: it outlives the mode switch, and reopening a discussion whose
-  // case landed has to show the number again.
-  const partner = useDiscussFeedback(props.discussion);
+  // The card this discussion is linked to (#628). Held beside the rail rather than inside
+  // the composer, so it outlives the mode switch — and seeded from the rail's own read,
+  // because the link lives beside the transcript and comes back with it (#679).
+  const partner = useDiscussFeedback(props.discussion, rail.read?.chat?.linkedCard ?? null);
   return <Sheet {...props} rail={rail} partner={partner} />;
 }
 
@@ -201,13 +202,6 @@ function Sheet({
   useSwipeBack(true, () => (full ? toggleFull() : onClose()));
 
   const read = rail.read;
-  // Whether the conversation is still answering, told to the partner block (#628): a
-  // submission that has not settled means "gathering" while the turn runs and "it asked you
-  // something" once it has ended, and nothing in the record tells those apart.
-  const setPartnerAnswering = partner.setAnswering;
-  useEffect(() => {
-    setPartnerAnswering(rail.answering || rail.live !== null);
-  }, [setPartnerAnswering, rail.answering, rail.live]);
   // Send again and an edited message go the way the box's own words do: as discussion.
   const say = rail.say;
   const sayInDiscussion = useCallback(
@@ -265,8 +259,8 @@ function Sheet({
         discuss: true,
         images: shots,
         box: shots.length ? pictures.box : undefined,
-        // The linked card and this one message's tick (#628). Nothing else travels: whether
-        // anything may be collected is the rules' answer, not this screen's.
+        // The card this discussion is about (#628), which hands the turn to the `feedback`
+        // agent. Sharing is the switch under the box, and the rail carries that itself.
         feedback: partner.sending,
       });
       setSending(false);
@@ -274,9 +268,6 @@ function Sheet({
         pictures.takeBack();
         return;
       }
-      // A shared message is one the agent will submit from inside its own turn, so the
-      // screen starts watching for what it came to.
-      if (partner.sending?.share) partner.watch();
       clearDraft();
       pictures.sent();
       plan.refresh();
@@ -730,6 +721,10 @@ function Composer({
             )}
           </span>
         }
+        // Opposite it, on the same line: whether ending this discussion shares it with the
+        // AI4Kanban team (#679). Only in Discuss — the two run modes write a card and hold no
+        // conversation to share.
+        aside={rail ? <ShareRow share={rail.share} /> : undefined}
       />
       {/* One collapsed button under the box (#603). What it opens links the landed task this
           one is about and offers to pass the description on, and it is drawn here — after the

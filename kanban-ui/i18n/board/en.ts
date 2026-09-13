@@ -159,23 +159,10 @@ const en: BoardCopy = {
     failed: "The board could not be read.",
     retry: "Try again",
     clear: "Unlink this task",
-    share: "Share this description with the AI4Kanban team",
-    shareNote: "Partner feedback is on, so the related conversation and code go with it.",
-    off: "Turn partner feedback on to share this problem with the team.",
-    turnOn: "Turn it on",
-    terms: "See what is shared",
-    working: "Gathering the material…",
-    sent: {
-      title: "Sent — thank you for pointing this out.",
-      number: "Feedback number",
-      copy: "Copy",
-      copied: "Copied",
-      erase: (email) => `To have what you shared deleted, send the feedback number to ${email}.`,
-    },
-    notSent: {
-      title: "It did not go. Try again in a moment.",
-      retry: "Try again",
-      textOnly: "Send the description only",
+    team: {
+      off: "Share with the team",
+      on: "Shared when it ends",
+      label: "Share this conversation with the AI4Kanban team",
     },
   },
   release: {

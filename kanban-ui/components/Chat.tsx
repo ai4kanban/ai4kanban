@@ -57,6 +57,7 @@ import { MessageBox } from "./composer";
 import { ContextRing } from "./context-ring";
 import { AgentMark } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
+import { ShareRow } from "./Feedback";
 import { Markdown } from "./Markdown";
 import {
   DropdownMenu,
@@ -1074,6 +1075,10 @@ function Composer({
             <span className="block truncate">{ours ? c.sendingWaitsEsc : c.sendingWaits}</span>
           ) : undefined
         }
+        // Opposite it, on the same line: whether ending this conversation shares it with the
+        // AI4Kanban team (#679). A card's conversation shares that card — there is nothing
+        // here to pick.
+        aside={<ShareRow share={rail.share} />}
       />
     </div>
   );

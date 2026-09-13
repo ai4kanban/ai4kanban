@@ -137,11 +137,16 @@ export function Status({ ready, children }: { ready: boolean; children: React.Re
 
 /** One on/off setting. `on` is null until the board has answered, and the switch stands
  *  down until then. The new side is drawn at once and put back if the save fails — a
- *  switch that silently didn't land is a setting nobody can trust. */
+ *  switch that silently didn't land is a setting nobody can trust.
+ *
+ *  `sm` is the one that rides a line of running text — the row under the chat box (#679).
+ *  It keeps the full ink outline the way every small control outside the Configuration
+ *  dialog does, because at that size a grey track alone would not read as a control. */
 export function Switch({
   on,
   label,
   busy,
+  size = "md",
   onFlip,
 }: {
   on: boolean | null;
@@ -149,6 +154,7 @@ export function Switch({
   label: string;
   /** Another save on the same card is in flight. */
   busy?: boolean;
+  size?: "md" | "sm";
   onFlip: (next: boolean) => Promise<void>;
 }) {
   const [saving, setSaving] = useState(false);
@@ -171,15 +177,17 @@ export function Switch({
       aria-label={label}
       disabled={held}
       onClick={() => void flip()}
-      // No frame: off is a filled grey track rather than an empty outlined one, so the
-      // switch still reads on whatever surface it sits on.
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50 ${
-        on ? "bg-nb-accent" : "bg-nb-ink/20"
-      }`}
+      // At full size there is no frame: off is a filled grey track rather than an empty
+      // outlined one, so the switch still reads on whatever surface it sits on.
+      className={`relative inline-flex shrink-0 cursor-pointer items-center rounded-full transition-[background-color,opacity] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nb-accent disabled:cursor-not-allowed disabled:opacity-50 ${
+        size === "sm" ? "h-[15px] w-[26px] border-[1.5px] border-nb-ink" : "h-6 w-11"
+      } ${on ? "bg-nb-accent" : "bg-nb-ink/20"}`}
     >
       <span
-        className={`inline-block size-[18px] rounded-full bg-nb-paper shadow-[0_1px_2px_rgba(36,35,31,0.28)] transition-transform duration-150 ${
-          on ? "translate-x-[21px]" : "translate-x-[3px]"
+        className={`inline-block rounded-full bg-nb-paper shadow-[0_1px_2px_rgba(36,35,31,0.28)] transition-transform duration-150 ${
+          size === "sm"
+            ? `size-[10px] ${on ? "translate-x-[11px]" : "translate-x-px"}`
+            : `size-[18px] ${on ? "translate-x-[21px]" : "translate-x-[3px]"}`
         }`}
         aria-hidden
       />

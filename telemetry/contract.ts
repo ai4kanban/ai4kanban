@@ -296,7 +296,7 @@ export interface SentCase {
   card: number
   /** The refine the agent settled on, by the board's own flow id. */
   flowId?: string
-  /** What the user wrote in the discussion. */
+  /** The conversation the submission was made from, both sides, as far as it fits (#659). */
   text: string
   /** The agent's reading of where the spec and the user's expectation came apart. */
   analysis?: string

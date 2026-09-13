@@ -148,23 +148,10 @@ const zh: BoardCopy = {
     failed: "看板读取失败。",
     retry: "重试",
     clear: "取消关联",
-    share: "将这段问题描述分享给 AI4Kanban 团队",
-    shareNote: "合作反馈已开启，将附带相关对话和代码。",
-    off: "开启合作反馈后，可以把这个问题分享给团队。",
-    turnOn: "去开启",
-    terms: "查看分享说明",
-    working: "正在整理材料…",
-    sent: {
-      title: "反馈已提交，感谢你指出这个问题。",
-      number: "反馈编号",
-      copy: "复制",
-      copied: "已复制",
-      erase: (email) => `如需删除已分享的材料，请将反馈编号发至 ${email}。`,
-    },
-    notSent: {
-      title: "反馈没发出去，请稍后重试。",
-      retry: "重试",
-      textOnly: "只发送问题描述",
+    team: {
+      off: "向团队反馈",
+      on: "结束时分享给团队",
+      label: "把这段对话分享给 AI4Kanban 团队",
     },
   },
   release: {

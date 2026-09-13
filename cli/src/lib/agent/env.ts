@@ -42,3 +42,22 @@ export function insideDiscussion(): string | null {
 export function discussionEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv {
   return { ...env, [DISCUSSION_ENV]: value }
 }
+
+/** The variable a turn that submits a shared conversation puts on its agent (#679), holding
+ *  the key that submission is filed under.
+ *
+ *  Its own variable rather than the discussion's: a card's conversation is shared the same
+ *  way, and that is not a discussion. */
+export const CASE_ENV = 'KANBAN_CASE'
+
+/** The submission this process is collecting for, when a shared conversation's end started
+ *  it — otherwise null. */
+export function insideCase(): string | null {
+  const key = process.env[CASE_ENV]
+  return key && key.trim() ? key.trim() : null
+}
+
+/** Put that key into the environment its agent receives. */
+export function caseEnv(env: NodeJS.ProcessEnv, value: string): NodeJS.ProcessEnv {
+  return { ...env, [CASE_ENV]: value }
+}

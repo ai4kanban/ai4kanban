@@ -162,6 +162,11 @@ export function buildCase(record: CaseRecord, found: CaseFindings): BuiltCase {
   })
 
   const files = collectFiles(found.reads ?? [], refine?.startedAt, gaps)
+  // The whole conversation is what is shared (#659), and a long one does not fit. The cut is
+  // written down rather than passed off as the whole of what was said.
+  if (record.text.length > LIMITS.feedbackTextChars) {
+    gaps.push(`the conversation ran to ${record.text.length} characters and only the first ${LIMITS.feedbackTextChars} went`)
+  }
 
   return {
     pack: {

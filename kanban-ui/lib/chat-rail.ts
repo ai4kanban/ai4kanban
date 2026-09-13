@@ -7,12 +7,15 @@ import {
   pickChatRuntimeAction,
   readChatAction,
   sendChatAction,
+  setChatShareAction,
+  setPartnerFeedbackAction,
+  shareOfferedAction,
   stopChatAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import type { ChatRead } from "./chat";
 import { useCardChatRequest } from "./chat-open";
-import type { ChatTarget } from "./types";
+import { isDiscussion, type ChatTarget } from "./types";
 import { useMatches } from "./media";
 import type { PasteNote, PictureBox } from "./picture-box";
 import { overRail } from "./over-rail";
@@ -150,9 +153,8 @@ export interface ChatRail {
       discuss?: boolean;
       images?: string[];
       box?: string;
-      /** The card this message is a complaint about (#628), and whether share was ticked on
-       *  it. Only Discuss sends one. */
-      feedback?: { cardId: number; share?: boolean };
+      /** The card this message is a complaint about (#628). Only Discuss sends one. */
+      feedback?: { cardId: number };
     },
   ): Promise<boolean>;
   /** Run this conversation on another runtime (#272, #467), or on the board's again with
@@ -160,6 +162,9 @@ export interface ChatRail {
    *  there is something to lose — and one on the same CLI carries it on. */
   pickRuntime(runtime: string | null): Promise<void>;
   clear(): Promise<void>;
+  /** The switch under the box (#679): whether ending this conversation shares it with the
+   *  AI4Kanban team. */
+  share: ShareSwitch;
   /** This conversation is on screen somewhere else — the Discuss screen (#427) — so the
    *  button's unread mark has nothing to say about it. Quiet where nothing has been said. */
   markRead(): void;
@@ -167,6 +172,27 @@ export interface ChatRail {
   panel: ReturnType<typeof usePanelRef>;
   onLayoutChanged(layout: Layout, meta: LayoutChangedMeta): void;
   onDoubleClick(): void;
+}
+
+/** The switch under the box, and the one ask it opens (#679).
+ *
+ *  Off on every new conversation, whatever this machine has already agreed to: sharing one
+ *  conversation is not sharing the next. Nothing is collected while it is on — the end is
+ *  what collects and submits — so turning it off simply takes that end away again.
+ */
+export interface ShareSwitch {
+  /** This board's rules can hold it. An older board draws no switch at all. */
+  offered: boolean;
+  on: boolean;
+  /** The user pressed it. The first press in a conversation opens the terms and waits on
+   *  them; every press after that lands straight away. */
+  flip(next: boolean): void;
+  /** The terms are open — the ask the first press makes. */
+  asking: boolean;
+  /** They closed it or said no: the switch stays off. */
+  cancel(): void;
+  /** …and said yes: this machine takes part, and this conversation shares when it ends. */
+  agree(): Promise<void>;
 }
 
 export function useChatRail({
@@ -199,6 +225,17 @@ export function useChatRail({
   // this conversation. What is drawn and what is sent are then the same list.
   const [pasted, setPasted] = useState<string[]>([]);
   const [pasteNote, setPasteNote] = useState<PasteNote | null>(null);
+  // The switch under the box (#679), and whether its terms are open. Held here rather than
+  // read on every draw: a conversation nobody has spoken into yet has no file to read it
+  // from, so the switch has to stand on its own until the first message carries it.
+  const [shareOn, setShareOn] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [shareOffered, setShareOffered] = useState(false);
+  // Which conversation the switch has been read off its file for, and whether the terms have
+  // been answered in it. Both are per conversation: a press in one says nothing about the
+  // next, which is the whole point of the switch being off on every new one.
+  const seededShare = useRef<string | null>(null);
+  const agreed = useRef(false);
   // How far back through this conversation's sent messages the arrows have walked, newest
   // at 0 — null while the box holds what the user typed rather than what they once sent.
   const [walked, setWalked] = useState<number | null>(null);
@@ -217,6 +254,10 @@ export function useChatRail({
     setWalked(null);
     setPasted([]);
     setPasteNote(null);
+    setShareOn(false);
+    setAsking(false);
+    seededShare.current = null;
+    agreed.current = false;
     byEdit.current = false;
   }
 
@@ -345,6 +386,66 @@ export function useChatRail({
     if (open) seen.mark(chat.updatedAt);
     else seen.adopt(chat.updatedAt);
   }, [open, chat, seen]);
+
+  // Whether this board's rules can hold the switch at all (#679) — one read for the window,
+  // not one per conversation.
+  useEffect(() => {
+    let live = true;
+    void shareOfferedAction().then((can) => live && setShareOffered(can));
+    return () => {
+      live = false;
+    };
+  }, []);
+  // …and whether this conversation is one that can end. Only a card's chat and a discussion
+  // carry a rail row with End discussion on it; the board's own conversation and the first
+  // run's have no end to share at.
+  const canShare = shareOffered && (typeof cardId === "number" || isDiscussion(cardId));
+
+  // Where the switch stood when this conversation was last written. Read once per
+  // conversation and never again: the poll runs while the user is pressing it, and a second
+  // read would put the switch back where the file still says it is.
+  const shareKey = String(cardId);
+  useEffect(() => {
+    if (!chat || seededShare.current === shareKey) return;
+    seededShare.current = shareKey;
+    setShareOn(chat.shareOnEnd === true);
+    // A conversation already sharing has answered the terms; it must not be asked again to
+    // turn a switch back on it once had on.
+    if (chat.shareOnEnd === true) agreed.current = true;
+  }, [chat, shareKey]);
+
+  const flipShare = useCallback(
+    (next: boolean) => {
+      // The first time it goes on in a conversation, the terms are what answers — the switch
+      // moves when they are agreed to, not when they are opened.
+      if (next && !agreed.current) return setAsking(true);
+      setShareOn(next);
+      void setChatShareAction(cardId, next);
+    },
+    [cardId],
+  );
+
+  const agreeShare = useCallback(async () => {
+    // The same one answer the Configuration switch writes: this machine takes part. Sharing
+    // THIS conversation is the separate half, and it is the line under it.
+    await setPartnerFeedbackAction(true);
+    agreed.current = true;
+    setAsking(false);
+    setShareOn(true);
+    void setChatShareAction(cardId, true);
+  }, [cardId]);
+
+  const share = useMemo<ShareSwitch>(
+    () => ({
+      offered: canShare,
+      on: shareOn,
+      flip: flipShare,
+      asking,
+      cancel: () => setAsking(false),
+      agree: agreeShare,
+    }),
+    [canShare, shareOn, flipShare, asking, agreeShare],
+  );
 
   const toggle = useCallback(() => {
     byEdit.current = false;
@@ -584,16 +685,21 @@ export function useChatRail({
       discuss = false,
       images: string[] = [],
       box?: string,
-      feedback?: { cardId: number; share?: boolean },
+      feedback?: { cardId?: number },
     ) => {
       setError(null);
       setHeld(null);
-      const res = await sendChatAction(cardId, text, discuss, images, box, feedback);
+      // Every message carries where the switch stands (#679): the first one is what writes it
+      // onto a conversation that had no file to write it to.
+      const res = await sendChatAction(cardId, text, discuss, images, box, {
+        ...feedback,
+        share: shareOn,
+      });
       if (!res.ok) setError(res.error ?? c.sendFailed);
       kickRef.current();
       return res.ok;
     },
-    [cardId, c],
+    [cardId, c, shareOn],
   );
 
   // The rail's own box: the words in it and the pictures pasted against this conversation,
@@ -624,7 +730,7 @@ export function useChatRail({
         discuss?: boolean;
         images?: string[];
         box?: string;
-        feedback?: { cardId: number; share?: boolean };
+        feedback?: { cardId: number };
       } = {},
     ) => post(text, opts.discuss, opts.images, opts.box, opts.feedback),
     [post],
@@ -662,6 +768,11 @@ export function useChatRail({
     // Their files went with the transcript, so the box lets go of them too (#441).
     setPasted([]);
     setPasteNote(null);
+    // And the switch (#679): there is no conversation left to share, so what is left is a
+    // new one, which is always off.
+    setShareOn(false);
+    seededShare.current = null;
+    agreed.current = false;
     seen.mark(0);
     kickRef.current();
   }, [cardId, seen, c]);
@@ -706,6 +817,7 @@ export function useChatRail({
     markRead,
     pickRuntime,
     clear,
+    share,
     panel,
     onLayoutChanged,
     onDoubleClick,

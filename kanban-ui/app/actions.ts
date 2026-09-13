@@ -56,10 +56,14 @@ import {
   feedbackOffered,
   readCase,
   retryCase,
-  searchLinkable,
-  sendTextOnlyCase,
   searchArchived,
+  searchLinkable,
   sendFeedback,
+  sendTextOnlyCase,
+  setChatCard,
+  setChatShare,
+  shareOffered,
+  shareOnEnd,
 } from "@/lib/feedback";
 import {
   type ChatRead,
@@ -600,9 +604,10 @@ export async function sendChatAction(
    *  them into this conversation's folder. Left out by the rail, whose box IS this
    *  conversation's. */
   box?: string,
-  /** The card this message is a complaint about (#628), and whether share was ticked on it.
-   *  Only Discuss sends one, and only once a card was linked. */
-  feedback?: { cardId: number; share?: boolean },
+  /** What this message says about team feedback: the card a discussion linked (#628), and
+   *  where the switch under the box stands as it goes (#679). The switch rides on the message
+   *  because a conversation nobody has spoken into yet has no file to write it to. */
+  feedback?: { cardId?: number; share?: boolean },
 ): Promise<{ ok: boolean; error?: string }> {
   const target = await chatTarget(cardId);
   if (target === undefined) return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
@@ -611,16 +616,18 @@ export async function sendChatAction(
     return { ok: false, error: (await machineCopy()).messages.actions.emptyChat };
   }
   // A linked card only counts in a discussion — a card's own chat is already about that card,
-  // and a complaint written there would name one twice.
+  // and a complaint written there would name one twice. It hands the turn to the `feedback`
+  // agent; it never shares, which is the switch's own answer below.
   const complaint =
     feedback && Number.isInteger(feedback.cardId) && isDiscussion(target)
-      ? { cardId: feedback.cardId, share: feedback.share === true }
+      ? { cardId: feedback.cardId as number }
       : undefined;
   return sendChat(target, message.trim(), {
     guide: discuss ? DISCUSS_GUIDE : undefined,
     images: names,
     box: names.length && typeof box === "string" ? box : undefined,
     feedback: complaint,
+    share: feedback ? feedback.share === true : undefined,
   });
 }
 
@@ -733,13 +740,40 @@ export async function startDiscussionAction(): Promise<DiscussionTarget | null> 
 }
 
 /** Take one conversation out of the list — a discussion, or a card's own chat (#633). Its
- *  transcript stays on this machine. */
+ *  transcript stays on this machine.
+ *
+ *  It is also the end a shared conversation submits on (#679). The submission is started
+ *  after the end and never waited on: the screen has already cleared, and a collection that
+ *  takes a minute must not hold it there. */
 export async function archiveDiscussionAction(target: ChatTarget): Promise<{ ok: boolean; error?: string }> {
   const named = await chatTarget(target);
   if (named === undefined || named === null) {
     return { ok: false, error: (await machineCopy()).messages.actions.noSuchCard };
   }
-  return archiveDiscussion(named);
+  const ended = await archiveDiscussion(named);
+  if (ended.ok) void shareOnEnd(named);
+  return ended;
+}
+
+/** Where the switch under the box stands on this conversation (#679). Nothing is collected
+ *  either way — off drops the submission ending it would have made. */
+export async function setChatShareAction(target: ChatTarget, on: boolean): Promise<void> {
+  const named = await chatTarget(target);
+  if (named === undefined) return;
+  await setChatShare(named, on === true);
+}
+
+/** The card a discussion says its problem is about (#628), kept beside the transcript so the
+ *  end knows what to file the submission under. */
+export async function setChatCardAction(target: ChatTarget, card: number | null): Promise<void> {
+  const named = await chatTarget(target);
+  if (named === undefined) return;
+  await setChatCard(named, Number.isInteger(card) ? (card as number) : null);
+}
+
+/** Whether this board's rules can hold the switch at all. */
+export async function shareOfferedAction(): Promise<boolean> {
+  return await shareOffered();
 }
 
 // ---- Discuss (#427) ---------------------------------------------------------

@@ -387,12 +387,14 @@ export interface BoardRules {
       /** The pictures pasted into this message (#441), as the names `addChatImage` filed
        *  them under. Rules from before it ignore them, and the words go on their own. */
       images?: string[];
-      /** The card this message is a complaint about (#628), and whether the user ticked
-       *  share on it. The rules hand the turn to the `feedback` agent on it — same session,
-       *  same runtime, same transcript — and open a submission only where sharing was
-       *  ticked AND this machine takes part. Rules from before it ignore it, and the turn
-       *  is an ordinary discussion. */
+      /** The card this message is a complaint about (#628). The rules hand the turn to the
+       *  `feedback` agent on it — same session, same runtime, same transcript. Rules from
+       *  before it ignore it, and the turn is an ordinary discussion. */
       feedback?: { cardId: number; share?: boolean };
+      /** Where the switch under the box stands as this message goes (#679). It rides on the
+       *  message because a conversation nobody has spoken into yet has no file to write it
+       *  to. Rules from before it ignore it, and the switch is not drawn on such a board. */
+      share?: boolean;
     },
   ): Promise<ChatReply | { error: string }>;
   clearChat?(cardId: ChatTarget): boolean;
@@ -463,6 +465,14 @@ export interface BoardRules {
   /** Write one line into the transcript as something the user said, with no turn behind it:
    *  a pressed answer the board itself acts on. */
   noteChatMessage?(cardId: ChatTarget, text: string): void;
+
+  /** The switch under the box (#679): whether ending this conversation shares it with the
+   *  AI4Kanban team, and the card a discussion says its problem is about. Optional — a board
+   *  running older rules draws no switch. Nothing is collected by either; `shareOnEnd` is
+   *  what ending it costs, and it is called after the end rather than waited on. */
+  setChatShare?(target: ChatTarget, on: boolean): void;
+  setChatCard?(target: ChatTarget, card: number | null): void;
+  shareOnEnd?(target: ChatTarget): Promise<void>;
 
   // the board's first-run conversation (#280): the opening turn the board speaks itself,
   // and the reader that turns one reply into the two answers the project view draws. Both

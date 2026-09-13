@@ -1,14 +1,13 @@
 // `akb raw case` — the two moves the `feedback` agent makes on a partner submission (#628).
 //
-// It is called from inside the discussion turn it is answering, so it never spells an id:
-// `KANBAN_DISCUSSION` says which submission this is, the same way `akb raw plan new` knows
-// which discussion to file a plan under. An agent that cannot settle which refine the user
-// means calls neither move and asks its question in the conversation instead — nothing is
-// collected until `submit`, and nothing is sent until it succeeds.
+// It is called from inside the turn a shared conversation's end started (#679), so it never
+// spells an id: `KANBAN_CASE` says which submission this is, the same way `akb raw plan new`
+// knows which discussion to file a plan under. Nothing is collected until `submit`, and
+// nothing is sent until it succeeds.
 
 import fs from 'node:fs'
 
-import { insideDiscussion } from '../lib/agent/env'
+import { insideCase } from '../lib/agent/env'
 import { caseOffered, readCase, refinesOf, submitCase, type CaseFindings } from '../lib/case'
 import { say } from '../lib/io'
 import { die } from '../lib/paths'
@@ -22,10 +21,10 @@ export async function cmdCase(args: string[], opts: CaseOptions): Promise<MoveRe
   const sub = args[0] ?? ''
   if (sub !== 'refines' && sub !== 'submit') die('Use case refines <card-id> or case submit --file <path>.')
 
-  const discussion = insideDiscussion()
-  if (!discussion) die('`case` only runs inside the discussion turn it is answering.')
+  const discussion = insideCase()
+  if (!discussion) die('`case` only runs inside the turn a shared conversation\'s end started.')
   const held = readCase(discussion)
-  if (!held) die('This discussion has no shared submission — the user did not tick share, so collect nothing.')
+  if (!held) die('This conversation has no shared submission — it was not shared, so collect nothing.')
 
   if (sub === 'refines') {
     const cardId = Number(args[1])
@@ -41,13 +40,13 @@ export async function cmdCase(args: string[], opts: CaseOptions): Promise<MoveRe
   if (!opts.file) die('--file is required; write the findings to a temporary JSON file first.')
   const found = read(opts.file)
   const record = await submitCase(discussion, found)
-  if (!record) die('This discussion has no shared submission to submit.')
+  if (!record) die('This conversation has no shared submission to submit.')
   if (record.status === 'sent') {
     say(`Submitted as ${record.id}.`)
   } else {
-    // Said, not thrown: the pack is on disk and the screen offers the retry, so a submission
-    // that did not land must not read to the agent as work it should do over.
-    say(`Not submitted (${record.reason ?? 'unreachable'}). The user can retry from the discussion.`)
+    // Said, not thrown: the pack is on disk, so a submission that did not land must not read
+    // to the agent as work it should do over.
+    say(`Not submitted (${record.reason ?? 'unreachable'}).`)
   }
   return { id: record.id, status: record.status, gaps: record.gaps ?? [] }
 }
