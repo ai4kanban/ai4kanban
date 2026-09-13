@@ -178,7 +178,12 @@ export function Header({
       // control + 4 at phone width. The row keeps its height so the two rails that lay
       // themselves over the body from `top-[43px]` keep meeting it exactly, and the app's
       // own title bar strip (app/globals.css) stays the height of the row it covers.
-      className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[7px] max-md:pb-1 max-md:pt-[3px]"
+      // `relative z-[45]` so the row paints over the body: a tool's tip hangs BELOW the
+      // row (chrome.tsx), and everything it hangs over — the Discuss sheet (z-20), a
+      // panel inside the paper (z-30), the bell and chat covers at `top-[43px]` (z-40) —
+      // would otherwise be drawn on top of it. Under 50, which is where the modal layer
+      // starts (Dialog, Sheet, the scrim) and is meant to cover the row.
+      className="relative z-[45] flex shrink-0 items-center gap-2 px-3 pb-2 pt-[7px] max-md:pb-1 max-md:pt-[3px]"
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {/* The mark is the way to the board on a window too narrow for the rail;

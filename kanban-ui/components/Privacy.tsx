@@ -93,7 +93,7 @@ export function UsageDisclosure({ onDone }: { onDone: () => void }) {
     <div className="flex h-screen flex-col overflow-hidden bg-nb-cream">
       <header
         data-titlebar
-        className="flex h-[43px] shrink-0 items-center gap-2 px-3 pb-2 pt-[7px] max-md:pb-1 max-md:pt-[3px]"
+        className="relative z-[45] flex h-[43px] shrink-0 items-center gap-2 px-3 pb-2 pt-[7px] max-md:pb-1 max-md:pt-[3px]"
       >
         <LogoMark />
       </header>

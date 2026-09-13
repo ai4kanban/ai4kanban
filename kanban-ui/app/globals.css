@@ -574,13 +574,10 @@ body {
   app-region: drag;
 }
 body.a4k-inset header[data-titlebar] {
-  /* Above the strip, and it has to be said: the strip is `fixed` and the row is
-     an ordinary flex child, and a positioned box paints over a static one
-     however far down the page it sits. Left alone the strip covers the row —
-     every control under a drag region, which takes the press to move the window
-     instead of passing it on, so nothing in the row can be clicked. */
-  position: relative;
-  z-index: 1;
+  /* The row carries its own `relative z-[45]` (components/Header.tsx), which is
+     also what puts it above this strip — the strip is `fixed`, and left below it
+     every control in the row sits under a drag region that takes the press to
+     move the window instead of passing it on. */
   /* The third traffic light ends at 66px. 96 puts the mark a clear 30px past it
      — the lights read as the system's and the mark as the board's, rather than
      as one run of four buttons. */
