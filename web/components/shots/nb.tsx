@@ -14,6 +14,9 @@ import type { CSSProperties, ReactNode } from "react";
 // given and the type holds its proportion at every one. Tailwind's utilities are
 // px throughout, which is the one thing that can't work here — hence the inline
 // style objects.
+//
+// The one exception is the office (`ShotSessions`): the board draws that room in
+// pixels, so the shot mounts the board's own art rather than redrawing it.
 
 /** kanban-ui/app/globals.css `@theme`, copied 1:1. */
 export const NB = {
@@ -89,6 +92,7 @@ export const CROP = 1.5;
 export function Shot({
   children,
   crop,
+  fade = true,
   style,
 }: {
   children: ReactNode;
@@ -98,6 +102,10 @@ export function Shot({
    *  at every size — so one ratio crops to the same point at any width, and
    *  each shot's is just its natural aspect with the height halved. */
   crop?: number;
+  /** Off for a drawing built to fill the crop edge to edge. A shot of a page
+   *  carries on below the cut; a shot of one whole object does not, and fading
+   *  its lower third into paper would read as the object dissolving. */
+  fade?: boolean;
   style?: CSSProperties;
 }) {
   const inner = (
@@ -130,16 +138,18 @@ export function Shot({
           {/* Fades into the drawing's own canvas rather than to transparent:
               the mat behind carries a texture, and dissolving onto that would
               leave the frame's bottom border floating over open artwork. */}
-          <div
-            aria-hidden
-            style={{
-              position: "absolute",
-              insetInline: 0,
-              bottom: 0,
-              height: FADE,
-              background: `linear-gradient(to bottom, transparent, ${NB.paper})`,
-            }}
-          />
+          {fade && (
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                insetInline: 0,
+                bottom: 0,
+                height: FADE,
+                background: `linear-gradient(to bottom, transparent, ${NB.paper})`,
+              }}
+            />
+          )}
         </div>
       ) : (
         inner
@@ -193,29 +203,6 @@ export function Section({
     <div
       className={className}
       style={{ borderRadius: em(14), background: NB.sheet, ...style }}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** `.nb-inset` — the same shape at hairline weight, for a window inside a
- *  dialog: the run log's frame in the runs panel. */
-export function Inset({
-  children,
-  style,
-}: {
-  children: ReactNode;
-  style?: CSSProperties;
-}) {
-  return (
-    <div
-      style={{
-        border: `1px solid ${HAIR}`,
-        borderRadius: em(14),
-        background: NB.paper,
-        ...style,
-      }}
     >
       {children}
     </div>
@@ -502,69 +489,6 @@ export function Code({ children }: { children: ReactNode }) {
     >
       {children}
     </code>
-  );
-}
-
-/** The run log's title bar — the kicker, the outcome glyph, and the run's facts
- *  in one middot row. `agent-shared.tsx`'s `titleBar`, resting state. Chrome over
- *  the well below it, parted by a hairline; it carries no fill of its own, so it
- *  sits on whatever ground the frame around it has.
- *
- *  A live run swaps the ✓ for a pulse and puts Stop beside it — both come in
- *  from the shot, since the pulse is that drawing's own animation. */
-export function LogBar({
-  facts,
-  tool,
-  mark,
-}: {
-  facts: string[];
-  /** The control that rides the bar — Stop, while the run is live. */
-  tool?: ReactNode;
-  mark?: ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: em(10),
-        minHeight: em(22),
-        padding: `${em(10)} ${em(16)}`,
-        borderBottom: `1px solid ${HAIR}`,
-      }}
-    >
-      <Tag>run log</Tag>
-      <span
-        style={{
-          marginLeft: "auto",
-          display: "flex",
-          alignItems: "center",
-          gap: em(6),
-        }}
-      >
-        {tool}
-        {mark ?? (
-          <span aria-hidden style={{ color: NB.accentDeep, fontSize: em(12) }}>
-            ✓
-          </span>
-        )}
-        <span style={{ fontSize: em(11), color: NB.inkSoft }}>
-          {facts.map((f, i) => (
-            <span
-              key={f}
-              style={i > 0 ? { fontVariantNumeric: "tabular-nums", opacity: 0.8 } : undefined}
-            >
-              {i > 0 && (
-                <span aria-hidden style={{ margin: `0 ${em(6, 11)}` }}>
-                  ·
-                </span>
-              )}
-              {f}
-            </span>
-          ))}
-        </span>
-      </span>
-    </div>
   );
 }
 
