@@ -3,7 +3,8 @@ import { useSyncExternalStore } from "react";
 import type { DiscussionTarget } from "./types";
 
 // Asking the header's Create task for its sheet, from somewhere else on the screen (#437),
-// and saying which discussion to open it on (#496).
+// and saying which discussion to open it on (#496). It reports back the same way: the
+// discussion it ends up showing, for the rail's mark (#722).
 //
 // The empty board offers the first card in the middle of the page, where the reader is,
 // rather than pointing at the button in the top row; a rail row picks a discussion back up
@@ -16,6 +17,7 @@ import type { DiscussionTarget } from "./types";
 
 let request: { at: number; discussion: DiscussionTarget | null } | null = null;
 let dropped: { at: number; discussion: DiscussionTarget } | null = null;
+let shown: DiscussionTarget | null = null;
 const subs = new Set<() => void>();
 
 function tell() {
@@ -28,6 +30,16 @@ export const createSheet = {
    *  told none, the press opens a fresh one. */
   open(discussion: DiscussionTarget | null = null) {
     request = { at: request ? request.at + 1 : 1, discussion };
+    tell();
+  },
+
+  /** The discussion the sheet is showing this second, or null while no sheet is up (#722).
+   *  The sheet covers the page under it, so it — not that page — is what the reader is in,
+   *  and the rail marks its row instead. Only the screen holding the sheet knows which one
+   *  that is. */
+  showing(discussion: DiscussionTarget | null) {
+    if (shown === discussion) return;
+    shown = discussion;
     tell();
   },
 
@@ -60,5 +72,16 @@ export function useArchivedDiscussion(): { at: number; discussion: DiscussionTar
     subscribe,
     () => dropped,
     () => dropped,
+  );
+}
+
+/** The discussion on screen, for the row the rail marks. A fresh one that has not been
+ *  spoken to yet is not in the list, and matches no row — which is the list saying so,
+ *  rather than the mark landing on a neighbour. */
+export function useShownDiscussion(): DiscussionTarget | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => shown,
+    () => shown,
   );
 }

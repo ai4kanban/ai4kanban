@@ -60,7 +60,7 @@ import {
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
 import { cardChat } from "@/lib/chat-open";
-import { createSheet } from "@/lib/create-open";
+import { createSheet, useShownDiscussion } from "@/lib/create-open";
 import { useDiscussions } from "@/lib/discussion-list";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
@@ -111,6 +111,13 @@ export function Rail({
   // Every conversation this board is holding (#496, #633). What is typed in the box above
   // never takes one away — it searches cards. A marketing board holds none to draw (#507).
   const discussions = useDiscussions(useSolution() === "marketing");
+  // A discussion is drawn over the page rather than instead of it (#722), so while one is up
+  // it is what the reader is in: its row is marked, and the page underneath — a card, the
+  // board, the archive, a memory file — gives its mark up until the discussion is closed.
+  // The mark is on the discussion itself, not on where it sits in the list, so a re-read that
+  // renames or reorders the rows leaves it where it was.
+  const shown = useShownDiscussion();
+  const onPage = shown === null;
   // A refused archive left the row where it was, so it says why rather than looking like a
   // press that did nothing (#610). Click it away; the next archive replaces it.
   const [archiveFailed, setArchiveFailed] = useState<string | null>(null);
@@ -152,7 +159,7 @@ export function Rail({
         <RailRow
           href="/"
           label={c.allCards}
-          active={activeId === null && !activeMemory && !activeArchive && !activeSignals}
+          active={onPage && activeId === null && !activeMemory && !activeArchive && !activeSignals}
           count={total}
         />
         {searching ? (
@@ -167,7 +174,7 @@ export function Rail({
                 href={`/${card.id}`}
                 label={card.title}
                 id={card.id}
-                active={card.id === activeId}
+                active={onPage && card.id === activeId}
                 running={running.has(card.id)}
                 onOpen={() => armAgentHalf(card.id, query)}
               />
@@ -190,7 +197,11 @@ export function Rail({
                 key={row.id}
                 name={row.name || c.discussions.unnamed}
                 cardId={row.cardId}
-                active={row.cardId !== undefined && row.cardId === activeId}
+                active={
+                  row.cardId === undefined
+                    ? row.target === shown
+                    : onPage && row.cardId === activeId
+                }
                 answering={row.answering}
                 onOpen={() =>
                   row.cardId === undefined
@@ -226,7 +237,7 @@ export function Rail({
             href="/inbox"
             label={c.signals.row}
             icon={<FiInbox size={13} className="shrink-0" aria-hidden />}
-            active={activeSignals}
+            active={onPage && activeSignals}
             count={signals.count}
           />
         )}
@@ -234,10 +245,17 @@ export function Rail({
           href="/archive"
           label={c.archive.row}
           icon={<FiArchive size={13} className="shrink-0" aria-hidden />}
-          active={activeArchive}
+          active={onPage && activeArchive}
         />
       </div>
-      <MemoryPanel active={activeMemory} modules={memoryModules} />
+      {/* `marked` is dropped while a discussion is up, `active` is not: which panel and which
+          module stand open is where the reader was, and a sheet over the page is no reason to
+          fold it away under them. */}
+      <MemoryPanel
+        active={activeMemory}
+        marked={onPage ? activeMemory : null}
+        modules={memoryModules}
+      />
     </div>
   );
 }
@@ -255,7 +273,17 @@ export function Rail({
  *  It slides rather than appears: the rows push the cards up from under the label, so where
  *  they came from is visible instead of guessed at. The height is animated with a grid row
  *  going 0fr → 1fr, which needs no measuring and so keeps working when the list grows. */
-function MemoryPanel({ active, modules }: { active: string | null; modules: MemoryModule[] }) {
+function MemoryPanel({
+  active,
+  marked,
+  modules,
+}: {
+  /** The memory file this window is showing — what the panel opens itself on. */
+  active: string | null;
+  /** The row to mark, which is `active` unless something is drawn over the page (#722). */
+  marked: string | null;
+  modules: MemoryModule[];
+}) {
   const c = useCopy().rail.memory;
   const { open, toggle, animate } = useMemoryPanel(active);
   const { isOpen, toggle: toggleModule } = useOpenModules(memoryModuleOf(active));
@@ -296,7 +324,7 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
           <div className="flex flex-col gap-0.5 py-1">
             <PruneButton />
             {split && <PanelLabel text={c.project} />}
-            <MemoryFileRows module="" active={active} />
+            <MemoryFileRows module="" active={marked} />
             {split && <PanelLabel text={c.modules} divider />}
             {modules.map((module) => (
               <div key={module.name}>
@@ -320,7 +348,7 @@ function MemoryPanel({ active, modules }: { active: string | null; modules: Memo
                 {isOpen(module.name) && (
                   <div className="flex flex-col gap-0.5 pl-3.5 pt-0.5">
                     {module.hasMemory ? (
-                      <MemoryFileRows module={module.name} active={active} />
+                      <MemoryFileRows module={module.name} active={marked} />
                     ) : (
                       // Four rows that all lead nowhere would read as four empty files
                       // rather than as a module nothing has been written about yet.
@@ -528,8 +556,9 @@ function RailRow({
  *
  *  A card's row is a link: its card page is where the conversation is carried on, and it
  *  wears the open state every other row in the rail wears. A discussion's is a button — it
- *  has no page of its own, and pressing it opens the Create task sheet, which covers the
- *  window an open state would be marked in.
+ *  has no page of its own, and pressing it opens the Create task sheet over the window. It
+ *  wears the same open state while that sheet is up (#722), because the sheet IS what is on
+ *  screen.
  *
  *  The ⋯ is a sibling of the row, not a child of it — a button inside an anchor is neither
  *  valid nor reachable — and holds the one thing there is to do from here: end the
@@ -545,7 +574,8 @@ function ChatRow({
   name: string;
   /** The card this conversation is about, or undefined for a discussion. */
   cardId?: number;
-  /** This window is showing that card. */
+  /** This window is showing this conversation — that card's page, or this discussion's
+   *  sheet. */
   active: boolean;
   /** Its agent is writing a reply — the same pulse a card's row carries while a run is
    *  inside it. */

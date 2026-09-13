@@ -39,7 +39,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
-import { useArchivedDiscussion, useCreateSheetRequest } from "@/lib/create-open";
+import { createSheet, useArchivedDiscussion, useCreateSheetRequest } from "@/lib/create-open";
 import { dropDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import { armNewTopic } from "@/lib/new-topic";
@@ -170,6 +170,15 @@ export function CreateTask({
     seenDropped.current = dropped;
     if (dropped.discussion === held.current) freshen();
   }, [dropped, freshen]);
+
+  // What is on screen, for the rail's mark (#722): the sheet covers the page under it, so
+  // the discussion it is holding is where the reader is, and the row below is the one to
+  // mark. A marketing board draws no sheet, so it is never holding one.
+  const showing = open && !marketing ? discussion : null;
+  useEffect(() => {
+    createSheet.showing(showing);
+    return () => createSheet.showing(null);
+  }, [showing]);
 
   const asked = useCreateSheetRequest();
   const seen = useRef(asked);
