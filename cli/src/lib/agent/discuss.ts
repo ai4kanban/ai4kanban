@@ -12,7 +12,7 @@ import fs from 'node:fs'
 import { listRuns } from './sessions'
 import { chatPlan, clearChatPlan, readChat, setChatArchived, setChatPlanRun } from './chat'
 import { locate, locateArchived } from '../cards'
-import { archivePlan, planPathInText, readPlan } from '../plans'
+import { archivePlan, planHeading, planPathInText, readPlan } from '../plans'
 import { isDiscussion, type ChatTarget, type DiscussRead, type PlanAnswer } from './types'
 
 const NOTHING: DiscussRead = { plan: null, run: null }
@@ -45,7 +45,7 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
   return {
     // Spelled from the project root, the way a card's `## Source` carries it — the panel
     // shows the path to copy, and the board never opens a plan itself.
-    plan: file && { ...file, path: planPathInText(file.path) },
+    plan: file && { ...file, path: planPathInText(file.path), title: planHeading(file.text) },
     run: plan.run ? { sessionId: plan.run, running, answer: plan.answer ?? 'plan' } : null,
   }
 }

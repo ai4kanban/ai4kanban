@@ -93,6 +93,8 @@ const zh: BoardCopy = {
       },
       plan: {
         label: "方案",
+        expand: "展开方案",
+        collapse: "收起方案",
         enlarge: "放大方案",
         shrink: "还原方案",
         copyPath: "复制路径",

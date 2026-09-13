@@ -230,10 +230,25 @@ function Sheet({
   // A discussion with something in it is drawn as a conversation; one with nothing said is
   // still the empty screen the headline sits on.
   const talking = discussing && (messages.length > 0 || rail.live !== null || rail.stopped !== null);
-  // Where the card goes: beside the conversation where the sheet has room for both, over it
-  // where it has not — and enlarged, over it at any width, taking the sheet.
+  // Where the plan goes. With room for both it stands BESIDE the conversation, and enlarging
+  // it lays it OVER instead. With no room for both the conversation is served first (#669):
+  // the plan is a COLLAPSED row pinned over the box, and opening it out lays it over the
+  // exchange — never over the answers or the box, which is what the row was in the way of.
   const beside = plan.open && plan.beside && !plan.full;
-  const over = plan.open && !beside;
+  const collapsed = plan.open && !plan.beside && !plan.full;
+  const over = plan.open && !beside && !collapsed;
+  // The three answers sit under the agent's own last word where the conversation has the
+  // screen to itself, and under the plan's row where it does not — beside the box either
+  // way, so a plan opened out never takes them away.
+  const handoff = (
+    <Handoff
+      plan={plan}
+      rail={rail}
+      discussion={discussion}
+      onPlan={onPlan}
+      onBuild={onBuildPlan}
+    />
+  );
   // A discussion message is what is typed OR what was pasted (#441) — pictures on their own
   // are a message. A run still needs a sentence, whatever is in the box.
   const pasted = pictures.pasted.length;
@@ -418,15 +433,7 @@ function Sheet({
                   // screen reads the same on the other (#441).
                   imageSrc={rail.imageSrc}
                   empty={null}
-                  after={
-                    <Handoff
-                      plan={plan}
-                      rail={rail}
-                      discussion={discussion}
-                      onPlan={onPlan}
-                      onBuild={onBuildPlan}
-                    />
-                  }
+                  after={plan.beside ? handoff : null}
                 />
               </div>
               {/* Over the exchange, the card stops at the box — enlarged too: this screen is
@@ -434,7 +441,22 @@ function Sheet({
                   you put the plan down to say anything. */}
               {over && <PlanCard plan={plan} />}
             </div>
-            <div className={`flex shrink-0 justify-center pb-6 pt-7 ${GUTTER}`}>
+            {/* Too narrow to stand beside: the plan and its answers are pinned between the
+                conversation and the box, both at their own fixed height, so the transcript
+                keeps every pixel left over and still scrolls to the last reply. */}
+            {!plan.beside && plan.open && (
+              <div className={`flex shrink-0 justify-center pt-3 ${GUTTER}`}>
+                <div className={COLUMN}>
+                  {collapsed && <PlanRow plan={plan} />}
+                  {handoff}
+                </div>
+              </div>
+            )}
+            <div
+              className={`flex shrink-0 justify-center pb-6 ${
+                !plan.beside && plan.open ? "pt-5" : "pt-7"
+              } ${GUTTER}`}
+            >
               <div className={COLUMN}>{composer}</div>
             </div>
           </div>
@@ -1015,6 +1037,35 @@ function BuildGuard({
   );
 }
 
+/** The plan collapsed to one line (#669), pinned between the conversation and the box on a
+ *  sheet with no room to stand it beside.
+ *
+ *  The conversation comes first there: covering it with the plan takes away both what was
+ *  said and the answers to act on it. So the plan keeps a row — its own title, so it is
+ *  recognisable without being opened — and pressing the row lays the whole thing back over
+ *  the exchange, answers and box still under it.
+ *
+ *  The title is the plan's own first heading; a plan that states none is drawn under the
+ *  plain label, because a first paragraph sliced to one line reads as neither. */
+function PlanRow({ plan }: { plan: PlanPanel }) {
+  const c = useCopy().board.create.sheet.plan;
+  return (
+    <button
+      type="button"
+      onClick={plan.toggleFull}
+      title={c.expand}
+      aria-label={c.expand}
+      className="flex w-full cursor-pointer items-center gap-2.5 rounded-[14px] bg-nb-cream px-3.5 py-3 text-left transition-[background-color] duration-100 hover:brightness-[0.98]"
+    >
+      <FiFileText size={14} className="shrink-0 text-nb-ink-soft" aria-hidden />
+      <span className="min-w-0 flex-1 truncate text-[13px] font-[700]">
+        {plan.title || c.label}
+      </span>
+      <FiMaximize2 size={15} className="shrink-0 text-nb-ink-soft" aria-hidden />
+    </button>
+  );
+}
+
 /** The plan, as a card on the sheet's paper: the file the discussion is writing, in markdown
  *  on the board's own cream.
  *
@@ -1040,17 +1091,21 @@ function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
   const c = useCopy().board.create.sheet.plan;
   const read = plan.read;
   const full = plan.full;
+  // Enlarged is a PAGE in the middle of the sheet, and only where the card had a column of
+  // its own to come back to. Opened out of the collapsed row there is no such column: the
+  // plan takes the conversation's own, which is the width it was already reading at.
+  const page = full && plan.beside;
   const { box, more } = usePlanScroll(plan.text, full, tall);
   return (
     <section
       aria-label={c.label}
       className={`group absolute top-0 z-10 mx-auto flex flex-col overflow-hidden rounded-[14px] bg-nb-cream ${
         tall ? "bottom-6" : "bottom-0"
-      } ${!tall && !full ? COLUMN_MAX : ""}`}
+      } ${!tall && !page ? COLUMN_MAX : ""}`}
       style={
         tall
           ? { right: PLAN_INSET, width: plan.width }
-          : full
+          : page
             ? {
                 left: 0,
                 right: 0,
@@ -1060,23 +1115,24 @@ function PlanCard({ plan, tall = false }: { plan: PlanPanel; tall?: boolean }) {
             : { left: PLAN_INSET, right: PLAN_INSET }
       }
     >
-      {/* The card's size, in the card's own corner, and only under the pointer: a document
-          reading a plan should be a document until you reach for it. Only where the two sizes
-          differ — on a sheet too narrow to stand the card beside the conversation it is at its
-          column already, and an Enlarge that changes nothing is a button that lies. Faded
-          rather than unmounted, so it is still there to tab to. */}
-      {plan.beside && (
-        <button
-          type="button"
-          onClick={plan.toggleFull}
-          title={full ? c.shrink : c.enlarge}
-          aria-label={full ? c.shrink : c.enlarge}
-          className="absolute right-3 top-3 z-10 grid size-9 cursor-pointer place-items-center rounded-[9px] bg-nb-cream/90 text-nb-ink-soft opacity-0 backdrop-blur-[2px] transition-[opacity,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink focus-visible:opacity-100 group-hover:opacity-100"
-          style={{ border: `1px solid ${HAIRLINE}` }}
-        >
-          {full ? <FiMinimize2 size={17} aria-hidden /> : <FiMaximize2 size={17} aria-hidden />}
-        </button>
-      )}
+      {/* The way back, in the card's own corner. Beside the conversation that is the card's
+          SIZE, and only under the pointer: a document reading a plan should be a document
+          until you reach for it. Opened out of the collapsed row it is the way back to that
+          row, so it stays visible — the only control there is, hidden until hovered, is one
+          nobody finds on a screen that is half touch. Faded rather than unmounted, so it is
+          still there to tab to. */}
+      <button
+        type="button"
+        onClick={plan.toggleFull}
+        title={!plan.beside ? c.collapse : full ? c.shrink : c.enlarge}
+        aria-label={!plan.beside ? c.collapse : full ? c.shrink : c.enlarge}
+        className={`absolute right-3 top-3 z-10 grid size-9 cursor-pointer place-items-center rounded-[9px] bg-nb-cream/90 text-nb-ink-soft backdrop-blur-[2px] transition-[opacity,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink ${
+          plan.beside ? "opacity-0 focus-visible:opacity-100 group-hover:opacity-100" : ""
+        }`}
+        style={{ border: `1px solid ${HAIRLINE}` }}
+      >
+        {full ? <FiMinimize2 size={17} aria-hidden /> : <FiMaximize2 size={17} aria-hidden />}
+      </button>
       <div className="relative min-h-0 flex-1">
         <div
           ref={box}

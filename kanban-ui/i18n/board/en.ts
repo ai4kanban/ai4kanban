@@ -102,6 +102,8 @@ const en: BoardCopy = {
       },
       plan: {
         label: "Plan",
+        expand: "Expand the plan",
+        collapse: "Collapse the plan",
         enlarge: "Enlarge the plan",
         shrink: "Shrink the plan",
         copyPath: "Copy the path",

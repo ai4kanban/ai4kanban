@@ -147,6 +147,10 @@ export type BoardCopy = {
        *  handoff to the run that turns it into cards. */
       plan: {
         label: string;
+        /** The plan collapsed to one row, and opened back out over the conversation — what a
+         *  sheet too narrow to stand it beside the conversation offers instead (#669). */
+        expand: string;
+        collapse: string;
         /** The card's own size — it takes the sheet, or stands where it was. */
         enlarge: string;
         shrink: string;

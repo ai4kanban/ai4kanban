@@ -14,7 +14,7 @@ import { resumePrompt } from '../src/lib/agent/prompts.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
 import { withStore } from '../src/lib/agent/store.ts'
 import type { AgentRequest, RunRecord } from '../src/lib/agent/types.ts'
-import { planFromText, planTitle, planPathInText } from '../src/lib/plans.ts'
+import { planFromText, planHeading, planTitle, planPathInText } from '../src/lib/plans.ts'
 import { PLANS, setBoardRoot } from '../src/lib/paths.ts'
 
 const PLAN_REL = 'plans/12-one-outcome.md'
@@ -55,6 +55,15 @@ describe('the plan a run is pointed at', () => {
 
   it('has no title while nothing is written in it', () => {
     assert.equal(planTitle('   \n\n'), '')
+  })
+
+  it('states its own name to the screen only in a top-level heading', () => {
+    assert.equal(planHeading(PLAN_TEXT), 'One outcome')
+    // A plan written before titles were asked for opens on `## Problem`, and naming every
+    // one of those "Problem" is worse than the screen's own label.
+    assert.equal(planHeading('## Problem\n\nSomething is missing.'), '')
+    assert.equal(planHeading('The problem, in one sentence.'), '')
+    assert.equal(planHeading('   \n\n'), '')
   })
 })
 
@@ -147,6 +156,14 @@ describe('what the plan panel does with the run it started', () => {
   it('holds the plan while that run is still working, card or no card', async () => {
     hold({ createdCardIds: [9] })
     assert.equal((await readDiscuss()).plan?.path, planPathInText(PLAN_REL))
+  })
+
+  // The screen has no markdown of its own to read the plan's name out of (#669).
+  it('carries the name the plan states for itself', async () => {
+    hold({})
+    assert.equal((await readDiscuss()).plan?.title, 'One outcome')
+    fs.writeFileSync(path.join(PLANS, '12-one-outcome.md'), '## Problem\n\nSomething is missing.')
+    assert.equal((await readDiscuss()).plan?.title, '')
   })
 
   it('offers the plan again when the run ended having written none', async () => {

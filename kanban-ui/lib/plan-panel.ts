@@ -57,6 +57,10 @@ export interface PlanPanel {
   /** The plan's words: the last text read for this file, so a rewrite never blanks the
    *  card. Empty before the file is first written. */
   text: string;
+  /** What the plan calls itself — its own first-line heading, held across a rewrite the way
+   *  the words are. Empty for a plan that states no title; the collapsed card falls back to
+   *  its own label then. */
+  title: string;
   /** The file is moving — the conversation names a plan and there is nothing to read at
    *  that path this second. The words above are the last ones written. */
   writing: boolean;
@@ -66,11 +70,10 @@ export interface PlanPanel {
    *  being written is the thing this screen is for. */
   open: boolean;
   toggle(): void;
-  /** The card has been enlarged: it leaves the right column and stands in the middle of the
-   *  sheet, down to the box, at the width a plan reads at (PLAN_READ). Centred there it covers
-   *  the conversation whole. Only ever true where there is a smaller size to go back to: under
-   *  `beside` the card is at that width already, and an Enlarge that changes nothing is a
-   *  button that lies. */
+  /** The plan is open at its full text, over the conversation. Beside the conversation that
+   *  is the ENLARGED card: it leaves the right column and stands in the middle of the sheet,
+   *  down to the box, at the width a plan reads at (PLAN_READ). With no room to stand beside,
+   *  the plan is a collapsed row over the box by default, and this is that row opened out. */
   full: boolean;
   toggleFull(): void;
   /** There is room to stand the card beside the conversation. Without it the card takes the
@@ -95,7 +98,7 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
   // The last words read for the file on screen, and which file they are. A rewrite empties
   // the file for an instant; keeping both is what lets the card say so and go on showing
   // the plan, rather than blinking to nothing and back.
-  const [held, setHeld] = useState<{ path: string; text: string } | null>(null);
+  const [held, setHeld] = useState<{ path: string; text: string; title: string } | null>(null);
   // Another discussion is another plan, so nothing of the last one is drawn while the first
   // read of this one lands. Done while rendering, the way the chat rail switches.
   const [showing, setShowing] = useState(discussion);
@@ -123,7 +126,8 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
         setRead(next);
         // Only real words are held. An empty read is a file mid-rewrite, and forgetting it
         // here is exactly the blank the card must never show.
-        if (next.plan?.text.trim()) setHeld({ path: next.plan.path, text: next.plan.text });
+        if (next.plan?.text.trim())
+          setHeld({ path: next.plan.path, text: next.plan.text, title: next.plan.title ?? "" });
         else if (!next.plan) setHeld(null);
       } catch {
         // transient — the next tick tries again
@@ -152,7 +156,8 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
   const beside = width === 0 || width >= BESIDE_FROM;
   const card = cardWidth(width);
   const plan = read?.plan ?? null;
-  const words = held && plan && held.path === plan.path ? held.text : "";
+  const last = held && plan && held.path === plan.path ? held : null;
+  const words = last?.text ?? "";
   const text = plan?.text.trim() ? plan.text : words;
   const shown = !!plan && !!text;
   const refresh = useCallback(() => kickRef.current(), []);
@@ -163,11 +168,14 @@ export function usePlanPanel(discussion: string | null = null): PlanPanel {
     read,
     supported,
     text,
+    // Mid-rewrite the read carries no title, and blanking the collapsed card back to its
+    // label every time the agent touches the file is a row that flickers its own name.
+    title: (plan?.text.trim() ? (plan.title ?? "") : "") || (last?.title ?? ""),
     writing: !!plan && !plan.text.trim() && !!words,
     shown,
     open: shown && !hidden,
     toggle,
-    full: shown && !hidden && beside && full,
+    full: shown && !hidden && full,
     toggleFull,
     beside,
     width: card,

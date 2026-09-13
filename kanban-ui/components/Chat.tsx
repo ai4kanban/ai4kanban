@@ -338,6 +338,17 @@ export function Transcript({
     const el = box.current;
     if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [messages, live, stopped, after]);
+  // The scroller's own height changes under it too — the plan's collapsed row arriving over
+  // the box (#669), the window resizing — and a reader who was at the foot stays there.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      if (stick.current) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const behind = away ? Math.max(0, lines - wasAt.current) : 0;
   const nothing = messages.length === 0 && live === null && stopped === null;

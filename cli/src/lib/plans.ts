@@ -160,3 +160,19 @@ export function planTitle(text: string): string {
   }
   return ''
 }
+
+/** The title a plan states for itself: its first line, when that line is a top-level `#`
+ *  heading. Empty for anything else — a plan with no title of its own is named by a fixed
+ *  label rather than by a sentence sliced out of its first paragraph.
+ *
+ *  Only `#`, not any heading. A plan opens on its sections, and the first of those is `##
+ *  Problem` — taking that would name every plan written before titles were asked for
+ *  "Problem", which is a label that reads like a title and tells the reader nothing. */
+export function planHeading(text: string): string {
+  for (const line of text.split('\n')) {
+    const words = line.trim()
+    if (!words) continue
+    return /^#\s+\S/.test(words) ? words.replace(/^#\s*/, '').trim() : ''
+  }
+  return ''
+}

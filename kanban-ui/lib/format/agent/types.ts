@@ -1067,10 +1067,12 @@ export interface ChatView {
  *  what Discuss adds to it. */
 export interface DiscussRead {
   /** The file the discussion is writing, once it has been named — its board-relative path,
-   *  its text, and how long it is. Null before the first agreed outcome, and again once the
-   *  plan's cards are written. Written out rather than imported: this file is copied into
-   *  the board UI and may reach only its siblings. */
-  plan: { path: string; text: string; lines: number } | null
+   *  its text, how long it is, and what it calls itself. `title` is the plan's own first-line
+   *  heading, empty when it has none, so a screen too narrow to show the plan can still name
+   *  it without reading markdown of its own. Null before the first agreed outcome, and again
+   *  once the plan's cards are written. Written out rather than imported: this file is copied
+   *  into the board UI and may reach only its siblings. */
+  plan: { path: string; text: string; lines: number; title: string } | null
   /** The run this plan was handed to: still working, or the one that wrote no card and can
    *  be started again. `answer` is which answer started it, so the line under the plan names
    *  a build rather than a planning pass (#481). Null when none has been started. */
