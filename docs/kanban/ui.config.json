@@ -35,5 +35,10 @@
   ],
   "agentRuntime": {
     "discussion-helper": "codex"
+  },
+  "memoryPrune": {
+    "enabled": true,
+    "cadence": "7d",
+    "lastRun": "2026-09-13 21:16"
   }
 }

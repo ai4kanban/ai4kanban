@@ -7,349 +7,280 @@ re-ask a settled call.
 
 ## What the UI is and isn't
 
-- The board's rules live in the command. The UI keeps its buttons and panels and drives
-  every run through the command, rather than holding a second copy of how a card is
-  written or a run is started.
-- Memory files are read-only here: you read a wrong line and fix it in your own editor.
-  The goal is the one file the UI writes.
+- The board's rules live in the command. The UI keeps its buttons and panels and drives every
+  run through the command, rather than holding a second copy of how a card is written.
+- Memory files are read-only here: a wrong line is fixed in the user's own editor. The goal is
+  the one file the UI writes.
 - Renaming and reordering releases stay terminal work — hand edits in `releases.md`.
-- Configuration settles the board; what belongs to the machine rather than the board —
-  the Cloud sign-in, the language, a runtime's binding — sits after the board's own
-  settings and separated from them.
-- A pane of short settings is a list of rows. A pane whose items are paragraphs is a narrow
+- Configuration settles the board; what belongs to the machine rather than the board sits
+  after the board's own settings and separated from them.
+- A pane of short settings is a list of rows; a pane whose items are paragraphs is a narrow
   picker column beside one tall box.
-- **The Agents pane**: one roster replacing both Spec skills and Rules, drawn as a narrow
-  picker column — **Always on** then **Specialists**, one pixelart character per row with its
-  name and on/off state — and the selected agent's page filling the space beside it. It ships
-  as characters from the first release, and its art ships as files, unlike the Runs fleet.
-- **The Agents pane opens on its first always-on agent**: the column is never drawn beside an
-  empty half, at the cost of opening a page you did not ask for.
-- **An agent's page is one screen you never scroll**: its character, name, gloss and
-  runs-when line with the Enabled switch in the top-right, a **Configuration** group of one
-  row per setting, the instruction box, then memory as a row that counts its files and
-  expands in place.
-- **AI review is switched on the reviewer's page**: the Agents pane is the switch's only
-  home, and Configuration → General → Delivery keeps just automatic commits and diff
-  approval.
-- **A specialist you add is written in the pane**: its whole `AGENT.md` is a box on its page,
-  saved the way a rule is, and Add a specialist ends with the cursor in it. The app never
-  learns to open a local file in your editor.
-- **Runtimes is one list you add to**: **Global default** first and undeletable, then every
-  runtime the user named, then **+ Add runtime**. The default is a position, not a badge, so
-  no control anywhere moves it, and a row is opened onto the harness card grid rather than a
-  dropdown. No Computers picker until a board can know a second machine.
-- **An agent's harness and model are picked on the agent's own page**, beside its rule, so
-  planner can run a stronger model than builder.
+- **Agents is one roster**, replacing both Spec skills and Rules: a picker column of
+  characters, each agent's page a single screen that never scrolls — switch, settings, its
+  instruction box, and memory as a row that expands in place. A specialist you add has its
+  whole `AGENT.md` in that box; the app never learns to open a local file in your editor.
+- **A setting lives on the agent it belongs to**: AI review is switched on the reviewer's
+  page, and an agent's runtime is picked on its own page, so planner can run a stronger model
+  than builder.
+- **Runtimes is one list you add to**, with the default a position rather than a badge, so no
+  control anywhere moves it. No Computers picker until a board can know a second machine.
 
 ## Getting the board
 
-- The desktop app is the way in. npx is not how it is handed out; Homebrew may come later.
-- macOS, Windows and Linux ship together from the first release that has an app. macOS is
-  the one tested each release; the other two ship untested until someone reports otherwise.
-- Signing never holds a release back — the app ships unsigned and the download page says
-  what to click past. The Mac app gets signed eventually; Windows waits for users to ask.
-- The browser way was deprecated the day the app shipped, said out loud, and frozen rather
+- The desktop app is the way in; npx is not how it is handed out, and Homebrew may come later.
+  The browser way was deprecated the day the app shipped, said out loud, and frozen rather
   than pulled.
-- The app installs `akb` itself on first launch: one symlink into the first of the user's
-  own bin folders the PATH already reads, and `/usr/local/bin` with the system password
-  dialog only when it reads neither. A feature that asks for a password does not wait for
-  a signed build, as long as declining costs nothing.
-- **A new project always gets its own repository**: creating one from the launcher runs `git init`
-  in the new folder even when its parent is already inside a repository.
+- macOS, Windows and Linux ship together. macOS is the one tested each release; the other two
+  ship untested until someone reports otherwise.
+- Signing never holds a release back — the app ships unsigned and the download page says what
+  to click past.
+- The app installs `akb` itself on first launch, asking for a password only where it must. A
+  feature that asks for a password does not wait for a signed build, as long as declining
+  costs nothing.
+- A new project always gets its own repository: creating one from the launcher runs `git init`
+  even inside an existing one.
 - The coding agent skill is an extra you turn on, not part of getting a board.
 - Onboarding leads with a Local board; Cloud is offered beside it, labelled, never
   preselected.
 
 ## Deliveries
 
-- Each delivery builds in a git worktree and branch of its own, forked from the commit it
-  started at, so several run side by side without touching each other or the user's edits.
-- **Automatic Git commits** off is manual commit mode: one delivery at a time in the
-  user's own folder, from clean code, with the user committing after review. A change
-  applies only to deliveries started afterwards.
-- Where one build works is also a per-click choice on the Implement dialog. It opens on
-  the side the setting picks and never writes back, so the setting is the default each
-  Implement starts from rather than the only way to change it; every other way in —
-  Schedule, Resolve & implement, `akb implement` — reads the setting.
-- Diff approval follows whether a build got a branch of its own, not the commits setting,
-  so it stays settable in manual commit mode.
-- **Discard** is the one way out of a delivery in the UI and the only thing that removes
-  its worktree and branch; `akb cancel` is the terminal half, ending the delivery and
-  leaving the checkout for salvage.
-- The delivery block asks one question at a time: a live run means **Stop run** alone,
-  nothing running means **Resume** and **Discard**. Two ways to end a delivery never share
-  a row.
-- No cap on how many deliveries build at once — the disk and time are the user's call.
-  Manual commit mode is the exception, one at a time by its own lock.
-- A delivery's state rides on the card's title band: the pill, plus one line saying what it
-  waits on. Its diff and approval are tabs in the block that already holds the log, so the
-  page gains no new furniture.
-- **A Build now never waits**: it runs with AI review and diff approval off whatever the
-  board's settings say, so the implementation's commit lands with nothing to answer — the
-  card it writes is a record, not a checkpoint.
-- **Build now is one answer wherever it is offered**: the one under a settled plan does
-  whatever Create task's Build now does, rather than a behavior of its own to keep in step.
+- Each delivery builds in a worktree and branch of its own, forked from the commit it started
+  at, so several run side by side without touching the user's edits. There is no cap on how
+  many build at once — the disk and time are the user's call.
+- Manual commit mode is one delivery at a time in the user's own folder, from clean code, with
+  the user committing after review. A change applies only to deliveries started afterwards.
+- Where one build works is also a per-click choice that opens on the setting's side and never
+  writes back; every other way in reads the setting.
+- Diff approval follows whether a build got a branch of its own, not the commits setting, so
+  it stays settable in manual commit mode.
+- **Discard** is the one way out in the UI and the only thing that removes the worktree and
+  branch; `akb cancel` is the terminal half, leaving the checkout for salvage.
+- The delivery block asks one question at a time: two ways to end a delivery never share a row.
+- A delivery's state rides on the card's title band, and its diff and approval are tabs in the
+  block that already holds the log, so the page gains no new furniture.
+- **Build now never waits** and is one answer wherever it is offered: it runs with AI review
+  and diff approval off whatever the board says, and the card it writes is a record rather
+  than a checkpoint.
 
 ## Setup and the first run
 
-- Setup runs in the UI as a guided first run asking only what the user knows — the project,
-  the goal, which agent works — with defaults so it can be pressed through. The
-  steps that read the repo and think run after it.
-- Which agent works is asked first, before anything else the first run does. Nothing is
-  spent on an agent the user did not choose.
-- The first run is one full-window view a step, one thing asked in each — no step rail, no
-  transcript, and no list of what the agent read; a long repo read is its own waiting view
-  with a spinner and a line.
-- The first run never drafts the goal. It may say what makes a good goal, but it offers no
-  words the user could accept unchanged, because text the user did not write is no goal.
-- Finishing setup refines the cards it writes: they are the roughest the board will ever
-  hold and nothing else comes for them.
-- The board carries no notice about the goal at all. Skip for now answers the goal step, the
-  rest of setup runs from the repository scan, and the header's own control is the only place
-  that ever offers to write one.
-- The first run's agent step probes the agents already installed instead of asking, and
-  the probing view's one control is a Set it up myself link to the picker — nothing cuts
-  the probe short by a timer or a cap.
-- Optional usage reporting is on by default, and one required step discloses it before a
-  board opens — once per machine, not per board. An install that predates the release takes
-  the same step and the same default; there is no grandfathered-off state.
-- **Continuing past an unreadable repository answers the project step**: the folder name is
-  saved as the project and setup moves to the goal, and the desktop offer to discard a wrongly
-  opened folder retires at that press like any other answered project step.
+- Setup asks only what the user knows — the project, the goal, which agent works — with
+  defaults so it can be pressed through. The steps that read the repo run after it.
+- Which agent works is asked first, and the step probes what is installed instead of asking;
+  its one control is a link to the picker, and nothing cuts the probe short.
+- The first run is one full-window view a step, one thing asked in each: no step rail, no
+  transcript, no list of what the agent read.
+- The first run never drafts the goal. It may say what makes a good goal, but text the user
+  did not write is no goal.
+- The board carries no notice about the goal at all: **Skip for now** answers the step, and
+  the header's own control is the only place that ever offers to write one.
+- Finishing setup refines the cards it writes — they are the roughest the board will ever hold.
+- Usage reporting is disclosed in one required step before a board opens, once per machine,
+  with no grandfathered-off state.
+- Continuing past an unreadable repository answers the project step: the folder name is saved
+  as the project and setup moves on.
 
 ## The goal
 
-- `goal.md` is the whole direction, horizon and roadmap included. There is no separate
-  roadmap file.
-- The goal is a reminder, not a file you work in: a quiet header control opens the whole
-  thing and editing sits one click in. It gets no row in the Memory panel.
-- That control is the goal's only place on the board, in two states: the star opens what is
-  written, and on an empty file the same star reads Add goal in soft ink and opens the box.
-  It offers, never asks — the goal is optional.
-- A board holding no card at all replaces the columns with one centred panel: what an empty
-  board is, and the offer of the first card. Three empty columns say it three times.
+- `goal.md` is the whole direction, horizon and roadmap included. There is no separate roadmap
+  file, and it gets no row in the Memory panel.
+- The header star is the goal's only place on the board, in two states — open what is written,
+  or **Add goal** on an empty file. It offers, never asks.
+- A board holding no card replaces the columns with one centred panel: three empty columns say
+  it three times.
 
 ## Runs
 
-- Stopped is its own outcome, not a failure. Any run can be stopped whoever started it,
-  stop ends the agent only, and it takes a confirmation.
-- Any run that ended before finishing can be continued, and Resume is always the user's
-  act — the board never waits, backs off, or starts the work again by itself.
+- Stopped is its own outcome, not a failure. Any run can be stopped whoever started it, and
+  stop ends the agent only.
+- Any run that ended before finishing can be continued, and Resume is always the user's act —
+  the board never waits, backs off, or starts the work again by itself.
 - The live view is a read-only log; nothing is typed into a running session.
-- The model shown on a run is what the agent reported as it ran, not the model setting,
-  which most people leave empty.
-- Nothing reads a particular agent's error format: whatever the agent printed last is the
-  reason the run shows.
+- The model shown on a run is what the agent reported as it ran, not the model setting, and
+  whatever the agent printed last is the reason a failed run shows — nothing reads a
+  particular agent's error format.
 - A refine follows the run that touched the card, as a run of its own. Nothing hunts the
-  backlog, so there is no switch, no budget and no timer. It answers everything except
-  `[user]` questions, and a stopped refine is not picked up again.
-- The changes view shows uncommitted changes in a folder, never a file list claimed for one
-  run, and every run gets it — a refine or resolve writes card files too.
-- **The Runs dialog's fleet**: the dialog opens on a scene of per-run characters with the
-  run list one toggle away, and the characters are drawn from the board's palette — no art
-  files ship for them beyond each agent's own mark.
-- **The fleet's scene runs on a 2D engine**: PixiJS draws it rather than the DOM, at the
-  cost of the engine's weight in the app bundle and keyboard access built by hand over the
-  canvas. A machine where no renderer can be created gets the list instead.
+  backlog, so there is no switch, no budget and no timer.
+- The changes view shows uncommitted changes in a folder rather than a file list claimed for
+  one run, and every run gets it.
+- The Runs office is the dialog: history on the left, a bot's log on the right, only the two
+  latest completed jobs left in the rest area and the rest in records.
+- The office scene is drawn by a 2D engine rather than the DOM, at the cost of the engine's
+  weight and keyboard access built by hand; a machine where no renderer can be created gets
+  the list instead. Anything that moves is its own layer over a still backdrop.
+- Context usage is measured against the model's advertised window, matching what the harness
+  shows, so a session can be compacting before the reading looks full.
 
 ## Connectors and keys
 
 - An agent ships only if it streams its log as it works and can resume a run that stopped
-  short: a blank box for the whole run reads as a hang, and no Resume leaves the user
-  redoing the work by hand.
+  short: a blank box reads as a hang, and no Resume leaves the user redoing the work.
 - The board reaches an agent by starting a command and reading what it prints, and no other
-  way; a bridge counts. An agent whose live view exists only in a browser app of its own is
-  not offered.
-- Claude Code and Codex first, then Cursor and OpenCode, then DeepSeek Harness and ZCode
-  because users asked, then Grok Build. A further agent ships when it is cheap to connect or
-  when users ask for it by name. OpenClaw was dropped — it is a chat-app assistant, not a
-  coding CLI.
-- Each connector declares the settings it takes and the dialog draws them, in two shapes
-  only — a box to type in and a list to pick from — each keeping its own block, so
-  switching loses nothing.
-- Keys live in `docs/kanban/.env` and nowhere else, kept out of git by the board's own
-  gitignore, and a saved key is never shown back. What `.env` names wins for a run; a
-  variable it doesn't name is left alone.
-- **A triage provider's status is read, not monitored**: the UI shows what the last import returned — configured, reachable, when it last collected — and runs no watcher, so a provider that stopped collecting shows up on the next import.
-- **Deleting a runtime clears its key**: the key lines that row owns in `docs/kanban/.env` go
-  with the row, and the confirmation says so before the delete.
-- ZCode signs in with a Coding Plan key alone. The *the login ZCode has* pick was dropped
-  rather than taught to explain itself, and comes back when a login is shown to work (#282).
-- An installed CLI that is logged out is warned about where the agent is picked, and gates
-  nothing: every way of starting a run still starts. A connector set to a provider that
-  carries its own key is never called logged out.
+  way; a bridge counts, and an agent whose live view exists only in a browser app of its own
+  is not offered.
+- A further agent ships when it is cheap to connect or when users ask for it by name. A
+  chat-app assistant that is not a coding CLI is not one.
+- Each connector declares the settings it takes and the dialog draws them in two shapes only —
+  a box to type in and a list to pick from — each keeping its own block, so switching loses
+  nothing.
+- Keys live in `docs/kanban/.env` and nowhere else, are never shown back, and what `.env`
+  names wins for a run. Deleting a runtime takes its key lines with it, and the confirmation
+  says so.
+- An installed CLI that is logged out is warned about where the agent is picked and gates
+  nothing. A connector set to a provider carrying its own key is never called logged out.
+- A triage provider's status is read, not monitored: the UI shows what the last import
+  returned and runs no watcher.
+- Let the selected runtime attempt a PDF or Word attachment and surface its errors; do not
+  disable document formats by model or make the board convert them first.
 
 ## Cards, questions and groups
 
-- A question with options keeps its text box, but the two ways don't mix: on a
-  `single-option` question the user either ticks one option or types an answer.
-- A card's page opens on the half a human has to read, with the agent's notes folded
-  behind one control, and stays how you last left it.
-- A group is finished by finishing its subtasks, never by implementing the root; a group
-  whose subtasks were all rejected is closed with Reject instead.
-- "Implement group" is one run owned by the root that works until every subtask is done or
-  rejected, locking them all behind one log. Claude Code only — another connector falls
-  back to one long run with the same instructions.
-- A group root shows what waits on what as a map above the subtasks: one column per layer,
-  blockers first, id-only chips, no labels, and no map where nothing blocks anything.
-- **A card that is not finished being created does not open**: it sits on the board, muted
-  and marked, and clicking it does nothing until its creator finishes — so it can be neither
-  inspected, watched, nor recovered from a page of its own.
+- A question with options keeps its text box, but the two ways don't mix: the user either
+  ticks or types.
+- A card's page opens on the half a human has to read, with the agent's notes folded behind
+  one control, and stays how you last left it.
+- A group is finished by finishing its subtasks, never by implementing the root; a group whose
+  subtasks were all rejected is closed with Reject instead.
+- A group root shows what waits on what as a map above the subtasks, and no map where nothing
+  blocks anything.
+- A card that is not finished being created does not open: it sits on the board muted and
+  marked, so it can be neither inspected nor recovered from a page of its own.
+- Add-task takes one module at a time and picking one is optional; with none picked the agent
+  chooses the focus itself.
 
 ## Mockups on a card page
 
 - A card's `<Mockup src>` keeps naming `.mockups/<card id>/…` whatever the folder is really
-  at: the UI reads checkout-local drawings first, then the board's legacy `.mockups/`
-  folder when the file is missing. No home-directory fallback; card references stay unchanged.
-- A `.txt` mockup is drawn as its own characters — unscaled, with no switch to "the code
-  behind it", because the file is the drawing — and a narrow window scrolls it sideways
-  rather than re-wrapping columns that would stop being the drawing.
-- The canvas that holds a card's screens ships as look-only: screens are laid out
-  automatically, pan and zoom work, and nothing is saved. Dragging screens into place and
-  keeping that layout waits until the canvas has been used in anger.
+  at, and card references stay unchanged.
+- A `.txt` mockup is drawn as its own characters, unscaled and with no switch to the code
+  behind it, and a narrow window scrolls it sideways rather than re-wrapping.
+- The canvas holding a card's screens ships as look-only: laid out automatically, pan and zoom,
+  nothing saved. Dragging screens into place waits until it has been used in anger.
 
 ## Views and filters
 
-- The queue view regroups the whole board and hides nothing. The release dropdown is the
-  one place the board hides cards, and blockers stay on screen whatever is picked, since an
-  unplanned blocker usually blocks the version being planned.
+- The queue view regroups the whole board and hides nothing. The release dropdown is the one
+  place the board hides cards, and blockers stay on screen whatever is picked.
 - The New release dialog picks the kind with two tabs, not a switch that means different
-  things; on the goal tab the goal box is the whole choice, and a goal can be added later.
-- Memory is the rail's only panel for now — Runs and Daily progress keep their header
-  dialogs until we have seen how it reads. The rail's search reaches open cards only.
-- The archive is reached from one row in the left rail directly above Memory, and stays
-  hidden until that row is opened: archived cards appear in no column and no count.
-- Add-task takes one module at a time and picking one is optional; with none picked the
-  agent chooses the focus itself.
+  things; on the goal tab the goal box is the whole choice.
+- Memory is the rail's only panel for now, and the rail's search reaches open cards only.
+- The archive is one row directly above Memory and stays hidden until opened: archived cards
+  appear in no column and no count.
 - Reading a closed version's changelog on the board is its own card, separate from the one
   that writes it.
-- The inbox view has a junkbox beside it — the signals the `inputbox` agent turned down, with
-  the reason, until they expire. It is read-only: there is no putting one back, and a signal
-  worth saving is one the user makes a card from themselves.
 
 ## Chat in the UI
 
-- The Create task chat offers **Discuss**, **Add task**, and **Build now**: shape a vague idea,
-  put clear work on the board, or implement it without a task.
-- **Create task is an action, not a place**: it opens a full-screen sheet over the board that Esc
-  or ✕ closes, rather than a Board/Build tab pair in the header.
-- **A plan file is read outside the app**: Discuss writes `docs/kanban/plans/<id>-<slug>.md`,
-  it moves to `plans/archive/` once its run has written cards, and those cards name wherever
-  it is; the board never opens it.
-- **Propose tasks is gone from the app**: the mode is dropped rather than carried into the
-  chat, because cards nobody asked for are rarely worth trusting. The flow behind it is
-  retired too — finding new work is idea extraction from a named source.
-- The chat is a full-height rail down the right, folded away by default so the board stays
-  the centre of the app, and it follows what you are reading — the board's chat on the
-  board and on a memory file, a card's on its page — so only one is ever on screen.
-- It changes the board itself rather than handing the change to the card's own buttons, and
-  nothing asks first: archive, reject and starting a build included, with the changes
+- Create task is an action, not a place: a full-screen sheet over the board that Esc or ✕
+  closes, opening on **Discuss**, **Add task** or **Build now**.
+- The chat is a full-height rail down the right, folded away by default so the board stays the
+  centre, following what you are reading so only one conversation is ever on screen.
+- It changes the board itself rather than handing the change to the card's buttons, and
+  nothing asks first — archive, reject and starting a build included — with the changes
   sitting in the working tree for git to undo.
-- It adds no rule of its own — the rail is an ordinary kanban-skill session.
-- Nothing is ever sent on the user's behalf: a message typed while a reply is arriving
-  waits with sending off, and a stopped reply leaves an empty composer with whatever was
-  written kept above it.
-- A conversation picks its own agent and model in the rail's header, defaulting to the
-  board's; switching the agent starts the conversation over, behind the same confirmation
-  the bin takes.
-- **A board holds many discussions, listed in the rail**: every Create task press opens a new
-  one and the rail lists the ones going, under the open cards, so several subjects are talked
-  through side by side. New idea is gone — nothing has to be thrown away to start the next.
-- **A discussion is named by its agent**: the row shows the first line the user typed, then
-  the title the agent gives it once it has read the exchange, retitled as the subject settles.
-- **A discussion leaves the list by hand or by age**: its row's menu holds one item, Archive,
-  and the board keeps only its 20 most recent, dropping the oldest past that without asking.
-- An agent that cannot see images turns a pasted image away at the box: it says so, names
-  the agents that can, and writes and sends nothing — rather than passing a path on and
-  letting the agent answer that it cannot open the file.
-- **Pictures never send alone in Add task and Build now**: Send stays off until something is
-  typed, so a screenshot always arrives with the words saying what it is for — unlike Discuss,
-  where a picture on its own is already a message.
-- **A runtime picked on the create sheet lasts one send**: Add task and Build now open on the
-  planner's and the builder's own runtime every time, so a one-off pick never becomes the
-  board's default.
+- It adds no rule of its own: the rail is an ordinary kanban-skill session.
+- Nothing is ever sent on the user's behalf: a message typed while a reply arrives waits with
+  sending off, and a stopped reply leaves what was written above an empty composer.
+- A conversation picks its own agent and model, defaulting to the board's; switching the agent
+  starts it over behind a confirmation. A runtime picked on the create sheet lasts one send.
+- A board holds many discussions, listed in the rail under the open cards, each named by its
+  agent once it has read the exchange. The board keeps only its 20 most recent and drops the
+  oldest without asking; a row's menu holds Archive alone.
+- A plan file is read outside the app: Discuss writes `docs/kanban/plans/<id>-<slug>.md`, it
+  moves to `plans/archive/` once its run has written cards, and the board never opens it. Its
+  title is its first line.
+- Propose tasks is gone from the app: cards nobody asked for are rarely worth trusting, and
+  finding new work is idea extraction from a named source.
+- An agent that cannot see images turns a pasted image away at the box, names the agents that
+  can, and sends nothing.
+- Pictures never send alone in Add task and Build now — Send stays off until something is
+  typed — unlike Discuss, where a picture on its own is already a message.
 
 ## Notifications
 
-- **The pane is Cloud & Notifications**（中文「云端与通知」）, carrying cloud storage and
-  notifications as two independent switches — the name says what the page holds.
+- The pane is **Cloud & Notifications**, carrying cloud storage and notifications as two
+  independent switches, and the cloud storage switch is the only way in and the only way back.
 - The desktop notification center came first, proving complete messages and actions without
   Slack; Slack reuses the same event contract as the first external connector.
-- It is a right-hand rail of rows carrying the card's number and title with the event's name
-  under them, and nothing more. A row opens that card's page, where the state and its
-  actions already are; no page is drawn for an event.
-- The board's own card page never waits on Cloud to act — Implement and Resolve go through
-  at once and are recorded afterwards. Only a surface that is not the board's machine waits.
-- An actionable event interrupts: a system notification as well as the bell, opening the
-  card, with one switch silencing the interruption while the bell keeps filling. A delivery
-  it started raises a second notification on every final outcome, not only failure.
-- The rail and its count are the OPEN board's. The connection stays account-wide — one
-  machine holds one socket — but another project's cards mixed into the list read as this
-  one's. A board you are not looking at reaches you as a system notification, and clicking
-  one switches the app to it.
-- A card the watched scope merely brought into view does not interrupt: it lands in the bell
-  already read, with no system notification. Only a card that starts waiting after the switch
-  is raised the ordinary way.
-- The rail is two tabs — 「待处理」and 「已落地」— and opens on the first. Only a landed
-  delivery sits on the second; not landed, interrupted and waiting for a machine stay with
-  the work that needs a person, because a problem is something to look at, not a record.
-- The bell counts the first tab alone. A new landed event shows as a dot on the second tab
-  that switching there clears, which reads the whole group at once — which rows were new is
-  not recoverable.
+- The rail is rows carrying a card's number, title and the event's name, and nothing more. A
+  row opens that card's page; no page is drawn for an event.
+- The board's own card page never waits on Cloud to act — only a surface that is not the
+  board's machine waits.
+- An actionable event interrupts with a system notification as well as the bell, with one
+  switch silencing the interruption while the bell keeps filling. A card the watched scope
+  merely brought into view lands already read.
+- The rail and its count are the open board's, while the connection stays account-wide; a
+  board you are not looking at reaches you as a system notification.
+- The rail is two tabs and opens on the first. Only a landed delivery sits on the second —
+  not landed, interrupted and waiting for a machine stay with the work that needs a person,
+  because a problem is something to look at, not a record. The bell counts the first tab
+  alone, and a new landed event is a dot that switching clears.
 
 ## Moving around the app
 
 - A mouse's back and forward buttons work wherever the system reports them.
-- **The two-finger swipe leaves whatever covers the page**: pages, Create task, Discuss and
-  full-page overlays all answer it, one layer per gesture, while popovers and small panels
-  ignore it and a sideways scroller with room left still scrolls.
-- **Only the trackpad swipe carries that rule**: the browser's Back button and a phone's edge
-  swipe keep the back they already have, and the swipe opens the board when there is no
-  earlier page in the app.
-- A project holding more than one board shows the second inside the header's folder chip: a
-  small inner badge naming the board's work — "Engineering", "Marketing" — and picking one
-  opens it in a new desktop window, leaving the window it was pressed in on its own board.
-  One board means a plain label; a browser gets a label too and switches in place.
-- **A board switch never reuses a window**: picking a board already open elsewhere opens
-  another window on it rather than focusing the one that has it, so two views of one board
-  are possible and duplicate windows are the user's to close.
+- The two-finger swipe leaves whatever covers the page, one layer per gesture, while popovers
+  and a sideways scroller with room left ignore it. Only the trackpad swipe carries that rule.
+- A project holding more than one board shows the second inside the header's folder chip, and
+  picking one opens it in a new window rather than reusing the one it was pressed in — so two
+  views of one board are possible and duplicate windows are the user's to close.
 
 ## The app's language
 
-- One setting, not two: the chosen language covers the app's own words and the prose the
-  agent writes into cards, questions, memory and changelogs. The board's structure —
-  frontmatter, headings, file names, commands, paths — stays English.
-- It is guessed once from the operating system on a machine that has never said, then owned
-  by the user and never guessed over again. The app guesses where the site does not, because
-  its first screen carries neither the reader's languages nor a browser's switcher.
-- The launcher carries its own switcher, top-right and framed like window chrome, because it
-  is the screen you meet before there is a board to open Configuration on.
-- Only new writing follows the setting. Nothing rewrites what is already on disk, so a board
-  that switches holds both languages at once.
-- Everything `akb` produces stays English wherever it surfaces — failures, notification rows,
-  the terminal. The app translates only the words it writes itself, the system-standard menu
-  items included.
+- One setting, not two: it covers the app's own words and the prose the agent writes. The
+  board's structure — frontmatter, headings, file names, commands, paths — stays English.
+- It is guessed once from the operating system, then owned by the user and never guessed over
+  again. The app guesses where the site does not, because its first screen carries neither the
+  reader's languages nor a browser's switcher.
+- The launcher carries its own switcher, because it is the screen you meet before there is a
+  board to open Configuration on.
+- Only new writing follows the setting, so a board that switches holds both languages at once.
+- Everything `akb` produces stays English wherever it surfaces. The app translates only the
+  words it writes itself.
 
 ## The board on a phone
 
-- Cloud's URL and its GitHub sign-in are the whole of phone access: the app never serves its
-  own board to a second device. A user who does not turn Cloud on has no phone access, which
-  is the price of one way in rather than two.
-- At phone width the board becomes a bottom tab bar — Board, Find, Memory, More — with the
-  columns swiped one at a time and Resolve opening as a page. The window-width board keeps
-  its rail, header and side-by-side columns.
+- Cloud's URL and its sign-in are the whole of phone access: the app never serves its own board
+  to a second device, which is the price of one way in rather than two.
+- At phone width the board becomes a bottom tab bar with the columns swiped one at a time and
+  Resolve opening as a page. The window-width board is unchanged.
+
+## Memory pruning
+
+- The recurring prune cadence is bounded where it is set — 5–1440 minutes, 1–720 hours,
+  1–365 days. The bound is the control's only: a shorter cadence already in the config file
+  keeps running.
+
+## Feedback
+
+- Feedback never requires a task: linking a landed task and describing the problem are both
+  optional, and a standing Feedback button takes feedback belonging to no task.
+- Sharing is one switch under the box, never a second entry, and it is off on every new
+  conversation — agreeing once never turns one on, and the first press reads the terms again.
+- Sharing comes before linking: the card picker appears only after sharing is enabled, and it
+  serves sharing alone.
+- A shared discussion cannot end without a card: every way of ending it refuses where it was
+  pressed and asks for a card or for sharing to be turned off.
+- The rail's End discussion is the only end action a conversation gets.
+- Nothing is shown of what a submission came to — no sending, sent, failed or retry state —
+  because the conversation is over by the time there is anything to say.
+- Feedback collects no way to reply, so the site can still say no form on it asks for your
+  email; the team cannot follow up, and vague feedback is dropped.
 
 ## Where the UI is documented
 
 - `kanban-ui/README.md` is the user-facing guide, and any card that changes visible UI
   behavior updates it. `akb guide local-ui` covers installation only.
-- **Document attachments**: let the selected runtime attempt PDF/Word reading and surface its errors; do not disable document formats by model or require the board to convert them first.
 
-## Feedback
+## Updating the app
 
-- **Feedback never requires a task**: linking the landed task and sharing the problem
-  description are both optional when a fix task is created, and a standing Feedback button
-  beside New task takes general feedback that belongs to no task.
-- **Feedback collects no way to reply**: no email box and no other contact field, so the
-  site can still say no form on it asks for your email; the team cannot follow up, and
-  vague feedback is simply dropped.
+- The update downloads itself as soon as a check finds one, showing nothing until the bytes
+  are ready to install — at the cost of spending the bandwidth unasked.
+- A failed download is the app's problem: network failures are retried silently on a ladder,
+  and only once those run out does a failure chip appear, with no download link or retry
+  button.
+- A version cannot be skipped, and the app remembers no skipped version.
+- A higher version takes the waiting one's place: a download in flight is dropped and a
+  downloaded build thrown away, and the chip names whichever version will be installed.

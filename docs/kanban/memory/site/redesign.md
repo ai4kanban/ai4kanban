@@ -5,20 +5,30 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Getting started
 
-- ❌ **Offering a terminal install beside the download, however quietly** → ✅ the app is
-  the only way in the site recommends. It carries `akb` and installs it at first open, so a
-  npm or npx line is a second, worse route to the same board.
-- ❌ **Softening a way in we no longer want by demoting it** → ✅ take it off the page. A
-  way in that is still shown is still offered, whatever weight it is given.
+- ❌ **Offering a terminal install beside the download, however quietly** → ✅ the app is the
+  only way in the site recommends; it carries `akb` and installs it at first open.
+- ❌ **Softening a way in we no longer want by demoting it** → ✅ take it off the page. A way
+  in that is still shown is still offered, whatever weight it is given.
 
 ## Landing-page visuals
 
-- ❌ **Using dense gray bars as the content of a UI mockup illustration** → ✅ show recognizable screens with a clear title, a few readable labels, and real controls that remain legible at homepage size.
-- ❌ **Change a landing page's composition, sections, interactions, or visual medium while
-  revising its message** → ✅ preserve the existing design unless the user explicitly approves
-  that material user-facing change; copy work changes copy, not the page around it.
+- ❌ **Change a landing page's composition, sections, interactions or visual medium while
+  revising its message** → ✅ copy work changes copy, not the page around it, unless the user
+  explicitly approves that change.
+- ❌ **Using dense gray bars as the content of a UI mockup** → ✅ show recognizable screens
+  with a clear title, a few readable labels and real controls that stay legible at homepage
+  size.
 
 ## Telling people what a feature is
 
 - ❌ **Leaving the privacy and terms pages to explain what a feature does** → ✅ give the
   feature its own page and let the legal pages state only what they promise, linking to it.
+
+## The training page
+
+- ❌ **Booking used a monthly calendar, quota claims and a mail link** → ✅ show the visitor's
+  current week by hour and reserve real availability through an on-site form with a clear
+  result, without displaying the author's time.
+- ❌ **Training copy drifted into product introductions and prominent disclaimers** → ✅ lead
+  with project guidance and outcomes; keep product positioning as background evidence and omit
+  unsolicited qualification copy.

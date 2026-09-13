@@ -2,199 +2,190 @@
 
 ## Before drawing
 
-- **Read the app's own `design.md`**: `kanban-ui/design.md` for the board, `web/design.md`
-  for the public site. Colours, shadows, radii, hairlines and type live there — restating
-  them here only goes stale.
-- **Reuse a sibling card's `.mockups/` instead of drawing the page again**: siblings under
-  one parent are drawn side by side, so look again just before rendering. Two versions of
-  one page read as two products, not two moments. A second TAB of one page is that same
-  page — redraw it from the sibling's frame and change only what its cards carry and what
-  they let you do.
-- **Draw in Chinese, in the board's own words**: take them from `kanban-ui/i18n/*/zh.ts`.
-  Invented copy is sent back.
-- **A mockup file is ONE 1280 × 800 screen**: the card page draws it in an iframe clipped to
-  exactly that, so a second frame stacked under the first is invisible. Where a card names
-  two surfaces, give each its own file.
-- **Three missing surfaces are one screen at the moment all three are true**: before drawing
-  three, look for the single state where they co-exist — a submit panel whose send just
-  failed, with its picker still resting and nothing yet attached, is the entry, the picker
-  and the failure in one frame.
-- **The runs panel is not a panel beside the board, it BURIES it**: 1040 × 760 over a 42%
-  ink scrim at 1280 × 800 leaves 120px of dimmed rail at each edge. Anything that happens
-  to the rail while that panel opens has to be said inside the panel, because the rail is
-  not what the user is looking at.
-- **Draw the frame the app really has**: the board's three columns are cut at the paper's
-  edge at 1280, and a card page is drawn inside the rail + chat frame, never the whole
-  1280. A drawing that fits everything in is a drawing of a different app.
-- ❌ **A delivery's card page drawn with an invented peach 等你决定 band and a pill nobody
-  writes** → ✅ the page's whole delivery vocabulary is `cli/src/lib/agent/pause.ts` and
-  `kanban-ui/i18n/card/zh.ts`, gated by `CardPage.tsx`: an `In progress` delivery draws no
-  line under the title at all, the toolbar is gone entirely while one is in flight, 继续
-  appears only when the record names a next run, and the strip's actions are accent-deep.
+- ❌ **Drew a screen for a card that had already landed** → ✅ check the card is still in
+  `todo/` first; mockups are discarded when the build starts, so drawing for an archived card
+  is dead work.
+- ❌ **Drew mockups for a change with no user interface in it** → ✅ reuse the existing screens
+  and states, and draw only when the task needs a new interface decision.
+- ❌ **A revised spec kept its outdated mockups** → ✅ reread the current design guide and
+  refresh every affected screen, shared copy and card reference in the same revision.
+- ❌ **Designed a second control for a job an existing one already does** → ✅ find the feature
+  that already has that shape and reuse its components and interactions, changing only the
+  copy and the actions.
+- ❌ **Copied a sibling card's chrome without looking at it again** → ✅ siblings under one
+  parent are drawn side by side, so reread the sibling's frame just before rendering — two
+  versions of one page read as two products. A second tab of one page is that same page.
+- ❌ **Invented the app's own words** → ✅ take every string from `kanban-ui/i18n/*/…`, and
+  draw in the board's language. A delivery's pill and the line under it come from the CLI and
+  stay English on a Chinese card page; only the chrome round them is translated.
+- ❌ **Drew a whole 1280 frame the app never shows** → ✅ draw the frame the app really has:
+  the board is cut at the paper's edge, a card page sits inside the rail and chat frame, and a
+  dialog buries what is behind it rather than sitting beside it.
+- ❌ **Split one moment into three screens** → ✅ before drawing three states, look for the
+  single state where they co-exist.
+
+- **The drawings live in `.akb/boards/docs/kanban/mockups/<card id>/`** — the board's own
+  folder on the machine, gitignored. `akb spec` prints the path; older cards' drawings are
+  still read from `docs/kanban/.mockups/`, which is not written to.
+- **Read the app's own `design.md`**: `kanban-ui/design.md` for the board, `web/design.md` for
+  the site. Colours, shadows, radii and type live there.
+- **A mockup file is one screen at the size the card page clips it to**, so a second frame
+  stacked under the first is invisible. Where a card names two surfaces, give each its own file.
+- **A pane that overflows its dialog is drawn as a scrolled pane**, cut through body text —
+  measure the groups against the dialog's real height before assuming they fit.
 
 ## Register
 
-- **A new fact earns a new mark or nothing**: never overload a slot, and a mark with no
-  `nb-tip` says nothing.
+- **A new fact earns a new mark or nothing**: never overload a slot, and a mark with no tip
+  says nothing.
 - **One ember fill per row**: the move to press is ember, a second move that acts is the
-  accent-deep ghost, a dismissal is the plain ink ghost. Two fills is two things shouting.
-- **A tinted ghost keeps its INK shadow**: callers override colour and border only, so an
-  accent-deep drop shadow is a shape the app has not got.
-- **A control inside a strip is a chip, not a block**: it acts rather than switching what
-  you are looking at. The ember block is for the strip's terminal move.
-- **A band is the loudest thing on a page**, so it is for a state the user must act on.
-  Anything they may fix whenever they like is a quiet ghost in the top row instead.
-- **A fill that must read on paper AND on a card's sheet goes one step darker**, never a
-  grey plate.
-- **Never a fourth tint on one surface**: the editor's live selection, its held passage and
-  a commented line are three tints of one hue, and that is the whole vocabulary.
-- **One dot carries two facts and no more** — filled versus ring, and the hue. A second
-  shape for the same state reads as a second state.
-- **A pane has no title of its own**: the sidebar already names it, and the captions are
-  the whole of the structure.
-- **A source is a type plus its own key/value pairs, never one free-text string**: draw the
-  type's mark and name from one table, then the values it carries. Never a row shape per
-  connector, and nothing at all where the item named no type.
+  accent-deep ghost, a dismissal is the plain ink ghost.
+- **A control inside a strip is a chip, not a block**: it acts rather than switching what you
+  are looking at.
+- **A band is the loudest thing on a page**, so it is for a state the user must act on;
+  anything they may fix whenever they like is a quiet ghost in the top row.
+- **Never a fourth tint on one surface**, and one dot carries two facts and no more — filled
+  versus ring, and the hue.
+- **A pane has no title of its own**: the sidebar already names it.
+- **A box holding a value to copy hugs that value**, so the value and its copy button read as
+  one thing.
+- **A standing measure is not drawn in the app's loading shape**: an arc in a signal hue with
+  a round cap reads as a spinner.
+- **A source is a type plus its own key/value pairs, never one free-text string**: one row
+  shape draws every source, and an item that named no type draws no source at all.
+- **Reuse the board's own tooltip** rather than drawing a tooltip layer, hang it off a
+  focusable element of its own, and grow a long one from the control's left edge so it does
+  not run off the window.
 
 ## Saying no, and saying nothing
 
-- **A refusal goes in the slot the thing would have filled**, on peach-soft — never on the
-  hint line. Peach above a box is for a state that persists; inside it, for the keystroke
-  that just failed.
-- **A refused move is answered where it was pressed**, in the confirmation-popover shape
-  hung off that control. The page's peach band is for what has no control to hang from.
-- **A refusal says the block and the way out, and nothing the screen already says.**
-- **A refusal keeps its own ground when it fills a whole tile**: a screen-sized block of
-  peach is the loudest thing on the page and is read as an alarm — the tile keeps the
-  wash it would have had, and the note is a compact peach block inside it.
-- **An empty list drops the standing note**: the empty panel's own line already says what
-  would be there, and both together read as the same sentence twice.
-- **A hint that is only true sometimes is drawn only then**: the chat's hint line exists
-  while a reply is coming, so an idle box has nothing beneath it.
-- **Dead space under the last reply is a state the rail is never in** — the transcript sits
-  scrolled to its foot.
-- **A page must not pick for the user**: where two answers are both real, both are ghosts
-  and the one that throws work away says so in its body line.
+- **A refusal is answered where it was pressed**, in the slot the thing would have filled and
+  never floated over the words that control stands under. The page's own band is for what has
+  no control to hang from.
+- **A refusal that fills a whole tile keeps the tile's ground**: a screen-sized alarm colour
+  is read as an alarm.
+- **Avoid redundant prompts**: where the controls already show the choice, add no explanatory
+  refusal panel.
+- **An empty list drops the standing note**, and a hint that is only sometimes true is drawn
+  only then.
+- **A page must not pick for the user**: where two answers are both real, both are ghosts and
+  the one that throws work away says so.
 - **No bulk retry over a list of failures**: each row is a different run to pick up.
 
 ## Covering, cutting and fading
 
-- **A cover stops short of the only way to act**: a cover with no way off it is a screen
-  you are stuck on, so an overlay ends at the composer's top edge.
-- **One way off, in the pane's own head; one way back, in the top row.** Where a sheet's
-  close ✕ already sits in that corner, a second ✕ is unreadable — use a labelled toggle.
-- **The Agents page's confirmation buries the top of the page it opens on**: 320px hanging
-  off the switch in the header's right corner covers the gloss, the trigger line, the rule
-  under them and the strip below it. Anything that must be read BEFORE the flip cannot sit
-  there, so an agent gets the peach strip or the confirmation, never both.
-- **A hover bubble must not land on a band's rule**: a tip drawn above the FIRST card of a
-  module band covers that band's caption and hairline and reads as a broken render — hang it
-  off a card that has another card above it.
-- **Land a scroll cut through body text**, never through an 11px caption: sliced caption
-  text reads as a broken render, a sliced character does not.
-- **Text sliced flat at a panel's foot reads as a bug**: fade the last ~56px into the
-  panel's own ground.
-- **A cut frame needs real markup**: pull the column up with a negative margin inside the
-  paper's `overflow-hidden`, and set bold with a `font-[700]` span — a literal `**…**` in a
-  mockup's body reads as a broken renderer.
-- **A path is truncated from the LEFT**: every plan sits in one folder, so a path cut at
-  the right end names nothing.
-- **Saving reads at the caret, not in the corner**: the chip rides the writing column's
-  right end on the caret's own line.
+- **A cover stops short of the only way to act**: an overlay with no way off it is a screen
+  you are stuck on.
+- **One way off, in the pane's own head; one way back, in the top row** — never a second ✕ in
+  a corner that already has one.
+- **A confirmation must not bury what has to be read before the flip**: a thing gets the
+  standing warning or the confirmation, never both.
+- **A hover bubble must not land on a band's rule, or on the last item of a clipped row** —
+  both read as a broken render. Put what carries a tip where there is room above and beside it.
+- **Land a scroll cut through body text**, never through a caption, and fade the last band of
+  a clipped panel into its own ground.
+- **A path is truncated from the left**: a path cut at the right end names nothing.
+- **Saving reads at the caret, not in the corner.**
 
 ## Characters
 
-- **Characters differ by silhouette, pose and prop**: one figure repeated in every tile was
-  rejected outright, and the same body with a swapped hat or a recolour does not pass either.
-- **The agent roster's characters are `kanban-ui/agent-art.md`'s**: one body, one prop each.
-  Recolouring the body instead does not read as a roster.
-- **An agent with no `public/agent-art/<name>.png` holds a card with its initial**, in an ink
-  picked from its name — that is what ships, so inventing a prop for it draws art nobody
+- **Characters differ by silhouette, pose and prop**: one figure repeated, or the same body
+  with a swapped hat or a recolour, is sent back.
+- **The roster's characters are `kanban-ui/agent-art.md`'s**, one body and one prop each; an
+  agent with no art file holds a lettered card, and inventing a prop for it draws art nobody
   ordered.
-- **A prop is one silhouette, not a scene**: at 48px the character is ~24px of chest, so
-  cut detail until a single outline is left.
+- **A prop is one silhouette, not a scene**: at roster size the figure is a few dozen pixels.
+- **A sprite sheet is corrected against the base art, not redesigned**: keep the original
+  proportions, limbs and shading, and change only what the sheet adds.
 
 ## Chinese copy in a fixed width
 
-- ❌ **Vague, childish phrasing about mistakes** → ✅ use professional, accessible Chinese that names the issue, such as “需求理解偏差”.
-- **Measure a Chinese line before writing it**: ~500px holds ~40 CJK characters and a 320px
-  popover ~24 at 12px. Written to the limit, a line orphans two or three characters — write
-  to a few under.
-- **The notification rows' event words are English inside the Chinese window**, and are
-  never translated. Only the chrome around them is Chinese.
-- **A delivery's pill and the line under it are written by the CLI**
-  (`cli/src/lib/agent/pause.ts`), not by `i18n/`, so they are drawn in English on the Chinese
-  card page — backticked names and all. Only the chrome round them — tabs, buttons, meta
-  captions — is Chinese, so a new delivery state is worded in that file's voice.
-- **Never set a delivery id in an uppercase heading**: the ids are lowercase 8 characters
-  from an alphabet with no look-alikes.
+- ❌ **Vague, childish phrasing about mistakes** → ✅ professional, accessible Chinese that
+  names the issue, such as "需求理解偏差".
+- **Measure a Chinese line before writing it**: written to the limit, a line orphans two or
+  three characters — write to a few under.
+- **The notification rows' event words stay English inside the Chinese window.**
+- **Never set a delivery id in an uppercase heading**: the ids are lowercase.
 
 ## The marketing editor
 
-- **overtype keeps the syntax marks in the line**, dimmed, with the text they mark styled.
-  A fully rendered draft with the marks gone is the wrong drawing.
-- **A heading there is BOLD, never bigger**: one size and one line height for every line,
-  or the invisible textarea stops lining up.
-- **A locked editor changes its ground, it does not dim its text**: fading the draft takes
-  the already-quiet syntax markers with it.
-- **A progress line is inset into the writing column**: run full-bleed it butts against the
-  tab strip and reads as a second, wrongly-placed tab underline.
-- **A selection raises a BUTTON, not an input**: a box that autofocuses on a selection eats
-  the keystroke that was meant to replace the passage.
-- **An IME composition is the OS's**: nothing of the app's may stand over it, and the
-  candidate bar is drawn as system chrome rather than as a neo-brutalist block.
+- **Overtype keeps the syntax marks in the line**, dimmed, with the text they mark styled. A
+  fully rendered draft is the wrong drawing.
+- **A heading there is bold, never bigger**: one size and one line height for every line, or
+  the invisible textarea stops lining up.
+- **A locked editor changes its ground, it does not dim its text.**
+- **A selection raises a button, not an input**: a box that autofocuses eats the keystroke
+  meant to replace the passage.
+- **An IME composition is the OS's**: nothing of the app's may stand over it.
+
+## Scenes and animation
+
+- ❌ **An activity scene crowded with large figures and permanent detail panes** → ✅ design
+  the spatial layout, sprite scale and motion first, and open details in floating sidebars.
+- ❌ **Scaling a fixed room by cramming in desks and keeping every finished worker on screen**
+  → ✅ keep the room spacious, allow paired desks, seat only the two most recent successes and
+  let older ones leave — and draw the capacity and completion states before delivery.
+- ❌ **Identity labels stacked under the figure** → ✅ role and harness above the head, the card
+  id at the feet, checked against the shortest crop of the dialog.
+- ❌ **A busy machine drawn as a lit still image** → ✅ supply a registered animation sprite
+  sheet, keep the surrounding pixels fixed, and freeze on a working frame for reduced motion.
+- ❌ **Scenery flattened while being lifted into its own layer** → ✅ keep the original
+  silhouettes and shading, scale uniformly, and check the final displayed proportions rather
+  than the source art alone.
+- **Daylight is a fixed set of local-time views** — dawn, day, dusk, night — with no location,
+  weather or seasonal input.
+
+## Designing against the app that exists
+
+- ❌ **A correct direction drawn as a simplified settings page** → ✅ preserve the current
+  screen's complete layout and control sizes when adding a feature.
+- ❌ **A spec drawn against a view the app no longer has** → ✅ inspect the current screen, its
+  modes and its controls first.
+- ❌ **Moving existing records and logs into new containers became a redesign** → ✅ reuse
+  their components and visual structure, and change only their containers.
+- ❌ **A mobile mockup drawn as a phone-width column on a desktop canvas** → ✅ use a real
+  narrow viewport.
+- ❌ **A CLI workflow maintained as an HTML screen** → ✅ keep terminal commands and output as
+  a short fenced text block in the card; draw only actual visual surfaces.
+- ❌ **Invented branding and hand-wrapped headlines** → ✅ use the real product logo, natural
+  wrapping, and the supplied reference.
+- **A start that is in flight swaps the pressed button's label, it does not spin**: a dot or
+  an arc there is a control this app has not got.
 
 ## Rendering a mockup
 
-- **Preview before finishing**: transpile the `.tsx` with `sucrase`, run it in a `vm` whose
-  only global is `React`, render with `react-dom/server`, build the CSS with tailwind's
-  `compile()` over the markup's classes, then screenshot headless Chrome at 1280 × 800 with
-  `--force-device-scale-factor=2`. A layout that overflows its dialog is only caught here.
-- **`kanban-ui/render-mockup.mjs` is untracked and gets deleted between sessions**: when it
-  is gone, write it again from this recipe rather than reaching for a new approach.
-- **Capacity needs visual order**: heavy card walls look crowded, while sparse full-width rows waste space; use meaningful groups, aligned lightweight cards and no arbitrary first-screen quota.
-- **The render script must SIT in `kanban-ui/` and be RUN from there**: Node looks beside
-  the script, so one in `/tmp` cannot resolve `sucrase`, `tailwindcss` or `react-dom/server`.
-- **Give sucrase the `imports` transform too** (`['typescript', 'jsx', 'imports']`), or the
-  leftover `export` is a syntax error in the sandbox. It writes to `exports`, so the sandbox's
-  `module.exports` and `exports` must be ONE object — two objects, and the default export
-  comes back `undefined` as "Element type is invalid".
-- **`compile()` is async and will not read a stylesheet for you**: `compiler.build is not a
-  function` means a missing `await`, and `@import "tailwindcss"` throws until the call is
-  handed a `loadStylesheet`. That loader resolves `tailwindcss` to
-  `node_modules/tailwindcss/index.css` — the package root, never `dist/`.
+- **Preview before finishing**: `kanban-ui/render-mockup.mjs` takes `<entry.tsx> <out.html>`,
+  transpiles with `sucrase` (`typescript`, `jsx`, `imports`), runs the module in a `vm`, walks
+  the folder's relative imports, compiles Tailwind from the folder's own `globals.css` with an
+  awaited `compile()` and a `loadStylesheet` resolving `tailwindcss` to the package root, and
+  screenshots headless Chrome at 2x. A layout that overflows its dialog is only caught here.
+- **The script is untracked and vanishes between sessions**: when it is gone, write it again
+  from this recipe rather than reaching for a new approach, and read it first — it grows.
+- **It must sit in `kanban-ui/` and be run from there**, because Node resolves its
+  dependencies beside the script.
 - **Never add a CSS reset to the rendered page**: the built stylesheet already carries
   preflight, and an unlayered `*{margin:0}` beats every layered utility.
-- **Screenshot one frame at a time**: append `module.exports.<Name> = <Name>` and render
-  that component alone. Cropping through an `<iframe>` shoots blank — a `file://` frame
-  inside a `data:` page is blocked.
-- **A frame that takes props needs a wrapper export**, not a bare one: rendering the
-  component name alone hands it `undefined` props and quietly draws the empty variant.
-- **A screen drawn inside a screen has no room for a scrim**: at ~25% a dialog over a
-  full-bleed ink scrim is one grey plate, not a screen. Draw it as a paper block over a
-  list that still reads, and let the miniatures be a handful of bars at ink 8% and 16%.
-- **Only plain Tailwind is compiled**: the board's `nb-*` tokens do not exist there, so
-  declare the palette as hex constants and pass colours through `style={{}}`.
-- **Art must be inline SVG**: the sandbox has no scripts, network, fonts or images, so an
-  `<img src="/…">` draws nothing and an emoji lands as tofu. The harness logos are paths in
-  `public/agents/*.svg`; the channel marks come out of `react-icons` through
-  `react-dom/server`.
-- **A PNG only travels as a `data:` URI**: that is the one `<img>` the sandbox and the card
-  page's sandboxed iframe both draw, so the agent roster's real characters are reachable —
-  `sips -Z 52` each PNG first (26px rows at 2x, ~6KB of base64 each) and splice the map in
-  with a script rather than typing it. `base.png` stays at 96 for the lettered fallback.
+- **Set a tone with the utility class, never an inline `var()`**: Tailwind emits only the
+  variables its generated utilities use, so a token reached only inline comes out colourless.
+- **A copied class string has no `cn()` behind it**: copy a variant without its fill and add
+  the caller's, or the stylesheet's order decides which wins.
+- **Screenshot one frame at a time** by exporting that component alone; a frame that takes
+  props needs a wrapper export, or it quietly draws the empty variant.
+- **Art must be inline SVG**, because the sandbox has no scripts, network, fonts or images. A
+  PNG travels only as a `data:` URI, shrunk first.
 - **A scrolling row clips everything that hangs off it**: draw the row twice — the real one
-  inside the scroller, and a hidden copy over it carrying the popover — rather than guessing
-  an anchor's `left`.
-- **When no browser will start, measure instead of guessing**: add the frame up by hand,
-  render to HTML anyway to prove the component runs, and say in the report that the frame
-  was never seen.
-- **整理记忆看起来像链接项，周期像必选项**：改为明确的 CTA，进入 Configurations → Agent → Memory Pruner；用户开启定期整理后才显示周期设置。
-- **Correct direction can still be misleading UI**: preserve the current screen’s complete layout and control sizes when adding a feature; do not replace it with a simplified settings page.
-- **定期整理独占一行太丑**：收成「立即整理」旁的小控件，点击才展开周期设置。
-- **Attachment designs used an obsolete Create task view**: inspect the current composer and per-mode runtime controls before drawing the attachment.
-
-- **An animated scene was delivered as oversized static figures with a detail timeline**: propose spatial layout, sprite scale and motion first; use small pixel sprites for Runs and keep detailed inspection in List.
-- ❌ **Optional linking exposes fields by default or looks like a persistent setting** → ✅ use a compact disclosure button and draw its expanded contents in the mockup; cancel explicitly clears linking and consent.
-- ❌ **A home shot drawing the card page tried to fit two mockups at their true 1.6∶1** → ✅ `nb.tsx`'s `CROP` is 1.5 and its bottom 30% is a fade: one screen compressed to ~3∶1, then the next screen's caption row clear of the fade and its picture dissolving. A drawn screen only reads as a screen when its ground is the board's canvas and its cards are paper — bare grey bars on paper read as a form.
-- ❌ **Design feedback around eval collection, payment disclaimers and run pickers** → ✅ keep partner feedback in Discuss with optional card linking; defer the separate general-feedback button to reduce complexity, show necessary sharing choices in plain words and use only support@ai4kanban.dev for contact.
+  inside the scroller, and a hidden copy over it carrying the popover.
+- **A browser that aborts needs `--single-process`**, on the Playwright headless-shell binary,
+  which also prints the abort's reason. When no browser will start even then, add the frame up
+  by hand, render to HTML to prove the component runs, and say the frame was never seen.
+- **A `web/` page is previewed through the same renderer**: keep the folder flat, copy
+  `web/app/globals.css` in and import it, swap aliased imports for local copies, and replace
+  browser hooks with fixed display state — then verify through the running board, since a
+  standalone renderer can hide failures in its React environment.
+- **Start a Configuration dialog from an existing dialog mockup's frame**: the panel, its
+  section list and the board behind it are already drawn; only the pane inside is the card's
+  work.
+- **A screen drawn inside a screen has no room for a scrim**: draw it as a paper block over a
+  list that still reads.
+- **Never bundle the board's own mockup library to preview with** — it shells out through the
+  CLI and hangs.

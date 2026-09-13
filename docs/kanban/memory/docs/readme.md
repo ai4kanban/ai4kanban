@@ -3,47 +3,24 @@
 User-facing work that has shipped, one line each — a link to the published doc that
 covers it, or a plain-words note.
 
-- What belongs in `goal.md`, as advice the user can skip — setup links it when it asks for the goal: `web/content/docs/what-makes-a-good-goal.mdx`.
-- What each value of the goal's `reviewed:` field means, who writes it, and which one makes the board ask you for a goal: `web/content/docs/daily-loop.mdx`.
 - Both READMEs, in English and Chinese, are app-first: the quick start opens on downloading
-  the board app, with what a Mac user clicks through on first open and a picture of the
-  guided first run; the `akb` command and `akb install` come second; the coding agent skill
-  is an optional section further down. They teach the commands a person types, never the
-  board's bookkeeping, and close on the two lines that update `akb`: `README.md`, `README-zh.md`.
-- No page anywhere says installing a board installs the skill — the READMEs, the setup
-  prompt at `web/public/INSTALL_PROMPT.txt`, and the npm page `cli/README.md` all say the same.
-- Which coding agents the board runs, what each reports back, what a run may touch, and
-  every agent's own settings — including ZCode, where the command comes from a package that
-  isn't Z.ai's and a run has no fence around the project: `web/content/docs/connectors.mdx`.
-- Which GLM Coding Plan tier to buy to run the board on ZCode — the three tiers, their
-  credit caps on both the 5-hour and weekly clocks, the models every tier reaches, and that
-  the plan bought through BigModel in mainland China is the same plan. The tier numbers come
-  from Z.ai's and BigModel's own docs and are marked untested; `README-zh.md` points at the
-  section, `README.md` does not: `web/content/docs/connectors.mdx`.
-- Running the board on Grok Build, xAI's coding agent: how to install `grok`, that a
-  `grok login` or an xAI key both work with the saved login winning, that the board's rules
-  go to `.agents/skills/kanban/`, that the run is fenced by `GROK_SANDBOX=workspace`, and why
-  the board drives ACP rather than Grok's `-p` mode: `web/content/docs/connectors.mdx`.
-- Running the board on Antigravity CLI, Google's coding agent: how to install `agy`, that a
-  Google login signs its runs and there is no key box, that the thinking level rides inside
-  the model id, why the board widens `--print-timeout` past a card's length, and that its
-  shell is not fenced to the project — with the note that no card has run on it yet:
-  `web/content/docs/connectors.mdx`.
-- Writing a spec agent of your own — the folder shape, the `akb:` frontmatter block with the hook
-  it plugs into, and how a setting's choice picks the one reference a run is given: "Let a
-  specialist fill part of the spec" in `web/content/docs/agents.mdx`, which `/docs/spec-skills`
-  now redirects to.
-- What a Local board is, what a Cloud board is, and what moving between them costs — the
-  committed `.ai4kanban.json` pointer, the git-ignored copy in `docs/kanban/`, the one reviewed
-  commit each way, the export, leaving Cloud and deleting the workspace:
-  `web/content/docs/local-and-cloud-boards.mdx`, and a section of its own in `README.md` and
-  `README-zh.md`.
-- The Market signals guide is now **Triage** at `/docs/triage`, in the same place in the rail.
-  `/docs/market-signals` is not redirected — the old address 404s. It carries the new command,
-  the two renamed settings, the **Fetch triage items** recurring card, and a note that the old
-  command and settings are gone and are yours to update: `web/content/docs/triage.mdx`.
-- Triage's page has **Let it sort by itself**: the switch, the batch that triggers a sort, the
-  three things that end the chain, and the cost of one refine per card it writes. Agents lists
-  Triage among the four roles you can switch off and gives it a section of its own. Both say
-  running it beside the Gater and the Decider is not recommended and why:
-  `web/content/docs/triage.mdx`, `web/content/docs/agents.mdx`.
+  the board app, the `akb` command comes second, and the coding agent skill is an optional
+  section further down. They teach the commands a person types, never the board's bookkeeping:
+  `README.md`, `README-zh.md`.
+- No page anywhere says installing a board installs the skill — the READMEs, the setup prompt
+  at `web/public/INSTALL_PROMPT.txt` and the npm page `cli/README.md` all say the same.
+- What belongs in `goal.md`, as advice the user can skip:
+  `web/content/docs/what-makes-a-good-goal.mdx`. What each value of `reviewed:` means and who
+  writes it: `web/content/docs/daily-loop.mdx`.
+- Which coding agents the board runs, what each needs installed and signs in with, what a run
+  may touch, and every agent's own settings — including which GLM Coding Plan tier reaches
+  which models: `web/content/docs/connectors.mdx`.
+- Writing a spec agent of your own — the folder shape, the `akb:` block, and how a setting's
+  choice picks the one reference a run is given: "Let a specialist fill part of the spec" in
+  `web/content/docs/agents.mdx`, which `/docs/spec-skills` redirects to.
+- The four roles you can switch off, each with a section of its own, and why running Triage
+  beside the Gater and the Decider is not recommended: `web/content/docs/agents.mdx`.
+- What a Local board is, what a Cloud board is, and what moving between them costs:
+  `web/content/docs/local-and-cloud-boards.mdx`, and a section of its own in both READMEs.
+- Triage — the command, its settings, the recurring card that pulls it, and **Let it sort by
+  itself**: `web/content/docs/triage.mdx`. `/docs/market-signals` is not redirected.

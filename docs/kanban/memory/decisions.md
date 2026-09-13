@@ -16,16 +16,20 @@ don't re-ask a settled call.
 ## How far agents go alone
 
 - There is no single on/off switch for what the board does on its own, and no ladder of
-  levels. Work that needs no user follows whatever caused it — a refine follows the run
-  that touched the card — and each further step brings its own setting if it needs one.
-- One click already carries a card from build to landed and archived. The next step is the
-  board starting a `ready` card with no click at all, which waits on limits for concurrent
-  runs, card count and spend. Letting it reject a card is a separate feature: nothing today
-  ever decides a card should be rejected.
-- A delivery that cannot land does not become a question: the board resolves the conflict
-  and lands it itself, and only asks when the work is genuinely at risk.
+  levels. Work that needs no user follows whatever caused it, and each further step brings
+  its own setting if it needs one.
+- One click already carries a card from build to landed and archived. Letting the board reject
+  a card is a separate feature: nothing today ever decides a card should be rejected.
+- A delivery that cannot land does not become a question: the board resolves the conflict and
+  lands it itself, and only asks when the work is genuinely at risk.
 
 ## Eval collection
 
-- Provide a partner feedback agent, disabled by default and enabled only after the user agrees to participate. Once enabled, concrete issue feedback through #603 automatically triggers it to analyze, collect, and submit the corresponding refine session. The initial qa-loop eval collection is for a small group of partners whose code the team may inspect. Upload project files read by the selected refine session only; assume that evidence is sufficient to investigate planning omissions. Omit upload previews in the first version and add them later.
-- Maintain curated eval cases, rubrics, runners, and experiment summaries in the separate private repository `ai4kanban-evals`; record the public guide revision for each experiment. Incoming submissions are reproduced and reviewed before admission.
+- The partner feedback agent is disabled by default and enabled only after the user agrees to
+  participate. Once on, concrete issue feedback triggers it to analyze, collect and submit the
+  session it came from, uploading only the project files that session read.
+- The first collection is for a small group of partners whose code the team may inspect, with
+  no upload preview in the first version.
+- Curated cases, rubrics, runners and experiment summaries live in the separate private
+  repository `ai4kanban-evals`, with the public guide revision recorded per experiment.
+  Incoming submissions are reproduced and reviewed before admission.
