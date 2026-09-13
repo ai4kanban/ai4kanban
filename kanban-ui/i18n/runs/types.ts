@@ -92,6 +92,18 @@ export type RunsCopy = {
     /** The cap over a card-less delivery's pause (#428) — it has no card page to be read
      *  on, so its own label rides here. */
     stopped: (label: string) => string;
+    /** The work a build with no card left behind, kept because the job can still be carried
+     *  on (#720): what is here, and the two things to do with it. */
+    kept: {
+      tag: string;
+      blurb: string;
+      carryOn: string;
+      carryingOn: string;
+      discard: string;
+      discarding: string;
+      carryOnFailed: string;
+      discardFailed: string;
+    };
     /** How many sessions one job took, under its row. */
     steps: (n: number) => string;
     justNow: string;

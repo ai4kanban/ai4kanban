@@ -332,8 +332,18 @@ export interface SessionView {
    *
    *  `cardless` is a build started from **Build now** (#428): there is no card page, so the
    *  typed sentence stands where the `#id` would and `state` — the delivery's own pause,
-   *  which a card page draws in its title band — is drawn on the flow instead. */
-  delivery?: { id: string; status: DeliveryStatus; cardless?: boolean; state?: CardDeliveryState };
+   *  which a card page draws in its title band — is drawn on the flow instead.
+   *
+   *  `kept` is the checkout the board left behind because the job can still be carried on
+   *  (#720). Only on a card-less build: everywhere else the card page is where the two
+   *  things to do with it are offered. */
+  delivery?: {
+    id: string;
+    status: DeliveryStatus;
+    cardless?: boolean;
+    state?: CardDeliveryState;
+    kept?: { worktree: string };
+  };
   /** The DELIVERY this run was recorded under, whether or not that delivery's own row is
    *  still in the live record (#417). It is what the panel groups a job by, so a run whose
    *  stored flow disagrees is drawn where it belongs without any record being rewritten. */

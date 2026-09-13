@@ -20,6 +20,7 @@ import { dropRunCard, recordCardRun, runBoardMove, setCardStatusOn, takeRunCard 
 import { cardFile } from '../board/revision'
 // pidAlive lives with the lock, which needs the same question answered about whoever holds it.
 import { pidAlive } from '../lock'
+import { say } from '../io'
 import { planFromText, planTitle, readPlan } from '../plans'
 import { reportRun } from '../machine/usage'
 import { SKILL_VERSION } from '../../version'
@@ -36,7 +37,9 @@ import {
   resumeRecord,
   settleDelivery,
   settleOrphanedDeliveries,
+  sweepCheckouts,
   syncAudit,
+  tidyCheckout,
 } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
 import { deliversWithGit, solution } from '../solution'
@@ -1193,10 +1196,9 @@ export async function stopRun(id: string): Promise<StartResult> {
   return { ok: true, sessionId: live.sessionId }
 }
 
-/** Cancel a delivery: end it, stop whatever run it has going, and hand the card
- *  back. Whatever the delivery wrote is left exactly where it is — the board never undoes
- *  work; `discard` is what reclaims a worktree, and what the card page offers (#313). This
- *  is the CLI-only way out for anyone who wants the branch kept.
+/** Cancel a delivery: end it, stop whatever run it has going, and hand the card back.
+ *  Cancelling is the user giving the delivery up, so its worktree and branch go with it
+ *  (#720) — stopping the RUN is the pause that keeps them.
  *
  *  Named by delivery id, by any prefix of one, or by the card it is building. Cancelling
  *  one that has already ended is not an error: the button is drawn from a poll that can be
@@ -1215,13 +1217,36 @@ export async function cancelDelivery(id: string): Promise<{ ok: boolean; deliver
   if (live) await stopRun(live.sessionId)
   // Whether or not there was one to stop: nothing is building this card now.
   await releaseCard(delivery)
+  // `stopRun` signals and returns; the process takes a moment to go. Waited out here, so a
+  // cancel with a run going clears its checkout now rather than at the next sweep.
+  if (live) await runIsDown(live.sessionId)
+  // Then the checkout. `endDelivery` above tried already and found the run still going —
+  // a delivery that has ended must not have its files pulled out from under a process
+  // still writing them — so this is the try that lands (#720).
+  // A removal git refused is said and left: the cancel itself went through, the worktree is
+  // still there to look at, and Discard — and the next sweep — are both retries.
+  const tidied = tidyCheckout(delivery.deliveryId)
+  if (tidied.error) say(`delivery ${delivery.deliveryId} was cancelled, but ${tidied.error}.`)
   // Last, so the permanent record carries how that run actually ended rather than the
   // state it was in when the cancel arrived.
   syncAudit(delivery.deliveryId)
   return { ok: true, deliveryId: delivery.deliveryId }
 }
 
-/** Carry an ended delivery on (#639): one that failed or was cancelled with its work still
+// A stopped run, waited out until it is really gone. Bounded: a harness that will not go is
+// not worth holding the cancel open for, and the next sweep clears the checkout anyway.
+const STOP_WAIT_MS = 5_000
+const STOP_POLL_MS = 100
+
+async function runIsDown(sessionId: string): Promise<void> {
+  for (const until = Date.now() + STOP_WAIT_MS; Date.now() < until; ) {
+    const run = readRuns().find((r) => r.sessionId === sessionId)
+    if (!run || !runIsLive(run)) return
+    await sleep(STOP_POLL_MS)
+  }
+}
+
+/** Carry an ended delivery on (#639): one that stopped short with its work still
  *  on disk goes back to `active`, holding its card, and finishes the job it stopped in the
  *  middle of.
  *
@@ -1304,7 +1329,10 @@ export function repairDeliveries(): string[] {
   pruneWorktreeMetadata()
   // A landing a crash left half-done first: a rebase stopped part-way through with nothing
   // working on it is put back, and the slot it was holding goes with it (#304).
-  const complaints: string[] = [...repairLanding()]
+  // Then every checkout an ended delivery still holds, under the one rule (#720): the ones
+  // nobody can carry on go, including those a release that kept every ending left behind,
+  // and a removal git refused last time is tried again.
+  const complaints: string[] = [...repairLanding(), ...sweepCheckouts()]
   for (const d of listDeliveries()) {
     if (d.status !== 'active' || !d.worktree) continue
     const lostTree = !worktreeExists(d.worktree)

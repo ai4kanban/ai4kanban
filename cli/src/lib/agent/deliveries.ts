@@ -5,7 +5,9 @@
 // builds from that copy, so a card edited underneath it never changes what it was approved
 // to build. While it is in flight the card is held — the board's own screens and commands
 // won't change it — and the way to take the card back is Discard on the card page, or
-// `cancel` here, which ends it the same way but leaves its worktree behind.
+// `cancel` here, which ends it the same way. Either one gives the delivery up, so both
+// take its worktree and branch with them (#720); what the board keeps is a delivery that
+// stopped on its own and still has a job to finish.
 //
 // A delivery may also open with NO card (#428) — **Build now** sends a typed sentence
 // straight to a build. Its snapshot is that sentence, which nothing can rewrite, and its own
@@ -50,7 +52,7 @@ import {
   nextAfterSession,
   reviewOf,
 } from './review'
-import { readDeliveryRow, readStore, withStore, type Store } from './store'
+import { readDeliveryRow, readStore, runIsLive, withStore, type Store } from './store'
 import type {
   AgentRequest,
   DeliveryCarryOn,
@@ -59,7 +61,7 @@ import type {
   DirectBuild,
   RunRecord,
 } from './types'
-import { branchExists, worktreeExists } from './worktree'
+import { branchExists, dropEmptyWorktreeFolders, removeWorktree, worktreeExists } from './worktree'
 
 // ---- the permanent record ---------------------------------------------------
 
@@ -358,10 +360,14 @@ export function endedDelivery(id: string): DeliveryRecord | undefined {
 /** Why this delivery cannot be carried on, or nothing when it can.
  *
  *  Resume picks an ended delivery back up where it stopped rather than building the card
- *  again, so everything it stopped with has to still be here: an ending it did not choose,
- *  the checkout it built in, and a card nothing else has taken over. Each refusal names the
- *  one thing that failed and the way that is still open — discard it and start again — so a
- *  refusal is something the reader can act on. */
+ *  again, so everything it stopped with has to still be here: an ending nobody chose, the
+ *  checkout it built in, and a card nothing else has taken over. Each refusal names the one
+ *  thing that failed and the way that is still open — discard it and start again — so a
+ *  refusal is something the reader can act on.
+ *
+ *  This is also the board's one test of whether a delivery's checkout is worth KEEPING
+ *  (#720): `tidyCheckout` removes the worktree and branch of every delivery this refuses,
+ *  so the button and the clean-up can never disagree about which work survives. */
 export function resumeRefusal(delivery: DeliveryRecord, store?: Store): string | undefined {
   const id = delivery.deliveryId
   const what = delivery.cardId === null ? 'the build' : `#${delivery.cardId}`
@@ -369,6 +375,12 @@ export function resumeRefusal(delivery: DeliveryRecord, store?: Store): string |
   if (delivery.status === 'active') return `delivery ${id} has not ended — it is still in flight on ${what}.`
   if (delivery.status === 'finished') {
     return `delivery ${id} finished; resume carries on one that ended abnormally.`
+  }
+  // Cancelling is the user giving the delivery up (#720) — the board ends it, throws its
+  // checkout away and starts again from the card. Stopping a RUN is the pause that keeps
+  // the work; this is not that.
+  if (delivery.status === 'cancelled') {
+    return `delivery ${id} was cancelled, so its work was given up. Start ${what} again.`
   }
   // Manual commit mode has no checkout of its own (#303): the work is in the user's own
   // tree and their commit is what ends it, so there is no branch here to carry on.
@@ -383,21 +395,141 @@ export function resumeRefusal(delivery: DeliveryRecord, store?: Store): string |
   }
   // A **Build now** delivery holds no card (#428), so there is nothing here to check.
   if (delivery.cardId === null) return undefined
-  if (!locate(delivery.cardId)) {
+  if (cardOnBoard(delivery.cardId) === false) {
     return `#${delivery.cardId} is no longer on the board, so delivery ${id} has nothing left to finish.`
   }
-  const holder = activeIn(store ?? readStore(), delivery.cardId)
+  const live = store ?? readStore()
+  const holder = activeIn(live, delivery.cardId)
   if (holder) {
     return (
       `delivery ${holder.deliveryId} is building #${delivery.cardId} now — ` +
       `end that one first with \`${boardCommand()} delivery cancel ${holder.deliveryId}\`.`
     )
   }
+  // And a delivery that opened on this card after this one ended has taken the job over,
+  // even though it has ended too: the newer one is what a reader means by "the delivery
+  // that stopped on this card", and two checkouts for one card is what #720 set out to end.
+  const after =
+    delivery.endedAt === undefined
+      ? undefined
+      : live.deliveries.find(
+          (d) => d.cardId === delivery.cardId && d.deliveryId !== id && d.startedAt >= delivery.endedAt!,
+        )
+  if (after) {
+    return `delivery ${after.deliveryId} took #${delivery.cardId} over after this one ended, so there is nothing left to carry on.`
+  }
   return undefined
 }
 
-/** Whether the card page may offer this ended delivery a **Resume** (#639). */
+/** Is this card still on the board? `undefined` when the board could not be read — a
+ *  folder that would not open is not a card somebody removed, and reading it as one would
+ *  delete the checkout of every delivery on the board (#720). */
+function cardOnBoard(cardId: number): boolean | undefined {
+  try {
+    return !!locate(cardId)
+  } catch {
+    return undefined
+  }
+}
+
+/** Whether the card page may offer this ended delivery a **Resume** (#639) — and whether
+ *  the board keeps its checkout at all (#720). */
 export const isResumable = (delivery: DeliveryRecord): boolean => !resumeRefusal(delivery)
+
+// ---- clearing up after an ended delivery (#720) -----------------------------
+
+/** What one clean-up did. `kept` is a delivery somebody can still carry on, which is the
+ *  whole reason its worktree is still there. */
+export interface TidyResult {
+  removed: boolean
+  kept: boolean
+  /** Why nothing was removed this time, when it was neither of the two above: a run of the
+   *  delivery is still going, or git refused. Retried by the next sweep. */
+  error?: string
+}
+
+const NOTHING: TidyResult = { removed: false, kept: false }
+
+/** Remove an ended delivery's worktree and branch, unless it is one that can still be
+ *  carried on.
+ *
+ *  One rule, read off `resumeRefusal`: a delivery Resume would take is left exactly where
+ *  it is, and every other ended delivery — finished, cancelled, superseded, failed with
+ *  nothing left to finish — gives its checkout back. Nothing here decides anything on its
+ *  own, so a checkout the card page still offers a button for is never the one deleted.
+ *
+ *  Forced: every run commits its work to the delivery's branch as it closes, so what is
+ *  left uncommitted is a half-step an interruption left behind, and it goes with the ending
+ *  that threw the rest away.
+ *
+ *  A delivery whose run is still going is left for the next sweep — a delivery that has
+ *  ended must not have its files pulled out from under a process still writing them. The
+ *  permanent record under `docs/kanban/deliveries/` is never touched: what the delivery did
+ *  outlives what it built in. */
+export function tidyCheckout(deliveryId: string): TidyResult {
+  const store = readStore()
+  const row = store.deliveries.find((d) => d.deliveryId === deliveryId) ?? auditOnly(deliveryId)
+  if (!row || row.status === 'active') return NOTHING
+  if (!row.worktree && !row.branch) return NOTHING
+  if (isResumable(row)) return { removed: false, kept: true }
+  // Really going, not merely recorded as such: a watcher that died leaves a `running` row
+  // behind, and reading that as a live process would hold the checkout forever.
+  if (store.runs.some((r) => r.deliveryId === deliveryId && runIsLive(r))) {
+    return { removed: false, kept: false, error: `a run of delivery ${deliveryId} is still going` }
+  }
+  const removed = removeWorktree(row.worktree, row.branch, true)
+  if (!removed.ok) return { removed: false, kept: false, error: removed.error }
+  forgetCheckout(deliveryId)
+  return { removed: true, kept: false }
+}
+
+/** A delivery the live record has already let go of, read back from its permanent record —
+ *  which is how a worktree older than the newest thirty deliveries is still reachable. */
+function auditOnly(deliveryId: string): DeliveryRecord | undefined {
+  const audit = wholeAudit(auditPath(deliveryId))
+  return (audit && auditRow(audit)) ?? undefined
+}
+
+/** Take the worktree and the branch off both records, now that neither is on disk. */
+function forgetCheckout(deliveryId: string): void {
+  withStore((store) => {
+    const live = store.deliveries.find((d) => d.deliveryId === deliveryId)
+    if (!live) return
+    live.worktree = undefined
+    live.branch = undefined
+  })
+  const audit = wholeAudit(auditPath(deliveryId))
+  if (audit?.worktree || audit?.branch) writeAuditFile({ ...audit, worktree: undefined, branch: undefined })
+}
+
+/** The checkout an ENDED delivery still has, when the board kept it (#720) — what the Runs
+ *  dialog draws Carry on and Discard from, for a build with no card page to draw them on.
+ *  Nothing on a delivery in flight, and nothing on one whose work has already gone. */
+export function keptCheckout(deliveryId: string): { worktree: string; branch?: string } | undefined {
+  const row = findDelivery(deliveryId)
+  if (!row?.worktree || row.status === 'active' || !isResumable(row)) return undefined
+  return { worktree: row.worktree, branch: row.branch }
+}
+
+/** Put every delivery this board still holds a checkout for through the same rule, and hand
+ *  back what would not go.
+ *
+ *  Read as the board comes up, so the worktrees left behind by releases that kept every
+ *  ended delivery are cleared once, under the rule that applies to a delivery ending now —
+ *  and so a clean-up that git refused the first time is tried again. */
+export function sweepCheckouts(): string[] {
+  const seen = new Set<string>()
+  const complaints: string[] = []
+  const rows = [...readStore().deliveries, ...allAudits().flatMap((a) => auditRow(a) ?? [])]
+  for (const row of rows) {
+    if (seen.has(row.deliveryId) || row.status === 'active' || !row.worktree) continue
+    seen.add(row.deliveryId)
+    const done = tidyCheckout(row.deliveryId)
+    if (done.error) complaints.push(`delivery ${row.deliveryId}: ${done.error} — ${row.worktree} was left alone.`)
+  }
+  dropEmptyWorktreeFolders()
+  return complaints
+}
 
 /** Put an ended delivery back into the live record as an `active` one, holding its card
  *  again.
@@ -784,6 +916,10 @@ export function endDelivery(deliveryId: string, status: Exclude<DeliveryStatus, 
   })
   if (ended) {
     syncAudit(deliveryId)
+    // The checkout it built in, unless it is one somebody can still carry on (#720). A
+    // cancel reaches here before its run is stopped, so that one is left for the second
+    // call `cancelDelivery` makes once the run is down.
+    tidyCheckout(deliveryId)
     // How it ended, against the Cloud event whose action started it (#319). A card with no
     // action on record has nothing to report, so this is a no-op on most deliveries — and a
     // delivery with no card at all answers no action and reports nothing.
@@ -1211,10 +1347,10 @@ export function heldByDelivery(cardId: number, program?: string): string | undef
         `Take the card back with `
       : `is in flight on #${cardId} — it is building the card as it was approved when it started, ` +
         `so the board won't change it. Take the card back with `
-  // Two ways out, and they differ in what they leave behind: Discard throws the delivery's
-  // worktree away with it, `cancel` ends it and leaves the work on disk.
+  // Two ways out, and neither keeps the work: giving a delivery up takes its checkout with
+  // it (#720).
   return (
     `delivery ${delivery.deliveryId} ${doing}` +
-    `Discard on the card page, or \`${cmd} delivery cancel ${delivery.deliveryId}\` to end it and keep its work.`
+    `Discard on the card page, or \`${cmd} delivery cancel ${delivery.deliveryId}\` to end it here.`
   )
 }

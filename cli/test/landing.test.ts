@@ -871,14 +871,15 @@ describe('work that is already on the target branch', () => {
     assert.equal(git(['rev-parse', 'main']), carrier)
   })
 
-  it('archives the card and leaves the branch and worktree alone', async () => {
+  it('archives the card and clears the checkout up after it (#720)', async () => {
     const delivery = await reviewed(1, 'card one', 'one\n')
     alsoOnMain('one\n')
     await advanceLanding()
     assert.equal(fs.existsSync(cardPath(1)), false, 'the card is archived')
-    // The conclusion came from a comparison, so nothing is deleted on the strength of it.
-    assert.equal(fs.existsSync(worktreeDir(delivery.worktree!)), true)
-    assert.notEqual(git(['branch', '--list', delivery.branch!]), '')
+    // The change is on main, so the delivery is finished and there is nothing left in its
+    // checkout that only its checkout has.
+    assert.equal(fs.existsSync(worktreeDir(delivery.worktree!)), false)
+    assert.equal(git(['branch', '--list', delivery.branch!]), '')
   })
 
   it('settles a delivery stopped on a landing conflict instead of resolving it again', async () => {

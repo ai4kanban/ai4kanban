@@ -45,6 +45,7 @@ function toView(
   titleOf: (cardId: number | null) => string | undefined,
   deliveries?: Map<string, DeliveryRecord>,
   pauses?: Map<string, CardDeliveryState>,
+  kept?: Map<string, { worktree: string }>,
 ): SessionView {
   const delivery = run.deliveryId ? deliveries?.get(run.deliveryId) : undefined;
   // A build with no card (#428) has no card page to read its pause on, so the pause rides
@@ -104,7 +105,13 @@ function toView(
       ? {
           id: delivery.deliveryId,
           status: delivery.status,
-          ...(cardless ? { cardless: true, state: pauses?.get(delivery.deliveryId) } : {}),
+          ...(cardless
+            ? {
+                cardless: true,
+                state: pauses?.get(delivery.deliveryId),
+                kept: kept?.get(delivery.deliveryId),
+              }
+            : {}),
         }
       : undefined,
   };
@@ -190,6 +197,23 @@ function pauseMap(
   return pauses;
 }
 
+// And the checkout each ENDED card-less delivery still has (#720) — the board kept it
+// because the job can be carried on, and this run's own window is the only place that says
+// so. Worked out once per read, like the pauses above.
+function keptMap(
+  rules: Awaited<ReturnType<typeof boardRules>>,
+  deliveries: Map<string, DeliveryRecord> | undefined,
+): Map<string, { worktree: string }> {
+  const kept = new Map<string, { worktree: string }>();
+  if (!rules.keptCheckout || !deliveries) return kept;
+  for (const delivery of deliveries.values()) {
+    if (delivery.cardId !== null || delivery.status === "active") continue;
+    const at = rules.keptCheckout(delivery.deliveryId);
+    if (at) kept.set(delivery.deliveryId, { worktree: at.worktree });
+  }
+  return kept;
+}
+
 /** Every session the board knows about, each carrying the delivery it belongs to. One
  *  picture, shared by every tab and every terminal. */
 export async function listSessions(): Promise<SessionView[]> {
@@ -197,7 +221,10 @@ export async function listSessions(): Promise<SessionView[]> {
     const rules = await boardRules();
     const deliveries = deliveryMap(rules.listDeliveries?.());
     const pauses = pauseMap(rules, deliveries);
-    return (await rules.listRuns()).map((r) => toView(r, titleLookup(rules), deliveries, pauses));
+    const kept = keptMap(rules, deliveries);
+    // One lookup for the whole read — a fresh one per run would cache nothing.
+    const titleOf = titleLookup(rules);
+    return (await rules.listRuns()).map((r) => toView(r, titleOf, deliveries, pauses, kept));
   } catch {
     // No rules to load: the board has no sessions to show and says why elsewhere, rather
     // than failing the poll that draws the whole page.
@@ -213,15 +240,21 @@ export async function getSession(sessionId: string): Promise<SessionView | null>
     const run = await rules.getRun(sessionId);
     if (!run) return null;
     const deliveries = deliveryMap(rules.listDeliveries?.());
-    return toView(run, titleLookup(rules), deliveries, pauseMap(rules, deliveries));
+    return toView(
+      run,
+      titleLookup(rules),
+      deliveries,
+      pauseMap(rules, deliveries),
+      keptMap(rules, deliveries),
+    );
   } catch {
     return null;
   }
 }
 
 /** Take the card back from the delivery in flight on it: the delivery ends as cancelled,
- *  its running session is stopped, and Implement is offered again. Whatever the delivery
- *  wrote is left where it is. */
+ *  its running session is stopped, and Implement is offered again. Cancelling gives the
+ *  delivery up, so its worktree and branch go with it (#720). */
 export async function cancelDelivery(id: string): Promise<StartResult> {
   try {
     const rules = await boardRules();
@@ -235,8 +268,8 @@ export async function cancelDelivery(id: string): Promise<StartResult> {
   }
 }
 
-/** Carry an ended delivery on from where it stopped (#639): one that failed or was
- *  cancelled with its checkout still here goes back to work and finishes the job. Finished
+/** Carry an ended delivery on from where it stopped (#639): one that stopped with its
+ *  checkout still here goes back to work and finishes the job. Finished
  *  steps are never redone, and work that already reached the target branch ends the delivery
  *  on the commit that carries it rather than landing it twice. */
 export async function resumeDelivery(id: string): Promise<StartResult> {

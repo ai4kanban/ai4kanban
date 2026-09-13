@@ -10,7 +10,16 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { FiActivity, FiCheck, FiChevronLeft, FiChevronRight, FiCopy, FiX } from "react-icons/fi";
+import {
+  FiActivity,
+  FiCheck,
+  FiChevronLeft,
+  FiChevronRight,
+  FiCopy,
+  FiPlay,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
 import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import type { UiCopy } from "@/i18n/types";
@@ -498,6 +507,79 @@ function DeliveryStop({ session }: { session: SessionView }) {
           i % 2 === 0 ? <Fragment key={i}>{part}</Fragment> : <CopyCommand key={i} text={part} />,
         )}
       </p>
+    </div>
+  );
+}
+
+// What a card-less build left behind, when the board kept it (#720).
+//
+// Every other ending clears its own checkout up. This one is kept because the job can still
+// be carried on — and with no card page to offer that on, the run's own window is where the
+// work is named and the two things to do with it sit.
+function DeliveryKept({
+  session,
+  onMoved,
+}: {
+  session: SessionView;
+  onMoved: () => void;
+}) {
+  // Read off the POLLED row, never the one-shot log fetch: `useSessionLog` stops polling the
+  // moment a run is terminal, so a band drawn from it would still be here after the press
+  // that cleared it.
+  const c = useCopy().runs.panel.kept;
+  const actions = useActions();
+  const [busy, setBusy] = useState<"resume" | "discard" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const kept = session.delivery?.cardless ? session.delivery.kept : undefined;
+  const id = session.delivery?.id;
+
+  const move = async (which: "resume" | "discard") => {
+    if (!actions || !id) return;
+    setBusy(which);
+    setError(null);
+    const res = which === "resume" ? await actions.resumeDelivery(id) : await actions.discardDelivery(id);
+    setBusy(null);
+    if (res.ok) onMoved();
+    else setError(res.error || (which === "resume" ? c.carryOnFailed : c.discardFailed));
+  };
+
+  if (!kept || !actions) return null;
+  return (
+    <div className="mb-3 rounded-[8px] bg-nb-peach-soft px-3 py-2.5 text-nb-peach-ink">
+      <div className="mb-1.5 flex items-center gap-2">
+        <p className="nb-tag text-nb-peach-ink">{c.tag}</p>
+        {/* Both moves are real, so both are quiet ghosts, and the one that throws the work
+            away says what it deletes in the line below. */}
+        <span className="ml-auto flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 rounded-[7px] px-2 py-1 text-[11px] font-[700]"
+            disabled={!!busy}
+            onClick={() => void move("resume")}
+          >
+            <FiPlay className="text-[12px]" aria-hidden />
+            {busy === "resume" ? c.carryingOn : c.carryOn}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 rounded-[7px] px-2 py-1 text-[11px] font-[700]"
+            disabled={!!busy}
+            onClick={() => void move("discard")}
+          >
+            <FiTrash2 className="text-[12px]" aria-hidden />
+            {busy === "discard" ? c.discarding : c.discard}
+          </Button>
+        </span>
+      </div>
+      <p className="text-[12.5px] leading-relaxed text-nb-ink">
+        {c.blurb}{" "}
+        <span className="mx-[1px] inline-flex items-center rounded-[5px] bg-nb-paper px-1.5 py-[1px] align-baseline font-mono text-[12px] font-[700] text-nb-ink">
+          {kept.worktree}
+        </span>
+      </p>
+      {error && <p className="mt-1.5 text-[12px] text-nb-peach-ink">{error}</p>}
     </div>
   );
 }
@@ -1134,7 +1216,10 @@ function RunDetail({
             polled `log` wins over the list entry: the poll that drew
             this row may be a second and a half old. Selecting the new
             run moves the panel onto it, so the log tail plays on. */}
-        {(log?.canResume ?? selected.canResume) && (
+        {/* The DELIVERY's own Carry on stands in for the session's whenever the board kept
+            its checkout (#720): resuming the delivery puts it back on the step it stopped
+            at, which is more than continuing the last conversation. */}
+        {(log?.canResume ?? selected.canResume) && !selected.delivery?.kept && (
           <span className="ml-auto">
             <ResumeButton
               sessionId={selected.sessionId}
@@ -1150,6 +1235,9 @@ function RunDetail({
           on (#428): the stop that will not land, the refusal that clears itself,
           and the commands that put either back in motion. */}
       <DeliveryStop session={log ?? selected} />
+      {/* And what it left behind when the board kept it (#720) — the work, and the two
+          things to do with it. */}
+      <DeliveryKept session={selected} onMoved={onStarted} />
       {/* How the job ended — its steps are the left list's job. */}
       {flow && flow.sessions.length > 1 && <FlowEnding flow={flow} selectedId={selectedId} />}
       {/* The note is the optional free text the user typed when

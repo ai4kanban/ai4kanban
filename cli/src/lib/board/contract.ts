@@ -244,7 +244,7 @@ export interface BoardProvider {
   deliveryDiff(deliveryId: string): Promise<DeliveryDiff | null>
   cancelDelivery(deliveryId: string, env: OpEnvelope): Promise<OpResult<{ deliveryId?: string }>>
   /** Carry an ended delivery on from where it stopped (#639) — the one way back for a
-   *  delivery that failed or was cancelled with its worktree and branch still here. It
+   *  delivery that stopped short with its worktree and branch still here. It
    *  answers with where the delivery went: `landed` when its work turned out to be on the
    *  target branch already, `carryOn` with the step it picked back up otherwise. */
   resumeDelivery(

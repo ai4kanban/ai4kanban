@@ -560,7 +560,10 @@ function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
   verb('cancel')
     .argument('<delivery>', DELIVERY)
     .summary('end it and hand the card back')
-    .description('Its worktree and branch are left on disk. `discard` is what throws those away.')
+    .description(
+      'Cancelling gives the delivery up, so its worktree and branch go with it. To pause instead, stop its ' +
+        'run — the delivery stays, and `resume` carries it on.',
+    )
     .action(async function (this: Command, ...vals: unknown[]) {
       const [named] = positional(vals) as [string]
       await onBoard(this, cli, () => cmdCancel(named))
@@ -568,7 +571,7 @@ function declareDelivery(delivery: Command, cli: AgentCliOptions): void {
 
   verb('resume')
     .argument('<delivery>', DELIVERY)
-    .summary('carry one on that failed or was cancelled, from where it stopped')
+    .summary('carry one on that stopped short, from where it stopped')
     .description(
       'Its worktree, branch, approved requirements and review all stay as they are — finished steps are ' +
         'never redone. Work that has already reached the target branch under another commit ends the ' +

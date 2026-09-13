@@ -628,9 +628,10 @@ function asDeliveryStatus(value: unknown): DeliveryStatus {
 
 // Persist the run registry atomically.
 function writeStore(store: Store): void {
+  const deliveries = pruneDeliveries(store.deliveries)
   const kept = {
-    runs: prune(store.runs),
-    deliveries: pruneDeliveries(store.deliveries),
+    runs: prune(store.runs, deliveries),
+    deliveries,
     marks: store.marks,
   }
   fs.mkdirSync(path.dirname(SESSIONS), { recursive: true })
@@ -642,25 +643,43 @@ function writeStore(store: Store): void {
 
 // Bound the record: keep every live run and the newest KEEP_RUNS finished ones, and
 // drop a finished one whose log is already gone — its record would be a dead pointer.
-function prune(runs: RunRecord[]): RunRecord[] {
+//
+// A run of a delivery whose checkout the board KEPT stays either way (#720). That run's own
+// row is where a build with no card is offered Carry on and Discard, and a delivery is kept
+// precisely because there is still a choice to make about it — an entry that expired with
+// the log would leave the work on disk with nothing pointing at it.
+function prune(runs: RunRecord[], deliveries: DeliveryRecord[]): RunRecord[] {
+  const held = new Set(deliveries.filter(holdsCheckout).map((d) => d.deliveryId))
   const live = runs.filter((r) => r.status === 'running')
   const finished = runs
-    .filter((r) => r.status !== 'running' && fs.existsSync(r.logPath))
+    .filter((r) => r.status !== 'running' && (fs.existsSync(r.logPath) || (r.deliveryId && held.has(r.deliveryId))))
     .sort((a, b) => b.startedAt - a.startedAt)
     .slice(0, KEEP_RUNS)
-  return [...live, ...finished].sort((a, b) => a.startedAt - b.startedAt)
+  const spared = runs.filter(
+    (r) => r.status !== 'running' && !finished.includes(r) && r.deliveryId && held.has(r.deliveryId),
+  )
+  return [...live, ...finished, ...spared].sort((a, b) => a.startedAt - b.startedAt)
 }
 
 // An ACTIVE delivery is never trimmed, however many newer ones there are: this row is what
 // holds its card, and losing it would quietly hand the card back mid-delivery.
+//
+// Nor is an ended one that still holds a checkout (#720). Every ending the board clears up
+// after takes the worktree off the row as it goes, so a row that still names one is either a
+// delivery somebody can carry on or a removal that has to be tried again — and both need the
+// row to be findable.
 function pruneDeliveries(deliveries: DeliveryRecord[]): DeliveryRecord[] {
-  const active = deliveries.filter((d) => d.status === 'active')
+  const kept = deliveries.filter((d) => d.status === 'active' || holdsCheckout(d))
   const ended = deliveries
-    .filter((d) => d.status !== 'active')
+    .filter((d) => !kept.includes(d))
     .sort((a, b) => b.startedAt - a.startedAt)
     .slice(0, KEEP_DELIVERIES)
-  return [...active, ...ended].sort((a, b) => a.startedAt - b.startedAt)
+  return [...kept, ...ended].sort((a, b) => a.startedAt - b.startedAt)
 }
+
+// Read off the row alone — no git, no board — because this runs on every write of a record
+// the board's screens poll twice a second.
+const holdsCheckout = (d: DeliveryRecord): boolean => !!d.worktree
 
 /** Read the record, change it, write it back — with its lock held the whole way. Every
  *  writer goes through this, so two processes never lose each other's change. */

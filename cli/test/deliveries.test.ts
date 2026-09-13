@@ -3,7 +3,7 @@
 // delivery it isn't part of.
 
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -13,6 +13,9 @@ import {
   activeDelivery,
   approvedRequirements,
   endDelivery,
+  keptCheckout,
+  sweepCheckouts,
+  tidyCheckout,
   findDelivery,
   heldByDelivery,
   insideDelivery,
@@ -776,11 +779,32 @@ describe('carrying an ended delivery on', () => {
     assert.equal(readAudit('carry111').status, 'active')
   })
 
-  it('carries a cancelled one on the same way', async () => {
+  // Cancelling is the user giving the delivery up (#720), so there is nothing to carry on
+  // — and its checkout has already gone with it.
+  it('refuses a cancelled one', async () => {
     stopped('carry222', { status: 'cancelled' })
-    assert.equal((await resumeDelivery('carry222')).ok, true)
-    assert.equal(rowOf('carry222')?.status, 'active')
+    const res = await resumeDelivery('carry222')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /was cancelled, so its work was given up/)
   })
+
+  // A newer delivery on the card is the one a reader means by "the delivery that stopped
+  // here", even when it has ended too.
+  it('refuses one a later delivery on the same card took over', async () => {
+    stopped('carryfff')
+    stopped('carryggg', { startedAt: 5_000, endedAt: 6_000 })
+    // Both in the live record: a delivery that still holds a checkout is never pruned out
+    // of it (#720), so this is how the two really sit beside each other.
+    withStore((store) => store.deliveries.push(rowOf2('carryfff'), rowOf2('carryggg')))
+    const res = await resumeDelivery('carryfff')
+    assert.equal(res.ok, false)
+    assert.match(res.error ?? '', /delivery carryggg took #5 over/)
+    assert.equal((await resumeDelivery('carryggg')).ok, true)
+  })
+
+  // The live rows for the two above, read back out of the permanent records.
+  const rowOf2 = (id: string) =>
+    ({ ...JSON.parse(fs.readFileSync(path.join(DELIVERIES, `${id}.json`), 'utf8')), sessions: [] }) as never
 
   // Nothing is rebuilt, so nothing it was approved to build may move under it.
   it('keeps the approved copy, the base and the session history', async () => {
@@ -913,6 +937,263 @@ describe('carrying an ended delivery on', () => {
   it('answers to a prefix of the delivery id', async () => {
     stopped('carryeee')
     assert.equal((await resumeDelivery('carrye')).deliveryId, 'carryeee')
+  })
+})
+
+// Clearing up after an ended delivery (#720): the checkout of one somebody can still carry
+// on stays, and every other ending gives its worktree and branch back. One rule, read off
+// `resumeRefusal`, so the button and the clean-up can never disagree.
+describe("an ended delivery's checkout", () => {
+  const git = (...args: string[]): string =>
+    spawnSync('git', args, { cwd: root, encoding: 'utf8' }).stdout.trim()
+
+  beforeEach(() => {
+    git('init', '--quiet', '-b', 'main')
+    git('config', 'user.email', 'test@example.com')
+    git('config', 'user.name', 'test')
+    fs.writeFileSync(path.join(root, 'code.txt'), 'one\n')
+    git('add', 'code.txt')
+    git('commit', '--quiet', '-m', 'start')
+  })
+
+  /** An ended delivery with a REAL worktree and branch — the record, and the checkout git
+   *  actually made — so a clean-up either removes them or does not. */
+  const ended = (id: string, over: Record<string, unknown> = {}): { worktree: string; branch: string } => {
+    const cardId = (over.cardId ?? 5) as number | null
+    const worktree = path.join('.akb', 'worktrees', cardId === null ? 'delivery' : String(cardId), id)
+    const branch = cardId === null ? `delivery/${id}` : `card/${cardId}/${id}`
+    git('worktree', 'add', '--quiet', '-b', branch, worktree, 'HEAD')
+    withStore((store) =>
+      store.deliveries.push({
+        deliveryId: id,
+        cardId,
+        title: 'A card',
+        status: 'failed',
+        startedAt: 1_000,
+        endedAt: 2_000,
+        approved: '# A card\n',
+        steps: [{ step: 'implement', at: 1_000 }],
+        commitMode: 'auto',
+        targetBranch: 'main',
+        sessions: [],
+        worktree,
+        branch,
+        ...over,
+      } as never),
+    )
+    return { worktree, branch }
+  }
+
+  const onDisk = (at: { worktree: string; branch: string }): boolean =>
+    fs.existsSync(path.join(root, at.worktree)) || git('branch', '--list', at.branch) !== ''
+
+  // ---- the eight endings ----------------------------------------------------
+
+  it('goes when the user cancelled it', async () => {
+    const id = start(session())
+    const at = { worktree: `.akb/worktrees/5/${id}`, branch: `card/5/${id}` }
+    git('worktree', 'add', '--quiet', '-b', at.branch, at.worktree, 'HEAD')
+    withStore((store) => {
+      const live = store.deliveries.find((d) => d.deliveryId === id)!
+      live.worktree = at.worktree
+      live.branch = at.branch
+      store.runs.length = 0
+    })
+    assert.equal((await cancelDelivery(id)).ok, true)
+    assert.equal(onDisk(at), false)
+  })
+
+  // `stopRun` signals and returns, so the run is still alive for a moment after it. The
+  // cancel waits it out rather than leaving its own checkout for the next sweep.
+  it('waits for the run it stopped to go, then clears the checkout', async () => {
+    const id = start(session())
+    const at = { worktree: `.akb/worktrees/5/${id}`, branch: `card/5/${id}` }
+    git('worktree', 'add', '--quiet', '-b', at.branch, at.worktree, 'HEAD')
+    const child = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60_000)'], { stdio: 'ignore' })
+    withStore((store) => {
+      const live = store.deliveries.find((d) => d.deliveryId === id)!
+      live.worktree = at.worktree
+      live.branch = at.branch
+      const run = store.runs.find((r) => r.deliveryId === id)!
+      run.pid = child.pid
+      run.startedAt = Date.now()
+    })
+    try {
+      assert.equal((await cancelDelivery(id)).ok, true)
+      assert.equal(onDisk(at), false)
+    } finally {
+      child.kill('SIGKILL')
+    }
+  })
+
+  it('goes when a fresh delivery superseded it', () => {
+    const at = ended('tidy-sup', { status: 'cancelled', steps: [{ step: 'superseded', at: 2_000 }] })
+    assert.equal(tidyCheckout('tidy-sup').removed, true)
+    assert.equal(onDisk(at), false)
+  })
+
+  it('goes when the delivery finished with nothing to land', () => {
+    const at = ended('tidy-fin', { status: 'finished' })
+    assert.equal(tidyCheckout('tidy-fin').removed, true)
+    assert.equal(onDisk(at), false)
+  })
+
+  it('goes when its work was already on the target branch', () => {
+    const at = ended('tidy-had', {
+      status: 'finished',
+      landing: { status: 'landed', attempts: 1, at: 2_000, why: 'already on main' },
+    })
+    assert.equal(tidyCheckout('tidy-had').removed, true)
+    assert.equal(onDisk(at), false)
+  })
+
+  it('stays when it failed with the card still here and nothing else on it', () => {
+    const at = ended('tidy-keep')
+    assert.deepEqual(tidyCheckout('tidy-keep'), { removed: false, kept: true })
+    assert.equal(onDisk(at), true)
+    assert.equal(keptCheckout('tidy-keep')?.worktree, at.worktree)
+  })
+
+  it('goes when a later delivery took the card over', () => {
+    const at = ended('tidy-old')
+    ended('tidy-new', { startedAt: 5_000, endedAt: 6_000 })
+    assert.equal(tidyCheckout('tidy-old').removed, true)
+    assert.equal(onDisk(at), false)
+    assert.equal(keptCheckout('tidy-old'), undefined)
+  })
+
+  it('goes when the card was completed and left the board', () => {
+    const at = ended('tidy-done')
+    fs.rmSync(file)
+    assert.equal(tidyCheckout('tidy-done').removed, true)
+    assert.equal(onDisk(at), false)
+  })
+
+  it('goes when the card was removed from the board', () => {
+    const at = ended('tidy-gone', { cardId: 404 })
+    assert.equal(tidyCheckout('tidy-gone').removed, true)
+    assert.equal(onDisk(at), false)
+  })
+
+  // ---- what must never trigger it -------------------------------------------
+
+  // A board we cannot read is not a board with no cards on it. Reading it as one would
+  // delete the checkout of every delivery here.
+  it('stays when the card could not be read at all', () => {
+    const at = ended('tidy-blind')
+    const todoDir = path.join(root, 'docs', 'kanban', 'todo')
+    fs.chmodSync(todoDir, 0o000)
+    try {
+      assert.equal(tidyCheckout('tidy-blind').kept, true)
+      assert.equal(onDisk(at), true)
+    } finally {
+      fs.chmodSync(todoDir, 0o755)
+    }
+  })
+
+  it('stays while the delivery is still in flight', () => {
+    const at = ended('tidy-live', { status: 'active', endedAt: undefined })
+    assert.deepEqual(tidyCheckout('tidy-live'), { removed: false, kept: false })
+    assert.equal(onDisk(at), true)
+  })
+
+  // A delivery that has ended must not have its files pulled out from under a process still
+  // writing them — the next sweep picks it up.
+  it('waits while a run of it is still going, and says so', () => {
+    const at = ended('tidy-busy', { status: 'finished' })
+    withStore((store) => store.runs.push(session({ deliveryId: 'tidy-busy', startedAt: Date.now() })))
+    const first = tidyCheckout('tidy-busy')
+    assert.equal(first.removed, false)
+    assert.match(first.error ?? '', /still going/)
+    assert.equal(onDisk(at), true)
+    withStore((store) => (store.runs.length = 0))
+    assert.equal(tidyCheckout('tidy-busy').removed, true)
+    assert.equal(onDisk(at), false)
+  })
+
+  // Every run commits its work to the branch as it closes, so what is left uncommitted is a
+  // half-step an interruption left behind — it goes with the ending that threw the rest away.
+  it('removes a worktree that still holds uncommitted changes', () => {
+    const at = ended('tidy-dirty', { status: 'finished' })
+    fs.writeFileSync(path.join(root, at.worktree, 'code.txt'), 'changed\n')
+    fs.writeFileSync(path.join(root, at.worktree, 'untracked.txt'), 'new\n')
+    assert.equal(tidyCheckout('tidy-dirty').removed, true)
+    assert.equal(onDisk(at), false)
+  })
+
+  // ---- the sweep as the board comes up --------------------------------------
+
+  it('clears every leftover checkout at once and keeps the recoverable one', () => {
+    const keep = ended('sweep-keep')
+    const drop = ended('sweep-drop', { status: 'cancelled' })
+    const cardless = ended('sweep-none', { cardId: null, status: 'finished' })
+    assert.deepEqual(sweepCheckouts(), [])
+    assert.equal(onDisk(keep), true)
+    assert.equal(onDisk(drop), false)
+    assert.equal(onDisk(cardless), false)
+  })
+
+  // The empty `<card>/` folders a release that removed worktrees without them left behind,
+  // and nothing else: a folder with anything in it is somebody's.
+  it('drops the empty card folders an older release left under .akb/worktrees', () => {
+    const empty = path.join(root, '.akb', 'worktrees', '338')
+    const used = path.join(root, '.akb', 'worktrees', 'kanban-ui')
+    fs.mkdirSync(empty, { recursive: true })
+    fs.mkdirSync(used, { recursive: true })
+    fs.writeFileSync(path.join(used, 'node_modules'), 'not empty\n')
+    const keep = ended('sweep-folders')
+    assert.deepEqual(sweepCheckouts(), [])
+    assert.equal(fs.existsSync(empty), false)
+    assert.equal(fs.existsSync(used), true)
+    assert.equal(onDisk(keep), true, 'and a kept checkout is still where it was')
+  })
+
+  // The permanent record outlives the live one, so a worktree older than the newest thirty
+  // deliveries is still reachable — and the record itself is never deleted.
+  it('reaches one the live record has already let go, and keeps its audit', () => {
+    const at = ended('sweep-old', { status: 'cancelled' })
+    fs.mkdirSync(DELIVERIES, { recursive: true })
+    fs.writeFileSync(
+      path.join(DELIVERIES, 'sweep-old.json'),
+      JSON.stringify({ ...rowOf720('sweep-old'), sessions: [] }),
+    )
+    withStore((store) => (store.deliveries.length = 0))
+    assert.deepEqual(sweepCheckouts(), [])
+    assert.equal(onDisk(at), false)
+    const audit = JSON.parse(fs.readFileSync(path.join(DELIVERIES, 'sweep-old.json'), 'utf8'))
+    assert.equal(audit.deliveryId, 'sweep-old')
+    assert.equal(audit.worktree, undefined, 'the record no longer points at a folder that is gone')
+  })
+
+  const rowOf720 = (id: string) => readStore().deliveries.find((d) => d.deliveryId === id)!
+
+  // ---- what the record must not forget --------------------------------------
+
+  // The entry is on the delivery's own row and on the run beside it, and the record trims
+  // both. A kept checkout that aged out of the record would be work on disk with nothing
+  // pointing at it.
+  it('is never trimmed out of the live record, log or no log', () => {
+    ended('keep-me', { cardId: null })
+    withStore((store) => {
+      store.runs.push(session({ deliveryId: 'keep-me', cardId: null, logPath: '/nowhere/keep-me.log' }))
+      // Far more endings than the record keeps, all newer, so trimming has to choose.
+      for (let i = 0; i < 40; i++) {
+        store.deliveries.push({
+          ...rowOf720('keep-me'),
+          deliveryId: `filler${i}`,
+          startedAt: 9_000 + i,
+          worktree: undefined,
+          branch: undefined,
+        })
+      }
+    })
+    // One more write, so the trim runs over everything above.
+    withStore((store) => (store.marks = { ...store.marks, poke: String(Date.now()) }))
+    assert.ok(rowOf720('keep-me'), 'the delivery holding a checkout is still here')
+    assert.ok(
+      readStore().runs.some((r) => r.deliveryId === 'keep-me'),
+      'and so is the run its entry is drawn on',
+    )
   })
 })
 

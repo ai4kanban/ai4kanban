@@ -260,6 +260,20 @@ function dropEmptyParents(dir: string): void {
  *  paths that are missing — it never decides a delivery's directory is safe to delete. */
 export const pruneWorktreeMetadata = (): void => void git(['worktree', 'prune'])
 
+/** Drop the empty `<card>/` folders left under `.akb/worktrees/` by deliveries removed
+ *  before `dropEmptyParents` existed (#720). Only ever empty directories, and only ever
+ *  inside `.akb/`. */
+export function dropEmptyWorktreeFolders(): void {
+  const root = path.join(AKB_DIR, 'worktrees')
+  let names: string[]
+  try {
+    names = fs.readdirSync(root)
+  } catch {
+    return
+  }
+  for (const name of names) dropEmptyParents(path.join(root, name))
+}
+
 // ---- committing a delivery's work -------------------------------------------
 
 /** Everything changed in this worktree, tracked and untracked alike. */

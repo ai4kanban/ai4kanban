@@ -309,12 +309,20 @@ export async function cmdResume(id: string | undefined, opts: { follow?: boolean
 }
 
 /** Take a card back from the delivery in flight on it: the delivery ends as cancelled, its
- *  running run is stopped, the card unlocks, and Implement is offered again. Whatever
- *  the delivery wrote stays exactly where it is. */
+ *  running run is stopped, the card unlocks, and Implement is offered again. Cancelling is
+ *  giving the delivery up, so its worktree and branch go with it (#720) — stopping the RUN
+ *  is the pause that keeps them. */
 export async function cmdCancel(named: string): Promise<MoveResult> {
   const res = await cancelDelivery(named)
   if (!res.ok) die(res.error ?? 'that delivery could not be cancelled', { kind: 'run-refused' })
-  say(`delivery ${res.deliveryId} cancelled — the card is yours again.`)
+  // Read back rather than claimed: a removal git refused has already said so, and the next
+  // sweep is the retry.
+  const left = res.deliveryId ? discardCost(res.deliveryId)?.worktree : undefined
+  say(
+    left
+      ? `delivery ${res.deliveryId} cancelled — the card is yours again, and ${left} is still here for now.`
+      : `delivery ${res.deliveryId} cancelled — the card is yours again, and its worktree and branch are gone.`,
+  )
   return { deliveryId: res.deliveryId }
 }
 
@@ -393,8 +401,8 @@ export async function cmdAnswered(
  *  hold. The one command here that loses work, so it says exactly what it is about to take
  *  and takes a second word — `--yes` — before it does.
  *
- *  Cancelling a delivery deliberately leaves its worktree where it is; this is how one is
- *  reclaimed. */
+ *  A delivery the board decided to keep — one that stopped on its own with a job left to
+ *  finish — is the only kind that still has a checkout to reclaim (#720). */
 export async function cmdDiscard(named: string, opts: { yes?: boolean }): Promise<MoveResult> {
   const cost = discardCost(named)
   if (!cost) {

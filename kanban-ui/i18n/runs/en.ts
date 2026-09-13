@@ -166,6 +166,17 @@ const en: RunsCopy = {
     resumed: "resumed",
     cancelled: "cancelled",
     stopped: (label) => label,
+    kept: {
+      tag: "Work kept",
+      blurb:
+        "This build didn't finish, and its working copy and branch are still here. Carry on picks it up where it stopped; Discard deletes them.",
+      carryOn: "Carry on",
+      carryingOn: "Carrying on…",
+      discard: "Discard",
+      discarding: "Discarding…",
+      carryOnFailed: "couldn't carry this build on",
+      discardFailed: "couldn't discard this build",
+    },
     steps: (n) => `${n} sessions`,
     justNow: "just now",
     minutesAgo: (m) => `${m}m ago`,

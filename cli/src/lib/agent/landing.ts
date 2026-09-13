@@ -57,7 +57,6 @@ import {
   pendingPaths,
   rebaseInProgress,
   rebaseOnto,
-  removeWorktree,
   reverseApplies,
   squashOnto,
   stagedPaths,
@@ -799,7 +798,8 @@ async function move(delivery: DeliveryRecord, tip: string, target: string): Prom
     giveUpSlot(delivery, moved.error)
     return { done: true }
   }
-  cleanUp(delivery)
+  // The checkout goes with the ending, in `endDelivery` under the one rule every delivery
+  // is cleared up by (#720) — a landed delivery has nothing left to carry on.
   await finish(delivery, { commit: tip, onto: target })
   return { done: true }
 }
@@ -813,29 +813,6 @@ const asMove = (res: { ok: boolean; why?: string }): { ok: true } | { moved: tru
 }
 
 // ---- afterwards -------------------------------------------------------------
-
-// The delivery's checkout, once its work is on the target branch. Only ever after landing:
-// #303's refusal to remove an unfinished delivery's worktree, and to touch anything outside
-// `.akb/`, stands.
-function cleanUp(delivery: DeliveryRecord): void {
-  const dir = worktreeDir(delivery.worktree!)
-  const pending = pendingPaths(dir)
-  if (pending.length) {
-    say(`delivery ${delivery.deliveryId} landed, but ${delivery.worktree} still holds ${names(pending)} — it was left alone.`)
-    return
-  }
-  const removed = removeWorktree(delivery.worktree, delivery.branch)
-  if (!removed.ok) {
-    say(`delivery ${delivery.deliveryId} landed, but ${removed.error}.`)
-    return
-  }
-  withStore((store) => {
-    const live = store.deliveries.find((d) => d.deliveryId === delivery.deliveryId)
-    if (!live) return
-    live.worktree = undefined
-    live.branch = undefined
-  })
-}
 
 // Write the landing down, end the delivery, and complete the card. The commit, the base it
 // landed against and the checks that ran are what the permanent record keeps of it.
@@ -893,9 +870,9 @@ function alreadyOnTarget(delivery: DeliveryRecord): { commit?: string; onto: str
 /** End a delivery whose work is already on the target branch, and archive its card.
  *
  *  Nothing is squashed, rebased or moved: the commit that carries the change is recorded as
- *  the landing, and the branch and the worktree are left exactly where they are — the
- *  conclusion is drawn from a comparison, and a comparison is not a reason to delete
- *  anybody's branch.
+ *  the landing, and the delivery finishes on it. Its checkout goes the way every finished
+ *  delivery's does (#720) — the work is on the branch, so there is nothing left in the
+ *  worktree that only the worktree has.
  *
  *  False when the check does not hold, and the ordinary landing carries on from there. */
 export async function settleAlreadyLanded(delivery: DeliveryRecord): Promise<boolean> {

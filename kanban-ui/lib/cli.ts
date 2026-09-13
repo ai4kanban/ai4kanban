@@ -250,12 +250,14 @@ export interface BoardRules {
    *  A build with no card (#428) has no card page, so its flow in Runs draws this. */
   deliveryPause?(deliveryId: string): CardDeliveryState | undefined;
   cancelDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
-  /** Carry an ended delivery on from where it stopped (#639) — a delivery that failed or
-   *  was cancelled with its worktree and branch still here. Finished steps are not redone. */
+  /** Carry an ended delivery on from where it stopped (#639) — a delivery that stopped with
+   *  its worktree and branch still here. Finished steps are not redone. */
   resumeDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
-  /** A delivery's worktree and branch, thrown away on request (#303). Cancelling one leaves
-   *  its checkout where it is; this is the only thing that removes one. */
+  /** A delivery's worktree and branch, thrown away on request (#303). */
   discardDelivery?(id: string): Promise<{ ok: boolean; deliveryId?: string; error?: string }>;
+  /** The checkout an ENDED delivery still has, when the board kept it (#720) — nothing on
+   *  one already cleared up, which is every ending but a stop with a job left to finish. */
+  keptCheckout?(deliveryId: string): { worktree: string; branch?: string } | undefined;
   discardCost?(id: string): { deliveryId: string; worktree?: string; branch?: string } | null;
   /** Sign off the tree a delivery would land (#308), on a board that requires it. `from`
    *  names where the approval came from and rides into the permanent record. */
