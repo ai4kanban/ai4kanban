@@ -1,32 +1,32 @@
-// 中文 — the Task Master comparison, mirroring `en.ts` key for key.
+// 中文 — the Taskmaster comparison, mirroring `en.ts` key for key.
 // Writing rules: `i18n/index.ts`.
 import type { VsTaskMasterCopy } from "./types";
 
 const zh: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Task Master：需求是你写，还是它问出来",
-    socialTitle: "AI4Kanban vs. Task Master",
+    title: "AI4Kanban vs. Taskmaster：需求是你写，还是它问出来",
+    socialTitle: "AI4Kanban vs. Taskmaster",
     description:
-      "对比 AI4Kanban 与 Task Master（Taskmaster）。Task Master 把你写好的 PRD 拆成有依赖顺序的任务；AI4Kanban 从一句模糊的想法开始，一路追问到卡片可以直接开工。",
+      "对比 AI4Kanban 与 Taskmaster。Taskmaster 把你写好的 PRD 拆成有依赖顺序的任务；AI4Kanban 从一句模糊的想法开始，一路追问到卡片可以直接开工。",
     social:
-      "Task Master 需要你先写好 PRD 才能开始；AI4Kanban 只要你说一句话，剩下的它来问。看看哪种起点更贴合你的实际工作方式。",
+      "Taskmaster 需要你先写好 PRD 才能开始；AI4Kanban 只要你说一句话，剩下的它来问。看看哪种起点更贴合你的实际工作方式。",
   },
   hero: {
     badge: "对比",
-    title: "AI4Kanban vs.\nTask Master",
-    lead: "两者都用任务列表代替聊天窗，把活交给 coding agent。Task Master 接收你写好的需求文档，把它拆成有依赖顺序的任务。AI4Kanban 从更前面一步开始：你只说一句粗略的话，它不断提问，直到问出一个值得开工的需求。",
+    title: "AI4Kanban vs.\nTaskmaster",
+    lead: "两者都用任务列表代替聊天窗，把活交给 coding agent。Taskmaster 接收你写好的需求文档，把它拆成有依赖顺序的任务。AI4Kanban 从更前面一步开始：你只说一句粗略的话，它不断提问，直到问出一个值得开工的需求。",
     ours: {
       name: "AI4Kanban",
       body: "仓库里的 Markdown 看板。智能体自主提出任务，遇到定不了的就问你，做完则归档。",
     },
     theirs: {
-      name: "Task Master",
+      name: "Taskmaster",
       body: "面向各类 AI 编辑器的任务引擎。解析 PRD，展开为子任务，再逐个消化待办。",
     },
     oursDiagramAlt:
       "一句粗略的话交给 AI4Kanban，它把自己回答不了的问题抛回给你，然后交出一张写完整的卡片。",
     theirsDiagramAlt:
-      "一份写好的需求文档交给 Task Master，返回的是按依赖顺序编号的任务列表。",
+      "一份写好的需求文档交给 Taskmaster，返回的是按依赖顺序编号的任务列表。",
     oursDiagramTop: "输入：一句粗略的话",
     oursDiagramBottom: "它先追问，再写出卡片",
     theirsDiagramTop: "输入：你已写好的文档",
@@ -37,10 +37,10 @@ const zh: VsTaskMasterCopy = {
       eyebrow: "简要结论",
       title: "区别在于：你必须先拿出什么。",
     },
-    lead: "Task Master（官方文档写作 `Taskmaster`）是面向 coding agent 最知名的任务管理工具，也确实称职：读入一份产品需求文档，拆成带依赖关系的任务，为每个任务的复杂度打分，把重的展开成子任务，再把下一个没有阻塞的任务交给你。如果你本来就会写需求文档，这基本够用了。",
+    lead: "Taskmaster 是面向 coding agent 的任务管理工具，在 GitHub 上获得了超过 28k 个 star。它会读入一份产品需求文档，拆成带依赖关系的任务，为每个任务的复杂度打分，把重的展开成子任务，再把下一个没有阻塞的任务交给你。如果你本来就会写需求文档，这基本够用了。",
     panel:
       "AI4Kanban 假设你还没有需求文档。你只给一句话，它去读代码和项目记忆，能自己定的就自己定，只把真正悬而未决的问题抛回给你，如此反复，直到卡片具体到可以开工。**提问本身就是产品。**看板则是答案留存的地方。",
-    note: "2026 年 8 月 10 日核实：Task Master 最新版本是 0.43.1（2026 年 3 月 31 日），`main` 分支最后一次提交在 2026 年 4 月 23 日，同一团队正在开发托管产品 Hamster。它每月仍有约 78,000 次安装——这是一个使用广泛、但仓库趋于安静的工具，而不是一个已被废弃的项目。",
+    note: "2026 年 8 月 10 日核实：Taskmaster 最新版本是 0.43.1（2026 年 3 月 31 日），`main` 分支最后一次提交在 2026 年 4 月 23 日，同一团队正在开发托管产品 Hamster。它每月仍有约 78,000 次安装——这是一个使用广泛、但仓库趋于安静的工具，而不是一个已被废弃的项目。",
   },
   start: {
     heading: {
@@ -58,7 +58,7 @@ const zh: VsTaskMasterCopy = {
       ],
     },
     theirs: {
-      label: "Task Master",
+      label: "Taskmaster",
       title: "先写好一份文档",
       steps: [
         "先写需求文档。官方指南建议先和聊天模型一起把它写出来，再保存为 `.taskmaster/docs/prd.txt`。",
@@ -66,13 +66,13 @@ const zh: VsTaskMasterCopy = {
         "`next` 把当前没有阻塞、优先级最高的任务交给你。",
       ],
     },
-    note: "两条路都不难。但如果文档本身含糊，Task Master 拆出来的也是含糊的任务——你当然可以用 `update-task` 补充上下文，research 模型也能去查资料，但整个流程里没有一步会主动问你到底想要什么。",
+    note: "两条路都不难。但如果文档本身含糊，Taskmaster 拆出来的也是含糊的任务——你当然可以用 `update-task` 补充上下文，research 模型也能去查资料，但整个流程里没有一步会主动问你到底想要什么。",
   },
   comparison: {
-    heading: { eyebrow: "逐项对比", title: "AI4Kanban vs. Task Master" },
-    lead: "{check} 表示这一项更适合谁；**横杠**表示取决于你的工作方式。Task Master 更强的是**覆盖面、批量执行和联网调研**；AI4Kanban 更强的是**把模糊想法变成真正的需求，并把已经定下的结论留住**。",
+    heading: { eyebrow: "逐项对比", title: "AI4Kanban vs. Taskmaster" },
+    lead: "{check} 表示这一项更适合谁；**横杠**表示取决于你的工作方式。Taskmaster 更强的是**覆盖面、批量执行和联网调研**；AI4Kanban 更强的是**把模糊想法变成真正的需求，并把已经定下的结论留住**。",
     ourLabel: "AI4Kanban",
-    theirLabel: "Task Master",
+    theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
         dimension: "任务从哪里来",
@@ -135,7 +135,7 @@ const zh: VsTaskMasterCopy = {
         kanban:
           "Apache-2.0。可以使用、可以 fork，也可以拿它做出来的东西去卖，没有附加条件。",
         taskMaster:
-          "MIT 附带 Commons Clause：个人、商业和学术使用均免费，但不得出售 Task Master 本身，也不得把它作为托管服务对外提供。",
+          "MIT 附带 Commons Clause：个人、商业和学术使用均免费，但不得出售 Taskmaster 本身，也不得把它作为托管服务对外提供。",
       },
     },
   },
@@ -146,18 +146,18 @@ const zh: VsTaskMasterCopy = {
     },
     lead: "两块看板都放在仓库里，都随代码一起进版本管理。区别在于 diff 给人看到的是什么。",
     oursLabel: "AI4Kanban",
-    theirsLabel: "Task Master",
+    theirsLabel: "Taskmaster",
     oursCaption:
       "一张卡片一个 Markdown 文件。pull request 里看到的是计划本身在变，是你能读、也能反驳的文字。",
     theirsCaption:
       "一个文件装下整个待办列表。diff 里是 JSON——准确，但本来就不是写给人读的。",
-    note: "Task Master 在 0.42.0 加入了跨进程文件锁，避免两个进程同时写入导致数据丢失。分成多个文件就没有这种争用：只有两次运行改到同一张卡片时才会撞上。",
+    note: "Taskmaster 在 0.42.0 加入了跨进程文件锁，避免两个进程同时写入导致数据丢失。分成多个文件就没有这种争用：只有两次运行改到同一张卡片时才会撞上。",
   },
   wins: {
     heading: { eyebrow: "取舍", title: "各自的长处" },
-    lead: "Task Master 覆盖更广、能在无人值守下跑更久，还能联网查资料。AI4Kanban 刻意更窄：它要赢的是「还没有任务之前」的那一段。",
+    lead: "Taskmaster 覆盖更广、能在无人值守下跑更久，还能联网查资料。AI4Kanban 刻意更窄：它要赢的是「还没有任务之前」的那一段。",
     oursHeading: "AI4Kanban",
-    theirsHeading: "Task Master",
+    theirsHeading: "Taskmaster",
     ours: {
       asksFirst: {
         title: "先问，再动手",
@@ -198,7 +198,7 @@ const zh: VsTaskMasterCopy = {
   decision: {
     heading: { eyebrow: "怎么选", title: "哪一个更适合你？" },
     oursHeading: "选 AI4Kanban，如果",
-    theirsHeading: "选 Task Master，如果",
+    theirsHeading: "选 Taskmaster，如果",
     ours: [
       "你的想法往往只有一句话，卡住你的正是把需求写清楚这一步。",
       "你希望计划和它背后的理由都能在 diff 里评审，就放在代码旁边。",
@@ -212,7 +212,7 @@ const zh: VsTaskMasterCopy = {
       "你希望规划过程自带联网调研，或者要用我们尚未支持的某个模型 provider。",
     ],
     verdict:
-      "Task Master 从你的需求文档写完的地方开始；AI4Kanban 从它之前开始——它要做的就是从一个模糊想法到一个值得交给智能体的任务这一段。如果你文档写得好，Task Master 今天就能帮你多做完一些事；如果那份文档永远也写不出来，那这一段才是该先补上的。",
+      "Taskmaster 从你的需求文档写完的地方开始；AI4Kanban 从它之前开始——它要做的就是从一个模糊想法到一个值得交给智能体的任务这一段。如果你文档写得好，Taskmaster 今天就能帮你多做完一些事；如果那份文档永远也写不出来，那这一段才是该先补上的。",
     note: "两者并不互斥：拿一张打磨好的 AI4Kanban 卡片去写 PRD，解析起来一样顺。但任务状态必须由其中一块看板说了算，否则你就得同时维护两块。",
   },
 };

@@ -1,32 +1,32 @@
-// 日本語 — the Task Master comparison, mirroring `en.ts` key for key.
+// 日本語 — the Taskmaster comparison, mirroring `en.ts` key for key.
 // Writing rules: `i18n/index.ts`.
 import type { VsTaskMasterCopy } from "./types";
 
 const ja: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Task Master — 仕様を書くか、聞かれて固めるか",
-    socialTitle: "AI4Kanban vs. Task Master",
+    title: "AI4Kanban vs. Taskmaster — 仕様を書くか、聞かれて固めるか",
+    socialTitle: "AI4Kanban vs. Taskmaster",
     description:
-      "AI4Kanban と Task Master（Taskmaster）の比較。Task Master は書き上げた PRD を依存順のバックログに分割します。AI4Kanban は曖昧な着想から始め、着手できるカードになるまで質問を重ねます。",
+      "AI4Kanban と Taskmasterの比較。Taskmaster は書き上げた PRD を依存順のバックログに分割します。AI4Kanban は曖昧な着想から始め、着手できるカードになるまで質問を重ねます。",
     social:
-      "Task Master は PRD がなければ始まりません。AI4Kanban は一文から始め、残りを質問します。どちらの出発点が自分の進め方に合うかを確かめてください。",
+      "Taskmaster は PRD がなければ始まりません。AI4Kanban は一文から始め、残りを質問します。どちらの出発点が自分の進め方に合うかを確かめてください。",
   },
   hero: {
     badge: "比較",
-    title: "AI4Kanban vs.\nTask Master",
-    lead: "どちらもチャット画面ではなくタスク一覧をコーディングエージェントに渡します。Task Master は書き上げた要件ドキュメントを受け取り、依存順のバックログに分割します。AI4Kanban はその一歩手前から始めます。曖昧な一文を渡すと、作る価値のあるものになるまで質問を重ねます。",
+    title: "AI4Kanban vs.\nTaskmaster",
+    lead: "どちらもチャット画面ではなくタスク一覧をコーディングエージェントに渡します。Taskmaster は書き上げた要件ドキュメントを受け取り、依存順のバックログに分割します。AI4Kanban はその一歩手前から始めます。曖昧な一文を渡すと、作る価値のあるものになるまで質問を重ねます。",
     ours: {
       name: "AI4Kanban",
       body: "リポジトリの中の Markdown ボード。エージェントが仕事を提案し、決められないことを尋ね、出荷したものを保管します。",
     },
     theirs: {
-      name: "Task Master",
+      name: "Taskmaster",
       body: "あらゆる AI エディタ向けのタスクエンジン。PRD を解析し、サブタスクへ展開し、バックログを消化します。",
     },
     oursDiagramAlt:
       "曖昧な一文が AI4Kanban に入り、自力で答えられない点だけが質問として返り、仕上がったカードが出てきます。",
     theirsDiagramAlt:
-      "書き上げた要件ドキュメントが Task Master に入り、依存順に番号の付いたタスクへ分割されて返ってきます。",
+      "書き上げた要件ドキュメントが Taskmaster に入り、依存順に番号の付いたタスクへ分割されて返ってきます。",
     oursDiagramTop: "入力：曖昧な一文",
     oursDiagramBottom: "質問してから、カードを書く",
     theirsDiagramTop: "入力：書き上げたドキュメント",
@@ -37,10 +37,10 @@ const ja: VsTaskMasterCopy = {
       eyebrow: "要点",
       title: "違いは、こちらが何を用意しなければならないかです。",
     },
-    lead: "Task Master（公式ドキュメントの表記は `Taskmaster`）は、コーディングエージェント向けタスク管理として最もよく知られた存在で、その役割をきちんと果たします。要件ドキュメントを読み、依存関係付きのタスクへ分割し、それぞれの複雑さを採点し、重いものをサブタスクへ展開し、ブロックされていない次のタスクを渡してくれます。すでに仕様を書いている人には、これでほぼ十分です。",
+    lead: "Taskmaster は、GitHub で 28k 以上のスターを獲得しているコーディングエージェント向けタスク管理ツールです。要件ドキュメントを読み、依存関係付きのタスクへ分割し、それぞれの複雑さを採点し、重いものをサブタスクへ展開し、ブロックされていない次のタスクを渡してくれます。すでに仕様を書いている人には、これでほぼ十分です。",
     panel:
       "AI4Kanban は、仕様がまだない前提に立ちます。渡すのは一文だけ。エージェントがコードとプロジェクトの記憶を読み、自分で決められることは決め、本当に未解決の点だけを尋ね、着手できる具体性になるまでこれを繰り返します。**質問こそが製品です。**ボードは、その答えが残る場所です。",
-    note: "2026 年 8 月 10 日時点の確認：Task Master の最新リリースは 0.43.1（2026 年 3 月 31 日）、`main` の最新コミットは 2026 年 4 月 23 日で、同じチームがホスト型の計画ワークスペース Hamster を開発しています。パッケージは今も月に約 78,000 回インストールされており、広く使われているがリポジトリは静かなツール、という状態です。放棄されたわけではありません。",
+    note: "2026 年 8 月 10 日時点の確認：Taskmaster の最新リリースは 0.43.1（2026 年 3 月 31 日）、`main` の最新コミットは 2026 年 4 月 23 日で、同じチームがホスト型の計画ワークスペース Hamster を開発しています。パッケージは今も月に約 78,000 回インストールされており、広く使われているがリポジトリは静かなツール、という状態です。放棄されたわけではありません。",
   },
   start: {
     heading: {
@@ -58,7 +58,7 @@ const ja: VsTaskMasterCopy = {
       ],
     },
     theirs: {
-      label: "Task Master",
+      label: "Taskmaster",
       title: "まず書かれたドキュメント",
       steps: [
         "要件ドキュメントを書きます。公式ガイドはチャットモデルと一緒に書き上げ、`.taskmaster/docs/prd.txt` として保存することを勧めています。",
@@ -66,13 +66,13 @@ const ja: VsTaskMasterCopy = {
         "`next` が、何にもブロックされていない最優先のタスクを渡します。",
       ],
     },
-    note: "どちらの道も難しくはありません。ただしドキュメントが曖昧なら、Task Master は曖昧なドキュメントを分割します。`update-task` で文脈を足すことも、research モデルに調べさせることもできますが、この流れの中に、あなたが本当は何を意図したのかを尋ねる工程はありません。",
+    note: "どちらの道も難しくはありません。ただしドキュメントが曖昧なら、Taskmaster は曖昧なドキュメントを分割します。`update-task` で文脈を足すことも、research モデルに調べさせることもできますが、この流れの中に、あなたが本当は何を意図したのかを尋ねる工程はありません。",
   },
   comparison: {
-    heading: { eyebrow: "項目別", title: "AI4Kanban vs. Task Master" },
-    lead: "{check} はその項目で選びやすいほうを示し、**ダッシュ**は進め方次第という意味です。Task Master が強いのは**対応範囲、バッチ実行、そして最新情報の調査**。AI4Kanban が強いのは**曖昧な着想を実際の仕様まで運ぶことと、決めた内容を残すこと**です。",
+    heading: { eyebrow: "項目別", title: "AI4Kanban vs. Taskmaster" },
+    lead: "{check} はその項目で選びやすいほうを示し、**ダッシュ**は進め方次第という意味です。Taskmaster が強いのは**対応範囲、バッチ実行、そして最新情報の調査**。AI4Kanban が強いのは**曖昧な着想を実際の仕様まで運ぶことと、決めた内容を残すこと**です。",
     ourLabel: "AI4Kanban",
-    theirLabel: "Task Master",
+    theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
         dimension: "タスクはどこから来るか",
@@ -135,7 +135,7 @@ const ja: VsTaskMasterCopy = {
         kanban:
           "Apache-2.0。利用も fork も、これで作ったものの販売も自由で、追加条件はありません。",
         taskMaster:
-          "MIT に Commons Clause 付き。個人・商用・学術利用は無料ですが、Task Master 自体の販売と、ホスティングサービスとしての提供はできません。",
+          "MIT に Commons Clause 付き。個人・商用・学術利用は無料ですが、Taskmaster 自体の販売と、ホスティングサービスとしての提供はできません。",
       },
     },
   },
@@ -146,18 +146,18 @@ const ja: VsTaskMasterCopy = {
     },
     lead: "どちらのボードもリポジトリの中にあり、コードと一緒にバージョン管理されます。違うのは、差分が人に何を見せるかです。",
     oursLabel: "AI4Kanban",
-    theirsLabel: "Task Master",
+    theirsLabel: "Taskmaster",
     oursCaption:
       "カード 1 枚が Markdown 1 ファイル。プルリクエストには、読んで反論できる言葉として計画の変更が現れます。",
     theirsCaption:
       "1 つのファイルがバックログ全体を抱えます。差分に出るのは JSON — 正確ですが、読ませるために書かれたものではありません。",
-    note: "Task Master は 0.42.0 でプロセス間のファイルロックを追加し、同時書き込みでデータが失われないようにしました。ファイルが分かれていればその競合自体が起きません。ぶつかるのは、2 つの実行が同じカードを編集したときだけです。",
+    note: "Taskmaster は 0.42.0 でプロセス間のファイルロックを追加し、同時書き込みでデータが失われないようにしました。ファイルが分かれていればその競合自体が起きません。ぶつかるのは、2 つの実行が同じカードを編集したときだけです。",
   },
   wins: {
     heading: { eyebrow: "トレードオフ", title: "それぞれの強み" },
-    lead: "Task Master は対応範囲が広く、人が見ていなくても長く走り、調べ物にも出かけられます。AI4Kanban は意図的に狭く、タスクが存在する前の区間で勝負します。",
+    lead: "Taskmaster は対応範囲が広く、人が見ていなくても長く走り、調べ物にも出かけられます。AI4Kanban は意図的に狭く、タスクが存在する前の区間で勝負します。",
     oursHeading: "AI4Kanban",
-    theirsHeading: "Task Master",
+    theirsHeading: "Taskmaster",
     ours: {
       asksFirst: {
         title: "作る前に尋ねる",
@@ -198,7 +198,7 @@ const ja: VsTaskMasterCopy = {
   decision: {
     heading: { eyebrow: "選び方", title: "どちらが自分の進め方に合うか" },
     oursHeading: "AI4Kanban を選ぶのは",
-    theirsHeading: "Task Master を選ぶのは",
+    theirsHeading: "Taskmaster を選ぶのは",
     ours: [
       "着想がいつも一文から始まり、仕様を書く段階で止まってしまうとき。",
       "計画とその理由を、コードのそばで、差分としてレビューしたいとき。",
@@ -212,7 +212,7 @@ const ja: VsTaskMasterCopy = {
       "計画の中に最新情報の調査を組み込みたい、または当方が対応していないモデルプロバイダーを使いたいとき。",
     ],
     verdict:
-      "Task Master は、仕様が書き終わった地点から始まります。AI4Kanban はその手前から始まり、曖昧な着想からエージェントに渡す価値のあるタスクまでの区間そのものを仕事にします。ドキュメントを上手に書けるなら、今日多くを片づけるのは Task Master です。そのドキュメントがいつまでも書かれないなら、まず埋めるべきはその区間です。",
+      "Taskmaster は、仕様が書き終わった地点から始まります。AI4Kanban はその手前から始まり、曖昧な着想からエージェントに渡す価値のあるタスクまでの区間そのものを仕事にします。ドキュメントを上手に書けるなら、今日多くを片づけるのは Taskmaster です。そのドキュメントがいつまでも書かれないなら、まず埋めるべきはその区間です。",
     note: "両者は排他的ではありません。練り上げた AI4Kanban のカードから PRD を書けば、解析は問題なく通ります。ただしタスクの状態はどちらか一方のボードが持たなければ、二つを維持し続けることになります。",
   },
 };

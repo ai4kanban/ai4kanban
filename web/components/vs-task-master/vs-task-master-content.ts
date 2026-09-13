@@ -8,7 +8,7 @@ export type TaskMasterEdge = "kanban" | "taskMaster" | "neutral";
 
 // Row order and which side each row goes to — structure, not words, so it stays
 // out of `i18n/`. The two rows this page is really about come first; the rows
-// Task Master takes are not buried at the bottom.
+// Taskmaster takes are not buried at the bottom.
 export const compareRows: { key: VsTaskMasterRowKey; edge: TaskMasterEdge }[] = [
   { key: "startingPoint", edge: "kanban" },
   { key: "vagueRequest", edge: "kanban" },

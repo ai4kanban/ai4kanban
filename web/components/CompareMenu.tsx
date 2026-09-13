@@ -7,7 +7,7 @@ import { localeHref, type Locale } from "@/lib/i18n";
 // `SiteFooter.tsx` lists them under a heading that already says what they are —
 // which is why the "vs" belongs to the caller and not to the name.
 export const COMPARISONS = [
-  { href: "/vs-task-master", name: "Task Master" },
+  { href: "/vs-task-master", name: "Taskmaster" },
   { href: "/vs-github-issues", name: "GitHub Issues" },
   { href: "/vs-hermes-kanban", name: "Hermes Agent Kanban" },
   { href: "/vs-vibe-kanban", name: "Vibe Kanban" },

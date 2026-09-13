@@ -1,32 +1,32 @@
-// English copy for the Task Master comparison — the source of truth the other
+// English copy for the Taskmaster comparison — the source of truth the other
 // four languages mirror key for key. Writing rules: `i18n/index.ts`.
 import type { VsTaskMasterCopy } from "./types";
 
 const en: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Task Master — write the spec, or be asked for it",
-    socialTitle: "AI4Kanban vs. Task Master",
+    title: "AI4Kanban vs. Taskmaster — write the spec, or be asked for it",
+    socialTitle: "AI4Kanban vs. Taskmaster",
     description:
-      "Compare AI4Kanban and Task Master (Taskmaster). Task Master splits a PRD you already wrote into an ordered backlog. AI4Kanban starts from a rough idea and asks until the card is buildable.",
+      "Compare AI4Kanban and Taskmaster. Taskmaster splits a PRD you already wrote into an ordered backlog. AI4Kanban starts from a rough idea and asks until the card is buildable.",
     social:
-      "Task Master needs a PRD before it can help. AI4Kanban starts from one rough line and asks you the rest. See which starting point matches how you actually work.",
+      "Taskmaster needs a PRD before it can help. AI4Kanban starts from one rough line and asks you the rest. See which starting point matches how you actually work.",
   },
   hero: {
     badge: "Comparison",
-    title: "AI4Kanban vs.\nTask Master",
-    lead: "Both give a coding agent a task list instead of a chat window. Task Master takes the requirements document you wrote and splits it into an ordered backlog. AI4Kanban starts one step earlier: you give it a rough line, and it asks questions until there is something worth building.",
+    title: "AI4Kanban vs.\nTaskmaster",
+    lead: "Both give a coding agent a task list instead of a chat window. Taskmaster takes the requirements document you wrote and splits it into an ordered backlog. AI4Kanban starts one step earlier: you give it a rough line, and it asks questions until there is something worth building.",
     ours: {
       name: "AI4Kanban",
       body: "A Markdown board in your repo. The agent proposes work, asks what it can't settle, and archives what ships.",
     },
     theirs: {
-      name: "Task Master",
+      name: "Taskmaster",
       body: "A task engine for any AI editor. Parse a PRD, expand it into subtasks, and work the backlog down.",
     },
     oursDiagramAlt:
       "One rough line goes into AI4Kanban. It asks the questions it can't answer itself and hands back a finished card.",
     theirsDiagramAlt:
-      "A finished requirements document goes into Task Master and comes back split into numbered tasks in dependency order.",
+      "A finished requirements document goes into Taskmaster and comes back split into numbered tasks in dependency order.",
     oursDiagramTop: "one rough line in",
     oursDiagramBottom: "it asks, then writes the card",
     theirsDiagramTop: "the document you wrote in",
@@ -37,10 +37,10 @@ const en: VsTaskMasterCopy = {
       eyebrow: "The short version",
       title: "The difference is what you have to bring.",
     },
-    lead: "Task Master — written `Taskmaster` in its own docs — is the best-known task manager for coding agents, and it is good at its job. It reads a product requirements document, splits it into tasks with dependencies, scores how complex each one is, expands the heavy ones into subtasks, and hands you the next unblocked task. If you already write specs, that is most of what you need.",
+    lead: "Taskmaster is a task manager for coding agents with over 28k GitHub stars. It reads a product requirements document, splits it into tasks with dependencies, scores how complex each one is, expands the heavy ones into subtasks, and hands you the next unblocked task. If you already write specs, that is most of what you need.",
     panel:
       "AI4Kanban assumes you don't have the spec yet. You give it one line. It reads the code and the project's memory, settles what it can on its own, asks you only what is genuinely open, and repeats until the card is concrete enough to build. **The questions are the product.** The board is where the answers stay.",
-    note: "Checked on 10 August 2026: the latest Task Master release is 0.43.1 (31 March 2026) and the newest commit on `main` is 23 April 2026, while the same team builds Hamster, a hosted planning workspace. The package is still installed about 78,000 times a month, so this is a widely used tool with a quiet repository — not an abandoned one.",
+    note: "Checked on 10 August 2026: the latest Taskmaster release is 0.43.1 (31 March 2026) and the newest commit on `main` is 23 April 2026, while the same team builds Hamster, a hosted planning workspace. The package is still installed about 78,000 times a month, so this is a widely used tool with a quiet repository — not an abandoned one.",
   },
   start: {
     heading: {
@@ -58,7 +58,7 @@ const en: VsTaskMasterCopy = {
       ],
     },
     theirs: {
-      label: "Task Master",
+      label: "Taskmaster",
       title: "A written document first",
       steps: [
         "Write the requirements document. Their guide suggests co-writing it with a chat model, then saving it as `.taskmaster/docs/prd.txt`.",
@@ -66,13 +66,13 @@ const en: VsTaskMasterCopy = {
         "`next` hands you the highest-priority task nothing is blocking.",
       ],
     },
-    note: "Neither route is hard. But when the document is vague, Task Master splits a vague document — you can always run `update-task` with more context, and the research model can go read up on something, but nothing in the loop asks you what you actually meant.",
+    note: "Neither route is hard. But when the document is vague, Taskmaster splits a vague document — you can always run `update-task` with more context, and the research model can go read up on something, but nothing in the loop asks you what you actually meant.",
   },
   comparison: {
-    heading: { eyebrow: "Head to head", title: "AI4Kanban vs. Task Master" },
-    lead: "A {check} marks the clearer fit for that need; a **dash** means it depends on how you work. Task Master is stronger on **reach, batch execution, and live research**. AI4Kanban is stronger on **getting from a rough idea to a real spec, and keeping what was decided**.",
+    heading: { eyebrow: "Head to head", title: "AI4Kanban vs. Taskmaster" },
+    lead: "A {check} marks the clearer fit for that need; a **dash** means it depends on how you work. Taskmaster is stronger on **reach, batch execution, and live research**. AI4Kanban is stronger on **getting from a rough idea to a real spec, and keeping what was decided**.",
     ourLabel: "AI4Kanban",
-    theirLabel: "Task Master",
+    theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
         dimension: "Where a task comes from",
@@ -135,7 +135,7 @@ const en: VsTaskMasterCopy = {
         kanban:
           "Apache-2.0. Use it, fork it, sell something built with it — no extra conditions.",
         taskMaster:
-          "MIT with the Commons Clause: free for personal, commercial, and academic use, but you may not sell Task Master itself or offer it as a hosted service.",
+          "MIT with the Commons Clause: free for personal, commercial, and academic use, but you may not sell Taskmaster itself or offer it as a hosted service.",
       },
     },
   },
@@ -146,18 +146,18 @@ const en: VsTaskMasterCopy = {
     },
     lead: "Both boards sit in your repository, so both are versioned with the code. What differs is what a diff shows a human.",
     oursLabel: "AI4Kanban",
-    theirsLabel: "Task Master",
+    theirsLabel: "Taskmaster",
     oursCaption:
       "One card, one Markdown file. A pull request shows the plan changing in words you can read and argue with.",
     theirsCaption:
       "One file holds the whole backlog. A diff shows JSON — accurate, and not written to be read.",
-    note: "Task Master added cross-process file locking in 0.42.0 so two processes writing the board at once can't lose data. Separate files don't share that contention: two runs collide only when they edit the same card.",
+    note: "Taskmaster added cross-process file locking in 0.42.0 so two processes writing the board at once can't lose data. Separate files don't share that contention: two runs collide only when they edit the same card.",
   },
   wins: {
     heading: { eyebrow: "Trade-offs", title: "Where each one wins" },
-    lead: "Task Master reaches further, runs longer without you, and can go look things up. AI4Kanban is narrower on purpose: it earns its place in the part of the job that happens before there is a task at all.",
+    lead: "Taskmaster reaches further, runs longer without you, and can go look things up. AI4Kanban is narrower on purpose: it earns its place in the part of the job that happens before there is a task at all.",
     oursHeading: "AI4Kanban",
-    theirsHeading: "Task Master",
+    theirsHeading: "Taskmaster",
     ours: {
       asksFirst: {
         title: "It asks before it builds",
@@ -198,7 +198,7 @@ const en: VsTaskMasterCopy = {
   decision: {
     heading: { eyebrow: "The decision", title: "Which one fits your workflow?" },
     oursHeading: "Choose AI4Kanban when",
-    theirsHeading: "Choose Task Master when",
+    theirsHeading: "Choose Taskmaster when",
     ours: [
       "Your ideas start as a sentence, and writing the spec is the part that stalls.",
       "You want the plan and the reasoning behind it reviewable in a diff, next to the code.",
@@ -212,7 +212,7 @@ const en: VsTaskMasterCopy = {
       "You want live research folded into planning, or a specific model provider we don't cover.",
     ],
     verdict:
-      "Task Master starts where your spec ends. AI4Kanban starts before it — its whole job is the stretch between a rough idea and a task worth handing to an agent. If you write good documents, Task Master will get more done today. If the documents are what never get written, that gap is the thing to fix first.",
+      "Taskmaster starts where your spec ends. AI4Kanban starts before it — its whole job is the stretch between a rough idea and a task worth handing to an agent. If you write good documents, Taskmaster will get more done today. If the documents are what never get written, that gap is the thing to fix first.",
     note: "They are not exclusive: a PRD written against a refined AI4Kanban card parses perfectly well. But one board has to own task status, or you will keep two.",
   },
 };

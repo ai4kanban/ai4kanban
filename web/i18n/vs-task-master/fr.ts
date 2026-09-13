@@ -1,32 +1,32 @@
-// Français — the Task Master comparison, mirroring `en.ts` key for key.
+// Français — the Taskmaster comparison, mirroring `en.ts` key for key.
 // Writing rules: `i18n/index.ts`.
 import type { VsTaskMasterCopy } from "./types";
 
 const fr: VsTaskMasterCopy = {
   meta: {
-    title: "AI4Kanban vs. Task Master — écrire la spec, ou se la faire demander",
-    socialTitle: "AI4Kanban vs. Task Master",
+    title: "AI4Kanban vs. Taskmaster — écrire la spec, ou se la faire demander",
+    socialTitle: "AI4Kanban vs. Taskmaster",
     description:
-      "Comparez AI4Kanban et Task Master (Taskmaster). Task Master découpe le PRD que vous avez déjà écrit en un backlog ordonné. AI4Kanban part d’une idée floue et questionne jusqu’à ce que la carte soit réalisable.",
+      "Comparez AI4Kanban et Taskmaster. Taskmaster découpe le PRD que vous avez déjà écrit en un backlog ordonné. AI4Kanban part d’une idée floue et questionne jusqu’à ce que la carte soit réalisable.",
     social:
-      "Task Master a besoin d’un PRD pour commencer. AI4Kanban part d’une seule phrase et vous demande le reste. Voyez quel point de départ correspond à votre façon de travailler.",
+      "Taskmaster a besoin d’un PRD pour commencer. AI4Kanban part d’une seule phrase et vous demande le reste. Voyez quel point de départ correspond à votre façon de travailler.",
   },
   hero: {
     badge: "Comparaison",
-    title: "AI4Kanban vs.\nTask Master",
-    lead: "Les deux donnent à l’agent de code une liste de tâches plutôt qu’une fenêtre de chat. Task Master prend le document d’exigences que vous avez écrit et le découpe en un backlog ordonné. AI4Kanban commence une étape plus tôt : vous donnez une phrase approximative, et il questionne jusqu’à ce qu’il y ait quelque chose qui mérite d’être construit.",
+    title: "AI4Kanban vs.\nTaskmaster",
+    lead: "Les deux donnent à l’agent de code une liste de tâches plutôt qu’une fenêtre de chat. Taskmaster prend le document d’exigences que vous avez écrit et le découpe en un backlog ordonné. AI4Kanban commence une étape plus tôt : vous donnez une phrase approximative, et il questionne jusqu’à ce qu’il y ait quelque chose qui mérite d’être construit.",
     ours: {
       name: "AI4Kanban",
       body: "Un tableau Markdown dans votre dépôt. L’agent propose le travail, demande ce qu’il ne peut pas trancher et archive ce qui est livré.",
     },
     theirs: {
-      name: "Task Master",
+      name: "Taskmaster",
       body: "Un moteur de tâches pour tout éditeur avec IA. Analyse un PRD, l’étend en sous-tâches et vide le backlog.",
     },
     oursDiagramAlt:
       "Une phrase approximative entre dans AI4Kanban, qui renvoie les questions auxquelles il ne peut pas répondre seul et rend une carte terminée.",
     theirsDiagramAlt:
-      "Un document d’exigences terminé entre dans Task Master et revient découpé en tâches numérotées, dans l’ordre des dépendances.",
+      "Un document d’exigences terminé entre dans Taskmaster et revient découpé en tâches numérotées, dans l’ordre des dépendances.",
     oursDiagramTop: "en entrée : une phrase floue",
     oursDiagramBottom: "il questionne, puis écrit la carte",
     theirsDiagramTop: "en entrée : le document que vous avez écrit",
@@ -37,10 +37,10 @@ const fr: VsTaskMasterCopy = {
       eyebrow: "En bref",
       title: "La différence, c’est ce que vous devez apporter.",
     },
-    lead: "Task Master — écrit `Taskmaster` dans sa propre documentation — est le gestionnaire de tâches le plus connu pour les agents de code, et il fait bien son travail. Il lit un document d’exigences, le découpe en tâches avec leurs dépendances, note la complexité de chacune, étend les plus lourdes en sous-tâches et vous rend la prochaine tâche que rien ne bloque. Si vous écrivez déjà des spécifications, c’est presque tout ce qu’il vous faut.",
+    lead: "Taskmaster est un gestionnaire de tâches pour les agents de code avec plus de 28k étoiles sur GitHub. Il lit un document d’exigences, le découpe en tâches avec leurs dépendances, note la complexité de chacune, étend les plus lourdes en sous-tâches et vous rend la prochaine tâche que rien ne bloque. Si vous écrivez déjà des spécifications, c’est presque tout ce qu’il vous faut.",
     panel:
       "AI4Kanban part du principe que la spec n’existe pas encore. Vous donnez une phrase. Il lit le code et la mémoire du projet, tranche ce qu’il peut trancher seul, ne vous demande que ce qui reste vraiment ouvert, et recommence jusqu’à ce que la carte soit assez concrète pour être construite. **Les questions sont le produit.** Le tableau est l’endroit où les réponses restent.",
-    note: "Vérifié le 10 août 2026 : la dernière version de Task Master est la 0.43.1 (31 mars 2026) et le dernier commit sur `main` date du 23 avril 2026, tandis que la même équipe développe Hamster, un espace de planification hébergé. Le paquet est toujours installé environ 78 000 fois par mois : c’est un outil très utilisé dont le dépôt est calme, pas un projet abandonné.",
+    note: "Vérifié le 10 août 2026 : la dernière version de Taskmaster est la 0.43.1 (31 mars 2026) et le dernier commit sur `main` date du 23 avril 2026, tandis que la même équipe développe Hamster, un espace de planification hébergé. Le paquet est toujours installé environ 78 000 fois par mois : c’est un outil très utilisé dont le dépôt est calme, pas un projet abandonné.",
   },
   start: {
     heading: {
@@ -58,7 +58,7 @@ const fr: VsTaskMasterCopy = {
       ],
     },
     theirs: {
-      label: "Task Master",
+      label: "Taskmaster",
       title: "D’abord un document écrit",
       steps: [
         "Écrivez le document d’exigences. Leur guide suggère de le rédiger avec un modèle de chat, puis de l’enregistrer sous `.taskmaster/docs/prd.txt`.",
@@ -66,13 +66,13 @@ const fr: VsTaskMasterCopy = {
         "`next` vous rend la tâche la plus prioritaire que rien ne bloque.",
       ],
     },
-    note: "Aucun des deux chemins n’est difficile. Mais quand le document est flou, Task Master découpe un document flou : vous pouvez toujours lancer `update-task` avec plus de contexte, et le modèle de recherche peut aller se documenter, mais rien dans la boucle ne vous demande ce que vous vouliez dire.",
+    note: "Aucun des deux chemins n’est difficile. Mais quand le document est flou, Taskmaster découpe un document flou : vous pouvez toujours lancer `update-task` avec plus de contexte, et le modèle de recherche peut aller se documenter, mais rien dans la boucle ne vous demande ce que vous vouliez dire.",
   },
   comparison: {
-    heading: { eyebrow: "Face à face", title: "AI4Kanban vs. Task Master" },
-    lead: "Un {check} marque l’option la plus nette pour ce besoin ; un **tiret** signifie que cela dépend de votre façon de travailler. Task Master est plus fort sur **la couverture, l’exécution par lots et la recherche en direct**. AI4Kanban est plus fort pour **passer d’une idée floue à une vraie spec, et garder ce qui a été décidé**.",
+    heading: { eyebrow: "Face à face", title: "AI4Kanban vs. Taskmaster" },
+    lead: "Un {check} marque l’option la plus nette pour ce besoin ; un **tiret** signifie que cela dépend de votre façon de travailler. Taskmaster est plus fort sur **la couverture, l’exécution par lots et la recherche en direct**. AI4Kanban est plus fort pour **passer d’une idée floue à une vraie spec, et garder ce qui a été décidé**.",
     ourLabel: "AI4Kanban",
-    theirLabel: "Task Master",
+    theirLabel: "Taskmaster",
     rows: {
       startingPoint: {
         dimension: "D’où vient une tâche",
@@ -135,7 +135,7 @@ const fr: VsTaskMasterCopy = {
         kanban:
           "Apache-2.0. Utilisez-le, forkez-le, vendez ce que vous construisez avec : aucune condition supplémentaire.",
         taskMaster:
-          "MIT avec la Commons Clause : gratuit pour un usage personnel, commercial et académique, mais vous ne pouvez ni vendre Task Master lui-même ni le proposer comme service hébergé.",
+          "MIT avec la Commons Clause : gratuit pour un usage personnel, commercial et académique, mais vous ne pouvez ni vendre Taskmaster lui-même ni le proposer comme service hébergé.",
       },
     },
   },
@@ -146,18 +146,18 @@ const fr: VsTaskMasterCopy = {
     },
     lead: "Les deux tableaux vivent dans votre dépôt et sont donc versionnés avec le code. Ce qui change, c’est ce qu’un diff montre à un humain.",
     oursLabel: "AI4Kanban",
-    theirsLabel: "Task Master",
+    theirsLabel: "Taskmaster",
     oursCaption:
       "Une carte, un fichier Markdown. Une pull request montre le plan qui change, en mots que vous pouvez lire et contester.",
     theirsCaption:
       "Un fichier contient tout le backlog. Le diff montre du JSON : exact, et pas écrit pour être lu.",
-    note: "Task Master a ajouté un verrou de fichier entre processus en 0.42.0 pour que deux écritures simultanées ne perdent pas de données. Des fichiers séparés ne partagent pas cette contention : deux exécutions ne se heurtent que si elles modifient la même carte.",
+    note: "Taskmaster a ajouté un verrou de fichier entre processus en 0.42.0 pour que deux écritures simultanées ne perdent pas de données. Des fichiers séparés ne partagent pas cette contention : deux exécutions ne se heurtent que si elles modifient la même carte.",
   },
   wins: {
     heading: { eyebrow: "Compromis", title: "Là où chacun gagne" },
-    lead: "Task Master va plus loin, tourne plus longtemps sans vous et sait aller se documenter. AI4Kanban est plus étroit volontairement : il gagne sa place sur la partie du travail qui précède l’existence même d’une tâche.",
+    lead: "Taskmaster va plus loin, tourne plus longtemps sans vous et sait aller se documenter. AI4Kanban est plus étroit volontairement : il gagne sa place sur la partie du travail qui précède l’existence même d’une tâche.",
     oursHeading: "AI4Kanban",
-    theirsHeading: "Task Master",
+    theirsHeading: "Taskmaster",
     ours: {
       asksFirst: {
         title: "Il demande avant de construire",
@@ -198,7 +198,7 @@ const fr: VsTaskMasterCopy = {
   decision: {
     heading: { eyebrow: "La décision", title: "Lequel correspond à votre façon de travailler ?" },
     oursHeading: "Choisissez AI4Kanban quand",
-    theirsHeading: "Choisissez Task Master quand",
+    theirsHeading: "Choisissez Taskmaster quand",
     ours: [
       "Vos idées commencent par une phrase, et c’est l’écriture de la spec qui vous bloque.",
       "Vous voulez relire le plan et ses raisons dans un diff, à côté du code.",
@@ -212,7 +212,7 @@ const fr: VsTaskMasterCopy = {
       "Vous voulez de la recherche en direct dans la planification, ou un fournisseur de modèles que nous ne couvrons pas.",
     ],
     verdict:
-      "Task Master commence là où votre spec s’arrête. AI4Kanban commence avant : tout son travail est le trajet entre une idée floue et une tâche qui mérite d’être confiée à un agent. Si vous écrivez de bons documents, Task Master abattra plus de travail aujourd’hui. Si ces documents sont justement ce qui ne s’écrit jamais, c’est ce trou-là qu’il faut combler d’abord.",
+      "Taskmaster commence là où votre spec s’arrête. AI4Kanban commence avant : tout son travail est le trajet entre une idée floue et une tâche qui mérite d’être confiée à un agent. Si vous écrivez de bons documents, Taskmaster abattra plus de travail aujourd’hui. Si ces documents sont justement ce qui ne s’écrit jamais, c’est ce trou-là qu’il faut combler d’abord.",
     note: "Les deux ne s’excluent pas : un PRD écrit à partir d’une carte AI4Kanban affinée s’analyse très bien. Mais un seul tableau doit détenir l’état des tâches, sinon vous en maintiendrez deux.",
   },
 };
