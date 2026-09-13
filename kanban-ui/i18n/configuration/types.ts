@@ -15,6 +15,7 @@ export type AgentRoleName =
   | "proposer"
   | "memory-pruner"
   | "sweeper"
+  | "feedback"
   | "triage";
 
 export type ConfigurationCopy = {

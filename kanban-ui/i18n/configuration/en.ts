@@ -196,6 +196,11 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every verdict Sweeper gives — "never discard a card in the current release".',
         when: "you unstick a card by hand. It rewrites the card for the project as it is today, or discards it — one card, one verdict.",
       },
+      feedback: {
+        name: "Feedback",
+        gloss: "Finds where a plan misread you, and packs the feedback together.",
+        rule: 'Added to the end of every feedback it packs — "always quote the line of the plan that missed it".',
+      },
       triage: {
         name: "Triage",
         gloss: "Sorts what is waiting in Triage into cards and ignores.",
