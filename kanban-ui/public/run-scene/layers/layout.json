@@ -1,0 +1,132 @@
+{
+  "world": {
+    "width": 1536,
+    "height": 1024
+  },
+  "camera": {
+    "fit": "cover",
+    "maxTopCrop": 40
+  },
+  "windows": [
+    [
+      284,
+      24,
+      212,
+      133
+    ],
+    [
+      511,
+      24,
+      127,
+      133
+    ],
+    [
+      899,
+      24,
+      134,
+      133
+    ],
+    [
+      1047,
+      24,
+      125,
+      133
+    ]
+  ],
+  "scenery": {
+    "width": 394,
+    "height": 197,
+    "leftWindow": {
+      "x": 264,
+      "y": 0
+    },
+    "rightWindow": {
+      "x": 879,
+      "y": 0
+    }
+  },
+  "clock": {
+    "x": 732,
+    "y": 52,
+    "width": 72,
+    "height": 72,
+    "pivot": [
+      36,
+      36
+    ]
+  },
+  "desk": {
+    "width": 284,
+    "height": 184,
+    "x": [
+      203,
+      523,
+      838,
+      1160
+    ],
+    "y": [
+      323,
+      558
+    ],
+    "screen": {
+      "x": 105,
+      "y": 19,
+      "width": 76,
+      "height": 42
+    },
+    "workAtlas": "desk-work.json",
+    "sleepTexture": "desk-sleep.png"
+  },
+  "bots": {
+    "x": [
+      345,
+      665,
+      980,
+      1302
+    ],
+    "feetY": [
+      481,
+      716
+    ],
+    "height": 115,
+    "ground": 0.95,
+    "sofaX": [
+      1155,
+      1280
+    ],
+    "sofaFeetY": 901
+  },
+  "labels": {
+    "nameOffsetY": -128,
+    "taskOffsetY": 3
+  },
+  "timeOfDay": {
+    "clock": "device-local",
+    "periods": [
+      {
+        "id": "dawn",
+        "startHour": 5,
+        "endHour": 8,
+        "texture": "window-dawn.png"
+      },
+      {
+        "id": "day",
+        "startHour": 8,
+        "endHour": 17,
+        "texture": "window-day.png"
+      },
+      {
+        "id": "dusk",
+        "startHour": 17,
+        "endHour": 20,
+        "texture": "window-dusk.png"
+      },
+      {
+        "id": "night",
+        "startHour": 20,
+        "endHour": 5,
+        "texture": "window-night.png"
+      }
+    ]
+  }
+}

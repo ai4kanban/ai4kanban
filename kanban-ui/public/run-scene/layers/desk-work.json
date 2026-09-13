@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "image": "desk-work.png",
+    "size": {
+      "w": 1136,
+      "h": 184
+    },
+    "scale": "1"
+  },
+  "frames": {
+    "work-0": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 284,
+        "h": 184
+      }
+    },
+    "work-1": {
+      "frame": {
+        "x": 284,
+        "y": 0,
+        "w": 284,
+        "h": 184
+      }
+    },
+    "work-2": {
+      "frame": {
+        "x": 568,
+        "y": 0,
+        "w": 284,
+        "h": 184
+      }
+    },
+    "work-3": {
+      "frame": {
+        "x": 852,
+        "y": 0,
+        "w": 284,
+        "h": 184
+      }
+    }
+  },
+  "animations": {
+    "work": [
+      "work-0",
+      "work-1",
+      "work-2",
+      "work-3"
+    ]
+  },
+  "frameDurationMs": 250,
+  "reducedMotionFrame": "work-0"
+}

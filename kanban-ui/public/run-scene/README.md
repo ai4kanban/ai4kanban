@@ -9,3 +9,14 @@
 - **Reuse**: these are the textures embedded in task 399's mockups. Carry this directory into the implementation checkout; no regeneration is required for these four actions.
 
 Generated with the built-in imagegen tool from this project's existing workshop and robot references.
+
+## Layered office
+
+- **Assets**: `layers/office-base.png`, `clock-face.png`, `window-{dawn,day,dusk,night}.png`, `desk-sleep.png`, and `desk-work.png` with `desk-work.json` are ready for task 678. Keep the existing office until the layered renderer replaces it.
+- **Time**: device-local dawn 05:00–08:00, day 08:00–17:00, dusk 17:00–20:00, night 20:00–05:00. Start inclusive, end exclusive; no location, weather, or seasonal inputs. All four textures are 1774×887.
+- **Placement**: `layers/layout.json` defines world anchors and crop limits. Bots move up 24 world pixels; role/harness sits above the head and the card ID below the feet.
+- **Compositing**: scenery → background → desks → clock/hands → bots/labels. Scale each scenery to 394×197, then crop through the background’s four transparent panes. Never stretch a view to a pane.
+- **Desk animation**: `desk-work.png` is a 1136×184 horizontal atlas: four 284×184 frames, 250 ms each, looping in `desk-work.json` order. `desk-sleep.png` is one 284×184 frame. All pixels outside the display match exactly.
+- **Lifecycle**: play only for occupied desks; hold work frame 0 for reduced motion. Stop playback on sleep, tab hiding or dialog close; shared desks stay active while any worker remains.
+- **Provenance**: built-in imagegen prompts are in `layers/prompts.json`; the clock face was rasterized from the mockup SVG, with hands drawn at runtime. Reuse `bot-actions.png` and harness SVGs; do not bake labels or clock hands into sprites.
+- **Previews**: review files live in the ignored `.akb/boards/docs/kanban/mockups/678/` folder, including `previews/desk-work.gif`; production assets stay in this directory.
