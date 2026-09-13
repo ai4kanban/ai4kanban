@@ -20,6 +20,7 @@ import { rel, TODO, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-contract'
 import { withStore } from './store'
+import { contextLimit, refreshCatalog } from './catalog'
 import { boardCommand } from './command'
 import { deliveryRunAfter } from './deliveries'
 import { buildAfterGate, cardStages, gateRunAfter } from './gate'
@@ -66,7 +67,7 @@ import { holdCardAtWork, releaseCardAtWork } from '../cloud/publish'
 import { startResume, startRun } from './start'
 import type { TurnEnd } from './wire'
 import { holdsCard } from './types'
-import type { AgentRequest, RunRecord, RunStatus } from './types'
+import type { AgentRequest, ContextWindow, RunRecord, RunStatus } from './types'
 
 // How long a run gets to end on its own after a stop asks it to, before it is killed
 // outright.
@@ -209,6 +210,10 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   // uses: a limit changed mid-run belongs to the next run.
   const silenceFor = silenceMinutes()
   const silenceMs = silenceFor * 60_000
+  // The catalogue the context ring's window comes from (#675), pulled behind the run rather
+  // than in front of it: this supervisor outlives the download, and a run must never wait on
+  // a network the board doesn't need. Whatever is already on disk answers until it lands.
+  void refreshCatalog()
   // A connector the board talks to is started differently in two ways: the prompt is sent
   // in the conversation rather than spelled on the command line, and its stdin stays open,
   // because that is the half of the conversation this end writes (agent/wire/client.ts).
@@ -264,6 +269,30 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
   const gotModel = (model: string | undefined) => {
     if (!sawModel) sawModel = catchModel(sessionId, model)
   }
+  // How full the window is, written down again every time the reading moves (#675) — unlike
+  // the two above, which are caught once. It is what makes a long run's ring climb while it
+  // works.
+  //
+  // The reading only moves when a request comes back, and a run's output arrives in hundreds
+  // of chunks that say nothing new — so a chunk that repeats the last reading stops here,
+  // before the record is read or written. The one exception is a window still unknown: for
+  // every connector but Codex it comes from the model, and the model can arrive long after
+  // the first reading does (OpenCode names one only once its stream has ended).
+  let lastUsed = 0
+  let gotLimit = false
+  const gotContext = (reading: ContextWindow | undefined) => {
+    if (!reading?.used) return
+    if (reading.used === lastUsed && gotLimit) return
+    lastUsed = reading.used
+    // Only Codex names its own window. For everyone else it is the catalogue's, looked up
+    // against the model this run named — so a run whose model never arrived, or one the
+    // catalogue has never heard of, carries a reading with no window and draws no ring.
+    const limit = reading.limit ?? contextLimit(record.harness, peekRun(sessionId)?.model)
+    gotLimit = limit !== undefined
+    patch(sessionId, (r) => {
+      r.context = { used: reading.used, limit }
+    })
+  }
 
   // stdout is the agent's event stream — render it to readable lines as it arrives, with
   // the parser its own agent brings. stderr is plain text and passes through, whichever
@@ -280,6 +309,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
     append(renderer.push(d.toString()))
     gotResumeId(renderer.resumeId?.())
     gotModel(renderer.model?.())
+    gotContext(renderer.context?.())
   })
   const errs = createStderrFilter(active.quietStderr)
   child.stderr.on('data', (d: Buffer) => {
@@ -339,6 +369,7 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
         // The ids may have been in the last partial line, on a very short run.
         gotResumeId(renderer.resumeId?.())
         gotModel(renderer.model?.())
+        gotContext(renderer.context?.())
       }
       append(errs.flush())
 
@@ -410,6 +441,9 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
               : 'error'
       const totalCost = spoken ? spoken.costUsd : renderer?.costUsd?.()
       const usage = spoken ? spoken.usage : renderer?.usage?.()
+      // A connector the board TALKS to hands its reading back with the turn rather than on
+      // the stream, so this is where its ring gets its one update (#675).
+      if (spoken) gotContext(spoken.context)
       const repairable = status === 'done'
       const required = new Set(record.formatRepair?.cardIds ?? [])
       const heldElsewhere = withStore((store) => new Set(store.runs

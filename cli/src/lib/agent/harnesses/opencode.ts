@@ -112,7 +112,7 @@ export const OPENCODE: Harness = {
   // catalogue, which rates a Coding Plan's models at zero — a plan is a quota rather than a
   // per-token bill. Every GLM model that IS billed per token is priced there already, under
   // the provider billing for it, so the board keeps no rates of its own for them.
-  reports: ['cost', 'tokens', 'model'],
+  reports: ['cost', 'tokens', 'model', 'context'],
 
   // OpenCode retries a 429 itself — five times, backing off to about a minute in all — and
   // then ends the run non-zero. No flag or variable turns that off, so the card is held for

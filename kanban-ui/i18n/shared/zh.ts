@@ -20,6 +20,7 @@ const zh: SharedCopy = {
     published: "已发布",
   },
   channelAt: (channel, status) => `${channel} —— ${status}`,
+  contextWindow: (used, limit) => `上下文窗口 ${used}/${limit}`,
 };
 
 export default zh;

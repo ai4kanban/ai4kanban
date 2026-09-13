@@ -54,6 +54,7 @@ import { formatCost, formatDuration, formatTokens } from "./agent-shared";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { MessageBox } from "./composer";
+import { ContextRing } from "./context-ring";
 import { AgentMark } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
 import { Markdown } from "./Markdown";
@@ -1213,8 +1214,14 @@ function Preview({ src, onClose }: { src: string; onClose: () => void }) {
 export function Pick({ rail, pick, answering }: { rail: ChatRail; pick: ChatPick; answering: boolean }) {
   const running = pick.runtimes.find((r) => r.id === pick.runtime);
   return (
-    <span className="flex h-[28px] min-w-0 items-center overflow-hidden rounded-[8px]">
-      <RuntimePick rail={rail} pick={pick} label={running?.name ?? pick.name} answering={answering} />
+    <span className="flex h-[28px] min-w-0 items-center gap-1.5">
+      <span className="flex h-full min-w-0 items-center overflow-hidden rounded-[8px]">
+        <RuntimePick rail={rail} pick={pick} label={running?.name ?? pick.name} answering={answering} />
+      </span>
+      {/* How full this conversation has made the window (#675), beside what is answering it.
+          A reply being written leaves the last reading standing — the ring jumps once, when
+          the turn lands. */}
+      <ContextRing context={rail.read?.chat?.context} />
     </span>
   );
 }

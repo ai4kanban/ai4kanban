@@ -232,7 +232,7 @@ export const CLAUDE_CODE: Harness = {
 
   // Its closing event carries all three, so a run under it shows a price, its tokens and
   // the model that did the work.
-  reports: ['cost', 'tokens', 'model'],
+  reports: ['cost', 'tokens', 'model', 'context'],
 
   // The variable above is the switch: the first 429 exits non-zero and the card is free.
   stopsOnRateLimit: true,

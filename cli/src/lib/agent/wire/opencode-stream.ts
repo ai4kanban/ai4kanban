@@ -23,7 +23,7 @@
 import { argHint, num, obj, str } from './json'
 import { opencodeSessionModel } from './opencode-session'
 import { createLineReader, frame, type StreamRenderer } from './stream'
-import type { TokenUsage } from '../types'
+import type { ContextWindow, TokenUsage } from '../types'
 
 // What a call was called on. OpenCode's own tools name their arguments
 // `filePath`, `command`, `pattern` and so on, and an MCP tool brings whatever
@@ -56,6 +56,10 @@ export function createOpencodeStreamRenderer(cwd?: string, binary?: string): Str
   let sessionId: string | undefined
   let cost = 0
   const total: TokenUsage = { input: 0, cacheCreation: 0, cacheRead: 0, output: 0 }
+  // What the model was holding on the last step, as against `total` beside it, which is
+  // what the whole run has spent (#675). OpenCode names no window on any event, so the
+  // other half of the ring comes from the catalogue (../catalog.ts).
+  let holding = 0
   // The model, and the two flags that keep the lookup to one spawn: `ended` is set by the
   // flush that closes the stream, `asked` by the answer — including an answer of nothing.
   let ended = false
@@ -99,6 +103,9 @@ export function createOpencodeStreamRenderer(cwd?: string, binary?: string): Str
           total.output += num(tokens.output)
           total.cacheRead += num(cache.read)
           total.cacheCreation += num(cache.write)
+          // One step is one model call, so this step's input IS the prompt it just sent.
+          // Last step wins, and a compaction takes the reading back down.
+          holding = num(tokens.input) + num(cache.read) + num(cache.write)
         }
         return ''
       case 'error': {
@@ -132,6 +139,7 @@ export function createOpencodeStreamRenderer(cwd?: string, binary?: string): Str
       const sum = total.input + total.cacheCreation + total.cacheRead + total.output
       return sum > 0 ? { ...total } : undefined
     },
+    context: (): ContextWindow | undefined => (holding > 0 ? { used: holding } : undefined),
     // Once, and only after the last line is in: the runner asks on every chunk while the
     // stream runs, and this one costs a spawn (./opencode-session.ts).
     model: () => {

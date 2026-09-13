@@ -172,8 +172,10 @@ export interface Harness
    *  the board made up. Checked against the renderer when this module loads.
    *
    *  `cost` an estimated price, `tokens` the four token counts, `model` the id of the model
-   *  that did the work. */
-  reports: ('cost' | 'tokens' | 'model')[]
+   *  that did the work, `context` how full the model's window is (#675) — the last request's
+   *  own prompt, which is what the context ring is drawn from. A connector that counts only
+   *  a running total does NOT report context: a total is not what the model is holding. */
+  reports: ('cost' | 'tokens' | 'model' | 'context')[]
   /** True when a rate limit ends the run instead of waiting it out. A CLI that retries a 429
    *  by default holds its card for as long as it retries, which on a weekly limit is most of
    *  an hour — so a connector with a switch for it turns retries off in `env()` and says so

@@ -25,4 +25,8 @@ export type SharedCopy = {
   };
   /** One channel and where it has got to, as a mark's tooltip: `X — draft`. */
   channelAt: (channel: string, status: string) => string;
+  /** What the context ring says when you point at it (#675): how much of the model's window
+   *  this conversation or run has filled, and how big the window is. Both numbers arrive
+   *  already shortened — `100k`, `1M`. */
+  contextWindow: (used: string, limit: string) => string;
 };

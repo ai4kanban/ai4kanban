@@ -8,7 +8,7 @@
 // Non-JSON lines pass through untouched in every renderer, so a stray CLI warning still
 // lands in the log as-is.
 
-import type { TokenUsage } from '../types'
+import type { ContextWindow, TokenUsage } from '../types'
 
 export interface StreamRenderer {
   /** Feed a chunk of stdout; returns the log text it renders to (may be ""). */
@@ -27,6 +27,13 @@ export interface StreamRenderer {
    *  cost above is worked out from. Only harnesses whose output reports usage
    *  implement this; the rest leave it out and the UI shows no numbers. */
   usage?(): TokenUsage | undefined
+  /** How full the context window is as of the last request that finished (#675) — the
+   *  prompt it carried, and the window that prompt went into where this CLI names one.
+   *  Asked repeatedly while the stream runs, so a live run's ring moves with it; the
+   *  reading only changes when a request completes. Only harnesses whose output carries
+   *  the last request's own prompt size implement it — one that reports a running total
+   *  leaves it out, because a total is not what the model is holding. */
+  context?(): ContextWindow | undefined
   /** The model id this run is working with, as the agent itself named it (task
    *  #98) — never the model setting, which most people leave empty. The FIRST id
    *  the output names wins: that is the model the run started on, and a run that

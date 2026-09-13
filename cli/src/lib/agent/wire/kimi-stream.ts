@@ -76,11 +76,11 @@ export function createKimiStreamRenderer(cwd: string): StreamRenderer {
   let facts: KimiRunFacts | undefined
   let lookedAt = 0
 
-  // Look beside the stream for what the stream doesn't say. Nothing to look for again once
-  // the model is known — a turn can't change it — except on the last look after a run has
-  // ended, which is the one the token counts come from. `now` skips the wait for that one.
+  // Look beside the stream for what the stream doesn't say. Kept up the whole run rather
+  // than stopped once the model is known: the context reading moves with every model call
+  // (#675), so the ring would freeze at the first one. The wait below is what keeps that
+  // cheap, and `now` skips it for the last look after a run has ended.
   const look = (now: boolean): void => {
-    if (facts?.model && !now) return
     const at = Date.now()
     if (!now && at - lookedAt < LOOK_EVERY_MS) return
     lookedAt = at
@@ -125,6 +125,10 @@ export function createKimiStreamRenderer(cwd: string): StreamRenderer {
     },
     result: () => final,
     usage: () => facts?.usage,
+    context: () => {
+      look(false)
+      return facts?.context
+    },
     model: () => {
       look(false)
       return facts?.model

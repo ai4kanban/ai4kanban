@@ -32,6 +32,7 @@ import {
 import { Button } from "./button";
 import { ELASTIC_CHIP } from "./chips";
 import { PULSE_DOT } from "./chrome";
+import { ContextRing } from "./context-ring";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
 
@@ -460,6 +461,9 @@ export function SessionLog({
             overlay and the runs panel all get it from here. */}
         {running && <StopButton sessionId={session.sessionId} />}
         {indicator}
+        {/* How full the model's window is, as of this run's last finished request (#675).
+            It climbs while the run works, and is left standing on a run that has ended. */}
+        <ContextRing context={session.context} />
         {facts.length > 0 && (
           // Middots between the facts so two numbers in a row don't run together.
           // Any caveat lives in a fact's tooltip — the row itself stays short.

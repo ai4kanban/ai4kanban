@@ -22,7 +22,7 @@
 // the other. `CommentBatch` is what a comment write answers with — the CLI hands back the
 // list, and the wrapper adds the one line a board too old to carry the move can say.
 
-import type { AgentAction, DeliveryStatus, ExecutionBlocker, ReviewTrigger, RunRetry, TokenUsage } from "./format/agent/types";
+import type { AgentAction, ContextWindow, DeliveryStatus, ExecutionBlocker, ReviewTrigger, RunRetry, TokenUsage } from "./format/agent/types";
 import type { CardDeliveryState, DraftComment } from "./format/view/types";
 
 export type {
@@ -41,6 +41,7 @@ export type {
   CommandAction,
   CommandRequest,
   ConnectionTest,
+  ContextWindow,
   CreateImageAgents,
   ImageAgent,
   DiscussRead,
@@ -266,6 +267,11 @@ export interface SessionView {
   /** The tokens this run consumed, as its own closing event counted them. Terminal runs
    *  only — the numbers arrive with the agent's last event. */
   usage?: TokenUsage;
+  /** How full the model's context window is (#675) — the prompt of the run's last finished
+   *  request, and the window it went into. Carried on a LIVE run too, unlike the numbers
+   *  above: it moves as the run works, and that is the whole point of the ring. Either half
+   *  can be missing, and nothing is drawn unless both are there. */
+  context?: ContextWindow;
   /** The text the user typed for this run — a create's description, an action's notes,
    *  or a reject's reason. Absent when the run carried no note. */
   input?: string;

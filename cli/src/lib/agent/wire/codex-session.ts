@@ -4,7 +4,8 @@
 // but Codex keeps a rollout of every session on disk, and the file's name ends in the thread
 // id the run's FIRST event already handed us. That file names the model and the provider
 // that served it, which is a model in the runs panel and, for a provider whose rates are
-// published, a price (agent/prices.ts).
+// published, a price (agent/prices.ts). It also keeps the counts behind the context ring
+// (#675), which the event stream leaves out for the same reason.
 //
 // Read, never written: this is Codex's own bookkeeping and the board is a guest in it. Every
 // failure here is silent and means "not known" — a rollout a user turned off with
@@ -16,17 +17,42 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import type { ContextWindow } from '../types'
+
 export interface CodexRunFacts {
   /** The model id Codex ran the turn on, e.g. `gpt-5.6-sol`. */
   model?: string
   /** Who served it, e.g. `openai`. A model id only means a price next to this. */
   provider?: string
+  /** How full the window was as of the last request that came back (#675). Codex is the one
+   *  connector that answers both halves itself — but only here: `codex exec --json` renders
+   *  a handful of thread events and none of them carries a count, while the rollout beside
+   *  them keeps every `token_count` the session ever emitted. */
+  context?: ContextWindow
 }
 
 type Entry = { type?: unknown; payload?: Record<string, unknown> }
 
 function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function count(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined
+}
+
+// How full the window is, off one `token_count` event. `last_token_usage.input_tokens` is
+// the WHOLE prompt of the request that just came back, cached part included — which is what
+// the model is holding — and `model_context_window` is the window it went into, as Codex
+// really runs it rather than as a catalogue lists it. A window of zero is Codex saying it
+// doesn't know one.
+function contextIn(raw: unknown): ContextWindow | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const info = raw as Record<string, unknown>
+  const last = info.last_token_usage
+  const used = count(last && typeof last === 'object' ? (last as Record<string, unknown>).input_tokens : undefined)
+  if (!used) return undefined
+  return { used, limit: count(info.model_context_window) }
 }
 
 // Sessions are filed under the LOCAL date they started, so a run that straddles midnight —
@@ -81,9 +107,9 @@ export function readCodexRunFacts(threadId: string): CodexRunFacts | undefined {
   }
   const facts: CodexRunFacts = {}
   for (const line of raw.split('\n')) {
-    // A rollout is mostly the conversation itself. Only two kinds of line carry an answer,
+    // A rollout is mostly the conversation itself. Only three kinds of line carry an answer,
     // so the rest is skipped without parsing it.
-    if (!line.includes('"session_meta"') && !line.includes('"turn_context"')) continue
+    if (!line.includes('"session_meta"') && !line.includes('"turn_context"') && !line.includes('"token_count"')) continue
     let entry: Entry
     try {
       const parsed: unknown = JSON.parse(line)
@@ -99,6 +125,9 @@ export function readCodexRunFacts(threadId: string): CodexRunFacts | undefined {
     if (entry.type === 'session_meta') facts.provider ??= text(payload.model_provider)
     // The model is per turn, and last turn wins — the same rule the token counts follow.
     if (entry.type === 'turn_context') facts.model = text(payload.model) ?? facts.model
+    // One reading per request that came back, and the last one is what the model holds now
+    // — a compaction takes it down rather than adding to it.
+    if (payload.type === 'token_count') facts.context = contextIn(payload.info) ?? facts.context
   }
-  return facts.model || facts.provider ? facts : undefined
+  return facts.model || facts.provider || facts.context ? facts : undefined
 }

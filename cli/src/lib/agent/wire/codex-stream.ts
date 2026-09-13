@@ -110,12 +110,13 @@ export function createCodexStreamRenderer(): StreamRenderer {
   let facts: CodexRunFacts | undefined
   let lookedAt = 0
 
-  // Look beside the stream for what the stream doesn't say. Nothing to look for
-  // until the thread id arrives, and nothing to look for again once the model is
-  // known — a turn can't change it. `now` skips the wait, for the last look after
-  // a run has ended.
+  // Look beside the stream for what the stream doesn't say. Nothing to look for until the
+  // thread id arrives, and kept up after that rather than stopped once the model is known:
+  // the context reading moves with every request that comes back (#675), so the ring would
+  // freeze at the first one. The wait below is what keeps that cheap, and `now` skips it for
+  // the last look after a run has ended.
   const look = (now: boolean): void => {
-    if (facts?.model || !threadId) return
+    if (!threadId) return
     const at = Date.now()
     if (!now && at - lookedAt < LOOK_EVERY_MS) return
     lookedAt = at
@@ -184,6 +185,13 @@ export function createCodexStreamRenderer(): StreamRenderer {
     },
     result: () => final,
     usage: () => usage,
+    // Off the rollout, not the stream: no thread event carries a count, and the rollout
+    // gains a `token_count` every time a request comes back — so a long run's ring climbs
+    // while it works (./codex-session.ts).
+    context: () => {
+      look(false)
+      return facts?.context
+    },
     model: () => {
       look(false)
       return facts?.model

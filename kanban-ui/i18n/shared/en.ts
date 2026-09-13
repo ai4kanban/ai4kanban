@@ -20,6 +20,7 @@ const en: SharedCopy = {
     published: "published",
   },
   channelAt: (channel, status) => `${channel} — ${status}`,
+  contextWindow: (used, limit) => `Context window ${used}/${limit}`,
 };
 
 export default en;

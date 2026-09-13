@@ -24,13 +24,18 @@ import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 import { num, obj, str } from './json'
-import type { TokenUsage } from '../types'
+import type { ContextWindow, TokenUsage } from '../types'
 
 export interface KimiRunFacts {
   /** The model id Kimi ran the turn on, e.g. `kimi-k2-thinking`. */
   model?: string
   /** Everything the session's agents spent, summed. */
   usage?: TokenUsage
+  /** How full the window is as of the main agent's last call (#675). The MAIN agent's
+   *  alone: Kimi writes a subagent's calls into the same session, and a subagent runs on a
+   *  short prompt of its own — counted here, the reading would drop by half every time one
+   *  was dispatched and read as a compaction that never happened. */
+  context?: ContextWindow
 }
 
 interface IndexEntry {
@@ -104,18 +109,20 @@ export function findKimiSession(cwd: string, since: number): string | undefined 
 
 // Every agent's record in one session: the main one, plus a `wire.jsonl` for each subagent
 // it spawned. All of them are read, because what a run spent includes what it handed out —
-// and `main` is read FIRST, because the model a run is shown as is the main agent's.
-function wireFiles(sessionDir: string): string[] {
+// and `main` is read FIRST, because the model a run is shown as is the main agent's, and so
+// is the context reading.
+function wireFiles(sessionDir: string): { path: string; main: boolean }[] {
   const agents = join(sessionDir, 'agents')
   let names: string[]
   try {
     names = readdirSync(agents)
   } catch {
-    // A layout this build doesn't know. The session's own file is the fallback.
-    return [join(sessionDir, 'wire.jsonl')]
+    // A layout this build doesn't know. The session's own file is the fallback, and it is
+    // the main agent's by default: there is no other one in it.
+    return [{ path: join(sessionDir, 'wire.jsonl'), main: true }]
   }
   const ordered = names.sort((a, b) => Number(b === 'main') - Number(a === 'main'))
-  return ordered.map((name) => join(agents, name, 'wire.jsonl'))
+  return ordered.map((name) => ({ path: join(agents, name, 'wire.jsonl'), main: name === 'main' }))
 }
 
 /** The model and token counts behind a Kimi session, or nothing when its record can't be
@@ -126,7 +133,8 @@ export function readKimiRunFacts(sessionId: string): KimiRunFacts | undefined {
   if (!entry) return undefined
   const total: TokenUsage = { input: 0, cacheCreation: 0, cacheRead: 0, output: 0 }
   let model: string | undefined
-  for (const path of wireFiles(entry.sessionDir)) {
+  let holding = 0
+  for (const { path, main } of wireFiles(entry.sessionDir)) {
     let raw: string
     try {
       raw = readFileSync(path, 'utf8')
@@ -154,9 +162,19 @@ export function readKimiRunFacts(sessionId: string): KimiRunFacts | undefined {
       total.cacheCreation += num(usage.inputCacheCreation)
       total.cacheRead += num(usage.inputCacheRead)
       total.output += num(usage.output)
+      // One record is one model call, so its three input counts ARE the prompt that call
+      // sent. The main agent's last record wins.
+      if (main) {
+        holding = num(usage.inputOther) + num(usage.inputCacheCreation) + num(usage.inputCacheRead)
+      }
     }
   }
   const spent = total.input + total.cacheCreation + total.cacheRead + total.output
   if (!model && !spent) return undefined
-  return { model, usage: spent ? total : undefined }
+  return {
+    model,
+    usage: spent ? total : undefined,
+    // Kimi's records name no window, so the catalogue supplies the other half (../catalog.ts).
+    context: holding > 0 ? { used: holding } : undefined,
+  }
 }

@@ -31,7 +31,9 @@ import { reportChatMessage } from '../machine/usage'
 import { CHATS_DIR, REPO_ROOT } from '../paths'
 import { planFile } from '../plans'
 import { ensureSkillInstalled } from '../skill/install'
+import { contextLimit, refreshCatalog } from './catalog'
 import { languageNote } from './language'
+import { asContext } from './log'
 import { emptyRunBox, freeBox, pictureName, runPictureFile, savePicture } from './pictures'
 import {
   chatAgent,
@@ -62,6 +64,7 @@ import type {
   ChatReply,
   ChatTarget,
   ChatView,
+  ContextWindow,
   ModelChange,
   PlanAnswer,
   TokenUsage,
@@ -123,6 +126,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
     harness: raw.harness,
     resumeId: typeof raw.resumeId === 'string' && raw.resumeId ? raw.resumeId : undefined,
     model: typeof raw.model === 'string' && raw.model ? raw.model : undefined,
+    context: asContext(raw.context),
     // A conversation held before #467 pinned a HARNESS, and `pickRuntime` reads that as the
     // runtime that harness's block became — so a held chat carries across rather than
     // silently going back to the discussion helper's. The model it held is dropped: the row it maps to
@@ -885,6 +889,11 @@ export async function sendChatMessage(
     // dead id and fails every message after it until someone clears it.
     const restart = held.resumeId ? chatPrompt(cardId, text, say) : undefined
 
+    // The catalogue behind the ring's denominator (#675), pulled behind this turn rather
+    // than waited for: this turn's window comes from whatever is already on disk, and the
+    // next one has the fresh numbers. A first-ever turn simply draws no ring.
+    void refreshCatalog()
+
     const asked = Date.now()
     const spoken = await speak({
       plan,
@@ -928,6 +937,16 @@ export async function sendChatMessage(
     // opened, so keeping its id is what stops the next message reseeding all over again.
     if (spoken.resumeId && (spoken.ok || reply || spoken.reseeded)) held.resumeId = spoken.resumeId
     if (spoken.model) held.model = spoken.model
+    // How full the window is now (#675) — one reading, replaced each turn, so a compaction
+    // takes it down and a turn that reported nothing leaves the last one standing. The
+    // window itself is the model's, looked up against the model that just answered, which
+    // is what makes a mid-conversation model switch change the denominator.
+    if (spoken.context?.used) {
+      held.context = {
+        used: spoken.context.used,
+        limit: spoken.context.limit ?? contextLimit(held.harness, spoken.model ?? held.model),
+      }
+    }
     // The plan the reply itself named (#427): `akb raw plan` writes this same file from
     // inside the turn, so what it left is newer than what this one has held since the
     // message was sent. Nothing else can have moved — a runtime is only picked between
@@ -964,6 +983,9 @@ interface Spoken {
    *  (`reports` in agent/harnesses/). Both absent on one that doesn't. */
   usage?: TokenUsage
   costUsd?: number
+  /** How full the window was when the turn ended (#675). The connector's own reading; the
+   *  window it goes into is filled in by the caller, which knows the model. */
+  context?: ContextWindow
   /** The id this conversation carries on by, once the agent has named one. */
   resumeId?: string
   /** True when the session being carried on was gone and a fresh one opened in its place.
@@ -1049,6 +1071,7 @@ async function speak(io: {
   // the closing event is in (see `finish`).
   let usage: TokenUsage | undefined
   let costUsd: number | undefined
+  let context: ContextWindow | undefined
 
   // stdout and stderr are pipes whichever shape this is; only stdin differs.
   const stdio: [StdioNull | StdioPipe, StdioPipe, StdioPipe] = [client ? 'pipe' : 'ignore', 'pipe', 'pipe']
@@ -1111,6 +1134,7 @@ async function speak(io: {
         model ??= renderer.model?.()
         usage ??= renderer.usage?.()
         costUsd ??= renderer.costUsd?.()
+        context ??= renderer.context?.()
       }
       push(noted(errs.flush()))
       resolve({
@@ -1123,6 +1147,7 @@ async function speak(io: {
         model,
         usage,
         costUsd,
+        context,
         resumeId,
         reseeded,
       })
@@ -1195,6 +1220,7 @@ async function speak(io: {
             endChild()
             usage ??= end.usage
             costUsd ??= end.costUsd
+            context ??= end.context
             finish(end.ok, end.error, end.result)
           })
       }

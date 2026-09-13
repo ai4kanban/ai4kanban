@@ -61,6 +61,12 @@ const CAPABILITIES: Capability[] = [
     has: (h) => h.reports.includes('model'),
   },
   {
+    id: 'context',
+    label: 'Context window',
+    blurb: 'No context ring on chats or runs.',
+    has: (h) => h.reports.includes('context'),
+  },
+  {
     id: 'rate-limit',
     label: 'Rate-limit exit',
     blurb: 'A rate-limited run waits it out, holding its card.',

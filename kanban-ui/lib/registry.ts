@@ -47,6 +47,9 @@ function toView(
     durationMs: run.durationMs,
     costUsd: run.status !== "running" ? run.costUsd : undefined,
     usage: run.status !== "running" ? run.usage : undefined,
+    // Kept on a live run, unlike the two above: the ring is drawn while the run works
+    // (#675), and a reading that only arrived at the close would never be seen moving.
+    context: run.context,
     model: run.model,
     input: run.input,
     harness: run.harness,

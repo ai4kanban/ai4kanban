@@ -157,9 +157,13 @@ shadow. Shadows never blur or change direction.
 - **An inner window is a dialog one rung down**: a log or preview frame is a hairline, a
   paper title bar, a hairline under it, and a wash well below — the same shape wherever it
   is dropped, inside a dialog or on a page.
-- **Tooltips**: use ink with cream text, appear on keyboard focus as well as hover, and
-  explain icon-only or abbreviated controls in sentence case. They sit above the control,
-  and below it in the window's top row, where there is nothing above but the edge.
+- **Tooltips**: use ink with cream text, appear on keyboard focus and on a tap as well as
+  hover, and explain icon-only or abbreviated controls in sentence case. They sit above the
+  control, and below it in the window's top row, where there is nothing above but the edge.
+- **A proportion is a ring**: how full something is — the context window beside a
+  conversation and a run — is a 14px track and arc in soft ink, with the two numbers in its
+  tooltip and nothing written beside it. A ring with no numbers behind it is not drawn at
+  all; nothing stands in for it.
 
 ## Interaction and motion
 

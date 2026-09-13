@@ -34,6 +34,7 @@ export function checkHarnesses(harnesses: Harness[]): void {
         cost: Boolean(renderer.costUsd),
         tokens: Boolean(renderer.usage),
         model: Boolean(renderer.model),
+        context: Boolean(renderer.context),
       }
       for (const [what, has] of Object.entries(implemented)) {
         const claimed = harness.reports.includes(what as Harness['reports'][number])

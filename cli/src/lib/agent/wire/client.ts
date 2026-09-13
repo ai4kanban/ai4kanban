@@ -17,7 +17,7 @@
 
 import type { Readable, Writable } from 'node:stream'
 
-import type { TokenUsage } from '../types'
+import type { ContextWindow, TokenUsage } from '../types'
 
 /** One turn, from the pipes it is held over to the things it reports back. */
 export interface ClientTurn {
@@ -59,6 +59,10 @@ export interface TurnEnd {
   error?: string
   /** What the turn consumed, when the agent counted it. */
   usage?: TokenUsage
+  /** How full the context window was when the turn ended (#675) — the prompt the last
+   *  request carried, not what the turn spent. Absent from a protocol that reports only a
+   *  session total. */
+  context?: ContextWindow
   /** What it cost in US dollars, when the agent priced it. */
   costUsd?: number
 }

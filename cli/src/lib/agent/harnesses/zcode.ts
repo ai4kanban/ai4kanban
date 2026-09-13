@@ -103,7 +103,7 @@ export const ZCODE: Harness = {
 
   // Tokens and the model, and no price: a Coding Plan is a quota rather than a per-token
   // bill, and nothing in ZCode's protocol carries a cost. A blank is the honest answer.
-  reports: ['tokens', 'model'],
+  reports: ['tokens', 'model', 'context'],
 
   // ZCode retries a rate-limited request itself and has no setting that stops it, so a
   // limited run waits it out and holds its card while it does — the same as Codex. Better

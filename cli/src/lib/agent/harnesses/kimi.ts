@@ -208,7 +208,7 @@ export const KIMI: Harness = {
   // in `<session>/agents/*/wire.jsonl` carrying `model` and a four-part `usage`. Drop
   // whichever one a real run doesn't write — a blank is fine, a number the board invented
   // is not.
-  reports: ['tokens', 'model'],
+  reports: ['tokens', 'model', 'context'],
 
   // Kimi retries a 429 up to `max_attempts_per_step` times — 10 by default, with backoff
   // capped at 32 seconds, so a rate-limited run holds its card for minutes rather than the

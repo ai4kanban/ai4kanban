@@ -27,7 +27,7 @@ import { hint, num, obj, str, type Json } from './json'
 import { connect, type Rpc } from './rpc'
 import { createTail, type Tail } from './tail'
 import type { ClientTurn, RunClient, TurnEnd } from './client'
-import type { TokenUsage } from '../types'
+import type { ContextWindow, TokenUsage } from '../types'
 
 // What a tool call was called on, out of whichever field its input names it in. ZCode's
 // tools take a path, a command, a pattern or a URL, and its own permission checks read the
@@ -352,12 +352,13 @@ async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> 
     // the one the ending event repeats. Never both, and never nothing when the agent spoke.
     const result = tail.end() || done.response || undefined
     const usage = done.usage ?? (await tokensOf(rpc, sessionId))
+    const context = await contextOf(rpc, sessionId)
     if (!done.ok) {
       const why = done.error ?? 'the agent stopped without saying why'
       stopped(io, why)
-      return { ok: false, result, error: why, usage }
+      return { ok: false, result, error: why, usage, context }
     }
-    return { ok: true, result, usage }
+    return { ok: true, result, usage, context }
   } catch (e) {
     // Whatever went wrong is the agent's own message — a key it wouldn't take, a model it
     // doesn't have, a connection that went away mid-turn. It goes into the log where the
@@ -375,6 +376,27 @@ async function oneTurn(io: ClientTurn, options: ZcodeOptions): Promise<TurnEnd> 
 async function tokensOf(rpc: Rpc, sessionId: string): Promise<TokenUsage | undefined> {
   try {
     return usageOf(await rpc.call('session/usage', { sessionId }))
+  } catch {
+    return undefined
+  }
+}
+
+// How full the window is, asked for once the turn is over (#675). ZCode keeps the count on
+// the session itself — replaced by every model call and taken back down by a compaction —
+// alongside the window it is counted against, so both halves of the ring are its own and
+// the catalogue is never asked.
+//
+// Neither `turn.completed` nor `session/usage` answers this: both add up what was SPENT
+// across every call, and a sum is not a prompt. `messageLimit` is what keeps the answer
+// small — this call hands back the whole transcript otherwise, and only two numbers off the
+// session's own state are wanted.
+async function contextOf(rpc: Rpc, sessionId: string): Promise<ContextWindow | undefined> {
+  try {
+    const read = await rpc.call('session/read', { sessionId, messageLimit: 1 })
+    const state = obj(read.projection)
+    const used = num(state.contextUsed)
+    const limit = num(state.contextWindow)
+    return used > 0 ? { used, limit: limit > 0 ? limit : undefined } : undefined
   } catch {
     return undefined
   }

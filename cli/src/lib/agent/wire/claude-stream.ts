@@ -7,7 +7,7 @@
 
 import { argHint, num, obj, str } from './json'
 import { createLineReader, frame, type StreamRenderer } from './stream'
-import type { TokenUsage } from '../types'
+import type { ContextWindow, TokenUsage } from '../types'
 
 // The argument a human would recognise a call by, across the tools Claude Code ships.
 const ARG_KEYS = ['command', 'file_path', 'path', 'pattern', 'description', 'prompt', 'query', 'url'] as const
@@ -50,11 +50,25 @@ function denials(ev: Record<string, unknown>): string {
   return `[refused] ${list.length} tool call${list.length === 1 ? '' : 's'} were not allowed: ${names.join(', ')}\n`
 }
 
+// What the model was holding when it answered, off one `assistant` event. Claude Code
+// reports that turn's own input in three parts — fresh, written to the cache, read back —
+// and together they ARE the prompt it just sent, so the ring reads the sum. The output is
+// left out: it is not in the prompt yet, and it will be counted as input on the next call.
+//
+// Claude Code names no window anywhere on this stream, so only half the answer is here; the
+// other half is the catalogue's (../catalog.ts).
+function promptSize(raw: unknown): number | undefined {
+  const u = obj(raw)
+  const size = num(u.input_tokens) + num(u.cache_creation_input_tokens) + num(u.cache_read_input_tokens)
+  return size > 0 ? size : undefined
+}
+
 export function createStreamRenderer(): StreamRenderer {
   let final: string | undefined
   let cost: number | undefined
   let model: string | undefined
   let usage: TokenUsage | undefined
+  let context: ContextWindow | undefined
   let failure: string | undefined
   let offStream: string | undefined
 
@@ -74,7 +88,11 @@ export function createStreamRenderer(): StreamRenderer {
     if (model === undefined) model = eventModel(ev)
     switch (ev.type) {
       case 'assistant': {
-        const msg = ev.message as { content?: unknown } | undefined
+        const msg = ev.message as { content?: unknown; usage?: unknown } | undefined
+        // Every assistant turn carries the prompt it answered. The last one wins: that is
+        // what the model is holding now, and a compaction takes it back down.
+        const holding = promptSize(msg?.usage)
+        if (holding) context = { used: holding }
         const blocks: unknown[] = Array.isArray(msg?.content) ? msg.content : []
         const out: string[] = []
         for (const raw of blocks) {
@@ -135,6 +153,7 @@ export function createStreamRenderer(): StreamRenderer {
     result: () => final,
     costUsd: () => cost,
     usage: () => usage,
+    context: () => context,
     model: () => model,
     failure: () => failure,
     offStream: () => offStream,

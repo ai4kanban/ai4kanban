@@ -13,7 +13,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { SESSIONS_DIR } from '../paths'
-import type { TokenUsage } from './types'
+import type { ContextWindow, TokenUsage } from './types'
 
 /** Written just before the agent's final message, so a log can be split back into events +
  *  final message long after the run. The events are rendered tool/turn lines, so this
@@ -105,6 +105,18 @@ export function asUsage(v: unknown): TokenUsage | undefined {
     cacheRead: o.cacheRead as number,
     output: o.output as number,
   }
+}
+
+/** A ContextWindow read back from the record or a transcript (#675). Each half is taken on
+ *  its own: a file that names a window but no reading is a window nobody has filled yet, and
+ *  the reader draws nothing until both are there. A reading of nothing at all is nothing. */
+export function asContext(v: unknown): ContextWindow | undefined {
+  if (!v || typeof v !== 'object') return undefined
+  const o = v as Record<string, unknown>
+  const count = (n: unknown): number | undefined =>
+    typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : undefined
+  const context: ContextWindow = { used: count(o.used), limit: count(o.limit) }
+  return context.used === undefined && context.limit === undefined ? undefined : context
 }
 
 /** The tail of a log file. Bounded so a long run doesn't have to be read whole; pass

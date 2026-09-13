@@ -22,6 +22,19 @@ export interface TokenUsage {
   output: number
 }
 
+/** How full the model's context window is right now (#675) — NOT a total, and never added
+ *  up. `used` is the prompt the last finished request carried, cached parts included, which
+ *  is exactly what the model is holding; `limit` is the window that prompt went into, from
+ *  the connector where it reports one and from the models.dev catalogue where it doesn't
+ *  (./catalog.ts).
+ *
+ *  Either can be missing, and a reader draws nothing unless both are known: a ring over a
+ *  window nobody knows is a proportion of nothing. */
+export interface ContextWindow {
+  used?: number
+  limit?: number
+}
+
 /** Every kind of agent session the board can start. */
 export type AgentAction =
   | 'implement'
@@ -325,6 +338,10 @@ export interface RunRecord {
    *  estimate the agent worked out from tokens at list prices — not a bill. */
   costUsd?: number
   usage?: TokenUsage
+  /** How full the context window was after this run's last finished request (#675). Kept
+   *  apart from `usage` above, which counts what the whole run spent: this one neither adds
+   *  up nor only grows, and it is written while the run is still going. */
+  context?: ContextWindow
   /** The model that did the work, as the run's own output named it. */
   model?: string
   /** The agent's final message, parsed out of its event stream at close. */
@@ -858,6 +875,10 @@ export interface Chat {
   resumeId?: string
   /** The model the last reply was written by, as the agent named it. */
   model?: string
+  /** How full that model's context window was when the last reply ended (#675). One
+   *  reading, replaced each turn — a compaction takes it down, and a conversation carried
+   *  on picks up where it left off. */
+  context?: ContextWindow
   /** The runtime this conversation was picked to run on (#272, #467). Absent means it
    *  follows the discussion helper's, and is refused when that changes to another CLI; set means it
    *  goes on running this row whatever the board is switched to. */

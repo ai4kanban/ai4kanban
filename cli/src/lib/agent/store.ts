@@ -22,7 +22,7 @@ import path from 'node:path'
 import { pidAlive, withLock } from '../lock'
 import { SESSIONS, SESSIONS_DIR, SESSIONS_LOCK } from '../paths'
 import { insideRun } from './env'
-import { asUsage } from './log'
+import { asContext, asUsage } from './log'
 import { holdsCard } from './types'
 import type {
   AgentAction,
@@ -138,6 +138,10 @@ export function readStore(): Store {
       // A run that never reported a cost shows none, rather than a zero it didn't earn.
       costUsd: typeof entry.costUsd === 'number' && entry.costUsd > 0 ? entry.costUsd : undefined,
       usage: asUsage(entry.usage),
+      // How full the window was at the run's last request (#675). Whitelisted like
+      // everything else here: a reader that skipped it would drop it on the next write, and
+      // a live run writes this over and over while it goes.
+      context: asContext(entry.context),
       model: typeof entry.model === 'string' && entry.model ? entry.model : undefined,
       result: typeof entry.result === 'string' ? entry.result : undefined,
       note: typeof entry.note === 'string' && entry.note ? entry.note : undefined,
