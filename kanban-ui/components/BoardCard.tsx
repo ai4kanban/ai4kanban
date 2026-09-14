@@ -11,6 +11,7 @@ import { scheduleLabel } from "@/lib/schedule";
 import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
 import { ChannelRow } from "./channels";
+import { sessionsPanel } from "./sessions";
 import { useSolution } from "./solution";
 import { Button } from "./button";
 import {
@@ -29,8 +30,9 @@ import {
 // sits — a queue column, the recurring column — so there is one component and
 // the callers only differ in what they pass in.
 //
-// `liveSession` is the one live run on this card (if any); `onOpenLog`
-// makes its badge open that run's log overlay, which the page owns.
+// `liveSession` is the one live run on this card (if any); its badge opens the runs dialog
+// on that run (#753). The board draws no log of its own — the log is read in the one place
+// every run is read.
 //
 // The track is NOT on the card. Both views band their cards by track and head
 // each band with its name — the kanban column heading, the queue's rule — so a
@@ -48,17 +50,13 @@ import {
 export function BoardCard({
   card,
   liveSession,
-  onOpenLog,
   creator,
-  onResumed,
 }: {
   card: Card;
   liveSession?: SessionView;
-  onOpenLog: (sessionId: string) => void;
   /** The run that created this card, when it has not finished creating it (#564). What
    *  Resume creating picks back up; absent on every ordinary card. */
   creator?: SessionView;
-  onResumed?: (sessionId: string) => void;
 }) {
   // A group root's progress comes from its own todo checklist, not from counting
   // subtask files: a finished subtask gets archived and its file removed, so the
@@ -78,7 +76,7 @@ export function BoardCard({
   // Not finished being created (#564): a different card entirely, and the branch is taken
   // before anything below reads a field the creator has not written yet.
   if (card.creation) {
-    return <BeingCreatedCard card={card} creation={card.creation} creator={creator} onResumed={onResumed} />;
+    return <BeingCreatedCard card={card} creation={card.creation} creator={creator} />;
   }
   return (
     <Link
@@ -115,7 +113,7 @@ export function BoardCard({
                 // The card is a link; keep the click on the badge.
                 e.preventDefault();
                 e.stopPropagation();
-                onOpenLog(liveSession.sessionId);
+                sessionsPanel.select(liveSession.sessionId);
               }}
             />
           ) : card.discussing ? (
@@ -240,12 +238,10 @@ function BeingCreatedCard({
   card,
   creation,
   creator,
-  onResumed,
 }: {
   card: Card;
   creation: CardCreation;
   creator?: SessionView;
-  onResumed?: (sessionId: string) => void;
 }) {
   const c = useCopy().board.card.creating;
   const going = creation.state === "creating";
@@ -272,7 +268,7 @@ function BeingCreatedCard({
           <span className="a4k-creating-line w-[58%]" />
         </div>
       ) : (
-        <ResumeCreation creator={creator} onResumed={onResumed} />
+        <ResumeCreation creator={creator} />
       )}
     </div>
   );
@@ -284,13 +280,7 @@ function BeingCreatedCard({
 // Drawn only when the record still has that run to continue — a creator too old to resume,
 // or one this board can no longer start, leaves the line and no button rather than a control
 // that would refuse.
-function ResumeCreation({
-  creator,
-  onResumed,
-}: {
-  creator?: SessionView;
-  onResumed?: (sessionId: string) => void;
-}) {
+function ResumeCreation({ creator }: { creator?: SessionView }) {
   const c = useCopy().board.card.creating;
   const actions = useActions();
   const [busy, setBusy] = useState(false);
@@ -303,7 +293,9 @@ function ResumeCreation({
     setError(null);
     const res = await actions.resumeSession(creator.sessionId);
     setBusy(false);
-    if (res.ok && res.sessionId) onResumed?.(res.sessionId);
+    // The run that carries on is read where every run is read — the runs dialog, opened on
+    // it (#753). This card has no page of its own to follow it to.
+    if (res.ok && res.sessionId) sessionsPanel.select(res.sessionId);
     else setError(res.error || c.resumeFailed);
   };
 

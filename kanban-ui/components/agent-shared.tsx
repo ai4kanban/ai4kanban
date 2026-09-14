@@ -6,7 +6,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { FiPlay } from "react-icons/fi";
 import { FaPauseCircle } from "react-icons/fa";
 import type { RunsCopy } from "@/i18n/runs/types";
@@ -15,7 +14,6 @@ import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
-import { useSwipeBack } from "@/lib/swipe-back";
 import { useActions, useMachine } from "@/lib/screen";
 import { parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
@@ -193,6 +191,88 @@ function RetryWait({ retry }: { retry: RunRetry }) {
   );
 }
 
+/** One thing a run's facts row says, and the caveat it carries in a tooltip. */
+type RunFact = { key: string; text: string; dim?: boolean; title?: string };
+
+// The run's facts, in the order they read: what came of it, how long it took, what it cost,
+// and which model did the work. A live run has only the model — the pulse dot says the
+// rest, and the numbers aren't in yet. The card page's title bar and the run bar over a log
+// window both read them from here, so the two can't drift apart.
+function runFacts(session: SessionView, c: RunsCopy["log"]): RunFact[] {
+  const running = session.status === "running";
+  // A run cut off — the UI died mid-run and the agent ended out of our sight — is never
+  // worded as an end: "interrupted", not "finished". A run the user stopped is neither a
+  // failure nor a finish, and the code it died with says nothing: we killed it.
+  const state = running
+    ? ""
+    : session.status === "stopped"
+      ? c.stopped
+      : session.blocker
+        ? c.blocked
+        : session.status === "interrupted"
+          ? c.interrupted
+          : session.ok
+            ? c.done
+            : c.exited(String(session.code ?? "?"));
+  // How long it took, next to the outcome: "done · 4m 12s". An interrupted run was only
+  // noticed on the next pid poll — an upper bound, not a measurement, so it's marked "~".
+  const took =
+    running || session.durationMs === undefined
+      ? ""
+      : `${session.status === "interrupted" ? "~" : ""}${formatDuration(session.durationMs, c)}`;
+  // And what it cost: "done · 4m 12s · est. $0.42". One run, one number — this run's own,
+  // never a total. A run that reported no cost shows nothing here at all.
+  const cost = running || session.costUsd === undefined ? "" : formatCost(session.costUsd, c);
+  const facts: RunFact[] = [];
+  if (state) facts.push({ key: "state", text: state });
+  if (took) facts.push({ key: "took", text: took, dim: true });
+  if (cost) facts.push({ key: "cost", text: cost, dim: true, title: c.costHint });
+  // The model the agent itself said it was running, shown exactly as it said it (task #98)
+  // — not the model setting, which is empty for most people and says nothing about a run
+  // that started before it was last changed.
+  if (session.model) {
+    facts.push({ key: "model", text: session.model, dim: true, title: c.modelHint });
+  }
+  return facts;
+}
+
+/** The facts as one middot-separated row. Any caveat lives in a fact's tooltip — the row
+ *  itself stays short. */
+function RunFacts({ facts }: { facts: RunFact[] }) {
+  if (facts.length === 0) return null;
+  return (
+    <span className="text-[11px] text-nb-ink-soft">
+      {facts.map((f, i) => (
+        <span key={f.key} className={f.dim ? "tabular-nums opacity-80" : undefined} title={f.title}>
+          {i > 0 && <span className="mx-1.5" aria-hidden>·</span>}
+          {f.text}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// Live, passed, failed, cut off or stopped — as one mark. Interrupted gets its own glyph in
+// blocker ink: not the ✓ of a clean run, and not the ✕ of a run that ended badly on its
+// own. A stopped run gets the square in the board's neutral blue: it neither passed nor
+// failed, someone ended it. Every form sits in the same 22px box as the Stop button beside
+// it, so a bar is one height whether the run is live or over.
+function RunIndicator({ session }: { session: SessionView }) {
+  return (
+    <span className="grid size-[22px] shrink-0 place-items-center leading-none">
+      {session.status === "running" ? (
+        <span className={PULSE_DOT} aria-hidden />
+      ) : session.status === "stopped" ? (
+        <span aria-hidden style={{ color: "var(--color-nb-sky-ink)" }}>■</span>
+      ) : session.status === "interrupted" ? (
+        <span aria-hidden style={{ color: "var(--color-nb-peach-ink)" }}>⦸</span>
+      ) : (
+        <span aria-hidden style={{ color: "var(--color-nb-accent-deep)" }}>{session.ok ? "✓" : "✕"}</span>
+      )}
+    </span>
+  );
+}
+
 // A tailing view of one run's captured output (task #14). Shows the last few
 // KB; auto-scrolls to the newest line unless the user has scrolled up to read
 // back. Once the run ends with a parsed final message, the view leads with
@@ -224,11 +304,9 @@ export function SessionLog({
   // leaves both off.
   warnUnfinished?: boolean;
   onResumed?: (sessionId: string) => void;
-  // `flush` drops the collapse toggle and the body's height cap (the panel it's
-  // dropped into — the runs dialog, the board overlay — owns the scrolling)
-  // but keeps the full ink-framed window with its title bar, so the log is the
-  // same artifact everywhere it appears. The collapsible form is for the inline
-  // card-page log.
+  // `flush` is the log alone — no frame, no title bar, no height cap. The window it is
+  // dropped into (the runs dialog's log drawer) carries the one bar and owns the
+  // scrolling. The collapsible form is for the inline card-page log.
   flush?: boolean;
 }) {
   const t = useCopy();
@@ -252,14 +330,6 @@ export function SessionLog({
 
   if (!session) return null;
   const running = session.status === "running";
-  // The run was cut off — the UI died mid-run and the agent ended out of our
-  // sight. It never reached an end, so it is never worded as one: "interrupted",
-  // not "finished", and Resume is offered as it is on a failure.
-  const interrupted = session.status === "interrupted";
-  // The user ended this run from the UI (#49). Nothing went wrong with it, so it
-  // never reads as a failure — and the code it died with says nothing, because we
-  // are the ones who killed it.
-  const stopped = session.status === "stopped";
   // This run ended without finishing — the warning and the Resume below hang off it.
   const unfinished = stoppedShort(session);
   // Whether this run can actually be picked up. The warning line stays either way, so a run
@@ -269,79 +339,7 @@ export function SessionLog({
   // delivery block drops the bar and carries Resume in its own strip instead, so the line
   // below speaks for the control wherever it is drawn.
   const carryOn = Boolean(onResumed && resumable);
-  // No word while running — the pulse dot already signals progress.
-  const state = running
-    ? ""
-    : stopped
-      ? c.stopped
-      : blocker
-        ? c.blocked
-      : interrupted
-        ? c.interrupted
-        : session.ok
-          ? c.done
-          : c.exited(String(session.code ?? "?"));
-  // How long it took, next to the outcome: "done · 4m 12s". An interrupted run
-  // ended out of our sight and was only noticed on the next pid poll — that's an
-  // upper bound, not a measurement, so it's marked "~".
-  const took =
-    running || session.durationMs === undefined
-      ? ""
-      : `${interrupted ? "~" : ""}${formatDuration(session.durationMs, c)}`;
-  // And what it cost, after the duration: "done · 4m 12s · est. $0.42". One run,
-  // one number — this run's own, never a total. A run that reported no cost (a
-  // live one, one cut off early, an agent that says nothing about money) shows
-  // nothing here at all.
-  const cost =
-    running || session.costUsd === undefined ? "" : formatCost(session.costUsd, c);
-
-  // The run's facts, in one middot-separated row: what came of it, how long it
-  // took, what it cost, and which model did the work. A live run shows only the
-  // model — the pulse dot says the rest, and the numbers aren't in yet.
-  const facts: { key: string; text: string; dim?: boolean; title?: string }[] = [];
-  if (state) facts.push({ key: "state", text: state });
-  if (took) facts.push({ key: "took", text: took, dim: true });
-  if (cost) {
-    facts.push({
-      key: "cost",
-      text: cost,
-      dim: true,
-      title: c.costHint,
-    });
-  }
-  // The model the agent itself said it was running, shown exactly as it said it
-  // (task #98) — not the model setting, which is empty for most people and says
-  // nothing about a run that started before it was last changed. An agent that
-  // never names one leaves this out entirely rather than reading "default".
-  if (session.model) {
-    facts.push({
-      key: "model",
-      text: session.model,
-      dim: true,
-      title: c.modelHint,
-    });
-  }
-
-  // Live/passed/failed/interrupted/stopped indicator, shared by both layouts.
-  // Interrupted gets its own glyph in blocker ink: not the ✓ of a clean run, and
-  // not the ✕ of a run that ended badly on its own — a run that was cut off. A
-  // stopped run gets the square in the board's neutral blue: it neither passed
-  // nor failed, someone ended it.
-  // Every form sits in the same 22px box as the Stop button beside it, so the bar
-  // is one height whether the run is live or over.
-  const indicator = (
-    <span className="grid size-[22px] shrink-0 place-items-center leading-none">
-      {running ? (
-        <span className={PULSE_DOT} aria-hidden />
-      ) : stopped ? (
-        <span aria-hidden style={{ color: "var(--color-nb-sky-ink)" }}>■</span>
-      ) : interrupted ? (
-        <span aria-hidden style={{ color: "var(--color-nb-peach-ink)" }}>⦸</span>
-      ) : (
-        <span aria-hidden style={{ color: "var(--color-nb-accent-deep)" }}>{session.ok ? "✓" : "✕"}</span>
-      )}
-    </span>
-  );
+  const facts = runFacts(session, c);
 
   // The log body, shared by both layouts.
   const message = running ? (
@@ -435,47 +433,31 @@ export function SessionLog({
     </>
   );
 
-  // The title bar — the "run log" kicker + the live/done indicator. Chrome over the
-  // well below it, parted by a hairline: the same shape as a dialog's own title bar,
-  // since this window is most often inside one. Shared by both forms; only the
-  // card-page form passes onToggle, which also makes it the expand/collapse control.
+  // The title bar — the "run log" kicker + the live/done indicator. Chrome over the well
+  // below it, parted by a hairline, and the expand/collapse control the card page clicks.
+  // A log dropped into a window of its own carries no bar: that window has the one bar,
+  // and it names the task rather than the log (RunBar).
   const titleBar = (
     <div
-      // Off `bare` this bar IS a band on the card page, so it takes the meta box's own
-      // ground and padding: the two sit one above the other, so their kickers have to start
-      // on the same line. Inside the delivery block it is a strip on someone else's block,
-      // and keeps the tighter chrome padding.
-      className={`flex items-center gap-2.5 ${bare ? "px-3 py-1.5" : "px-4 py-2.5"}${bare ? "" : " rounded-t-[14px]"}${collapsed && !bare ? " rounded-b-[14px]" : " border-b border-nb-ink/12"}${onToggle ? " cursor-pointer select-none" : ""}`}
+      // This bar IS a band on the card page, so it takes the meta box's own ground and
+      // padding: the two sit one above the other, so their kickers start on the same line.
+      className={`flex items-center gap-2.5 rounded-t-[14px] px-4 py-2.5${collapsed ? " rounded-b-[14px]" : " border-b border-nb-ink/12"}${onToggle ? " cursor-pointer select-none" : ""}`}
       role={onToggle ? "button" : undefined}
       aria-expanded={onToggle ? !collapsed : undefined}
       aria-label={onToggle ? (collapsed ? c.expand : c.collapse) : undefined}
       onClick={onToggle}
     >
-      {!bare && <span className="nb-tag">{c.title}</span>}
+      <span className="nb-tag">{c.title}</span>
       {/* 22px floor: the tallest thing that can ride here (Stop, Resume, the
           outcome mark) sets the bar's height, and it stays that height when the
           run ends and they swap. */}
       <span className="ml-auto flex min-h-[22px] items-center gap-1.5">
-        {/* Stop (#49) rides in the title bar, the one piece of chrome every place
-            that shows a run already has — so the card page, the board's log
-            overlay and the runs panel all get it from here. */}
         {running && <StopButton sessionId={session.sessionId} />}
-        {indicator}
+        <RunIndicator session={session} />
         {/* How full the model's window is, as of this run's last finished request (#675).
             It climbs while the run works, and is left standing on a run that has ended. */}
         <ContextRing context={session.context} />
-        {facts.length > 0 && (
-          // Middots between the facts so two numbers in a row don't run together.
-          // Any caveat lives in a fact's tooltip — the row itself stays short.
-          <span className="text-[11px] text-nb-ink-soft">
-            {facts.map((f, i) => (
-              <span key={f.key} className={f.dim ? "tabular-nums opacity-80" : undefined} title={f.title}>
-                {i > 0 && <span className="mx-1.5" aria-hidden>·</span>}
-                {f.text}
-              </span>
-            ))}
-          </span>
-        )}
+        <RunFacts facts={facts} />
         {/* Resume rides the title bar beside the outcome it answers (#179). The bar
             doubles as the collapse toggle on the card page, so the button swallows
             its own click rather than folding the log it just restarted. */}
@@ -490,9 +472,7 @@ export function SessionLog({
 
   // The scrolling body well — inset shadow, capped height, and always one rung DOWN from
   // the chrome above it, which is what makes it read as recessed and gives the block a
-  // bottom edge. On a card page that is canvas under a wash bar; in a dialog it is wash
-  // under a paper one. A white well on a white page had no edge at all.
-  // The flush form drops the cap and lets its panel scroll.
+  // bottom edge. A white well on a white page had no edge at all.
   const bodyWell = (
     <div
       ref={ref}
@@ -500,35 +480,20 @@ export function SessionLog({
         const el = e.currentTarget;
         pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
       }}
-      className={`${cap} overflow-auto px-4 py-3 ${flush ? "bg-nb-wash" : "bg-nb-canvas"} shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t border-nb-ink/12" : " rounded-b-[14px]"}`}
+      className={`${cap} overflow-auto bg-nb-canvas px-4 py-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]${bare ? " border-t border-nb-ink/12" : " rounded-b-[14px]"}`}
     >
       {body}
     </div>
   );
 
+  // Flush: the log itself and nothing around it (#753). The window it is dropped into —
+  // the runs dialog's log drawer — carries the one title bar and owns the scrolling, so a
+  // frame here would be a second window inside the first.
+  if (flush) return body;
+
   // Bare: the frame belongs to whatever this is dropped into — the delivery block.
   if (bare) {
     return bodyWell;
-  }
-
-  // Flush: the same framed window, minus the collapse toggle and the body's
-  // height cap — the panel it's dropped into (the runs dialog / board
-  // overlay) owns the scrolling, so the log flows at full length inside the frame.
-  if (flush) {
-    return (
-      // No `overflow-hidden` on the frame: the two children round their own outer
-      // corners instead, so the Stop popover can hang below the title bar over a
-      // log body too short to hold it.
-      <div className="rounded-[14px] border border-nb-ink/12 bg-nb-paper">
-        {titleBar}
-        <div
-          ref={ref}
-          className="rounded-b-[14px] bg-nb-wash px-4 py-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]"
-        >
-          {body}
-        </div>
-      </div>
-    );
   }
 
   // The card page's own form. No frame: it is one of the page's bands, on the page's one
@@ -537,6 +502,150 @@ export function SessionLog({
     <div className="nb-section bg-nb-sheet">
       {titleBar}
       {!collapsed && bodyWell}
+    </div>
+  );
+}
+
+/** What the run bar says about the task a run is on: the card it belongs to and what that
+ *  task is called, which step of the job this run is, and when the job started. */
+export interface RunHead {
+  id: number | null;
+  name: string;
+  /** Empty when the name already IS the step — the word is not printed twice. */
+  step: string;
+  startedAt: string;
+}
+
+const RUN_BAR =
+  "flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-nb-ink/12 bg-nb-paper px-4 py-2 max-md:px-3";
+const RUN_BAR_TITLE = "min-w-[5rem] flex-1 truncate text-[13.5px] font-[800] tracking-[-0.02em]";
+
+// Everything a log window used to stack three titles to say, on one line (#753): the task
+// and its `#id`, which step this is and when the job started, the run's controls and its
+// numbers, and then — parted by a hairline — the window's own way off. The name takes all
+// the slack and clips; nothing to its right ever moves.
+//
+// It is the window's bar, not the log's. SessionLog draws nothing without a run, so a bar
+// hung off it would take the way out with it.
+//
+// On a phone the step and the numbers drop to a second line of their own, and the first
+// keeps the three that cannot give way: what this run is, the move that acts on it, and the
+// way off.
+export function RunBar({
+  session,
+  head,
+  canResume = false,
+  onResumed,
+  onFollow,
+  control,
+}: {
+  session: SessionView;
+  head: RunHead;
+  /** Whether Carry on belongs here. The runs panel hands the job to the delivery's own
+   *  control wherever the board kept its checkout (#720), and passes false. */
+  canResume?: boolean;
+  onResumed?: (sessionId: string) => void;
+  /** Following the `#id` leaves the surface the bar is on, so the dialog closes behind it. */
+  onFollow?: () => void;
+  /** The window's own way off: Collapse in a drawer, ✕ in a dialog. */
+  control: React.ReactNode;
+}) {
+  const t = useCopy();
+  const c = t.runs.log;
+  const p = t.runs.panel;
+  const phone = usePhone();
+  const facts = runFacts(session, c);
+  // A cancelled delivery is why the run ended, so it takes the state word rather than
+  // standing beside it: the run did not stop on its own.
+  const state = facts.find((f) => f.key === "state");
+  if (state && session.delivery?.status === "cancelled") state.text = p.cancelled;
+  // Stop and Carry on act on the RUN. On a phone they hold the first line with the name;
+  // everywhere else they ride with the numbers they qualify.
+  const moves = (
+    <>
+      {session.status === "running" && <StopButton sessionId={session.sessionId} />}
+      {canResume && <ResumeButton sessionId={session.sessionId} onResumed={onResumed} />}
+    </>
+  );
+
+  return (
+    <div className={RUN_BAR}>
+      {/* The task, leading — the id jumps to its card the way every `#id` in the UI does,
+          and is not gated on the card still being open: a card the run archived is exactly
+          the one you'd click. The full name is the bar's tooltip. */}
+      <h2 className={RUN_BAR_TITLE} title={head.id === null ? head.name : `#${head.id} · ${head.name}`}>
+        {head.id !== null && (
+          <>
+            <Link href={`/${head.id}`} className="nb-idlink" onClick={onFollow}>
+              #{head.id}
+            </Link>
+            {" · "}
+          </>
+        )}
+        {head.name}
+      </h2>
+      <span
+        className={`flex min-w-0 items-center gap-y-1 ${
+          phone ? "order-3 w-full shrink-0 basis-full flex-wrap gap-x-2.5" : "shrink gap-x-2"
+        }`}
+      >
+        {head.step && (
+          <span className="shrink-0 text-[11.5px] font-[700] text-nb-ink-soft">{head.step}</span>
+        )}
+        {/* A job is dated by when IT started, not by the session you happen to be reading. */}
+        <span className="shrink-0 text-[11px] text-nb-ink-soft">{head.startedAt}</span>
+        {/* Started by Carry on — said on the time it started, the fact it qualifies —
+            otherwise it reads as a second identical run out of nowhere. */}
+        {session.resumedFrom && <span className="nb-tag shrink-0 text-[10px]">{p.resumed}</span>}
+        {/* 22px floor: the tallest thing that can ride here sets the bar's height, and it
+            keeps that height when the run ends and the controls swap. */}
+        <span className="flex min-h-[22px] shrink-0 items-center gap-1.5">
+          {!phone && moves}
+          <RunIndicator session={session} />
+          {/* How full the model's window is, as of this run's last finished request (#675). */}
+          <ContextRing context={session.context} />
+        </span>
+        {/* The numbers, each its own item so that on a phone they wrap rather than clip: a
+            duration cut in half says less than nothing. The order is fixed, so what falls to
+            the next line is always the tail. */}
+        {facts.map((f, i) => (
+          <span
+            key={f.key}
+            className={`shrink-0 whitespace-nowrap text-[11px] text-nb-ink-soft ${
+              f.dim ? "tabular-nums opacity-80" : ""
+            }`}
+            title={f.title}
+          >
+            {/* Middots only where the row cannot wrap. On a phone the line breaks between
+                these items, and a separator at either end of a broken line reads as a render
+                that failed — the gap does the separating instead. */}
+            {!phone && i > 0 && (
+              <span className="-ml-1 mr-2" aria-hidden>
+                ·
+              </span>
+            )}
+            {f.text}
+          </span>
+        ))}
+      </span>
+      {/* The window's own control, parted from the run's by a hairline: it acts on the
+          window, not on the run. These never give way. */}
+      <span className={`ml-auto flex min-h-[22px] shrink-0 items-center gap-1.5 ${phone ? "order-2" : ""}`}>
+        {phone && moves}
+        <span className="ml-1 flex items-center border-l border-nb-ink/12 pl-2">{control}</span>
+      </span>
+    </div>
+  );
+}
+
+/** The same bar with no run behind it: a dialog opened where nothing has ever run. The
+ *  window still has to be named and still has to be closable, and nothing else on the bar
+ *  has anything to say. */
+export function EmptyRunBar({ title, control }: { title: string; control: React.ReactNode }) {
+  return (
+    <div className={RUN_BAR}>
+      <h2 className={RUN_BAR_TITLE}>{title}</h2>
+      <span className="ml-auto flex min-h-[22px] shrink-0 items-center pl-2">{control}</span>
     </div>
   );
 }
@@ -737,85 +846,6 @@ export function cardlessTitle(session: SessionView, c: RunsCopy["cardless"]): st
   if (session.action === "propose") return running ? c.proposing : c.propose;
   if (session.action === "setup") return running ? c.finishingSetup : c.finishSetup;
   return running ? c.creating : c.create;
-}
-
-// The run log in a modal, opened from a running badge on a board card. Like
-// Dialog, the fixed scrim is portaled to <body>: the sticky
-// header has a `backdrop-filter`, which would otherwise become the containing
-// block for the fixed scrim and trap it inside the header (the board then paints
-// over it). The panel is height-capped so a long log scrolls instead of running
-// off-screen.
-export function SessionLogOverlay({
-  session,
-  onClose,
-  onResumed,
-}: {
-  session: SessionView | null;
-  onClose: () => void;
-  // Resuming a failed run starts a fresh run; the overlay follows it, so the
-  // owner of `session` is handed the new id to watch.
-  onResumed?: (sessionId: string) => void;
-}) {
-  const t = useCopy();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  // Over the chat rail while it is up, so Esc closes the log and leaves a reply alone.
-  useOverRail();
-  // …and over the page, so the swipe back closes it before the page moves (#526).
-  useSwipeBack(true, onClose);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  // A create, propose or plan-release run touches no card, so it has no
-  // `#id — action` handle: name it by what it's doing instead. A plan-release
-  // names the version it planned, which is the whole of what that run was about
-  // and the only thing the panel could say to tell two of them apart. Every
-  // other run is tied to a card and reads `#5 — refine`, with the id linking
-  // to that card the way every other `#id` in the UI does (see the runs
-  // dialog for why it isn't gated on the card still being open).
-  const title = !session ? (
-    t.runs.log.title
-  ) : session.cardId === null ? (
-    cardlessTitle(session, t.runs.cardless)
-  ) : (
-    <>
-      <Link href={`/${session.cardId}`} className="nb-idlink" onClick={onClose}>
-        #{session.cardId}
-      </Link>
-      {` — ${t.runs.action[session.action]}`}
-    </>
-  );
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <div className="nb-scrim" style={{ alignItems: "center" }} onClick={onClose}>
-      <div
-        className="nb-panel flex flex-col"
-        style={{ width: 620, maxWidth: "100%", maxHeight: "calc(100vh - 2rem)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-nb-ink/12 px-5 py-3">
-          <h2 className="text-[15px] font-[800]">{title}</h2>
-          <div className="flex items-center gap-3">
-            {session?.canResume && (
-              <ResumeButton sessionId={session.sessionId} onResumed={onResumed} />
-            )}
-            <button aria-label={t.shared.close} className="text-[18px] text-nb-ink-soft hover:text-nb-ink" onClick={onClose}>×</button>
-          </div>
-        </div>
-        <div className="overflow-y-auto p-4">
-          <SessionLog session={session} flush />
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
 }
 
 // A warning the user has to answer before the action can run: the reason, then a

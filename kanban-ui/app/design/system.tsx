@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { FiFeather, FiHelpCircle, FiMoreHorizontal, FiPlay, FiPlus, FiSettings } from "react-icons/fi";
-import { DialogButtons, RunningBadge, SessionLog } from "@/components/agent-shared";
+import { DialogButtons, RunBar, RunningBadge, SessionLog } from "@/components/agent-shared";
 import { BoardCard } from "@/components/BoardCard";
 import { Button } from "@/components/button";
 import {
@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCopy } from "@/i18n/use-copy";
 import { contrast, flatten, format, verdict } from "@/lib/contrast";
 import type { Card, DeliveryDiff, SessionView } from "@/lib/types";
 
@@ -372,6 +373,7 @@ index 4444444..5555555 100644
 };
 
 export function DesignSystem() {
+  const t = useCopy();
   // Live state for the controls that only exist as controls — a select with
   // nothing to change is a picture of a select.
   const [level, setLevel] = useState("high");
@@ -653,8 +655,8 @@ export function DesignSystem() {
                 className="flex flex-col gap-3 pl-px pr-1 pt-px pb-1"
                 onClick={(e) => e.preventDefault()}
               >
-                <BoardCard card={CARD} onOpenLog={() => {}} />
-                <BoardCard card={GROUP_CARD} liveSession={LIVE_SESSION} onOpenLog={() => {}} />
+                <BoardCard card={CARD} />
+                <BoardCard card={GROUP_CARD} liveSession={LIVE_SESSION} />
               </div>
             </section>
             <section className="flex w-[300px] shrink-0 flex-col">
@@ -1002,9 +1004,30 @@ export function DesignSystem() {
       <Section
         id="run"
         title="The run log"
-        note="components/agent-shared.tsx — the one artifact every place that shows a run reuses: the card page, the board overlay, the runs panel. An ink-framed window with a gradient title bar, the run's facts in one middot row, and a wash body sunk into it. A live run tails its raw event stream in mono; a finished one leads with the agent's final message as markdown and folds the events it streamed on the way into a collapsed row above."
+        note="components/agent-shared.tsx — one bar, then the log. The bar carries everything the window has to say about the run: the task and its #id, the step and when it started, the run's controls, its facts in one middot row, and — past a hairline — the window's own way off. Under it the log sits in a wash well sunk a rung below. A live run tails its raw event stream in mono; a finished one leads with the agent's final message as markdown and folds the events it streamed on the way into a collapsed row above."
       >
-        <SessionLog session={DONE_SESSION} flush />
+        <div className="nb-panel-sm flex max-h-[420px] flex-col overflow-hidden">
+          <RunBar
+            session={DONE_SESSION}
+            head={{
+              id: 42,
+              name: "Add a design system page",
+              step: t.runs.step.implement,
+              startedAt: "Sep 14, 22:39",
+            }}
+            control={
+              <button
+                type="button"
+                className="shrink-0 cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
+              >
+                {t.runs.scene.collapse}
+              </button>
+            }
+          />
+          <div className="min-h-0 flex-1 overflow-y-auto bg-nb-wash px-4 pb-6 pt-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]">
+            <SessionLog session={DONE_SESSION} flush />
+          </div>
+        </div>
       </Section>
 
       <Section

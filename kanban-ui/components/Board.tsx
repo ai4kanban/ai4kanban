@@ -31,8 +31,8 @@ import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
 import { OpenIdsProvider } from "./open-ids";
 import { SolutionProvider } from "./solution";
 import { EmptyBoard, QueueView } from "./Queue";
-import { SessionLogOverlay, stoppedShort } from "./agent-shared";
-import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
+import { stoppedShort } from "./agent-shared";
+import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus } from "./sessions";
 
 /** Everything the board screen knows that something drawn around it needs. The app's window
  *  hands most of it to its top row; a caller with a different frame takes what it wants. */
@@ -87,10 +87,6 @@ export function Board({
   // Whatever the last read, or a control in the chrome, had to say. It starts as the read's
   // own reason and moves with every re-read.
   const [error, setError] = useState<string | null>(first.error);
-  // The run whose log is open in the overlay, opened by clicking a card's
-  // running badge. The board has no inline session log of its own.
-  const [logSessionId, setLogSessionId] = useState<string | null>(null);
-  const openLog = useSessionLog(logSessionId);
   // Which release the board shows (#104). Remembered per board in the browser;
   // No release is the default — the cards not promised to a version yet.
   const [release, setRelease] = useReleasePick(screen.id, board?.releases ?? []);
@@ -470,7 +466,7 @@ export function Board({
             // sheet on a product board, one New topic press on a marketing one (#507).
             <EmptyBoard onCreate={actions ? () => createSheet.open() : undefined} />
           ) : board ? (
-            <QueueView columns={columns} sessions={sessions} onOpenLog={setLogSessionId} />
+            <QueueView columns={columns} sessions={sessions} />
           ) : null}
 
           {/* Setup left unfinished (#172, #173) — the app's own strip, under the columns
@@ -478,16 +474,6 @@ export function Board({
               wide at the top pushes them off the first screen. Outside the scrolling row,
               so it stays put as the columns move. */}
           {Strip && board?.setup && <Strip {...chrome} at="foot" />}
-
-          {logSessionId && (
-            <SessionLogOverlay
-              session={openLog}
-              onClose={() => setLogSessionId(null)}
-              // Resuming swaps the overlay onto the run that continues the failed
-              // one, so the tail keeps playing instead of freezing on the dead log.
-              onResumed={setLogSessionId}
-            />
-          )}
         </div>
       </Shell>
       </SolutionProvider>

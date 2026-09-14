@@ -1154,9 +1154,9 @@ starting the same broken run every minute; click **Run** when you want it back o
 
 ### Stopping a run
 
-A live run's log has a small **✕** in its title bar — on the card page, on the log you open from a
-card on the board, and in **Runs**. It opens a small box asking you to confirm, so a stray click on
-a busy board can't kill an agent mid-edit. Confirm and the button reads **stopping…** for a few
+A live run's log has a small **✕** in its title bar — on the card page, and in **Runs**, which is
+where a running card's mark on the board takes you. It opens a small box asking you to confirm, so
+a stray click on a busy board can't kill an agent mid-edit. Confirm and the button reads **stopping…** for a few
 seconds: the agent is asked to end first, and only killed if it doesn't go.
 
 **Stop doesn't undo anything.** The run ends where it stands and whatever it half-wrote stays in

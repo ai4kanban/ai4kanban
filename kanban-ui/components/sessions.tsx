@@ -7,7 +7,6 @@
 // runs panel (task #21) — the header's activity button and its two-pane
 // history dialog.
 
-import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -22,7 +21,6 @@ import {
 } from "react-icons/fi";
 import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
-import type { UiCopy } from "@/i18n/types";
 import { useCopy } from "@/i18n/use-copy";
 import { useAgentName } from "@/lib/agent-name";
 import { useOverRail } from "@/lib/over-rail";
@@ -49,7 +47,14 @@ import {
   type SceneBot,
 } from "@/lib/run-scene";
 import { LANGUAGE_TAGS, type Language, type SessionView } from "@/lib/types";
-import { cardlessTitle, type AgentReq, ResumeButton, SessionLog } from "./agent-shared";
+import {
+  cardlessTitle,
+  EmptyRunBar,
+  RunBar,
+  SessionLog,
+  type AgentReq,
+  type RunHead,
+} from "./agent-shared";
 import { Button } from "./button";
 import { TOOL_BTN } from "./chrome";
 import { Copied, useCopyText } from "./copy";
@@ -660,7 +665,7 @@ export function Sessions() {
 
 // The Runs dialog (#399). It opens on the office: a full-bleed pixel room with one bot per
 // job, floating controls over it, and the records and the log in drawers that float in from
-// the sides. Portaled to <body> like Dialog/SessionLogOverlay so the blurred,
+// the sides. Portaled to <body> like Dialog so the blurred,
 // backdrop-filtered header can't become the scrim's containing block and trap it. Mounts
 // only while open, so the selected run's log is tailed only when visible.
 //
@@ -758,6 +763,7 @@ function RunsOffice({
   // that bot has walked out, to the entrance the job's record is now behind.
   const opener = useRef<string | null>(null);
 
+  const head = useRunHead(selected, flow);
   const office = useOffice(flows, roleName, t.runs);
   const rooms = office.rooms;
   const room = Math.min(page, rooms - 1);
@@ -949,21 +955,30 @@ function RunsOffice({
             onClick={(e) => e.stopPropagation()}
             onFocusCapture={() => (drawer.current = "right")}
           >
-            {/* The bar names the TASK, not the log: what the log is is said once, on the
-                log's own window below. */}
-            <DrawerBar
-              title={<RunHeading session={selected} flow={flow} />}
-              tip={headingText(runHeading(selected, flow, t))}
-              onCollapse={closeLog}
-            />
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-6">
+            {/* One bar over the log: the task, the run, and the way to put the drawer
+                away. What the log is, the drawer's own aria-label says. */}
+            {head && selected ? (
+              <RunBar
+                session={log ?? selected}
+                head={head}
+                canResume={(log?.canResume ?? selected.canResume) && !selected.delivery?.kept}
+                onResumed={(id) => {
+                  sessionsPanel.select(id);
+                  onStarted();
+                }}
+                onFollow={() => sessionsPanel.close()}
+                control={<CollapseButton onClick={closeLog} />}
+              />
+            ) : (
+              <EmptyRunBar title={t.runs.log.title} control={<CollapseButton onClick={closeLog} />} />
+            )}
+            <div className={LOG_WELL}>
               <RunDetail
                 flow={flow}
                 selected={selected}
                 log={log}
                 selectedId={selectedId}
                 onStarted={onStarted}
-                titled
               />
             </div>
           </aside>
@@ -978,63 +993,42 @@ const UNFINISHED_BTN = "run-records-unfinished";
 
 // --- what the open log is OF --------------------------------------------------
 
-/** The task the log on screen belongs to: its id, and what it is called. The name is the
- *  first of these there is — a card's own title; the sentence a job with no card was
- *  started with; what that job is doing instead; and, for a card whose title nothing can
- *  answer for any more, the action itself. So the heading is never blank. */
-function runHeading(
-  session: SessionView | null,
-  flow: RunFlow | null,
-  t: UiCopy,
-): { id: number | null; name: string } {
-  if (!session) return { id: null, name: t.runs.log.title };
-  const action = flow ? flowLabel(flow, t.runs) : stepLabel(session.action, t.runs);
-  if (session.cardId === null) {
-    return { id: null, name: (flow && flowSaid(flow)) || cardlessTitle(session, t.runs.cardless) };
-  }
-  return { id: session.cardId, name: session.cardTitle?.trim() || action };
-}
-
-/** That heading in plain text, for a tooltip on the clipped one. */
-const headingText = (h: { id: number | null; name: string }) =>
-  h.id === null ? h.name : `#${h.id} · ${h.name}`;
-
-/** …and drawn: the id keeps the `#id` → `/id` jump every id in the UI makes, with the name
- *  of the task beside it. Following it closes the dialog, or it would sit over the card it
- *  just opened. */
-function RunHeading({ session, flow }: { session: SessionView | null; flow: RunFlow | null }) {
+/** Everything the one bar over the log says about the run on screen (#753): the card it is
+ *  on and what that task is called, which step of the job this run is, and when the job
+ *  started.
+ *
+ *  The name is the first of these there is — a card's own title; the sentence a job with no
+ *  card was started with; what that job is doing instead; and, for a card whose title
+ *  nothing can answer for any more, the action itself. So the bar is never blank. */
+function useRunHead(session: SessionView | null, flow: RunFlow | null): RunHead | null {
   const t = useCopy();
-  const { id, name } = runHeading(session, flow, t);
-  if (id === null) return <>{name}</>;
-  return (
-    <>
-      <Link href={`/${id}`} className="nb-idlink" onClick={() => sessionsPanel.close()}>
-        #{id}
-      </Link>
-      {` · ${name}`}
-    </>
-  );
+  const language = useLanguage();
+  if (!session) return null;
+  // A session is titled by the JOB, not by its own action: "Resolve" alone says nothing
+  // about the job it is a step of.
+  const action = flow ? flowLabel(flow, t.runs) : stepLabel(session.action, t.runs);
+  // A job is dated by when IT started, not by the session you happen to be reading.
+  const startedAt = fullTime(flow?.startedAt ?? session.startedAt, language);
+  const name =
+    session.cardId === null
+      ? (flow && flowSaid(flow)) || cardlessTitle(session, t.runs.cardless)
+      : session.cardTitle?.trim() || action;
+  // Where the name IS the action — a card whose title nothing can answer for any more —
+  // the step is not printed a second time beside it.
+  return { id: session.cardId, name, step: name === action ? "" : action, startedAt };
 }
 
-/** A drawer's own title bar, with the one control it needs. The title may run long — it is
- *  the task's name on the log drawer — so it takes the slack and clips, and the control
- *  beside it keeps its width whatever is in there. */
-function DrawerBar({
-  title,
-  tip,
-  onCollapse,
-}: {
-  title: React.ReactNode;
-  /** The title in plain text, for when it is clipped. */
-  tip?: string;
-  onCollapse: () => void;
-}) {
+/** The scrolling well under the bar: everything the run has to say, one rung down from the
+ *  chrome over it. */
+const LOG_WELL =
+  "min-h-0 flex-1 overflow-y-auto bg-nb-wash px-4 pb-6 pt-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]";
+
+/** The records drawer's own title bar, with the one control it needs. */
+function DrawerBar({ title, onCollapse }: { title: string; onCollapse: () => void }) {
   const s = useCopy().runs.scene;
   return (
     <div className="flex shrink-0 items-center justify-between gap-2 border-b border-nb-ink/12 px-3 py-2">
-      <h3 className="min-w-0 truncate text-[12.5px] font-[800] tracking-[-0.02em]" title={tip}>
-        {title}
-      </h3>
+      <h3 className="min-w-0 truncate text-[12.5px] font-[800] tracking-[-0.02em]">{title}</h3>
       <button
         type="button"
         onClick={onCollapse}
@@ -1043,6 +1037,46 @@ function DrawerBar({
         {s.collapse}
       </button>
     </div>
+  );
+}
+
+/** The word that puts the log drawer away, in the shape every drawer here uses. */
+function CollapseButton({ onClick }: { onClick: () => void }) {
+  const s = useCopy().runs.scene;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
+    >
+      {s.collapse}
+    </button>
+  );
+}
+
+/** The dialog's own way out, in both forms. */
+function CloseDialog() {
+  const t = useCopy();
+  return (
+    <button
+      type="button"
+      onClick={() => sessionsPanel.close()}
+      aria-label={t.shared.close}
+      className="-mr-1 grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90 active:bg-nb-ink/10"
+    >
+      <FiX className="h-[18px] w-[18px]" />
+    </button>
+  );
+}
+
+/** Said once, quietly, when the room could not be drawn on this machine. It sits at the
+ *  foot of the list that stands in for the room — nothing waits on it. */
+function OfficeUnavailable() {
+  const t = useCopy();
+  return (
+    <p className="shrink-0 border-t border-nb-ink/10 px-3 py-2 text-[11px] leading-snug text-nb-ink-soft">
+      {t.runs.scene.unavailable}
+    </p>
   );
 }
 
@@ -1062,6 +1096,7 @@ function RunsPanes({
 }: RunsParts & { note: boolean }) {
   const t = useCopy();
   const c = t.runs.panel;
+  const head = useRunHead(selected, flow);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") sessionsPanel.close();
@@ -1077,20 +1112,12 @@ function RunsPanes({
         // panel radius — without it the square fill pokes past the rounded corner.
         className="nb-panel flex flex-col overflow-hidden"
         style={{ width: 1040, maxWidth: "100%", height: "min(760px, calc(100dvh - 2rem))" }}
+        aria-label={c.heading}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center gap-2 border-b border-nb-ink/12 px-5 py-3">
-          <h2 className="text-[15px] font-[800] tracking-[-0.02em]">{c.heading}</h2>
-          {/* The room could not be drawn. Said once, quietly, and nothing here waits on it. */}
-          {note && <span className="text-[11.5px] text-nb-ink-soft">{t.runs.scene.unavailable}</span>}
-          <button
-            onClick={() => sessionsPanel.close()}
-            aria-label={t.shared.close}
-            className="-mr-1 ml-auto grid h-7 w-7 cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90 active:bg-nb-ink/10"
-          >
-            <FiX className="h-[18px] w-[18px]" />
-          </button>
-        </div>
+        {/* Nothing to head the log with: the bar falls back to the dialog's own name and
+            keeps the ✕, so the window is still named and still closable. */}
+        {!(head && selected) && <EmptyRunBar title={c.heading} control={<CloseDialog />} />}
 
         <div className="flex min-h-0 flex-1">
           {/* left: the run list. A faint cream canvas behind the rows so the
@@ -1098,21 +1125,50 @@ function RunsPanes({
               the tab strip's "bold ink + short ember underline" — reads as the one
               raised sheet. The divider is a soft ink hairline, not a full ink
               rule: 1.5px ink borders stay reserved for structural frames. */}
-          <div className="w-[240px] shrink-0 overflow-y-auto border-r border-nb-ink/10 bg-nb-cream/70">
-            <RunList flows={flows} selectedId={selectedId} />
+          <div className="flex w-[240px] shrink-0 flex-col border-r border-nb-ink/10 bg-nb-cream/70">
+            {/* An empty list says nothing here: the right pane already carries the one
+                sentence about a board that has never run, and saying it twice side by side
+                reads as two different empties. */}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {flows.length > 0 && <RunList flows={flows} selectedId={selectedId} />}
+            </div>
+            {/* This column IS what stands in for the room, so the refusal is answered on
+                the substitute rather than floated over the run the user came to read. */}
+            {note && <OfficeUnavailable />}
           </div>
 
-          {/* right: the selected run's input + log */}
-          {/* Scrolled to the end, the log frame sat tight against the panel edge —
-              the extra pb gives it the same air the top has. */}
-          <div className="min-w-0 flex-1 overflow-y-auto p-4 pb-6">
-            <RunDetail
-              flow={flow}
-              selected={selected}
-              log={log}
-              selectedId={selectedId}
-              onStarted={onStarted}
-            />
+          {/* right: the one bar over the selected run, and its log under it. */}
+          <div className="flex min-w-0 flex-1 flex-col">
+            {head && selected ? (
+              <>
+                <RunBar
+                  session={log ?? selected}
+                  head={head}
+                  canResume={(log?.canResume ?? selected.canResume) && !selected.delivery?.kept}
+                  onResumed={(id) => {
+                    sessionsPanel.select(id);
+                    onStarted();
+                  }}
+                  onFollow={() => sessionsPanel.close()}
+                  control={<CloseDialog />}
+                />
+                <div className={LOG_WELL}>
+                  <RunDetail
+                    flow={flow}
+                    selected={selected}
+                    log={log}
+                    selectedId={selectedId}
+                    onStarted={onStarted}
+                  />
+                </div>
+              </>
+            ) : (
+              // "Pick a run" only where there is one to pick — on a board that has never
+              // run it is an instruction that cannot be followed.
+              <p className="grid min-w-0 flex-1 place-items-center p-4 text-[13px] text-nb-ink-soft">
+                {flows.length === 0 ? c.empty : c.pick}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -1143,94 +1199,28 @@ function RunList({
   );
 }
 
-/** The selected run: what it is, what it was started with, and its log. */
+/** Everything the selected run has to say under the bar: where its delivery stands, what it
+ *  was started with, and its log. What the run IS — the task, the step, the numbers and the
+ *  controls — the bar above already said (#753). */
 function RunDetail({
   flow,
   selected,
   log,
   selectedId,
   onStarted,
-  titled = false,
 }: {
   flow: RunFlow | null;
   selected: SessionView | null;
   log: SessionView | null;
   selectedId: string | null;
   onStarted: () => void;
-  /** Something above already names the task — the log drawer's own title bar. The header
-   *  then opens on the action instead of saying the same thing twice. */
-  titled?: boolean;
 }) {
-  const t = useCopy();
-  const c = t.runs.panel;
-  const language = useLanguage();
+  const c = useCopy().runs.panel;
   if (!selected) return <p className="text-[13px] text-nb-ink-soft">{c.pick}</p>;
   const input = (log?.input ?? selected.input ?? "").trim();
-  // A session is titled by the JOB, not by its own action: "Resolve" alone says nothing
-  // about the job it is a step of. Which step you are reading is the timeline's word, on
-  // the left.
-  const action = flow ? flowLabel(flow, t.runs) : stepLabel(selected.action, t.runs);
-  const heading = runHeading(selected, flow, t);
-  // Where the task has no name of its own the heading falls back to the action, and the
-  // action is not printed a second time beside it.
-  const showAction = titled || heading.name !== action;
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-        {/* Which task this run is on (#725), leading — the id links to it the way every
-            `#id` in the UI does, and is not gated on the card still being open: a card the
-            run archived is exactly the one you'd click. The drawer form says this in its
-            own title bar, so here it would only repeat. */}
-        {!titled && (
-          <span
-            className="min-w-0 max-w-full truncate text-[14px] font-[800] tracking-[-0.02em]"
-            title={headingText(heading)}
-          >
-            <RunHeading session={selected} flow={flow} />
-          </span>
-        )}
-        {showAction && (
-          <span
-            className={
-              titled ? "text-[14px] font-[800] tracking-[-0.02em]" : "text-[12px] text-nb-ink-soft"
-            }
-          >
-            {action}
-          </span>
-        )}
-        {/* A job is dated by when IT started, not by the session you happen to be
-            reading — each session carries its own time on its step. */}
-        <span className="text-[11px] text-nb-ink-soft">
-          {fullTime(flow?.startedAt ?? selected.startedAt, language)}
-        </span>
-        {/* A run started by Resume says so — otherwise it reads as a
-            second identical run of the same action out of nowhere. */}
-        {selected.resumedFrom && <span className="nb-tag">{c.resumed}</span>}
-        {/* A cancelled delivery says so rather than the run's own "stopped":
-            the run ended because the job did. The delivery's id is internal
-            and says nothing to read, so it stays out of the header. */}
-        {selected.delivery?.status === "cancelled" && <span className="nb-tag">{c.cancelled}</span>}
-        {/* Only a run that ended before finishing — failed,
-            interrupted or stopped — offers Resume, and the freshly
-            polled `log` wins over the list entry: the poll that drew
-            this row may be a second and a half old. Selecting the new
-            run moves the panel onto it, so the log tail plays on. */}
-        {/* The DELIVERY's own Carry on stands in for the session's whenever the board kept
-            its checkout (#720): resuming the delivery puts it back on the step it stopped
-            at, which is more than continuing the last conversation. */}
-        {(log?.canResume ?? selected.canResume) && !selected.delivery?.kept && (
-          <span className="ml-auto">
-            <ResumeButton
-              sessionId={selected.sessionId}
-              onResumed={(id) => {
-                sessionsPanel.select(id);
-                onStarted();
-              }}
-            />
-          </span>
-        )}
-      </div>
       {/* Where its delivery stands, when the delivery has no card page to say it
           on (#428): the stop that will not land, the refusal that clears itself,
           and the commands that put either back in motion. */}

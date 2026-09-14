@@ -129,11 +129,9 @@ export function EmptyBoard({ onCreate }: { onCreate?: () => void }) {
 export function QueueView({
   columns,
   sessions,
-  onOpenLog,
 }: {
   columns: Column[];
   sessions: SessionView[];
-  onOpenLog: (sessionId: string) => void;
 }) {
   const c = useCopy().board.queue;
   const phone = usePhone();
@@ -179,7 +177,7 @@ export function QueueView({
             title: c.topics,
             count: c.topicsCount(topicCards.length, writingCount),
             width: HALF_W,
-            body: <Bands bands={topics} sessions={sessions} onOpenLog={onOpenLog} />,
+            body: <Bands bands={topics} sessions={sessions} />,
           } satisfies QueueCol,
         ]
       : [
@@ -188,14 +186,14 @@ export function QueueView({
             title: c.ready,
             count: c.readyCount(readyCount, implementingCount),
             width: HALF_W,
-            body: <Bands bands={ready} sessions={sessions} onOpenLog={onOpenLog} />,
+            body: <Bands bands={ready} sessions={sessions} />,
           } satisfies QueueCol,
           {
             key: "notReady",
             title: c.notReady,
             count: `${notReadyCount}`,
             width: HALF_W,
-            body: <Bands bands={notReady} sessions={sessions} onOpenLog={onOpenLog} />,
+            body: <Bands bands={notReady} sessions={sessions} />,
           } satisfies QueueCol,
         ]),
     ...(recurring.length > 0
@@ -214,9 +212,7 @@ export function QueueView({
                     key={card.id}
                     card={card}
                     liveSession={runningSessionForCard(sessions, card.id)}
-                    onOpenLog={onOpenLog}
                     creator={creatorOf(sessions, card)}
-                    onResumed={onOpenLog}
                   />
                 ))}
               </div>
@@ -428,26 +424,13 @@ function creatorOf(sessions: SessionView[], card: Card): SessionView | undefined
   return runId ? sessions.find((s) => s.sessionId === runId) : undefined;
 }
 
-function Bands({
-  bands,
-  sessions,
-  onOpenLog,
-}: {
-  bands: Band[];
-  sessions: SessionView[];
-  onOpenLog: (sessionId: string) => void;
-}) {
+function Bands({ bands, sessions }: { bands: Band[]; sessions: SessionView[] }) {
   const c = useCopy().board.queue;
   if (bands.length === 0) return <p className="text-[12px] italic text-nb-ink-soft">{c.empty}</p>;
   return (
     <div className="flex flex-col gap-2">
       {bands.map((band) => (
-        <ModuleBand
-          key={band.module}
-          band={band}
-          sessions={sessions}
-          onOpenLog={onOpenLog}
-        />
+        <ModuleBand key={band.module} band={band} sessions={sessions} />
       ))}
     </div>
   );
@@ -456,15 +439,7 @@ function Bands({
 // One module's cards inside a column: a rule carrying the module name and its
 // count, then the grid. The rule is what cuts one band from the next — the
 // bands sit on the same paper, so a line and a name are all it takes.
-function ModuleBand({
-  band,
-  sessions,
-  onOpenLog,
-}: {
-  band: Band;
-  sessions: SessionView[];
-  onOpenLog: (sessionId: string) => void;
-}) {
+function ModuleBand({ band, sessions }: { band: Band; sessions: SessionView[] }) {
   return (
     <section className="rounded-[10px] px-2 pb-3 pt-2">
       <div className="mb-2.5 flex items-center gap-2.5">
@@ -482,9 +457,7 @@ function ModuleBand({
             key={card.id}
             card={card}
             liveSession={runningSessionForCard(sessions, card.id)}
-            onOpenLog={onOpenLog}
             creator={creatorOf(sessions, card)}
-            onResumed={onOpenLog}
           />
         ))}
       </div>
