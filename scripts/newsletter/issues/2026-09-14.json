@@ -1,0 +1,53 @@
+{
+  "subject": "AI4Kanban — Decide it, then watch it get built",
+  "preheader": "Work out what to build before you write the card, follow every agent at work, and start a project from the launcher.",
+  "eyebrow": "THIS WEEK  /  VERSION 0.9.3",
+  "headline": "Decide it, then watch it get built.",
+  "intro": "Here are a few highlights from our recent updates. Explore the full release notes for everything we’ve shipped.",
+  "highlights": [
+    {
+      "label": "DISCUSS",
+      "title": "Talk it through before it is a card",
+      "body": "When you cannot yet say what you want, Discuss is where you work it out. Talk the idea over until there is something worth doing, then turn it into a card — which is where the details get settled.",
+      "image": {
+        "src": "https://cdn.ai4kanban.dev/newsletter/2026-09-14/discuss-v1.png",
+        "alt": "The Discuss screen: a rough idea typed in, the agent asking which half of onboarding it is, and Discuss picked beside Add task and Build now."
+      }
+    },
+    {
+      "label": "RUNS",
+      "title": "See every agent at work",
+      "body": "Every running task in one place: the Runs office shows each agent with the role it is playing, the coding agent behind it and the card it is on. How all the parallel work stands, in a glance.",
+      "image": {
+        "src": "https://cdn.ai4kanban.dev/newsletter/2026-09-14/runs-v1.jpg",
+        "alt": "The Runs office: six agents at labelled desks with their card numbers, two finished agents on the sofa, and 6 running along the bottom."
+      }
+    },
+    {
+      "label": "DELIVERY",
+      "title": "Deliveries retry themselves",
+      "body": "When the target branch moves under a delivery, it starts over on the new code by itself instead of stopping for you. And notifications now separate what is waiting on your answer from what already landed.",
+      "image": {
+        "src": "https://cdn.ai4kanban.dev/newsletter/2026-09-14/delivery-v1.png",
+        "alt": "The Notifications rail: Question waiting on the newest card, Landed on the two below it."
+      }
+    },
+    {
+      "label": "PROJECTS",
+      "title": "Start a project from the launcher",
+      "body": "Name a new project, pick where it goes, and the launcher makes the folder and its Git repository for you, then opens setup. Nothing to prepare first — an empty repository is a fine place to start.",
+      "image": {
+        "src": "https://cdn.ai4kanban.dev/newsletter/2026-09-14/project-v1.png",
+        "alt": "The launcher's new-project form: a project name, the folder it goes in, Cancel and Create."
+      }
+    }
+  ],
+  "cta": {
+    "label": "Get the latest version",
+    "href": "https://ai4kanban.dev/download"
+  },
+  "releaseNotes": {
+    "label": "See everything else in these releases",
+    "href": "https://github.com/ai4kanban/ai4kanban/releases"
+  }
+}

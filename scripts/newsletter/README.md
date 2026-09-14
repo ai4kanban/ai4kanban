@@ -17,12 +17,46 @@ node scripts/newsletter-send.mjs --issue 2026-09-13 --retry
 Copy `issues/example.json` to `issues/<date>.json` and write the words. Every string a
 reader sees is English — the sender refuses an issue that carries any other script.
 
-- **`hero.src`** is a site-root path, so the picture has to be in `web/public/` and
-  deployed before the send. Put it in `web/public/newsletter/<date>/`. The sender checks
-  each image is live and refuses to start if one 404s.
-- **`hero.alt`** is what a reader with images off gets instead of the picture. Say what the
-  picture showed, not that there is one.
+- **`hero`** is optional, and so is a `highlights[i].image` — `{ src, alt }`, drawn under
+  that highlight's own words. A highlight with no picture stays plain text.
+- **An image address** is either a site-root path — the picture lives in
+  `web/public/newsletter/<date>/` and the site has to be deployed before the send — or a
+  full `https://` address on a CDN. The sender checks every one is live and refuses to
+  start if one 404s. A CDN key is immutable: changing a picture means a new filename.
+- **`alt`** is what the picture showed, not that there is one. The plain-text alternative
+  carries it; the images-off preview drops the picture and leaves the words.
+- **The corner is baked into the picture**, not applied in CSS. `mat.mjs` does it — see
+  below.
 - **`preheader`** is the line the inbox shows beside the subject.
+
+## The pictures
+
+`mat.mjs` mounts a capture on the landing page's wash and exports it at 1104 × 736 — the
+mat, the corner and the soft shadow baked in, because an email client keeps none of them as
+CSS. Sources are the real app captures in `screenshots/`; drawn mock-ups do not go in a
+letter.
+
+```sh
+node scripts/newsletter/mat.mjs --in screenshots/board-notifications.png \
+  --out delivery-v1.png --crop 1960,105,826,517 --wash peachEmber
+node scripts/newsletter/mat.mjs --in screenshots/landing-figures/execute.png \
+  --out runs-v1.png --whole
+```
+
+- **`--crop x,y,w,h`** is the region of the source to show, in source pixels. The panel is
+  1.597 wide to tall; a crop of another shape is scaled to the panel's width and loses its
+  bottom or leaves white under it, and says so.
+- **`--wash`** is one of `web/components/home/washes.ts` — a different one per picture, so a
+  letter of four does not read as one texture repeated.
+- **`--whole`** is for a figure that already carries a mat: it is scaled whole and padded to
+  3∶2 in the page's own white.
+- **Crop to the part the words describe.** The picture is read at 552px; a whole screen
+  shrunk to that is grey lines.
+- **300 KB is the ceiling.** Over it, re-encode as JPEG —
+  `sips -s format jpeg -s formatOptions 90 in.png --out out.jpg`.
+- **Upload, then reference.** Follow the `cdn-images` skill: `newsletter/<date>/<name>-v1.png`
+  in the `kanbanskill` bucket, `--remote`, the real content type, and `curl -sI` until it is
+  200. The key is immutable, so a changed picture is a new `-v<n>` and an edit in the JSON.
 
 `--preview` writes three files next to the list and opens the first:
 `index.html`, `images-off.html` (what a client with images off draws) and `plain.txt`.

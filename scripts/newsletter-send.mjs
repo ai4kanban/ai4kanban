@@ -24,7 +24,7 @@ import {
   usableEmail,
   writeList,
 } from './newsletter/list.mjs'
-import { renderIssue, validateIssue, withoutImages } from './newsletter/template.mjs'
+import { isAbsolute, renderIssue, validateIssue, withoutImages } from './newsletter/template.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const ISSUE_DIR = path.join(ROOT, 'scripts', 'newsletter', 'issues')
@@ -112,12 +112,17 @@ function readIssue(id) {
   return issue
 }
 
-/** Every image the issue points at, as a site-root path. */
+/** Every image the issue points at: site-root paths and hosted addresses alike. */
 export function issueImages(issue) {
-  return ['/newsletter/logo.png', ...(issue.hero ? [issue.hero.src] : [])]
+  return [
+    '/newsletter/logo.png',
+    ...(issue.hero ? [issue.hero.src] : []),
+    ...(issue.highlights ?? []).flatMap((h) => (h.image ? [h.image.src] : [])),
+  ]
 }
 
 function inlineImage(src) {
+  if (isAbsolute(src)) return src
   const file = path.join(PUBLIC_DIR, src.replace(/^\//, ''))
   if (!fs.existsSync(file)) return `${SITE_URL}${src}`
   const mime = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream'
@@ -132,7 +137,7 @@ function inlineImage(src) {
 async function imagesAreLive(issue) {
   const missing = []
   for (const src of issueImages(issue)) {
-    const url = `${SITE_URL}${src}`
+    const url = isAbsolute(src) ? src : `${SITE_URL}${src}`
     try {
       const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(10000) })
       if (!res.ok) missing.push(`${url} → ${res.status}`)

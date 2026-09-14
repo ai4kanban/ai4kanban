@@ -6,7 +6,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { applyUnsubscribes, unsubscribeToken } from './list.mjs'
 import { renderIssue, validateIssue, withoutImages } from './template.mjs'
-import { classify, pending, stopDelivering } from '../newsletter-send.mjs'
+import { classify, issueImages, pending, stopDelivering } from '../newsletter-send.mjs'
 
 const subscriber = (over) => ({
   login: 'alice',
@@ -127,8 +127,67 @@ test('the issue carries its own unsubscribe link and stays readable without imag
 
   const off = withoutImages(mail.html)
   assert.ok(!off.includes('<img'))
-  assert.ok(off.includes('The Runs office'))
+  assert.ok(off.includes('One room'))
   assert.ok(off.includes(url))
+})
+
+// ---------------------------------------------------------------- a picture per highlight
+
+const url = 'https://ai4kanban.dev/unsubscribe?t=0123456789abcdef01234567'
+const shot = { src: 'https://cdn.ai4kanban.dev/newsletter/x/runs-v1.png', alt: 'Six agents at desks' }
+const illustrated = {
+  ...issue,
+  hero: undefined,
+  highlights: [
+    { label: 'RUNS', title: 'One room', body: 'Eight desks.', image: shot },
+    { label: 'DELIVERY', title: 'No chasing', body: 'It starts over by itself.' },
+  ],
+}
+
+test('a highlight with a picture shows it in HTML, describes it in plain text, and drops it with images off', () => {
+  const mail = renderIssue(illustrated, { unsubscribeUrl: url })
+  assert.ok(mail.html.includes(`<img src="${shot.src}"`))
+  assert.ok(mail.html.includes(`alt="${shot.alt}"`))
+  assert.ok(mail.text.includes(`[${shot.alt}]`))
+
+  const off = withoutImages(mail.html)
+  assert.ok(!off.includes('<img'))
+  assert.ok(!off.includes(shot.alt))
+
+  // The words stand in all three, picture or no picture.
+  for (const out of [mail.html, mail.text, off]) {
+    assert.ok(out.includes('Eight desks.'))
+    assert.ok(out.includes('It starts over by itself.'))
+  }
+})
+
+test('a highlight with no picture of its own stays plain text', () => {
+  const mail = renderIssue(illustrated, { unsubscribeUrl: url })
+  assert.equal(mail.html.match(/<img\b/g).length, 3) // two logos and the one picture
+  assert.ok(!mail.text.includes('[It starts over'))
+})
+
+test('a picture is refused when it is missing its address or its description', () => {
+  const broken = (image) => ({ ...illustrated, highlights: [{ ...illustrated.highlights[0], image }] })
+  assert.deepEqual(validateIssue(broken({ alt: 'Six agents' })), ['highlights[0].image.src is missing'])
+  assert.deepEqual(validateIssue(broken({ src: shot.src })), ['highlights[0].image.alt is missing'])
+  assert.deepEqual(validateIssue(broken({ src: shot.src, alt: '六个 agent' })), ['highlights[0].image.alt is not English'])
+})
+
+test('a picture already hosted elsewhere is not hung off the site root', () => {
+  const mail = renderIssue(illustrated, { unsubscribeUrl: url })
+  assert.ok(!mail.html.includes(`https://ai4kanban.dev${shot.src}`))
+  assert.ok(mail.html.includes('https://ai4kanban.dev/newsletter/logo.png'))
+})
+
+test('an issue with no hero renders, and the send still checks every picture in it', () => {
+  const mail = renderIssue(illustrated, { unsubscribeUrl: url })
+  const off = withoutImages(mail.html)
+  for (const out of [mail.html, mail.text, off]) assert.ok(out.includes('One room'))
+  assert.ok(!mail.text.includes('undefined'))
+
+  assert.deepEqual(issueImages(illustrated), ['/newsletter/logo.png', shot.src])
+  assert.deepEqual(issueImages(issue), ['/newsletter/logo.png', issue.hero.src])
 })
 
 test('an issue cannot smuggle markup into the email', () => {

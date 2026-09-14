@@ -1,8 +1,9 @@
 // The newsletter's one email template: an issue in, `{ subject, html, text }` out.
 //
 // Table layout and inline styles only — no <style> block, no web font, no background
-// image. Every image carries alt text that says what it showed, so the issue still reads
-// with images off. Colours and type follow `web/design.md`.
+// image. Every image carries alt text that says what it showed, and the plain-text
+// alternative carries it as words, so the issue reads without its pictures. Colours and
+// type follow `web/design.md`.
 
 const INK = '#24231f'
 const MUTED = '#635a4e'
@@ -15,6 +16,11 @@ const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-s
 export const SITE_URL = 'https://ai4kanban.dev'
 export const POSTAL_ADDRESS =
   'NULLREACH LTD · Office 15285 Initial Business Centre, Unit 7 Wilson Business Park, Manchester, M40 8WN, United Kingdom'
+
+/** An image already hosted somewhere else. Anything else is a path under the site. */
+export function isAbsolute(src) {
+  return /^https?:\/\//i.test(String(src))
+}
 
 export function escapeHtml(value) {
   return String(value)
@@ -53,6 +59,10 @@ export function validateIssue(issue) {
     text(`highlights[${i}].label`, h?.label)
     text(`highlights[${i}].title`, h?.title)
     text(`highlights[${i}].body`, h?.body)
+    if (h?.image) {
+      text(`highlights[${i}].image.src`, h.image.src)
+      text(`highlights[${i}].image.alt`, h.image.alt)
+    }
   })
 
   // The words a reader sees are English; a stray translation would ship half a sentence
@@ -76,6 +86,7 @@ function* readableStrings(issue) {
     yield [`highlights[${i}].label`, h?.label ?? '']
     yield [`highlights[${i}].title`, h?.title ?? '']
     yield [`highlights[${i}].body`, h?.body ?? '']
+    if (h?.image) yield [`highlights[${i}].image.alt`, h.image.alt ?? '']
   }
 }
 
@@ -91,12 +102,18 @@ function hairline() {
   return cell('0 24px', `<div style="height:1px;line-height:1px;font-size:0;background:${RULE};">&nbsp;</div>`)
 }
 
-function highlight(item) {
+function highlight(item, image) {
+  // No border-radius: the corner is baked into the picture, and a second one on top
+  // would clip the mat the picture is mounted on.
+  const picture = item.image
+    ? `<img src="${escapeHtml(image(item.image.src))}" width="552" alt="${escapeHtml(item.image.alt)}" style="display:block;width:100%;max-width:552px;height:auto;border:0;margin:16px 0 0;">`
+    : ''
   return cell(
     '32px 24px 0',
     `<p style="margin:0 0 10px;font-size:11px;line-height:18px;letter-spacing:1.6px;color:${ACCENT_DEEP};font-weight:700;">${escapeHtml(item.label)}</p>` +
       `<h2 style="margin:0;font-size:23px;line-height:30px;letter-spacing:-.5px;font-weight:700;color:${INK};">${escapeHtml(item.title)}</h2>` +
-      `<p style="margin:10px 0 0;font-size:16px;line-height:26px;color:${MUTED};">${escapeHtml(item.body)}</p>`,
+      `<p style="margin:10px 0 0;font-size:16px;line-height:26px;color:${MUTED};">${escapeHtml(item.body)}</p>` +
+      picture,
   )
 }
 
@@ -108,7 +125,7 @@ function highlight(item) {
  * so the page is readable before the site carries the image.
  */
 export function renderIssue(issue, { unsubscribeUrl, siteUrl = SITE_URL, resolveImage } = {}) {
-  const image = resolveImage ?? ((src) => `${siteUrl}${src}`)
+  const image = resolveImage ?? ((src) => (isAbsolute(src) ? src : `${siteUrl}${src}`))
   const logo = image('/newsletter/logo.png')
   const rows = []
 
@@ -132,12 +149,12 @@ export function renderIssue(issue, { unsubscribeUrl, siteUrl = SITE_URL, resolve
     rows.push(
       cell(
         '0 24px',
-        `<img src="${escapeHtml(image(issue.hero.src))}" width="552" alt="${escapeHtml(issue.hero.alt)}" style="display:block;width:100%;max-width:552px;height:auto;border:0;border-radius:6px;">`,
+        `<img src="${escapeHtml(image(issue.hero.src))}" width="552" alt="${escapeHtml(issue.hero.alt)}" style="display:block;width:100%;max-width:552px;height:auto;border:0;">`,
       ),
     )
   }
 
-  for (const item of issue.highlights) rows.push(highlight(item))
+  for (const item of issue.highlights) rows.push(highlight(item, image))
 
   const notes = issue.releaseNotes
     ? `<p style="margin:18px 0 0;font-size:13px;line-height:22px;"><a href="${escapeHtml(issue.releaseNotes.href)}" style="color:${MUTED};">${escapeHtml(issue.releaseNotes.label)}</a></p>`
@@ -187,7 +204,9 @@ export function renderText(issue, { unsubscribeUrl, siteUrl = SITE_URL } = {}) {
   const lines = [issue.eyebrow, '', issue.headline, '', issue.intro, '']
   if (issue.hero) lines.push(`[${issue.hero.alt}]`, '')
   for (const item of issue.highlights) {
-    lines.push(`${item.label} — ${item.title}`, item.body, '')
+    lines.push(`${item.label} — ${item.title}`, item.body)
+    if (item.image) lines.push(`[${item.image.alt}]`)
+    lines.push('')
   }
   lines.push(`${issue.cta.label}: ${issue.cta.href}`)
   if (issue.releaseNotes) lines.push(`${issue.releaseNotes.label}: ${issue.releaseNotes.href}`)
@@ -195,13 +214,9 @@ export function renderText(issue, { unsubscribeUrl, siteUrl = SITE_URL } = {}) {
   return lines.join('\n')
 }
 
-/** What a client with images turned off shows: every <img> replaced by its alt text in the
- *  band the client would draw. The template itself never sends this — it is the preview
- *  that proves the issue survives without its pictures. */
+/** What a client with images turned off shows: the pictures gone, the words untouched. The
+ *  template itself never sends this — it is the preview that proves the issue survives
+ *  without its pictures. */
 export function withoutImages(html) {
-  return html.replace(/<img\b[^>]*>/gi, (tag) => {
-    const alt = /alt="([^"]*)"/i.exec(tag)?.[1] ?? ''
-    if (!alt) return ''
-    return `<span style="display:inline-block;padding:18px;background:#f8f5ef;font-size:13px;line-height:21px;color:${MUTED};">${alt}</span>`
-  })
+  return html.replace(/<img\b[^>]*>/gi, '')
 }
