@@ -1259,7 +1259,9 @@ function FinishedBlock({
 //
 // Read-only: a card's workflow is fixed at creation (#744). Drawn borderless — the strip
 // beside it already spends mint on the module, sky on the release and peach on the levels,
-// and a fourth tint there stops being read — so this one is ink and weight.
+// and a fourth tint there stops being read — so this one is ink and an icon. Chip type
+// exactly (#757): a bigger, heavier value read as the strip's heading instead of its first
+// label, and the taller line box dropped it off the baseline the other five share.
 function WorkflowItem({ card }: { card: Card }) {
   const c = useCopy().card;
   const nameOf = useWorkflowName();
@@ -1278,10 +1280,10 @@ function WorkflowItem({ card }: { card: Card }) {
   return (
     <MetaItem label={c.meta.workflow}>
       <span
-        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-[6px] px-[2px] py-[2.5px] text-[12.5px] font-[800] leading-none"
+        className="inline-flex items-center gap-1 whitespace-nowrap px-[2px] py-[2.5px] text-[10px] font-[700] uppercase leading-none tracking-[0.04em] max-md:h-9"
         style={{ color: "var(--color-nb-ink)" }}
       >
-        <FiGitCommit aria-hidden style={{ width: 12, height: 12, flex: "0 0 auto" }} />
+        <FiGitCommit aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
         {nameOf(mine)}
       </span>
     </MetaItem>
