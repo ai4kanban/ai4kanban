@@ -83,7 +83,7 @@ export function WorkflowsPanel({
 }) {
   const c = useCopy().configuration.workflows;
   const nameOf = useWorkflowName();
-  const agentName = useCandidateName();
+  const agentGloss = useCandidateGloss();
   const [flows, setFlows] = useState<WorkflowView[] | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -408,14 +408,13 @@ export function WorkflowsPanel({
 
                       {helper && setup.helpers.some((h) => h.agent === helper) && (
                         <div className="mt-2 max-w-[460px] border-t border-nb-ink/12 pt-3">
-                          <div className="flex items-center justify-between">
-                            <h4 className={`${CAPTION} text-nb-ink-soft`}>
-                              <span className="normal-case tracking-normal">
-                                {agentName(setup.candidates.find((a) => a.name === helper), helper)}
-                              </span>{" "}
-                              · {c.extra}
-                            </h4>
-                            <div className="flex gap-1">
+                          {/* The lit chip above says WHICH helper, so this line says what it
+                              is for — the same clause the picker listed it under (#759). */}
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="min-w-0 text-[11.5px] leading-[18px] text-nb-ink-soft">
+                              {agentGloss(setup.candidates.find((a) => a.name === helper), helper)}
+                            </p>
+                            <div className="flex shrink-0 gap-1">
                               <button
                                 type="button"
                                 aria-label={c.dropHelper}
@@ -438,12 +437,13 @@ export function WorkflowsPanel({
                               </button>
                             </div>
                           </div>
+                          <h4 className={`${CAPTION} mt-3 mb-1.5 text-nb-ink-soft`}>{c.extra}</h4>
                           <textarea
                             value={extraOf(helper)}
                             placeholder={c.extraPlaceholder}
                             onChange={(e) => setExtras((all) => ({ ...all, [extraKey(helper)]: e.target.value }))}
                             onBlur={() => void saveExtra(helper)}
-                            className={`${CONTROL} mt-2 h-[60px] resize-none text-[12px] leading-[19px]`}
+                            className={`${CONTROL} h-[60px] resize-none text-[12px] leading-[19px]`}
                           />
                         </div>
                       )}
@@ -477,10 +477,10 @@ function useCandidateName(): (agent: WorkflowCandidate | undefined, name: string
 }
 
 /** And what it DOES, in one clause — the same three steps. */
-function useCandidateGloss(): (agent: WorkflowCandidate) => string {
+function useCandidateGloss(): (agent: WorkflowCandidate | undefined, name: string) => string {
   const roles = useCopy().configuration.agents.roles;
   return useCallback(
-    (agent) => roles[agent.name as keyof typeof roles]?.gloss || agent.gloss,
+    (agent, name) => roles[name as keyof typeof roles]?.gloss || agent?.gloss || "",
     [roles],
   );
 }
@@ -680,7 +680,7 @@ function Picker({
             <Character name={a.name} size={28} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12px] font-[700]">{nameOf(a, a.name)}</span>
-              <span className="block truncate text-[10.5px] text-nb-ink-soft">{glossOf(a)}</span>
+              <span className="block truncate text-[10.5px] text-nb-ink-soft">{glossOf(a, a.name)}</span>
             </span>
             {a.name === chosen && <FiCheck aria-hidden className="text-[13px]" />}
           </button>
