@@ -24,7 +24,7 @@ import { useLanguage } from "@/components/language";
 import type { RunsCopy } from "@/i18n/runs/types";
 import type { UiCopy } from "@/i18n/types";
 import { useCopy } from "@/i18n/use-copy";
-import { spellAgent } from "@/lib/agent-name";
+import { useAgentName } from "@/lib/agent-name";
 import { useOverRail } from "@/lib/over-rail";
 import { useSwipeBack } from "@/lib/swipe-back";
 import { useActions, type ScreenActions, type StartAnswer } from "@/lib/screen";
@@ -1310,17 +1310,13 @@ function useOffice(flows: RunFlow[], roleName: (agent?: string) => string, copy:
   }, [flows, roleName, copy]);
 }
 
-/** What the agent that ran a job is called, in the language this machine reads. A role is
- *  one of a closed set the command ships, so the Agents pane's own copy names it; anything
- *  else keeps its own name, spelled out. */
+/** What the agent that ran a job is called, in the language this app draws in — the one
+ *  lookup every screen names an agent by (`@/lib/agent-name`). A job with no agent behind it
+ *  is the only thing answered here. */
 function useRoleName(): (agent?: string) => string {
-  const roles = useCopy().configuration.agents.roles;
+  const nameOf = useAgentName();
   const none = useCopy().runs.scene.noRole;
-  return useCallback(
-    (agent?: string) =>
-      (agent && (roles[agent as keyof typeof roles]?.name || spellAgent(agent))) || none,
-    [roles, none],
-  );
+  return useCallback((agent?: string) => (agent && nameOf(agent)) || none, [nameOf, none]);
 }
 
 /** Whether the window has room for the office at all. Read on the first render rather than

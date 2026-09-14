@@ -276,6 +276,10 @@ export interface BoardRules {
   // project can be running rules older than the release that added them, and the Agents
   // pane says so rather than drawing a grid it cannot fill.
   readAgents?(): Promise<{ agents: AgentView[]; problems: string[] }>;
+  /** What each agent that is a file is called, by name, in the language this machine reads
+   *  (#756). Optional on its own rather than with the four below: it is read on every page
+   *  load, and rules that predate it answer with nothing, which spells the names instead. */
+  agentTitles?(): Record<string, string>;
   setAgentRule?(agent: string, text: string): Promise<WriteResult>;
   createAgent?(name: string, stage?: WorkflowStage): Promise<WriteResult & { agent?: string }>;
   saveAgentFile?(name: string, text: string): Promise<WriteResult>;

@@ -57,7 +57,7 @@ import {
   startPruneMemoryAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
-import { spellAgent } from "@/lib/agent-name";
+import { spellAgent, useAgentName } from "@/lib/agent-name";
 import { type Cadence, type CadenceUnit, formatCadence, parseCadence } from "@/lib/cadence";
 import { WORKFLOW_STAGES } from "@/lib/types";
 import type {
@@ -2025,20 +2025,11 @@ function Lettered({ name, size = 48 }: { name: string; size?: number }) {
   );
 }
 
-/** What an agent is CALLED, in the language this machine reads.
- *
- *  Three answers, in order. A role is one of a closed set the command ships, so this pane's
- *  own copy names it. Every other agent is a file and says its own name in its `AGENT.md`
- *  under `akb.i18n`, which the board hands over already picked for this language. An agent
- *  that says nothing keeps its own name, spelled out — the right answer in English, and
- *  never a blank. */
+/** What an agent is CALLED — the one lookup every screen names an agent by
+ *  (`@/lib/agent-name`), handed the name this pane has already read off the roster. */
 export function useAgentTitle(): (agent: AgentView) => string {
-  const roles = useCopy().configuration.agents.roles;
-  return useCallback(
-    (agent: AgentView) =>
-      roles[agent.name as keyof typeof roles]?.name || agent.title || spellAgent(agent.name),
-    [roles],
-  );
+  const nameOf = useAgentName();
+  return useCallback((agent: AgentView) => nameOf(agent.name, agent.title), [nameOf]);
 }
 
 function sentence(text: string): string {

@@ -38,7 +38,7 @@ import {
   workflowsAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
-import { spellAgent } from "@/lib/agent-name";
+import { useAgentName } from "@/lib/agent-name";
 import { WORKFLOW_STAGES } from "@/lib/types";
 import type { WorkflowCandidate, WorkflowStage, WorkflowStageView, WorkflowView } from "@/lib/types";
 import { Character } from "./Agents";
@@ -469,16 +469,11 @@ export function WorkflowsPanel({
   );
 }
 
-/** What one agent is CALLED here. The board ships its roles as a closed set, so the pane's
- *  own copy names them; a specialist says its own name in its `AGENT.md`, and an agent that
- *  says neither is spelled out of its id. The same three steps the Agents pane takes, so no
- *  screen calls the same agent two different things. */
+/** What one agent is CALLED here — the one lookup every screen names an agent by
+ *  (`@/lib/agent-name`), handed the name this pane has already read off the candidate. */
 function useCandidateName(): (agent: WorkflowCandidate | undefined, name: string) => string {
-  const roles = useCopy().configuration.agents.roles;
-  return useCallback(
-    (agent, name) => roles[name as keyof typeof roles]?.name || agent?.title || spellAgent(name),
-    [roles],
-  );
+  const nameOf = useAgentName();
+  return useCallback((agent, name) => nameOf(name, agent?.title), [nameOf]);
 }
 
 /** And what it DOES, in one clause — the same three steps. */

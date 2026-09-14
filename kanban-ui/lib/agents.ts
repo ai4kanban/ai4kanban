@@ -68,6 +68,15 @@ export async function agents(): Promise<{ agents: AgentView[]; problems: string[
   return rules.readAgents ? await rules.readAgents() : null;
 }
 
+/** What each agent that is a file is called, by name, in the language this machine reads
+ *  (#756) — what `useAgentName()` names an agent from on a screen holding only the name.
+ *  Empty on rules older than the read, and on a board with no agents of its own: both mean
+ *  the screen spells the name, which is what it already did. */
+export async function agentTitles(): Promise<Record<string, string>> {
+  const rules = await boardRules();
+  return rules.agentTitles ? rules.agentTitles() : {};
+}
+
 /** Save one agent's rule, or clear it with empty text. Every flow that agent runs reads it,
  *  and a run started from a terminal reads the same words. */
 export async function setAgentRule(agent: string, text: string): Promise<WriteResult> {

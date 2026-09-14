@@ -90,6 +90,12 @@ export { refinementRequest } from './lib/agent/refine'
 // writes its team where the board is and both clients call the same thing.
 export { createAgent, deleteAgent, readAgents, saveAgentFile, setAgentRule } from './lib/view/api'
 
+// What each agent that is a file is CALLED (#756), by name, in the language this machine
+// reads. `readAgents` above carries the same name, and everything else with it; this is the
+// cheap read for a screen that holds a name and nothing more — the office nameplate and the
+// runs list — so every screen in the app names one agent one way.
+export { agentTitles } from './lib/agents'
+
 // A marketing card's drafts and its channels (#411) — what the board UI's drafts block is
 // drawn from and acts through. Reading and writing a draft is a file under
 // `content/<id>/`; a repurpose is the `channel` command with every check it makes;

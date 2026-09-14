@@ -48,6 +48,21 @@ export function agentLines(
   }
 }
 
+/** What every agent that is a FILE is called, by name, in the language this machine reads
+ *  (#756) — the one read a screen names an agent from when all it holds is the name.
+ *
+ *  Roles are not in here: they are a closed set the command ships and a UI's own copy names
+ *  them. An agent that declares no title in this language is left out, so the reader spells
+ *  its name rather than being handed a blank. */
+export function agentTitles(language: Language = readLanguage()): Record<string, string> {
+  const titles: Record<string, string> = {}
+  for (const agent of specAgentCatalog().agents) {
+    const { title } = agentLines(agent, language)
+    if (title) titles[agent.name] = title
+  }
+  return titles
+}
+
 /** The settings an agent declares, as a screen reads them: the words in the language this
  *  machine reads (#334), and never the reference a choice loads — that is the run's business.
  *

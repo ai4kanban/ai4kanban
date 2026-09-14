@@ -5,6 +5,8 @@ import { NavEdge, SwipeBack } from "@/components/desktop";
 import { DropGuard } from "@/components/drop-guard";
 import { getCopy } from "@/i18n";
 import { LanguageProvider } from "@/components/language";
+import { AgentTitlesProvider } from "@/lib/agent-name";
+import { agentTitles } from "@/lib/agents";
 import { insetTitleBar, isDesktop } from "@/lib/desktop";
 import { machineLanguage } from "@/lib/language";
 import { DEFAULT_LANGUAGE, LANGUAGE_TAGS } from "@/lib/types";
@@ -64,12 +66,21 @@ export default async function RootLayout({
   // six have it in their first paint and none of them draws English and corrects itself.
   // Nothing to read it with reads as English: a preference is not worth a crash screen.
   const language = await machineLanguage().catch(() => DEFAULT_LANGUAGE);
+  // And what every agent that is a file is called in it (#756). Read here for the same
+  // reason the language is: the office nameplate and the runs list name agents from it, and
+  // a language change refreshes this layout, so the names turn over with the rest of the
+  // words. A board that cannot be read names nothing, and the screens spell the ids.
+  const titles = await agentTitles().catch(() => ({}));
   return (
     <html lang={LANGUAGE_TAGS[language]}>
       <body className={`font-sans antialiased${inset ? " a4k-inset" : ""}`}>
         {/* Every screen reads the language from here with `useLanguage()`, so none of them
             takes it as a prop and a change re-renders the app without a reload. */}
         <LanguageProvider initial={language} onSave={setLanguageAction}>
+        {/* And what every screen calls an agent (#756) — one lookup, so the office
+            nameplate, the runs list, the Agents pane and a workflow's stages can never say
+            three different things about one agent. */}
+        <AgentTitlesProvider titles={titles}>
         {/* What every screen the app serves can DO (#374). Here rather than on the two board
             pages: the runs panel in the top row acts through it too, and that row is on the
             memory, archive and mockup pages as well. */}
@@ -94,6 +105,7 @@ export default async function RootLayout({
           {desktop && <SwipeBack />}
           {children}
         </AppActions>
+        </AgentTitlesProvider>
         </LanguageProvider>
       </body>
     </html>
