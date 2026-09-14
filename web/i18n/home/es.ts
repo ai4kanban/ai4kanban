@@ -55,8 +55,8 @@ const es: HomeCopy = {
         body: "La mayoría de los detalles se resuelven a partir del código y las decisiones anteriores. El trabajo avanza en segundo plano y recibes las decisiones de producto y las entregas pendientes de aprobación en la aplicación o en Slack.",
       },
       {
-        title: "Un equipo de agentes que avanza unido.",
-        body: "Discusión, planificación, desarrollo y revisión: cada agente cumple su función. Activa los especialistas que necesites, elige una herramienta de ejecución y un modelo para cada rol y añade tus propias instrucciones.",
+        title: "Tú decides qué funciona sin ti.",
+        body: "Algunas tareas las inicias tú: hablar de una idea, ordenar el tablero, corregir un plan que no acertó. Otras avanzan solas en cuanto las activas: aprobar entregas, responder preguntas pendientes, proponer el siguiente paso. Cada una usa la herramienta de ejecución, el modelo y las instrucciones que le des.",
       },
     ],
   },

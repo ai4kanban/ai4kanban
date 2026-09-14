@@ -49,8 +49,8 @@ const en: HomeCopy = {
         body: "Most details are settled from your code and past decisions. Work moves forward in the background, with product choices and delivery approvals brought back to you in the app or Slack.",
       },
       {
-        title: "An agent team, working together.",
-        body: "Bring discussion, planning, building, and review into one team. Enable the specialists you need, choose a runtime and model for each role, and add your own instructions.",
+        title: "Decide what runs without you.",
+        body: "Some jobs you start yourself: talk an idea through, tidy the board, correct a plan that missed. Others run on their own once you switch them on — approving builds, answering open questions, suggesting what comes next. Each one takes the runtime, model, and instructions you give it.",
       },
     ],
   },

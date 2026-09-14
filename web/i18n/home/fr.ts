@@ -52,8 +52,8 @@ const fr: HomeCopy = {
         body: "La plupart des détails sont réglés à partir du code et des décisions passées. Le travail avance en arrière-plan ; les choix produit et les livraisons à valider vous parviennent dans l’application ou sur Slack.",
       },
       {
-        title: "Une équipe d’agents qui avance ensemble.",
-        body: "Discussion, planification, développement et revue : chaque agent a son rôle. Activez les spécialistes utiles, choisissez un outil d’exécution et un modèle par rôle, et ajoutez vos propres instructions.",
+        title: "Vous décidez de ce qui tourne sans vous.",
+        body: "Certaines tâches, c’est vous qui les lancez : discuter d’une idée, ranger le tableau, corriger un plan à côté du sujet. D’autres avancent seules une fois activées : valider les livraisons, répondre aux questions en attente, proposer la suite. Chacune reçoit l’outil d’exécution, le modèle et les instructions que vous lui donnez.",
       },
     ],
   },
