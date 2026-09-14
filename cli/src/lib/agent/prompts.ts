@@ -325,7 +325,10 @@ function archivedCardFile(id: number | undefined): string {
 // a product board by itself, since `kind: write` does not parse there.
 function roster(req: AgentRequest): string {
   if (req.id === undefined) return ''
-  if (SPEC_SELECTOR_FOR.has(req.action)) return solution() === 'product' ? specAgentSelector(req.id, req.workflow) : ''
+  // The card's own workflow, not only the one the request carries (#749): the ask this block
+  // invites is checked against the card's, and a list that offered a different team would be
+  // a run told to ask for agents its card refuses.
+  if (SPEC_SELECTOR_FOR.has(req.action)) return solution() === 'product' ? specAgentSelector(req.id, workflowForRun(req)) : ''
   if (WRITE_SELECTOR_FOR.has(req.action)) return writeAgentSelector(req.id)
   return ''
 }

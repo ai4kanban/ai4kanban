@@ -11,11 +11,12 @@ import { die, rel, BOARD_FLAG, TODO } from '../lib/paths'
 import {
   findSpecAgent,
   notAnAgent,
-  specAgentEnabled,
+  specAgentAssigned,
   specAgentList,
   specAgentNamesOnBoard,
-  SPEC_SWITCH_HOME,
+  SPEC_ASSIGN_HOME,
 } from '../lib/agents'
+import { cardWorkflowId } from '../lib/agent/workflows'
 import type { MoveResult } from '../lib/types'
 import { followRun, short } from './run'
 
@@ -30,10 +31,9 @@ export interface SpecOptions {
 }
 
 export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveResult> {
-  // No agent named: say which ones there are. This is the list a flow reads to decide
-  // whether a card needs one at all, so a switched-off agent is not in it (#191). Typed by
-  // a person it is still named, in the closing line — an agent that vanished with no
-  // explanation reads as a board that broke.
+  // No agent named: say which ones there are. Every agent on the hook, because this is
+  // typed with no card in hand — which of them a card may actually ask for is its own
+  // workflow's answer, and the ask below is where that is checked.
   if (!opts.agent) {
     say(specAgentList(program, !insideRun()))
     return { agents: specAgentNamesOnBoard() }
@@ -46,22 +46,22 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
   if (!agent || agent.kind !== 'spec') die(notAnAgent(askedName), { kind: 'no-such-spec-agent', specAgent: askedName })
   const name = agent.name
 
-  // Switched off in the board's settings (#191). A flow naming an agent from memory would
-  // otherwise walk round the switch, so the ask is refused rather than quietly dropped —
-  // and the refusal says what to do instead, because the user turned this off on purpose
-  // and a flow that stopped over it would turn a preference into a blocker.
-  if (!specAgentEnabled(name)) {
-    die(
-      `the \`${name}\` spec agent is switched off for this board, so it isn't running. Plan that part of the card yourself and carry on. It goes back on in ${SPEC_SWITCH_HOME}.`,
-      { kind: 'spec-agent-off', specAgent: name },
-    )
-  }
-
   const id = opts.id
   if (id === undefined) {
     die(`say which card: ${program} spec ${name} <id> [note]`, { kind: 'needs-input' })
   }
   if (!locate(id)) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
+
+  // Not on this card's workflow (#749). A flow naming an agent from memory would otherwise
+  // walk round the assignment, so the ask is refused rather than quietly dropped — and the
+  // refusal says what to do instead, because whoever left it off the stage meant to, and a
+  // flow that stopped over it would turn a choice into a blocker.
+  if (!specAgentAssigned(name, cardWorkflowId(id))) {
+    die(
+      `the \`${name}\` spec agent is not assigned to the planning of #${id}, so it isn't running. Plan that part of the card yourself and carry on. It joins when ${SPEC_ASSIGN_HOME}.`,
+      { kind: 'spec-agent-off', specAgent: name },
+    )
+  }
 
   const notes = noteOf(opts.note ?? [], opts.notes)
   const req: AgentRequest = { action: 'spec', id, title: titleOf(id), specAgent: name, notes }

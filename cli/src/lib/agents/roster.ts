@@ -79,11 +79,15 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       // board without a planner plans nothing. The gater, the decider, the reviewer, the
       // proposer and the triager are the exceptions (#447, #493, #509, #534, #562) — each
       // reads its own key in the board's settings rather than a `specAgents` entry, and its
-      // own default with it.
+      // own default with it. A workflow agent has no switch at all: its stage assignment is
+      // the answer (#749).
       switchable: entry.switchable,
       confirm: entry.confirm,
-      enabled:
-        entry.kind === 'role'
+      // An entry with no switch is on, whatever a key left over from an earlier release
+      // still says (#749) — a workflow agent runs when a stage assigns it.
+      enabled: !entry.switchable
+        ? true
+        : entry.kind === 'role'
           ? !entry.setting || switchedOn(entry.setting)
           : specAgentEnabled(entry.name, entries),
       rule: readRule(entry.name),

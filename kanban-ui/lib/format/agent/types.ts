@@ -1508,12 +1508,15 @@ export interface AgentView {
   stage?: 'plan' | 'execute' | 'review'
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
-  /** Whether it may be switched off. A role runs the board's own flows, so it never is. */
+  /** Whether it may be switched off. A role runs the board's own flows, so it never is, and
+   *  neither does a WORKFLOW agent (#749) — a stage assigns it or does not, and a switch
+   *  beside that assignment is a second answer to one question. */
   switchable: boolean
   /** Whether switching it ON asks first (#562) — the decider, which stops the board asking
    *  you anything, and the triager, which turns items into cards unasked. The role says so
    *  itself, so a screen never keeps a list of names. Off never asks. */
   confirm: boolean
+  /** Whether it is on. Always true where `switchable` is false — there is nothing to be off. */
   enabled: boolean
   /** The rule it carries, in the user's own words, or empty when it has none. */
   rule: string

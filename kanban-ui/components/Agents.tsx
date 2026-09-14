@@ -655,9 +655,12 @@ function PickRow({
       <button
         type="button"
         aria-current={held}
-        // The state too: the row carries it, and a label naming only the agent would take
-        // that word off the one list where every agent's is read at once.
-        aria-label={`${c.open(title)} · ${agent.enabled ? c.rowOn : c.rowOff}`}
+        // The state too, where there is one: the row carries it, and a label naming only the
+        // agent would take that word off the one list where every agent's is read at once. A
+        // workflow agent has no state to say (#749).
+        aria-label={
+          agent.switchable ? `${c.open(title)} · ${agent.enabled ? c.rowOn : c.rowOff}` : c.open(title)
+        }
         onClick={onOpen}
         // No frame and no marker: the ember wash is the whole of which row the page beside
         // the column belongs to, and a bar inside it says the same thing twice.

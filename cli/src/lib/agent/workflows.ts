@@ -25,6 +25,8 @@ import path from 'node:path'
 import { locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { readConfigRaw, safeConfig, configBlock, writeConfig } from './settings'
+import { specAgentCatalog } from '../agents/catalog'
+import { canonicalSpecAgent } from '../spec-agent-names'
 import { agentRoster, type RosterEntry } from './roles'
 import {
   WORKFLOW_STAGES,
@@ -228,11 +230,98 @@ function resolveOne(
   return { id, name, builtIn, needsArtifact: base?.needsArtifact ?? needsArtifact, stages }
 }
 
+// ---- folding an older board's switches (#749) -------------------------------
+//
+// A workflow agent used to carry a switch of its own beside its stage assignment, and the
+// two could disagree: a stage offered an agent the switch then refused. The assignment is
+// the only answer now, so a board that switched one off has that meant once and written
+// down — the agent comes off every stage that was offering it, and the key goes. Reading
+// the key again afterwards would quietly put the agent back, which is the one outcome an
+// upgrade must not have.
+//
+// Only where the board has workflows at all, and only from `workflows()`, which every read
+// of an assignment goes through. One pass: the keys it folds are the keys it deletes, so the
+// line below is false from then on.
+
+const switchedOff = (cfg: Record<string, unknown>): string[] =>
+  Object.entries(configBlock(cfg.specAgents))
+    .filter(([, value]) => value === false || configBlock(value).enabled === false)
+    .map(([name]) => name)
+
+// What one stage was offering before the fold, worked out from the config alone. It is the
+// same answer `stageHelpers` gives, computed here without the roster: this runs inside
+// `workflows()`, and the roster is built from it.
+function offeredBefore(
+  cfg: Record<string, unknown>,
+  id: string,
+  stage: WorkflowStage,
+  stageOf: Map<string, WorkflowStage>,
+): { lead: string; helpers: WorkflowHelper[] } {
+  const base = BUILTINS.find((w) => w.id === id)
+  const saved = readStage(storedStages(cfg, id)[stage])
+  const lead = saved.lead !== undefined ? saved.lead : (base?.stages[stage].lead ?? '')
+  if (saved.helpers !== undefined) return { lead, helpers: saved.helpers }
+  const declared = base?.stages[stage].helpers
+  if (declared === 'every') {
+    return {
+      lead,
+      helpers: [...stageOf]
+        .filter(([name, where]) => where === stage && name !== lead)
+        .map(([name]) => ({ agent: name, extra: '' })),
+    }
+  }
+  return { lead, helpers: (declared ?? []).map((agent) => ({ agent, extra: '' })) }
+}
+
+/** Fold every switched-off workflow agent into the stages that were offering it, and drop
+ *  the keys. True when it wrote, which is once per board. */
+function foldAgentSwitches(cfg: Record<string, unknown>): boolean {
+  if (!switchedOff(cfg).length) return false
+  // The catalog rather than the roster: the roster is built from the workflows this is
+  // inside of. Only a specialist can carry one of these keys on a board with workflows —
+  // `kind: write` does not parse here (../agents/parse.ts).
+  const stageOf = new Map<string, WorkflowStage>()
+  for (const agent of specAgentCatalog().agents) if (agent.stage) stageOf.set(agent.name, agent.stage)
+  const { ok } = writeConfig((raw) => {
+    const off = new Set(switchedOff(raw).map(canonicalSpecAgent))
+    const block = configBlock(raw.workflows)
+    const stages = configBlock(block.stages)
+    const ids = [...BUILTINS.map((w) => w.id), ...addedRows(raw).map((r) => r.id)]
+    for (const id of ids) {
+      for (const stage of WORKFLOW_STAGES) {
+        const before = offeredBefore(raw, id, stage, stageOf)
+        const kept = before.helpers.filter((h) => !off.has(canonicalSpecAgent(h.agent)))
+        if (kept.length === before.helpers.length) continue
+        stages[id] = {
+          ...configBlock(stages[id]),
+          [stage]: { lead: before.lead, helpers: kept.map((h) => ({ agent: h.agent, extra: h.extra })) },
+        }
+      }
+    }
+    if (Object.keys(stages).length) block.stages = stages
+    if (Object.keys(block).length) raw.workflows = block
+
+    // The key itself. An entry left holding nothing goes with it, so the file reads exactly
+    // as a board that never had the switch.
+    const spec = { ...configBlock(raw.specAgents) }
+    for (const name of switchedOff(raw)) {
+      const rest = { ...configBlock(spec[name]) }
+      delete rest.enabled
+      if (Object.keys(rest).length) spec[name] = rest
+      else delete spec[name]
+    }
+    if (Object.keys(spec).length) raw.specAgents = spec
+    else delete raw.specAgents
+  })
+  return ok
+}
+
 /** Every workflow this board has, built-ins first and then its own in the order they were
  *  made. Empty where a board picks no workflows at all. */
 export function workflows(): Workflow[] {
   if (!workflowsHere()) return []
-  const cfg = safeConfig()
+  let cfg = safeConfig()
+  if (foldAgentSwitches(cfg)) cfg = safeConfig()
   return [
     ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
     ...addedRows(cfg).map((row) => resolveOne(cfg, row.id, row.name, false, row.needsArtifact)),

@@ -9,11 +9,12 @@
 // the first line and the two boards finish exactly when they finished before. It starts
 // mattering when a board can write its own contracts (#716).
 
-import { findSpecAgent, specAgentEnabled, specHeading } from '../agents'
+import { findSpecAgent, specAgentAssigned, specHeading } from '../agents'
 import type { Card } from '../view/types'
 import { flowByAction } from './flows'
 import { readStore } from './store'
 import { stageOfFlow, type Stage, type StageContract } from './stages'
+import { cardWorkflowId } from './workflows'
 import type { AgentAction, AgentRequest, RefineEffort } from './types'
 
 /** A stage that cannot end: the helpers it requires that have written nothing, and that
@@ -42,7 +43,7 @@ export function endOfStage(contract: StageContract, card: Card, refineEffort?: R
   const missing = missingRequired(contract, card)
   if (!missing.length) return { done: true }
   const askable = missing.find(
-    (name) => findSpecAgent(name) && specAgentEnabled(name) && !askedFor(card.id, name),
+    (name) => findSpecAgent(name) && specAgentAssigned(name, cardWorkflowId(card.id)) && !askedFor(card.id, name),
   )
   if (!askable) return { stage: contract.stage, missing }
   return {

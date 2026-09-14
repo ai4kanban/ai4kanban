@@ -318,9 +318,11 @@ export interface RosterEntry {
   kind: 'role' | AgentKind
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
-  /** Whether this entry can be switched off. Every specialist can; of the roles, the gater,
-   *  the decider (#447, #493), the reviewer (#509), the proposer (#534) and the triager
-   *  (#562). */
+  /** Whether this entry can be switched off. A workflow agent cannot (#749): a stage of a
+   *  workflow assigns it or does not, and a second switch beside that assignment is two
+   *  answers to one question. So: a specialist that declares no stage — the marketing
+   *  board's writers — and, of the roles, the gater, the decider (#447, #493), the reviewer
+   *  (#509), the proposer (#534) and the triager (#562). */
   switchable: boolean
   /** Whether switching it ON asks first — the role's own `confirm`. False on every
    *  specialist: one fills a section of a card and starts nothing on its own. */
@@ -354,7 +356,9 @@ export function agentRoster(): RosterEntry[] {
       kind: agent.kind,
       ...(agent.stage ? { stage: agent.stage } : {}),
       builtIn: agent.builtIn,
-      switchable: true,
+      // A stage is the switch (#749): assign it to one in the Workflows pane, or leave it
+      // unassigned. Only an agent no workflow can reach keeps one of its own.
+      switchable: !agent.stage,
       confirm: false,
       flows: [],
       memory: agent.memory ? agentMemoryFiles(agent.name).map(rel) : [],

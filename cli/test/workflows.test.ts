@@ -37,6 +37,7 @@ import {
   workflowViews,
 } from '../src/lib/agent/workflows.ts'
 import { cardsOnWorkflow, removeWorkflow } from '../src/lib/agent/workflow-cards.ts'
+import { setSpecAgentEnabled } from '../src/lib/agents/index.ts'
 import { cmdWorkflowDelete } from '../src/commands/workflow.ts'
 import { startRun } from '../src/lib/agent/start.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
@@ -124,6 +125,61 @@ describe('the workflows a board has', () => {
     assert.equal(mine('coding'), 'Reuse the shipped components.')
     assert.equal(setWorkflowHelperExtra('coding', 'plan', 'ui-designer', '').ok, true)
     assert.equal(mine('coding'), '')
+  })
+})
+
+// A board written before #749 kept a switch per workflow agent beside its stage assignment.
+// The assignment is the only answer now, so the switch is folded into it once and the key
+// goes — and an agent switched off then must not come back on the upgrade.
+describe('a switch a board saved before the assignment was the answer', () => {
+  const config = (): Record<string, any> =>
+    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+
+  const saveConfig = (cfg: Record<string, unknown>): void =>
+    fs.writeFileSync(path.join(kanban(), 'ui.config.json'), JSON.stringify(cfg, null, 2))
+
+  // What the stage OFFERS, which is what a run is handed — an inherited stage has nothing
+  // saved in it.
+  const planHelpers = (id = 'coding'): string[] =>
+    workflowViews().find((w) => w.id === id)!.stages[0]!.helpers.map((h) => h.agent)
+
+  it('comes off every stage that was offering the agent, and the key goes with it', () => {
+    saveConfig({ specAgents: { 'ui-designer': false } })
+    assert.deepEqual(planHelpers(), ['tech-stack-advisor'])
+    assert.equal(config().specAgents, undefined)
+    // Written down, not worked out again: the stage is chosen from here.
+    assert.deepEqual(config().workflows.stages.coding.plan.helpers, [{ agent: 'tech-stack-advisor', extra: '' }])
+    assert.equal(config().workflows.stages.coding.plan.lead, 'planner')
+  })
+
+  it('leaves everything else the entry held, and touches no other agent', () => {
+    saveConfig({ specAgents: { 'ui-designer': { enabled: false, mockupStyle: 'ascii' } } })
+    assert.deepEqual(planHelpers(), ['tech-stack-advisor'])
+    assert.deepEqual(config().specAgents, { 'ui-designer': { mockupStyle: 'ascii' } })
+  })
+
+  it('takes the agent off a stage the board had already chosen for', () => {
+    saveConfig({
+      specAgents: { 'tech-stack-advisor': false },
+      workflows: { stages: { coding: { plan: { lead: 'planner', helpers: [{ agent: 'tech-stack-advisor', extra: 'x' }] } } } },
+    })
+    assert.deepEqual(planHelpers(), [])
+    assert.equal(config().specAgents, undefined)
+  })
+
+  it('does not put the agent back, and adding it again is the board’s own choice', () => {
+    saveConfig({ specAgents: { 'ui-designer': false } })
+    assert.deepEqual(planHelpers(), ['tech-stack-advisor'])
+    assert.equal(addWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
+    assert.deepEqual(planHelpers(), ['tech-stack-advisor', 'ui-designer'])
+    assert.equal(config().specAgents, undefined)
+  })
+
+  it('is refused where a workflow agent is switched off by name', () => {
+    const refused = setSpecAgentEnabled('ui-designer', false)
+    assert.equal(refused.ok, false)
+    assert.match(refused.error!, /workflow agent, so it has no switch/)
+    assert.deepEqual(planHelpers(), ['tech-stack-advisor', 'ui-designer'])
   })
 })
 

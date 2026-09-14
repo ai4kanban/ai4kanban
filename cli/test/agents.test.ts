@@ -30,7 +30,8 @@ import {
 } from '../src/lib/agents/index.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
 import { parseYamlBlock } from '../src/lib/agents/yaml.ts'
-import { move, refuses } from './helpers/board.ts'
+import { removeWorkflowHelper } from '../src/lib/agent/workflows.ts'
+import { move, refuses, run } from './helpers/board.ts'
 
 let root = ''
 
@@ -279,7 +280,7 @@ describe('an agent the project adds', () => {
     assert.deepEqual(view?.settings.map((s) => s.key), ['output'])
   })
 
-  it('is switched off and set like a built-in one', () => {
+  it('is set like a built-in one', () => {
     project('api-contract', {
       'AGENT.md': AGENT.replace(
         '  owns: the request and response shape a card changes\n',
@@ -461,9 +462,32 @@ describe('what a session is shown', () => {
     }
   })
 
-  it('says nothing at all when every agent is switched off', () => {
+  // Off in a board written before #749: the switch is folded into the coding plan stage, so
+  // the selector lists nobody — and it stays that way once the key is gone.
+  it('says nothing at all when the card\'s workflow assigns no one', () => {
     board({ specAgents: { 'ui-designer': false, 'tech-stack-advisor': false } })
     assert.equal(specAgentSelector(12), '')
+    assert.equal(specAgentSelector(12), '')
+  })
+
+  // The list is printed with no card in hand, so it names every agent on the hook; which of
+  // them a card may ask for is its own workflow's answer, and the ask is where that is read.
+  it('lists every agent on the hook, whatever a workflow assigns', () => {
+    board({ specAgents: { 'ui-designer': false } })
+    assert.doesNotMatch(specAgentSelector(12), /ui-designer/)
+    const listed = specAgentList('akb')
+    assert.match(listed, /ui-designer/)
+    assert.doesNotMatch(listed, /Switched off/)
+  })
+
+  it('refuses an ask for an agent the card\'s workflow does not assign', async () => {
+    card(12)
+    board()
+    assert.equal(removeWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
+    await assert.rejects(
+      () => run(root, ['spec', 'ui-designer', '12', 'a note']),
+      /not assigned to the planning of #12/,
+    )
   })
 
   it('hands a spec run the contract, its agent and only the picked reference', () => {
@@ -754,14 +778,10 @@ describe("who a spec agent's output is for", () => {
 
   // A `runtime` left by a board written before #443 goes: named runtimes are gone, and the
   // agent it pointed at runs the connector the board gives it now.
-  it("leaves the switch and the agent's own values beside it, and drops a stale runtime", () => {
-    board({ specAgents: { 'ui-designer': { enabled: false, runtime: 'cheap', mockupStyle: 'ascii' } } })
+  it("leaves the agent's own values beside it, and drops a stale runtime", () => {
+    board({ specAgents: { 'ui-designer': { runtime: 'cheap', mockupStyle: 'ascii' } } })
     assert.equal(setSpecAgentSetting('ui-designer', 'output', 'agent').ok, true)
-    assert.deepEqual(saved()['ui-designer'], {
-      enabled: false,
-      output: 'agent',
-      mockupStyle: 'ascii',
-    })
+    assert.deepEqual(saved()['ui-designer'], { output: 'agent', mockupStyle: 'ascii' })
   })
 
   it('refuses a word it does not offer, and runs the default when the file holds one', () => {

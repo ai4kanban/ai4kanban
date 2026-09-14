@@ -95,17 +95,22 @@ export const specHeading = (name: string): string => '## By `' + specAgentNames(
 
 // ---- switched on, switched off, and set (#191, #255) ------------------------
 //
-// Every spec agent is on until someone switches it off in the board UI, under
-// Configuration → Agents. An agent that declares settings is set there too. Both are saved
-// with the board, so they are the same for everyone working on it and the same wherever the
-// board works — a flow run from a terminal reads them too.
+// An agent that declares settings is set in the board UI, and those settings are saved with
+// the board, so they are the same for everyone working on it and the same wherever the board
+// works — a flow run from a terminal reads them too.
+//
+// A switch is what an agent NO workflow can reach still has (#749): the marketing board's
+// writers. A workflow agent has none — its stage assignment is the whole answer, and a
+// second switch beside it was a second gate the workflow page could not see (./workflows.ts
+// `foldAgentSwitches` folds what a board saved before this).
 //
 // They are read as a run is about to start, never remembered from earlier, so the last
 // change is the one that counts. What the file holds is still keyed `specAgents`, which is
 // what it was keyed before the word changed and after it changed back (#403, #419).
 
 /** Is this agent switched on? A name with nothing saved for it is on, so a board set up
- *  before the switches existed has every agent on. */
+ *  before the switches existed has every agent on. Read only for an agent that still has a
+ *  switch — a workflow agent's own entry is folded into its workflow and forgotten (#749). */
 export const specAgentEnabled = (name: string, entries = specAgentEntries()): boolean =>
   specAgentNames(name).every((candidate) => entries[candidate]?.enabled !== false)
 
@@ -220,16 +225,23 @@ export const writeHookAgents = (): SpecAgent[] => hookAgents('write')
 const hookAgents = (kind: AgentKind): SpecAgent[] =>
   specAgents().filter((a) => a.kind === kind && (kind !== 'spec' || a.stage === 'plan'))
 
-/** The agents a flow may ask for — the ones on that hook that are on, in the board's own
- *  order. */
-export const enabledSpecAgents = (): SpecAgent[] => enabledHookAgents('spec')
+/** The agents one card's planning may ask for — the ones on the `spec` hook that its
+ *  workflow assigns to the plan stage, in the board's own order. */
+export const planSpecAgents = (workflow?: string): SpecAgent[] => planHelpers(hookAgents('spec'), workflow)
+
+/** Whether one workflow's plan stage assigns this agent — the one gate `akb spec` and every
+ *  ask written mid-run are checked against (#749). */
+export const specAgentAssigned = (name: string, workflow?: string): boolean => {
+  const wanted = canonicalSpecAgent(name)
+  return planSpecAgents(workflow).some((a) => a.name === wanted)
+}
 
 // The ones one workflow's PLAN stage may call in (#715). An agent is assigned to a stage of
 // a workflow rather than switched on for the whole board, so a card planned under one
 // workflow never sees a helper another workflow assigned.
 //
-// A board that picks no workflows is left exactly as it was: every enabled agent is offered,
-// which is what the selector always listed.
+// A board that picks no workflows is left exactly as it was: every agent on the hook is
+// offered, which is what the selector always listed.
 function planHelpers(agents: SpecAgent[], workflow?: string): SpecAgent[] {
   if (!workflowsHere()) return agents
   const flow = workflowFor(workflow)
@@ -238,12 +250,11 @@ function planHelpers(agents: SpecAgent[], workflow?: string): SpecAgent[] {
   return agents.filter((a) => assigned.has(a.name))
 }
 
-/** The same, for the `write` hook. */
-export const enabledWriteAgents = (): SpecAgent[] => enabledHookAgents('write')
-
-function enabledHookAgents(kind: AgentKind): SpecAgent[] {
+/** The `write` agents that are on. A write agent belongs to no workflow (#718), so its own
+ *  switch is still what says whether it runs. */
+export const enabledWriteAgents = (): SpecAgent[] => {
   const entries = specAgentEntries()
-  return hookAgents(kind).filter((a) => specAgentEnabled(a.name, entries))
+  return hookAgents('write').filter((a) => specAgentEnabled(a.name, entries))
 }
 
 /** One agent on the `write` hook, by name. An agent on another hook is on this board but is
@@ -254,9 +265,10 @@ export const findWriteAgent = (name: string): SpecAgent | null => {
   return agent?.kind === 'write' ? agent : null
 }
 
-/** Enabled agents and their triggers, without their execution instructions. */
+/** The agents this card's workflow assigns to planning, and their triggers, without their
+ *  execution instructions. */
 export const specAgentSelector = (id: number | string, workflow?: string): string =>
-  selector(planHelpers(enabledSpecAgents(), workflow), {
+  selector(planSpecAgents(workflow), {
     tag: 'spec-agents',
     lead: "Specialist agents this board has, each filling one part of a card's spec:",
     ask: `Command: \`akb spec <agent> ${id} <short note> [--print]\`.`,
@@ -332,6 +344,14 @@ export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; e
   }
   const agent = findSpecAgent(name)
   if (!agent) return { ok: false, error: notAnAgent(name) }
+  // A workflow agent has no switch (#749). Refused rather than written down: a key nothing
+  // reads would leave the Workflows pane and this saying different things again.
+  if (agent.stage) {
+    return {
+      ok: false,
+      error: `\`${agent.name}\` is a workflow agent, so it has no switch — ${SPEC_ASSIGN_HOME}.`,
+    }
+  }
   return setSpecAgentSwitch(agent.name, on, specAgentNames(agent.name).slice(1))
 }
 
@@ -378,16 +398,21 @@ const notOnHook = (name: string, kind: AgentKind): string => {
 }
 
 /** Where a switched-off agent goes back on. One place, named the same way everywhere. */
-export const SPEC_SWITCH_HOME = 'the board UI, under Configuration → Agents'
+export const SPEC_SWITCH_HOME = 'the board UI, under Configuration → Board agents'
+
+/** Where an agent is put on a stage, or taken off it — the one answer to whether a workflow
+ *  agent runs (#749). Named the same way everywhere, like the switch above it. */
+export const SPEC_ASSIGN_HOME =
+  'a workflow assigns it, in the board UI under Configuration → Workflows'
 
 /** Where a project puts an agent of its own. */
 export const SPEC_AGENT_HOME = 'docs/kanban/agents/<name>/AGENT.md'
 
 /** The list of spec agents, one entry each — what `akb spec` with no agent named prints.
  *
- *  A switched-off agent is left out of the list a flow picks from. Typed by a person it is
- *  still named, in one closing line: an agent that vanished with no explanation is a feature
- *  the user thinks broke. */
+ *  Every agent on the hook, whatever any workflow assigns: this is typed with no card in
+ *  hand, and which of them a card may actually ask for is its own workflow's answer
+ *  (`specAgentSelector`), given to a run with the card's id already in it. */
 export const specAgentList = (program: string, forPerson = false): string =>
   agentList('spec', program, forPerson, {
     lead: `${program} spec <agent> <id> [note] — put a spec agent on a card.`,
@@ -418,8 +443,12 @@ function agentList(
   const entries = specAgentEntries()
   const problems = specAgentProblems()
   const agents = hookAgents(kind)
-  const on = agents.filter((a) => specAgentEnabled(a.name, entries))
-  const off = agents.filter((a) => !specAgentEnabled(a.name, entries))
+  // Only an agent that still HAS a switch can be listed as off (#749). A workflow agent is
+  // always listed: whether a card may ask for it is its workflow's answer, not the board's,
+  // and this list is printed with no card in hand.
+  const switched = (a: SpecAgent): boolean => !a.stage && !specAgentEnabled(a.name, entries)
+  const on = agents.filter((a) => !switched(a))
+  const off = agents.filter(switched)
   return [
     words.lead,
     '',
