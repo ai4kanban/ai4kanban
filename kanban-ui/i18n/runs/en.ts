@@ -308,13 +308,11 @@ const en: RunsCopy = {
       scheduleHint: "Refine this card by itself, once nothing is in its way",
     },
     reject: {
-      title: (id) => `Reject #${id}`,
+      title: (id) => `Remove #${id}`,
       blurb: "This card leaves the board.",
-      placeholder: "Why are you rejecting this?",
+      placeholder: "Why are you rejecting this? (optional)…",
+      hint: "Leave it empty to just discard — the idea can come back later. A reason rejects it, and guides later planning.",
       confirm: "Reject",
-      discard: "Just discard",
-      discardHint: "The idea can come back later.",
-      discardPlaceholder: "Note for the agent (optional)…",
       confirmDiscard: "Discard",
     },
     archive: {

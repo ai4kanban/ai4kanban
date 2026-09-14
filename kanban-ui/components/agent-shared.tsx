@@ -925,9 +925,6 @@ export function ActionDialog({
   // default every Implement opens with. Like the acks, it isn't persisted: closing the
   // dialog drops it and the next open asks the board again.
   const [ownBranch, setOwnBranch] = useState(plan.commitMode === "auto");
-  // Whether a Reject writes no memory at all (#601) — the Reject dialog's own box, off until
-  // the user says so, and dropped on close like the acks above.
-  const [discard, setDiscard] = useState(false);
   const run = (req: AgentReq, label: string) => {
     clearDraft();
     onRun(req, label);
@@ -1213,35 +1210,35 @@ export function ActionDialog({
   }
 
   if (dialog.kind === "reject") {
-    // One dialog, two moves (#601). Ticking the box makes this a discard: the card goes and
-    // nothing is written to memory, so the reason stops being required and the button says
-    // what it now does. Not persisted like the note draft — every open asks again.
+    // One dialog, two moves, and the reason picks which (#729). An empty box is a discard —
+    // the card goes and nothing is written to memory; a reason rejects it. The button says
+    // which one this click does, so what it reads is always what happens.
     const c = d.reject;
+    const reason = text.trim();
     return (
       <Dialog title={c.title(dialog.card.id)} onClose={onClose}>
         <p className={INTRO}>{c.blurb}</p>
-        <ChoiceBox on={discard} onFlip={setDiscard} label={c.discard} hint={c.discardHint} />
         <textarea
           className={INPUT}
           rows={3}
-          placeholder={discard ? c.discardPlaceholder : c.placeholder}
+          placeholder={c.placeholder}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
+        <p className="mt-1.5 text-[12px] leading-relaxed text-nb-ink-soft">{c.hint}</p>
         <DialogButtons
           onClose={onClose}
-          confirmLabel={discard ? c.confirmDiscard : c.confirm}
-          disabled={!discard && !text.trim()}
+          confirmLabel={reason ? c.confirm : c.confirmDiscard}
           onConfirm={() =>
             run(
               {
                 action: "reject",
                 id: dialog.card.id,
                 title: dialog.card.title,
-                reason: text.trim() || undefined,
-                ...(discard ? { discard: true } : {}),
+                reason: reason || undefined,
+                ...(reason ? {} : { discard: true }),
               },
-              `${discard ? "Discard" : "Reject"} #${dialog.card.id}`,
+              `${reason ? "Reject" : "Discard"} #${dialog.card.id}`,
             )
           }
         />

@@ -298,13 +298,11 @@ const zh: RunsCopy = {
       scheduleHint: "等没有任何阻碍后，自动澄清这张卡片",
     },
     reject: {
-      title: (id) => `否决 #${id}`,
+      title: (id) => `移除 #${id}`,
       blurb: "这张卡片将移出看板。",
-      placeholder: "为什么否决它？",
+      placeholder: "否决原因（可选）…",
+      hint: "留空仅丢弃，以后仍可重新提出；填写则否决，原因用于后续规划。",
       confirm: "否决",
-      discard: "仅丢弃",
-      discardHint: "以后仍可重新提出。",
-      discardPlaceholder: "给 Agent 的备注（可选）…",
       confirmDiscard: "丢弃",
     },
     archive: {
