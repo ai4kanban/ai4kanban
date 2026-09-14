@@ -26,7 +26,7 @@
 // agent. An agent with no art draws its first letter in the same pixel style, which is the
 // normal state for an agent you add — never a broken image.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
   FiAlertCircle,
   FiArrowLeft,
@@ -34,6 +34,7 @@ import {
   FiCheck,
   FiCopy,
   FiChevronDown,
+  FiChevronRight,
   FiClock,
   FiFolder,
   FiPlus,
@@ -368,13 +369,17 @@ export function AgentsPanel({
 
   // Add a specialist finishes on the new agent's own page, with its `AGENT.md` box focused:
   // an agent whose file is still the template is an agent that does nothing.
+  //
+  // The row stays up, and stays busy, until that page is actually on screen — writing the
+  // agent and reading the roster back take a moment, and taking the row away first leaves
+  // the column looking like nothing happened.
   const create = async (name: string): Promise<string> => {
     const res = await createAgentAction(name, scope === "workflow" ? stage : undefined);
     if (!res.ok) return res.error || c.saveFailed(name);
-    setAdding(false);
     await load();
     setPicked(res.agent ?? name);
     setFocusFile(true);
+    setAdding(false);
     return "";
   };
 
@@ -450,24 +455,30 @@ export function AgentsPanel({
       )}
 
       {/* One tab per stage (#715). An agent declares the stage it belongs to, so this is
-          which half of the pane's own roster is on screen — not a filter over all of them. */}
+          which half of the pane's own roster is on screen — not a filter over all of them.
+          The arrows between them are the order a card actually goes through, which is the one
+          thing three same-looking tabs don't say. */}
       {agents && scope === "workflow" && (
-        <div className="flex items-center gap-1.5">
-          {WORKFLOW_STAGES.map((name) => (
-            <button
-              key={name}
-              type="button"
-              aria-current={name === stage}
-              onClick={() => {
-                setStage(name);
-                onStage?.(name);
-              }}
-              className={`cursor-pointer rounded-[8px] px-3 py-2 text-[12px] font-[700] transition-colors duration-100 ${
-                name === stage ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft"
-              }`}
-            >
-              {c.stageTabs[name]}
-            </button>
+        <div className="flex items-center gap-1">
+          {WORKFLOW_STAGES.map((name, i) => (
+            <Fragment key={name}>
+              {i > 0 && (
+                <FiChevronRight size={13} aria-hidden className="shrink-0 text-nb-ink-soft/60" />
+              )}
+              <button
+                type="button"
+                aria-current={name === stage}
+                onClick={() => {
+                  setStage(name);
+                  onStage?.(name);
+                }}
+                className={`cursor-pointer rounded-[8px] px-3 py-1 text-[12px] font-[700] transition-colors duration-100 ${
+                  name === stage ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink-soft"
+                }`}
+              >
+                {c.stageTabs[name]}
+              </button>
+            </Fragment>
           ))}
         </div>
       )}
@@ -743,13 +754,21 @@ function NewRow({
         {why || c.nameHint}
       </span>
       <span className="mt-1.5 flex items-center gap-1.5">
+        {/* Writing the agent and reading the roster back is not instant, so the button says
+            it is working rather than sitting there looking unpressed. */}
         <button
           type="button"
           disabled={busy}
           onClick={() => void create()}
-          className="cursor-pointer rounded-[7px] bg-nb-accent px-2 py-[3px] text-[11px] font-[800] text-nb-paper disabled:cursor-wait disabled:opacity-60"
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-accent px-2 py-[3px] text-[11px] font-[800] text-nb-paper disabled:cursor-wait disabled:opacity-60"
         >
-          {c.create}
+          {busy && (
+            <span
+              className="size-1.5 rounded-full bg-nb-paper animate-[nbPulse_1.1s_ease-in-out_infinite]"
+              aria-hidden
+            />
+          )}
+          {busy ? c.creating : c.create}
         </button>
         <button
           type="button"

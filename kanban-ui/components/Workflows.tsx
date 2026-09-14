@@ -233,10 +233,12 @@ export function WorkflowsPanel({
       {loaded && !loadError && flows === null && <Note icon={<FiAlertCircle />}>{c.tooOld}</Note>}
 
       {flows && (
-        <div className="flex flex-1 items-start gap-6 max-sm:flex-col max-sm:gap-4">
+        <div className="flex flex-1 items-stretch gap-6 max-sm:flex-col max-sm:gap-4">
           <div className="w-[190px] shrink-0 border-r border-nb-ink/10 pr-5 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
             <div className={`${CAPTION} mb-3 text-nb-ink-soft`}>{c.title}</div>
-            <div className="max-h-[420px] overflow-y-auto">
+            {/* The negative margin gives the name box's focus ring room to draw: scrolling on
+                one axis clips the other, and a ring flush with the edge comes out cut. */}
+            <div className="-mx-[3px] max-h-[420px] overflow-y-auto px-[3px]">
               {flows.map((f) =>
                 naming?.id === f.id ? (
                   <NameBox
@@ -292,6 +294,7 @@ export function WorkflowsPanel({
                   <MoreMenu
                     open={menu}
                     onOpen={() => setMenu((was) => !was)}
+                    onDismiss={() => setMenu(false)}
                     label={c.more}
                     items={[
                       { label: c.duplicate, run: () => void duplicate() },
@@ -359,6 +362,7 @@ export function WorkflowsPanel({
                             await move(stage, { kind: "lead", agent: name });
                           }}
                           onManage={() => onManage?.(stage)}
+                          onDismiss={() => setPicking(null)}
                         />
                       )}
                     </div>
@@ -396,6 +400,7 @@ export function WorkflowsPanel({
                                 if (await move(stage, { kind: "add-helper", agent: name })) setHelper(name);
                               }}
                               onManage={() => onManage?.(stage)}
+                              onDismiss={() => setPicking(null)}
                             />
                           )}
                         </div>
@@ -587,6 +592,40 @@ function HelperTile({
   );
 }
 
+/** A press anywhere else, or Escape, closes the layer this ref is on — what every other menu
+ *  in the app does, and what a menu that only closes on a pick makes the user hunt for.
+ *
+ *  The press is measured against the popover's POSITIONING parent, which holds the button
+ *  that opened it: measured against the popover alone, pressing that button would close the
+ *  layer here and its own toggle would open it straight back. Escape stops where it is caught
+ *  — the dialog closes on Escape too, and one key should shut one thing. */
+function useDismiss<T extends HTMLElement>(onDismiss: () => void) {
+  const box = useRef<T>(null);
+  const close = useRef(onDismiss);
+  close.current = onDismiss;
+  useEffect(() => {
+    const pressed = (e: PointerEvent) => {
+      const at = e.target as Element | null;
+      const near = box.current?.parentElement;
+      if (!at || !near || near.contains(at)) return;
+      close.current();
+    };
+    const typed = (e: KeyboardEvent) => {
+      // Nothing open under this ref: the key is the dialog's, not ours.
+      if (e.key !== "Escape" || !box.current) return;
+      e.stopPropagation();
+      close.current();
+    };
+    document.addEventListener("pointerdown", pressed, true);
+    document.addEventListener("keydown", typed, true);
+    return () => {
+      document.removeEventListener("pointerdown", pressed, true);
+      document.removeEventListener("keydown", typed, true);
+    };
+  }, []);
+  return box;
+}
+
 /** One list of agents, searchable, with the way across to where they are defined under it.
  *  The lead picker and the helper picker are the same list: both pick ONE agent off the
  *  candidates the board offered for this stage, and neither can make one. */
@@ -596,12 +635,14 @@ function Picker({
   right,
   onPick,
   onManage,
+  onDismiss,
 }: {
   candidates: WorkflowCandidate[];
   chosen: string;
   right?: boolean;
   onPick: (name: string) => void;
   onManage: () => void;
+  onDismiss: () => void;
 }) {
   const c = useCopy().configuration.workflows;
   const nameOf = useCandidateName();
@@ -611,8 +652,10 @@ function Picker({
   const shown = wanted
     ? candidates.filter((a) => `${a.name} ${a.title} ${nameOf(a, a.name)}`.toLowerCase().includes(wanted))
     : candidates;
+  const box = useDismiss<HTMLDivElement>(onDismiss);
   return (
     <div
+      ref={box}
       className={`absolute top-full z-30 mt-2 w-[278px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-2 shadow-[3px_3px_0_var(--color-nb-ink)] ${
         right ? "right-0" : "left-0"
       }`}
@@ -665,12 +708,14 @@ function Picker({
 function MoreMenu({
   open,
   onOpen,
+  onDismiss,
   label,
   items,
   danger,
 }: {
   open: boolean;
   onOpen: () => void;
+  onDismiss: () => void;
   label: string;
   items: { label: string; run: () => void }[];
   danger?: { label: string; confirm: string; inUse: (n: number) => string; id: string; run: () => void };
@@ -679,6 +724,7 @@ function MoreMenu({
   // can SAY it — a delete that fails after the click is a rule the user learns by hitting it.
   const [held, setHeld] = useState<number | null>(null);
   const [asking, setAsking] = useState(false);
+  const box = useDismiss<HTMLDivElement>(onDismiss);
   useEffect(() => {
     if (!open) return void setAsking(false);
     if (!danger) return;
@@ -690,7 +736,10 @@ function MoreMenu({
         <FiMoreHorizontal aria-hidden className="text-[17px]" />
       </button>
       {open && (
-        <div className="absolute right-0 top-[35px] z-20 w-[210px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]">
+        <div
+          ref={box}
+          className="absolute right-0 top-[35px] z-20 w-[210px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]"
+        >
           {items.map((item) => (
             <button
               key={item.label}

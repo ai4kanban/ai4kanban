@@ -368,6 +368,8 @@ export type ConfigurationCopy = {
     namePlaceholder: string;
     nameHint: string;
     create: string;
+    /** On the Create button while the agent is being written and the roster re-read. */
+    creating: string;
     cancel: string;
 
     /** Delete a specialist this project added. Only ever offered on an agent that has a

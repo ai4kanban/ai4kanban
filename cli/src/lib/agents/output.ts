@@ -31,8 +31,8 @@ const SAID: Record<string, SettingLines> = {
   zh: {
     label: '产出',
     choices: {
-      human: { label: '给人审', cost: '直接写在卡片上，你打开就能看到' },
-      agent: { label: '给 agent 用', cost: '留给实现的 agent 读，你不用过目' },
+      human: { label: '面向人', cost: '直接写在卡片上，你打开就能看到' },
+      agent: { label: '面向 agent', cost: '留给实现的 agent 读，你不用过目' },
     },
   },
 }

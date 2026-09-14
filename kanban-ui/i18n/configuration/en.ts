@@ -325,6 +325,7 @@ const en: ConfigurationCopy = {
     namePlaceholder: "release-notes",
     nameHint: "lowercase, dashes",
     create: "Create",
+    creating: "Creating…",
     cancel: "Cancel",
 
     delete: "Delete",

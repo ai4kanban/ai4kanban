@@ -425,6 +425,7 @@ const zh: ConfigurationCopy = {
     namePlaceholder: "release-notes",
     nameHint: "小写字母，用短横线连接",
     create: "创建",
+    creating: "创建中…",
     cancel: "取消",
 
     delete: "删除",
