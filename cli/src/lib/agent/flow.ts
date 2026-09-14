@@ -33,6 +33,7 @@ import { say } from '../io'
 import { findGuide } from '../guide'
 import { workflowForRun } from './runner'
 import { cardAges } from '../card-age'
+import { parseStamp } from '../cadence'
 import { boardMemoryFiles } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
@@ -48,6 +49,8 @@ import { boardCommandFor } from './command'
 import { activeDelivery, deliveryFor, withWorkflow } from './deliveries'
 import { aiReviewOn, owesFocusedReview } from './review'
 import { field, metaLine, numbered } from './facts'
+import { chatsToReview } from './memory-review'
+import { memoryReview } from './settings'
 import { translating } from './language'
 import { buildAsk, frozenRules } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
@@ -543,6 +546,10 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   // A prune gets the memory set's own definition and the rules for squeezing it, and NOT
   // the rest of `board`: it rewrites memory files and writes no card at all.
   'prune-memory': ['board', 'prune-memory'],
+  // A review gets the memory set's own definition and "What earns a note" — the bar it
+  // judges by — plus its own flow, and NOT the rest of `board`: it writes memory files and
+  // no card at all.
+  'review-memory': ['board', 'review-memory'],
   // A reflection gets its own flow and `evaluate-task`, the bar an idea is held to before
   // it is worth anyone's time. NOT `board`: what it writes is an inbox item, and the card
   // format and the memory set are a page about work it may not do.
@@ -951,6 +958,40 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       close.push(
         'rewrite the files above in place — that is the whole job',
         'raise nothing for anyone: there is no card to question, so what you cannot settle stays in the file',
+        'change nothing else — not a card, not the goal, not the code',
+      )
+      break
+    }
+    // Reading back over the conversations (#748). The facts are the conversations themselves,
+    // because they ARE the job — which ones have said something new, where each transcript is,
+    // and the memory folder each one's notes belong in. A run handed only the folder would
+    // spend its first calls working out which files to open and which card each hangs on.
+    case 'review-memory': {
+      const since = parseStamp(memoryReview().lastRun)
+      const chats = chatsToReview(since?.getTime() ?? 0)
+      facts.push(
+        ...field('window', since ? `since the last review that passed, ${memoryReview().lastRun}` : 'every conversation on this machine — none has been reviewed yet'),
+      )
+      facts.push(
+        ...field(
+          'chats',
+          chats.length === 0
+            ? '(none) — nothing has been said since the window opened, so there is nothing to review'
+            : [
+                `${chats.length} to read, each one right through:`,
+                ...chats.flatMap((chat) => [
+                  `  ${chat.name}${chat.cardId === null ? '' : ` (#${chat.cardId}${chat.card === 'archived' ? ', archived' : chat.card === 'gone' ? ', gone from the board' : ''})`} — ${chat.messages} message${chat.messages === 1 ? '' : 's'}`,
+                  `    transcript: ${chat.file}`,
+                  `    memory: ${chat.memory.join(', ')}`,
+                ]),
+              ],
+        ),
+      )
+      facts.push(...field('agents', `${rel(AGENT_MEMORY)}/<agent>/ — where what a spec agent was corrected on goes`))
+      close.push(
+        'write the notes into the memory folders named above — that is the whole job',
+        'rewrite or delete a note an earlier review wrote that a conversation has since overturned, rather than adding a second one',
+        'writing nothing at all is a complete result, and most conversations earn it',
         'change nothing else — not a card, not the goal, not the code',
       )
       break

@@ -50,7 +50,7 @@ import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
 import { adoptsSessionId, planResume, planRun, resumesUnder, type RunPlan } from './resolve'
 import { agentForRun } from './runner'
 import { readRuntimes, runtimeById } from './runtimes'
-import { stampMemoryPrune } from './settings'
+import { stampMemoryPrune, stampMemoryReview } from './settings'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
 import { creationRefusal, discussingRefusal } from '../view/rules'
 import { cardsDiscussing } from './chat'
@@ -83,7 +83,7 @@ export { logPathOf, readAction, readRuns, withRuns } from './store'
 const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-release', 'setup', 'unstick'])
 
 // Actions that may run only one at a time across the whole board. The per-card rule can't
-// catch a duplicate of any of them — the first four name no card at all — and each reads the
+// catch a duplicate of any of them — the first five name no card at all — and each reads the
 // whole board to decide what to write: two plan-releases write the same missing cards, and
 // two setups work down the same checklist side by side. A create is not one of them — it
 // writes the one card it was handed, and its id and index entry are the board lease's
@@ -91,7 +91,14 @@ const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-re
 // An unstick is one of them too (#119): a sweep is several unsticks the board keeps track
 // of, and a second one — the cadence's, or one typed by hand — would judge cards the open
 // sweep is counting on judging itself.
-const SINGLETON_ACTIONS = new Set<AgentAction>(['plan-release', 'setup', 'prune-memory', 'triage', 'unstick'])
+const SINGLETON_ACTIONS = new Set<AgentAction>([
+  'plan-release',
+  'setup',
+  'prune-memory',
+  'review-memory',
+  'triage',
+  'unstick',
+])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
 // implemented".
@@ -111,6 +118,7 @@ const VERB: Record<AgentAction, string> = {
   'plan-release': 'planned',
   setup: 'set up',
   'prune-memory': 'pruned',
+  'review-memory': 'reviewed for memory',
   triage: 'sorted',
   reflect: 'reflected on',
   spec: 'specified',
@@ -130,6 +138,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   'plan-release': 'a release is already being planned',
   setup: 'this board is already being set up',
   'prune-memory': 'the memory is already being pruned',
+  'review-memory': 'the conversations are already being reviewed',
   triage: 'triage is already being sorted',
   unstick: 'the board is already being swept',
 }
@@ -359,6 +368,19 @@ function recordPrune(run: RunRecord): void {
   if (run.action !== 'prune-memory' || run.status !== 'done') return
   try {
     stampMemoryPrune()
+  } catch {
+    // the settings file would not take the write — the run is over either way
+  }
+}
+
+// And the memory review's window (#748). Only a review that PASSED moves it, like the two
+// above — but it is stamped with when that review STARTED, not with now: a conversation
+// spoken to while the review was reading would otherwise count as already seen, and nothing
+// would ever come back to it.
+function recordMemoryReview(run: RunRecord): void {
+  if (run.action !== 'review-memory' || run.status !== 'done') return
+  try {
+    stampMemoryReview(new Date(run.startedAt))
   } catch {
     // the settings file would not take the write — the run is over either way
   }
@@ -1143,7 +1165,8 @@ export async function closeRun(
   await restoreCardStatus(closed)
   await recordRecurringRun(closed)
   recordPrune(closed)
-  // Last, because it is the only step that reads what the four above left behind: a card is
+  recordMemoryReview(closed)
+  // Last, because it is the only step that reads what the five above left behind: a card is
   // raised on Cloud once nothing is working on it (#319), and this run stops holding its
   // card here. Whatever it decides is best effort — a run never fails over Cloud.
   if (reportEnd) await reportRunEnded(sessionId, closed.cardId, closed.status)

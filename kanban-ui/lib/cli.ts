@@ -31,6 +31,7 @@ import type {
   LoggedOutAgent,
   MemoryPruneSchedule,
   CadenceSchedule,
+  MemoryReviewState,
   SweepReport,
   PlanAnswer,
   RunPick,
@@ -396,6 +397,11 @@ export interface BoardRules {
   saveCardSweep?(next: { enabled: boolean; cadence: string }): WriteResult;
   sweepReport?(): SweepReport | null;
   startCardSweep?(): Promise<WriteResult>;
+
+  // the last review of what the conversations settled (#748). No cadence beside it: the
+  // review is daily, so there is nothing to set. Optional for the same reason as above —
+  // rules older than the reviewer draw its page without the last-review line.
+  memoryReview?(): MemoryReviewState;
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the

@@ -241,7 +241,7 @@ const en: ConfigurationCopy = {
         confirm: {
           title: 'Turn on "Auto-answer questions"?',
           body: "From now on the questions waiting on you are answered for you and a card never stops. Switch it off whenever you like — a card already built does not come back.",
-          turnOn: "Turn on",
+          action: "Turn on",
         },
         note: "It answers from the project's goal, the decisions already made, and each question's own options and recommendation, and takes the recommendation when none of those settle it.",
       },
@@ -258,6 +258,19 @@ const en: ConfigurationCopy = {
         trigger: "By hand or on a cadence",
         rule: 'Added to the end of every prune — "never drop a line about a paying customer".',
         when: "you press Run now, and on the cadence you opt into here. Nothing else starts it.",
+      },
+      "memory-reviewer": {
+        name: "Review chat memory",
+        gloss: "Saves decisions from your chats to memory.",
+        trigger: "Daily",
+        rule: 'Added to the end of every review — "only remember release decisions".',
+        when: "there are chats with new messages. Chats save nothing themselves — this reads each one right through and decides from the whole conversation.",
+        confirm: {
+          title: "Turn off daily review?",
+          body: "Chat decisions will no longer be saved automatically. Existing memory stays. You can still use Review now.",
+          action: "Turn off",
+        },
+        note: "It reads whole conversations, so a decision you have since changed is corrected instead of saved twice. Which memory it goes in follows the card the chat is on.",
       },
       sweeper: {
         name: "Tidy stalled cards",
@@ -282,7 +295,7 @@ const en: ConfigurationCopy = {
         confirm: {
           title: 'Turn on "Auto-sort Triage"?',
           body: "From now on a new item is judged before you see it: the ones worth doing become cards by themselves, each costing one more refine run. Switch it off whenever you like.",
-          turnOn: "Turn on",
+          action: "Turn on",
         },
         note: 'Running it alongside "Auto-approve builds" and "Auto-answer questions" is not recommended: an item from outside can then go from Triage all the way to built without one human confirmation.',
       },
@@ -370,6 +383,14 @@ const en: ConfigurationCopy = {
       sat: (days) => `Sat ${days} days`,
       stoppedHere: "The sweep stopped here. It starts again on the next period, or on Run now.",
       openRun: "Open the run",
+    },
+    memoryReviewer: {
+      run: "Review now",
+      running: "Reviewing…",
+      lastRun: (when) => `Last review ${when}`,
+      neverRun: "Never reviewed",
+      off: "Off",
+      startFailed: "Couldn't start the review.",
     },
     specialistRule: {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,

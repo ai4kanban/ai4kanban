@@ -38,6 +38,7 @@ import {
   FiClock,
   FiFolder,
   FiPlus,
+  FiRotateCcw,
   FiScissors,
   FiTrash2,
   FiWind,
@@ -55,10 +56,12 @@ import {
   setAgentRuleAction,
   setMemoryPruneAction,
   setSpecAgentAction,
+  memoryReviewAction,
   setCardSweepAction,
   setSpecAgentSettingAction,
   startCardSweepAction,
   startPruneMemoryAction,
+  startReviewMemoryAction,
 } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { spellAgent, useAgentName } from "@/lib/agent-name";
@@ -71,6 +74,7 @@ import type {
   CadenceSchedule,
   WorkflowStage,
   MemoryPruneSchedule,
+  MemoryReviewState,
   SpecAgentSettingView,
   SweepReport,
   SweepRow,
@@ -107,6 +111,11 @@ import {
 // Asking before a switch goes on used to be named the same way; a second agent wanted it
 // (#562), so it became a property of the role instead — `AgentView.confirm`.
 const COSTLY = "decider";
+
+// The one agent whose page carries the review action (#748). Named here for the same
+// reason as the two below: there is exactly one, and its page is the only place Review now
+// belongs.
+const REVIEWER_OF_MEMORY = "memory-reviewer";
 
 // The one agent whose switch is a delivery setting (#509). Review is a paid run per
 // delivery, so this switch ships ON and flipping it answers deliveries started afterwards —
@@ -535,8 +544,8 @@ export function AgentsPanel({
                       <div className="flex flex-col">{manual.map(row)}</div>
                     </Roster>
                   )}
-                  {/* A board that runs no automatic role — a marketing one — has nothing
-                      under this caption, so neither the caption nor its rule is drawn. */}
+                  {/* A board that runs no automatic role has nothing under this caption, so
+                      neither the caption nor its rule is drawn. */}
                   {automatic.length > 0 && (
                     <div className={manual.length > 0 ? "mt-4 border-t border-nb-ink/10 pt-4" : ""}>
                       <Roster title={c.automatic}>
@@ -641,9 +650,9 @@ function PickRow({
 }: {
   agent: AgentView;
   held: boolean;
-  /** What this agent asks before it goes on, in the reader's language. Absent on every
-   *  agent that asks nothing. */
-  confirm?: { title: string; body: string; turnOn: string };
+  /** What this agent asks before its switch moves, in the reader's language. Absent on
+   *  every agent that asks nothing. */
+  confirm?: { title: string; body: string; action: string };
   busy: boolean;
   onOpen: () => void;
   onFlip: (next: boolean) => Promise<void>;
@@ -887,7 +896,7 @@ function Page({
         gloss: string;
         rule: string;
         when?: string;
-        confirm?: { title: string; body: string; turnOn: string };
+        confirm?: { title: string; body: string; action: string };
         note?: string;
       }
     | undefined;
@@ -951,11 +960,15 @@ function Page({
 
         {/* Whether the agent is on is read and flipped in ONE place — its row in the column
             (#715). A second switch here, beside the first, is two controls for one answer.
-            What is left is the pruner's own action (#514) and an added agent's Delete, each
-            keeping the place it already had. */}
+            What is left is the three agents whose page carries an action of its own — the
+            pruner (#514), the sweeper (#119) and the memory reviewer (#748) — and an added
+            agent's Delete, each keeping the place it already had. */}
         <div className="flex shrink-0 items-start gap-3 max-sm:flex-wrap">
           {agent.name === PRUNER && <PruneControls onError={onError} />}
           {agent.name === SWEEPER && <SweepControls sweep={sweep} />}
+          {agent.name === REVIEWER_OF_MEMORY && (
+            <ReviewControls off={off} onError={onError} />
+          )}
 
           {/* Only an agent this project added: a role runs the board's own flows and a
               bundled agent ships inside the command, so neither is this board's to remove. */}
@@ -1110,8 +1123,9 @@ function Page({
       </section>
 
       {/* What this role has left to say — how the decider chooses (#447), what the triager
-          costs beside the other two switches (#562). Its own copy, so a third role saying
-          something here adds no branch. */}
+          costs beside the other two switches (#562), what the memory review rewrites rather
+          than repeats (#748). Its own copy, so a fourth role saying something here adds no
+          branch. */}
       {role?.note && (
         <p className="max-w-[74ch] shrink-0 text-[11.5px] leading-relaxed text-nb-ink-soft">
           {role.note}
@@ -1129,10 +1143,13 @@ function Page({
   );
 }
 
-// The agent's switch, in the page header. A switch the BOARD says asks (#447, #562) asks
-// once on the way ON; switching it off, and every other switch either way, goes straight
-// through. Which agents those are is the roster's answer and the words are that role's own,
-// so neither is a name written down here.
+// The agent's switch, in the page header. A switch the BOARD says asks (#447, #562, #748)
+// asks once, in the one direction it names: on the way ON for an agent that starts spending
+// runs the moment it goes on, and on the way OFF for the one whose cost lands when it stops
+// (the memory review is what turns a conversation into a note). The other direction, and
+// every other switch either way, goes straight through. Which agents those are and which way
+// round is the roster's answer, and the words are that role's own, so none of it is a name
+// written down here.
 function EnabledSwitch({
   agent,
   confirm,
@@ -1144,7 +1161,7 @@ function EnabledSwitch({
   /** What this role asks, in the reader's language. Absent on every role that asks nothing,
    *  and on a role this copy has never heard of — which switches straight through rather
    *  than opening a popover with no words in it. */
-  confirm?: { title: string; body: string; turnOn: string };
+  confirm?: { title: string; body: string; action: string };
   busy: boolean;
   /** Drawn in a column row (#715): the switch alone. The word beside it is what a page
    *  header needs, and a column of the same word down a narrow list is noise. */
@@ -1155,7 +1172,9 @@ function EnabledSwitch({
   const title = useAgentTitle()(agent);
   const anchor = useRef<HTMLSpanElement>(null);
   const [asking, setAsking] = useState(false);
-  const asks = agent.confirm && !!confirm;
+  // The move that asks, as `true`/`false` rather than as a word, so one comparison against
+  // the press decides. Null on every agent that asks nothing.
+  const asks = confirm && agent.confirm ? agent.confirm === "on" : null;
   return (
     <span ref={anchor} className="relative flex shrink-0 items-center gap-2">
       <Switch
@@ -1163,7 +1182,7 @@ function EnabledSwitch({
         busy={busy}
         label={(agent.enabled ? c.switchOn : c.switchOff)(title)}
         onFlip={async (next) => {
-          if (!asks || !next) return onFlip(next);
+          if (next !== asks) return onFlip(next);
           setAsking(true);
         }}
       />
@@ -1174,7 +1193,7 @@ function EnabledSwitch({
           {c.enabled}
         </span>
       )}
-      {asks && (
+      {asks !== null && (
         <ConfirmationPopover
           open={asking}
           anchorRef={anchor}
@@ -1183,12 +1202,12 @@ function EnabledSwitch({
           title={confirm!.title}
           description={confirm!.body}
           cancelLabel={c.cancel}
-          confirmLabel={confirm!.turnOn}
+          confirmLabel={confirm!.action}
           busy={busy}
           onDismiss={() => setAsking(false)}
           onConfirm={() => {
             setAsking(false);
-            void onFlip(true);
+            void onFlip(asks);
           }}
         />
       )}
@@ -1827,6 +1846,91 @@ function SweepRowLine({ row, first, openable }: { row: SweepRow; first: boolean;
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// --- the memory reviewer's one action (#748) ----------------------------------
+
+// One review, and nothing else.
+//
+// It is the pruner's group above with the cadence chip taken out: the review is daily, so
+// there is nothing to set and a chip that could only ever read "daily" is a control with no
+// answer in it. What is left is **Review now** and the quiet line under it.
+//
+// The button works with the agent switched off — a board that stopped the daily pass can
+// still ask for one — so the line under it is where "off" is said: it is the one control
+// still live on a page whose switch is off.
+function ReviewControls({
+  off,
+  onError,
+}: {
+  /** The agent is switched off. Said on the line under the button, because Review now is
+   *  still the control that works. */
+  off: boolean;
+  onError?: (msg: string) => void;
+}) {
+  const c = useCopy().configuration.agents.memoryReviewer;
+  const [review, setReview] = useState<MemoryReviewState | null>(null);
+  const [running, setRunning] = useState(false);
+
+  const readReview = useCallback(async () => {
+    const res = await memoryReviewAction();
+    setReview(res.review);
+    if (res.error) onError?.(res.error);
+  }, [onError]);
+
+  // Whether one is going right now. Polled while it is and read once otherwise — the page is
+  // a settings page, not a run log.
+  const readRuns = useCallback(async () => {
+    let live = false;
+    try {
+      const runs = await listSessionsAction();
+      live = runs.some((r) => r.action === "review-memory" && r.status === "running");
+    } catch {
+      // the runs could not be read — the button still works, and it says nothing it can't
+    }
+    setRunning(live);
+    return live;
+  }, []);
+
+  useEffect(() => {
+    void readReview();
+    void readRuns();
+  }, [readReview, readRuns]);
+
+  // And read the last review back the moment one stops, because a review that PASSED is what
+  // moves that line.
+  useEffect(() => {
+    if (!running) return;
+    const timer = setInterval(() => {
+      void readRuns().then((live) => {
+        if (!live) void readReview();
+      });
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [running, readRuns, readReview]);
+
+  const start = async () => {
+    if (running) return;
+    setRunning(true);
+    const res = await startReviewMemoryAction();
+    if (!res.ok) {
+      setRunning(false);
+      onError?.(res.error || c.startFailed);
+      return;
+    }
+    void readRuns();
+  };
+
+  const last = review?.lastRun ? c.lastRun(review.lastRun) : c.neverRun;
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1.5">
+      <button type="button" className={ACCENT_BTN} disabled={running} onClick={() => void start()}>
+        <FiRotateCcw aria-hidden />
+        {running ? c.running : c.run}
+      </button>
+      <span className="text-[11px] text-nb-ink-soft">{off ? `${c.off} · ${last}` : last}</span>
     </div>
   );
 }

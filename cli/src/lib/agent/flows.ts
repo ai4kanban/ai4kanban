@@ -214,6 +214,19 @@ export const FLOWS: Flow[] = [
         'where it is started and where a recurring pass is switched on.',
     ],
   },
+  // The memory reviewer's one flow (#748). Typed bare, beside the prune: it acts on the
+  // conversations on this machine rather than on a card, so it names nothing.
+  {
+    command: 'review-memory',
+    action: 'review-memory',
+    argument: '',
+    gloss: 'read the conversations that said something new, and write down what they settled',
+    more: [
+      'Chats write no memory themselves — this is what does. Daily, over every conversation with ' +
+        'new messages since the last review that passed; Configuration → Agents → Review chat memory ' +
+        'is where it is switched off and where Review now is.',
+    ],
+  },
   // The triager's one flow (#561). Typed under `triage`, beside the words that put items
   // there: it acts on what is waiting rather than on a card, so it names nothing.
   {

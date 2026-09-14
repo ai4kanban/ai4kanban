@@ -147,11 +147,17 @@ describe('the switch', () => {
   it('is the triager’s own key, and asking before it goes on is the role’s own property', () => {
     const role = agentRoster().find((entry) => entry.name === 'triage')!
     assert.equal(role.setting, 'autoTriage')
-    assert.equal(role.confirm, true)
-    // The decider is the only other one, so no screen has to keep a list of names.
+    assert.equal(role.confirm, 'on')
+    // Every switch that asks, and the direction it asks in — so no screen has to keep a
+    // list of names. The memory reviewer is the one that asks on the way OFF (#748): it is
+    // what turns a conversation into a note, so stopping it is the move worth a question.
     assert.deepEqual(
-      agentRoster().filter((entry) => entry.confirm).map((entry) => entry.name),
-      ['decider', 'triage'],
+      agentRoster().filter((entry) => entry.confirm).map((entry) => [entry.name, entry.confirm]),
+      [
+        ['memory-reviewer', 'off'],
+        ['decider', 'on'],
+        ['triage', 'on'],
+      ],
     )
   })
 

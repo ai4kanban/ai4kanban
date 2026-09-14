@@ -534,6 +534,17 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Cover the project's own memory at \`${rel(MEMORY)}/\`, each module's beside it, and the agents' at \`${rel(MEMORY)}/agents/<agent>/\`.`,
         `Change nothing but those files: no card, no \`verify:\` line, no question for anyone.`,
       ].join(' ')
+    // Reading back over the conversations (#748). It names nothing either: which ones have
+    // said something new is the flow's answer, and the flow prints them with the memory
+    // folder each one's notes belong in. Like a prune it raises nothing for a human — there
+    // is no card to leave a question on.
+    case 'review-memory':
+      return [
+        `${kb}. Review what this board's conversations settled and write it into memory, following \`akb guide review-memory\`.`,
+        `Read each conversation the flow lists right through, and hold to "What earns a note" in \`akb guide board\`.`,
+        `Rewrite or delete a note an earlier review wrote that the conversation has since overturned, rather than adding a second one.`,
+        `Change nothing but the memory files: no card, no \`verify:\` line, no question for anyone.`,
+      ].join(' ')
     // Reflecting on a card the board has just completed (#534). The card is off the board,
     // so the ask names the archive: nothing else can find it. What it may write is inbox
     // items and nothing else — a proposal is triaged like anything else that arrives there,

@@ -95,6 +95,7 @@ describe('the roles', () => {
         'content-writer',
         'content-reviewer',
         'memory-pruner',
+        'memory-reviewer',
         'sweeper',
         'feedback',
         'gater',
@@ -105,6 +106,9 @@ describe('the roles', () => {
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
     assert.equal(roleForFlow('prune-memory')!.name, 'memory-pruner')
+    // Reading back over the conversations is the memory reviewer's, on either board (#748):
+    // both hold conversations, and on neither does a chat write memory itself.
+    assert.equal(roleForFlow('review-memory')!.name, 'memory-reviewer')
     // Settling a stale card is the sweeper's, and the product board's alone (#118).
     assert.equal(roleForFlow('unstick')!.name, 'sweeper')
     // Every conversation is the discussion helper's, and `chat` is no flow anyone types.
@@ -121,9 +125,10 @@ describe('the roles', () => {
     solution('marketing')
     assert.deepEqual(
       roles().map((r) => r.name),
-      ['discussion-helper', 'planner', 'writer', 'reviewer', 'memory-pruner'],
+      ['discussion-helper', 'planner', 'writer', 'reviewer', 'memory-pruner', 'memory-reviewer'],
     )
     assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
+    assert.equal(roleForFlow('review-memory')!.name, 'memory-reviewer')
     // The writer's work starts at the repurpose: a topic's source is the user's own words,
     // so a marketing board has no `implement` for any role to run.
     assert.equal(roleForFlow('implement'), undefined)
@@ -165,6 +170,7 @@ describe('the roles', () => {
       'content-writer',
       'content-reviewer',
       'memory-pruner',
+      'memory-reviewer',
       'sweeper',
       'feedback',
       'gater',
@@ -180,7 +186,7 @@ describe('the roles', () => {
   it('rosters the roles first, then the specialists the command ships', () => {
     solution('product')
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 14), [
+    assert.deepEqual(names.slice(0, 15), [
       'discussion-helper',
       'planner',
       'builder',
@@ -189,6 +195,7 @@ describe('the roles', () => {
       'content-writer',
       'content-reviewer',
       'memory-pruner',
+      'memory-reviewer',
       'sweeper',
       'feedback',
       'gater',
@@ -196,31 +203,36 @@ describe('the roles', () => {
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(14), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(names.slice(15), ['tech-stack-advisor', 'ui-designer'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(14).fill('role'), 'spec', 'spec'],
+      [...Array(15).fill('role'), 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[14]!.flows, [])
-    // Five roles can be switched off, and each reads a key of its own (#447, #493, #509,
-    // #534, #562).
+    assert.deepEqual(agentRoster()[15]!.flows, [])
+    // Six roles can be switched off, and each reads a key of its own (#447, #493, #509,
+    // #534, #562, #748).
     assert.deepEqual(
       agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => [a.name, a.setting]),
       [
         ['reviewer', 'aiReview'],
+        ['memory-reviewer', 'memoryReviewer'],
         ['gater', 'readyGate'],
         ['decider', 'decider'],
         ['proposer', 'proposer'],
         ['triage', 'autoTriage'],
       ],
     )
-    // And two of them ask before they go on — a property of the role, so no screen keeps a
-    // list of names (#562).
+    // And three of them ask before their switch moves — the direction included, and a
+    // property of the role, so no screen keeps a list of names (#562, #748).
     assert.deepEqual(
-      agentRoster().filter((a) => a.confirm).map((a) => a.name),
-      ['decider', 'triage'],
+      agentRoster().filter((a) => a.confirm).map((a) => [a.name, a.confirm]),
+      [
+        ['memory-reviewer', 'off'],
+        ['decider', 'on'],
+        ['triage', 'on'],
+      ],
     )
   })
 })

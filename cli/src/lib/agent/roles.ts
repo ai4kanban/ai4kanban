@@ -38,18 +38,21 @@ export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
   /** The key in `ui.config.json` this role is switched on under, when it can be switched
-   *  off at all (#447, #493, #509, #534, #562). Most cannot: a board without a planner plans
-   *  nothing. Five can. Four spend a run the user never asked for — the gater judges a card
-   *  the way you would, the decider answers what you would have answered, the proposer
+   *  off at all (#447, #493, #509, #534, #562, #748). Most cannot: a board without a planner
+   *  plans nothing. Six can. Four spend a run the user never asked for — the gater judges a
+   *  card the way you would, the decider answers what you would have answered, the proposer
    *  reflects on what you just finished, the triager judges what just arrived — so each is
-   *  off until you ask for it. The reviewer does a flow's work and ships on, because judging
-   *  a build is a paid run a board may decline. Each reads its own key. */
+   *  off until you ask for it. Two ship on: the reviewer, because judging a build is a paid
+   *  run a board may decline, and the memory reviewer, because nothing else writes down what
+   *  a conversation settled. Each reads its own key. */
   switch?: RoleSwitch
-  /** Whether switching this role ON asks first (#447, #562). A property of the role rather
-   *  than a name a screen keeps: the decider stops the board asking you anything, the
-   *  triager turns items into cards with a refine each, and a third would otherwise be a
-   *  third name written into a component. Switching one back off never asks. */
-  confirm?: boolean
+  /** The direction this role's switch asks in, when it asks at all (#447, #562, #748). A
+   *  property of the role rather than a name a screen keeps. `on` is the usual way round —
+   *  the decider stops the board asking you anything, the triager turns items into cards
+   *  with a refine each — and going back off never asks. `off` is the memory reviewer, the
+   *  one whose cost lands when it stops: it is what turns a conversation into a note, so
+   *  going ON is free and going off is what loses something. */
+  confirm?: 'on' | 'off'
   /** What has to be open on this board for this role to be on its roster at all (#562).
    *  `triage` is `signalsAccess()` — the answer the Triage rail row and `akb triage fetch`
    *  read. Absent on every role that works wherever its solution does. */
@@ -86,7 +89,7 @@ const DECIDER: AgentRole = {
   gloss: 'answers the questions waiting on you',
   memory: [],
   switch: 'decider',
-  confirm: true,
+  confirm: 'on',
 }
 
 // The one role that runs a flow and can still be switched off (#509). Review is a paid run
@@ -121,6 +124,29 @@ const MEMORY_PRUNER: AgentRole = {
   memory: [],
 }
 
+// The role that reads back over the conversations (#748). Chats change cards and plans and
+// write no memory at all, so this is the only thing that turns what was SAID into a note: it
+// reads each conversation that has said something new right through, once a day, and decides
+// from the whole exchange rather than from one turn — which is how a "what if" thrown out
+// and taken back stops becoming a decision.
+//
+// It is the one role that ships ON and asks on the way OFF. Both follow from what it
+// replaced: switching it off is the only way a board stops remembering what it decided in a
+// conversation, and that is worth one question.
+//
+// It owns no memory file: it writes into the set the conversation's own card points at — a
+// module's, the project's, or a spec agent's own — so a list of all of them says nothing.
+//
+// `review-memory` is an event entry rather than a stage (./stages.ts): the day coming round
+// is what starts one.
+const MEMORY_REVIEWER: AgentRole = {
+  name: 'memory-reviewer',
+  gloss: 'reads back over your conversations and writes down what they settled',
+  memory: [],
+  switch: 'memoryReviewer',
+  confirm: 'off',
+}
+
 // The role that looks back at finished work (#534). Like the gater and the decider it is
 // off until asked for — a board that turns it on spends one run per completion — and like
 // them it owns no memory: what it proposes goes into the inbox to be triaged, and a
@@ -149,7 +175,7 @@ const TRIAGER: AgentRole = {
   gloss: 'sorts what is waiting in triage into cards and ignores',
   memory: [],
   switch: 'autoTriage',
-  confirm: true,
+  confirm: 'on',
   needs: 'triage',
 }
 
@@ -226,6 +252,7 @@ const PRODUCT_ROLES: AgentRole[] = [
   REVIEWER,
   ...CONTENT_ROLES,
   MEMORY_PRUNER,
+  MEMORY_REVIEWER,
   SWEEPER,
   FEEDBACK,
   // Last, and only on a product board: it has no `gate` flow, a topic carries no questions
@@ -250,6 +277,7 @@ const MARKETING_ROLES: AgentRole[] = [
   },
   REVIEWER,
   MEMORY_PRUNER,
+  MEMORY_REVIEWER,
 ]
 
 /** The role every conversation is held by — whose runtime a chat runs on and whose rule it
@@ -324,9 +352,9 @@ export interface RosterEntry {
    *  board's writers — and, of the roles, the gater, the decider (#447, #493), the reviewer
    *  (#509), the proposer (#534) and the triager (#562). */
   switchable: boolean
-  /** Whether switching it ON asks first — the role's own `confirm`. False on every
+  /** The direction its switch asks in — the role's own `confirm`. Absent on every
    *  specialist: one fills a section of a card and starts nothing on its own. */
-  confirm: boolean
+  confirm?: 'on' | 'off'
   /** A switchable role's own key in `ui.config.json` — what says whether it is on. Absent
    *  on every other entry: a specialist's switch is its `specAgents` entry. */
   setting?: RoleSwitch
@@ -359,7 +387,6 @@ export function agentRoster(): RosterEntry[] {
       // A stage is the switch (#749): assign it to one in the Workflows pane, or leave it
       // unassigned. Only an agent no workflow can reach keeps one of its own.
       switchable: !agent.stage,
-      confirm: false,
       flows: [],
       memory: agent.memory ? agentMemoryFiles(agent.name).map(rel) : [],
     }
@@ -374,7 +401,7 @@ export function agentRoster(): RosterEntry[] {
       ...(role.stage ? { stage: role.stage } : {}),
       builtIn: true,
       switchable: role.switch !== undefined,
-      confirm: role.confirm === true,
+      ...(role.confirm ? { confirm: role.confirm } : {}),
       ...(role.switch ? { setting: role.switch } : {}),
       ...(role.needs ? { needs: role.needs } : {}),
       flows: flowsOfAgent(role.name),

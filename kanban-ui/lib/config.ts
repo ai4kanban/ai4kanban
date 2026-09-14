@@ -1,6 +1,11 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
-import type { CadenceSchedule, MemoryPruneSchedule, SweepReport } from "./types";
+import type {
+  CadenceSchedule,
+  MemoryPruneSchedule,
+  MemoryReviewState,
+  SweepReport,
+} from "./types";
 
 // --- the settings, through the CLI (#168) ------------------------------------
 // docs/kanban/ui.config.json is still the file, and it still holds which agent runs, with
@@ -132,4 +137,14 @@ export async function startCardSweep(): Promise<{ ok: boolean; error?: string }>
     return { ok: false, error: (await machineCopy()).messages.tooOld.cardSweeper };
   }
   return rules.startCardSweep();
+}
+
+// --- the memory reviewer's last review (#748) --------------------------------
+// One field and no cadence: the review is daily. Whether the agent is ON is the roster's
+// answer, read through its own switch like every other role's — this is only the line under
+// Review now. Rules that predate the reviewer answer nothing, and the page draws no line.
+
+export async function memoryReview(): Promise<MemoryReviewState | null> {
+  const rules = await boardRules();
+  return rules.memoryReview ? rules.memoryReview() : null;
 }

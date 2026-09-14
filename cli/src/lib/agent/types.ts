@@ -104,6 +104,12 @@ export type AgentAction =
    *  started from the agent's own page or by the cadence that page carries. It raises
    *  nothing for a human — what it cannot settle stays in the memory file. */
   | 'prune-memory'
+  /** Read the conversations that have said something new and write what they settled into
+   *  memory (#748) — the memory reviewer's one flow. It names no card: the conversations on
+   *  this machine are the whole of what it works on, and the flow picks out the ones with
+   *  new content since the last review that passed. Chats write no memory themselves, so
+   *  this is the only thing that turns what a conversation settled into a note. */
+  | 'review-memory'
   /** Reflect on a card the board has just completed (#534) — the proposer's one flow. It
    *  names the completed card, which is no longer on the board, so it reads it at its
    *  `.archive/` path; what it writes is inbox items for the work that should follow, and
@@ -1509,10 +1515,13 @@ export interface AgentView {
    *  neither does a WORKFLOW agent (#749) — a stage assigns it or does not, and a switch
    *  beside that assignment is a second answer to one question. */
   switchable: boolean
-  /** Whether switching it ON asks first (#562) — the decider, which stops the board asking
-   *  you anything, and the triager, which turns items into cards unasked. The role says so
-   *  itself, so a screen never keeps a list of names. Off never asks. */
-  confirm: boolean
+  /** The direction its switch asks in, when it asks at all (#562, #748). `on` is an agent
+   *  that starts spending runs the moment it goes on — the decider, the triager. `off` is
+   *  the one whose cost lands when it STOPS: the memory reviewer is what turns a
+   *  conversation into a note, so switching it off is what loses something. Absent on every
+   *  agent whose switch goes straight through either way. The role says so itself, so a
+   *  screen never keeps a list of names. */
+  confirm?: 'on' | 'off'
   /** Whether it is on. Always true where `switchable` is false — there is nothing to be off. */
   enabled: boolean
   /** The rule it carries, in the user's own words, or empty when it has none. */
@@ -1527,6 +1536,16 @@ export interface AgentView {
   /** A project agent's whole `AGENT.md`, frontmatter included — what its page writes
    *  through. Absent on a bundled agent, whose file ships inside the command. */
   file?: AgentFileView
+}
+
+/** What the memory reviewer's page reads (#748). It carries no cadence: the review is
+ *  daily, so there is nothing to set — the one thing worth reading is the last review that
+ *  passed. It lives beside the pruner's block in `docs/kanban/ui.config.json`. */
+export interface MemoryReviewState {
+  /** When the last review that PASSED began, as a minute stamp, or empty for "never
+   *  reviewed". The START, not the end: a conversation spoken to while the review was
+   *  reading would otherwise count as already seen and never be reviewed at all. */
+  lastRun: string
 }
 
 /** The memory pruner's schedule (#514), as every reader takes it. It lives beside the

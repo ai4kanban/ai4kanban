@@ -16,6 +16,7 @@ export type AgentRoleName =
   | "decider"
   | "proposer"
   | "memory-pruner"
+  | "memory-reviewer"
   | "sweeper"
   | "feedback"
   | "triage"
@@ -290,9 +291,12 @@ export type ConfigurationCopy = {
      *  point at, the discussion helper by you talking to it (#502), and every other role is
      *  called by its flows.
      *
-     *  `confirm` only on a role whose switch asks before it goes on — the board says which
-     *  ones (`AgentView.confirm`), and these are the words it asks in. `note` is the quiet
-     *  line under the instructions box, on a role with something left to say there.
+     *  `confirm` only on a role whose switch asks before it moves — the board says which
+     *  ones and in which direction (`AgentView.confirm`), and these are the words it asks
+     *  in. `action` is the label on the button that does the move, so it reads "Turn on" on
+     *  a role that asks on the way on and "Turn off" on the one that asks on the way off.
+     *  `note` is the quiet line under the instructions box, on a role with something left to
+     *  say there.
      *
      *  `trigger` is the four-word head of `when`, under the name in the roster column
      *  (#742): what STARTS this agent, which a name saying the job cannot say. Only on the
@@ -305,7 +309,7 @@ export type ConfigurationCopy = {
         rule: string;
         when?: string;
         trigger?: string;
-        confirm?: { title: string; body: string; turnOn: string };
+        confirm?: { title: string; body: string; action: string };
         note?: string;
       }
     >;
@@ -316,12 +320,29 @@ export type ConfigurationCopy = {
       costTitle: string;
       cost: string;
     };
-    /** The memory pruner (#514) — one of the two agents whose page carries an action rather
+    /** The memory pruner (#514) — one of the agents whose page carries an action rather
      *  than only settings: it prunes when you press Run now, and on the cadence you opt into. */
     pruner: CadenceCopy;
     /** The sweeper (#119) — the same controls as the pruner's, plus the report of the sweep
      *  they start. The cadence is its whole opt-in: it sweeps nothing until one is saved. */
     sweeper: CadenceCopy & SweepCopy;
+    /** The memory reviewer (#748) — another agent whose page carries an action: it reads
+     *  the conversations every day, and **Review now** asks for one whatever the switch
+     *  says. No cadence beside it, so the quiet line under the button is the whole of what
+     *  the group reports. */
+    memoryReviewer: {
+      /** The action, and what it reads while a review is going. */
+      run: string;
+      running: string;
+      /** The quiet line: the last review that passed, or that there has never been one.
+       *  `off` goes in front of either while the agent is switched off — Review now still
+       *  works, so the one control left is where that is said. */
+      lastRun: (when: string) => string;
+      neverRun: string;
+      off: string;
+      /** A review the board refused to start. */
+      startFailed: string;
+    };
     /** The same box for a specialist, by the hook it plugs into. */
     specialistRule: {
       spec: (agent: string) => string;

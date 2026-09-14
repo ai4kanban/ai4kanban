@@ -160,9 +160,9 @@ const MARKETING_STAGES: StageContract[] = [
 // decisions is not a promise about them — both keep the switch and the agent they have
 // today, and neither is open to be hooked.
 //
-// The five EVENTS are started by something happening rather than by a stage reaching them:
+// The six EVENTS are started by something happening rather than by a stage reaching them:
 // a card finishing, a batch of items arriving, a card going stale, a user saying the spec
-// missed, a cadence coming round.
+// missed, a cadence coming round, a day passing over conversations that said something new.
 const PRODUCT_NODES: FlowNode[] = [
   { flow: 'gate', kind: 'decision', agent: 'gater' },
   { flow: 'decide', kind: 'decision', agent: 'decider' },
@@ -171,9 +171,15 @@ const PRODUCT_NODES: FlowNode[] = [
   { flow: 'unstick', kind: 'event', agent: 'sweeper' },
   { flow: 'feedback', kind: 'event', agent: 'feedback' },
   { flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' },
+  { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },
 ]
 
-const MARKETING_NODES: FlowNode[] = [{ flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' }]
+// A marketing board holds conversations too, and its chats write no memory either, so it
+// gets the review as well as the prune.
+const MARKETING_NODES: FlowNode[] = [
+  { flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' },
+  { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },
+]
 
 /** Which of the three configurable stages a kernel stage is (#715). `discuss` is none of
  *  them: a conversation belongs to the board rather than to a card's workflow, so no

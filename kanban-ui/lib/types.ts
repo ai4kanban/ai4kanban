@@ -51,6 +51,7 @@ export type {
   LoggedOutAgent,
   CadenceSchedule,
   MemoryPruneSchedule,
+  MemoryReviewState,
   SweepReport,
   SweepRow,
   PlanAnswer,

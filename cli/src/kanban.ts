@@ -193,6 +193,7 @@ export {
   cardSweep,
   diffApprovalRequired,
   memoryPrune,
+  memoryReview,
   setAiReview,
   setAutoCommit,
   setDiffApproval,

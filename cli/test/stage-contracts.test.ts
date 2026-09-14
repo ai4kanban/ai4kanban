@@ -125,7 +125,7 @@ describe('the classification', () => {
     assert.equal(stageOfFlow('marketing-polish-loop'), 'review')
   })
 
-  it('calls the gate and the decider decisions, and the five entries events', () => {
+  it('calls the gate and the decider decisions, and the six entries events', () => {
     solution('product')
     const kinds = Object.fromEntries(flowNodes().map((n) => [n.flow, n.kind]))
     assert.deepEqual(kinds, {
@@ -136,6 +136,7 @@ describe('the classification', () => {
       unstick: 'event',
       feedback: 'event',
       'prune-memory': 'event',
+      'review-memory': 'event',
     })
     // Neither kind belongs to a stage, so neither shows up in one.
     for (const flow of Object.keys(kinds)) assert.equal(stageOfFlow(flow), undefined, flow)
@@ -171,6 +172,7 @@ describe('the lead a contract names', () => {
     run: 'builder',
     review: 'reviewer',
     'prune-memory': 'memory-pruner',
+    'review-memory': 'memory-reviewer',
     unstick: 'sweeper',
     feedback: 'feedback',
     gate: 'gater',
@@ -193,6 +195,7 @@ describe('the lead a contract names', () => {
     review: 'reviewer',
     'marketing-polish-loop': 'reviewer',
     'prune-memory': 'memory-pruner',
+    'review-memory': 'memory-reviewer',
   }
 
   it('is the agent that ran that flow before, on a product board', () => {

@@ -29,8 +29,8 @@ outcome — never manufacture a lesson to satisfy a closing step.
 `memory/published.md` is the record of published work, not a note — it follows the archive
 step below.
 
-Follow the current flow's guide: `repurpose`, `polish`, `marketing-polish-loop` or
-`prune-memory`. Do not start another flow unless instructed.
+Follow the current flow's guide: `repurpose`, `polish`, `marketing-polish-loop`,
+`prune-memory` or `review-memory`. Do not start another flow unless instructed.
 
 For an archive request, confirm every chosen channel is published and recorded in
 `memory/published.md`, then run `akb raw archive <id>`. Keep `content/<id>/`.

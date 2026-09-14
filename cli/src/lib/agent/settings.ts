@@ -33,7 +33,7 @@ import path from 'node:path'
 
 import { CADENCE_FORMS, formatStamp, parseCadence } from '../cadence'
 import { ENV_FILE, KANBAN_GITIGNORE, UI_CONFIG } from '../paths'
-import type { CadenceSchedule, MemoryPruneSchedule } from './types'
+import type { CadenceSchedule, MemoryPruneSchedule, MemoryReviewState } from './types'
 
 // ---- ui.config.json --------------------------------------------------------
 
@@ -223,27 +223,39 @@ export const setProposer = (on: boolean): { ok: boolean; error?: string } => set
  *  a setting nobody can read is not a reason to start judging items unasked. */
 export const autoTriageOn = (): boolean => switchedOn('autoTriage')
 
+/** True unless somebody switched the daily memory review off (#748). It ships ON, unlike
+ *  the four above: it takes over what a chat used to do on every turn, so a board that had
+ *  to ask for it would be a board that quietly stopped remembering anything said in a
+ *  conversation. */
+export const memoryReviewerOn = (): boolean => switchedOn('memoryReviewer')
+
 /** Save it. Turning it back off drops the key rather than writing `false`. */
 export const setAutoTriage = (on: boolean): { ok: boolean; error?: string } => setSwitch('autoTriage', on)
 
-// ---- a switchable role's own key (#493, #509, #534) ------------------------
+// ---- a switchable role's own key (#493, #509, #534, #748) ------------------
 //
-// Five of the switches above are roles that can be switched off: the gater runs the ready
+// Six of the switches above are roles that can be switched off: the gater runs the ready
 // gate, the decider answers for the user, the reviewer judges what was built, the proposer
-// reflects on what was finished, the triager sorts what is waiting. The three that predate
-// the split keep the key they have always had, so a board that already answered any of them
-// keeps its answer, and the roster reads a role through its own key rather than asking one
-// role's question of them all.
+// reflects on what was finished, the triager sorts what is waiting, the memory reviewer
+// reads the conversations. The three that predate the split keep the key they have always
+// had, so a board that already answered any of them keeps its answer, and the roster reads
+// a role through its own key rather than asking one role's question of them all.
 //
 // They do not all ship the same way round. The four that spend a run the user never asked
-// for are off until asked for; the reviewer ships on. Either way the file records only what
-// somebody changed.
+// for are off until asked for; the reviewer and the memory reviewer ship on. Either way the
+// file records only what somebody changed.
 
 /** The keys a switchable role is saved under (./roles.ts). */
-export type RoleSwitch = 'readyGate' | 'decider' | 'aiReview' | 'proposer' | 'autoTriage'
+export type RoleSwitch =
+  | 'readyGate'
+  | 'decider'
+  | 'aiReview'
+  | 'proposer'
+  | 'autoTriage'
+  | 'memoryReviewer'
 
 /** The keys whose role ships ON, so only switching it OFF is written down. */
-const ON_BY_DEFAULT = new Set<RoleSwitch>(['aiReview'])
+const ON_BY_DEFAULT = new Set<RoleSwitch>(['aiReview', 'memoryReviewer'])
 
 /** Whether the role behind this key is on. A file that won't parse reads as the default: a
  *  setting nobody can read is not a reason to change what the board does. */
@@ -741,5 +753,43 @@ export function setCardSweep(next: { enabled: boolean; cadence: string }): { ok:
 export function stampCardSweep(when: Date = new Date()): void {
   writeConfig((cfg) => {
     cfg.cardSweep = { ...configBlock(cfg.cardSweep), lastRun: formatStamp(when) }
+  })
+}
+
+// ---- the memory reviewer's window (#748) ------------------------------------
+//
+//   "memoryReview": { "lastRun": "2026-09-13 08:00" }
+//
+// One field, and no cadence beside it: the review is daily, so there is nothing to set. What
+// the field is for is the WINDOW — the conversations to read are the ones that have said
+// something since this stamp.
+//
+// It holds the moment the last review that PASSED *began*, not the moment it finished. A
+// review that stamped its end would mark everything said while it was reading as already
+// seen, and those turns would never be reviewed at all.
+//
+// Whether a review is DUE is a different question, answered off the run record instead
+// (`../view/dispatch.ts`): a review that failed must not reopen on the next tick, and the
+// conversations it failed on must still be in the window. Two facts, two places.
+
+const NEVER_REVIEWED: MemoryReviewState = { lastRun: '' }
+
+/** What the file says about the last review that passed. A file that won't parse reads as
+ *  never reviewed — the widest window, which re-reads rather than skips. */
+export function memoryReview(): MemoryReviewState {
+  let cfg: Record<string, unknown>
+  try {
+    cfg = readConfigRaw()
+  } catch {
+    return NEVER_REVIEWED
+  }
+  const block = configBlock(cfg.memoryReview)
+  return { lastRun: typeof block.lastRun === 'string' ? block.lastRun.trim() : '' }
+}
+
+/** Move the window to a review that passed, stamped with when that review STARTED. */
+export function stampMemoryReview(when: Date): void {
+  writeConfig((cfg) => {
+    cfg.memoryReview = { ...configBlock(cfg.memoryReview), lastRun: formatStamp(when) }
   })
 }

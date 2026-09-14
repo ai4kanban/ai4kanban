@@ -158,6 +158,7 @@ import {
   cardSweep,
   diffApprovalRequired,
   memoryPrune,
+  memoryReview,
   saveCardSweep,
   setAutoCommit,
   setDiffApproval,
@@ -273,6 +274,7 @@ import type {
   LoggedOutAgent,
   CadenceSchedule,
   MemoryPruneSchedule,
+  MemoryReviewState,
   SweepReport,
   MemberRoleWire,
   MetricsResult,
@@ -1439,6 +1441,30 @@ export async function startCardSweepAction(): Promise<WriteResult> {
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+// --- the memory reviewer (#748) ----------------------------------------------
+// Its page reads the last review when the Agents pane opens, and starts one by hand. There
+// is no schedule to save: the review is daily, and whether it happens at all is the agent's
+// own switch, flipped where every other agent's is.
+
+export async function memoryReviewAction(): Promise<{
+  review: MemoryReviewState | null;
+  error?: string;
+}> {
+  try {
+    return { review: await memoryReview() };
+  } catch (e) {
+    return { review: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Start one review by hand — **Review now**. It works with the switch off too: a board that
+ *  stopped the daily pass can still ask for one. A second while one is going is refused by
+ *  the run record's own one-at-a-time rule, so the button never has to know. */
+export async function startReviewMemoryAction(): Promise<StartResult> {
+  const req: AgentRequest = { action: "review-memory" };
+  return startSession(req, await buildPrompt(req));
 }
 
 // The agents the board can run and which of them this machine has (#207) — the picker asks

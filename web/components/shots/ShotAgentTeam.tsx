@@ -9,10 +9,10 @@ import { HAIR, NB, Shot, em } from "./nb";
 // the page for the row that is held.
 //
 // Drawn from kanban-ui/components/Agents.tsx with `scope` = board, and every
-// word taken from kanban-ui/i18n/configuration/en.ts: two group captions, seven
+// word taken from kanban-ui/i18n/configuration/en.ts: two group captions, eight
 // names that say the JOB, and the few words under each that say what starts it.
 //
-// Auto-sort Triage is the eighth row the product can draw and is left out on
+// Auto-sort Triage is the ninth row the product can draw and is left out on
 // purpose: it only appears for an invited Cloud account, so drawing it would put
 // back the thing this shot exists to fix — a page most readers cannot find.
 //
@@ -33,14 +33,15 @@ const MANUAL: [name: string, label: string, trigger: string][] = [
   ["feedback", "Fix a plan that missed", "When you say it missed"],
 ];
 
-/** The ones the board may start by itself. All three ship off; one is drawn on,
- *  because a column of three identical off switches says the board cannot do any
- *  of it. */
+/** The ones the board may start by itself, in the roster's own order. Review chat
+ *  memory is the one that ships ON, so the column carries a live switch without
+ *  any row having to be drawn against its default. */
 const AUTOMATIC: [name: string, label: string, trigger: string, on: boolean][] =
   [
+    ["memory-reviewer", "Review chat memory", "Daily", true],
     ["gater", "Auto-approve builds", "When a card turns ready", false],
     ["decider", "Auto-answer questions", "When questions wait", false],
-    ["proposer", "Suggest follow-up work", "After a card is archived", true],
+    ["proposer", "Suggest follow-up work", "After a card is archived", false],
   ];
 
 /** The names with a PNG in `public/agent-art/`. The real pane discovers this by
@@ -93,8 +94,10 @@ function Character({
 }
 
 /** The palette's five inks, picked by the agent's name — `Agents.tsx`'s own
- *  rule. Two of the four art-less rows land on the same ink; what tells them
- *  apart is the letter on the card, not its colour. */
+ *  rule, collisions included. Three of the five art-less rows land on peach, and
+ *  the two memory agents land on the same letter as well, so their characters are
+ *  identical here exactly as they are in the product. The names beside them are
+ *  what tells the rows apart. */
 const INKS = [NB.skyInk, NB.lilacInk, NB.mintInk, NB.peachInk, NB.accentDeep];
 
 /** A 5x7 letter on the character's own pixel grid. Only the initials this pane

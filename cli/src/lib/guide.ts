@@ -41,6 +41,7 @@ import moduleMap from '../guide/module-map.md'
 import nextCard from '../guide/next-card.md'
 import planRelease from '../guide/plan-release.md'
 import pruneMemory from '../guide/prune-memory.md'
+import reviewMemory from '../guide/review-memory.md'
 import qaLightweight from '../guide/qa-lightweight.md'
 import qaLoop from '../guide/qa-loop.md'
 import recurringTask from '../guide/recurring-task.md'
@@ -107,6 +108,7 @@ export const GUIDES: Guide[] = [
   { name: 'changelog', when: "write a closed version's changelog from what its close wrote down", text: changelog },
   { name: 'document-feature', when: 'which docs a change has to update', text: documentFeature },
   { name: 'prune-memory', when: 'compress the memory set back to what helps planning', text: pruneMemory },
+  { name: 'review-memory', when: 'read what the conversations settled, and write it into memory', text: reviewMemory },
   { name: 'reflect', when: 'propose the work a just-completed card leaves behind', text: reflect },
   { name: 'triage', when: 'judge what is waiting in triage: card the worthwhile, ignore the rest', text: triage },
   { name: 'unstick', when: 'settle a card that sat too long: keep it rewritten, or discard it', text: unstick },

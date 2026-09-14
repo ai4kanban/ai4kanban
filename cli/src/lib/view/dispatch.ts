@@ -1,11 +1,12 @@
 // ---- what the board should start on its own --------------------------------
 //
-// Four jobs that need no user at all: the cards somebody scheduled, whose last blocker has
-// now left the board, the recurring cards whose cadence has elapsed, and — on a board that
-// asked for them — the memory pruner's own cadence and the sweep of the stale cards. A front
-// end with a timer asks this once a tick and starts whatever comes back — it holds the timer,
-// this holds the rules, so a board driven from a window and a board driven from anywhere else
-// pick the same cards in the same order.
+// Five jobs that need no user at all: the cards somebody scheduled, whose last blocker has
+// now left the board, the recurring cards whose cadence has elapsed, the day's review of
+// what the conversations settled, and — on a board that asked for them — the memory pruner's
+// own cadence and the sweep of the stale cards. A front end with a timer asks this once a
+// tick and starts whatever comes back — it holds the timer, this holds the rules, so a board
+// driven from a window and a board driven from anywhere else pick the same cards in the same
+// order.
 //
 // Refining is NOT here. Nothing hunts the backlog for cards to refine: a refine follows the
 // run that touched the card, started by that run's own watcher (`agent/follow.ts`). A
@@ -17,9 +18,10 @@
 // `dueScheduled`), and the sweep, which starts its own run because its report has to be keyed
 // to it (`../agent/sweep.ts`).
 
-import { nextDue } from '../cadence'
-import { memoryPrune } from '../agent/settings'
+import { nextDue, parseStamp } from '../cadence'
+import { memoryPrune, memoryReview, memoryReviewerOn } from '../agent/settings'
 import { advanceCardSweep, startCardSweep, sweepDue } from '../agent/sweep'
+import { anyChatSince } from '../agent/memory-review'
 import { answeredWork } from '../agent/deliveries'
 import { advanceLanding } from '../agent/landing'
 import { flowRefusal } from '../agent/flows'
@@ -87,6 +89,33 @@ function pruneDue(runs: RunView[]): boolean {
   const passes = runs.filter((r) => r.action === 'prune-memory')
   if (passes.some((r) => r.status === 'running')) return false
   return !passes.some((r) => r.startedAt >= due.getTime())
+}
+
+// How long the memory review waits between passes (#748) — one day, and nothing to set.
+const REVIEW_INTERVAL = 24 * 60 * 60_000
+
+// Whether the daily memory review is due right now (#748). Four questions, and the last one
+// is the cheap one it usually stops on:
+//
+//   • the agent is on. It ships on, unlike the four that spend a run you never asked for —
+//     switching it off is what stops a conversation reaching memory at all.
+//   • nothing of its own is going. One review at a time, like a prune.
+//   • a day has passed. Counted from the later of the newest review run's START and the
+//     stamp of the last one that PASSED — the run record is what holds a FAILED review off
+//     for the day, and the stamp is what still holds one off when that record has been
+//     pruned away.
+//   • somebody has said something since the last review that PASSED. The window is that
+//     stamp; a failed review leaves it where it was, so the conversations it did not get
+//     through are still in it tomorrow. And this is the only question asked on most ticks:
+//     it is the files' modification times, with nothing parsed and no board walked.
+function memoryReviewDue(runs: RunView[]): boolean {
+  if (!memoryReviewerOn()) return false
+  const passes = runs.filter((r) => r.action === 'review-memory')
+  if (passes.some((r) => r.status === 'running')) return false
+  const since = parseStamp(memoryReview().lastRun)?.getTime() ?? 0
+  const last = Math.max(since, ...passes.map((r) => r.startedAt))
+  if (last && Date.now() - last < REVIEW_INTERVAL) return false
+  return anyChatSince(since)
 }
 
 // The action a scheduled card runs, as a request. A card's schedule is written in the same
@@ -209,6 +238,10 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   } catch {
     // a bad tick must not cost the requests below — the sweep tries again next minute
   }
+
+  // And the day's review of what the conversations settled (#748). A slot of its own for the
+  // same reason: it touches no card, so nothing it does can queue behind a card's run.
+  if (memoryReviewDue(runs)) work.push({ action: 'review-memory' })
 
   // The deliveries whose question has been answered (#302). Not gated on the slots above
   // for the same reason landing isn't: another look at work already built is that

@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "September 12, 2026"
+last_updated: "September 15, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -14,7 +14,7 @@ settings, and — for one you added — its own instructions.
 
 There are two kinds.
 
-**Roles** are the agents the board's own flows are run by. You do not add or remove one, and four
+**Roles** are the agents the board's own flows are run by. You do not add or remove one, and some
 of them can be switched off:
 
 - **Planner** — plans and refines cards. It runs create, refine, resolve, revise, the release
@@ -36,11 +36,16 @@ of them can be switched off:
   batch of new items itself and keeps going until nothing is waiting; `akb triage run` sorts either
   way. Off by default. Product boards with [Triage](/docs/triage) open only, and it is not on the
   roster at all where Triage is closed.
+- **Memory pruner** — squeezes the memory back down to what helps planning. **Run now** on its page
+  starts one; a recurring prune is opt-in there, with a cadence, and off by default.
+- **Review chat memory** — reads back over the conversations that said something new and writes
+  down what they settled. On by default, once a day.
 
-The Gater, the Decider, the Proposer and the Triage agent are the four roles you can switch off.
-None of them does a flow's work: each spends a run you never asked for, so each has its own switch
-and its own connector, and each reads the whole board — the goal, and every module's `decisions.md`
-and `rejected.md` — on top of the card.
+The Gater, the Decider, the Proposer and the Triage agent are the four that are off until you ask:
+none of them does a flow's work, each spends a run you never asked for, and each reads the whole
+board — the goal, and every module's `decisions.md` and `rejected.md` — on top of the card. Review
+chat memory is the one switch that goes the other way, and the one that asks before it goes **off**
+rather than on.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
 while a card is being planned — never while it is being built — writes one named section of that
@@ -70,7 +75,7 @@ screen nor a library goes through all of those without a spec run, and nothing t
 When you do want one: **"put the ui-designer agent on #4"**, or `akb spec ui-designer 4`. Setting
 what it produces is on its page in **Configuration → Agents**. Whether it joins a card's planning at
 all is its workflow's plan stage, under **Configuration → Workflows**: add it there and it is offered,
-remove it and nothing asks for it. A role is always on except the four above, because a board without
+remove it and nothing asks for it. A role is always on except the ones above, because a board without
 a planner plans nothing.
 
 ## Let the Decider answer for you
@@ -141,6 +146,34 @@ starts the next until nothing is waiting.
 Running it alongside the Gater and the Decider is not recommended, and the board does not stop you:
 with all three on, an item somebody outside your team wrote can go from Triage to built without one
 human confirmation. [Triage](/docs/triage) has the whole of what a sort does.
+
+## Let the memory review remember for you
+
+A chat used to judge each turn as it landed: was this a preference worth remembering? One turn
+cannot see where a conversation is going, so a "what if" you threw out and took back three turns
+later could land in `decisions.md` as a decision — while the real conclusion of a long discussion
+was never written down at all.
+
+**Review chat memory** is what writes it down instead. Chats no longer save memory. Once a day it
+reads every conversation that has said something new — a card's chat and a discussion alike — right
+through, and writes what the whole exchange earned.
+
+- **A day at most behind.** Memory only feeds future planning; the card you are talking about was
+  already changed in the conversation.
+- **It rewrites rather than repeats.** Reading the whole conversation is what lets it correct a
+  note from last week that you have since overturned, instead of leaving both.
+- **"Don't record this" holds.** Say it in the conversation and nothing is written — and a note an
+  earlier review already wrote is deleted.
+- **Nothing said, nothing run.** It starts only when a conversation has new messages, so a quiet
+  day costs nothing.
+- **It follows the conversation's card.** Notes go in the memory set that card's `modules:` names,
+  the archive included; a discussion, or a card the board no longer has, goes to the project's own.
+
+It is on by default, which no other self-starting agent is: it took over what a chat was doing
+unconditionally, so a board that had to ask for it would be a board that quietly stopped
+remembering. For the same reason its switch asks before it goes **off** rather than on. **Review
+now** on its page asks for one at any time, switch or no switch, and `akb review-memory` is the
+same entry from a terminal. What each review wrote is in its run log.
 
 ## Give an agent a rule
 
