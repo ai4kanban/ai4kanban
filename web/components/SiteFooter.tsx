@@ -176,7 +176,7 @@ export function SiteFooter({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/verifieddr-badge.svg"
+                    src="https://verifieddr.com/badge/ai4kanban-dev.svg?metric=truedr"
                     alt={t.verifieddr}
                     width={238}
                     height={68}
