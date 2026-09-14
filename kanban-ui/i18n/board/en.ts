@@ -50,7 +50,7 @@ const en: BoardCopy = {
     needsYouOne: "1 needs you",
     needsYouMany: (n) => `${n} need you`,
     verify: (n) => `${n} to check by hand`,
-    decided: (n) => `Decider answered ${n} for you`,
+    decided: (n) => `${n} answered for you`,
     creating: {
       mark: "creating",
       markHint: "Being created — it opens once its creator finishes",

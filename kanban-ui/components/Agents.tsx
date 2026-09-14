@@ -412,8 +412,12 @@ export function AgentsPanel({
   const mine = agents?.filter((a) => (scope === "workflow" ? !!a.stage : !a.stage)) ?? null;
   const inStage = mine?.filter((a) => a.stage === stage) ?? [];
   const agent = mine?.find((a) => a.name === picked);
-  const always = (mine ?? []).filter((a) => !a.switchable);
-  const optional = (mine ?? []).filter((a) => a.switchable);
+  // The two halves of a BOARD roster, named for how each agent starts (#742). Automatic is
+  // the closed set of roles the board may start on its own — a switch there says whether it
+  // may, not whether the agent is available. Everything else is Manual: the roles you call
+  // yourself, and every agent this project added, which is only ever called by name.
+  const automatic = (mine ?? []).filter((a) => a.kind === "role" && a.switchable);
+  const manual = (mine ?? []).filter((a) => !(a.kind === "role" && a.switchable));
   const shipped = inStage.filter((a) => a.builtIn);
   const added = inStage.filter((a) => !a.builtIn);
 
@@ -486,15 +490,18 @@ export function AgentsPanel({
       {agents && (
         <>
           <div className="flex flex-1 items-stretch gap-6 max-sm:flex-col max-sm:gap-4">
-            {/* The whole roster in one narrow column, split the way the two halves are
-                answered: who runs this board and cannot be switched off, then everything
-                that can be. A row says which agent it is and whether it is on; the page
+            {/* The whole roster in one narrow column, split the way the two halves start:
+                the agents you call yourself, then the ones the board may start on its own.
+                A row says what the agent does, what starts it and whether it is on; the page
                 beside it is where anything is actually changed. The rule down its right edge
-                is what separates the two, the way the sidebar is separated from both. */}
-            <div className="w-[252px] shrink-0 border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
+                is what separates the two, the way the sidebar is separated from both.
+
+                Wide enough for a name that says the JOB (#742) — longer than one that says
+                what the agent is called, and a truncated job is no name at all. */}
+            <div className="w-[292px] shrink-0 border-r border-nb-ink/10 pr-6 max-sm:w-full max-sm:border-r-0 max-sm:border-b max-sm:pr-0 max-sm:pb-4">
               {/* One column, split two ways depending on which half of the roster this is.
-                  A BOARD agent is read by what it costs you: the ones that always run, then
-                  the ones you switch on. A WORKFLOW agent is read by where it came from —
+                  A BOARD agent is read by what starts it: the ones you call, then the ones
+                  the board starts. A WORKFLOW agent is read by where it came from —
                   built-in or this project's — because what decides whether it runs is the
                   workflow that assigns it, not a switch here (#715). */}
               {scope === "workflow" ? (
@@ -512,21 +519,20 @@ export function AgentsPanel({
                 </>
               ) : (
                 <>
-                  <Roster title={c.always}>
-                    <div className="flex flex-col">{always.map(row)}</div>
-                  </Roster>
-                  <div className="mt-4 border-t border-nb-ink/10 pt-4">
-                    <Roster
-                      title={c.optional}
-                      action={
-                        <span className="text-[11.5px] text-nb-ink-soft">
-                          {c.onCount(optional.filter((a) => a.enabled).length)}
-                        </span>
-                      }
-                    >
-                      <div className="flex flex-col">{optional.map(row)}</div>
+                  {manual.length > 0 && (
+                    <Roster title={c.manual}>
+                      <div className="flex flex-col">{manual.map(row)}</div>
                     </Roster>
-                  </div>
+                  )}
+                  {/* A board that runs no automatic role — a marketing one — has nothing
+                      under this caption, so neither the caption nor its rule is drawn. */}
+                  {automatic.length > 0 && (
+                    <div className={manual.length > 0 ? "mt-4 border-t border-nb-ink/10 pt-4" : ""}>
+                      <Roster title={c.automatic}>
+                        <div className="flex flex-col">{automatic.map(row)}</div>
+                      </Roster>
+                    </div>
+                  )}
                 </>
               )}
               {scope === "workflow" && inStage.length === 0 && (
@@ -602,21 +608,10 @@ export function AgentsPanel({
 
 // A half of the roster, under its own name. Sentence case and soft ink: the column is a list
 // of agents, and a caption shouting over each half would compete with the names.
-function Roster({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function Roster({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <div className="mb-1.5 flex items-center justify-between gap-3">
-        <h4 className="text-[12.5px] font-[600] text-nb-ink-soft">{title}</h4>
-        {action}
-      </div>
+      <h4 className="mb-1.5 text-[12.5px] font-[600] text-nb-ink-soft">{title}</h4>
       {children}
     </section>
   );
@@ -644,14 +639,18 @@ function PickRow({
 }) {
   const c = useCopy().configuration.agents;
   const title = useAgentTitle()(agent);
+  // What starts this agent, in four or five words (#742) — the one thing a name saying the
+  // job still cannot say. Only the board's own roles carry it; an agent this project added
+  // is called by name and has nothing to add, so its row stays a single line.
+  const trigger = c.roles[agent.name as keyof typeof c.roles]?.trigger ?? "";
   const off = !agent.enabled;
   return (
     // A row, not a button: the switch lives in it (#715), and a control inside a button is
     // a control nobody can press. The name is the button; the switch is its own.
     <div
-      className={`flex w-full items-center gap-2 rounded-[9px] px-2.5 py-[5px] transition-colors duration-100 ${
-        held ? "bg-nb-accent-soft" : "hover:bg-nb-sheet"
-      }`}
+      className={`flex w-full items-center gap-2 rounded-[9px] px-2.5 transition-colors duration-100 ${
+        trigger ? "py-[7px]" : "py-[5px]"
+      } ${held ? "bg-nb-accent-soft" : "hover:bg-nb-sheet"}`}
     >
       <button
         type="button"
@@ -669,10 +668,17 @@ function PickRow({
         >
           <Character name={agent.name} size={26} />
         </span>
-        <span
-          className={`min-w-0 flex-1 truncate text-[12.5px] font-[700] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}
-        >
-          {title}
+        <span className="min-w-0 flex-1">
+          <span
+            className={`block truncate text-[12.5px] font-[700] leading-[16px] ${off ? "text-nb-ink-soft" : "text-nb-ink"}`}
+          >
+            {title}
+          </span>
+          {trigger && (
+            <span className="mt-[1px] block truncate text-[11px] leading-[14px] text-nb-ink-soft">
+              {trigger}
+            </span>
+          )}
         </span>
       </button>
       {/* Read and flipped in the one place (#715). Only where there is a state at all: an

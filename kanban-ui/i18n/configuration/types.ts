@@ -27,6 +27,9 @@ export type ConfigurationCopy = {
   open: string;
   title: string;
   sections: string;
+  /** The two sidebar groups (#742): what this board is set up with, and what the user
+   *  shapes for it. Headings only — neither opens anything. */
+  navGroup: { settings: string; customize: string };
   section: {
     general: string;
     runtimes: string;
@@ -208,10 +211,10 @@ export type ConfigurationCopy = {
    *  and the page one opens — its rule, what it remembers, its settings, and a project
    *  agent's own `AGENT.md`. */
   agents: {
-    /** The two groups the picker column is split into: the agents the board's own flows are
-     *  run by, which are never switched off, and the ones a project switches on. */
-    always: string;
-    optional: string;
+    /** The two groups the picker column is split into (#742), named for what starts an
+     *  agent: the ones you call yourself, and the ones the board may start on its own. */
+    manual: string;
+    automatic: string;
     /** Configuration → Workflow agents (#715): the same pane, filtered to the agents a
      *  workflow can assign and grouped by the stage each declares. */
     stageTabs: { plan: string; execute: string; review: string };
@@ -226,8 +229,6 @@ export type ConfigurationCopy = {
     builtIn: string;
     /** The one press beside a project agent's file path. */
     copyPath: string;
-    /** How many specialists are on, beside that group's caption. */
-    onCount: (n: number) => string;
     /** A column row's own state, read there and flipped on the page beside it. Only a
      *  switchable agent prints it — an always-on row has no state to read. */
     rowOn: string;
@@ -286,7 +287,11 @@ export type ConfigurationCopy = {
      *
      *  `confirm` only on a role whose switch asks before it goes on — the board says which
      *  ones (`AgentView.confirm`), and these are the words it asks in. `note` is the quiet
-     *  line under the instructions box, on a role with something left to say there. */
+     *  line under the instructions box, on a role with something left to say there.
+     *
+     *  `trigger` is the four-word head of `when`, under the name in the roster column
+     *  (#742): what STARTS this agent, which a name saying the job cannot say. Only on the
+     *  roles Board agents lists — a workflow's roles are started by the workflow. */
     roles: Record<
       AgentRoleName,
       {
@@ -294,6 +299,7 @@ export type ConfigurationCopy = {
         gloss: string;
         rule: string;
         when?: string;
+        trigger?: string;
         confirm?: { title: string; body: string; turnOn: string };
         note?: string;
       }

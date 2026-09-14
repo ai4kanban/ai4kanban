@@ -116,27 +116,32 @@ export function useRuntimeName(): (row: { fixed?: boolean; name: string }) => st
  *  need the same word — the rail's button, the phone's, and the pane that draws the page. */
 export const PRUNER = "memory-pruner";
 
-// The dialog's sections, in sidebar order — what the board is set up with, then the tool
-// it runs on, then what that tool is told, then where the answers go. Adding a settings
-// group is one entry here plus its pane below; nothing else moves.
+// The dialog's sections, in two sidebar groups (#742): what this board IS set up with,
+// then what the user shapes for it. The split is only navigation — a heading is not a
+// control and opens nothing. Adding a settings group is one entry here plus its pane
+// below; nothing else moves.
 type Section = "general" | "runtimes" | "agents" | "catalog" | "upkeep" | "workspace" | "cloud";
-const SECTIONS: { id: Section; icon: IconType }[] = [
-  { id: "general", icon: FiSliders },
-  { id: "runtimes", icon: FiTerminal },
-  // The three halves of who works on this board (#715): the workflows a card runs through,
-  // the agents those workflows assign, and the agents that belong to the board itself. The
-  // first two are only on a board that picks workflows at all.
-  { id: "agents", icon: FiGitCommit },
-  { id: "catalog", icon: FiUsers },
-  { id: "upkeep", icon: FiTool },
+type NavGroup = "settings" | "customize";
+const SECTIONS: { id: Section; group: NavGroup; icon: IconType }[] = [
+  { id: "general", group: "settings", icon: FiSliders },
+  { id: "runtimes", group: "settings", icon: FiTerminal },
+  // The agents that belong to the board itself — its behaviour, not a thing the user
+  // shapes, so it sits with the settings rather than beside Workflows (#742).
+  { id: "upkeep", group: "settings", icon: FiTool },
   // The workspace this board lives in (#317). Only on a Cloud board — a Local one has no
   // workspace to run, so the entry is left out rather than drawn onto an empty pane.
-  { id: "workspace", icon: FiCloud },
+  { id: "workspace", group: "settings", icon: FiCloud },
   // How work reaches the person this machine signs in as (#326) — named for the job, not
   // for Cloud, which is what carries it. Beside Workspace rather than instead of it: one is
   // the machine's sign-in, the other is this board.
-  { id: "cloud", icon: FiBell },
+  { id: "cloud", group: "settings", icon: FiBell },
+  // What the user shapes (#715): the workflows a card runs through, and the agents those
+  // workflows assign. Only on a board that picks workflows at all — where it doesn't, the
+  // whole group goes with them.
+  { id: "agents", group: "customize", icon: FiGitCommit },
+  { id: "catalog", group: "customize", icon: FiUsers },
 ];
+const NAV_GROUPS: NavGroup[] = ["settings", "customize"];
 
 // --- opening the dialog from elsewhere (#174) --------------------------------
 // A tiny shared store, the same shape as the runs panel's (components/
@@ -240,7 +245,7 @@ export function Configuration({
   }, [open]);
   // Whether this board picks workflows at all (#715). A marketing board's cards go through
   // its solution's own flows, so neither workflow section is offered there — and its whole
-  // team stays on the one pane it has always had, under **Board agents**.
+  // team stays on the one pane it has always had, under **Board**.
   const [flows, setFlows] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -279,28 +284,49 @@ export function Configuration({
           flush
         >
           {/* The section list. A quiet vertical nav on the wash, the active entry
-              in the ember tint — the same active language as the harness rows. */}
+              in the ember tint — the same active language as the harness rows.
+
+              Two groups on the desktop (#742), each captioned. On a phone the nav is one
+              horizontal strip: a caption in a row of entries would read as an entry, so the
+              headings drop and the groups run on in order, still all reachable by scroll.
+              The group keeps its accessible name there through `aria-label`. */}
           <nav
             aria-label={c.sections}
-            className="flex w-[200px] shrink-0 flex-col gap-1 border-r border-nb-ink/10 bg-nb-cream p-3 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
+            className="flex w-[200px] shrink-0 flex-col gap-5 border-r border-nb-ink/10 bg-nb-cream p-3 max-sm:w-full max-sm:flex-row max-sm:gap-1 max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0 max-sm:p-2"
           >
-            {sections.map(({ id, icon: Icon }) => {
-              const on = id === section;
+            {NAV_GROUPS.map((group) => {
+              const entries = sections.filter((entry) => entry.group === group);
+              if (!entries.length) return null;
               return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-current={on}
-                  onClick={() => setSection(id)}
-                  className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent max-sm:w-auto max-sm:shrink-0 ${
-                    on
-                      ? "bg-nb-accent-soft text-nb-accent-deep"
-                      : "text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
-                  }`}
+                <div
+                  key={group}
+                  role="group"
+                  aria-label={c.navGroup[group]}
+                  className="flex flex-col gap-1 max-sm:shrink-0 max-sm:flex-row"
                 >
-                  <Icon className="shrink-0 text-[15px]" aria-hidden />
-                  {c.section[id]}
-                </button>
+                  <h3 className={`${CAPTION} mb-0.5 px-3 text-nb-ink-soft/70 max-sm:hidden`}>
+                    {c.navGroup[group]}
+                  </h3>
+                  {entries.map(({ id, icon: Icon }) => {
+                    const on = id === section;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-current={on}
+                        onClick={() => setSection(id)}
+                        className={`flex w-full cursor-pointer items-center gap-2 rounded-[8px] px-3 py-2 text-left text-[13px] font-[700] transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-nb-accent max-sm:w-auto max-sm:shrink-0 max-sm:whitespace-nowrap ${
+                          on
+                            ? "bg-nb-accent-soft text-nb-accent-deep"
+                            : "text-nb-ink-soft hover:bg-nb-wash hover:text-nb-ink"
+                        }`}
+                      >
+                        <Icon className="shrink-0 text-[15px]" aria-hidden />
+                        {c.section[id]}
+                      </button>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>

@@ -46,7 +46,7 @@ const zh: BoardCopy = {
     needsYouOne: "1 个待你决定",
     needsYouMany: (n) => `${n} 个待你决定`,
     verify: (n) => `${n} 项需人工验收`,
-    decided: (n) => `Decider 代你答了 ${n} 题`,
+    decided: (n) => `已代你答了 ${n} 题`,
     creating: {
       mark: "创建中",
       markHint: "正在创建——创建完成后才能打开",
@@ -72,7 +72,7 @@ const zh: BoardCopy = {
       discuss: "讨论",
       addTask: "新建任务",
       buildNow: "直接开做",
-      workflow: { label: "流程", manage: "管理流程" },
+      workflow: { label: "工作流", manage: "管理工作流" },
       send: "发送",
       keys: "Esc 关闭",
       keysDiscuss: "Esc 关闭并保留这次讨论",

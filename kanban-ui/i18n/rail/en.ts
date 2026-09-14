@@ -35,7 +35,7 @@ const en: RailCopy = {
       rejected: "Rejected ideas",
     },
     prune: "Prune memory",
-    pruneTitle: "Prune memory — opens Memory pruner in Configuration",
+    pruneTitle: "Prune memory — opens its page in Configuration",
   },
   archive: {
     row: "Archive",

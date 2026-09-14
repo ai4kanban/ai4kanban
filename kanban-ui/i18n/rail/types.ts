@@ -40,7 +40,7 @@ export type RailCopy = {
     empty: string;
     /** The four memory files, keyed by the name the board's rules give each one. */
     files: { readme: string; decisions: string; redesign: string; rejected: string };
-    /** The button over them (#514): it opens the Memory pruner's page in Configuration,
+    /** The button over them (#514): it opens the pruner's page in Configuration,
      *  which is where a pass is started and a cadence is set. */
     prune: string;
     pruneTitle: string;

@@ -233,7 +233,7 @@ const zh: CardCopy = {
     working: "运行中…",
   },
   meta: {
-    workflow: "流程",
+    workflow: "工作流",
     modules: "模块",
     release: "版本",
     priority: "优先级",
@@ -267,7 +267,7 @@ const zh: CardCopy = {
     pageBlurb: "回答这张卡片正在等待的问题。留空的问题保持待澄清。",
   },
   decided: {
-    heading: "Decider 替你做的选择",
+    heading: "替你做的选择",
     note: "这些答案只作用于这张卡片。",
     from: "依据",
     blind: "没有依据——取了推荐项",

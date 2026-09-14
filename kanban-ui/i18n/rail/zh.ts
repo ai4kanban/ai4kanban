@@ -35,7 +35,7 @@ const zh: RailCopy = {
       rejected: "被否决的想法",
     },
     prune: "整理记忆",
-    pruneTitle: "整理记忆——在配置里打开 Memory pruner",
+    pruneTitle: "整理记忆——在配置里打开它的页面",
   },
   archive: {
     row: "归档",

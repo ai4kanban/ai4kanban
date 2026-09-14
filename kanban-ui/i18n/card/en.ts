@@ -270,7 +270,7 @@ const en: CardCopy = {
     pageBlurb: "Answer what this card is waiting on. Anything you leave blank stays open.",
   },
   decided: {
-    heading: "what decider chose for you",
+    heading: "what was chosen for you",
     note: "These answers apply to this card only.",
     from: "From",
     blind: "Nothing to go on — took the recommendation",

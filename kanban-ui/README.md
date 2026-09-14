@@ -1204,8 +1204,12 @@ struck through, so the outcome survives after the subtask files are gone.
 
 ## Configuration
 
-The gear in the header opens the **Configuration** dialog. A sidebar names its sections —
-**General**, **Runtime**, **Agents** and **Cloud & Notifications**. Settings live in
+The gear in the header opens the **Configuration** dialog. A sidebar names its sections in two
+groups (#742) — **Settings** holds **General**, **Runtimes**, **Board**, **Workspace** and
+**Cloud & Notifications**; **Customize** holds **Workflows** and **Agents**. The headings are
+navigation and nothing else: neither opens a pane, and a board that picks no workflows has no
+**Customize** group at all. On a phone the sidebar becomes one horizontal strip, where the
+headings drop and the entries run on in the same order. Settings live in
 `docs/kanban/ui.config.json`, next to your board, so `npx` always serves the latest UI and an update
 never touches them. Everything the dialog holds writes itself there, with three exceptions: a key
 goes to `docs/kanban/.env`, and the language and the Cloud sign-in settle this machine rather than
@@ -1657,16 +1661,23 @@ fills one in, `akb agent bind <agent> <id>` points an agent at one, `akb agent u
 board's own order: the **roles** its own flows are run by, then the **specialists** the command
 ships, then the ones this project added.
 
-- A **role** is the agent behind a group of flows. **Discussion helper** is the one you talk to —
-  it helps you decide what you want and whether an idea deserves work, and a discussion that ends
-  without creating a card is a fine outcome; **Planner** plans and refines cards, **Builder**
-  builds them and lands them, **Reviewer** checks what was built; a marketing board has a **Writer**
-  in place of the Builder. A role is always on — a board without a planner plans nothing — except
-  three, each with a switch of its own. Two stand in for you, both off by default and product
-  boards only: **Gater** judges whether a card that reached ready may build unwatched, and
-  **Decider** answers the questions waiting on you; each reads the goal and every module's
+- A **role** is the agent behind a group of flows. Each is named on screen for the job it does
+  rather than for what it is called inside (#742), with the one thing that starts it on a second
+  line under the name. **Discuss an idea** is the one you talk to — it helps you decide what you
+  want and whether an idea deserves work, and a discussion that ends without creating a card is a
+  fine outcome; **Planner** plans and refines cards, **Builder** builds them and lands them,
+  **Reviewer** checks what was built; a marketing board has a **Writer** in place of the Builder.
+  A role is always on — a board without a planner plans nothing — except three, each with a switch
+  of its own. Two stand in for you, both off by default and product boards only: **Auto-approve
+  builds** judges whether a card that reached ready may build unwatched, and **Auto-answer
+  questions** answers the questions waiting on you; each reads the goal and every module's
   `decisions.md` and `rejected.md` on top of the card. The third is the **Reviewer**, on by
   default: judging a build is a paid run per delivery, so a board may decline it.
+- The **Board** pane's roster is split by what STARTS an agent, not by whether it can be switched
+  off: **Manual** is what you call yourself — the discussion, the memory tidy, the sweep, the
+  feedback, and every agent this project added — and **Automatic** is the closed set the board may
+  start on its own. A switch there says whether it may, not whether the agent is available, and an
+  empty half draws no caption at all.
 - A **specialist** fills one part of a card's spec while that card is being planned, never while it
   is being built: **UI designer** draws the screen the card changes, **Tech stack advisor** picks the
   library it leans on. Each runs on its own and writes one section of that card and nothing else.
