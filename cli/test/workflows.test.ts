@@ -40,6 +40,8 @@ import { cardsOnWorkflow, removeWorkflow } from '../src/lib/agent/workflow-cards
 import { cmdWorkflowDelete } from '../src/commands/workflow.ts'
 import { startRun } from '../src/lib/agent/start.ts'
 import { setBoardRoot } from '../src/lib/paths.ts'
+import { patchCard } from '../src/lib/view/edit.ts'
+import type { CardPatch } from '../src/lib/view/types.ts'
 import { move, refuses } from './helpers/board.ts'
 
 let root = ''
@@ -214,16 +216,20 @@ describe('the workflow a card carries', () => {
     await refuses(root, ['create', '--title', 'A note', '--workflow', 'nonesuch'], /no workflow called "nonesuch"/)
   })
 
-  it('re-plans the card when it moves, and lists which cards a workflow still holds', async () => {
+  it('is fixed once the card exists — nothing moves it, and a workflow lists what it holds', async () => {
     const made = await move(root, ['create', '--title', 'Write the launch note'])
     const id = made.id as number
-    await move(root, ['update', String(id), '--status', 'ready'])
     assert.deepEqual(cardsOnWorkflow('coding'), [id])
 
-    await move(root, ['update', String(id), '--workflow', 'content'])
-    assert.equal(parseFrontmatter(fs.readFileSync(cardFile(id), 'utf8')).meta!.status, 'todo')
-    assert.deepEqual(cardsOnWorkflow('content'), [id])
-    assert.deepEqual(cardsOnWorkflow('coding'), [])
+    // `update` has no `--workflow` any more (#744): a card's workflow is settled at create.
+    await refuses(root, ['update', String(id), '--workflow', 'content'], /unknown option/)
+    assert.equal(cardWorkflowId(id), '')
+    assert.deepEqual(cardsOnWorkflow('coding'), [id])
+    assert.deepEqual(cardsOnWorkflow('content'), [])
+
+    // And neither does the direct edit a screen makes.
+    patchCard(id, { workflow: 'content' } as unknown as CardPatch)
+    assert.equal(cardWorkflowId(id), '')
   })
 })
 
@@ -283,8 +289,10 @@ describe('an agent a workflow no longer has', () => {
     assert.equal(refused.ok, false)
     assert.deepEqual(refused.cards, [made.id])
     assert.equal(workflowById(copy.id!)!.id, copy.id)
-    // Once nothing runs on it, it goes.
-    await move(root, ['update', String(made.id), '--workflow', ''])
+    // Once nothing runs on it, it goes. A card's workflow is fixed (#744), so the way there
+    // is to finish the card rather than to move it off.
+    assert.match(refused.error!, /finish or drop it first/)
+    await move(root, ['archive', String(made.id)])
     assert.equal(removeWorkflow(copy.id!).ok, true)
     assert.equal(workflowById(copy.id!), undefined)
   })
@@ -347,7 +355,7 @@ describe('what a helper is asked for', () => {
 })
 
 describe('a card a delivery is already building', () => {
-  it('keeps the workflow that delivery froze, and refuses to be moved off it', async () => {
+  it('keeps the workflow that delivery froze', async () => {
     const made = await move(root, ['create', '--title', 'Write the launch note', '--workflow', 'content'])
     const id = made.id as number
     // A delivery in flight on the card, the way `openRun` opens one.
@@ -368,9 +376,9 @@ describe('a card a delivery is already building', () => {
     assert.equal(frozen.id, 'content')
     assert.equal(frozen.stages.execute!.lead, 'content-writer')
 
-    // And the card cannot be moved while it is in flight: this delivery builds under the
-    // workflow it started with, whatever the card says afterwards.
-    await refuses(root, ['update', String(id), '--workflow', 'coding'], /delivery/i)
+    // The card's own workflow is fixed at create (#744), so the frozen copy and the card
+    // always agree — the freeze is what keeps a mid-flight reassignment of the WORKFLOW's
+    // stages off this delivery.
     assert.equal(cardWorkflowId(id), 'content')
   })
 })

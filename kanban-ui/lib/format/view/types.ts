@@ -631,11 +631,6 @@ export interface CardPatch {
   /** How often a recurring card repeats, or empty to take the cadence off and leave the
    *  card running only when someone asks. Recurring cards only. */
   cadence?: string
-  /** The workflow this card runs through (#715), or empty to put it back on the board's
-   *  default. Switching one drops the plan that was made under the old workflow: the card
-   *  goes back to `todo` and is planned again. Refused while a delivery is in flight — that
-   *  delivery froze the workflow it started with. */
-  workflow?: string
 }
 
 /** One hand-check added or crossed off. `verify` is the card's list as it now stands, so

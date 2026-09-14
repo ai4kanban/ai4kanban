@@ -24,7 +24,6 @@ import { RECURRING } from '../lib/recurring'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
 import { cardCreation } from '../lib/agent/store'
-import { heldByDelivery } from '../lib/agent/deliveries'
 import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
 import { findCard } from '../lib/view/read'
 import { creationRefusal } from '../lib/view/rules'
@@ -262,8 +261,6 @@ export interface UpdateOptions {
   channels?: string[]
   slug?: string
   cadence?: string
-  /** `--workflow`: move the card to another workflow (#715). */
-  workflow?: string
 }
 
 // Which workflow a card runs on. Empty means the board's default and is written as no key at
@@ -370,21 +367,6 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (flags.channels !== undefined) {
     meta.channels = channelsFlag(flags.channels, meta.channels)
     changes.push(`channels→${meta.channels.map((c) => c.name).join(', ') || '(none)'}`)
-  }
-  // Which workflow the card runs on (#715). Switching one drops the plan that was made under
-  // the old workflow — the caller checks nothing is in flight first (lib/view/api.ts), because
-  // a delivery already building this card froze the workflow it started with.
-  if (flags.workflow !== undefined) {
-    const held = heldByDelivery(id)
-    if (held) die(held, { kind: 'card-held', id })
-    const next = workflowFlag(flags.workflow)
-    if (next !== meta.workflow) {
-      meta.workflow = next
-      // The plan was made under the old workflow's stages, so it no longer describes the
-      // work. The card goes back to `todo` and is planned again; what was produced stays.
-      if (meta.status === 'ready') meta.status = 'todo'
-      changes.push(`workflow→${meta.workflow || DEFAULT_WORKFLOW}`)
-    }
   }
   // How often the card repeats, and so whether the local UI runs it in the
   // background at all. `--cadence ""` clears it and the card goes back to

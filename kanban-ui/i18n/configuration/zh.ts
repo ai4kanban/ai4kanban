@@ -44,7 +44,7 @@ const zh: ConfigurationCopy = {
     nameLabel: "流程名称",
     namePlaceholder: "流程名称",
     confirmDelete: (name) => `删除「${name}」？`,
-    inUse: (n) => `还有 ${n} 张未归档卡片在用它，请先改派。`,
+    inUse: (n) => `还有 ${n} 张未归档卡片在用它，请先完成或删除这些卡片。`,
     loading: "正在加载流程…",
     tooOld: "这个项目里的运行规则太旧，无法列出它的流程。请升级命令后重新打开这个对话框。",
     saveFailed: "未能保存该修改",

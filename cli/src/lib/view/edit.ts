@@ -20,8 +20,6 @@ import { setSubtreeRelease, validRelease } from '../releases'
 import { RECURRING } from '../recurring'
 import { flowRefusal } from '../agent/flows'
 import { cardCreation } from '../agent/store'
-import { heldByDelivery } from '../agent/deliveries'
-import { DEFAULT_WORKFLOW, workflowById } from '../agent/workflows'
 import { normalizeSchedule } from '../schedule'
 import { LEVELS, normalizeRelease } from '../validate'
 import { findCard } from './read'
@@ -73,24 +71,6 @@ export function patchCard(id: number, patch: CardPatch): void {
     const parsed = text ? parseCadence(text) : null
     if (text && !parsed) die(`"${text}" isn't a cadence. Accepted: ${CADENCE_FORMS}`)
     meta.cadence = parsed ? formatCadence(parsed) : ''
-  }
-
-  // The workflow this card runs through (#715). Its stages decide who plans, who builds and
-  // who reviews, so a plan made under the old one no longer describes the work — the card
-  // goes back to `todo` and is planned again. What was produced stays on the card: the
-  // switch drops the plan, not the work.
-  if (patch.workflow !== undefined) {
-    const held = heldByDelivery(id)
-    if (held) die(held, { kind: 'card-held', id })
-    const wanted = patch.workflow.trim()
-    if (wanted && wanted !== DEFAULT_WORKFLOW && !workflowById(wanted)) {
-      die(`no workflow called "${wanted}" on this board`, { kind: 'no-such-workflow', id })
-    }
-    const next = wanted === DEFAULT_WORKFLOW ? '' : wanted
-    if (next !== meta.workflow) {
-      meta.workflow = next
-      if (meta.status === 'ready') meta.status = 'todo'
-    }
   }
 
   const newBody = patch.body !== undefined ? patch.body : body

@@ -43,8 +43,10 @@ export function cardsOnWorkflow(id: string): number[] {
 }
 
 /** Drop one of the board's own, refused while an open card still runs on it — a card left
- *  naming a workflow nobody has is a card that cannot start (agent/start.ts). The one place
- *  that rule lives, so the pane and `akb workflow delete` turn down the same delete. */
+ *  naming a workflow nobody has is a card that cannot start (agent/start.ts). A card's
+ *  workflow is fixed once it is created (#744), so the way through is to finish or drop
+ *  those cards. The one place that rule lives, so the pane and `akb workflow delete` turn
+ *  down the same delete. */
 export function removeWorkflow(id: string): { ok: boolean; error?: string; cards?: number[] } {
   const held = cardsOnWorkflow(id)
   if (held.length) {
@@ -53,7 +55,7 @@ export function removeWorkflow(id: string): { ok: boolean; error?: string; cards
       cards: held,
       error:
         `${held.length} open card${held.length === 1 ? '' : 's'} (${held.map((n) => `#${n}`).join(', ')}) ` +
-        `still ${held.length === 1 ? 'runs' : 'run'} on this workflow — move ${held.length === 1 ? 'it' : 'them'} to another one first.`,
+        `still ${held.length === 1 ? 'runs' : 'run'} on this workflow — finish or drop ${held.length === 1 ? 'it' : 'them'} first.`,
     }
   }
   return deleteWorkflow(id)

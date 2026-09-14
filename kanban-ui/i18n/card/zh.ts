@@ -249,13 +249,6 @@ const zh: CardCopy = {
     unscheduleHint: "取消计划——不会再自动启动",
     related: "相关",
   },
-  workflow: {
-    replan: "更换后这张卡片需要重新规划，现有方案作废，已产出的内容保留。",
-    manage: "管理流程",
-    locked: "交付进行中，暂不可更换",
-    open: "流程——更换",
-    saveFailed: "未能更换流程",
-  },
   subtasks: {
     heading: "子任务",
     running: "运行中",

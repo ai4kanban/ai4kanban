@@ -46,7 +46,8 @@ const en: ConfigurationCopy = {
     nameLabel: "Workflow name",
     namePlaceholder: "Workflow name",
     confirmDelete: (name) => `Delete "${name}"?`,
-    inUse: (n) => `${n} open ${n === 1 ? "card runs" : "cards run"} on it. Move them first.`,
+    inUse: (n) =>
+      `${n} open ${n === 1 ? "card runs" : "cards run"} on it. Finish or drop ${n === 1 ? "it" : "them"} first.`,
     loading: "Loading workflows…",
     tooOld:
       "The board's rules in this project are too old to list its workflows. Update the command and reopen this dialog.",
