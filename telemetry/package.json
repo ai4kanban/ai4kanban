@@ -13,6 +13,7 @@
     "dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler dev",
     "tail": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler tail",
     "numbers": "node scripts/numbers.mjs",
+    "numbers:web": "node scripts/numbers-web.mjs",
     "forget": "node scripts/forget.mjs",
     "forget:case": "node scripts/forget-case.mjs",
     "burst": "node scripts/burst.mjs",

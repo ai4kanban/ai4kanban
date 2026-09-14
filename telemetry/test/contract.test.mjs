@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { DAY, ENDPOINT, EVENTS, LIMITS, TOKEN, UUID } from '../contract.ts'
+import { DAY, ENDPOINT, EVENTS, INSTALLS_ENDPOINT, LIMITS, TOKEN, UUID } from '../contract.ts'
 
 // The contract is what four senders and this server read instead of each keeping a copy. A
 // name or a kind that drifts out of shape here loses a number silently everywhere.
@@ -46,11 +46,12 @@ describe('the contract', () => {
   })
 
   it('answers on its own name, never a workers.dev address', () => {
-    for (const address of Object.values(ENDPOINT)) {
+    for (const address of [...Object.values(ENDPOINT), ...Object.values(INSTALLS_ENDPOINT)]) {
       assert.ok(address.startsWith('https://'), address)
       assert.ok(!address.includes('workers.dev'), address)
     }
     assert.notEqual(ENDPOINT.production, ENDPOINT.development)
+    assert.notEqual(INSTALLS_ENDPOINT.production, INSTALLS_ENDPOINT.development)
   })
 
   it('holds the numbers the privacy page and the senders are written against', () => {

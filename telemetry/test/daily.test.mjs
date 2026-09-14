@@ -94,6 +94,17 @@ describe('the daily run', () => {
     assert.equal(JSON.parse(rows.at(-1).numbers).installs, 1)
   })
 
+  it("counts the badge's installs total off the summaries it just wrote", async () => {
+    const env = fakeEnv()
+    await put(env, TODAY, 'a1', { ...APP_DAY, name: 'app_open', first_run: true })
+
+    const run = await runDaily(env, NOW)
+    assert.equal(run.countedInstalls, true)
+    const rows = env.DB.sqlite.prepare('SELECT day, total FROM installs ORDER BY day').all()
+    assert.equal(rows.at(-1).day, TODAY)
+    assert.equal(rows.at(-1).total, 1)
+  })
+
   it('leaves a settled day alone on the next run', async () => {
     const env = fakeEnv()
     await runDaily(env, NOW)

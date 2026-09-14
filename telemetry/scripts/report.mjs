@@ -107,7 +107,7 @@ function downloadRate(days, held, from, to) {
 
 /** Views and presses over the pages that carry a button, as page -> language -> counts.
  *  Event counts, not distinct machines, so summaries add across days. */
-function cellsOf(summaries) {
+export function cellsOf(summaries) {
   const cells = new Map()
   const add = (group, of) => {
     for (const [key, n] of Object.entries(group ?? {})) {
@@ -127,10 +127,11 @@ function cellsOf(summaries) {
   return cells
 }
 
-const languagesOf = (cells) => [...new Set([...cells.values()].flatMap((one) => [...one.keys()]))]
+export const languagesOf = (cells) =>
+  [...new Set([...cells.values()].flatMap((one) => [...one.keys()]))]
 
 /** What one selection of pages and languages comes to. */
-function summed(cells, pages, languages) {
+export function summed(cells, pages, languages) {
   const total = { views: 0, presses: 0 }
   for (const page of pages) {
     for (const language of languages) {

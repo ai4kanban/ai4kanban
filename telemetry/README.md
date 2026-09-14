@@ -4,15 +4,16 @@ The one service AI4Kanban runs: a Cloudflare Worker at `t.ai4kanban.dev` in fron
 database. It takes small batches of usage events from the app, the `akb` command and the
 site, keeps the raw events 90 days, and writes one summary a day and one archive file a day
 that outlive them. It also takes feedback a person wrote (#603), on a route of its own.
-Nothing here answers a request that returns a number — the numbers are printed by
-`npm run numbers`, with the Cloudflare account we already hold.
+The one number it answers a request with is the installs total the README's badge reads
+(#728); every other number is read from this repository with the Cloudflare account we
+already hold — `npm run numbers` prints them, `npm run numbers:web` puts them on a page.
 
 ```
 telemetry/
 ├── contract.ts     the one file the senders and the server both read
 ├── src/            the Worker — index.ts is every route it has
 ├── migrations/     the schema, applied forward only by `wrangler d1 migrations`
-├── scripts/        migrate, numbers, forget, burst
+├── scripts/        migrate, numbers, numbers:web, forget, burst
 ├── test/           run by `npm test`; the SQL runs against a real SQLite
 └── wrangler.jsonc  both copies of the service, their routes, schedules and buckets
 ```
@@ -42,6 +43,11 @@ telemetry/
   came of it, while a submission that did not land is answered as such and the screen it was
   written on says so. The body is kept indefinitely, its diagnostic attachments are swept at
   90 days, and neither is written into the daily archive.
+- **One number leaves without the account, and it is a total.** `/v1/installs` answers
+  installs that have ever reported a first run, as a shields.io endpoint badge and nothing
+  else: the daily job writes the running total into a table of its own, the route reads one
+  row from it, and no parameter can ask it for a second number. A total it cannot read is
+  `unknown`, never `0`.
 - **A spent day drops events rather than failing.** A sender that gets an error retries, and
   retries on the busiest day of the year make that day worse. Past the account's daily
   request ceiling Cloudflare answers before this code runs, which is the one case that cannot
@@ -85,11 +91,19 @@ npm run migrate            # apply new migrations before deploying a Worker that
 npm run deploy             # the endpoint at t.ai4kanban.dev
 npm run deploy:dev         # the copy development builds post into
 npm run numbers            # the last 14 days; --days N, --dev, --json
+npm run numbers:web        # the same production numbers on a page, this machine only
 npm run forget -- <id>     # delete one install's events and feedback, archive files included
 npm run forget:case -- <fb_id>  # delete one partner case and every eval case made from it
 npm run burst              # a bounded release-day burst, development copy only
 npm test                   # the Worker's checks, and the SQL against a real SQLite
 ```
+
+**The page is local, and production only.** `npm run numbers:web` listens on the loopback
+address alone, so nothing else on the network reaches it, and it is gone when the process is
+— nothing is deployed and there is nothing to log in to. It reads the last 90 days of
+production summaries once at startup and works every range out from that, so a restart is how
+the day's later numbers arrive. Credentials come from `telemetry/.env`
+(`.env.example` is the template); a missing one is named and nothing is started.
 
 **Deploy the service before the sender that needs it.** The endpoint drops event names AND
 fields it does not know, so a sender released first loses its new event — or its new field on

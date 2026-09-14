@@ -25,6 +25,22 @@ export const FEEDBACK_ENDPOINT = {
   development: 'https://t-dev.ai4kanban.dev/v1/feedback',
 } as const
 
+/**
+ * The one route that answers with a number (#728): installs that have ever reported a first
+ * run, for the installs badge on the README. A GET with no parameters, and the body is a
+ * shields.io endpoint badge — shields refuses a body carrying a key its own schema does not
+ * name, so the day the total counts through is a header instead.
+ *
+ * Every other number still needs the Cloudflare account behind the service.
+ */
+export const INSTALLS_ENDPOINT = {
+  production: 'https://t.ai4kanban.dev/v1/installs',
+  development: 'https://t-dev.ai4kanban.dev/v1/installs',
+} as const
+
+/** The day the installs total counts through, on the answer to `INSTALLS_ENDPOINT`. */
+export const INSTALLS_HEADER = 'x-installs-through'
+
 export type Copy = keyof typeof ENDPOINT
 
 export const LIMITS = {

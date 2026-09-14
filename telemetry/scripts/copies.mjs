@@ -57,8 +57,8 @@ export function wrangler(args, { absentIf } = {}) {
 }
 
 /**
- * One statement against a copy's database, with the account we already hold. There is no
- * endpoint that answers a read, so this is the only way any number leaves the service.
+ * One statement against a copy's database, with the account we already hold. The service
+ * answers no read but the installs total (#728), so this is the only way to any other number.
  */
 export function statement(copy, sql) {
   const args = ['d1', 'execute', copy.database, ...copy.flags, '--remote', '--json']

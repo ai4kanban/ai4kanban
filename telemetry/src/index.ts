@@ -1,10 +1,10 @@
 /**
  * The endpoint. One route takes batches, one takes feedback (#603), one takes a partner's
- * refine case (#628), one says the service is up, and there is no fifth: nothing here
- * answers a request that returns a number. The
- * numbers are read from this repository with the Cloudflare account we already hold
- * (`npm run numbers`), which is the only way #292's promise that nobody outside the project
- * reads them can hold.
+ * refine case (#628), one says the service is up, and one answers the installs total for the
+ * README's badge (#728) — a single cumulative number, with no parameter to ask it anything
+ * else. Every other number is read from this repository with the Cloudflare account we
+ * already hold (`npm run numbers`, `npm run numbers:web`), which is what keeps #292's promise
+ * that nobody outside the project reads them.
  *
  * The three posting routes never meet. A batch is taken whatever came of it, because a
  * number nobody notices losing is not worth a retry; a piece of feedback and a case are
@@ -12,12 +12,14 @@
  * told when it did not go.
  */
 
-import { LIMITS } from '../contract.ts'
+import { INSTALLS_HEADER, LIMITS } from '../contract.ts'
 import { BadCase, storeCase, takeCase } from './case.ts'
 import { runDaily } from './daily.ts'
 import { BadFeedback, storeFeedback, takeFeedback } from './feedback.ts'
 import type { Env } from './env.ts'
 import { development } from './env.ts'
+import { BADGE_CACHE, READ_INSTALLS, badgeOf } from './installs.ts'
+import type { InstallsTotal } from './installs.ts'
 import { AddressHour, withinLimit } from './limit.ts'
 import { store } from './store.ts'
 import { BadBatch, take } from './take.ts'
@@ -71,6 +73,11 @@ async function route(request: Request, env: Env, now: Date): Promise<Handled> {
   // day at all.
   const address = request.headers.get('cf-connecting-ip') ?? ''
   if (!(await withinLimit(env.LIMITER, address, now))) {
+    // The badge's route is still answered, with the number left out. shields.io draws an
+    // error badge for anything that is not a 200, and a README reading "inaccessible" is
+    // worse than one reading "unknown" — while the constant body reads nothing, so a flood
+    // costs the day no more here than a refusal would.
+    if (pathname === '/v1/installs' && request.method === 'GET') return said(200, badgeOf(null))
     return said(429, { ok: false }, { 'retry-after': '600' })
   }
 
@@ -78,6 +85,7 @@ async function route(request: Request, env: Env, now: Date): Promise<Handled> {
     if (request.method !== 'GET') return said(405, { ok: false })
     return said(200, { service: 'ai4kanban-telemetry', ok: true })
   }
+  if (pathname === '/v1/installs') return installs(request, env, said)
   if (pathname === '/v1/feedback') return feedback(request, env, now, said)
   if (pathname === '/v1/case') return partnerCase(request, env, now, said)
   if (pathname !== '/v1/batch') return said(404, { ok: false })
@@ -118,6 +126,37 @@ async function route(request: Request, env: Env, now: Date): Promise<Handled> {
 
 /** What a route answers with, already carrying the CORS the request earned. */
 type Said = (status: number, body: unknown, headers?: Record<string, string>) => Handled
+
+/**
+ * The installs total, as the badge reads it (#728).
+ *
+ * One row, written by the daily job — no event is read and no parameter is taken, so this
+ * route can answer nothing but the number it was made for. A row it could not read is
+ * `unknown` rather than `0`, still with a 200, because a badge is only useful when it says
+ * what it does not know.
+ */
+async function installs(request: Request, env: Env, said: Said): Promise<Handled> {
+  if (request.method !== 'GET') return said(405, { ok: false })
+
+  let held: InstallsTotal | null = null
+  let rowsRead = 0
+  try {
+    const row = await env.DB.prepare(READ_INSTALLS).all<InstallsTotal>()
+    rowsRead = row.meta.rows_read
+    held = row.results[0] ?? null
+  } catch (error) {
+    console.error('telemetry: installs unreadable', error)
+  }
+
+  return {
+    answer: answered(request, env, 200, badgeOf(held), {
+      'cache-control': `public, max-age=${BADGE_CACHE}`,
+      ...(held ? { [INSTALLS_HEADER]: held.day } : {}),
+    }),
+    rowsWritten: 0,
+    rowsRead,
+  }
+}
 
 /**
  * One piece of feedback, taken or refused in so many words.

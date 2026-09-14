@@ -7,9 +7,9 @@
 //   npm run numbers -- --json       the summaries as they are stored
 //
 // It reads `daily` and never the events, so a reading costs the same however many events are
-// stored — and the days past the retention period have no events left to read anyway. There
-// is no address to open and no chart to glance at: this command and the Cloudflare account
-// behind it are the only way any of these numbers can be reached.
+// stored — and the days past the retention period have no events left to read anyway. This
+// and `npm run numbers:web`, which puts the same summaries on a local page, are the only ways
+// to these numbers, and both need the Cloudflare account behind them.
 
 import { copyFrom, query } from './copies.mjs'
 import { report } from './report.mjs'

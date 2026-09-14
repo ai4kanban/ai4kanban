@@ -6,7 +6,7 @@ import worker from '../src/index.ts'
 import { fakeEnv } from './fake.mjs'
 
 // What the endpoint answers. Two things it must never do: tell a sender what was dropped,
-// and answer any request with a number.
+// and answer with any number but the installs total the README's badge reads (#728).
 
 const INSTALL = '0f3a9b1c-2d4e-4f6a-8b1c-2d4e6f8a0b1c'
 const day = () => new Date().toISOString().slice(0, 10)
@@ -74,7 +74,7 @@ describe('the endpoint', () => {
     assert.equal(stored(env), 0)
   })
 
-  it('answers no request that returns a number', async () => {
+  it('answers no request with a number but the installs total', async () => {
     const env = fakeEnv()
     for (const path of ['/v1/batch', '/v1/numbers', '/daily', '/v1/events', '/']) {
       const answer = await worker.fetch(new Request(`https://t.ai4kanban.dev${path}`), env)

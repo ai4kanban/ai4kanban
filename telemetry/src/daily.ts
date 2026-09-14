@@ -2,12 +2,13 @@
  * The one job the service runs on a clock, in the last hour of the UTC day so it spends what
  * the day's allowance has left rather than taking it from the senders first.
  *
- * Four steps today — write the expiring days out to the archive, delete what has expired,
- * sweep the diagnostic attachments feedback carried (#603), then write the summaries — and each stands on its own: a step that fails leaves the rest of
- * the job standing. The one order that matters is the first two: the sweep may only take a
- * day the archive already holds. #400's daily pull of the public GitHub and npm counts is the
- * next step, and goes here rather than on a schedule of its own, because a static site cannot
- * run one.
+ * Five steps today — write the expiring days out to the archive, delete what has expired,
+ * sweep the diagnostic attachments feedback carried (#603), write the summaries, then add
+ * them up into the installs total the badge reads (#728) — and each stands on its own: a step
+ * that fails leaves the rest of the job standing. Two orders matter: the sweep may only take
+ * a day the archive already holds, and the installs total is worked out from the summaries
+ * this run just wrote. #400's daily pull of the public GitHub and npm counts is the next step,
+ * and goes here rather than on a schedule of its own, because a static site cannot run one.
  *
  * A run gets fifty queries on the free plan and every D1 query is one of them. So the run
  * keeps a budget, spends it oldest work first, and carries whatever does not fit to the next
@@ -18,6 +19,7 @@ import { LIMITS } from '../contract.ts'
 import { ARCHIVE_PAGE, fileOf, frontier, keyOf } from './archive.ts'
 import type { ArchiveRow } from './archive.ts'
 import type { Env } from './env.ts'
+import { WRITE_INSTALLS } from './installs.ts'
 import { shift } from './take.ts'
 import { SPREAD, TOTALS, WRITE_SUMMARY, numbersOf } from './summary.ts'
 import type { Totals, Triple } from './summary.ts'
@@ -40,6 +42,8 @@ const FEEDBACK_CHUNK = 500
 const FEEDBACK_CHUNKS = 3
 /** Spreads, totals, and the write. */
 const QUERIES_PER_DAY = 3
+/** The installs total (#728), worked out from the summaries this run just wrote. */
+const QUERIES_FOR_INSTALLS = 1
 
 /** The expired days, oldest first — the sweep takes them one at a time. */
 const EXPIRED = 'SELECT day FROM events WHERE day < ?1 GROUP BY day ORDER BY day LIMIT ?2'
@@ -74,6 +78,8 @@ export interface DailyRun {
   summarised: string[]
   /** Days this run had no budget for. The next run takes them. */
   carried: number
+  /** Whether the installs badge's running total was rewritten (#728). */
+  countedInstalls: boolean
   rowsWritten: number
   rowsRead: number
 }
@@ -89,6 +95,7 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
     held: 0,
     summarised: [],
     carried: 0,
+    countedInstalls: false,
     rowsWritten: 0,
     rowsRead: 0,
   }
@@ -148,6 +155,19 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
     left = await summarise(env, today, left, run)
   } catch (error) {
     console.error('telemetry: summaries failed', error)
+  }
+
+  // After the summaries, because it is worked out from them (#728).
+  try {
+    if (left >= QUERIES_FOR_INSTALLS) {
+      left -= QUERIES_FOR_INSTALLS
+      const result = await env.DB.prepare(WRITE_INSTALLS).bind(new Date().toISOString()).run()
+      run.rowsWritten += result.meta.rows_written
+      run.rowsRead += result.meta.rows_read
+      run.countedInstalls = true
+    }
+  } catch (error) {
+    console.error('telemetry: installs total failed', error)
   }
 
   spent(env, today, run.rowsWritten, run.rowsRead)
@@ -242,8 +262,10 @@ async function readDay(
 }
 
 async function summarise(env: Env, today: string, budget: number, run: DailyRun): Promise<number> {
-  let left = budget
-  if (left < 1 + QUERIES_PER_DAY) return left
+  // The installs total's one query is held back, so a run that summarises to the last of its
+  // budget still leaves the badge's number standing beside the summaries it just wrote.
+  let left = budget - QUERIES_FOR_INSTALLS
+  if (left < 1 + QUERIES_PER_DAY) return budget
 
   left -= 1
   const kept = shift(today, -LIMITS.retentionDays)
@@ -268,7 +290,7 @@ async function summarise(env: Env, today: string, budget: number, run: DailyRun)
     left -= QUERIES_PER_DAY
     await writeDay(env, day.day, day.settled, usage.get(day.day) ?? null, run)
   }
-  return left
+  return left + QUERIES_FOR_INSTALLS
 }
 
 /**

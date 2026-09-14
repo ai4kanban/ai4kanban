@@ -6,7 +6,7 @@
 
 ![English](https://img.shields.io/badge/English-24231f?style=flat-square) [![简体中文](https://img.shields.io/badge/简体中文-dd4f1e?style=flat-square)](README-zh.md)
 
-[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=2f6b46)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=2c5c86)](https://github.com/ai4kanban/ai4kanban/releases)
+[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=2f6b46)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=2c5c86)](https://github.com/ai4kanban/ai4kanban/releases) [![installs](https://img.shields.io/endpoint?url=https%3A%2F%2Ft.ai4kanban.dev%2Fv1%2Finstalls&style=flat-square)](https://ai4kanban.dev/download)
 
 [![ai4kanban.dev](https://img.shields.io/badge/ai4kanban.dev-5a3f92?style=flat-square)](https://ai4kanban.dev) [![Blog](https://img.shields.io/badge/Blog-b83a12?style=flat-square)](https://ai4kanban.dev/blog)
 
