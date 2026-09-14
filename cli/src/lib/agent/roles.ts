@@ -95,7 +95,7 @@ const DECIDER: AgentRole = {
 const REVIEWER: AgentRole = {
   name: 'reviewer',
   stage: 'review',
-  gloss: 'checks what was built',
+  gloss: 'checks the code a build delivered',
   memory: [],
   switch: 'aiReview',
 }

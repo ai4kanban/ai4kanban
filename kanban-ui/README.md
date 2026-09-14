@@ -887,7 +887,7 @@ is **manual commit mode**, below.
   three is why. A detached HEAD builds this way rather than being refused — the commit you then make
   is reachable from `HEAD` alone.
 - **Only the Implement button carries the ticks.** **Schedule** starts a build later, and it reads
-  **Automatic Git commits** and the **Reviewer**'s switch as they stand then; so does
+  **Automatic Git commits** and the **Code reviewer**'s switch as they stand then; so does
   `akb card implement` in a terminal.
 
 - **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
@@ -1011,7 +1011,7 @@ prints the review flow.
 
 #### Turning AI review off
 
-Review is a separate paid run on every delivery, so it is the **Reviewer**'s own switch on
+Review is a separate paid run on every delivery, so it is the **Code reviewer**'s own switch on
 Configuration → Agents — the one place it is turned off, and it answers for every build off a
 planned card. There is no per-build box and no flag: **Implement**, **Schedule** and
 `akb card implement` all read the setting as it stands then. **Build now** is the one build it
@@ -1228,7 +1228,7 @@ Two switches. Both are repository-level answers, saved in `ui.config.json` and s
 on the board. A change applies to deliveries started afterwards; one already in flight keeps what it
 started with. Both decide how a delivery is built. The two answers that are an agent are not here:
 whether a delivery starts at all is the **Gater** (#493) and whether it is reviewed is the
-**Reviewer** (#509), each a tile under **Configuration → Agents**.
+**Code reviewer** (#509), each a tile under **Configuration → Agents**.
 
 **Automatic Git commits**, on by default. It is the side each Implement opens on, not the only
 way to change it: the dialog's **Build this on a branch of its own** turns one build round and
@@ -1548,7 +1548,7 @@ missing key means on, which is the default.
 `requireDiffApproval` is **Approve diffs before landing** above. The other way round:
 only written when you turn it **on**, so a missing key means off, which is the default.
 
-`aiReview` is the **Reviewer**'s switch on **Configuration → Agents**. Like `autoCommit`, only
+`aiReview` is the **Code reviewer**'s switch on **Configuration → Agents**. Like `autoCommit`, only
 written when you turn it off — a missing key means on, and so does a file that will not parse: an
 unreadable setting must not be the reason something landed unreviewed. The key keeps the name it
 was written under while it was a row of General → Delivery (#509), so a board that had review off
@@ -1666,12 +1666,13 @@ ships, then the ones this project added.
   line under the name. **Discuss an idea** is the one you talk to — it helps you decide what you
   want and whether an idea deserves work, and a discussion that ends without creating a card is a
   fine outcome; **Planner** plans and refines cards, **Builder** builds them and lands them,
-  **Reviewer** checks what was built; a marketing board has a **Writer** in place of the Builder.
+  **Code reviewer** checks the code a build delivered; a marketing board has a **Writer** in
+  place of the Builder.
   A role is always on — a board without a planner plans nothing — except three, each with a switch
   of its own. Two stand in for you, both off by default and product boards only: **Auto-approve
   builds** judges whether a card that reached ready may build unwatched, and **Auto-answer
   questions** answers the questions waiting on you; each reads the goal and every module's
-  `decisions.md` and `rejected.md` on top of the card. The third is the **Reviewer**, on by
+  `decisions.md` and `rejected.md` on top of the card. The third is the **Code reviewer**, on by
   default: judging a build is a paid run per delivery, so a board may decline it.
 - The **Board** pane's roster is split by what STARTS an agent, not by whether it can be switched
   off: **Manual** is what you call yourself — the discussion, the memory tidy, the sweep, the

@@ -218,8 +218,8 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every draft it writes and every Channel repurpose — "no exclamation marks, and never open with a question".',
       },
       reviewer: {
-        name: "Reviewer",
-        gloss: "Reviews a finished build and fixes what it finds.",
+        name: "Code reviewer",
+        gloss: "Reviews the code a build delivered and fixes what it finds.",
         rule: 'Added to the end of every Review — "reject any dependency the card did not name".',
       },
       gater: {
