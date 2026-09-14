@@ -62,8 +62,13 @@ export type ConfigurationCopy = {
     /** The one agent that runs the selected stage, and the picker when nobody does. */
     lead: string;
     pickLead: string;
-    /** In place of the lead, when nobody runs this stage: what it stops. */
-    noLead: string;
+    /** Beside a workflow that cannot start a card, and the one line that says what it
+     *  means — on the dot marking the stage to fix, and on the row a picker greys out. */
+    notReady: string;
+    notReadyHint: string;
+    /** In place of the lead, on a stage that cannot start: no lead, a lead this board no
+     *  longer has, or a lead that belongs to another stage all read the same. */
+    stageProblem: string;
     /** The agents that stage's lead may call in, and the button that adds one. */
     helpers: string;
     addHelper: string;

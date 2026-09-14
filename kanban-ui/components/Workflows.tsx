@@ -55,6 +55,22 @@ export function useWorkflowName(): (flow: { id: string; name: string; builtIn: b
   );
 }
 
+/** Whether one stage cannot start. No lead, a lead this board no longer has, and a lead that
+ *  belongs to another stage all read the same to the user, and all three fall out of the
+ *  candidates the board already sent: those are exactly the agents that may take this stage. */
+export const stageBlocked = (setup: WorkflowStageView): boolean =>
+  !setup.lead || !setup.candidates.some((a) => a.name === setup.lead);
+
+/** The one mark this card adds, in the shape of the `Built-in` chip beside it — peach is the
+ *  palette's attention hue and is all that separates the two. A ready workflow gets none. */
+function NotReadyPill({ children }: { children: string }) {
+  return (
+    <span className="shrink-0 rounded-[5px] bg-nb-peach-soft px-1.5 py-0.5 text-[10px] font-[700] text-nb-peach-ink">
+      {children}
+    </span>
+  );
+}
+
 /** Where the pane is, so a trip to Workflow agents and back lands on the same stage of the
  *  same workflow with the same thing selected. Held by the dialog rather than here, because
  *  the pane itself is unmounted while the other section is open. */
@@ -128,6 +144,8 @@ export function WorkflowsPanel({
 
   const flow = flows?.find((f) => f.id === picked);
   const setup = flow?.stages.find((s) => s.stage === stage);
+  // Which of the three cannot start, so the tabs can say which one to fix.
+  const blocked = new Set((flow?.stages ?? []).filter(stageBlocked).map((s) => s.stage));
 
   const refused = (res: { ok: boolean; error?: string }): boolean => {
     if (res.ok) return false;
@@ -264,9 +282,15 @@ export function WorkflowsPanel({
                     }`}
                   >
                     <span className="block truncate">{nameOf(f)}</span>
-                    {(f.builtIn || f.isDefault) && (
+                    {(f.builtIn || f.isDefault || f.problems.length > 0) && (
                       <span className="mt-1 block text-[10.5px] font-[500] text-nb-ink-soft">
                         {[f.builtIn ? c.builtIn : "", f.isDefault ? c.isDefault : ""].filter(Boolean).join(" · ")}
+                        {f.problems.length > 0 && (
+                          <>
+                            {(f.builtIn || f.isDefault) && " · "}
+                            <span className="font-[700] text-nb-peach-ink">{c.notReady}</span>
+                          </>
+                        )}
                       </span>
                     )}
                   </button>
@@ -286,10 +310,11 @@ export function WorkflowsPanel({
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="truncate text-[15px] font-[800] tracking-[-0.02em]">{nameOf(flow)}</span>
                     {flow.builtIn && (
-                      <span className="rounded-[5px] bg-nb-wash px-1.5 py-0.5 text-[10px] font-[700] text-nb-ink-soft">
+                      <span className="shrink-0 rounded-[5px] bg-nb-wash px-1.5 py-0.5 text-[10px] font-[700] text-nb-ink-soft">
                         {c.builtIn}
                       </span>
                     )}
+                    {flow.problems.length > 0 && <NotReadyPill>{c.notReady}</NotReadyPill>}
                   </div>
                   <MoreMenu
                     open={menu}
@@ -324,16 +349,24 @@ export function WorkflowsPanel({
                       <button
                         type="button"
                         aria-current={name === stage}
+                        title={blocked.has(name) ? c.notReadyHint : undefined}
                         onClick={() => {
                           setStage(name);
                           setPicking(null);
                           setHelper("");
                         }}
-                        className={`flex h-9 cursor-pointer items-center whitespace-nowrap rounded-[9px] px-3 text-[12.5px] font-[700] transition-colors duration-100 ${
+                        className={`flex h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] px-3 text-[12.5px] font-[700] transition-colors duration-100 ${
                           name === stage ? "bg-nb-accent-soft text-nb-accent-deep" : "bg-nb-wash text-nb-ink"
                         }`}
                       >
                         {c.stages[name]}
+                        {blocked.has(name) && (
+                          <span
+                            role="img"
+                            aria-label={c.notReadyHint}
+                            className="size-[6px] shrink-0 rounded-full bg-nb-peach-ink"
+                          />
+                        )}
                       </button>
                       {i < WORKFLOW_STAGES.length - 1 && (
                         <FiArrowRight aria-hidden className="text-[12px] text-nb-ink-soft/45" />
@@ -344,7 +377,7 @@ export function WorkflowsPanel({
 
                 {setup && (
                   <div className="min-w-0">
-                    {!setup.lead && <p className="mb-3 text-[12px] text-nb-peach-ink">{c.noLead}</p>}
+                    {stageBlocked(setup) && <p className="mb-3 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>}
                     <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{c.lead}</h4>
                     <div className="relative inline-block">
                       <LeadButton
@@ -454,16 +487,6 @@ export function WorkflowsPanel({
             )}
           </div>
         </div>
-      )}
-
-      {flow && flow.problems.length > 0 && (
-        <Note icon={<FiAlertCircle />}>
-          {flow.problems.map((problem) => (
-            <span key={problem} className="mt-1 block first:mt-0">
-              {problem}
-            </span>
-          ))}
-        </Note>
       )}
     </div>
   );

@@ -1276,6 +1276,8 @@ function WorkflowRow({
   onPick: (id: string) => void;
 }) {
   const c = useCopy().board.create.sheet.workflow;
+  // The mark and its one line are the Workflows pane's own, so the two screens say one thing.
+  const w = useCopy().configuration.workflows;
   const nameOf = useWorkflowName();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -1303,22 +1305,33 @@ function WorkflowRow({
       </button>
       {open && (
         <div className="absolute left-[64px] top-[37px] z-30 w-[254px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]">
-          {flows.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => {
-                onPick(f.id);
-                setOpen(false);
-              }}
-              className={`flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2.5 text-left text-[12px] font-[700] ${
-                f.id === mine.id ? "bg-nb-accent-soft" : ""
-              }`}
-            >
-              <span className="min-w-0 truncate">{nameOf(f)}</span>
-              {f.id === mine.id && <FiCheck className="text-[13px]" aria-hidden />}
-            </button>
-          ))}
+          {flows.map((f) => {
+            // A workflow with a stage that cannot start is not a choice here: it would only
+            // write a card that stops on its first run.
+            const off = f.problems.length > 0;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                aria-disabled={off || undefined}
+                title={off ? w.notReadyHint : undefined}
+                onClick={() => {
+                  if (off) return;
+                  onPick(f.id);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between gap-2 rounded-[7px] px-3 py-2.5 text-left text-[12px] font-[700] ${
+                  off ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+                } ${f.id === mine.id ? "bg-nb-accent-soft" : ""}`}
+              >
+                <span className="min-w-0 truncate">{nameOf(f)}</span>
+                {/* Not peach here: the row is already down, and a colour on a greyed row
+                    reads as something you can still press. */}
+                {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft">{w.notReady}</span>}
+                {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
+              </button>
+            );
+          })}
           <div className="mt-1 border-t border-nb-ink/10 pt-1">
             <button
               type="button"
