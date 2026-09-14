@@ -18,6 +18,7 @@ import type { Language } from '../machine/types'
 import { readAgentMemory } from '../memory'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import { specAgentCatalog } from './catalog'
+import { stageHelpers, workflowFor, workflowsHere } from '../agent/workflows'
 import { agentSettings, outputLines, OUTPUT_KEY } from './output'
 import type { AgentKind, SpecAgent } from './parse'
 
@@ -213,11 +214,29 @@ export const specHookAgents = (): SpecAgent[] => hookAgents('spec')
  *  needs to ask which solution this is. */
 export const writeHookAgents = (): SpecAgent[] => hookAgents('write')
 
-const hookAgents = (kind: AgentKind): SpecAgent[] => specAgents().filter((a) => a.kind === kind)
+// The `spec` hook IS the plan stage (#715): an agent fills part of a card's spec while the
+// card is being planned. An agent that declared a later stage is on this board and is
+// assignable to a workflow, but a card's spec is not what it writes.
+const hookAgents = (kind: AgentKind): SpecAgent[] =>
+  specAgents().filter((a) => a.kind === kind && (kind !== 'spec' || a.stage === 'plan'))
 
 /** The agents a flow may ask for — the ones on that hook that are on, in the board's own
  *  order. */
 export const enabledSpecAgents = (): SpecAgent[] => enabledHookAgents('spec')
+
+// The ones one workflow's PLAN stage may call in (#715). An agent is assigned to a stage of
+// a workflow rather than switched on for the whole board, so a card planned under one
+// workflow never sees a helper another workflow assigned.
+//
+// A board that picks no workflows is left exactly as it was: every enabled agent is offered,
+// which is what the selector always listed.
+function planHelpers(agents: SpecAgent[], workflow?: string): SpecAgent[] {
+  if (!workflowsHere()) return agents
+  const flow = workflowFor(workflow)
+  if (!flow) return agents
+  const assigned = new Set(stageHelpers(flow, 'plan').map((h) => h.agent))
+  return agents.filter((a) => assigned.has(a.name))
+}
 
 /** The same, for the `write` hook. */
 export const enabledWriteAgents = (): SpecAgent[] => enabledHookAgents('write')
@@ -236,8 +255,8 @@ export const findWriteAgent = (name: string): SpecAgent | null => {
 }
 
 /** Enabled agents and their triggers, without their execution instructions. */
-export const specAgentSelector = (id: number | string): string =>
-  selector(enabledSpecAgents(), {
+export const specAgentSelector = (id: number | string, workflow?: string): string =>
+  selector(planHelpers(enabledSpecAgents(), workflow), {
     tag: 'spec-agents',
     lead: "Specialist agents this board has, each filling one part of a card's spec:",
     ask: `Command: \`akb spec <agent> ${id} <short note> [--print]\`.`,

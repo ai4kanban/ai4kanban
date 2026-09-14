@@ -34,6 +34,10 @@ export interface Meta {
   /** The channels this topic goes to, in the order they were picked (./channels.ts). Empty on every product
    *  card — the field is the marketing solution's. */
   channels: CardChannel[]
+  /** The workflow this card runs on (#715) — a workflow's stable id, never its name, so
+   *  renaming one leaves every card pointing at it. Empty on a card written before the field
+   *  and on a board that picks no workflows, and both read as the default workflow. */
+  workflow: string
   cadence: string
   last_run: string
   /** The day this card was archived — `YYYY-MM-DD`, written by `board archive` on its way

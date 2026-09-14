@@ -216,9 +216,22 @@ import {
   specAgentProblems,
   specAgents,
 } from "@/lib/agents";
+import {
+  addWorkflowHelper,
+  cardsOnWorkflow,
+  createWorkflow,
+  deleteWorkflow,
+  duplicateWorkflow,
+  removeWorkflowHelper,
+  renameWorkflow,
+  setWorkflowHelperExtra,
+  setWorkflowLead,
+  workflows,
+  workflowsOffered,
+} from "@/lib/workflows";
 import { testConnection } from "@/lib/test-connection";
 import { isLanguage } from "@/lib/types";
-import { isDiscussion } from "@/lib/types";
+import { isDiscussion, WORKFLOW_STAGES } from "@/lib/types";
 import type {
   AgentInfo,
   AgentView,
@@ -270,6 +283,8 @@ import type {
   TopicResult,
   UsageReporting,
   VerifyResult,
+  WorkflowStage,
+  WorkflowView,
   WriteResult,
 } from "@/lib/types";
 
@@ -1739,10 +1754,16 @@ export async function setAgentRuleAction(agent: string, text: string): Promise<W
 
 /** Add a specialist from the board's template. A name already taken is refused before
  *  anything is written, so the pane never creates a clash it would then report. */
-export async function createAgentAction(name: string): Promise<WriteResult & { agent?: string }> {
+export async function createAgentAction(
+  name: string,
+  stage?: WorkflowStage,
+): Promise<WriteResult & { agent?: string }> {
   if (typeof name !== "string") return { ok: false, error: "an agent is created by name" };
+  if (stage !== undefined && !WORKFLOW_STAGES.includes(stage)) {
+    return { ok: false, error: "an agent is created on one of the three stages" };
+  }
   try {
-    return await createAgent(name);
+    return await createAgent(name, stage);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -1756,6 +1777,116 @@ export async function saveAgentFileAction(name: string, text: string): Promise<W
   }
   try {
     return await saveAgentFile(name, text);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// --- the workflows a card runs through (#715) --------------------------------
+// Every check is the board's — which agents can take a stage, which workflows can be
+// renamed, whether an open card still runs on one — so these only say when, and turn a
+// refusal into a value the pane can show rather than a crash page.
+
+/** Every workflow this board has, with each stage's lead, helpers and candidates. `null`
+ *  when this project's rules are older than the pane. */
+export async function workflowsAction(): Promise<{ workflows: WorkflowView[] | null; error?: string }> {
+  try {
+    return { workflows: await workflows() };
+  } catch (e) {
+    return { workflows: null, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Whether this board picks workflows at all. False on a board whose rules are too old and
+ *  on one whose cards go through its solution's own flows — the sections are hidden rather
+ *  than drawn empty. */
+export async function workflowsOfferedAction(): Promise<boolean> {
+  try {
+    return await workflowsOffered();
+  } catch {
+    return false;
+  }
+}
+
+/** Add a workflow of this board's own. The name is the user's own words; an empty one is
+ *  refused by the board rather than saved as a workflow nobody can read. */
+export async function createWorkflowAction(name: string): Promise<WriteResult & { id?: string; name?: string }> {
+  if (typeof name !== "string") return { ok: false, error: "a workflow is created by name" };
+  try {
+    return await createWorkflow(name);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Copy one whole, assignments and extra requirements and all. `called` is what the pane
+ *  calls it, so a copy of a built-in is named in the language the pane is read in. */
+export async function duplicateWorkflowAction(
+  id: string,
+  called?: string,
+): Promise<WriteResult & { id?: string; name?: string }> {
+  if (typeof id !== "string") return { ok: false, error: "a workflow is copied by id" };
+  try {
+    return await duplicateWorkflow(id, typeof called === "string" ? called : undefined);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Rename one this board added. A built-in is refused by the board. */
+export async function renameWorkflowAction(id: string, name: string): Promise<WriteResult> {
+  if (typeof id !== "string" || typeof name !== "string") {
+    return { ok: false, error: "a workflow is renamed by id and name" };
+  }
+  try {
+    return await renameWorkflow(id, name);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Drop one this board added. Refused while an open card still runs on it — the pane asks
+ *  `cardsOnWorkflowAction` first so it can say which cards those are before offering it. */
+export async function deleteWorkflowAction(id: string): Promise<WriteResult> {
+  if (typeof id !== "string") return { ok: false, error: "a workflow is deleted by id" };
+  try {
+    return await deleteWorkflow(id);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** The open cards still running on one workflow. */
+export async function cardsOnWorkflowAction(id: string): Promise<{ cards: number[] }> {
+  if (typeof id !== "string") return { cards: [] };
+  try {
+    return { cards: await cardsOnWorkflow(id) };
+  } catch {
+    return { cards: [] };
+  }
+}
+
+/** Set one stage's lead, add or drop a helper, or write what one assignment asks for. One
+ *  action for all four: they are the same write to the same stage, and the pane redraws
+ *  from the board's answer either way. */
+export async function setWorkflowStageAction(
+  id: string,
+  stage: WorkflowStage,
+  move:
+    | { kind: "lead"; agent: string }
+    | { kind: "add-helper"; agent: string }
+    | { kind: "drop-helper"; agent: string }
+    | { kind: "extra"; agent: string; extra: string },
+): Promise<WriteResult> {
+  if (typeof id !== "string" || !WORKFLOW_STAGES.includes(stage)) {
+    return { ok: false, error: "a stage is set by workflow id and stage name" };
+  }
+  if (!move || typeof move.agent !== "string") return { ok: false, error: "the change has to name an agent" };
+  try {
+    if (move.kind === "lead") return await setWorkflowLead(id, stage, move.agent);
+    if (move.kind === "add-helper") return await addWorkflowHelper(id, stage, move.agent);
+    if (move.kind === "drop-helper") return await removeWorkflowHelper(id, stage, move.agent);
+    return await setWorkflowHelperExtra(id, stage, move.agent, move.extra ?? "");
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

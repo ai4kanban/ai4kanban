@@ -36,6 +36,8 @@ import type {
   RunView,
   SetupProposal,
   SpecAgentView,
+  WorkflowStage,
+  WorkflowView,
 } from "./format/agent/types";
 import type { CloudEventAnswer, NotificationGroup } from "./format/cloud/events";
 import type {
@@ -275,9 +277,23 @@ export interface BoardRules {
   // pane says so rather than drawing a grid it cannot fill.
   readAgents?(): Promise<{ agents: AgentView[]; problems: string[] }>;
   setAgentRule?(agent: string, text: string): Promise<WriteResult>;
-  createAgent?(name: string): Promise<WriteResult & { agent?: string }>;
+  createAgent?(name: string, stage?: WorkflowStage): Promise<WriteResult & { agent?: string }>;
   saveAgentFile?(name: string, text: string): Promise<WriteResult>;
   deleteAgent?(name: string): Promise<WriteResult & { removed?: string[] }>;
+
+  // the workflows a card runs through (#715). Optional: a project on older rules has no
+  // workflows at all, and the pane says so rather than drawing an empty list.
+  workflowViews?(): WorkflowView[];
+  workflowsHere?(): boolean;
+  createWorkflow?(name: string): WriteResult & { id?: string; name?: string };
+  duplicateWorkflow?(id: string, called?: string): WriteResult & { id?: string; name?: string };
+  renameWorkflow?(id: string, name: string): WriteResult;
+  deleteWorkflow?(id: string): WriteResult;
+  cardsOnWorkflow?(id: string): number[];
+  setWorkflowLead?(id: string, stage: WorkflowStage, agent: string): WriteResult;
+  addWorkflowHelper?(id: string, stage: WorkflowStage, agent: string): WriteResult;
+  removeWorkflowHelper?(id: string, stage: WorkflowStage, agent: string): WriteResult;
+  setWorkflowHelperExtra?(id: string, stage: WorkflowStage, agent: string, extra: string): WriteResult;
 
   // a marketing card's drafts and its channels (#411) — what the card page's drafts block
   // draws and acts through. Optional the way the flow rules are: a board running rules older

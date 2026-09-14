@@ -31,6 +31,7 @@ import { idPrefix, locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
+import { workflowForRun } from './runner'
 import { cardAges } from '../card-age'
 import { boardMemoryFiles } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
@@ -44,7 +45,7 @@ import { readInbox } from '../signals/inbox'
 import { migrateTriage } from '../signals/migrate'
 import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
-import { activeDelivery, deliveryFor } from './deliveries'
+import { activeDelivery, deliveryFor, withWorkflow } from './deliveries'
 import { aiReviewOn, owesFocusedReview } from './review'
 import { field, metaLine, numbered } from './facts'
 import { translating } from './language'
@@ -1066,7 +1067,8 @@ function leadLine(req: AgentRequest, program: string): string {
 
 /** Print the flow for one action and start nothing. The result is the same flow as data, so
  *  a caller reading `--json` gets what the terminal was shown. */
-export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
+export function printFlow(rawReq: AgentRequest, program = 'akb'): MoveResult {
+  const req = withWorkflow(rawReq)
   const flow = buildFlow(req, program)
   // The ask WITHOUT this board's own rule for the action (#306). A printed flow gets the
   // same rule a started run does, but at the very end — see below.
@@ -1122,7 +1124,12 @@ export function printFlow(req: AgentRequest, program = 'akb'): MoveResult {
   // long, so they go after the short board-specific part rather than burying it — and they
   // are printed rather than named, because a pointer to a second command is a step that
   // gets skipped, and the job is then done from memory instead of from the flow.
-  const guides = flow.guides.map(findGuide).filter((g): g is NonNullable<typeof g> => g !== null)
+  // In the card's own workflow words (#715): a content card's execute and review stages read
+  // differently from a coding card's, on the same board.
+  const workflow = workflowForRun(req)
+  const guides = flow.guides
+    .map((name) => findGuide(name, workflow))
+    .filter((g): g is NonNullable<typeof g> => g !== null)
   if (guides.length) {
     say('')
     say(`the flows this is done by — each one is also \`${program} guide <topic>\`:`)

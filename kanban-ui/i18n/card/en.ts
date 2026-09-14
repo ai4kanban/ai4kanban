@@ -236,6 +236,7 @@ const en: CardCopy = {
     working: "Working…",
   },
   meta: {
+    workflow: "Workflow",
     modules: "Modules",
     release: "Release",
     priority: "Priority",
@@ -250,6 +251,14 @@ const en: CardCopy = {
     unschedule: "cancel",
     unscheduleHint: "Take the schedule off — nothing will start on its own",
     related: "Related",
+  },
+  workflow: {
+    replan:
+      "Switching re-plans the card: the current plan is dropped and what has been produced is kept.",
+    manage: "Manage workflows",
+    locked: "Locked while this delivery is in flight",
+    open: "Workflow — change",
+    saveFailed: "couldn't change the workflow",
   },
   subtasks: {
     heading: "subtasks",

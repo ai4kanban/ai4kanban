@@ -408,6 +408,10 @@ export interface Card {
   /** What the decider answered on this card for the user (#447), one entry per question.
    *  Empty on every card it never touched, which is every card while the switch is off. */
   decided: CardDecision[]
+  /** The workflow this card runs through (#715) — a workflow's stable id, never its name.
+   *  Empty on a card that names none and on a board that picks no workflows, and both read
+   *  as the default workflow. */
+  workflow: string
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
   /** The channels this topic goes to, in the order the user picked — the first is the lead
@@ -624,6 +628,11 @@ export interface CardPatch {
   /** How often a recurring card repeats, or empty to take the cadence off and leave the
    *  card running only when someone asks. Recurring cards only. */
   cadence?: string
+  /** The workflow this card runs through (#715), or empty to put it back on the board's
+   *  default. Switching one drops the plan that was made under the old workflow: the card
+   *  goes back to `todo` and is planned again. Refused while a delivery is in flight — that
+   *  delivery froze the workflow it started with. */
+  workflow?: string
 }
 
 /** One hand-check added or crossed off. `verify` is the card's list as it now stands, so

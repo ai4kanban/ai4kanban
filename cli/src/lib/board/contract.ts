@@ -24,6 +24,7 @@
 // into the board UI by scripts/sync-format.mjs and both sides name one contract.
 
 import type { AgentRequest, AgentView, DeliveryCarryOn, DeliveryRecord } from '../agent/types'
+import type { WorkflowStage } from '../agent/types'
 import type {
   ArchiveList,
   ArchivedCardFile,
@@ -221,7 +222,7 @@ export interface BoardProvider {
   saveAgentRule(agent: string, text: string, env: OpEnvelope): Promise<OpResult>
   /** Write a new specialist from the board's template. The name is checked against the
    *  roster and the folders on disk first, so a clash is refused rather than created. */
-  createAgent(name: string, env: OpEnvelope): Promise<OpResult<{ agent: string }>>
+  createAgent(name: string, stage: WorkflowStage | undefined, env: OpEnvelope): Promise<OpResult<{ agent: string }>>
   /** Replace one project agent's `AGENT.md`, whole. Read the way the catalog reads an
    *  agent, so a text it would refuse never reaches the file. */
   saveAgentFile(name: string, text: string, env: OpEnvelope): Promise<OpResult>

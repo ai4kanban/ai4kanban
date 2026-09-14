@@ -18,7 +18,10 @@ export type AgentRoleName =
   | "memory-pruner"
   | "sweeper"
   | "feedback"
-  | "triage";
+  | "triage"
+  | "content-planner"
+  | "content-writer"
+  | "content-reviewer";
 
 export type ConfigurationCopy = {
   open: string;
@@ -27,10 +30,65 @@ export type ConfigurationCopy = {
   section: {
     general: string;
     runtimes: string;
+    /** The workflows a card runs through (#715). */
     agents: string;
+    /** Where a workflow's agents are defined, as opposed to assigned. */
+    catalog: string;
+    /** The agents that belong to the board rather than to any workflow. */
+    upkeep: string;
     cloud: string;
     /** The workspace a Cloud board lives in (#317). Only ever on a Cloud board. */
     workspace: string;
+  };
+  /** Configuration → Workflows (#715): every workflow this board runs down the left, and
+   *  the selected one's three stages beside it. A workflow says WHO runs each stage; the
+   *  agents themselves are defined one section down. */
+  workflows: {
+    /** The column's caption, and the button under it. */
+    title: string;
+    add: string;
+    /** Beside a workflow the command ships, and beside the one a new card starts on. */
+    builtIn: string;
+    isDefault: string;
+    /** What the two workflows the command ships are CALLED here. Closed, because the command
+     *  ships them — a workflow this board adds is the user's own words and is drawn as
+     *  written. Keyed by the workflow's own id, which never changes. */
+    builtInNames: Record<"coding" | "content", string>;
+    /** The three stages, in the order a card goes through them. */
+    stages: { plan: string; execute: string; review: string };
+    /** The one agent that runs the selected stage, and the picker when nobody does. */
+    lead: string;
+    pickLead: string;
+    /** In place of the lead, when nobody runs this stage: what it stops. */
+    noLead: string;
+    /** The agents that stage's lead may call in, and the button that adds one. */
+    helpers: string;
+    addHelper: string;
+    dropHelper: string;
+    /** What THIS assignment asks of the selected helper, on top of its own instructions. */
+    extra: string;
+    extraPlaceholder: string;
+    /** Inside a picker: the search box, what a list with nothing in it says, and the way
+     *  across to where agents are defined. */
+    find: string;
+    noCandidates: string;
+    manage: string;
+    /** The more menu, and what is in it. */
+    more: string;
+    duplicate: string;
+    rename: string;
+    remove: string;
+    /** The name box a new or renamed workflow is typed into. It saves on blur and has no
+     *  buttons, so this is only read out loud. */
+    nameLabel: string;
+    namePlaceholder: string;
+    /** Confirming a delete, and what it says when open cards still run on it. */
+    confirmDelete: (name: string) => string;
+    inUse: (n: number) => string;
+    loading: string;
+    tooOld: string;
+    /** A save the board refused. */
+    saveFailed: string;
   };
   /** Configuration → General: three captioned groups on one pane. Each caption is the
    *  whole of that group's explanation, so the panes below carry no blurb of their own. */
@@ -154,6 +212,20 @@ export type ConfigurationCopy = {
      *  run by, which are never switched off, and the ones a project switches on. */
     always: string;
     optional: string;
+    /** Configuration → Workflow agents (#715): the same pane, filtered to the agents a
+     *  workflow can assign and grouped by the stage each declares. */
+    stageTabs: { plan: string; execute: string; review: string };
+    /** The whole column when this stage has no agent yet. */
+    noneInStage: string;
+    /** Back to where the pane was opened from, and the line beside it naming the place. */
+    back: string;
+    /** Which stage a new agent is being added to. */
+    stage: string;
+    /** The two groups the Workflow agents column is split into: where each agent came
+     *  from — the command ships it, or this project added it. `yours` below is the other. */
+    builtIn: string;
+    /** The one press beside a project agent's file path. */
+    copyPath: string;
     /** How many specialists are on, beside that group's caption. */
     onCount: (n: number) => string;
     /** A column row's own state, read there and flipped on the page beside it. Only a

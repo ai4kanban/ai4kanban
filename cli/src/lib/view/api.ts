@@ -30,6 +30,7 @@ import {
   type VerifyOp,
 } from '../board'
 import type { DeliveryCarryOn } from '../agent/types'
+import type { WorkflowStage } from '../agent/workflows'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../schedule'
 import type { CardPatch, SaveProjectResult, WriteResult } from './types'
 
@@ -224,8 +225,12 @@ export async function setAgentRule(agent: string, text: string, opts?: WriteOpti
 
 /** Add a specialist from the board's template (#422). A name already on the roster or
  *  already a folder is refused before anything is written. */
-export async function createAgent(name: string, opts?: WriteOptions): Promise<WriteResult & { agent?: string }> {
-  return flat<{ agent: string }>(await envelopeFor({ board: true }, opts, (env) => board().createAgent(name, env)))
+export async function createAgent(
+  name: string,
+  stage?: WorkflowStage,
+  opts?: WriteOptions,
+): Promise<WriteResult & { agent?: string }> {
+  return flat<{ agent: string }>(await envelopeFor({ board: true }, opts, (env) => board().createAgent(name, stage, env)))
 }
 
 /** Replace one project agent's `AGENT.md`, whole. A text the catalog would refuse never

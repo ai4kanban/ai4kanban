@@ -27,9 +27,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { IconType } from "react-icons";
-import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiSettings, FiSliders, FiTerminal, FiUsers, FiX, FiZap } from "react-icons/fi";
+import { FiAlertCircle, FiBell, FiCheck, FiChevronDown, FiChevronRight, FiCloud, FiGitCommit, FiSettings, FiSliders, FiTerminal, FiTool, FiUsers, FiX, FiZap } from "react-icons/fi";
 import {
   hasWorkspaceAction,
+  workflowsOfferedAction,
   installedAgentsAction,
   loggedOutAgentsAction,
   setHarnessAction,
@@ -61,6 +62,7 @@ import type {
 } from "@/lib/types";
 import { TOOL_BTN } from "./chrome";
 import { AgentsPanel } from "./Agents";
+import { WorkflowsPanel, type WorkflowSpot } from "./Workflows";
 import { CloudPanel } from "./Cloud";
 import { CloudMigration, useMigrating } from "./CloudMigration";
 import { Dialog } from "./Dialog";
@@ -117,11 +119,16 @@ export const PRUNER = "memory-pruner";
 // The dialog's sections, in sidebar order — what the board is set up with, then the tool
 // it runs on, then what that tool is told, then where the answers go. Adding a settings
 // group is one entry here plus its pane below; nothing else moves.
-type Section = "general" | "runtimes" | "agents" | "workspace" | "cloud";
+type Section = "general" | "runtimes" | "agents" | "catalog" | "upkeep" | "workspace" | "cloud";
 const SECTIONS: { id: Section; icon: IconType }[] = [
   { id: "general", icon: FiSliders },
   { id: "runtimes", icon: FiTerminal },
-  { id: "agents", icon: FiUsers },
+  // The three halves of who works on this board (#715): the workflows a card runs through,
+  // the agents those workflows assign, and the agents that belong to the board itself. The
+  // first two are only on a board that picks workflows at all.
+  { id: "agents", icon: FiGitCommit },
+  { id: "catalog", icon: FiUsers },
+  { id: "upkeep", icon: FiTool },
   // The workspace this board lives in (#317). Only on a Cloud board — a Local one has no
   // workspace to run, so the entry is left out rather than drawn onto an empty pane.
   { id: "workspace", icon: FiCloud },
@@ -231,7 +238,23 @@ export function Configuration({
     if (!open) return;
     void hasWorkspaceAction().then(setCloudBoard);
   }, [open]);
-  const sections = SECTIONS.filter((entry) => entry.id !== "workspace" || cloudBoard);
+  // Whether this board picks workflows at all (#715). A marketing board's cards go through
+  // its solution's own flows, so neither workflow section is offered there — and its whole
+  // team stays on the one pane it has always had, under **Board agents**.
+  const [flows, setFlows] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    void workflowsOfferedAction().then(setFlows);
+  }, [open]);
+  const sections = SECTIONS.filter(
+    (entry) =>
+      (entry.id !== "workspace" || cloudBoard) && (!["agents", "catalog"].includes(entry.id) || flows),
+  );
+
+  // Where the Workflows pane was when it sent the user to Workflow agents, so **Back to
+  // workflow** lands on the same workflow, the same stage and the same picker (#715).
+  const [spot, setSpot] = useState<WorkflowSpot | undefined>(undefined);
+  const [cameFromWorkflow, setCameFromWorkflow] = useState(false);
 
   return (
     <>
@@ -308,9 +331,53 @@ export function Configuration({
                 added, its own AGENT.md. Mounted only while it is the section on screen: it
                 asks the board for its roster when it draws, and that roster carries the
                 switches and the rules as they read right now. */}
+            {/* The workflows a card runs through (#715) — the list, the three stages of the
+                selected one, and who runs each. Mounted only while it is the section on
+                screen: it asks the board for its workflows and their candidates when it
+                draws, and both move as agents are added. */}
             {section === "agents" && (
+              <WorkflowsPanel
+                spot={spot}
+                onSpot={setSpot}
+                onManage={(stage) => {
+                  setSpot((was) => (was ? { ...was, stage } : was));
+                  setCameFromWorkflow(true);
+                  setSection("catalog");
+                }}
+                onError={onError}
+              />
+            )}
+            {/* Where those agents are DEFINED, as opposed to assigned: a name, the stage it
+                belongs to, its instructions and what it runs on. Creating one here changes
+                no workflow — it only becomes something a stage can be given. */}
+            {section === "catalog" && (
               <AgentsPanel
                 info={agent}
+                scope="workflow"
+                stage={spot?.stage}
+                onStage={(stage) => setSpot((was) => (was ? { ...was, stage } : was))}
+                {...(cameFromWorkflow
+                  ? {
+                      onBack: () => {
+                        setCameFromWorkflow(false);
+                        setSection("agents");
+                      },
+                    }
+                  : {})}
+                openOn={pickAgent}
+                onPicked={() => setPickAgent("")}
+                onRuntimes={() => setSection("runtimes")}
+                onError={onError}
+              />
+            )}
+            {/* The agents that belong to the BOARD rather than to any workflow — the
+                discussion, the gate, the decider, material triage, follow-up suggestions,
+                parked tasks, feedback and the memory pruner. Each keeps the agent, the
+                runtime, the rule, the trigger and the switch it has always had. */}
+            {section === "upkeep" && (
+              <AgentsPanel
+                info={agent}
+                scope="board"
                 openOn={pickAgent}
                 onPicked={() => setPickAgent("")}
                 onRuntimes={() => setSection("runtimes")}

@@ -460,9 +460,9 @@ export function localBoard(): BoardProvider {
         return {}
       }),
 
-    createAgent: (name, env) =>
+    createAgent: (name, stage, env) =>
       mutate({ board: true }, env, () => {
-        const res = createAgent(name)
+        const res = createAgent(name, stage)
         if (!res.ok) throw new Error(res.error)
         return { agent: res.agent! }
       }),

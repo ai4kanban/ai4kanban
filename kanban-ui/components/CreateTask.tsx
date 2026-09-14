@@ -315,7 +315,7 @@ export function CreateTask({
           discussion={discussion}
           feedback={feedback}
           onClose={() => setOpen(false)}
-          onSend={(description, mode, pictures, runtime) =>
+          onSend={(description, mode, pictures, runtime, workflow) =>
             startSession(
               // Build now carries no card id (#428): the sentence is the requirement, and
               // the run opens a delivery of its own. It carries the release all the same —
@@ -330,6 +330,9 @@ export function CreateTask({
                 release: release ?? undefined,
                 ...(pictures.shots.length ? { box: pictures.box, shots: pictures.shots } : {}),
                 ...(runtime ? { runtime } : {}),
+                // The workflow the sheet was on (#715). The run writes it onto the card it
+                // creates; with none, the card runs on the board's default.
+                ...(workflow ? { workflow } : {}),
               },
               mode === "build" ? "Build now" : "Create task",
             )

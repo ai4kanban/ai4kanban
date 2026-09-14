@@ -11,6 +11,7 @@
 import { flowByAction } from './flows'
 import { agentImageView } from './resolve'
 import { roleForFlow } from './roles'
+import { cardWorkflowId } from './workflows'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentAction, CreateImageAgents } from './types'
 
@@ -18,12 +19,23 @@ import type { AgentAction, CreateImageAgents } from './types'
  *  `agent/rules.ts` reads to hand a run its rule, and read the same way. */
 export interface RunAsk {
   action?: AgentAction
+  /** The card this run is for, when it names one. Read only to find the card's workflow —
+   *  who leads a stage is the card's answer now, not the board's (#715). */
+  id?: number
   /** The agent's name on a `spec` or `write` run, and nothing on any other. */
   specAgent?: string
   /** Set on a pass a refine spawned, absent on a flow a user typed — the one thing that
    *  tells a refine's `resolve` pass from an `akb card resolve` of its own. */
   refineRound?: number
+  /** The workflow this run's card runs on (#715). Given by a caller that already knows it —
+   *  a delivery hands its frozen one down — and read off the card otherwise. */
+  workflow?: string
 }
+
+/** The workflow one run belongs to: the one it was handed, the one its card carries, or
+ *  nothing at all, which reads as the board's default. */
+export const workflowForRun = (ask: RunAsk): string | undefined =>
+  ask.workflow ?? (typeof ask.id === 'number' ? cardWorkflowId(ask.id) || undefined : undefined)
 
 /** The agent one run is done by: a role's name, a specialist's own name, or nothing when the
  *  request names no action — then the board's default harness runs it. */
@@ -32,7 +44,7 @@ export function agentForRun(ask: RunAsk = {}): string | undefined {
   if (!action) return undefined
   // A specialist runs as itself, whichever hook it is on.
   if (SPECIALIST_ACTIONS.has(action)) return specAgent
-  return roleForFlow(flowOf(ask, action))?.name
+  return roleForFlow(flowOf(ask, action), workflowForRun(ask))?.name
 }
 
 // The flow this run belongs to. A pass belongs to the flow that spawned it, never to a flow

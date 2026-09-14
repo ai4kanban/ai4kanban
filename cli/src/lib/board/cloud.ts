@@ -796,7 +796,7 @@ function cloudBoard(ctx: Context): BoardProvider {
 
     readAgents: () => local.readAgents(),
     saveAgentRule: (agent, text, env) => through({ board: true }, env, (e) => local.saveAgentRule(agent, text, e)),
-    createAgent: (name, env) => through({ board: true }, env, (e) => local.createAgent(name, e)),
+    createAgent: (name, stage, env) => through({ board: true }, env, (e) => local.createAgent(name, stage, e)),
     saveAgentFile: (name, text, env) => through({ board: true }, env, (e) => local.saveAgentFile(name, text, e)),
     deleteAgent: (name, env) => through({ board: true }, env, (e) => local.deleteAgent(name, e)),
     deliveryRules: () => local.deliveryRules(),

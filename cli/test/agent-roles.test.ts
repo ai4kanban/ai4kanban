@@ -89,6 +89,11 @@ describe('the roles', () => {
         'planner',
         'builder',
         'reviewer',
+        // The three the `content` workflow is led by (#715). They stand beside the coding
+        // three on the same board: which one runs a card's stage is the card's workflow.
+        'content-planner',
+        'content-writer',
+        'content-reviewer',
         'memory-pruner',
         'sweeper',
         'feedback',
@@ -156,6 +161,9 @@ describe('the roles', () => {
       'planner',
       'builder',
       'reviewer',
+      'content-planner',
+      'content-writer',
+      'content-reviewer',
       'memory-pruner',
       'sweeper',
       'feedback',
@@ -172,11 +180,14 @@ describe('the roles', () => {
   it('rosters the roles first, then the specialists the command ships', () => {
     solution('product')
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 11), [
+    assert.deepEqual(names.slice(0, 14), [
       'discussion-helper',
       'planner',
       'builder',
       'reviewer',
+      'content-planner',
+      'content-writer',
+      'content-reviewer',
       'memory-pruner',
       'sweeper',
       'feedback',
@@ -185,14 +196,14 @@ describe('the roles', () => {
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(11), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(names.slice(14), ['tech-stack-advisor', 'ui-designer'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(11).fill('role'), 'spec', 'spec'],
+      [...Array(14).fill('role'), 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[11]!.flows, [])
+    assert.deepEqual(agentRoster()[14]!.flows, [])
     // Five roles can be switched off, and each reads a key of its own (#447, #493, #509,
     // #534, #562).
     assert.deepEqual(

@@ -14,7 +14,9 @@ import { randomUUID } from 'node:crypto'
 import { dropRunCard, runCanStart, takeRunCard } from '../board'
 import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
+import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
+import { cardWorkflowId, workflowFor, workflowKnown, workflowProblems, workflowsHere } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import type { AgentRequest, RunRecord } from './types'
 
@@ -23,12 +25,38 @@ import type { AgentRequest, RunRecord } from './types'
 export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | { error: string }> {
   const sessionId = randomUUID()
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
+  const short = workflowRefusal(req)
+  if (short) return { error: short }
   const held = await takeRunCard(sessionId, cardId)
   if (!held.ok) return { error: held.error }
 
   const opened = open(req, sessionId)
   if ('error' in opened) await dropRunCard(sessionId)
   return opened
+}
+
+// Why this run's card cannot start on the workflow it names (#715): a stage with no lead, or
+// one led by an agent this board no longer has. It is read before the card lock is taken, so
+// a refused run leaves nothing behind.
+//
+// The whole workflow is checked rather than only the stage this run is: a card that cannot be
+// reviewed is a card that should not be built, and finding that out after the build is worse
+// than finding it out now. A run already inside a delivery is not checked — that delivery
+// froze its own answer, and re-reading the board would refuse a build in flight over a change
+// made after it started.
+function workflowRefusal(req: AgentRequest): string | null {
+  if (!workflowsHere() || !Number.isInteger(req.id)) return null
+  if (deliveryFor(req)) return null
+  const id = cardWorkflowId(req.id as number)
+  // A card naming a workflow this board no longer has RESOLVES to the default, so that the
+  // card is still readable — but it does not run: `workflowFor` never answers nothing here,
+  // and a card quietly built by agents nobody assigned it is worse than a card that stops.
+  if (!workflowKnown(id)) return `#${req.id} names the "${id}" workflow, and this board has no such workflow.`
+  const flow = workflowFor(id)
+  if (!flow) return null
+  const problems = workflowProblems(flow.id)
+  if (!problems.length) return null
+  return `${problems[0]} Assign it in Configuration → Workflows, or with \`akb workflow stage ${flow.id} --stage <stage> --lead <agent>\`.`
 }
 
 /** The same, from inside a board move — where the board's own lock is held and nothing may be

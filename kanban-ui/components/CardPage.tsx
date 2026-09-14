@@ -7,15 +7,20 @@ import {
   FiAlertCircle,
   FiArchive,
   FiArrowLeft,
+  FiCheck,
   FiCheckCircle,
+  FiChevronDown,
   FiChevronRight,
   FiCornerLeftUp,
   FiEdit2,
   FiFeather,
   FiGitBranch,
+  FiGitCommit,
   FiHelpCircle,
+  FiLock,
   FiMoreHorizontal,
   FiPlay,
+  FiSettings,
   FiSkipForward,
   FiTrash2,
   FiX,
@@ -36,7 +41,9 @@ import {
   type DeliveryDiff,
   type ScheduledAction,
   type SessionView,
+  type WorkflowView,
 } from "@/lib/types";
+import { workflowsAction } from "@/app/actions";
 import type { CardCopy } from "@/i18n/card/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -78,6 +85,8 @@ import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
 import { columnOf } from "./Queue";
 import { SolutionProvider } from "./solution";
+import { configDialog } from "./Configuration";
+import { useWorkflowName } from "./Workflows";
 import { SubtaskMap } from "./SubtaskMap";
 import { buildSubtaskMap } from "@/lib/subtask-map";
 import { latestSessionForCard, runningCardIds, runningSessionForCard, type StartedSession, useAgentSessions, useOnTabFocus, useSessionLog } from "./sessions";
@@ -1251,6 +1260,142 @@ function FinishedBlock({
   );
 }
 
+// --- the workflow this card runs through (#715) -------------------------------
+//
+// Drawn borderless. The strip beside it already spends mint on the module, sky on the
+// release and peach on the levels, and a fourth tint there stops being read — this one is
+// ink and weight. While a delivery is in flight it keeps its name and loses its chevron: the
+// lock says the value is real and not changeable, which dimming it would not.
+//
+// The line at the top of the list is a standing warning, not a confirmation. The cost is
+// read before the pick, so the pick itself is the last word and nothing else asks.
+function WorkflowItem({
+  card,
+  held,
+  disabled,
+  onError,
+}: {
+  card: Card;
+  /** A delivery is in flight, so the workflow it froze is the one this card builds under. */
+  held: boolean;
+  disabled: boolean;
+  onError: (message: string | null) => void;
+}) {
+  const c = useCopy().card;
+  const nameOf = useWorkflowName();
+  const router = useRouter();
+  const actions = useActions();
+  const [flows, setFlows] = useState<WorkflowView[] | null>(null);
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+
+  // Asked once, when the page draws. A board with no workflows — older rules, or a solution
+  // whose cards go through its own flows — answers none, and the item is not drawn at all.
+  useEffect(() => {
+    void workflowsAction().then((res) => setFlows(res.workflows));
+  }, []);
+
+  // Anywhere outside closes it, the way every other list on this page behaves.
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", away);
+    return () => document.removeEventListener("mousedown", away);
+  }, [open]);
+
+  if (!flows?.length) return null;
+  const mine =
+    flows.find((f) => f.id === (card.workflow || "")) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
+  const shut = held || disabled;
+
+  const pick = async (id: string) => {
+    setOpen(false);
+    if (id === mine.id || !actions) return;
+    const res = await actions.patchCard(card.id, { workflow: id }, card.revision);
+    if (!res.ok) return onError(res.error || c.workflow.saveFailed);
+    onError(null);
+    router.refresh();
+  };
+
+  return (
+    <div ref={box} className="relative flex flex-col gap-1">
+      <span className={CAP}>{c.meta.workflow}</span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span
+          role={shut ? undefined : "button"}
+          tabIndex={0}
+          aria-label={shut ? undefined : c.workflow.open}
+          title={held ? c.workflow.locked : undefined}
+          onClick={() => !shut && setOpen((was) => !was)}
+          onKeyDown={(e) => {
+            if (shut) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setOpen((was) => !was);
+            }
+          }}
+          className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-[6px] px-[2px] py-[2.5px] text-[12.5px] font-[800] leading-none ${
+            shut ? "" : "cursor-pointer"
+          }`}
+          style={{ color: held ? "var(--color-nb-ink-soft)" : "var(--color-nb-ink)" }}
+        >
+          <FiGitCommit aria-hidden style={{ width: 12, height: 12, flex: "0 0 auto" }} />
+          {nameOf(mine)}
+          {held ? (
+            <FiLock aria-hidden style={{ width: 11, height: 11, flex: "0 0 auto", opacity: 0.8 }} />
+          ) : (
+            !disabled && (
+              <FiChevronDown aria-hidden style={{ width: 12, height: 12, flex: "0 0 auto", opacity: 0.7 }} />
+            )
+          )}
+        </span>
+      </div>
+
+      {open && (
+        <div
+          className="absolute left-0 top-[calc(100%+6px)] z-20 w-[296px] overflow-hidden rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1"
+          style={{ boxShadow: "3px 3px 0 0 var(--color-nb-ink)" }}
+        >
+          <p className="px-2.5 pb-1.5 pt-1.5 text-[11.5px] leading-[1.5] text-nb-ink-soft">
+            {c.workflow.replan}
+          </p>
+          {flows.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => void pick(f.id)}
+              className={`flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-[7px] text-left text-[12.5px] ${
+                f.id === mine.id ? "bg-nb-accent-soft font-[700]" : "font-[600]"
+              }`}
+            >
+              <span className="w-3 shrink-0">
+                {f.id === mine.id && (
+                  <FiCheck aria-hidden style={{ width: 12, height: 12, color: "var(--color-nb-accent-deep)" }} />
+                )}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{nameOf(f)}</span>
+            </button>
+          ))}
+          <div className="my-1 border-t border-nb-ink/15" />
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              configDialog.open("agents");
+            }}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-[7px] text-left text-[12.5px] font-[700] text-nb-accent-deep"
+          >
+            <FiSettings aria-hidden style={{ width: 12, height: 12, flex: "0 0 auto" }} />
+            {c.workflow.manage}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // One meta column: micro-caption stacked over its value. Columns flow
 // horizontally and wrap, so the box stays one shallow band instead of a tall
 // stack of full-width rows. Every value is chip-height, so rows self-align.
@@ -2016,7 +2161,17 @@ export function CardPage({
                 wrap becomes a two-column grid: a flex wrap there gives one pair a whole
                 row and squeezes the next three onto the following one, and the point of
                 this block is that it can be read across. */}
-            <div className="nb-section flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-sheet px-4 py-3.5 max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:px-3.5 max-md:py-3">
+            <div className="nb-section relative flex flex-wrap items-start gap-x-7 gap-y-3 bg-nb-sheet px-4 py-3.5 max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:px-3.5 max-md:py-3">
+              {/* The workflow this card runs through (#715). First in the strip: it is what
+                  decides who plans, who builds and who reviews this card, so it is read
+                  before the module or the release. */}
+              <WorkflowItem
+                card={card}
+                held={held}
+                disabled={busy || !fieldWrites}
+                onError={setError}
+              />
+
               {card.modules.length > 0 && (
                 <MetaItem label={c.meta.modules}>
                   <span className="flex flex-wrap items-center gap-1.5">

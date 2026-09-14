@@ -269,6 +269,7 @@ const CARD: Card = {
   priority: "high",
   roi: "med",
   status: "ready",
+  workflow: "",
   release: "v0.6",
   blocked_by: [17],
   related: [],

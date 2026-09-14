@@ -22,6 +22,7 @@
 // flow this board has is a stage's, a decision or an event, and never two of them.
 
 import { solution } from '../solution'
+import { workflowFor, workflows, workflowsHere, type WorkflowStage } from './workflows'
 
 export const STAGES = ['discuss', 'plan', 'build', 'review'] as const
 
@@ -174,11 +175,40 @@ const PRODUCT_NODES: FlowNode[] = [
 
 const MARKETING_NODES: FlowNode[] = [{ flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' }]
 
-/** This board's four stage contracts, in the order a card goes through them. */
-export const stageContracts = (): StageContract[] => (solution() === 'marketing' ? MARKETING_STAGES : PRODUCT_STAGES)
+/** Which of the three configurable stages a kernel stage is (#715). `discuss` is none of
+ *  them: a conversation belongs to the board rather than to a card's workflow, so no
+ *  workflow assigns it and every card gets the same discussion helper. */
+const CONFIGURED: Partial<Record<Stage, WorkflowStage>> = { plan: 'plan', build: 'execute', review: 'review' }
 
-/** One stage's contract. */
-export const stageContract = (stage: Stage): StageContract => stageContracts().find((c) => c.stage === stage)!
+// The contracts a workflow's assignments are laid over. `lead` and `helpers` are the two
+// fields a workflow owns; everything else on a contract — what the stage is handed, what it
+// leaves behind, when it is over — is the kernel's and the same whoever runs it.
+const baseContracts = (): StageContract[] => (solution() === 'marketing' ? MARKETING_STAGES : PRODUCT_STAGES)
+
+/** The four stage contracts one card runs under, in the order it goes through them.
+ *
+ *  `workflow` is the card's own (./workflows.ts). Left off, the board's default workflow is
+ *  used — what every flow that names no card reads, and what a board with no workflows at
+ *  all has always had. */
+export function stageContracts(workflow?: string): StageContract[] {
+  const contracts = baseContracts()
+  const flow = workflowsHere() ? workflowFor(workflow) : undefined
+  if (!flow) return contracts
+  return contracts.map((contract) => {
+    const stage = CONFIGURED[contract.stage]
+    if (!stage) return contract
+    const setup = flow.stages[stage]
+    // The assignments as they are written down, not as they resolve: this table is read to
+    // BUILD the roster, so a liveness check here would ask the roster for itself. A helper
+    // the board no longer has is dropped where helpers are actually called in
+    // (./workflows.ts `liveStage`).
+    return { ...contract, lead: setup.lead || contract.lead, helpers: setup.helpers.map((h) => h.agent) }
+  })
+}
+
+/** One stage's contract, under one card's workflow. */
+export const stageContract = (stage: Stage, workflow?: string): StageContract =>
+  stageContracts(workflow).find((c) => c.stage === stage)!
 
 /** This board's shared nodes — everything it can start that is no stage's. */
 export const flowNodes = (): FlowNode[] => (solution() === 'marketing' ? MARKETING_NODES : PRODUCT_NODES)
@@ -186,7 +216,7 @@ export const flowNodes = (): FlowNode[] => (solution() === 'marketing' ? MARKETI
 /** The stage a flow belongs to, or undefined when it is a shared node or this board has no
  *  such flow at all. */
 export const stageOfFlow = (flow: string): Stage | undefined =>
-  flow ? stageContracts().find((c) => c.flows.includes(flow))?.stage : undefined
+  flow ? baseContracts().find((c) => c.flows.includes(flow))?.stage : undefined
 
 /** The shared node a flow is, or undefined when it belongs to a stage or to this board not
  *  at all. */
@@ -195,16 +225,23 @@ export const nodeOfFlow = (flow: string): FlowNode | undefined =>
 
 /** The agent that runs one flow — the one mapping from a flow to who does it. A stage's
  *  flow resolves to its lead; a shared node's to the agent on the node. */
-export const agentForFlow = (flow: string): string | undefined => {
+export const agentForFlow = (flow: string, workflow?: string): string | undefined => {
   if (!flow) return undefined
-  const stage = stageContracts().find((c) => c.flows.includes(flow))
+  const stage = stageContracts(workflow).find((c) => c.flows.includes(flow))
   return stage ? stage.lead : nodeOfFlow(flow)?.agent
 }
 
 /** The flows one agent runs here, stages first and then its nodes. */
-export const flowsOfAgent = (name: string): string[] => [
-  ...stageContracts().filter((c) => c.lead === name).flatMap((c) => c.flows),
-  ...flowNodes().filter((n) => n.agent === name).map((n) => n.flow),
+export const flowsOfAgent = (name: string, workflow?: string): string[] => [
+  ...new Set([
+    // Across every workflow this board has, unless one is named: the same agent leads `plan`
+    // in one workflow and nothing in another, and a rule written for it has to reach every
+    // flow it runs anywhere. A caller that names a workflow is asking about that one alone.
+    ...(workflow !== undefined ? [workflow] : workflowsHere() ? workflows().map((w) => w.id) : [undefined]).flatMap(
+      (id) => stageContracts(id).filter((c) => c.lead === name).flatMap((c) => c.flows),
+    ),
+    ...flowNodes().filter((n) => n.agent === name).map((n) => n.flow),
+  ]),
 ]
 
 /** Every reason a contract names somebody this board does not have. `roster` is the names
@@ -212,7 +249,7 @@ export const flowsOfAgent = (name: string): string[] => [
 export function contractProblems(roster: readonly string[]): string[] {
   const problems: string[] = []
   const has = (name: string): boolean => roster.includes(name)
-  for (const contract of stageContracts()) {
+  for (const contract of baseContracts()) {
     if (!has(contract.lead)) {
       problems.push(
         `the ${contract.stage} stage is led by \`${contract.lead}\`, and no agent on this board answers to that name.`,

@@ -36,6 +36,16 @@ import { cmdMarketingVerify } from '../../commands/marketing'
 import { cmdCloud } from '../../commands/cloud'
 import { cmdGuide } from '../../commands/guide'
 import {
+  cmdWorkflowDelete,
+  cmdWorkflowDuplicate,
+  cmdWorkflowList,
+  cmdWorkflowNew,
+  cmdWorkflowRename,
+  cmdWorkflowStage,
+  type WorkflowOptions,
+} from '../../commands/workflow'
+import { WORKFLOW_STAGES } from '../agent/workflows'
+import {
   cmdAnswered,
   cmdApprove,
   cmdCancel,
@@ -426,10 +436,83 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
       })
   }
 
+  // ---- the workflows a card runs through (#715) -----------------------------
+
+  const workflow = withShared(program.command('workflow'))
+    .summary('the workflows this board runs, and who runs each of their stages')
+    .description(
+      'Every card runs through one workflow: `plan → execute → review`, each stage led by one agent and ' +
+        'able to call in helpers. `coding` and `content` ship with the command and can be reassigned and ' +
+        'copied but not renamed or deleted. A card names its workflow in its own frontmatter ' +
+        '(`akb raw create --workflow`), and a delivery freezes the one it started with.',
+    )
+    .action(async function (this: Command) {
+      await onBoard(this, cli, () => cmdWorkflowList())
+    })
+
+  const flowWord = (name: string) => withShared(workflow.command(name))
+
+  flowWord('list')
+    .summary('every workflow on this board, with each stage\'s lead and helpers')
+    .action(async function (this: Command) {
+      await onBoard(this, cli, () => cmdWorkflowList())
+    })
+
+  flowWord('new')
+    .argument('<name...>', 'what to call it, in your own words')
+    .summary('add a workflow of this board\'s own, with all three stages empty')
+    .action(async function (this: Command, name: string[]) {
+      await onBoard(this, cli, () => cmdWorkflowNew(name.join(' ')))
+    })
+
+  flowWord('duplicate')
+    .argument('<id>', 'the workflow to copy, from `workflow list`')
+    .summary('copy one, assignments and extra requirements and all')
+    .description('The copy is this board\'s own whatever it was copied from, so it can be renamed and deleted.')
+    .action(async function (this: Command, id: string) {
+      await onBoard(this, cli, () => cmdWorkflowDuplicate(id))
+    })
+
+  flowWord('rename')
+    .argument('<id>', 'the workflow to rename, from `workflow list`')
+    .argument('<name...>', 'what to call it now')
+    .summary('rename one this board added')
+    .description('Its id does not move, so every card and every finished delivery on it is unmoved too.')
+    .action(async function (this: Command, id: string, name: string[]) {
+      await onBoard(this, cli, () => cmdWorkflowRename(id, name.join(' ')))
+    })
+
+  flowWord('delete')
+    .argument('<id>', 'the workflow to delete, from `workflow list`')
+    .summary('drop one this board added')
+    .description('Refused while an open card still runs on it — move those cards first.')
+    .action(async function (this: Command, id: string) {
+      await onBoard(this, cli, () => cmdWorkflowDelete(id))
+    })
+
+  flowWord('stage')
+    .argument('<id>', 'the workflow, from `workflow list`')
+    .requiredOption('--stage <stage>', `which stage: ${WORKFLOW_STAGES.join(' | ')}`, oneOf(WORKFLOW_STAGES))
+    .option('--lead <agent>', 'the one agent that runs this stage; "" leaves it with nobody')
+    .option('--add-helper <agent>', 'an agent this stage\'s lead may call in')
+    .option('--drop-helper <agent>', 'end one helper\'s assignment to this stage')
+    .option('--extra <text>', 'what the --add-helper or --drop-helper named is asked for here, on top of its own instructions')
+    .summary('set one stage\'s lead and helpers')
+    .description(
+      'With no change asked for, it lists the agents that can take the stage — an agent declares which ' +
+        'stage it belongs to, and no agent leads or helps a stage it did not declare. The same agent ' +
+        'never leads and helps one stage.',
+    )
+    .action(async function (this: Command, id: string) {
+      const flags = this.opts() as WorkflowOptions
+      await onBoard(this, cli, () => cmdWorkflowStage(id, flags))
+    })
+
   // ---- the flows, as text ---------------------------------------------------
 
   withShared(program.command('guide'))
     .argument('[topic]', 'one flow in full; left off, every flow is listed one line each')
+    .option('--card <id>', "read the flow in that card's workflow words, where its workflow has its own")
     .summary('the flows the board works by, shipped with this command')
     .description(
       'A printed flow already carries the flows its action is done by, so this is for the rest: how the ' +
@@ -439,12 +522,13 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [topic] = positional(vals) as [string | undefined]
       const ctx = ctxOf(this, cli.program)
+      const card = Number((this.opts() as { card?: string }).card)
       try {
         useBoard(resolveBoard('guide', { board: ctx.board, dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint }), ctx.dir !== null)
       } catch {
         // No board here, or a half-made one. The shipped text still reads.
       }
-      await boardless(this, cli, (p) => cmdGuide(topic, p))
+      await boardless(this, cli, (p) => cmdGuide(topic, p, Number.isInteger(card) ? card : undefined))
     })
 
   // The watcher's own door. Not a command anyone types — `akb card implement 12` spawns it — and

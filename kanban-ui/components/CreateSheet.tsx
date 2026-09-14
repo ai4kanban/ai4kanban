@@ -17,7 +17,7 @@ import {
   FiX,
   FiZap,
 } from "react-icons/fi";
-import { createRuntimePicksAction, noteDiscussAnswerAction } from "@/app/actions";
+import { createRuntimePicksAction, noteDiscussAnswerAction, workflowsAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
@@ -26,13 +26,14 @@ import { useSwipeBack } from "@/lib/swipe-back";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
-import type { DiscussionTarget, RunPick } from "@/lib/types";
+import type { DiscussionTarget, RunPick, WorkflowView } from "@/lib/types";
 import { Button } from "./button";
 import { Transcript, Pasted, Pick } from "./Chat";
 import { HAIRLINE } from "./chrome";
 import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
-import { AgentMark } from "./Configuration";
+import { AgentMark, configDialog } from "./Configuration";
+import { useWorkflowName } from "./Workflows";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,6 +93,9 @@ interface Props {
     pictures: { box: string; shots: string[] },
     /** The runtime picked for this one run (#518), or undefined for the agent's own. */
     runtime?: string,
+    /** The workflow the new card runs through (#715), or undefined for the board's
+     *  default. The run is told to write it onto the card it creates. */
+    workflow?: string,
   ) => Promise<{ ok: boolean; error?: string }>;
   /** The Link-a-landed-task block (#603), held by Create task so its outcome outlives this
    *  screen. Drawn under the box in the two modes that write a card — never in Discuss,
@@ -167,6 +171,14 @@ function Sheet({
   // and this mode's: switching mode clears it, and the sheet is unmounted when it closes, so
   // the next one opens back on the agent's own.
   const [runtime, setRuntime] = useState<string | null>(null);
+  // The workflow the card written here runs through (#715). Empty is the board's default,
+  // which is what a card carrying no workflow of its own runs on — so the sheet opens on it
+  // and nothing has to be picked to create a task.
+  const [workflow, setWorkflow] = useState("");
+  const [flows, setFlows] = useState<WorkflowView[] | null>(null);
+  useEffect(() => {
+    void workflowsAction().then((res) => setFlows(res.workflows));
+  }, []);
   useEffect(() => {
     let live = true;
     void createRuntimePicksAction()
@@ -319,6 +331,7 @@ function Sheet({
       picked,
       { box: pictures.box, shots: pictures.pasted },
       runtime ?? undefined,
+      workflow || undefined,
     );
     setSending(false);
     // Only a run that actually started takes the sentence with it. A refusal keeps the
@@ -499,6 +512,12 @@ function Sheet({
             <p className="mt-2 text-balance text-center text-[13.5px] text-nb-ink-soft max-md:text-[12.5px]">
               {c.slogan}
             </p>
+            {/* Which workflow the card this writes runs through (#715). Above the box, so
+                it is read before the sentence rather than after it. A board with one
+                workflow — or with rules older than them — draws nothing here. */}
+            {mode !== "discuss" && flows && flows.length > 1 && (
+              <WorkflowRow flows={flows} picked={workflow} onPick={setWorkflow} />
+            )}
             <div className="mt-6 w-full max-md:mt-5">{composer}</div>
           </div>
         </div>
@@ -1239,6 +1258,82 @@ function PlanPath({ path }: { path: string }) {
         {copied ? <FiCheck size={12} aria-hidden /> : <FiCopy size={12} aria-hidden />}
       </button>
       <Copied on={copied} />
+    </div>
+  );
+}
+
+/** Which workflow the card written here runs through (#715). One label and one list: the
+ *  workflows this board has, and the way across to where they are made. Nothing is picked to
+ *  start with — the board's default is already the answer, and a card created without
+ *  touching this runs on it. */
+function WorkflowRow({
+  flows,
+  picked,
+  onPick,
+}: {
+  flows: WorkflowView[];
+  picked: string;
+  onPick: (id: string) => void;
+}) {
+  const c = useCopy().board.create.sheet.workflow;
+  const nameOf = useWorkflowName();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", away);
+    return () => document.removeEventListener("mousedown", away);
+  }, [open]);
+  const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
+  return (
+    <div ref={box} className="relative mt-6 flex w-full items-center gap-2 max-md:mt-5">
+      <span className="text-[12px] font-[600] text-nb-ink-soft">{c.label}</span>
+      <button
+        type="button"
+        onClick={() => setOpen((was) => !was)}
+        className={`flex h-[30px] cursor-pointer items-center gap-3 rounded-[8px] bg-nb-wash px-3 text-[12px] font-[700] ${
+          open ? "outline-2 outline-nb-accent" : ""
+        }`}
+      >
+        {nameOf(mine)}
+        <FiChevronDown className="text-[12px]" aria-hidden />
+      </button>
+      {open && (
+        <div className="absolute left-[64px] top-[37px] z-30 w-[254px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]">
+          {flows.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => {
+                onPick(f.id);
+                setOpen(false);
+              }}
+              className={`flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2.5 text-left text-[12px] font-[700] ${
+                f.id === mine.id ? "bg-nb-accent-soft" : ""
+              }`}
+            >
+              <span className="min-w-0 truncate">{nameOf(f)}</span>
+              {f.id === mine.id && <FiCheck className="text-[13px]" aria-hidden />}
+            </button>
+          ))}
+          <div className="mt-1 border-t border-nb-ink/10 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                configDialog.open("agents");
+              }}
+              className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[600]"
+            >
+              {c.manage}
+              <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

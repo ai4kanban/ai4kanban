@@ -1,6 +1,7 @@
 // Read and validate an agent’s frontmatter and instructions.
 
 import { isSpecOutput, SPEC_OUTPUTS, type SpecAgentChoice, type SpecAgentSetting, type SpecOutput } from '../agent/types'
+import { WORKFLOW_STAGES, type WorkflowStage } from '../agent/workflows'
 import { solution } from '../solution'
 import { parseYamlBlock, splitFrontmatter } from './yaml'
 import type { YamlValue } from './yaml'
@@ -19,6 +20,10 @@ export interface SpecAgent {
   i18n: Record<string, AgentLines>
   /** The hook it plugs into. */
   kind: AgentKind
+  /** The workflow stage it may be assigned to (#715), or null when it declares none and
+   *  belongs to no workflow. `akb.stage` says it; a file written before that key reads as
+   *  the stage its `kind` always served — `spec` fills a card's spec, so it is `plan`. */
+  stage: WorkflowStage | null
   /** The scope it remembers in, or null when it declares none and starts every run fresh. */
   memory: AgentMemory | null
   /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
@@ -72,6 +77,11 @@ export type AgentKind = (typeof AGENT_KINDS)[number]
 export const AGENT_MEMORIES = ['project'] as const
 export type AgentMemory = (typeof AGENT_MEMORIES)[number]
 
+/** What a `kind` means as a stage, for a file written before `akb.stage` existed. A `spec`
+ *  agent fills part of a card's spec while it is being planned, which is the plan stage; a
+ *  `write` agent is the marketing board's and belongs to no workflow (#718). */
+const STAGE_OF_KIND: Record<AgentKind, WorkflowStage | null> = { spec: 'plan', write: null }
+
 /** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
  *  and the word every flow asks for it by. */
 export const AGENT_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
@@ -97,15 +107,28 @@ export function parseSpecAgent(
 
   const akb = map(front.akb)
   if (!akb) return bad(`\`${name}\` has no \`akb:\` block, so the board can't tell what kind of agent it is`)
+  // Where it is used: `akb.stage` is what an agent written for a workflow declares (#715),
+  // `akb.kind` what every agent written before workflows existed declares, and each stands
+  // in for the other — so a new agent says one thing and no file already on a board has to
+  // be edited.
+  const declaredStage = str(akb.stage)
+  if (declaredStage && !isStage(declaredStage)) {
+    return bad(`\`${name}\` declares \`akb.stage: ${declaredStage}\` — a stage is \`${WORKFLOW_STAGES.join('` or `')}\``)
+  }
   const declaredKind = str(akb.kind)
-  if (!isKind(declaredKind)) {
+  if (declaredKind && !isKind(declaredKind)) {
     return bad(
-      `\`${name}\` declares \`akb.kind: ${declaredKind || '(none)'}\` — an agent is \`${AGENT_KINDS.join('\` or \`')}\``,
+      `\`${name}\` declares \`akb.kind: ${declaredKind}\` — an agent is \`${AGENT_KINDS.join('\` or \`')}\``,
     )
   }
-  if (declaredKind === 'write' && solution() !== 'marketing') {
+  if (!declaredKind && !declaredStage) {
+    return bad(`\`${name}\` declares neither \`akb.stage\` nor \`akb.kind\`, so the board can't tell where it is used`)
+  }
+  const kind: AgentKind = isKind(declaredKind) ? declaredKind : 'spec'
+  if (kind === 'write' && solution() !== 'marketing') {
     return bad(`\`${name}\` is a \`write\` agent, and only a marketing board has a writer to join`)
   }
+  const stage = isStage(declaredStage) ? declaredStage : STAGE_OF_KIND[kind]
   const owns = str(akb.owns)
   if (!owns) return bad(`\`${name}\` has no \`akb.owns\`, which is the part of the spec it answers for`)
 
@@ -147,7 +170,8 @@ export function parseSpecAgent(
       description,
       owns,
       i18n: readTranslations(akb.i18n),
-      kind: declaredKind,
+      kind,
+      stage,
       memory,
       output,
       settings,
@@ -213,6 +237,8 @@ function readSettingTranslations(raw: YamlValue | undefined): Record<string, Set
 const isKind = (value: string): value is AgentKind => (AGENT_KINDS as readonly string[]).includes(value)
 
 const isMemory = (value: string): value is AgentMemory => (AGENT_MEMORIES as readonly string[]).includes(value)
+
+const isStage = (value: string): value is WorkflowStage => (WORKFLOW_STAGES as readonly string[]).includes(value)
 
 function readSetting(
   raw: YamlValue,

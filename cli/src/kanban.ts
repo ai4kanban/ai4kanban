@@ -228,6 +228,28 @@ export { agentHarness } from './lib/agent/resolve'
 // sheet's picker. The pick travels on the request the run is started from and is remembered
 // nowhere, so this is a read and there is no writer beside it.
 export { runRuntimePick } from './lib/agent/resolve'
+// The workflows this board runs (#715) — every card goes through one, and a workflow says
+// who leads each of its three stages and who they may call in. The whole pane is drawn from
+// `workflowViews`, and everything beside it is a writer; the checks are the board's own, so
+// the pane and `akb workflow` refuse the same moves.
+export {
+  addWorkflowHelper,
+  createWorkflow,
+  DEFAULT_WORKFLOW,
+  duplicateWorkflow,
+  removeWorkflowHelper,
+  renameWorkflow,
+  setWorkflowHelperExtra,
+  setWorkflowLead,
+  workflowViews,
+  workflowsHere,
+  WORKFLOW_STAGES,
+} from './lib/agent/workflows'
+export type { WorkflowCandidate, WorkflowStage, WorkflowStageView, WorkflowView } from './lib/agent/workflows'
+// The delete is the guarded one: a workflow an open card still runs on is refused, so the
+// pane and `akb workflow delete` turn down the same move.
+export { cardsOnWorkflow, removeWorkflow as deleteWorkflow } from './lib/agent/workflow-cards'
+
 export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
 // Initialize checkout-local state after the UI selects its board.
 export { useProjectState } from './lib/paths'

@@ -15,6 +15,7 @@ import path from 'node:path'
 import { agentRun } from '../agent/resolve'
 import { agentRoster, ROLE_NAMES } from '../agent/roles'
 import { readRule } from '../agent/rules'
+import type { WorkflowStage } from '../agent/workflows'
 import { forgetAgentRuntime, readAgentRuntime } from '../agent/runtimes'
 import { forgetSpecAgent, specAgentEntries, switchedOn } from '../agent/settings'
 import type { AgentView } from '../agent/types'
@@ -28,6 +29,16 @@ import { agentSettingsView, specAgentEnabled, specAgentSettings } from './index'
 import { AGENT_NAME, parseSpecAgent } from './parse'
 
 const AGENT_FILE = 'AGENT.md'
+
+// What a new agent is told to fill in for `akb.owns` — the part of the work it answers for,
+// which is a different thing at each stage. A `write` agent is the marketing board's, and
+// answers for a file in a topic's folder.
+const OWNS: Record<WorkflowStage | 'write', string> = {
+  plan: "unwritten — name the one part of a card's spec this agent answers for",
+  execute: 'unwritten — name the part of the work this agent produces',
+  review: 'unwritten — name what this agent checks the finished work against',
+  write: 'unwritten — name the file this agent writes into a topic',
+}
 
 /** Whether this board's Triage is open, with an unreachable answer read as closed. */
 async function triageOpen(): Promise<boolean> {
@@ -62,6 +73,7 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       gloss: entry.gloss,
       when: entry.when,
       kind: entry.kind,
+      ...(entry.stage ? { stage: entry.stage } : {}),
       builtIn: entry.builtIn,
       // A role runs the board's own flows, so there is normally nothing to switch off: a
       // board without a planner plans nothing. The gater, the decider, the reviewer, the
@@ -99,7 +111,7 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
  *
  *  The agent is created unwritten on purpose: its `description` and `owns` say so, so a
  *  planning flow reading the roster before the user has filled it in never picks it. */
-export function createAgent(asked: string): WriteResult & { agent?: string } {
+export function createAgent(asked: string, stage?: WorkflowStage): WriteResult & { agent?: string } {
   const name = String(asked ?? '').trim().toLowerCase()
   if (!name) return { ok: false, error: 'an agent needs a name' }
   if (!AGENT_NAME.test(name)) {
@@ -118,7 +130,7 @@ export function createAgent(asked: string): WriteResult & { agent?: string } {
   const file = path.join(AGENTS, name, AGENT_FILE)
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true })
-    fs.writeFileSync(file, agentTemplate(name))
+    fs.writeFileSync(file, agentTemplate(name, stage))
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
@@ -128,20 +140,19 @@ export function createAgent(asked: string): WriteResult & { agent?: string } {
 // The file a new specialist starts as. It parses — so the tile is in the roster rather than
 // in the problems under it — and every line a flow would pick it by says it is unwritten.
 //
-// The hook is the one this board has: `spec` on a product board, where a specialist fills
-// part of a card's spec, and `write` on a marketing one, where it joins the writer.
-function agentTemplate(name: string): string {
+// A stage names where it can be assigned (#715) and is what a workflow agent declares. With
+// none, it falls back to the hook this board has: `spec` on a product board, where a
+// specialist fills part of a card's spec, and `write` on a marketing one, where it joins the
+// writer.
+function agentTemplate(name: string, stage?: WorkflowStage): string {
   const kind = solution() === 'marketing' ? 'write' : 'spec'
-  const owns =
-    kind === 'write'
-      ? 'unwritten — name the file this agent writes into a topic'
-      : "unwritten — name the one part of a card's spec this agent answers for"
+  const owns = OWNS[stage ?? (kind === 'write' ? 'write' : 'plan')]
   return [
     '---',
     `name: ${name}`,
     'description: Unwritten — say here when a card needs this agent, and until you do the board asks for it on none.',
     'akb:',
-    `  kind: ${kind}`,
+    ...(stage ? [`  stage: ${stage}`] : [`  kind: ${kind}`]),
     `  owns: ${owns}`,
     '  # i18n:                    # what the two lines above say to a reader in another',
     '  #   zh:                    # language. Drawn only — every run is given the English.',

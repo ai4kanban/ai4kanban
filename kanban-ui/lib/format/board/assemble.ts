@@ -288,6 +288,7 @@ function cardFrom(read: ReadCard, now: number): Card | null {
     questions: (Array.isArray(meta.questions) ? meta.questions : []) as Question[],
     verify: lines(meta.verify),
     decided: decided(meta.decided),
+    workflow: text(meta.workflow),
     modules: lines(meta.modules),
     channels: channels(meta.channels),
     last_run: lastRun,

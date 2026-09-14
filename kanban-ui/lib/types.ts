@@ -63,10 +63,15 @@ export type {
   SetupProposal,
   SpecAgentSettingView,
   SpecAgentView,
+  WorkflowCandidate,
+  WorkflowHelper,
+  WorkflowStage,
+  WorkflowStageView,
+  WorkflowView,
   TokenUsage,
 } from "./format/agent/types";
 export type { DeliveryCommitMode, DeliveryRecord, DeliveryStatus, DeliveryStep } from "./format/agent/types";
-export { discussionTarget, isDiscussion } from "./format/agent/types";
+export { discussionTarget, isDiscussion, WORKFLOW_STAGES } from "./format/agent/types";
 
 export type {
   ArchiveGroup,

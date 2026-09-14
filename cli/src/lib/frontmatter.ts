@@ -34,6 +34,10 @@ export function serializeFrontmatter(m: Partial<Meta>, which: Solution = solutio
   // names some, so every product card — and every topic whose channels question is still
   // open — keeps the frontmatter it always had.
   out.push(...serializeChannels(m.channels))
+  // The workflow this card runs on (#715) — its stable id. Written only when the card names
+  // one, so a board that never picked a workflow keeps the frontmatter it always had, and
+  // re-emitted whenever it is there, so no rewrite of a card can drop it.
+  if (m.workflow) out.push(`workflow: ${yamlScalar(m.workflow)}`)
   // How often a recurring card repeats (`30m`, `6h`, `1d at 09:30` — see
   // ./cadence.ts). Written only when the card carries one; no cadence means the
   // card runs when a human clicks Run and never on its own.
@@ -204,6 +208,9 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // The channels this topic goes to. A card written before the field, one on a product
   // board, and one whose list was damaged by hand all read as no channels chosen.
   meta.channels = normalizeChannels(meta.channels)
+  // The workflow this card runs on. Missing, empty or damaged reads as no workflow named,
+  // which whoever asks resolves to the default (agent/workflows.ts).
+  meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''
   // When this card last ran — recurring cards only, and only once they have run.
   // Anything but text reads as never run, so a blanked or damaged line just means
   // the card has no run to report.

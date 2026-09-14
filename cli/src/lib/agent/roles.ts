@@ -30,6 +30,7 @@ import { solution } from '../solution'
 import { FLOWS } from './flows'
 import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
 import type { RoleSwitch } from './settings'
+import type { WorkflowStage } from './workflows'
 import type { AgentKind } from '../agents/parse'
 
 /** One role: an agent the board ships, named by the work rather than by a flow. */
@@ -53,6 +54,11 @@ export interface AgentRole {
    *  `triage` is `signalsAccess()` — the answer the Triage rail row and `akb triage fetch`
    *  read. Absent on every role that works wherever its solution does. */
   needs?: 'triage'
+  /** The workflow stage this agent may be assigned to (#715). A role with one is a
+   *  WORKFLOW agent: it can lead or help that stage of any workflow on the board. A role
+   *  without one is a BOARD agent — the discussion, the gate, the decider, the pruner and
+   *  the rest — which no workflow assigns and every workflow gets. */
+  stage?: WorkflowStage
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
   /** The memory files it owns, board-relative. Nothing moves — these are the files its own
@@ -88,6 +94,7 @@ const DECIDER: AgentRole = {
 // under, which is why this switch is the only one that ships ON.
 const REVIEWER: AgentRole = {
   name: 'reviewer',
+  stage: 'review',
   gloss: 'checks what was built',
   memory: [],
   switch: 'aiReview',
@@ -173,19 +180,51 @@ const SWEEPER: AgentRole = {
   memory: [],
 }
 
+// The three the `content` workflow is led by (#715). They ship with the command the way the
+// coding three do, and they stand beside them in the same stage pickers: one board plans a
+// feature and a newsletter through the same three stages, and which agent leads is the
+// workflow's answer rather than the board's.
+//
+// Their memory is the board's own planning and building memory, not a second set. A board
+// that remembered its content decisions somewhere else would be a board whose pruner could
+// only ever read half of what it decided.
+const CONTENT_ROLES: AgentRole[] = [
+  {
+    name: 'content-planner',
+    stage: 'plan',
+    gloss: 'settles what a piece is for, who reads it and what it covers',
+    memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/goal.md'],
+  },
+  {
+    name: 'content-writer',
+    stage: 'execute',
+    gloss: 'writes the piece into the repository',
+    memory: ['memory/readme.md', 'memory/redesign.md'],
+  },
+  {
+    name: 'content-reviewer',
+    stage: 'review',
+    gloss: 'checks the piece against what was planned',
+    memory: [],
+  },
+]
+
 const PRODUCT_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
     name: 'planner',
+    stage: 'plan',
     gloss: 'plans and refines cards',
     memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/goal.md'],
   },
   {
     name: 'builder',
+    stage: 'execute',
     gloss: 'builds them and lands them',
     memory: ['memory/readme.md', 'memory/redesign.md', 'modules.md'],
   },
   REVIEWER,
+  ...CONTENT_ROLES,
   MEMORY_PRUNER,
   SWEEPER,
   FEEDBACK,
@@ -238,8 +277,8 @@ export const roles = (): AgentRole[] => (solution() === 'marketing' ? MARKETING_
  *  Undefined when this board has no such flow, and also when the contract names a
  *  SPECIALIST as its lead: a specialist is not a role, and `agentForFlow` is what a caller
  *  that only wants the name should ask. */
-export const roleForFlow = (flow: string): AgentRole | undefined => {
-  const name = agentForFlow(flow)
+export const roleForFlow = (flow: string, workflow?: string): AgentRole | undefined => {
+  const name = agentForFlow(flow, workflow)
   return name ? roleNamed(name) : undefined
 }
 
@@ -248,9 +287,9 @@ export const roleNamed = (name: string): AgentRole | undefined => roles().find((
 
 /** The flows an agent runs, in the order the board declares them (./flows.ts). What the
  *  one-time rule migration concatenates in. */
-export function roleFlowsInOrder(name: string): string[] {
+export function roleFlowsInOrder(name: string, workflow?: string): string[] {
   const order = FLOWS.map((flow) => flow.command)
-  return flowsOfAgent(name).sort((a, b) => order.indexOf(a) - order.indexOf(b))
+  return flowsOfAgent(name, workflow).sort((a, b) => order.indexOf(a) - order.indexOf(b))
 }
 
 /** Every reason one of this board's contracts names an agent it does not have (./stages.ts).
@@ -272,6 +311,9 @@ export interface RosterEntry {
   /** When the board calls it — a specialist's own `description`. Empty on a role, which is
    *  called by its flows rather than by a trigger. */
   when: string
+  /** The workflow stage this agent can be assigned to (#715), or absent on a board agent
+   *  that no workflow assigns. */
+  stage?: WorkflowStage
   /** `role` for one of the board's own; otherwise the hook the specialist plugs into. */
   kind: 'role' | AgentKind
   /** Whether the command ships it, as opposed to the project adding it. */
@@ -310,6 +352,7 @@ export function agentRoster(): RosterEntry[] {
       gloss: said.owns,
       when: said.description,
       kind: agent.kind,
+      ...(agent.stage ? { stage: agent.stage } : {}),
       builtIn: agent.builtIn,
       switchable: true,
       confirm: false,
@@ -324,6 +367,7 @@ export function agentRoster(): RosterEntry[] {
       gloss: role.gloss,
       when: '',
       kind: 'role' as const,
+      ...(role.stage ? { stage: role.stage } : {}),
       builtIn: true,
       switchable: role.switch !== undefined,
       confirm: role.confirm === true,

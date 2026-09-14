@@ -58,6 +58,9 @@ import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
 import writing from '../guide/writing.md'
 
+import contentImplement from '../guide/content/implement.md'
+import contentReview from '../guide/content/review.md'
+
 import marketingBoard from '../guide/marketing/board.md'
 import marketingPolish from '../guide/marketing/polish.md'
 import marketingPolishLoop from '../guide/marketing/verify.md'
@@ -66,6 +69,7 @@ import repurpose from '../guide/marketing/repurpose.md'
 
 import { boardText } from './paths'
 import { solution, type Solution } from './solution'
+import { workflowFor } from './agent/workflows'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
 export interface Guide {
@@ -163,12 +167,35 @@ const EXTRA: Record<Solution, Guide[]> = {
   ],
 }
 
+/** The flows one WORKFLOW says differently (#715). A card runs on a workflow, and the three
+ *  stages it goes through are read in that workflow's words: `content` executes and reviews a
+ *  piece of writing, so neither stage is held to the code bar. Everything a workflow does not
+ *  name here is the shared text — a flow copied to say the same thing is a flow that goes
+ *  stale.
+ *
+ *  Keyed by the workflow's id, so a board's own workflow — which is a name and three
+ *  assignments and nothing else — reads the shared text throughout. */
+const WORKFLOW_OVERRIDES: Record<string, Record<string, string>> = {
+  content: {
+    implement: contentImplement,
+    review: contentReview,
+  },
+}
+
 /** Every flow THIS board reads: the shared list in its solution's words, then the flows that
- *  solution has of its own. */
-function guidesHere(): Guide[] {
+ *  solution has of its own.
+ *
+ *  `workflow` is the card's own. Left off, no workflow's words are laid over the solution's —
+ *  which is what a flow that names no card reads, and what every board read before workflows
+ *  existed. */
+function guidesHere(workflow?: string): Guide[] {
   const which = solution()
+  const mine = WORKFLOW_OVERRIDES[workflowFor(workflow)?.id ?? ''] ?? {}
   return [
-    ...GUIDES.filter((g) => !GONE[which].includes(g.name)).map((g) => ({ ...g, text: OVERRIDES[which][g.name] ?? g.text })),
+    ...GUIDES.filter((g) => !GONE[which].includes(g.name)).map((g) => ({
+      ...g,
+      text: mine[g.name] ?? OVERRIDES[which][g.name] ?? g.text,
+    })),
     ...EXTRA[which],
   ]
 }
@@ -187,10 +214,11 @@ const RENAMED: Record<string, string> = {
   'marketing-fix': 'marketing-polish-loop',
 }
 
-/** One flow as this board reads it: its solution's words, spelling this board's own path. */
-export function findGuide(name: string): Guide | null {
+/** One flow as this board reads it: the card's workflow over its solution's words, spelling
+ *  this board's own path. */
+export function findGuide(name: string, workflow?: string): Guide | null {
   const wanted = RENAMED[name] ?? name
-  const guide = guidesHere().find((g) => g.name === wanted)
+  const guide = guidesHere(workflow).find((g) => g.name === wanted)
   return guide ? { ...guide, text: boardText(guide.text) } : null
 }
 

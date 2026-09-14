@@ -212,6 +212,12 @@ export interface AgentRequest {
    *  `shots` when the run is written down, so a browser never names one. */
   pictures?: string[]
   andImplement?: boolean // resolve: keep going and implement once the questions settle
+  /** The workflow the card this run is for runs on (#715) — a workflow's stable id, read
+   *  off the card as the run is prepared. It decides which agent leads the run's stage, and
+   *  which flow text the run is given. Absent on a run that names no card and on a run
+   *  prepared by a copy of these rules from before workflows existed, both of which read
+   *  the board's default workflow. */
+  workflow?: string
   /** Internal position in a watcher-managed refinement run chain. */
   refineRound?: number
   /** The one QA guide this refinement's clarify session loads. */
@@ -708,6 +714,29 @@ export interface DeliveryRecord {
    *  delivery and never one in flight. Absent on a delivery started before flow rules
    *  existed, which reads the files instead. */
   rules?: Record<string, string>
+  /** The workflow this delivery froze when it started (#715) — its id, its name as it read
+   *  then, and who led and helped each of its three stages. Every run in the delivery reads
+   *  THIS rather than the board's settings, so renaming a workflow, reassigning a stage or
+   *  deleting the workflow outright changes the next delivery and never one in flight.
+   *
+   *  Absent on a delivery started before workflows existed, whose runs read the board — which
+   *  is exactly what they always did. */
+  workflow?: FrozenWorkflow
+}
+
+/** A delivery's own copy of the workflow it builds under (#715). */
+export interface FrozenWorkflow {
+  /** The workflow's stable id — what the card carried when the delivery opened. */
+  id: string
+  /** Its name at that moment, so a record still names its workflow after a rename and after
+   *  the workflow itself is gone. */
+  name: string
+  /** Whether this delivery has to leave a file behind to count as finished — frozen with
+   *  the rest, so a workflow retyped mid-flight cannot change what this build owes. */
+  needsArtifact?: boolean
+  /** Who ran each stage, by stage name: the lead, and the helpers with the extra
+   *  requirements their assignment carried. */
+  stages: Record<string, { lead: string; helpers: { agent: string; extra: string }[] }>
 }
 
 /** How a delivery commits its work (#303). */
@@ -1470,6 +1499,10 @@ export interface AgentView {
    *  out rather than imported: this file is copied into the board UI and may reach only its
    *  siblings, and `AgentKind` lives beside the catalog that reads an `AGENT.md`. */
   kind: 'role' | 'spec' | 'write'
+  /** The workflow stage this agent can be assigned to (#715), or absent on a BOARD agent —
+   *  the discussion, the gate, the decider, the pruner — which no workflow assigns and every
+   *  workflow gets. Spelled out for the same reason `kind` is. */
+  stage?: 'plan' | 'execute' | 'review'
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
   /** Whether it may be switched off. A role runs the board's own flows, so it never is. */
@@ -1548,4 +1581,62 @@ export interface SetupProposal {
   unsure: boolean
   /** The one question an unsure answer asks. Empty otherwise. */
   ask: string
+}
+
+// ---- the workflows a card runs through (#715) -------------------------------
+//
+// A card runs through one workflow, and a workflow says who leads each of its three stages
+// and who they may call in. The stages, the shape of one assignment and the shape a screen
+// draws are here rather than beside the workflows themselves, because this is the module the
+// board UI keeps a copy of — the pane names them without a second set of shapes to keep in
+// step. What they MEAN, and every rule about them, is `agent/workflows.ts`.
+
+/** The three stages every workflow has, in the order a card goes through them. */
+export const WORKFLOW_STAGES = ['plan', 'execute', 'review'] as const
+
+/** One of the three. */
+export type WorkflowStage = (typeof WORKFLOW_STAGES)[number]
+
+/** One helper assigned to one stage of one workflow, and what that assignment asks of it on
+ *  top of the agent's own instructions. The extra belongs to the ASSIGNMENT — the same agent
+ *  helping two workflows carries a different one in each. */
+export interface WorkflowHelper {
+  agent: string
+  extra: string
+}
+
+/** One agent as a workflow picker offers it. The two lines are the roster's own, so the
+ *  picker and the Agents pane never name the same agent differently. */
+export interface WorkflowCandidate {
+  name: string
+  /** What it is called in the language this machine reads, or empty — spell the name out. */
+  title: string
+  /** What it does, in one clause. */
+  gloss: string
+  /** Whether the command ships it, as opposed to the project adding it. */
+  builtIn: boolean
+}
+
+/** One stage of one workflow, as a screen draws it. */
+export interface WorkflowStageView {
+  stage: WorkflowStage
+  /** The one agent that runs it, or empty when nobody does. */
+  lead: string
+  helpers: WorkflowHelper[]
+  /** Every agent that could take this stage, in the roster's order. */
+  candidates: WorkflowCandidate[]
+}
+
+/** One workflow, as a screen draws it. */
+export interface WorkflowView {
+  id: string
+  name: string
+  builtIn: boolean
+  /** Whether it is the one a card with no workflow of its own runs on. */
+  isDefault: boolean
+  /** Whether its execute stage has to leave a file behind to count as finished. */
+  needsArtifact: boolean
+  stages: WorkflowStageView[]
+  /** Why it cannot start a card, one line each. Empty when all three stages have a lead. */
+  problems: string[]
 }

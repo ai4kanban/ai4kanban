@@ -46,6 +46,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { answeredStop, deliveryState, type DeliveryStage, type DeliveryState } from './pause'
 import { reflectOnCompletion } from './propose'
 import { deliveryRules } from './rules'
+import { cardWorkflowId, frozenWorkflow } from './workflows'
 import {
   aiReviewOn,
   lastRound,
@@ -716,6 +717,22 @@ export const listDeliveries = (): DeliveryRecord[] => readStore().deliveries
 /** The delivery one run belongs to: the one it names outright — the only way a build with
  *  no card can be found (#428) — or the one in flight on its card. Nothing on a run that is
  *  not a delivery's own. */
+/** The same request, carrying the workflow its run works to (#715): the one its delivery
+ *  froze where it is part of one, and the one its card names otherwise. Stamped once, at the
+ *  top of the two places a run's words are built, so every read below them — which agent
+ *  leads the stage, which rule it carries, which flow text it is given — agrees.
+ *
+ *  A request that already names one is left alone: the caller knew better than the board. */
+export const withWorkflow = (req: AgentRequest): AgentRequest =>
+  req.workflow
+    ? req
+    : {
+        ...req,
+        workflow:
+          deliveryFor(req)?.workflow?.id ??
+          (typeof req.id === 'number' ? cardWorkflowId(req.id) || undefined : undefined),
+      }
+
 export function deliveryFor(req: Pick<AgentRequest, 'action' | 'id' | 'deliveryId'>): DeliveryRecord | undefined {
   if (!DELIVERY_FLOWS.has(req.action)) return undefined
   // In flight, either way: a delivery that has ended is not one to build, review or resolve
@@ -791,7 +808,11 @@ export function joinDelivery(
       // its flows are run by, frozen the way the card is. Every run in it is
       // given these words rather than the files, a printed flow included, so editing a
       // rule changes the next delivery and never one in flight.
-      rules: deliveryRules(),
+      rules: deliveryRules(cardId === null ? undefined : cardWorkflowId(cardId)),
+      // And the one read of the workflow it builds under (#715) — its name and all three
+      // stages' assignments, frozen the way the rules are. Reassigning a stage, renaming the
+      // workflow or deleting it changes the next delivery and never this one.
+      workflow: cardId === null ? frozenWorkflow('') : frozenWorkflow(cardWorkflowId(cardId)),
       targetBranch: start?.targetBranch,
       worktree: start?.worktree,
       branch: start?.branch,

@@ -21,12 +21,16 @@ import {
 } from '../agents'
 import { solution } from '../solution'
 import { boardCommand, boardCommandFor, commandNote } from './command'
-import { activeDelivery, deliveryFor, findDelivery } from './deliveries'
+import { activeDelivery, deliveryFor, findDelivery, withWorkflow } from './deliveries'
 import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
-import { agentForRun } from './runner'
+import { agentForRun, workflowForRun } from './runner'
+import { DEFAULT_WORKFLOW, liveStage, workflowById, workflowFor } from './workflows'
+import { stageOfAction } from './stage-end'
+import type { Stage } from './stages'
+import type { WorkflowStage } from './types'
 import { migrateFlowRules, ruleBlock } from './rules'
 import type { AgentAction, AgentRequest } from './types'
 
@@ -151,20 +155,80 @@ const NO_IMPLEMENT = `(Unless the request explicitly asks for implementation, do
  *  The language the board is read in rides here rather than in `buildPrompt` (#337): a
  *  printed flow is built from the ask alone, and `--print` is how the work is done in the
  *  user's own session. */
-export function buildAsk(req: AgentRequest, notes: string[] = []): string {
+export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
+  const req = withWorkflow(rawReq)
   // A delivery's runs work in that delivery's own worktree, so their board commands
   // name the project's own copy outright (#303). Everything else runs in the project and
   // spells the command the ordinary way.
   const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
   const ask = [actionPrompt(req, command, notes), pictureNote(req), commandNote(command)].filter(Boolean).join(' ')
+  // Which workflow this card runs on, when it is not the board's default (#715). The flows
+  // this run is told to read are written differently per workflow, and `akb guide <topic>`
+  // has no card to read one off — so the run is told to name the card when it asks.
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
-  return boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n'))
+  return boardText([ask, workflowNote(req, command), languageNote(), roster(req)].filter(Boolean).join('\n\n'))
+}
+
+// What one workflow asks of a helper it calls in, on top of the agent's own instructions
+// (#715). Read off the delivery's frozen copy when the run is part of one, and off the board
+// otherwise — the same rule a rule follows.
+//
+// It belongs to the ASSIGNMENT: the same agent helping two workflows carries a different one
+// in each, and an agent no workflow calls in carries none.
+function helperExtra(req: AgentRequest): string {
+  const agent = req.specAgent ?? ''
+  if (!agent) return ''
+  const stage = stageOfAction(req.action)
+  const which = stage ? WORKFLOW_OF_STAGE[stage] : undefined
+  if (!which) return ''
+  const frozen = deliveryFor(req)?.workflow
+  const setup = frozen
+    ? frozen.stages[which]
+    : (() => {
+        const flow = workflowFor(workflowForRun(req))
+        return flow ? liveStage(flow, which) : undefined
+      })()
+  const extra = setup?.helpers.find((h) => h.agent === agent)?.extra?.trim()
+  return extra ? `——— what this workflow asks of you here ———\n\n${extra}` : ''
+}
+
+// Which configurable stage a kernel stage is. `discuss` is none of them: a conversation
+// belongs to the board rather than to any card's workflow.
+const WORKFLOW_OF_STAGE: Partial<Record<Stage, WorkflowStage>> = {
+  plan: 'plan',
+  build: 'execute',
+  review: 'review',
+}
+
+// The `--workflow` a create is told to pass. Nothing on the default: a card written without
+// the key runs on the default anyway, and a flag that changes nothing is a flag to get wrong.
+function createWorkflowNote(req: AgentRequest): string {
+  const id = (req.workflow ?? '').trim()
+  if (!id || id === DEFAULT_WORKFLOW) return ''
+  const flow = workflowById(id)
+  if (!flow) return ''
+  return `Put the new card(s) on the "${flow.name}" workflow: \`--workflow ${flow.id}\`.`
+}
+
+// A card on the board's default workflow gets nothing: that is what every flow already
+// reads, and a line saying so on every run would be a line nobody acts on.
+function workflowNote(req: AgentRequest, command: string): string {
+  if (req.id === undefined) return ''
+  const id = workflowForRun(req)
+  if (!id || id === DEFAULT_WORKFLOW) return ''
+  const flow = workflowById(id)
+  if (!flow) return ''
+  return (
+    `This card runs on the "${flow.name}" workflow, not the default one. Read every flow it names with ` +
+    `\`${command} guide <topic> --card ${req.id}\` — the same flow reads differently per workflow.`
+  )
 }
 
 /** The words one run is given, this board's own rule for the flow last (#306). It goes
  *  after everything else the board writes, so nothing of the board's follows the user's. */
-export function buildPrompt(req: AgentRequest, notes: string[] = []): string {
+export function buildPrompt(rawReq: AgentRequest, notes: string[] = []): string {
+  const req = withWorkflow(rawReq)
   return [buildAsk(req, notes), ruleBlock(req, frozenRules(req))].filter(Boolean).join('\n\n')
 }
 
@@ -261,7 +325,7 @@ function archivedCardFile(id: number | undefined): string {
 // a product board by itself, since `kind: write` does not parse there.
 function roster(req: AgentRequest): string {
   if (req.id === undefined) return ''
-  if (SPEC_SELECTOR_FOR.has(req.action)) return solution() === 'product' ? specAgentSelector(req.id) : ''
+  if (SPEC_SELECTOR_FOR.has(req.action)) return solution() === 'product' ? specAgentSelector(req.id, req.workflow) : ''
   if (WRITE_SELECTOR_FOR.has(req.action)) return writeAgentSelector(req.id)
   return ''
 }
@@ -327,6 +391,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
             ? `Follow \`akb guide implement\` — write its card first, from that plan, then build it.`
             : `Follow \`akb guide implement\` — write its card first, from that sentence, then build it.`,
           req.release ? `Put the new card in the "${req.release}" release: \`--release ${req.release}\`.` : '',
+          createWorkflowNote(req),
           `Resolve routine choices yourself; record blockers needing user action on the card following \`akb guide update-questions\`.`,
         ]
           .filter(Boolean)
@@ -396,6 +461,10 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         // it — otherwise it would land in no release, off the screen of the person who
         // just wrote it.
         req.release ? `Put the new card(s) in the "${req.release}" release: \`--release ${req.release}\`.` : '',
+        // The workflow the sheet was on when this was asked for (#715), when it is not the
+        // board's default. A card written without it runs on the default, which is exactly
+        // what every card written before workflows existed does.
+        createWorkflowNote(req),
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ]
         .filter(Boolean)
@@ -523,6 +592,10 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
         ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
         memory ? `——— what you remember ———\n\n${memory}` : '',
+        // What THIS workflow asks of it here (#715) — the assignment's own words, after the
+        // agent's instructions and its memory, because it is written on top of them and never
+        // in place of them. A card whose workflow does not call this agent in has none.
+        helperExtra(req),
       ]
         .filter(Boolean)
         .join('\n\n')

@@ -1,6 +1,6 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
-import type { AgentView, SpecAgentView, WriteResult } from "./types";
+import type { AgentView, SpecAgentView, WorkflowStage, WriteResult } from "./types";
 
 // --- the spec agents (#191, #403, #419) --------------------------------------
 // A spec agent fills one part of a card's spec — the screen it changes, the library it
@@ -78,10 +78,13 @@ export async function setAgentRule(agent: string, text: string): Promise<WriteRe
 
 /** Add a specialist from the board's template. A name already on the roster or already a
  *  folder is refused before anything is written. */
-export async function createAgent(name: string): Promise<WriteResult & { agent?: string }> {
+export async function createAgent(
+  name: string,
+  stage?: WorkflowStage,
+): Promise<WriteResult & { agent?: string }> {
   const rules = await boardRules();
   if (!rules.createAgent) return { ok: false, error: (await machineCopy()).messages.tooOld.agents };
-  return await rules.createAgent(name);
+  return await rules.createAgent(name, stage);
 }
 
 /** Replace one project agent's `AGENT.md`, whole. The board reads the text the way its

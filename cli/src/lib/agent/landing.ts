@@ -511,8 +511,23 @@ async function landStep(delivery: DeliveryRecord, rebased = false): Promise<Step
   }
   const tip = squashed.commit
   if (!tip) {
-    // A delivery whose tree is identical to its base built nothing to land. It is finished
-    // rather than stuck: there is no commit to add, and the card's work is done.
+    // A delivery whose tree is identical to its base built nothing to land.
+    //
+    // On a coding workflow that is finished rather than stuck: there is no commit to add,
+    // and the change the card asked for was already in the tree.
+    //
+    // On a workflow whose execute stage owes a FILE (#715) it is the opposite — the piece IS
+    // the deliverable, so a tree identical to its base means nothing was written. It stops
+    // unfinished, saying the artifact is what is missing, rather than passing as a card with
+    // nothing to land.
+    if (delivery.workflow?.needsArtifact) {
+      giveUpSlot(
+        delivery,
+        `nothing was written: this delivery's files are identical to its base, and a "${delivery.workflow.name}" ` +
+          'card is finished by the file it leaves in the repository. Write it, then run the delivery again.',
+      )
+      return { done: true }
+    }
     await finish(delivery, { onto: target })
     return { done: true }
   }

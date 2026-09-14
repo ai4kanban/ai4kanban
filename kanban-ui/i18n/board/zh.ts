@@ -72,6 +72,7 @@ const zh: BoardCopy = {
       discuss: "讨论",
       addTask: "新建任务",
       buildNow: "直接开做",
+      workflow: { label: "流程", manage: "管理流程" },
       send: "发送",
       keys: "Esc 关闭",
       keysDiscuss: "Esc 关闭并保留这次讨论",

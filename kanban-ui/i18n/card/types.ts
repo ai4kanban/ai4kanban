@@ -175,6 +175,9 @@ export type CardCopy = {
     working: string;
   };
   meta: {
+    /** The workflow this card runs through (#715) — the first thing in the strip: it is what
+     *  decides who plans, who builds and who reviews this card. */
+    workflow: string;
     modules: string;
     release: string;
     priority: string;
@@ -189,6 +192,20 @@ export type CardCopy = {
     unschedule: string;
     unscheduleHint: string;
     related: string;
+  };
+  /** The workflow list, open off that item (#715). */
+  workflow: {
+    /** The standing line at the top of the list — the cost is read before the pick, so the
+     *  pick itself is the last word and nothing else asks. */
+    replan: string;
+    /** The way across to where workflows are made. */
+    manage: string;
+    /** Why the item will not open while a delivery is in flight. */
+    locked: string;
+    /** Only read out loud: the item that opens the list. */
+    open: string;
+    /** A save the board refused. */
+    saveFailed: string;
   };
   subtasks: {
     heading: string;

@@ -87,6 +87,7 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     questions: meta.questions,
     verify: meta.verify,
     decided: meta.decided,
+    workflow: meta.workflow,
     modules: meta.modules,
     channels: meta.channels,
     last_run: meta.last_run,

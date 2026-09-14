@@ -81,6 +81,7 @@ const en: BoardCopy = {
       discuss: "Discuss",
       addTask: "Add task",
       buildNow: "Build now",
+      workflow: { label: "Workflow", manage: "Manage workflows" },
       send: "Send",
       keys: "Esc closes",
       keysDiscuss: "Esc closes and keeps the discussion",

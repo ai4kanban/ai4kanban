@@ -165,6 +165,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--no-body', 'write the frontmatter and no body template')
     .option('--body-file <path>', "the card's whole body, written to a file first, instead of the template")
     .option('--cadence <cadence>', `how often a recurring card repeats: ${CADENCE_FORMS}. --recurring only`)
+    .option('--workflow <id>', "the workflow it runs through (`akb workflow list`). Left off, the board's default")
     .option(
       '--schedule <action>',
       `hand the new card's first run to the board: ${SCHEDULED_ACTIONS.join(' | ')}`,
@@ -197,6 +198,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     )
     .option('--slug <slug>', 'rename the file')
     .option('--cadence <cadence>', `how often it repeats: ${CADENCE_FORMS}. "" clears it. Recurring cards only`)
+    .option('--workflow <id>', 'the workflow it runs through; "" puts it back on the default. The card is re-planned')
     .action(async function (this: Command, id: number) {
       await dispatch('update', this, [String(id)], this.opts(), cli)
     })

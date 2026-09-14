@@ -27,6 +27,8 @@ import { canonicalSpecAgent } from '../spec-agent-names'
 import type { WriteResult } from '../view/types'
 import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
 import { agentNames, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
+import { workflowForRun } from './runner'
+import { DEFAULT_WORKFLOW } from './workflows'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentRequest } from './types'
 
@@ -77,12 +79,12 @@ export const notOnTheRoster = (name: string): string =>
  *  agents a delivery's flows are run by, read once, the way it reads the card it was
  *  approved to build. Editing a rule afterwards changes the next delivery, never one in
  *  flight. */
-export function deliveryRules(): Record<string, string> {
+export function deliveryRules(workflow?: string): Record<string, string> {
   migrateFlowRules()
   const rules: Record<string, string> = {}
   for (const flow of FLOWS) {
     if (flow.action === 'refine' || !DELIVERY_FLOWS.has(flow.action)) continue
-    const role = roleForFlow(flow.command)
+    const role = roleForFlow(flow.command, workflow)
     if (!role || rules[role.name] !== undefined) continue
     const rule = ruleFile(role.name)
     if (rule) rules[role.name] = rule
@@ -116,7 +118,7 @@ function ownerOf(req: AgentRequest): RuleOwner | null {
   // names itself here.
   const flow =
     ['channel', 'polish', 'marketing-polish-loop', 'reflect'].includes(req.action) ? req.action : flowForRequest(req)?.command
-  const role = roleForFlow(flow ?? '')
+  const role = roleForFlow(flow ?? '', workflowForRun(req))
   return role ? { name: role.name, role, flow } : null
 }
 
@@ -194,7 +196,13 @@ export function migrateFlowRules(): string[] {
   }
   const notes: string[] = []
   for (const role of roles()) {
-    const from = roleFlowsInOrder(role.name).filter((flow) => flow !== role.name && here.has(`${flow}.md`))
+    // The DEFAULT workflow's flows alone (#715). This is a one-time fold of rules a board
+    // wrote before #420, when it had one path through a card and the coding agents ran it —
+    // so `implement.md` belongs to the builder, and never also to whoever leads `execute` in
+    // a workflow that did not exist when the file was written.
+    const from = roleFlowsInOrder(role.name, DEFAULT_WORKFLOW).filter(
+      (flow) => flow !== role.name && here.has(`${flow}.md`),
+    )
     if (!from.length) continue
     const parts = [ruleFile(role.name), ...from.map(ruleFile)].filter(Boolean)
     try {

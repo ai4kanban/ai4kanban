@@ -33,6 +33,7 @@ import type {
   DeliveryReview,
   DeliveryStatus,
   DeliveryStep,
+  FrozenWorkflow,
   LandingStatus,
   ReviewStopReason,
   ReviewTrigger,
@@ -417,6 +418,43 @@ export function readDeliveryRow(raw: unknown): DeliveryRecord | null {
     // The flow rules this delivery froze (#306). A delivery written down before they
     // existed has none, and its runs read the files — which is what they always did.
     rules: readRules(entry.rules),
+    // The workflow this delivery froze (#715). A delivery written down before workflows
+    // existed has none, and its runs read the board — which is what they always did.
+    workflow: readWorkflow(entry.workflow),
+  }
+}
+
+// The workflow a delivery froze, whole. Dropped rather than half-read: a frozen workflow
+// with no id names nothing, and a run given half of one would resolve the other half off the
+// board — which is the one thing freezing it exists to prevent.
+function readWorkflow(raw: unknown): FrozenWorkflow | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const box = raw as Record<string, unknown>
+  const id = text(box.id)
+  if (!id) return undefined
+  const stages: FrozenWorkflow['stages'] = {}
+  const saved = box.stages
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+    for (const [stage, value] of Object.entries(saved as Record<string, unknown>)) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) continue
+      const setup = value as Record<string, unknown>
+      const helpers: { agent: string; extra: string }[] = []
+      if (Array.isArray(setup.helpers)) {
+        for (const one of setup.helpers) {
+          if (!one || typeof one !== 'object' || Array.isArray(one)) continue
+          const row = one as Record<string, unknown>
+          const agent = text(row.agent)
+          if (agent) helpers.push({ agent, extra: typeof row.extra === 'string' ? row.extra : '' })
+        }
+      }
+      stages[stage] = { lead: typeof setup.lead === 'string' ? setup.lead : '', helpers }
+    }
+  }
+  return {
+    id,
+    name: typeof box.name === 'string' ? box.name : '',
+    ...(box.needsArtifact === true ? { needsArtifact: true } : {}),
+    stages,
   }
 }
 

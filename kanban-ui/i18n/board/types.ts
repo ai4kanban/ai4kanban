@@ -108,6 +108,10 @@ export type BoardCopy = {
       addTask: string;
       /** The mode that builds what you typed, from a card the run writes itself (#470). */
       buildNow: string;
+      /** Which workflow the card written here runs through (#715) — the label, and the way
+       *  from the list across to where workflows are made. Only drawn on a board that picks
+       *  workflows at all. */
+      workflow: { label: string; manage: string };
       /** The corner button. Its own word, so a reader isn't told "Add task" twice. */
       send: string;
       keys: string;

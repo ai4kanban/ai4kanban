@@ -10,14 +10,17 @@ import { say } from '../lib/io'
 import { die } from '../lib/paths'
 import type { MoveResult } from '../lib/types'
 import { nearestMove } from '../lib/board-cli'
+import { cardWorkflowId } from '../lib/agent/workflows'
 
-export function cmdGuide(topic: string | undefined, program = 'akb'): MoveResult {
+export function cmdGuide(topic: string | undefined, program = 'akb', card?: number): MoveResult {
   const name = topic?.trim()
   if (!name) {
     say(guideList(program))
     return { guides: guideNames() }
   }
-  const guide = findGuide(name)
+  // In the card's own workflow words where it has any (#715). A topic asked for with no card
+  // is the board's shared text, which is what every board read before workflows existed.
+  const guide = findGuide(name, card === undefined ? undefined : cardWorkflowId(card))
   if (!guide) {
     const guess = nearestMove(name, guideNames())
     die(

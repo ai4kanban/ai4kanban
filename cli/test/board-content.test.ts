@@ -157,7 +157,7 @@ describe('the team, as a contract read and write', () => {
   })
 
   it('adds a specialist from the template, and refuses a name already taken', async () => {
-    const added = await onBoard((env) => board().createAgent('api-contract', env))
+    const added = await onBoard((env) => board().createAgent('api-contract', undefined, env))
     assert.ok(added.ok)
     const file = path.join(kanban, 'agents', 'api-contract', 'AGENT.md')
     assert.match(fs.readFileSync(file, 'utf8'), /kind: spec/)
@@ -172,12 +172,12 @@ describe('the team, as a contract read and write', () => {
     assert.match(added2!.when, /Unwritten/i)
 
     for (const taken of ['api-contract', 'ui-designer', 'builder']) {
-      assert.equal((await onBoard((env) => board().createAgent(taken, env))).ok, false, taken)
+      assert.equal((await onBoard((env) => board().createAgent(taken, undefined, env))).ok, false, taken)
     }
   })
 
   it('deletes a specialist with everything the board kept for it, and refuses the board\'s own', async () => {
-    await onBoard((env) => board().createAgent('api-contract', env))
+    await onBoard((env) => board().createAgent('api-contract', undefined, env))
     await onBoard((env) => board().saveAgentRule('api-contract', 'Name every field.', env))
     const dir = path.join(kanban, 'agents', 'api-contract')
     const rule = path.join(kanban, 'rules', 'api-contract.md')
@@ -198,7 +198,7 @@ describe('the team, as a contract read and write', () => {
   })
 
   it("refuses an AGENT.md the catalog would not read, and keeps the file it had", async () => {
-    await onBoard((env) => board().createAgent('api-contract', env))
+    await onBoard((env) => board().createAgent('api-contract', undefined, env))
     const file = path.join(kanban, 'agents', 'api-contract', 'AGENT.md')
     const was = fs.readFileSync(file, 'utf8')
 
