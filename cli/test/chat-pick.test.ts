@@ -95,7 +95,7 @@ describe('a conversation that never picked', () => {
     assert.equal(pick.own, false)
   })
 
-  it('is still refused when the board moves to another CLI under it', () => {
+  it('is refused only once the board has no runtime on its own CLI left', () => {
     config(BOARD)
     said('claude-code')
     config({ runtimes: [runtime('global', 'codex', {})] })
@@ -113,6 +113,71 @@ describe('a conversation that never picked', () => {
         ['cheap', 'gpt-5.1-codex'],
       ],
     )
+  })
+})
+
+// The discussion helper's runtime decides where a NEW conversation starts and nothing more
+// (#746). One already spoken to belongs to the CLI that opened it, so switching the board
+// leaves it where it is instead of locking every old transcript at once.
+describe('a conversation the board moved under', () => {
+  it('goes on running the CLI that opened it, and says so', () => {
+    config(BOARD)
+    // Held with Codex while the board's own row is Claude Code's.
+    said('codex')
+    const view = readChatView(null)
+    assert.equal(view.blocked, undefined)
+    assert.equal(view.agent, 'Codex')
+    assert.equal(view.pick.runtime, 'cheap')
+    assert.equal(view.pick.harness, 'codex')
+    assert.equal(view.pick.model, 'gpt-5.1-codex')
+    // Not the board's row, so the list marks it as this conversation's own.
+    assert.equal(view.pick.own, true)
+    assert.equal(view.pick.boardRuntime, 'global')
+  })
+
+  it('is held without pinning anything into the transcript', () => {
+    config(BOARD)
+    said('codex')
+    readChatView(null)
+    assert.equal(readChat(null)!.runtime, undefined)
+  })
+
+  it("follows the board's own row while it is still on that CLI", () => {
+    config({ ...BOARD, agentRuntime: { 'discussion-helper': 'strong' } })
+    said('claude-code')
+    assert.equal(readChatView(null).pick.runtime, 'strong')
+    assert.equal(readChatView(null).pick.model, 'claude-opus-5')
+  })
+
+  it('leaves a conversation nothing was said in on the board', () => {
+    config(BOARD)
+    fs.mkdirSync(CHATS_DIR, { recursive: true })
+    fs.writeFileSync(
+      path.join(CHATS_DIR, 'board.json'),
+      JSON.stringify({ cardId: null, harness: 'codex', messages: [], startedAt: 900, updatedAt: 900 }),
+    )
+    const view = readChatView(null)
+    assert.equal(view.blocked, undefined)
+    assert.equal(view.pick.runtime, 'global')
+    assert.equal(view.pick.own, false)
+  })
+
+  it('spawns that CLI on the next turn, not the board\'s', async () => {
+    const mark = path.join(root, 'ran')
+    const script = (name: string): string => {
+      const file = path.join(root, `${name}.mjs`)
+      fs.writeFileSync(file, `import fs from 'node:fs'\nfs.writeFileSync(${JSON.stringify(mark)}, '${name}')\n`)
+      return `node ${file}`
+    }
+    config({
+      runtimes: [
+        runtime('global', 'claude-code', { model: 'claude-sonnet-5', command: script('claude-code') }),
+        runtime('cheap', 'codex', { model: 'gpt-5.1-codex', command: script('codex') }),
+      ],
+    })
+    said('codex')
+    await sendChatMessage(null, 'carry on')
+    assert.equal(fs.readFileSync(mark, 'utf8'), 'codex')
   })
 })
 

@@ -488,11 +488,12 @@ export function noteChatMessage(cardId: ChatTarget, text: string): void {
 
 // The one place a refusal is worked out, so the CLI and a screen say the same words.
 //
-// A conversation that picked its own agent (#272) is judged against THAT agent, not the
-// board's: it goes on running what it picked whatever Configuration is switched to. One that
-// never picked follows the board, and is still turned away when the board moves under it.
+// A conversation is judged against the agent it ACTUALLY runs (`runtimeOf`), not the board's:
+// one that picked its own goes on running that, and one already spoken to goes on running the
+// CLI that opened it. So the only conversation turned away is one whose CLI this board has no
+// runtime for at all — there is nothing left that could pick its session up.
 function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
-  const agent = chatAgent(chat?.runtime)
+  const agent = chatAgent(runtimeOf(chat))
   if (!agent.canChat) {
     return `chat is not available on ${agent.label}. The agents that can hold a conversation: ${agent.able.join(', ')}.`
   }
@@ -500,8 +501,9 @@ function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
   // before the first message leaves one (#272), and it is not something to clear.
   if (chat?.messages.length && chat.harness !== agent.name) {
     return (
-      `this conversation was held with ${harnessLabel(chat.harness)}, and ${agent.label} can't pick it up — ` +
-      `its session means nothing to another agent. Clear it to start fresh with ${agent.label}.`
+      `this conversation was held with ${harnessLabel(chat.harness)}, and this board has no ` +
+      `${harnessLabel(chat.harness)} runtime left to carry it on — a session means nothing to another agent. ` +
+      `Clear it to start fresh with ${agent.label}.`
     )
   }
   if (answeringOn(cardId)) return 'this conversation is still answering the last message.'
@@ -513,7 +515,7 @@ function blockedBy(cardId: ChatTarget, chat: Chat | null): string | undefined {
  *  the same words — the box turns a paste away before it gets this far, and this is the
  *  second look that a send takes whatever the box thought. */
 function imagesRefusedBy(chat: Chat | null): string | undefined {
-  const agent = chatAgent(chat?.runtime)
+  const agent = chatAgent(runtimeOf(chat))
   if (agent.seesImages) return undefined
   return `${agent.label} can't see images. The agents that can: ${agent.imagesAble.join(', ')}.`
 }
@@ -521,7 +523,7 @@ function imagesRefusedBy(chat: Chat | null): string | undefined {
 /** One conversation and what the board can do about it right now. */
 export function readChatView(cardId: ChatTarget): ChatView {
   const chat = readChat(cardId)
-  const agent = chatAgent(chat?.runtime)
+  const agent = chatAgent(runtimeOf(chat))
   return {
     cardId,
     chat,
@@ -539,19 +541,41 @@ export function readChatView(cardId: ChatTarget): ChatView {
   }
 }
 
-// ---- what one conversation runs on (#272, #467) ----------------------------
+// ---- what one conversation runs on (#272, #467, #746) -----------------------
 //
 // The discussion helper's runtime is where every conversation starts. A pick is this conversation's
 // alone: it is kept with the transcript, nothing of it reaches ui.config.json, and another
 // chat is unaffected. One control, because a runtime already carries the model — there is no
 // separate model box any more.
+//
+// And a conversation that has been spoken to belongs to the CLI that opened it, pick or no
+// pick (#746): its session is that command's vocabulary and no other's. So the discussion
+// helper's runtime decides where a NEW conversation starts and nothing more — changing it
+// leaves every conversation already going exactly where it is.
 
-/** The runtime a conversation runs, picked or inherited. */
-const runtimeOf = (chat: Chat | null): string => chat?.runtime ?? chatAgent().runtime
+/** The runtime a conversation runs: its own pick, the CLI that opened it, or the discussion
+ *  helper's.
+ *
+ *  Held to the CLI rather than to a row, so a conversation follows the board as far as it can:
+ *  the board's own runtime wins whenever it spawns that CLI, and any other row on it otherwise.
+ *  Only a conversation whose CLI this board has no runtime for at all falls back to the
+ *  board's — and that one really cannot be carried on, which is what the refusal then says. */
+function runtimeOf(chat: Chat | null): string {
+  const board = chatAgent()
+  if (!chat) return board.runtime
+  // A pick still spawning the CLI the transcript belongs to is the whole answer. One that no
+  // longer does was re-pointed in Configuration, and the transcript outranks it.
+  if (chat.runtime && chatAgent(chat.runtime).name === chat.harness) return chat.runtime
+  // Nothing said yet, so the transcript belongs to nobody and there is nothing to hold to.
+  if (!chat.messages.length) return chat.runtime ?? board.runtime
+  if (chat.harness === board.name) return board.runtime
+  return readRuntimes().find((r) => r.harness === chat.harness)?.id ?? board.runtime
+}
 
 function pickOf(chat: Chat | null): ChatPick {
   // The row that would actually run: a pin the board no longer has resolves to **Global
   // default**, and the pick says so rather than naming a row nobody could open.
+  const board = chatAgent().runtime
   const agent = chatAgent(runtimeOf(chat))
   const pinned = chat?.runtime
   return {
@@ -561,9 +585,12 @@ function pickOf(chat: Chat | null): ChatPick {
     model: runtimeModel(agent.runtime),
     // It pinned something, and that pin still names a row this board has — by id, or by the
     // harness a pin written before #467 named. A pin nothing answers to reads as following
-    // the board, which is what it is now doing.
-    own: Boolean(pinned) && readRuntimes().some((r) => r.id === pinned || r.harness === pinned),
-    boardRuntime: chatAgent().runtime,
+    // the board, which is what it is now doing. So does a conversation being held to the CLI
+    // that opened it while the board has moved to another (#746).
+    own:
+      (Boolean(pinned) && readRuntimes().some((r) => r.id === pinned || r.harness === pinned)) ||
+      agent.runtime !== board,
+    boardRuntime: board,
     runtimes: chatRuntimes(),
   }
 }
@@ -898,7 +925,10 @@ export async function sendChatMessage(
   const release = startAnswering(cardId)
   if (!release) return { error: 'this conversation is still answering the last message.' }
   try {
-    const agent = chatAgent(chat?.runtime)
+    // Read off the conversation as it stood before this turn's message went into it, which is
+    // exactly what `blockedBy` judged the send against.
+    const pin = runtimeOf(chat)
+    const agent = chatAgent(pin)
     const now = Date.now()
     const held: Chat = chat ?? {
       cardId,
@@ -943,10 +973,9 @@ export async function sendChatMessage(
     // of the message. The board's own opening turn was nobody's message, so it is not one.
     if (!options.fromBoard) reportChatMessage()
 
-    // What this conversation picked for itself (#272, #467): one runtime, which carries the
-    // whole of what a turn runs as. Empty on a conversation that never picked, which is the
-    // discussion helper's answer and exactly what a run takes.
-    const own = held.runtime ? { pin: held.runtime } : {}
+    // The one runtime this turn runs as, which carries the whole of what it spawns: the
+    // conversation's own pick, the CLI that opened it, or the discussion helper's.
+    const own = { pin }
     // A fresh session, or one more turn into the session the last message left open.
     const plan = held.resumeId
       ? planResume(held.harness, held.resumeId, REPO_ROOT, CHAT_AGENT, own)
@@ -958,7 +987,7 @@ export async function sendChatMessage(
     // that reads a path out of the words is told them, and one with a flag per file is
     // handed them on the command line and told nothing.
     const files = shots.map((name) => path.join(imagesDir(cardId), name))
-    const takes = harnessImages(held.runtime)
+    const takes = harnessImages(pin)
     // A complaint about a card is answered by the `feedback` agent (#628) — the same session,
     // the same runtime, the same transcript, and that agent's rule and brief in front of the
     // words. `share` is only ever true on the turn the end of a conversation makes (#679),
@@ -968,7 +997,7 @@ export async function sendChatMessage(
       : undefined
     const say = {
       title: options.title,
-      harness: held.runtime,
+      harness: pin,
       guide: complaint ? FEEDBACK_GUIDE : options.guide,
       role: complaint ? FEEDBACK_ROLE : undefined,
       feedback: complaint,
