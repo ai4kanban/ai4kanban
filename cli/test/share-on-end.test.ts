@@ -26,8 +26,8 @@ import {
 } from '../src/lib/agent/chat.ts'
 import { startedPlanning } from '../src/lib/agent/discuss.ts'
 import { archiveDiscussion } from '../src/lib/agent/discussions.ts'
-import { endBlocked, END_BLOCK_SAID, openEndCase, replyOver } from '../src/lib/agent/share.ts'
-import { readCase } from '../src/lib/case/state.ts'
+import { endBlocked, END_BLOCK_SAID, endShared, openEndCase, replyOver } from '../src/lib/agent/share.ts'
+import { closeCase, readCase } from '../src/lib/case/state.ts'
 import { CHATS_DIR, PLANS, setBoardRoot } from '../src/lib/paths.ts'
 import { forgetMachineState, restoreMachineHome } from './helpers/board.ts'
 import type { ChatTarget } from '../src/lib/agent/types.ts'
@@ -69,6 +69,15 @@ function answering(cardId: number): void {
 
 /** Long enough for the wait above to have looked at least once. */
 const pause = (): Promise<void> => new Promise((done) => setTimeout(done, 50))
+
+/** The board's own turn, as `sendChatMessage` leaves one (#685): only the reply reaches the
+ *  transcript, and it is marked the board's. */
+function boardReplied(target: ChatTarget, text: string): void {
+  const file = path.join(CHATS_DIR, `${typeof target === 'number' ? `card-${target}` : target}.json`)
+  const chat = JSON.parse(fs.readFileSync(file, 'utf8'))
+  chat.messages.push({ role: 'agent', text, at: Date.now(), fromBoard: true })
+  fs.writeFileSync(file, JSON.stringify(chat))
+}
 
 /** The agent's side of it, written straight onto the transcript. */
 function replied(target: ChatTarget, text: string): void {
@@ -321,7 +330,7 @@ describe('a handoff is an end', () => {
     assert.equal(readCase(D), null)
   })
 
-  it('sends what the conversation says now when a failed one is ended again', async () => {
+  it('sends what the conversation says now when a submission that never went is ended again', async () => {
     discussing(D, 'the spec missed archived search')
     setChatShare(D, true)
     setChatCard(D, 603)
@@ -331,13 +340,125 @@ describe('a handoff is an end', () => {
     // The run wrote no card, so `settleHandoff` puts the row back and the subject goes on.
     setChatArchived(D, false)
     said(D, 'and the second pass missed it too')
+    // The first end spent the switch (#685), so sharing again is the user's own answer.
+    setChatShare(D, true)
+    setChatCard(D, 603)
     // The plan stays — it was handed to a run, and the cards that run wrote name its path.
     assert.deepEqual(archiveDiscussion(D), { ok: true, plans: [] })
     const again = openEndCase(D)!
-    // One record, under one id — and it carries the conversation as it now is, not the words
-    // the first end went with.
+    // Nothing ever went, so it is one record under one id — carrying the conversation as it
+    // now is, not the words the first end went with.
     assert.equal(again.id, readCase(D)!.id)
     assert.match(again.text, /the second pass missed it too/)
+  })
+})
+
+// ---- ending the same conversation twice (#685) ------------------------------
+//
+// A card's conversation outlives its ends: it is still on the card page, and the next message
+// said into it brings the row back. So the second end is an end like the first — its own
+// submission, under its own number, carrying the conversation as it now reads.
+
+describe('ending the same conversation a second time', () => {
+  it('opens a submission of its own, with a number of its own', () => {
+    said(7, 'the spec missed archived search')
+    setChatShare(7, true)
+    const first = openEndCase(7)!
+    closeCase('card-7', { status: 'sent' })
+    // The user shares again and ends again.
+    setChatShare(7, true)
+    said(7, 'and it missed the archived filter too')
+    const second = openEndCase(7)!
+    assert.notEqual(second.id, first.id)
+    assert.equal(second.status, 'collecting')
+    assert.match(second.text, /the archived filter too/)
+  })
+
+  it('carries the whole conversation, not only what was said since the first end', () => {
+    said(7, 'the spec missed archived search')
+    setChatShare(7, true)
+    openEndCase(7)
+    closeCase('card-7', { status: 'sent' })
+    said(7, 'and it missed the archived filter too')
+    setChatShare(7, true)
+    const second = openEndCase(7)!
+    assert.match(second.text, /the spec missed archived search/)
+    assert.match(second.text, /the archived filter too/)
+  })
+
+  it('leaves the board’s own turn out of what is shared', () => {
+    said(7, 'the spec missed archived search')
+    setChatShare(7, true)
+    openEndCase(7)
+    closeCase('card-7', { status: 'sent' })
+    // What the first end's submitting turn left behind: the board asked, and only the reply
+    // is written into the transcript.
+    boardReplied(7, 'I have submitted this conversation as fb_abcd1234.')
+    said(7, 'and it missed the archived filter too')
+    setChatShare(7, true)
+    const second = openEndCase(7)!
+    assert.ok(!second.text.includes('I have submitted this conversation'))
+    assert.match(second.text, /the archived filter too/)
+  })
+
+  it('goes on under the same number while the last attempt has not landed', () => {
+    said(7, 'the spec missed archived search')
+    setChatShare(7, true)
+    const first = openEndCase(7)!
+    // Refused by the platform, or never reached it. It may in truth have landed, so the next
+    // attempt keeps the number the service keys the object by.
+    closeCase('card-7', { status: 'failed', reason: 'refused' })
+    setChatShare(7, true)
+    assert.equal(openEndCase(7)!.id, first.id)
+  })
+})
+
+describe('the switch after an end', () => {
+  it('goes off, and leaves the submission that end just filed standing', async () => {
+    said(7, 'the spec missed archived search')
+    setChatShare(7, true)
+    assert.deepEqual(archiveDiscussion(7), { ok: true, plans: [] })
+    await endShared(7)
+    assert.equal(readChat(7)!.shareOnEnd, false)
+    // Turning it off BY HAND withdraws the submission. This is the switch having done what it
+    // promised, so the material this end shared is still there to send.
+    assert.ok(readCase('card-7'))
+    assert.match(readCase('card-7')!.text, /archived search/)
+  })
+
+  it('stays off when the conversation is spoken into again', async () => {
+    said(7, 'the spec missed archived search')
+    setChatShare(7, true)
+    assert.deepEqual(archiveDiscussion(7), { ok: true, plans: [] })
+    await endShared(7)
+    said(7, 'one more thing')
+    assert.equal(readChat(7)!.shareOnEnd, false)
+    // And a second end shares nothing, because nobody asked it to.
+    assert.deepEqual(archiveDiscussion(7), { ok: true, plans: [] })
+    assert.equal(openEndCase(7), null)
+  })
+
+  it('queues nothing for an end that arrives while the first is waiting on a reply', async () => {
+    said(7, 'the spec missed archived search')
+    setChatShare(7, true)
+    answering(7)
+    const first = endShared(7)
+    await pause()
+    // The switch is already spent, so this second end finds nothing to share and returns at
+    // once — rather than joining the wait and submitting the same conversation twice.
+    assert.equal(readChat(7)!.shareOnEnd, false)
+    await endShared(7)
+    fs.rmSync(path.join(CHATS_DIR, 'card-7.answering'), { recursive: true, force: true })
+    await first
+    assert.equal(readCase('card-7')!.cardId, 7)
+  })
+
+  it('is not turned off by an ordinary end that shares nothing', async () => {
+    said(7, 'the spec missed archived search')
+    assert.deepEqual(archiveDiscussion(7), { ok: true, plans: [] })
+    await endShared(7)
+    assert.equal(readChat(7)!.shareOnEnd, false)
+    assert.equal(readCase('card-7'), null)
   })
 })
 

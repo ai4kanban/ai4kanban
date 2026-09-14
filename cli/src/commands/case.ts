@@ -39,16 +39,26 @@ export async function cmdCase(args: string[], opts: CaseOptions): Promise<MoveRe
   if (!caseOffered()) die('Partner feedback is switched off on this machine, so nothing may be collected.')
   if (!opts.file) die('--file is required; write the findings to a temporary JSON file first.')
   const found = read(opts.file)
-  const record = await submitCase(discussion, found)
-  if (!record) die('This conversation has no shared submission to submit.')
-  if (record.status === 'sent') {
+  const done = await submitCase(discussion, found)
+  if (!done) die('This conversation has no shared submission to submit.')
+  const { record, posted } = done
+  // The number is only ever printed for a send that happened here (#685). A submission that
+  // had already landed is not one, and saying its id would read as this material having gone.
+  if (!posted) {
+    say('Not submitted — this conversation had already been submitted, and nothing went this time.')
+  } else if (record.status === 'sent') {
     say(`Submitted as ${record.id}.`)
   } else {
     // Said, not thrown: the pack is on disk, so a submission that did not land must not read
     // to the agent as work it should do over.
     say(`Not submitted (${record.reason ?? 'unreachable'}).`)
   }
-  return { id: record.id, status: record.status, gaps: record.gaps ?? [] }
+  return {
+    id: record.id,
+    status: record.status,
+    submitted: posted && record.status === 'sent',
+    gaps: record.gaps ?? [],
+  }
 }
 
 /** The findings file, as the agent wrote it. A `flowId` is the whole requirement: everything

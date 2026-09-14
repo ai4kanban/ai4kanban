@@ -55,15 +55,10 @@ export const LIMITS = {
   feedbackPartBytes: 256 * 1024,
   /** Characters of the feedback the user actually wrote. */
   feedbackTextChars: 4_000,
-  /** One posted case (#628), traces and project files together. Far larger than a piece of
-   *  feedback, because one refine's raw traces alone run to megabytes — and a whole number
-   *  of them, because the refusal is the WHOLE pack: nothing here is truncated behind the
-   *  user's back, and a pack over this is answered 413 with the question description still
-   *  offered on its own. */
-  caseBytes: 24 * 1024 * 1024,
-  /** What one collected project file may carry. A file longer than this is left out and
-   *  named as a gap rather than sent as a half of itself. */
-  caseFileBytes: 512 * 1024,
+  // A case (#628) has no limit of its own (#685). It is one shared conversation with the
+  // traces and project files that reproduce it, and a case cut down to fit is a reproduction
+  // that no longer reproduces — so nothing here truncates one, and the platform's own refusal
+  // is the only ceiling there is.
   /** The first day the archive holds — the day #489 published the archive and its indefinite
    *  limit on #293's privacy page. A day before it was taken under wording that promised
    *  deletion, so the sweep takes it unwritten. */
@@ -222,8 +217,9 @@ export interface SentFeedback {
 // The third thing this service takes, and the only one that carries project files. A piece
 // of feedback is a sentence and four small attachments; a case is everything needed to
 // REPRODUCE one refine going wrong — the raw traces of that refine's runs and the project
-// files those runs read. It shares nothing with the two above: its own route, its own size
-// limit, its own private bucket, and its own deletion key.
+// files those runs read. It shares nothing with the two above: its own route, its own private
+// bucket, its own deletion key, and no size limit at all (#685) — what the user shared is
+// stored whole, because a case cut down to fit reproduces nothing.
 //
 // The key is the SUBMISSION id, not an install id. A machine with usage reporting off still
 // gets one, so the deletion request works from any machine — and the same id posted twice is
@@ -267,7 +263,8 @@ export interface SentCaseRun {
   version?: string
   /** What the user typed for it, as the run recorded it. */
   input?: string
-  /** The raw trace, as the agent read it back off that harness's own store. */
+  /** The raw trace, as the agent read it back off that harness's own store — whole, and
+   *  only on the runs the agent found relevant to the problem (#685). */
   trace?: string
 }
 
@@ -296,7 +293,8 @@ export interface SentCase {
   card: number
   /** The refine the agent settled on, by the board's own flow id. */
   flowId?: string
-  /** The conversation the submission was made from, both sides, as far as it fits (#659). */
+  /** The conversation the submission was made from, both sides, whole (#659, #685) — the
+   *  board's own turns left out, since they were never part of what was said. */
   text: string
   /** The agent's reading of where the spec and the user's expectation came apart. */
   analysis?: string

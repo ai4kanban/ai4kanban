@@ -6,10 +6,11 @@
 // submission is a FILE rather than a value either of them holds. One file per discussion,
 // beside the transcripts and out of git.
 //
-// The id is minted once and reused for every attempt. It is what the user is shown, what
-// they quote to have the pack deleted, and what the service keys the object by — so a retry
-// that minted a second id would be a second pack nobody could delete with the number they
-// were given.
+// The id is minted once per submission and reused for every attempt at it. It is what the
+// user is shown, what they quote to have the pack deleted, and what the service keys the
+// object by — so a retry that minted a second id would be a second pack nobody could delete
+// with the number they were given. A second END of the same conversation is not a retry: it
+// is its own submission, with its own id (#685).
 
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
@@ -97,21 +98,25 @@ function write(record: CaseRecord): CaseRecord {
  * Open a submission on this discussion, or pick the one already there back up.
  *
  * Picking one back up is what makes a retry safe: the id, and with it the object the service
- * writes, is the one the user was already shown. A submission that already landed is left
- * exactly as it is — pressing send again in the same discussion is a new question about the
- * same card, not a second copy of a pack that is already with us.
+ * writes, is the one the user was already shown. So a submission still collecting, and one
+ * that failed — which may in truth have landed — go on under the id they started with.
+ *
+ * One that LANDED is over (#685). This is a second end of the same conversation, and it is
+ * its own submission: a new id, this conversation as it now reads, and the pack the last one
+ * left on this machine deleted. Reusing that record is what made a second end send nothing.
  */
 export function openCase(discussion: string, cardId: number, text: string): CaseRecord {
   const held = readCase(discussion)
-  if (held?.status === 'sent') return held
+  const over = held?.status === 'sent'
+  if (over && held.packFile) fs.rmSync(held.packFile, { force: true })
   return write({
-    id: held?.id ?? mintId(),
+    id: over ? mintId() : (held?.id ?? mintId()),
     discussion,
     cardId,
     text,
     status: 'collecting',
-    startedAt: held?.startedAt ?? Date.now(),
-    ...(held?.packFile ? { packFile: held.packFile } : {}),
+    startedAt: over ? Date.now() : (held?.startedAt ?? Date.now()),
+    ...(!over && held?.packFile ? { packFile: held.packFile } : {}),
   })
 }
 

@@ -58,6 +58,8 @@ export function takeCase(body: unknown, today: string): SentCase {
     throw new BadCase('bad card')
   }
 
+  // Whole, however long it is (#685): the conversation IS the case, and half of one describes
+  // a problem nobody can reproduce.
   const text = typeof sent.text === 'string' ? sent.text.trim() : ''
   if (!text) throw new BadCase('no text')
 
@@ -70,7 +72,7 @@ export function takeCase(body: unknown, today: string): SentCase {
     version,
     card: sent.card,
     ...(typeof sent.flowId === 'string' && sent.flowId ? { flowId: sent.flowId } : {}),
-    text: text.slice(0, LIMITS.feedbackTextChars),
+    text,
     ...(typeof sent.analysis === 'string' && sent.analysis ? { analysis: sent.analysis } : {}),
     gaps: lines(sent.gaps),
     runs: runs(sent.runs),

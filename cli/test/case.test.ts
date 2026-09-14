@@ -12,11 +12,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { after, afterEach, beforeEach, describe, it } from 'node:test'
 
-import { LIMITS } from '../../telemetry/contract.ts'
 import { chatPrompt } from '../src/lib/agent/chat.ts'
 import { buildCase, refinesOf, textOnlyCase } from '../src/lib/case/collect.ts'
 import { retryCase, submitCase } from '../src/lib/case/index.ts'
-import { closeCase, openCase, readCase } from '../src/lib/case/state.ts'
+import { closeCase, openCase, readCase, savePack } from '../src/lib/case/state.ts'
 import { CASES, SESSIONS, setBoardRoot } from '../src/lib/paths.ts'
 import { forgetMachineState, restoreMachineHome } from './helpers/board.ts'
 
@@ -126,13 +125,27 @@ describe('what the pack is allowed to hold', () => {
     assert.ok(built.gaps.some((g) => g.includes('gone.jsonl')))
   })
 
-  it('keeps the tail of a trace too long to send, and says it did', () => {
+  it('sends a trace whole, however far past the old 4 MiB cut it runs (#685)', () => {
     runs(run({ sessionId: 'a', flowId: 'f1', version: '0.9.4' }))
     const huge = path.join(root, 'huge.jsonl')
-    fs.writeFileSync(huge, `${'x'.repeat(5 * 1024 * 1024)}THE END`)
+    const text = `THE START${'x'.repeat(5 * 1024 * 1024)}THE END`
+    fs.writeFileSync(huge, text)
     const built = buildCase(opened(), { flowId: 'f1', runs: [{ sessionId: 'a', traceFile: huge }] })
-    assert.ok(built.pack.runs![0]!.trace!.endsWith('THE END'))
-    assert.ok(built.gaps.some((g) => g.includes('only the last')))
+    assert.equal(built.pack.runs![0]!.trace, text)
+    assert.ok(!built.gaps.some((g) => g.includes('only the last')))
+  })
+
+  it('leaves a run the agent did not select without a trace, and without a gap (#685)', () => {
+    runs(run({ sessionId: 'a', flowId: 'f1', version: '0.9.4' }), run({ sessionId: 'b', flowId: 'f1', version: '0.9.4' }))
+    const trace = path.join(root, 'one.jsonl')
+    fs.writeFileSync(trace, '{"read":"cards.ts"}\n')
+    const built = buildCase(opened(), { flowId: 'f1', runs: [{ sessionId: 'a', traceFile: trace }] })
+    assert.match(built.pack.runs![0]!.trace!, /cards\.ts/)
+    // Run `b` was read and ruled out. It is still listed — that is the refine's shape — but
+    // nothing about it is reported as material the pack could not get.
+    assert.equal(built.pack.runs![1]!.sessionId, 'b')
+    assert.equal(built.pack.runs![1]!.trace, undefined)
+    assert.ok(!built.gaps.some((g) => g.includes('no raw trace')))
   })
 
   it('names a run with no version recorded, rather than letting the gap pass', () => {
@@ -187,12 +200,24 @@ describe('what the pack is allowed to hold', () => {
     assert.deepEqual(built.pack.runs, [])
   })
 
-  it('says how much of a long conversation was left behind', () => {
+  it('carries a long conversation whole, and a long project file with it (#685)', () => {
     runs(run({ sessionId: 'a', flowId: 'f1', version: '0.9.4' }))
-    const long = openCase('d-long', 7, 'x'.repeat(LIMITS.feedbackTextChars + 1))
-    const built = buildCase(long, { flowId: 'f1' })
-    assert.equal(built.pack.text.length, LIMITS.feedbackTextChars)
-    assert.ok(built.gaps.some((g) => g.includes('only the first')))
+    // Both past a ceiling the pack used to hold: 4,000 characters of conversation, and 512 kB
+    // of one collected file.
+    const words = 'x'.repeat(20_000)
+    const big = 'y'.repeat(600 * 1024)
+    fs.writeFileSync(path.join(root, 'big.ts'), big)
+    const built = buildCase(openCase('d-long', 7, words), { flowId: 'f1', reads: [{ path: 'big.ts' }] })
+    assert.equal(built.pack.text, words)
+    assert.equal(built.pack.files![0]!.text, big)
+    assert.equal(built.pack.files![0]!.bytes, big.length)
+    assert.equal(built.pack.files![0]!.version, 'current')
+    assert.ok(!built.gaps.some((g) => g.includes('left out whole')))
+  })
+
+  it('sends the question description whole too', () => {
+    const pack = textOnlyCase(openCase('d-long', 7, 'x'.repeat(20_000)))
+    assert.equal(pack.text.length, 20_000)
   })
 
   it('sends the question description alone with nothing collected beside it', () => {
@@ -213,12 +238,24 @@ describe('the submission id', () => {
     assert.equal(readCase('d-1')!.status, 'collecting')
   })
 
-  it('leaves a submission that landed exactly as it is', () => {
+  it('starts a fresh one once the last one landed, so a second end is its own case (#685)', () => {
     const first = opened()
-    closeCase('d-1', { status: 'sent' })
-    const again = openCase('d-1', 7, 'a new question about the same card')
-    assert.equal(again.id, first.id)
-    assert.equal(again.status, 'sent')
+    const pack = savePack({ v: 1, id: first.id, day: '2026-09-14', submittedAt: '', surface: 'app', version: '0', card: 7, text: 'x' })
+    closeCase('d-1', { status: 'sent', packFile: pack })
+    const again = openCase('d-1', 7, 'a second thing went wrong on the same card')
+    assert.notEqual(again.id, first.id)
+    assert.equal(again.status, 'collecting')
+    assert.equal(again.text, 'a second thing went wrong on the same card')
+    assert.equal(again.sentAt, undefined)
+    // The pack the first one left behind goes with it: it was sent, and nothing on this
+    // machine sends it again.
+    assert.equal(again.packFile, undefined)
+    assert.equal(fs.existsSync(pack), false)
+  })
+
+  it('keeps the id of one still collecting, which is not a second end at all', () => {
+    const first = opened()
+    assert.equal(openCase('d-1', 7, 'said again').id, first.id)
   })
 
   it('is this discussion’s alone', () => {
@@ -291,8 +328,9 @@ describe('sending one', () => {
     runs(run({ sessionId: 'a', flowId: 'f1', version: '0.9.4' }))
     const held = opened()
     const sent = await submitCase('d-1', { flowId: 'f1', analysis: '澄清里说过归档。' })
-    assert.equal(sent!.status, 'sent')
-    assert.equal(sent!.id, held.id)
+    assert.equal(sent!.posted, true)
+    assert.equal(sent!.record.status, 'sent')
+    assert.equal(sent!.record.id, held.id)
     assert.equal(taken.length, 1)
     assert.equal(taken[0]!.id, held.id)
     assert.equal(taken[0]!.card, 7)
@@ -304,8 +342,8 @@ describe('sending one', () => {
     const held = opened()
     answer = 500
     const failed = await submitCase('d-1', { flowId: 'f1' })
-    assert.equal(failed!.status, 'failed')
-    assert.equal(failed!.reason, 'refused')
+    assert.equal(failed!.record.status, 'failed')
+    assert.equal(failed!.record.reason, 'refused')
     answer = 202
     const again = await retryCase('d-1')
     assert.equal(again!.status, 'sent')
@@ -314,13 +352,35 @@ describe('sending one', () => {
     assert.deepEqual(taken.map((body) => body.id), [held.id, held.id])
   })
 
-  it('refuses a pack over the limit here, rather than sending it into a wall', async () => {
+  it('says nothing went when the submission had already landed (#685)', async () => {
     runs(run({ sessionId: 'a', flowId: 'f1', version: '0.9.4' }))
     opened()
-    const sent = await submitCase('d-1', { flowId: 'f1', analysis: 'x'.repeat(LIMITS.caseBytes) })
-    assert.equal(sent!.status, 'failed')
-    assert.equal(sent!.reason, 'too-large')
-    assert.equal(taken.length, 0)
+    await submitCase('d-1', { flowId: 'f1' })
+    assert.equal(taken.length, 1)
+    // A second `case submit` in the same turn. The record stands, and nothing about it may
+    // read back as a send that happened here.
+    const again = await submitCase('d-1', { flowId: 'f1' })
+    assert.equal(again!.posted, false)
+    assert.equal(taken.length, 1)
+  })
+
+  it('sends a pack past the old 24 MiB ceiling rather than refusing it here (#685)', async () => {
+    runs(run({ sessionId: 'a', flowId: 'f1', version: '0.9.4' }))
+    opened()
+    const analysis = 'x'.repeat(25 * 1024 * 1024)
+    const sent = await submitCase('d-1', { flowId: 'f1', analysis })
+    assert.equal(sent!.record.status, 'sent')
+    assert.equal(taken.length, 1)
+    assert.equal((taken[0]!.analysis as string).length, analysis.length)
+  })
+
+  it('reports a platform that will not carry it, rather than cutting it down', async () => {
+    runs(run({ sessionId: 'a', flowId: 'f1', version: '0.9.4' }))
+    opened()
+    answer = 413
+    const sent = await submitCase('d-1', { flowId: 'f1' })
+    assert.equal(sent!.record.status, 'failed')
+    assert.equal(sent!.record.reason, 'too-large')
   })
 
   it('says nothing is holding a submission once the link was cancelled', async () => {

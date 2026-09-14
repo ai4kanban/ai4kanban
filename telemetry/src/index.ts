@@ -166,10 +166,10 @@ async function feedback(request: Request, env: Env, now: Date, said: Said): Prom
 /**
  * One partner's refine case, taken or refused in so many words (#628).
  *
- * Its own limit, and the refusal is the WHOLE pack: a case cut down to fit is a
- * reproduction that no longer reproduces, so 413 goes back and the sender offers to send the
- * question description on its own instead. The same id posted twice writes the same object,
- * which is what makes the sender's retry safe.
+ * No size limit of its own (#685): a case cut down to fit is a reproduction that no longer
+ * reproduces, and a ceiling here is only that same cut made by the service instead. What the
+ * user shared is stored whole. The same id posted twice writes the same object, which is what
+ * makes the sender's retry safe.
  */
 async function partnerCase(request: Request, env: Env, now: Date, said: Said): Promise<Handled> {
   if (request.method === 'OPTIONS') return said(204, null)
@@ -178,11 +178,7 @@ async function partnerCase(request: Request, env: Env, now: Date, said: Said): P
   const origin = request.headers.get('origin')
   if (origin && !allowed(origin, env)) return said(403, { ok: false })
 
-  if (Number(request.headers.get('content-length') ?? 0) > LIMITS.caseBytes) {
-    return said(413, { ok: false })
-  }
   const bytes = await request.arrayBuffer()
-  if (bytes.byteLength > LIMITS.caseBytes) return said(413, { ok: false })
 
   let taken
   try {

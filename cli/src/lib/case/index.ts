@@ -25,6 +25,14 @@ export {
  *  screen offers to share: the switch is the consent, and nothing is read without it. */
 export const caseOffered = (): boolean => partnerFeedbackOn()
 
+/** How one `case submit` went. `posted` is whether THIS call put anything on the wire: false
+ *  is a submission that had already landed, which is left exactly as it is — and which must
+ *  never be read back as a send that happened (#685). */
+export interface CaseSubmitted {
+  record: CaseRecord
+  posted: boolean
+}
+
 /**
  * Build the pack this submission's findings describe, send it, and record how it went.
  *
@@ -32,19 +40,20 @@ export const caseOffered = (): boolean => partnerFeedbackOn()
  * is one the retry can send again rather than collect again — and so what was sent is on the
  * machine that sent it.
  */
-export async function submitCase(discussion: string, found: CaseFindings): Promise<CaseRecord | null> {
+export async function submitCase(discussion: string, found: CaseFindings): Promise<CaseSubmitted | null> {
   const held = readCase(discussion)
   if (!held) return null
-  if (held.status === 'sent') return held
+  if (held.status === 'sent') return { record: held, posted: false }
   const built = buildCase(held, found)
   const file = savePack(built.pack)
   const sent = await sendCase(built.pack)
-  return closeCase(discussion, {
+  const closed = closeCase(discussion, {
     status: sent.ok ? 'sent' : 'failed',
     reason: sent.reason,
     gaps: built.gaps,
     packFile: file,
   })
+  return closed && { record: closed, posted: true }
 }
 
 /** Post the same pack again, under the same id. The service writes one object per id, so a

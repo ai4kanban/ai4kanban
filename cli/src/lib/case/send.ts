@@ -7,7 +7,7 @@
 // can delete a pack for. Nothing retries on its own: somebody is watching the discussion,
 // and the screen offers the retry.
 
-import { CASE_ENDPOINT, LIMITS } from '../../../../telemetry/contract'
+import { CASE_ENDPOINT } from '../../../../telemetry/contract'
 import type { SentCase } from '../../../../telemetry/contract'
 import type { CaseFailure } from './state'
 
@@ -30,13 +30,13 @@ export interface CaseSent {
 /**
  * Send one pack, and say what came of it.
  *
- * Never throws. A pack over the endpoint's ceiling is refused HERE rather than sent into a
- * 413 — the answer is the same either way, and the screen's **Send the question description
- * only** is what it leads to.
+ * Never throws, and refuses nothing for its size (#685): a case is worth what it reproduces,
+ * and this board has no ceiling of its own to judge that against. A platform that will not
+ * carry it answers 413, which is a refusal the user is told about — the screen's **Send the
+ * question description only** is what it leads to — never a pack quietly cut down to fit.
  */
 export async function sendCase(pack: SentCase): Promise<CaseSent> {
   const payload = JSON.stringify(pack)
-  if (Buffer.byteLength(payload) > LIMITS.caseBytes) return { ok: false, reason: 'too-large' }
   try {
     const answer = await fetch(endpoint(), {
       method: 'POST',

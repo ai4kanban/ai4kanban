@@ -805,6 +805,15 @@ export interface ChatMessage {
    *  whose file has since gone is kept: the message still reads the way it was sent, and
    *  the slot says the picture is no longer here. */
   images?: string[]
+  /** The board said this, not the user (#685). It is a turn the board started for itself —
+   *  the one an ended conversation's submission runs in — so what is shared with the team
+   *  leaves it out: it is the board's own work on this conversation, not part of it.
+   *
+   *  Only the reply carries it: the board's question is never written into the transcript at
+   *  all. Marked from here on, and never worked out backwards for a message written before
+   *  the mark existed — guessing from "a reply with no message in front of it" would throw
+   *  away real replies. */
+  fromBoard?: boolean
 }
 
 /** What a conversation is about: the whole board, one card, the board's first run (#280),

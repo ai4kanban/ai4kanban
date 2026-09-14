@@ -34,8 +34,13 @@ original input survives.
 
 - **Whatever the harness**: the clues are the whole input. Find that tool's own session store
   yourself; there is no path table here to fall back on.
-- **A trace that is gone is a gap**: a run whose trace has been cleaned up is written down as
-  one, and the case still goes.
+- **Only the runs the problem turns on**: read the refine, work out which of its runs the
+  deviation actually came from, and hand over those. A run you read and ruled out is left out.
+- **Verbatim, in order**: hand over the trace as it was written. Where you narrow one to the
+  relevant stretch, keep those lines exactly and in the order they appear — never a summary,
+  a paraphrase or a rewrite in place of the text.
+- **A trace that is gone is a gap**: a run you needed whose trace has been cleaned up is
+  written down as one, and the case still goes. A run you deliberately left out is not a gap.
 
 ## Submit what you found
 
@@ -51,12 +56,15 @@ Write the findings to a temporary JSON file, then `akb raw case submit --file <p
 }
 ```
 
-- **The conversation goes with it**: the board carries the whole transcript itself. Never
-  paste it into the findings.
+- **The conversation goes with it**: the board carries the whole transcript itself, whole and
+  untrimmed. Never paste it into the findings.
+- **`runs` is what you selected**: one entry per run you are handing a trace over for. A run
+  of that refine you name here without a `traceFile`, and one you do not name at all, both go
+  without a trace — so name the ones that matter and leave the rest alone.
 - **`reads` is what that refine actually read**: one entry per project file, each with the
   line of the trace you saw it on. A file you cannot evidence goes in `gaps`, not in `reads`.
 - **The board checks and collects**: it refuses a path outside the project, drops a repeat,
   reads each file at the version that refine saw where git can still answer for it, and marks
   the rest. You name files; you never paste their contents.
-- **Submit once**: the move prints the id on success and says so plainly when it did not go.
-  Nobody is waiting on the answer — do not submit again.
+- **Submit once**: the move prints the id only when this submission really landed, and says
+  plainly when nothing went. Nobody is waiting on the answer — do not submit again.

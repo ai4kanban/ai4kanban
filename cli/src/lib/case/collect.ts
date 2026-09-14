@@ -14,7 +14,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { LIMITS } from '../../../../telemetry/contract'
 import type { SentCase, SentCaseFile, SentCaseRun } from '../../../../telemetry/contract'
 import { SKILL_VERSION } from '../../version'
 import { git } from '../agent/worktree'
@@ -28,11 +27,6 @@ import type { CaseRecord } from './state'
  *  that settles the writing. A flow holding none of these is not a refine, whatever else it
  *  did on the card. */
 const REFINE_ACTIONS = new Set<AgentAction>(['clarify', 'spec', 'writing'])
-
-/** How much of one trace goes. A refine's trace runs to megabytes and the whole pack has a
- *  ceiling, so the tail is kept — where a refine settled the card is the end of it — and the
- *  cut is written down as a gap rather than passed off as the whole thing. */
-const TRACE_BYTES = 4 * 1024 * 1024
 
 /** One run of a refine, with everything the agent needs to find that harness's own trace of
  *  it. Every field here is the board's own record of the run — nothing is guessed. */
@@ -162,11 +156,6 @@ export function buildCase(record: CaseRecord, found: CaseFindings): BuiltCase {
   })
 
   const files = collectFiles(found.reads ?? [], refine?.startedAt, gaps)
-  // The whole conversation is what is shared (#659), and a long one does not fit. The cut is
-  // written down rather than passed off as the whole of what was said.
-  if (record.text.length > LIMITS.feedbackTextChars) {
-    gaps.push(`the conversation ran to ${record.text.length} characters and only the first ${LIMITS.feedbackTextChars} went`)
-  }
 
   return {
     pack: {
@@ -178,7 +167,7 @@ export function buildCase(record: CaseRecord, found: CaseFindings): BuiltCase {
       version: SKILL_VERSION,
       card: record.cardId,
       ...(refine ? { flowId: refine.flowId } : {}),
-      text: record.text.slice(0, LIMITS.feedbackTextChars),
+      text: record.text,
       ...(found.analysis ? { analysis: found.analysis } : {}),
       gaps,
       runs,
@@ -199,18 +188,19 @@ export function textOnlyCase(record: CaseRecord): SentCase {
     surface: usageSurface(),
     version: SKILL_VERSION,
     card: record.cardId,
-    text: record.text.slice(0, LIMITS.feedbackTextChars),
+    text: record.text,
     gaps: ['sent as the question description alone — no trace and no project file went with it'],
   }
 }
 
 /** One run's raw trace, as far as it can be believed. A file the agent named and this
- *  machine does not have is a gap, never an empty string passed off as a trace. */
+ *  machine does not have is a gap, never an empty string passed off as a trace.
+ *
+ *  A run the agent named NOTHING for is a run it left out on purpose (#685) — it read the
+ *  refine and decided this one has no bearing on the problem — so it is not a gap. `gaps` is
+ *  for relevant material that could not be got, not for material nobody asked for. */
 function readTrace(file: string | undefined, clue: CaseClue, gaps: string[]): string | undefined {
-  if (!file) {
-    gaps.push(`run ${clue.sessionId} (${clue.action}) — no raw trace was found for it`)
-    return undefined
-  }
+  if (!file) return undefined
   let text: string
   try {
     text = fs.readFileSync(file, 'utf8')
@@ -222,9 +212,9 @@ function readTrace(file: string | undefined, clue: CaseClue, gaps: string[]): st
     gaps.push(`run ${clue.sessionId} (${clue.action}) — its trace file is empty`)
     return undefined
   }
-  if (Buffer.byteLength(text) <= TRACE_BYTES) return text
-  gaps.push(`run ${clue.sessionId} (${clue.action}) — only the last ${TRACE_BYTES / (1024 * 1024)} MB of its trace went`)
-  return Buffer.from(text).subarray(-TRACE_BYTES).toString('utf8')
+  // Whole, however long it is (#685). What the agent chose to hand over is the relevant part
+  // already; cutting it here would send a trace that no longer shows what it was picked for.
+  return text
 }
 
 /**
@@ -269,6 +259,15 @@ function collectFiles(
   return files
 }
 
+/** One collected file, whole (#685) — a project file goes at whatever length it is, because
+ *  half of one reproduces nothing. */
+const whole = (
+  inside: string,
+  text: string,
+  version: SentCaseFile['version'],
+  evidenced: { evidence?: string },
+): SentCaseFile => ({ path: inside, bytes: Buffer.byteLength(text), text, version, ...evidenced })
+
 function oneFile(
   inside: string,
   full: string,
@@ -278,7 +277,7 @@ function oneFile(
 ): SentCaseFile {
   const evidenced = evidence ? { evidence } : {}
   const asRead = commit ? git(['show', `${commit}:${inside}`]) : null
-  if (asRead !== null) return sized(inside, asRead, 'read', evidenced, gaps)
+  if (asRead !== null) return whole(inside, asRead, 'read', evidenced)
   let text: string
   try {
     text = fs.readFileSync(full, 'utf8')
@@ -287,20 +286,7 @@ function oneFile(
     return { path: inside, bytes: 0, text: '', version: 'missing', ...evidenced }
   }
   gaps.push(`${inside} went as this checkout's copy, not the version that refine read`)
-  return sized(inside, text, 'current', evidenced, gaps)
-}
-
-function sized(
-  inside: string,
-  text: string,
-  version: SentCaseFile['version'],
-  evidenced: { evidence?: string },
-  gaps: string[],
-): SentCaseFile {
-  const bytes = Buffer.byteLength(text)
-  if (bytes <= LIMITS.caseFileBytes) return { path: inside, bytes, text, version, ...evidenced }
-  gaps.push(`${inside} is ${Math.round(bytes / 1024)} kB and was left out whole`)
-  return { path: inside, bytes, text: '', version: 'missing', ...evidenced }
+  return whole(inside, text, 'current', evidenced)
 }
 
 /** The last commit at or before that moment — what the refine was reading against. Null

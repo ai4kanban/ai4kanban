@@ -1,14 +1,13 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { LIMITS } from '../contract.ts'
 import { casePrefix, caseKey } from '../src/case.ts'
 import worker from '../src/index.ts'
 import { fakeEnv } from './fake.mjs'
 
 // A partner's refine case (#628). Three promises hold this file up: the submission id is the
-// whole address, the pack is taken whole or refused whole, and nothing about it reaches the
-// tables and the archive the anonymous numbers live in.
+// whole address, the pack is stored whole however big it is (#685), and nothing about it
+// reaches the tables and the archive the anonymous numbers live in.
 
 const ID = 'fb_7k4m2p3q'
 const day = () => new Date().toISOString().slice(0, 10)
@@ -72,12 +71,28 @@ describe('a partner case', () => {
     assert.equal(stored(env).text, '第二次')
   })
 
-  it('refuses a pack over the limit whole, rather than storing part of it', async () => {
+  it('stores a pack past every limit this service used to hold (#685)', async () => {
     const env = fakeEnv()
-    const huge = JSON.stringify(one({ analysis: 'x'.repeat(LIMITS.caseBytes) }))
-    const answer = await post(env, huge)
-    assert.equal(answer.status, 413)
-    assert.equal(env.CASES.held.size, 0)
+    // Each one is over a ceiling the case path once enforced: the conversation over the
+    // 4,000-character cut, one trace over 4 MiB, one project file over 512 KiB, and the whole
+    // pack over 24 MiB. All of it is stored exactly as it was sent.
+    const text = '很长的对话。'.repeat(2_000)
+    const trace = 'x'.repeat(5 * 1024 * 1024)
+    const file = 'y'.repeat(600 * 1024)
+    const answer = await post(
+      env,
+      one({
+        text,
+        analysis: 'z'.repeat(20 * 1024 * 1024),
+        runs: [{ action: 'refine', startedAt: 1, harness: 'claude', sessionId: 's-1', trace }],
+        files: [{ path: 'a.ts', bytes: file.length, text: file, version: 'read' }],
+      }),
+    )
+    assert.equal(answer.status, 202)
+    const pack = stored(env)
+    assert.equal(pack.text, text)
+    assert.equal(pack.runs[0].trace.length, trace.length)
+    assert.equal(pack.files[0].text.length, file.length)
   })
 
   it('refuses a body it cannot read, and says so', async () => {

@@ -119,6 +119,7 @@ export function readChat(cardId: ChatTarget): Chat | null {
       usage: usageOf(entry.usage),
       costUsd: typeof entry.costUsd === 'number' ? entry.costUsd : undefined,
       images: imagesOf(entry.images),
+      fromBoard: entry.fromBoard === true ? true : undefined,
     })
   }
   return {
@@ -418,6 +419,20 @@ export function setChatShare(cardId: ChatTarget, on: boolean): void {
   if (!on) chat.linkedCard = undefined
   writeChat(chat)
   if (!on) dropCase(keyOf(cardId))
+}
+
+/** Turn the switch off because this conversation has ENDED (#685).
+ *
+ *  Not `setChatShare(target, false)`: that is the user withdrawing, which takes the end's
+ *  submission and the card it was filed under away with it. This is the switch having done
+ *  what it promised — the end it named has happened and is submitting right now, so the
+ *  submission stays and only the promise is spent. Sharing again is a fresh answer, terms
+ *  and all. */
+export function endChatShare(cardId: ChatTarget): void {
+  const chat = readChat(cardId)
+  if (!chat?.shareOnEnd) return
+  chat.shareOnEnd = false
+  writeChat(chat)
 }
 
 /** The card a discussion says its problem is about (#628). A card's own conversation never
@@ -993,6 +1008,9 @@ export async function sendChatMessage(
       text: reply,
       at: landed,
       stoppedWhy,
+      // The board's own turn, marked as one (#685) — its question was never written into the
+      // transcript, so this reply is all there is to leave out of what gets shared.
+      ...(options.fromBoard ? { fromBoard: true as const } : {}),
       // The board's own clock for the time, and the connector's own numbers for the rest —
       // a turn that reported none carries none rather than a zero.
       ms: landed - asked,

@@ -1,8 +1,12 @@
-// What a shared conversation does when it ends (#659, #679).
+// What a shared conversation does when it ends (#659, #679, #685).
 //
 // The switch under the box collects nothing while the conversation is going. It says one
 // thing only: that ending this conversation submits it. So this file is the whole cost of
 // "share with the team" — one turn, after the end, on the conversation that just ended.
+//
+// And it says it about ONE end. The switch is spent here and goes off, so a conversation
+// carried on past its end shares again only when the user asks again — and that second end is
+// a submission of its own, with a number of its own, because the first one has already gone.
 //
 // The turn is the board's own, so nothing of it reaches the transcript as something the user
 // said and an ended conversation never comes back to the rail because of it. The screen waits
@@ -10,7 +14,7 @@
 // reply that was still being written when the end came — must not hold it there.
 
 import { caseOffered, openCase, type CaseRecord } from '../case'
-import { answeringOn, keyOf, readChat, sendChatMessage } from './chat'
+import { answeringOn, endChatShare, keyOf, readChat, sendChatMessage } from './chat'
 import { isDiscussion, type Chat, type ChatTarget } from './types'
 
 /** What the board says to open the submitting turn. The conversation itself is above it in
@@ -27,12 +31,15 @@ const SUBMIT =
  * Called after the end has already happened, and answers nothing: every way out of it — the
  * switch was off, this machine does not take part, no card to file it under, a reply that
  * never finished — is a conversation that ends the way it always did.
+ *
+ * The switch goes off the moment that decision is made (#685), before the wait below. The
+ * promise it carried has been kept by this end, so the next one is a fresh answer — and an
+ * end that arrives while the wait is running finds the switch already off and queues nothing.
+ * What it does NOT do is drop the submission: that is what turning it off BY HAND means, and
+ * doing it here would have this end delete its own material.
  */
 export async function shareOnEnd(target: ChatTarget): Promise<void> {
-  // Read before anything is waited on, so an ordinary end costs nothing at all.
-  if (!readChat(target)?.shareOnEnd) return
-  if (!(await replyOver(target))) return
-  const open = openEndCase(target)
+  const open = await endShared(target)
   if (!open) return
   await sendChatMessage(target, SUBMIT, {
     fromBoard: true,
@@ -41,19 +48,48 @@ export async function shareOnEnd(target: ChatTarget): Promise<void> {
 }
 
 /**
- * File the submission this conversation's end makes, and answer with it.
+ * Everything the end does before that turn: decide, spend the switch, wait out a reply that
+ * was still being written, and file the submission. Null is every reason not to submit one.
  *
- * Split from the turn above so the decision — is it shared, does this machine take part,
- * which card is it about — stands on its own. Null is every reason not to submit, and each of
- * them is a conversation that ends the way it always did.
+ * Its own function because the order in it is the whole of #685 — and because the turn above
+ * is the only part of an end that needs an agent.
  */
-export function openEndCase(target: ChatTarget): CaseRecord | null {
+export async function endShared(target: ChatTarget): Promise<CaseRecord | null> {
+  // Read before anything is waited on, so an ordinary end costs nothing at all.
+  const card = endCard(target)
+  if (!card) return null
+  endChatShare(target)
+  if (!(await replyOver(target))) return null
+  // The decision already made, not the switch as it now stands: re-reading it here would
+  // have the end block its own submission on the switch it has just turned off.
+  return openEndCase(target, card)
+}
+
+/**
+ * The card this conversation's end files its submission under, or null.
+ *
+ * The whole decision — is it shared, does this machine take part, which card is it about —
+ * in one answer, so it can be made before the end waits on anything and acted on after.
+ */
+export function endCard(target: ChatTarget): number | null {
   const chat = readChat(target)
   if (!chat?.shareOnEnd || !caseOffered()) return null
   // A card's conversation is about that card. A discussion is about the card the user linked
   // — and `endBlocked` is why one that linked none never gets this far.
   const card = typeof target === 'number' ? target : chat.linkedCard
-  if (!card) return null
+  return card ?? null
+}
+
+/**
+ * File the submission this conversation's end makes, and answer with it.
+ *
+ * Split from the turn above so the decision stands on its own: `card` is that decision as it
+ * was made, and without one it is made here. Null is every reason not to submit, and each of
+ * them is a conversation that ends the way it always did.
+ */
+export function openEndCase(target: ChatTarget, card = endCard(target)): CaseRecord | null {
+  const chat = readChat(target)
+  if (!chat || !card) return null
   return openCase(keyOf(target), card, transcript(chat))
 }
 
@@ -101,10 +137,15 @@ export async function replyOver(target: ChatTarget): Promise<boolean> {
   return !answeringOn(target)
 }
 
-/** The conversation as the pack carries it: both sides, in the order they were said. A reply
- *  that stopped short goes as far as it got — what the user saw is what was shared. */
+/** The conversation as the pack carries it: both sides, in the order they were said, whole. A
+ *  reply that stopped short goes as far as it got — what the user saw is what was shared.
+ *
+ *  The board's own turns are left out (#685). The submitting turn it starts is the board
+ *  talking to itself about this conversation, and a second end would otherwise carry the last
+ *  one's reply in as something the user had been told. */
 function transcript(chat: Chat): string {
   return chat.messages
+    .filter((message) => !message.fromBoard)
     .map((message) => `${message.role === 'you' ? 'User' : 'Agent'}: ${message.text}`)
     .join('\n\n')
 }

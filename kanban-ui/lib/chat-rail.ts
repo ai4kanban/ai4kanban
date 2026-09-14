@@ -401,17 +401,22 @@ export function useChatRail({
   // run's have no end to share at.
   const canShare = shareOffered && (typeof cardId === "number" || isDiscussion(cardId));
 
-  // Where the switch stood when this conversation was last written. Read once per
-  // conversation and never again: the poll runs while the user is pressing it, and a second
-  // read would put the switch back where the file still says it is.
-  const shareKey = String(cardId);
+  // Where the switch stood when this conversation was last written. Read once while the
+  // conversation is going and never again: the poll runs while the user is pressing it, and a
+  // second read would put the switch back where the file still says it is.
+  //
+  // Ending it is the one thing that reads again (#685). The end spends the switch — it has
+  // shared this conversation and turned itself off — so the screen has to follow, or the next
+  // message it sends carries a switch that is only still on here and shares it a second time.
+  const shareKey = `${cardId}:${chat?.archived === true ? "ended" : "live"}`;
   useEffect(() => {
     if (!chat || seededShare.current === shareKey) return;
     seededShare.current = shareKey;
     setShareOn(chat.shareOnEnd === true);
     // A conversation already sharing has answered the terms; it must not be asked again to
-    // turn a switch back on it once had on.
-    if (chat.shareOnEnd === true) agreed.current = true;
+    // turn a switch back on it once had on. And one that is no longer sharing has not: the
+    // terms come back the next time the switch is asked for.
+    agreed.current = chat.shareOnEnd === true;
   }, [chat, shareKey]);
 
   const flipShare = useCallback(
