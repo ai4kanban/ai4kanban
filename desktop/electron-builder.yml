@@ -74,6 +74,12 @@ mac:
 dmg:
   title: AI4Kanban ${version}
 
+# Every dmg, mac zip and the exe gets a `.blockmap` beside it. It is electron-updater's
+# chunk index, and this app's updater is its own — `PUBLISHING.md` leaves them in `dist/`.
+# Not turned off here: the mac zip's is hardcoded on in app-builder-lib, and the knobs for
+# the other two (`dmg.writeUpdateInfo`, `nsis.differentialPackage`) also drop `size:` from
+# `latest*.yml`, which is the download's total before the first byte lands.
+
 # --- Windows and Linux: built and shipped unsigned this release --------------
 # Untested and unsigned, so both systems show a warning on first open. The
 # download page says so, and says the one step past it.

@@ -102,8 +102,8 @@ npm test                   # the Worker's checks, and the SQL against a real SQL
 address alone, so nothing else on the network reaches it, and it is gone when the process is
 — nothing is deployed and there is nothing to log in to. It reads the last 90 days of
 production summaries once at startup and works every range out from that, so a restart is how
-the day's later numbers arrive. Credentials come from `telemetry/.env`
-(`.env.example` is the template); a missing one is named and nothing is started.
+the day's later numbers arrive. Use `npx wrangler login`, or provide credentials in
+`telemetry/.env` (`.env.example` is the template). Wrangler refreshes its login automatically.
 
 **Deploy the service before the sender that needs it.** The endpoint drops event names AND
 fields it does not know, so a sender released first loses its new event — or its new field on

@@ -68,7 +68,7 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
    See `desktop/README.md`.
 6. `git push --follow-tags`, then create the GitHub release for `v<new-version>` and upload
    this version's files from `desktop/dist/` — the folder keeps every past release's builds
-   too, so upload by name, not `dist/*`. Four traps, all silent:
+   too, so upload by name, not `dist/*`. Five traps, all silent:
    - **`--follow-tags` doesn't push a lightweight tag.** `git tag v<x>` makes one, so the
      push leaves the tag behind. `git ls-remote --tags origin | grep <x>`, and
      `git push origin v<x>` if it isn't there.
@@ -76,13 +76,18 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
      `127.0.0.1:7890` and the big files reset mid-transfer.
    - **`gh release create` exits 0 even when an upload failed**, leaving a draft with some
      of the assets. Count them before publishing: `gh release view v<x> --json assets -q
-     '.assets[].name' | wc -l` — 16 (twelve build files and four `latest*.yml`). Then
+     '.assets[].name' | wc -l` — 11 (seven build files and four `latest*.yml`). Then
      `gh release edit v<x> --draft=false --latest`.
    - **The four `latest*.yml` are what the in-app install reads** (#372). Drop one and every
      user on that system gets the notice and no install; upload a wrong one and the install
      404s for all of them. They come out of `desktop/dist/` with the builds and need no
      editing — the only thing to get right is uploading them, and the count above is the
      check.
+   - **Don't upload the `*.blockmap` files.** electron-builder writes one beside every dmg,
+     mac zip and the exe, for electron-updater's chunk-level download. This app's updater is
+     its own (`desktop/src/lib/update/`) and fetches whole files, so nothing ever reads them.
+     They are also what makes the count wrong: `dist/` holds 12 files for a version, and 5 of
+     them stay there.
 7. Deploy the landing page — last, and not optional. **If `telemetry/contract.ts` changed,
    deploy the usage endpoint first**: it drops event names and fields it does not know, so a
    site shipped ahead of it loses that count in silence for as long as the two are apart.

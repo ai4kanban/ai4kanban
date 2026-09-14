@@ -16,11 +16,11 @@ import { createServer } from 'node:http'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { COPIES, query, serviceRoot } from './copies.mjs'
+import { COPIES, query, serviceRoot, wrangler } from './copies.mjs'
 import { DEFAULT_RANGE, READ_DAYS, RANGES, dashboardOf, rangeOf } from './dashboard.mjs'
 import { pageOf } from './page.mjs'
 
-/** What reading the summaries needs. Wrangler takes both from the environment. */
+/** Credentials required when using an API token instead of Wrangler login. */
 const NEEDED = ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']
 const DEFAULT_PORT = 8788
 
@@ -70,13 +70,18 @@ createServer((request, answer) => {
     process.exit(1)
   })
 
-/**
- * The two credentials, out of `telemetry/.env`. Nothing is started without them: a page that
- * came up and then showed every number as unknown would read as a product nobody uses.
- */
+/** Accept configured API credentials or a refreshable Wrangler login. */
 function credentials() {
   const file = join(serviceRoot, '.env')
   if (existsSync(file)) process.loadEnvFile(file)
+  if (!process.env.CLOUDFLARE_API_TOKEN) {
+    try {
+      const auth = JSON.parse(wrangler(['auth', 'token', '--json']))
+      if (auth.type === 'oauth' && auth.token) return
+    } catch {
+      // No usable Wrangler login; show the configuration instructions below.
+    }
+  }
   const missing = NEEDED.filter((name) => !process.env[name])
   if (missing.length === 0) return
 
@@ -87,6 +92,7 @@ function credentials() {
     process.stderr.write(`    ${name.padEnd(24)}${process.env[name] ? 'found' : 'missing'}\n`)
   }
   process.stderr.write('\n  telemetry/.env.example has the template. Nothing was started.\n\n')
+  process.stderr.write('  Or run npx wrangler login to use your Cloudflare account directly.\n\n')
   process.exit(1)
 }
 
