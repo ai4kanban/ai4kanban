@@ -14,7 +14,7 @@ import { after, beforeEach, describe, it } from 'node:test'
 import { cmdRemove } from '../src/commands/remove.ts'
 import { parseFrontmatter } from '../src/lib/frontmatter.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
-import { setBoardRoot } from '../src/lib/paths.ts'
+import { MOCKUPS, setBoardRoot } from '../src/lib/paths.ts'
 import { readArchive, readArchivedCard } from '../src/lib/view/archive.ts'
 import { forgetMachineState } from './helpers/board.ts'
 
@@ -87,6 +87,39 @@ function remove(id: number, metric: 'completed' | 'rejected'): void {
 }
 
 const metaOf = (file: string) => parseFrontmatter(fs.readFileSync(file, 'utf8')).meta!
+
+describe('mockups after removal', () => {
+  function mockup(id: number): string {
+    const file = path.join(MOCKUPS, String(id), 'screen.html')
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, '<h1>Preview</h1>')
+    return file
+  }
+
+  it('keeps an archived card’s referenced mockup', () => {
+    const file = card(91)
+    const preview = mockup(91)
+    const tag = '<Mockup src=".mockups/91/screen.html" label="Preview" />'
+    fs.appendFileSync(file, `\n${tag}\n`)
+    remove(91, 'completed')
+    assert.ok(readArchivedCard(91)?.body.includes(tag))
+    assert.equal(fs.readFileSync(preview, 'utf8'), '<h1>Preview</h1>')
+  })
+
+  it('keeps mockups for an archived group and its subtasks', () => {
+    group(91, [92, 93])
+    const previews = [91, 92, 93].map(mockup)
+    remove(91, 'completed')
+    for (const file of previews) assert.equal(fs.readFileSync(file, 'utf8'), '<h1>Preview</h1>')
+  })
+
+  it('still removes mockups for a rejected group and its subtasks', () => {
+    group(91, [92, 93])
+    const previews = [91, 92, 93].map(mockup)
+    remove(91, 'rejected')
+    for (const file of previews) assert.equal(fs.existsSync(file), false)
+  })
+})
 
 describe('the day a card was archived', () => {
   it('is stamped on the card on its way out', () => {

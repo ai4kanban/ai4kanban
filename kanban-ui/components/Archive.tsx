@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FiArchive, FiTag } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
+import type { MockupSet } from "@/lib/mockup-tag";
 import type { AgentInfo, ArchiveList, ArchivedCard, ArchivedCardFile, MemoryModule } from "@/lib/types";
 import { CardBody } from "./CardBody";
 import { HAIRLINE } from "./chrome";
@@ -229,6 +230,7 @@ function RecordEndsHere({ label, count }: { label: string; count: number }) {
  *  half open, the agent half folded under it — and nothing else on the page acts on it. */
 export function ArchivedCardPage({
   card,
+  mockups,
   openIds,
   agent,
   projectRoot,
@@ -237,6 +239,7 @@ export function ArchivedCardPage({
   desktop,
 }: {
   card: ArchivedCardFile;
+  mockups?: MockupSet;
   openIds: number[];
   agent: AgentInfo;
   projectRoot: string;
@@ -278,7 +281,7 @@ export function ArchivedCardPage({
         </div>
       )}
       <div className="mt-4 flex flex-col gap-2">
-        <CardBody body={card.body} title={card.title} cardId={card.id} />
+        <CardBody body={card.body} title={card.title} cardId={card.id} mockups={mockups} />
       </div>
     </ArchiveFrame>
   );

@@ -4,6 +4,7 @@ import { NoBoard, NoRules } from "@/components/NoBoard";
 import { agentInfo, NO_AGENT } from "@/lib/agent";
 import { readArchivedCard, readBoard } from "@/lib/board";
 import { isDesktop } from "@/lib/desktop";
+import { readMockups } from "@/lib/mockup";
 import { boardSearchStart, findRepoRoot, repoRoot } from "@/lib/paths";
 import type { ArchivedCardFile, Board } from "@/lib/types";
 
@@ -30,10 +31,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // page of its own.
   if (!card) notFound();
 
-  const agent = await agentInfo().catch(() => NO_AGENT);
+  const [agent, mockups] = await Promise.all([
+    agentInfo().catch(() => NO_AGENT),
+    readMockups(card.body),
+  ]);
   return (
     <ArchivedCardPage
       card={card}
+      mockups={mockups}
       openIds={board.openIds}
       agent={agent}
       projectRoot={repoRoot()}

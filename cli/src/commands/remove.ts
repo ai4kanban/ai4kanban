@@ -90,9 +90,7 @@ function leavingIds(id: number, found: Found): number[] {
   return [...ids]
 }
 
-// A mockup only ever describes the card it is keyed to, and a card off the board has
-// nothing left to draw — so its folder goes with it, on archive as on reject. The files
-// are not in git, so this is the end of them: what a drawing settled is in the card.
+// Only rejected cards lose their mockups; archived cards still display them.
 function dropMockups(ids: number[]): { dir: string; files: number }[] {
   const dropped: { dir: string; files: number }[] = []
   for (const id of ids) {
@@ -105,9 +103,7 @@ function dropMockups(ids: number[]): { dir: string; files: number }[] {
   return dropped
 }
 
-// A conversation about a card off the board has nothing left to be about, so it goes the
-// way that card's mockups do. Only our end of it: the agent's own session stays wherever
-// its CLI keeps it, and nothing on this board holds its id any more.
+// Remove board conversations; the agent's own session stays with its CLI.
 function dropChats(ids: number[]): number[] {
   return ids.filter((id) => clearChat(id))
 }
@@ -267,7 +263,7 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   // The card is off the board now, so every blocked_by/related pointing at it is stale.
   // Runs after the move/delete, so the card's own frontmatter is already out of `todo/`.
   const unlinked = dropCrossRefs(id)
-  const droppedMockups = dropMockups(mockupIds)
+  const droppedMockups = dest ? [] : dropMockups(mockupIds)
   const droppedChats = dropChats(mockupIds)
   const droppedComments = dropDraftComments(mockupIds)
   bumpMetric(metric)
