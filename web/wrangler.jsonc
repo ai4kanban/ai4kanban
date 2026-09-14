@@ -1,0 +1,24 @@
+{
+  // The site deploys as a Pages project, and `functions/` rides along with it. The only
+  // reason this file exists is the newsletter's unsubscribe endpoint: a Pages Function needs
+  // its D1 binding declared somewhere, and declaring it here keeps the binding, the
+  // migrations and the deploy in git rather than in the dashboard.
+  //
+  // `pages_build_output_dir` replaces the directory argument the deploy command used to
+  // pass, so `npm run deploy` no longer names `out` or the project.
+  "name": "kanban-skill",
+  "pages_build_output_dir": "out",
+  "compatibility_date": "2026-08-26",
+
+  // The newsletter's own database — deliberately not the telemetry one, which holds usage
+  // events under a different retention promise. `database_id` comes from
+  // `wrangler d1 create ai4kanban-newsletter`; see scripts/newsletter/README.md.
+  "d1_databases": [
+    {
+      "binding": "NEWSLETTER_DB",
+      "database_name": "ai4kanban-newsletter",
+      "database_id": "1c16e0a1-29e7-4928-ab01-902c51879af8",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

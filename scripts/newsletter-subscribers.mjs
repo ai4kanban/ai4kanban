@@ -16,17 +16,21 @@
 // unsubscribe is permanent here: re-collecting can never turn it back on.
 
 import fs from 'node:fs'
-import path from 'node:path'
-import os from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
+import {
+  BACKUP_FILE,
+  LIST_FILE,
+  applyUnsubscribes,
+  readList,
+  usableEmail,
+  writeList,
+} from './newsletter/list.mjs'
+
+export { usableEmail }
 
 const REPO = 'ai4kanban/ai4kanban'
 const API = 'https://api.github.com'
-const LIST_DIR = path.join(os.homedir(), '.ai4kanban', 'newsletter')
-const LIST_FILE = path.join(LIST_DIR, 'subscribers.json')
-const BACKUP_FILE = path.join(LIST_DIR, 'subscribers.json.enc')
-const SCHEMA_VERSION = 1
 
 const MAX_LOOKUPS = 200          // per run; the rest stays queued for next time
 const RECHECK_AFTER_DAYS = 30    // how long a fruitless lookup rests before a retry
@@ -126,22 +130,6 @@ async function fetchStargazers(repo) {
 
 // ---------------------------------------------------------------- email rules
 
-const EMAIL_RE = /^[^\s@<>()[\],;:"]+@[a-z0-9.-]+\.[a-z]{2,}$/i
-const NOREPLY_LOCAL = /^(no-?reply|do-?not-?reply|donotreply|noreply.*)$/i
-// Machines and shared mailboxes, not a person: a commit made as root is not a reader.
-const ROLE_LOCAL = /^(root|admin|administrator|postmaster|hostmaster|webmaster|abuse|mailer-daemon|git|builder|build|ci|jenkins|runner|actions|github-actions(\[bot\])?|.*\[bot\]|.*-bot)$/i
-const PLACEHOLDER_DOMAINS = /(^|\.)(example\.(com|org|net)|test|invalid|local|localdomain|localhost|users\.noreply\.github\.com|sentry\.io)$/i
-
-export function usableEmail(value) {
-  if (typeof value !== 'string') return null
-  const email = value.trim().toLowerCase()
-  if (!EMAIL_RE.test(email)) return null
-  const [local, domain] = email.split('@')
-  if (NOREPLY_LOCAL.test(local) || ROLE_LOCAL.test(local)) return null
-  if (PLACEHOLDER_DOMAINS.test(domain)) return null
-  return email
-}
-
 // A commit counts only when GitHub itself ties it to the account — that link exists
 // because the address is registered to it, which is the attribution we need.
 export function commitBelongsTo(commit, login) {
@@ -235,28 +223,6 @@ export async function findEmail(login) {
 
 // ---------------------------------------------------------------- the list file
 
-function emptyList(repo) {
-  return { schema_version: SCHEMA_VERSION, repo, updated_at: null, unsubscribed_emails: [], subscribers: [] }
-}
-
-function readList(repo) {
-  if (!fs.existsSync(LIST_FILE)) return emptyList(repo)
-  const list = JSON.parse(fs.readFileSync(LIST_FILE, 'utf8'))
-  if (list.schema_version !== SCHEMA_VERSION) {
-    die(`名单文件版本不匹配 / Unexpected list version: ${list.schema_version}`)
-  }
-  list.unsubscribed_emails ||= []
-  list.subscribers ||= []
-  return list
-}
-
-function writeAtomically(file, contents) {
-  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 })
-  const tmp = `${file}.tmp`
-  fs.writeFileSync(tmp, contents, { mode: 0o600 })
-  fs.renameSync(tmp, file)
-}
-
 function newRecord(user, now) {
   return {
     login: user.login,
@@ -314,22 +280,6 @@ export function revalidate(subscribers) {
   return dropped
 }
 
-export function applyUnsubscribes(list) {
-  const blocked = new Set(list.unsubscribed_emails.map((e) => String(e).toLowerCase()))
-  for (const record of list.subscribers) {
-    if (record.unsubscribed && record.email) blocked.add(record.email)
-  }
-  for (const record of list.subscribers) {
-    if (record.email && blocked.has(record.email)) {
-      record.unsubscribed = true
-      record.unsubscribed_at ||= new Date().toISOString()
-      record.deliverable = false
-      record.undeliverable_reason = 'unsubscribed'
-    }
-  }
-  list.unsubscribed_emails = [...blocked].sort()
-}
-
 // ---------------------------------------------------------------- backup
 
 function backup(passphrase) {
@@ -378,6 +328,11 @@ async function main() {
 
   const dropped = revalidate(list.subscribers)
 
+  // Before the queue is built, not just after it is spent: a fresh record for someone who
+  // already left is blocked by their login, and looking their address up would be both a
+  // wasted call and a lookup nobody asked for.
+  applyUnsubscribes(list)
+
   // Never looked at first; then the ones whose last look found nothing, oldest first.
   const stale = Date.now() - RECHECK_AFTER_DAYS * 86400000
   const queue = list.subscribers
@@ -421,7 +376,6 @@ async function main() {
 
   applyUnsubscribes(list)
   dedupe(list.subscribers)
-  list.updated_at = new Date().toISOString()
 
   const deliverable = list.subscribers.filter((r) => r.deliverable && !r.unsubscribed)
   const remaining = list.subscribers.filter((r) => !r.email && !r.unsubscribed && !r.last_checked_at).length
@@ -437,7 +391,7 @@ async function main() {
 
   if (opts.dryRun) return say('\n预演，未写入名单 / Dry run — nothing written')
 
-  writeAtomically(LIST_FILE, `${JSON.stringify(list, null, 2)}\n`)
+  writeList(list)
   say(`\n名单 / List: ${LIST_FILE}`)
 
   if (!opts.backup) return

@@ -1,0 +1,36 @@
+{
+  "subject": "AI4Kanban — This week in 0.9.3",
+  "preheader": "A shared office for your agents, clearer delivery updates, and an easier start for your next project.",
+  "eyebrow": "THIS WEEK  /  VERSION 0.9.3",
+  "headline": "A little more room to get things done.",
+  "intro": "A shared office for your agents. Clearer delivery updates. And an easier start for your next project.",
+  "hero": {
+    "src": "/newsletter/example/hero.jpg",
+    "alt": "The Runs office, with eight desks for parallel agents."
+  },
+  "highlights": [
+    {
+      "label": "RUNS",
+      "title": "One room, eight agents",
+      "body": "Follow parallel work in the Runs office. See who is working at each desk, with the agent's role and harness above its head."
+    },
+    {
+      "label": "DELIVERY",
+      "title": "Keep track of the handoff",
+      "body": "Follow delivery progress, recovery and notifications as work moves toward completion."
+    },
+    {
+      "label": "GETTING STARTED",
+      "title": "Give your next project a home",
+      "body": "Start a new project and bring its work onto the board."
+    }
+  ],
+  "cta": {
+    "label": "Get the latest version",
+    "href": "https://ai4kanban.dev/download"
+  },
+  "releaseNotes": {
+    "label": "See what's new in 0.9.3",
+    "href": "https://github.com/ai4kanban/ai4kanban/releases"
+  }
+}

@@ -111,6 +111,11 @@ install. `kanban-skill-ui` is the retired old UI name; it's deprecated on npm an
    kanban-skill` shows Preview vs Production, and the real check is the live page —
    `curl -s https://ai4kanban.dev/download | grep -o 'releases/download/v[0-9.]*'`.
 
+   Deploy from `web/`, not the clone's root. The site is no longer a pure static export:
+   `web/functions/` answers the newsletter's unsubscribe link, and its D1 binding comes from
+   `web/wrangler.jsonc`. A deploy run from anywhere else never reads that file and ships a
+   deployment whose `/unsubscribe` has no database.
+
 Nothing to do for `kanban-ui/` — it is frozen (below).
 
 ### npm publish on this machine
