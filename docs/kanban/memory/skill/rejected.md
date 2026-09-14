@@ -68,6 +68,12 @@ before proposing so you don't re-suggest them.
 - **A drawing of a screen inside an open question** — a question lives in frontmatter and
   stays one short line, pointing at the drawing in the card body.
 
+## Solutions
+
+- **Splitting the two boards into a kernel plus solution folders** — a second configurable
+  mechanism beside the stage contracts and registered agents, with two concepts for a user to
+  learn. One general workflow carries every kind of work instead.
+
 ## Setup
 
 - **Ending setup with a v1 and a vnext group task** — not every project plans releases on day

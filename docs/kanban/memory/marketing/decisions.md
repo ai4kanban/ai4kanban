@@ -37,6 +37,15 @@ Internal detail stays on the card.
   audience and the limits are settled in the card's own chat.
 - **面向英文社区的公开仓库只维护英文一份文档**：awesome list 这类仓库的读者和贡献者以英文为主，产品 UI 的中英双语惯例不延伸过去，中文读者自己读英文。
 
+## Retiring the marketing pack
+
+- **No more marketing-only implementation is built**: topic proposals and per-channel
+  publishing stay manual, and the board runs on the `marketing` branches that exist today until
+  the general workflow takes content work over and those branches are removed.
+- **The marketing board's data is deleted, not migrated**: `marketing/kanban/` goes away with
+  its writing memory, published record and feedback, because the board's owner is its only
+  user.
+
 ## The topic page
 
 - **A card's channels are picked on the page, not asked for**: the picker lists the channels
@@ -69,12 +78,13 @@ Internal detail stays on the card.
 
 ## The newsletter
 
-- **Which domain do issues go out from?**: a subdomain of `ai4kanban.dev` with SPF, DKIM and
-  DMARC set up, so the address a reader sees matches the product. The unsubscribe link points
-  at the `ai4kanban.dev` site too.
+- **Which domain do issues go out from?**: the verified root domain `ai4kanban.dev`, using
+  `newsletter@ai4kanban.dev` with SPF, DKIM and DMARC. The unsubscribe link points at the
+  `ai4kanban.dev` site too.
 - **The subscriber list lives in one local file on the user's machine**, kept outside the repo
   with an encrypted backup, never in git and not on any hosted service, so issues go out only
   from that machine.
 - **Which service sends the issues?**: Resend, on its free tier, with the sending domain
   verified and the API key in the environment. A list that outgrows the free tier is a decision
   to revisit, not a limit to design around now.
+- **一封周报靠图片撑阅读体验**：正文按模板的容量写短，主图之外每项亮点各配一张图，衬底与圆角在导出时就合成进图片——邮件客户端不跑 canvas，也留不住复杂 CSS。

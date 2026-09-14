@@ -3,6 +3,10 @@
 Design mistakes to avoid when writing a card, grouped by topic. One entry each: the
 mistake, then the design we actually want. Read before writing or reviewing a card.
 
+## Storage choices
+
+- ❌ **Choosing KV for a small feature without checking the project's existing storage** → ✅ prefer the existing D1 stack when it fits, accounting for shared maintenance rather than only initial code size.
+
 ## Getting started
 
 - ❌ **Offering a terminal install beside the download, however quietly** → ✅ the app is the

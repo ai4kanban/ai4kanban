@@ -26,3 +26,6 @@ covers it, or a plain-words note.
 - A notification that fails to reach Cloud is retried in seconds rather than a minute, backing
   off to a five-minute cap and giving up after about four hours with the board said to be out
   of step. A retry about a card somebody has since dealt with is dropped.
+- A discussion now judges the idea before it plans one: it separates the outcome you want from
+  the means you named, says whether the thing is worth doing at all, and may disagree, advise a
+  pause, or ask for evidence first. A turn that only answers your question is a finished turn.

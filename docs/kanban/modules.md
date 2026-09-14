@@ -7,5 +7,5 @@ If a line here disagrees with the repo you just read, fix the line.
 - **marketing** — the marketing board solution: topics, drafts, channels, writing memory and publishing workflows, including its card and editor UI. `cli/src/guide/marketing/`, marketing-specific commands and helpers in `cli/src/`, marketing components in `kanban-ui/`, and `marketing/`.
 - **site** — the marketing and landing site, deployed to Cloudflare Pages. `web/`.
 - **docs** — the user guides, authored as MDX and published at `/docs` on the site. `web/content/docs/` (a page per `.mdx` file, with the rail's grouping and order in `_nav.json`); the routes and components that render them are **site**.
-- **telemetry** — the service that takes in usage events from the app and the site, and where those events are stored and read. No code yet.
+- **telemetry** — usage events, feedback, and shared cases from the app, CLI, and site; `telemetry/` holds the service, storage, daily summaries, and reporting scripts.
 - **cloud** — the hosted board control plane, shared board data, identity, and team coordination. `cloud/` (the Worker at `api.ai4kanban.dev`, its Postgres migrations, and its own deploy, rollback and migrate commands).

@@ -34,6 +34,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Idea intake
 
+- ❌ **Truncate shared evidence to fit arbitrary size caps** → ✅ keep shared conversations whole and have the feedback assistant select relevant trajectory content; impose no application size caps on case submissions.
+
 - ❌ **Send an article, analysis or complaint straight to add-task** → ✅ treat it as
   evidence: extract the user problems, route them to modules, and validate them against
   shipped, planned, rejected and remembered work before creating cards.

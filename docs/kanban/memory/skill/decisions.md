@@ -53,8 +53,6 @@ re-ask a settled call.
   answering it refines the card and sends it through again.
 - Turning the gate on applies only to cards that reach `ready` afterwards, so the switch never
   opens a batch of deliveries at once.
-- Splitting a flow out onto its own agent copies nothing out of the old agent's rule, so the
-  user has to move their own lines across.
 
 ## Implementation runs
 
@@ -161,6 +159,9 @@ re-ask a settled call.
   can rename or delete and every agent naming no runtime runs. There is no "make default".
 - A runtime's id keys everything and its name keys nothing, so a rename is lossless on every
   computer. Deleting one puts its agents back on **Global default** rather than being refused.
+- Splitting a flow out onto its own agent copies the old agent's rule and runtime across once,
+  so the first run after the upgrade behaves exactly as before; from then on the two copies are
+  maintained separately.
 - A runtime's shape travels in git and its key does not, so the first computer to upgrade sets
   the model every checkout runs, and a machine whose CLI never signed in inherits one it
   cannot run.
@@ -224,10 +225,12 @@ re-ask a settled call.
 
 ## Solutions
 
-- The word for a job is `solution` — it names both what a user picks and the folder that
-  provides it. `job` and `plugin` are not the product's words.
-- The marketing pack is its own code: its flows are written separately rather than as options
-  on the product ones, and what the two really share moves into the kernel at the extraction.
+- There is one workflow for every kind of work, not a kernel plus swappable solutions. The
+  stages, and the specialist agents a user registers on them, are what a new line of work is
+  configured with; nothing copies a solution folder into a board.
+- `solution` stays the word only while the marketing pack does — `product` and `marketing` are
+  code written separately, and the word retires with them. `job` and `plugin` were never the
+  product's words and do not come back.
 
 ## The eval set
 

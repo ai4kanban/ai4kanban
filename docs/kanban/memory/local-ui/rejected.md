@@ -82,3 +82,13 @@ before proposing so you don't re-suggest them.
 - **Requiring a git repo before a folder becomes a project** — builds there already fall back to
   manual mode and say why, so refusing at the front door shuts AI4Kanban out of every project
   that is not under git.
+
+## Feedback
+
+- **A lasting list of shared feedback numbers in Settings** — the feedback path is a side
+  channel, not a product surface; a machine-level append log plus a Settings entry with its own
+  count, empty state and unreadable state is more than it earns.
+- **A details dialog for the install id in Privacy settings** — reading the id is a rare,
+  one-off need already served by `akb telemetry status`; a copy button, an empty state, a
+  reset warning and a deletion walkthrough over-build a side channel the settings pane only
+  has to switch on and off.

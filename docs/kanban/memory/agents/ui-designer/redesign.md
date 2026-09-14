@@ -23,6 +23,9 @@
   dialog buries what is behind it rather than sitting beside it.
 - ❌ **Split one moment into three screens** → ✅ before drawing three states, look for the
   single state where they co-exist.
+- ❌ **Answered a card asking for 中英文 copy with one screen in the board's language** → ✅ the
+  board's language rule governs one screen; a card that wants both languages wants each
+  surface drawn twice, one file per language, or the English is never reviewed.
 
 - **The drawings live in `.akb/boards/docs/kanban/mockups/<card id>/`** — the board's own
   folder on the machine, gitignored. `akb spec` prints the path; older cards' drawings are
@@ -62,6 +65,8 @@
 - **A refusal is answered where it was pressed**, in the slot the thing would have filled and
   never floated over the words that control stands under. The page's own band is for what has
   no control to hang from.
+- **A refusal listing agents draws each one's roster character**: an agent's name can be the
+  same word as the step it failed on, and the character is what says which one is meant.
 - **A refusal that fills a whole tile keeps the tile's ground**: a screen-sized alarm colour
   is read as an alarm.
 - **Avoid redundant prompts**: where the controls already show the choice, add no explanatory
@@ -175,6 +180,12 @@
   PNG travels only as a `data:` URI, shrunk first.
 - **A scrolling row clips everything that hangs off it**: draw the row twice — the real one
   inside the scroller, and a hidden copy over it carrying the popover.
+- **Give a box a fixed height, never `flex-1`**: on a page taller than its container the box
+  keeps its `min-h` and the caption under it lands behind the next block — the line is in the
+  HTML and invisible in the shot, which reads as a design that has no such line.
+- **The headless-shell binary is at**
+  `~/Library/Caches/ms-playwright/chromium_headless_shell-<n>/chrome-headless-shell-mac-arm64/chrome-headless-shell`
+  — not under `chrome-mac/`, which is the full Chromium's layout.
 - **A browser that aborts needs `--single-process`**, on the Playwright headless-shell binary,
   which also prints the abort's reason. When no browser will start even then, add the frame up
   by hand, render to HTML to prove the component runs, and say the frame was never seen.
@@ -189,3 +200,10 @@
   list that still reads.
 - **Never bundle the board's own mockup library to preview with** — it shells out through the
   CLI and hangs.
+- **An email is drawn by running the product's own template**: copy `scripts/newsletter/
+  template.mjs` into the mockup folder, patch the copy, render the issue with a `resolveImage`
+  that hands back `data:` URIs, and write the `.html` products out — the images-off and
+  plain-text states come from `withoutImages`/`renderText` for free.
+- **A UI crop is only worth a picture if its words survive the width it is shown at**: an
+  email figure lands at 552px, so a whole pane's table comes out as grey lines — crop to the
+  one block the sentence is about.
