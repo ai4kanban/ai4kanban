@@ -13,6 +13,11 @@ they said — on the turn it lands, not when the conversation ends.
   `akb card revise <id> --print "<the change>"`; an answer to an open question goes through
   `akb card resolve <id> --print`. Do the job in this conversation — update the card, validate
   it, and write the memory those flows ask for. Saying you will is not doing it.
+- **Not this card's work**: a job the card does not cover is not a revision of it — send it to
+  `akb create "<what they said, in their words>"` and let it run on its own. That flow does the
+  duplicate check, the modules and the open questions this conversation cannot, and it never
+  touches this card. Do not write the new card here. Tell them it went to the board, and carry
+  on with the card in front of you.
 - **Judge memory on its own**: every turn, ask whether the user settled a preference, a
   constraint, or a correction that would change a later planning call. Save it even when the
   card itself does not change. A question, a "what if", and your own proposal are not their

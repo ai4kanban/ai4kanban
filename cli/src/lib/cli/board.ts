@@ -144,7 +144,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
         '"Group task" in `akb guide board`). The script owns the frontmatter and writes the body ' +
         'scaffold — recurring cards get Run state + Process; fill only the body by hand. ' +
         '--body-file writes the body with the card instead, so a card is never left scaffolded ' +
-        'with a run already scheduled on it.',
+        'with a run already scheduled on it. Turning what a user just asked for into a card goes ' +
+        'through `akb create` instead: this move only writes what you already decided.',
     )
     .requiredOption('--title <title>', 'what the card is called')
     .option('--recurring', 'a job that repeats: it goes in recurring/ and gets a Run state + Process body')

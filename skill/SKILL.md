@@ -26,6 +26,7 @@ session without `--print`. Explicit user requests take precedence.
 
 | Command (after `akb`) | Mode |
 | --- | --- |
+| `create <what>` | Separate session (no `--print`); never hand-write the card in-session |
 | `card revise <id> <what>` | In-session (`--print`) |
 | `card resolve <id> [note]` | In-session (`--print`) |
 | `card archive <id>` | In-session (`--print`) |
