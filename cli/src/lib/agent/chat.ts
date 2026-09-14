@@ -85,6 +85,12 @@ export const DISCUSSION_GUIDE = 'discuss-idea'
  *  whether to build something. */
 export const FEEDBACK_GUIDE = 'feedback'
 
+/** The guide a card's own conversation follows (#735). A discussion decides whether to build
+ *  something; a card's conversation is about a card that already exists, so what the user
+ *  says in it is a change to that card, an answer to one of its questions, or feedback to
+ *  remember — and each of those is acted on as the turn lands. */
+export const CARD_CHAT_GUIDE = 'card-chat'
+
 /** A conversation's file is named by what it is about, so the board's conversation, the
  *  first run's, each card's and each discussion's are separate by construction and one can
  *  never be read as another's. A discussion's target IS its key (#496). */
@@ -823,10 +829,13 @@ function feedbackLines(feedback: { cardId: number; share: boolean } | undefined)
 
 /** The flow a conversation follows when the screen naming one didn't (#502). A discussion is
  *  the discussion helper's own work — deciding what is worth building — so `akb chat` in a
- *  terminal is held the same way the Discuss screen holds it. A chat about a card follows
- *  none: it is about that card, and the card says what it is. */
-const defaultGuide = (cardId: ChatTarget): string | undefined =>
-  cardId === null || isDiscussion(cardId) ? DISCUSSION_GUIDE : undefined
+ *  terminal is held the same way the Discuss screen holds it. A chat about a card follows its
+ *  own (#735): the card is already there, so the turn is handled against it rather than
+ *  weighed as an idea. The first run's conversation is neither, and follows none. */
+const defaultGuide = (cardId: ChatTarget): string | undefined => {
+  if (cardId === null || isDiscussion(cardId)) return DISCUSSION_GUIDE
+  return typeof cardId === 'number' ? CARD_CHAT_GUIDE : undefined
+}
 
 /** The pictures that came with this message, for a connector that opens a path written into
  *  the words. Above the message rather than under it, the way they sit above the words in

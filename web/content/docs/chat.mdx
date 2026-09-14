@@ -3,7 +3,7 @@ title: "Talk it over, and let it do it"
 title_tag: "AI4Kanban chat — talk about the board, and change it"
 description: "A conversation that already knows your board: decide what to build and why, understand a card, spot a duplicate — and make the change when you've settled it."
 lead: "Not every answer is a job. Open a conversation to think out loud — and when it lands on a change, the chat makes it."
-last_updated: "September 4, 2026"
+last_updated: "September 14, 2026"
 nav_label: "Chat"
 icon: "message"
 ---
@@ -30,7 +30,12 @@ It is one conversation either way, so you can start it in a terminal and carry i
 | to understand a card before you approve it | it answers |
 | to compare two cards, or spot a duplicate | it answers |
 | a change you have already settled — reword it, put it in v1, archive it | it makes the change |
+| a preference or a correction that outlasts this card | it saves it to the board's memory |
 | the card worked out, or the code written | the skill does its printed flow here unless you ask for a background run |
+
+On a card, it works your message out turn by turn: a change goes into the card, an answer settles
+one of its open questions, and anything you settle that outlasts the card goes into the board's
+memory so later planning reads it. Say to hold off, or not to record it, and it does neither.
 
 Chat is the kanban skill in a persistent agent session, so it follows the same board-specific
 flows and by default does the work here. A card a run is already working on is off limits, and

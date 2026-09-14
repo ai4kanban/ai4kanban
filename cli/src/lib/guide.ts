@@ -24,6 +24,7 @@
 
 import addTask from '../guide/add-task.md'
 import board from '../guide/board.md'
+import cardChat from '../guide/card-chat.md'
 import changelog from '../guide/changelog.md'
 import conflict from '../guide/conflict.md'
 import decide from '../guide/decide.md'
@@ -81,6 +82,7 @@ export const GUIDES: Guide[] = [
   { name: 'add-task', when: 'turn one idea into a card', text: addTask },
   { name: 'follow-up', when: 'place additional work and prepare context for a follow-up card', text: followUp },
   { name: 'discuss-idea', when: 'help decide whether an idea is worth building, and hand what it settled to planning', text: discussIdea },
+  { name: 'card-chat', when: "answer a card's conversation, and act on what each turn settles", text: cardChat },
   { name: 'feedback', when: 'understand what a spec got wrong, and collect the case for it', text: feedback },
   { name: 'next-card', when: 'name which cards already on the board to build now', text: nextCard },
   { name: 'implement', when: 'build a settled card and stop cleanly on an execution blocker', text: implement },

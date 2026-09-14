@@ -80,8 +80,16 @@ describe('the discussion helper', () => {
       assert.match(chatPrompt(null, 'an idea', turn), /akb guide discuss-idea/)
       assert.match(chatPrompt('discussion-7', 'an idea', turn), /akb guide discuss-idea/)
     }
-    // A chat about a card is about that card, and the card says what it is.
-    assert.doesNotMatch(chatPrompt(340, 'an idea', { title: 'a card' }), /akb guide/)
+    // A chat about a card is not a discussion: it follows the card's own brief instead.
+    assert.doesNotMatch(chatPrompt(340, 'an idea', { title: 'a card' }), /akb guide discuss-idea/)
+  })
+
+  it("puts a card's conversation on the card-chat brief, on every turn", () => {
+    for (const turn of [{ title: 'a card' }, { resuming: true }]) {
+      assert.match(chatPrompt(340, 'change the wording', turn), /akb guide card-chat/)
+    }
+    // The first run's conversation is neither a discussion nor a card, and follows none.
+    assert.doesNotMatch(chatPrompt('setup', 'hello'), /akb guide/)
   })
 
   it("carries the agent's own rule, ahead of the words the user typed", () => {
