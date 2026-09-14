@@ -4,13 +4,13 @@
 
 **下一个时代的 Vibe Coding 方式**<br>*让 Agent 自己进行项目规划和实施，人类只对关键的决策进行判断。*
 
-[English](README.md) · 简体中文
+[![English](https://img.shields.io/badge/English-24231f?style=flat-square)](README.md) ![简体中文](https://img.shields.io/badge/简体中文-dd4f1e?style=flat-square)
 
-[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=24231f)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=635a4e)](https://github.com/ai4kanban/ai4kanban/releases)
+[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=2f6b46)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=2c5c86)](https://github.com/ai4kanban/ai4kanban/releases)
 
-[ai4kanban.dev](https://ai4kanban.dev/zh) · [博客](https://ai4kanban.dev/blog)
+[![ai4kanban.dev](https://img.shields.io/badge/ai4kanban.dev-5a3f92?style=flat-square)](https://ai4kanban.dev/zh) [![博客](https://img.shields.io/badge/博客-b83a12?style=flat-square)](https://ai4kanban.dev/blog)
 
-[![下载 macOS、Windows、Linux 版](https://img.shields.io/badge/下载-macOS_·_Windows_·_Linux-dd4f1e?style=for-the-badge&labelColor=24231f)](https://ai4kanban.dev/zh/download)
+[![下载 macOS 版](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/zh/download) [![下载 Windows 版](https://img.shields.io/badge/Windows-2c5c86?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/zh/download) [![下载 Linux 版](https://img.shields.io/badge/Linux-2f6b46?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/zh/download)
 
 <img src="https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding-v1.jpg" width="560" alt="Vibe coding、中间层工具与 kanban coding">
 
@@ -40,7 +40,7 @@ AI4Kanban 帮助我们的早期用户提升了 3–6 倍实施效率。
 
 7. 简单来说，人类所需要做的就是提出想法，做选择题，最后 review 极扼要的简报。剩下的事情全都交给 AI。
 
-![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid-v2.png)
+![AI4Kanban 概览](https://cdn.ai4kanban.dev/readme/overview-grid-v3.png)
 
 ## 全自动开发工厂（实验性）
 

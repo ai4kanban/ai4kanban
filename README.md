@@ -4,13 +4,13 @@
 
 **Next-gen vibe coding.**<br>*Agents plan and build. You make the key decisions.*
 
-English · [简体中文](README-zh.md)
+![English](https://img.shields.io/badge/English-24231f?style=flat-square) [![简体中文](https://img.shields.io/badge/简体中文-dd4f1e?style=flat-square)](README-zh.md)
 
-[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=24231f)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=635a4e)](https://github.com/ai4kanban/ai4kanban/releases)
+[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=2f6b46)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=2c5c86)](https://github.com/ai4kanban/ai4kanban/releases)
 
-[ai4kanban.dev](https://ai4kanban.dev) · [Blog](https://ai4kanban.dev/blog)
+[![ai4kanban.dev](https://img.shields.io/badge/ai4kanban.dev-5a3f92?style=flat-square)](https://ai4kanban.dev) [![Blog](https://img.shields.io/badge/Blog-b83a12?style=flat-square)](https://ai4kanban.dev/blog)
 
-[![Download for macOS, Windows and Linux](https://img.shields.io/badge/download-macOS_·_Windows_·_Linux-dd4f1e?style=for-the-badge&labelColor=24231f)](https://ai4kanban.dev/download)
+[![Download for macOS](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/download) [![Download for Windows](https://img.shields.io/badge/Windows-2c5c86?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/download) [![Download for Linux](https://img.shields.io/badge/Linux-2f6b46?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/download)
 
 <img src="https://cdn.ai4kanban.dev/readme/vibe-vs-kanban-coding-v1.jpg" width="560" alt="Vibe coding, the middle of the curve, and kanban coding">
 
@@ -40,7 +40,7 @@ Our early adopters report 3–6× higher development productivity.
 
 7. You bring the ideas, make the choices, and review a short brief. AI does the rest.
 
-![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v2.png)
+![AI4Kanban at a glance](https://cdn.ai4kanban.dev/readme/overview-grid-v3.png)
 
 ## A fully automated coding factory (experimental)
 

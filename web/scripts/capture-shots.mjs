@@ -4,7 +4,8 @@
 // `data-shot` box — then `sips` downscales and encodes.
 //
 //   cd web && pnpm dev            # in one shell
-//   node scripts/capture-shots.mjs
+//   node scripts/capture-shots.mjs                              # the five shots
+//   node scripts/capture-shots.mjs http://localhost:3000 /shots/grid/
 //
 // Writes PNG at 2x and a width-capped JPEG next to it, under web/.shots/.
 // Upload the JPEGs to the CDN; nothing here is committed.
@@ -14,6 +15,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
+const PATH = process.argv[3] ?? "/shots/";
 const OUT = new URL("../.shots/", import.meta.url).pathname;
 const PORT = 9333;
 const CHROME =
@@ -157,7 +159,7 @@ try {
   });
 
   const loaded = cdp.once("Page.loadEventFired");
-  await cdp.send("Page.navigate", { url: `${BASE}/shots/` });
+  await cdp.send("Page.navigate", { url: `${BASE}${PATH}` });
   await loaded;
   await sleep(SETTLE_MS);
 
@@ -169,7 +171,7 @@ try {
     returnByValue: true,
   });
   const boxes = JSON.parse(result.value);
-  if (!boxes.length) throw new Error("no [data-shot] boxes on /shots/");
+  if (!boxes.length) throw new Error(`no [data-shot] boxes on ${PATH}`);
 
   for (const box of boxes) {
     const { data } = await cdp.send("Page.captureScreenshot", {
