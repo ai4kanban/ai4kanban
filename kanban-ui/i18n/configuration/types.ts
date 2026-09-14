@@ -311,46 +311,12 @@ export type ConfigurationCopy = {
       costTitle: string;
       cost: string;
     };
-    /** The memory pruner (#514) — the one agent whose page carries an action rather than
-     *  only settings: it prunes when you press Run now, and on the cadence you opt into. */
-    pruner: {
-      /** The action, and what it reads while a pass is going. */
-      run: string;
-      running: string;
-      /** The compact schedule chip beside it, and the name of the cadence list it opens. */
-      recurring: string;
-      chipLabel: (state: string) => string;
-      /** The list's first cadence, and what the chip says while nothing repeats. */
-      off: string;
-      /** A cadence in the reader's own words — what the chip, the ticked row and every
-       *  accessible name say in place of `6h` or `1d at 09:30`. `at` is empty when the
-       *  cadence names no time of day. */
-      cadenceLabel: (n: number, unit: CadenceUnit, at: string) => string;
-      /** The list's last row, which is the only one that opens anything to fill in. */
-      custom: string;
-      /** Inside it: how many, of which unit, and the time of day whole days may carry. */
-      every: string;
-      unit: string;
-      units: Record<CadenceUnit, string>;
-      atTime: string;
-      addTime: string;
-      dropTime: string;
-      save: string;
-      saving: string;
-      cancel: string;
-      /** Why a number cannot be saved — the only thing that ever says a range. */
-      outOfRange: (unit: string, min: number, max: number) => string;
-      /** A preset the board refused, said at the foot of the list it was pressed in. */
-      presetFailed: (cadence: string) => string;
-      /** The quiet line under the action group. */
-      neverRun: string;
-      lastRun: (when: string) => string;
-      /** Beside Run now when the last pass did not finish. */
-      failed: string;
-      /** A save the board refused, and rules that predate the pruner. */
-      saveFailed: string;
-      tooOld: string;
-    };
+    /** The memory pruner (#514) — one of the two agents whose page carries an action rather
+     *  than only settings: it prunes when you press Run now, and on the cadence you opt into. */
+    pruner: CadenceCopy;
+    /** The sweeper (#119) — the same controls as the pruner's, plus the report of the sweep
+     *  they start. The cadence is its whole opt-in: it sweeps nothing until one is saved. */
+    sweeper: CadenceCopy & SweepCopy;
     /** The same box for a specialist, by the hook it plugs into. */
     specialistRule: {
       spec: (agent: string) => string;
@@ -798,4 +764,83 @@ export type ConfigurationCopy = {
       saveFailed: string;
     };
   };
+};
+
+/** The controls an agent that runs on a cadence carries (#514, #119) — Run now, the compact
+ *  chip beside it, and the cadence list that chip opens. One shape, both agents, so the two
+ *  pages cannot drift apart in wording any more than they can in layout. */
+export type CadenceCopy = {
+  /** The action, and what it reads while one is going. */
+  run: string;
+  running: string;
+  /** The compact schedule chip beside it, and the name of the cadence list it opens. */
+  recurring: string;
+  chipLabel: (state: string) => string;
+  /** The list's first cadence, and what the chip says while nothing repeats. */
+  off: string;
+  /** A cadence in the reader's own words — what the chip, the ticked row and every
+   *  accessible name say in place of `6h` or `1d at 09:30`. `at` is empty when the
+   *  cadence names no time of day. */
+  cadenceLabel: (n: number, unit: CadenceUnit, at: string) => string;
+  /** The list's last row, which is the only one that opens anything to fill in. */
+  custom: string;
+  /** Inside it: how many, of which unit, and the time of day whole days may carry. */
+  every: string;
+  unit: string;
+  units: Record<CadenceUnit, string>;
+  atTime: string;
+  addTime: string;
+  dropTime: string;
+  save: string;
+  saving: string;
+  cancel: string;
+  /** Why a number cannot be saved — the only thing that ever says a range. */
+  outOfRange: (unit: string, min: number, max: number) => string;
+  /** A preset the board refused, said at the foot of the list it was pressed in. */
+  presetFailed: (cadence: string) => string;
+  /** The quiet line under the action group. */
+  neverRun: string;
+  lastRun: (when: string) => string;
+  /** Beside Run now when the last one did not finish. */
+  failed: string;
+  /** A save the board refused, and rules that predate this schedule. */
+  saveFailed: string;
+  tooOld: string;
+};
+
+/** What the sweeper's page says beyond its controls (#119): the compact summary under the
+ *  settings, and the report that summary opens. */
+export type SweepCopy = {
+  /** The summary's heading, while a sweep is going and once it has ended. */
+  sweeping: string;
+  lastSweep: string;
+  /** Looked at, kept, discarded — the counts, derived from the verdicts. */
+  counts: (looked: number, kept: number, discarded: number) => string;
+  /** The way into the report, and the report's own title. */
+  viewReport: string;
+  reportTitle: string;
+  back: string;
+  /** The summary on a board that has never swept. */
+  neverSwept: string;
+  /** A sweep that found no card to judge — one line rather than an empty list. */
+  nothingStale: string;
+  /** Outside a git repository nothing can be dated, so there is no sweep to offer. */
+  noGit: string;
+  /** How the sweep ended, under the summary. */
+  ended: {
+    cap: string;
+    nothing: string;
+    failed: string;
+    switchedOff: string;
+  };
+  /** One row: its verdict, how long the card had sat, and the two rows that carry none. */
+  kept: string;
+  discarded: string;
+  judging: string;
+  unfinished: string;
+  sat: (days: number) => string;
+  /** The sweep stopped at this card, said on the row itself. */
+  stoppedHere: string;
+  /** Across to this row's run, while its record and log are still there. */
+  openRun: string;
 };

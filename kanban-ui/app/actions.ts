@@ -154,8 +154,11 @@ import {
 } from "@/lib/notifications";
 import {
   autoCommitAllowed,
+  canSweep,
+  cardSweep,
   diffApprovalRequired,
   memoryPrune,
+  saveCardSweep,
   setAutoCommit,
   setDiffApproval,
   setHarness,
@@ -163,6 +166,8 @@ import {
   setMemoryPrune,
   setSilenceMinutes,
   silenceMinutes,
+  startCardSweep,
+  sweepReport,
 } from "@/lib/config";
 import { ensureDispatcher } from "@/lib/dispatcher";
 import {
@@ -266,7 +271,9 @@ import type {
   LarkCloud,
   LarkState,
   LoggedOutAgent,
+  CadenceSchedule,
   MemoryPruneSchedule,
+  SweepReport,
   MemberRoleWire,
   MetricsResult,
   NotificationGroup,
@@ -1382,6 +1389,56 @@ export async function setMemoryPruneAction(next: {
 export async function startPruneMemoryAction(): Promise<StartResult> {
   const req: AgentRequest = { action: "prune-memory" };
   return startSession(req, await buildPrompt(req));
+}
+
+// --- the sweep of the stale cards (#119) -------------------------------------
+// The sweeper's page reads its cadence and the one report the board keeps when the Agents
+// pane opens, and again while a sweep is going. Rules older than the sweep answer `null` for
+// both, and the page draws neither Run now nor the cadence chip.
+
+export async function cardSweepAction(): Promise<{
+  schedule: CadenceSchedule | null;
+  report: SweepReport | null;
+  /** Whether this board's cards can be dated at all. False is a project outside a git
+   *  repository, where there is no sweep to offer. */
+  datable: boolean;
+  error?: string;
+}> {
+  try {
+    return { schedule: await cardSweep(), report: await sweepReport(), datable: await canSweep() };
+  } catch (e) {
+    return {
+      schedule: null,
+      report: null,
+      datable: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+export async function setCardSweepAction(next: {
+  enabled: boolean;
+  cadence: string;
+}): Promise<WriteResult> {
+  if (typeof next?.enabled !== "boolean" || typeof next?.cadence !== "string") {
+    return { ok: false, error: "a sweep schedule is saved as an opt-in and a cadence" };
+  }
+  try {
+    return await saveCardSweep(next);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/** Open a sweep by hand — **Run now** on the sweeper's page. It starts the stalest eligible
+ *  card at once and the board carries it on from there, one card per tick. A second one
+ *  while a sweep is open is refused by the sweep itself. */
+export async function startCardSweepAction(): Promise<WriteResult> {
+  try {
+    return await startCardSweep();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // The agents the board can run and which of them this machine has (#207) — the picker asks

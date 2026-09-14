@@ -3,8 +3,9 @@
 import type { CadenceUnit } from "@/lib/cadence";
 import type { ConfigurationCopy } from "./types";
 
-// The prune cadence's units: the unit picker names them, the summary and the range message
-// reuse them, so "hours" is spelled once. The singular set is what "Every hour" reads off.
+// The cadence units both scheduled agents share: the unit picker names them, the summary and
+// the range message reuse them, so "hours" is spelled once. The singular set is what
+// "Every hour" reads off.
 const PRUNE_UNITS: Record<CadenceUnit, string> = { m: "Minutes", h: "Hours", d: "Days" };
 const PRUNE_UNIT_ONE: Record<CadenceUnit, string> = { m: "minute", h: "hour", d: "day" };
 
@@ -259,9 +260,10 @@ const en: ConfigurationCopy = {
       sweeper: {
         name: "Tidy stalled cards",
         gloss: "Settles the cards that have sat too long.",
-        trigger: "When you sweep one",
+        trigger: "By hand or on a cadence",
         rule: 'Added to the end of every verdict it gives — "never discard a card in the current release".',
-        when: "you unstick a card by hand. It either rewrites the card for the project as it is today, or discards it — one card, one verdict.",
+        when: "you press Run now, and on the cadence you opt into here. One sweep takes up to five of the longest-sitting cards, one at a time: each is either rewritten for the project as it is today, or discarded.",
+        note: "A sweep judges at most five stalled cards, and discards the ones no longer worth doing without asking you.",
       },
       feedback: {
         name: "Fix a plan that missed",
@@ -314,6 +316,58 @@ const en: ConfigurationCopy = {
       failed: "Last run did not finish",
       saveFailed: "Couldn't save the prune schedule.",
       tooOld: "This board's rules are older than scheduled pruning.",
+    },
+    sweeper: {
+      run: "Run now",
+      running: "Sweeping…",
+      recurring: "Recurring sweep",
+      chipLabel: (state) => `Recurring sweep: ${state}`,
+      off: "Off",
+      cadenceLabel: (n, unit, at) => {
+        const head = n === 1 ? `Every ${PRUNE_UNIT_ONE[unit]}` : `Every ${n} ${PRUNE_UNITS[unit].toLowerCase()}`;
+        return at ? `${head} at ${at}` : head;
+      },
+      custom: "Custom",
+      every: "Every",
+      unit: "Unit",
+      units: PRUNE_UNITS,
+      atTime: "At",
+      addTime: "Set a time",
+      dropTime: "No set time",
+      save: "Save",
+      saving: "Saving…",
+      cancel: "Cancel",
+      outOfRange: (unit, min, max) => `${unit} must be between ${min} and ${max}.`,
+      presetFailed: (cadence) => `Couldn't save "${cadence}" — pick it again to retry.`,
+      neverRun: "Never swept",
+      lastRun: (when) => `Last swept ${when}`,
+      failed: "Last sweep did not finish",
+      saveFailed: "Couldn't save the sweep schedule.",
+      tooOld: "This board's rules are older than scheduled sweeping.",
+      sweeping: "Sweeping now",
+      lastSweep: "Last sweep",
+      counts: (looked, kept, discarded) =>
+        `${looked} looked at · ${kept} kept · ${discarded} discarded`,
+      viewReport: "View report",
+      reportTitle: "Sweep report",
+      back: "Back",
+      neverSwept: "Nothing swept yet — set a cadence, or press Run now.",
+      nothingStale:
+        "Nothing to sweep: no card has sat that long, or every stalled card is waiting on something else.",
+      noGit: "This project is not in a Git repository, so nothing here can tell how long a card has sat.",
+      ended: {
+        cap: "Five cards judged. The rest wait for the next sweep.",
+        nothing: "Nothing left to judge.",
+        failed: "A run did not finish, so the sweep stopped there.",
+        switchedOff: "The cadence was switched off, so the sweep stopped there.",
+      },
+      kept: "Kept",
+      discarded: "Discarded",
+      judging: "Judging",
+      unfinished: "Unfinished",
+      sat: (days) => `Sat ${days} days`,
+      stoppedHere: "The sweep stopped here. It starts again on the next period, or on Run now.",
+      openRun: "Open the run",
     },
     specialistRule: {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,

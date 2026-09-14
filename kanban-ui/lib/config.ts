@@ -1,6 +1,6 @@
 import { machineCopy } from "./language";
 import { boardRules } from "./cli";
-import type { MemoryPruneSchedule } from "./types";
+import type { CadenceSchedule, MemoryPruneSchedule, SweepReport } from "./types";
 
 // --- the settings, through the CLI (#168) ------------------------------------
 // docs/kanban/ui.config.json is still the file, and it still holds which agent runs, with
@@ -93,4 +93,43 @@ export async function setMemoryPrune(next: {
     return { ok: false, error: (await machineCopy()).messages.tooOld.memoryPruner };
   }
   return rules.setMemoryPrune(next);
+}
+
+// --- the sweep of the stale cards (#119) -------------------------------------
+// **Tidy stalled cards** — the cadence, the one report the board keeps and Run now, in the
+// same settings file as the pruner's schedule above. Rules that predate it answer nothing,
+// and the sweeper's page draws none of it.
+
+export async function canSweep(): Promise<boolean> {
+  const rules = await boardRules();
+  return rules.canSweep ? rules.canSweep() : false;
+}
+
+export async function cardSweep(): Promise<CadenceSchedule | null> {
+  const rules = await boardRules();
+  return rules.cardSweep ? rules.cardSweep() : null;
+}
+
+export async function saveCardSweep(next: {
+  enabled: boolean;
+  cadence: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.saveCardSweep) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.cardSweeper };
+  }
+  return rules.saveCardSweep(next);
+}
+
+export async function sweepReport(): Promise<SweepReport | null> {
+  const rules = await boardRules();
+  return rules.sweepReport ? rules.sweepReport() : null;
+}
+
+export async function startCardSweep(): Promise<{ ok: boolean; error?: string }> {
+  const rules = await boardRules();
+  if (!rules.startCardSweep) {
+    return { ok: false, error: (await machineCopy()).messages.tooOld.cardSweeper };
+  }
+  return rules.startCardSweep();
 }

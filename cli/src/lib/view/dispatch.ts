@@ -1,10 +1,10 @@
 // ---- what the board should start on its own --------------------------------
 //
-// Three jobs that need no user at all: the cards somebody scheduled, whose last blocker has
+// Four jobs that need no user at all: the cards somebody scheduled, whose last blocker has
 // now left the board, the recurring cards whose cadence has elapsed, and — on a board that
-// asked for it — the memory pruner's own cadence. A front end with a
-// timer asks this once a tick and starts whatever comes back — it holds the timer, this
-// holds the rules, so a board driven from a window and a board driven from anywhere else
+// asked for them — the memory pruner's own cadence and the sweep of the stale cards. A front
+// end with a timer asks this once a tick and starts whatever comes back — it holds the timer,
+// this holds the rules, so a board driven from a window and a board driven from anywhere else
 // pick the same cards in the same order.
 //
 // Refining is NOT here. Nothing hunts the backlog for cards to refine: a refine follows the
@@ -12,12 +12,14 @@
 // scheduled run therefore never queues behind one — the two are started by different things
 // entirely, and a refine in flight can't hold back a card whose blocker just cleared.
 //
-// Nothing here reads a clock the caller owns, and only one thing here writes: taking the
-// mark off a scheduled card, which has to happen in the same pass that hands its run back.
-// See `dueScheduled`.
+// Nothing here reads a clock the caller owns, and two things here write: taking the mark off
+// a scheduled card, which has to happen in the same pass that hands its run back (see
+// `dueScheduled`), and the sweep, which starts its own run because its report has to be keyed
+// to it (`../agent/sweep.ts`).
 
 import { nextDue } from '../cadence'
 import { memoryPrune } from '../agent/settings'
+import { advanceCardSweep, startCardSweep, sweepDue } from '../agent/sweep'
 import { answeredWork } from '../agent/deliveries'
 import { advanceLanding } from '../agent/landing'
 import { flowRefusal } from '../agent/flows'
@@ -195,6 +197,18 @@ export async function nextWork(clearMark: ClearMark): Promise<AgentRequest[]> {
   // The prune the pruner's own cadence has made due (#514). A slot of its own, like the two
   // above: it touches no card, so nothing it does can queue behind them or they behind it.
   if (pruneDue(runs)) work.push({ action: 'prune-memory' })
+
+  // The sweep of the stale cards (#119). It starts its own `unstick` and hands nothing back,
+  // because the report has to be keyed to that run — a sweep is state the board keeps plus
+  // one run per tick, not a run this pass could return. Opening one is the cadence's call;
+  // carrying an open one on happens whatever opened it, so the app closing mid-sweep only
+  // pauses it.
+  try {
+    if (sweepDue()) await startCardSweep()
+    else await advanceCardSweep()
+  } catch {
+    // a bad tick must not cost the requests below — the sweep tries again next minute
+  }
 
   // The deliveries whose question has been answered (#302). Not gated on the slots above
   // for the same reason landing isn't: another look at work already built is that

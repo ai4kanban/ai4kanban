@@ -82,12 +82,16 @@ export { logPathOf, readAction, readRuns, withRuns } from './store'
 // file goes, and the index has to be reconciled against the board the run read.
 const INDEX_ACTIONS = new Set<AgentAction>(['archive', 'reject', 'run', 'plan-release', 'setup', 'unstick'])
 
-// Actions that may run only one at a time across the whole board. None has a card id, so
-// the per-card rule can't catch a duplicate, and each reads the whole board to decide what
-// to write: two plan-releases write the same missing cards, and two setups work down the
-// same checklist side by side. A create is not one of them — it writes the one card it was
-// handed, and its id and index entry are the board lease's problem, not this lock's.
-const SINGLETON_ACTIONS = new Set<AgentAction>(['plan-release', 'setup', 'prune-memory', 'triage'])
+// Actions that may run only one at a time across the whole board. The per-card rule can't
+// catch a duplicate of any of them — the first four name no card at all — and each reads the
+// whole board to decide what to write: two plan-releases write the same missing cards, and
+// two setups work down the same checklist side by side. A create is not one of them — it
+// writes the one card it was handed, and its id and index entry are the board lease's
+// problem, not this lock's.
+// An unstick is one of them too (#119): a sweep is several unsticks the board keeps track
+// of, and a second one — the cadence's, or one typed by hand — would judge cards the open
+// sweep is counting on judging itself.
+const SINGLETON_ACTIONS = new Set<AgentAction>(['plan-release', 'setup', 'prune-memory', 'triage', 'unstick'])
 
 // Past-tense verb for the "already running" refusal, e.g. "#5 is already being
 // implemented".
@@ -127,6 +131,7 @@ const SINGLETON_BUSY: Partial<Record<AgentAction, string>> = {
   setup: 'this board is already being set up',
   'prune-memory': 'the memory is already being pruned',
   triage: 'triage is already being sorted',
+  unstick: 'the board is already being swept',
 }
 
 // A run's action maps to the saved stage it puts the card in while it goes. Only a

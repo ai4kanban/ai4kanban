@@ -37,6 +37,7 @@ export type MessagesCopy = {
     runtimes: string;
     usageReporting: string;
     memoryPruner: string;
+    cardSweeper: string;
   };
   /** The refusals a server action gives back to the screen that called it. The rest
    *  of `app/actions.ts` guards its own arguments and stays English: nothing a person

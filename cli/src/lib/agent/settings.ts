@@ -33,7 +33,7 @@ import path from 'node:path'
 
 import { CADENCE_FORMS, formatStamp, parseCadence } from '../cadence'
 import { ENV_FILE, KANBAN_GITIGNORE, UI_CONFIG } from '../paths'
-import type { MemoryPruneSchedule } from './types'
+import type { CadenceSchedule, MemoryPruneSchedule } from './types'
 
 // ---- ui.config.json --------------------------------------------------------
 
@@ -687,5 +687,59 @@ export function adoptMemoryPruneCadence(cadence: string): void {
   if (memoryPrune().cadence) return
   writeConfig((cfg) => {
     cfg.memoryPrune = { ...configBlock(cfg.memoryPrune), cadence: next }
+  })
+}
+
+// ---- the card sweep's schedule (#119) ---------------------------------------
+//
+//   "cardSweep": { "enabled": true, "cadence": "7d at 09:00", "lastRun": "2026-09-08 09:00" }
+//
+// The sweeper's cadence, beside the pruner's above and on the same three terms: recurrence
+// is OFF until somebody asks for it, a schedule can only be on with a cadence the board can
+// read, and `lastRun` moves only on a sweep that finished its work.
+//
+// The cadence is the WHOLE opt-in here: the sweeper has no switch of its own, and a sweep
+// discards cards without asking, so a board with nothing saved here sweeps nothing.
+
+const NO_SWEEP: CadenceSchedule = { enabled: false, cadence: '', lastRun: '' }
+
+/** What the file says about the sweeper. Unreadable reads as nothing scheduled. */
+export function cardSweep(): CadenceSchedule {
+  let cfg: Record<string, unknown>
+  try {
+    cfg = readConfigRaw()
+  } catch {
+    return NO_SWEEP
+  }
+  const block = configBlock(cfg.cardSweep)
+  const cadence = typeof block.cadence === 'string' ? block.cadence.trim() : ''
+  const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
+  return { enabled: block.enabled === true && parseCadence(cadence) !== null, cadence, lastRun }
+}
+
+/** Save the opt-in and the cadence, keeping the last sweep. */
+export function setCardSweep(next: { enabled: boolean; cadence: string }): { ok: boolean; error?: string } {
+  const cadence = next.cadence.trim()
+  if ((next.enabled || cadence) && parseCadence(cadence) === null) {
+    return { ok: false, error: `"${cadence}" isn't a cadence — use ${CADENCE_FORMS}` }
+  }
+  return writeConfig((cfg) => {
+    const block = configBlock(cfg.cardSweep)
+    const lastRun = typeof block.lastRun === 'string' ? block.lastRun.trim() : ''
+    const body = {
+      ...(next.enabled ? { enabled: true } : {}),
+      ...(cadence ? { cadence } : {}),
+      ...(lastRun ? { lastRun } : {}),
+    }
+    if (Object.keys(body).length) cfg.cardSweep = body
+    else delete cfg.cardSweep
+  })
+}
+
+/** Record a sweep that finished its work — one that found nothing to judge included. A sweep
+ *  cut short leaves the stamp where it was. */
+export function stampCardSweep(when: Date = new Date()): void {
+  writeConfig((cfg) => {
+    cfg.cardSweep = { ...configBlock(cfg.cardSweep), lastRun: formatStamp(when) }
   })
 }

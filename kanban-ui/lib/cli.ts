@@ -30,6 +30,8 @@ import type {
   HarnessSetting,
   LoggedOutAgent,
   MemoryPruneSchedule,
+  CadenceSchedule,
+  SweepReport,
   PlanAnswer,
   RunPick,
   RunRecord,
@@ -385,6 +387,15 @@ export interface BoardRules {
   // the pruner draw its page without the recurrence control rather than failing.
   memoryPrune?(): MemoryPruneSchedule;
   setMemoryPrune?(next: { enabled: boolean; cadence: string }): WriteResult;
+
+  // the sweep of the stale cards (#119) — its cadence, the one report the board keeps, and
+  // **Run now**. Optional for the same reason as the pruner's above: a board on older rules
+  // draws the sweeper's page without any of it rather than failing.
+  canSweep?(): boolean;
+  cardSweep?(): CadenceSchedule;
+  saveCardSweep?(next: { enabled: boolean; cadence: string }): WriteResult;
+  sweepReport?(): SweepReport | null;
+  startCardSweep?(): Promise<WriteResult>;
 
   // the conversation with that agent (#242) — the board's, and each card's. Optional for
   // the same reason as the moves below: a project can be running rules older than the

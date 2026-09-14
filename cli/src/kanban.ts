@@ -190,6 +190,7 @@ export { runnableAgents, runnableHarnesses } from './lib/agent/resolve'
 export {
   aiReviewEnabled,
   autoCommitAllowed,
+  cardSweep,
   diffApprovalRequired,
   memoryPrune,
   setAiReview,
@@ -200,6 +201,11 @@ export {
   setSilenceMinutes,
   silenceMinutes,
 } from './lib/agent/settings'
+
+// The sweep of the stale cards (#119) — the one report the board keeps, the cadence's own
+// save, and **Run now**. The cadence is the whole opt-in, so switching it off goes through
+// `saveCardSweep` rather than the settings writer: it stops the sweep already running.
+export { canSweep, saveCardSweep, startCardSweep, sweepReport } from './lib/agent/sweep'
 
 // The board's runtimes (#467) — one row is the whole answer to what a run runs as. `agentInfo`
 // already carries the list a pane draws, so these are only the writers: add, rename, delete,

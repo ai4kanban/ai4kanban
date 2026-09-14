@@ -97,6 +97,14 @@ function dirtyCards(top: string, spec: string): Set<string> {
   return dirty
 }
 
+/** Whether this board's cards can be dated at all — the project is a git repository and
+ *  `todo/` sits under it. False means nothing here is ever stale, so there is no sweep to
+ *  offer (#119). Cheap: it asks git where the repository is and nothing else. */
+export function cardsDatable(): boolean {
+  const top = gitTop()
+  return !!(top && todoPathspec(top))
+}
+
 const DAY = 24 * 60 * 60 * 1000
 
 /**

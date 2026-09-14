@@ -14,6 +14,7 @@ export const MOCKUPS_FOLDER = 'mockups'
 export const COMMENTS_FOLDER = 'comments'
 export const SESSIONS_LOCK = 'sessions.lock'
 export const INDEX_LOCK = 'index.lock'
+export const SWEEP_REPORT_FILE = 'sweeper-report.json'
 
 function realPathOf(dir: string): string {
   const here = path.resolve(dir)

@@ -1541,6 +1541,50 @@ export interface MemoryPruneSchedule {
   lastRun: string
 }
 
+/** The same three fields, under the name a second scheduled agent reads them by (#119): the
+ *  sweeper's cadence sits beside the pruner's in the same file and answers the same
+ *  questions. One shape, so one set of controls draws both. */
+export type CadenceSchedule = MemoryPruneSchedule
+
+/** How a sweep of the stale cards ended (#119). `cap` and `nothing` are a sweep that
+ *  finished its work, and only those two stamp the cadence. */
+export type SweepEnd = 'cap' | 'nothing' | 'failed' | 'switched-off'
+
+/** One card a sweep looked at. Written when its run starts and filled in when that run
+ *  ends, because the verdict is what makes the card unreadable — renamed by the rewrite, or
+ *  gone from the board. */
+export interface SweepRow {
+  id: number
+  /** The card's title when it was picked. */
+  title: string
+  /** The days it had sat when it was picked. */
+  days: number
+  /** The `unstick` run that judged it, while its record is still there. */
+  runId?: string
+  /** `kept` — the card is still on the board. `discarded` — it is gone. Absent while the
+   *  run is going, and on a row no run passed. */
+  verdict?: 'kept' | 'discarded'
+  /** The line that run ended with. */
+  note?: string
+  /** The sweep stopped here: no verdict, and not counted among the cards it looked at. */
+  unfinished?: boolean
+}
+
+/** The current or latest sweep (#119) — the one report the board keeps, in
+ *  `.akb/…/sweeper-report.json`. A new sweep replaces it; nothing keeps an older one. */
+export interface SweepReport {
+  sweepId: string
+  /** When this sweep opened, as epoch ms. Also the stamp that stops a tick re-opening a
+   *  sweep in the cadence window it opened in. */
+  startedAt: number
+  endedAt?: number
+  status: 'running' | 'done'
+  end?: SweepEnd
+  /** The run this sweep is waiting on right now. */
+  activeRunId?: string
+  rows: SweepRow[]
+}
+
 /** A project agent's own file, as its page holds it. */
 export interface AgentFileView {
   /** Where it is, for the line under the agent's name. */
