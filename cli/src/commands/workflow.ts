@@ -155,6 +155,8 @@ export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult
   if (!changes.length) {
     const candidates = stageCandidates(stage).map((a) => a.name)
     say(`${flow.name} · ${stage} — agents that can take it: ${candidates.join(', ') || '(none on this board)'}`)
+    // A built-in's lead is the command's, so only the helpers here are open to a change.
+    if (flow.builtIn) say(`  its lead is \`${flow.stages[stage].lead}\` and stays that way — duplicate it to pick another`)
     return { id: flow.id, stage, candidates }
   }
   say(`${flow.name} · ${stage}: ${changes.join(', ')}`)

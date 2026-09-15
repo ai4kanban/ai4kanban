@@ -101,17 +101,15 @@ describe('the workflows a board has', () => {
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
-    assert.match(setWorkflowLead('coding', 'execute', 'planner').error!, /is a plan agent/)
-    assert.equal(setWorkflowLead('coding', 'plan', 'content-planner').ok, true)
-    assert.equal(workflowById('coding')!.stages.plan.lead, 'content-planner')
-    assert.equal(addWorkflowHelper('coding', 'plan', 'content-planner').ok, false)
+    const mine = createWorkflow('Mine')
+    assert.match(setWorkflowLead(mine.id!, 'execute', 'planner').error!, /is a plan agent/)
+    assert.equal(setWorkflowLead(mine.id!, 'plan', 'content-planner').ok, true)
+    assert.equal(workflowById(mine.id!)!.stages.plan.lead, 'content-planner')
+    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'content-planner').ok, false)
   })
 
   it('keeps the specialists the coding plan stage offers until the board chooses for it', () => {
     const helpers = () => workflowViews()[0]!.stages[0]!.helpers.map((h) => h.agent)
-    assert.deepEqual(helpers(), ['tech-stack-advisor', 'ui-designer'])
-    // Assigning a lead is not choosing helpers: the stage still offers every one it had.
-    assert.equal(setWorkflowLead('coding', 'plan', 'planner').ok, true)
     assert.deepEqual(helpers(), ['tech-stack-advisor', 'ui-designer'])
     // Removing one IS choosing, and the choice sticks.
     assert.equal(removeWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
@@ -125,6 +123,68 @@ describe('the workflows a board has', () => {
     assert.equal(mine('coding'), 'Reuse the shipped components.')
     assert.equal(setWorkflowHelperExtra('coding', 'plan', 'ui-designer', '').ok, true)
     assert.equal(mine('coding'), '')
+  })
+})
+
+// A built-in's name is a promise about who runs it (#774), so its three leads are the
+// command's: the pane shows them, the terminal refuses them, and a board that changed one
+// while it was still a picker gets the command's agent back.
+describe('the leads of a workflow the command ships', () => {
+  const config = (): Record<string, any> =>
+    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+
+  it('refuses the change and says where a workflow of your own comes from', () => {
+    for (const id of ['coding', 'content']) {
+      const res = setWorkflowLead(id, 'plan', 'content-planner')
+      assert.equal(res.ok, false, id)
+      assert.match(res.error!, /built in .* fixed\. Duplicate it/, id)
+    }
+    assert.equal(workflowById('coding')!.stages.plan.lead, 'planner')
+    assert.equal(workflowById('content')!.stages.plan.lead, 'content-planner')
+    assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
+  })
+
+  it('still takes helpers, and writes no lead beside them', () => {
+    const helpers = (stage: number) => workflowViews()[0]!.stages[stage]!.helpers.map((h) => h.agent)
+    assert.equal(addWorkflowHelper('coding', 'review', 'content-reviewer').ok, true)
+    assert.deepEqual(helpers(2), ['content-reviewer'])
+    assert.equal(removeWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
+    assert.deepEqual(helpers(0), ['tech-stack-advisor'])
+    assert.equal(config().workflows.stages.coding.plan.lead, undefined)
+    assert.equal(config().workflows.stages.coding.review.lead, undefined)
+  })
+
+  it('runs the command’s agent again on a board that had changed one, and drops the key', () => {
+    fs.writeFileSync(
+      path.join(kanban(), 'ui.config.json'),
+      JSON.stringify({
+        workflows: {
+          stages: {
+            coding: {
+              plan: { lead: 'content-planner', helpers: [{ agent: 'planner', extra: 'x' }] },
+              execute: { lead: 'content-writer' },
+            },
+          },
+        },
+      }),
+    )
+    const coding = workflowViews()[0]!
+    assert.equal(coding.stages[0]!.lead, 'planner')
+    assert.equal(coding.stages[1]!.lead, 'builder')
+    // The lead is never also a helper, so the agent it had been moved aside for is gone.
+    assert.deepEqual(coding.stages[0]!.helpers.map((h) => h.agent), [])
+    // A stage that held nothing but a lead goes with it.
+    assert.equal(config().workflows.stages.coding.execute, undefined)
+    assert.equal(config().workflows.stages.coding.plan.lead, undefined)
+    assert.deepEqual(config().workflows.stages.coding.plan.helpers, [{ agent: 'planner', extra: 'x' }])
+  })
+
+  it('leaves a copy of one free to pick its own', () => {
+    const copy = duplicateWorkflow('coding')
+    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'planner')
+    assert.equal(setWorkflowLead(copy.id!, 'plan', 'content-planner').ok, true)
+    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'content-planner')
+    assert.equal(workflowById('coding')!.stages.plan.lead, 'planner')
   })
 })
 
@@ -149,7 +209,8 @@ describe('a switch a board saved before the assignment was the answer', () => {
     assert.equal(config().specAgents, undefined)
     // Written down, not worked out again: the stage is chosen from here.
     assert.deepEqual(config().workflows.stages.coding.plan.helpers, [{ agent: 'tech-stack-advisor', extra: '' }])
-    assert.equal(config().workflows.stages.coding.plan.lead, 'planner')
+    // The lead is not written with it — a built-in's is the command's own (#774).
+    assert.equal(config().workflows.stages.coding.plan.lead, undefined)
   })
 
   it('leaves everything else the entry held, and touches no other agent', () => {
@@ -313,8 +374,8 @@ describe('what a workflow changes about a run', () => {
     assert.equal(row.workflow!.stages.execute!.lead, 'content-writer')
 
     // Reassigning afterwards leaves the frozen copy alone — that is the whole point of it.
-    assert.equal(setWorkflowLead('coding', 'execute', 'content-writer').ok, true)
-    assert.equal(frozen.stages.execute!.lead, 'builder')
+    assert.equal(addWorkflowHelper('coding', 'execute', 'content-writer').ok, true)
+    assert.deepEqual(frozen.stages.execute!.helpers, [])
   })
 })
 

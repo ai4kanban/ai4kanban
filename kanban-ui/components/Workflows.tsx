@@ -379,26 +379,35 @@ export function WorkflowsPanel({
                   <div className="min-w-0">
                     {stageBlocked(setup) && <p className="mb-3 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>}
                     <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{c.lead}</h4>
-                    <div className="relative inline-block">
-                      <LeadButton
-                        setup={setup}
-                        open={picking === "lead"}
-                        pickLead={c.pickLead}
-                        onOpen={() => setPicking((was) => (was === "lead" ? null : "lead"))}
-                      />
-                      {picking === "lead" && (
-                        <Picker
-                          candidates={setup.candidates.filter((a) => !setup.helpers.some((h) => h.agent === a.name))}
-                          chosen={setup.lead}
-                          onPick={async (name) => {
-                            setPicking(null);
-                            await move(stage, { kind: "lead", agent: name });
-                          }}
-                          onManage={() => onManage?.(stage)}
-                          onDismiss={() => setPicking(null)}
+                    {/* A built-in's lead is what its name promises, so it is shown and not
+                        offered (#774). The line under it says the way to another one. */}
+                    {flow.builtIn ? (
+                      <div>
+                        <LeadRow setup={setup} />
+                        <p className="mt-1.5 text-[11.5px] text-nb-ink-soft">{c.leadFixed}</p>
+                      </div>
+                    ) : (
+                      <div className="relative inline-block">
+                        <LeadButton
+                          setup={setup}
+                          open={picking === "lead"}
+                          pickLead={c.pickLead}
+                          onOpen={() => setPicking((was) => (was === "lead" ? null : "lead"))}
                         />
-                      )}
-                    </div>
+                        {picking === "lead" && (
+                          <Picker
+                            candidates={setup.candidates.filter((a) => !setup.helpers.some((h) => h.agent === a.name))}
+                            chosen={setup.lead}
+                            onPick={async (name) => {
+                              setPicking(null);
+                              await move(stage, { kind: "lead", agent: name });
+                            }}
+                            onManage={() => onManage?.(stage)}
+                            onDismiss={() => setPicking(null)}
+                          />
+                        )}
+                      </div>
+                    )}
 
                     <section className="mt-5">
                       <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{c.helpers}</h4>
@@ -549,6 +558,18 @@ function NameBox({
       }}
       className={`${CONTROL} mb-1 h-[34px] px-2 py-1 text-[12.5px] outline-2 outline-nb-accent`}
     />
+  );
+}
+
+/** The lead of a built-in stage: who it is, and nothing to press. */
+function LeadRow({ setup }: { setup: WorkflowStageView }) {
+  const nameOf = useCandidateName();
+  const lead = setup.candidates.find((a) => a.name === setup.lead);
+  return (
+    <div className="flex h-[36px] items-center gap-1.5">
+      {setup.lead && <Character name={setup.lead} size={28} />}
+      <span className="truncate px-1 text-[12.5px] font-[700]">{nameOf(lead, setup.lead)}</span>
+    </div>
   );
 }
 

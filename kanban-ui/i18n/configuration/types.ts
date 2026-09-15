@@ -63,6 +63,9 @@ export type ConfigurationCopy = {
     /** The one agent that runs the selected stage, and the picker when nobody does. */
     lead: string;
     pickLead: string;
+    /** Under a built-in's lead, which the command fixes: the way to a workflow with leads
+     *  of your own (#774). */
+    leadFixed: string;
     /** Beside a workflow that cannot start a card, and the one line that says what it
      *  means — on the dot marking the stage to fix, and on the row a picker greys out. */
     notReady: string;

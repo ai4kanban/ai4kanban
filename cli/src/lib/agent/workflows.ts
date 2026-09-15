@@ -15,6 +15,11 @@
 // assignments in `ui.config.json` under `workflows`. A built-in's unset stage falls back to
 // the defaults below; a stage deliberately cleared does not.
 //
+// A built-in's LEADS are the command's and nobody else's (#774). Its name is a promise about
+// who runs it — `Coding` led by the content planner is a workflow lying about itself — so a
+// built-in stage takes helpers and nothing more. Somebody who wants other leads duplicates
+// it and gets a workflow of their own, where all three are theirs to pick.
+//
 // The id is what a card carries and what a delivery freezes. It never changes: renaming a
 // workflow rewrites its name and nothing else, so no card and no finished delivery is
 // orphaned by it.
@@ -138,7 +143,8 @@ const BUILTINS: BuiltinWorkflow[] = [
 /** The ids the command ships. */
 export const BUILTIN_WORKFLOW_IDS: string[] = BUILTINS.map((w) => w.id)
 
-/** Whether a workflow is one of the command's own — what refuses a rename and a delete. */
+/** Whether a workflow is one of the command's own — what refuses a rename, a delete, and a
+ *  change of lead. */
 export const isBuiltinWorkflow = (id: string): boolean => BUILTIN_WORKFLOW_IDS.includes(id)
 
 /** Whether this board picks workflows at all. A marketing board keeps the path it has until
@@ -222,7 +228,10 @@ function resolveOne(
     }
     const saved = readStage(storedStages(cfg, id)[stage])
     stages[stage] = {
-      lead: saved.lead !== undefined ? saved.lead : fallback.lead,
+      // A built-in's lead is read off the command, never off the file: a board that changed
+      // one before it was fixed runs the built-in's own agent again, and `dropBuiltinLeads`
+      // takes the key away.
+      lead: base ? fallback.lead : (saved.lead ?? ''),
       helpers: saved.helpers !== undefined ? saved.helpers : fallback.helpers,
       helpersChosen: saved.helpers !== undefined,
     }
@@ -259,7 +268,7 @@ function offeredBefore(
 ): { lead: string; helpers: WorkflowHelper[] } {
   const base = BUILTINS.find((w) => w.id === id)
   const saved = readStage(storedStages(cfg, id)[stage])
-  const lead = saved.lead !== undefined ? saved.lead : (base?.stages[stage].lead ?? '')
+  const lead = base ? base.stages[stage].lead : (saved.lead ?? '')
   if (saved.helpers !== undefined) return { lead, helpers: saved.helpers }
   const declared = base?.stages[stage].helpers
   if (declared === 'every') {
@@ -294,7 +303,10 @@ function foldAgentSwitches(cfg: Record<string, unknown>): boolean {
         if (kept.length === before.helpers.length) continue
         stages[id] = {
           ...configBlock(stages[id]),
-          [stage]: { lead: before.lead, helpers: kept.map((h) => ({ agent: h.agent, extra: h.extra })) },
+          [stage]: {
+            ...(isBuiltinWorkflow(id) ? {} : { lead: before.lead }),
+            helpers: kept.map((h) => ({ agent: h.agent, extra: h.extra })),
+          },
         }
       }
     }
@@ -316,11 +328,53 @@ function foldAgentSwitches(cfg: Record<string, unknown>): boolean {
   return ok
 }
 
+// ---- dropping a built-in's saved lead (#774) --------------------------------
+//
+// The leads of a built-in belong to the command now. A board that changed one while it was
+// still a picker has a key nothing reads, so the key goes: left there it would come back the
+// moment the rule ever loosened, and a settings file that holds an answer nobody honours is
+// a file the next reader has to be told to ignore. One pass — what it drops is what makes it
+// run, so the line below is false from then on.
+
+const savedBuiltinLead = (cfg: Record<string, unknown>): boolean =>
+  BUILTINS.some((w) =>
+    WORKFLOW_STAGES.some((stage) => typeof configBlock(storedStages(cfg, w.id)[stage]).lead === 'string'),
+  )
+
+/** Take every saved lead off the built-ins. True when it wrote, which is once per board. */
+function dropBuiltinLeads(cfg: Record<string, unknown>): boolean {
+  if (!savedBuiltinLead(cfg)) return false
+  const { ok } = writeConfig((raw) => {
+    const block = configBlock(raw.workflows)
+    const all = configBlock(block.stages)
+    for (const w of BUILTINS) {
+      const mine = configBlock(all[w.id])
+      for (const stage of WORKFLOW_STAGES) {
+        const one = { ...configBlock(mine[stage]) }
+        if (!('lead' in one)) continue
+        delete one.lead
+        // A stage that held nothing but the lead goes with it, so the file reads exactly as
+        // a board that never touched the built-in.
+        if (Object.keys(one).length) mine[stage] = one
+        else delete mine[stage]
+      }
+      if (Object.keys(mine).length) all[w.id] = mine
+      else delete all[w.id]
+    }
+    if (Object.keys(all).length) block.stages = all
+    else delete block.stages
+    if (Object.keys(block).length) raw.workflows = block
+    else delete raw.workflows
+  })
+  return ok
+}
+
 /** Every workflow this board has, built-ins first and then its own in the order they were
  *  made. Empty where a board picks no workflows at all. */
 export function workflows(): Workflow[] {
   if (!workflowsHere()) return []
   let cfg = safeConfig()
+  if (dropBuiltinLeads(cfg)) cfg = safeConfig()
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
   return [
     ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
@@ -397,7 +451,9 @@ export function stageHelpers(flow: Workflow, stage: WorkflowStage): WorkflowHelp
       .map((entry) => ({ agent: entry.name, extra: '' }))
   }
   const names = new Set(roster.map((entry) => entry.name))
-  return setup.helpers.filter((h) => names.has(h.agent))
+  // Never the lead as well: a board that had assigned a built-in's lead elsewhere gets its
+  // own agent back (#774), and it may be sitting in the helpers it was moved aside for.
+  return setup.helpers.filter((h) => names.has(h.agent) && h.agent !== setup.lead)
 }
 
 /** One stage's setup as a run and a freeze read it: its lead exactly as assigned, and the
@@ -542,6 +598,9 @@ export function deleteWorkflow(id: string): Write {
 // a key present and empty is a choice, a missing key is not. `helpers` is written only once
 // the change actually moves them, so assigning a lead does not quietly freeze a plan stage
 // that was still offering every specialist the board has.
+//
+// A built-in writes no `lead` at all: its leads are the command's, and a key here would be
+// an answer no read ever consults (#774).
 function setStage(id: string, stage: WorkflowStage, change: (setup: WorkflowStageSetup) => void): Write {
   const flow = workflowById(id)
   if (!flow) return { ok: false, error: `this board has no \`${id}\` workflow` }
@@ -555,26 +614,40 @@ function setStage(id: string, stage: WorkflowStage, change: (setup: WorkflowStag
   return save((block) => {
     const stages = configBlock(block.stages)
     const mine = configBlock(stages[id])
-    mine[stage] = {
-      lead: setup.lead,
+    const written = {
+      ...(flow.builtIn ? {} : { lead: setup.lead }),
       ...(movedHelpers ? { helpers: setup.helpers.map((h) => ({ agent: h.agent, extra: h.extra })) } : {}),
     }
-    stages[id] = mine
-    block.stages = stages
+    if (Object.keys(written).length) mine[stage] = written
+    else delete mine[stage]
+    if (Object.keys(mine).length) stages[id] = mine
+    else delete stages[id]
+    if (Object.keys(stages).length) block.stages = stages
+    else delete block.stages
   })
 }
 
 /** Give one stage its lead, or clear it with an empty name. One lead per stage: picking
- *  another replaces the one there rather than joining it. */
+ *  another replaces the one there rather than joining it.
+ *
+ *  A built-in's is refused: what leads `Coding` is what the name says it is, and whoever
+ *  wants another one duplicates it (#774). */
 export function setWorkflowLead(id: string, stage: WorkflowStage, agent: string): Write {
+  const owner = workflowById(id)
+  if (!owner) return { ok: false, error: `this board has no \`${id}\` workflow` }
+  if (owner.builtIn) {
+    return {
+      ok: false,
+      error: `\`${owner.name}\` is built in — its lead agents are fixed. Duplicate it to make one you can reassign.`,
+    }
+  }
   const wanted = agent.trim()
   if (wanted) {
     const found = agentRoster().find((entry) => entry.name === wanted)
     if (!found) return { ok: false, error: `this board has no \`${wanted}\` agent` }
     if (found.stage !== stage) return { ok: false, error: `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot lead ${stage}` }
   }
-  const flow = workflowById(id)
-  if (flow?.stages[stage].helpers.some((h) => h.agent === wanted)) {
+  if (owner.stages[stage].helpers.some((h) => h.agent === wanted)) {
     return { ok: false, error: `\`${wanted}\` already helps this stage — remove it from the helpers first` }
   }
   return setStage(id, stage, (setup) => {
