@@ -17,7 +17,7 @@ import {
   FiX,
   FiZap,
 } from "react-icons/fi";
-import { createRuntimePicksAction, noteDiscussAnswerAction, workflowsAction } from "@/app/actions";
+import { createRuntimePicksAction, workflowsAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
@@ -27,6 +27,8 @@ import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
 import type { DiscussionTarget, RunPick, WorkflowView } from "@/lib/types";
+import type { PlanAnswer } from "@/lib/format/agent/types";
+import type { StartFailure } from "@/lib/start-failure";
 import { Button } from "./button";
 import { Transcript, Pasted, Pick } from "./Chat";
 import { HAIRLINE } from "./chrome";
@@ -101,11 +103,19 @@ interface Props {
    *  screen. Drawn under the box in the two modes that write a card — never in Discuss,
    *  which writes none and has nothing for feedback to ride on. */
   feedback: LandedFeedback;
-  /** Start planning: close and start the run that writes the plan's cards. */
+  /** Start planning: start the run that writes the plan's cards. The screen stays up until
+   *  it is going (#706). */
   onPlan: () => void;
-  /** Build now off the plan (#481): close and start the run that writes one card from it and
-   *  builds it. The guard has already been answered. */
+  /** Build now off the plan (#481): start the run that writes one card from it and builds it.
+   *  The guard has already been answered. */
   onBuildPlan: () => void;
+  /** The answer whose run is being asked for right now (#706), or null. All three answers go
+   *  down while one is out, and so does the box's Send: the run archives this discussion the
+   *  moment it starts, and a message sent into it after that is one nobody answers. */
+  starting: PlanAnswer | null;
+  /** Why the last start on THIS discussion never came up (#706) — said under the answers, in
+   *  the app's own language, with the paths the board named under it. */
+  failure: StartFailure | null;
 }
 
 // Discuss is one DISCUSSION's conversation (#427, #496), never the window's rail: the rail
@@ -145,6 +155,8 @@ function Sheet({
   onSend,
   onPlan,
   onBuildPlan,
+  starting,
+  failure,
   rail,
   partner,
 }: Props & { rail: ChatRail; partner: DiscussFeedback }) {
@@ -277,8 +289,9 @@ function Sheet({
     <Handoff
       plan={plan}
       rail={rail}
-      discussion={discussion}
       held={endHeld}
+      starting={starting}
+      failure={failure}
       onPlan={onPlan}
       onBuild={onBuildPlan}
     />
@@ -375,7 +388,9 @@ function Sheet({
       canDiscuss={canDiscuss}
       discussBlocked={read?.canChat === false ? read.blocked : undefined}
       waiting={waiting}
-      sending={sending}
+      // A plan answer starting counts as a send in flight (#706): the run archives this
+      // discussion the moment it is up, so a message typed behind it has nowhere to land.
+      sending={sending || starting !== null}
       rail={discussing ? rail : null}
       pictures={pictures}
       pick={discussing ? null : runPick}
@@ -941,19 +956,23 @@ const RUNTIME_FILL = "var(--color-nb-accent-wash)";
 function Handoff({
   plan,
   rail,
-  discussion,
   held,
+  starting,
+  failure,
   onPlan,
   onBuild,
 }: {
   plan: PlanPanel;
   rail: ChatRail;
-  /** Which discussion the answer is written into (#496). */
-  discussion: string | null;
   /** This discussion shares when it ends and has no card to share under (#659), so the two
-   *  answers that end it are down: nothing is written into the transcript, Build now's
-   *  "are you sure?" never opens, and no run starts. Not yet is not an end and stays. */
+   *  answers that end it are down: Build now's "are you sure?" never opens, and no run
+   *  starts. Not yet is not an end and stays. */
   held: boolean;
+  /** The answer whose run is being asked for (#706): its own label says so, and all three go
+   *  down — a second press would be a second run. */
+  starting: PlanAnswer | null;
+  /** Why the last one never came up (#706), said in the row's own space below. */
+  failure: StartFailure | null;
   onPlan(): void;
   onBuild(): void;
 }) {
@@ -976,58 +995,73 @@ function Handoff({
   // A run that wrote no card leaves the plan to be answered again, and says so.
   const failed = !!read.run && !read.run.running;
   const hint = failed ? (read.run?.answer === "build" ? c.buildAgain : c.tryAgain) : c.startHint;
+  // While a start is out every answer is down, and so is the guard. The line that explains
+  // the choice goes with them, and stays gone while a refusal is what there is to read.
+  const down = held || starting !== null;
   return (
-    <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
-      <Button
-        size="xs"
-        disabled={held}
-        onClick={() => {
-          // Pressing it is saying it: the answer goes into the transcript with no turn
-          // behind it, because the board is what acts on it.
-          void noteDiscussAnswerAction(c.start, discussion);
-          onPlan();
-        }}
-      >
-        {c.start}
-      </Button>
-      {/* The panel hangs off this, so it lives inside — the way the Send guard's does. */}
-      <span ref={anchor} className="relative flex">
+    <div>
+      <div className="flex flex-wrap items-center gap-2.5 px-2.5 pt-3">
+        <Button size="xs" disabled={down} onClick={onPlan}>
+          {starting === "plan" ? c.starting : c.start}
+        </Button>
+        {/* The panel hangs off this, so it lives inside — the way the Send guard's does. */}
+        <span ref={anchor} className="relative flex">
+          <Button
+            size="xs"
+            variant="ghost"
+            className="font-[700]"
+            aria-expanded={guard}
+            disabled={down}
+            style={{
+              borderColor: "var(--color-nb-accent-deep)",
+              color: "var(--color-nb-accent-deep)",
+            }}
+            onClick={() => setGuard((was) => !was)}
+          >
+            {starting === "build" ? c.starting : c.build}
+          </Button>
+          <BuildGuard
+            open={guard}
+            anchorRef={anchor}
+            onDismiss={() => setGuard(false)}
+            onConfirm={() => {
+              setGuard(false);
+              onBuild();
+            }}
+          />
+        </span>
         <Button
           size="xs"
           variant="ghost"
-          className="font-[700]"
-          aria-expanded={guard}
-          disabled={held}
-          style={{
-            borderColor: "var(--color-nb-accent-deep)",
-            color: "var(--color-nb-accent-deep)",
+          disabled={down}
+          onClick={() => {
+            rail.say(c.notYet, { discuss: true });
+            plan.refresh();
           }}
-          onClick={() => setGuard((was) => !was)}
         >
-          {c.build}
+          {c.notYet}
         </Button>
-        <BuildGuard
-          open={guard}
-          anchorRef={anchor}
-          onDismiss={() => setGuard(false)}
-          onConfirm={() => {
-            setGuard(false);
-            void noteDiscussAnswerAction(c.build, discussion);
-            onBuild();
-          }}
-        />
-      </span>
-      <Button
-        size="xs"
-        variant="ghost"
-        onClick={() => {
-          rail.say(c.notYet, { discuss: true });
-          plan.refresh();
-        }}
-      >
-        {c.notYet}
-      </Button>
-      <span className="text-[11.5px] text-nb-ink-soft">{hint}</span>
+        {!starting && !failure && <span className="text-[11.5px] text-nb-ink-soft">{hint}</span>}
+      </div>
+      {/* Answered where it was pressed (#706): the row's own space below, never a bubble over
+          the reply the answers stand under. The three above are live again, so pressing the
+          same one is the retry — the plan, the transcript and the box are as they were. */}
+      {failure && (
+        <div className="px-2.5 pt-2.5">
+          <div
+            role="alert"
+            className="break-words rounded-[8px] px-2.5 py-2 text-[12px] leading-snug"
+            style={{ background: "var(--color-nb-peach-soft)", color: "var(--color-nb-peach-ink)" }}
+          >
+            <p>{failure.line}</p>
+            {failure.paths.map((path) => (
+              <p key={path} className="mt-1 font-mono text-[11.5px] opacity-80">
+                {path}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -31,7 +31,7 @@ import { candidateOf, candidateDiff, candidateMark } from './candidate'
 import { aiReviewEnabled, autoCommitAllowed, diffApprovalRequired } from './settings'
 import { readStore } from './store'
 import type { DeliveryPlan } from '../view/types'
-import type { DeliveryCommitMode, DeliveryRecord } from './types'
+import type { DeliveryCommitMode, DeliveryRecord, RunRefusal } from './types'
 import {
   addWorktree,
   commitWork,
@@ -109,14 +109,18 @@ export const deliveryCwd = (delivery: { worktree?: string }): string =>
   delivery.worktree ? worktreeDir(delivery.worktree) : REPO_ROOT
 
 // What a dirty checkout refuses with (#544): the move first, the paths under it. Plain and
-// unquoted, one per line, so a long path reads as a path rather than as prose.
-const dirtyRefusal = (files: string[]): string =>
-  [
+// unquoted, one per line, so a long path reads as a path rather than as prose. The paths ride
+// beside the sentence too (#706), so a screen saying this in its own words still lists them.
+const dirtyRefusal = (files: string[]): RunRefusal => ({
+  error: [
     'Commit or stash your changes before starting.',
     '',
     ...files.slice(0, MAX_NAMED),
     ...(files.length > MAX_NAMED ? [`and ${files.length - MAX_NAMED} more`] : []),
-  ].join('\n')
+  ].join('\n'),
+  reason: 'dirty',
+  paths: files.slice(0, MAX_NAMED),
+})
 
 /** Why this checkout can give a delivery no worktree of its own, or nothing when it can.
  *  The dialog says it before the click and `prepareDelivery` acts on it after, so what the
@@ -160,7 +164,7 @@ export function prepareDelivery(
   cardId: number | null,
   wants?: DeliveryCommitMode,
   wantsReview?: boolean,
-): { start: DeliveryStart } | { error: string } {
+): { start: DeliveryStart } | RunRefusal {
   const deliveryId = newDeliveryId()
   // The other tick (#416), settled here for the same reason and read from the record
   // afterwards — so a resume follows the policy this build started with. A build with no
@@ -177,7 +181,7 @@ export function prepareDelivery(
 
   if (wanted === 'manual') {
     const refusal = manualRefusal(cardId, !!base)
-    if (refusal) return { error: refusal }
+    if (refusal) return refusal
     return {
       start: { deliveryId, commitMode: 'manual', base: base ?? undefined, manualWhy, needsApproval: false, aiReview },
     }
@@ -186,18 +190,19 @@ export function prepareDelivery(
   // `noWorktreeWhy` cleared all three, so the branch and the base are both there.
   const targetBranch = currentBranch() as string
   const dirty = dirtyPaths(false)
-  if (dirty.length) {
-    return { error: dirtyRefusal(dirty) }
-  }
+  if (dirty.length) return dirtyRefusal(dirty)
   // `.akb/` is where the worktrees go, and it must be ignored before the first one lands.
   // Boards set up before that line existed get it here — `ensureAkbDir` writes both.
   try {
     ensureAkbDir()
   } catch {
-    return { error: `couldn't prepare ${rel(AKB_DIR)} — check that ${rel(ROOT_GITIGNORE)} and the project folder are writable.` }
+    return {
+      error: `couldn't prepare ${rel(AKB_DIR)} — check that ${rel(ROOT_GITIGNORE)} and the project folder are writable.`,
+      reason: 'akb',
+    }
   }
   const made = addWorktree(cardId, deliveryId, base!)
-  if (!made.ok) return { error: made.error }
+  if (!made.ok) return { error: made.error, reason: 'worktree' }
   return {
     start: {
       deliveryId,
@@ -215,26 +220,26 @@ export function prepareDelivery(
 // Why a manual delivery can't start right now — one at a time, from clean code — or
 // nothing when it may. It names the mode, never the setting: the dialog's tick reaches
 // manual mode too, and a refusal blaming a switch the user never touched would be a lie.
-function manualRefusal(cardId: number | null, hasBase: boolean): string | undefined {
+function manualRefusal(cardId: number | null, hasBase: boolean): RunRefusal | undefined {
   // A delivery already on THIS card is the one being retried, so it is not in the way. A
   // build with no card has none to be the same as (#428): every other manual delivery is.
   const held = readStore().deliveries.find(
     (d) => d.status === 'active' && d.commitMode !== 'auto' && (cardId === null || d.cardId !== cardId),
   )
   if (held) {
-    return (
-      `delivery ${held.deliveryId} is already working in this checkout${held.cardId === null ? '' : ` on #${held.cardId}`} — a build without a branch ` +
-      `of its own works in your project folder, and only one does at a time. Finish or cancel that one first.`
-    )
+    return {
+      error:
+        `delivery ${held.deliveryId} is already working in this checkout${held.cardId === null ? '' : ` on #${held.cardId}`} — a build without a branch ` +
+        `of its own works in your project folder, and only one does at a time. Finish or cancel that one first.`,
+      reason: 'busy',
+    }
   }
   if (!hasBase) return undefined
   // Untracked files count here, unlike a delivery bound for a worktree: this one works in
   // the very checkout review reads, so a file already sitting there would be read as the
   // delivery's own work.
   const dirty = dirtyPaths(true)
-  if (dirty.length) {
-    return dirtyRefusal(dirty)
-  }
+  if (dirty.length) return dirtyRefusal(dirty)
   return undefined
 }
 

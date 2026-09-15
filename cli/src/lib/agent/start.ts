@@ -18,11 +18,11 @@ import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
 import { cardWorkflowId, workflowFor, workflowKnown, workflowProblems, workflowsHere } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
-import type { AgentRequest, RunRecord } from './types'
+import type { AgentRequest, RunRecord, RunRefusal } from './types'
 
 /** Open a run and spawn its watcher. `spawned` false means nothing is watching it — the
  *  record is there but no process will ever report on it, which is the caller's to raise. */
-export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | { error: string }> {
+export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | RunRefusal> {
   const sessionId = randomUUID()
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
   const short = workflowRefusal(req)
@@ -62,7 +62,7 @@ function workflowRefusal(req: AgentRequest): string | null {
 /** The same, from inside a board move — where the board's own lock is held and nothing may be
  *  awaited. Only a run with NO card gets here (the changelog a close writes), so there is no
  *  card lock to take; what a Cloud board still refuses is a workspace out of reach. */
-export function startCardlessRun(req: AgentRequest): { run: RunRecord; spawned: boolean } | { error: string } {
+export function startCardlessRun(req: AgentRequest): { run: RunRecord; spawned: boolean } | RunRefusal {
   const can = runCanStart()
   return can.ok ? open(req, randomUUID()) : { error: can.error }
 }
@@ -82,14 +82,14 @@ export function runAsk(req: AgentRequest, sessionId: string): AgentRequest {
   }
 }
 
-function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: boolean } | { error: string } {
+function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: boolean } | RunRefusal {
   // A run refused below gives its pictures back — the sheet is still up with its words.
   const ask = runAsk(req, sessionId)
   const { prompt, notes } = buildRun(ask)
   const opened = openRun(ask, prompt, notes, sessionId)
   if ('error' in opened) {
     returnRunPictures(sessionId, req.box)
-    return { error: opened.error }
+    return opened
   }
   const { run } = opened
   const pid = spawnWatcher(run.sessionId)
@@ -98,7 +98,7 @@ function open(req: AgentRequest, sessionId: string): { run: RunRecord; spawned: 
 }
 
 /** Continue the saved harness conversation through the same path as the Resume command. */
-export async function startResume(id: string): Promise<{ run: RunRecord; spawned: boolean } | { error: string }> {
+export async function startResume(id: string): Promise<{ run: RunRecord; spawned: boolean } | RunRefusal> {
   const opened = await openResume(id)
   if ('error' in opened) return opened
   const pid = spawnWatcher(opened.run.sessionId)

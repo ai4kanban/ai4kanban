@@ -15,8 +15,10 @@
 //
 // A create or a build that was refused goes back to the sheet rather than to a popover under
 // this button: the sheet is still up, so a message behind it is a message nobody reads — and
-// the sentence has to stay in the box to be sent again. Start planning (#427) is the one that
-// cannot: it closes the sheet first, so its refusal is said under the button.
+// the sentence has to stay in the box to be sent again. The plan handoff's two answers work
+// the same way (#706): the sheet stays up until a run is actually going, and a refusal goes
+// back into it under the three answers. It only reaches this button when the reader is no
+// longer there to read it — at phone width, where there is no rail row to mark instead.
 //
 // Feedback on a landed task (#603) rides here rather than in the sheet, because the sheet
 // closes the moment a run starts: the block is drawn in the sheet and its state is held
@@ -40,10 +42,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import { createSheet, useArchivedDiscussion, useCreateSheetRequest } from "@/lib/create-open";
+import { failureText, startFailure, type StartFailure } from "@/lib/start-failure";
 import { dropDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import { armNewTopic } from "@/lib/new-topic";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
+import type { PlanAnswer } from "@/lib/format/agent/types";
 import type { AgentReq } from "./agent-shared";
 import { Button } from "./button";
 import { useChatRailHere } from "./Chat";
@@ -55,6 +59,10 @@ import { useSolution } from "./solution";
 // `release` is the version the board is showing (#104), or null for the whole
 // board. A card written while one release is on screen ships in it, so it doesn't
 // vanish the moment it is written.
+// A discussion as a key, and the one conversation of a board whose rules predate the list as
+// the empty string — no `DiscussionTarget` is that, so the two never collide.
+const askedOn = (discussion: DiscussionTarget | null): string => discussion ?? "";
+
 export function CreateTask({
   release = null,
   projectRoot,
@@ -65,6 +73,7 @@ export function CreateTask({
   projectRoot: string;
 }) {
   const c = useCopy().board.create;
+  const plan = c.sheet.plan;
   const router = useRouter();
   const marketing = useSolution() === "marketing";
   const [open, setOpen] = useState(false);
@@ -72,14 +81,24 @@ export function CreateTask({
   // over the one it is picking back up. Null while the board's rules are older than the list,
   // which still holds its one conversation.
   const [discussion, setDiscussion] = useState<DiscussionTarget | null>(null);
-  // Start planning closes the sheet before the run is asked for (#427), so a refusal there
-  // has no box to go back to — it is said under the button instead. A refused create still
-  // goes to the sheet, which is still up.
+  // A refusal with nothing left on screen to say it on: a feedback submission after the sheet
+  // has closed (#603), and — at phone width, where there is no rail row to mark — a plan
+  // answer whose run was refused after the reader closed the window (#706).
   const [error, setError] = useState<string | null>(null);
   // A feedback submission that went (#603). The sheet is gone by then, so the only place
   // left to say it is under this button — and it has to be said, because a send with no
   // answer reads as a send that vanished.
   const [notice, setNotice] = useState<string | null>(null);
+  // The plan answer being asked for, keyed by the discussion it was pressed on (#706). Keyed
+  // rather than single because the reader may pick another discussion up while the request is
+  // out: only the one that pressed goes down, and the one picked up is live and startable.
+  const [starting, setStarting] = useState<Readonly<Record<string, PlanAnswer>>>({});
+  // Why the last start on the discussion the sheet is holding never came up. It lives here
+  // rather than in the sheet so an answer pressed on one discussion cannot say it on another.
+  const [failure, setFailure] = useState<StartFailure | null>(null);
+  // The same, readable in the same tick: the answers go down on the next render, and two
+  // clicks inside one would otherwise both find nothing started and ask for two runs.
+  const asking = useRef(new Set<string>());
   // The Link-a-landed-task block on the sheet (#603) — held here so its outcome outlives the
   // sheet, and reset only once a send has actually taken it.
   const feedback = useLandedFeedback();
@@ -92,6 +111,12 @@ export function CreateTask({
   useEffect(() => {
     held.current = discussion;
   }, [discussion]);
+  // And whether the window is still up at all — Esc and the close button answer while a start
+  // is in flight (#706), and a refusal has nowhere to land once they have.
+  const openHere = useRef(open);
+  useEffect(() => {
+    openHere.current = open;
+  }, [open]);
 
   // Back to a fresh Create task. A discussion has no page of its own, so the sheet closing is
   // the whole of "the discussion is over" — and what it was holding goes with it, transcript,
@@ -101,6 +126,7 @@ export function CreateTask({
     setDiscussion(null);
     setError(null);
     setNotice(null);
+    setFailure(null);
     feedback.reset();
     dropDraft("create");
   }, [feedback]);
@@ -131,6 +157,7 @@ export function CreateTask({
   const openFresh = useCallback(async () => {
     setError(null);
     setNotice(null);
+    setFailure(null);
     if (phone && discussion) return setOpen(true);
     // Opened after the discussion is in hand, so the sheet never paints a frame of the last
     // subject's exchange on its way to the new one.
@@ -186,12 +213,15 @@ export function CreateTask({
     if (!asked || asked === seen.current) return;
     seen.current = asked;
     setError(null);
+    setFailure(null);
     // A row named the discussion it is picking back up; the empty board's ask names none, so
     // it opens a fresh one exactly as the button does.
     // On a marketing board the only surface that asks is the empty board, and what it is
     // asking for is a topic: there is no sheet there to open (#507).
     if (marketing) void openTopic();
     else if (asked.discussion) {
+      // Opening it is reading it, so the rail's mark on that row has done its job (#706).
+      createSheet.startCleared(asked.discussion);
       setDiscussion(asked.discussion);
       setOpen(true);
     } else {
@@ -238,30 +268,53 @@ export function CreateTask({
     [start, c, feedback, failureLine, feedbackCopy],
   );
 
-  // The two answers under the plan handoff that start a run (#427, #481): the same handoff Add
-  // task makes — the screen closes, the run starts behind it, and Runs opens on it and tails
-  // it from the first frame. Which plan is the board's own to say, so nothing about it is
-  // sent from here; only the release on screen is, exactly as a card written here carries it.
+  // The two answers under the plan handoff that start a run (#427, #481). The screen stays up
+  // until a run is actually going (#706): a start can be refused — uncommitted changes, a
+  // build already working in this checkout — and closing first left the reader with no window,
+  // no answers and no way to press again. Which plan is the board's own to say, so nothing
+  // about it is sent from here; only the release on screen is, and the words the answer put in
+  // the transcript, which the start writes once the run is up.
+  //
+  // Everything after the await is about the discussion the answer was PRESSED on, which may no
+  // longer be the one on screen: a rail row hands another one over while the request is out,
+  // and a window Esc closed is gone altogether. So the outcome goes wherever that discussion
+  // still is — this window, its row in the rail, or, at phone width where there is no rail,
+  // under the button.
   const startFromPlan = useCallback(
-    async (answer: "plan" | "build") => {
-      setOpen(false);
+    async (answer: PlanAnswer) => {
+      const on = discussion;
+      const key = askedOn(on);
+      if (asking.current.has(key)) return;
+      asking.current.add(key);
+      setStarting((was) => ({ ...was, [key]: answer }));
+      setFailure(null);
+      createSheet.startCleared(on);
       const start = answer === "build" ? startPlanBuildAction : startPlanningAction;
-      const res = await start(release ?? undefined, discussion);
-      if (!res.ok) {
-        setError(res.error || c.startFailed);
+      const res = await start(release ?? undefined, on, answer === "build" ? plan.build : plan.start);
+      asking.current.delete(key);
+      setStarting((was) => Object.fromEntries(Object.entries(was).filter(([at]) => at !== key)));
+      // A run needs an id to be watched and tailed, so a yes with none is a start that did not
+      // happen — said as one rather than leaving the window on "Starting…".
+      if (res.ok && res.sessionId) {
+        // The run is going, which is where the board archives the discussion it was handed
+        // (#551) — so the screen lets go of it too (#610). Unless the reader has picked up
+        // another subject in the meantime; that one is not over.
+        if (held.current === on) freshen();
+        // The server started it, so it is `watch` and not `start` that takes it on — otherwise
+        // the card it writes would not reach the board until something else re-read it.
+        watch(res.sessionId, answer === "build" ? "Build now" : "Start planning");
+        sessionsPanel.open(res.sessionId);
         return;
       }
-      if (!res.sessionId) return;
-      // The run is going, which is where the board archives the discussion it was handed
-      // (#551) — so the screen lets go of it too (#610). Unless the reader has picked up
-      // another subject in the meantime; that one is not over.
-      if (held.current === discussion) freshen();
-      // The server started it, so it is `watch` and not `start` that takes it on — otherwise
-      // the card it writes would not reach the board until something else re-read it.
-      watch(res.sessionId, answer === "build" ? "Build now" : "Start planning");
-      sessionsPanel.open(res.sessionId);
+      const why = startFailure(res, plan.failed);
+      // Still looking at it: the window says it under the three answers, which are live again.
+      if (openHere.current && held.current === on) return setFailure(why);
+      // Gone elsewhere. A discussion has a row to mark; at phone width it has none, and the
+      // button is the only thing left on screen to say it on.
+      if (on && !phone) createSheet.startFailed(on, failureText(why));
+      else setError(failureText(why));
     },
-    [release, discussion, watch, freshen, c],
+    [release, discussion, watch, freshen, phone, plan],
   );
 
   // The top row's 28px box, 36px at phone width where a thumb has to hit it (#357). Narrow
@@ -337,6 +390,8 @@ export function CreateTask({
               mode === "build" ? "Build now" : "Create task",
             )
           }
+          starting={starting[askedOn(discussion)] ?? null}
+          failure={failure}
           onPlan={() => void startFromPlan("plan")}
           onBuildPlan={() => void startFromPlan("build")}
         />

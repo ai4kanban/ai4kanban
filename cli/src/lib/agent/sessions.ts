@@ -64,6 +64,7 @@ import type {
   RefineAsk,
   RefineEffort,
   RunRecord,
+  RunRefusal,
   RunStatus,
   RunView,
   SpecAsk,
@@ -693,7 +694,7 @@ export function openRun(
   prompt: string,
   notes: string[] = [],
   sessionId: string = randomUUID(),
-): { run: RunRecord; spec: RunSpec } | { error: string } {
+): { run: RunRecord; spec: RunSpec } | RunRefusal {
   const cardId = Number.isInteger(req.id) ? (req.id as number) : null
   // The runtime this one run was asked for (#518). Refused here rather than resolved away:
   // a pin nothing answers to would quietly run **Global default**, and a run on another
@@ -732,7 +733,9 @@ export function openRun(
   let start: DeliveryStart | undefined
   if (delivers && req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId)))) {
     const prepared = prepareDelivery(cardId, req.commitMode, req.aiReview)
-    if ('error' in prepared) return { error: prepared.error }
+    // Whole, kind and paths included (#706): a screen that says this in its own language
+    // reads the kind, and losing it here would leave every refusal generic.
+    if ('error' in prepared) return prepared
     start = prepared.start
   }
   // Where this run works: its delivery's own worktree, or the project itself. A run of a

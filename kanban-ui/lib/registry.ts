@@ -1,5 +1,6 @@
 import { machineCopy } from "./language";
-import { boardRules, type AgentRequest, type RunView } from "./cli";
+import { boardRules, NoRulesError, type AgentRequest, type RunView } from "./cli";
+import type { RunRefusalKind } from "./format/agent/types";
 import type { CardDeliveryState, DeliveryRecord, SessionView } from "./types";
 
 // --- the runs, through the CLI (#168) ----------------------------------------
@@ -17,11 +18,37 @@ import type { CardDeliveryState, DeliveryRecord, SessionView } from "./types";
 // What is left in this file is the shape the browser reads. A run's record and the view the
 // UI has always had are nearly the same object; the few differences are below.
 
+/** Why a start was refused, where the kind is known (#706). The board's own four, plus the
+ *  three this file and the actions above it answer with themselves. A refusal with no kind
+ *  is one nothing here recognises, and a screen says so in one generic line. */
+export type StartRefusalKind = RunRefusalKind | "noProcess" | "noPlan" | "rules";
+
 export interface StartResult {
   ok: boolean;
   sessionId?: string;
   error?: string;
+  /** The kind behind `error`, for a screen that must say it in the user's language rather
+   *  than passing the board's own English on. */
+  reason?: StartRefusalKind;
+  /** The files the refusal named — `dirty` alone carries any. */
+  paths?: string[];
 }
+
+/** No usable copy of the board's rules — the one refusal a screen can neither retry nor
+ *  read the board's own words for, since there is no board to read a language from. */
+const noRules = (e: unknown): StartResult => ({
+  ok: false,
+  error: e instanceof Error ? e.message : String(e),
+  reason: e instanceof NoRulesError ? "rules" : undefined,
+});
+
+/** A refusal from the rules, as this file hands it on. */
+const refused = (why: { error: string; reason?: RunRefusalKind; paths?: string[] }): StartResult => ({
+  ok: false,
+  error: why.error,
+  reason: why.reason,
+  paths: why.paths,
+});
 
 /** The card titles one read needs, each card looked up once (#725). `titleOf` walks `todo/`
  *  to find the file before it reads it, and the runs of one board crowd onto a handful of
@@ -130,14 +157,14 @@ async function launch(
   try {
     rules = await boardRules();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return noRules(e);
   }
   const opened = await open(rules);
-  if ("error" in opened) return { ok: false, error: opened.error };
+  if ("error" in opened) return refused(opened);
   const { sessionId } = opened.run;
   const pid = rules.spawnWatcher(sessionId);
   rules.markSpawned(sessionId, pid);
-  if (!pid) return { ok: false, error: (await machineCopy()).messages.run.noProcess };
+  if (!pid) return { ok: false, error: (await machineCopy()).messages.run.noProcess, reason: "noProcess" };
   return { ok: true, sessionId };
 }
 
@@ -152,12 +179,12 @@ export async function startSession(req: AgentRequest, prompt: string): Promise<S
   try {
     rules = await boardRules();
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return noRules(e);
   }
   if (!rules.startRun) return launch(() => rules.openRun(req, prompt));
   const started = await rules.startRun(req);
-  if ("error" in started) return { ok: false, error: started.error };
-  if (!started.spawned) return { ok: false, error: (await machineCopy()).messages.run.noProcess };
+  if ("error" in started) return refused(started);
+  if (!started.spawned) return { ok: false, error: (await machineCopy()).messages.run.noProcess, reason: "noProcess" };
   return { ok: true, sessionId: started.run.sessionId };
 }
 

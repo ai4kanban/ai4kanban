@@ -807,21 +807,14 @@ export async function shareOfferedAction(): Promise<boolean> {
 // ---- Discuss (#427) ---------------------------------------------------------
 //
 // The Discuss screen is one discussion's conversation with the plan it is writing beside it.
-// Four moves: read that plan, record an answer the user pressed, and hand the plan to one of
-// the two runs its answers start — the one that writes its cards, or the one that writes a
-// single card from it and builds it (#481).
+// Three moves: read that plan, and hand it to one of the two runs its answers start — the one
+// that writes its cards, or the one that writes a single card from it and builds it (#481).
+// The answer that was pressed is written by the start itself, once the run is going (#706).
 
 export async function readDiscussAction(discussion: string | null = null): Promise<DiscussRead & { supported: boolean }> {
   const target = await chatTarget(discussion);
   const [read, supported] = await Promise.all([readDiscuss(target ?? null), canDiscuss()]);
   return { ...read, supported };
-}
-
-/** One of the three answers, pressed. Written into the transcript as the user's own words,
- *  with no turn behind it — the board is what acts on it. */
-export async function noteDiscussAnswerAction(text: string, discussion: string | null = null): Promise<void> {
-  if (typeof text !== "string" || !text.trim()) return;
-  await noteAnswer(text.trim(), (await chatTarget(discussion)) ?? null);
 }
 
 /**
@@ -832,8 +825,12 @@ export async function noteDiscussAnswerAction(text: string, discussion: string |
  * says it is writing. `release` is what the board was showing, so the cards land in it like
  * a card written by Add task.
  */
-export async function startPlanningAction(release?: string, discussion: string | null = null): Promise<StartResult> {
-  return startFromPlan("create", "plan", release, discussion);
+export async function startPlanningAction(
+  release?: string,
+  discussion: string | null = null,
+  answer?: string,
+): Promise<StartResult> {
+  return startFromPlan("create", "plan", release, discussion, answer);
 }
 
 /**
@@ -845,8 +842,12 @@ export async function startPlanningAction(release?: string, discussion: string |
  * prompt, and the only file this may ever point at is the one the board's own conversation
  * says it is writing.
  */
-export async function startPlanBuildAction(release?: string, discussion: string | null = null): Promise<StartResult> {
-  return startFromPlan("implement", "build", release, discussion);
+export async function startPlanBuildAction(
+  release?: string,
+  discussion: string | null = null,
+  answer?: string,
+): Promise<StartResult> {
+  return startFromPlan("implement", "build", release, discussion, answer);
 }
 
 async function startFromPlan(
@@ -854,20 +855,28 @@ async function startFromPlan(
   answer: PlanAnswer,
   release?: string,
   discussion: string | null = null,
+  said?: string,
 ): Promise<StartResult> {
   // Which discussion's plan is the board's own to say: the browser names the discussion, and
   // the path is read here — so the only file a run may ever be pointed at is the one that
   // discussion says it is writing (#496).
   const target = (await chatTarget(discussion)) ?? null;
   const plan = await planToPlanFrom(target);
-  if (!plan) return { ok: false, error: (await machineCopy()).messages.actions.noPlan };
+  if (!plan) return { ok: false, error: (await machineCopy()).messages.actions.noPlan, reason: "noPlan" };
   const request = await prepareAgentRequest({
     action,
     plan,
     release: typeof release === "string" && release.trim() ? release.trim() : undefined,
   });
   const started = await startSession(request, await buildPrompt(request));
-  if (started.ok && started.sessionId) await planningStarted(started.sessionId, answer, target);
+  if (!started.ok || !started.sessionId) return started;
+  // The answer goes into the transcript only once the run is going (#706): a refused start
+  // leaves the screen up to be pressed again, and writing it at the press left a retry
+  // stacking the same sentence and a dead screen behind it. Before the archive below, which
+  // is what the shared submission reads (#659) — after it the sentence would be missing from
+  // what went out.
+  if (typeof said === "string" && said.trim()) await noteAnswer(said.trim(), target);
+  await planningStarted(started.sessionId, answer, target);
   return started;
 }
 

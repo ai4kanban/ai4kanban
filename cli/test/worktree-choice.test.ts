@@ -145,6 +145,27 @@ describe('what the tick does', () => {
   })
 })
 
+// What a refusal carries besides its sentence (#706): a screen that says it in its own
+// language reads the kind and lists the paths itself, so dropping either on the way out
+// leaves every refusal generic.
+describe('what a refused build carries', () => {
+  it('names the dirty checkout and the files in it', () => {
+    fs.writeFileSync(path.join(root, 'code.txt'), 'edited\n')
+    const got = prepareDelivery(7, 'auto')
+    assert.ok('error' in got)
+    assert.equal(got.reason, 'dirty')
+    assert.deepEqual(got.paths, ['code.txt'])
+  })
+
+  it('reaches the run that asked for the build', () => {
+    fs.writeFileSync(path.join(root, 'code.txt'), 'edited\n')
+    const opened = openRun({ action: 'implement', id: 7, title: 'A card', commitMode: 'auto' }, 'prompt', [])
+    assert.ok('error' in opened)
+    assert.equal(opened.reason, 'dirty')
+    assert.deepEqual(opened.paths, ['code.txt'])
+  })
+})
+
 describe('the tick on the Implement request', () => {
   it('reaches the delivery the run opens', () => {
     setAutoCommit(false)

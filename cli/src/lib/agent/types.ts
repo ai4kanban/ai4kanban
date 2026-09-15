@@ -318,6 +318,27 @@ export interface RunRetry {
   since: number
 }
 
+/** Why a run was refused before it started, where the board can name the kind (#706). A
+ *  screen that must say it in its own language reads this instead of the sentence; a
+ *  refusal with no kind here is said in the board's own words. */
+export type RunRefusalKind =
+  /** Tracked changes are sitting in the checkout the build would work in. */
+  | 'dirty'
+  /** Another build without a branch of its own is already working in this checkout. */
+  | 'busy'
+  /** The delivery's branch or worktree could not be made. */
+  | 'worktree'
+  /** The folder the worktrees go in could not be prepared. */
+  | 'akb'
+
+/** A refused run: the board's own sentence, and the kind behind it where there is one. */
+export interface RunRefusal {
+  error: string
+  reason?: RunRefusalKind
+  /** The files a `dirty` refusal named, so a screen can list them under its own sentence. */
+  paths?: string[]
+}
+
 /** One run, as the shared record holds it. Every process reads and writes this same
  *  shape — the record is the only thing that knows what is running. */
 export interface RunRecord {

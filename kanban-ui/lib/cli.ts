@@ -36,6 +36,7 @@ import type {
   PlanAnswer,
   RunPick,
   RunRecord,
+  RunRefusal,
   RunView,
   SetupProposal,
   SpecAgentView,
@@ -232,12 +233,15 @@ export interface BoardRules {
   // the runs
   listRuns(): Promise<RunView[]>;
   getRun(id: string, bytes?: number): Promise<RunView | null>;
-  openRun(req: AgentRequest, prompt: string): { run: RunRecord } | { error: string };
+  openRun(req: AgentRequest, prompt: string): { run: RunRecord } | RunRefusal;
   /** Write a run down and hand it to a process of its own, in one call. It takes the card's
    *  workspace lock first on a Cloud board, so a card another machine is holding refuses the
    *  run and leaves no record behind (#398). Optional: older rules have only `openRun`, and
-   *  a project on those has only ever had a Local board. */
-  startRun?(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | { error: string }>;
+   *  a project on those has only ever had a Local board.
+   *
+   *  A refusal carries the kind behind it where the rules name one (#706); rules older than
+   *  that answer with the sentence alone, which reads as a refusal with no kind. */
+  startRun?(req: AgentRequest): Promise<{ run: RunRecord; spawned: boolean } | RunRefusal>;
   openResume(id: string): Promise<{ run: RunRecord } | { error: string }>;
   markSpawned(sessionId: string, pid: number | undefined): void;
   spawnWatcher(sessionId: string): number | undefined;

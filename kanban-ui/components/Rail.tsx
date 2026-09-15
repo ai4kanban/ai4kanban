@@ -60,7 +60,7 @@ import {
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
 import { cardChat } from "@/lib/chat-open";
-import { createSheet, useShownDiscussion } from "@/lib/create-open";
+import { createSheet, useShownDiscussion, useStartFailures } from "@/lib/create-open";
 import { useDiscussions } from "@/lib/discussion-list";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
@@ -118,6 +118,10 @@ export function Rail({
   // renames or reorders the rows leaves it where it was.
   const shown = useShownDiscussion();
   const onPage = shown === null;
+  // The discussions whose last start never came up while the reader was elsewhere (#706).
+  // A mark on the row, and the reason on its hover — the window it was pressed in is gone,
+  // and taking the reader back to it would be answering a question nobody asked.
+  const startFailures = useStartFailures();
   // A refused archive left the row where it was, so it says why rather than looking like a
   // press that did nothing (#610). Click it away; the next archive replaces it.
   const [archiveFailed, setArchiveFailed] = useState<string | null>(null);
@@ -203,6 +207,7 @@ export function Rail({
                     : onPage && row.cardId === activeId
                 }
                 answering={row.answering}
+                startFailed={typeof row.target === "string" ? startFailures[row.target] : undefined}
                 onOpen={() =>
                   row.cardId === undefined
                     ? createSheet.open(row.target as DiscussionTarget)
@@ -568,6 +573,7 @@ function ChatRow({
   cardId,
   active,
   answering,
+  startFailed,
   onOpen,
   onArchive,
 }: {
@@ -580,6 +586,9 @@ function ChatRow({
   /** Its agent is writing a reply — the same pulse a card's row carries while a run is
    *  inside it. */
   answering: boolean;
+  /** Why a run this discussion asked for never started (#706), or undefined. A steady mark
+   *  rather than the pulse above, which means a reply is on its way. */
+  startFailed?: string;
   onOpen: () => void;
   onArchive: () => void;
 }) {
@@ -597,11 +606,21 @@ function ChatRow({
         </span>
       )}
       <span className="truncate">{name}</span>
-      {answering && (
+      {answering ? (
         <>
           <span className={`ml-auto ${PULSE_DOT}`} aria-hidden />
           <span className="sr-only">{c.discussions.answering}</span>
         </>
+      ) : (
+        startFailed && (
+          <>
+            <span
+              aria-hidden
+              className="ml-auto size-[7px] shrink-0 rounded-full bg-nb-peach-ink"
+            />
+            <span className="sr-only">{startFailed}</span>
+          </>
+        )
       )}
     </>
   );
@@ -610,7 +629,9 @@ function ChatRow({
       ? "bg-nb-paper font-[700] shadow-[inset_0_0_0_1.5px_var(--color-nb-ink)]"
       : "font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)]"
   }`;
-  const hover = answering ? c.discussions.answeringRow(name) : name;
+  // The mark's own words: the row is the only place this refusal is left, so the hover is
+  // where it is read (#706).
+  const hover = answering ? c.discussions.answeringRow(name) : (startFailed ?? name);
   return (
     <div className="group relative">
       {cardId === undefined ? (
