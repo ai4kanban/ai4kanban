@@ -1,13 +1,14 @@
 import type { CSSProperties, ReactNode } from "react";
 import { FiX } from "react-icons/fi";
-import { Btn, CROP, NB, Panel, Shot, em } from "./nb";
+import { CROP, NB, Panel, Shot, em } from "./nb";
 
 // Step 03 推进执行 — the Runs dialog, which opens on the agent office. Mirrors
 // kanban-ui/components/sessions.tsx (`RunsOffice`) and `RunScene.tsx`: one bot
 // per running job, each at its own desk with the screen it works at awake, the
 // two jobs that just passed resting on the sofa, and the strip along the bottom
-// with the count and the way into the records. Every pixel of the dialog's
-// interior is the room — it has no header and no list.
+// carrying the two ways into the records, the count being the first of them
+// (#781). Every pixel of the dialog's interior is the room — it has no header
+// and no list.
 //
 // The room is the app's own art, flattened to one still by
 // `scripts/build-office-art.mjs`; the bots and everything over them are drawn
@@ -185,6 +186,40 @@ function Plate({
   );
 }
 
+/** `.nb-chip-px` — the square ink frame everything loose over the room wears:
+ *  a 2px line, a 2px corner and a hard shadow. `own` is the font-size of the
+ *  element it lands on. */
+const pxBox = (own?: number): CSSProperties => ({
+  border: `${em(2, own)} solid ${NB.ink}`,
+  borderRadius: em(2, own),
+  background: NB.paper,
+  boxShadow: `${em(3, own)} ${em(3, own)} 0 0 ${NB.ink}`,
+});
+
+/** One way into the records, on the bottom strip: the shared button at
+ *  `size="xs"`, squared off to the room's own weight. */
+function Entrance({ children }: { children: ReactNode }) {
+  const F = 12;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        height: em(28, F),
+        padding: `0 ${em(10, F)}`,
+        fontSize: em(F),
+        fontWeight: 600,
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+        color: NB.ink,
+        ...pxBox(F),
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function ShotSessions() {
   return (
     <Shot crop={CROP} fade={false}>
@@ -233,20 +268,22 @@ export function ShotSessions() {
           </div>
 
           {/* The dialog's own chrome, over the room: the way out, and the strip
-              carrying how many are working and the way into the records. */}
+              carrying the two ways into the records. Both are pixel boxes — the
+              room's own line weight, not the board's rounded chrome (#760). */}
           <span
             style={{
               position: "absolute",
               right: em(12),
               top: em(12),
-              display: "flex",
-              padding: em(4),
-              borderRadius: em(6),
-              background: "color-mix(in srgb, #ffffff 90%, transparent)",
-              color: NB.inkSoft,
+              display: "grid",
+              placeItems: "center",
+              width: em(28),
+              height: em(28),
+              color: NB.ink,
+              ...pxBox(),
             }}
           >
-            <FiX aria-hidden style={{ width: em(16), height: em(16) }} />
+            <FiX aria-hidden style={{ width: em(18), height: em(18) }} />
           </span>
           <span
             style={{
@@ -258,18 +295,10 @@ export function ShotSessions() {
               gap: em(8),
             }}
           >
-            <span
-              style={{
-                borderRadius: em(8, 12),
-                padding: `${em(4, 12)} ${em(9, 12)}`,
-                background: "color-mix(in srgb, #ffffff 90%, transparent)",
-                fontSize: em(12),
-                fontWeight: 700,
-              }}
-            >
-              {RUNNING} running
-            </span>
-            <Btn style={{ padding: `${em(5, 13)} ${em(9, 13)}` }}>Completed</Btn>
+            {/* The count is an entrance too, and wears the same box as the one
+                beside it. Drawn resting: neither drawer is up. */}
+            <Entrance>{RUNNING} running</Entrance>
+            <Entrance>Completed</Entrance>
           </span>
         </Panel>
       </div>
