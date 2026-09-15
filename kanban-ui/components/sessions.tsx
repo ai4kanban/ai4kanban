@@ -859,7 +859,7 @@ function RunsOffice({
         {/* Nothing has ever run here: an empty room and one line over it. */}
         {flows.length === 0 && (
           <p className="pointer-events-none absolute inset-x-0 top-1/2 z-10 text-center text-[13px] font-[700] text-nb-ink">
-            <span className="rounded-[8px] bg-nb-paper/90 px-3 py-1.5">{c.empty}</span>
+            <span className="nb-chip-px inline-block px-3 py-1.5">{c.empty}</span>
           </p>
         )}
 
@@ -867,7 +867,7 @@ function RunsOffice({
           type="button"
           onClick={() => sessionsPanel.close()}
           aria-label={t.shared.close}
-          className="absolute right-3 top-3 z-30 grid h-7 w-7 cursor-pointer place-items-center rounded-[6px] bg-nb-paper/90 text-nb-ink-soft transition-[transform,background-color,color] duration-100 hover:bg-nb-paper hover:text-nb-ink active:scale-90"
+          className="nb-chip-px absolute right-3 top-3 z-30 grid h-7 w-7 cursor-pointer place-items-center text-nb-ink transition-[transform,box-shadow] duration-100 hover:-translate-x-px hover:-translate-y-px hover:shadow-[4px_4px_0_0_var(--color-nb-ink)] active:translate-x-px active:translate-y-px active:shadow-[1px_1px_0_0_var(--color-nb-ink)]"
         >
           <FiX className="h-[18px] w-[18px]" />
         </button>
@@ -875,7 +875,7 @@ function RunsOffice({
         {/* The bottom strip: how many are working, and the way into the records. The drawers
             stop above it, so both entrances stay reachable with either of them up. */}
         <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
-          <span className="rounded-[8px] bg-nb-paper/90 px-2.5 py-1 text-[12px] font-[700] text-nb-ink">
+          <span className="nb-chip-px px-2.5 py-1 text-[12px] font-[700] text-nb-ink">
             {office.live > 0 ? s.running(office.live) : s.idle}
           </span>
           <Button
@@ -884,6 +884,7 @@ function RunsOffice({
             variant="ghost"
             size="xs"
             aria-expanded={records === "done"}
+            className={`${PX_BUTTON} ${records === "done" ? PX_BUTTON_ON : ""}`}
             onClick={() => openRecords("done")}
           >
             {s.completed}
@@ -896,6 +897,7 @@ function RunsOffice({
               variant="ghost"
               size="xs"
               aria-expanded={records === "unfinished"}
+              className={`${PX_BUTTON} ${records === "unfinished" ? PX_BUTTON_ON : ""}`}
               onClick={() => openRecords("unfinished")}
             >
               {s.unfinished}
@@ -906,13 +908,13 @@ function RunsOffice({
         {/* More than one room's worth of work: the rest are the same office, one page on.
             Paging moves nothing and stops nothing — the count beside it is every room's. */}
         {rooms > 1 && (
-          <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 rounded-[8px] bg-nb-paper/90 px-1.5 py-1">
+          <div className="nb-chip-px absolute bottom-4 right-4 z-30 flex items-center gap-1.5 px-1.5 py-1">
             <button
               type="button"
               aria-label={s.prevRoom}
               disabled={room === 0}
               onClick={() => setPage(room - 1)}
-              className="grid size-6 cursor-pointer place-items-center rounded-[5px] text-nb-ink-soft hover:bg-nb-wash disabled:cursor-not-allowed disabled:opacity-40"
+              className={PAGER_ARROW}
             >
               <FiChevronLeft aria-hidden />
             </button>
@@ -922,7 +924,7 @@ function RunsOffice({
               aria-label={s.nextRoom}
               disabled={room === rooms - 1}
               onClick={() => setPage(room + 1)}
-              className="grid size-6 cursor-pointer place-items-center rounded-[5px] text-nb-ink-soft hover:bg-nb-wash disabled:cursor-not-allowed disabled:opacity-40"
+              className={PAGER_ARROW}
             >
               <FiChevronRight aria-hidden />
             </button>
@@ -932,7 +934,7 @@ function RunsOffice({
         {/* The records, floating over the room rather than taking a column off it. */}
         {records && (
           <aside
-            className="nb-panel-sm absolute bottom-14 left-4 top-4 z-20 flex w-[240px] flex-col overflow-hidden"
+            className="nb-panel-px nb-panel-px-left absolute bottom-14 left-0 top-14 z-20 flex w-[240px] flex-col overflow-hidden"
             aria-label={records === "done" ? s.completed : s.unfinished}
             onClick={(e) => e.stopPropagation()}
             onFocusCapture={() => (drawer.current = "left")}
@@ -950,7 +952,7 @@ function RunsOffice({
         {/* The work log, at the width the log has always had. */}
         {logOpen && (
           <aside
-            className="nb-panel-sm absolute bottom-14 right-4 top-14 z-20 flex w-[740px] max-w-[calc(100%-2rem)] flex-col overflow-hidden"
+            className="nb-panel-px nb-panel-px-right absolute bottom-14 right-0 top-14 z-20 flex w-[740px] max-w-[calc(100%-2rem)] flex-col overflow-hidden"
             aria-label={t.runs.log.title}
             onClick={(e) => e.stopPropagation()}
             onFocusCapture={() => (drawer.current = "right")}
@@ -967,10 +969,15 @@ function RunsOffice({
                   onStarted();
                 }}
                 onFollow={() => sessionsPanel.close()}
-                control={<CollapseButton onClick={closeLog} />}
+                control={<CollapseButton onClick={closeLog} ink />}
+                ink
               />
             ) : (
-              <EmptyRunBar title={t.runs.log.title} control={<CollapseButton onClick={closeLog} />} />
+              <EmptyRunBar
+                title={t.runs.log.title}
+                control={<CollapseButton onClick={closeLog} ink />}
+                ink
+              />
             )}
             <div className={LOG_WELL}>
               <RunDetail
@@ -990,6 +997,18 @@ function RunsOffice({
 
 const DONE_BTN = "run-records-done";
 const UNFINISHED_BTN = "run-records-unfinished";
+
+/** The shared Button, squared off to the room's own line weight (#760). The component is
+ *  left alone — only its corners, its border and its shadow are overridden here. */
+const PX_BUTTON =
+  "rounded-[2px] border-2 shadow-[3px_3px_0_0_var(--color-nb-ink)] enabled:hover:shadow-[4px_4px_0_0_var(--color-nb-ink)] enabled:active:shadow-[1px_1px_0_0_var(--color-nb-ink)]";
+/** The entrance whose drawer is up. `aria-expanded` alone said it to a screen reader and to
+ *  nobody looking at the screen. */
+const PX_BUTTON_ON = "bg-nb-ink text-nb-cream hover:bg-nb-ink";
+
+/** An arrow inside the pager's box: a square well that fills with ink on hover. */
+const PAGER_ARROW =
+  "grid size-6 cursor-pointer place-items-center rounded-[2px] text-nb-ink hover:bg-nb-ink hover:text-nb-cream disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-nb-ink";
 
 // --- what the open log is OF --------------------------------------------------
 
@@ -1025,29 +1044,27 @@ const LOG_WELL =
 
 /** The records drawer's own title bar, with the one control it needs. */
 function DrawerBar({ title, onCollapse }: { title: string; onCollapse: () => void }) {
-  const s = useCopy().runs.scene;
   return (
-    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-nb-ink/12 px-3 py-2">
+    <div className="nb-bar-px flex shrink-0 items-center justify-between gap-2 px-3 py-2">
       <h3 className="min-w-0 truncate text-[12.5px] font-[800] tracking-[-0.02em]">{title}</h3>
-      <button
-        type="button"
-        onClick={onCollapse}
-        className="shrink-0 cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
-      >
-        {s.collapse}
-      </button>
+      {/* The log bar's 22px floor, so the two title bars sit on one line across the room. */}
+      <span className="flex min-h-[22px] shrink-0 items-center">
+        <CollapseButton onClick={onCollapse} ink />
+      </span>
     </div>
   );
 }
 
 /** The word that puts the log drawer away, in the shape every drawer here uses. */
-function CollapseButton({ onClick }: { onClick: () => void }) {
+function CollapseButton({ onClick, ink }: { onClick: () => void; ink?: boolean }) {
   const s = useCopy().runs.scene;
   return (
     <button
       type="button"
       onClick={onClick}
-      className="shrink-0 cursor-pointer rounded-[6px] px-1.5 py-0.5 text-[11.5px] font-[700] text-nb-ink-soft transition-colors hover:bg-nb-ink/5 hover:text-nb-ink"
+      className={`shrink-0 cursor-pointer px-1.5 py-0.5 text-[11.5px] font-[700] transition-colors ${
+        ink ? "nb-px-btn" : "rounded-[6px] text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
+      }`}
     >
       {s.collapse}
     </button>

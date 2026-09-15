@@ -710,3 +710,59 @@ body.a4k-inset .a4k-nav-edge {
   font-weight: 800;
   line-height: 1;
 }
+
+/* ============================================================================
+   The run office's pixel dialogs (#760). Only inside the Runs dialog's pixel
+   room — everywhere else the board keeps .nb-panel / .nb-panel-sm.
+   ========================================================================== */
+
+/* A game dialog box: square corners, a thick ink line, a hard shadow. */
+.nb-panel-px {
+  border: 2px solid var(--color-nb-ink);
+  border-radius: 2px;
+  background: var(--color-nb-paper);
+  box-shadow: 4px 4px 0 0 var(--color-nb-ink);
+}
+
+/* Docked to a wall. The corners on that side square off against it, and the shadow
+   falls INTO the room: cast at the wall, the room would cut it off. Down never
+   changes — only the side the box is standing away from. */
+.nb-panel-px-left {
+  border-radius: 0 2px 2px 0;
+  box-shadow: 4px 4px 0 0 var(--color-nb-ink);
+}
+.nb-panel-px-right {
+  border-radius: 2px 0 0 2px;
+  box-shadow: -4px 4px 0 0 var(--color-nb-ink);
+}
+
+/* The title bar, reversed out: paper words on ink. */
+.nb-bar-px {
+  background: var(--color-nb-ink);
+  color: var(--color-nb-cream);
+}
+.nb-bar-px .nb-idlink {
+  color: var(--color-nb-cream);
+}
+.nb-bar-px .nb-idlink:hover {
+  color: var(--color-nb-accent-soft);
+}
+
+/* A control on the ink bar presses by inverting back to paper. */
+.nb-px-btn {
+  border-radius: 2px;
+  color: color-mix(in srgb, var(--color-nb-cream) 82%, transparent);
+}
+.nb-px-btn:hover {
+  background: var(--color-nb-cream);
+  color: var(--color-nb-ink);
+}
+
+/* Something floating loose over the room — the strip, the pager, the way out. The
+   same square ink frame, one rung down. */
+.nb-chip-px {
+  border: 2px solid var(--color-nb-ink);
+  border-radius: 2px;
+  background: var(--color-nb-paper);
+  box-shadow: 3px 3px 0 0 var(--color-nb-ink);
+}

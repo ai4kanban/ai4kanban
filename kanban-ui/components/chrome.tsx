@@ -40,6 +40,9 @@ export const PHONE_ROW =
  *  it, this is the dot. The nbPulse keyframe is in globals.css. */
 export const PULSE_DOT =
   "size-[7px] shrink-0 rounded-full bg-nb-accent-deep animate-[nbPulse_1.1s_ease-in-out_infinite]";
+/** The same dot on an ink ground (#760): the deep ember sinks into it, the plain one reads. */
+export const PULSE_DOT_INK =
+  "size-[7px] shrink-0 rounded-full bg-nb-accent animate-[nbPulse_1.1s_ease-in-out_infinite]";
 
 /** A tool button: 28px wide and the full inner height of the cluster it sits in,
  *  no frame of its own, no press-down. It lives inside a cluster that carries

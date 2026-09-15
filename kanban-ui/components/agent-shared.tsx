@@ -29,7 +29,7 @@ import {
 } from "@/lib/types";
 import { Button } from "./button";
 import { ELASTIC_CHIP } from "./chips";
-import { PULSE_DOT } from "./chrome";
+import { PULSE_DOT, PULSE_DOT_INK } from "./chrome";
 import { ContextRing } from "./context-ring";
 import { Dialog } from "./Dialog";
 import { Markdown } from "./Markdown";
@@ -257,17 +257,24 @@ function RunFacts({ facts }: { facts: RunFact[] }) {
 // own. A stopped run gets the square in the board's neutral blue: it neither passed nor
 // failed, someone ended it. Every form sits in the same 22px box as the Stop button beside
 // it, so a bar is one height whether the run is live or over.
-function RunIndicator({ session }: { session: SessionView }) {
+function RunIndicator({ session, ink }: { session: SessionView; ink?: boolean }) {
   return (
     <span className="grid size-[22px] shrink-0 place-items-center leading-none">
       {session.status === "running" ? (
-        <span className={PULSE_DOT} aria-hidden />
+        // The deep ember sinks into the ink ground; the plain one does not (#760).
+        <span className={ink ? PULSE_DOT_INK : PULSE_DOT} aria-hidden />
       ) : session.status === "stopped" ? (
-        <span aria-hidden style={{ color: "var(--color-nb-sky-ink)" }}>■</span>
+        <span aria-hidden className={ink ? "text-nb-sky" : undefined} style={ink ? undefined : { color: "var(--color-nb-sky-ink)" }}>■</span>
       ) : session.status === "interrupted" ? (
-        <span aria-hidden style={{ color: "var(--color-nb-peach-ink)" }}>⦸</span>
+        <span aria-hidden className={ink ? "text-nb-peach" : undefined} style={ink ? undefined : { color: "var(--color-nb-peach-ink)" }}>⦸</span>
       ) : (
-        <span aria-hidden style={{ color: "var(--color-nb-accent-deep)" }}>{session.ok ? "✓" : "✕"}</span>
+        <span
+          aria-hidden
+          className={ink ? (session.ok ? "text-nb-mint" : "text-nb-peach") : undefined}
+          style={ink ? undefined : { color: "var(--color-nb-accent-deep)" }}
+        >
+          {session.ok ? "✓" : "✕"}
+        </span>
       )}
     </span>
   );
@@ -517,7 +524,10 @@ export interface RunHead {
 }
 
 const RUN_BAR =
-  "flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-nb-ink/12 bg-nb-paper px-4 py-2 max-md:px-3";
+  "flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2 max-md:px-3";
+/** The bar's ground. Paper everywhere, and reversed out onto ink in the run office (#760),
+ *  where a white strip over a pixel room reads as a window from another program. */
+const RUN_BAR_GROUND = "border-b border-nb-ink/12 bg-nb-paper";
 const RUN_BAR_TITLE = "min-w-[5rem] flex-1 truncate text-[13.5px] font-[800] tracking-[-0.02em]";
 
 // Everything a log window used to stack three titles to say, on one line (#753): the task
@@ -538,6 +548,7 @@ export function RunBar({
   onResumed,
   onFollow,
   control,
+  ink,
 }: {
   session: SessionView;
   head: RunHead;
@@ -549,6 +560,8 @@ export function RunBar({
   onFollow?: () => void;
   /** The window's own way off: Collapse in a drawer, ✕ in a dialog. */
   control: React.ReactNode;
+  /** The run office's form of the bar (#760): the whole row reversed out onto ink. */
+  ink?: boolean;
 }) {
   const t = useCopy();
   const c = t.runs.log;
@@ -563,13 +576,17 @@ export function RunBar({
   // everywhere else they ride with the numbers they qualify.
   const moves = (
     <>
-      {session.status === "running" && <StopButton sessionId={session.sessionId} />}
+      {session.status === "running" && <StopButton sessionId={session.sessionId} ink={ink} />}
       {canResume && <ResumeButton sessionId={session.sessionId} onResumed={onResumed} />}
     </>
   );
+  // Every tint on the bar has a second value for the ink ground: the meta text goes to
+  // thinned paper, and so does the hairline that parts the window's own control.
+  const meta = ink ? "text-nb-cream/70" : "text-nb-ink-soft";
+  const rule = ink ? "border-nb-cream/25" : "border-nb-ink/12";
 
   return (
-    <div className={RUN_BAR}>
+    <div className={`${RUN_BAR} ${ink ? "nb-bar-px" : RUN_BAR_GROUND}`}>
       {/* The task, leading — the id jumps to its card the way every `#id` in the UI does,
           and is not gated on the card still being open: a card the run archived is exactly
           the one you'd click. The full name is the bar's tooltip. */}
@@ -590,20 +607,30 @@ export function RunBar({
         }`}
       >
         {head.step && (
-          <span className="shrink-0 text-[11.5px] font-[700] text-nb-ink-soft">{head.step}</span>
+          <span className={`shrink-0 text-[11.5px] font-[700] ${meta}`}>{head.step}</span>
         )}
         {/* A job is dated by when IT started, not by the session you happen to be reading. */}
-        <span className="shrink-0 text-[11px] text-nb-ink-soft">{head.startedAt}</span>
+        <span className={`shrink-0 text-[11px] ${meta}`}>{head.startedAt}</span>
         {/* Started by Carry on — said on the time it started, the fact it qualifies —
             otherwise it reads as a second identical run out of nowhere. */}
-        {session.resumedFrom && <span className="nb-tag shrink-0 text-[10px]">{p.resumed}</span>}
+        {session.resumedFrom && (
+          <span
+            className={
+              ink
+                ? "inline-flex shrink-0 items-center rounded-[2px] border border-nb-cream/45 px-1 py-0.5 text-[10px] font-[700] uppercase leading-none tracking-[0.12em] text-nb-cream/85"
+                : "nb-tag shrink-0 text-[10px]"
+            }
+          >
+            {p.resumed}
+          </span>
+        )}
         {/* 22px floor: the tallest thing that can ride here sets the bar's height, and it
             keeps that height when the run ends and the controls swap. */}
         <span className="flex min-h-[22px] shrink-0 items-center gap-1.5">
           {!phone && moves}
-          <RunIndicator session={session} />
+          <RunIndicator session={session} ink={ink} />
           {/* How full the model's window is, as of this run's last finished request (#675). */}
-          <ContextRing context={session.context} />
+          <ContextRing context={session.context} ink={ink} />
         </span>
         {/* The numbers, each its own item so that on a phone they wrap rather than clip: a
             duration cut in half says less than nothing. The order is fixed, so what falls to
@@ -611,7 +638,7 @@ export function RunBar({
         {facts.map((f, i) => (
           <span
             key={f.key}
-            className={`shrink-0 whitespace-nowrap text-[11px] text-nb-ink-soft ${
+            className={`shrink-0 whitespace-nowrap text-[11px] ${meta} ${
               f.dim ? "tabular-nums opacity-80" : ""
             }`}
             title={f.title}
@@ -632,7 +659,7 @@ export function RunBar({
           window, not on the run. These never give way. */}
       <span className={`ml-auto flex min-h-[22px] shrink-0 items-center gap-1.5 ${phone ? "order-2" : ""}`}>
         {phone && moves}
-        <span className="ml-1 flex items-center border-l border-nb-ink/12 pl-2">{control}</span>
+        <span className={`ml-1 flex items-center border-l ${rule} pl-2`}>{control}</span>
       </span>
     </div>
   );
@@ -641,9 +668,19 @@ export function RunBar({
 /** The same bar with no run behind it: a dialog opened where nothing has ever run. The
  *  window still has to be named and still has to be closable, and nothing else on the bar
  *  has anything to say. */
-export function EmptyRunBar({ title, control }: { title: string; control: React.ReactNode }) {
+export function EmptyRunBar({
+  title,
+  control,
+  ink,
+}: {
+  title: string;
+  control: React.ReactNode;
+  /** The run office's form of the bar (#760) — the log drawer lands here for the moment
+   *  before the poll catches up. */
+  ink?: boolean;
+}) {
   return (
-    <div className={RUN_BAR}>
+    <div className={`${RUN_BAR} ${ink ? "nb-bar-px" : RUN_BAR_GROUND}`}>
       <h2 className={RUN_BAR_TITLE}>{title}</h2>
       <span className="ml-auto flex min-h-[22px] shrink-0 items-center pl-2">{control}</span>
     </div>
@@ -728,7 +765,7 @@ export function ResumeButton({
 // brings the run back as stopped. That wait is real: the agent is asked to end
 // first and only killed if it doesn't, so a few seconds pass, and pretending
 // otherwise would be a lie the next poll undoes.
-function StopButton({ sessionId }: { sessionId: string }) {
+function StopButton({ sessionId, ink }: { sessionId: string; ink?: boolean }) {
   const t = useCopy();
   const c = t.runs.stop;
   const actions = useActions();
@@ -780,21 +817,25 @@ function StopButton({ sessionId }: { sessionId: string }) {
 
   if (!actions) return null;
   if (asked) {
-    return <span className="text-[11px] text-nb-ink-soft">{c.stopping}</span>;
+    return <span className={`text-[11px] ${ink ? "text-nb-cream/70" : "text-nb-ink-soft"}`}>{c.stopping}</span>;
   }
 
   return (
     // The title bar is a click target of its own on the card page (it collapses
     // the log), so every press in here stops at this element.
     <span ref={ref} className="relative flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-      {error && <span className="text-[11px] text-nb-peach-ink">{error}</span>}
+      {error && (
+        <span className={`text-[11px] ${ink ? "text-nb-peach" : "text-nb-peach-ink"}`}>{error}</span>
+      )}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={c.title}
         aria-expanded={open}
         title={c.title}
-        className="grid size-[22px] cursor-pointer place-items-center rounded-[6px] text-nb-ink-soft transition-[background-color,color,transform] duration-100 hover:bg-nb-ink/5 hover:text-nb-ink active:scale-90"
+        className={`grid size-[22px] cursor-pointer place-items-center transition-[background-color,color,transform] duration-100 active:scale-90 ${
+          ink ? "nb-px-btn" : "rounded-[6px] text-nb-ink-soft hover:bg-nb-ink/5 hover:text-nb-ink"
+        }`}
       >
         {/* The same glyph the delivery block's Stop run wears — one verb, one mark, wherever
             a run can be stopped. */}

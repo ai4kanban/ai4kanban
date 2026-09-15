@@ -27,7 +27,14 @@ function short(tokens: number): string {
 const R = 5.25;
 const CIRCUMFERENCE = 2 * Math.PI * R;
 
-export function ContextRing({ context }: { context: ContextWindow | undefined }) {
+export function ContextRing({
+  context,
+  ink,
+}: {
+  context: ContextWindow | undefined;
+  /** Drawn on the run office's ink title bar (#760), where the ink strokes disappear. */
+  ink?: boolean;
+}) {
   const c = useCopy().shared;
   const used = context?.used;
   const limit = context?.limit;
@@ -47,13 +54,20 @@ export function ContextRing({ context }: { context: ContextWindow | undefined })
       aria-label={label}
     >
       <svg viewBox="0 0 14 14" className="size-[14px] -rotate-90" aria-hidden>
-        <circle cx="7" cy="7" r={R} fill="none" className="stroke-nb-ink/12" strokeWidth="2.5" />
         <circle
           cx="7"
           cy="7"
           r={R}
           fill="none"
-          className="stroke-nb-ink-soft"
+          className={ink ? "stroke-nb-cream/25" : "stroke-nb-ink/12"}
+          strokeWidth="2.5"
+        />
+        <circle
+          cx="7"
+          cy="7"
+          r={R}
+          fill="none"
+          className={ink ? "stroke-nb-cream/85" : "stroke-nb-ink-soft"}
           strokeWidth="2.5"
           strokeDasharray={CIRCUMFERENCE}
           strokeDashoffset={CIRCUMFERENCE * (1 - filled)}

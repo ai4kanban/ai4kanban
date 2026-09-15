@@ -573,7 +573,7 @@ export function DesignSystem() {
       <Section
         id="surfaces"
         title="Surfaces"
-        note="app/globals.css. A block is a 1.5px ink outline, a radius, and a 3px hard offset shadow — no blur, no grey, one direction. There is no second elevation: a thing either is a block or it is a fill on the ground. nb-outline is the frame without the shadow, for something inside a block that would otherwise be a block on a block; nb-inset drops the frame to a hairline, for a band that annotates the work rather than being it. nb-section drops the frame altogether — a long reading page is a run of sections told apart by the colour under them, and a stack of eight framed blocks reads as eight boxes rather than one page."
+        note="app/globals.css. A block is a 1.5px ink outline, a radius, and a 3px hard offset shadow — no blur, no grey, one direction. There is no second elevation on the board itself: a thing either is a block or it is a fill on the ground. The run office is the one exception — inside its pixel room a block is drawn thicker and squarer, because the room it floats over is drawn that way. nb-outline is the frame without the shadow, for something inside a block that would otherwise be a block on a block; nb-inset drops the frame to a hairline, for a band that annotates the work rather than being it. nb-section drops the frame altogether — a long reading page is a run of sections told apart by the colour under them, and a stack of eight framed blocks reads as eight boxes rather than one page."
       >
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="nb-panel p-4">
@@ -608,6 +608,15 @@ export function DesignSystem() {
             <p className="mt-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
               14px, no frame, no shadow. The whole card page: a light band on white
               paper, its ground picked by what it is for.
+            </p>
+          </div>
+          <div className="nb-panel-px p-4">
+            <p className="font-mono text-[12.5px] font-[700]">.nb-panel-px</p>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-nb-ink-soft">
+              2px radius, a 2px line and a 4px shadow — a game dialog box. The run
+              office only: a drawer over its pixel room. Docked to a wall it takes
+              .nb-panel-px-left / -right, which square the corners on that side and
+              throw the shadow back into the room.
             </p>
           </div>
         </div>
@@ -690,6 +699,7 @@ export function DesignSystem() {
               { r: "10px", what: "a text input, a select trigger, an open list" },
               { r: "7px", what: "an option row, a pick chip, a list item" },
               { r: "6px", what: "a meaning chip, the tooltip, a 22px icon button" },
+              { r: "2px", what: ".nb-panel-px / .nb-chip-px — the run office's pixel room, and nothing outside it" },
             ].map((x, i) => (
               <div
                 key={x.r}
@@ -1004,7 +1014,7 @@ export function DesignSystem() {
       <Section
         id="run"
         title="The run log"
-        note="components/agent-shared.tsx — one bar, then the log. The bar carries everything the window has to say about the run: the task and its #id, the step and when it started, the run's controls, its facts in one middot row, and — past a hairline — the window's own way off. Under it the log sits in a wash well sunk a rung below. A live run tails its raw event stream in mono; a finished one leads with the agent's final message as markdown and folds the events it streamed on the way into a collapsed row above."
+        note="components/agent-shared.tsx — one bar, then the log. The bar carries everything the window has to say about the run: the task and its #id, the step and when it started, the run's controls, its facts in one middot row, and — past a hairline — the window's own way off. Under it the log sits in a wash well sunk a rung below. A live run tails its raw event stream in mono; a finished one leads with the agent's final message as markdown and folds the events it streamed on the way into a collapsed row above. The bar has a second form, ink, for the run office's pixel room, where a paper strip would read as a window from another program: the whole row reverses out, and every mark on it — the id, the meta text, the controls, the state mark, the context ring — takes its value on ink."
       >
         <div className="nb-panel-sm flex max-h-[420px] flex-col overflow-hidden">
           <RunBar
@@ -1026,6 +1036,30 @@ export function DesignSystem() {
           />
           <div className="min-h-0 flex-1 overflow-y-auto bg-nb-wash px-4 pb-6 pt-3 shadow-[inset_0_1px_3px_color-mix(in_srgb,var(--color-nb-ink)_8%,transparent)]">
             <SessionLog session={DONE_SESSION} flush />
+          </div>
+        </div>
+
+        <div className="mt-7">
+          <Label>the ink form &mdash; the run office&rsquo;s drawer, over its pixel room</Label>
+          <div className="nb-panel-px overflow-hidden">
+            <RunBar
+              ink
+              session={DONE_SESSION}
+              head={{
+                id: 42,
+                name: "Add a design system page",
+                step: t.runs.step.implement,
+                startedAt: "Sep 14, 22:39",
+              }}
+              control={
+                <button
+                  type="button"
+                  className="nb-px-btn shrink-0 cursor-pointer px-1.5 py-0.5 text-[11.5px] font-[700] transition-colors"
+                >
+                  {t.runs.scene.collapse}
+                </button>
+              }
+            />
           </div>
         </div>
       </Section>
