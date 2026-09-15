@@ -176,6 +176,12 @@ complete outcome — never manufacture a lesson to satisfy a closing step.
 - **Honor an opt-out**: told not to record — "do not record", "no memory", a reject started
   as a discard, or the like — write no memory at all for that action, and finish the board
   action that was asked for.
+- **A conversation writes none**: a card chat, a discussion, a feedback conversation, and the
+  flows one of them starts in that session — a revise, a resolve, a create, a build — write no
+  memory, and say nothing about memory in the reply. One turn cannot see where an exchange is
+  going, so what a conversation settled is written down by the daily review of it instead
+  (`akb guide review-memory`), which reads the whole thing through. Setup is not a
+  conversation: the goal and the first decisions it seeds stand.
 - **Require lasting value**: `decisions.md`, `redesign.md`, `rejected.md` and the agent
   memories take a durable preference, constraint, decision, or lesson that would materially
   change a later planning call. Nothing else.

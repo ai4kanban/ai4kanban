@@ -87,8 +87,8 @@ export const FEEDBACK_GUIDE = 'feedback'
 
 /** The guide a card's own conversation follows (#735). A discussion decides whether to build
  *  something; a card's conversation is about a card that already exists, so what the user
- *  says in it is a change to that card, an answer to one of its questions, or feedback to
- *  remember — and each of those is acted on as the turn lands. */
+ *  says in it is a change to that card or an answer to one of its questions — each acted on
+ *  as the turn lands. It writes no memory (#796); the daily review does. */
 export const CARD_CHAT_GUIDE = 'card-chat'
 
 /** A conversation's file is named by what it is about, so the board's conversation, the

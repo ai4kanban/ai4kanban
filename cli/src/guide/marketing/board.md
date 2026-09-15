@@ -20,6 +20,10 @@ outcome — never manufacture a lesson to satisfy a closing step.
 
 - **Honor an opt-out**: told not to record, write no memory at all for that action, and
   finish what was asked for.
+- **A conversation writes none**: a conversation, and the flows it starts in that session,
+  write no memory and say nothing about memory in the reply. One turn cannot see where an
+  exchange is going, so what it settled is written down by the daily review of it instead
+  (`akb guide review-memory`), which reads the whole thing through.
 - **Require lasting value**: a durable preference, constraint, decision, or lesson that
   would materially change a later call. Nothing else.
 - **Skip housekeeping**: a duplicate, a routine status change, and a fact already captured

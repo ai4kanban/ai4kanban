@@ -17,11 +17,8 @@ they said — on the turn it lands, not when the conversation ends.
   duplicate check, the modules and the open questions this conversation cannot, and it never
   touches this card. Do not write the new card here. Tell them it went to the board, and carry
   on with the card in front of you.
-- **Write no memory**: not here, and not in the flows this conversation starts — a revise or a
-  resolve run from a chat changes the card and writes no memory file, whatever its own page
-  says. One turn cannot see where an exchange is going, so what a conversation settled is
-  written down by the daily review of it instead (`akb guide review-memory`), which reads the
-  whole thing through.
+- **Write no memory**: not here, and not in the flows this conversation starts, whatever their
+  own pages say — "What earns a note" in `akb guide board`.
 - **Respect the boundary**: told to hold off, leave the card alone. Where the intent is
   genuinely ambiguous, ask about that one point — never turn thinking aloud into a requirement.
 - **Say what actually happened**: end the reply with the changes you made, in a line or two.

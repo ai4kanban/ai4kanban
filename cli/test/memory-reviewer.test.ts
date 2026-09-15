@@ -287,13 +287,25 @@ describe('what the review is handed', () => {
   })
 })
 
-describe("a card's own conversation", () => {
-  it('no longer judges or writes memory, and says so for the flows it starts', () => {
-    const guide = findGuide('card-chat')!.text
-    assert.match(guide, /\*\*Write no memory\*\*/)
-    assert.match(guide, /akb guide review-memory/)
-    // And nothing is left of the bullet that used to ask for one.
-    assert.doesNotMatch(guide, /decisions\.md/)
-    assert.doesNotMatch(guide, /the memory you wrote/)
+// #796: the rule sits beside what tempts a run into writing, so a conversation flow added
+// later inherits it instead of waiting for its own sentence.
+describe('a conversation writes no memory', () => {
+  it('carries the rule where every flow already reads the bar', () => {
+    const board = findGuide('board')!.text
+    assert.match(board, /\*\*A conversation writes none\*\*/)
+    assert.match(board, /akb guide review-memory/)
+    assert.match(board, /Setup is not a\s+conversation/)
+  })
+
+  it('points each conversation at that rule instead of repeating it', () => {
+    for (const name of ['card-chat', 'discuss-idea']) {
+      const guide = findGuide(name)!.text
+      assert.match(guide, /\*\*Write no memory\*\*/)
+      assert.match(guide, /"What earns a note" in `akb guide board`/)
+    }
+    // And nothing is left of the bullets that used to ask for one.
+    const chat = findGuide('card-chat')!.text
+    assert.doesNotMatch(chat, /decisions\.md/)
+    assert.doesNotMatch(chat, /the memory you wrote/)
   })
 })
