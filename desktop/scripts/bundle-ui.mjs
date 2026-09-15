@@ -41,7 +41,35 @@ if (!fs.existsSync(path.join(from, "server.js"))) {
   process.exit(1);
 }
 
+// The tree has to be symlink-free, so the board UI must be installed with npm —
+// `kanban-ui/package-lock.json` is its lockfile. A pnpm install there leaves
+// Next's standalone output full of links into `node_modules/.pnpm`, and every
+// copy after this one rewrites them to absolute paths pointing back at this
+// checkout: `cpSync` does it even with `dereference`, and so does
+// electron-builder. The app that comes out has a server that only runs on the
+// build machine, and codesign refuses to seal it — "invalid destination for
+// symbolic link in bundle". Stop at the copy instead, where the fix is one line
+// to run.
+const link = findSymlink(from);
+if (link) {
+  console.error(`bundle-ui: the build left a symlink at ${path.relative(from, link)}`);
+  console.error(`bundle-ui: install the board UI with npm — \`cd ${path.relative(desktop, ui)} && npm ci\``);
+  process.exit(1);
+}
+
 fs.rmSync(to, { recursive: true, force: true });
 fs.mkdirSync(path.dirname(to), { recursive: true });
 fs.cpSync(from, to, { recursive: true });
 console.log(`bundle-ui: ${path.relative(desktop, to)} ready`);
+
+function findSymlink(dir) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) return full;
+    if (entry.isDirectory()) {
+      const hit = findSymlink(full);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
