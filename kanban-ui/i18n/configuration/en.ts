@@ -225,6 +225,7 @@ const en: ConfigurationCopy = {
         name: "Code reviewer",
         gloss: "Reviews the code a build delivered and fixes what it finds.",
         rule: 'Added to the end of every Review — "reject any dependency the card did not name".',
+        note: "Whether every build is reviewed is a delivery setting, under General → Delivery. Which workflows call this agent in is set under Workflows.",
       },
       gater: {
         name: "Auto-approve builds",
@@ -433,6 +434,12 @@ const en: ConfigurationCopy = {
       body: "A reviewed build waits on the card's Approval tab until you approve the exact tree it would land.",
       failedOn: "couldn't switch diff approval on",
       failedOff: "couldn't switch diff approval off",
+    },
+    review: {
+      title: "Review every build",
+      body: "The Code reviewer reads each finished build in a run of its own and fixes what it finds. Off, the build itself is the last agent to read the code.",
+      failedOn: "couldn't switch review on",
+      failedOff: "couldn't switch review off",
     },
     switchOn: (setting) => `${setting} — on`,
     switchOff: (setting) => `${setting} — off`,

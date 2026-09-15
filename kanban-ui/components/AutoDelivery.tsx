@@ -2,12 +2,11 @@
 
 // Delivery: how the board builds a delivery once one starts.
 //
-// Two switches, both repository-level, both saved with the board rather than with this
+// Three switches, all repository-level, all saved with the board rather than with this
 // machine, so a team shares one answer.
 //
-// The two answers that are an AGENT are not here. Whether a delivery starts by itself is
-// the Gater (#493); whether one is reviewed is the Reviewer (#509). Each is a tile on
-// Configuration → Agents, with its own switch, rule and connector.
+// Whether a delivery starts by itself is NOT here: that is the Gater (#493), a board agent
+// with its own switch, rule and connector on Configuration → Agents.
 //
 // **Automatic Git commits** (#303) is the side each Implement opens on. On — the default —
 // a build gets a branch and a worktree of its own, so several run at once without touching
@@ -20,35 +19,48 @@
 // default — a reviewed delivery lands by itself. On, every delivery that got a branch of
 // its own waits after review until you approve the exact tree it would land — however that
 // branch was chosen, so this stays settable with automatic commits off.
+//
+// **Review every build** (#416) decides whether the Code reviewer gets a run of its own on
+// each finished build. On — the default — because a review is what catches what a build
+// missed; off, the build itself is the last agent to read the code, and the repository's
+// checks, the open-question hold and diff approval still gate landing.
+//
+// It was the reviewer's own switch on Configuration → Agents until #783. An agent a workflow
+// stage assigns carries no switch of its own (#749), and this one never asked an agent
+// question: it asks what a DELIVERY does, beside the two above.
 
 import { useEffect, useState } from "react";
 import { FiAlertCircle } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import {
+  aiReviewAction,
   autoCommitAction,
   diffApprovalAction,
+  setAiReviewAction,
   setAutoCommitAction,
   setDiffApprovalAction,
 } from "@/app/actions";
 import { Group, Panel, Row, Switch } from "./settings";
 
-/** The **Delivery** group of Configuration → General. It reads both settings from the board
- *  when it draws. */
+/** The **Delivery** group of Configuration → General. It reads all three settings from the
+ *  board when it draws. */
 export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) {
   const c = useCopy().configuration.delivery;
   const caption = useCopy().configuration.general.delivery;
   const [commits, setCommits] = useState<boolean | null>(null);
   const [approval, setApproval] = useState<boolean | null>(null);
+  const [review, setReview] = useState<boolean | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
-    void Promise.all([autoCommitAction(), diffApprovalAction()]).then(
-      ([commit, approve]) => {
+    void Promise.all([autoCommitAction(), diffApprovalAction(), aiReviewAction()]).then(
+      ([commit, approve, reviewed]) => {
         if (!live) return;
         setCommits(commit.on);
         setApproval(approve.on);
-        setLoadError(commit.error ?? approve.error ?? null);
+        setReview(reviewed.on);
+        setLoadError(commit.error ?? approve.error ?? reviewed.error ?? null);
       },
     );
     return () => {
@@ -74,6 +86,15 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
     }
   };
 
+  const flipReview = async (next: boolean) => {
+    setReview(next);
+    const res = await setAiReviewAction(next);
+    if (!res.ok) {
+      setReview(!next);
+      onError?.(res.error || (next ? c.review.failedOn : c.review.failedOff));
+    }
+  };
+
   return (
     <Group title={caption}>
       <Panel>
@@ -94,6 +115,14 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
             onFlip={flipApproval}
           />
         </Row>
+
+        <Row label={c.review.title} hint={c.review.body}>
+          <Switch
+            on={review}
+            label={(review ? c.switchOn : c.switchOff)(c.review.title)}
+            onFlip={flipReview}
+          />
+        </Row>
       </Panel>
 
       {loadError && (
@@ -103,8 +132,7 @@ export function DeliveryGroup({ onError }: { onError?: (msg: string) => void }) 
         </p>
       )}
 
-      {/* Said once for both, under them — a change is a change to either switch. Also said on
-          the Reviewer's page (#509), whose switch is the third answer in this file. */}
+      {/* Said once for all three, under them — a change is a change to any of them. */}
       <p className="mt-2.5 text-[11.5px] leading-relaxed text-nb-ink-soft">{c.frozen}</p>
     </Group>
   );

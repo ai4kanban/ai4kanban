@@ -113,15 +113,9 @@ import {
 const COSTLY = "decider";
 
 // The one agent whose page carries the review action (#748). Named here for the same
-// reason as the two below: there is exactly one, and its page is the only place Review now
+// reason as the one above: there is exactly one, and its page is the only place Review now
 // belongs.
 const REVIEWER_OF_MEMORY = "memory-reviewer";
-
-// The one agent whose switch is a delivery setting (#509). Review is a paid run per
-// delivery, so this switch ships ON and flipping it answers deliveries started afterwards —
-// its page says so in the same words Configuration → General → Delivery uses for its own
-// switches. Named here for the same reason as the one above: there is exactly one.
-const PER_DELIVERY = "reviewer";
 
 export function AgentsPanel({
   info,
@@ -869,9 +863,6 @@ function Page({
   busy: (key: string) => boolean;
 }) {
   const c = useCopy().configuration.agents;
-  // Delivery's own sentence, read from there rather than copied: the reviewer's switch is
-  // one of the delivery settings, and there is one way to say what a flip answers.
-  const frozen = useCopy().configuration.delivery.frozen;
   const box = useRef<HTMLTextAreaElement>(null);
   const [asking, setAsking] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
@@ -1124,17 +1115,11 @@ function Page({
 
       {/* What this role has left to say — how the decider chooses (#447), what the triager
           costs beside the other two switches (#562), what the memory review rewrites rather
-          than repeats (#748). Its own copy, so a fourth role saying something here adds no
-          branch. */}
+          than repeats (#748), where turning review off is actually answered (#783). Its own
+          copy, so another role saying something here adds no branch. */}
       {role?.note && (
         <p className="max-w-[74ch] shrink-0 text-[11.5px] leading-relaxed text-nb-ink-soft">
           {role.note}
-        </p>
-      )}
-
-      {agent.name === PER_DELIVERY && (
-        <p className="max-w-[74ch] shrink-0 text-[11.5px] leading-relaxed text-nb-ink-soft">
-          {frozen}
         </p>
       )}
 

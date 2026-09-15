@@ -378,6 +378,12 @@ export interface BoardRules {
   diffApprovalRequired?(): boolean;
   setDiffApproval?(on: boolean): WriteResult;
 
+  // does a build get an AI review? (#416, #783) The third delivery setting, in the same
+  // file, on by default — so rules older than it read as on, which is what they did. It was
+  // the reviewer's own switch on Configuration → Agents until #783.
+  aiReviewEnabled?(): boolean;
+  setAiReview?(on: boolean): WriteResult;
+
   // how long a run may say nothing before the board ends it (#394), in minutes. `0` never
   // ends one, which is what rules older than the setting do.
   silenceMinutes?(): number;

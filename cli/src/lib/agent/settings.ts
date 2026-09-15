@@ -135,15 +135,28 @@ export function setDiffApproval(on: boolean): { ok: boolean; error?: string } {
 // the implementation is the last agent to read the code: the repository's required checks
 // still run, and the open-question hold and diff approval still gate landing.
 //
-// It is the reviewer's switch (#509), flipped on the reviewer's tile in Configuration →
-// Agents. The key is the one it was always written under, so a board that turned review off
-// keeps its answer.
+// It is a DELIVERY setting (#783), answered in Configuration → General → Delivery beside the
+// two above. It was the reviewer's own switch on Configuration → Agents until then, which
+// left one workflow agent carrying a second answer to a question its stage assignment
+// already asks (#749). The key is the one it was always written under, so a board that
+// turned review off keeps its answer.
 
 /** True unless somebody switched AI review off. */
-export const aiReviewEnabled = (): boolean => switchedOn('aiReview')
+export function aiReviewEnabled(): boolean {
+  try {
+    return readConfigRaw().aiReview !== false
+  } catch {
+    return true
+  }
+}
 
 /** Save it. Turning it back on drops the key rather than writing `true`. */
-export const setAiReview = (on: boolean): { ok: boolean; error?: string } => setSwitch('aiReview', on)
+export function setAiReview(on: boolean): { ok: boolean; error?: string } {
+  return writeConfig((cfg) => {
+    if (on) delete cfg.aiReview
+    else cfg.aiReview = false
+  })
+}
 
 // ---- auto-delivery: does a ready card start its own build? (#440) ----------
 //
@@ -232,30 +245,30 @@ export const memoryReviewerOn = (): boolean => switchedOn('memoryReviewer')
 /** Save it. Turning it back off drops the key rather than writing `false`. */
 export const setAutoTriage = (on: boolean): { ok: boolean; error?: string } => setSwitch('autoTriage', on)
 
-// ---- a switchable role's own key (#493, #509, #534, #748) ------------------
+// ---- a switchable role's own key (#493, #534, #748, #783) ------------------
 //
-// Six of the switches above are roles that can be switched off: the gater runs the ready
-// gate, the decider answers for the user, the reviewer judges what was built, the proposer
-// reflects on what was finished, the triager sorts what is waiting, the memory reviewer
-// reads the conversations. The three that predate the split keep the key they have always
-// had, so a board that already answered any of them keeps its answer, and the roster reads
-// a role through its own key rather than asking one role's question of them all.
+// Five of the switches above are roles that can be switched off: the gater runs the ready
+// gate, the decider answers for the user, the proposer reflects on what was finished, the
+// triager sorts what is waiting, the memory reviewer reads the conversations. None of them
+// belongs to a workflow — a workflow agent's stage assignment is its only answer (#749,
+// #783). The ones that predate the split keep the key they have always had, so a board that
+// already answered any of them keeps its answer, and the roster reads a role through its own
+// key rather than asking one role's question of them all.
 //
 // They do not all ship the same way round. The four that spend a run the user never asked
-// for are off until asked for; the reviewer and the memory reviewer ship on. Either way the
-// file records only what somebody changed.
+// for are off until asked for; the memory reviewer ships on. Either way the file records
+// only what somebody changed.
 
 /** The keys a switchable role is saved under (./roles.ts). */
 export type RoleSwitch =
   | 'readyGate'
   | 'decider'
-  | 'aiReview'
   | 'proposer'
   | 'autoTriage'
   | 'memoryReviewer'
 
 /** The keys whose role ships ON, so only switching it OFF is written down. */
-const ON_BY_DEFAULT = new Set<RoleSwitch>(['aiReview', 'memoryReviewer'])
+const ON_BY_DEFAULT = new Set<RoleSwitch>(['memoryReviewer'])
 
 /** Whether the role behind this key is on. A file that won't parse reads as the default: a
  *  setting nobody can read is not a reason to change what the board does. */

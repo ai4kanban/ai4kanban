@@ -323,6 +323,7 @@ const zh: ConfigurationCopy = {
         name: "代码评审",
         gloss: "评审开发交付的代码改动，并修复发现的问题。",
         rule: "会附加到每一次评审的末尾——例如「卡片没写到的依赖一律打回」。",
+        note: "是否每次构建都评审，属于交付设置，在「通用 → 交付」里。哪些工作流会调用这个 Agent，在「工作流」里设置。",
       },
       gater: {
         name: "自动批准执行",
@@ -529,6 +530,12 @@ const zh: ConfigurationCopy = {
       body: "评审通过的构建会停在卡片的「批准」页，直到你批准它将要合入的那份工作区。",
       failedOn: "未能开启差异批准",
       failedOff: "未能关闭差异批准",
+    },
+    review: {
+      title: "每次构建都要评审",
+      body: "「代码评审」会单独跑一次，读完成的构建并修复发现的问题。关闭后，构建本身就是最后一个读这份代码的 Agent。",
+      failedOn: "未能开启交付评审",
+      failedOff: "未能关闭交付评审",
     },
     switchOn: (setting) => `${setting}——已开启`,
     switchOff: (setting) => `${setting}——已关闭`,

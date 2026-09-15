@@ -18,7 +18,7 @@ import { agentForFlow } from '../src/lib/agent/stages.ts'
 import { migrateFlowRules, readRule, ruleFor } from '../src/lib/agent/rules.ts'
 import { setSpecAgentEnabled, specAgentProblems } from '../src/lib/agents/index.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
-import { aiReviewEnabled, deciderOn, readyGateOn } from '../src/lib/agent/settings.ts'
+import { aiReviewEnabled, deciderOn, readyGateOn, setAiReview } from '../src/lib/agent/settings.ts'
 import { RULES, setBoardRoot, UI_CONFIG } from '../src/lib/paths.ts'
 import { move, refuses } from './helpers/board.ts'
 
@@ -211,12 +211,12 @@ describe('the roles', () => {
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
     assert.deepEqual(agentRoster()[15]!.flows, [])
-    // Six roles can be switched off, and each reads a key of its own (#447, #493, #509,
-    // #534, #562, #748).
+    // Five roles can be switched off, and each reads a key of its own (#447, #493, #534,
+    // #562, #748). None of them belongs to a workflow: an agent a stage assigns has no
+    // switch, the reviewer included (#749, #783).
     assert.deepEqual(
       agentRoster().filter((a) => a.kind === 'role' && a.switchable).map((a) => [a.name, a.setting]),
       [
-        ['reviewer', 'aiReview'],
         ['memory-reviewer', 'memoryReviewer'],
         ['gater', 'readyGate'],
         ['decider', 'decider'],
@@ -224,6 +224,8 @@ describe('the roles', () => {
         ['triage', 'autoTriage'],
       ],
     )
+    // And no agent carrying a stage carries a switch.
+    assert.deepEqual(agentRoster().filter((a) => a.stage && a.switchable).map((a) => a.name), [])
     // And three of them ask before their switch moves — the direction included, and a
     // property of the role, so no screen keeps a list of names (#562, #748).
     assert.deepEqual(
@@ -237,9 +239,10 @@ describe('the roles', () => {
   })
 })
 
-// The gater, the decider (#493) and the reviewer (#509) — three agents, three switches,
-// three keys. The keys are the ones the board has always written, so a project that answered
-// any of them before the split finds the same agent as it left it.
+// The gater and the decider (#493), the proposer (#534), the triager (#562) and the memory
+// reviewer (#748) — five board agents, five switches, five keys. The keys are the ones the
+// board has always written, so a project that answered any of them before the split finds
+// the same agent as it left it.
 describe('the roles that can be switched off', () => {
   const on = async (name: string): Promise<boolean> =>
     (await readAgents()).agents.find((a) => a.name === name)!.enabled
@@ -249,9 +252,14 @@ describe('the roles that can be switched off', () => {
     assert.equal(await on('gater'), false)
     assert.equal(await on('decider'), false)
     assert.equal(await on('proposer'), false)
-    // The one switchable role that ships ON: review is declined, not asked for.
-    assert.equal(await on('reviewer'), true)
-    for (const always of ['discussion-helper', 'planner', 'builder']) assert.equal(await on(always), true, always)
+    // The one switchable role that ships ON: a conversation is remembered unless you say
+    // otherwise.
+    assert.equal(await on('memory-reviewer'), true)
+    // And a workflow agent is always on here: its stage assignment is the whole answer
+    // (#749, #783).
+    for (const always of ['discussion-helper', 'planner', 'builder', 'reviewer']) {
+      assert.equal(await on(always), true, always)
+    }
   })
 
   it('reads the key the board already wrote, so a switch survives the split', async () => {
@@ -264,10 +272,10 @@ describe('the roles that can be switched off', () => {
     assert.equal(await on('gater'), false)
     assert.equal(await on('decider'), true)
 
-    // And the reviewer the other way round: its key is only ever written to turn it off.
-    fs.writeFileSync(UI_CONFIG, JSON.stringify({ aiReview: false }))
-    assert.equal(await on('reviewer'), false)
-    assert.equal(aiReviewEnabled(), false)
+    // And the memory reviewer the other way round: its key is only ever written to turn it
+    // off.
+    fs.writeFileSync(UI_CONFIG, JSON.stringify({ memoryReviewer: false }))
+    assert.equal(await on('memory-reviewer'), false)
   })
 
   it('switches one without touching the other, each under its own key', async () => {
@@ -282,18 +290,22 @@ describe('the roles that can be switched off', () => {
     assert.equal(deciderOn(), true)
   })
 
-  // The reviewer's key is the one **AI review** was always written under, and it keeps that
-  // polarity (#509): switching it off writes `false`, switching it back on drops the key.
-  it("writes the reviewer's key only when review is off", async () => {
+  // The reviewer has no switch of its own (#783). Asking for one says so, and says where
+  // whether a build is reviewed at all is actually answered — a delivery setting, under
+  // General → Delivery, which `aiReview` still reads.
+  it('refuses to switch the reviewer, and points at the delivery setting', async () => {
     solution('product')
-    assert.equal(setSpecAgentEnabled('reviewer', false).ok, true)
-    assert.equal(aiReviewEnabled(), false)
-    assert.equal(await on('reviewer'), false)
-    assert.equal(JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')).aiReview, false)
+    const refused = setSpecAgentEnabled('reviewer', false)
+    assert.equal(refused.ok, false)
+    assert.match(refused.error!, /has no switch/)
+    assert.match(refused.error!, /Configuration → General → Delivery/)
+    assert.equal(fs.existsSync(UI_CONFIG), false, 'a refusal writes nothing')
 
-    assert.equal(setSpecAgentEnabled('reviewer', true).ok, true)
+    // And the setting itself is untouched by any of it.
     assert.equal(aiReviewEnabled(), true)
-    assert.equal('aiReview' in JSON.parse(fs.readFileSync(UI_CONFIG, 'utf8')), false)
+    setAiReview(false)
+    assert.equal(aiReviewEnabled(), false)
+    assert.equal(await on('reviewer'), true)
   })
 
   it('refuses to switch off a role the board runs on', async () => {

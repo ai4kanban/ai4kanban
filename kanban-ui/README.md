@@ -887,7 +887,7 @@ is **manual commit mode**, below.
   three is why. A detached HEAD builds this way rather than being refused — the commit you then make
   is reachable from `HEAD` alone.
 - **Only the Implement button carries the ticks.** **Schedule** starts a build later, and it reads
-  **Automatic Git commits** and the **Code reviewer**'s switch as they stand then; so does
+  **Automatic Git commits** and **Review every build** as they stand then; so does
   `akb card implement` in a terminal.
 
 - **Several deliveries at once.** Each one has its own full checkout, so two cards that touch the
@@ -1011,9 +1011,9 @@ prints the review flow.
 
 #### Turning AI review off
 
-Review is a separate paid run on every delivery, so it is the **Code reviewer**'s own switch on
-Configuration → Agents — the one place it is turned off, and it answers for every build off a
-planned card. There is no per-build box and no flag: **Implement**, **Schedule** and
+Review is a separate paid run on every delivery, so it is **Review every build** under
+Configuration → General → Delivery — the one place it is turned off, and it answers for every
+build off a planned card. There is no per-build box and no flag: **Implement**, **Schedule** and
 `akb card implement` all read the setting as it stands then. **Build now** is the one build it
 does not answer for — nothing planned that card, so there is nothing to review it against, and
 it never is.
@@ -1224,11 +1224,10 @@ there is nothing to turn on.
 
 ### General → Delivery
 
-Two switches. Both are repository-level answers, saved in `ui.config.json` and shared by everyone
+Three switches. All are repository-level answers, saved in `ui.config.json` and shared by everyone
 on the board. A change applies to deliveries started afterwards; one already in flight keeps what it
-started with. Both decide how a delivery is built. The two answers that are an agent are not here:
-whether a delivery starts at all is the **Gater** (#493) and whether it is reviewed is the
-**Code reviewer** (#509), each a tile under **Configuration → Agents**.
+started with. All three decide how a delivery is built. Whether a delivery starts **at all** is not
+here: that is the **Gater** (#493), a tile under **Configuration → Agents**.
 
 **Automatic Git commits**, on by default. It is the side each Implement opens on, not the only
 way to change it: the dialog's **Build this on a branch of its own** turns one build round and
@@ -1246,6 +1245,16 @@ its own, however that was chosen, so it stays settable with automatic Git commit
   is what auto-delivery is for.
 - **On** — nothing lands unread: every delivery waits after review until you approve the exact tree
   it would land. See **Approving a delivery** below.
+
+**Review every build**, on by default. It says whether the **Code reviewer** gets a run of its own
+on each finished build. It was that agent's own switch under **Configuration → Agents** until #783;
+an agent a workflow stage assigns carries no switch of its own (#749), and this one asks what a
+delivery does rather than what an agent is.
+
+- **On** — every delivery gets a review run after its implementation, and what review passed is
+  what lands.
+- **Off** — the implementation is the last agent to read the code. See **A delivery with no AI
+  review** above for what still gates it.
 
 ### Runtime — the coding tools this board can run
 
@@ -1548,11 +1557,11 @@ missing key means on, which is the default.
 `requireDiffApproval` is **Approve diffs before landing** above. The other way round:
 only written when you turn it **on**, so a missing key means off, which is the default.
 
-`aiReview` is the **Code reviewer**'s switch on **Configuration → Agents**. Like `autoCommit`, only
-written when you turn it off — a missing key means on, and so does a file that will not parse: an
-unreadable setting must not be the reason something landed unreviewed. The key keeps the name it
-was written under while it was a row of General → Delivery (#509), so a board that had review off
-keeps it off.
+`aiReview` is **Review every build** above. Like `autoCommit`, only written when you turn it off —
+a missing key means on, and so does a file that will not parse: an unreadable setting must not be
+the reason something landed unreviewed. It was the **Code reviewer**'s own switch on
+Configuration → Agents between #509 and #783; no agent a workflow stage assigns carries a switch
+(#749), and the key it kept all along is the one General → Delivery reads.
 
 `runtimes` is the board's list, and one **runtime** is the whole answer to what a run runs as: the
 coding tool, the provider, the endpoint, the key, the model id, the reasoning level and any extra

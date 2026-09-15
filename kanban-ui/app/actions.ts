@@ -153,6 +153,7 @@ import {
   type NotificationCenter,
 } from "@/lib/notifications";
 import {
+  aiReviewEnabled,
   autoCommitAllowed,
   canSweep,
   cardSweep,
@@ -160,6 +161,7 @@ import {
   memoryPrune,
   memoryReview,
   saveCardSweep,
+  setAiReview,
   setAutoCommit,
   setDiffApproval,
   setHarness,
@@ -1332,6 +1334,21 @@ export async function diffApprovalAction(): Promise<{ on: boolean; error?: strin
 export async function setDiffApprovalAction(on: boolean): Promise<WriteResult> {
   if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
   return setDiffApproval(on);
+}
+
+// **Review every build** (#416, #783) — the third delivery setting, read and saved beside
+// the two above. On by default, so nothing to read reads as on.
+export async function aiReviewAction(): Promise<{ on: boolean; error?: string }> {
+  try {
+    return { on: await aiReviewEnabled() };
+  } catch (e) {
+    return { on: true, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function setAiReviewAction(on: boolean): Promise<WriteResult> {
+  if (typeof on !== "boolean") return { ok: false, error: "that setting is on or off" };
+  return setAiReview(on);
 }
 
 // **End a silent run after** (#394) — how many minutes a run may say nothing before the

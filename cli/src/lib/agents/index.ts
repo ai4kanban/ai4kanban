@@ -10,7 +10,7 @@
 
 import { agentRun } from '../agent/resolve'
 import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue, setSwitch } from '../agent/settings'
-import { roleNamed, stageContractProblems } from '../agent/roles'
+import { REVIEW_ROLE, roleNamed, stageContractProblems } from '../agent/roles'
 import type { SpecAgentEntry } from '../agent/settings'
 import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
 import { readLanguage } from '../machine/settings'
@@ -350,12 +350,17 @@ export function readSpecAgents(): SpecAgentView[] {
 export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; error?: string } {
   // A switchable ROLE keeps its answer in the board's own settings rather than in
   // `specAgents` (#447) — it is not a file this project added, so there is no entry to write.
-  // Each has a key of its own (#493, #509), so the gater, the decider and the reviewer are
+  // Each has a key of its own (#493, #534), so the gater, the decider and the proposer are
   // switched separately.
   const role = roleNamed(name)
   if (role) {
-    if (!role.switch) return { ok: false, error: `\`${name}\` is one of the roles the board runs on, so it can't be switched off.` }
-    return setSwitch(role.switch, on)
+    if (role.switch) return setSwitch(role.switch, on)
+    // The reviewer had one until #783. It is the one role whose answer MOVED rather than
+    // never existing, so the refusal says where it went instead of only that it is gone.
+    if (role.name === REVIEW_ROLE) {
+      return { ok: false, error: `\`${name}\` has no switch — whether a build is reviewed at all is ${AI_REVIEW_HOME}.` }
+    }
+    return { ok: false, error: `\`${name}\` is one of the roles the board runs on, so it can't be switched off.` }
   }
   const agent = findSpecAgent(name)
   if (!agent) return { ok: false, error: notAnAgent(name) }
@@ -419,6 +424,10 @@ export const SPEC_SWITCH_HOME = 'the board UI, under Configuration → Board age
  *  agent runs (#749). Named the same way everywhere, like the switch above it. */
 export const SPEC_ASSIGN_HOME =
   'a workflow assigns it, in the board UI under Configuration → Workflows'
+
+/** Where whether a build is reviewed at all is answered (#783) — a delivery setting, beside
+ *  automatic commits and diff approval, not the reviewer's own page. */
+export const AI_REVIEW_HOME = 'answered in the board UI under Configuration → General → Delivery'
 
 /** Where a project puts an agent of its own. */
 export const SPEC_AGENT_HOME = 'docs/kanban/agents/<name>/AGENT.md'

@@ -38,13 +38,14 @@ export interface AgentRole {
   /** Its name — the rule file it carries, and the word `akb raw rule` takes. */
   name: string
   /** The key in `ui.config.json` this role is switched on under, when it can be switched
-   *  off at all (#447, #493, #509, #534, #562, #748). Most cannot: a board without a planner
-   *  plans nothing. Six can. Four spend a run the user never asked for — the gater judges a
-   *  card the way you would, the decider answers what you would have answered, the proposer
-   *  reflects on what you just finished, the triager judges what just arrived — so each is
-   *  off until you ask for it. Two ship on: the reviewer, because judging a build is a paid
-   *  run a board may decline, and the memory reviewer, because nothing else writes down what
-   *  a conversation settled. Each reads its own key. */
+   *  off at all (#447, #493, #534, #562, #748). Most cannot: a board without a planner plans
+   *  nothing, and no WORKFLOW agent has one at all (#749, #783) — a stage assigns it or does
+   *  not. Five can, and none of them belongs to a workflow. Four spend a run the user never
+   *  asked for — the gater judges a card the way you would, the decider answers what you
+   *  would have answered, the proposer reflects on what you just finished, the triager judges
+   *  what just arrived — so each is off until you ask for it. One ships on: the memory
+   *  reviewer, because nothing else writes down what a conversation settled. Each reads its
+   *  own key. */
   switch?: RoleSwitch
   /** The direction this role's switch asks in, when it asks at all (#447, #562, #748). A
    *  property of the role rather than a name a screen keeps. `on` is the usual way round —
@@ -92,15 +93,17 @@ const DECIDER: AgentRole = {
   confirm: 'on',
 }
 
-// The one role that runs a flow and can still be switched off (#509). Review is a paid run
-// per delivery, so a board may decline it — under the key **AI review** was always written
-// under, which is why this switch is the only one that ships ON.
+// The role that leads the review stage. It carried a switch of its own until #783: review is
+// a paid run per delivery and a board may decline it, but the answer is a DELIVERY setting —
+// it is frozen onto each delivery beside automatic commits and diff approval, and it is
+// answered where those two are, in Configuration → General → Delivery. A workflow agent
+// carrying a second switch on its own page was the last place role configuration and stage
+// assignment were mixed (#749).
 const REVIEWER: AgentRole = {
   name: 'reviewer',
   stage: 'review',
   gloss: 'checks the code a build delivered',
   memory: [],
-  switch: 'aiReview',
 }
 
 // The role every conversation is held by (#502) — `akb chat`, the chat rail and Discuss. It
@@ -288,6 +291,10 @@ export const DISCUSSION_ROLE = DISCUSSION_HELPER.name
  *  what they meant (#628). The runtime stays the discussion's — this is the same
  *  conversation, answered by a different agent's rule and brief. */
 export const FEEDBACK_ROLE = FEEDBACK.name
+
+/** The role that leads the review stage. Named here so a refusal can say where whether a
+ *  build is reviewed is actually answered (#783). */
+export const REVIEW_ROLE = REVIEWER.name
 
 /** Every role name the board ships, on either solution. Reserved: a rule is keyed by the
  *  agent's name, so a project agent taking one would share that role's rule file

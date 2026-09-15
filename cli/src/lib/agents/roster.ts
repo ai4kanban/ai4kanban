@@ -76,11 +76,12 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       ...(entry.stage ? { stage: entry.stage } : {}),
       builtIn: entry.builtIn,
       // A role runs the board's own flows, so there is normally nothing to switch off: a
-      // board without a planner plans nothing. The gater, the decider, the reviewer, the
-      // proposer, the triager and the memory reviewer are the exceptions (#447, #493, #509,
-      // #534, #562, #748) — each reads its own key in the board's settings rather than a
-      // `specAgents` entry, and its own default with it. A workflow agent has no switch at
-      // all: its stage assignment is the answer (#749).
+      // board without a planner plans nothing. The gater, the decider, the proposer, the
+      // triager and the memory reviewer are the exceptions (#447, #493, #534, #562, #748) —
+      // each reads its own key in the board's settings rather than a `specAgents` entry, and
+      // its own default with it. No WORKFLOW agent has a switch, the reviewer included
+      // (#749, #783): its stage assignment is the answer, and whether a delivery is reviewed
+      // is a delivery setting.
       switchable: entry.switchable,
       confirm: entry.confirm,
       // An entry with no switch is on, whatever a key left over from an earlier release
