@@ -99,7 +99,6 @@ export type ChromeCopy = {
   command: {
     install: string;
     repair: string;
-    writeAgain: string;
     writing: string;
     /** Shown when the install failed and the app said nothing about why. */
     failed: string;
@@ -107,17 +106,6 @@ export type ChromeCopy = {
     donePath: string;
     /** The same, where the command is a symlink the app can also be launched by. */
     doneSymlink: string;
-    state: {
-      installed: (path: string) => string;
-      dangling: (path: string, points: string) => string;
-      /** Something else holds the path. `holder` names it; `holderUnknown` stands
-       *  in when the app couldn't tell. */
-      foreign: (path: string, holder: string) => string;
-      /** The same, where npm's own global `akb` would land at that very path. */
-      foreignNpm: (path: string, holder: string) => string;
-      holderUnknown: string;
-      absent: string;
-    };
   };
   /** The phone shell (#357): the tab bar every screen there carries, and the More screen
    *  the rest of the top row moved into. None of it is drawn at window width. */

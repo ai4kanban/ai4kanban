@@ -71,22 +71,11 @@ const en: ChromeCopy = {
   command: {
     install: "Install",
     repair: "Repair",
-    writeAgain: "Write again",
     writing: "Writing…",
     failed: "the command was not installed",
     donePath: "Done. Open a new terminal and run `akb version`.",
     doneSymlink:
       "Done. Run `akb version` in a terminal — typing `akb` on its own opens this app on the project you are standing in.",
-    state: {
-      installed: (path) => `Installed at ${path}.`,
-      dangling: (path, points) =>
-        `Installed at ${path}, but it points at an app that is no longer there — ${points}.`,
-      foreign: (path, holder) => `${path} is held by ${holder} — this is yours to sort out.`,
-      foreignNpm: (path, holder) =>
-        `${path} is held by ${holder} — an \`akb\` installed from npm lands at that same path, so this is yours to sort out.`,
-      holderUnknown: "something the app didn't put there",
-      absent: "Not installed — your terminal has no `akb` from this app.",
-    },
   },
   phone: {
     tabs: { nav: "Ways into the board", board: "Board", find: "Find", memory: "Memory", more: "More" },

@@ -31,7 +31,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { FaBullhorn, FaCode } from "react-icons/fa";
 import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
-import type { ChromeCopy } from "@/i18n/chrome/types";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import { getBoardsAction } from "@/app/actions";
@@ -1074,96 +1073,86 @@ export function DiscardNewBoard({ shape = "button" }: { shape?: "button" | "link
  *  somewhere new every run and there is no lasting path to point at. Both keep the
  *  `npm install -g` line the group already gives.
  *
- *  `onFixable` says whether a press would put a working `akb` on the PATH, so the group can
- *  drop the line to type when there is a button instead. `onNote` hands out what a press
- *  found, because the button sits in a row too narrow to say it. */
+ *  The state is the group's, read once for the whole row — `commandRowState` below is what
+ *  both this button and the words beside it are decided from, so they can never disagree.
+ *  `onNote` hands out what a press found, because the button sits in a row too narrow to
+ *  say it. */
 export function InstallCommand({
-  onInstalled,
-  onFixable,
+  install: state,
+  onDone,
   onNote,
 }: {
-  onInstalled?: () => void;
-  onFixable?: (fixable: boolean) => void;
+  install: CommandInstall | null;
+  /** How the machine stands after a press, and whether it worked — the parent redraws the
+   *  row from the first and re-reads the rest of the group on the second. */
+  onDone?: (state: CommandInstall, ok: boolean) => void;
   onNote?: (note: { ok: boolean; text: string } | null) => void;
 }) {
   const c = useCopy().chrome.command;
-  const [state, setState] = useState<CommandInstall | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(() => {
-    const app = bridge();
-    if (!app) return;
-    app.command().then(setState).catch(() => {});
-  }, []);
-
-  useEffect(() => load(), [load]);
-
-  // What the button can and can't put right, told to whoever draws the paragraph under it.
-  // An `akb` that came from somewhere else stays that machine's business: writing our path
-  // wouldn't change which one a terminal runs.
-  const fixable =
-    !!state &&
-    state.kind !== "none" &&
-    !state.blocked &&
-    !state.otherFirst &&
-    (state.state === "absent" || state.state === "dangling");
-  useEffect(() => onFixable?.(fixable), [fixable, onFixable]);
-
-  if (!fixable) return null;
+  // The two states a press can put right. Anything else — blocked, or another `akb` in
+  // front — stays that machine's business: writing our path wouldn't change which one a
+  // terminal runs.
+  const row = commandRowState(state);
+  if (!state || (row !== "absent" && row !== "dangling")) return null;
 
   // Plain words on the button, like its neighbour that adds the skill — the backticks the
   // card spells it with are markdown, and a button is not prose.
-  const label =
-    state.state === "dangling" ? c.repair : state.state === "installed" ? c.writeAgain : c.install;
+  const label = row === "dangling" ? c.repair : c.install;
 
-  const install = () => {
+  const press = () => {
     if (busy) return;
     setBusy(true);
     onNote?.(null);
     bridge()
       ?.installCommand()
       .then((res) => {
-        setState(res.state);
-        if (res.ok) {
-          onNote?.({ ok: true, text: res.state.kind === "path" ? c.donePath : c.doneSymlink });
-          // The PATH has changed under the rest of the group: the notice about a missing or
-          // old `akb` is read from the command itself, and it has to be asked again.
-          onInstalled?.();
-        } else {
-          onNote?.({ ok: false, text: res.error ?? c.failed });
-        }
+        onDone?.(res.state, res.ok);
+        onNote?.(
+          res.ok
+            ? { ok: true, text: res.state.kind === "path" ? c.donePath : c.doneSymlink }
+            : { ok: false, text: res.error ?? c.failed },
+        );
       })
       .catch((e) => onNote?.({ ok: false, text: e instanceof Error ? e.message : String(e) }))
       .finally(() => setBusy(false));
   };
 
   return (
-    // The button's own words are the whole message in the row; what this machine actually
-    // has — the path, and the app a dangling link points at — is a hover away rather than a
-    // paragraph nobody reads twice.
-    <Button size="sm" disabled={busy} title={commandHeadline(state, c.state)} onClick={install}>
+    // The button's own word is the whole message in the row: the line under the rows
+    // already says what is wrong, and a tooltip repeating it is a sentence nobody reads.
+    <Button size="sm" disabled={busy} onClick={press}>
       {busy ? c.writing : <><FiTerminal className="text-[13px]" aria-hidden />{label}</>}
     </Button>
   );
 }
 
-/** Which of the four this machine is, in one line. `blocked` is the app's own words,
- *  which stay as they come. */
-function commandHeadline(state: CommandInstall, c: ChromeCopy["command"]["state"]): string {
-  if (state.blocked) return state.blocked;
-  const holder = state.holder ?? c.holderUnknown;
-  switch (state.state) {
-    case "installed":
-      return c.installed(state.writes);
-    case "dangling":
-      return c.dangling(state.writes, state.points ?? "");
-    case "foreign":
-      // The npm note only fits the system path — npm's global bin is /usr/local/bin, not
-      // a bin folder of the user's own.
-      return state.writes === "/usr/local/bin/akb"
-        ? c.foreignNpm(state.writes, holder)
-        : c.foreign(state.writes, holder);
-    default:
-      return c.absent;
+/** The answers the `akb` row gives inside the desktop app. Null where the app has no say —
+ *  a browser tab, or Linux, whose AppImage has no lasting path to point at; there the line
+ *  to type is still the only answer. */
+export type CommandRowState = "ready" | "absent" | "dangling" | "blocked" | "otherFirst";
+
+/** Which of them this machine is. Order matters: what a terminal actually runs is read
+ *  first, because an `akb` ahead of ours wins however good our own link is — and a
+ *  `foreign` path is that same thing seen from our end, an `akb` holding the very path we
+ *  would write. */
+export function commandRowState(state: CommandInstall | null | undefined): CommandRowState | null {
+  if (!state || state.kind === "none") return null;
+  if (state.otherFirst || state.state === "foreign") return "otherFirst";
+  if (state.blocked) return "blocked";
+  if (state.state === "dangling") return "dangling";
+  if (state.state === "absent") return "absent";
+  return "ready";
+}
+
+/** The `akb` this machine has, or null outside the app. */
+export async function readCommandInstall(): Promise<CommandInstall | null> {
+  const app = bridge();
+  if (!app) return null;
+  try {
+    return await app.command();
+  } catch {
+    return null;
   }
 }

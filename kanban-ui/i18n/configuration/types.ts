@@ -428,6 +428,26 @@ export type ConfigurationCopy = {
       behind: (version: string) => string;
       ready: (version: string) => string;
     };
+    /** The same row inside the desktop app, which carries its own `akb` and links it up
+     *  on first launch (#780). The app has a button for everything it can put right, so
+     *  no state here names npm: a second, separately-updating copy is the one thing a
+     *  desktop user must not be sent to install. */
+    app: {
+      status: {
+        /** The quiet answer: the app's own copy is what a terminal runs. */
+        ready: string;
+        notReady: string;
+        needsRepair: string;
+        otherFirst: string;
+      };
+      /** The line under the rows, for the states that need one. `blocked` has none —
+       *  the app names its own reason, and that is what is shown. */
+      note: {
+        absent: string;
+        dangling: string;
+        otherFirst: (path: string) => string;
+      };
+    };
     button: { add: string; addRest: string; update: string };
     addFailed: string;
     details: string;

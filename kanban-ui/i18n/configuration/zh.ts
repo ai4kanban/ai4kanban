@@ -563,6 +563,20 @@ const zh: ConfigurationCopy = {
       behind: (version) => `${version} · 有可用升级`,
       ready: (version) => `就绪 · ${version}`,
     },
+    app: {
+      status: {
+        ready: "就绪 · 随应用更新",
+        notReady: "未就绪",
+        needsRepair: "需要修复",
+        otherFirst: "另一份排在前面",
+      },
+      note: {
+        absent: "你的终端里还没有 `akb`。装好之后，编码 Agent 才能直接驱动这个看板。",
+        dangling: "应用移动过位置，终端里的 `akb` 已经指不到它了。修复后即可继续使用。",
+        otherFirst: (path) =>
+          `你的终端会先用到另一份 akb：\`${path}\`。要改用应用自带的这一份，需要你自己处理那一份。`,
+      },
+    },
     button: { add: "添加 skill", addRest: "补齐其余的", update: "升级 skill" },
     addFailed: "skill 添加失败",
     details: "技术细节",

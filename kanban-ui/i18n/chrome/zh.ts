@@ -71,21 +71,11 @@ const zh: ChromeCopy = {
   command: {
     install: "安装",
     repair: "修复",
-    writeAgain: "重新写入",
     writing: "写入中…",
     failed: "命令未能安装",
     donePath: "完成。新开一个终端，运行 `akb version`。",
     doneSymlink:
       "完成。在终端里运行 `akb version`——单独输入 `akb` 会在你当前所在的项目上打开这个应用。",
-    state: {
-      installed: (path) => `已安装在 ${path}。`,
-      dangling: (path, points) => `已安装在 ${path}，但它指向的应用已不存在——${points}。`,
-      foreign: (path, holder) => `${path} 被${holder}占用——这需要你自己处理。`,
-      foreignNpm: (path, holder) =>
-        `${path} 被${holder}占用——从 npm 安装的 \`akb\` 也会落在同一个路径，这需要你自己处理。`,
-      holderUnknown: "某个不是本应用写入的东西",
-      absent: "未安装——你的终端里没有本应用提供的 `akb`。",
-    },
   },
   phone: {
     tabs: { nav: "看板导航", board: "看板", find: "查找", memory: "记忆", more: "更多" },

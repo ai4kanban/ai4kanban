@@ -467,6 +467,21 @@ const en: ConfigurationCopy = {
       behind: (version) => `${version} · update available`,
       ready: (version) => `Ready · ${version}`,
     },
+    app: {
+      status: {
+        ready: "Ready · updates with the app",
+        notReady: "Not ready",
+        needsRepair: "Needs repair",
+        otherFirst: "Another one comes first",
+      },
+      note: {
+        absent: "Your terminal has no `akb` yet. Install it so your coding agent can drive this board.",
+        dangling:
+          "The app has moved, so the `akb` in your terminal no longer reaches it. Repair it to carry on.",
+        otherFirst: (path) =>
+          `Your terminal reaches another akb first: \`${path}\`. To use the one this app carries, that copy is yours to sort out.`,
+      },
+    },
     button: { add: "Add the skill", addRest: "Add the rest", update: "Update the skill" },
     addFailed: "couldn't add the skill",
     details: "Technical details",

@@ -20,6 +20,13 @@
 // PATH is behind the copy this board runs, or missing, it hands over the line that fixes
 // that and never runs it: a global install is the user's to type, the same way `akb update`
 // names the line rather than replacing itself.
+//
+// The desktop app is the exception (#780). It carries its own `akb` and links it up on
+// first launch, so the row there answers out of the app's own state and has a button for
+// everything it can put right. The npm line never appears in it: typing it would put a
+// second command on the machine, updating apart from the app from then on. A browser tab
+// and Linux — where an AppImage has no lasting path to link to — keep that line as their
+// only answer.
 
 import { useCallback, useEffect, useState } from "react";
 import { FiAlertCircle, FiCheck, FiChevronDown, FiCopy, FiRefreshCw } from "react-icons/fi";
@@ -29,7 +36,7 @@ import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
 import type { CommandState, SkillFolder, SkillInstall, SkillState } from "@/lib/types";
 import { Button } from "./button";
-import { InstallCommand } from "./desktop";
+import { type CommandInstall, commandRowState, type CommandRowState, InstallCommand, readCommandInstall } from "./desktop";
 import { Group, Note, Panel, QUIET_BTN, Row, Status } from "./settings";
 
 /** The **Setup** group of Configuration → General. It reads its own state when it first
@@ -46,20 +53,20 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
   // What the last press wrote, folder by folder. Cleared by nothing: it is the receipt for
   // the press, and it stands until the dialog closes.
   const [done, setDone] = useState<SkillInstall | null>(null);
-  // Whether the app's own button below would put a working `akb` on the PATH. False in a
-  // browser, on Linux, and when the `akb` a terminal runs came from somewhere else — the
-  // three cases where a line to type is still the only answer.
-  const [buttonFixes, setButtonFixes] = useState(false);
-  // What that button's last press found. It sits under the rows because the row it belongs
-  // to has no width for a sentence.
+  // Where the app's own `akb` stands. Null in a browser and on Linux, where the app has no
+  // say and the line to type below is the answer.
+  const [appCommand, setAppCommand] = useState<CommandInstall | null>(null);
+  // What the app's button last found. It sits under the rows because the row it belongs to
+  // has no width for a sentence.
   const [commandNote, setCommandNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
     setChecking(true);
     try {
-      const res = await skillStateAction();
+      const [res, install] = await Promise.all([skillStateAction(), readCommandInstall()]);
       setSkill(res.skill);
       setCommand(res.command);
+      setAppCommand(install);
       setLoadError(res.error ?? null);
     } finally {
       setChecking(false);
@@ -91,7 +98,11 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
 
   const missing = skill?.folders.some((folder) => folder.state === "absent") ?? false;
   const skillNeedsWork = !!skill && (!skill.installed || skill.outdated || missing);
-  const commandReady = !checking && !!command && !command.behind;
+  // In the app, the row answers out of the app's own state; everywhere else out of the
+  // `akb` the board found on the PATH.
+  const row = commandRowState(appCommand);
+  const commandReady = !checking && (row ? row === "ready" : !!command && !command.behind);
+  const note = appNote(row, appCommand, c);
 
   return (
     <Group
@@ -122,13 +133,18 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
           </Row>
 
           <Row label={c.commandRow}>
-            <Status ready={commandReady}>{commandStatus(command, checking, c)}</Status>
+            <Status ready={commandReady}>{commandStatus(row, command, checking, c)}</Status>
             {/* The desktop app can point the PATH at the copy it carries. In a browser, on
                 Linux, and where another `akb` comes first, this draws nothing and the line
                 to type below is the answer. */}
             <InstallCommand
-              onInstalled={() => void load()}
-              onFixable={setButtonFixes}
+              install={appCommand}
+              onDone={(state, ok) => {
+                setAppCommand(state);
+                // The PATH has changed under the rest of the group: what the skill row says
+                // is read from the command itself, and it has to be asked again.
+                if (ok) void load();
+              }}
               onNote={setCommandNote}
             />
           </Row>
@@ -136,15 +152,24 @@ export function SetupGroup({ onError }: { onError?: (msg: string) => void }) {
       </Panel>
 
       {loadError && <Note icon={<FiAlertCircle />}>{loadError}</Note>}
+
+      {/* What the app's own `akb` needs, when it needs anything. */}
+      {!checking && note && (
+        <Note icon={<FiAlertCircle />}>
+          <Rich>{note}</Rich>
+        </Note>
+      )}
+
       {commandNote && (
         <Note icon={commandNote.ok ? <FiCheck className="text-nb-mint-ink" /> : <FiAlertCircle />}>
           <Rich>{commandNote.text}</Rich>
         </Note>
       )}
 
-      {/* The line that fixes an `akb` this app can't reach — shown only where a press
-          can't. Never run for the user: a global install is theirs to type. */}
-      {command?.behind && !buttonFixes && <CommandLine line={command.line} copy={c} />}
+      {/* The line that fixes an `akb` this board can't reach — a browser tab, or Linux.
+          Never in the app, which carries its own copy: typing it there would install a
+          second one. Never run for the user either: a global install is theirs to type. */}
+      {!checking && !row && command?.behind && <CommandLine line={command.line} copy={c} />}
 
       {done && <Receipt result={done} copy={c} />}
 
@@ -189,12 +214,50 @@ function skillStatus(skill: SkillState, c: SkillCopy): string {
   return c.status.ready(skill.version);
 }
 
-function commandStatus(command: CommandState | null, checking: boolean, c: SkillCopy): string {
+/** Which word the app's five states wear. `blocked` reads "not ready" like `absent`: the
+ *  command isn't there either way, and the line under the rows is where the difference is. */
+const APP_STATUS = {
+  ready: "ready",
+  absent: "notReady",
+  blocked: "notReady",
+  dangling: "needsRepair",
+  otherFirst: "otherFirst",
+} as const;
+
+function commandStatus(
+  row: CommandRowState | null,
+  command: CommandState | null,
+  checking: boolean,
+  c: SkillCopy,
+): string {
   if (checking) return c.checking;
+  if (row) return c.app.status[APP_STATUS[row]];
   if (!command) return c.commandStatus.unchecked;
   if (!command.onPath) return c.commandStatus.notFound;
   if (command.behind) return c.commandStatus.behind(command.onPath);
   return c.commandStatus.ready(command.onPath);
+}
+
+/** The line under the rows, in the app. `blocked` is the app's own reason — it names the
+ *  folder it is running from, which nothing on this side knows. */
+function appNote(
+  row: CommandRowState | null,
+  install: CommandInstall | null,
+  c: SkillCopy,
+): string | null {
+  switch (row) {
+    case "absent":
+      return c.app.note.absent;
+    case "dangling":
+      return c.app.note.dangling;
+    case "blocked":
+      return install?.blocked ?? null;
+    case "otherFirst":
+      // `writes` is the path when another `akb` holds the very one we would write.
+      return c.app.note.otherFirst(install?.otherFirst || install?.writes || "");
+    default:
+      return null;
+  }
 }
 
 function buttonLabel(skill: SkillState, c: SkillCopy): string {
