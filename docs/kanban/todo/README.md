@@ -14,7 +14,6 @@ the number at the front of a filename is the task id.
 - [#313 Import GitHub Issues into Triage and mirror progress back](594-triage-input-sources/313-import-github-issues-and-mirror-progress-back.md)
 - [#56 Import Obsidian notes into Triage](594-triage-input-sources/56-read-and-edit-the-board-in-obsidian.md)
 - [#692 Run the board on Amp, Sourcegraph's coding agent](692-run-the-board-on-amp-sourcegraph-s-coding-agent.md)
-- [#706 Close the discussion window once a run starts](706-close-the-discussion-window-once-a-run-starts.md)
 - [#713 Run any kind of work through one flow with pluggable specialist agents](713-custom-workflows/root.md)
 - [#717 Hand a task to an external agent and accept or rework it](713-custom-workflows/717-external-handoff.md)
 - [#718 Retire the marketing-specific implementation](713-custom-workflows/718-retire-marketing.md)

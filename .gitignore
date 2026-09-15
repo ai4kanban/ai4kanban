@@ -8,9 +8,6 @@
 # into the user's project beside the note (#213).
 cli/dist/
 
-# Local UI session registry: live agent sessions + their captured logs (task #12)
-docs/kanban/.sessions.json
-docs/kanban/.sessions/
 # Archived proposals
 docs/kanban/.archive/
 docs/kanban/deliveries/
