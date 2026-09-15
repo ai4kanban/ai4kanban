@@ -90,6 +90,9 @@ re-ask a settled call.
   opt-out.
 - Memory pruning is the exception: it is an agent, and recurring pruning is opt-in on its
   page, off by default, with its cadence in `ui.config.json`.
+- The daily chat-memory review is its own agent, not a pruner job: it runs once a day, on by
+  default, with a switch but no cadence, and skips a day with no new conversation. Pruning
+  stays opt-in and off; tying the two would leave a default board writing no memory at all.
 - A cadence is always the units grammar — `30m`, `2h`, `1d`, `1d at 09:30`. There is no word
   form to translate between.
 
@@ -167,6 +170,11 @@ re-ask a settled call.
   cannot run.
 - Turning one agent on never flips another's switch; a page may warn about a combination and
   leaves both where the user put them. The proposer ships off, because reflection costs a run.
+- The board's own background agents keep an on/off switch — auto-approve, auto-answer, the
+  proposer, triage and the memory review are never assembled into a workflow, so the switch is
+  whether the board starts that background run at all, not whether the agent exists. An agent
+  inside a workflow has no switch: the stage's assignment is the only thing that says it takes
+  part.
 - The sweeper drops a card it judges done or not worth the investment with no sign-off and no
   `rejected.md` line, so the idea can be raised again. It skips only a card being built or
   blocked by an open one — a card waiting on the user's own answer is judged like any other.
@@ -198,6 +206,8 @@ re-ask a settled call.
   `docs/kanban/design/<app>.md`, picked from the card's module.
 - Re-drawing a mockup is re-running the agent with the change said in words; selecting a single
   screen on the card page is not planned work.
+- A spec agent's `owns` names the kinds of work it covers, never repository paths; where those
+  files actually live is what its own memory accumulates.
 
 ## Chat
 
@@ -215,6 +225,8 @@ re-ask a settled call.
   own. Picking a row on another CLI starts the conversation over.
 - A plan a **Discuss** chat writes is kept: once its cards are written it moves to
   `docs/kanban/plans/archive/`, and every card names that path as its source.
+- Each discussion owns one plan and cannot modify another discussion’s plan, even when discussing it; preserve submitted sources through write permissions, with no version UI or extra files on each save.
+- Plans are modified through ai4kanban only; direct edits in an external editor are unsupported.
 - **Build now** leaves a delivery record and runs with AI review and diff approval off, so
   nothing holds it between commit and landing. The card it writes is a record, not a checkpoint.
 
@@ -225,12 +237,25 @@ re-ask a settled call.
 
 ## Solutions
 
-- There is one workflow for every kind of work, not a kernel plus swappable solutions. The
-  stages, and the specialist agents a user registers on them, are what a new line of work is
-  configured with; nothing copies a solution folder into a board.
+- A board mixes software, design and content cards. Each card selects a card type with a
+  configurable plan → execute → review flow; built-in presets provide the starting point.
+  Agents are created independently and declare their stage; creation never assigns them.
+  Each workflow step selects one lead and existing helpers; helpers run only on request, with no always-call or mandatory-helper setting. First expose plan, execute and review assignments; existing
+  discussion, decisions and maintenance remain board capabilities, with other hooks deferred.
+  Built-in flows may be configured or copied but not renamed or deleted. No solution folder
+  is copied into a board.
+- Custom agents keep one instruction body in the board's `agents/<id>/AGENT.md`;
+  purpose, inputs and deliverables are not separate required fields. Preserve legacy
+  metadata and use the same file for UI and manual edits.
 - `solution` stays the word only while the marketing pack does — `product` and `marketing` are
   code written separately, and the word retires with them. `job` and `plugin` were never the
   product's words and do not come back.
+- The card is the brief. Handing work to any executor, built-in or external, gives it the
+  card's requirements as frozen at delivery start; the board writes no separate handoff
+  brief. A card that cannot serve as the brief is a card written wrong.
+- The executor is always a separate agent from the planner. An external tool or a person is
+  an execute-stage agent whose runtime is "external": the board runs nothing and records
+  only the paths they hand back — no artifact folder, preview, annotation or drag-drop.
 
 ## The eval set
 

@@ -87,4 +87,6 @@ Internal detail stays on the card.
 - **Which service sends the issues?**: Resend, on its free tier, with the sending domain
   verified and the API key in the environment. A list that outgrows the free tier is a decision
   to revisit, not a limit to design around now.
-- **一封周报靠图片撑阅读体验**：正文按模板的容量写短，主图之外每项亮点各配一张图，衬底与圆角在导出时就合成进图片——邮件客户端不跑 canvas，也留不住复杂 CSS。
+- **周报的配图放 CDN，不进仓库**：图片传到 `cdn.ai4kanban.dev`，邮件里写完整地址；CDN 上的文件不可覆盖，改一张图就换一个文件名。
+- **周报配图不重复推广同一功能**：像素办公室只用一张图；其他亮点按需配图，衬底与圆角在导出时合成进图片。
+- **每期发送前站点要先部署过一次**：logo 与退订链接都走站点，`NEWSLETTER_ADMIN_TOKEN` 还得同时在本机和 `kanban-skill` 这个 Pages 项目的 Secret 里，否则正式发送读不回退订，直接停下。

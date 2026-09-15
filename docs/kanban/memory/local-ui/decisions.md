@@ -16,13 +16,20 @@ re-ask a settled call.
   after the board's own settings and separated from them.
 - A pane of short settings is a list of rows; a pane whose items are paragraphs is a narrow
   picker column beside one tall box.
-- **Agents is one roster**, replacing both Spec skills and Rules: a picker column of
-  characters, each agent's page a single screen that never scrolls — switch, settings, its
-  instruction box, and memory as a row that expands in place. A specialist you add has its
-  whole `AGENT.md` in that box; the app never learns to open a local file in your editor.
-- **A setting lives on the agent it belongs to**: AI review is switched on the reviewer's
-  page, and an agent's runtime is picked on its own page, so planner can run a stronger model
-  than builder.
+- **One workflow editor**: always show the workflow rail and Plan → Execute → Review tabs,
+  even for one flow. Name new flows and copies inline: save on blur, discard empty new entries immediately,
+  and show no confirm/cancel buttons. Built-ins have a badge and
+  cannot be renamed or deleted. Coding is the English software-flow name. Keep card type,
+  preset and Full workflow out of the UI; discussion and automation live in Board agents.
+- **The Chinese UI calls a workflow 工作流, everywhere**: the sidebar entry and every page
+  that names the object use that one word, never 流程.
+- **Create agents separately from assigning them**: Workflow agents owns reusable definitions
+  and runtimes; Workflows selects one lead and existing helpers per step. Helpers are requested
+  only when needed, with no call-mode control; only the selected helper exposes its local extra requirements. Return from management to the original selection without
+  assigning the newly created agent automatically.
+- **One instructions field**: custom agents use name, stage, instructions and runtime;
+  purpose, input and deliverables belong in instructions. Saved details show the actual
+  editable definition path with a copy action; unsaved and built-in agents show no fake path.
 - **Runtimes is one list you add to**, with the default a position rather than a badge, so no
   control anywhere moves it. No Computers picker until a board can know a second machine.
 
@@ -38,6 +45,9 @@ re-ask a settled call.
 - The app installs `akb` itself on first launch, asking for a password only where it must. A
   feature that asks for a password does not wait for a signed build, as long as declining
   costs nothing.
+- The desktop app never hands out an npm command for `akb`: the row reads ready and updates
+  with the app, and where another `akb` shadows it on PATH the row names that path and offers
+  no command, leaving the fix to the user.
 - A new project always gets its own repository: creating one from the launcher runs `git init`
   even inside an existing one.
 - The coding agent skill is an extra you turn on, not part of getting a board.
@@ -107,6 +117,7 @@ re-ask a settled call.
   one run, and every run gets it.
 - The Runs office is the dialog: history on the left, a bot's log on the right, only the two
   latest completed jobs left in the rest area and the rest in records.
+- 正在读的日志不被系统收走：一次运行结束只改左侧列表里那一行的归属，右侧已打开的日志留在原处，宁可两边短暂对不上也不打断阅读。
 - The office scene is drawn by a 2D engine rather than the DOM, at the cost of the engine's
   weight and keyboard access built by hand; a machine where no renderer can be created gets
   the list instead. Anything that moves is its own layer over a still backdrop.
@@ -188,9 +199,10 @@ re-ask a settled call.
 - A board holds many discussions, listed in the rail under the open cards, each named by its
   agent once it has read the exchange. The board keeps only its 20 most recent and drops the
   oldest without asking; a row's menu holds Archive alone.
-- A plan file is read outside the app: Discuss writes `docs/kanban/plans/<id>-<slug>.md`, it
-  moves to `plans/archive/` once its run has written cards, and the board never opens it. Its
-  title is its first line.
+- A plan file lives with the board's machine-local state rather than in the repository, so
+  cloning the repo carries no plans — the price of keeping the discussion's working papers off
+  the project's history. Discuss writes `<id>-<slug>.md`, it moves to `plans/archive/` once its
+  run has written cards, and its title is its first line.
 - Propose tasks is gone from the app: cards nobody asked for are rarely worth trusting, and
   finding new work is idea extraction from a named source.
 - An agent that cannot see images turns a pasted image away at the box, names the agents that
@@ -252,6 +264,8 @@ re-ask a settled call.
 - The recurring prune cadence is bounded where it is set — 5–1440 minutes, 1–720 hours,
   1–365 days. The bound is the control's only: a shorter cadence already in the config file
   keeps running.
+- The daily chat-memory review is its own agent page, not a row on Memory pruner: one
+  switch, on by default, with no cadence control, and its own rule.
 
 ## Feedback
 
@@ -284,3 +298,5 @@ re-ask a settled call.
 - A version cannot be skipped, and the app remembers no skipped version.
 - A higher version takes the waiting one's place: a download in flight is dropped and a
   downloaded build thrown away, and the chip names whichever version will be installed.
+- 看板首页不看日志：卡片上的运行标记只打开运行对话框并选中那条运行，看板上不再弹日志浮层。
+- 像素房间里浮着的面板要像游戏对话框：直角、粗墨线、硬阴影、标题栏反色、贴边推出；只在办公室内用，正文文字不像素化。

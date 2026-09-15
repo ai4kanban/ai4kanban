@@ -13,6 +13,16 @@ don't re-ask a settled call.
 - Local-first is a promise about the default backend — markdown in git — not about every
   backend a user can pick.
 
+## The positioning statement
+
+- 定位只说面向独立创作者和小团队、一个看板统筹开发、设计与内容，不承诺「无需写代码」，也不写
+  「面向所有人」——零编码用户的开箱即用体验还不具备，说法要和今天的产品对得上。
+- The role is a middle-manager project manager: clarify the goal, break requirements down,
+  delegate to specialist agents, and carry the work through acceptance and rework. Deciding
+  which projects to start or stop and how to spread resources across the business is a COO's
+  job and stays the user's. Breaking requirements down is inside the role, and the role is
+  not tied to software — one project manager covers content work on the same board.
+
 ## How far agents go alone
 
 - There is no single on/off switch for what the board does on its own, and no ladder of
@@ -33,3 +43,17 @@ don't re-ask a settled call.
 - Curated cases, rubrics, runners and experiment summaries live in the separate private
   repository `ai4kanban-evals`, with the public guide revision recorded per experiment.
   Incoming submissions are reproduced and reviewed before admission.
+
+## Keeping a delivery's work
+
+- The only reason to keep a finished delivery's worktree is that the user can really bring it
+  back. Where the UI offers no way to resume, the board cleans up on its own; where a case
+  deserves a resume and has none, the answer is to add the entry point, not to keep the
+  directory as a stand-in for one.
+
+## Learning from acceptance
+
+- Turning review feedback into reusable SOPs is a recursive-self-improvement problem, not a
+  "write a skill" step bolted onto review. Prove the acceptance judgement is reliable first,
+  then prove a learned SOP improves tasks it has not seen; until both hold, the output is a
+  proposal a human approves rather than a rule the board starts applying.

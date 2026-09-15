@@ -46,8 +46,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   reader wants from it, in the words the tools they already use say it in.
 - ❌ **UI copy exposes internal files or memory bookkeeping** → ✅ describe the user's outcome
   and the choices it needs; keep paths, fields and bookkeeping rules out of product copy.
-- ❌ **Prose repeats visible controls or state** → ✅ say it once; a switch and a picker need no
-  extra explanatory panel.
+- ❌ **Verbose copy repeats controls, state or process** → ✅ use accurate, brief, plain English; keep essential action consequences, omit redundant explanations, and keep connector tiles to logo, name and action.
 - ❌ **Per-card reports crowd agent settings** → ✅ show a compact summary and open the full
   report in a separate scrollable view.
 - ❌ **A row works out where an item came from by matching free text against a table** → ✅ the
@@ -79,6 +78,8 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   card's whole chain of work ends and needs a person.
 
 ## Settings
+
+- ❌ **An Agent subgroup sits among general settings and leaves Workflows outside** → ✅ separate general settings and agent work into two peer groups; keep Workflows, Workflow agents and Board agents together.
 
 - ❌ **A new global setting gets its own labeled control in the header** → ✅ one gear icon
   opening one Configuration dialog, so the header stays quiet.
@@ -183,3 +184,21 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   their current components and visual structure; change only their containers.
 - ❌ **A mobile mockup is a phone-width column on a desktop canvas** → ✅ draw it in a real
   narrow viewport.
+
+- ❌ **Keep Always on / Specialist groups when redesigning workflow configuration** → ✅ organize settings around card types and their plan, execute and review stages, with stage-filtered agent selection.
+
+- ❌ **Expose all workflow fields at once and bury unrelated roles under Discussion & automation** → ✅ start with usable defaults and horizontal step tabs, reveal settings on demand, and group discussion and automation under Board agents.
+
+- ❌ **Change layout for one workflow or create flows on separate pages** → ✅ always keep the rail and three arrow-connected tabs; name new flows and copies on blur without confirm/cancel buttons, discard empty new entries, mark built-ins, and open compact helper details without repeating the stage.
+
+- ❌ **Wrap a lone selector in another panel or explain its implementation** → ✅ keep the selector alone, omit redundant controls and shared-runtime boilerplate.
+
+- ❌ **Mix agent creation and runtime settings into a workflow assignment** → ✅ create and edit in Workflow agents; use one Select agent control for the lead and only the selected helper’s extra requirements, preserving the return path from management.
+
+- ❌ **Repeat helper requirements or give agents enabled/disabled states** → ✅ keep one requirements field per helper; workflows add or remove helpers without disabling the agent elsewhere, and helpers remain on request.
+
+- ❌ **Label a mockup summary as the agent’s built-in instructions** → ✅ omit the instruction viewer for built-in agents; show their purpose, runtime and user-added requirements.
+
+- ❌ **Connection setup became a collection dashboard for one service** → ✅ use a connector grid for setup, show shared connector status and logs from the board sidebar, and keep collection controls with the collection agent.
+
+- ❌ **Returned artifacts got a folder view with drag-drop, preview, per-quote notes and open-externally** → ✅ one multi-line box of paths and one status line; the reviewer and the user follow the paths themselves.

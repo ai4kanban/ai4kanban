@@ -29,6 +29,12 @@ re-ask a settled call.
 - The copy does not say a second agent reviews every delivery: review is a detail of how a
   delivery works, not a selling point.
 
+## The home page's hand-drawn shots
+
+- Each shot draws a page the product really has. When the product moves the page, the shot
+  follows the product and the step's copy is rewritten to match — the shot never keeps an
+  old layout, or mixes two pages, to stay true to the copy.
+
 ## The quick start
 
 - The landing page's main button is downloading the app, and the download is the only way in

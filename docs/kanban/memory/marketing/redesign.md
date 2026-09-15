@@ -22,3 +22,10 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Newsletter exposed bilingual copy and publication bookkeeping** → ✅ use English
   throughout, show the latest version and this week's delivered features, and omit issue
   counts and combined-version details.
+
+- ❌ **Newsletter copy lists UI details or uses vague metaphors as benefits** → ✅ name the capability and practical value accurately; introduce selected highlights without leading with their count or implying they are the entire release.
+
+- ❌ **Treat Discuss as technical clarification or merely a UI upgrade** → ✅ Discuss helps users decide what they want; once that becomes a card, its questions resolve the details.
+
+- ❌ **Newsletter highlights picked from the last release or two, with one hero picture standing in for the rest** → ✅ draw the selection from every release no issue has covered yet, and give each highlight its own picture.
+- ❌ **A newsletter figure drawn as a lookalike of the screen it describes** → ✅ every picture is a real capture of the running product, cropped to the block the sentence is about; take a new one when `screenshots/` has none, and never stand a drawing in for it.

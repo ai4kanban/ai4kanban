@@ -5,6 +5,7 @@ before proposing so you don't re-suggest them.
 
 ## Agents
 
+- **Expanding specialist registration into custom leads and helpers across all three stages** — the user rejected this proposal as overdesigned; skip the expansion.
 - **The pi coding agent** — nothing keeps a run inside the project but a container. Every
   agent we run stays in the repo.
 - **Asking each harness for its model list** — no harness hands one over for free and a cache

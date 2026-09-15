@@ -19,6 +19,11 @@ covers it, or a plain-words note.
   the page they mirror.
 - The home page's agent strip names every agent the board runs, in all five languages and in
   the plain-Markdown copies.
+- The home page's last loop step shows Configuration → Board the way the app draws it: the
+  jobs you start yourself over the ones the board can run on its own, each with its own
+  runtime and instructions. Both READMEs' at-a-glance figure carries the same drawing.
+- That step's text, in all five languages, separates the one automatic job that ships on —
+  reviewing chat memory, daily — from the ones that wait to be switched on.
 
 ## Comparison pages
 

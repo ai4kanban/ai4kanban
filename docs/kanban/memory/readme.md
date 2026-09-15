@@ -29,3 +29,13 @@ covers it, or a plain-words note.
 - A discussion now judges the idea before it plans one: it separates the outcome you want from
   the means you named, says whether the thing is worth doing at all, and may disagree, advise a
   pause, or ask for evidence first. A turn that only answers your question is a finished turn.
+- A conversation you have already spoken in stays on the agent that opened it. Changing the
+  discussion helper's runtime now only decides where a new conversation starts, and the old
+  ones are asked to be cleared only once the board has no runtime on their own agent left.
+- Mentioning a piece of work a card does not cover, while talking on that card, now opens a
+  new card for it: the board takes your own words and runs the full add-task flow on its own,
+  and the conversation says so and stays on the card you were reading.
+- The lead agents of the two workflows the command ships — Coding and Content creation — are
+  now fixed and shown rather than picked, so the name of a built-in always says who runs it.
+  Duplicating one, or adding your own, gives you a workflow whose three leads are yours to
+  choose; the helpers on a built-in are still yours to add and remove.

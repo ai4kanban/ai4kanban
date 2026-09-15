@@ -34,6 +34,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Idea intake
 
+- ❌ **Treat source preservation as version management** → ✅ each discussion owns one plan; enforce cross-discussion write isolation without extra snapshots or UI.
 - ❌ **Truncate shared evidence to fit arbitrary size caps** → ✅ keep shared conversations whole and have the feedback assistant select relevant trajectory content; impose no application size caps on case submissions.
 
 - ❌ **Send an article, analysis or complaint straight to add-task** → ✅ treat it as
@@ -44,8 +45,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Return a discussion plan with decisions the agent could propose left unresolved** → ✅
   choose and justify proposed outcomes, then loop until no gap remains; ask only for
   indispensable user information, with a recommendation, and never force a closing question.
-- ❌ **Hold the plan a discussion is writing in a single slot the next one replaces** → ✅ a
-  discussion writes many plans over its life, so its own file keeps them as a list.
+- ❌ **Let a discussion take over another discussion’s plan** → ✅ each discussion maintains its own plan; reading or referencing another plan never grants write access.
 - ❌ **Make users locate a session before reporting a bad result** → ✅ the flow starts from
   their complaint and linked card, locates the evidence itself, and asks about the task only
   when the history is ambiguous.
@@ -110,6 +110,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 
 ## Refining on its own
 
+- ❌ **Ask users to choose an unverified protection mechanism** → ✅ verify feasibility and bypass paths first; resolve technical choices and never weaken accepted protection requirements without agreement.
 - ❌ **Treat every test as "check by hand"** → ✅ put agent-executable checks in `## Todo`;
   reserve `verify:` for a reproducible human plan, and add the fixtures that plan needs.
 - ❌ **Record every auto-answer in `decisions.md`** → ✅ keep auto-answers on the card and
@@ -156,3 +157,11 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   deduplication needs.
 - ❌ **One global endpoint and token limit every intake source** → ✅ keep connection
   identity, settings and pull results per source while sharing the Triage lifecycle.
+
+- ❌ **Generalize software by moving role lists while keeping one work mode per board** → ✅ resolve a shared three-stage flow per card type, allowing software and content on the same board with configurable specialist hooks.
+
+- ❌ **Expose hypothetical hook support as configurable functionality** → ✅ keep other events extensible, but expose only supported stages; existing board decisions retain their triggers and settings.
+
+- ❌ **A service token became a required user-facing connection step** → ✅ let the integration own service authorization, verify its contract, and keep connector management separate from collection behavior.
+
+- ❌ **A five-item handoff contract, a generated brief and an artifact folder with preview, annotation and drag-drop for work done outside** → ✅ the card is the brief, an external executor is one more execute-stage runtime, and what comes back is a list of paths the existing review stage reads.

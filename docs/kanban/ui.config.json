@@ -34,7 +34,7 @@
     }
   ],
   "agentRuntime": {
-    "discussion-helper": "codex"
+    "discussion-helper": "fable"
   },
   "memoryPrune": {
     "enabled": true,
@@ -45,5 +45,9 @@
     "tech-stack-advisor": {
       "output": "human"
     }
+  },
+  "proposer": true,
+  "memoryReview": {
+    "lastRun": "2026-09-15 13:20"
   }
 }

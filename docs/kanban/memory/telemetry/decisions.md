@@ -28,3 +28,12 @@ Internal detail stays on the card.
 - **Where does a deletion request go?**: to the existing `support@ai4kanban.dev`, named on
   every screen and page that offers the deletion, quoting the id shown when the submission
   succeeded.
+
+## Reading the numbers
+
+- **Where does the team read them?**: on a page served by a local server started on the reader's
+  own machine, from its own `.env`, against the same daily summaries. It is never hosted and has
+  no sign-in — being on that machine is the whole of the access control.
+- **Does any number leave the service?**: one does. A public read-only route answers the
+  cumulative install count and nothing else, so the README can carry an install badge; every
+  other number is still read only from a machine holding the Cloudflare account.

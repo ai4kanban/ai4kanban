@@ -5,6 +5,7 @@ before proposing so you don't re-suggest them.
 
 ## The board
 
+- **The expanded specialist-agent registration form and editor proposal** — the user rejected the combined registration and runtime expansion as overdesigned; skip it.
 - **A file-storage-only switch for team collaboration** — a Cloud screen must handle members,
   stale revisions, active writers and conflicts, which treating Cloud as another file location
   leaves invisible.

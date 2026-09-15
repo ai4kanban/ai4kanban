@@ -65,8 +65,8 @@ naming no other doc is covered there.
 - A card with a delivery in flight can't be edited, refined, resolved, archived or rejected;
   priority, ROI, release, modules and todos stay yours: "Delivery".
 - Review is a fresh session reading the approved card and the diff: it passes, sends clear
-  mistakes back for up to two corrections, or stops and asks. **AI review** turns it off:
-  "Review", "Turning AI review off".
+  mistakes back for up to two corrections, or stops and asks. **Review every build**, under
+  General → Delivery, turns it off: "Review", "Turning AI review off".
 - **Approve diffs before landing** holds every delivery for a human read, outside the landing
   queue, and one approval covers one base commit and one tree: "Approving a delivery".
 - Building a card with open questions is allowed behind a warning: it builds, reviews, then
@@ -94,6 +94,16 @@ naming no other doc is covered there.
   a failure you resume from the button.
 - Runs opens on a pixel office where every live job is a bot at a desk, with **Completed** for
   the records: `kanban-ui/README.md`.
+- An open run log has ONE header bar: the task and its `#id`, which step this is, when the job
+  started, then Stop or Carry on, the outcome, the context ring and the model — and past a
+  hairline the window's own Collapse or ✕. The log starts directly under it.
+- A running card's mark on the board opens Runs on that run; the board draws no log of its own,
+  and neither does **Resume creating** on a half-written card.
+- Inside the pixel office the two drawers are game dialog boxes — square corners, a thick ink
+  line, a hard shadow — pushed out from the left and right walls with their title bars level,
+  the log's reversed out to paper on ink. The chips over the room wear the same square frame,
+  and the records entrance that is open shows as pressed. Everywhere else — the two-pane
+  fallback, the board, a card page — the panels are unchanged.
 
 ## Cards
 
@@ -131,6 +141,10 @@ naming no other doc is covered there.
 
 ## Configuration
 
+- **Review chat memory** sits under **Automatic** with its switch on, and its page carries
+  **Review now** and the last review that passed — no cadence, because the review is daily.
+  It is the one switch that asks before it goes OFF, and **Review now** still works once it
+  is off.
 - **Runtimes** is one list: **Global default** first, undeletable, then every runtime you
   named, each set up in one pass before it is named, with **Test connection** and a delete
   that puts its agents back on the default: "Runtime — the coding tools this board can run",
@@ -142,13 +156,25 @@ naming no other doc is covered there.
 - **Agents** is the whole team on one pane — the roles and the specialists, each with a rule
   in your own words, what it remembers, its settings, **Add a specialist**, and **Problems on
   this board**: "The agents", `web/content/docs/agents.mdx`.
-- **General → Delivery** holds the delivery switches, and the switchable roles — Gater,
-  Decider, Proposer, Triage — are rows on the Agents pane, each asking once before it goes on:
+- An agent wears one name on every screen: the office nameplate, a run's record, the
+  Agents pane and a workflow's stages all read it off one lookup — a role from the app's
+  own words, a specialist from its `AGENT.md`, and anything else spelled out of its id.
+- **General → Delivery** holds the three delivery switches — automatic Git commits, approving
+  diffs before landing, and reviewing every build. The switchable roles — Gater, Decider,
+  Proposer, Triage — are rows on the Agents pane, each asking once before it goes on. No agent a
+  workflow stage assigns has a switch anywhere, the Code reviewer included:
   `web/content/docs/agents.mdx`.
 - **Prune memory** in the Memory panel and on the phone's Memory screen opens the Memory
   pruner's page; **Run now** starts one pass, and a **Recurring pruning** chip picks the
   cadence from a list — Off, every 6 hours, every day, every 7 days, or Custom — saving on the
   pick. Under them, quiet text says when the last pass that passed ran.
+- **Tidy stalled cards / 整理搁置卡片** carries the same Run now and cadence chip as the
+  pruner, and under the runtime a line of its own: when the current or latest sweep ran, how
+  it ended, how many cards it kept and discarded, and **View report / 查看报告**. The report
+  opens in place with a way back to the same agent, one row per card — its id, the title and
+  the days it had sat when it was picked, the verdict and the whole note its run ended with —
+  and a link across to that run. Only the latest sweep is kept. Outside a Git repository
+  nothing can be dated, so Run now is off and one line says why.
 - **Skill** adds or updates the coding agent skill, and the app puts `akb` on the PATH itself:
   "General → Setup: the coding agent skill", `desktop/README.md`.
 - **Language** — English or 中文 — settles the machine rather than the board, takes effect
@@ -156,6 +182,23 @@ naming no other doc is covered there.
 - **Workspace**, on a Cloud board only, runs the workspace: rename, execution nodes, export to
   a folder that opens as Local, leaving Cloud, and deleting it. Going Cloud and coming back
   are one commit each, staged by path: `web/content/docs/local-and-cloud-boards.mdx`.
+
+- **Configuration → 流程 / Workflows** lists every workflow this board has down the left and
+  the selected one's `规划 → 执行 → 评审` beside it: one lead per stage, a compact helper row,
+  and the requirements one helper carries in this workflow. New and Duplicate name the
+  workflow in the list itself — no buttons, a valid name saves on blur, an empty one takes a
+  just-added workflow away. A built-in offers only Duplicate.
+- **Configuration → 工作流 Agent / Workflow agents** is where those agents are defined —
+  per stage, built-in and this project's in one column, with each one's instructions, its
+  runtime and the real path of its `AGENT.md` to copy. Creating one assigns it to nothing.
+- **Configuration → 看板 Agent / Board agents** holds everything no workflow assigns —
+  discussion, auto-decide, auto-start, triage, follow-ups, parked tasks, feedback and memory
+  pruning. Each agent's switch is on its row in the list, and only there.
+- A card's meta strip opens with its workflow: the list shows every workflow on the board,
+  says up front that switching re-plans the card, and leads to the pane. While a delivery is
+  in flight it shows the workflow that delivery froze, with a lock and no list.
+- **Create task** picks the workflow above the box, defaulting to the board's own, so a card
+  can be written without touching it.
 
 ## Notifications
 

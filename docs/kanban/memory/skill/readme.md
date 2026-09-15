@@ -77,9 +77,29 @@ covers it, or a plain-words note.
 - `akb triage fetch | add | run | check` is the one name for what is waiting to be sorted:
   `web/content/docs/triage.mdx`.
 
+## Workflows
+
+- Every card runs through one workflow — `plan → execute → review`, each stage led by one
+  agent that may call helpers in. Two ship with the command: `coding`, what every board did
+  before, and `content`, whose three leads write into the repository. A board adds its own;
+  a built-in can be reassigned and copied but not renamed or deleted. `akb workflow list`
+  shows them, `akb workflow stage <id> --stage <stage> --lead <agent>` assigns one.
+- A card names its workflow in its own frontmatter — `akb raw create --workflow <id>`, or
+  the picker on the card page. A card that names none runs on `coding`. Moving a card to
+  another workflow sends it back to `todo` to be planned again, and is refused while a
+  delivery is building it.
+- An agent declares which stage it can take, with `akb.stage: plan | execute | review` in
+  its `AGENT.md`; one written before that key reads as `plan`. A stage offers only the
+  agents that declare it, and no agent a stage can assign carries a switch of its own — the
+  assignment is the whole answer, the Code reviewer included: `web/content/docs/agents.mdx`.
+- A content card's execute and review are read in that workflow's own words: no tests, no
+  diff-size bar, and a delivery that wrote no file stops unfinished rather than passing as
+  one with nothing to land. Ask for the flow a card actually reads with
+  `akb guide <topic> --card <id>`.
+
 ## Agents, runtimes and keys
 
-- Every flow is run by a named agent — the roles, the four that switch off, and the
+- Every flow is run by a named agent — the roles, the ones that switch off, and the
   specialists: `web/content/docs/agents.mdx`.
 - A board adds one rule per agent in `docs/kanban/rules/<agent>.md`, appended to every run
   that agent does and frozen into a delivery when it starts: `akb guide board`.
@@ -92,6 +112,17 @@ covers it, or a plain-words note.
 - Pruning the memory is the Memory pruner agent, not a card: `akb prune-memory` is its flow
   over the project's memory, each module's and the agents'. Recurring pruning is opt-in with
   a cadence, off by default; it names no card and leaves no `verify:` line.
+- A chat writes no memory. What a conversation settled is written down once a day by the
+  Review chat memory agent, which reads each conversation with new messages right through and
+  writes, rewrites or deletes the notes it earns; `akb review-memory` asks for one by hand.
+  It is on by default, runs only when something has been said, and switching it off is the
+  one way a board stops remembering what a conversation decided:
+  `web/content/docs/agents.mdx`, `web/content/docs/chat.mdx`.
+- Settling the cards that have sat too long is the Sweeper agent, on a cadence of its own:
+  one sweep takes up to five stale cards through `akb card unstick`, stalest first, one per
+  dispatcher tick, and ends at the cap, at nothing left, at the first run that does not pass,
+  or when the cadence is switched off. The cadence is the whole opt-in and is off by default;
+  an `unstick` runs one at a time across the board.
 
 ## Spec agents
 
