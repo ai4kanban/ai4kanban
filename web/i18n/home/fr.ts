@@ -53,7 +53,7 @@ const fr: HomeCopy = {
       },
       {
         title: "Vous décidez de ce qui tourne sans vous.",
-        body: "Certaines tâches, c’est vous qui les lancez : discuter d’une idée, ranger le tableau, corriger un plan à côté du sujet. D’autres avancent seules une fois activées : valider les livraisons, répondre aux questions en attente, proposer la suite. Chacune reçoit l’outil d’exécution, le modèle et les instructions que vous lui donnez.",
+        body: "Certaines tâches, c’est vous qui les lancez : discuter d’une idée, ranger le tableau, corriger un plan à côté du sujet. La relecture de la mémoire des conversations est activée dès le départ et tourne chaque jour. Les autres attendent que vous les activiez : valider les livraisons, répondre aux questions en attente, proposer la suite. Chacune reçoit l’outil d’exécution, le modèle et les instructions que vous lui donnez.",
       },
     ],
   },

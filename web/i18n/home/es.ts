@@ -56,7 +56,7 @@ const es: HomeCopy = {
       },
       {
         title: "Tú decides qué funciona sin ti.",
-        body: "Algunas tareas las inicias tú: hablar de una idea, ordenar el tablero, corregir un plan que no acertó. Otras avanzan solas en cuanto las activas: aprobar entregas, responder preguntas pendientes, proponer el siguiente paso. Cada una usa la herramienta de ejecución, el modelo y las instrucciones que le des.",
+        body: "Algunas tareas las inicias tú: hablar de una idea, ordenar el tablero, corregir un plan que no acertó. Repasar la memoria de las conversaciones viene activado y se ejecuta a diario. El resto espera a que lo actives: aprobar entregas, responder preguntas pendientes, proponer el siguiente paso. Cada una usa la herramienta de ejecución, el modelo y las instrucciones que le des.",
       },
     ],
   },

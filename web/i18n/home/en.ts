@@ -50,7 +50,7 @@ const en: HomeCopy = {
       },
       {
         title: "Decide what runs without you.",
-        body: "Some jobs you start yourself: talk an idea through, tidy the board, correct a plan that missed. Others run on their own once you switch them on — approving builds, answering open questions, suggesting what comes next. Each one takes the runtime, model, and instructions you give it.",
+        body: "Some jobs you start yourself: talk an idea through, tidy the board, correct a plan that missed. Reviewing chat memory is on from the start and runs daily. The rest wait until you switch them on — approving builds, answering open questions, suggesting what comes next. Each one takes the runtime, model, and instructions you give it.",
       },
     ],
   },
