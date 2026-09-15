@@ -200,6 +200,7 @@ const en: RunsCopy = {
     noRole: "Agent",
     running: (n) => `${n} running`,
     idle: "Nothing running",
+    runningTitle: "Running",
     completed: "Completed",
     unfinished: "Unfinished",
     collapse: "Collapse",

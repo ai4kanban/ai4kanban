@@ -197,6 +197,7 @@ const zh: RunsCopy = {
     noRole: "Agent",
     running: (n) => `${n} 个运行中`,
     idle: "当前没有运行",
+    runningTitle: "运行中",
     completed: "已完成",
     unfinished: "未完成",
     collapse: "收起",

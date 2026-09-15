@@ -754,7 +754,7 @@ function RunsOffice({
   const s = t.runs.scene;
   const roleName = useRoleName();
   // Which records the left drawer is listing, and whether the log is open on the right.
-  const [records, setRecords] = useState<"done" | "unfinished" | null>(null);
+  const [records, setRecords] = useState<RecordsDrawer | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [page, setPage] = useState(0);
   // Which drawer was touched last: Escape puts that one away first.
@@ -770,18 +770,27 @@ function RunsOffice({
 
   const done = flows.filter((f) => f.latest.status === "done" && f.latest.ok);
   const unfinished = unfinishedFlows(flows);
-  const shown = records === "unfinished" ? unfinished : done;
+  const live = flows.filter(isLive);
+  const shown = records === "running" ? live : records === "unfinished" ? unfinished : done;
+  // What each entrance's drawer is titled. The running one is not the count on its button:
+  // the button says how many, the drawer says what it holds.
+  const titles = { running: s.runningTitle, done: s.completed, unfinished: s.unfinished };
 
-  const openRecords = (which: "done" | "unfinished") => {
-    setRecords(which);
-    drawer.current = "left";
-  };
   const closeRecords = useCallback(() => {
     drawer.current = logOpen ? "right" : null;
     // Focus goes back to the entrance it came in by, not to the page behind the dialog.
-    if (records) document.getElementById(records === "done" ? DONE_BTN : UNFINISHED_BTN)?.focus();
+    if (records) document.getElementById(RECORDS_BTN[records])?.focus();
     setRecords(null);
   }, [logOpen, records]);
+  const openRecords = (which: RecordsDrawer) => {
+    // The entrance the open drawer came in by puts it away again.
+    if (records === which) {
+      closeRecords();
+      return;
+    }
+    setRecords(which);
+    drawer.current = "left";
+  };
   const closeLog = useCallback(() => {
     setLogOpen(false);
     drawer.current = records ? "left" : null;
@@ -790,7 +799,7 @@ function RunsOffice({
     // Opened from a record row: that row goes with its drawer, so focus lands on the
     // entrance the drawer is behind rather than on the page under the dialog.
     if (!back) {
-      if (records) document.getElementById(records === "done" ? DONE_BTN : UNFINISHED_BTN)?.focus();
+      if (records) document.getElementById(RECORDS_BTN[records])?.focus();
       return;
     }
     const bot = document.getElementById(botTargetId(back));
@@ -799,8 +808,7 @@ function RunsOffice({
       return;
     }
     const gone = flows.find((f) => f.id === back);
-    const passed = gone?.latest.status === "done" && !!gone.latest.ok;
-    document.getElementById(passed ? DONE_BTN : UNFINISHED_BTN)?.focus();
+    document.getElementById(RECORDS_BTN[whereToFind(gone)])?.focus();
   }, [records, flows]);
 
   // Picking a record's session opens its log beside the records, which stay where they are.
@@ -872,12 +880,22 @@ function RunsOffice({
           <FiX className="h-[18px] w-[18px]" />
         </button>
 
-        {/* The bottom strip: how many are working, and the way into the records. The drawers
-            stop above it, so both entrances stay reachable with either of them up. */}
+        {/* The bottom strip: the three ways into the records, the count being the first of
+            them. The drawers stop above it, so every entrance stays reachable with one up. */}
         <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
-          <span className="nb-chip-px px-2.5 py-1 text-[12px] font-[700] text-nb-ink">
+          {/* Always pressable: with nothing running it raises an empty list, so the way to
+              the running work is in the same place whether any is going or not. */}
+          <Button
+            id={RUNNING_BTN}
+            type="button"
+            variant="ghost"
+            size="xs"
+            aria-expanded={records === "running"}
+            className={`${PX_BUTTON} ${records === "running" ? PX_BUTTON_ON : ""}`}
+            onClick={() => openRecords("running")}
+          >
             {office.live > 0 ? s.running(office.live) : s.idle}
-          </span>
+          </Button>
           <Button
             id={DONE_BTN}
             type="button"
@@ -935,16 +953,19 @@ function RunsOffice({
         {records && (
           <aside
             className="nb-panel-px nb-panel-px-left absolute bottom-14 left-0 top-14 z-20 flex w-[240px] flex-col overflow-hidden"
-            aria-label={records === "done" ? s.completed : s.unfinished}
+            aria-label={titles[records]}
             onClick={(e) => e.stopPropagation()}
             onFocusCapture={() => (drawer.current = "left")}
           >
-            <DrawerBar
-              title={records === "done" ? s.completed : s.unfinished}
-              onCollapse={closeRecords}
-            />
+            <DrawerBar title={titles[records]} onCollapse={closeRecords} />
             <div className="min-h-0 flex-1 overflow-y-auto bg-nb-cream/70">
-              <RunList flows={shown} selectedId={selectedId} onOpen={() => openLog(null)} />
+              <RunList
+                flows={shown}
+                selectedId={selectedId}
+                onOpen={() => openLog(null)}
+                // Empty here means nothing is working right now, not that nothing ever has.
+                empty={records === "running" ? s.idle : undefined}
+              />
             </div>
           </aside>
         )}
@@ -995,8 +1016,26 @@ function RunsOffice({
   );
 }
 
+/** The three entrances on the bottom strip, and the records each one raises. */
+type RecordsDrawer = "running" | "done" | "unfinished";
+
+const RUNNING_BTN = "run-records-running";
 const DONE_BTN = "run-records-done";
 const UNFINISHED_BTN = "run-records-unfinished";
+
+const RECORDS_BTN: Record<RecordsDrawer, string> = {
+  running: RUNNING_BTN,
+  done: DONE_BTN,
+  unfinished: UNFINISHED_BTN,
+};
+
+/** Which entrance a job is reached through now — where focus goes when the bot it was
+ *  opened from has left the room. A job no flow answers for any more is looked for with the
+ *  ones that did not finish. */
+const whereToFind = (flow: RunFlow | undefined): RecordsDrawer => {
+  if (flow && isLive(flow)) return "running";
+  return flow?.latest.status === "done" && flow.latest.ok ? "done" : "unfinished";
+};
 
 /** The shared Button, squared off to the room's own line weight (#760). The component is
  *  left alone — only its corners, its border and its shadow are overridden here. */
@@ -1200,13 +1239,17 @@ function RunList({
   flows,
   selectedId,
   onOpen,
+  empty,
 }: {
   flows: RunFlow[];
   selectedId: string | null;
   onOpen?: () => void;
+  /** What an empty list says, where "nothing has ever run" is not what it means. */
+  empty?: string;
 }) {
   const c = useCopy().runs.panel;
-  if (flows.length === 0) return <p className="p-4 text-[12.5px] text-nb-ink-soft">{c.empty}</p>;
+  if (flows.length === 0)
+    return <p className="p-4 text-[12.5px] text-nb-ink-soft">{empty ?? c.empty}</p>;
   return (
     <>
       {flows.map((f) => (

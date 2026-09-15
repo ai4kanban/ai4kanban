@@ -127,7 +127,9 @@ export type RunsCopy = {
     /** How many jobs are working, across every room. */
     running: (n: number) => string;
     idle: string;
-    /** The two ways into the records, and the word that puts a drawer away. */
+    /** The three ways into the records, and the word that puts a drawer away. The running
+     *  drawer is titled here; its entrance says the count instead. */
+    runningTitle: string;
     completed: string;
     unfinished: string;
     collapse: string;
