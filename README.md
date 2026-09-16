@@ -76,9 +76,9 @@ You can delegate the remaining human decisions to AI, too.
 
 - Choose a harness and model for each agent to match the demands of its role.
 
-- We recommend at least one $200/month AI subscription. With agents doing more work, you can quickly hit the usage limits on cheaper plans.
+- We recommend at least one $200/month AI subscription. With AI4Kanban, you will hit the usage limits very effectively 😉.
 
-- If you subscribe to both OpenAI and Claude, we recommend GPT models for planning and discussion, and Claude models for coding.
+- If you subscribe to both OpenAI and Claude, we recommend Fable for planning, GPT for discussion, and Opus for coding.
 
 - You can also work with the board through the skill and CLI, or build a custom UI that fits your workflow.
 
