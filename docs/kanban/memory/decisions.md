@@ -17,6 +17,10 @@ don't re-ask a settled call.
 
 - 定位只说面向独立创作者和小团队、一个看板统筹开发、设计与内容，不承诺「无需写代码」，也不写
   「面向所有人」——零编码用户的开箱即用体验还不具备，说法要和今天的产品对得上。
+- The "3–6× faster" claim has no verifiable source and stays anyway: it is the one line that
+  makes the size of the gain land. It is given a footing rather than a citation — this
+  repository's own auditable figures sit beside it, so a reader works the order of magnitude
+  out instead of taking our word for it.
 - The role is a middle-manager project manager: clarify the goal, break requirements down,
   delegate to specialist agents, and carry the work through acceptance and rework. Deciding
   which projects to start or stop and how to spread resources across the business is a COO's
@@ -57,3 +61,23 @@ don't re-ask a settled call.
   "write a skill" step bolted onto review. Prove the acceptance judgement is reliable first,
   then prove a learned SOP improves tasks it has not seen; until both hold, the output is a
   proposal a human approves rather than a rule the board starts applying.
+
+## Showing our own numbers
+
+- The install badge shows the real count of installs, however far below the download count it
+  sits. The gap is not hidden and the badge does not wait for a better number.
+
+## What a card can carry
+
+- A card's assets have one lifecycle: nothing is dropped when the build starts, everything stays
+  readable through it, and it is archived with the card and still shown on the archive page.
+  Screen mockups follow the same path — "discarded at build time" is gone.
+
+## Selling a service
+
+- Contact is a form, not a mailto: one form covers support and a customized workflow, and picking
+  customization adds a field for the workflow being described. Submitting confirms on the page;
+  the human reply is the confirmation.
+- A customized agent workflow is priced per agent, at $15 each — a five-agent workflow is $75.
+  The figure is the same in every language; the quote and the payment are settled by email, and
+  the site takes no payment.

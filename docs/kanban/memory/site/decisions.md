@@ -28,6 +28,7 @@ re-ask a settled call.
   sync with. It never promised the board has no charts, so say "no external tool".
 - The copy does not say a second agent reviews every delivery: review is a detail of how a
   delivery works, not a selling point.
+- **「3–6×」这类主张拿什么做证据？**：首页里的一段，不单开一页——四个能点回公开源头的数字，配一条每日完成曲线；曲线比纯数字直观。
 
 ## The home page's hand-drawn shots
 

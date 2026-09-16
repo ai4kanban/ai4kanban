@@ -11,6 +11,11 @@ re-ask a settled call.
   diffed; a rejected card is deleted, since `rejected.md` records why. The archive is not
   memory — no flow reads it.
 - A file nothing writes is the leftover we avoid, so the set never grows a fifth file.
+- Every memory file belongs to the agent that owns it: `decisions.md` and `rejected.md` to the
+  planner, `readme.md` and `redesign.md` to the builder, its own preferences and corrections
+  to every other agent. The board holds no preferences of its own.
+- Neither the board nor a module keeps a memory folder — a module is a topic inside an
+  agent's file, and the shipped list and the cross-agent product calls hang off an agent too.
 
 ## The goal
 
@@ -244,6 +249,10 @@ re-ask a settled call.
   discussion, decisions and maintenance remain board capabilities, with other hooks deferred.
   Built-in flows may be configured or copied but not renamed or deleted. No solution folder
   is copied into a board.
+- A helper's Extra is the user's own additional requirement and nothing else. An order two
+  agents must keep between them — the copy is confirmed before the screen is drawn — is built
+  into the board, invisible to the user and not overridable, and the board enforces it by
+  holding the second request back rather than by wording in a prompt.
 - Custom agents keep one instruction body in the board's `agents/<id>/AGENT.md`;
   purpose, inputs and deliverables are not separate required fields. Preserve legacy
   metadata and use the same file for UI and manual edits.

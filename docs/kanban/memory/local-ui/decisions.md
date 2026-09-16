@@ -123,6 +123,9 @@ re-ask a settled call.
   the list instead. Anything that moves is its own layer over a still backdrop.
 - Context usage is measured against the model's advertised window, matching what the harness
   shows, so a session can be compacting before the reading looks full.
+- A run that ended without finishing stays a standing warning until the card is handled, and
+  it is marked on the card in its board column too, not only where runs are read — the columns
+  carry one more permanent mark for it.
 
 ## Connectors and keys
 

@@ -111,6 +111,7 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 ## Refining on its own
 
 - ❌ **Ask users to choose an unverified protection mechanism** → ✅ verify feasibility and bypass paths first; resolve technical choices and never weaken accepted protection requirements without agreement.
+- ❌ **Read "a determined bypass cannot be blocked" as "the agent cannot be constrained"** → ✅ a contract in the agent's own guide plus an ownership check in the command that writes is a real constraint; design that layer, and do not escalate a scoping requirement into a sandbox nobody asked for.
 - ❌ **Treat every test as "check by hand"** → ✅ put agent-executable checks in `## Todo`;
   reserve `verify:` for a reproducible human plan, and add the fixtures that plan needs.
 - ❌ **Record every auto-answer in `decisions.md`** → ✅ keep auto-answers on the card and

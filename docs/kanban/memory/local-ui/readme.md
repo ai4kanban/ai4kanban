@@ -40,9 +40,11 @@ naming no other doc is covered there.
   "Group tasks".
 - **Insights** holds one chart, Daily progress, read from that repo's `metrics.csv`:
   "Insights".
-- **Memory** in the rail opens the four project files and one row per module, read-only:
-  "The board's memory". **Archive** under it opens every finished card, newest first, whole
-  and read-only: "The archive".
+- **Memory** in the rail opens one group per owner, read-only: the board's own record — what
+  shipped, and the goal — then every agent that keeps memory, opening the files it holds. A
+  module is a topic inside those files rather than a group of its own: "The board's memory".
+  **Archive** under it opens every finished card, newest first, whole and read-only: "The
+  archive".
 - A board with no card shows one panel in its place, with **Create the first card**.
 - Opened on a phone the board is laid out for that width — a bottom tab bar of **Board**,
   **Find**, **Memory** and **More**, one column at a time, and Resolve, Create task and
@@ -99,6 +101,12 @@ naming no other doc is covered there.
   hairline the window's own Collapse or ✕. The log starts directly under it.
 - A running card's mark on the board opens Runs on that run; the board draws no log of its own,
   and neither does **Resume creating** on a half-written card.
+- A run that stopped short on a card nobody has dealt with stays visible until that card is:
+  its bot keeps a desk with the screen dark and a warning nameplate, **Unfinished** carries the
+  count in the warning colour, the top row's Runs mark turns from the live ember to a still
+  warning dot, and the card wears an **Unfinished** mark in its column that opens the run. It
+  clears when a later run on that card passes, or when the card lands, is archived or is
+  rejected; a run you stopped yourself, and one on no card, never warn.
 - Inside the pixel office the two drawers are game dialog boxes — square corners, a thick ink
   line, a hard shadow — pushed out from the left and right walls with their title bars level,
   the log's reversed out to paper on ink. The chips over the room wear the same square frame,
@@ -113,7 +121,7 @@ naming no other doc is covered there.
   instead".
 - Answer a question with choices by ticking a list, with the recommended ones pre-ticked, and
   cross off what a build left you to check by hand: "Checking a card by hand".
-- Read a card's mockups where their tags sit: "Mockups on a card".
+- Read a card's screens and images where their `<Asset>` tags sit, and open one at full size: "Assets on a card".
 - Run a recurring card from its page, or give it a cadence: "Recurring tasks".
 - A card the Decider answered wears a skip mark, and **What Decider chose for you** on the
   card page lists each question, the option taken and where it went:
@@ -205,6 +213,9 @@ naming no other doc is covered there.
 - A bell in the top row carries every board Cloud is on for, with **To do** and **Landed**
   tabs: the bell's number and the app icon's badge count **To do** alone, a new landed record
   dots its own tab, and **Mark all read** works on the tab you are on.
+- The bell fills without Cloud too: a run of this board's own that stopped short gets a rail
+  row and one system notification with no account signed in, and that row opens the run's log
+  rather than the card page.
 - A board that couldn't reach Cloud catches up on its own, and what it finally gives up on is
   said in the bell rather than disappearing.
 - Slack connects once in **Configuration → Notifications** and belongs to the account:
@@ -216,3 +227,9 @@ naming no other doc is covered there.
 
 - The page, the rail row and the add box all read **Triage / 待筛选**, and missing settings
   are named as `Triage endpoint` and `TRIAGE_ENDPOINT_TOKEN`: `web/content/docs/triage.mdx`.
+
+## Boards
+
+- A project holding one board draws no board badge beside the folder chip; one holding two
+  draws each board's folder from the project root (`docs/kanban`) and switches between them
+  there. The window title names the board the same way.

@@ -37,3 +37,9 @@ Internal detail stays on the card.
 - **Does any number leave the service?**: one does. A public read-only route answers the
   cumulative install count and nothing else, so the README can carry an install badge; every
   other number is still read only from a machine holding the Cloudflare account.
+
+## Getting a fix live
+
+- **When does a fix to the nightly summaries ship?**: the day it is built, by hand on a machine
+  holding the Cloudflare account, rather than riding the next regular release — the summaries
+  only backfill nine days, so a wait costs install counts nobody can recover.

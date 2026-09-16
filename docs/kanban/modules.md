@@ -3,9 +3,9 @@
 If a line here disagrees with the repo you just read, fix the line.
 
 - **skill** — the shared board machinery and product solution: the board format, the `akb` command, and the rules and flows it carries. `cli/` (the sources — `src/guide/` are the flows, `src/templates/` the blank config, all built into the one `cli/dist/kanban.mjs`, which is not in git), `skill/` (`SKILL.md` alone: the one file a project gets, inlined into that build; installed in this repo via the `.claude/skills/kanban` symlink; packaged as a Claude Code plugin in `.claude-plugin/`).
-- **local-ui** — the UI to drive the board from buttons: the browser app published as `ai4kanban-ui`, and the desktop app that wraps it. `kanban-ui/`, `desktop/`; marketing-specific screens belong to **marketing**.
-- **marketing** — the marketing board solution: topics, drafts, channels, writing memory and publishing workflows, including its card and editor UI. `cli/src/guide/marketing/`, marketing-specific commands and helpers in `cli/src/`, marketing components in `kanban-ui/`, and `marketing/`.
-- **site** — the marketing and landing site, deployed to Cloudflare Pages. `web/`.
+- **local-ui** — the UI to drive the board from buttons: the browser app published as `ai4kanban-ui`, and the desktop app that wraps it. `kanban-ui/`, `desktop/`.
+- **marketing** — telling people about the product: site copy, posts, the newsletter, the directories we are listed in, and what goes out when. The work itself, not code — it is planned and written on the board like any other card, through the content workflow.
+- **site** — the public landing site, deployed to Cloudflare Pages. `web/`.
 - **docs** — the user guides, authored as MDX and published at `/docs` on the site. `web/content/docs/` (a page per `.mdx` file, with the rail's grouping and order in `_nav.json`); the routes and components that render them are **site**.
 - **telemetry** — usage events, feedback, and shared cases from the app, CLI, and site; `telemetry/` holds the service, storage, daily summaries, and reporting scripts.
 - **cloud** — the hosted board control plane, shared board data, identity, and team coordination. `cloud/` (the Worker at `api.ai4kanban.dev`, its Postgres migrations, and its own deploy, rollback and migrate commands).

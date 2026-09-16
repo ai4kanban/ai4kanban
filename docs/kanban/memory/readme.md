@@ -39,3 +39,6 @@ covers it, or a plain-words note.
   now fixed and shown rather than picked, so the name of a built-in always says who runs it.
   Duplicating one, or adding your own, gives you a workflow whose three leads are yours to
   choose; the helpers on a built-in are still yours to add and remove.
+- Coming back to a card page with Back or Forward (the browser's, or the app's swipe) now
+  shows the card as it is on disk, not as it was when you left; a change that lands only in
+  the folded agent analysis opens that fold.

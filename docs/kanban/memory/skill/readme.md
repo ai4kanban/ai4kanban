@@ -69,8 +69,6 @@ covers it, or a plain-words note.
 - Delivery, run and session are the three nested things, one name each: `akb help runs`.
 - A repository can hold more than one board: `akb install --board <dir>`, `--board` or
   `AI4KANBAN_BOARD` on every command: `cli/README.md`.
-- A board says what its work is in one `- **Solution**` line in `config.md` — `product` or
-  `marketing` — and that picks every flow it is handed.
 - `akb chat` talks about the board or one card, keeps many discussions, pins a runtime per
   conversation and records each reply's time, tokens and cost:
   `web/content/docs/chat.mdx`, `cli/README.md`.
@@ -96,6 +94,15 @@ covers it, or a plain-words note.
   diff-size bar, and a delivery that wrote no file stops unfinished rather than passing as
   one with nothing to land. Ask for the flow a card actually reads with
   `akb guide <topic> --card <id>`.
+- Content work runs on the ordinary board, through the `content` workflow: the marketing
+  board and everything only it had — `akb channel`, `akb write`, `akb marketing verify`,
+  `akb raw channel-status`, `--channels`, `--solution` and the `write` agent kind — are gone,
+  and there is one kind of board again. A board still carrying a `Solution` line, cards with
+  `channels:` or a `kind: write` agent opens unchanged: the line is ignored, the cards read as
+  ordinary cards, and the agent is listed as one problem.
+- The three content agents keep a memory of their own in
+  `docs/kanban/memory/agents/<agent>/` — the writing taste, in their own words. All three are
+  handed all three folders on every content run; each writes back only its own.
 
 ## Agents, runtimes and keys
 
@@ -132,6 +139,16 @@ covers it, or a plain-words note.
 - `ui-designer` answers with one design rather than alternatives, one mockup per screen worth
   reviewing: "Mockups on a card" in `kanban-ui/README.md`.
 - `technology-selection` answers with one table of candidates and one line naming the pick.
+
+## Memory
+
+- A memory file belongs to whoever writes it: `docs/kanban/memory/` holds the board's own
+  record — `readme.md` and `goal.md` — and everything a run learned is an agent's, under
+  `memory/agents/<agent>/`. The planner keeps `decisions.md`, `rejected.md` and
+  `redesign.md`; a module is a `## <module>` topic inside a file, not a folder:
+  `web/content/docs/agents.mdx`, "Who owns a memory file" in `akb guide board`.
+- `akb update` moves an older board's memory over by itself — merged into what is already
+  there, never overwritten, and only once: `akb guide update`.
 
 ## Installing and updating
 

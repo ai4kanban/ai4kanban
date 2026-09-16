@@ -25,6 +25,9 @@ before proposing so you don't re-suggest them.
   an honest gap for a paste that is silently thrown away.
 - **OpenDesign as a third mockup style** — until our own `ui-design` draws well, a style that
   spawns a second coding agent with its own sign-in buys a shared look on a moving foundation.
+- **`akb.produces`, a frontmatter field declaring a spec agent's output formats** — a format
+  contract written into the agent's own prompt, the way `references/rendered-screen.md` does it,
+  is enough; ui-designer already works without the field.
 
 ## Chat
 

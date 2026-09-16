@@ -40,6 +40,10 @@
   stacked under the first is invisible. Where a card names two surfaces, give each its own file.
 - **A pane that overflows its dialog is drawn as a scrolled pane**, cut through body text —
   measure the groups against the dialog's real height before assuming they fit.
+- **A figure whose argument is elsewhere spends no extra lines**: when a tree or diagram
+  illustrates one branch of a claim, the new branch gets the line count the old one had, and
+  its longest line stays no wider than the widest already in the picture — the tree scrolls
+  sideways on a phone, so one extra character is a new failure to check.
 
 ## Register
 
@@ -288,4 +292,10 @@
 
 - ❌ **Annotation drawn only as a marked-up markdown passage** → ✅ a picture has no passages to select: open it with one whole-file note control beside it and that note's number on its corner, and let one numbering run across both anchors in the list below.
 
-- ❌ **A handoff drawn as a file browser: contract checks, per-round file lists, previews and annotation, twenty-two screens nobody could learn** → ✅ a paths box and a status line; when the card's mechanism itself is in question, draw nothing until it settles.
+- ❌ **A handoff drawn as a file browser: contract checks, per-round file lists, previews and annotation, twenty-two screens nobody could learn** → ✅ a paths box and a status line; when the card's mechanism itself is in question, draw nothing until it settles. It settled to one `akb:` key, and the whole design was then one READ-ONLY row: an added agent's page already holds its entire `AGENT.md`, so a new key needs no field — the only question left is where its meaning is said, and that is beside the setting the meaning depends on. A key the connector reinterprets goes under 运行时, in the same help slot `unknownHarness` already uses.
+
+- ❌ **A chart's average label laid inside the plot, and an outbound arrow set as a flex sibling of the link text** → ✅ both break at phone width: the label lands on the curve, and a source that wraps strands the arrow at the right edge. Put the label on the chart's heading row as a legend — dashed swatch, then the words — and put the arrow inside the sentence so it follows the last word.
+
+- ❌ **A measured number and a reported claim drawn as the same kind of block** → ✅ a figure that links to its source is a raised, clickable tile; a figure that only has someone's word behind it sits on the deeper `code` ground, unlinked, with one line naming who reported it. Same paragraph, two grounds — or the claim inherits the proof's credibility for free.
+
+- **A series that keeps growing is a line, never bars**: a day is a point, so 66 days and 400 days are the same picture at different densities, while a bar goes from 8px to invisible. Stretch the curve with `preserveAspectRatio="none"` and `vector-effect="non-scaling-stroke"`, and keep every word outside the SVG so nothing distorts with it.

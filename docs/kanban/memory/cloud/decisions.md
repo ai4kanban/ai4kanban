@@ -134,3 +134,7 @@ Internal detail stays on the card.
   and records the Cloud action afterwards.
 - Cloud tells a teammate the server's whole runtime binding, names only: never a key, an
   argument string or a path.
+
+## The site's public forms
+
+- **Spam protection**: server-side rate limits by visitor IP and submitted email only — no Turnstile or other human check, accepting that a scripted flood can reach the support inbox.
