@@ -27,12 +27,13 @@ List the work the completed card leaves behind. Strong candidates only:
 
 ## 3. Ground each one
 
-Check `docs/kanban/memory/goal.md` and the module memory beside it for the direction, then
-drop every candidate that is already accounted for:
+Check `docs/kanban/memory/goal.md` and the planner's memory in
+`docs/kanban/memory/agents/planner/` for the direction, then drop every candidate that is
+already accounted for:
 
 - `akb raw list` — already on the board, planned or in flight.
 - `akb triage check <source-id>` — already waiting, already made into a card, or ignored before.
-- `docs/kanban/memory/rejected.md`, and each module's — turned down before.
+- `docs/kanban/memory/agents/planner/rejected.md` — turned down before.
 
 **Rules**:
 

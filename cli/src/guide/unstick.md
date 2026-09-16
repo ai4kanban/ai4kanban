@@ -11,7 +11,8 @@ moved somewhere else, or nobody ever really wanted it.
 
 - **The card**, and the project evidence it names.
 - **`docs/kanban/memory/goal.md`** — what this project is for.
-- **Every module's `decisions.md` and `rejected.md`** — the calls already made.
+- **The planner's `decisions.md` and `rejected.md`**, in `docs/kanban/memory/agents/planner/`
+  — the calls already made.
 
 You write none of them. What you judged stays on the card you kept, or leaves with the card
 you discarded.

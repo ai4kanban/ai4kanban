@@ -39,7 +39,7 @@ import {
   type UpdateOptions,
   type VerifyOpsInput,
 } from '../../commands/card'
-import { cmdInit, cmdMemoryInit } from '../../commands/init'
+import { cmdInit } from '../../commands/init'
 import type { DecidedInput } from '../decided'
 import { cmdList, type ListOptions } from '../../commands/list'
 import { cmdMigrate, cmdRun, type MigrateOptions } from '../../commands/misc'
@@ -77,7 +77,7 @@ import { readModules, readSetupDraft, saveProject as saveProjectWrite } from '..
 import { deliveryRules, setAgentRule } from '../agent/rules'
 import { createAgent, deleteAgent, readAgents, saveAgentFile } from '../agents/roster'
 import { readGoalText, writeGoalText } from '../view/goal'
-import { readMemoryFile, readMemoryModules, writeMemoryFile } from '../view/memory'
+import { readMemoryFile, readMemoryOwners, writeMemoryFile } from '../view/memory'
 import { readMetricsView } from '../view/metrics'
 import { allCards, findCard, readBoard, readSetupState } from '../view/read'
 import { boardStamp } from '../view/stamp'
@@ -123,7 +123,6 @@ const as = <T,>(opts: Record<string, unknown>): T => opts as T
 const MOVES: Record<string, RunMove> = {
   validate: ({ args }) => cmdValidate(args[0] === undefined ? undefined : Number(args[0])),
   init: () => cmdInit(),
-  'memory-init': ({ args }) => cmdMemoryInit(args[0]),
   'setup-done': ({ args }) => cmdSetupDone(args[0]),
   'setup-status': () => cmdSetupStatus(),
   create: ({ opts }) => cmdCreate(as<CreateOptions>(opts)),
@@ -263,8 +262,8 @@ export function localBoard(): BoardProvider {
     readReleases: () => read(readReleases, []),
     readModules: () => Promise.resolve(readModules()),
     readGoalText: () => Promise.resolve(readGoalText()),
-    readMemoryFile: (name, module = '') => Promise.resolve(readMemoryFile(name, module)),
-    readMemoryModules: () => Promise.resolve(readMemoryModules()),
+    readMemoryFile: (name, agent = '') => Promise.resolve(readMemoryFile(name, agent)),
+    readMemoryOwners: () => Promise.resolve(readMemoryOwners()),
     readSetupState: () => Promise.resolve(readSetupState()),
     readSetupDraft: () => Promise.resolve(readSetupDraft()),
     readMetricsView: () => Promise.resolve(readMetricsView()),

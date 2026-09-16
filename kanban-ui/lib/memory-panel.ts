@@ -3,14 +3,14 @@ import { useCallback, useEffect, useState } from "react";
 const KEY = "kanban-ui.memory-open";
 
 /** Where one memory file lives in the panel, and in an address: the file's own name for the
- *  project's copy, `<module>/<name>` for a module's (#130). It is what a row links to and
- *  what says which row is lit, so the two can never disagree. */
-export function memoryKey(module: string, name: string): string {
-  return module ? `${module}/${name}` : name;
+ *  board's own record, `<agent>/<name>` for one an agent keeps (#130, #805). It is what a row
+ *  links to and what says which row is lit, so the two can never disagree. */
+export function memoryKey(agent: string, name: string): string {
+  return agent ? `${agent}/${name}` : name;
 }
 
-/** The module a key belongs to, or "" for one of the project's four. */
-export function memoryModuleOf(key: string | null): string {
+/** The agent a key belongs to, or "" for the board's own record. */
+export function memoryAgentOf(key: string | null): string {
   const at = key?.indexOf("/") ?? -1;
   return at > 0 ? key!.slice(0, at) : "";
 }
@@ -65,28 +65,33 @@ export function useMemoryPanel(
   return { open, toggle, animate };
 }
 
-/** Which module rows are expanded (#130). Any number can be open at once, and nothing is
- *  remembered across reloads: a remembered module goes stale the day it leaves the map, and
- *  the rail's own chrome — its width, the panel being open — is the only view state the
- *  board keeps.
+/** Which owners are expanded (#130, #805). Any number can be open at once, and nothing is
+ *  remembered across reloads: the rail's own chrome — its width, the panel being open — is
+ *  the only view state the board keeps.
  *
- *  The one exception is the module holding the file you landed on. A memory file is a page
- *  of its own, so a reload can land inside a module, and its row has to be on screen for the
- *  highlight to mean anything. That holds on a client navigation too, hence the effect
- *  beside the seeded initial state. */
-export function useOpenModules(active: string): {
-  isOpen: (module: string) => boolean;
-  toggle: (module: string) => void;
+ *  Open to begin with: every owner that has written something, and the one holding the file
+ *  you landed on. An agent that has remembered nothing has one line to show, so it starts
+ *  folded away rather than spending two rows saying nothing.
+ *
+ *  A memory file is a page of its own, so a reload can land inside an owner, and its row has
+ *  to be on screen for the highlight to mean anything. That holds on a client navigation
+ *  too, hence the effect beside the seeded initial state. */
+export function useOpenOwners(
+  active: string,
+  written: string[],
+): {
+  isOpen: (agent: string) => boolean;
+  toggle: (agent: string) => void;
 } {
-  const [open, setOpen] = useState<string[]>(() => (active ? [active] : []));
+  const [open, setOpen] = useState<string[]>(() => [...new Set([...written, ...(active ? [active] : [])])]);
 
   useEffect(() => {
     if (active) setOpen((was) => (was.includes(active) ? was : [...was, active]));
   }, [active]);
 
-  const toggle = useCallback((module: string) => {
-    setOpen((was) => (was.includes(module) ? was.filter((m) => m !== module) : [...was, module]));
+  const toggle = useCallback((agent: string) => {
+    setOpen((was) => (was.includes(agent) ? was.filter((m) => m !== agent) : [...was, agent]));
   }, []);
 
-  return { isOpen: (module) => open.includes(module), toggle };
+  return { isOpen: (agent) => open.includes(agent), toggle };
 }

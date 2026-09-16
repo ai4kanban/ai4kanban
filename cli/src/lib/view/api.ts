@@ -53,8 +53,8 @@ export const readModules = () => board().readModules()
 export const readMetricsView = () => board().readMetricsView()
 export const readReleases = () => board().readReleases()
 export const readGoalText = () => board().readGoalText()
-export const readMemoryFile = (name: string, module = '') => board().readMemoryFile(name, module)
-export const readMemoryModules = () => board().readMemoryModules()
+export const readMemoryFile = (name: string, agent = '') => board().readMemoryFile(name, agent)
+export const readMemoryOwners = () => board().readMemoryOwners()
 export const readAgents = () => board().readAgents()
 export const deliveryPlan = () => board().deliveryPlan()
 export const deliveryDiff = (deliveryId: string) => board().deliveryDiff(deliveryId)
@@ -205,16 +205,16 @@ export async function dropRelease(id: string, opts?: WriteOptions): Promise<Writ
 
 // ---- memory and the rules --------------------------------------------------
 
-/** Write one of the four memory files whole — the project's copy, or a module's when
- *  `module` names one. The board owns which names and which modules exist, so a name that
- *  is not one of the four comes back as a refusal rather than a new file. */
+/** Write one memory file whole — the board's own record, or one an agent keeps when `agent`
+ *  names one. The board owns who holds what, so a file its owner does not hold comes back as
+ *  a refusal rather than a new file somewhere nobody would look for it. */
 export async function saveMemoryFile(
   name: string,
   text: string,
-  module = '',
+  agent = '',
   opts?: WriteOptions,
 ): Promise<WriteResult> {
-  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveMemoryFile(name, text, module, env)))
+  return flat(await envelopeFor({ board: true }, opts, (env) => board().saveMemoryFile(name, text, agent, env)))
 }
 
 /** Save one agent's rule, in the user's own words (#420). Empty text clears it, and every

@@ -123,7 +123,7 @@ export async function cardScreen(id: number): Promise<CardScreen | null> {
     openIds: board.openIds,
     releases: board.releases,
     goalWritten: board.goalWritten,
-    memoryModules: board.memoryModules,
+    memoryOwners: board.memoryOwners,
     plan,
     diff,
     hold,
@@ -307,21 +307,21 @@ export async function readGoalText(): Promise<string> {
   }
 }
 
-/** One of the four memory files, whole (#129) — the project's copy, or a module's when
- *  `module` names one. `null` for a name that isn't one of the four, and for a module the
- *  map doesn't name (#130).
+/** One memory file, whole (#129, #805) — the board's own record, or one an agent keeps when
+ *  `agent` names one. `null` for a file that owner does not hold, and for an agent that
+ *  keeps no memory (#130).
  *
  *  Read on each open rather than held, so a file a run has just rewritten reads as it is
  *  now. A board with no rules to read it with, or rules older than the release that added
  *  this, throws: the memory page is the one screen this is the whole of, and a page that
  *  quietly showed nothing would read as an empty memory. */
-export async function readMemory(name: string, module = ""): Promise<MemoryFile | null> {
+export async function readMemory(name: string, agent = ""): Promise<MemoryFile | null> {
   const rules = await boardRules();
   if (!rules.readMemoryFile) {
     const c = (await machineCopy()).messages.rules;
     throw new NoRulesError(c.tooOldForMemory, c.installIt);
   }
-  return rules.readMemoryFile(name, module);
+  return rules.readMemoryFile(name, agent);
 }
 
 /** What `docs/kanban/.archive` holds — every finished card, newest first (#380).

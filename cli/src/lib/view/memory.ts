@@ -1,95 +1,113 @@
 // ---- the board's memory, read -----------------------------------------------
 //
-// The four files — what shipped, what was settled, what design mistakes to avoid, what was
-// turned down. Every proposal is judged against them and every answer a run settles by
-// itself leans on them, so a screen has to be able to show them.
+// What shipped, where the project is going, what was settled, what design mistakes to avoid,
+// what was turned down. Every proposal is judged against them and every answer a run settles
+// by itself leans on them, so a screen has to be able to show them.
 //
-// The set exists at two levels: the project's own in `docs/kanban/memory/`, and one copy per
-// module in `docs/kanban/memory/<module>/`. Both are read here, by the same call — a module
-// is named or it isn't (#130).
+// Memory is grouped by WHO owns it (#805): `docs/kanban/memory/` holds the board's own
+// record — `readme.md` and `goal.md` — and each agent that keeps memory has a folder of its
+// own beside them. A module is a `## <module>` topic inside a file, so there is nothing here
+// that opens one.
 //
-// A module is offered only when `docs/kanban/modules.md` names it, so an address someone
-// typed can't reach a folder the map has never heard of. That holds for the writer too: a
-// module the map does not name has no memory folder to write into.
-//
-// The list is fixed and a file that isn't there keeps its place, so the rows read the same
-// on every board — an empty `text` with `written: false` is the answer for a file nobody
-// has written, not a missing entry.
+// The rows are fixed per owner and a file that isn't there keeps its place, so an owner's
+// page reads the same on every board — an empty `text` with `written: false` is the answer
+// for a file nobody has written, not a missing entry.
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { RESERVED_MEMORY_DIR } from '../memory'
-import { MEMORY, rel } from '../paths'
-import { readModules } from './first-run'
-import { MEMORY_FILES, type MemoryFile, type MemoryModule, type MemoryName } from './types'
+import { agentRoster } from '../agent/roles'
+import { BOARD_MEMORY_FILES, memoryNamesOf, migrateMemory } from '../memory'
+import { AGENT_MEMORY, MEMORY, rel } from '../paths'
+import { readGoalBody } from './goal'
+import { MEMORY_FILES, type MemoryFile, type MemoryName, type MemoryOwner } from './types'
 
-const memoryPath = (name: string, module: string): string =>
-  path.join(module ? path.join(MEMORY, module) : MEMORY, `${name}.md`)
+const memoryPath = (name: string, agent: string): string =>
+  path.join(agent ? path.join(AGENT_MEMORY, agent) : MEMORY, `${name}.md`)
 
-const known = (name: string): name is MemoryName =>
-  MEMORY_FILES.some((f) => f.name === name)
+const nameOf = (file: string): MemoryName => file.replace(/\.md$/, '') as MemoryName
 
-// The project's own copy, or a module the map names — never `memory/agents/`, which is the
-// agents' own and not a module's set however the map spells it (#421).
-const openable = (module: string): boolean =>
-  !module || (module !== RESERVED_MEMORY_DIR && readModules().includes(module))
-
-/** The modules the panel can open, in the map's order, each saying whether it has a memory
- *  folder yet. A module with none gets one line saying so rather than four dead rows. */
-export function readMemoryModules(): MemoryModule[] {
-  return readModules()
-    .filter(openable)
-    .map((name) => ({
-      name,
-      hasMemory: fs.existsSync(path.join(MEMORY, name)),
-    }))
+/** The files one owner may hold, in the panel's order — the board's two, or the agent's own. */
+const filesOf = (agent: string): MemoryName[] => {
+  const held = new Set((agent ? memoryNamesOf(agent) : BOARD_MEMORY_FILES).map(nameOf))
+  return MEMORY_FILES.filter((ref) => held.has(ref.name)).map((ref) => ref.name)
 }
 
-/** One memory file, whole — the project's copy, or a module's when `module` names one.
+/** Every agent on this board that keeps a memory folder of its own, in the roster's order. */
+const owners = (): Array<{ agent: string; title: string }> =>
+  agentRoster()
+    .filter((entry) => entry.ownMemory.length > 0)
+    .map((entry) => ({ agent: entry.name, title: entry.title }))
+
+/** The board's own record, then each agent's folder (#805). An agent is listed because it
+ *  KEEPS memory, not because it has written any: `files` is empty until it does, and the
+ *  panel says so rather than drawing rows that lead nowhere. The board's own two are always
+ *  listed — they are the board's record, and an empty one still has a page. */
+export function readMemoryOwners(): MemoryOwner[] {
+  migrateMemory()
+  return [
+    { agent: '', title: '', files: filesOf('') },
+    ...owners().map(({ agent, title }) => ({
+      agent,
+      title,
+      files: filesOf(agent).filter((name) => fs.existsSync(memoryPath(name, agent))),
+    })),
+  ]
+}
+
+/** Whether this owner holds that file at all — the one test a typed address is put to. */
+const openable = (name: string, agent: string): name is MemoryName =>
+  (filesOf(agent) as string[]).includes(name) && (!agent || owners().some((o) => o.agent === agent))
+
+/** One memory file, whole — the board's own, or one an agent keeps.
  *
- *  `null` for a name that isn't one of the four, and for a module the map doesn't name: a
+ *  `null` for a file that owner does not hold, and for an agent that keeps no memory: a
  *  caller passing an address someone typed gets an answer it can turn into "no such page". */
-export function readMemoryFile(name: string, module = ''): MemoryFile | null {
-  if (!known(name)) return null
-  if (!openable(module)) return null
+export function readMemoryFile(name: string, agent = ''): MemoryFile | null {
+  migrateMemory()
+  if (!openable(name, agent)) return null
   const ref = MEMORY_FILES.find((f) => f.name === name)!
-  const file = memoryPath(name, module)
+  const file = memoryPath(name, agent)
   let text = ''
   try {
     text = fs.readFileSync(file, 'utf8')
   } catch {
     // Not there yet. The row stays and says so; every board then reads the same shape.
   }
+  // The goal's `reviewed:` field is the agent's own bookkeeping, and a file holding nothing
+  // but it is a goal nobody has written — the same test the header's star reads.
+  const goal = name === 'goal' ? readGoalBody(text) : null
   return {
     ...ref,
-    module,
+    agent,
     path: file,
     // Repo-relative and always with forward slashes: this is the form pasted to an agent
     // working in the repo, and a Windows board's backslashes would not be that form.
     relPath: rel(file).split(path.sep).join('/'),
-    text,
-    written: text.trim() !== '',
+    text: goal ? goal.body.replace(/^\n+/, '') : text,
+    written: goal ? goal.written : text.trim() !== '',
   }
 }
 
 /**
- * Write one memory file whole — the project's copy, or a module's when `module` names one.
+ * Write one memory file whole — the board's own, or one an agent keeps.
  *
  * The only writer there has ever been is the coding agent editing the file as a file, which
  * a board that does not live on this machine has no way to do (#315). So the board gains one,
- * and it is the same four names and the same two levels the reader above answers for: a name
- * that is not one of the four, and a module the map does not name, are both refused rather
- * than written somewhere nobody would look for them.
+ * and it answers for exactly what the reader above does: a file its owner does not hold is
+ * refused rather than written somewhere nobody would look for it.
  *
- * The folder is made on the way, so a module remembering its first thing does not have to be
+ * The folder is made on the way, so an agent remembering its first thing does not have to be
  * initialised first.
  */
-export function writeMemoryFile(name: string, text: string, module = ''): MemoryFile | null {
-  if (!known(name)) return null
-  if (!openable(module)) return null
-  const file = memoryPath(name, module)
+export function writeMemoryFile(name: string, text: string, agent = ''): MemoryFile | null {
+  migrateMemory()
+  if (!openable(name, agent)) return null
+  // Never the goal: it is the user's own words under a field the board keeps, and `saveGoal`
+  // is what writes one without losing either.
+  if (name === 'goal') return null
+  const file = memoryPath(name, agent)
   fs.mkdirSync(path.dirname(file), { recursive: true })
   fs.writeFileSync(file, text.endsWith('\n') || text === '' ? text : `${text}\n`)
-  return readMemoryFile(name, module)
+  return readMemoryFile(name, agent)
 }

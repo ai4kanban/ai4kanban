@@ -142,7 +142,7 @@ describe('a board, assembled from one Cloud read', () => {
   it('serves nothing the two screens do not draw', () => {
     const screen = boardScreenFrom(read({ cards: [card(1, 'todo/1-one.md')] }))
     assert.deepEqual(screen.board!.archive, [])
-    assert.deepEqual(screen.board!.memoryModules, [])
+    assert.deepEqual(screen.board!.memoryOwners, [])
     assert.equal(screen.board!.setup, null)
     assert.equal(screen.board!.goalWritten, false)
     assert.equal(screen.error, null)
@@ -230,7 +230,7 @@ describe('one card, assembled from the same read', () => {
     )!
     assert.deepEqual(screen.openIds, [10, 11])
     assert.deepEqual(screen.releases, ['0.9.0', '1.0.0'])
-    assert.deepEqual(screen.memoryModules, [])
+    assert.deepEqual(screen.memoryOwners, [])
     assert.equal(screen.goalWritten, false)
     assert.equal(screen.diff, null)
     assert.deepEqual(screen.plan, { commitMode: 'manual' })

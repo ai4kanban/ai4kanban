@@ -13,7 +13,7 @@
 //
 // What the moves are, and what each one does, is `node kanban.mjs help`.
 //
-//   init | memory-init | setup-done | setup-status     the board itself
+//   init | setup-done | setup-status                   the board itself
 //   create | update | update-questions | tag | list    a card's fields
 //   schedule                                           what a blocked card runs when freed
 //   release new | goal | list | close | drop           the versions being planned
@@ -457,7 +457,7 @@ export {
 export type * from './lib/agent/types'
 
 // …and the board itself: the columns, one card in full, the archive, the releases, the
-// metrics, the setup checklist, the goal, the board's memory (the project's and each module's) — plus every write a screen makes and the
+// metrics, the setup checklist, the goal, the board's memory (its own record and each agent's) — plus every write a screen makes and the
 // question the board's background timer asks each tick. One door (lib/view/api.ts), the same rules the commands
 // run, so a button and a command can never disagree about what a card says.
 export {
@@ -483,7 +483,7 @@ export {
   readBoard,
   readGoalText,
   readMemoryFile,
-  readMemoryModules,
+  readMemoryOwners,
   readMetricsView,
   readModules,
   readReleases,

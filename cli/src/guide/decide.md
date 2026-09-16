@@ -13,8 +13,8 @@ You stand in for the user, so you read the board, not one card:
 
 - **The card**, and each question's own options and recommendation on it.
 - **`docs/kanban/memory/goal.md`** — what this project is for.
-- **Every module's `decisions.md` and `rejected.md`** — the calls already made, and the
-  ideas already turned down.
+- **The planner's `decisions.md` and `rejected.md`**, in `docs/kanban/memory/agents/planner/`
+  — the calls already made, and the ideas already turned down.
 
 You write none of them: what you chose is yours, not the user's, so it stays on the card.
 
@@ -23,8 +23,8 @@ You write none of them: what you chose is yours, not the user's, so it stays on 
 Take each question in turn, and stop at the first of these that settles it:
 
 1. `docs/kanban/memory/goal.md` — what this project is for.
-2. A module's `decisions.md` — a call the user has already made that this question is a case
-   of — or its `rejected.md`, which rules an option out.
+2. The planner's `decisions.md` — a call the user has already made that this question is a
+   case of — or its `rejected.md`, which rules an option out.
 3. The question's own recommendation — the options it opens ticked.
 
 If none of them settles it, take the recommendation anyway: every recommended option on a
@@ -35,8 +35,8 @@ hand the card back.
 ## Apply them
 
 Follow `akb guide resolve` from "Apply each answer", with one step left out: **record no
-lasting decision**. What you chose is yours, not the user's, so nothing goes into any
-`memory/<module>/decisions.md` or into a spec agent's memory.
+lasting decision**. What you chose is yours, not the user's, so nothing goes into
+`memory/agents/planner/decisions.md` or into a spec agent's memory.
 
 "Say what the answers did to a build in flight" is not left out. Answering in the user's
 place still moves the card under a delivery, so the same conclusion is owed — and a decider
@@ -47,7 +47,7 @@ that cancels a build by saying nothing is the worst way to stand in for them.
 Before dropping each answered question, record the choice on the card:
 
 ```text
-akb raw update-decided <id> --question ".." --chose ".." --from "docs/kanban/memory/<module>/decisions.md"
+akb raw update-decided <id> --question ".." --chose ".." --from "docs/kanban/memory/agents/planner/decisions.md"
 ```
 
 `--question` is the question without its `[user]` tag, `--chose` is the option you took, and

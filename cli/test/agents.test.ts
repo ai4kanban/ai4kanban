@@ -825,21 +825,10 @@ describe("who a spec agent's output is for", () => {
   })
 })
 
-// `memory/agents/` is the board's own, so a module of that name would scaffold the memory
-// set on top of the agents' files.
+// A module is a `## <module>` topic inside a memory file now, never a folder (#805), so
+// `init` scaffolds none of them — the map cannot reach the agents' own files at all.
 describe('`agents` as a module name', () => {
-  it('is refused by `memory-init`', async () => {
-    await refuses(root, ['memory-init', 'agents'], /board's own memory folder/)
-  })
-
-  it('still takes any other module name', async () => {
-    const made = await move(root, ['memory-init', 'skill'])
-    assert.match(String(made.dir), /memory\/skill$/)
-  })
-
-  // `init` scaffolds the set for every module the map names, so the map is the other way
-  // the four files could land on top of the agents' own.
-  it('gets no memory set from `init` when the map names it anyway', async () => {
+  it('gets no memory folder from `init`, whatever the map says', async () => {
     fs.writeFileSync(path.join(kanban(), 'modules.md'), '- **agents** — a module someone named\n- **skill** — the command\n')
     fs.mkdirSync(path.join(kanban(), 'memory', 'agents', 'ui-designer'), { recursive: true })
     fs.writeFileSync(
@@ -849,7 +838,10 @@ describe('`agents` as a module name', () => {
     await move(root, ['init'])
     assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'decisions.md')), false)
     assert.equal(remembered('ui-designer'), '# What `ui-designer` was corrected on\n\n- One.\n')
-    // Every other module on the map still gets its set.
-    assert.ok(fs.existsSync(path.join(kanban(), 'memory', 'skill', 'decisions.md')))
+    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'skill')), false)
+    // The planning memory is the planner's, and the board keeps only its own record.
+    assert.ok(fs.existsSync(path.join(kanban(), 'memory', 'agents', 'planner', 'decisions.md')))
+    assert.ok(fs.existsSync(path.join(kanban(), 'memory', 'readme.md')))
+    assert.equal(fs.existsSync(path.join(kanban(), 'memory', 'decisions.md')), false)
   })
 })

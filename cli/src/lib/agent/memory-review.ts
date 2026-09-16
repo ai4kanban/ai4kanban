@@ -19,7 +19,7 @@ import path from 'node:path'
 
 import { locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
-import { CHATS_DIR, MEMORY, rel } from '../paths'
+import { CHATS_DIR, rel } from '../paths'
 import { DISCUSSION_PREFIX } from './types'
 
 /** The name a card conversation's file carries (`./chat.ts` names it). */
@@ -39,9 +39,10 @@ export interface ChatToReview {
   /** Where that card is: on the board, in the archive, or gone from both. Null for a
    *  discussion, which hangs on no card at all. */
   card: 'open' | 'archived' | 'gone' | null
-  /** The memory folders a note off this conversation belongs in, repo-relative — the copies
-   *  the card's `modules:` names, or the project-wide one. */
-  memory: string[]
+  /** The `## <module>` topics a note off this conversation belongs under, from the card's
+   *  own `modules:` (#805). Empty on a conversation whose card names none, and on a
+   *  discussion — then the note goes under whatever topic already fits. */
+  topics: string[]
   /** How many messages the transcript holds. */
   messages: number
 }
@@ -59,7 +60,7 @@ export function chatsToReview(since: number): ChatToReview[] {
       name: found?.title || subjectOf(chat) || (cardId === null ? '(unnamed)' : `#${cardId}`),
       cardId,
       card: cardId === null ? null : found ? found.where : 'gone',
-      memory: memoryDirs(found?.modules ?? []),
+      topics: found?.modules ?? [],
       messages: messagesOf(chat).length,
     }
   })
@@ -144,7 +145,7 @@ const subjectOf = (chat: Record<string, unknown>): string =>
 // ---- the card behind a conversation -----------------------------------------
 
 // The card the conversation hangs on, wherever it is now. The archive is read too: a card
-// finished a week ago is still what says which module's memory its conversation belongs in.
+// finished a week ago is still what says which topics its conversation's notes belong under.
 function cardOf(id: number): { where: 'open' | 'archived'; title: string; modules: string[] } | null {
   for (const [where, found] of [
     ['open', locate(id)],
@@ -162,8 +163,3 @@ function cardOf(id: number): { where: 'open' | 'archived'; title: string; module
   return null
 }
 
-// Which copy of the memory set a note belongs in — "The memory set" in `akb guide board`. A
-// card naming modules points at each of theirs; everything else at the project's own. Read
-// only: nothing is scaffolded here, and the review's own write is what creates a file.
-const memoryDirs = (modules: string[]): string[] =>
-  modules.length ? modules.map((m) => rel(path.join(MEMORY, m))) : [rel(MEMORY)]

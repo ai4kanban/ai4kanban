@@ -21,7 +21,7 @@ import { FiArrowLeft } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useCopy } from "@/i18n/use-copy";
 import type { MockupView } from "@/lib/mockup-tag";
-import type { AgentInfo, MemoryModule } from "@/lib/types";
+import type { AgentInfo, MemoryOwner } from "@/lib/types";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { OpenIdsProvider } from "./open-ids";
@@ -42,7 +42,7 @@ export function MockupPage({
   agent,
   projectRoot,
   goalWritten,
-  memoryModules,
+  memoryOwners,
   desktop,
 }: {
   view: MockupView;
@@ -52,7 +52,7 @@ export function MockupPage({
   agent: AgentInfo;
   projectRoot: string;
   goalWritten: boolean;
-  memoryModules: MemoryModule[];
+  memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
   const c = useCopy().card.mockup;
@@ -82,7 +82,7 @@ export function MockupPage({
         openIds={openIds}
         currentId={card?.id ?? null}
         currentTitle={card?.title ?? ""}
-        memoryModules={memoryModules}
+        memoryOwners={memoryOwners}
         goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={

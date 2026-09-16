@@ -1,24 +1,17 @@
 // ---- init ------------------------------------------------------------------
 //
-// Scaffolding a fresh board (and re-running as the repair step for a board made by an
-// older version), plus `memory-init` for a single module's memory path.
+// Scaffolding a fresh board, and re-running as the repair step for a board made by an
+// older version.
 
 import fs from 'node:fs'
-import path from 'node:path'
 
-import { die, warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, MEMORY, GOAL, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
+import { warn, rel, writeNextId, writeRootIgnoreIfMissing, KANBAN, TODO, README, NEXT_ID, CONFIG, KANBAN_GITIGNORE, MODULES_MD, RELEASES, GOAL, ROOT_GITIGNORE, SETUP_CHECKLIST } from '../lib/paths'
 import { CONFIG_TEMPLATE } from '../lib/config-template'
 import { say } from '../lib/io'
 import { LOCAL_IGNORE_LINE } from '../lib/agent/local'
 import { readGoalBody, readGoalReviewFrom, writeGoalReviewInto } from '../lib/view/goal'
-import { moduleNames, MODULE_NAME_RE } from '../lib/validate'
 import { writeReleasesIfMissing } from '../lib/releases'
-import {
-  RESERVED_MEMORY_DIR,
-  scaffoldMemoryPath,
-  scaffoldProjectMemory,
-  type Scaffolded,
-} from '../lib/memory'
+import { migrateMemory, scaffoldProjectMemory, type Scaffolded } from '../lib/memory'
 import { TASKS_HEADING } from '../lib/readme'
 import { migratePruneMemoryCard } from '../lib/recurring'
 import { nextSetupStep, writeSetupChecklist, setupUnfinished, findSetupQuestionsCard, writeSetupQuestionsCard } from '../lib/setup'
@@ -156,28 +149,15 @@ export function cmdInit(): MoveResult {
       const card = writeSetupQuestionsCard()
       if (card) added.push(rel(card.file))
     }
-    // The project-wide memory, then every module already on the map, so a board whose map
-    // is filled in is fully repaired by this one command. A map seeded blank a line above
-    // names nothing yet — those paths are made once the map is written.
+    // The board's own record and the planner's folder beside it (#805). A module is a topic
+    // inside a memory file now, not a folder, so there is nothing per-module to scaffold —
+    // and an older board's module folders are merged away by the migration this call runs.
     const scaffolded: Scaffolded[] = []
+    // It scaffolds what it needs on the way, so the scaffold below finds the planner's
+    // folder already there and reports only what an older board never had.
+    const movedMemory = migrateMemory()
     const project = scaffoldProjectMemory()
     if (project) scaffolded.push(project)
-    for (const m of moduleNames() || []) {
-      // A hand-written map can carry a name no folder can take. Warn and skip rather than
-      // die: one odd line shouldn't stop the rest of the repair.
-      if (!MODULE_NAME_RE.test(m)) {
-        warn(`skipping module "${m}" — a name needs letters, digits, and dashes to be a folder`)
-        continue
-      }
-      // The same folder `memory-init` refuses: the memory set scaffolded here would land on
-      // top of the agents' own files (#421).
-      if (m === RESERVED_MEMORY_DIR) {
-        warn(`skipping module "${m}" — memory/${RESERVED_MEMORY_DIR}/ is where agent memories live`)
-        continue
-      }
-      const done = scaffoldMemoryPath(m)
-      if (done) scaffolded.push(done)
-    }
     // A goal written by an older version: the seeded text goes, and a goal with words in
     // it stops reading as one nobody wrote.
     const goalRepaired = repairGoal()
@@ -188,10 +168,14 @@ export function cmdInit(): MoveResult {
         : `board already exists at ${rel(KANBAN)}/ — ${scaffolded.length || goalRepaired ? 'board files all present' : 'nothing to do'} (safe to re-run)`,
     )
     for (const s of scaffolded) say(`  memory path ${rel(s.dir)}/ — ${s.fresh ? 'created' : `added ${s.made.join(', ')}`}`)
+    if (movedMemory.length) {
+      say(`  memory now belongs to whoever writes it — merged ${movedMemory.length} file${movedMemory.length === 1 ? '' : 's'} away: ${movedMemory.join(', ')}`)
+      say(`  a module's entries are a \`## <module>\` topic in the file they moved into`)
+    }
     if (goalRepaired) say(`  ${rel(GOAL)}: ${goalRepaired} — the agent judges the goal and edits the field`)
     if (prunedCard) say(`  removed ${prunedCard} — pruning is the Memory pruner agent now (Configuration → Agents); its cadence is kept there, switched off`)
     if (added.includes(rel(MODULES_MD))) {
-      say(`  next: fill in ${rel(MODULES_MD)} (see "The module map"), then re-run init for the memory paths`)
+      say(`  next: fill in ${rel(MODULES_MD)} (see "The module map")`)
     }
     return { board: rel(KANBAN), created: false, added, memory_paths: scaffolded.map((s) => rel(s.dir)) }
   }
@@ -216,29 +200,6 @@ export function cmdInit(): MoveResult {
   const next = nextSetupStep()
   if (next) say(`  next: \`${next.name}\` (${next.owner}) — ${next.text}`)
   return { board: rel(KANBAN), created: true, next: next?.name ?? null }
-}
-
-export function cmdMemoryInit(module: string | undefined): MoveResult {
-  if (!module) die('memory-init needs a module name (its bolded name in modules.md)')
-  if (!MODULE_NAME_RE.test(module)) {
-    die(`bad module name "${module}" — use letters, digits, and dashes (a folder name)`, {
-      kind: 'bad-module-name',
-      module,
-    })
-  }
-  // `memory/agents/` is where the agents that remember keep their own files (#421), so a
-  // module of that name would scaffold the memory set on top of them.
-  if (module === RESERVED_MEMORY_DIR) {
-    die(`\`${RESERVED_MEMORY_DIR}\` is the board's own memory folder — the agents that remember keep their files there. Name the module something else.`, {
-      kind: 'reserved-module-name',
-      module,
-    })
-  }
-  const done = scaffoldMemoryPath(module)
-  if (!done) say(`${rel(path.join(MEMORY, module))}/ already has the full set — nothing to do`)
-  else if (done.fresh) say(`created memory path ${rel(done.dir)}/ with the full set`)
-  else say(`filled in missing files in ${rel(done.dir)}/: ${done.made.join(', ')}`)
-  return { module, dir: rel(done ? done.dir : path.join(MEMORY, module)), made: done ? done.made : [] }
 }
 
 // ---- goal review -----------------------------------------------------------

@@ -7,5 +7,5 @@ card to stop the recurring task; it will not be recreated automatically.
 
 ## Process
 
-1. Prune the project-wide memory at `docs/kanban/memory/` and each module's memory at
-   `docs/kanban/memory/<module>/`, following `akb guide prune-memory`.
+1. Prune the board's own record at `docs/kanban/memory/` and every agent's memory at
+   `docs/kanban/memory/agents/<agent>/`, following `akb guide prune-memory`.

@@ -12,12 +12,11 @@ docs/kanban/
 │   ├── <id>-<slug>.md
 │   │               one card per file — todo/ is flat
 │   └── recurring/  jobs we repeat (`akb guide recurring-task`) — never archived
-├── memory/         all memory — see "The memory set"
-│   ├── readme.md, decisions.md, rejected.md, redesign.md
-│   │               the four-file set for the project as a whole
-│   ├── goal.md     the long-term goal, horizon, and roadmap — this one file only,
-│   │               never in a module folder
-│   └── <module>/   a module's own copy of the four-file set
+├── memory/         all memory — see "Who owns a memory file"
+│   ├── readme.md   what shipped — the board's own record
+│   ├── goal.md     the long-term goal, horizon, and roadmap
+│   └── agents/     one folder per agent that remembers, named after it —
+│                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`
 ├── deliveries/     one JSON file per delivery — what an Implement click built, the card
 │                   exactly as it was approved for it, and how it ended. Tracked in git,
 │                   kept after the card is archived; nobody edits one by hand
@@ -133,45 +132,47 @@ move the files into the group's folder:
   open question or an unticked todo of its own; the receipt names the rule that kept it. A
   root listing no subtasks is only ever closed by hand.
 
-## The memory set
+## Who owns a memory file
 
-The project's memory is a **fixed set of four files**:
+**A memory file belongs to whoever reads and writes it.** `docs/kanban/memory/` itself holds
+the board's own RECORD; everything a run learned is an agent's, under `memory/agents/`.
 
-- **`readme.md`** — shipped user-facing work, one line each: a link to the published doc
-  that covers it, or a short plain-words note until one does (see "Finish a task").
-- **`decisions.md`** — settled answers to cards' open questions, one per line. Include
-  only **user-facing decisions that inform future planning**; keep code details on the
-  card.
+The board's own record — nobody's taste, so nobody's memory:
+
+- **`memory/readme.md`** — shipped user-facing work, one line each: a link to the published
+  doc that covers it, or a short plain-words note until one does (see "Finish a task").
+- **`memory/goal.md`** — the long-term goal, horizon, and roadmap, in the user's own words.
+
+The planner's, in `docs/kanban/memory/agents/planner/`. Every flow that settles a card writes
+these; the gate, the decider, the sweep, a triage and a reflection read them and write none:
+
+- **`decisions.md`** — settled answers to cards' open questions, one per line. Include only
+  **user-facing decisions that inform future planning**; keep code details on the card.
 - **`redesign.md`** — design mistakes to avoid.
 - **`rejected.md`** — ideas we turned down, and why.
 
-The set exists at the project level in `docs/kanban/memory/` and at the module level in
-`docs/kanban/memory/<module>/`. **Choose the set from the card's `modules:` field.** Use
-each named module's set, or the project-level set if the card names no modules. Never
-copy a note between levels; project memory is not a mirror of module memory. Initialize
-a module's folder with the idempotent `akb raw memory-init <module>` command before
-writing to it. `init` does this for every module already in the module map.
+**A module is a topic, not a folder.** File a note under the `## <module>` heading its card's
+`modules:` names, creating the heading when the file has none. There is no per-module memory
+folder and nothing to initialise.
 
-**`goal.md` sits outside the set, in the project-level memory directory only.** It records
-the long-term goal, horizon, and roadmap in the user's words, and it is optional — an empty
-one holds up nothing. Never write the goal for the user. The agent changes only the
-`reviewed` frontmatter field, whose allowed values are `strong`, `good`, `pending`, and
-`weak`. Use `weak` when the goal is missing, empty, or too vague for evaluating proposals.
-The board sets `pending` when a goal is saved; replace it with an assessment the next time
-you read the goal, without interrupting the user.
+**`goal.md` is the user's.** It is optional — an empty one holds up nothing — and you never
+write it for them. The agent changes only the `reviewed` frontmatter field, whose allowed
+values are `strong`, `good`, `pending`, and `weak`. Use `weak` when the goal is missing,
+empty, or too vague for evaluating proposals. The board sets `pending` when a goal is saved;
+replace it with an assessment the next time you read the goal, without interrupting the user.
 
-**`docs/kanban/memory/agents/` is not a module.** It holds one folder per agent that keeps a
-memory of its own — a spec agent that declares `memory: project`, and the three content
-agents (`content-planner`, `content-writer`, `content-reviewer`) — with two files in it:
-`redesign.md` for the mistakes that agent was corrected on, `decisions.md` for the durable
-choices the user made. They are the agent's own, curated by it and appended to by the flow
-that hears the user's answer about its section (`akb guide update-questions`). No third file:
-how the product looks is read from the app's own `design.md` and components, and a product
-fact worth keeping is written into the lesson or the decision it supports.
+**An agent that remembers keeps its own two.** `memory/agents/<agent>/` holds `redesign.md`
+for the mistakes that agent was corrected on and `decisions.md` for the durable choices the
+user made — a spec agent that declares `memory: project`, and the three content agents
+(`content-planner`, `content-writer`, `content-reviewer`). They are the agent's own, curated
+by it and appended to by the flow that hears the user's answer about its section (`akb guide
+update-questions`). No third file: how the product looks is read from the app's own
+`design.md` and components, and a product fact worth keeping is written into the lesson or
+the decision it supports.
 
-**Writing taste is the content agents', not the board's.** The voice a piece is written in,
+**Writing taste is the content agents', not the planner's.** The voice a piece is written in,
 what a claim has to carry, how a piece is put together — that goes in the three content
-agents' own folders and never in the board's `decisions.md`, which holds user-facing calls
+agents' own folders and never in the planner's `decisions.md`, which holds user-facing calls
 that guide future planning. All three agents are handed all three folders on every content
 run; each writes back only its own.
 
@@ -215,16 +216,16 @@ that does this is reported as having broken the board.
 
 This applies only to one-shot tasks. For recurring cards, see `akb guide recurring-task`.
 
-Before archiving, record each user-facing outcome on one line in `readme.md`. Do not record
-internal-only changes. Use formats like these:
+Before archiving, record each user-facing outcome on one line in
+`docs/kanban/memory/readme.md`, under the `## <module>` heading the card's `modules:` names.
+Do not record internal-only changes. Use formats like these:
 
-- ✅ (docs/kanban/memory/skill/readme.md) Updating an installed board: `akb guide update`.
-  Link to a published doc when available; do not restate it.
-- ✅ (docs/kanban/memory/site/readme.md) The landing page is available in Chinese,
-  Spanish, Japanese, and French at `/zh`, `/es`, `/ja`, and `/fr`. When no doc exists,
-  state plainly what the user can now do.
-- ❌ (docs/kanban/memory/site/readme.md) The landing site is live on Cloudflare Pages.
-  This describes infrastructure, not user-facing behavior.
+- ✅ Updating an installed board: `akb guide update`. Link to a published doc when
+  available; do not restate it.
+- ✅ The landing page is available in Chinese, Spanish, Japanese, and French at `/zh`,
+  `/es`, `/ja`, and `/fr`. When no doc exists, state plainly what the user can now do.
+- ❌ The landing site is live on Cloudflare Pages. This describes infrastructure, not
+  user-facing behavior.
 
 Then run `akb raw archive <id>`, and fix whatever it reports still mentioning the id.
 

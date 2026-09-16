@@ -38,8 +38,9 @@ import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
-import { memoryKey, memoryModuleOf, useOpenModules } from "@/lib/memory-panel";
-import { MEMORY_FILES, type MemoryModule } from "@/lib/types";
+import { memoryKey, memoryAgentOf, useOpenOwners } from "@/lib/memory-panel";
+import { useMemoryOwnerName } from "./memory-owner";
+import type { MemoryName, MemoryOwner } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HAIRLINE, PHONE_ROW } from "./chrome";
@@ -219,23 +220,22 @@ export function FindScreen() {
   );
 }
 
-/** The rail's Memory panel, as a screen (#357). The same four files in the same order for
- *  the project and for each module — nothing here folds away, because the screen is the
- *  panel rather than a foot under a list of cards.
+/** The rail's Memory panel, as a screen (#357, #805). One group per owner — the board's own
+ *  record first, then every agent that keeps memory — each opening the files it holds.
  *
  *  Prune memory leads it, as it does in the rail (#514) — the same button, at a thumb's
  *  height, opening the same Memory Pruner page. */
 export function MemoryScreen({
   active,
-  modules,
+  owners,
 }: {
   /** The memory file this window is showing, as a memory key, or null. */
   active: string | null;
-  modules: MemoryModule[];
+  owners: MemoryOwner[];
 }) {
   const c = useCopy().rail.memory;
-  const { isOpen, toggle } = useOpenModules(memoryModuleOf(active));
-  const split = modules.length > 0;
+  const written = owners.filter((o) => o.files.length > 0).map((o) => o.agent);
+  const { isOpen, toggle } = useOpenOwners(memoryAgentOf(active), written);
   return (
     <Screen title={c.heading}>
       <Button
@@ -248,58 +248,80 @@ export function MemoryScreen({
         <FiScissors size={15} aria-hidden />
         {c.prune}
       </Button>
-      {split && <GroupLabel text={c.project} />}
-      <div className="flex flex-col gap-1">
-        <MemoryRows module="" active={active} />
-      </div>
-      {split && <GroupLabel text={c.modules} divider />}
-      {modules.map((module) => (
-        <div key={module.name} className="flex flex-col gap-1">
-          <button
-            type="button"
-            onClick={() => toggle(module.name)}
-            aria-expanded={isOpen(module.name)}
-            className={PHONE_ROW}
-          >
-            <FiChevronRight
-              size={16}
-              aria-hidden
-              className={`shrink-0 text-nb-ink-soft transition-transform duration-150 ease-out ${
-                isOpen(module.name) ? "rotate-90" : ""
-              }`}
-            />
-            <span className="min-w-0 flex-1 truncate">{module.name}</span>
-          </button>
-          {isOpen(module.name) &&
-            (module.hasMemory ? (
-              <div className="flex flex-col gap-1 pl-6">
-                <MemoryRows module={module.name} active={active} />
-              </div>
-            ) : (
-              <p className="px-3 pb-1 text-[13px] leading-snug text-nb-ink-soft">{c.empty}</p>
-            ))}
-        </div>
+      {owners.map((owner) => (
+        <MemoryOwnerRows
+          key={owner.agent || "board"}
+          owner={owner}
+          open={isOpen(owner.agent)}
+          onToggle={() => toggle(owner.agent)}
+          active={active}
+        />
       ))}
     </Screen>
   );
 }
 
-function MemoryRows({ module, active }: { module: string; active: string | null }) {
+function MemoryOwnerRows({
+  owner,
+  open,
+  onToggle,
+  active,
+}: {
+  owner: MemoryOwner;
+  open: boolean;
+  onToggle: () => void;
+  active: string | null;
+}) {
+  const c = useCopy().rail.memory;
+  const name = useMemoryOwnerName(owner);
+  return (
+    <div className="flex flex-col gap-1">
+      <button type="button" onClick={onToggle} aria-expanded={open} className={PHONE_ROW}>
+        <FiChevronRight
+          size={16}
+          aria-hidden
+          className={`shrink-0 text-nb-ink-soft transition-transform duration-150 ease-out ${
+            open ? "rotate-90" : ""
+          }`}
+        />
+        <span className="min-w-0 flex-1 truncate">{name}</span>
+      </button>
+      {open &&
+        (owner.files.length > 0 ? (
+          <div className="flex flex-col gap-1 pl-6">
+            <MemoryRows agent={owner.agent} files={owner.files} active={active} />
+          </div>
+        ) : (
+          <p className="px-3 pb-1 text-[13px] leading-snug text-nb-ink-soft">{c.empty}</p>
+        ))}
+    </div>
+  );
+}
+
+function MemoryRows({
+  agent,
+  files,
+  active,
+}: {
+  agent: string;
+  files: MemoryName[];
+  active: string | null;
+}) {
   const c = useCopy().rail.memory;
   return (
     <>
-      {MEMORY_FILES.map((file) => {
-        const key = memoryKey(module, file.name);
+      {files.map((name) => {
+        const key = memoryKey(agent, name);
         return (
           <Link
-            key={file.name}
+            key={name}
             href={`/memory/${key}`}
             aria-current={active === key ? "page" : undefined}
             className={cn(PHONE_ROW, active === key && "border-nb-ink bg-nb-paper")}
           >
             <FiFileText size={15} className="shrink-0 text-nb-ink-soft" aria-hidden />
             <span className="min-w-0 flex-1 truncate">
-              {c.files[file.name as keyof RailCopy["memory"]["files"]] ?? file.label}
+              {c.files[name as keyof RailCopy["memory"]["files"]] ?? name}
             </span>
             <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
           </Link>

@@ -23,13 +23,13 @@ const zh: RailCopy = {
   },
   memory: {
     heading: "记忆",
-    show: "Agent 关于这个项目记住了什么",
-    hide: "隐藏项目记忆",
-    project: "项目",
-    modules: "模块",
-    empty: "关于这个模块还没有记下任何内容。",
+    show: "看板和它的 Agent 记住了什么",
+    hide: "隐藏记忆",
+    board: "看板",
+    empty: "还没有记下任何内容。",
     files: {
       readme: "已交付的能力",
+      goal: "目标",
       decisions: "已定下的决策",
       redesign: "设计上的教训",
       rejected: "被否决的想法",

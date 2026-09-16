@@ -32,13 +32,15 @@ Run it from the project root. It does the whole mechanical part:
   adds a folder that isn't there: the skill is an extra a project opts into, so a project
   without one is not broken, and `akb skill install` is how it is added,
 - adds what an older version never wrote: `config.md`, `modules.md`, `releases.md` (empty —
-  the board never guesses a ship order), a memory path for every module on the map, the
-  goal's `reviewed:` field,
+  the board never guesses a ship order), the planner's memory folder, the goal's `reviewed:`
+  field,
 - clears the paragraph older versions seeded into `docs/kanban/memory/goal.md` — the file
   starts empty now — and never leaves a goal that is already written asking to be written,
 - moves a memory set still sitting at the board root into `docs/kanban/memory/`,
-- drops a leftover `docs/kanban/memory/<module>/goal.md` that says nothing the root goal
-  doesn't (the goal lives at `docs/kanban/memory/goal.md` only),
+- moves the memory onto whoever writes it: `decisions.md`, `rejected.md` and `redesign.md`
+  merge into `docs/kanban/memory/agents/planner/`, each module's `readme.md` merges into
+  `docs/kanban/memory/readme.md`, and a module's entries become a `## <module>` topic in the
+  file they land in — merged, never overwritten, and only once,
 - rescues a filled-in `config.md` left inside an old skill folder to
   `docs/kanban/config.md`,
 - prints which version you moved from and to, with a link to everything that changed

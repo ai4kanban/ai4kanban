@@ -152,7 +152,7 @@ function BoardShell({ screen, children, ...chrome }: BoardChrome & { children: R
     <Window
       projectRoot={machine.projectRoot}
       openIds={board?.openIds ?? []}
-      memoryModules={board?.memoryModules ?? []}
+      memoryOwners={board?.memoryOwners ?? []}
       goalWritten={board?.goalWritten ?? false}
       goalOffered
       onGoalSaved={chrome.refresh}

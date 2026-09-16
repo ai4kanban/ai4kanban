@@ -534,24 +534,12 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
   move('init')
     .summary('scaffold docs/kanban/; on an existing board add only what is missing')
     .description(
-      'Scaffold the board — the folders, the project-wide memory set in memory/, and a blank config.md ' +
+      "Scaffold the board — the folders, the board's own memory in memory/ with the planner's beside it, and a blank config.md " +
         'and releases.md. On an existing board it only adds the files that are missing, so it is safe to ' +
         're-run and is the repair step for a board written by an older version.',
     )
     .action(async function (this: Command) {
       await dispatch('init', this, [], this.opts(), cli)
-    })
-
-  move('memory-init')
-    .argument('<module>', 'the module whose memory folder to scaffold')
-    .summary("scaffold one module's memory folder")
-    .description(
-      'Lazily scaffold docs/kanban/memory/<module>/ with the four-file set (readme, decisions, redesign, ' +
-        'rejected — goal.md lives only at the board root). Idempotent — run it before the first write to ' +
-        "a module's memory.",
-    )
-    .action(async function (this: Command, module: string) {
-      await dispatch('memory-init', this, [module], this.opts(), cli)
     })
 
   move('setup-done')

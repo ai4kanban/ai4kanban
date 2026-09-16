@@ -46,7 +46,7 @@ import {
   LANGUAGE_TAGS,
   type AgentInfo,
   type Language,
-  type MemoryModule,
+  type MemoryOwner,
   type Signal,
   type SignalInbox,
 } from "@/lib/types";
@@ -151,7 +151,7 @@ function SignalsFrame({
   openIds,
   agent,
   goalWritten,
-  memoryModules,
+  memoryOwners,
   desktop,
   children,
 }: {
@@ -159,7 +159,7 @@ function SignalsFrame({
   openIds: number[];
   agent: AgentInfo;
   goalWritten: boolean;
-  memoryModules: MemoryModule[];
+  memoryOwners: MemoryOwner[];
   desktop: boolean;
   children: React.ReactNode;
 }) {
@@ -185,7 +185,7 @@ function SignalsFrame({
         projectRoot={projectRoot}
         openIds={openIds}
         currentSignals
-        memoryModules={memoryModules}
+        memoryOwners={memoryOwners}
         goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
@@ -209,7 +209,7 @@ export function SignalsPage({
   agent,
   projectRoot,
   goalWritten,
-  memoryModules,
+  memoryOwners,
   desktop,
 }: {
   inbox: SignalInbox;
@@ -217,7 +217,7 @@ export function SignalsPage({
   agent: AgentInfo;
   projectRoot: string;
   goalWritten: boolean;
-  memoryModules: MemoryModule[];
+  memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
   const c = useCopy().rail.signals;
@@ -451,7 +451,7 @@ export function SignalsPage({
       openIds={openIds}
       agent={agent}
       goalWritten={goalWritten}
-      memoryModules={memoryModules}
+      memoryOwners={memoryOwners}
       desktop={desktop}
     >
       <div

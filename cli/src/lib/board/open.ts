@@ -164,7 +164,7 @@ function refusing(error: string): import('./contract').BoardProvider {
     readModules: () => Promise.resolve([]),
     readGoalText: () => Promise.resolve(''),
     readMemoryFile: () => Promise.resolve(null),
-    readMemoryModules: () => Promise.resolve([]),
+    readMemoryOwners: () => Promise.resolve([]),
     readSetupState: () => Promise.resolve(null),
     readSetupDraft: no,
     readMetricsView: () => Promise.resolve({ ok: false, error }),

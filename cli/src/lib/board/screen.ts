@@ -18,7 +18,7 @@
 // This file is pure types and imports nothing that touches a filesystem, so it is copied
 // into the board UI by scripts/sync-format.mjs and both sides name one shape.
 
-import type { Board, Card, DeliveryDiff, DeliveryPlan, MemoryModule } from '../view/types'
+import type { Board, Card, DeliveryDiff, DeliveryPlan, MemoryOwner } from '../view/types'
 
 /** How the board stands (#316): a folder here, or a copy of a Cloud workspace and whether
  *  that workspace is out of reach.
@@ -89,7 +89,7 @@ export interface CardScreen extends ScreenBoard {
   openIds: number[]
   releases: string[]
   goalWritten: boolean
-  memoryModules: MemoryModule[]
+  memoryOwners: MemoryOwner[]
   /** What an Implement click would do from here (#307) — the branch it lands on. */
   plan: DeliveryPlan
   /** What the delivery on this card changed (#305), capped where it was read. Null when

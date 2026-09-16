@@ -19,7 +19,7 @@ import { walkMd, walkDirs, idPrefix, locate, enclosingGroupRoot, markSubtask, ar
 import { groupCloseCall } from '../lib/group-close'
 import { stripReadmeRefs } from '../lib/readme'
 import { parseFrontmatter, serializeFrontmatter, frontmatterEnd, frontmatterField } from '../lib/frontmatter'
-import { memoryTargets } from '../lib/memory'
+import { memoryTarget } from '../lib/memory'
 import type { Found, Meta, MoveResult } from '../lib/types'
 
 // One `#id` a human wrote, and where it sits.
@@ -372,22 +372,24 @@ function printHandoff(
   discard: boolean,
 ): { what: string; files: string[] } | null {
   const kind = NOTE_KIND[metric]
-  const targets = discard ? [] : memoryTargets(meta?.modules ?? [], kind.file)
+  const target = discard ? null : memoryTarget(kind.file)
   say(`\nnext — what the script can't do:\n`)
 
   if (discard) say('  1. nothing — this is a discard: no memory is written, and nothing judges whether it earned one')
   else say(`  1. ${kind.what} — follow ${kind.guide}`)
-  for (const t of targets) {
-    say(`       file    ${rel(t.file)}`)
-    if (!kind.topics) continue
-    const topics = t.topics.map((x) => `"${x.name}" (${x.entries})`).join(', ')
-    say(`       topics  ${topics || '(none yet — this note starts the first one)'}`)
-  }
-  if (targets.length > 1) {
-    say('       both, because the card named two modules — one note each, in its own words')
+  if (target) {
+    say(`       file    ${rel(target.file)}`)
+    if (kind.topics) {
+      const topics = target.topics.map((x) => `"${x.name}" (${x.entries})`).join(', ')
+      say(`       topics  ${topics || '(none yet — this note starts the first one)'}`)
+      // A module is a topic in that file rather than a file of its own (#805), so the card's
+      // own modules are the sections to look under first.
+      const modules = meta?.modules ?? []
+      if (modules.length) say(`       under   ## ${modules.join(', ## ')} — the card's own modules`)
+    }
   }
 
-  const note = discard ? null : { what: kind.what, files: targets.map((t) => rel(t.file)) }
+  const note = discard ? null : { what: kind.what, files: [rel(target!.file)] }
   const which = ids.map((x) => `#${x}`).join(' or ')
   if (!mentions.length) {
     say(`\n  2. nothing — no other card or note mentions ${which}, so there is nothing to rewrite`)

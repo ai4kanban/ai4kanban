@@ -381,27 +381,28 @@ proposal is judged against these files, every question it settles itself leans o
 every idea you turned down stays turned down because it is written there. This is where you
 read them without opening files in an editor.
 
-It starts collapsed. Click the row and it opens on two halves, **Project** and **Modules**. The
-project's four files are the four rows under **Project**:
+It starts collapsed. Click the row and it opens on one group per owner: **Board** first, then
+every agent that keeps memory, named as Configuration names it. The board's own record is two
+rows:
 
 | Row | The file |
 | --- | --- |
 | **What shipped** | `docs/kanban/memory/readme.md` |
-| **Settled decisions** | `docs/kanban/memory/decisions.md` |
-| **Design mistakes** | `docs/kanban/memory/redesign.md` |
-| **Rejected ideas** | `docs/kanban/memory/rejected.md` |
+| **The goal** | `docs/kanban/memory/goal.md` |
+
+Under an agent are the files it owns — the Planner's **Settled decisions**, **Rejected ideas**
+and **Design mistakes**, in `docs/kanban/memory/agents/planner/`; a specialist's two, in its own
+folder. A module is a `## <module>` topic inside those files, not a row.
 
 Hover a row and it names the file it opens. Click one and the file opens in the body, whole and
-rendered, headed by the row's name — with the module's name over it when the file is a
-module's — and its path from the repo root under it. The row stays highlighted while you read.
-The panel grows with its rows up to half the rail and scrolls past that, so the cards above it
-are never pushed off. Whether you left it open is remembered.
+rendered, headed by the row's name with its owner over it — two agents' **Settled decisions**
+would otherwise read as the same page — and its path from the repo root under it. The row stays
+highlighted while you read. The panel grows with its rows up to half the rail and scrolls past
+that, so the cards above it are never pushed off. Whether you left it open is remembered.
 
-Under **Modules** is one row per module your `docs/kanban/modules.md` names, in the map's own
-order. Click one and it opens into that module's own four files — `docs/kanban/memory/<module>/`
-— indented, reading exactly like the project's. Any number can be open at once, and a module
-nothing has been written about yet says so in a line. Modules start closed every time you load
-the board, except the one holding the file you landed on.
+Any number of groups can be open at once. An agent that has written nothing yet says so in a
+line, and starts folded; an owner with something in it starts open, as does the one holding the
+file you landed on.
 
 An open memory file is a page of its own, so Back, Forward and a reload keep you on it, and in
 the app a two-finger swipe goes back from it, as it does from a card. The page re-reads itself

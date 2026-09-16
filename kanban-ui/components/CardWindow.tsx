@@ -25,14 +25,14 @@ export function CardWindow({ screen, machine }: { screen: CardScreen; machine: S
  *  which is also the way back out. */
 function CardShell({ screen, running, onBoardChanged, onError, children }: CardChrome & { children: ReactNode }) {
   const machine = useMachine()!;
-  const { card, openIds, memoryModules, goalWritten } = screen;
+  const { card, openIds, memoryOwners, goalWritten } = screen;
   return (
     <Window
       projectRoot={machine.projectRoot}
       openIds={openIds}
       currentId={card.id}
       currentTitle={card.title}
-      memoryModules={memoryModules}
+      memoryOwners={memoryOwners}
       goalWritten={goalWritten}
       running={running}
       onBoardChanged={onBoardChanged}

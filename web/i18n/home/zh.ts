@@ -74,7 +74,7 @@ const zh: HomeCopy = {
     ],
     tree: {
       goal: "项目目标",
-      module: "每个模块一份",
+      planner: "规划师的记忆",
       readme: "已完成的功能",
       decisions: "产品决策",
       rejected: "否决理由",
@@ -100,7 +100,7 @@ const zh: HomeCopy = {
 
   start: {
     title: "从桌面应用开始",
-    lead: "下载应用，打开一个项目，回答三个问题。它会读取代码库，写下项目目标和模块记忆，并提出第一批任务。",
+    lead: "下载应用，打开一个项目，回答三个问题。它会读取代码库，写下项目目标和规划师的记忆，并提出第一批任务。",
     notes: ["自主规划", "本地优先", "不绑定 Agent"],
     cta: "下载",
     firstOpen:

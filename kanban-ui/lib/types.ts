@@ -108,7 +108,7 @@ export type {
   InboxDrop,
   Level,
   MemoryFile,
-  MemoryModule,
+  MemoryOwner,
   MemoryName,
   MemoryRef,
   MetricsDay,

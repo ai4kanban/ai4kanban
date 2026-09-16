@@ -37,7 +37,7 @@ Markdown, so these need no separate mirror.
 
 ## Recipes
 
-- [Prune the memory](https://ai4kanban.dev/recipes/prune-the-memory.md): A recurring task that rewrites project-wide and per-module memory into concise topic summaries, keeping only what still helps plan future work.
+- [Prune the memory](https://ai4kanban.dev/recipes/prune-the-memory.md): A recurring task that rewrites the board's own record and every agent's memory into concise topic summaries, keeping only what still helps plan future work.
 - [Competitor analysis loop](https://ai4kanban.dev/recipes/competitor-analysis-loop.md): A recurring competitor-intelligence task powered by dist0 — pull the competitors people name in your Reddit signal, study each real one deeply, and file build/grow/offer ideas as cards.
 
 ## More

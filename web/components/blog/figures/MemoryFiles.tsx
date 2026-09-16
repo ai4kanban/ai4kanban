@@ -10,7 +10,7 @@ import { Figure } from "./kit";
 
 const NOTES = {
   goal: "Project goal",
-  module: "One per module",
+  planner: "The planner's memory",
   readme: "Shipped features",
   decisions: "Product decisions",
   rejected: "Reasons for rejection",
@@ -22,7 +22,7 @@ export function MemoryFiles() {
     <Figure
       single
       wash="mintSky"
-      caption="The memory is plain Markdown, one folder per module, sitting next to the tasks in the repository. A decision is written down where the next task will read it, and a rejected idea keeps the reason it was rejected — so the answer is already there instead of being asked again."
+      caption="The memory is plain Markdown sitting next to the tasks in the repository: the board's own record of what shipped, and a folder for each agent that remembers. A decision is written down where the next task will read it, and a rejected idea keeps the reason it was rejected — so the answer is already there instead of being asked again."
     >
       <div className="mdx-listing flex justify-center">
         <MemoryTree notes={NOTES} />

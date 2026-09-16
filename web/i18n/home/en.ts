@@ -74,7 +74,7 @@ const en: HomeCopy = {
     ],
     tree: {
       goal: "Project goal",
-      module: "One per module",
+      planner: "The planner's memory",
       readme: "Shipped features",
       decisions: "Product decisions",
       rejected: "Reasons for rejection",
@@ -105,7 +105,7 @@ const en: HomeCopy = {
 
   start: {
     title: "Start with the desktop app",
-    lead: "Download the app, open a project, and answer three questions. It reads the codebase, writes the project goal and module memory, and proposes the first tasks.",
+    lead: "Download the app, open a project, and answer three questions. It reads the codebase, writes the project goal and the planner's memory, and proposes the first tasks.",
     notes: ["Autonomous planning", "Local-first", "Agent-agnostic"],
     cta: "Download",
     firstOpen:

@@ -97,8 +97,15 @@ describe('the roles', () => {
     assert.equal(roleForFlow('reflect')!.name, 'proposer')
   })
 
+  // Memory belongs to whoever writes it (#805): all three planning files are the planner's,
+  // and the builder — which never opened one — owns none.
   it('says what each role remembers, in files that are the board it is on', () => {
-    assert.ok(roles().find((r) => r.name === 'planner')!.memory.includes('memory/goal.md'))
+    assert.deepEqual(roles().find((r) => r.name === 'planner')!.memory, [
+      'memory/agents/planner/decisions.md',
+      'memory/agents/planner/rejected.md',
+      'memory/agents/planner/redesign.md',
+    ])
+    assert.deepEqual(roles().find((r) => r.name === 'builder')!.memory, [])
   })
 
   // Writing taste is the content three's own, not a planning note about the product (#718),
@@ -110,9 +117,9 @@ describe('the roles', () => {
       assert.ok(memoryOf(name).some((f) => f.endsWith(`memory/agents/${name}/redesign.md`)), `${name} redesign`)
       assert.ok(memoryOf(name).some((f) => f.endsWith(`memory/agents/${name}/decisions.md`)), `${name} decisions`)
     }
-    // The coding three keep writing into the board's own set, and own no folder.
-    for (const name of ['planner', 'builder', 'reviewer']) {
-      assert.ok(!memoryOf(name).some((f) => f.includes('memory/agents/')), name)
+    // The two that write no memory at all own no folder either (#805).
+    for (const name of ['builder', 'reviewer']) {
+      assert.deepEqual(memoryOf(name), [], name)
     }
   })
 

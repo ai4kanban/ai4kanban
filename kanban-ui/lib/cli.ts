@@ -601,11 +601,11 @@ export interface BoardRules {
   readMetricsView(): Promise<MetricsResult>;
   readReleases(): Promise<string[]>;
   readGoalText(): Promise<string>;
-  /** One of the four memory files, whole — the project's copy, or a module's when `module`
-   *  names one the map knows (#129, #130). Optional: a board can be running rules older than
-   *  the release that added it, and the memory page then says so rather than the whole app
-   *  failing to draw. */
-  readMemoryFile?(name: string, module?: string): Promise<MemoryFile | null>;
+  /** One memory file, whole — the board's own record, or one an agent keeps when `agent`
+   *  names one that holds it (#129, #130, #805). Optional: a board can be running rules older
+   *  than the release that added it, and the memory page then says so rather than the whole
+   *  app failing to draw. */
+  readMemoryFile?(name: string, agent?: string): Promise<MemoryFile | null>;
   readSetupDraft(): Promise<SetupDraft>;
   readSetupState(): Promise<SetupState | null>;
   fillPlan(): Promise<FillPlan>;

@@ -40,7 +40,7 @@ export default async function Page() {
       agent={agent}
       projectRoot={repoRoot()}
       goalWritten={board.goalWritten}
-      memoryModules={board.memoryModules}
+      memoryOwners={board.memoryOwners}
       desktop={isDesktop()}
     />
   );

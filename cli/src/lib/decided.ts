@@ -5,7 +5,7 @@
 //   decided:
 //     - question: Where does a draft live?
 //       chose: In a file beside the card
-//       from: docs/kanban/memory/local-ui/decisions.md
+//       from: docs/kanban/memory/agents/planner/decisions.md
 //     - question: How long before a draft is cleared?
 //       chose: 30 days
 //
@@ -14,7 +14,7 @@
 // on. Nothing here waits on an answer or holds the card back — the shape `verify:` already
 // proved (./verify.ts).
 //
-// `from` is a board-relative file — a module's `decisions.md`, `memory/goal.md`. It is left
+// `from` is a board-relative file — the planner's `decisions.md`, `memory/goal.md`. It is left
 // off when nothing settled the question and the decider took the recommendation, so the
 // card page can draw that case as what it is.
 //

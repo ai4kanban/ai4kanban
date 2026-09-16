@@ -24,6 +24,7 @@ import { runBoard } from '../lib/board-cli'
 import { missingConfigKeys } from '../lib/config-template'
 import { BoardError, say } from '../lib/io'
 import { setBoardRoot } from '../lib/paths'
+import { readGoalBody } from '../lib/view/goal'
 import { installSkill, readCommandState, readSkillState } from '../lib/skill/install'
 import { readCommitHook, sayCommitHook } from '../lib/skill/hook'
 import type { SkillFolder } from '../lib/skill/types'
@@ -354,6 +355,9 @@ async function repairBoard(root: string, report: Report): Promise<void> {
     return
   }
   moveLegacyMemory(board, report)
+  // Before `init`, which merges each module's memory away and then drops the folder — a
+  // leftover `goal.md` is the one thing that would keep an emptied folder on disk.
+  dropModuleGoals(board, report)
   report.sayDid()
   // `init` on an existing board is the repair step: it adds what an older version never
   // wrote and never touches a file that's already filled in. It also writes the ignore line
@@ -362,7 +366,6 @@ async function repairBoard(root: string, report: Report): Promise<void> {
   moveRuntimes(root, board, report)
   const dropped = dropRecordFile(board)
   if (dropped) report.did.push(dropped)
-  dropModuleGoals(board, report)
   checkConfig(board, report)
   checkModules(board, report)
 }
@@ -432,7 +435,9 @@ export function dropRecordFile(board: string): string | null {
 }
 
 // `goal.md` lives at the board root of `memory/` only. An older layout gave every module a
-// copy; drop the ones that say nothing the root one doesn't, and report the rest.
+// copy; drop the ones that say nothing the root one doesn't, and report the rest. A copy
+// holding nothing but the `reviewed:` field is one of those — `init` seeded every module one,
+// and a folder kept for it is a folder the memory migration then cannot clear (#805).
 function dropModuleGoals(board: string, report: Report): void {
   const memory = path.join(board, 'memory')
   if (!fs.existsSync(memory)) return
@@ -443,7 +448,7 @@ function dropModuleGoals(board: string, report: Report): void {
     const file = path.join(memory, entry.name, 'goal.md')
     const text = read(file)
     if (text === null) continue
-    if (text === root || text.includes(UNFILLED)) {
+    if (text === root || text.includes(UNFILLED) || !readGoalBody(text).written) {
       fs.rmSync(file)
       dropped++
     } else {
@@ -473,7 +478,7 @@ function checkModules(board: string, report: Report): void {
   const map = read(path.join(board, 'modules.md'))
   if (map && map.includes(UNFILLED)) {
     report.notes.push(
-      'docs/kanban/modules.md is still blank — write it from the repo (`akb guide module-map`), then re-run this command so every module gets a memory path',
+      'docs/kanban/modules.md is still blank — write it from the repo (`akb guide module-map`)',
     )
   }
 }

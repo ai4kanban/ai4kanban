@@ -34,12 +34,13 @@ export type RailCopy = {
     heading: string;
     show: string;
     hide: string;
-    project: string;
-    modules: string;
-    /** A module the map names but nothing has been written about. */
+    /** The board's own group, which is what shipped and where the project is going — the
+     *  two records that are nobody's taste, so they sit above the agents (#805). */
+    board: string;
+    /** An agent that keeps memory and has written none yet. */
     empty: string;
-    /** The four memory files, keyed by the name the board's rules give each one. */
-    files: { readme: string; decisions: string; redesign: string; rejected: string };
+    /** The memory files, keyed by the name the board's rules give each one. */
+    files: { readme: string; goal: string; decisions: string; redesign: string; rejected: string };
     /** The button over them (#514): it opens the pruner's page in Configuration,
      *  which is where a pass is started and a cadence is set. */
     prune: string;

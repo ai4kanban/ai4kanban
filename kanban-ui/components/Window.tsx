@@ -40,7 +40,7 @@ import { BodySlotProvider } from "@/lib/body-slot";
 import { BellProvider, CardEventsProvider } from "@/lib/card-event";
 import { usePhone } from "@/lib/media";
 import { RAIL_MAX, RAIL_MIN, RAIL_W, useRailWidth } from "@/lib/rail-width";
-import type { MemoryModule } from "@/lib/types";
+import type { MemoryOwner } from "@/lib/types";
 import { ChatPane, ChatProvider } from "./Chat";
 import {
   raiseNotifications,
@@ -106,7 +106,7 @@ export function Window({
   currentMemory = null,
   currentArchive = false,
   currentSignals = false,
-  memoryModules = [],
+  memoryOwners = [],
   goalWritten = false,
   goalOffered = false,
   onGoalSaved,
@@ -131,7 +131,7 @@ export function Window({
   currentSignals?: boolean;
   /** The modules the rail's Memory panel offers, from the board read every page already
    *  does (#130). Empty on a board whose map names none. */
-  memoryModules?: MemoryModule[];
+  memoryOwners?: MemoryOwner[];
   /** Whether `memory/goal.md` holds the user's own words — the phone's More screen offers
    *  the goal the top row offers at window width (#357), in the same two states: what is
    *  written, or the quiet offer to write it (#437). */
@@ -288,7 +288,7 @@ export function Window({
     !phone || cover === null ? null : cover === "find" ? (
       <FindScreen />
     ) : cover === "memory" ? (
-      <MemoryScreen active={currentMemory} modules={memoryModules} />
+      <MemoryScreen active={currentMemory} owners={memoryOwners} />
     ) : (
       <MoreScreen
         projectRoot={projectRoot}
@@ -341,7 +341,7 @@ export function Window({
               activeArchive={currentArchive}
               activeSignals={currentSignals}
               signals={signals}
-              memoryModules={memoryModules}
+              memoryOwners={memoryOwners}
               total={openIds.length}
               running={running ?? EMPTY}
             />

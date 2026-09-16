@@ -34,7 +34,7 @@ import { findGuide } from '../guide'
 import { workflowForRun } from './runner'
 import { cardAges } from '../card-age'
 import { parseStamp } from '../cadence'
-import { boardMemoryFiles } from '../memory'
+import { PLANNER, agentMemoryDir, memoryFile, planningMemoryFiles } from '../memory'
 import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMORY, MODULES_MD, REPO_ROOT, SETUP_CHECKLIST, TODO, TRIAGE } from '../paths'
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
@@ -163,12 +163,12 @@ function readTodo(body: string): { steps: string[]; ticked: number } {
   return { steps, ticked }
 }
 
-// Which copy of a memory file a note belongs in — "The memory set" in `akb guide board`, read
-// only: the named module's copy, both when the card names two, the project-wide one when it
-// names none. It never scaffolds, because printing a flow must not write to the board.
-function memoryFiles(modules: string[], name: string): string[] {
-  const dirs = modules.length ? modules.map((m) => path.join(MEMORY, m)) : [MEMORY]
-  return dirs.map((dir) => rel(path.join(dir, name)))
+// Where a note goes — "Who owns a memory file" in `akb guide board`, read only: one file, plus the
+// `## <module>` topics in it the card's own modules name (#805). It never scaffolds, because
+// printing a flow must not write to the board.
+function memoryLines(modules: string[], name: string): string[] {
+  const file = rel(memoryFile(name))
+  return modules.length ? [`${file} — under \`## ${modules.join('\`, \`## ')}\``] : [file]
 }
 
 // The jobs `akb guide board` tells to read the project's settings before they start:
@@ -607,7 +607,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(...stepsField(card))
       if (card.meta.questions.length) facts.push(...questionsField(card.meta))
       facts.push(...verifyField(card.meta))
-      facts.push(...field('memory', memoryFiles(card.meta.modules, 'readme.md')))
+      facts.push(...field('memory', memoryLines(card.meta.modules, 'readme.md')))
       // Inside a delivery the build is not the end of the job: a fresh run reviews what
       // it made against the approved copy, the board lands it, and the board archives the
       // card once it has landed (#302, #307). With AI review off there is no such run
@@ -724,7 +724,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         facts.push(...answeringField(building, self))
         facts.push(...notesField(card!))
       }
-      facts.push(...field('memory', memoryFiles(card!.meta.modules, 'decisions.md')))
+      facts.push(...field('memory', memoryLines(card!.meta.modules, 'decisions.md')))
       if (building) close.push(answeredClose(building, self))
       next.push(
         req.refineRound !== undefined
@@ -747,7 +747,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         facts.push(...notesField(card!))
       }
       facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', boardMemoryFiles()))
+      facts.push(...field('memory', planningMemoryFiles()))
       close.push(
         ...(decidingOnBuild ? [answeredClose(decidingOnBuild, self)] : []),
         `${raw} update-decided ${req.id} --question ".." --chose ".." [--from ".."] — one call per question, before you drop it`,
@@ -762,14 +762,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // The gater's verdict (#440, #493) — so the close is the two ways to give one and
     // nothing else. No handover: a card it passes is built by the board, not by whoever
     // read this. Like the decider it judges for the whole board, so it is given the goal and
-    // every module's memory on top of the card, and writes none of it.
+    // the planner's memory on top of the card, and writes none of it.
     case 'gate': {
       facts.push(...stepsField(card!), ...questionsField(card!.meta), ...verifyField(card!.meta))
       facts.push(
         ...field('blockers', card!.meta.blocked_by.map((n) => `#${n}`).join(', ') || 'none'),
       )
       facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', boardMemoryFiles()))
+      facts.push(...field('memory', planningMemoryFiles()))
       close.push(
         'it passes: change nothing at all and finish successfully — a clean finish IS the verdict, and the board opens the delivery itself',
         `it does not: \`${raw} update-questions ${req.id} --append ".."\` — exactly one \`[user]\` question naming what blocks the build, which takes the card back to todo by itself`,
@@ -796,8 +796,8 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(
         ...field('memory', [
           'open only when the request needs planning context:',
-          ...memoryFiles(card!.meta.modules, 'decisions.md').map((file) => `  ${file}`),
-          ...memoryFiles(card!.meta.modules, 'redesign.md').map((file) => `  ${file}`),
+          ...memoryLines(card!.meta.modules, 'decisions.md').map((file) => `  ${file}`),
+          ...memoryLines(card!.meta.modules, 'redesign.md').map((file) => `  ${file}`),
         ]),
       )
       close.push(
@@ -828,7 +828,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     case 'archive': {
       facts.push(...stepsCount(card!))
-      facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
+      facts.push(...field('memory', memoryLines(card!.meta.modules, 'readme.md')))
       close.push(
         'write the shipped line first — one line for what a user can now see or do, nothing for an internal-only change',
         `${raw} archive ${req.id} — it files the card, drops it from the index, and prints what still mentions it`,
@@ -907,15 +907,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // Squeezing the memory back down (#514). The facts are the files, because the files
     // ARE the job: there is no card to read and nothing on the board to tick afterwards.
     case 'prune-memory': {
-      // Folders, not files: a prune covers the whole memory set in each of them, and the
-      // set is `akb guide board`'s to define rather than this flow's to list.
-      facts.push(
-        ...field('memory', [
-          rel(MEMORY),
-          ...(moduleNames() ?? []).map((module) => rel(path.join(MEMORY, module))),
-        ]),
-      )
-      facts.push(...field('agents', `${rel(AGENT_MEMORY)}/<agent>/ — one folder per agent that remembers`))
+      // Folders, not files: a prune covers everything in each of them, and what that is is
+      // `akb guide board`'s to define rather than this flow's to list.
+      facts.push(...field('memory', [`${rel(MEMORY)} — the board's own record`]))
+      facts.push(...field('agents', `${rel(AGENT_MEMORY)}/<agent>/ — one folder per agent that remembers, ${rel(agentMemoryDir(PLANNER))}/ among them`))
       close.push(
         'rewrite the files above in place — that is the whole job',
         'raise nothing for anyone: there is no card to question, so what you cannot settle stays in the file',
@@ -943,14 +938,19 @@ function buildFlow(req: AgentRequest, program: string): Flow {
                 ...chats.flatMap((chat) => [
                   `  ${chat.name}${chat.cardId === null ? '' : ` (#${chat.cardId}${chat.card === 'archived' ? ', archived' : chat.card === 'gone' ? ', gone from the board' : ''})`} — ${chat.messages} message${chat.messages === 1 ? '' : 's'}`,
                   `    transcript: ${chat.file}`,
-                  `    memory: ${chat.memory.join(', ')}`,
+                  ...(chat.topics.length ? [`    topics: ## ${chat.topics.join(', ## ')}`] : []),
                 ]),
               ],
         ),
       )
-      facts.push(...field('agents', `${rel(AGENT_MEMORY)}/<agent>/ — where what a spec agent was corrected on goes`))
+      facts.push(
+        ...field('memory', [
+          `${rel(agentMemoryDir(PLANNER))}/ — decisions.md, rejected.md, redesign.md: where a planning note goes`,
+          `${rel(AGENT_MEMORY)}/<agent>/ — where what a spec agent was corrected on goes`,
+        ]),
+      )
       close.push(
-        'write the notes into the memory folders named above — that is the whole job',
+        'write the notes into the memory files named above — that is the whole job',
         'rewrite or delete a note an earlier review wrote that a conversation has since overturned, rather than adding a second one',
         'writing nothing at all is a complete result, and most conversations earn it',
         'change nothing else — not a card, not the goal, not the code',
@@ -962,7 +962,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // close is the one thing it may write, and the permission to write nothing at all.
     case 'reflect': {
       facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', boardMemoryFiles()))
+      facts.push(...field('memory', planningMemoryFiles()))
       facts.push(...field('triage', `${rel(TRIAGE)}/ — what is already waiting to be triaged`))
       close.push(
         `${self} triage add --title ".." --source "#${req.id}" --text ".." — one call per proposal, each naming ${card!.file}`,
@@ -989,7 +989,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ),
       )
       facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', boardMemoryFiles()))
+      facts.push(...field('memory', planningMemoryFiles()))
       facts.push(...field('modules', rel(MODULES_MD)))
       if (waiting.length === 0) {
         close.push('write nothing — there is nothing waiting, and that is a complete result')
@@ -1006,7 +1006,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     }
     // Settling a card that sat too long (#118). The facts are what the verdict is made of:
     // how long it sat, what the plan still claims, and the direction to judge the rest
-    // against — so it is given the goal and every module's memory, like the gater, and
+    // against — so it is given the goal and the planner's memory, like the gater, and
     // writes none of it. The close is the two verdicts and the rule that separates them
     // from a refine.
     case 'unstick': {
@@ -1021,7 +1021,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       )
       facts.push(...stepsField(card!), ...questionsField(card!.meta))
       facts.push(...field('goal', rel(GOAL)))
-      facts.push(...field('memory', boardMemoryFiles()))
+      facts.push(...field('memory', planningMemoryFiles()))
       close.push(
         'keep it: rewrite the body for the project as it stands today, and rewrite its ## By `sweeper` agent section whole — still worth doing, what must change first, and the date',
         `discard it: \`${raw} reject ${req.id} --discard\` — no memory note, no \`rejected.md\` line, and nobody to sign it off`,
@@ -1039,7 +1039,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
           `${raw} reject ${req.id} --discard — this deletes the card and writes no memory; the receipt prints it out one last time`,
         )
       } else {
-        facts.push(...field('memory', memoryFiles(card!.meta.modules, 'rejected.md')))
+        facts.push(...field('memory', memoryLines(card!.meta.modules, 'rejected.md')))
         close.push(
           'write the rejection note first when this rejection earns one — the idea and why we said no; a duplicate or a routine drop earns none, and writing nothing is a complete result',
           `${raw} reject ${req.id} — this deletes the card; the receipt prints it out one last time`,

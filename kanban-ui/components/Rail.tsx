@@ -46,13 +46,14 @@ import {
 } from "react-icons/fi";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
-import { memoryKey, memoryModuleOf, useMemoryPanel, useOpenModules } from "@/lib/memory-panel";
+import { memoryKey, memoryAgentOf, useMemoryPanel, useOpenOwners } from "@/lib/memory-panel";
+import { useMemoryOwnerName } from "./memory-owner";
 import {
-  MEMORY_FILES,
   isDiscussion,
   type ChatTarget,
   type DiscussionTarget,
-  type MemoryModule,
+  type MemoryName,
+  type MemoryOwner,
 } from "@/lib/types";
 import { armAgentHalf } from "@/lib/agent-half";
 import { useCardSearch } from "@/lib/card-search";
@@ -75,7 +76,7 @@ export function Rail({
   activeArchive = false,
   activeSignals = false,
   signals = { show: false, count: 0 },
-  memoryModules = [],
+  memoryOwners = [],
   total,
   running,
 }: {
@@ -90,8 +91,9 @@ export function Rail({
   /** Whether to offer the Inbox row at all, and how much is waiting in it. A board the
    *  inbox is not open to answers `show: false`, and the row is not drawn. */
   signals?: { show: boolean; count: number };
-  /** The modules the memory panel offers, in the map's order (#130). */
-  memoryModules?: MemoryModule[];
+  /** What the memory panel draws: the board's own record, then every agent that keeps
+   *  memory (#130, #805). */
+  memoryOwners?: MemoryOwner[];
   /** How many cards the board holds open — the count on All cards. */
   total: number;
   /** The cards an agent is inside right now. A row for one of them pulses, so a
@@ -255,17 +257,17 @@ export function Rail({
       <MemoryPanel
         active={activeMemory}
         marked={onPage ? activeMemory : null}
-        modules={memoryModules}
+        owners={memoryOwners}
       />
     </div>
   );
 }
 
-/** The board's memory, at the foot of the rail (#129, #130) — what shipped, what was
- *  settled, what to avoid, what was turned down, for the project and for each module the map
- *  names. It sits below the cards and outside the list that scrolls, so it stays put however
- *  many cards are open and whatever is typed in the search box: it is not one of the cards,
- *  and a search is no reason to lose it.
+/** The board's memory, at the foot of the rail (#129, #130, #805) — one group per owner:
+ *  the board's own record first, then every agent that keeps memory, each opening the files
+ *  it holds. It sits below the cards and outside the list that scrolls, so it stays put
+ *  however many cards are open and whatever is typed in the search box: it is not one of the
+ *  cards, and a search is no reason to lose it.
  *
  *  Collapsed it is one section label with an arrow, and the whole row is the button — a
  *  10px arrow is not something to have to hit. Expanded it grows with its rows to half the
@@ -277,21 +279,19 @@ export function Rail({
 function MemoryPanel({
   active,
   marked,
-  modules,
+  owners,
 }: {
   /** The memory file this window is showing — what the panel opens itself on. */
   active: string | null;
   /** The row to mark, which is `active` unless something is drawn over the page (#722). */
   marked: string | null;
-  modules: MemoryModule[];
+  owners: MemoryOwner[];
 }) {
   const c = useCopy().rail.memory;
   const { open, toggle, animate } = useMemoryPanel(active);
-  const { isOpen, toggle: toggleModule } = useOpenModules(memoryModuleOf(active));
+  const written = owners.filter((o) => o.files.length > 0).map((o) => o.agent);
+  const { isOpen, toggle: toggleOwner } = useOpenOwners(memoryAgentOf(active), written);
   const slide = animate ? "transition-[grid-template-rows,opacity] duration-200 ease-out" : "";
-  // The two halves are only worth naming when there is a second half to name. A board whose
-  // map has no modules keeps the four rows it had.
-  const split = modules.length > 0;
   return (
     <div className="flex max-h-[50%] shrink-0 flex-col">
       <button
@@ -324,46 +324,63 @@ function MemoryPanel({
               is floor a 0fr track can't shrink past, and closed has to close all the way. */}
           <div className="flex flex-col gap-0.5 py-1">
             <PruneButton />
-            {split && <PanelLabel text={c.project} />}
-            <MemoryFileRows module="" active={marked} />
-            {split && <PanelLabel text={c.modules} divider />}
-            {modules.map((module) => (
-              <div key={module.name}>
-                <button
-                  type="button"
-                  onClick={() => toggleModule(module.name)}
-                  aria-expanded={isOpen(module.name)}
-                  className="flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] px-2.5 text-left text-[12.5px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink"
-                >
-                  <FiChevronRight
-                    size={13}
-                    aria-hidden
-                    className={`shrink-0 transition-transform duration-150 ease-out ${
-                      isOpen(module.name) ? "rotate-90" : ""
-                    }`}
-                  />
-                  <span className="truncate">{module.name}</span>
-                </button>
-                {/* Indented under the row that opened them, so the panel reads as a tree
-                    rather than as a flat list with a heading in it. */}
-                {isOpen(module.name) && (
-                  <div className="flex flex-col gap-0.5 pl-3.5 pt-0.5">
-                    {module.hasMemory ? (
-                      <MemoryFileRows module={module.name} active={marked} />
-                    ) : (
-                      // Four rows that all lead nowhere would read as four empty files
-                      // rather than as a module nothing has been written about yet.
-                      <p className="px-2.5 pb-1 text-[12px] leading-snug text-nb-ink-soft">
-                        {c.empty}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+            {owners.map((owner) => (
+              <OwnerRows
+                key={owner.agent || "board"}
+                owner={owner}
+                open={isOpen(owner.agent)}
+                onToggle={() => toggleOwner(owner.agent)}
+                marked={marked}
+              />
             ))}
           </div>
         </nav>
       </div>
+    </div>
+  );
+}
+
+/** One owner: the row that folds it, and the files under it. Indented under the row that
+ *  opened them, so the panel reads as a tree rather than as a flat list with headings in it. */
+function OwnerRows({
+  owner,
+  open,
+  onToggle,
+  marked,
+}: {
+  owner: MemoryOwner;
+  open: boolean;
+  onToggle: () => void;
+  marked: string | null;
+}) {
+  const c = useCopy().rail.memory;
+  const name = useMemoryOwnerName(owner);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-[8px] px-2.5 text-left text-[12.5px] font-[600] text-nb-ink-soft hover:bg-[color-mix(in_srgb,var(--color-nb-ink)_6%,transparent)] hover:text-nb-ink"
+      >
+        <FiChevronRight
+          size={13}
+          aria-hidden
+          className={`shrink-0 transition-transform duration-150 ease-out ${open ? "rotate-90" : ""}`}
+        />
+        <span className="truncate">{name}</span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-0.5 pl-3.5 pt-0.5">
+          {owner.files.length > 0 ? (
+            <MemoryFileRows agent={owner.agent} files={owner.files} active={marked} />
+          ) : (
+            // Rows that all lead nowhere would read as files that failed to load, rather
+            // than as an agent nothing has been written under yet.
+            <p className="px-2.5 pb-1 text-[12px] leading-snug text-nb-ink-soft">{c.empty}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -396,38 +413,29 @@ function PruneButton() {
   );
 }
 
-/** The four memory rows of one set — the project's, or a module's (#130). The same four
- *  names in the same order either way, so a module's set is read the way the project's is. */
-function MemoryFileRows({ module, active }: { module: string; active: string | null }) {
+/** The files one owner holds, in the order the board lists them (#130, #805). */
+function MemoryFileRows({
+  agent,
+  files,
+  active,
+}: {
+  agent: string;
+  files: MemoryName[];
+  active: string | null;
+}) {
   const c = useCopy().rail.memory;
   return (
     <>
-      {MEMORY_FILES.map((file) => (
+      {files.map((name) => (
         <RailRow
-          key={file.name}
-          href={`/memory/${memoryKey(module, file.name)}`}
-          label={c.files[file.name as keyof RailCopy["memory"]["files"]] ?? file.label}
+          key={name}
+          href={`/memory/${memoryKey(agent, name)}`}
+          label={c.files[name as keyof RailCopy["memory"]["files"]] ?? name}
           icon={<FiFileText size={13} className="shrink-0" aria-hidden />}
-          active={active === memoryKey(module, file.name)}
+          active={active === memoryKey(agent, name)}
         />
       ))}
     </>
-  );
-}
-
-/** Project / Modules — the two halves of the Memory panel, in the rail's own section-label
- *  look at panel scale. No count: the project's half is always four, and the panel's rows
- *  are what say how many modules there are. */
-function PanelLabel({ text, divider = false }: { text: string; divider?: boolean }) {
-  return (
-    <div
-      className={`px-2.5 pb-1 ${divider ? "mt-1.5 pt-2" : ""}`}
-      style={divider ? { borderTop: `1px solid ${HAIRLINE}` } : undefined}
-    >
-      <span className="text-[10px] font-[800] uppercase tracking-[0.12em] text-nb-ink-soft">
-        {text}
-      </span>
-    </div>
   );
 }
 

@@ -23,13 +23,13 @@ const en: RailCopy = {
   },
   memory: {
     heading: "Memory",
-    show: "What the agent remembers about this project",
-    hide: "Hide the project's memory",
-    project: "Project",
-    modules: "Modules",
-    empty: "Nothing remembered about this module yet.",
+    show: "What this board and its agents remember",
+    hide: "Hide the memory",
+    board: "Board",
+    empty: "Nothing remembered yet.",
     files: {
       readme: "What shipped",
+      goal: "The goal",
       decisions: "Settled decisions",
       redesign: "Design mistakes",
       rejected: "Rejected ideas",

@@ -69,8 +69,8 @@ export const SETUP_STEPS: SetupStep[] = [
   { name: 'project', owner: 'you', text: 'Say what this project is, in `docs/kanban/config.md`.' },
   { name: 'goal', owner: 'you', text: 'Write the project goal in `docs/kanban/memory/goal.md`.' },
   { name: 'agent', owner: 'you', text: 'Pick the agent that runs this board, and give it a key.' },
-  { name: 'decisions', owner: 'agent', text: 'Settle `docs/kanban/memory/decisions.md` from what the repository shows.' },
-  { name: 'modules', owner: 'agent', text: 'Write `docs/kanban/modules.md`, then move each settled call into its module\'s memory.' },
+  { name: 'decisions', owner: 'agent', text: 'Settle `docs/kanban/memory/agents/planner/decisions.md` from what the repository shows.' },
+  { name: 'modules', owner: 'agent', text: 'Write `docs/kanban/modules.md`, then file each settled call under its module\'s topic.' },
   { name: 'tasks', owner: 'agent', text: 'Create the first tasks.' },
 ]
 
@@ -182,9 +182,9 @@ export const SETUP_QUESTIONS_SLUG = 'answer-the-questions-setup-couldnt-settle'
 const SETUP_QUESTIONS_TITLE = "Answer the questions setup couldn't settle"
 
 const SETUP_QUESTIONS_BODY = `The calls setup could not settle on its own — each step appends its own here as it runs.
-Answer them through the resolve flow: each answer becomes a line in the project-wide
-\`docs/kanban/memory/decisions.md\`, and the card is done when no question is left. It
-holds no build work, so no todos.
+Answer them through the resolve flow: each answer becomes a line in
+\`docs/kanban/memory/agents/planner/decisions.md\`, and the card is done when no question is
+left. It holds no build work, so no todos.
 `
 
 // Written by the fresh scaffold, and by init's repair when a mid-setup board lacks it —

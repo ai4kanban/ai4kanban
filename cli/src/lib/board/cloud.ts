@@ -655,8 +655,8 @@ function cloudBoard(ctx: Context): BoardProvider {
     readReleases: () => local.readReleases(),
     readModules: () => local.readModules(),
     readGoalText: () => local.readGoalText(),
-    readMemoryFile: (name, module) => local.readMemoryFile(name, module),
-    readMemoryModules: () => local.readMemoryModules(),
+    readMemoryFile: (name, agent) => local.readMemoryFile(name, agent),
+    readMemoryOwners: () => local.readMemoryOwners(),
     readSetupState: () => local.readSetupState(),
     readSetupDraft: () => local.readSetupDraft(),
     readMetricsView: () => local.readMetricsView(),
@@ -789,8 +789,8 @@ function cloudBoard(ctx: Context): BoardProvider {
     },
 
     finishSetupStep: (name, env) => through({ board: true }, env, (e) => local.finishSetupStep(name, e)),
-    saveMemoryFile: (name, text, module, env) =>
-      through({ board: true }, env, (e) => local.saveMemoryFile(name, text, module, e)),
+    saveMemoryFile: (name, text, agent, env) =>
+      through({ board: true }, env, (e) => local.saveMemoryFile(name, text, agent, e)),
 
     // ---- the team, and the rule each of them carries -------------------------
 

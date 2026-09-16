@@ -38,7 +38,7 @@ import type {
   DropPlan,
   FillPlan,
   MemoryFile,
-  MemoryModule,
+  MemoryOwner,
   MetricsResult,
   SaveProjectResult,
   SetupDraft,
@@ -166,9 +166,9 @@ export interface BoardProvider {
   readReleases(): Promise<string[]>
   readModules(): Promise<string[]>
   readGoalText(): Promise<string>
-  readMemoryFile(name: string, module?: string): Promise<MemoryFile | null>
-  /** The modules whose memory the panel can open, in the map's order. */
-  readMemoryModules(): Promise<MemoryModule[]>
+  readMemoryFile(name: string, agent?: string): Promise<MemoryFile | null>
+  /** What the memory panel draws: the board's own record, then every agent that keeps memory. */
+  readMemoryOwners(): Promise<MemoryOwner[]>
   readSetupState(): Promise<SetupState | null>
   readSetupDraft(): Promise<SetupDraft>
   readMetricsView(): Promise<MetricsResult>
@@ -206,10 +206,10 @@ export interface BoardProvider {
   saveGoal(text: string, env: OpEnvelope): Promise<OpResult>
   saveProject(name: string, description: string, env: OpEnvelope): Promise<SaveProjectResult>
   finishSetupStep(name: string, env: OpEnvelope): Promise<OpResult>
-  /** One of the four memory files, written whole — the project's copy, or a module's when
-   *  `module` names one. Until #315 the only writer of a memory file was the coding agent
+  /** One memory file, written whole — the board's own record, or one an agent keeps when
+   *  `agent` names one. Until #315 the only writer of a memory file was the coding agent
    *  editing it as a file, which a board that is not on this machine has no way to do. */
-  saveMemoryFile(name: string, text: string, module: string, env: OpEnvelope): Promise<OpResult<{ file?: MemoryFile }>>
+  saveMemoryFile(name: string, text: string, agent: string, env: OpEnvelope): Promise<OpResult<{ file?: MemoryFile }>>
 
   // ---- the team (#420, #422) -----------------------------------------------
   /** Everyone working on this board — the roles it ships, the specialists the command

@@ -42,7 +42,7 @@ export const recipes: Recipe[] = [
     tagline:
       "Keep your board's memory concise, so each planning run reads only the shipped facts, decisions, rejections, and design lessons that still matter.",
     summary:
-      "A recurring maintenance task for AI4Kanban's project-wide and per-module memory. Each run rewrites the four memory files into concise topic summaries that retain only what still helps plan future work.",
+      "A recurring maintenance task for AI4Kanban's memory — the board's own record and every agent's files. Each run rewrites them into concise topic summaries that retain only what still helps plan future work.",
     mdFile: "/recipes/prune-the-memory.md",
     installPrompt: [
       `/kanban Pull ${SITE_ORIGIN}/recipes/prune-the-memory.md`,
@@ -52,8 +52,8 @@ export const recipes: Recipe[] = [
     does: [
       {
         art: "prune",
-        title: "Prune project and module memory",
-        body: "Rewrites the project-wide memory and each module's four memory files as concise topic summaries, keeping only shipped facts, live decisions, rejected ideas, and design lessons that still help plan future work.",
+        title: "Prune the board and agent memory",
+        body: "Rewrites the board's own record and each agent's memory files as concise topic summaries, keeping only shipped facts, live decisions, rejected ideas, and design lessons that still help plan future work.",
       },
     ],
   },

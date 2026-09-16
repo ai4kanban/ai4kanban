@@ -377,7 +377,7 @@ function boardFrom(read: BoardRead, now = Date.now()): Board {
     // The goal and the memory set are the board's own and no screen here draws them; the
     // setup checklist is a run on the machine holding the board.
     goalWritten: false,
-    memoryModules: [],
+    memoryOwners: [],
     setup: null,
   }
 }
@@ -399,7 +399,7 @@ export function cardScreenFrom(read: BoardRead, id: number, now = Date.now()): C
     openIds: Array.from(new Set(every.map((c) => c.id))),
     releases: releases.map((e) => e.id),
     goalWritten: false,
-    memoryModules: [],
+    memoryOwners: [],
     // A plan is about a checkout and a diff is a commit — both the machine's, neither a
     // board's, and no control here would use either.
     plan: { commitMode: 'manual' },

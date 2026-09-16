@@ -1,8 +1,8 @@
 import { printFrame } from "./Mat";
 
 // The memory is a directory of Markdown files, so the visual is that directory —
-// real paths, one module expanded, a second left collapsed to show there's one
-// per module. Paths and glyphs are structure, not copy, so they stay here; the
+// real paths: the board's own record at the top, the planner's folder expanded
+// under it. Paths and glyphs are structure, not copy, so they stay here; the
 // note beside each file is the caller's, because the landing page's is
 // translated and a post's is not.
 //
@@ -19,7 +19,7 @@ import { printFrame } from "./Mat";
 
 export type MemoryTreeNotes = {
   goal: string;
-  module: string;
+  planner: string;
   readme: string;
   decisions: string;
   rejected: string;
@@ -35,13 +35,12 @@ type Row = {
 
 const TREE: Row[] = [
   { prefix: "", name: "docs/kanban/memory/", dir: true },
+  { prefix: "├─ ", name: "readme.md", note: "readme" },
   { prefix: "├─ ", name: "goal.md", note: "goal" },
-  { prefix: "├─ ", name: "local-ui/", dir: true, note: "module" },
-  { prefix: "│  ├─ ", name: "readme.md", note: "readme" },
-  { prefix: "│  ├─ ", name: "decisions.md", note: "decisions" },
-  { prefix: "│  ├─ ", name: "rejected.md", note: "rejected" },
-  { prefix: "│  └─ ", name: "redesign.md", note: "redesign" },
-  { prefix: "└─ ", name: "site/", dir: true },
+  { prefix: "└─ ", name: "agents/planner/", dir: true, note: "planner" },
+  { prefix: "   ├─ ", name: "decisions.md", note: "decisions" },
+  { prefix: "   ├─ ", name: "rejected.md", note: "rejected" },
+  { prefix: "   └─ ", name: "redesign.md", note: "redesign" },
 ];
 
 // One listing at every width. It used to be two — a two-column grid from `sm`

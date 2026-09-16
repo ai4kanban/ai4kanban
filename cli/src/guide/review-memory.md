@@ -21,11 +21,10 @@ whole job.
   place — never leave both and never add a second.
 - **Honour "don't record this"**: told in the conversation not to record something, write no
   note for it. If one is already there from an earlier review, delete it now.
-- **Where it goes**: each conversation is listed with the memory folder its notes belong in —
-  the copies the card's `modules:` names, or the project-wide one. A durable choice goes in
-  that folder's `decisions.md` and a design lesson in its `redesign.md`. Where what was
-  settled lands on a spec agent's work, write that agent's own memory too — "An agent's
-  memory" in `akb guide update-questions`.
+- **Where it goes**: a durable choice goes in `docs/kanban/memory/agents/planner/decisions.md`
+  and a design lesson in its `redesign.md`, under the `## <module>` topic each conversation is
+  listed with. Where what was settled lands on a spec agent's work, write that agent's own
+  memory too — "An agent's memory" in `akb guide update-questions`.
 - **Change nothing else**: no card, no open question, no `verify:` line, no code. The memory
   files are the whole of what this run writes.
 - **Say what you wrote**: finish by reporting each conversation you read, and for each the

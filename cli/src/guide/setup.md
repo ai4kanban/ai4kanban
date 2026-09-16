@@ -64,9 +64,10 @@ the app can select its own Agent later.
 
 ## `decisions`
 
-Write at most five high-level planning decisions to `docs/kanban/memory/decisions.md` as
-`**<key>**: <decision>`. Take them from the repository scan — README, package files,
-folder structure — and from the goal when there is one. Write only what the scan supports;
+Write at most five high-level planning decisions to
+`docs/kanban/memory/agents/planner/decisions.md` as `**<key>**: <decision>`. Take them from
+the repository scan — README, package files, folder structure — and from the goal when there
+is one. Write only what the scan supports;
 a repository that shows nothing gets no decisions. Ignore non-blocking content
 discrepancies. Then `setup-done decisions`.
 
@@ -74,9 +75,9 @@ discrepancies. Then `setup-done decisions`.
 
 Write at most five user-visible parts to `docs/kanban/modules.md` as
 `<module>: <purpose>`, read off the same scan. Write only the parts the repository
-actually shows. Run `akb raw init`, then move each module-specific decision to that
-module's `decisions.md`; keep cross-module decisions at project level. Then
-`setup-done modules`.
+actually shows. Run `akb raw init`, then file each module-specific decision under its
+`## <module>` topic in the planner's `decisions.md`; a decision that spans modules stays
+above the topics. Then `setup-done modules`.
 
 ## `tasks`
 

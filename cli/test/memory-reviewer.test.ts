@@ -222,7 +222,7 @@ describe('the conversations one review reads', () => {
     assert.deepEqual(chatsToReview(since), [])
   })
 
-  it("writes into the card's own modules, and into the archived card's when it has left the board", () => {
+  it("names the card's own modules as topics, and the archived card's when it has left the board", () => {
     card(1, ['skill'])
     card(2, ['local-ui'], 'archived')
     const since = Date.now() - DAY
@@ -230,19 +230,19 @@ describe('the conversations one review reads', () => {
     chat('card-2', since + 60_000)
 
     const read = chatsToReview(since)
-    assert.deepEqual(read.find((c) => c.cardId === 1)!.memory, ['docs/kanban/memory/skill'])
+    assert.deepEqual(read.find((c) => c.cardId === 1)!.topics, ['skill'])
     const gone = read.find((c) => c.cardId === 2)!
     assert.equal(gone.card, 'archived')
-    assert.deepEqual(gone.memory, ['docs/kanban/memory/local-ui'])
+    assert.deepEqual(gone.topics, ['local-ui'])
   })
 
-  it('falls back to the project memory for a discussion, and for a card it cannot find', () => {
+  it('names no topic for a discussion, or for a card it cannot find', () => {
     const since = Date.now() - DAY
     chat('discussion-11111111-2222-3333-4444-555555555555', since + 60_000)
     chat('card-9', since + 60_000)
 
     for (const read of chatsToReview(since)) {
-      assert.deepEqual(read.memory, ['docs/kanban/memory'])
+      assert.deepEqual(read.topics, [])
     }
     assert.equal(chatsToReview(since).find((c) => c.cardId === 9)!.card, 'gone')
   })
@@ -256,7 +256,9 @@ describe('what the review is handed', () => {
     const said = quiet(() => printFlow({ action: 'review-memory' }))
     assert.match(said, /card 1 \(#1\)/)
     assert.match(said, /transcript: .*card-1\.json/)
-    assert.match(said, /memory: .*memory\/skill/)
+    // A module is a topic in the planner's own files now (#805), not a folder of its own.
+    assert.match(said, /topics: ## skill/)
+    assert.match(said, /memory\/agents\/planner\/ — decisions\.md, rejected\.md, redesign\.md/)
     assert.match(said, /none has been reviewed yet/)
   })
 

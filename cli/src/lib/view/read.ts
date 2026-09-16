@@ -37,7 +37,7 @@ import {
 } from '../board/assemble'
 import { revisionOf } from '../board/revision'
 import { goalWritten } from './goal'
-import { readMemoryModules } from './memory'
+import { readMemoryOwners } from './memory'
 import type {
   ArchiveGroup,
   Board,
@@ -421,7 +421,7 @@ export function readBoard(): Board {
     releaseGoals,
     releaseCounts: countByRelease(every),
     goalWritten: goalWritten(),
-    memoryModules: readMemoryModules(),
+    memoryOwners: readMemoryOwners(),
     setup: readSetupState(),
   }
 }

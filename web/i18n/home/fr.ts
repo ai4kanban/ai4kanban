@@ -77,7 +77,7 @@ const fr: HomeCopy = {
     ],
     tree: {
       goal: "Objectif du projet",
-      module: "Un par module",
+      planner: "La mémoire du planificateur",
       readme: "Fonctionnalités livrées",
       decisions: "Décisions produit",
       rejected: "Motifs de refus",
@@ -108,7 +108,7 @@ const fr: HomeCopy = {
 
   start: {
     title: "Commencez par l'application de bureau",
-    lead: "Téléchargez l'application, ouvrez un projet et répondez à trois questions. Elle lit le code, écrit l'objectif du projet et la mémoire par module, puis propose les premières tâches.",
+    lead: "Téléchargez l'application, ouvrez un projet et répondez à trois questions. Elle lit le code, écrit l'objectif du projet et la mémoire du planificateur, puis propose les premières tâches.",
     notes: [
       "Planification autonome",
       "Local d’abord",

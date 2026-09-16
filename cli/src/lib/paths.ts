@@ -69,14 +69,14 @@ export let LEGACY_AGENTS = ''
 // Machine state: a mockup is a working drawing, redrawn from the card whenever the question
 // comes back, so it is never something the repo carries or a teammate pulls.
 export let MOCKUPS = ''
-// All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
-// itself, each module's set in a subfolder named after the module.
+// All memory lives under docs/kanban/memory/. This folder itself holds the board's own
+// record — `readme.md` and `goal.md` — and nothing else; everything a run learned is an
+// agent's, under `agents/` (#805).
 export let MEMORY = ''
-// What each agent that declares `memory: project` remembers — one folder per agent, named
-// after it, holding `redesign.md` and `decisions.md` (#421, #473). Reserved: a module called
-// `agents` would write its set into this folder, so `memory-init` refuses the name.
+// One folder per agent that keeps memory, named after it (#421, #473, #805): the planner's
+// `decisions.md`, `rejected.md` and `redesign.md`, and a spec agent's own two.
 export let AGENT_MEMORY = ''
-// The one goal file — board root only, never per module (see PROJECT_MEMORY_SET).
+// The one goal file — board root only, never an agent's (see BOARD_MEMORY_SET).
 export let GOAL = ''
 // The lock every writing move takes, so two of them never hand out the same id (lock.ts).
 // Inside the project, under `.akb/` and named after the board: it guards the board's own

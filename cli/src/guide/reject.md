@@ -15,8 +15,10 @@ The rest of its output names two jobs.
 `akb guide board`: a note is a lasting reason not to propose the idea again. A duplicate, or
 a card the board has simply moved past, earns none — write nothing and say so.
 
-When it does earn one, the output says which `rejected.md` to use and which topics it
-already has. Add one line under the topic that fits:
+When it does earn one, the output names the file —
+`docs/kanban/memory/agents/planner/rejected.md` — and which topics it already has. Add one
+line under the topic that fits, which for most cards is the `## <module>` its own `modules:`
+names:
 
 `- **<idea name>** — <why we said no, one line>.`
 

@@ -99,8 +99,8 @@ hands a card back.
 What it chose stays on the card, in a `decided:` list — the question, the option it took, and the
 file it went on. The board marks such a card and **What Decider chose for you** on the card page
 lists them one by one, with the ones it took blind called out. None of it becomes a lasting
-decision: your `memory/<module>/decisions.md` files are answers *you* gave, and the Decider writes
-to none of them.
+decision: the Planner's `decisions.md` holds answers *you* gave, and the Decider writes to none
+of it.
 
 Switching it off puts every card still carrying questions back to waiting on you. A card it
 already answered and the board already built does not come back. Switching it on changes nothing
@@ -114,8 +114,8 @@ notices one mid-task, and **Triage** reads outside sources — never your own hi
 
 **Proposer** is the switch that closes that gap. Switch it on in **Configuration → Agents**, in the
 **Optional** group. From then on, every card that reaches the archive starts one reflection over
-that card alone: it reads what shipped, judges what work follows from it against your goal and your
-module memory, and puts each survivor in **Triage**.
+that card alone: it reads what shipped, judges what work follows from it against your goal and the
+Planner's memory, and puts each survivor in **Triage**.
 
 - **Archiving is the only trigger.** A card completing is what starts a reflection. Nothing sweeps
   the cards you finished last week, and there is no command that asks for one.
@@ -166,8 +166,9 @@ through, and writes what the whole exchange earned.
   earlier review already wrote is deleted.
 - **Nothing said, nothing run.** It starts only when a conversation has new messages, so a quiet
   day costs nothing.
-- **It follows the conversation's card.** Notes go in the memory set that card's `modules:` names,
-  the archive included; a discussion, or a card the board no longer has, goes to the project's own.
+- **It follows the conversation's card.** A note goes in the Planner's memory, under the
+  `## <module>` topic that card's `modules:` names — the archive included. A discussion, or a card
+  the board no longer has, goes under whatever topic already fits.
 
 It is on by default, which no other self-starting agent is: it took over what a chat was doing
 unconditionally, so a board that had to ask for it would be a board that quietly stopped
@@ -198,11 +199,16 @@ From a terminal: `akb raw rule <agent> --file <path>`, or `--text ""` to clear i
 Some agents **remember** — the taste they were corrected on, and the choices you made. The
 agent's page lists the files it owns, read-only:
 
-- A **role** remembers in the files its own flows already write: the Planner in `decisions.md`,
-  `rejected.md` and `goal.md`, the Builder in `readme.md`, `redesign.md` and `modules.md`.
+- The **Planner** owns all three planning files, in `docs/kanban/memory/agents/planner/`:
+  `decisions.md`, `rejected.md` and `redesign.md`. Every flow that settles a card writes them;
+  the Gate, the Decider and the Proposer read them and write none.
+- The three **content** roles each own `docs/kanban/memory/agents/<name>/`: `redesign.md` and
+  `decisions.md`, the writing taste you settled. No other role owns a file.
 - A **specialist** that declares `memory: project` owns `docs/kanban/memory/agents/<name>/`, two
   files: `redesign.md`, the mistakes it was corrected on, and `decisions.md`, the choices you made.
   `ui-designer` declares a memory; `tech-stack-advisor` does not.
+- **The board's own record is nobody's memory.** `docs/kanban/memory/readme.md` — what shipped —
+  and `goal.md` are facts rather than taste, so they sit outside every agent's folder.
 - **How the product looks is not memory.** Colours, dimensions and component detail are read from
   the app's own `design.md`, so memory says which doc to read rather than repeating it.
 - The runs write these themselves — the flow that hears your answer records what was taken or sent

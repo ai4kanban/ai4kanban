@@ -40,7 +40,7 @@ export type HomeCopy = {
     /** What each memory file holds. The paths themselves stay in the component. */
     tree: {
       goal: string;
-      module: string;
+      planner: string;
       readme: string;
       decisions: string;
       rejected: string;

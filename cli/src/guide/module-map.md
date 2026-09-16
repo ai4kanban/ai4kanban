@@ -26,12 +26,11 @@ The server and core change together, so they share one module.
   them. If the user reports an incorrect map, rebuild it from the current code and plans.
 - **Update cards and memory**: After changing modules, update affected open cards with
   `akb raw update <id> --modules <names>`. Follow the section below when splitting memory.
-  Move memory when renaming a module; move any remaining memory to the project set when
-  removing one.
 
 ## Split module memory
 
-Create the new module's memory set with `akb raw memory-init <module>`. Review each source
-memory file entry by entry. Move notes specific to the new module into its corresponding
-file. Split entries that cover both modules; keep shared rules with the module responsible
-for them. Remove moved content from the original file; do not duplicate it.
+A module is a `## <module>` topic inside a memory file, never a folder — there is nothing to
+create. In each file that carries the old topic, add one for the new module and move the
+entries that belong to it. Split entries that cover both; keep shared rules with the module
+responsible for them. Rename the topic when a module is renamed, and fold its entries into
+the topic that inherits the work when one is removed.

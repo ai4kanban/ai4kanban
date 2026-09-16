@@ -1,8 +1,8 @@
 "use client";
 
-// One memory file, read (#129, #130) — the project's copy, or a module's. The rail's Memory
-// panel opens these; the file itself is drawn here, in the body, because a rail row is a
-// couple of hundred pixels wide and these files run close to 200 lines.
+// One memory file, read (#129, #130, #805) — the board's own record, or one an agent keeps.
+// The rail's Memory panel opens these; the file itself is drawn here, in the body, because a
+// rail row is a couple of hundred pixels wide and these files run close to 200 lines.
 //
 // Everything on it is read-only. The board never opens the file in an editor and never
 // starts a run from here — reading it, and copying its path so the fix can happen where
@@ -18,7 +18,8 @@ import { useRouter } from "next/navigation";
 import type { RailCopy } from "@/i18n/rail/types";
 import { useCopy } from "@/i18n/use-copy";
 import { memoryKey } from "@/lib/memory-panel";
-import type { AgentInfo, MemoryFile, MemoryModule } from "@/lib/types";
+import { useMemoryOwnerName } from "./memory-owner";
+import type { AgentInfo, MemoryFile, MemoryOwner } from "@/lib/types";
 import { RunningNotice } from "./desktop";
 import { Header } from "./Header";
 import { Markdown } from "./Markdown";
@@ -41,7 +42,7 @@ export function MemoryPage({
   agent,
   projectRoot,
   goalWritten,
-  memoryModules,
+  memoryOwners,
   desktop,
 }: {
   file: MemoryFile;
@@ -49,10 +50,16 @@ export function MemoryPage({
   agent: AgentInfo;
   projectRoot: string;
   goalWritten: boolean;
-  memoryModules: MemoryModule[];
+  memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
   const c = useCopy().rail;
+  // The owner's own title comes off the group the panel drew, so a specialist's page is
+  // headed the way its row beside it reads — a role's own name is this copy's either way.
+  const owner = useMemoryOwnerName({
+    agent: file.agent,
+    title: memoryOwners.find((o) => o.agent === file.agent)?.title ?? "",
+  });
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const refresh = useCallback(() => router.refresh(), [router]);
@@ -80,8 +87,8 @@ export function MemoryPage({
       <Window
         projectRoot={projectRoot}
         openIds={openIds}
-        currentMemory={memoryKey(file.module, file.name)}
-        memoryModules={memoryModules}
+        currentMemory={memoryKey(file.agent, file.name)}
+        memoryOwners={memoryOwners}
         goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
@@ -109,14 +116,11 @@ export function MemoryPage({
 
             <div className="mb-4 flex items-start gap-2.5">
               <div className="min-w-0 flex-1">
-                {/* Whose memory this is. The four labels are the same for every set, so
-                    without the module's name over it a module's page and the project's read
-                    as the same page (#130). */}
-                {file.module && (
-                  <p className="mb-0.5 truncate text-[11px] font-[800] uppercase tracking-[0.12em] text-nb-ink-soft">
-                    {file.module}
-                  </p>
-                )}
+                {/* Whose memory this is. Two agents' `decisions.md` carry the same label,
+                    so without the owner over it they read as the same page (#130, #805). */}
+                <p className="mb-0.5 truncate text-[11px] font-[800] uppercase tracking-[0.12em] text-nb-ink-soft">
+                  {owner}
+                </p>
                 <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">
                   {c.memory.files[file.name as keyof RailCopy["memory"]["files"]] ?? file.label}
                 </h1>

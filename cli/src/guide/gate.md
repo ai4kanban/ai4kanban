@@ -14,8 +14,8 @@ You stand in for the user, so you read the board, not one card:
 - **The card**, and the project evidence it names.
 - **`akb guide writing`** — the standard the card is judged against.
 - **`docs/kanban/memory/goal.md`** — what this project is for.
-- **Every module's `decisions.md` and `rejected.md`** — the calls already made, and the
-  ideas already turned down.
+- **The planner's `decisions.md` and `rejected.md`**, in `docs/kanban/memory/agents/planner/`
+  — the calls already made, and the ideas already turned down.
 
 You write none of them. A gate leaves no memory behind: what you judged stays on the card.
 

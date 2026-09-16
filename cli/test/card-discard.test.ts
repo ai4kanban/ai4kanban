@@ -101,7 +101,9 @@ describe('raw reject --discard', () => {
     const res = remove(80, false)
     assert.match(res.receipt, /rejected #80/)
     assert.match(res.receipt, /rejected\.md/)
-    assert.deepEqual((res.note as { files: string[] }).files, [path.join('docs', 'kanban', 'memory', 'rejected.md')])
+    assert.deepEqual((res.note as { files: string[] }).files, [
+      path.join('docs', 'kanban', 'memory', 'agents', 'planner', 'rejected.md'),
+    ])
   })
 })
 
@@ -120,6 +122,6 @@ describe('the printed reject flow', () => {
     card(80)
     const out = printed(false)
     assert.match(out, /write the rejection note/)
-    assert.match(out, /^\s+memory\s+docs\/kanban\/memory\/rejected\.md$/m)
+    assert.match(out, /^\s+memory\s+docs\/kanban\/memory\/agents\/planner\/rejected\.md$/m)
   })
 })

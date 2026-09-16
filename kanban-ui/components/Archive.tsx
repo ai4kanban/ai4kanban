@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { FiArchive, FiTag } from "react-icons/fi";
 import { useCopy } from "@/i18n/use-copy";
 import type { MockupSet } from "@/lib/mockup-tag";
-import type { AgentInfo, ArchiveList, ArchivedCard, ArchivedCardFile, MemoryModule } from "@/lib/types";
+import type { AgentInfo, ArchiveList, ArchivedCard, ArchivedCardFile, MemoryOwner } from "@/lib/types";
 import { CardBody } from "./CardBody";
 import { HAIRLINE } from "./chrome";
 import { RunningNotice } from "./desktop";
@@ -34,7 +34,7 @@ function ArchiveFrame({
   openIds,
   agent,
   goalWritten,
-  memoryModules,
+  memoryOwners,
   desktop,
   children,
 }: {
@@ -42,7 +42,7 @@ function ArchiveFrame({
   openIds: number[];
   agent: AgentInfo;
   goalWritten: boolean;
-  memoryModules: MemoryModule[];
+  memoryOwners: MemoryOwner[];
   desktop: boolean;
   children: React.ReactNode;
 }) {
@@ -68,7 +68,7 @@ function ArchiveFrame({
         projectRoot={projectRoot}
         openIds={openIds}
         currentArchive
-        memoryModules={memoryModules}
+        memoryOwners={memoryOwners}
         goalWritten={goalWritten}
         running={runningCardIds(sessions)}
         header={
@@ -110,7 +110,7 @@ export function ArchivePage({
   agent,
   projectRoot,
   goalWritten,
-  memoryModules,
+  memoryOwners,
   desktop,
 }: {
   archive: ArchiveList;
@@ -118,7 +118,7 @@ export function ArchivePage({
   agent: AgentInfo;
   projectRoot: string;
   goalWritten: boolean;
-  memoryModules: MemoryModule[];
+  memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
   const c = useCopy().rail.archive;
@@ -132,7 +132,7 @@ export function ArchivePage({
       openIds={openIds}
       agent={agent}
       goalWritten={goalWritten}
-      memoryModules={memoryModules}
+      memoryOwners={memoryOwners}
       desktop={desktop}
     >
       <h1 className="text-[20px] font-[800] leading-tight tracking-[-0.02em]">{c.title}</h1>
@@ -235,7 +235,7 @@ export function ArchivedCardPage({
   agent,
   projectRoot,
   goalWritten,
-  memoryModules,
+  memoryOwners,
   desktop,
 }: {
   card: ArchivedCardFile;
@@ -244,7 +244,7 @@ export function ArchivedCardPage({
   agent: AgentInfo;
   projectRoot: string;
   goalWritten: boolean;
-  memoryModules: MemoryModule[];
+  memoryOwners: MemoryOwner[];
   desktop: boolean;
 }) {
   const c = useCopy().rail.archive;
@@ -254,12 +254,12 @@ export function ArchivedCardPage({
       openIds={openIds}
       agent={agent}
       goalWritten={goalWritten}
-      memoryModules={memoryModules}
+      memoryOwners={memoryOwners}
       desktop={desktop}
     >
       {/* Which list this card came out of, over its title — the same label the memory page
-          wears when it is showing a module's copy rather than the project's. Without it a
-          finished card reads as an open one. */}
+          wears over the owner whose file it is showing. Without it a finished card reads as
+          an open one. */}
       <p className="mb-0.5 text-[11px] font-[800] uppercase tracking-[0.12em] text-nb-ink-soft">
         {c.card.label}
       </p>

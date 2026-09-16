@@ -509,9 +509,9 @@ export interface Board {
    *  to open. False offers an empty box instead — the goal is optional, and nothing on the
    *  board asks for one (#437). */
   goalWritten: boolean
-  /** The modules the memory panel offers, in the map's order (#130). Empty on a board whose
-   *  map names none — then the panel is the project's four files and nothing else. */
-  memoryModules: MemoryModule[]
+  /** What the memory panel draws (#130, #805): the board's own record, then every agent
+   *  that keeps memory. Never empty — the board's own group is always first. */
+  memoryOwners: MemoryOwner[]
   /** Setup's checklist while it exists, null once setup deleted it. */
   setup: SetupState | null
 }
@@ -597,42 +597,46 @@ export interface FillPlan {
 
 // ---- the project's memory --------------------------------------------------
 
-/** Which of the four memory files. The name is also the file's own, without `.md`, and the
- *  word an address carries — `/memory/decisions`. */
-export type MemoryName = 'readme' | 'decisions' | 'redesign' | 'rejected'
+/** Which memory file. The name is also the file's own, without `.md`, and the word an
+ *  address carries — `/memory/planner/decisions`. */
+export type MemoryName = 'readme' | 'goal' | 'decisions' | 'redesign' | 'rejected'
 
-/** One of the four, named as a reader meets it. `label` is what a row and a heading say:
- *  the file is called `decisions.md`, but a page headed that reads as a different thing. */
+/** One file, named as a reader meets it. `label` is what a row and a heading say: the file
+ *  is called `decisions.md`, but a page headed that reads as a different thing. */
 export interface MemoryRef {
   name: MemoryName
   label: string
 }
 
-/** The four, in the order they are listed — what shipped, what was settled, what to avoid,
- *  what was turned down. Shipped work leads because it is the one a reader wants oftenest;
- *  the two the agent writes against sit in the middle, and rejected ideas close. */
+/** Every memory file there is, in the order a panel lists them: the board's own record
+ *  first — what shipped, where the project is going — then the three an agent learns. */
 export const MEMORY_FILES: readonly MemoryRef[] = [
   { name: 'readme', label: 'What shipped' },
+  { name: 'goal', label: 'The goal' },
   { name: 'decisions', label: 'Settled decisions' },
-  { name: 'redesign', label: 'Design mistakes' },
   { name: 'rejected', label: 'Rejected ideas' },
+  { name: 'redesign', label: 'Design mistakes' },
 ]
 
-/** One module the memory panel can open — a name from `docs/kanban/modules.md`, in the
- *  order the map lists it. A module the map doesn't name is not one of these, whatever is
- *  in the memory folder. */
-export interface MemoryModule {
-  name: string
-  /** True once `docs/kanban/memory/<name>/` exists. False means nothing has been remembered
-   *  about this module yet, and its four rows would all lead nowhere. */
-  hasMemory: boolean
+/** One group the memory panel draws (#805): the board's own record, or one agent's folder.
+ *  The board comes first and is always there; an agent is listed because it KEEPS memory,
+ *  written or not — which is why `files` can be empty. */
+export interface MemoryOwner {
+  /** The agent's name, or empty for the board's own record. */
+  agent: string
+  /** What that agent is called in the language this machine reads, or empty — only a
+   *  specialist says one. The screen spells the name out when it is empty. */
+  title: string
+  /** The files under it that have actually been written, in the order they are listed.
+   *  Empty means this agent has remembered nothing yet. */
+  files: MemoryName[]
 }
 
 /** One memory file, whole. A file nobody has written keeps its place with an empty `text`
- *  and `written: false`, so the four rows never change shape from one board to the next. */
+ *  and `written: false`, so an owner's rows never change shape from one board to the next. */
 export interface MemoryFile extends MemoryRef {
-  /** The module whose set this file belongs to, or empty for the project's own copy. */
-  module: string
+  /** The agent whose folder this file sits in, or empty for the board's own record. */
+  agent: string
   /** The full path on disk — what "Copy path" copies. */
   path: string
   /** The path from the repo root, forward slashes — what "Copy relative path" copies, and

@@ -19,13 +19,21 @@ import path from 'node:path'
 
 import { specAgentCatalog } from '../agents/catalog'
 import { agentLines } from '../agents'
-import { agentMemoryFiles } from '../memory'
+import { AGENT_MEMORY_FILES, PLANNER, agentMemoryFile, agentMemoryFiles, memoryNamesOf } from '../memory'
 import { KANBAN, rel } from '../paths'
 import { FLOWS } from './flows'
 import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
 import type { RoleSwitch } from './settings'
 import type { WorkflowStage } from './workflows'
 import type { AgentKind } from '../agents/parse'
+
+// The planner's three, board-relative — where every planning memory lives (#805). Named
+// once here because the two content roles read and write the same files: a board that
+// remembered its content decisions somewhere else would be a board whose pruner could only
+// ever read half of what it decided.
+const [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN] = ['decisions.md', 'rejected.md', 'redesign.md'].map(
+  (name) => `memory/agents/${PLANNER}/${name}`,
+) as [string, string, string]
 
 /** One role: an agent the board ships, named by the work rather than by a flow. */
 export interface AgentRole {
@@ -59,8 +67,10 @@ export interface AgentRole {
   stage?: WorkflowStage
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
-  /** The memory files it owns, board-relative. The files its own flows already write, listed
-   *  so a roster can say what a role remembers. */
+  /** The memory files it owns, board-relative — the files its own flows read and write,
+   *  listed so a roster can say what a role remembers (#805). Empty on every role that only
+   *  reads: the gater and the decider judge off the planner's memory and write none of it,
+   *  and the builder never opened one at all. */
   memory: string[]
   /** Whether this role keeps a memory FOLDER of its own under `memory/agents/<name>/`
    *  (#718) — the two files a spec agent that remembers keeps. Set on the content roles,
@@ -224,7 +234,7 @@ const CONTENT_ROLES: AgentRole[] = [
     name: 'content-planner',
     stage: 'plan',
     gloss: 'settles what a piece is for, who reads it and what it covers',
-    memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/goal.md'],
+    memory: [PLANNER_DECISIONS, PLANNER_REJECTED, 'memory/goal.md'],
     ownMemory: true,
   },
   {
@@ -253,13 +263,16 @@ const BOARD_ROLES: AgentRole[] = [
     name: 'planner',
     stage: 'plan',
     gloss: 'plans and refines cards',
-    memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/goal.md'],
+    memory: [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN],
   },
+  // It owns no memory (#805). `readme.md` is the board's record of what shipped rather than
+  // anyone's taste, `redesign.md` is read by the planner's revise and by nothing a build
+  // runs, and the module map is a map.
   {
     name: 'builder',
     stage: 'execute',
     gloss: 'builds them and lands them',
-    memory: ['memory/readme.md', 'memory/redesign.md', 'modules.md'],
+    memory: [],
   },
   REVIEWER,
   ...CONTENT_ROLES,
@@ -362,7 +375,24 @@ export interface RosterEntry {
   /** The memory files it owns, repo-relative — a role's are the files its own flows already
    *  write, and a specialist that declares `memory: project` owns one of its own. */
   memory: string[]
+  /** Of those, the ones kept in this agent's OWN folder, by file name (#805). Empty on an
+   *  agent whose declared memory is a file somebody else owns — the two content roles read
+   *  and write the planner's — and on one that keeps none. The memory panel draws one group
+   *  per folder, so this is what says whether an agent gets one. */
+  ownMemory: string[]
 }
+
+// Every memory file a role has, board-relative: the two in its own folder when it keeps one
+// (#718), then the board's and the planner's files it declares.
+const memoryOf = (role: AgentRole): string[] => [
+  ...(role.ownMemory ? agentMemoryFiles(role.name).map(rel) : []),
+  ...role.memory.map((file) => rel(path.join(KANBAN, file))),
+]
+
+// Which of an agent's declared files live in its own folder — the names, so a screen can
+// draw a row per file without re-deriving where it sits.
+const ownMemoryOf = (name: string, memory: string[]): string[] =>
+  memoryNamesOf(name).filter((file) => memory.includes(rel(agentMemoryFile(name, file))))
 
 /** Every agent this board has, in the board's order: the roles first, then the specialists
  *  the command ships, then the ones the project added. One list, so `akb raw rule` and the
@@ -385,6 +415,7 @@ export function agentRoster(): RosterEntry[] {
       switchable: !agent.stage,
       flows: [],
       memory: agent.memory ? agentMemoryFiles(agent.name).map(rel) : [],
+      ownMemory: agent.memory ? [...AGENT_MEMORY_FILES] : [],
     }
   })
   return [
@@ -401,10 +432,8 @@ export function agentRoster(): RosterEntry[] {
       ...(role.switch ? { setting: role.switch } : {}),
       ...(role.needs ? { needs: role.needs } : {}),
       flows: flowsOfAgent(role.name),
-      memory: [
-        ...(role.ownMemory ? agentMemoryFiles(role.name).map(rel) : []),
-        ...role.memory.map((file) => rel(path.join(KANBAN, file))),
-      ],
+      memory: memoryOf(role),
+      ownMemory: ownMemoryOf(role.name, memoryOf(role)),
     })),
     ...specialists.filter((a) => a.builtIn),
     ...specialists.filter((a) => !a.builtIn),

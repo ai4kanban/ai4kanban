@@ -83,49 +83,68 @@ function card(rel: string, id: number, over: Partial<Meta> = {}): void {
 const onBoard = <T extends object>(run: (env: OpEnvelope) => Promise<OpResult<T>>) =>
   withLease({ board: true }, run)
 
-describe('the memory set, as a contract write', () => {
-  it('writes one of the four whole, and reads it back', async () => {
-    const res = await onBoard((env) => board().saveMemoryFile('decisions', '# Settled\n\n- We chose A.', '', env))
+describe('memory, as a contract write (#805)', () => {
+  it("writes one of the planner's own whole, and reads it back", async () => {
+    const res = await onBoard((env) => board().saveMemoryFile('decisions', '# Settled\n\n- We chose A.', 'planner', env))
     assert.ok(res.ok)
 
-    const file = await board().readMemoryFile('decisions')
+    const file = await board().readMemoryFile('decisions', 'planner')
     assert.equal(file?.text, '# Settled\n\n- We chose A.\n')
     assert.equal(file?.written, true)
-    assert.equal(read('memory/decisions.md'), '# Settled\n\n- We chose A.\n')
+    assert.equal(read('memory/agents/planner/decisions.md'), '# Settled\n\n- We chose A.\n')
   })
 
-  it('writes a module’s own copy, making the folder on the way', async () => {
-    const res = await onBoard((env) => board().saveMemoryFile('redesign', '- Avoid B.', 'cloud', env))
+  it("writes the board's own record, which no agent holds", async () => {
+    const res = await onBoard((env) => board().saveMemoryFile('readme', '- ✅ Shipped A.', '', env))
     assert.ok(res.ok)
-    assert.equal(read('memory/cloud/redesign.md'), '- Avoid B.\n')
-
-    // And the project's own copy is untouched: memory is never mirrored between levels.
-    const project = await board().readMemoryFile('redesign')
-    assert.equal(project?.written, false)
+    assert.equal(read('memory/readme.md'), '- ✅ Shipped A.\n')
   })
 
-  it('refuses a name that is not one of the four, and a module the map does not name', async () => {
-    for (const [name, module] of [
+  it('refuses a file its owner does not hold', async () => {
+    for (const [name, agent] of [
+      // Not a memory file at all.
       ['notes', ''],
-      ['readme', 'nowhere'],
+      // The planner's three are the planner's: the board keeps only its own record.
+      ['decisions', ''],
+      // And the board's record is nobody's taste.
+      ['readme', 'planner'],
+      // An agent that keeps no memory at all.
+      ['decisions', 'builder'],
+      // The goal is the user's own words under a field the board keeps, so `saveGoal`
+      // writes it and this never does.
+      ['goal', ''],
     ] as const) {
-      const res = await onBoard((env) => board().saveMemoryFile(name, 'x', module, env))
-      assert.equal(res.ok, false)
+      const res = await onBoard((env) => board().saveMemoryFile(name, 'x', agent, env))
+      assert.equal(res.ok, false, `${name} / ${agent || '(board)'}`)
       assert.equal(res.ok === false && res.kind, 'refused')
     }
     assert.equal(fs.existsSync(path.join(kanban, 'memory', 'notes.md')), false)
-    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'nowhere')), false)
+    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'decisions.md')), false)
+    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'agents', 'builder')), false)
   })
 
-  // `memory/agents/` is the agents' own (#421). A map that names a module `agents` does not
-  // turn it into one, or the set would be written on top of what an agent remembers.
-  it('refuses `agents`, whatever the map says', async () => {
-    write('modules.md', '- **agents** — a module someone named\n- **skill** — the command\n')
-    const res = await onBoard((env) => board().saveMemoryFile('decisions', 'x', 'agents', env))
+  // A module is a `## <module>` topic inside a file now, never a folder of its own (#805).
+  it('opens no module, whatever the map says', async () => {
+    write('modules.md', '- **cloud** — the service\n- **skill** — the command\n')
+    const res = await onBoard((env) => board().saveMemoryFile('decisions', 'x', 'cloud', env))
     assert.equal(res.ok, false)
-    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'agents')), false)
-    assert.equal(await board().readMemoryFile('decisions', 'agents'), null)
-    assert.deepEqual((await board().readMemoryModules()).map((m) => m.name), ['skill'])
+    assert.equal(fs.existsSync(path.join(kanban, 'memory', 'cloud')), false)
+    assert.equal(await board().readMemoryFile('decisions', 'cloud'), null)
+  })
+
+  // The board's own record first, then every agent that keeps memory — the planner among
+  // them, and never one that keeps none.
+  it('lists the board first, then the agents that remember', async () => {
+    const owners = await board().readMemoryOwners()
+    assert.deepEqual(owners[0], { agent: '', title: '', files: ['readme', 'goal'] })
+    const agents = owners.slice(1).map((o) => o.agent)
+    assert.ok(agents.includes('planner'))
+    assert.ok(!agents.includes('builder'))
+    // Listed because it KEEPS memory, with no rows until it has written some.
+    assert.deepEqual(owners.find((o) => o.agent === 'planner')?.files, [])
+
+    await onBoard((env) => board().saveMemoryFile('rejected', '- No.', 'planner', env))
+    assert.deepEqual((await board().readMemoryOwners()).find((o) => o.agent === 'planner')?.files, ['rejected'])
   })
 })
 

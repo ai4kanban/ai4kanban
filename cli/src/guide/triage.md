@@ -4,9 +4,9 @@ Judge every item waiting in `docs/kanban/triage/`. What is worth building become
 with a refine scheduled on it; everything else moves to `dismissed/` with the reason. Judging
 nothing worth a card is a complete result.
 
-Read only: the waiting items, `docs/kanban/memory/goal.md`, the module memory beside it
-(including each `rejected.md`), `docs/kanban/modules.md`, and the open cards. Change nothing
-but the cards you create and the items you land.
+Read only: the waiting items, `docs/kanban/memory/goal.md`, the planner's memory in
+`docs/kanban/memory/agents/planner/` (its `rejected.md` included), `docs/kanban/modules.md`,
+and the open cards. Change nothing but the cards you create and the items you land.
 
 ## 1. Judge one item
 

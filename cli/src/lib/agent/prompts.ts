@@ -6,7 +6,7 @@
 
 import path from 'node:path'
 import { locate, locateArchived } from '../cards'
-import { agentMemoryDir, boardMemoryFiles, readAgentMemory } from '../memory'
+import { PLANNER, agentMemoryDir, planningMemoryFiles, readAgentMemory } from '../memory'
 import { findGuide } from '../guide'
 import { ARCHIVE, boardText, rel, GOAL, MEMORY, TRIAGE } from '../paths'
 import {
@@ -295,7 +295,7 @@ const SPEC_SELECTOR_FOR = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
 // What the gater and the decider are given on top of the card (#493). Both stand in for the
 // user rather than writing one card, so both read the whole board — the goal, and every
 // module's decisions and rejections — and neither writes a line of it back.
-const boardMemory = (): string => [rel(GOAL), ...boardMemoryFiles()].join(', ')
+const boardMemory = (): string => [rel(GOAL), ...planningMemoryFiles()].join(', ')
 
 // Where a completed card is now (#534). Named outright rather than left to a search: the
 // ordinary card read no longer finds it, so a run told only the folder would hunt through
@@ -511,7 +511,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     case 'prune-memory':
       return [
         `${kb}. Prune this board's memory following \`akb guide prune-memory\`.`,
-        `Cover the project's own memory at \`${rel(MEMORY)}/\`, each module's beside it, and the agents' at \`${rel(MEMORY)}/agents/<agent>/\`.`,
+        `Cover the board's own record at \`${rel(MEMORY)}/\` and every agent's memory at \`${rel(MEMORY)}/agents/<agent>/\`, the ${PLANNER}'s among them.`,
         `Change nothing but those files: no card, no \`verify:\` line, no question for anyone.`,
       ].join(' ')
     // Reading back over the conversations (#748). It names nothing either: which ones have
