@@ -25,7 +25,7 @@ const zh: ConfigurationCopy = {
     add: "新建工作流",
     builtIn: "内置",
     isDefault: "默认",
-    builtInNames: { coding: "软件开发", content: "内容创作" },
+    builtInNames: { coding: "软件开发" },
     stages: { plan: "规划", execute: "执行", review: "评审" },
     lead: "负责 Agent",
     pickLead: "选择 Agent",
@@ -294,30 +294,10 @@ const zh: ConfigurationCopy = {
         gloss: "撰写并打磨你的卡片。",
         rule: "会附加到每一次新建、澄清、修订、规划版本、更新日志和归档运行的末尾——例如「未决问题一律用编号列表列出」。",
       },
-      "content-planner": {
-        name: "内容策划",
-        gloss: "定下这篇写给谁、要达成什么、覆盖哪些内容。",
-        rule: "会附加到它每一次内容规划运行的末尾——例如「第一句就点明读者是谁」。",
-      },
-      "content-writer": {
-        name: "内容创作",
-        gloss: "把稿件写进仓库。",
-        rule: "会附加到它写的每一篇稿件末尾——例如「不要用感叹号，也不要用提问开头」。",
-      },
-      "content-reviewer": {
-        name: "内容评审",
-        gloss: "对照规划检查稿件。",
-        rule: "会附加到每一次内容评审的末尾——例如「凡是没有来源的事实陈述一律打回」。",
-      },
       builder: {
         name: "开发",
         gloss: "构建卡片并合入。",
         rule: "会附加到每一次开发、解冲突和执行运行的末尾——例如「用 pnpm 安装依赖，合入前先跑 pnpm test」。",
-      },
-      writer: {
-        name: "文案",
-        gloss: "撰写稿件，并做多渠道改写。",
-        rule: "会附加到它写的每一篇稿件和每一次渠道改写的末尾——例如「不要用感叹号，也不要用提问开头」。",
       },
       reviewer: {
         name: "代码评审",

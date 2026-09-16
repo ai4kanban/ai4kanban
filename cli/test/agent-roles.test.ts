@@ -67,11 +67,6 @@ describe('the roles', () => {
         'planner',
         'builder',
         'reviewer',
-        // The three the `content` workflow is led by (#715). They stand beside the coding
-        // three on the same board: which one runs a card's stage is the card's workflow.
-        'content-planner',
-        'content-writer',
-        'content-reviewer',
         'memory-pruner',
         'memory-reviewer',
         'sweeper',
@@ -108,16 +103,9 @@ describe('the roles', () => {
     assert.deepEqual(roles().find((r) => r.name === 'builder')!.memory, [])
   })
 
-  // Writing taste is the content three's own, not a planning note about the product (#718),
-  // so each of them keeps a folder under `memory/agents/` the way a spec agent that
-  // remembers does.
-  it('gives each content agent a memory folder of its own', () => {
+  // The two that write no memory at all own no folder either (#805).
+  it('gives the builder and the reviewer no memory', () => {
     const memoryOf = (name: string): string[] => agentRoster().find((a) => a.name === name)!.memory
-    for (const name of ['content-planner', 'content-writer', 'content-reviewer']) {
-      assert.ok(memoryOf(name).some((f) => f.endsWith(`memory/agents/${name}/redesign.md`)), `${name} redesign`)
-      assert.ok(memoryOf(name).some((f) => f.endsWith(`memory/agents/${name}/decisions.md`)), `${name} decisions`)
-    }
-    // The two that write no memory at all own no folder either (#805).
     for (const name of ['builder', 'reviewer']) {
       assert.deepEqual(memoryOf(name), [], name)
     }
@@ -137,9 +125,6 @@ describe('the roles', () => {
       'planner',
       'builder',
       'reviewer',
-      'content-planner',
-      'content-writer',
-      'content-reviewer',
       'memory-pruner',
       'memory-reviewer',
       'sweeper',
@@ -157,14 +142,11 @@ describe('the roles', () => {
 
   it('rosters the roles first, then the specialists the command ships', () => {
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 15), [
+    assert.deepEqual(names.slice(0, 12), [
       'discussion-helper',
       'planner',
       'builder',
       'reviewer',
-      'content-planner',
-      'content-writer',
-      'content-reviewer',
       'memory-pruner',
       'memory-reviewer',
       'sweeper',
@@ -174,14 +156,14 @@ describe('the roles', () => {
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(15), ['copywriting', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(names.slice(12), ['copywriting', 'tech-stack-advisor', 'ui-designer'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(15).fill('role'), 'spec', 'spec', 'spec'],
+      [...Array(12).fill('role'), 'spec', 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[15]!.flows, [])
+    assert.deepEqual(agentRoster()[12]!.flows, [])
     // Five roles can be switched off, and each reads a key of its own (#447, #493, #534,
     // #562, #748). None of them belongs to a workflow: an agent a stage assigns has no
     // switch, the reviewer included (#749, #783).

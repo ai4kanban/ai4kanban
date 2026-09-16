@@ -55,9 +55,6 @@ import update from '../guide/update.md'
 import updateQuestions from '../guide/update-questions.md'
 import writing from '../guide/writing.md'
 
-import contentImplement from '../guide/content/implement.md'
-import contentReview from '../guide/content/review.md'
-
 import { boardText } from './paths'
 import { workflowFor } from './agent/workflows'
 
@@ -108,20 +105,9 @@ export const GUIDES: Guide[] = [
   { name: 'local-ui', when: 'run the board from buttons instead of the terminal', text: localUi },
 ]
 
-/** The flows one WORKFLOW says differently (#715). A card runs on a workflow, and the three
- *  stages it goes through are read in that workflow's words: `content` executes and reviews a
- *  piece of writing, so neither stage is held to the code bar. Everything a workflow does not
- *  name here is the shared text — a flow copied to say the same thing is a flow that goes
- *  stale.
- *
- *  Keyed by the workflow's id, so a board's own workflow — which is a name and three
- *  assignments and nothing else — reads the shared text throughout. */
-const WORKFLOW_OVERRIDES: Record<string, Record<string, string>> = {
-  content: {
-    implement: contentImplement,
-    review: contentReview,
-  },
-}
+/** The flows one built-in workflow says differently (#715), keyed by its id. Everything a
+ *  workflow does not name here is the shared text. */
+const WORKFLOW_OVERRIDES: Record<string, Record<string, string>> = {}
 
 /** Every flow THIS board reads: the shared list, in the card's workflow's words.
  *

@@ -28,7 +28,7 @@ const en: ConfigurationCopy = {
     add: "New workflow",
     builtIn: "Built-in",
     isDefault: "Default",
-    builtInNames: { coding: "Coding", content: "Content creation" },
+    builtInNames: { coding: "Coding" },
     stages: { plan: "Plan", execute: "Execute", review: "Review" },
     lead: "Lead agent",
     pickLead: "Select agent",
@@ -196,30 +196,10 @@ const en: ConfigurationCopy = {
         gloss: "Writes and refines your cards.",
         rule: 'Added to the end of every Create, Refine, Revise, Plan release, Changelog and Archive run — "always leave the open questions as a numbered list".',
       },
-      "content-planner": {
-        name: "Content planner",
-        gloss: "Settle what a piece is for, who reads it and what it covers.",
-        rule: "Added to the end of every planning run it does — \"always name the reader in the first line\".",
-      },
-      "content-writer": {
-        name: "Content creator",
-        gloss: "Write the piece into the repository.",
-        rule: "Added to the end of every writing run it does — \"no exclamation marks, and never open with a question\".",
-      },
-      "content-reviewer": {
-        name: "Content reviewer",
-        gloss: "Check the piece against what was planned.",
-        rule: "Added to the end of every content review — \"send back anything stated as fact with no source\".",
-      },
       builder: {
         name: "Builder",
         gloss: "Builds a card and lands it.",
         rule: 'Added to the end of every Implement, Conflict and Run — "install with pnpm, and run pnpm test before landing".',
-      },
-      writer: {
-        name: "Writer",
-        gloss: "Writes the drafts and repurposes them.",
-        rule: 'Added to the end of every draft it writes and every Channel repurpose — "no exclamation marks, and never open with a question".',
       },
       reviewer: {
         name: "Code reviewer",

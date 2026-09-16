@@ -8,14 +8,13 @@
 // each of the three and who they may call in, and nothing about the order — a review that
 // fails goes back to execute, the way it always has.
 //
-// Two workflows ship with the command and neither can be renamed or deleted: `coding`, what
-// every board did before this file, and `content`, the same three stages led by the content
-// agents. A board adds its own, and every one of them — built-in included — keeps its
+// `coding` ships with the command and cannot be renamed or deleted: it is what every board did
+// before this file. A board adds its own, and every one of them — built-in included — keeps its
 // assignments in `ui.config.json` under `workflows`. A built-in's unset stage falls back to
 // the defaults below; a stage deliberately cleared does not.
 //
 // A built-in's LEADS are the command's and nobody else's (#774). Its name is a promise about
-// who runs it — `Coding` led by the content planner is a workflow lying about itself — so a
+// who runs it — `Coding` led by some other planner is a workflow lying about itself — so a
 // built-in stage takes helpers and nothing more. Somebody who wants other leads duplicates
 // it and gets a workflow of their own, where all three are theirs to pick.
 //
@@ -72,11 +71,8 @@ export interface Workflow {
   builtIn: boolean
   /** Whether the execute stage has to leave a FILE behind (#715). On a coding workflow a
    *  delivery whose tree ends identical to its base is finished — the change was already
-   *  there. On a content one it is not: the piece IS the deliverable, so a delivery that
-   *  wrote nothing has produced nothing, and it stops unfinished saying so.
-   *
-   *  A copy of a workflow carries it, because a copy of the content workflow is still a
-   *  workflow whose stages produce writing. */
+   *  there. On one whose output is a file, a delivery that wrote nothing has produced nothing,
+   *  and it stops unfinished saying so. A copy of a workflow carries it. */
   needsArtifact: boolean
   stages: Record<WorkflowStage, WorkflowStageSetup>
 }
@@ -124,16 +120,6 @@ const BUILTINS: BuiltinWorkflow[] = [
       plan: { lead: 'planner', helpers: 'every' },
       execute: { lead: 'builder', helpers: [] },
       review: { lead: 'reviewer', helpers: [] },
-    },
-  },
-  {
-    id: 'content',
-    name: 'Content creation',
-    needsArtifact: true,
-    stages: {
-      plan: { lead: 'content-planner', helpers: [] },
-      execute: { lead: 'content-writer', helpers: [] },
-      review: { lead: 'content-reviewer', helpers: [] },
     },
   },
 ]

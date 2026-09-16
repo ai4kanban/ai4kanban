@@ -10,7 +10,6 @@ export type AgentRoleName =
   | "discussion-helper"
   | "planner"
   | "builder"
-  | "writer"
   | "reviewer"
   | "gater"
   | "decider"
@@ -19,10 +18,7 @@ export type AgentRoleName =
   | "memory-reviewer"
   | "sweeper"
   | "feedback"
-  | "triage"
-  | "content-planner"
-  | "content-writer"
-  | "content-reviewer";
+  | "triage";
 
 export type ConfigurationCopy = {
   open: string;
@@ -54,10 +50,10 @@ export type ConfigurationCopy = {
     /** Beside a workflow the command ships, and beside the one a new card starts on. */
     builtIn: string;
     isDefault: string;
-    /** What the two workflows the command ships are CALLED here. Closed, because the command
+    /** What the workflow the command ships is CALLED here. Closed, because the command
      *  ships them — a workflow this board adds is the user's own words and is drawn as
      *  written. Keyed by the workflow's own id, which never changes. */
-    builtInNames: Record<"coding" | "content", string>;
+    builtInNames: Record<"coding", string>;
     /** The three stages, in the order a card goes through them. */
     stages: { plan: string; execute: string; review: string };
     /** The one agent that runs the selected stage, and the picker when nobody does. */

@@ -72,11 +72,6 @@ export interface AgentRole {
    *  reads: the gater and the decider judge off the planner's memory and write none of it,
    *  and the builder never opened one at all. */
   memory: string[]
-  /** Whether this role keeps a memory FOLDER of its own under `memory/agents/<name>/`
-   *  (#718) — the two files a spec agent that remembers keeps. Set on the content roles,
-   *  whose writing taste is theirs rather than the board's; the rest write into the board's
-   *  own set, which `memory` above lists. */
-  ownMemory?: boolean
 }
 
 // The two roles the board ships switched OFF (#447, #493). Neither does a flow's work: each
@@ -218,45 +213,6 @@ const SWEEPER: AgentRole = {
   memory: [],
 }
 
-// The three the `content` workflow is led by (#715). They ship with the command the way the
-// coding three do, and they stand beside them in the same stage pickers: one board plans a
-// feature and a newsletter through the same three stages, and which agent leads is the
-// workflow's answer rather than the board's.
-//
-// Each keeps a memory FOLDER of its own, `memory/agents/<name>/` (#718). Writing taste — the
-// voice, what a claim has to carry, how a piece is put together — is the three of them
-// answering to the user, not a planning note about the product, so it does not belong in the
-// board's `decisions.md` beside what a feature settled. All three are HANDED all three
-// folders, because taste corrected on a review is taste the writer has to write by; each
-// writes only its own.
-const CONTENT_ROLES: AgentRole[] = [
-  {
-    name: 'content-planner',
-    stage: 'plan',
-    gloss: 'settles what a piece is for, who reads it and what it covers',
-    memory: [PLANNER_DECISIONS, PLANNER_REJECTED, 'memory/goal.md'],
-    ownMemory: true,
-  },
-  {
-    name: 'content-writer',
-    stage: 'execute',
-    gloss: 'writes the piece into the repository',
-    memory: ['memory/readme.md'],
-    ownMemory: true,
-  },
-  {
-    name: 'content-reviewer',
-    stage: 'review',
-    gloss: 'checks the piece against what was planned',
-    memory: [],
-    ownMemory: true,
-  },
-]
-
-/** The three content roles, in the order the `content` workflow runs them — whose memory
- *  every content run is handed (#718). */
-export const CONTENT_ROLE_NAMES: string[] = CONTENT_ROLES.map((r) => r.name)
-
 const BOARD_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
@@ -275,7 +231,6 @@ const BOARD_ROLES: AgentRole[] = [
     memory: [],
   },
   REVIEWER,
-  ...CONTENT_ROLES,
   MEMORY_PRUNER,
   MEMORY_REVIEWER,
   SWEEPER,
@@ -376,18 +331,14 @@ export interface RosterEntry {
    *  write, and a specialist that declares `memory: project` owns one of its own. */
   memory: string[]
   /** Of those, the ones kept in this agent's OWN folder, by file name (#805). Empty on an
-   *  agent whose declared memory is a file somebody else owns — the two content roles read
-   *  and write the planner's — and on one that keeps none. The memory panel draws one group
-   *  per folder, so this is what says whether an agent gets one. */
+   *  agent whose declared memory is a file somebody else owns, and on one that keeps none.
+   *  The memory panel draws one group per folder, so this is what says whether an agent gets
+   *  one. */
   ownMemory: string[]
 }
 
-// Every memory file a role has, board-relative: the two in its own folder when it keeps one
-// (#718), then the board's and the planner's files it declares.
-const memoryOf = (role: AgentRole): string[] => [
-  ...(role.ownMemory ? agentMemoryFiles(role.name).map(rel) : []),
-  ...role.memory.map((file) => rel(path.join(KANBAN, file))),
-]
+// Every memory file a role declares, repo-relative.
+const memoryOf = (role: AgentRole): string[] => role.memory.map((file) => rel(path.join(KANBAN, file)))
 
 // Which of an agent's declared files live in its own folder — the names, so a screen can
 // draw a row per file without re-deriving where it sits.

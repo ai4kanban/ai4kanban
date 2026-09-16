@@ -122,10 +122,8 @@ move the files into the group's folder:
   that guide future planning, `redesign.md` design mistakes to avoid, `rejected.md` turned-down
   ideas and why. Flows that only judge — the gate, the decider, the sweep, triage, a
   reflection — read them and write none.
-- **`memory/agents/<agent>/`**: a spec agent with `memory: project` and each content agent
-  (`content-planner`, `content-writer`, `content-reviewer`) keeps `redesign.md` and
-  `decisions.md` (`akb guide update-questions`). No third file; writing taste lives here,
-  never in the planner's `decisions.md`.
+- **`memory/agents/<agent>/`**: a spec agent with `memory: project` keeps `redesign.md` and
+  `decisions.md` (`akb guide update-questions`). No third file.
 
 File a note under the `## <module>` heading its card's `modules:` names, creating it if
 missing. There are no per-module folders.

@@ -68,9 +68,9 @@ implementation agent can run in `## Todo` instead.
 ### An agent's memory
 
 An agent that remembers keeps two files in `docs/kanban/memory/agents/<agent>/` — a spec
-agent marked `remembers` in the roster, and each of the three content agents. When the user's
-answer or revision lands on that agent's section — its recommendation taken, sent back, or
-overruled — append one line to the file it belongs in:
+agent marked `remembers` in the roster. When the user's answer or revision lands on that
+agent's section — its recommendation taken, sent back, or overruled — append one line to the
+file it belongs in:
 
 - **`redesign.md`** — the agent was corrected: the mistake, then the design to use instead.
   Start the file with ``# What `<agent>` was corrected on`` when it isn't there.

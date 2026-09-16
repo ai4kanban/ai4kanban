@@ -42,6 +42,10 @@ export async function startRun(
   return opened
 }
 
+// Built-in workflows the command no longer ships (#821). A card still naming one runs on the
+// default instead of being refused — it cannot be moved to another workflow.
+const RETIRED_WORKFLOWS = ['content']
+
 // Why this run's card cannot start on the workflow it names (#715): a stage with no lead, or
 // one led by an agent this board no longer has. It is read before the card lock is taken, so
 // a refused run leaves nothing behind.
@@ -51,14 +55,14 @@ export async function startRun(
 // than finding it out now. A run already inside a delivery is not checked — that delivery
 // froze its own answer, and re-reading the board would refuse a build in flight over a change
 // made after it started.
-function workflowRefusal(req: AgentRequest): string | null {
+export function workflowRefusal(req: AgentRequest): string | null {
   if (!Number.isInteger(req.id)) return null
   if (deliveryFor(req)) return null
   const id = cardWorkflowId(req.id as number)
   // A card naming a workflow this board no longer has RESOLVES to the default, so that the
   // card is still readable — but it does not run: `workflowFor` never answers nothing here,
   // and a card quietly built by agents nobody assigned it is worse than a card that stops.
-  if (!workflowKnown(id)) return `#${req.id} names the "${id}" workflow, and this board has no such workflow.`
+  if (!workflowKnown(id) && !RETIRED_WORKFLOWS.includes(id)) return `#${req.id} names the "${id}" workflow, and this board has no such workflow.`
   const flow = workflowFor(id)
   if (!flow) return null
   const problems = workflowProblems(flow.id)

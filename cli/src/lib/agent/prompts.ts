@@ -6,7 +6,7 @@
 
 import path from 'node:path'
 import { locate, locateArchived } from '../cards'
-import { PLANNER, agentMemoryDir, planningMemoryFiles, readAgentMemory } from '../memory'
+import { PLANNER, agentMemoryDir, planningMemoryFiles } from '../memory'
 import { findGuide } from '../guide'
 import { ARCHIVE, boardText, rel, GOAL, MEMORY, TRIAGE } from '../paths'
 import {
@@ -21,7 +21,6 @@ import { activeDelivery, deliveryFor, findDelivery, withWorkflow } from './deliv
 import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
-import { CONTENT_ROLE_NAMES } from './roles'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
 import { DEFAULT_WORKFLOW, liveStage, workflowById, workflowFor } from './workflows'
@@ -162,32 +161,7 @@ export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
   // has no card to read one off — so the run is told to name the card when it asks.
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
-  return boardText([ask, workflowNote(req, command), languageNote(), contentMemory(req), roster(req)].filter(Boolean).join('\n\n'))
-}
-
-// What the content agents remember between pieces (#718) — the voice the user asked for,
-// what a claim has to carry, how a piece is put together. It is taste rather than a planning
-// note about the product, so it lives in each agent's own `memory/agents/<name>/` and not in
-// the board's `decisions.md` beside what a feature settled.
-//
-// All three folders go to all three agents: taste corrected on a review is taste the writer
-// has to write by, and a planner that cannot see it plans a piece its writer will be pulled
-// up on. Each writes back only its own, which is what the closing line says.
-//
-// An agent that has written nothing yet is still handed the block — the empty file is the
-// invitation, the same reason a spec agent's memory is never left out.
-function contentMemory(req: AgentRequest): string {
-  const agent = agentForRun(req)
-  if (!agent || !CONTENT_ROLE_NAMES.includes(agent)) return ''
-  const blocks = CONTENT_ROLE_NAMES.flatMap((name) =>
-    readAgentMemory(name).map((file) => `${file.heading}\n\n${file.text || '_(empty — nothing has been written down yet.)_'}`),
-  )
-  return [
-    '——— what the content agents have learned on this board ———',
-    'The writing taste this board settled, in the words of the three agents that run its content workflow. Follow all of it here.',
-    ...blocks,
-    `Write back only your own two files, \`${rel(agentMemoryDir(agent))}/\`, and only what the user corrected you on or chose for you. Never another agent's.`,
-  ].join('\n\n')
+  return boardText([ask, workflowNote(req, command), languageNote(), roster(req)].filter(Boolean).join('\n\n'))
 }
 
 // What one workflow asks of a helper it calls in, on top of the agent's own instructions
