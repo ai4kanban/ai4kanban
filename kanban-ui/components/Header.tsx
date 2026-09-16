@@ -8,7 +8,7 @@ import { Configuration, ConfigurationButton } from "./Configuration";
 import { CreateTask } from "./CreateTask";
 import { ProjectPath, UpdateChip } from "./desktop";
 import { GitHubLink } from "./GitHubLink";
-import { Goal } from "./Goal";
+import { Goal, goalShown } from "./Goal";
 import { Insights } from "./Insights";
 import { LogoMark } from "./Logo";
 import { BellButton } from "./Notifications";
@@ -30,13 +30,16 @@ import { useSolution } from "./solution";
 // the board draws one layout now, so there is nothing to switch between and a
 // control offering the choice would be offering a board that no longer exists.
 //
-// The bell (#319) is the tool cluster's first segment. It opens the notification rail in
-// the chat rail's own place — the right side holds one at a time — and wears its unread
-// count inside the segment rather than as a badge that would hang off the frame.
+// The bell (#319) and the Chat button (#242) are a pair, and sit as one (#807): the two
+// rails share the right of the window and hold it one at a time, so the two controls that
+// fold them stand together, outside the tool cluster. Both draw nothing of their own — the
+// rails' state lives in the window (components/Window.tsx), which is what keeps one of them
+// on screen whichever page is up.
 //
-// The Chat button (#242) sits beside Create task and folds the chat rail down the right of
-// the window. It draws nothing of its own — the rail's state lives in the window
-// (components/Window.tsx), which is what keeps one chat on screen whichever page is up.
+// The bell left the cluster because it is the row's one control that changes by itself and
+// waits for a hand, while the cluster is where the board's machinery is looked at. Its
+// weight is its state: a ghost block when there is nothing, filled ember with the count in
+// white when there is. Create task stays the only button that is always orange.
 //
 // It is off a marketing board entirely (#435): a topic ships to channels, not to a
 // version, and that board plans none.
@@ -72,16 +75,16 @@ import { useSolution } from "./solution";
 //     board, and a third label saying the product again is the width the rail
 //     needs. The mark still leads home, which is the whole of the way back on a
 //     window too narrow for the rail.
-//   - Runs, progress and settings share one frame with hairlines between them.
+//   - The goal, progress, runs and settings share one frame with hairlines between them.
 //     They are all "look at the board's machinery" and none of them is a primary
-//     action, so they get one sticker between them instead of three hard shadows
+//     action, so they get one sticker between them instead of four hard shadows
 //     sitting a few pixels apart.
 //
 // The left is identity and nothing else — the mark, then the board it names — so
 // everything pressable is on the right and the eye has one place to go. The goal
-// button (#128) moved over with them: it is read rather than pressed, but it is
-// still a thing you open, and a lone control on the identity side would need a
-// divider to say so.
+// (#128) moved over with them and is now the cluster's first segment (#807): it is read
+// rather than pressed, which is what the rest of that cluster is. Unwritten it widens to
+// carry the offer to write one, the way the bell's segment used to widen for a count.
 //
 // Padding is 7 above and 8 below: a sticker's shadow falls 2px past its box
 // while the badge has none, so the odd pixel splits the difference and both
@@ -223,7 +226,6 @@ export function Header({
               Chat, icon-only, since it is the one control here that acts on
               nothing on this board. */}
           <GitHubLink />
-          <Goal written={goalWritten} offer={goalOffered} onSaved={onGoalSaved} />
         </span>
         {!marketing && onReleaseChange && onCreateRelease && onPlanRelease && onDropRelease && onCloseRelease && onSetReleaseGoal && (
           <ReleasePicker
@@ -241,23 +243,27 @@ export function Header({
         )}
         <span className="hidden items-center gap-2 md:flex">
           <ToolCluster>
-            {/* The bell leads the cluster (#319): it is the one control in it that changes
-                on its own, and its count rides inside the segment rather than hanging off
-                the shared frame. */}
-            <BellButton />
+            {/* The goal leads the cluster (#807), in the place the bell had. Asked here
+                rather than left to render nothing: a tool that draws no element would leave
+                the cluster with a hairline against its own frame and the next segment's
+                corner unrounded. */}
+            {goalShown(goalWritten, goalOffered, marketing) && (
+              <Goal written={goalWritten} offer={goalOffered} onSaved={onGoalSaved} />
+            )}
             <Insights />
             <Sessions />
             <ConfigurationButton />
           </ToolCluster>
+          {/* The two rails' own buttons, in the order the rails opened in. */}
+          <BellButton />
           <ChatButton />
         </span>
-        {/* The phone keeps the bell and nothing else from that cluster: it is the one
-            control there that changes on its own, and the three beside it are all things
-            done at the computer. It keeps the cluster's frame rather than becoming a bare
-            icon — a lone segment is still the same object. */}
+        {/* The phone's row is untouched by that move (#807): the bell was already on its
+            own there and the goal was already a row on More. It keeps the cluster's frame
+            rather than becoming a bare icon — a lone segment is still the same object. */}
         <span className="md:hidden">
           <ToolCluster>
-            <BellButton />
+            <BellButton tool />
           </ToolCluster>
         </span>
         {/* The dialog itself, mounted once at every width and opened by asks rather than by

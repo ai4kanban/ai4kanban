@@ -3,9 +3,19 @@
 // The notification center (#319) — the bell in the top row, and the rail it opens down the
 // right of the window.
 //
-// The bell leads the tool cluster and wears its count INSIDE the segment: the cluster clips
-// to its own frame, so a badge on a tool's shoulder would be cut in half. It is the first
-// segment because it is the one thing in that cluster that changes on its own.
+// The bell stands on its own beside Chat (#807), not inside the tool cluster: it is the one
+// control in the row that changes by itself and waits for a hand, and the cluster is where
+// the board's machinery is looked at. The two rails share the right side, so the two buttons
+// that fold them sit together.
+//
+// Its weight follows its state rather than a standing colour: empty it is the same ghost
+// block as Chat, unread it fills with ember and carries the count in white. New task stays
+// the only permanently lit button in the row, so the bell takes a step lighter than its
+// orange.
+//
+// At phone width it keeps the segment shape it had (`tool`): the cluster there holds it
+// alone, and the count rides INSIDE the segment because a badge on a tool's shoulder would
+// be cut in half by the frame.
 //
 // The rail is the chat rail's own place, and the right side holds one at a time — opening
 // this folds that. A row is the card's number and title with the event's name and how long
@@ -46,44 +56,76 @@ import { useBell } from "@/lib/card-event";
 import type { BellRail } from "@/lib/bell-rail";
 import type { NotificationRow } from "@/lib/notifications";
 import { ALL_RELEASES, notificationGroup, type CloudEventState, type NotificationGroup } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { HAIRLINE, TOOL_BTN } from "./chrome";
 import { Loading } from "./settings";
 
 /**
- * The tool cluster's first segment: the bell, and its unread count beside it.
+ * The bell, and its unread count beside it.
  *
- * With something unread it takes the accent wash and the count in accent ink — the one
- * thing in the row that says "there is something for you". With nothing, it is a tool like
- * the three beside it.
+ * Nothing unread: the ghost block Chat wears, icon-only. Something unread: the whole button
+ * fills with ember and the count sits in white beside the bell — the one thing in the row
+ * that says "there is something for you". It does not glow when it is empty, so that it
+ * still means something when it does.
+ *
+ * `tool` is the phone's shape (#357): a segment of the cluster, the wash rather than the
+ * fill, since a filled segment inside a shared frame is a button trying to leave its box.
  */
-export function BellButton() {
+export function BellButton({ tool = false }: { tool?: boolean }) {
   const c = useCopy().notifications;
   const rail = useBell();
   if (!rail) return null;
   const { unread } = rail.center;
   const lit = unread > 0;
+  const label = lit ? c.bellUnread(unread) : c.bell;
+  if (tool) {
+    return (
+      <button
+        type="button"
+        aria-label={label}
+        data-tip={label}
+        aria-pressed={rail.open}
+        onClick={rail.toggle}
+        // The count rides inside the segment, so the segment grows rather than a badge on
+        // the frame's edge breaking it.
+        className={cn(TOOL_BTN, lit && "w-auto gap-1 px-2")}
+        style={
+          lit
+            ? { background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }
+            : rail.open
+              ? { background: "color-mix(in srgb, var(--color-nb-ink) 8%, transparent)" }
+              : undefined
+        }
+      >
+        <FiBell className="text-[14px]" aria-hidden />
+        {lit && <span className="text-[11.5px] font-[800] leading-none">{unread}</span>}
+      </button>
+    );
+  }
   return (
-    <button
-      type="button"
-      aria-label={lit ? c.bellUnread(unread) : c.bell}
-      data-tip={lit ? c.bellUnread(unread) : c.bell}
+    <Button
+      variant="ghost"
+      size="xs"
+      // Icon-only while empty, so the row spends no width on a control with nothing to
+      // say; the count is what widens it.
+      className={cn("shrink-0", lit ? "gap-1 px-2" : "w-7 px-0")}
+      aria-label={label}
       aria-pressed={rail.open}
       onClick={rail.toggle}
-      // The count rides inside the segment, so the segment grows rather than a badge on
-      // the frame's edge breaking it.
-      className={`${TOOL_BTN} ${lit ? "w-auto gap-1 px-2" : ""}`}
       style={
         lit
-          ? { background: "var(--color-nb-accent-soft)", color: "var(--color-nb-accent-deep)" }
+          ? // A step lighter than New task's ember: the row keeps one button that is always
+            // orange, and this one only borrows the colour while it is holding something.
+            { background: "color-mix(in srgb, var(--color-nb-accent) 88%, white)", color: "#fff" }
           : rail.open
-            ? { background: "color-mix(in srgb, var(--color-nb-ink) 8%, transparent)" }
+            ? { background: "var(--color-nb-accent-soft)" }
             : undefined
       }
     >
       <FiBell className="text-[14px]" aria-hidden />
       {lit && <span className="text-[11.5px] font-[800] leading-none">{unread}</span>}
-    </button>
+    </Button>
   );
 }
 

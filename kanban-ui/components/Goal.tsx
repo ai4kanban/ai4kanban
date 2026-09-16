@@ -3,19 +3,20 @@
 // The project's direction, one click from the board (#128). `docs/kanban/memory/goal.md`
 // is the file a proposal is judged against — optional, and nothing waits on it (#437).
 //
-// It wears the ordinary control of the top row — ink frame, hard shadow, the same object
-// as everything else there — and carries its word: a compass alone said "navigate" and
-// nothing about the goal, so it is a north star with "Goal" beside it. The label goes on a
-// narrow window, like Create task's; the mark stays, since one icon costs nothing.
+// On the window's top row it is a segment of the tool cluster (#807), in the place the bell
+// had: the goal is read rather than pressed, which is what everything else in that cluster
+// is. So it is an icon and a tip, like the three beside it — a north star, since a compass
+// alone said "navigate" and nothing about the goal.
 //
 // One control, two states, both quiet:
 //
 //   • written — the star opens the file, rendered. Reading only: the words are the user's,
 //     and the second place to edit them is the box below.
-//   • empty — the same star, in soft ink, saying Add goal, and it opens that box. This is
-//     the ONLY thing that offers to write a goal (#437). The board carries no band about
-//     it: the goal is optional, so a strip nagging for one would be the board holding
-//     itself up over a file nobody has to write.
+//   • empty — the same star in soft ink, and the segment widens to say Add goal, the way
+//     the bell's own segment widens for a count. It opens that box, and it is the ONLY
+//     thing that offers to write a goal (#437). The board carries no band about it: the
+//     goal is optional, so a strip nagging for one would be the board holding itself up
+//     over a file nobody has to write.
 //
 // The offer belongs to the board's own top row (`offer`), the one screen the goal is read
 // off. Everywhere else — a card page, the archive, the guided run that is asking a screen
@@ -33,7 +34,7 @@ import { getGoalAction, saveGoalAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
-import { PHONE_ROW } from "./chrome";
+import { PHONE_ROW, TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 import { GuideDrawer } from "./Guide";
 import { Markdown } from "./Markdown";
@@ -43,6 +44,13 @@ import { useSolution } from "./solution";
 // paragraphs and a roadmap, not a note.
 const INPUT =
   "min-h-[260px] w-full resize-y rounded-[10px] border border-nb-ink/25 bg-nb-paper px-3 py-2.5 font-mono text-[13px] leading-relaxed text-nb-ink placeholder:text-nb-ink-soft/60 focus:outline-2 focus:outline-offset-1 focus:outline-nb-accent";
+
+/** Whether the goal control is drawn at all — the header asks before it puts the segment in
+ *  the cluster, since a tool that renders nothing would leave the cluster a hanging divider
+ *  and a square corner. Same rule the component applies to itself. */
+export function goalShown(written: boolean, offer: boolean, marketing: boolean) {
+  return written || (offer && !marketing);
+}
 
 export function Goal({
   written,
@@ -63,7 +71,7 @@ export function Goal({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const marketing = useSolution() === "marketing";
-  if (!written && (!offer || marketing)) return null;
+  if (!goalShown(written, offer, marketing)) return null;
   const label = written ? c.open : c.write;
   const hint = written ? c.openHint : c.writeHint;
   return (
@@ -77,19 +85,18 @@ export function Goal({
           <FiChevronRight className="shrink-0 text-nb-ink-soft" size={16} aria-hidden />
         </button>
       ) : (
-      <Button
-        variant="ghost"
-        size="xs"
-        // An empty goal is an offer, not a job: it wears the same frame in soft ink, so it
-        // sits in the row without asking to be pressed.
-        className={cn("shrink-0 font-[700] max-sm:w-7 max-sm:px-0", !written && "text-nb-ink-soft")}
-        title={hint}
-        aria-label={label}
-        onClick={() => setOpen(true)}
-      >
-        <TbNorthStar className="text-[15px]" aria-hidden />
-        <span className="sr-only sm:not-sr-only">{label}</span>
-      </Button>
+        <button
+          type="button"
+          // Written, it is a star like any other tool. Empty, the segment widens for the
+          // offer, in soft ink so it sits there without asking to be pressed.
+          className={cn(TOOL_BTN, !written && "w-auto gap-1 px-2 text-nb-ink-soft")}
+          data-tip={hint}
+          aria-label={label}
+          onClick={() => setOpen(true)}
+        >
+          <TbNorthStar className="text-[14px]" aria-hidden />
+          {!written && <span className="text-[11.5px] font-[700] leading-none">{label}</span>}
+        </button>
       )}
 
       {open && written && (
