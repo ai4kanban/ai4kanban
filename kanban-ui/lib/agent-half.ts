@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /** The boundary the card format puts between the two halves — one line, on its own
  *  (`akb guide board`, "Card format"). Written as a comment so it never renders. */
@@ -53,7 +53,8 @@ function takeArmed(id: number): string {
 
 /** Every card page opens with the agent half shut — nothing about the fold is remembered,
  *  so a fresh visit always reads the same way. Following a match is the one exception, and
- *  it lasts only for that visit. */
+ *  it lasts only for that visit. A re-read that changes the half opens it too (#814): the
+ *  change would otherwise land where the reader cannot see it. */
 export function useAgentHalf(
   cardId: number,
   halves: CardHalves,
@@ -64,12 +65,17 @@ export function useAgentHalf(
   onToggle: (open: boolean) => void;
 } {
   const [open, setOpen] = useState(false);
+  const drawn = useRef<{ id: number; agent: string } | null>(null);
 
   useEffect(() => {
+    const was = drawn.current;
+    drawn.current = { id: cardId, agent: halves.agent };
     if (!halves.agent) return;
     // Only ever opens: a half opened by a match or by the window's own Find stays open
     // when the card is re-read from disk under it.
-    if (onlyInAgentHalf(takeArmed(cardId), title, halves)) setOpen(true);
+    if (was?.id === cardId) {
+      if (was.agent !== halves.agent) setOpen(true);
+    } else if (onlyInAgentHalf(takeArmed(cardId), title, halves)) setOpen(true);
   }, [cardId, halves, title]);
 
   const onToggle = useCallback((next: boolean) => setOpen(next), []);

@@ -70,6 +70,7 @@ import { parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
 import { useCardEvent } from "@/lib/card-event";
 import type { BoardChange } from "@/lib/chat-rail";
+import { useOnHistoryRestore } from "@/lib/history-restore";
 import { cardChat } from "@/lib/chat-open";
 import { canImplement, canRefine } from "@/lib/refine";
 import { scheduleLabel } from "@/lib/schedule";
@@ -1415,6 +1416,8 @@ export function CardPage({
   // entirely while the tab was hidden can't leave this page stale (the diff above
   // never witnessed it running). A fresh read is always correct.
   useOnTabFocus(refresh);
+  // …and when Back or Forward brings the page back from the router's cache (#814).
+  useOnHistoryRestore(refresh);
 
   // A chat wrote the board while it was answering (#243) — quite possibly this very
   // card, since the card's own conversation is the one in the rail. Re-read in place,
