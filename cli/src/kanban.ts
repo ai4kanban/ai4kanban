@@ -440,7 +440,7 @@ export {
 export type { CaseFailure, CaseRecord, CaseStatus } from './lib/case'
 export { CASE_EMAIL } from '../../telemetry/contract'
 
-// The spec agents (#191, #403): the list a screen draws — each one's two lines and whether
+// The spec agents (#191, #403): the list a screen draws — each one's description and whether
 // it is switched on — and the switch itself. The words and the order come from each agent's
 // own AGENT.md, so the Agents section in the Configuration dialog and `akb spec` can never
 // say different things, and an agent the project added is in both.

@@ -892,7 +892,6 @@ function Page({
       }
     | undefined;
   const title = useAgentTitle()(agent);
-  const gloss = role?.gloss ?? sentence(agent.gloss);
   const placeholder =
     role?.rule ??
     (agent.kind === "spec" ? c.specialistRule.spec(title) : c.rulePlaceholder(title));
@@ -901,9 +900,6 @@ function Page({
   // owns only the words appended to its runs.
   const writesRule = !agent.file;
   const off = !agent.enabled;
-  const when = agent.when
-    ? clause(agent.when.replace(/^use when\s+/i, ""))
-    : (role?.when ?? "");
 
   // The report is read in this pane rather than over it (#119): the dialog is already a
   // window, and the way back is the settings this was opened from.
@@ -933,15 +929,13 @@ function Page({
                 <span className="min-w-0 text-[11px] text-nb-ink-soft">{c.yours}</span>
               )}
             </div>
+            {/* A specialist's description is a paragraph at times, and a paragraph in a
+                header is read by nobody, so all but its first sentence opens. A role says when
+                it runs only in its own copy (#493, #502). */}
             <p className="mt-0.5 max-w-[74ch] text-[12px] leading-snug text-nb-ink-soft">
-              {gloss}
+              {role ? role.gloss : <Clipped text={sentence(agent.gloss)} />}
             </p>
-            {/* A specialist is asked for by its own trigger, so the page says when. A role is
-                called by its flows and normally has nothing to say here — the two that stand
-                in for you (#493) and the one you talk to (#502) say it in their own copy.
-                The trigger itself is one sentence; whatever an agent adds after it is a
-                paragraph, and a paragraph in a header is read by nobody, so it opens. */}
-            {when && <Trigger text={when} />}
+            {role?.when && <Trigger text={role.when} />}
           </div>
         </div>
 
@@ -1242,10 +1236,18 @@ function SettingRow({
 
 // --- an agent's own trigger ---------------------------------------------------
 
-// When this agent is asked for. The first sentence is the answer and stays on the line;
-// whatever the agent adds after it — what a discussion is for, where a card goes next —
-// opens behind **View rules**, so a header is one line rather than a paragraph nobody reads.
+// When this agent is asked for.
 function Trigger({ text }: { text: string }) {
+  const c = useCopy().configuration.agents;
+  return (
+    <p className="mt-1 max-w-[74ch] text-[11.5px] leading-snug text-nb-ink-soft">
+      <span className="font-[600]">{c.runsWhen}</span> <Clipped text={text} />
+    </p>
+  );
+}
+
+// The first sentence stays on the line; the rest opens behind **View rules**.
+function Clipped({ text }: { text: string }) {
   const c = useCopy().configuration.agents;
   const [open, setOpen] = useState(false);
   const cut = text.search(/(?<=[.。])\s*(?=\S)/);
@@ -1253,8 +1255,8 @@ function Trigger({ text }: { text: string }) {
   const rest = cut < 0 ? "" : text.slice(cut).trim();
 
   return (
-    <p className="mt-1 max-w-[74ch] text-[11.5px] leading-snug text-nb-ink-soft">
-      <span className="font-[600]">{c.runsWhen}</span> {open ? text : lead}
+    <>
+      {open ? text : lead}
       {rest && (
         <button
           type="button"
@@ -1270,7 +1272,7 @@ function Trigger({ text }: { text: string }) {
           />
         </button>
       )}
-    </p>
+    </>
   );
 }
 
@@ -2481,16 +2483,7 @@ export function useAgentTitle(): (agent: AgentView) => string {
 }
 
 function sentence(text: string): string {
-  return clause(sentenceStart(text.trim()));
-}
-
-// The `Runs when` line reads on from its label, so it keeps the agent's own capitalisation
-// rather than being sentence-cased into "Runs when A card changes…".
-function clause(text: string): string {
   const value = text.trim();
-  return !value || /[.!?]$/.test(value) ? value : `${value}.`;
-}
-
-function sentenceStart(text: string): string {
-  return text ? text[0].toUpperCase() + text.slice(1) : text;
+  const cased = value ? value[0].toUpperCase() + value.slice(1) : value;
+  return !cased || /[.!?。]$/.test(cased) ? cased : `${cased}.`;
 }

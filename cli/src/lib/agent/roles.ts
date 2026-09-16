@@ -299,11 +299,8 @@ export interface RosterEntry {
    *  say one, in its own `akb.i18n`; a role is a closed set the command ships, so the screen
    *  drawing it names it. Empty means "spell the name out". */
   title: string
-  /** What it does, in one clause: a role's line, or a specialist's `akb.owns`. */
+  /** What it does: a role's line, or a specialist's own `description`. */
   gloss: string
-  /** When the board calls it — a specialist's own `description`. Empty on a role, which is
-   *  called by its flows rather than by a trigger. */
-  when: string
   /** The workflow stage this agent can be assigned to (#715), or absent on a board agent
    *  that no workflow assigns. */
   stage?: WorkflowStage
@@ -349,15 +346,14 @@ const ownMemoryOf = (name: string, memory: string[]): string[] =>
  *  the command ships, then the ones the project added. One list, so `akb raw rule` and the
  *  Agents pane name the same team. */
 export function agentRoster(): RosterEntry[] {
-  // A specialist's two lines are the ones its own file declares, in the language this
+  // A specialist's words are the ones its own file declares, in the language this
   // machine reads — an agent is user-facing, and its `akb.i18n` block is where it says so.
   const specialists = specAgentCatalog().agents.map((agent) => {
     const said = agentLines(agent)
     return {
       name: agent.name,
       title: said.title,
-      gloss: said.owns,
-      when: said.description,
+      gloss: said.description,
       kind: agent.kind,
       ...(agent.stage ? { stage: agent.stage } : {}),
       builtIn: agent.builtIn,
@@ -374,7 +370,6 @@ export function agentRoster(): RosterEntry[] {
       name: role.name,
       title: '',
       gloss: role.gloss,
-      when: '',
       kind: 'role' as const,
       ...(role.stage ? { stage: role.stage } : {}),
       builtIn: true,

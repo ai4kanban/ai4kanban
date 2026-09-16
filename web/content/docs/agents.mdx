@@ -231,8 +231,8 @@ keeps your text and says what is wrong rather than leaving an agent it cannot re
 by hand in an editor works exactly the same way — the pane and the file are one thing.
 
 `AGENT.md` opens with frontmatter carrying the agent's `name`, the `description` a planning
-session picks it by, and an `akb:` block saying which hook it plugs into and what part of a
-card's spec it owns:
+session picks it by and the Agents pane shows under its name, and an `akb:` block saying which
+hook it plugs into:
 
 ```yaml
 ---
@@ -240,7 +240,6 @@ name: api-contract
 description: Use when a card changes an endpoint other software calls.
 akb:
   kind: spec
-  owns: the request and response shape a card changes
   settings:
     - key: style
       label: Contract style
@@ -278,7 +277,6 @@ name: api-contract
 description: Use when a card changes an endpoint other software calls.
 akb:
   kind: spec
-  owns: the request and response shape a card changes
 ---
 ```
 
@@ -289,7 +287,6 @@ name: sdk-sample
 description: Use when a card changes how SDK users call an endpoint.
 akb:
   kind: spec
-  owns: the sample code a card changes
   dependencies:
     - agent: api-contract
 ---
@@ -316,17 +313,15 @@ same card are refused when the agent starts. `ui-designer` waits for `copywritin
 
 ## Say it in your own language
 
-`description`, `owns` and the words its settings are drawn by are read by people, not only by the
+`description` and the words its settings are drawn by are read by people, not only by the
 board, so an agent can carry them in another language under `akb.i18n`:
 
 ```yaml
 akb:
   kind: spec
-  owns: the request and response shape a card changes
   i18n:
     zh:
       description: 当卡片改动其他软件会调用的接口时使用。
-      owns: 卡片改动的请求与响应结构
       settings:
         style:
           label: 契约格式

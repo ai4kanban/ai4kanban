@@ -59,7 +59,6 @@ const AGENT = [
   'description: Use when a card changes an endpoint other software calls.',
   'akb:',
   '  kind: spec',
-  '  owns: the request and response shape a card changes',
   '---',
   '',
   'You settle the wire contract a card changes.',
@@ -114,9 +113,10 @@ describe("what an agent says to a reader who doesn't read English", () => {
         'description: Use when a card changes an endpoint other software calls.',
         'akb:',
         '  kind: spec',
-        '  owns: the request and response shape a card changes',
+        // A file written before `owns` was dropped still reads; the field is ignored.
         '  i18n:',
         '    zh:',
+        '      title: 接口契约',
         '      owns: 卡片改动的请求与响应结构',
         '---',
         '',
@@ -127,23 +127,19 @@ describe("what an agent says to a reader who doesn't read English", () => {
     const agent = findSpecAgent('api-contract')!
     assert.ok(agent)
 
-    const zh = agentLines(agent, 'zh')
-    assert.equal(zh.owns, '卡片改动的请求与响应结构')
-    // Only `owns` was translated, so the other line stays the English the file declares
+    assert.equal('owns' in agent, false)
+    assert.deepEqual(agent.i18n.zh, { title: '接口契约' })
+
+    // Only the title was translated, so the description stays the English the file declares
     // rather than going blank.
-    assert.equal(zh.description, agent.description)
+    const zh = agentLines(agent, 'zh')
+    assert.deepEqual(zh, { title: '接口契约', description: agent.description })
     // A name it never said stays empty rather than falling back: the screen drawing it
     // spells the agent's own name out, which is the answer in English too.
-    assert.equal(zh.title, '')
-    assert.deepEqual(agentLines(agent, 'en'), {
-      title: '',
-      description: agent.description,
-      owns: agent.owns,
-    })
+    assert.deepEqual(agentLines(agent, 'en'), { title: '', description: agent.description })
 
-    // The block is drawn, never run: what a spec run is handed is the English pair and the
-    // instructions under the frontmatter.
-    assert.match(agent.owns, /request and response/)
+    // The block is drawn, never run: what a spec run is handed is the English description and
+    // the instructions under the frontmatter.
     assert.equal(agent.body.includes('i18n'), false)
   })
 
@@ -152,7 +148,6 @@ describe("what an agent says to a reader who doesn't read English", () => {
       const said = agentLines(findSpecAgent(name)!, 'zh')
       assert.match(said.title, /[\u4e00-\u9fa5]/, name)
       assert.match(said.description, /[\u4e00-\u9fa5]/, name)
-      assert.match(said.owns, /[\u4e00-\u9fa5]/, name)
     }
   })
 
@@ -186,7 +181,6 @@ describe("what an agent says to a reader who doesn't read English", () => {
         'description: Use when a card changes an endpoint other software calls.',
         'akb:',
         '  kind: spec',
-        '  owns: the request and response shape a card changes',
         '  i18n:',
         '    zh:',
         '      settings:',
@@ -237,7 +231,6 @@ describe('the agents this command ships', () => {
       ['copywriting', 'tech-stack-advisor', 'ui-designer'],
     )
     const ui = findSpecAgent('ui-designer')!
-    assert.match(ui.owns, /the screen a card changes/)
     assert.match(ui.description, /^Use when/)
     assert.match(ui.description, /user-facing feature/)
     assert.match(ui.description, /Skip only extremely tiny fixes/)
@@ -278,9 +271,9 @@ describe('an agent the project adds', () => {
   it('is set like a built-in one', () => {
     project('api-contract', {
       'AGENT.md': AGENT.replace(
-        '  owns: the request and response shape a card changes\n',
+        '  kind: spec\n',
         [
-          '  owns: the request and response shape a card changes',
+          '  kind: spec',
           '  settings:',
           '    - key: style',
           '      label: Contract style',
@@ -364,7 +357,7 @@ describe('an agent nobody can read', () => {
 
   it('reports a missing description', () => {
     assert.match(
-      problemFor({ 'AGENT.md': ['---', 'name: broken', 'akb:', '  kind: spec', '  owns: x', '---', '', 'Body.'].join('\n') }),
+      problemFor({ 'AGENT.md': ['---', 'name: broken', 'akb:', '  kind: spec', '---', '', 'Body.'].join('\n') }),
       /has no `description`/,
     )
   })
@@ -372,7 +365,7 @@ describe('an agent nobody can read', () => {
   it('reports a kind this board does not run', () => {
     assert.match(
       problemFor({
-        'AGENT.md': ['---', 'name: broken', 'description: d', 'akb:', '  kind: review', '  owns: x', '---', '', 'Body.'].join('\n'),
+        'AGENT.md': ['---', 'name: broken', 'description: d', 'akb:', '  kind: review', '---', '', 'Body.'].join('\n'),
       }),
       /an agent is `spec`/,
     )
@@ -387,7 +380,6 @@ describe('an agent nobody can read', () => {
           'description: d',
           'akb:',
           '  kind: spec',
-          '  owns: x',
           '  settings:',
           '    - key: style',
           '      label: Style',
@@ -417,11 +409,11 @@ describe('an agent nobody can read', () => {
 })
 
 describe('what a session is shown', () => {
-  it('gives a planning session the names, descriptions and ownership and no instructions', () => {
+  it('gives a planning session the names and descriptions and no instructions', () => {
     const catalog = specAgentSelector(12)
     assert.match(catalog, /<spec-agents>/)
     assert.match(catalog, /- `ui-designer`/)
-    assert.match(catalog, /owns the screen a card changes/)
+    assert.doesNotMatch(catalog, /\bowns\b/)
     assert.ok(catalog.includes(findSpecAgent('ui-designer')!.description))
     assert.doesNotMatch(catalog, /planned by guess|Asking for none is the usual answer/)
     assert.match(catalog, /akb spec <agent> 12 <short note>/)
@@ -775,9 +767,9 @@ describe("who a spec agent's output is for", () => {
   it("is the board's key, so no agent may declare a setting or a value of its own for it", () => {
     project('api-contract', {
       'AGENT.md': AGENT.replace(
-        '  owns: the request and response shape a card changes\n',
+        '  kind: spec\n',
         [
-          '  owns: the request and response shape a card changes',
+          '  kind: spec',
           '  settings:',
           '    - key: output',
           '      label: Output',

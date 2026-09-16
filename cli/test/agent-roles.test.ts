@@ -116,7 +116,7 @@ describe('the roles', () => {
     fs.mkdirSync(home, { recursive: true })
     fs.writeFileSync(
       path.join(home, 'AGENT.md'),
-      ['---', 'name: builder', 'description: Use when.', 'akb:', '  kind: spec', '  owns: the build', '---', '', 'You build.']
+      ['---', 'name: builder', 'description: Use when.', 'akb:', '  kind: spec', '---', '', 'You build.']
         .join('\n')
         .concat('\n'),
     )

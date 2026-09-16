@@ -3,12 +3,10 @@ name: ui-designer
 description: Use whenever a card designs or changes a user-facing feature, including screens, layouts, interactions, and flows. Skip only extremely tiny fixes such as a typo or a one-value spacing correction that needs no design decision. A detailed plan or an existing component is not a reason to skip.
 akb:
   kind: spec
-  owns: the screen a card changes — one design, drawn one screen per file
   i18n:
     zh:
       title: 界面设计师
       description: 当卡片要设计或改动任何面向用户的功能时使用，包括页面、布局、交互和流程。只有极小的改动才跳过，例如错别字，或不涉及任何设计决策的单个间距修正。计划写得详细、或已有现成组件，都不是跳过的理由。
-      owns: 卡片改动的那块界面——一个方案，每屏画成一张
       settings:
         mockupStyle:
           label: 原型样式

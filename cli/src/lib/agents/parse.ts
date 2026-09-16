@@ -11,9 +11,7 @@ export interface SpecAgent {
   name: string
   /** When the calling flow must request this agent. */
   description: string
-  /** The part of a card's spec it owns. */
-  owns: string
-  /** What its two user-facing lines say in another language, by language tag (#334). Only
+  /** What its user-facing lines say in another language, by language tag (#334). Only
    *  ever DRAWN: every run is given the English pair above, so a translation can never
    *  change what an agent is asked to do, and the block never reaches a prompt. */
   i18n: Record<string, AgentLines>
@@ -53,7 +51,6 @@ export interface AgentLines {
    *  run is asked for by — and stays English everywhere; this is only ever drawn. */
   title?: string
   description?: string
-  owns?: string
   /** What its settings say here, by setting key. */
   settings?: Record<string, SettingLines>
 }
@@ -130,8 +127,6 @@ export function parseSpecAgent(
   }
   const kind: AgentKind = isKind(declaredKind) ? declaredKind : 'spec'
   const stage = isStage(declaredStage) ? declaredStage : STAGE_OF_KIND[kind]
-  const owns = str(akb.owns)
-  if (!owns) return bad(`\`${name}\` has no \`akb.owns\`, which is the part of the spec it answers for`)
 
   // Declaring nothing is the common case: an agent without a memory starts every run fresh,
   // which is what all of them did before this existed.
@@ -172,7 +167,6 @@ export function parseSpecAgent(
     agent: {
       name,
       description,
-      owns,
       i18n: readTranslations(akb.i18n),
       kind,
       stage,
@@ -188,7 +182,7 @@ export function parseSpecAgent(
   }
 }
 
-// The `akb.i18n` block: one entry per language tag, each saying either of the two lines. A
+// The `akb.i18n` block: one entry per language tag, each saying its title or description. A
 // tag with nothing readable under it is dropped rather than refused — a translation is
 // drawn, so a typo in one is never a reason to take an agent off the board.
 function readTranslations(raw: YamlValue | undefined): Record<string, AgentLines> {
@@ -202,7 +196,6 @@ function readTranslations(raw: YamlValue | undefined): Record<string, AgentLines
     const lines: AgentLines = {
       ...(str(said.title) ? { title: str(said.title) } : {}),
       ...(str(said.description) ? { description: str(said.description) } : {}),
-      ...(str(said.owns) ? { owns: str(said.owns) } : {}),
       ...(Object.keys(settings).length ? { settings } : {}),
     }
     if (Object.keys(lines).length) out[tag] = lines

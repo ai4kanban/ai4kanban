@@ -1432,13 +1432,11 @@ export type SpecAgentChoiceView = Omit<SpecAgentChoice, 'reference'>
 /** One setting as a screen reads it. */
 export type SpecAgentSettingView = Omit<SpecAgentSetting, 'choices'> & { choices: SpecAgentChoiceView[] }
 
-/** One spec agent, as a screen reads it (#191) — the two lines it is shown by, whether it
+/** One spec agent, as a screen reads it (#191) — the description it is shown by, whether it
  *  is switched on, and what it is set to (#255). The words come from the agent's own
  *  `AGENT.md`, so a screen listing them never keeps a copy that could say something else. */
 export interface SpecAgentView {
   name: string
-  /** What that agent fills in, in one line — its `akb.owns`. */
-  owns: string
   /** When the board calls it, in one line — the agent's own `description`. */
   description: string
   /** False only when somebody switched it off. While it is off the board starts no new run
@@ -1464,11 +1462,8 @@ export interface AgentView {
    *  that language. A role leaves this empty: the pane's own copy names the closed set the
    *  command ships. */
   title: string
-  /** What it does, in one clause: a role's line, or a specialist's `akb.owns`. */
+  /** What it does: a role's line, or a specialist's own `description`. */
   gloss: string
-  /** When the board calls it — a specialist's own `description`. Empty on a role, which is
-   *  called by its flows rather than by a trigger. */
-  when: string
   /** `role` for one of the board's own; otherwise the hook the specialist plugs into. Spelled
    *  out rather than imported: this file is copied into the board UI and may reach only its
    *  siblings, and `AgentKind` lives beside the catalog that reads an `AGENT.md`. */

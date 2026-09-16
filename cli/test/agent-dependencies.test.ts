@@ -33,7 +33,6 @@ const agentFile = (name: string, extra: string[] = []): string =>
     `description: Use when a card needs ${name}.`,
     'akb:',
     '  kind: spec',
-    `  owns: the ${name} part of a card`,
     ...extra,
     '---',
     '',
@@ -368,7 +367,6 @@ describe('the copy that comes before the screen', () => {
     assert.equal(copy.stage, 'plan')
     assert.equal(copy.i18n.zh?.title, '宣传文案')
     assert.ok(copy.i18n.zh?.description)
-    assert.ok(copy.i18n.zh?.owns)
     assert.match(copy.description, /README/)
     assert.match(copy.description, /Skip user documentation/)
   })

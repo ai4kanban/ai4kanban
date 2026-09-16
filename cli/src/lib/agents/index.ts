@@ -39,12 +39,11 @@ export const specAgents = (): SpecAgent[] => specAgentCatalog().agents
 export function agentLines(
   agent: SpecAgent,
   language: Language = readLanguage(),
-): { title: string; description: string; owns: string } {
+): { title: string; description: string } {
   const said = agent.i18n[language]
   return {
     title: said?.title || '',
     description: said?.description || agent.description,
-    owns: said?.owns || agent.owns,
   }
 }
 
@@ -66,7 +65,7 @@ export function agentTitles(language: Language = readLanguage()): Record<string,
 /** The settings an agent declares, as a screen reads them: the words in the language this
  *  machine reads (#334), and never the reference a choice loads — that is the run's business.
  *
- *  Drawn only, like the two lines above. A run is handed the English, so the reference it
+ *  Drawn only, like the lines above. A run is handed the English, so the reference it
  *  loads is picked by the choice's `value`, which no translation touches. */
 export function agentSettingsView(
   agent: SpecAgent,
@@ -292,7 +291,6 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
     words.lead,
     ...on.flatMap((a) => [
       `- \`${a.name}\``,
-      `  owns ${a.owns}`,
       `  ${a.description}`,
       // Which of them remember (#421). These flows are the ones that hear the user's answer
       // about an agent's section, and the line they append goes in that agent's memory
@@ -309,14 +307,13 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
   ].join('\n')
 }
 
-/** Every spec agent as a screen reads it: both its lines, whether it is on, the settings it
+/** Every spec agent as a screen reads it: its description, whether it is on, the settings it
  *  declares and what each one is set to. The reference a choice loads is left out — it is
  *  the run's business, not a dialog's. */
 export function readSpecAgents(): SpecAgentView[] {
   const entries = specAgentEntries()
   return specAgents().map((agent) => ({
     name: agent.name,
-    owns: agent.owns,
     description: agent.description,
     enabled: specAgentEnabled(agent.name, entries),
     // Which connector this agent runs here (#443) — so the list a screen draws is the same
@@ -453,7 +450,6 @@ function agentList(
       ? on.flatMap((a) => [
           '',
           `  ${a.name}`,
-          `    owns ${a.owns}`,
           `    ${a.description}`,
           ...harnessLine(a, forPerson),
           ...settingLines(a, entries),
@@ -477,7 +473,7 @@ function agentList(
   ].join('\n')
 }
 
-// What one agent is set to, under the two lines it is listed by. One line per setting: what
+// What one agent is set to, under the lines it is listed by. One line per setting: what
 // it is called, the choice in effect, and what that choice costs. An agent that declares none
 // adds nothing, so the list reads exactly as it did before settings existed.
 //

@@ -29,14 +29,6 @@ import { AGENT_NAME, parseSpecAgent } from './parse'
 
 const AGENT_FILE = 'AGENT.md'
 
-// What a new agent is told to fill in for `akb.owns` — the part of the work it answers for,
-// which is a different thing at each stage.
-const OWNS: Record<WorkflowStage, string> = {
-  plan: "unwritten — name the one part of a card's spec this agent answers for",
-  execute: 'unwritten — name the part of the work this agent produces',
-  review: 'unwritten — name what this agent checks the finished work against',
-}
-
 /** Whether this board's Triage is open, with an unreachable answer read as closed. */
 async function triageOpen(): Promise<boolean> {
   try {
@@ -68,7 +60,6 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
       name: entry.name,
       title: entry.title,
       gloss: entry.gloss,
-      when: entry.when,
       kind: entry.kind,
       ...(entry.stage ? { stage: entry.stage } : {}),
       builtIn: entry.builtIn,
@@ -111,7 +102,7 @@ export async function readAgents(): Promise<{ agents: AgentView[]; problems: str
  *  board already answers to and against the folders on disk BEFORE anything is written, so
  *  the pane never creates the clash it would then have to report as a problem.
  *
- *  The agent is created unwritten on purpose: its `description` and `owns` say so, so a
+ *  The agent is created unwritten on purpose: its `description` says so, so a
  *  planning flow reading the roster before the user has filled it in never picks it. */
 export function createAgent(asked: string, stage?: WorkflowStage): WriteResult & { agent?: string } {
   const name = String(asked ?? '').trim().toLowerCase()
@@ -145,18 +136,15 @@ export function createAgent(asked: string, stage?: WorkflowStage): WriteResult &
 // A stage names where it can be assigned (#715) and is what a workflow agent declares. With
 // none, it falls back to `spec` — a specialist that fills part of a card's spec.
 function agentTemplate(name: string, stage?: WorkflowStage): string {
-  const owns = OWNS[stage ?? 'plan']
   return [
     '---',
     `name: ${name}`,
     'description: Unwritten — say here when a card needs this agent, and until you do the board asks for it on none.',
     'akb:',
     ...(stage ? [`  stage: ${stage}`] : ['  kind: spec']),
-    `  owns: ${owns}`,
-    '  # i18n:                    # what the two lines above say to a reader in another',
+    '  # i18n:                    # what `description` says to a reader in another',
     '  #   zh:                    # language. Drawn only — every run is given the English.',
     '  #     description:',
-    '  #     owns:',
     '---',
     '',
     `Unwritten. Write what \`${name}\` does here: what it is given, what it produces, and`,

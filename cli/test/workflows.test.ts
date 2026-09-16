@@ -59,7 +59,7 @@ const stageAgent = (name: string, stage: string): void => {
   fs.mkdirSync(home, { recursive: true })
   fs.writeFileSync(
     path.join(home, 'AGENT.md'),
-    ['---', `name: ${name}`, 'description: Use when.', 'akb:', `  stage: ${stage}`, `  owns: the ${stage} stage`, '---', '', 'You work.', ''].join('\n'),
+    ['---', `name: ${name}`, 'description: Use when.', 'akb:', `  stage: ${stage}`, '---', '', 'You work.', ''].join('\n'),
   )
 }
 

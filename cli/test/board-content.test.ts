@@ -187,10 +187,10 @@ describe('the team, as a contract read and write', () => {
     const { agents } = await board().readAgents()
     const added2 = agents.find((a) => a.name === 'api-contract')
     assert.ok(added2?.file, 'a project agent draws its own AGENT.md')
-    // Both lines a planning flow would pick it by say it is unwritten, so nothing asks for
-    // it until the user fills the file in.
-    assert.match(added2!.gloss, /unwritten/i)
-    assert.match(added2!.when, /Unwritten/i)
+    // The description a planning flow would pick it by says it is unwritten, so nothing asks
+    // for it until the user fills the file in.
+    assert.match(added2!.gloss, /Unwritten/)
+    assert.doesNotMatch(added2!.file!.text, /owns/)
 
     for (const taken of ['api-contract', 'ui-designer', 'builder']) {
       assert.equal((await onBoard((env) => board().createAgent(taken, undefined, env))).ok, false, taken)
@@ -227,7 +227,7 @@ describe('the team, as a contract read and write', () => {
     assert.equal(bad.ok, false)
     assert.equal(fs.readFileSync(file, 'utf8'), was)
 
-    const good = '---\nname: api-contract\ndescription: Use when a card changes an endpoint.\nakb:\n  kind: spec\n  owns: the request and response shape\n---\n\nWrite the contract.\n'
+    const good = '---\nname: api-contract\ndescription: Use when a card changes an endpoint.\nakb:\n  kind: spec\n---\n\nWrite the contract.\n'
     assert.ok((await onBoard((env) => board().saveAgentFile('api-contract', good, env))).ok)
     assert.equal(fs.readFileSync(file, 'utf8'), good)
   })
