@@ -11,6 +11,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExt
 import { createPortal } from "react-dom";
 import {
   FiActivity,
+  FiAlertTriangle,
   FiCheck,
   FiChevronLeft,
   FiChevronRight,
@@ -34,6 +35,8 @@ import {
   stepLabel,
   triggerLabel,
   unfinishedFlows,
+  unhandledByCard,
+  unhandledFlows,
   type RunFlow,
   type RunLabels,
 } from "@/lib/run-flows";
@@ -238,6 +241,24 @@ export function runningSessionForCard(sessions: SessionView[], cardId: number): 
   return sessions.find((r) => r.status === "running" && r.cardId === cardId);
 }
 
+/** The run this card's failure mark opens (#809), or nothing where the card has none.
+ *
+ *  The answer is about every run on the board, not this card's — a later success anywhere
+ *  clears an earlier failure — so it is worked out once for the whole list and held against
+ *  the array it was read from. A column asks this once per card, and the poll hands every
+ *  card in a render the same array. */
+export function unhandledSessionForCard(sessions: SessionView[], cardId: number): SessionView | undefined {
+  if (sessions !== unhandledFor) {
+    unhandledFor = sessions;
+    unhandled = new Map(
+      [...unhandledByCard(runFlows(sessions))].map(([id, flow]) => [id, flow.latest]),
+    );
+  }
+  return unhandled.get(cardId);
+}
+let unhandledFor: SessionView[] | null = null;
+let unhandled = new Map<number, SessionView>();
+
 // Tail one session's log. Polls getSessionAction while the session is live (task
 // #14 reuses the poll channel — no SSE, matching the run badges), then
 // fetches once more when it ends and stops. Pass null to watch nothing. Returns
@@ -281,7 +302,14 @@ export function useSessionLog(sessionId: string | null): SessionView | null {
 // the runs panel open on the run it just started — without threading
 // state through the server-rendered Header. One store per browser tab; the
 // panel's open/selected state lives here so any header control can drive it.
-type PanelState = { open: boolean; selected: string | null };
+type PanelState = {
+  open: boolean;
+  selected: string | null;
+  /** Show the selected run's LOG, not just the room it is in (#809) — what a caller that is
+   *  pointing at one run rather than at the panel asks for. Taken by the dialog the moment it
+   *  draws, so closing the log afterwards sticks. */
+  log?: boolean;
+};
 let panelState: PanelState = { open: false, selected: null };
 const panelSubs = new Set<() => void>();
 function setPanel(next: PanelState) {
@@ -303,6 +331,15 @@ export const sessionsPanel = {
   },
   select(sessionId: string) {
     setPanel({ open: true, selected: sessionId });
+  },
+  /** Open on one run's log. The notification rail's own rows use it: a row about a run that
+   *  stopped short leads to the reason it did, and nothing else says that. */
+  openLog(sessionId: string) {
+    setPanel({ open: true, selected: sessionId, log: true });
+  },
+  /** The dialog has the log up — the ask is spent. */
+  logShown() {
+    if (panelState.log) setPanel({ ...panelState, log: false });
   },
 };
 function usePanelState(): PanelState {
@@ -625,37 +662,55 @@ export function Sessions() {
   const { sessions, kick } = useAgentSessions(() => {});
   const panel = usePanelState();
   const runningCount = sessions.reduce((n, r) => n + (r.status === "running" ? 1 : 0), 0);
+  // Jobs that stopped short on a card nobody has dealt with (#809) — the one standing state
+  // this button has to carry, and the reason its corner mark is no longer about live work
+  // alone.
+  const stuck = useMemo(() => unhandledFlows(runFlows(sessions)).length, [sessions]);
 
   return (
     <>
       <button
         type="button"
         onClick={() => sessionsPanel.toggle()}
-        data-tip={runningCount > 0 ? c.openRunning(runningCount) : c.open}
+        data-tip={
+          stuck > 0 ? c.openUnhandled(stuck) : runningCount > 0 ? c.openRunning(runningCount) : c.open
+        }
         aria-label={c.open}
         // The middle tool in the header's cluster (components/chrome.tsx): no
         // frame of its own, a hairline on each side of it.
         className={TOOL_BTN}
       >
         <FiActivity size={15} aria-hidden />
-        {/* A live run says so with an ember dot in the corner of the icon rather
-            than a counted badge on the button's shoulder, which would hang off a
-            tool's edge and break the frame the cluster draws around all four. The
-            number moved into the tooltip and is on every row of the panel this
-            opens — what the dot has to carry is that something is going. */}
-        {runningCount > 0 && (
-          <span className="absolute right-[5px] top-[5px] flex size-[7px] items-center justify-center">
-            <span
-              className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
-              style={{ background: "var(--color-nb-accent)" }}
-              aria-hidden
-            />
-            <span
-              className="relative inline-flex h-full w-full rounded-full"
-              style={{ background: "var(--color-nb-accent)" }}
-              aria-hidden
-            />
-          </span>
+        {/* One dot in the corner of the icon, never a counted badge on the button's
+            shoulder — that would hang off a tool's edge and break the frame the cluster
+            draws around all four. Its COLOUR is what it says: ember and breathing while a
+            run is going, the warning peach and still while a job that stopped short is
+            waiting on somebody (#809). Peach wins when both are true — live work looks after
+            itself, and a thing to fix does not. The numbers are in the tooltip and on every
+            row of the panel this opens. */}
+        {stuck > 0 ? (
+          // Peach is a pale colour on a white tool, so this one is ringed in ink — the same
+          // line every filled thing on the board is drawn with, and what keeps a still dot
+          // as loud as the breathing one it replaces.
+          <span
+            aria-hidden
+            className="absolute right-[4px] top-[4px] size-[8px] rounded-full border border-nb-ink bg-nb-peach"
+          />
+        ) : (
+          runningCount > 0 && (
+            <span className="absolute right-[5px] top-[5px] flex size-[7px] items-center justify-center">
+              <span
+                className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
+                style={{ background: "var(--color-nb-accent)" }}
+                aria-hidden
+              />
+              <span
+                className="relative inline-flex h-full w-full rounded-full"
+                style={{ background: "var(--color-nb-accent)" }}
+                aria-hidden
+              />
+            </span>
+          )
         )}
       </button>
       {panel.open && <SessionsDialog sessions={sessions} onStarted={kick} />}
@@ -762,6 +817,15 @@ function RunsOffice({
   // Which job the log drawer was opened from, so focus can go back to its bot — or, once
   // that bot has walked out, to the entrance the job's record is now behind.
   const opener = useRef<string | null>(null);
+  // Opened on one run's LOG rather than on the room (#809) — what the notification rail's
+  // own rows ask for. Taken once, so putting the log away afterwards sticks.
+  const askedLog = usePanelState().log;
+  useEffect(() => {
+    if (!askedLog) return;
+    setLogOpen(true);
+    drawer.current = "right";
+    sessionsPanel.logShown();
+  }, [askedLog]);
 
   const head = useRunHead(selected, flow);
   const office = useOffice(flows, roleName, t.runs);
@@ -907,7 +971,11 @@ function RunsOffice({
           >
             {s.completed}
           </Button>
-          {/* Only where there is something unfinished to reach. */}
+          {/* Only where there is something unfinished to reach. It carries the number of
+              jobs still waiting on somebody and wears the warning colour with them (#809),
+              so it can no longer be read as a second Completed. A list holding nothing but
+              runs the user stopped, or runs on no card, keeps the plain word: nothing there
+              is owed to anyone. */}
           {unfinished.length > 0 && (
             <Button
               id={UNFINISHED_BTN}
@@ -915,10 +983,11 @@ function RunsOffice({
               variant="ghost"
               size="xs"
               aria-expanded={records === "unfinished"}
-              className={`${PX_BUTTON} ${records === "unfinished" ? PX_BUTTON_ON : ""}`}
+              className={`${PX_BUTTON} ${office.stuck > 0 ? PX_BUTTON_WARN : ""} ${records === "unfinished" ? PX_BUTTON_ON : ""}`}
               onClick={() => openRecords("unfinished")}
             >
-              {s.unfinished}
+              {office.stuck > 0 && <FiAlertTriangle className="text-[11px]" aria-hidden />}
+              {office.stuck > 0 ? s.unfinishedCount(office.stuck) : s.unfinished}
             </Button>
           )}
         </div>
@@ -1044,6 +1113,9 @@ const PX_BUTTON =
 /** The entrance whose drawer is up. `aria-expanded` alone said it to a screen reader and to
  *  nobody looking at the screen. */
 const PX_BUTTON_ON = "bg-nb-ink text-nb-cream hover:bg-nb-ink";
+/** …and the one holding work that is still owed (#809). Written before `PX_BUTTON_ON` in the
+ *  class list, so an open drawer still reads as the pressed one. */
+const PX_BUTTON_WARN = "gap-1 bg-nb-peach hover:bg-nb-peach";
 
 /** An arrow inside the pager's box: a square well that fills with ink on hover. */
 const PAGER_ARROW =
@@ -1320,9 +1392,14 @@ function useOffice(flows: RunFlow[], roleName: (agent?: string) => string, copy:
   const roomsHeld = useRef(1);
   return useMemo(() => {
     const working = flows.filter(isLive);
+    // A job that stopped short on a card nobody has dealt with keeps a desk too (#809): it
+    // is the room's way of saying the work is still owed. Working jobs are offered a desk
+    // first, so the front of the office is where the live work is.
+    const stuck = unhandledFlows(flows);
+    const seated = [...working, ...stuck];
     const { places, rooms } = placeWorkers(
       held.current,
-      working.map((f) => f.id),
+      seated.map((f) => f.id),
       roomsHeld.current,
     );
     held.current = places;
@@ -1338,10 +1415,19 @@ function useOffice(flows: RunFlow[], roleName: (agent?: string) => string, copy:
       status: flow.latest.status,
     });
 
-    const bots: SceneBot[] = working.map((flow) => {
+    const atDesk = (flow: RunFlow, working: boolean): SceneBot => {
       const place = places.get(flow.id)!;
-      return { ...read(flow), working: true, room: place.room, desk: place.desk, spot: deskSpot(place) };
-    });
+      return {
+        ...read(flow),
+        working,
+        stuck: !working,
+        room: place.room,
+        desk: place.desk,
+        spot: deskSpot(place),
+      };
+    };
+    const bots: SceneBot[] = working.map((flow) => atDesk(flow, true));
+    for (const flow of stuck) bots.push(atDesk(flow, false));
 
     // The sofa: the two latest jobs that actually passed. Everyone else who finished has
     // already walked out, and is reached through the records.
@@ -1349,14 +1435,15 @@ function useOffice(flows: RunFlow[], roleName: (agent?: string) => string, copy:
     const resting = restingIds(passed.map((f) => ({ id: f.id, at: finishedAt(f.latest) })));
     resting.forEach((id, seat) => {
       const flow = passed.find((f) => f.id === id);
-      if (flow) bots.push({ ...read(flow), working: false, room: 0, desk: null, spot: SOFA_SPOTS[seat] });
+      if (flow)
+        bots.push({ ...read(flow), working: false, stuck: false, room: 0, desk: null, spot: SOFA_SPOTS[seat] });
     });
 
     const jobOf = (sessionId: string | null) =>
       bots.find((b) => flows.some((f) => f.id === b.id && f.sessions.some((s) => s.sessionId === sessionId)))?.id ??
       null;
 
-    return { bots, rooms, live: working.length, jobOf };
+    return { bots, rooms, live: working.length, stuck: stuck.length, jobOf };
   }, [flows, roleName, copy]);
 }
 

@@ -8,7 +8,7 @@ import type { Card, Column, SessionView } from "@/lib/types";
 import { byQueueOrder } from "@/lib/pick-order";
 import { BoardCard } from "./BoardCard";
 import { Button } from "./button";
-import { runningSessionForCard } from "./sessions";
+import { runningSessionForCard, unhandledSessionForCard } from "./sessions";
 
 // The board's one layout (#70, and the kanban view's removal). It answers a
 // single question — what can I start now? — by splitting every open card into
@@ -181,6 +181,7 @@ export function QueueView({
                     key={card.id}
                     card={card}
                     liveSession={runningSessionForCard(sessions, card.id)}
+                    failedSession={unhandledSessionForCard(sessions, card.id)}
                     creator={creatorOf(sessions, card)}
                   />
                 ))}
@@ -426,6 +427,7 @@ function ModuleBand({ band, sessions }: { band: Band; sessions: SessionView[] })
             key={card.id}
             card={card}
             liveSession={runningSessionForCard(sessions, card.id)}
+            failedSession={unhandledSessionForCard(sessions, card.id)}
             creator={creatorOf(sessions, card)}
           />
         ))}

@@ -83,6 +83,9 @@ export type RunsCopy = {
     open: string;
     /** The tooltip while runs are going. */
     openRunning: (n: number) => string;
+    /** …and while jobs that stopped short are waiting on somebody (#809), which is what the
+     *  button says first: live work looks after itself and a thing to fix does not. */
+    openUnhandled: (n: number) => string;
     heading: string;
     empty: string;
     pick: string;
@@ -132,6 +135,9 @@ export type RunsCopy = {
     runningTitle: string;
     completed: string;
     unfinished: string;
+    /** The same entrance while some of what is behind it is still waiting on somebody
+     *  (#809): the word, and how many. */
+    unfinishedCount: (n: number) => string;
     collapse: string;
     /** Which room of how many is on screen. */
     page: (n: number, of: number) => string;

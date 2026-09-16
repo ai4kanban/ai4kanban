@@ -15,6 +15,7 @@
 import { createContext, useContext } from "react";
 import type { BellRail } from "./bell-rail";
 import type { NotificationRow } from "./notifications";
+import { isRunRow } from "./run-alerts";
 
 // The rail's state belongs to the window and the button is in the top row, which the page
 // builds. Context is what puts the two on one state without every page threading it through
@@ -30,9 +31,11 @@ export const CardEventsProvider = RowsContext.Provider;
 /** The bell this window is showing, or null where there is none. */
 export const useBell = (): BellRail | null => useContext(BellContext);
 
-/** The live Cloud event on one of this board's cards, or null. */
+/** The live Cloud event on one of this board's cards, or null. The app's rail also holds its
+ *  own rows for runs that stopped short (#809); those are not Cloud events and must not
+ *  shadow one. */
 export function useCardEvent(taskId: number): NotificationRow | null {
   const rows = useContext(RowsContext);
   if (!rows) return null;
-  return rows.find((row) => row.taskId === taskId) ?? null;
+  return rows.find((row) => row.taskId === taskId && !isRunRow(row.eventId)) ?? null;
 }

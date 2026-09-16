@@ -14,6 +14,8 @@ const en: ChipsCopy = {
   pending: "pending",
   discussing: "discussing",
   discussingHint: "Its chat is writing a reply — the card is held until that reply lands.",
+  failed: "unfinished",
+  failedHint: "The last run on this card didn't finish. Open it to see what happened.",
   group: "Group task — open its page for subtasks",
   blockedOne: (ids) => `Blocked — ${ids} is still open`,
   blockedMany: (ids) => `Blocked — ${ids} are still open`,

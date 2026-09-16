@@ -12,6 +12,7 @@
 // `onUnavailable`, and the dialog goes back to its list-and-log form.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FiAlertTriangle } from "react-icons/fi";
 import type { Application, Container, Sprite, Spritesheet, Texture, TilingSprite } from "pixi.js";
 import { installedAgentsAction } from "@/app/actions";
 import { useCopy } from "@/i18n/use-copy";
@@ -33,6 +34,7 @@ import {
   fitCamera,
   handAngles,
   periodAt,
+  poseOf,
   untilNextMinute,
   walkPath,
   WORLD,
@@ -402,7 +404,7 @@ export function RunScene({
           held.path = [];
           held.x = bot.spot.x;
           held.y = bot.spot.y;
-          held.act = bot.working ? "type" : "sit";
+          held.act = poseOf(bot);
         }
         continue;
       }
@@ -414,7 +416,7 @@ export function RunScene({
         y: start.y,
         path: walk.slice(1),
         leaving: false,
-        act: bot.working ? "type" : "sit",
+        act: poseOf(bot),
         frame: Math.floor(Math.random() * 4),
       };
       actor.sprite = built.make();
@@ -523,15 +525,23 @@ function BotTarget({
     >
       {/* Always legible, never on hover. The two plates sit apart: who is at this desk over
           its head, the card it is on under its feet — between them is the screen it works
-          at, and the code on it stays readable. They take no clicks. */}
+          at, and the code on it stays readable. They take no clicks.
+          A job that stopped short and is still owed (#809) wears the warning colour on the
+          upper plate: the room is dark, so the plate is the one thing on a bot bright enough
+          to carry it. */}
       <span
         className="pointer-events-none absolute left-1/2 top-full flex -translate-x-1/2 flex-col items-center"
         style={{ width: "var(--nameplate)", marginTop: "calc(-1 * var(--plate-above))" }}
       >
         <span
-          className="flex max-w-full items-center gap-[3px] whitespace-nowrap rounded-[3px] bg-nb-paper/95 px-[5px] py-px text-[10.5px] font-[600] leading-[15px]"
+          className={`flex max-w-full items-center gap-[3px] whitespace-nowrap rounded-[3px] px-[5px] py-px text-[10.5px] font-[600] leading-[15px] ${
+            bot.stuck ? "bg-nb-peach" : "bg-nb-paper/95"
+          }`}
           style={{ color: INK }}
         >
+          {bot.stuck && (
+            <FiAlertTriangle aria-hidden style={{ width: 9, height: 9, flex: "0 0 auto" }} />
+          )}
           <span className="min-w-0 truncate">{bot.role}</span>
           <HarnessMark icon={mark?.icon} name={harness} />
         </span>
@@ -605,10 +615,13 @@ function advance(actor: Actor, dt: number): boolean {
   }
   if (actor.path.length === 0) {
     if (actor.leaving) return true;
-    actor.act = actor.bot.working ? "type" : "sit";
+    actor.act = poseOf(actor.bot);
   }
-  // A finished bot holds one seated frame; everyone else cycles.
-  actor.frame = actor.act === "sit" ? 0 : (actor.frame + dt / FRAME_MS) % 4;
+  // A bot at rest holds one frame; everyone still going cycles. Resting is standing still
+  // with no work left to do — on the sofa, or stopped short at a desk (#809), where the held
+  // frame is the same stillness as the dark screen in front of it.
+  const resting = actor.path.length === 0 && !actor.bot.working;
+  actor.frame = resting ? 0 : (actor.frame + dt / FRAME_MS) % 4;
   return false;
 }
 

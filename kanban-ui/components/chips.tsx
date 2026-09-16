@@ -273,6 +273,32 @@ export function CreatingChip({
   );
 }
 
+// The mark a card wears when the last run on it stopped short and nobody has dealt with it
+// (#809). It stands where the running badge stands — one mark to a card — and gives that slot
+// up while the card is running again, because what is happening now beats what went wrong
+// before.
+//
+// It is the card's one FILLED peach chip. The priority chip under it is peach at a wash, and
+// the blocked and pending marks beside it are washes too; a solid fill is the board's way of
+// saying this one is not an annotation but the thing to deal with. Pressable: it opens the
+// run that failed, which is the only place the reason for it is written down.
+export function FailedChip({ onClick }: { onClick?: (e: React.MouseEvent) => void }) {
+  const copy = useCopy().chips;
+  return (
+    <span
+      className="nb-chip nb-tip gap-1 bg-nb-peach text-nb-ink"
+      tabIndex={0}
+      role={onClick ? "button" : undefined}
+      data-tip={copy.failedHint}
+      onClick={onClick}
+      style={{ ...ELASTIC_CHIP, cursor: onClick ? "pointer" : undefined }}
+    >
+      <FiAlertTriangle aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
+      <span className="truncate">{copy.failed}</span>
+    </span>
+  );
+}
+
 // Group marker — flags a board card as a group root. A layers icon reads as
 // "stacked cards" so the group is obvious at a glance; the progress bar next to
 // it already carries the tally (root todos), so the chip stays a pure marker and

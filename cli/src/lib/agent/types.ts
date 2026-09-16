@@ -767,9 +767,10 @@ export interface RunView extends RunRecord {
    *  picked up: we know the id to continue by, and the agent that ran it is still the one
    *  the board runs. */
   canResume?: boolean
-  /** The card this run names has landed and left the board since (#673). Set only on a run
-   *  that stopped short, where it says the work the run was left owing is settled. */
-  cardLanded?: boolean
+  /** The card this run names has left the board since — landed, archived or rejected (#673,
+   *  #809). Set only on a run that stopped short, where it says the work the run was left
+   *  owing is settled. */
+  cardOffBoard?: boolean
   /** The run's log, when it was asked for. */
   tail?: string
 }

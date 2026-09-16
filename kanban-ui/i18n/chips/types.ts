@@ -17,6 +17,10 @@ export type ChipsCopy = {
   /** A card whose own chat is writing a reply (#633) — the chip, and what its hover says. */
   discussing: string;
   discussingHint: string;
+  /** A card whose last run stopped short and has not been dealt with (#809) — the chip, and
+   *  what its hover says. */
+  failed: string;
+  failedHint: string;
   group: string;
   /** Something this card waits on is still open. */
   blockedOne: (ids: string) => string;

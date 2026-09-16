@@ -150,6 +150,8 @@ const en: RunsCopy = {
   panel: {
     open: "Run history",
     openRunning: (n) => `${n} running — run history`,
+    openUnhandled: (n) =>
+      n === 1 ? "1 run didn't finish — run history" : `${n} runs didn't finish — run history`,
     heading: "Runs",
     empty: "No runs yet.",
     pick: "Select a run to see its input and log.",
@@ -191,6 +193,7 @@ const en: RunsCopy = {
     runningTitle: "Running",
     completed: "Completed",
     unfinished: "Unfinished",
+    unfinishedCount: (n) => `Unfinished ${n}`,
     collapse: "Collapse",
     page: (n, of) => `Room ${n} of ${of}`,
     prevRoom: "Previous room",

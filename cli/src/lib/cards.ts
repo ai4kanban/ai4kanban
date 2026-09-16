@@ -78,6 +78,19 @@ export function locateArchived(id: number): Found | null {
   return hit ? { kind: 'file', target: hit, rel: path.relative(ARCHIVE, hit) } : null
 }
 
+/** Every card id the board is holding — one walk, for a caller asking about more than one.
+ *  A group root is named by its folder, everything else by its file. */
+export function boardCardIds(): Set<number> {
+  const ids = new Set<number>()
+  const keep = (name: string) => {
+    const id = idPrefix(name)
+    if (id !== null) ids.add(id)
+  }
+  for (const dir of walkDirs(TODO)) keep(path.basename(dir))
+  for (const file of walkMd(TODO)) keep(path.basename(file))
+  return ids
+}
+
 // If `file` is a subtask nested inside a group task, return that group's root.md
 // (the nearest ancestor folder holding one). Null for a standalone card. Used so
 // archiving a subtask can tick it off in the group's tracking card.

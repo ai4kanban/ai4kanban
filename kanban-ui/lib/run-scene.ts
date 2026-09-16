@@ -77,17 +77,29 @@ export interface SceneBot {
   harness: string;
   status: SessionView["status"];
   working: boolean;
+  /** It stopped short on a card nobody has dealt with yet (#809). It keeps its desk with the
+   *  screen dark, and its nameplate wears the board's warning colour. */
+  stuck: boolean;
   room: number;
   /** The desk it works at, so the room knows which screens to wake. Null on the sofa. */
   desk: number | null;
   spot: Spot;
 }
 
-/** Hand every live job a place, keeping the ones already placed exactly where they are.
+/** How a bot stands where it is: at a desk it faces the screen, on the sofa it sits. A stuck
+ *  bot stands at its desk like anyone else — what says it is stuck is the dark screen in
+ *  front of it and the colour of its plate, not a pose of its own. */
+export const poseOf = (bot: SceneBot): "type" | "sit" => (bot.desk === null ? "sit" : "type");
+
+/** Hand every job with a desk a place, keeping the ones already placed exactly where they
+ *  are.
  *
  *  Vacant desks first, in room and desk order; once every desk in every open room holds
  *  someone, the ninth job onwards pairs at the first desk with room for a partner. Only when
- *  even that is full does the office gain a room. */
+ *  even that is full does the office gain a room.
+ *
+ *  `live` is every job that holds a desk, in the order they get first pick — the jobs that
+ *  are working, then the ones that stopped short and are still waiting on somebody (#809). */
 export function placeWorkers(
   prev: ReadonlyMap<string, Placement>,
   live: readonly string[],

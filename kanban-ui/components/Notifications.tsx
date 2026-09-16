@@ -27,13 +27,17 @@
 // none of them leads out of the project. A board you are not looking at reaches you as a
 // system notification instead.
 //
-// What gets a row is what is waiting for a person — a card to decide, and how a delivery
-// that person approved ended. A delivery going, an approval this machine just took and a
-// card that stopped asking take none: the rules decide it (`onRail`), so the rail and the
-// system notifications can never disagree about what an interruption is.
+// What gets a row is what is waiting for a person — a card to decide, how a delivery that
+// person approved ended, and a run of this board's own that stopped short (#809). The rules
+// decide the first two (`onRail`), so the rail and the system notifications can never
+// disagree about what an interruption is; the third is the board's own and needs no account
+// behind it, which is why a board that has never touched Cloud still has a rail worth
+// opening. A run row leads to the run log rather than to a card page: the row is about one
+// run, and a card page cannot say which of its runs went wrong.
 //
 // It draws two ends as carefully as the list: nothing waiting, and notifications off for
-// this board. Both say what would fill it, and the off state names where to turn it on.
+// this board. Both say what would fill it, and the off state names where to turn it on. Every
+// one of them is about Cloud, so a rail holding rows of its own draws none of them.
 //
 // One line sits above the rows when a scope change has just filled them (#451): those cards
 // were already waiting, so they arrive read and raise nothing, and the line is the whole of
@@ -150,7 +154,11 @@ export function BellPane({ rail }: { rail: BellRail }) {
     setTab(next);
     if (next === "landed") void rail.readAll("landed");
   };
-  const live = rail.ready && !center.unavailable && center.signedIn && (center.enabled || rows.length > 0);
+  // Whether there is a list to split rather than an end to draw. A board with rows has one
+  // however it got them: this board's own runs fill the rail with no account behind them
+  // (#809), so being signed out is no longer an answer on its own.
+  const live =
+    rows.length > 0 || (rail.ready && !center.unavailable && center.signedIn && center.enabled);
   return (
     <div className="flex h-full flex-col overflow-hidden py-2 pl-1 pr-3 max-md:pl-3">
       <Head
@@ -161,17 +169,20 @@ export function BellPane({ rail }: { rail: BellRail }) {
       />
       {/* Before the first read lands the rail has been told nothing — least of all that
           nobody is signed in. It says it is looking. */}
-      {!rail.ready ? (
+      {/* Every end below is about Cloud, and none of them is the whole truth once this board
+          has rows of its own. So a rail with something on it draws the list, and the ends are
+          what is left to say when there is nothing. */}
+      {!live && !rail.ready ? (
         <div className="flex flex-1 items-center justify-center">
           <Loading>{c.checking}</Loading>
         </div>
-      ) : center.unavailable ? (
+      ) : !live && center.unavailable ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
           title={c.unavailable}
           body={center.unavailable}
         />
-      ) : !center.signedIn ? (
+      ) : !live && !center.signedIn ? (
         <Empty
           icon={<FiBellOff size={20} aria-hidden />}
           title={c.signedOut.title}

@@ -100,7 +100,7 @@ function toView(
     harness: run.harness,
     agent: run.agent,
     canResume: run.canResume,
-    cardLanded: run.cardLanded,
+    cardOffBoard: run.cardOffBoard,
     resumedFrom: run.resumedFrom,
     ok: run.ok,
     code: run.code,

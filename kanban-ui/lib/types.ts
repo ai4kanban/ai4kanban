@@ -283,10 +283,10 @@ export interface SessionView {
    *  the id to continue by, and it is still the agent the board runs. The Resume button
    *  appears only then. */
   canResume?: boolean;
-  /** The card this run names has landed and left the board since (#673) — so whatever this
-   *  run stopped short of is settled, and Runs no longer files it under Unfinished. Set
-   *  only on a run that stopped short. */
-  cardLanded?: boolean;
+  /** The card this run names has left the board since — landed, archived or rejected (#673,
+   *  #809) — so whatever this run stopped short of is settled: Runs no longer files it under
+   *  Unfinished, and nothing warns about it. Set only on a run that stopped short. */
+  cardOffBoard?: boolean;
   /** The run this one continued, when it was started by Resume. Marks the run in the
    *  panel as a second turn of an earlier conversation. The run it names is gone — a
    *  resumed run replaces the one it took over from — so this is a mark, not a link. */

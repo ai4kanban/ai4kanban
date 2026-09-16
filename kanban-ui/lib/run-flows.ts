@@ -68,19 +68,64 @@ export function runFlows(sessions: SessionView[]): RunFlow[] {
 const groupOf = (s: SessionView): string => s.deliveryId ?? s.flow?.id ?? s.sessionId;
 
 /** The jobs Runs files under Unfinished: everything that is neither still going nor a
- *  clean finish — minus the ones a landing has already settled (#673).
+ *  clean finish — minus the ones the card leaving the board has already settled (#673).
  *
- *  A card that lands leaves the board, and with it everything that was still owed on it: a
- *  question nobody answered, a pass that failed, a run somebody stopped. Those records are
- *  kept exactly as they ended — this is what Unfinished lists, not what the board holds. */
+ *  A card that lands, is archived or is rejected leaves the board, and with it everything
+ *  that was still owed on it: a question nobody answered, a pass that failed, a run somebody
+ *  stopped. Those records are kept exactly as they ended — this is what Unfinished lists,
+ *  not what the board holds. */
 export function unfinishedFlows(flows: RunFlow[]): RunFlow[] {
   return flows.filter(
     (f) =>
       f.latest.status !== "running" &&
       !(f.latest.status === "done" && f.latest.ok) &&
-      !f.latest.cardLanded,
+      !f.latest.cardOffBoard,
   );
 }
+
+/** The jobs that stopped short and are still WAITING ON SOMEBODY (#809) — what the board
+ *  warns about, as against what Unfinished merely lists.
+ *
+ *  Three things are unfinished without being a thing to fix, and each is left out here:
+ *
+ *   • a run the user stopped — their own decision, not a failure;
+ *   • a run on no card — there is nothing to handle it on;
+ *   • a run whose card has been handled — the card left the board, or a later run on it
+ *     passed, which is the board's own answer that the job got done in the end.
+ *
+ *  What is left is a job that broke or was cut off on a card still sitting in a column. It
+ *  warns until that card is dealt with; there is no way to wave it away. */
+export function unhandledFlows(flows: RunFlow[]): RunFlow[] {
+  const settled = new Map<number, number>();
+  for (const f of flows) {
+    if (f.cardId === null) continue;
+    if (!(f.latest.status === "done" && f.latest.ok)) continue;
+    const at = endedAt(f);
+    if (at > (settled.get(f.cardId) ?? -1)) settled.set(f.cardId, at);
+  }
+  return flows.filter(
+    (f) =>
+      f.cardId !== null &&
+      (f.latest.status === "error" || f.latest.status === "interrupted") &&
+      !f.latest.cardOffBoard &&
+      endedAt(f) > (settled.get(f.cardId) ?? -1),
+  );
+}
+
+/** The card each unhandled failure is on, and the run to open for it. A card with more than
+ *  one keeps the newest — the card wears one mark, and the newest is what went wrong last. */
+export function unhandledByCard(flows: RunFlow[]): Map<number, RunFlow> {
+  const worst = new Map<number, RunFlow>();
+  for (const f of unhandledFlows(flows)) {
+    const held = worst.get(f.cardId!);
+    if (!held || endedAt(f) > endedAt(held)) worst.set(f.cardId!, f);
+  }
+  return worst;
+}
+
+/** When a job came to a stop — its last session's end, falling back to when that session
+ *  started for a record kept before ends were written down. */
+export const endedAt = (flow: RunFlow): number => flow.latest.endedAt ?? flow.latest.startedAt;
 
 /** The words the labels below are said in — `runs` out of the copy module. */
 export type RunLabels = Pick<RunsCopy, "step" | "flow" | "trigger">;

@@ -22,6 +22,8 @@ const en: NotificationsCopy = {
   minutesAgo: (m) => `${m}m ago`,
   hoursAgo: (h) => `${h}h ago`,
   daysAgo: (d) => `${d}d ago`,
+  runStopped: "Run didn't finish",
+  runStoppedBody: "The run on this card didn't finish. Open it to see what happened.",
   checking: "Checking…",
   unavailable: "Notifications aren’t available here",
   signedOut: {

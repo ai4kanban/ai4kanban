@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePanelRef, type Layout, type LayoutChangedMeta } from "react-resizable-panels";
 import {
   getBoardsAction,
@@ -6,10 +6,22 @@ import {
   openNotificationAction,
   readAllNotificationsAction,
 } from "@/app/actions";
+import { useCopy } from "@/i18n/use-copy";
 import { CHAT_MAX, CHAT_MIN, CHAT_W } from "./chat-rail";
 import { useMatches } from "./media";
-import type { NotificationAlert, NotificationCenter, WatchFill } from "./notifications";
-import { notificationGroup, type CloudEventState, type NotificationGroup } from "./types";
+import type { NotificationAlert, NotificationCenter, NotificationRow, WatchFill } from "./notifications";
+import { runFlows } from "./run-flows";
+import {
+  isRunRow,
+  keepRaisedRunRows,
+  keepReadRunRows,
+  raisedRunRows,
+  readRunRows,
+  runAlert,
+  runRowFlow,
+  runRows,
+} from "./run-alerts";
+import { notificationGroup, type CloudEventState, type NotificationGroup, type SessionView } from "./types";
 
 // The bell's own state (#319): whether the rail is up, how wide it is, and the events it is
 // showing — this board's, which is what the rules hand back.
@@ -19,9 +31,15 @@ import { notificationGroup, type CloudEventState, type NotificationGroup } from 
 // holds ONE rail at a time, so opening this one folds the chat and the other way round.
 // Something above both has to know that, and the window is what does.
 //
-// What is kept in the browser is how the user likes the rail. What is on it is not: the
-// events are Cloud's, read through the board server, and the read marks are held on the
+// What is kept in the browser is how the user likes the rail. What is on it is mostly not:
+// the events are Cloud's, read through the board server, and the read marks are held on the
 // machine so the bell agrees with itself in every window.
+//
+// The one exception is a run of this board's own that stopped short (#809). It has no Cloud
+// event behind it and needs no account, so the rows are built here out of the run record and
+// merged into the same list — see lib/run-alerts.ts. Everything downstream of this hook
+// treats them as ordinary rows; only `openRow` has to tell them apart, because one leads to
+// a card and the other to the run that failed.
 
 const OPEN_KEY = "kanban-ui.bell-open";
 const WIDTH_KEY = "kanban-ui.bell-width";
@@ -88,20 +106,49 @@ export function useBellRail({
   /** The project this window is showing, so a row that names another board is known for
    *  one and switches the app to it. */
   projectRoot,
+  /** Every run the board knows about, as this window last polled them (#809). The rows for
+   *  the ones that stopped short are built from these. */
+  sessions,
   /** Called with the alerts the server handed out, so the app can raise them. Absent
    *  outside the desktop app, where there is nothing to raise. */
   onAlerts,
   /** Go to a card on this board. */
   onOpenCard,
+  /** Open the run log on one run — where a row about a run leads, since the card page
+   *  cannot say which of its runs went wrong. */
+  onOpenRun,
 }: {
   projectRoot: string;
+  sessions: SessionView[];
   onAlerts?(alerts: NotificationAlert[]): void;
   onOpenCard(taskId: number): void;
+  onOpenRun(sessionId: string): void;
 }): BellRail {
   const [open, setOpen] = useState(false);
-  const [center, setCenter] = useState<NotificationCenter>(NOTHING);
+  const [cloud, setCloud] = useState<NotificationCenter>(NOTHING);
   const [ready, setReady] = useState(false);
   const [filled, setFilled] = useState<WatchFill | null>(null);
+  // Destructured, because the two moves below go into callbacks other effects depend on and
+  // both are stable — only the rows change with each poll.
+  const { rows: ourRows, open: openRunRow, readAllRunRows } = useRunRows(
+    sessions,
+    cloud.silenced,
+    onOpenRun,
+    onAlerts,
+  );
+  // Cloud's rows and this board's own, in one list newest first — which is the order the
+  // rail draws and the only thing that decides where a row sits. The count follows the same
+  // rule Cloud's does: the To do tab, unread.
+  const center = useMemo<NotificationCenter>(() => {
+    if (ourRows.length === 0) return cloud;
+    const rows = [...cloud.rows, ...ourRows].sort((a, b) =>
+      a.changedAt < b.changedAt ? 1 : a.changedAt > b.changedAt ? -1 : b.taskId - a.taskId,
+    );
+    const unread = rows.filter(
+      (r) => r.unread && notificationGroup(r.state as CloudEventState) === "todo",
+    ).length;
+    return { ...cloud, rows, unread };
+  }, [cloud, ourRows]);
   const overlay = useMatches(OVERLAY_UNDER);
   const { panel, onLayoutChanged, onDoubleClick } = useWidth();
   const kickRef = useRef<() => void>(() => {});
@@ -149,7 +196,7 @@ export function useBellRail({
       }
       if (!alive) return;
       if (next) {
-        setCenter(next);
+        setCloud(next);
         setReady(true);
         // Handed out once. Nothing is raised later to make up for a window that was focused
         // when one arrived — that is the whole of the second interruption's rule.
@@ -173,6 +220,13 @@ export function useBellRail({
 
   const openRow = useCallback(
     async (eventId: string) => {
+      // A run of this board's own (#809). It never left this machine, so there is no board
+      // to switch to and no card page to land on: the row is about one run, and the run log
+      // is the only place that says what went wrong in it.
+      if (isRunRow(eventId)) {
+        openRunRow(eventId);
+        return;
+      }
       const where = await openNotificationAction(eventId);
       kickRef.current();
       // A board no longer on this machine has nowhere to go. The row is marked read and
@@ -191,21 +245,26 @@ export function useBellRail({
       }
       onOpenCard(where.taskId);
     },
-    [onOpenCard, projectRoot],
+    [onOpenCard, openRunRow, projectRoot],
   );
 
   // The click empties the count here first: the marks are written on the machine and the
   // next poll is up to 2.5s away, which is long enough to look like the button missed.
-  const readAll = useCallback(async (group?: NotificationGroup) => {
-    setCenter((was) => {
-      const tabOf = (r: { state: string }) => notificationGroup(r.state as CloudEventState);
-      const rows = was.rows.map((r) => (!group || tabOf(r) === group ? { ...r, unread: false } : r));
-      // The bell counts `todo` alone, so emptying the landed tab leaves the number where it is.
-      return { ...was, rows, unread: rows.filter((r) => r.unread && tabOf(r) === "todo").length };
-    });
-    await readAllNotificationsAction(group);
-    kickRef.current();
-  }, []);
+  const readAll = useCallback(
+    async (group?: NotificationGroup) => {
+      setCloud((was) => {
+        const tabOf = (r: { state: string }) => notificationGroup(r.state as CloudEventState);
+        const rows = was.rows.map((r) => (!group || tabOf(r) === group ? { ...r, unread: false } : r));
+        // The bell counts `todo` alone, so emptying the landed tab leaves the number where it is.
+        return { ...was, rows, unread: rows.filter((r) => r.unread && tabOf(r) === "todo").length };
+      });
+      // This board's own rows are all in To do, so the Landed tab's button leaves them alone.
+      if (group !== "landed") readAllRunRows();
+      await readAllNotificationsAction(group);
+      kickRef.current();
+    },
+    [readAllRunRows],
+  );
 
   const toggle = useCallback(() => {
     setOpen((was) => {
@@ -257,6 +316,81 @@ export function useBellRail({
     onLayoutChanged,
     onDoubleClick,
   };
+}
+
+/** This board's own rail rows (#809): the runs that stopped short on a card nobody has dealt
+ *  with, what it takes to read one, and the one interruption each is worth.
+ *
+ *  The read marks live in the browser (lib/run-alerts.ts) rather than in the record: the run
+ *  record says what happened, and nothing in it is about whether a person has looked. Held in
+ *  state as well as in storage so a click empties the count in the same frame.
+ *
+ *  A row interrupts once, ever. The raised marks are written before the app is called, so a
+ *  window reloaded mid-notification does not raise the same one again — and a machine whose
+ *  notifications are silenced raises none while still filling the rail, which is the whole of
+ *  what that switch means. */
+function useRunRows(
+  sessions: SessionView[],
+  silenced: boolean,
+  onOpenRun: (sessionId: string) => void,
+  onAlerts?: (alerts: NotificationAlert[]) => void,
+): { rows: NotificationRow[]; open(eventId: string): void; readAllRunRows(): void } {
+  const c = useCopy().notifications;
+  const [read, setRead] = useState<Set<string>>(() => new Set());
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+  const alertsRef = useRef(onAlerts);
+  alertsRef.current = onAlerts;
+  const silentRef = useRef(silenced);
+  silentRef.current = silenced;
+  const openRunRef = useRef(onOpenRun);
+  openRunRef.current = onOpenRun;
+  // Storage is client-only, so the marks are picked up after mount — until they are, every
+  // row reads as unread, which is what a rail that has been told nothing should say.
+  useEffect(() => setRead(readRunRows()), []);
+
+  const rows = useMemo(
+    () => runRows(runFlows(sessions), c.runStopped, read),
+    [sessions, c.runStopped, read],
+  );
+
+  const live = useMemo(() => new Set(rows.map((row) => runRowFlow(row.eventId))), [rows]);
+  const liveRef = useRef(live);
+  liveRef.current = live;
+
+  // One notification per row, the first time it shows up.
+  useEffect(() => {
+    if (rows.length === 0 || silentRef.current) return;
+    const raised = raisedRunRows();
+    const fresh = rows.filter((row) => !raised.has(runRowFlow(row.eventId)));
+    if (fresh.length === 0) return;
+    for (const row of fresh) raised.add(runRowFlow(row.eventId));
+    keepRaisedRunRows(raised, liveRef.current);
+    alertsRef.current?.(fresh.map((row) => runAlert(row, c.runStoppedBody)));
+  }, [rows, c.runStoppedBody]);
+
+  const mark = useCallback((ids: string[]) => {
+    setRead((was) => {
+      const next = new Set(was);
+      for (const id of ids) next.add(id);
+      keepReadRunRows(next, liveRef.current);
+      return next;
+    });
+  }, []);
+
+  const open = useCallback(
+    (eventId: string) => {
+      const flowId = runRowFlow(eventId);
+      mark([flowId]);
+      const flow = runFlows(sessionsRef.current).find((f) => f.id === flowId);
+      if (flow) openRunRef.current(flow.latest.sessionId);
+    },
+    [mark],
+  );
+
+  const readAllRunRows = useCallback(() => mark([...liveRef.current]), [mark]);
+
+  return { rows, open, readAllRunRows };
 }
 
 // --- switching the app to another board --------------------------------------

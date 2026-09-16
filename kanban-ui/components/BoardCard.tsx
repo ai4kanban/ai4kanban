@@ -16,6 +16,7 @@ import {
   BlockedChip,
   CreatingChip,
   DiscussingPill,
+  FailedChip,
   GroupChip,
   PendingPill,
   PriorityChip,
@@ -29,8 +30,12 @@ import {
 // the callers only differ in what they pass in.
 //
 // `liveSession` is the one live run on this card (if any); its badge opens the runs dialog
-// on that run (#753). The board draws no log of its own — the log is read in the one place
-// every run is read.
+// on that run (#753). `failedSession` is the run that stopped short on it and has not been
+// dealt with (#809), and opens the same dialog on that run. The board draws no log of its
+// own — the log is read in the one place every run is read.
+//
+// The two share one slot and live work wins it: a card that is running again says so, and
+// the failure behind it is still on the Runs panel and still counted there.
 //
 // The track is NOT on the card. Both views band their cards by track and head
 // each band with its name — the kanban column heading, the queue's rule — so a
@@ -43,10 +48,13 @@ import {
 export function BoardCard({
   card,
   liveSession,
+  failedSession,
   creator,
 }: {
   card: Card;
   liveSession?: SessionView;
+  /** The run on this card that stopped short and is still waiting on somebody (#809). */
+  failedSession?: SessionView;
   /** The run that created this card, when it has not finished creating it (#564). What
    *  Resume creating picks back up; absent on every ordinary card. */
   creator?: SessionView;
@@ -103,6 +111,15 @@ export function BoardCard({
                 e.preventDefault();
                 e.stopPropagation();
                 sessionsPanel.select(liveSession.sessionId);
+              }}
+            />
+          ) : failedSession ? (
+            <FailedChip
+              onClick={(e) => {
+                // The card is a link; keep the click on the chip.
+                e.preventDefault();
+                e.stopPropagation();
+                sessionsPanel.select(failedSession.sessionId);
               }}
             />
           ) : card.discussing ? (

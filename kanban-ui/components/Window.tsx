@@ -50,6 +50,7 @@ import {
   useOpenNotificationFromApp,
 } from "./desktop";
 import { BellPane } from "./Notifications";
+import { sessionsPanel, useAgentSessions } from "./sessions";
 import {
   FindScreen,
   MemoryScreen,
@@ -185,7 +186,22 @@ export function Window({
     },
     [phone, router],
   );
-  const bell = useBellRail({ projectRoot, onAlerts: raiseNotifications, onOpenCard: goToCard });
+  // Every run this board knows about, for the rail rows a run that stopped short fills (#809)
+  // and for nothing else — this window starts none of its own, so `onFinish` never fires.
+  const noRunsOfOurOwn = useCallback(() => {}, []);
+  const { sessions } = useAgentSessions(noRunsOfOurOwn);
+  const bell = useBellRail({
+    projectRoot,
+    sessions,
+    onAlerts: raiseNotifications,
+    onOpenCard: goToCard,
+    // A run row leads to the run, not to its card: the card page cannot say which of its
+    // runs went wrong, and the log is the one place that does.
+    onOpenRun: (sessionId) => {
+      if (phone) foldBellRef.current();
+      sessionsPanel.openLog(sessionId);
+    },
+  });
   // Whether this board and this account may use the inbox at all (#453), and how much is
   // waiting in it. Asked here rather than on each page so every screen offers
   // the same rail.

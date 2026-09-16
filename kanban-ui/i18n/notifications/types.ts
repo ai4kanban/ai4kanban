@@ -1,5 +1,6 @@
-/** The bell in the top row and the rail it opens (#319). The rows themselves are
- *  words `akb` built and are never translated — this is the chrome around them. */
+/** The bell in the top row and the rail it opens (#319). A Cloud row's own words are the
+ *  ones `akb` built and are never translated — this is the chrome around them, plus the two
+ *  lines the app writes itself for a run of this board's that stopped short (#809). */
 export type NotificationsCopy = {
   /** The bell, in its two states. Only read out loud. */
   bell: string;
@@ -25,6 +26,11 @@ export type NotificationsCopy = {
   minutesAgo: (m: number) => string;
   hoursAgo: (h: number) => string;
   daysAgo: (d: number) => string;
+  /** A run on this board stopped short and nobody has dealt with its card yet (#809): the
+   *  row's second line, and the sentence its system notification says. No Cloud event is
+   *  behind it, so these are the app's own words rather than the board's. */
+  runStopped: string;
+  runStoppedBody: string;
   /** Still asking the board where the account stands. */
   checking: string;
   /** The rail's ends: a mark, what would fill it, and where to go. */

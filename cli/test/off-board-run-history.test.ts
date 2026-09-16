@@ -1,10 +1,12 @@
-// A landed card takes its unfinished runs with it (#673).
+// A card leaving the board takes its unfinished runs with it (#673, #809).
 //
-// A run that failed, was cut off or was stopped is work somebody still owes — until the
-// card it names lands, which settles everything left open on it. The run is marked here,
-// off the archive rather than off the live delivery record, so a card that landed long ago
-// answers the same as one that landed this minute. Nothing is deleted: the mark is what
-// Runs reads to keep the record out of Unfinished.
+// A run that failed, was cut off or was stopped is work somebody still owes — until the card
+// it names leaves the board, which settles everything left open on it. Landing files the card
+// under `.archive/`, Archive does the same, and Reject deletes it outright; the mark is read
+// off the board's own cards rather than off the archive or the delivery record, so all three
+// answer alike and a card that went long ago answers the same as one that went this minute.
+// Nothing is deleted: the mark is what Runs reads to keep the record out of Unfinished, and
+// what the board reads to stop warning about it.
 
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
@@ -21,7 +23,8 @@ let root = ''
 
 const kanban = (): string => path.join(root, 'docs', 'kanban')
 
-/** A card on the board, or one the archive kept after it landed. */
+/** A card on the board, or one the archive kept after it left. A rejected card is in
+ *  neither place — it is deleted — so nothing writes one. */
 function card(where: 'todo' | '.archive', id: number): void {
   const dir = path.join(kanban(), where)
   fs.mkdirSync(dir, { recursive: true })
@@ -61,24 +64,30 @@ afterEach(() => {
 })
 
 describe('a run that stopped short', () => {
-  it('is marked landed once its card is in the archive', async () => {
+  it('is marked once its card is in the archive', async () => {
     card('.archive', 399)
     run('a', 399, 'error')
     const [only] = await listRuns()
-    assert.equal(only.cardLanded, true)
+    assert.equal(only.cardOffBoard, true)
+  })
+
+  it('is marked once its card has been rejected, which files it nowhere', async () => {
+    run('a2', 401, 'error')
+    const [only] = await listRuns()
+    assert.equal(only.cardOffBoard, true)
   })
 
   it('is not marked while its card is still on the board', async () => {
     card('todo', 400)
     run('b', 400, 'error')
     const [only] = await listRuns()
-    assert.equal(only.cardLanded, undefined)
+    assert.equal(only.cardOffBoard, undefined)
   })
 
   it('is not marked when it names no card at all', async () => {
     run('c', null, 'error')
     const [only] = await listRuns()
-    assert.equal(only.cardLanded, undefined)
+    assert.equal(only.cardOffBoard, undefined)
   })
 })
 
@@ -87,6 +96,6 @@ describe('a run that finished cleanly', () => {
     card('.archive', 399)
     run('d', 399, 'done')
     const [only] = await listRuns()
-    assert.equal(only.cardLanded, undefined)
+    assert.equal(only.cardOffBoard, undefined)
   })
 })

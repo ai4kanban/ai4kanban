@@ -19,6 +19,8 @@ const zh: NotificationsCopy = {
   minutesAgo: (m) => `${m} 分钟前`,
   hoursAgo: (h) => `${h} 小时前`,
   daysAgo: (d) => `${d} 天前`,
+  runStopped: "运行未完成",
+  runStoppedBody: "这张卡上的运行没跑完，点开查看原因。",
   checking: "检查中…",
   unavailable: "这里无法使用通知",
   signedOut: {

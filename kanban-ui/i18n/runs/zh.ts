@@ -148,6 +148,7 @@ const zh: RunsCopy = {
   panel: {
     open: "运行历史",
     openRunning: (n) => `${n} 个运行中——运行历史`,
+    openUnhandled: (n) => `${n} 个运行未完成，待处理——运行历史`,
     heading: "运行",
     empty: "还没有任何运行。",
     pick: "选择一次运行，查看它的输入和日志。",
@@ -188,6 +189,7 @@ const zh: RunsCopy = {
     runningTitle: "运行中",
     completed: "已完成",
     unfinished: "未完成",
+    unfinishedCount: (n) => `未完成 ${n}`,
     collapse: "收起",
     page: (n, of) => `第 ${n} / ${of} 间`,
     prevRoom: "上一间",
