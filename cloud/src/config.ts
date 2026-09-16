@@ -217,3 +217,21 @@ export const TRAINING_PAGE_URL = 'https://ai4kanban.dev/training'
  *  enough: these rows are other people's names, addresses and project notes, and the preview
  *  admits people who have nothing to do with the training service. */
 export const TRAINING_OPERATORS = ['neverchanje']
+
+// --- the site's contact form (#784) -------------------------------------------
+
+/** Submits one visitor address, or one sender email, may make inside one window. Either key
+ *  past the limit refuses the submit. */
+export const CONTACT_ATTEMPT_LIMIT = 5
+export const CONTACT_ATTEMPT_WINDOW_SECONDS = 60 * 60
+
+/** What the two rate-limit keys are salted with. Changing it resets the windows. */
+export const CONTACT_ATTEMPT_SALT = 'ai4kanban-contact-v1'
+
+/** The longest message, and the longest workflow description, the form may send. */
+export const CONTACT_MAX_MESSAGE = 5000
+export const CONTACT_MAX_WORKFLOW = 5000
+
+export const CONTACT_MAIL_FROM = 'AI4Kanban Contact <contact@ai4kanban.dev>'
+export const CONTACT_MAIL_BATCH = 20
+export const CONTACT_MAIL_MAX_ATTEMPTS = 5

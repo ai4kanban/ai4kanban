@@ -1,3 +1,5 @@
+import { SUPPORT_EMAIL } from './config.ts'
+
 /**
  * Every refusal the service can return. A client matches on `code`; `message` is written
  * to be shown to a user as it stands.
@@ -26,6 +28,7 @@ export type RefusalCode =
   | 'lark_not_connected'
   | 'training_slot_taken'
   | 'training_too_many_attempts'
+  | 'contact_too_many_attempts'
   | 'not_found'
   | 'method_not_allowed'
   | 'daily_write_budget_reached'
@@ -285,6 +288,18 @@ export const trainingTooManyAttempts = () =>
     'Too many booking attempts from here. Wait a few minutes and try again.',
     TRAINING_RETRY_AFTER_SECONDS,
   )
+
+/** Too many contact submits from one address or for one email (#784). Its own code, so the
+ *  page can offer the support address instead. */
+export const contactTooManyAttempts = () =>
+  new Refusal(
+    'contact_too_many_attempts',
+    429,
+    `Too many messages from here. Try again later, or email us at ${SUPPORT_EMAIL}.`,
+    CONTACT_RETRY_AFTER_SECONDS,
+  )
+
+const CONTACT_RETRY_AFTER_SECONDS = 30 * 60
 
 /** What the rate refusal tells a caller to wait. Kept here beside the message it rides on. */
 const TRAINING_RETRY_AFTER_SECONDS = 5 * 60

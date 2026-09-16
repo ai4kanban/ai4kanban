@@ -419,6 +419,14 @@ exceptions in `src/training-schedule.ts`. Change it and deploy — no route writ
 page carries no editor for it. What the database holds is the other half of the subtraction,
 the hours already taken.
 
+The site's contact form (#784) is the other route with no account, and answers the same origins.
+
+- `POST /v1/contact` — `{ "opId", "reason": "support" | "customize", "email", "message",
+  "workflow" }`; `workflow` is required for `customize` and ignored otherwise. The row is kept,
+  then mailed to `support@ai4kanban.dev` with the sender as reply-to; a refused send is retried
+  hourly. Rate-limited by the visitor's address and by the email, each on its own
+  (`CONTACT_ATTEMPT_*` in `src/config.ts`). Answers `{ "received": true, "message" }`.
+
 A refusal is always `{ "error": { "code": ..., "message": ... } }`, and `message` is written
 to be shown to a user as it stands. The two a client must tell apart:
 
@@ -441,6 +449,7 @@ to be shown to a user as it stands. The two a client must tell apart:
 | `no_verified_address` | GitHub attests no address for this account, so a request would leave us nowhere to answer. |
 | `training_slot_taken` | Somebody booked that hour first, or the schedule no longer offers it. Not a failure: the page keeps what was typed and the reader picks another hour. |
 | `training_too_many_attempts` | Too many booking submits from one caller. Carries `retry-after`. |
+| `contact_too_many_attempts` | Too many contact submits from one address or for one email. Carries `retry-after`; the message points at the support address. |
 
 `GET /v1/session` answers `200` either way and carries `session.admitted`. When that is
 false it also carries `refusal`, the very refusal every other route would give, so the app

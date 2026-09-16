@@ -1,4 +1,6 @@
 import { DAILY_WRITE_BUDGET } from './config.ts'
+import { sendPendingContactMail } from './contact.ts'
+import type { ContactMailRun } from './contact.ts'
 import { call } from './db.ts'
 import type { DeliveryRun } from './deliver.ts'
 import type { Env } from './env.ts'
@@ -46,6 +48,7 @@ export async function runScheduled(
   heartbeat: Heartbeat
   mail: MailRun
   training: TrainingMailRun
+  contact: ContactMailRun
   messages: Record<string, DeliveryRun>
   sweep: Sweep
   operations: Prune
@@ -73,6 +76,15 @@ export async function runScheduled(
     console.error('cloud: booking mail failed', error)
   }
   if (training.queued > 0) console.log('cloud: booking mail', training)
+
+  // The contact form's outbox (#784), retried for the same reason.
+  let contact: ContactMailRun = { queued: 0, sent: 0, failed: 0 }
+  try {
+    contact = await sendPendingContactMail(env)
+  } catch (error) {
+    console.error('cloud: contact mail failed', error)
+  }
+  if (contact.queued > 0) console.log('cloud: contact mail', contact)
 
   // Every connector's retry (#320, #351). Like the mail above, this is not the first attempt:
   // every route that writes an event hands its own delivery to `waitUntil`. What is left for
@@ -107,5 +119,5 @@ export async function runScheduled(
   }
   if (operations.deleted > 0) console.log('cloud: pruned operation records', operations)
 
-  return { heartbeat, mail, training, messages, sweep, operations }
+  return { heartbeat, mail, training, contact, messages, sweep, operations }
 }

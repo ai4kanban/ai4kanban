@@ -1,4 +1,5 @@
 import { CLOUD_UI_ORIGIN, isLarkCloud } from './config.ts'
+import { isContactPath, routeContact } from './contact.ts'
 import { mutate } from './db.ts'
 import { requireEnv } from './env.ts'
 import type { Env } from './env.ts'
@@ -54,10 +55,11 @@ interface SelfCheck {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // The training routes are the one thing here a browser on another origin calls (#683), so
-    // their answer carries the CORS headers — a refusal included, or the page reads a network
-    // error where the service gave it a sentence.
-    const cors = isTrainingPath(new URL(request.url).pathname) ? corsHeaders(request) : {}
+    // The training and contact routes are the only things here a browser on another origin
+    // calls (#683, #784), so their answer carries the CORS headers — a refusal included, or the
+    // page reads a network error where the service gave it a sentence.
+    const { pathname } = new URL(request.url)
+    const cors = isTrainingPath(pathname) || isContactPath(pathname) ? corsHeaders(request) : {}
     try {
       requireEnv(env)
       if (request.method === 'OPTIONS' && Object.keys(cors).length > 0) {
@@ -341,6 +343,9 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (training) {
     return routeTraining(request, env, ctx, (training[1] ?? '').replace(/\/+$/, ''))
   }
+
+  // The site's contact form (#784). No account, like the bookings above.
+  if (isContactPath(pathname)) return routeContact(request, env, ctx)
 
   // The post-deploy check: one budgeted write through the same path every mutation uses,
   // so a deploy shows the write budget and the read-only refusal working before a client

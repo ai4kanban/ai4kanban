@@ -2593,4 +2593,72 @@ begin
 end
 $training$;
 
+
+-- ---------------------------------------------------------------------------
+-- A contact message is kept once and limited by two keys (#784)
+-- ---------------------------------------------------------------------------
+
+do $contact$
+declare
+  BUDGET constant integer := 100000;
+  v_first json;
+  v_again json;
+begin
+  v_first := api.submit_contact('c-op-1', 'support', 'lin@example.com', 'hello', '',
+                                'contact:ip-1', 'contact:mail-1', 3600, 2, BUDGET);
+  v_again := api.submit_contact('c-op-1', 'support', 'lin@example.com', 'hello', '',
+                                'contact:ip-1', 'contact:mail-1', 3600, 2, BUDGET);
+  assert (v_first ->> 'id') = (v_again ->> 'id'), 'a retried submit made a second message';
+  assert (select count(*) from cloud.contact_messages) = 1, 'a retried submit made a second row';
+  assert (select attempts from cloud.training_attempts where fingerprint = 'contact:ip-1') = 1,
+    'a retried submit was counted again';
+
+  -- The address is past its limit; a fresh email does not get it through.
+  perform api.submit_contact('c-op-2', 'support', 'other@example.com', 'hi', '',
+                             'contact:ip-1', 'contact:mail-2', 3600, 2, BUDGET);
+  perform pg_temp.refuses(
+    $sql$select api.submit_contact('c-op-3', 'support', 'third@example.com', 'hi', '',
+                                   'contact:ip-1', 'contact:mail-3', 3600, 2, 100000)$sql$,
+    'AKB18', 'an address past its limit was not refused');
+  assert (select attempts from cloud.training_attempts where fingerprint = 'contact:mail-3') is null,
+    'a refused submit still counted its email';
+
+  -- The email is past its limit; a fresh address does not get it through.
+  perform api.submit_contact('c-op-4', 'support', 'lin@example.com', 'hi', '',
+                             'contact:ip-2', 'contact:mail-1', 3600, 2, BUDGET);
+  perform pg_temp.refuses(
+    $sql$select api.submit_contact('c-op-5', 'support', 'lin@example.com', 'hi', '',
+                                   'contact:ip-3', 'contact:mail-1', 3600, 2, 100000)$sql$,
+    'AKB18', 'an email past its limit was not refused');
+
+  -- No address: the email alone is counted.
+  perform api.submit_contact('c-op-6', 'customize', 'new@example.com', 'hi', 'a workflow',
+                             '', 'contact:mail-4', 3600, 2, BUDGET);
+  assert (select count(*) from cloud.training_attempts where fingerprint = '') = 0,
+    'an empty address was counted';
+  assert (select count(*) from cloud.contact_messages) = 4, 'a refused submit was kept';
+  assert (select workflow from cloud.contact_messages where op_id = 'c-op-6') = 'a workflow',
+    'the workflow was not kept';
+
+  perform pg_temp.refuses(
+    $sql$select api.submit_contact('c-op-7', 'sales', 'x@example.com', 'hi', '',
+                                   '', 'contact:mail-5', 3600, 2, 100000)$sql$,
+    '23514', 'a reason the form does not offer was stored');
+
+  -- The outbox offers every row, and a failure keeps it offered.
+  assert json_array_length(api.pending_contact_mail(20, 5)) = 4,
+    'the outbox did not offer every message';
+  perform api.mark_contact_mail_failed((v_first ->> 'id')::uuid, 'resend said no');
+  assert (select attempts from cloud.contact_messages where id = (v_first ->> 'id')::uuid) = 1,
+    'a failed send was not counted';
+  assert json_array_length(api.pending_contact_mail(20, 5)) = 4,
+    'a failed send left the outbox';
+  perform api.mark_contact_mail_sent((v_first ->> 'id')::uuid);
+  assert json_array_length(api.pending_contact_mail(20, 5)) = 3,
+    'a sent message was offered again';
+
+  raise notice 'sql checks: #784 contact checks passed';
+end
+$contact$;
+
 rollback;
