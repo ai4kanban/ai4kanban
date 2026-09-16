@@ -12,6 +12,10 @@
 //         - local files — simple
 //         - GitHub Projects — syncs with issues
 //       recommend: [1]
+//       agent: ui-designer
+//
+// `agent` names the spec agent whose section the question is about (#782); a plain question
+// that carries one is written as a block too.
 //
 // `mode: single` lets the user tick one option, `mode: multi` as many as they
 // want. `recommend` holds 1-based positions into `options` — the ones the resolve
@@ -46,15 +50,16 @@ export function normalizeQuestion(raw: unknown): Question {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     const source = raw as Record<string, unknown>
     const text = String(source.question ?? source.text ?? '')
+    const agent = typeof source.agent === 'string' && source.agent.trim() ? { agent: source.agent.trim() } : {}
     const options = (Array.isArray(source.options) ? source.options : [])
       .map((o) => String(o).trim())
       .filter(Boolean)
-    if (options.length === 0) return { text }
+    if (options.length === 0) return { text, ...agent }
     const mode = (MODES.includes(String(source.mode)) ? String(source.mode) : 'single') as 'single' | 'multi'
     const recommend = (Array.isArray(source.recommend) ? source.recommend : [])
       .map(Number)
       .filter((n) => Number.isInteger(n) && n >= 1 && n <= options.length)
-    return { text, mode, options, recommend: mode === 'single' ? recommend.slice(0, 1) : recommend }
+    return { text, mode, options, recommend: mode === 'single' ? recommend.slice(0, 1) : recommend, ...agent }
   }
   return { text: String(raw) }
 }
@@ -97,6 +102,8 @@ export function parseQuestionsBlock(lines: string[]): Question[] {
           .filter((n) => Number.isInteger(n))
       } else if (key === 'mode') {
         q.mode = unquote(val)
+      } else if (key === 'agent') {
+        q.agent = unquote(val)
       }
     }
     out.push(normalizeQuestion(q))
@@ -144,6 +151,10 @@ function addToDraft(q: QuestionDraft, key: string, value: string): void {
   }
   const text = value.trim()
   if (!text) die(`--${key} must not be empty`)
+  if (key === 'agent') {
+    q.agent = text
+    return
+  }
   if (q.options.includes(text)) die(`"${text}" is listed twice as an option of "${q.question}"`)
   q.options.push(text)
   if (key === 'recommended-option') q.recommended.push(text)
@@ -211,7 +222,8 @@ function finalizeHandover(q: QuestionDraft): Question {
   return finalizeDraft(q)
 }
 
-// One op of `update-questions`, as read off argv.
+// One op of `update-questions`, as read off argv. `--agent` claims the question for a spec
+// agent; left off an `--update`, the question keeps the agent it had.
 export interface QuestionOp {
   kind: 'append' | 'update' | 'drop' | 'clear' | 'to-verify'
   ns?: string

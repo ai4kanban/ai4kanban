@@ -97,7 +97,7 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['reviewer', 'content-reviewer'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['planner', 'content-planner', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['planner', 'content-planner', 'copywriting', 'tech-stack-advisor', 'ui-designer'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
@@ -110,10 +110,10 @@ describe('the workflows a board has', () => {
 
   it('keeps the specialists the coding plan stage offers until the board chooses for it', () => {
     const helpers = () => workflowViews()[0]!.stages[0]!.helpers.map((h) => h.agent)
-    assert.deepEqual(helpers(), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(helpers(), ['copywriting', 'tech-stack-advisor', 'ui-designer'])
     // Removing one IS choosing, and the choice sticks.
     assert.equal(removeWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
-    assert.deepEqual(helpers(), ['tech-stack-advisor'])
+    assert.deepEqual(helpers(), ['copywriting', 'tech-stack-advisor'])
   })
 
   it('keeps an extra requirement per assignment, and clears it without touching the agent', () => {
@@ -149,7 +149,7 @@ describe('the leads of a workflow the command ships', () => {
     assert.equal(addWorkflowHelper('coding', 'review', 'content-reviewer').ok, true)
     assert.deepEqual(helpers(2), ['content-reviewer'])
     assert.equal(removeWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
-    assert.deepEqual(helpers(0), ['tech-stack-advisor'])
+    assert.deepEqual(helpers(0), ['copywriting', 'tech-stack-advisor'])
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
     assert.equal(config().workflows.stages.coding.review.lead, undefined)
   })
@@ -205,17 +205,20 @@ describe('a switch a board saved before the assignment was the answer', () => {
 
   it('comes off every stage that was offering the agent, and the key goes with it', () => {
     saveConfig({ specAgents: { 'ui-designer': false } })
-    assert.deepEqual(planHelpers(), ['tech-stack-advisor'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'tech-stack-advisor'])
     assert.equal(config().specAgents, undefined)
     // Written down, not worked out again: the stage is chosen from here.
-    assert.deepEqual(config().workflows.stages.coding.plan.helpers, [{ agent: 'tech-stack-advisor', extra: '' }])
+    assert.deepEqual(config().workflows.stages.coding.plan.helpers, [
+      { agent: 'copywriting', extra: '' },
+      { agent: 'tech-stack-advisor', extra: '' },
+    ])
     // The lead is not written with it — a built-in's is the command's own (#774).
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
   })
 
   it('leaves everything else the entry held, and touches no other agent', () => {
     saveConfig({ specAgents: { 'ui-designer': { enabled: false, mockupStyle: 'ascii' } } })
-    assert.deepEqual(planHelpers(), ['tech-stack-advisor'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'tech-stack-advisor'])
     assert.deepEqual(config().specAgents, { 'ui-designer': { mockupStyle: 'ascii' } })
   })
 
@@ -230,9 +233,9 @@ describe('a switch a board saved before the assignment was the answer', () => {
 
   it('does not put the agent back, and adding it again is the board’s own choice', () => {
     saveConfig({ specAgents: { 'ui-designer': false } })
-    assert.deepEqual(planHelpers(), ['tech-stack-advisor'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'tech-stack-advisor'])
     assert.equal(addWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
-    assert.deepEqual(planHelpers(), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'tech-stack-advisor', 'ui-designer'])
     assert.equal(config().specAgents, undefined)
   })
 
@@ -240,7 +243,7 @@ describe('a switch a board saved before the assignment was the answer', () => {
     const refused = setSpecAgentEnabled('ui-designer', false)
     assert.equal(refused.ok, false)
     assert.match(refused.error!, /workflow agent, so it has no switch/)
-    assert.deepEqual(planHelpers(), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(planHelpers(), ['copywriting', 'tech-stack-advisor', 'ui-designer'])
   })
 })
 
@@ -265,7 +268,7 @@ describe('a workflow the board adds', () => {
     assert.equal(mine.stages.execute.lead, 'builder')
     // Including the helpers the original was OFFERING, not only the ones it had saved: a
     // copy of a stage still inheriting its default has to open with the same team.
-    assert.deepEqual(mine.stages.plan.helpers.map((h) => h.agent), ['tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(mine.stages.plan.helpers.map((h) => h.agent), ['copywriting', 'tech-stack-advisor', 'ui-designer'])
     // Its own configuration from here: changing the copy leaves the built-in alone.
     assert.equal(setWorkflowLead(copy.id!, 'execute', 'content-writer').ok, true)
     assert.equal(workflowById(copy.id!)!.stages.execute.lead, 'content-writer')
@@ -387,7 +390,7 @@ describe('an agent a workflow no longer has', () => {
     assert.equal(addWorkflowHelper(copy.id!, 'plan', 'nobody-here').ok, false)
     assert.deepEqual(
       workflowById(copy.id!)!.stages.plan.helpers.map((h) => h.agent),
-      ['tech-stack-advisor', 'ui-designer'],
+      ['copywriting', 'tech-stack-advisor', 'ui-designer'],
     )
     // A LEAD nobody answers to is left exactly as assigned and reported, rather than quietly
     // running as somebody else.

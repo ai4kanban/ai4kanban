@@ -48,15 +48,18 @@ export function serializeFrontmatter(m: Partial<Meta>): string {
     out.push('questions:')
     for (const raw of m.questions) {
       const q = normalizeQuestion(raw)
-      if (!hasOptions(q)) {
+      if (!hasOptions(q) && !q.agent) {
         out.push(`  - ${yamlScalar(q.text)}`)
         continue
       }
       out.push(`  - question: ${yamlScalar(q.text)}`)
-      out.push(`    mode: ${q.mode}`)
-      out.push('    options:')
-      for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
-      out.push(`    recommend: [${q.recommend.join(', ')}]`)
+      if (hasOptions(q)) {
+        out.push(`    mode: ${q.mode}`)
+        out.push('    options:')
+        for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
+        out.push(`    recommend: [${q.recommend.join(', ')}]`)
+      }
+      if (q.agent) out.push(`    agent: ${yamlScalar(q.agent)}`)
     }
   }
   // What the user should check by hand before accepting the work (./verify.ts). Written only

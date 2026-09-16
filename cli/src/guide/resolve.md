@@ -17,6 +17,11 @@ another question, or change project code.
 akb raw update-questions <id> --drop <n[,n...]>
 ```
 
+A question naming an agent (`agent:`) holds back agents that start only after it. When the
+answer sends that agent's section back for rework that the user must confirm again, keep or
+`--update` the question instead of dropping it. Once none is left for that agent, request the
+waiting agents again.
+
 When an answer selects one of several options in a spec-agent section, remove the rejected
 options and their spec-tmp files. Leave the surviving section in the half that agent's
 `Output` setting names — `akb spec` prints it — so a section only set to agent use goes back

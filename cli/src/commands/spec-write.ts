@@ -16,7 +16,7 @@ import { say } from '../lib/io'
 import { fixMockupBlocks } from '../lib/mockups'
 import { AGENT_MEMORY_FILES, writeAgentMemory, type AgentMemoryName } from '../lib/memory'
 import { die, rel, TODO, warn } from '../lib/paths'
-import { findSpecAgent, notAnAgent, specAgentOutput, specHeading, specAgentNames } from '../lib/agents'
+import { findSpecAgent, notAnAgent, specAgentOutput, specHeading, specHeadingRe, specAgentNames } from '../lib/agents'
 import type { SpecAgent } from '../lib/agents'
 import type { SpecOutput } from '../lib/agent/types'
 import type { MoveResult } from '../lib/types'
@@ -57,12 +57,6 @@ const MEMORY_FLAGS: Record<AgentMemoryName, keyof SpecWriteOptions> = {
   'redesign.md': 'redesign',
   'decisions.md': 'decisions',
 }
-
-// `agent` is the word a section carries now; `skill` is the word it carried between #403
-// and #419. Both are matched so a card written by an older release is still found and
-// rewritten in place rather than gaining a second section beside it.
-const headingRe = (name: string): RegExp =>
-  new RegExp('^##\\s+By\\s+`' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '`\\s+(skill|agent)\\s*$', 'i')
 
 export function cmdSpecWrite(id: number, askedName: string, flags: SpecWriteOptions): MoveResult {
   const agent = findSpecAgent(askedName)
@@ -164,7 +158,7 @@ function readSection(file: string | undefined, text: string | undefined): string
 function splice(body: string, name: string, section: string, half: Half): { body: string; replaced: boolean } {
   const lines = body.split('\n')
   const block = [specHeading(name), '', section, '']
-  const headings = specAgentNames(name).map(headingRe)
+  const headings = specAgentNames(name).map(specHeadingRe)
   const at = lines.findIndex((l) => headings.some((heading) => heading.test(l.trim())))
   if (at < 0) return { body: place(lines, block, half), replaced: false }
 

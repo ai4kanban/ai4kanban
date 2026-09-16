@@ -205,7 +205,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
       'Patch the open-question list in place. Ops apply in the order they were typed, and a position is ' +
         'read against the list as it stands when its op runs. Positions are 1-based. A question handed to ' +
         'the user always carries choices to tick — follow `akb guide update-questions`. --option, ' +
-        '--recommended-option and --mode attach to the --append or --update before them.',
+        '--recommended-option, --mode and --agent attach to the --append or --update before them.',
     )
     .option('--append <text>', 'add one question to the end', opInOrder('append'))
     .option('--update <n> <text...>', 'rewrite question <n> whole', opInOrder('update'))
@@ -215,6 +215,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--option <text>', 'a choice for the op before it', opInOrder('option'))
     .option('--recommended-option <text>', 'a choice for the op before it, ticked to start', opInOrder('recommended-option'))
     .option('--mode <mode>', 'how many choices the op before it takes: single | multi', opInOrder('mode'))
+    .option('--agent <name>', 'the spec agent whose section the op before it is about', opInOrder('agent'))
     .action(async function (this: Command, id: number) {
       await dispatch('update-questions', this, [String(id)], { ops: questionOps }, cli)
     })

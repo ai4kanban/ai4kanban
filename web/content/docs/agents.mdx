@@ -3,7 +3,7 @@ title: "The agents that work your board"
 title_tag: "AI4Kanban agents — the roles you train and the specialists you add"
 description: "Every flow is run by a named agent. You give each one a rule, some of them remember, and where the board has a hook you add your own."
 lead: "Your board is a team. Roles run its flows, specialists fill the parts nobody should plan by guess, and every one of them takes a rule in your own words."
-last_updated: "September 15, 2026"
+last_updated: "September 16, 2026"
 nav_label: "Agents"
 icon: "layers"
 ---
@@ -49,13 +49,18 @@ rather than on.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
 while a card is being planned — never while it is being built — writes one named section of that
-card, and changes nothing else. The board ships two, and `akb spec` lists them:
+card, and changes nothing else. The board ships three, and `akb spec` lists them:
 
+- **`copywriting`** — writes the promotional copy a card changes: website pages, the README,
+  release notes, and store or Product Hunt listings. User documentation, text inside the product
+  and social posts are not its job. It writes the final copy and leaves one question asking you
+  to confirm it.
 - **`ui-designer`** — draws the screen a card needs as one design, one drawing per page or state
   it changes and each named for what it shows, with nothing written under the drawings. Its
   **mockup** is either a rendered screen or a plain-text drawing depending on the board's
   **Mockup style** setting (Configuration → Agents). See "Assets on a card" in
-  `kanban-ui/README.md`.
+  `kanban-ui/README.md`. On a card that has copy, it waits until you have confirmed the copy and
+  then uses it word for word.
 - **`tech-stack-advisor`** — picks the library, tool, or service a card leans on. Its answer is
   one table — a row per candidate, with what it is, its pros and its cons — and one line naming
   the pick. Keeping what the project already uses and writing it yourself are rows too, so a card
@@ -206,7 +211,7 @@ agent's page lists the files it owns, read-only:
   `decisions.md`, the writing taste you settled. No other role owns a file.
 - A **specialist** that declares `memory: project` owns `docs/kanban/memory/agents/<name>/`, two
   files: `redesign.md`, the mistakes it was corrected on, and `decisions.md`, the choices you made.
-  `ui-designer` declares a memory; `tech-stack-advisor` does not.
+  `ui-designer` and `copywriting` declare a memory; `tech-stack-advisor` does not.
 - **The board's own record is nobody's memory.** `docs/kanban/memory/readme.md` — what shipped —
   and `goal.md` are facts rather than taste, so they sit outside every agent's folder.
 - **How the product looks is not memory.** Colours, dimensions and component detail are read from
@@ -263,7 +268,55 @@ lists the agents this board can use and, under them, anything wrong with one it 
 
 **Delete** on an agent's page removes it and everything the board kept for it — the folder, the
 instructions you wrote for it, what it remembered, and its switch. Only an agent this project
-added: the roles and the two the command ships are not yours to remove, and have no Delete.
+added: the roles and the three the command ships are not yours to remove, and have no Delete.
+
+## Make one agent wait for another
+
+A specialist can say whose section it builds on. List them under `akb.dependencies`, one
+`- agent:` line each:
+
+```yaml
+# docs/kanban/agents/api-contract/AGENT.md
+---
+name: api-contract
+description: Use when a card changes an endpoint other software calls.
+akb:
+  kind: spec
+  owns: the request and response shape a card changes
+---
+```
+
+```yaml
+# docs/kanban/agents/sdk-sample/AGENT.md
+---
+name: sdk-sample
+description: Use when a card changes how SDK users call an endpoint.
+akb:
+  kind: spec
+  owns: the sample code a card changes
+  dependencies:
+    - agent: api-contract
+---
+```
+
+A dependency only counts once `api-contract` is on the card: it was asked for in this round, has
+run on the card, has a section, or has a question of its own. On a card it never joined,
+`sdk-sample` starts as usual. Once it has joined, the board refuses to start `sdk-sample`, and says
+why, while `api-contract`:
+
+- has no section yet, or is still updating it, or has a run waiting;
+- failed or was stopped on its last run;
+- has an open question of its own. A question belongs to an agent when it was added with
+  `akb raw update-questions <id> --append ".." --agent api-contract`. A specialist's own questions
+  are added this way automatically.
+
+A refusal starts nothing and is not queued. The planning session asks for `api-contract` first,
+and asks for `sdk-sample` again once the reason is settled — for example, after you answer the
+question. The board does not choose the order and does not retry.
+
+An agent that lists itself, lists an agent the board does not have, or is not written as a list is
+refused and listed under the agents with the reason. Dependencies that loop back to an agent on the
+same card are refused when the agent starts. `ui-designer` waits for `copywriting` this way.
 
 ## Say it in your own language
 

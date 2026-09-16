@@ -78,7 +78,25 @@ export function specAgentCatalog(): SpecAgentCatalog {
     take(readProject(LEGACY_AGENTS, folder), folder)
     problems.push(`${rel(path.join(LEGACY_AGENTS, folder))}: move it to ${rel(path.join(AGENTS, folder))}/`)
   }
-  return { agents, problems }
+  return { agents: dropUnknownDependencies(agents, problems), problems }
+}
+
+// An agent depending on one this board lacks could never start on a card that agent joins, so
+// it is reported and left out — and so is anything that depended on it in turn.
+function dropUnknownDependencies(agents: SpecAgent[], problems: string[]): SpecAgent[] {
+  let kept = agents
+  for (;;) {
+    const names = new Set(kept.map((a) => a.name))
+    const broken = kept.filter((a) => a.dependencies.some((d) => !names.has(d)))
+    if (!broken.length) return kept
+    for (const a of broken) {
+      const missing = a.dependencies.filter((d) => !names.has(d))
+      problems.push(
+        `${a.from}: it depends on ${missing.map((d) => `\`${d}\``).join(', ')}, which this board does not have, so it is not used.`,
+      )
+    }
+    kept = kept.filter((a) => !broken.includes(a))
+  }
 }
 
 // ---- the agents the command ships ------------------------------------------

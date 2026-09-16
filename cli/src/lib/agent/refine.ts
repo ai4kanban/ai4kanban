@@ -342,6 +342,7 @@ export function refinementRunsAfter(
   changed: readonly number[],
   before: BoardMarks,
   waitingForSpec = false,
+  refused: string[] = [],
 ): RefinementFollowUp {
   for (const id of new Set([...changed, ...(run.cardId === null ? [] : [run.cardId])])) {
     scheduleRefineOnBlock(id)
@@ -362,21 +363,27 @@ export function refinementRunsAfter(
   // The lead resumes only once the LAST helper is done (#714): while this run still carries
   // asks for the next one, the card is another agent's to write.
   const resumedQa = waitingForSpec ? null : qaAfterSpec(run)
-  const carryOn = resumedQa ?? (typeof next === 'object' && next ? next : null)
+  // Helpers refused over their dependencies (#782) are the planner's to ask for again.
+  const refusedNote = waitingForSpec || !refused.length ? '' : `Spec agents not started: ${refused.join(' ')}`
+  const plain = resumedQa ?? (typeof next === 'object' && next ? next : null)
+  const carryOn = plain && refusedNote
+    ? { ...plain, notes: [plain.notes, refusedNote].filter(Boolean).join('\n\n') }
+    : plain
   // Nothing else follows this run, so the stage it belonged to is over — unless its contract
   // requires a helper that wrote nothing (#714).
   const end = waitingForSpec || carryOn || starts.length ? null : planStageEnd(run)
   const short: StageShort | null = end && 'missing' in end ? end : null
+  // A refinement pass or an action's embedded QA can leave the loop unfinished; so can a
+  // required helper nobody could get an answer out of.
+  const stalled =
+    (short ? shortLine(short, run.cardId!) : undefined) ??
+    (waitingForSpec
+      ? undefined
+      : ((run.refineRound !== undefined || next === 'incomplete') &&
+          stalledLine(run.cardId, next)) ||
+        undefined)
   return {
     runs: [...starts, ...(carryOn ? [carryOn] : []), ...(end && 'ask' in end ? [end.ask] : [])],
-    // A refinement pass or an action's embedded QA can leave the loop unfinished; so can a
-    // required helper nobody could get an answer out of.
-    stalled:
-      (short ? shortLine(short, run.cardId!) : undefined) ??
-      (waitingForSpec
-        ? undefined
-        : ((run.refineRound !== undefined || next === 'incomplete') &&
-            stalledLine(run.cardId, next)) ||
-          undefined),
+    stalled: [refusedNote, stalled].filter(Boolean).join('\n') || undefined,
   }
 }

@@ -48,6 +48,8 @@ the whole difference, and it has to be readable at 48px.
   pencil** in the free hand.
 - **`tech-stack-advisor.png`** — picks the library a card leans on. Holding **two
   interlocking puzzle pieces**, one sky and one mint, meeting in front of the body.
+- **`copywriting.png`** — writes the promotional copy a card changes. Holding a **megaphone**,
+  its bell ember and its handle cream, pointed up and away from the head.
 - **`gater.png`** — says whether a settled card may build unwatched. A **striped boom
   barrier** raised beside the body, its arm banded ember and cream on a grey post, and a
   **clipboard** across the chest with one green tick on it.

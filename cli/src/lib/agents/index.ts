@@ -108,6 +108,23 @@ export const findSpecAgent = (name: string): SpecAgent | null => {
  *  see who is answerable for that part of the spec and a rerun knows what to replace. */
 export const specHeading = (name: string): string => '## By `' + specAgentNames(name)[0] + '` agent'
 
+/** Matches the heading of one agent's section. `skill` is the word a section carried between
+ *  #403 and #419, so a card written then is still found. */
+export const specHeadingRe = (name: string): RegExp =>
+  new RegExp('^##\\s+By\\s+`' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '`\\s+(skill|agent)\\s*$', 'i')
+
+/** What one agent's section on a card says, trimmed, or null when the card has none. It ends
+ *  at the next `##` heading or the `<!-- agent -->` boundary. */
+export function specSection(body: string, name: string): string | null {
+  const lines = body.split('\n')
+  const headings = specAgentNames(name).map(specHeadingRe)
+  const at = lines.findIndex((l) => headings.some((heading) => heading.test(l.trim())))
+  if (at < 0) return null
+  let end = at + 1
+  while (end < lines.length && !/^##\s/.test(lines[end]!) && !/^<!--\s*agent\s*-->$/.test(lines[end]!.trim())) end++
+  return lines.slice(at + 1, end).join('\n').trim()
+}
+
 // ---- switched on, switched off, and set (#191, #255) ------------------------
 //
 // An agent that declares settings is set in the board UI, and those settings are saved with
@@ -283,6 +300,9 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
       // while WHERE the file is always is — `akb guide update-questions` states it once
       // rather than this block repeating a path per agent in every run.
       ...(a.memory ? ['  remembers'] : []),
+      // Declared dependencies (#782): the board refuses to start it while one of these is on
+      // the card and not ready, so the caller asks for them first.
+      ...(a.dependencies.length ? [`  starts only after ${a.dependencies.map((d) => `\`${d}\``).join(', ')}, when on this card, has its section written and no open question of its own`] : []),
     ]),
     words.ask,
     `</${words.tag}>`,

@@ -21,6 +21,8 @@ akb:
               cost: 纯文本，写在卡片里，画得快
   memory: project
   output: human
+  dependencies:
+    - agent: copywriting
   settings:
     - key: mockupStyle
       label: Mockup style
@@ -51,6 +53,8 @@ on the card is yours.
 - **Say what the user sees and does**: not the parts the screen is built from. "Each card
   is a row with its title and a Run button", not "a CardList of CardRows".
 - **Cover empty and failure states**: say what the user sees and can do.
+- **Use the confirmed copy**: when the card has a ``## By `copywriting` agent`` section, every
+  promotional line on the screen is taken from it word for word.
 
 ## What to answer
 

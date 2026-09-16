@@ -229,12 +229,12 @@ describe("what an agent says to a reader who doesn't read English", () => {
 })
 
 describe('the agents this command ships', () => {
-  it('reads both of them out of their own AGENT.md', () => {
+  it('reads each of them out of their own AGENT.md', () => {
     const { agents, problems } = specAgentCatalog()
     assert.deepEqual(problems, [])
     assert.deepEqual(
       agents.map((a) => a.name),
-      ['tech-stack-advisor', 'ui-designer'],
+      ['copywriting', 'tech-stack-advisor', 'ui-designer'],
     )
     const ui = findSpecAgent('ui-designer')!
     assert.match(ui.owns, /the screen a card changes/)
@@ -451,7 +451,7 @@ describe('what a session is shown', () => {
   // Off in a board written before #749: the switch is folded into the coding plan stage, so
   // the selector lists nobody — and it stays that way once the key is gone.
   it('says nothing at all when the card\'s workflow assigns no one', () => {
-    board({ specAgents: { 'ui-designer': false, 'tech-stack-advisor': false } })
+    board({ specAgents: { 'ui-designer': false, 'tech-stack-advisor': false, copywriting: false } })
     assert.equal(specAgentSelector(12), '')
     assert.equal(specAgentSelector(12), '')
   })

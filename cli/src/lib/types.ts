@@ -18,6 +18,7 @@ export interface QuestionDraft {
   recommended: string[]
   mode?: string
   recommend?: number[]
+  agent?: string
 }
 
 // A card's frontmatter, after parsing. Every field is normalized on the way in, so a

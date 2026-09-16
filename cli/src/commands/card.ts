@@ -20,7 +20,9 @@ import { locate, enclosingGroupRoot, isRecurringCard } from '../lib/cards'
 import { RECURRING } from '../lib/recurring'
 import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
-import { cardCreation } from '../lib/agent/store'
+import { cardCreation, readStore } from '../lib/agent/store'
+import { insideRun } from '../lib/agent/env'
+import { findSpecAgent } from '../lib/agents'
 import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
 import { findCard } from '../lib/view/read'
 import { creationRefusal } from '../lib/view/rules'
@@ -400,7 +402,13 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
 
   const changes: string[] = []
   let moved = 0
+  const asker = specRunAgent()
   for (const op of ops) {
+    if (op.question?.agent) {
+      const agent = findSpecAgent(op.question.agent)
+      if (!agent) die(`--agent "${op.question.agent}" is not an agent on this board`, { kind: 'no-such-spec-agent', specAgent: op.question.agent })
+      op.question.agent = agent.name
+    }
     if (op.kind === 'clear') {
       meta.questions = []
       changes.push('cleared')
@@ -421,12 +429,14 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`moved ${ns.join(',')} to verify`)
     } else if (op.kind === 'append') {
-      meta.questions.push(op.question!)
+      const agent = op.question!.agent ?? asker
+      meta.questions.push(agent ? { ...op.question!, agent } : op.question!)
       changes.push('appended')
     } else {
       const [n] = parseQuestionPositions(String(op.n), meta.questions.length, 'update')
       // parseQuestionPositions refused anything out of range, so the slot is there.
-      meta.questions[n! - 1] = op.question!
+      const agent = op.question!.agent ?? meta.questions[n! - 1]!.agent
+      meta.questions[n! - 1] = agent ? { ...op.question!, agent } : op.question!
       changes.push(`rewrote ${n}`)
     }
   }
@@ -444,6 +454,14 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       ')',
   )
   return { id, changes, open: meta.questions.length, verify: meta.verify.length, file: rel(file) }
+}
+
+// A question a spec agent's own run appends is about that agent's section (#782).
+function specRunAgent(): string | undefined {
+  const id = insideRun()
+  if (!id) return undefined
+  const run = readStore().runs.find((r) => r.sessionId === id)
+  return run?.action === 'spec' ? run.specAgent : undefined
 }
 
 // Patch a card's verify list — what the user should check by hand before accepting the

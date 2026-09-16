@@ -9,7 +9,7 @@
 - **Boundaries**: preserve the rest of the card. Do not change project code or call other
   spec agents. Edit memory and other files only where your own instructions allow them.
 - **User decisions**: follow `akb guide update-questions`; leave at most one open question
-  pointing to your section.
+  pointing to your section, appended with `--agent <agent-name>`.
 - **Validate**: run `akb raw validate <task-id>` and fix the reported format errors.
 - **Nothing needed**: write one line saying so. If you lack evidence to answer, write no
   section and report what is missing.

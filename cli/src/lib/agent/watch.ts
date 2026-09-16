@@ -26,7 +26,7 @@ import { buildAfterGate, cardStages, gateRunAfter } from './gate'
 import { readyGateOn, silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
-import { refineRunsAfter, specRunsAfter } from './follow'
+import { helperRound, refineRunsAfter, specRunsAfter } from './follow'
 import { reflectRunsAfter } from './propose'
 import { triageRunAfter, triageWaiting } from './auto-triage'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
@@ -44,6 +44,8 @@ import {
 import {
   acquireIndexLock,
   askForSpec,
+  noteSpecRefusals,
+  readSpecRefusals,
   claimCard,
   clearAsks,
   closeRun,
@@ -801,8 +803,10 @@ function settleBoard(
   before: BoardMarks,
 ): RefinementFollowUp | null {
   try {
-    const waitingForSpec = readSpecAsks(run.sessionId).some((ask) => ask.cardId === run.cardId)
-    return refinementRunsAfter(run, changed, before, waitingForSpec)
+    const round = helperRound(specRunsAfter(readSpecAsks(run.sessionId)), run.sessionId)
+    const waitingForSpec = round.start.some((req) => req.id === run.cardId)
+    const refused = [...readSpecRefusals(run.sessionId), ...round.refused]
+    return refinementRunsAfter(run, changed, before, waitingForSpec, refused)
   } catch {
     // an unreadable board — the run it followed is done either way
     return null
@@ -838,7 +842,7 @@ async function followUp(
   try {
     // Started first, then forgotten — so a crash between the two costs a repeated agent at
     // worst, and never a section nobody ever writes.
-    await startHelpersInTurn(specRunsAfter(readSpecAsks(sessionId)), join)
+    await startHelpersInTurn(specRunsAfter(readSpecAsks(sessionId)), join, sessionId)
     const asked = [
       ...refineRunsAfter(readRefineAsks(sessionId)),
     ]
@@ -870,19 +874,26 @@ async function followUp(
 // next. The lead resumes when the last of them is done (`qaAfterSpec`), which is what makes
 // the sections one conclusion rather than several.
 //
-// A helper that will not start is skipped rather than taking the queue down with it.
+// A helper that will not start is skipped rather than taking the queue down with it. One
+// refused over its dependencies (#782) is not retried: the reason travels with the round to
+// the planner, which asks again.
 async function startHelpersInTurn(
   helpers: AgentRequest[],
   join: (req: AgentRequest) => AgentRequest,
+  self: string,
 ): Promise<void> {
-  let queue = helpers
+  const round = helperRound(helpers, self)
+  const refused = [...readSpecRefusals(self), ...round.refused]
+  let queue = round.start
   while (queue.length) {
     const [next, ...rest] = queue
-    const started = await startRun(join(next!))
+    const queued = rest.filter((h) => h.id === next!.id).map((h) => h.specAgent ?? '')
+    const started = await startRun(join(next!), { queued })
     if ('error' in started) {
       queue = rest
       continue
     }
+    noteSpecRefusals(started.run.sessionId, refused)
     for (const req of rest) {
       askForSpec(started.run.sessionId, {
         specAgent: req.specAgent ?? '',
