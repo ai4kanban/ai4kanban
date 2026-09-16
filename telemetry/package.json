@@ -6,8 +6,8 @@
   "description": "The service that takes usage events in — the Worker at t.ai4kanban.dev, its D1 database, and the commands that read and forget.",
   "type": "module",
   "scripts": {
-    "deploy": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler deploy --env=\"\"",
-    "deploy:dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler deploy --env dev",
+    "deploy": "npm run migrate && env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler deploy --env=\"\"",
+    "deploy:dev": "npm run migrate:dev && env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler deploy --env dev",
     "migrate": "node scripts/migrate.mjs",
     "migrate:dev": "node scripts/migrate.mjs --dev",
     "dev": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy wrangler dev",

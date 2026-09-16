@@ -3,9 +3,9 @@ import { describe, it } from 'node:test'
 
 import { SWEEP } from '../src/daily.ts'
 import { store } from '../src/store.ts'
-import { SPREAD, TOTALS, WRITE_SUMMARY, numbersOf } from '../src/summary.ts'
+import { D1_COMPOUND_TERMS, SPREADS, TOTALS, WRITE_SUMMARY, numbersOf } from '../src/summary.ts'
 import { take } from '../src/take.ts'
-import { fakeDatabase } from './fake.mjs'
+import { compoundTerms, fakeDatabase } from './fake.mjs'
 
 // The half of this service that is SQL, run against a real SQLite with the real migration
 // applied. Everything here is what the free plan's per-run limits are the reason for: one
@@ -125,6 +125,17 @@ describe("a day's summary", () => {
     assert.equal(numbers.board.questions_closed_board, 2)
   })
 
+  it('asks for the spreads in statements D1 will take, and names its columns in each', () => {
+    // One 25-branch query was refused by D1 every night for nine days and passed here, where
+    // SQLite takes 500 (#801). A branch that starts a query is where its column names come
+    // from, so every one of them carries all three.
+    assert.ok(SPREADS.length > 1)
+    for (const query of SPREADS) {
+      assert.ok(compoundTerms(query) <= D1_COMPOUND_TERMS, query)
+      assert.match(query.split('UNION ALL')[0], /AS dim,[\s\S]*AS key,[\s\S]*AS n/)
+    }
+  })
+
   it('rewrites the day it already holds rather than adding a second row', async () => {
     const db = fakeDatabase()
     await write(db, TODAY, { installs: 1 }, false)
@@ -172,9 +183,10 @@ describe('what leaves the database', () => {
 const rows = (db, sql) => db.sqlite.prepare(sql).all()
 
 async function summaryOf(db, day) {
-  const spreads = await db.prepare(SPREAD).bind(day).all()
+  const spreads = []
+  for (const query of SPREADS) spreads.push(...(await db.prepare(query).bind(day).all()).results)
   const totals = await db.prepare(TOTALS).bind(day).first()
-  return numbersOf(spreads.results, totals, null)
+  return numbersOf(spreads, totals, null)
 }
 
 const write = (db, day, numbers, settled) =>

@@ -1,10 +1,10 @@
 /**
  * A day's numbers, worked out in the database.
  *
- * Everything a day comes to arrives as (dimension, key, count) triples from one query. The
- * free plan gives a run ten milliseconds of processor time, so nothing here reads rows to
- * count them — `COUNT(DISTINCT ...)` spends waiting time, which is not processor time, and
- * returns a handful of rows the service only has to arrange.
+ * Everything a day comes to arrives as (dimension, key, count) triples, in as few queries as
+ * D1 will take them. The free plan gives a run ten milliseconds of processor time, so nothing
+ * here reads rows to count them — `COUNT(DISTINCT ...)` spends waiting time, which is not
+ * processor time, and returns a handful of rows the service only has to arrange.
  */
 
 import { EVENTS } from '../contract.ts'
@@ -29,14 +29,16 @@ export interface Totals {
 
 const firstRun = "name = 'app_open' AND json_extract(fields, '$.first_run') = 1"
 
+/** Every branch names the three columns, because any of them may be the first of its query
+ *  and a compound takes its column names from the one it starts with. */
 function spread(dim: string, column: string, where: string, installs = false): string {
   const count = installs ? 'COUNT(DISTINCT install_id)' : 'COUNT(*)'
-  return `UNION ALL SELECT '${dim}', ${column}, ${count} FROM d WHERE ${where} GROUP BY 2`
+  return `SELECT '${dim}' AS dim, ${column} AS key, ${count} AS n FROM d WHERE ${where} GROUP BY 2`
 }
 
 function json(dim: string, field: string, where: string): string {
   return (
-    `UNION ALL SELECT '${dim}', json_extract(fields, '$.${field}'), COUNT(*) ` +
+    `SELECT '${dim}' AS dim, json_extract(fields, '$.${field}') AS key, COUNT(*) AS n ` +
     `FROM d WHERE ${where} GROUP BY 2`
   )
 }
@@ -47,15 +49,27 @@ function json(dim: string, field: string, where: string): string {
  *  the key splits back apart unambiguously. */
 function pageAndLanguage(dim: string, where: string): string {
   return (
-    `UNION ALL SELECT '${dim}', ` +
-    `json_extract(fields, '$.page') || ' ' || json_extract(fields, '$.language'), COUNT(*) ` +
-    `FROM d WHERE ${where} GROUP BY 2`
+    `SELECT '${dim}' AS dim, ` +
+    `json_extract(fields, '$.page') || ' ' || json_extract(fields, '$.language') AS key, ` +
+    `COUNT(*) AS n FROM d WHERE ${where} GROUP BY 2`
   )
 }
 
-/** One query for every spread a summary carries. `?1` is the day, used by every branch. */
-export const SPREAD = [
-  'WITH d AS (SELECT * FROM events WHERE day = ?1)',
+/**
+ * How many SELECTs D1 takes in one compound statement.
+ *
+ * Measured against the service's own database: five are answered, the sixth is
+ * `too many terms in compound SELECT`. The SQLite the tests run on takes 500, which is how
+ * the spreads shipped as one 25-branch query that was refused every night and green here
+ * (#801). A CTE's own body is a compound of its own and is not counted against this.
+ */
+export const D1_COMPOUND_TERMS = 5
+
+/** The day every branch reads. `?1` is the day. */
+const DAY = 'WITH d AS (SELECT * FROM events WHERE day = ?1)'
+
+/** One branch for every spread a summary carries. */
+const BRANCHES = [
   "SELECT 'event' AS dim, name AS key, COUNT(*) AS n FROM d GROUP BY name",
   // The install spreads count installs rather than events: one machine that sent forty
   // events is one machine on this version and in this country.
@@ -77,10 +91,20 @@ export const SPREAD = [
   spread('download_press_version', 'version', "name = 'download_press' AND version <> ''"),
   ...BOARD_COUNTERS.map(
     (counter) =>
-      `UNION ALL SELECT 'board', '${counter}', ` +
-      `SUM(json_extract(fields, '$.${counter}')) FROM d WHERE name = 'board_numbers'`,
+      `SELECT 'board' AS dim, '${counter}' AS key, ` +
+      `SUM(json_extract(fields, '$.${counter}')) AS n FROM d WHERE name = 'board_numbers'`,
   ),
-].join('\n')
+]
+
+/** The branches as the queries D1 will take: each one reads the day once and carries no more
+ *  branches than `D1_COMPOUND_TERMS`. A day costs one query per entry here, which is what
+ *  the daily job budgets for. */
+export const SPREADS = Array.from(
+  { length: Math.ceil(BRANCHES.length / D1_COMPOUND_TERMS) },
+  (_, n) =>
+    [DAY, BRANCHES.slice(n * D1_COMPOUND_TERMS, (n + 1) * D1_COMPOUND_TERMS).join('\nUNION ALL\n')]
+      .join('\n'),
+)
 
 /** How many installs the day had, and how many of them had been seen on an earlier day —
  *  which is the only form of "returning" a summary can still carry once its events are gone. */

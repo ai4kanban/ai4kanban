@@ -76,41 +76,66 @@ describe('which days a run writes', () => {
 })
 
 describe('the daily run', () => {
-  it('sweeps what expired, writes the open days, and settles the one that closed', async () => {
+  it('sweeps what expired, writes the oldest open days it can pay for, and settles the one that closed', async () => {
     const env = fakeEnv()
     await put(env, TODAY, 'a1')
-    await put(env, shift(TODAY, -3), 'a2')
+    await put(env, shift(TODAY, -6), 'a2')
     await put(env, shift(TODAY, -200), 'old')
 
     const run = await runDaily(env, NOW)
     assert.equal(run.swept, 1)
-    assert.equal(run.carried, 0)
-    assert.equal(run.summarised.length, CLOSES + 1)
+    // A day costs one query per spread statement now (#801), and nine open days no longer fit
+    // in a run — so the oldest go first and the rest come round tomorrow, one day older.
+    assert.equal(run.summarised.length + run.carried, CLOSES + 1)
+    assert.deepEqual(run.summarised, [...run.summarised].sort())
+    assert.equal(run.summarised[0], shift(TODAY, -CLOSES))
 
     const rows = env.DB.sqlite.prepare('SELECT day, settled, numbers FROM daily ORDER BY day').all()
-    assert.equal(rows.length, CLOSES + 1)
+    assert.equal(rows.length, run.summarised.length)
     assert.equal(rows[0].settled, 1)
     assert.equal(rows.at(-1).settled, 0)
-    assert.equal(JSON.parse(rows.at(-1).numbers).installs, 1)
+    const counted = rows.find((row) => row.day === shift(TODAY, -6))
+    assert.equal(JSON.parse(counted.numbers).installs, 1)
   })
 
   it("counts the badge's installs total off the summaries it just wrote", async () => {
     const env = fakeEnv()
-    await put(env, TODAY, 'a1', { ...APP_DAY, name: 'app_open', first_run: true })
+    const day = shift(TODAY, -CLOSES)
+    await put(env, day, 'a1', { ...APP_DAY, name: 'app_open', first_run: true })
 
     const run = await runDaily(env, NOW)
     assert.equal(run.countedInstalls, true)
     const rows = env.DB.sqlite.prepare('SELECT day, total FROM installs ORDER BY day').all()
-    assert.equal(rows.at(-1).day, TODAY)
+    assert.equal(rows[0].day, day)
     assert.equal(rows.at(-1).total, 1)
   })
 
   it('leaves a settled day alone on the next run', async () => {
     const env = fakeEnv()
-    await runDaily(env, NOW)
+    const first = await runDaily(env, NOW)
     const again = await runDaily(env, NOW)
-    assert.equal(again.summarised.length, CLOSES)
     assert.ok(!again.summarised.includes(shift(TODAY, -CLOSES)))
+    assert.equal(first.summarised[0], shift(TODAY, -CLOSES))
+    assert.equal(again.summarised[0], shift(TODAY, -CLOSES + 1))
+  })
+
+  it('writes a day the job missed ahead of the open days, before the sweep takes it', async () => {
+    // The open days are rewritten every night and there are more of them than a run can pay
+    // for, so a missed day left behind them would never be written at all (#801).
+    const env = fakeEnv()
+    const missed = shift(TODAY, -40)
+    const hold = env.DB.sqlite.prepare(
+      "INSERT INTO daily (day, numbers, settled, written_at) VALUES (?, '{}', ?, 'x')",
+    )
+    for (let back = LIMITS.retentionDays; back > CLOSES; back -= 1) {
+      if (shift(TODAY, -back) !== missed) hold.run(shift(TODAY, -back), 1)
+    }
+    await put(env, missed, 'm1')
+
+    const run = await runDaily(env, NOW)
+    assert.equal(run.summarised[0], missed)
+    const row = env.DB.sqlite.prepare('SELECT numbers FROM daily WHERE day = ?').get(missed)
+    assert.equal(JSON.parse(row.numbers).installs, 1)
   })
 
   it('stays inside the free plan\'s fifty queries a run and carries the rest', async () => {
@@ -165,8 +190,9 @@ describe('the daily run', () => {
     assert.deepEqual(JSON.parse(row.numbers).usage, cost)
   })
 
-  it('writes the summaries even when the sweep fails', async () => {
+  it('writes the summaries even when the sweep fails, and says the run failed', async () => {
     const env = fakeEnv()
+    await put(env, shift(TODAY, -200), 'old')
     const real = env.DB.prepare.bind(env.DB)
     env.DB.prepare = (sql) => {
       if (sql.includes('DELETE FROM events')) {
@@ -176,7 +202,9 @@ describe('the daily run', () => {
     }
     const run = await runDaily(env, NOW)
     assert.equal(run.swept, 0)
-    assert.equal(run.summarised.length, CLOSES + 1)
+    assert.deepEqual(run.failed, ['sweep'])
+    assert.ok(run.summarised.length > 0)
+    assert.equal(run.summarised.length + run.carried, CLOSES + 1)
   })
 })
 

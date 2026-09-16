@@ -1,11 +1,37 @@
 // A D1, a limiter and an archive bucket the tests can hold. The database is a real SQLite
 // with the real migration applied, so every statement the Worker runs is checked as SQL and
-// not as a string somebody once believed in.
+// not as a string somebody once believed in — and held to D1's own compound limit, which
+// this SQLite is a hundred times more generous about (#801).
 
 import { readFileSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 
 import { AddressHour } from '../src/index.ts'
+import { D1_COMPOUND_TERMS } from '../src/summary.ts'
+
+/** SELECTs in the statement's outermost compound. A CTE's or a subquery's own body is a
+ *  compound of its own, so nothing inside parentheses counts here. */
+export function compoundTerms(sql) {
+  let depth = 0
+  let terms = 1
+  // Quoted text first: a literal is not a keyword, however it reads.
+  const text = sql.replace(/'[^']*'/g, "''")
+  for (const token of text.match(/[()]|\b(?:UNION|INTERSECT|EXCEPT)\b/gi) ?? []) {
+    if (token === '(') depth += 1
+    else if (token === ')') depth -= 1
+    else if (depth === 0) terms += 1
+  }
+  return terms
+}
+
+/** What D1 answers a statement it will not take. Thrown where D1 throws it — running the
+ *  statement, not preparing it. */
+function withinD1(sql) {
+  const terms = compoundTerms(sql)
+  if (terms > D1_COMPOUND_TERMS) {
+    throw new Error(`too many terms in compound SELECT: ${terms}\n${sql}`)
+  }
+}
 
 export function fakeDatabase() {
   const db = new DatabaseSync(':memory:')
@@ -23,14 +49,17 @@ export function fakeDatabase() {
           return statement
         },
         async run() {
+          withinD1(sql)
           const result = db.prepare(sql).run(...args)
           return { results: [], success: true, meta: meta(Number(result.changes)) }
         },
         async all() {
+          withinD1(sql)
           const results = db.prepare(sql).all(...args)
           return { results, success: true, meta: meta(0) }
         },
         async first() {
+          withinD1(sql)
           return db.prepare(sql).all(...args)[0] ?? null
         },
       }

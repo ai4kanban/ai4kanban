@@ -28,9 +28,11 @@ telemetry/
 - **A batch is one statement.** However many events it carries, the rows go in as a single
   JSON parameter and `json_each` unpacks them: D1 allows a hundred bound parameters per
   query and the free plan fifty queries per run.
-- **Counting happens in the database.** A run gets ten milliseconds of processor time, so the
-  daily job aggregates and reads back a handful of rows rather than reading rows to count
-  them.
+- **Counting happens in the database, five branches at a time.** A run gets ten milliseconds
+  of processor time, so the daily job aggregates and reads back a handful of rows rather than
+  reading rows to count them. D1 takes only five SELECTs in one compound statement, so a day's
+  spreads are several queries and a day costs what they come to — the SQLite the tests run on
+  takes 500, so `test/fake.mjs` holds every statement to D1's limit instead.
 - **Nothing about a sender is written down but what it sent.** The country comes from the
   request and the address does not; the hourly per-address limit lives in a Durable Object's
   memory and never calls storage.
@@ -48,6 +50,9 @@ telemetry/
   else: the daily job writes the running total into a table of its own, the route reads one
   row from it, and no parameter can ask it for a second number. A total it cannot read is
   `unknown`, never `0`.
+- **A step that fails is reported, and the rest of the job still runs.** Each step of the
+  daily job stands on its own, and a run that lost one is reported as failed rather than as a
+  success — a summary nothing writes is otherwise invisible until a number nobody can read.
 - **A spent day drops events rather than failing.** A sender that gets an error retries, and
   retries on the busiest day of the year make that day worse. Past the account's daily
   request ceiling Cloudflare answers before this code runs, which is the one case that cannot
@@ -63,8 +68,7 @@ archive:
 npx wrangler d1 create ai4kanban-telemetry                 # paste the id into wrangler.jsonc
 npx wrangler r2 bucket create ai4kanban-telemetry-archive  # the daily event archive
 npx wrangler r2 bucket create ai4kanban-cases              # the partners' refine cases
-npm run migrate                                            # apply migrations/ to the database
-npm run deploy
+npm run deploy                                             # migrates, then deploys
 ```
 
 `t.ai4kanban.dev` and `t-dev.ai4kanban.dev` are custom domains on the zone the site already
@@ -87,9 +91,9 @@ npx wrangler secret put CF_API_TOKEN     # a token with Account Analytics Read
 ## Day to day
 
 ```sh
-npm run migrate            # apply new migrations before deploying a Worker that needs them
-npm run deploy             # the endpoint at t.ai4kanban.dev
-npm run deploy:dev         # the copy development builds post into
+npm run deploy             # migrates, then deploys the endpoint at t.ai4kanban.dev
+npm run deploy:dev         # the same, on the copy development builds post into
+npm run migrate            # the migrations alone, without deploying
 npm run numbers            # the last 14 days; --days N, --dev, --json
 npm run numbers:web        # the same production numbers on a page, this machine only
 npm run forget -- <id>     # delete one install's events and feedback, archive files included
@@ -104,6 +108,11 @@ address alone, so nothing else on the network reaches it, and it is gone when th
 production summaries once at startup and works every range out from that, so a restart is how
 the day's later numbers arrive. Use `npx wrangler login`, or provide credentials in
 `telemetry/.env` (`.env.example` is the template). Wrangler refreshes its login automatically.
+
+**A deploy migrates first.** `deploy` runs `migrate` and stops if it fails, so a Worker is
+never live against a database without the table it reads — `0003_installs.sql` went unapplied
+for nine days behind a deploy that never ran it, and the installs badge read `unknown` the
+whole time (#801).
 
 **Deploy the service before the sender that needs it.** The endpoint drops event names AND
 fields it does not know, so a sender released first loses its new event — or its new field on

@@ -56,7 +56,11 @@ export default {
   },
 
   async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
-    await runDaily(env, new Date())
+    const run = await runDaily(env, new Date())
+    // A step that failed left the rest of the job standing, but the run itself is reported as
+    // failed rather than as a success: the summaries were refused every night for nine days
+    // and the only sign of it was a badge reading `unknown` (#801).
+    if (run.failed.length > 0) throw new Error(`daily: ${run.failed.join(', ')} failed`)
   },
 }
 
