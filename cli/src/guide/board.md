@@ -17,29 +17,14 @@ docs/kanban/
 │   ├── goal.md     the long-term goal, horizon, and roadmap
 │   └── agents/     one folder per agent that remembers, named after it —
 │                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`
-├── deliveries/     one JSON file per delivery — what an Implement click built, the card
-│                   exactly as it was approved for it, and how it ended. Tracked in git,
-│                   kept after the card is archived; nobody edits one by hand
-├── rules/          one rule per agent, in the user's own words — `<agent>.md`: a role the
-│                   board ships (`discussion-helper`, `planner`, `builder`, `reviewer`,
-│                   `memory-pruner`, `memory-reviewer`, `sweeper`, `gater`, `decider`,
-│                   `proposer`, `triage`) or a spec agent. It is appended to every run
-│                   that agent does, so every flow it runs reads it. Tracked in git; a
-│                   missing or empty file leaves the run unchanged. Written from the board
-│                   UI or `akb raw rule`
-├── triage/         what is waiting to be sorted (#453, #499, #559, #561) — one file each.
-│   │               Anything that might become work goes in: `akb triage fetch` pulls it,
-│   │               somebody drops a file or pastes a link on the Triage page, or
-│   │               `akb triage add` writes one — which is where a reflection's proposals
-│   │               land. It is NOT a card: never scheduled, never counted, and never
-│   │               turned into a card by anything but `akb triage run`, the flow that
-│   │               sorts it. Empty triage has no folder. `akb triage check <source-id>`
-│   │               says where one source id already is — the one duplicate rule every
-│   │               way in reads
-│   ├── archived/   moved here once a card was made of it — `card_id`, `archived_at`
-│   ├── dismissed/  moved here once ignored, and kept for good — every record in it holds
-│   │               a later pull off, however long ago it was judged
-│   └── files/      the bytes of anything dropped in, shared by all three
+├── rules/          `<agent>.md` — the user's rule for one agent, appended to every run it
+│                   does; written from the board UI or `akb raw rule`
+├── triage/         items waiting to be sorted, one file each — not cards. Only
+│   │               `akb triage run` turns one into a card; `akb triage check <source-id>`
+│   │               finds an existing one
+│   ├── archived/   items a card was made of
+│   ├── dismissed/  items ignored for good
+│   └── files/      dropped-in files
 ├── modules.md      one line per module — `akb guide module-map` writes it
 ├── config.md       project settings — created by init and completed by the user
 ├── releases.md     the open releases, in the order they ship — one line each
@@ -71,30 +56,22 @@ lists all operations; `akb raw help <move>` explains one operation.
 
 ## The board's language
 
-A run is told which language to write the board's prose in when the user reads the board in
-something other than English. Told nothing, everything below is English.
+A run is told which language to write the board's prose in; told nothing, write English.
 
 - **Follows the language**: card titles and bodies, open questions and their options,
-  `verify:` lines, memory notes, changelogs, and what the agent says back to the user.
-- **Stays English whatever the setting**: frontmatter keys and their fixed values, `##` and
-  `###` section headings, the `<!-- agent -->` boundary, todo checkboxes, the `[user]` tag,
-  module names and card filenames. The board matches all of these by literal
-  English text, so a translated one is a card it can no longer read.
-- **Prose in frontmatter is still prose**: a title, a question, an option and a `verify:`
-  line follow the language even though they sit in a field.
-- **A title that is not English needs an English slug**: filenames are ASCII, so pass
-  `akb raw create --slug <short-english-slug>`, and name a group's own folder with one too.
-- **An edit follows the file, not the setting**: rewriting a card or a memory file that
-  already exists keeps the language that file is already in. A changelog is the exception:
-  the command replaces the whole block, so it follows the setting on a rewrite too
-  (`akb guide changelog`).
-- **Except what the user reads to decide**: an open question, its options and a `verify:`
-  line follow the setting on every card — including one written in English — whether a pass
-  appends them or rewrites ones already there. The body around them does not.
-- **A memory file holding only its seeded header is empty**: the header is `akb`'s own text
-  and stays English, so the first note a run adds follows the setting.
-- **Not the code, and not the repository's own documents**: code, comments, commit messages
-  and the files under `docs/` a card asks for follow the repository, not the reader.
+  `verify:` lines, memory notes, changelogs, and replies to the user.
+- **Prose in frontmatter is still prose**: titles, questions, options, `verify:` lines.
+- **Stays English**: frontmatter keys and fixed values, `##`/`###` headings, the
+  `<!-- agent -->` boundary, todo checkboxes, the `[user]` tag, module names, and filenames.
+  The board matches these literally. A non-English title needs
+  `akb raw create --slug <short-english-slug>`, and a group folder an English slug.
+- **An edit follows the file, not the setting**: an existing card or memory file keeps its
+  language. Open questions, their options and `verify:` lines follow the setting on every
+  card; so does a rewritten changelog (`akb guide changelog`).
+- **A memory file holding only its seeded header is empty**: its first note follows the
+  setting.
+- **Not the repository's**: code, comments, commit messages, and repository documents
+  follow the repository.
 
 ## Group task
 
@@ -134,74 +111,41 @@ move the files into the group's folder:
 
 ## Who owns a memory file
 
-**A memory file belongs to whoever reads and writes it.** `docs/kanban/memory/` itself holds
-the board's own RECORD; everything a run learned is an agent's, under `memory/agents/`.
+**A memory file belongs to whoever reads and writes it.**
 
-The board's own record — nobody's taste, so nobody's memory:
+- **`memory/readme.md`**: the board's record of shipped user-facing work (see "Finish a task").
+- **`memory/goal.md`**: the user's goal, horizon, and roadmap. Optional; never write it for
+  them. Only update its `reviewed` field — `strong`, `good`, `pending`, or `weak` (missing,
+  empty, or too vague). Replace `pending` with an assessment the next time you read it,
+  without interrupting the user.
+- **`memory/agents/planner/`**: owned by `planner`. `decisions.md` holds user-facing answers
+  that guide future planning, `redesign.md` design mistakes to avoid, `rejected.md` turned-down
+  ideas and why. Flows that only judge — the gate, the decider, the sweep, triage, a
+  reflection — read them and write none.
+- **`memory/agents/<agent>/`**: a spec agent with `memory: project` and each content agent
+  (`content-planner`, `content-writer`, `content-reviewer`) keeps `redesign.md` and
+  `decisions.md` (`akb guide update-questions`). No third file; writing taste lives here,
+  never in the planner's `decisions.md`.
 
-- **`memory/readme.md`** — shipped user-facing work, one line each: a link to the published
-  doc that covers it, or a short plain-words note until one does (see "Finish a task").
-- **`memory/goal.md`** — the long-term goal, horizon, and roadmap, in the user's own words.
-
-The planner's, in `docs/kanban/memory/agents/planner/`. Every flow that settles a card writes
-these; the gate, the decider, the sweep, a triage and a reflection read them and write none:
-
-- **`decisions.md`** — settled answers to cards' open questions, one per line. Include only
-  **user-facing decisions that inform future planning**; keep code details on the card.
-- **`redesign.md`** — design mistakes to avoid.
-- **`rejected.md`** — ideas we turned down, and why.
-
-**A module is a topic, not a folder.** File a note under the `## <module>` heading its card's
-`modules:` names, creating the heading when the file has none. There is no per-module memory
-folder and nothing to initialise.
-
-**`goal.md` is the user's.** It is optional — an empty one holds up nothing — and you never
-write it for them. The agent changes only the `reviewed` frontmatter field, whose allowed
-values are `strong`, `good`, `pending`, and `weak`. Use `weak` when the goal is missing,
-empty, or too vague for evaluating proposals. The board sets `pending` when a goal is saved;
-replace it with an assessment the next time you read the goal, without interrupting the user.
-
-**An agent that remembers keeps its own two.** `memory/agents/<agent>/` holds `redesign.md`
-for the mistakes that agent was corrected on and `decisions.md` for the durable choices the
-user made — a spec agent that declares `memory: project`, and the three content agents
-(`content-planner`, `content-writer`, `content-reviewer`). They are the agent's own, curated
-by it and appended to by the flow that hears the user's answer about its section (`akb guide
-update-questions`). No third file: how the product looks is read from the app's own
-`design.md` and components, and a product fact worth keeping is written into the lesson or
-the decision it supports.
-
-**Writing taste is the content agents', not the planner's.** The voice a piece is written in,
-what a claim has to carry, how a piece is put together — that goes in the three content
-agents' own folders and never in the planner's `decisions.md`, which holds user-facing calls
-that guide future planning. All three agents are handed all three folders on every content
-run; each writes back only its own.
+File a note under the `## <module>` heading its card's `modules:` names, creating it if
+missing. There are no per-module folders.
 
 ### What earns a note
 
-Memory holds only what improves a future planning choice. Writing nothing is a normal,
-complete outcome — never manufacture a lesson to satisfy a closing step.
+Only what changes a future planning choice. Writing nothing is a complete outcome.
 
-- **Honor an opt-out**: told not to record — "do not record", "no memory", a reject started
-  as a discard, or the like — write no memory at all for that action, and finish the board
-  action that was asked for.
-- **A conversation writes none**: a card chat, a discussion, a feedback conversation, and the
-  flows one of them starts in that session — a revise, a resolve, a create, a build — write no
-  memory, and say nothing about memory in the reply. One turn cannot see where an exchange is
-  going, so what a conversation settled is written down by the daily review of it instead
-  (`akb guide review-memory`), which reads the whole thing through. Setup is not a
-  conversation: the goal and the first decisions it seeds stand.
-- **Require lasting value**: `decisions.md`, `redesign.md`, `rejected.md` and the agent
-  memories take a durable preference, constraint, decision, or lesson that would materially
-  change a later planning call. Nothing else.
-- **Skip housekeeping**: a duplicate, a routine status change, and a fact already captured
-  elsewhere earn no note. Rejecting a duplicate says nothing about the feature — never write
-  a line that reads as if it were unwanted.
-- **Merge, don't repeat**: keep the principle and its reason, and rewrite an equivalent entry
-  in place instead of adding a second one.
+- **Honor an opt-out**: told not to record, or a discarding reject, write no memory and
+  finish the requested action.
+- **A conversation writes none**: a card chat, a discussion, a feedback conversation, and
+  any flow started in it write no memory and say nothing about it; the daily review reads
+  the whole exchange instead (`akb guide review-memory`). Setup is not a
+  conversation: its goal and first decisions stand.
+- **Require lasting value**: a durable preference, constraint, decision, or lesson.
+- **Skip housekeeping**: duplicates, routine status changes, and facts recorded elsewhere.
+  A rejected duplicate is not a rejected feature.
+- **Merge, don't repeat**: rewrite an equivalent entry in place.
 
-Every flow that writes planning memory holds to this bar, `akb guide reject` and "An agent's
-memory" in `akb guide update-questions` included. `readme.md` is the record of shipped work,
-not a planning note — it follows "Finish a task" below.
+`readme.md` is not planning memory; it follows "Finish a task".
 
 ## Archive/Finish a task
 
