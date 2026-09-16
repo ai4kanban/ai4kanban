@@ -35,6 +35,8 @@ export type SharedCopy = {
     /** The training page, in the footer's Product column. Drawn only where the
      *  page is published — see `nav.training`. */
     training: string;
+    /** The contact page, in the footer's Product column. */
+    contact: string;
     /** The GitHub releases page. */
     changelog: string;
     /** The builder page. English-only, like the blog. */

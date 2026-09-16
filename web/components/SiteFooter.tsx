@@ -55,6 +55,7 @@ export function SiteFooter({
         ...(publishedIn("/training", locale)
           ? [{ href: localePath(locale, "/training"), label: t.training }]
           : []),
+        { href: localePath(locale, "/contact"), label: t.contact },
       ],
     },
     {

@@ -20,7 +20,7 @@ export function UnsubscribeResult({
   eyebrow: string;
   title: string;
   body: string;
-  /** Offer the support address. On the failure page only — there is nothing to ask
+  /** Offer the contact page. On the failure page only — there is nothing to ask
    *  about when it worked. */
   support?: boolean;
 }) {
@@ -37,7 +37,7 @@ export function UnsubscribeResult({
           {support && (
             <p className="mt-6 text-sm">
               <a
-                href="mailto:support@ai4kanban.dev"
+                href="/contact"
                 className="text-ink underline underline-offset-4"
               >
                 Contact support

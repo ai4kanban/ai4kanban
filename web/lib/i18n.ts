@@ -48,6 +48,7 @@ export const LOCALE_TAGS: Record<Locale, string> = {
 export const PATH_LOCALES: Record<string, readonly Locale[]> = {
   "": LOCALES,
   "/download": LOCALES,
+  "/contact": LOCALES,
   "/vs-github-issues": LOCALES,
   "/vs-hermes-kanban": LOCALES,
   "/vs-vibe-kanban": LOCALES,

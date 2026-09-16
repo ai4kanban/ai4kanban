@@ -24,6 +24,7 @@ const zh: SharedCopy = {
     blog: "Blog",
     cloud: "Cloud",
     training: "培训",
+    contact: "联系我们",
     changelog: "Changelog",
     builder: "Builder",
     privacy: "Privacy",

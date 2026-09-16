@@ -2,7 +2,7 @@
 title: "Privacy Policy"
 lead: "What AI4Kanban collects when you visit this site, run the app on your own machine, and turn AI4Kanban Cloud on for a board."
 description: "How AI4Kanban collects, uses, shares, and protects your information across the site, the app, and the AI4Kanban Cloud preview."
-effective: 2026-09-13
+effective: 2026-09-16
 ---
 
 <TLDR title="The short version">
@@ -18,7 +18,7 @@ effective: 2026-09-13
 - **An event carries a task's number, title, release, revision, its open questions, its opening paragraph and its review notes** — no other part of the card — and is deleted 30 days after the work it is about finishes.
 - **Your code never reaches Cloud.** No repository, no worktree, no commit, no credential and no model key is sent to it, and no AI model is ever run over your board content.
 - **The preview emails you for two things**: the answer to your invite request, and a notice about the preview itself. There is no mailing list, no announcement, and no marketing.
-- **Booking a training session is the one form on this site.** It sends us your name, your email address, the hour you picked and whatever you wrote about your project, so we can hold that hour and turn up to it. No account, no cookie, and nothing stored in your browser. You can cancel it yourself from the link in your confirmation, which releases the hour.
+- **This site has two forms: booking a training session, and the contact form.** A booking sends us your name, your email address, the hour you picked and whatever you wrote about your project, so we can hold that hour and turn up to it. No account, no cookie, and nothing stored in your browser. You can cancel it yourself from the link in your confirmation, which releases the hour. A contact message sends us what you need help with, your email address and what you wrote, so we can answer you by email.
 - **We do not sell your personal information**, and we do not share it for cross-context behavioral advertising.
 - **You can ask us to access, correct, export, or delete** your personal information at any time at [support@ai4kanban.dev](mailto:support@ai4kanban.dev). Cancelling a training booking and disconnecting Slack or Lark are the removals you can make for yourself; everything else we do by hand.
 
@@ -32,7 +32,7 @@ AI4Kanban is operated by **NULLREACH LTD**, a private limited company registered
 
 Use of the Service is also governed by our [Terms of Service](/terms).
 
-The parts of the Service handle data very differently, so the sections that follow answer them one at a time: the site you are reading, the one form on it, the app you install, and the Cloud preview a board's events can be relayed through. The rights and boilerplate sections after them apply to all of it.
+The parts of the Service handle data very differently, so the sections that follow answer them one at a time: the site you are reading, the two forms on it, the app you install, and the Cloud preview a board's events can be relayed through. The rights and boilerplate sections after them apply to all of it.
 
 ## Visiting the site
 
@@ -41,7 +41,7 @@ The parts of the Service handle data very differently, so the sections that foll
 - **We count page loads and download presses, and nothing else.** There is no analytics product on this site — no third-party script, no session recorder, no dashboard. The counter is a few lines of our own that post to `t.ai4kanban.dev`, the endpoint the app reports to, and the whole of what it sends is the table below. It answers one question: of the people who reach a page with a download button, how many press it.
 - **No cookies.** The site sets no cookies of any kind, essential or otherwise, and stores nothing in your browser — no local storage, no identifier. There is no cookie banner because there is nothing to consent to.
 - **No advertising or tracking pixels.** There are no ad networks, no data brokers, no retargeting tags, and no third-party trackers embedded in any page.
-- **No accounts.** There is nothing to sign up for on this site. The training page's booking form is the one place it asks for your email address, and it is described in its own section below.
+- **No accounts.** There is nothing to sign up for on this site. The training page's booking form and the contact form are the two places it asks for your email address, and each is described in its own section below.
 
 ### What the site counts
 
@@ -66,7 +66,7 @@ Pages on the site link out to other places, including GitHub. Once you follow a 
 
 ## Booking a training session
 
-The training page at [`/training`](/training) sells one-to-one guidance around your own project. Booking an hour on it is the only thing anywhere on this site that asks you for personal information, and it asks once.
+The training page at [`/training`](/training) sells one-to-one guidance around your own project. Booking an hour on it asks you for personal information once. The contact form, described after this section, is the only other place on the site that does.
 
 You need no account, and there is nothing to sign in to. The page reads which hours the coach has open, you pick one, and what you send is stored on the same servers in Frankfurt that AI4Kanban Cloud runs on — in tables of its own, separate from any board, workspace or Cloud account. Nothing about a booking reaches a board, and nothing on a board reaches a booking.
 
@@ -107,6 +107,23 @@ A message the provider will not take is retried; a booking is never undone becau
 ### Who can read a booking
 
 The coach, and nobody else. Reading the booking records needs an admitted AI4Kanban Cloud account whose GitHub handle is on a short list held in the service's own configuration — being in the Cloud preview is not enough. The page that shows which hours are open answers everyone, and it answers with instants and nothing else: no name, no address, no project note, and no count of how many hours the schedule holds.
+
+## Sending us a message
+
+The contact page at [`/contact`](/contact) takes a support question or a request for custom agents. Like a booking, it needs no account, and what you send is stored on the same servers in Frankfurt, in a table of its own.
+
+### What a message holds
+
+| Field | Why we hold it |
+| --- | --- |
+| What you need | Support or custom agents, so the message reaches the right conversation. |
+| Your email address | Where we reply. It is the only way we can reach you. |
+| What you wrote | The message itself. |
+| Your workflow | Only for custom agents: the description you gave of the workflow you want built. |
+
+A submit is counted against a short-lived rate limit, keyed on two one-way hashes salted with a value only our server holds: one of your IP address and one of your email address. Neither the address nor the email is written into that counter, and it resets on its own.
+
+The message is sent to `support@ai4kanban.dev` from `contact@ai4kanban.dev` through Resend, with your email address to reply to. That notice is the only mail it sends: you get no confirmation, and our reply is the answer. We keep the message until you ask us to delete it at [support@ai4kanban.dev](mailto:support@ai4kanban.dev).
 
 ## Using the app
 
@@ -336,7 +353,7 @@ Four subprocessors and one identity provider, across the whole Service — the C
 | --- | --- | --- |
 | **Cloudflare, Inc.** | Compute and hosting — the API, the usage-reporting endpoint, the database behind it and the object storage holding the daily event archive, and the static site — and the Email Routing that delivers `support@ai4kanban.dev` | Global network |
 | **Supabase, Inc.** | The database and sign-in | `eu-central-1`, Frankfurt |
-| **Resend (Plus Five Five, Inc.)** | Sending the answer to an invite request, and the request notice | United States |
+| **Resend (Plus Five Five, Inc.)** | Sending the answer to an invite request, the request notice, and the mail the site's two forms send | United States |
 | **Spacemail (Spaceship, Inc.)** | The mailbox that routing forwards `support@ai4kanban.dev` to — where a data request, a support message, and the preview notice are read and sent | United States |
 | **GitHub, Inc.** | The identity provider you sign in through | GitHub's own infrastructure |
 
@@ -395,15 +412,15 @@ We use information to:
 - **Keep the Service safe** — verify a sign-in, check that a record belongs to the account asking for it, detect abuse, and stay inside the capacity the preview runs on.
 - **Send you a service notice** — the answer to the invite request you made, and a notice about the preview itself: that it is ending, or that these pages have changed materially. Both go to the email address GitHub verified for your account.
 - **Arrange a training session you booked** — hold the hour, confirm it to you, give the coach what they need to turn up to it, and let you cancel it.
-- **Answer you** — handle a support message or a data request you send us.
+- **Answer you** — handle a support message, a contact form message, or a data request you send us.
 - **Comply with legal obligations** that apply to us.
 
 We do **not** use your information for advertising, profiling, or scoring, and we do not use your board content to train AI models.
 
 For users in the EU, the UK, and Switzerland, the legal bases we rely on are:
 
-- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, answering the invite request you made, and arranging the training session you booked.
-- **Legitimate interests** — keeping the Service secure and working, preventing abuse, including the rate limit on the booking form, telling an account in the preview that the preview is ending or that these pages have materially changed, understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens, and the two counts this site keeps, which carry no identifier and so are about no one in particular.
+- **Contract** — running the Service you asked for, including holding the Cloud records of the account that turned Cloud on, answering the invite request you made, arranging the training session you booked, and answering a message you sent through the contact form.
+- **Legitimate interests** — keeping the Service secure and working, preventing abuse, including the rate limits on the booking and contact forms, telling an account in the preview that the preview is ending or that these pages have materially changed, understanding how the app is used from anonymous usage reporting, which you can turn off at any time and which we disclose before your first board opens, and the two counts this site keeps, which carry no identifier and so are about no one in particular.
 - **Legal obligation** — when a law applies to us.
 
 We rely on **consent** for nothing today: there is no marketing email, no non-essential cookie, and nothing the site stores in your browser to consent to. Anonymous usage reporting is optional and disclosed before your first board opens, and it rests on legitimate interests rather than on consent, so **turning it off is the choice you make and we do not ask you for one again**.
@@ -447,6 +464,7 @@ We keep personal information only as long as we need it for the purposes describ
 - **What you have asked to be told about in a workspace** — the switch and the release described above, kept while you are in that workspace, and deleted when your membership is or when the workspace is.
 - **The API's own request log** — retained by Cloudflare under Cloudflare's policy. It carries no board content, no handle, and no email address.
 - **A training booking** — the fields in the table above, kept for 24 months after the session, so both sides have a record of what was arranged and paid for. Cancelling releases the hour at once and marks the booking cancelled; the row itself stays for the same 24 months and is deleted on request, quoting your booking reference. The rate-limit counter behind a submit is keyed on a salted hash and expires within the hour.
+- **A contact form message** — the fields in the table above, kept until you ask us to delete it. The rate-limit counter behind a submit is keyed on salted hashes and resets on its own.
 - **Email correspondence** — kept for as long as needed to handle the conversation and any follow-up, then deleted.
 
 We may keep limited information longer where we need it to comply with a legal obligation, resolve a dispute, or enforce our agreements.

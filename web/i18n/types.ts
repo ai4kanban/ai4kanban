@@ -12,6 +12,7 @@
 import type { SharedCopy } from "./shared/types";
 import type { HomeCopy } from "./home/types";
 import type { DownloadCopy } from "./download/types";
+import type { ContactCopy } from "./contact/types";
 import type { VsGithubCopy } from "./vs-github-issues/types";
 import type { VsHermesCopy } from "./vs-hermes-kanban/types";
 import type { VsVibeCopy } from "./vs-vibe-kanban/types";
@@ -75,6 +76,7 @@ export type SiteCopy = {
   shared: SharedCopy;
   home: HomeCopy;
   download: DownloadCopy;
+  contact: ContactCopy;
   vsGithub: VsGithubCopy;
   vsHermes: VsHermesCopy;
   vsVibe: VsVibeCopy;

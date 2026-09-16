@@ -28,6 +28,7 @@ import type { SiteCopy } from "./types";
 import shared from "./shared";
 import home from "./home";
 import download from "./download";
+import contact from "./contact";
 import vsGithub from "./vs-github-issues";
 import vsHermes from "./vs-hermes-kanban";
 import vsVibe from "./vs-vibe-kanban";
@@ -41,6 +42,7 @@ export function getCopy(locale: Locale): SiteCopy {
     shared: shared[locale],
     home: home[locale],
     download: download[locale],
+    contact: contact[locale],
     vsGithub: vsGithub[locale],
     vsHermes: vsHermes[locale],
     vsVibe: vsVibe[locale],
