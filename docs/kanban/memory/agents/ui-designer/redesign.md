@@ -31,9 +31,9 @@
   longer in English, so a pane that fits in 中文 clips in English — measure the English
   render, and trim the sample text until the last row of the longest state survives the cut.
 
-- **The drawings live in `.akb/boards/docs/kanban/mockups/<card id>/`** — the board's own
-  folder on the machine, gitignored. `akb spec` prints the path; older cards' drawings are
-  still read from `docs/kanban/.mockups/`, which is not written to.
+- **New drawings go in `.akb/boards/docs/kanban/assets/<card id>/`**, referenced as
+  `.assets/<id>/…` — the board's own folder on the machine, gitignored. `akb spec` prints the
+  path; older cards' drawings in `.akb/boards/docs/kanban/mockups/` are still read, never written.
 - **Read the app's own `design.md`**: `kanban-ui/design.md` for the board, `web/design.md` for
   the site. Colours, shadows, radii and type live there.
 - **A mockup file is one screen at the size the card page clips it to**, so a second frame

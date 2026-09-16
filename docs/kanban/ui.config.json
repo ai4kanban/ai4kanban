@@ -49,5 +49,13 @@
   "proposer": true,
   "memoryReview": {
     "lastRun": "2026-09-16 13:21"
+  },
+  "workflows": {
+    "added": [
+      {
+        "id": "wf-2",
+        "name": "新建工作流"
+      }
+    ]
   }
 }

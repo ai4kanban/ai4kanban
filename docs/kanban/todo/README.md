@@ -26,3 +26,7 @@ the number at the front of a filename is the task id.
 - [#793 Blog one archived card's whole journey](791-showcase-proof/793-blog-one-archived-card-s-whole-journey.md)
 - [#794 Record a 90-second demo of the daily loop](791-showcase-proof/794-record-a-90-second-demo-of-the-daily-loop.md)
 - [#812 Describe memory by agent across the site](812-site-memory-by-agent.md)
+- [#819 Replace the content workflow with a Remotion demo-video workflow](819-demo-video-workflow/root.md)
+- [#820 Pick reviewers by diff instead of a review lead](819-demo-video-workflow/820-let-a-workflow-skip-review.md)
+- [#821 Remove the built-in content workflow](819-demo-video-workflow/821-remove-the-built-in-content-workflow.md)
+- [#822 Add a built-in video workflow built on Remotion](819-demo-video-workflow/822-add-a-built-in-video-workflow-built-on-remotion.md)
