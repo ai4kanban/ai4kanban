@@ -3,7 +3,23 @@
 import Link from "next/link";
 import { createContext, useContext, useMemo } from "react";
 import { FiCheck, FiCopy } from "react-icons/fi";
-import ReactMarkdown, { type Components, type ExtraProps, defaultUrlTransform } from "react-markdown";
+import bash from "highlight.js/lib/languages/bash";
+import css from "highlight.js/lib/languages/css";
+import dockerfile from "highlight.js/lib/languages/dockerfile";
+import go from "highlight.js/lib/languages/go";
+import ini from "highlight.js/lib/languages/ini";
+import javascript from "highlight.js/lib/languages/javascript";
+import json from "highlight.js/lib/languages/json";
+import markdown from "highlight.js/lib/languages/markdown";
+import python from "highlight.js/lib/languages/python";
+import rust from "highlight.js/lib/languages/rust";
+import shell from "highlight.js/lib/languages/shell";
+import sql from "highlight.js/lib/languages/sql";
+import typescript from "highlight.js/lib/languages/typescript";
+import xml from "highlight.js/lib/languages/xml";
+import yaml from "highlight.js/lib/languages/yaml";
+import ReactMarkdown, { type Components, type ExtraProps, type Options, defaultUrlTransform } from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { SKIP, visit } from "unist-util-visit";
 import { useCopy } from "@/i18n/use-copy";
@@ -87,6 +103,44 @@ function remarkMockups(mockups: MockupSet | null) {
     });
   };
 }
+
+// Fenced blocks are coloured by their language tag only — an untagged block stays plain, since
+// a wrong guess reads worse than none (#827). A diff is drawn by rehypeDiff instead, in the
+// Diff tab's colours.
+const HIGHLIGHT_OPTIONS = {
+  languages: { bash, css, dockerfile, go, ini, javascript, json, markdown, python, rust, shell, sql, typescript, xml, yaml },
+  plainText: ["diff"],
+};
+
+/** A ```diff block, one span per line: added, removed, or a dimmed header. */
+function rehypeDiff() {
+  return (tree: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree as any, "element", (node: any, _index: number | undefined, parent: any) => {
+      if (node.tagName !== "code" || parent?.tagName !== "pre") return;
+      const classes: unknown[] = node.properties?.className ?? [];
+      if (!classes.includes("language-diff")) return;
+      const text: string = node.children.map((kid: { value?: string }) => kid.value ?? "").join("");
+      node.properties.className = [...classes, "nb-diff"];
+      node.children = text.split(/(?<=\n)/).map((line) => ({
+        type: "element",
+        tagName: "span",
+        properties: { className: [diffLine(line)] },
+        children: [{ type: "text", value: line }],
+      }));
+      return SKIP;
+    });
+  };
+}
+
+function diffLine(line: string): string {
+  if (/^(---|\+\+\+|@@|diff |index )/.test(line)) return "nb-diff-head";
+  if (line.startsWith("+")) return "nb-diff-add";
+  if (line.startsWith("-")) return "nb-diff-del";
+  return "nb-diff-ctx";
+}
+
+const REHYPE_PLUGINS: Options["rehypePlugins"] = [rehypeDiff, [rehypeHighlight, HIGHLIGHT_OPTIONS]];
 
 // The mockups reach the tag handler as context, not as a closure, so the handler can be
 // one component defined once. A component built inside the render is a NEW type on every
@@ -195,6 +249,7 @@ export function Markdown({
       <div className={className ? `nb-md ${className}` : "nb-md"}>
         <ReactMarkdown
           remarkPlugins={plugins}
+          rehypePlugins={REHYPE_PLUGINS}
           urlTransform={urlTransform}
           components={copyCode ? COMPONENTS_COPY : COMPONENTS}
         >

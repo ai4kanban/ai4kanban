@@ -98,9 +98,11 @@
   border-radius: 5px;
   padding: 1px 6px;
 }
+/* Paper, the ground of the GitHub light theme below: a code block reads the same on every
+   section tint. */
 .nb-md pre {
   padding: 12px 14px;
-  background: var(--color-nb-wash);
+  background: var(--color-nb-paper);
   border: 1.5px solid var(--color-nb-ink);
   border-radius: 12px;
   box-shadow: 3px 3px 0 0 var(--color-nb-ink);
@@ -116,6 +118,62 @@
   font-size: inherit;
   white-space: pre;
 }
+
+/* ```diff — the Diff tab's bands; each line runs out to the block's edges however far it scrolls. */
+.nb-md pre code.nb-diff {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
+.nb-md .nb-diff > span {
+  display: block;
+  margin: 0 -14px;
+  padding: 0 14px;
+}
+.nb-md .nb-diff-add { background: var(--color-nb-mint-soft); color: var(--color-nb-mint-ink); }
+.nb-md .nb-diff-del { background: var(--color-nb-peach-soft); color: var(--color-nb-peach-ink); }
+.nb-md .nb-diff-head { color: var(--color-nb-ink-soft); }
+
+/* Token colours from highlight.js's GitHub light theme (styles/github.css, BSD-3-Clause). */
+.nb-md .hljs-doctag,
+.nb-md .hljs-keyword,
+.nb-md .hljs-meta .hljs-keyword,
+.nb-md .hljs-template-tag,
+.nb-md .hljs-template-variable,
+.nb-md .hljs-type,
+.nb-md .hljs-variable.language_ { color: #d73a49; }
+.nb-md .hljs-title,
+.nb-md .hljs-title.class_,
+.nb-md .hljs-title.class_.inherited__,
+.nb-md .hljs-title.function_ { color: #6f42c1; }
+.nb-md .hljs-attr,
+.nb-md .hljs-attribute,
+.nb-md .hljs-literal,
+.nb-md .hljs-meta,
+.nb-md .hljs-number,
+.nb-md .hljs-operator,
+.nb-md .hljs-variable,
+.nb-md .hljs-selector-attr,
+.nb-md .hljs-selector-class,
+.nb-md .hljs-selector-id { color: #005cc5; }
+.nb-md .hljs-regexp,
+.nb-md .hljs-string,
+.nb-md .hljs-meta .hljs-string { color: #032f62; }
+.nb-md .hljs-built_in,
+.nb-md .hljs-symbol { color: #e36209; }
+.nb-md .hljs-comment,
+.nb-md .hljs-code,
+.nb-md .hljs-formula { color: #6a737d; }
+.nb-md .hljs-name,
+.nb-md .hljs-quote,
+.nb-md .hljs-selector-tag,
+.nb-md .hljs-selector-pseudo { color: #22863a; }
+.nb-md .hljs-section { color: #005cc5; font-weight: bold; }
+.nb-md .hljs-bullet { color: #735c0f; }
+.nb-md .hljs-emphasis { font-style: italic; }
+.nb-md .hljs-strong { font-weight: bold; }
+.nb-md .hljs-addition { color: #22863a; background-color: #f0fff4; }
+.nb-md .hljs-deletion { color: #b31d28; background-color: #ffeef0; }
 
 .nb-md blockquote {
   border-left: 3px solid var(--color-nb-accent);
