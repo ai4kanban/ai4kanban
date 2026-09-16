@@ -42,3 +42,12 @@ covers it, or a plain-words note.
 - Coming back to a card page with Back or Forward (the browser's, or the app's swipe) now
   shows the card as it is on disk, not as it was when you left; a change that lands only in
   the folded agent analysis opens that fold.
+
+## site
+
+- The site has a contact page at `/contact` (all five languages, linked from the footer): one form for support and for custom agents at $15 per agent, answered by email.
+
+## skill
+
+- A specialist can wait for another one's section with `akb.dependencies`, and a new built-in `copywriting` agent writes promotional copy that `ui-designer` waits for until you confirm it: `web/content/docs/agents.mdx`.
+- A project agent, `prompt-writer`, shows the full proposed text of any skill, agent prompt or akb guide change on the card and waits for your confirmation.
