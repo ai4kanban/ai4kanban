@@ -11,8 +11,10 @@
  * and goes here rather than on a schedule of its own, because a static site cannot run one.
  *
  * A run gets fifty queries on the free plan and every D1 query is one of them. So the run
- * keeps a budget, spends it oldest work first, and carries whatever does not fit to the next
- * run: 90 days is the least time an event is kept, not the exact moment it goes.
+ * keeps a budget and spends it oldest work first: 90 days is the least time an event is kept,
+ * not the exact moment it goes. The summaries are the one step whose cost does not grow with
+ * the work it is given — eight queries for the whole window — so every day that is waiting is
+ * written tonight (#804).
  */
 
 import { LIMITS } from '../contract.ts'
@@ -22,7 +24,7 @@ import type { Env } from './env.ts'
 import { WRITE_INSTALLS } from './installs.ts'
 import { shift } from './take.ts'
 import { SPREADS, TOTALS, WRITE_SUMMARY, numbersOf } from './summary.ts'
-import type { Totals, Triple } from './summary.ts'
+import type { Totals, Triple, Written } from './summary.ts'
 import { spent, usageSince } from './usage.ts'
 import type { DayUsage } from './usage.ts'
 
@@ -40,10 +42,11 @@ const SWEEP_CHUNKS = 10
  *  more than the whole of it. */
 const FEEDBACK_CHUNK = 500
 const FEEDBACK_CHUNKS = 3
-/** The spreads, the totals, and the write. D1 takes only five branches in one compound
- *  SELECT, so the spreads are several queries rather than one and a day costs what they
- *  come to (#801). */
-const QUERIES_PER_DAY = SPREADS.length + 2
+/** The day list, the spreads, the totals, and the write — all of them for the whole window
+ *  at once, so this is what the summaries cost whether the run writes one day or ninety. D1
+ *  takes only five branches in one compound SELECT, so the spreads are several queries rather
+ *  than one (#801). */
+const QUERIES_FOR_SUMMARIES = SPREADS.length + 3
 /** The installs total (#728), worked out from the summaries this run just wrote. */
 const QUERIES_FOR_INSTALLS = 1
 
@@ -82,10 +85,8 @@ export interface DailyRun {
   /** Expired days the sweep left where they are, waiting on their archive file. Anything but
    *  zero for long means the database is growing until the archive is fixed. */
   held: number
-  /** Days whose summary this run wrote. */
+  /** Days whose summary this run wrote, oldest first. */
   summarised: string[]
-  /** Days this run had no budget for. The next run takes them. */
-  carried: number
   /** Whether the installs badge's running total was rewritten (#728). */
   countedInstalls: boolean
   /** The steps that threw. Each one left the rest of the job standing, and the run is
@@ -105,7 +106,6 @@ export async function runDaily(env: Env, now: Date): Promise<DailyRun> {
     sweptFeedbackFiles: 0,
     held: 0,
     summarised: [],
-    carried: 0,
     countedInstalls: false,
     failed: [],
     rowsWritten: 0,
@@ -282,7 +282,7 @@ async function summarise(env: Env, today: string, budget: number, run: DailyRun)
   // The installs total's one query is held back, so a run that summarises to the last of its
   // budget still leaves the badge's number standing beside the summaries it just wrote.
   let left = budget - QUERIES_FOR_INSTALLS
-  if (left < 1 + QUERIES_PER_DAY) return budget
+  if (left < QUERIES_FOR_SUMMARIES) return budget
 
   left -= 1
   const kept = shift(today, -LIMITS.retentionDays)
@@ -297,32 +297,15 @@ async function summarise(env: Env, today: string, budget: number, run: DailyRun)
 
   // Back as far as a day this run may write, not just the open ones: a day summarised late
   // has to carry what it cost too, and the answer is one grouped row per day either way.
-  const usage = await usageSince(env, shift(today, -LIMITS.retentionDays))
+  const usage = await usageSince(env, kept)
 
-  for (const day of ordered(wanted(today, held, settled), today)) {
-    if (left < QUERIES_PER_DAY) {
-      run.carried += 1
-      continue
-    }
-    left -= QUERIES_PER_DAY
-    await writeDay(env, day.day, day.settled, usage.get(day.day) ?? null, run)
-  }
+  // Every day `wanted` names, in one window: nothing is held back for the next run, because
+  // what the summaries cost no longer grows with the number of days.
+  const days = wanted(today, held, settled)
+  if (days.length === 0) return left + QUERIES_FOR_INSTALLS
+  left -= QUERIES_FOR_SUMMARIES - 1
+  await writeWindow(env, days, usage, run)
   return left + QUERIES_FOR_INSTALLS
-}
-
-/**
- * The oldest day the job missed, ahead of the days that are still open.
- *
- * A day costs several queries now that the spreads are several statements (#801), and a run
- * can no longer afford every open day — so a missed day left at the back of the queue would
- * wait behind nine days that are rewritten every night and never be written at all. It is the
- * one whose events the sweep takes next, and the open days behind it lose nothing by waiting:
- * each of them comes round again tomorrow, one day older.
- */
-function ordered(days: Day[], today: string): Day[] {
-  const open = shift(today, -(LIMITS.backfillDays + 1))
-  const first = days.findIndex((day) => day.day < open)
-  return first < 0 ? days : [days[first]!, ...days.slice(0, first), ...days.slice(first + 1)]
 }
 
 /**
@@ -354,30 +337,43 @@ export function wanted(today: string, held: Set<string>, settled: Set<string>): 
   return [...open.reverse(), ...missed.reverse()]
 }
 
-async function writeDay(
+/**
+ * The whole window, read and written as one.
+ *
+ * The window goes in as a JSON array and comes back grouped by day, so a run with ten days
+ * waiting costs what one day costs. A statement that throws loses the window rather than a
+ * day, and every day in it comes back tomorrow unchanged: a summary is worked out from the
+ * events again each night, never added to.
+ */
+async function writeWindow(
   env: Env,
-  day: string,
-  settled: boolean,
-  usage: DayUsage | null,
+  days: Day[],
+  usage: Map<string, DayUsage>,
   run: DailyRun,
 ): Promise<void> {
+  const window = days.map((day) => day.day)
+  const list = JSON.stringify(window)
   const spreads: Triple[] = []
   for (const query of SPREADS) {
-    const part = await env.DB.prepare(query).bind(day).all<Triple>()
+    const part = await env.DB.prepare(query).bind(list).all<Triple>()
     run.rowsRead += part.meta.rows_read
     spreads.push(...part.results)
   }
-  // `all` rather than `first`: this is the run's most expensive read, and the summary
-  // promises to say what the day cost.
-  const totals = await env.DB.prepare(TOTALS).bind(day).all<Totals>()
+  const totals = await env.DB.prepare(TOTALS).bind(list).all<Totals>()
   run.rowsRead += totals.meta.rows_read
-  const numbers = numbersOf(spreads, totals.results[0] ?? EMPTY, usage)
+
+  const numbers = numbersOf(window, spreads, totals.results, usage)
+  const payload: Written[] = days.map((day) => ({
+    day: day.day,
+    numbers: JSON.stringify(numbers.get(day.day)),
+    settled: day.settled ? 1 : 0,
+  }))
+  // Bound, not spelled into the SQL: D1 takes 100 KB of SQL text and 2 MB of bound string.
   const result = await env.DB.prepare(WRITE_SUMMARY)
-    .bind(day, JSON.stringify(numbers), settled ? 1 : 0, new Date().toISOString())
+    .bind(JSON.stringify(payload), new Date().toISOString())
     .run()
   run.rowsWritten += result.meta.rows_written
   run.rowsRead += result.meta.rows_read
-  run.summarised.push(day)
+  // `wanted` puts the open days ahead of the older ones it missed; the report reads by date.
+  run.summarised.push(...window.sort())
 }
-
-const EMPTY: Totals = { installs: 0, returning_installs: 0, boards: 0 }

@@ -30,9 +30,13 @@ telemetry/
   query and the free plan fifty queries per run.
 - **Counting happens in the database, five branches at a time.** A run gets ten milliseconds
   of processor time, so the daily job aggregates and reads back a handful of rows rather than
-  reading rows to count them. D1 takes only five SELECTs in one compound statement, so a day's
-  spreads are several queries and a day costs what they come to — the SQLite the tests run on
-  takes 500, so `test/fake.mjs` holds every statement to D1's limit instead.
+  reading rows to count them. D1 takes only five SELECTs in one compound statement, so the
+  spreads are several queries — the SQLite the tests run on takes 500, so `test/fake.mjs`
+  holds every statement to D1's limit instead.
+- **The summaries cost the same however many days are waiting.** Every statement takes the
+  window as one JSON parameter and groups by `day`, and the write puts every day back in one
+  `INSERT`, so summarising is eight queries whether the run has one day to write or ninety.
+  Nothing is held back for tomorrow: a day `wanted()` names is written tonight.
 - **Nothing about a sender is written down but what it sent.** The country comes from the
   request and the address does not; the hourly per-address limit lives in a Durable Object's
   memory and never calls storage.

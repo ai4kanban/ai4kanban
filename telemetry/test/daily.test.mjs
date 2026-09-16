@@ -76,7 +76,7 @@ describe('which days a run writes', () => {
 })
 
 describe('the daily run', () => {
-  it('sweeps what expired, writes the oldest open days it can pay for, and settles the one that closed', async () => {
+  it('sweeps what expired, writes every open day, and settles the one that closed', async () => {
     const env = fakeEnv()
     await put(env, TODAY, 'a1')
     await put(env, shift(TODAY, -6), 'a2')
@@ -84,11 +84,11 @@ describe('the daily run', () => {
 
     const run = await runDaily(env, NOW)
     assert.equal(run.swept, 1)
-    // A day costs one query per spread statement now (#801), and nine open days no longer fit
-    // in a run — so the oldest go first and the rest come round tomorrow, one day older.
-    assert.equal(run.summarised.length + run.carried, CLOSES + 1)
+    // The whole window is one pass now (#804): no open day waits for a later run.
+    assert.equal(run.summarised.length, CLOSES + 1)
     assert.deepEqual(run.summarised, [...run.summarised].sort())
     assert.equal(run.summarised[0], shift(TODAY, -CLOSES))
+    assert.equal(run.summarised.at(-1), TODAY)
 
     const rows = env.DB.sqlite.prepare('SELECT day, settled, numbers FROM daily ORDER BY day').all()
     assert.equal(rows.length, run.summarised.length)
@@ -96,6 +96,37 @@ describe('the daily run', () => {
     assert.equal(rows.at(-1).settled, 0)
     const counted = rows.find((row) => row.day === shift(TODAY, -6))
     assert.equal(JSON.parse(counted.numbers).installs, 1)
+  })
+
+  it('writes a row for a day with no events at all, and one with site events only', async () => {
+    // Nine open days and one install that reported on one of them. Every other day has to get
+    // its own row all the same, or it reads as never summarised and comes back every night.
+    const env = fakeEnv()
+    await put(env, shift(TODAY, -3), 'a1')
+    await site(env, TODAY)
+
+    const run = await runDaily(env, NOW)
+    const rows = env.DB.sqlite.prepare('SELECT day, settled, numbers FROM daily ORDER BY day').all()
+    assert.deepEqual(rows.map((row) => row.day), run.summarised)
+    assert.equal(rows.length, CLOSES + 1)
+    for (const row of rows) {
+      const numbers = JSON.parse(row.numbers)
+      assert.equal(typeof numbers.installs, 'number', row.day)
+      assert.equal(numbers.returning_installs, 0, row.day)
+    }
+    // A day of page views only: an installs count of zero, not a day missing from `daily`.
+    const today = rows.find((row) => row.day === TODAY)
+    assert.equal(JSON.parse(today.numbers).installs, 0)
+    assert.deepEqual(JSON.parse(today.numbers).events, { page_view: 1 })
+    // A day nothing happened on at all.
+    const quiet = rows.find((row) => row.day === shift(TODAY, -1))
+    assert.equal(JSON.parse(quiet.numbers).installs, 0)
+    assert.equal(JSON.parse(quiet.numbers).events, undefined)
+    // Only the day that just closed is settled; the open ones stay open.
+    assert.deepEqual(
+      rows.filter((row) => row.settled === 1).map((row) => row.day),
+      [shift(TODAY, -CLOSES)],
+    )
   })
 
   it("counts the badge's installs total off the summaries it just wrote", async () => {
@@ -119,9 +150,39 @@ describe('the daily run', () => {
     assert.equal(again.summarised[0], shift(TODAY, -CLOSES + 1))
   })
 
-  it('writes a day the job missed ahead of the open days, before the sweep takes it', async () => {
-    // The open days are rewritten every night and there are more of them than a run can pay
-    // for, so a missed day left behind them would never be written at all (#801).
+  it('writes the same numbers for a day whether it goes in alone or with the window', async () => {
+    // The window is grouped by day in SQL now (#804). A day must come out of the grouped pass
+    // exactly as it came out of a pass that held nothing else.
+    const alone = fakeEnv()
+    const together = fakeEnv()
+    const days = Array.from({ length: CLOSES + 1 }, (_, back) => shift(TODAY, -back))
+    for (const [n, day] of days.entries()) {
+      for (const env of [alone, together]) {
+        await put(env, day, `a${n}`)
+        await put(env, day, `b${n}`, { ...APP_DAY, name: 'app_open', first_run: true })
+        await site(env, day)
+      }
+    }
+    // `alone` is given every day but one as settled, so each run writes a single open day.
+    const hold = alone.DB.sqlite.prepare(
+      "INSERT INTO daily (day, numbers, settled, written_at) VALUES (?, '{}', 1, 'x')",
+    )
+    await runDaily(together, NOW)
+    const read = (env, day) =>
+      JSON.parse(env.DB.sqlite.prepare('SELECT numbers FROM daily WHERE day = ?').get(day).numbers)
+
+    for (const day of days) {
+      alone.DB.sqlite.prepare('DELETE FROM daily').run()
+      for (const other of days) if (other !== day) hold.run(other)
+      const one = await runDaily(alone, NOW)
+      assert.deepEqual(one.summarised, [day])
+      assert.deepEqual(read(alone, day), read(together, day), day)
+    }
+  })
+
+  it('writes a day the job missed alongside the open days, before the sweep takes it', async () => {
+    // The missed day goes in the same window as the open ones, and the report reads by date,
+    // so the oldest day the job owes is the first thing the run says it wrote.
     const env = fakeEnv()
     const missed = shift(TODAY, -40)
     const hold = env.DB.sqlite.prepare(
@@ -138,24 +199,55 @@ describe('the daily run', () => {
     assert.equal(JSON.parse(row.numbers).installs, 1)
   })
 
-  it('stays inside the free plan\'s fifty queries a run and carries the rest', async () => {
-    const env = fakeEnv()
-    // A service that has been running a while and missed a long stretch of days: the most
-    // work one run can ever be asked for.
-    env.DB.sqlite
-      .prepare("INSERT INTO daily (day, numbers, settled, written_at) VALUES (?, '{}', 1, 'x')")
-      .run(shift(TODAY, -LIMITS.retentionDays))
+  it("writes every waiting day inside the free plan's fifty queries a run", async () => {
+    // The most work one run can ever be asked for: a service that has been running a while,
+    // has nine open days, and missed every closed day back to the retention edge. Every step
+    // before the summaries is given a day's worth of work too, so each spends its full share.
+    const env = fakeEnv({ CF_ACCOUNT_ID: 'account', CF_API_TOKEN: 'token' })
+    const every = Array.from({ length: LIMITS.retentionDays + 1 }, (_, back) => shift(TODAY, -back))
+    const hold = env.DB.sqlite.prepare(
+      "INSERT INTO daily (day, numbers, settled, written_at) VALUES (?, '{}', 0, 'x')",
+    )
+    // Held but never settled: every one of them is a day the job missed.
+    for (const day of every) hold.run(day)
+    for (const [n, day] of every.entries()) await put(env, day, `m${n}`)
+    // Expired days for the archive and the sweep to spend their shares on.
+    for (let back = LIMITS.retentionDays + 1; back <= LIMITS.retentionDays + 4; back += 1) {
+      await put(env, shift(TODAY, -back), `x${back}`)
+    }
+
     let queries = 0
     const real = env.DB.prepare.bind(env.DB)
     env.DB.prepare = (sql) => {
       queries += 1
       return real(sql)
     }
+    const fetched = globalThis.fetch
+    let requests = 0
+    globalThis.fetch = async () => {
+      requests += 1
+      return new Response(JSON.stringify({ data: [] }))
+    }
+    let run
+    try {
+      run = await runDaily(env, NOW)
+    } finally {
+      globalThis.fetch = fetched
+    }
 
-    const run = await runDaily(env, NOW)
-    // One more request goes to the usage gauge, which is a subrequest like every query here.
-    assert.ok(queries + 1 <= 50, `${queries + 1} queries`)
-    assert.ok(run.carried > 0, 'the rest is carried to the next run, not dropped')
+    // The usage gauge's read is a subrequest like every query here.
+    assert.equal(requests, 1)
+    assert.ok(queries + requests <= 50, `${queries + requests} queries`)
+    // Nothing waits for tomorrow: every day `wanted` named was written tonight.
+    assert.deepEqual(run.summarised, [...every].sort())
+    const rows = env.DB.sqlite.prepare('SELECT day, settled FROM daily ORDER BY day').all()
+    assert.equal(rows.length, every.length)
+    // The day that just closed and every missed day behind it are settled for good; the
+    // open days stay open, to be rewritten tomorrow.
+    assert.deepEqual(
+      rows.filter((row) => row.settled === 0).map((row) => row.day),
+      every.slice(0, CLOSES).sort(),
+    )
   })
 
   it('gives a day summarised late what it cost, not an unknown', async () => {
@@ -203,8 +295,7 @@ describe('the daily run', () => {
     const run = await runDaily(env, NOW)
     assert.equal(run.swept, 0)
     assert.deepEqual(run.failed, ['sweep'])
-    assert.ok(run.summarised.length > 0)
-    assert.equal(run.summarised.length + run.carried, CLOSES + 1)
+    assert.equal(run.summarised.length, CLOSES + 1)
   })
 })
 
@@ -303,5 +394,15 @@ const APP_DAY = { name: 'app_day', surface: 'app', version: '0.8.1' }
 
 async function put(env, day, id, event = APP_DAY) {
   const taken = take({ v: 1, install: A, events: [{ id, day, ...event }] }, day, () => id)
+  await store(env.DB, taken.install, 'US', taken.rows)
+}
+
+/** A page view: the site's own events carry no install id, so a day may hold only these. */
+async function site(env, day) {
+  const taken = take(
+    { v: 1, events: [{ name: 'page_view', day, page: '/', language: 'en' }] },
+    day,
+    () => `p-${day}`,
+  )
   await store(env.DB, taken.install, 'US', taken.rows)
 }

@@ -128,11 +128,49 @@ describe("a day's summary", () => {
   it('asks for the spreads in statements D1 will take, and names its columns in each', () => {
     // One 25-branch query was refused by D1 every night for nine days and passed here, where
     // SQLite takes 500 (#801). A branch that starts a query is where its column names come
-    // from, so every one of them carries all three.
+    // from, so every one of them carries all four — `day` included, since #804 reads the
+    // whole window in one statement.
     assert.ok(SPREADS.length > 1)
     for (const query of SPREADS) {
       assert.ok(compoundTerms(query) <= D1_COMPOUND_TERMS, query)
-      assert.match(query.split('UNION ALL')[0], /AS dim,[\s\S]*AS key,[\s\S]*AS n/)
+      assert.match(query.split('UNION ALL')[0], /AS day,[\s\S]*AS dim,[\s\S]*AS key,[\s\S]*AS n/)
+    }
+  })
+
+  it('answers a whole window in one pass, and a zero day with a row of its own', async () => {
+    const db = fakeDatabase()
+    await put(db, A, YESTERDAY, [open('a0', YESTERDAY)], 'US')
+    await put(db, null, TODAY, [{ name: 'page_view', day: TODAY, page: '/', language: 'en' }])
+    const quiet = shift(TODAY, 1)
+
+    const window = await windowOf(db, [YESTERDAY, TODAY, quiet])
+    assert.deepEqual([...window.keys()], [YESTERDAY, TODAY, quiet])
+    assert.equal(window.get(YESTERDAY).installs, 1)
+    assert.deepEqual(window.get(YESTERDAY).events, { app_open: 1 })
+    // A day of site events only: an installs count of zero, not a day missing from the answer.
+    assert.equal(window.get(TODAY).installs, 0)
+    assert.deepEqual(window.get(TODAY).events, { page_view: 1 })
+    // A day with nothing at all still gets an object, so the run writes it a `daily` row.
+    assert.deepEqual(window.get(quiet), {
+      installs: 0,
+      returning_installs: 0,
+      boards: 0,
+      usage: null,
+    })
+  })
+
+  it('reads a day the same whether it is asked for alone or inside a window', async () => {
+    const db = fakeDatabase()
+    await put(db, B, YESTERDAY, [open('b0', YESTERDAY)], 'DE')
+    await put(db, A, TODAY, [open('a1', TODAY)], 'US')
+    await put(db, B, TODAY, [open('b1', TODAY, { first_run: false, version: '0.8.0' })], 'DE')
+    await put(db, null, TODAY, [
+      { name: 'download_press', day: TODAY, page: '/', language: 'en', place: 'hero', os: 'macos', arch: 'arm', version: '0.8.1' },
+    ])
+
+    const window = await windowOf(db, [YESTERDAY, TODAY])
+    for (const day of [YESTERDAY, TODAY]) {
+      assert.deepEqual(window.get(day), await summaryOf(db, day), day)
     }
   })
 
@@ -182,12 +220,22 @@ describe('what leaves the database', () => {
 
 const rows = (db, sql) => db.sqlite.prepare(sql).all()
 
-async function summaryOf(db, day) {
+const shift = (day, days) =>
+  new Date(Date.parse(`${day}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10)
+
+/** The summaries as the daily job reads them: one pass over the whole window. */
+async function windowOf(db, days) {
+  const list = JSON.stringify(days)
   const spreads = []
-  for (const query of SPREADS) spreads.push(...(await db.prepare(query).bind(day).all()).results)
-  const totals = await db.prepare(TOTALS).bind(day).first()
-  return numbersOf(spreads, totals, null)
+  for (const query of SPREADS) spreads.push(...(await db.prepare(query).bind(list).all()).results)
+  const totals = await db.prepare(TOTALS).bind(list).all()
+  return numbersOf(days, spreads, totals.results, new Map())
 }
 
+const summaryOf = async (db, day) => (await windowOf(db, [day])).get(day)
+
 const write = (db, day, numbers, settled) =>
-  db.prepare(WRITE_SUMMARY).bind(day, JSON.stringify(numbers), settled ? 1 : 0, 'now').run()
+  db
+    .prepare(WRITE_SUMMARY)
+    .bind(JSON.stringify([{ day, numbers: JSON.stringify(numbers), settled: settled ? 1 : 0 }]), 'now')
+    .run()
