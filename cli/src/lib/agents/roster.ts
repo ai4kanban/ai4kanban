@@ -22,7 +22,6 @@ import type { AgentView } from '../agent/types'
 import { agentMemoryDir, legacyAgentMemoryFile } from '../memory'
 import { signalsAccess } from '../signals/access'
 import { AGENTS, LEGACY_AGENTS, rel, RULES } from '../paths'
-import { solution } from '../solution'
 import type { WriteResult } from '../view/types'
 import { agentFileReader, specAgentCatalog } from './catalog'
 import { agentSettingsView, specAgentEnabled, specAgentSettings } from './index'
@@ -31,13 +30,11 @@ import { AGENT_NAME, parseSpecAgent } from './parse'
 const AGENT_FILE = 'AGENT.md'
 
 // What a new agent is told to fill in for `akb.owns` — the part of the work it answers for,
-// which is a different thing at each stage. A `write` agent is the marketing board's, and
-// answers for a file in a topic's folder.
-const OWNS: Record<WorkflowStage | 'write', string> = {
+// which is a different thing at each stage.
+const OWNS: Record<WorkflowStage, string> = {
   plan: "unwritten — name the one part of a card's spec this agent answers for",
   execute: 'unwritten — name the part of the work this agent produces',
   review: 'unwritten — name what this agent checks the finished work against',
-  write: 'unwritten — name the file this agent writes into a topic',
 }
 
 /** Whether this board's Triage is open, with an unreachable answer read as closed. */
@@ -146,18 +143,15 @@ export function createAgent(asked: string, stage?: WorkflowStage): WriteResult &
 // in the problems under it — and every line a flow would pick it by says it is unwritten.
 //
 // A stage names where it can be assigned (#715) and is what a workflow agent declares. With
-// none, it falls back to the hook this board has: `spec` on a product board, where a
-// specialist fills part of a card's spec, and `write` on a marketing one, where it joins the
-// writer.
+// none, it falls back to `spec` — a specialist that fills part of a card's spec.
 function agentTemplate(name: string, stage?: WorkflowStage): string {
-  const kind = solution() === 'marketing' ? 'write' : 'spec'
-  const owns = OWNS[stage ?? (kind === 'write' ? 'write' : 'plan')]
+  const owns = OWNS[stage ?? 'plan']
   return [
     '---',
     `name: ${name}`,
     'description: Unwritten — say here when a card needs this agent, and until you do the board asks for it on none.',
     'akb:',
-    ...(stage ? [`  stage: ${stage}`] : [`  kind: ${kind}`]),
+    ...(stage ? [`  stage: ${stage}`] : ['  kind: spec']),
     `  owns: ${owns}`,
     '  # i18n:                    # what the two lines above say to a reader in another',
     '  #   zh:                    # language. Drawn only — every run is given the English.',

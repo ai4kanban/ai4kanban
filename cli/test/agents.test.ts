@@ -43,11 +43,6 @@ const board = (cfg: Record<string, unknown> = {}): void => {
   setBoardRoot(root)
 }
 
-/** Say what kind of board this is — `product` unless the line says otherwise. */
-const solution = (name: string): void => {
-  fs.writeFileSync(path.join(kanban(), 'config.md'), `- **Solution** — ${name}\n`)
-}
-
 /** Write one project agent: `AGENT.md` plus whatever else it carries, in `agents/` or —
  *  `folder` says which — the `skills/` folder agents used to live in. */
 const project = (name: string, files: Record<string, string>, folder = 'agents'): void => {
@@ -344,25 +339,16 @@ describe('an agent still in the folder agents used to live in', () => {
   })
 })
 
-// The two hooks (#419). `write` joins the writer, which only a marketing board has.
+// `write` joined the retired marketing board's writer (#718). A file still declaring it is
+// listed as a problem rather than registered as something nothing on the board can call.
 describe('the hook an agent declares', () => {
-  const WRITE = AGENT.replace('  kind: spec', '  kind: write')
-
-  it('takes a `write` agent on a marketing board, and leaves it off the spec list', () => {
-    solution('marketing')
-    project('api-contract', { 'AGENT.md': WRITE })
-    const { agents, problems } = specAgentCatalog()
-    assert.deepEqual(problems, [])
-    assert.equal(agents.find((a) => a.name === 'api-contract')?.kind, 'write')
-    assert.ok(!specHookAgents().some((a) => a.name === 'api-contract'))
-    assert.doesNotMatch(specAgentSelector(12), /api-contract/)
-  })
-
-  it('refuses one on a product board rather than registering it', () => {
-    project('api-contract', { 'AGENT.md': WRITE })
+  it('lists a leftover `write` agent as a problem rather than registering it', () => {
+    project('api-contract', { 'AGENT.md': AGENT.replace('  kind: spec', '  kind: write') })
     const { agents, problems } = specAgentCatalog()
     assert.ok(!agents.some((a) => a.name === 'api-contract'))
-    assert.match(problems.join('\n'), /only a marketing board has a writer to join/)
+    assert.match(problems.join('\n'), /the marketing board it wrote for is retired/)
+    assert.ok(!specHookAgents().some((a) => a.name === 'api-contract'))
+    assert.doesNotMatch(specAgentSelector(12), /api-contract/)
   })
 })
 
@@ -388,7 +374,7 @@ describe('an agent nobody can read', () => {
       problemFor({
         'AGENT.md': ['---', 'name: broken', 'description: d', 'akb:', '  kind: review', '  owns: x', '---', '', 'Body.'].join('\n'),
       }),
-      /an agent is `spec` or `write`/,
+      /an agent is `spec`/,
     )
   })
 
@@ -759,12 +745,6 @@ describe("who a spec agent's output is for", () => {
     assert.equal(specAgentOutput(findSpecAgent('ui-designer')!), 'human')
     assert.equal(specAgentOutput(findSpecAgent('tech-stack-advisor')!), 'agent')
     assert.equal(specAgentOutput(findSpecAgent('api-contract')!), 'agent')
-  })
-
-  it('is not offered on a `write` agent, which writes files rather than a section', () => {
-    solution('marketing')
-    project('api-contract', { 'AGENT.md': AGENT.replace('  kind: spec', '  kind: write') })
-    assert.deepEqual(agentSettingsView(findSpecAgent('api-contract')!), [])
   })
 
   it("saves under the entry's own key, and drops it when it goes back to the default", () => {

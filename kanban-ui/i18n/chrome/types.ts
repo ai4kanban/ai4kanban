@@ -50,12 +50,6 @@ export type ChromeCopy = {
     openHere: string;
     /** Every other row: picking it opens that board in a window of its own (#495). */
     openWindow: string;
-    /** What each board's work is called, by solution. A board whose solution this copy
-     *  does not know keeps the word the rules answered with. */
-    work: Record<"product" | "marketing", string>;
-    /** The marketing board is not finished yet — the tag beside its name, and its tooltip. */
-    alpha: string;
-    alphaHint: string;
   };
   /** The update chip (#701). The app downloads a new version on its own and says
    *  nothing while it does, so the chip has two states and each is one line. */

@@ -30,9 +30,6 @@ const en: ChromeCopy = {
     badge: (boardDir) => `${boardDir} — click for this project's boards`,
     openHere: "Open in this window",
     openWindow: "Open in a new window",
-    work: { product: "Engineering", marketing: "Marketing" },
-    alpha: "Alpha",
-    alphaHint: "The marketing board is still experimental — expect it to change.",
   },
   update: {
     ready: (version) => `v${version} downloaded · Click to restart and update`,

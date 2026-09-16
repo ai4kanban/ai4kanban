@@ -353,7 +353,7 @@ export interface Ai4kanbanBridge {
    *  board — the same trade the board switcher makes. Returns the folder it opened on,
    *  or null when there was nothing to open. */
   openProjectWindow(dir: string): Promise<string | null>;
-  /** Put another of this project's boards in front (#407) — `marketing/kanban`
+  /** Put another of this project's boards in front (#407) — `design/kanban`
    *  beside `docs/kanban`. The window already on that board is raised; when none
    *  is, this window takes it and the page is replaced. What a bell row and a
    *  notification for another board land on. Returns the folder now shown. */

@@ -113,11 +113,9 @@ function ownerOf(req: AgentRequest): RuleOwner | null {
     const name = canonicalSpecAgent(req.specAgent ?? '')
     return name ? { name } : null
   }
-  // `akb channel` and the card page's polish are the writer's work, and a reflection is the
-  // proposer's (#534); none of them is a flow a person types under `akb card`, so each
-  // names itself here.
-  const flow =
-    ['channel', 'polish', 'marketing-polish-loop', 'reflect'].includes(req.action) ? req.action : flowForRequest(req)?.command
+  // A reflection is the proposer's (#534) and is no flow a person types under `akb card`,
+  // so it names itself here.
+  const flow = req.action === 'reflect' ? req.action : flowForRequest(req)?.command
   const role = roleForFlow(flow ?? '', workflowForRun(req))
   return role ? { name: role.name, role, flow } : null
 }
@@ -179,8 +177,8 @@ const said = (owner: { name: string; role: boolean } | null, rule: string): stri
 // first read after the upgrade — reported in the run log rather than done in silence, since
 // what the user typed is now appended to two flows more than it was.
 //
-// Only the roles of THIS board's solution are folded, and only files named after a flow the
-// role runs, so nothing else in the folder is touched.
+// Only files named after a flow the role runs are folded, so nothing else in the folder is
+// touched.
 
 /** Fold any per-flow rule files into their role's. One line per role it rewrote, empty when
  *  there was nothing to move — which is every call after the first. Every read and write of

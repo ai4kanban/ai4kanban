@@ -9,7 +9,7 @@
 // Declared with the shapes a reader is handed (./view/types.ts), because a question is one
 // of the few things both sides of the board see — the writers here, and every front end.
 export type { Question, QuestionMode } from './view/types'
-import type { CardChannel, CardDecision, CardSchedule, Question } from './view/types'
+import type { CardDecision, CardSchedule, Question } from './view/types'
 
 // A question still being built out of the flags that describe it.
 export interface QuestionDraft {
@@ -31,9 +31,6 @@ export interface Meta {
   blocked_by: number[]
   related: number[]
   modules: string[]
-  /** The channels this topic goes to, in the order they were picked (./channels.ts). Empty on every product
-   *  card — the field is the marketing solution's. */
-  channels: CardChannel[]
   /** The workflow this card runs on (#715) — a workflow's stable id, never its name, so
    *  renaming one leaves every card pointing at it. Empty on a card written before the field
    *  and on a board that picks no workflows, and both read as the default workflow. */

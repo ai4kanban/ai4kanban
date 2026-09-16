@@ -14,13 +14,9 @@
 //   - a printed flow (`akb <action> --print`) — the guides that action needs, printed in
 //     full beside the board's own facts, so the agent needs one command and not two.
 //
-// And two solutions (#406, #407). `product` is the text below. `marketing` is a second copy
-// of the flows that read differently there — the rest it inherits unchanged, because a flow
-// copied to say the same thing is a flow that goes stale. Which one a board gets is the one
-// `Solution` line in its own `config.md`; a board with no line is `product`.
-//
 // Whichever text comes out, `docs/kanban` in it is swapped for the board's real path
-// (`boardText`), so an agent on `marketing/kanban` writes to `marketing/kanban/memory/`.
+// (`boardText`), so an agent on a board beside `docs/` writes into that board's own
+// `memory/`.
 
 import addTask from '../guide/add-task.md'
 import board from '../guide/board.md'
@@ -62,14 +58,7 @@ import writing from '../guide/writing.md'
 import contentImplement from '../guide/content/implement.md'
 import contentReview from '../guide/content/review.md'
 
-import marketingBoard from '../guide/marketing/board.md'
-import marketingPolish from '../guide/marketing/polish.md'
-import marketingPolishLoop from '../guide/marketing/verify.md'
-import marketingPruneMemory from '../guide/marketing/prune-memory.md'
-import repurpose from '../guide/marketing/repurpose.md'
-
 import { boardText } from './paths'
-import { solution, type Solution } from './solution'
 import { workflowFor } from './agent/workflows'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
@@ -119,56 +108,6 @@ export const GUIDES: Guide[] = [
   { name: 'local-ui', when: 'run the board from buttons instead of the terminal', text: localUi },
 ]
 
-/** The flows one solution says differently. Everything not named here is the text above. */
-const OVERRIDES: Record<Solution, Record<string, string>> = {
-  product: {},
-  marketing: {
-    board: marketingBoard,
-    'prune-memory': marketingPruneMemory,
-  },
-}
-
-/** The flows one solution has no use for. Not an override either: a page about refining a
- *  card's questions, on a board whose cards carry none, is a page about work it cannot do
- *  (#435). Everything here is either a flow that board refuses, or a page only such a flow
- *  reads. */
-const GONE: Record<Solution, readonly string[]> = {
-  product: [],
-  marketing: [
-    'setup',
-    'add-task',
-    'feedback',
-    'reflect',
-    'triage',
-    'unstick',
-    'extract-ideas',
-    'evaluate-task',
-    'writing',
-    'refine',
-    'resolve',
-    'decide',
-    'gate',
-    'implement',
-    'plan-release',
-    'changelog',
-    'qa-loop',
-    'qa-lightweight',
-    'releases',
-  ],
-}
-
-/** The flows one solution has that the other has no use for. Not an override: a `channel`
- *  flow on a product board would be a page about work that board cannot do. */
-const EXTRA: Record<Solution, Guide[]> = {
-  product: [],
-  marketing: [
-    { name: 'marketing-polish-loop', when: 'check a channel draft against the writing memory and fix it, up to three passes', text: marketingPolishLoop },
-    { name: 'polish', when: 'work a batch of comments into one pass over a draft', text: marketingPolish },
-    // A product board has no writer to join, so nothing there could ever ask for one.
-    { name: 'repurpose', when: "repurpose a topic into the requested draft or supporting files", text: repurpose },
-  ],
-}
-
 /** The flows one WORKFLOW says differently (#715). A card runs on a workflow, and the three
  *  stages it goes through are read in that workflow's words: `content` executes and reviews a
  *  piece of writing, so neither stage is held to the code bar. Everything a workflow does not
@@ -184,40 +123,26 @@ const WORKFLOW_OVERRIDES: Record<string, Record<string, string>> = {
   },
 }
 
-/** Every flow THIS board reads: the shared list in its solution's words, then the flows that
- *  solution has of its own.
+/** Every flow THIS board reads: the shared list, in the card's workflow's words.
  *
- *  `workflow` is the card's own. Left off, no workflow's words are laid over the solution's —
- *  which is what a flow that names no card reads, and what every board read before workflows
- *  existed. */
+ *  `workflow` is the card's own. Left off, no workflow's words are laid over the shared
+ *  text — which is what a flow that names no card reads. */
 function guidesHere(workflow?: string): Guide[] {
-  const which = solution()
   const mine = WORKFLOW_OVERRIDES[workflowFor(workflow)?.id ?? ''] ?? {}
-  return [
-    ...GUIDES.filter((g) => !GONE[which].includes(g.name)).map((g) => ({
-      ...g,
-      text: mine[g.name] ?? OVERRIDES[which][g.name] ?? g.text,
-    })),
-    ...EXTRA[which],
-  ]
+  return GUIDES.map((g) => ({ ...g, text: mine[g.name] ?? g.text }))
 }
 
-/** The names this board answers to — its solution's, so a topic it has no use for is not
- *  offered and a topic only it has is. */
+/** The names this board answers to. */
 export const guideNames = (): string[] => guidesHere().map((g) => g.name)
 
 /** Names a flow answered to before it was renamed. Asked for by the old one, the flow still
  *  comes back — every board, card and habit that spells it the old way keeps working. */
 const RENAMED: Record<string, string> = {
   'spec-skill': 'spec-agent',
-  // The verify-then-fix pair the polish loop replaced (#520). A marketing board's own
-  // memory still spells them, and both now answer with the one guide that took their place.
-  'marketing-verify': 'marketing-polish-loop',
-  'marketing-fix': 'marketing-polish-loop',
 }
 
-/** One flow as this board reads it: the card's workflow over its solution's words, spelling
- *  this board's own path. */
+/** One flow as this board reads it: the card's workflow over the shared text, spelling this
+ *  board's own path. */
 export function findGuide(name: string, workflow?: string): Guide | null {
   const wanted = RENAMED[name] ?? name
   const guide = guidesHere(workflow).find((g) => g.name === wanted)

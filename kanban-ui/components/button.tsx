@@ -38,7 +38,7 @@ export function Button({
 }
 
 // A control that belongs to a block's tab strip rather than to the page — the delivery
-// block's (#307) and the drafts block's (#411). It is the same chip the tabs at the other end
+// block's (#307). It is the same chip the tabs at the other end
 // of the strip wear — same radius, padding and weight — so the row reads as one strip of
 // chips. Only the ink differs: accent, because this one acts rather than switching what you
 // are looking at.

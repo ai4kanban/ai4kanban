@@ -12,14 +12,6 @@ const en: SharedCopy = {
   copied: "Copied",
   none: "—",
   stop: ".",
-  channelStatus: {
-    none: "nothing written",
-    draft: "draft",
-    ready: "ready",
-    scheduled: "scheduled",
-    published: "published",
-  },
-  channelAt: (channel, status) => `${channel} — ${status}`,
   contextWindow: (used, limit) => `Context window ${used}/${limit}`,
 };
 

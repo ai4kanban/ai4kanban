@@ -1,7 +1,8 @@
 # Prune the memory set
 
 Prune every file in the memory set (see "The memory set" in `akb guide board`), and the agent
-memories beside it in `docs/kanban/memory/agents/<agent>/`. Prune whichever copy you're compressing:
+memories beside it in `docs/kanban/memory/agents/<agent>/` — a spec agent's and a content
+agent's alike. Prune whichever copy you're compressing:
 the project-wide one at `docs/kanban/memory/` or a module's at `docs/kanban/memory/<module>/`.
 `goal.md` is not in the set — it's user-owned, leave it alone.
 

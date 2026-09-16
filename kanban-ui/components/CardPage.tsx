@@ -80,7 +80,6 @@ import { Fold } from "./fold";
 import { OpenIdsProvider } from "./open-ids";
 import { OpenQuestions } from "./questions";
 import { columnOf } from "./Queue";
-import { SolutionProvider } from "./solution";
 import { useWorkflowName } from "./Workflows";
 import { SubtaskMap } from "./SubtaskMap";
 import { buildSubtaskMap } from "@/lib/subtask-map";
@@ -319,11 +318,7 @@ type CardButton = CardControl;
 //
 // Edit is not a run (#633): it opens this card's conversation, which is where what the card
 // says is settled. It is here so the toolbar draws it in the place it has always had.
-function visibleActions(
-  card: Card,
-  marketing: boolean,
-  offered: readonly CardControl[] | null,
-): Set<CardButton> {
+function visibleActions(card: Card, offered: readonly CardControl[] | null): Set<CardButton> {
   const hasUserQuestions = card.questions.some((q) => parseQuestion(q.text).tag === "user");
   const { total, done } = card.todos;
   const allDone = total > 0 && done === total; // zero-todo cards never count as done
@@ -343,10 +338,8 @@ function visibleActions(
   buttons.add("edit"); // Edit — always
   // Refine (#99) — only when it would move the card, and not while that same action
   // is queued. Cancelling the schedule brings the button back for this blocked episode.
-  // Neither is offered on a marketing board (#435): a topic carries no questions, so there
-  // is nothing to sharpen and nothing to answer — its angle is settled in the card's chat.
-  if (!marketing && canRefine(card) && card.schedule?.action !== "refine") buttons.add("refine");
-  if (!marketing && hasUserQuestions) buttons.add("resolve"); // Resolve — has a decision the user owns
+  if (canRefine(card) && card.schedule?.action !== "refine") buttons.add("refine");
+  if (hasUserQuestions) buttons.add("resolve"); // Resolve — has a decision the user owns
   // Archive — every subtask resolved, or all todos checked. Never on a recurring
   // card: it has no end state, and archiving one would take a job off the board.
   if (!card.recurring && (card.isGroup ? groupDone : allDone)) buttons.add("archive");
@@ -1267,8 +1260,8 @@ function WorkflowItem({ card }: { card: Card }) {
   const nameOf = useWorkflowName();
   const [flows, setFlows] = useState<WorkflowView[] | null>(null);
 
-  // Asked once, when the page draws. A board with no workflows — older rules, or a solution
-  // whose cards go through its own flows — answers none, and the item is not drawn at all.
+  // Asked once, when the page draws. A board with no workflows — older rules — answers none,
+  // and the item is not drawn at all.
   useEffect(() => {
     void workflowsAction().then((res) => setFlows(res.workflows));
   }, []);
@@ -1354,10 +1347,6 @@ export function CardPage({
   // tags as the plain links they are.
   const mockups = useMachine()?.mockups ?? {};
   const { card, openIds, releases, plan, diff, hold, standing: boardState } = screen;
-  // What this board's work IS (#411). Since #434 a marketing card has its own page, so this
-  // is `false` on every screen that reaches here; it stays because the page reads it rather
-  // than assuming which board mounted it.
-  const marketing = screen.solution === "marketing";
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogState>(null);
   // The open-questions panel is answering rather than being read. Held here rather than
@@ -1483,13 +1472,13 @@ export function CardPage({
   const off = busy || frozen;
   const offUnlessAsked = busy || (held && !answerable) || discussing;
   const { total, done } = card.todos;
-  const buttons = visibleActions(card, marketing, offered);
+  const buttons = visibleActions(card, offered);
   // The delivery has ended and its block is still on the page — the one that carries Discard.
   const finishedBlock = !delivery && !!card.finished && !!diff;
   // The column this card sits in on the board (components/Queue.tsx) — the phone's way back
   // names where it goes rather than just pointing at it (#357), and carries the key so the
   // board opens on that column instead of on the first page of the swipe.
-  const columnKey = columnOf(card, marketing);
+  const columnKey = columnOf(card);
   const column = t.board.queue[columnKey];
   // Resolve is the questions panel itself at window width — you decide against the question,
   // not in a copy of it. At phone width that panel is a page pushed over the card, so the
@@ -1635,10 +1624,6 @@ export function CardPage({
 
   return (
     <OpenIdsProvider ids={openIds}>
-      {/* What this board's work IS (#411), the way the board screen provides it — so the
-          dialogs and chips drawn deep inside this page read the same answer this page does
-          rather than falling back to `product` (#435). */}
-      <SolutionProvider value={screen.solution}>
       {/* Landing here is what opens the card in the frame around it — every way in is this
           page, so a board card, a subtask, a `#12` in a body and a pasted link all leave the
           same row behind, which is also the way back out. The body scrolls inside that
@@ -2332,7 +2317,6 @@ export function CardPage({
           )}
         </div>
       </Shell>
-      </SolutionProvider>
     </OpenIdsProvider>
   );
 }

@@ -8,19 +8,16 @@
 // runs — are the same tree. They differ only in how they are spelled in a message.
 
 import { CADENCE_FORMS } from '../cadence'
-import { CHANNEL_NAMES, CHANNEL_STATUSES } from '../channels'
 import { insideRun } from '../agent/env'
 import { cardStages, startGateAfter } from '../agent/gate'
 import { recordCards } from '../agent/created-cards'
 import { readyGateOn } from '../agent/settings'
 import { board, moveTarget, openBoard, withLease, type MoveOutput, type OpResult } from '../board'
 import { BOARD_MOVES, READ_ONLY_MOVES } from '../board/local'
-import { allowedSolution } from '../cloud/admission'
 import { BoardError, say, warn } from '../io'
 import { KANBAN } from '../paths'
 import { resolveBoard, sayIfOffline, useBoard } from '../board-cli'
 import { SCHEDULED_ACTIONS } from '../schedule'
-import { SOLUTIONS, type Solution } from '../solution'
 import { LEVELS, STATUSES } from '../validate'
 import { QUESTION_TAGS } from '../view/rules'
 import {
@@ -149,9 +146,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     )
     .requiredOption('--title <title>', 'what the card is called')
     .option('--recurring', 'a job that repeats: it goes in recurring/ and gets a Run state + Process body')
-    // No default here, so a typed flag can be told from an untyped one: a marketing board
-    // refuses these outright (#435), and it can only do that if it sees who wrote them.
-    // `create` falls back to `med` itself.
+    // No default here: `create` falls back to `med` itself.
     .option('--priority <level>', `how much it matters: ${LEVELS.join(' | ')} (default: med)`, oneOf(LEVELS))
     .option('--roi <level>', `what it is worth: ${LEVELS.join(' | ')} (default: med)`, oneOf(LEVELS))
     .option('--release <version>', 'the version it ships in. Left off, the card is wanted, not promised to one')
@@ -192,30 +187,10 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--blocked-by <ids>', 'ids of open cards this one waits on', collectList)
     .option('--related <ids>', 'ids of open cards this one relates to', collectList)
     .option('--modules <names>', 'the parts of the project it touches', collectList)
-    .option(
-      '--channels <names>',
-      `the channels this topic goes to, LEAD FIRST: ${CHANNEL_NAMES.join(' | ')}. Marketing boards only`,
-      collectList,
-    )
     .option('--slug <slug>', 'rename the file')
     .option('--cadence <cadence>', `how often it repeats: ${CADENCE_FORMS}. "" clears it. Recurring cards only`)
     .action(async function (this: Command, id: number) {
       await dispatch('update', this, [String(id)], this.opts(), cli)
-    })
-
-  move('channel-status')
-    .argument('<id>', ID, cardId)
-    .argument('<channel>', `which channel: ${CHANNEL_NAMES.join(' | ')}`, oneOf(CHANNEL_NAMES))
-    .argument('<status>', CHANNEL_STATUSES.join(' | '), oneOf(CHANNEL_STATUSES))
-    .summary('move one of a topic\'s channels along')
-    .description(
-      "Set where one channel stands on this topic. Refused for a channel the card has not chosen — " +
-        '`update <id> --channels <names>` is what chooses them, and this move never adds one. ' +
-        '`akb channel <name> <id>` sets `draft` itself once it has written the file.',
-    )
-    .option('--url <url>', 'where it went up, once it is published')
-    .action(async function (this: Command, id: number, channel: string, status: string) {
-      await dispatch('channel-status', this, [String(id), channel, status], this.opts(), cli)
     })
 
   // Every op patches the list in place and they run in the order typed, so handing one
@@ -557,16 +532,13 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
   // ---- the board itself ----------------------------------------------------
 
   move('init')
-    .option('--solution <name>', `what this board's work is: ${SOLUTIONS.join(' | ')} (marketing is an invite-only alpha)`, oneOf(SOLUTIONS))
     .summary('scaffold docs/kanban/; on an existing board add only what is missing')
     .description(
       'Scaffold the board — the folders, the project-wide memory set in memory/, and a blank config.md ' +
         'and releases.md. On an existing board it only adds the files that are missing, so it is safe to ' +
-        're-run and is the repair step for a board written by an older version. `--solution` is read on a ' +
-        "fresh board only: what an existing one is, its own config.md says.",
+        're-run and is the repair step for a board written by an older version.',
     )
     .action(async function (this: Command) {
-      await allowedSolution((this.opts() as { solution?: Solution }).solution)
       await dispatch('init', this, [], this.opts(), cli)
     })
 

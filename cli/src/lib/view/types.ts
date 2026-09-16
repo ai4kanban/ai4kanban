@@ -90,89 +90,6 @@ export interface CardSchedule {
   notes: string
 }
 
-/** What a board's work IS (#406, #407) — `product` is code, `marketing` is content. The
- *  names live here rather than beside the reader in `lib/solution.ts` because a screen picks
- *  its face and its detail from them (#411), and that judgment runs in the browser. */
-export const SOLUTIONS = ['product', 'marketing'] as const
-export type Solution = (typeof SOLUTIONS)[number]
-
-/** The title a topic is written with, before the user has decided on one (#507). A card's
- *  title is never empty — `create` refuses one — so this is what a blank topic carries and
- *  what an emptied title box writes back. The topic page draws it in placeholder style, so
- *  it reads as the absence of a title rather than as a title somebody chose. */
-export const UNTITLED = 'Untitled'
-
-/** How far one channel has got with a topic (#409). Chosen and nothing written yet is the
- *  empty string, not a name of its own — the four below are the steps a draft moves along.
- *  `scheduled`, `published` and a channel's URL are in the shape from the start so the field
- *  never has to change; only `draft` and `ready` are written before publishing ships. */
-export type ChannelStatus = 'draft' | 'ready' | 'scheduled' | 'published'
-
-/** One channel a topic goes to.
- *
- *  A channel is a NAME and a LANGUAGE, and that pair is the whole of what one is: there is
- *  no per-channel instruction file, because what makes a draft good is the board's writing
- *  memory, and a rule learned on one channel should reach every channel it fits.
- *
- *  The card's list is ordered, and the order is meaning: the FIRST entry is the lead
- *  channel — the one `source.md` is written for. No second field, and no flag. */
-export interface CardChannel {
-  name: string
-  /** Empty until something is written for it: the channel is chosen, and has no draft. */
-  status: ChannelStatus | ''
-  /** Where it went up, once it is published. Empty until then. */
-  url: string
-}
-
-/** One remark left on a passage of a draft (#458), waiting for the polish that answers it.
- *
- *  The QUOTE is the anchor and there are no offsets (#572): the passage is stored with as
- *  much of its own line as tells two copies of the same words apart, and it is re-found in
- *  the draft whenever the marks are drawn. A comment whose passage is gone keeps its words,
- *  loses its marks, and still goes to the polish. */
-export interface DraftComment {
-  /** This comment's own key, so edit and delete name one and not a position. */
-  id: string
-  /** The passage commented on, exactly as it read then. */
-  quote: string
-  /** The passage with enough of the draft around it to tell repeats apart. Equal to
-   *  `quote` when the passage is its own context. */
-  context: string
-  /** Where `quote` starts inside `context`. */
-  at: number
-  /** What the user wants done with that passage. */
-  words: string
-}
-
-/** One file under `content/<id>/` (#411): `source`, or a channel's name. `text` is
- *  the whole draft — they are a screenful of prose each — and `path` is what the pane names
- *  under the editor, relative to the project. */
-export interface CardDraft {
-  name: string
-  path: string
-  text: string
-  /** The comments left on this draft and not yet polished (#458), oldest first. Absent on
-   *  rules older than that move. */
-  comments?: DraftComment[]
-}
-
-/** Which drafts a card has, and each one whole. `dir` is the folder they live in, named
- *  even when it holds nothing yet: it is where a save creates the first one.
- *
- *  `error` is a read that could not happen — a board whose rules predate drafts — so the
- *  pane says why rather than reading as a topic nobody has written for. */
-export interface CardDrafts {
-  dir: string
-  drafts: CardDraft[]
-  error?: string
-  /** Whether this copy of the rules can write `channels:` (#434) — what the page's `+`
-   *  needs. Absent on rules older than that move, and the `+` is then not drawn. */
-  canSetChannels?: boolean
-  /** Whether this copy of the rules carries the comment moves (#458). Absent on rules older
-   *  than them, and the page then offers nothing to comment with. */
-  canComment?: boolean
-}
-
 /** A group root's subtask, as shown on the root's page. Light meta only — clicking through
  *  opens the subtask's own page for the full card. */
 export interface Subtask {
@@ -414,10 +331,6 @@ export interface Card {
   workflow: string
   /** The parts of the product this card touches (names from `docs/kanban/modules.md`). */
   modules: string[]
-  /** The channels this topic goes to, in the order the user picked — the first is the lead
-   *  channel (#409). Marketing boards only; empty on every product card, and on a marketing
-   *  card whose channels question has not been answered yet. */
-  channels: CardChannel[]
   /** When this card last ran, as `YYYY-MM-DD HH:MM` — recurring cards only, and only once
    *  one has run. Empty means never run. */
   last_run: string
@@ -882,6 +795,6 @@ export interface InboxDrop {
 export type InboxAddResult = { ok: true; signal: Signal } | { ok: false; error: string }
 
 /** Whether the inbox is open to this board and this account at all. Closed carries the one
- *  sentence a person is told — Marketing boards and un-admitted accounts are not in the
- *  preview, and the rail simply leaves the row out for both. */
+ *  sentence a person is told — an un-admitted account is not in the preview, and the rail
+ *  simply leaves the row out. */
 export type SignalsAccess = { open: true } | { open: false; why: string }

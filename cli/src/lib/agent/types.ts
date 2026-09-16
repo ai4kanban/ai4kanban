@@ -75,20 +75,6 @@ export type AgentAction =
    *  `specAgent`, it starts clean, and it writes one section of that card and nothing
    *  else. A flow asks for one; the board starts it once that flow's own run has ended. */
   | 'spec'
-  /** One channel's draft, repurposed from a topic's `source.md` (#409). It is named by
-   *  `channel`, starts clean, and writes one file under `content/<id>/` — no card,
-   *  no other channel's draft, and no second pass. Marketing boards only. */
-  | 'channel'
-  /** One pass over one draft, answering every comment left on it (#458). It is named by
-   *  `draft`, starts clean, and writes that one file under `content/<id>/` — the
-   *  comments are read off disk and cleared by the board when the run ends `done`.
-   *  Marketing boards only. */
-  | 'polish'
-  /** One capped polish loop over one channel draft (#520). It is named by `channel`,
-   *  starts clean, and in its own session checks the draft against the writing memory and
-   *  fixes what it found, pass after pass — three at most, and stopping on the first pass
-   *  with nothing to fix. Marketing boards only. */
-  | 'marketing-polish-loop'
   /** Write one closed version's changelog (#232) — a few plain lines saying what the
    *  version changed, from the goal and the cards the close wrote down. It touches no
    *  card, so it carries a release id, and the close that made the record starts it. */
@@ -116,40 +102,32 @@ export type AgentAction =
    *  finding nothing worth proposing is a valid result. Only runs while the proposer is
    *  switched on. */
   | 'reflect'
-  /** One `write` agent writing part of a topic's draft folder (#424) — an image for a
-   *  post, a chart, a caption file. It is named by `specAgent`, it starts clean, and it
-   *  writes files under `content/<id>/` and nothing else. The writer asks for one;
-   *  the board starts it once the writing run has ended. Marketing boards only. */
-  | 'write'
   /** Sort what is waiting in triage (#561) — the triager's one flow. It names no card: the
    *  items in `triage/` are the whole of what it works on. Each one is judged for duplicates
    *  and for worth; a survivor becomes a card with a refine scheduled on it, and everything
-   *  else is ignored with a reason. Product boards only, and only while triage is open to
-   *  this board — `signalsAccess()` decides, exactly as it does for a fetch. */
+   *  else is ignored with a reason. Only while triage is open to this board —
+   *  `signalsAccess()` decides, exactly as it does for a fetch. */
   | 'triage'
   /** Settle one card that has sat too long (#118) — the sweeper's one flow. It judges how
    *  much of the card is already done and whether the rest is still worth the effort, then
    *  either keeps the card — rewritten for the project as it stands today, under a dated
    *  note of its own — or discards it. It raises no question and hands the card to nobody:
-   *  the verdict IS the run. Product boards only. */
+   *  the verdict IS the run. */
   | 'unstick'
 
-/** The actions a specialist run takes: one section of a card (`spec`), or one file in a
- *  topic's draft folder (`write`). Neither holds the card it names — each works beside the
- *  loop that asked for it — so both are out of the one-run-per-card rule at both ends, and
- *  both are named by an agent rather than run by a role. */
-export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec', 'write'])
+/** The action a specialist run takes: one section of a card (`spec`). It does not hold the
+ *  card it names — it works beside the loop that asked for it — so it is out of the
+ *  one-run-per-card rule at both ends, and it is named by an agent rather than run by a
+ *  role. */
+export const SPECIALIST_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>(['spec'])
 
-/** The actions that write no card at all: the two specialists, the two that work one
- *  channel's draft file and never the plan — a repurpose (#457) and a polish loop (#520) —
- *  and a reflection, whose card has left the board altogether (#534). None of them holds
- *  the card it names, so several may work one card side by side — and the source tab's one
- *  action starts a repurpose per channel that way.
+/** The actions that write no card at all: the specialist, and a reflection whose card has
+ *  left the board altogether (#534). Neither holds the card it names, so either may work one
+ *  card beside its own loop.
  *
  *  It is not `SPECIALIST_ACTIONS`: that set also picks the agent a run is done by
- *  (`agent/runner.ts`) and the rule it is handed, and a repurpose is neither named by an
- *  agent nor given a specialist's flow. */
-const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([...SPECIALIST_ACTIONS, 'channel', 'marketing-polish-loop', 'reflect'])
+ *  (`agent/runner.ts`) and the rule it is handed. */
+const CARD_FREE_ACTIONS: ReadonlySet<AgentAction> = new Set<AgentAction>([...SPECIALIST_ACTIONS, 'reflect'])
 
 /** Whether a run of this action holds the card it names. The one answer every lock reads,
  *  so a card-free run is exempt everywhere or nowhere. */
@@ -236,22 +214,9 @@ export interface AgentRequest {
   /** review: why this one started, when it is not the first after a build (#417). Given by
    *  whoever starts it, never worked out afterwards. */
   trigger?: ReviewTrigger
-  /** spec and write: which agent this run is — a name from the board's catalog
-   *  (`lib/agents/`). The key keeps the older spelling: it is written into every run
-   *  record, and a rename would strand the runs already in flight. It decides
-   *  the prompt the run is given and the section — or the file — it is allowed to write. */
+  /** spec: which agent this run is — a name from the board's catalog (`lib/agents/`). It
+   *  decides the prompt the run is given and the section it is allowed to write. */
   specAgent?: string
-  /** channel and marketing-polish-loop: which channel's draft this run works on — one of
-   *  the four names (`lib/channels.ts`). It decides the file the run writes and, on a
-   *  repurpose unless `language` names another, the language it writes in. */
-  channel?: string
-  /** channel: the language THIS repurpose is written in (#457), instead of the channel's
-   *  own. Free text, and unset on every repurpose that did not ask for one — nothing on the
-   *  card carries it, because it is an argument to one action rather than a setting. */
-  language?: string
-  /** polish: which draft this run works over (#458) — `source` or a channel's name. It
-   *  decides the file the run writes and the batch of comments it answers. */
-  draft?: string
   /** implement: how THIS build commits (#346) — the Implement dialog's tick, and this one
    *  delivery's answer. Absent on every other way in — a terminal `akb card implement`, a queued
    *  build, a resolve that carries on — and those fall back to **Allow automatic Git
@@ -271,7 +236,7 @@ export type StartableAction = Exclude<AgentAction, 'propose'>
 
 /** Actions accepted by user-facing run commands. Internal refinement actions are absent. */
 export type CommandAction =
-  | Exclude<StartableAction, 'clarify' | 'writing' | 'spec' | 'channel' | 'polish' | 'write' | 'marketing-polish-loop'>
+  | Exclude<StartableAction, 'clarify' | 'writing' | 'spec'>
   | 'refine'
 
 /** A user-facing command request; `refine` is transformed before a session starts. */
@@ -427,16 +392,9 @@ export interface RunRecord {
   /** A stop has been asked for. Written so the supervisor's own end, whichever path
    *  witnesses it, records `stopped` rather than a failure. */
   stopping?: boolean
-  /** Which agent this run is, on a `spec` or `write` run. Kept on the record so the run
-   *  list can say which one is working, and so a resume starts the same agent again. */
+  /** Which agent this run is, on a `spec` run. Kept on the record so the run list can say
+   *  which one is working, and so a resume starts the same agent again. */
   specAgent?: string
-  /** Which channel's draft this run works on, on a `channel` or `marketing-polish-loop`
-   *  run — kept for the same reasons, and so a repurpose's close knows which channel's
-   *  status to move to `draft`. */
-  channel?: string
-  /** Which draft a `polish` run works over (#458) — kept so its close knows whose batch of
-   *  comments to clear, and so a resume polishes the same draft. */
-  draft?: string
   /** Position in a watcher-managed refinement run chain. */
   refineRound?: number
   /** The QA guide this refinement uses across its sessions and resume. */
@@ -789,21 +747,6 @@ export interface SpecAsk {
    *  is the card itself: the conversation that asked is deliberately not passed on. */
   notes?: string
   refineEffort?: RefineEffort
-}
-
-/** One ask for a `write` agent, as the writing run that wanted it wrote it down (#424).
- *
- *  Its own list rather than a second kind of entry in `asks`: an older copy of these rules
- *  reading the file would start a write agent as a `spec` run, which `spec-write` then
- *  refuses — with the ask already spent. A list it does not know about is a list it leaves
- *  alone. */
-export interface WriteAsk {
-  /** The agent's name — a name from the board's catalog (`lib/agents/`). */
-  specAgent: string
-  cardId: number
-  /** Which files the writer wants, in a line or two. One ask names all of them: the run
-   *  gets this note and the card, and nothing of the conversation that asked. */
-  notes?: string
 }
 
 /** One ask for a refinement, written down by the run that asked for it with
@@ -1525,7 +1468,7 @@ export interface AgentView {
   /** `role` for one of the board's own; otherwise the hook the specialist plugs into. Spelled
    *  out rather than imported: this file is copied into the board UI and may reach only its
    *  siblings, and `AgentKind` lives beside the catalog that reads an `AGENT.md`. */
-  kind: 'role' | 'spec' | 'write'
+  kind: 'role' | 'spec'
   /** The workflow stage this agent can be assigned to (#715), or absent on a BOARD agent —
    *  the discussion, the gate, the decider, the pruner — which no workflow assigns and every
    *  workflow gets. Spelled out for the same reason `kind` is. */

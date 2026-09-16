@@ -12,8 +12,7 @@
 // is where they reach a prompt.
 //
 // The contract sits ON TOP of the roles rather than replacing them. A lead is a name off the
-// roster, and rules, runtimes and switches all still resolve by agent name — so the same two
-// solutions run exactly as they did before this file existed.
+// roster, and rules, runtimes and switches all still resolve by agent name.
 //
 // Everything else the board can start is a shared node: a DECISION the board makes in the
 // user's place (the gate, the decider), or an EVENT entry something on the board starts (a
@@ -21,8 +20,7 @@
 // is open to be hooked — they are listed here so the classification is a total one: every
 // flow this board has is a stage's, a decision or an event, and never two of them.
 
-import { solution } from '../solution'
-import { workflowFor, workflows, workflowsHere, type WorkflowStage } from './workflows'
+import { workflowFor, workflows, type WorkflowStage } from './workflows'
 
 export const STAGES = ['discuss', 'plan', 'build', 'review'] as const
 
@@ -43,9 +41,8 @@ export interface StageContract {
   /** The agent that runs it and writes the one conclusion. One per call: helpers run one
    *  at a time and the lead resumes to fold their sections into it. */
   lead: string
-  /** The agents it may call in, by name. A board's own agents join the stage their hook
-   *  belongs to — a `spec` agent the planning stage, a `write` agent the writing one — so
-   *  this names only the ones the command ships. */
+  /** The agents it may call in, by name. A board's own `spec` agents join the planning
+   *  stage, so this names only the ones the command ships. */
   helpers: string[]
   /** The helpers this stage cannot end without. The lead is always required and is never
    *  listed here. Empty on everything the command ships: until a board can write its own
@@ -64,10 +61,8 @@ export interface FlowNode {
   agent: string
 }
 
-// Planning is the flows that write a card, settle it and close it out. A marketing board
-// has four of them fewer (#435): its cards carry no questions to refine or resolve, and no
-// release to plan or write up.
-const PRODUCT_STAGES: StageContract[] = [
+// Planning is the flows that write a card, settle it and close it out.
+const BOARD_STAGES: StageContract[] = [
   {
     stage: 'discuss',
     flows: ['chat'],
@@ -110,48 +105,9 @@ const PRODUCT_STAGES: StageContract[] = [
   },
 ]
 
-const MARKETING_STAGES: StageContract[] = [
-  {
-    stage: 'discuss',
-    flows: ['chat'],
-    input: "an idea in the user's own words, and what the board already knows",
-    output: 'a topic worth a card, or the finding that there is nothing to say',
-    done: 'the user has what they came for — a card was written, or the idea was let go',
-    lead: 'discussion-helper',
-    helpers: [],
-    requires: [],
-  },
-  {
-    stage: 'plan',
-    flows: ['create', 'revise', 'archive', 'reject', 'setup'],
-    input: 'the topic as it stands, and what planning remembers of what was published',
-    output: 'a topic with an angle and channels someone can write to',
-    done: 'the angle and the channels are settled',
-    lead: 'planner',
-    helpers: [],
-    requires: [],
-  },
-  {
-    stage: 'build',
-    flows: ['conflict', 'run', 'channel', 'polish'],
-    input: "the topic, its source and the user's own words",
-    output: 'the draft, and the version each channel takes',
-    done: 'every channel the topic goes to has its piece',
-    lead: 'writer',
-    helpers: [],
-    requires: [],
-  },
-  {
-    stage: 'review',
-    flows: ['review', 'marketing-polish-loop'],
-    input: 'the draft and the comments left on it',
-    output: 'a verdict, with the plain mistakes fixed in the same session',
-    done: 'the draft answers the topic, or the user has been asked what stops it',
-    lead: 'reviewer',
-    helpers: [],
-    requires: [],
-  },
-]
+// The contracts a workflow's assignments are laid over. `lead` and `helpers` are the two
+// fields a workflow owns; everything else on a contract — what the stage is handed, what it
+// leaves behind, when it is over — is the kernel's and the same whoever runs it.
 
 // The nodes that are no stage's work.
 //
@@ -163,7 +119,7 @@ const MARKETING_STAGES: StageContract[] = [
 // The six EVENTS are started by something happening rather than by a stage reaching them:
 // a card finishing, a batch of items arriving, a card going stale, a user saying the spec
 // missed, a cadence coming round, a day passing over conversations that said something new.
-const PRODUCT_NODES: FlowNode[] = [
+const BOARD_NODES: FlowNode[] = [
   { flow: 'gate', kind: 'decision', agent: 'gater' },
   { flow: 'decide', kind: 'decision', agent: 'decider' },
   { flow: 'reflect', kind: 'event', agent: 'proposer' },
@@ -174,22 +130,10 @@ const PRODUCT_NODES: FlowNode[] = [
   { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },
 ]
 
-// A marketing board holds conversations too, and its chats write no memory either, so it
-// gets the review as well as the prune.
-const MARKETING_NODES: FlowNode[] = [
-  { flow: 'prune-memory', kind: 'event', agent: 'memory-pruner' },
-  { flow: 'review-memory', kind: 'event', agent: 'memory-reviewer' },
-]
-
 /** Which of the three configurable stages a kernel stage is (#715). `discuss` is none of
  *  them: a conversation belongs to the board rather than to a card's workflow, so no
  *  workflow assigns it and every card gets the same discussion helper. */
 const CONFIGURED: Partial<Record<Stage, WorkflowStage>> = { plan: 'plan', build: 'execute', review: 'review' }
-
-// The contracts a workflow's assignments are laid over. `lead` and `helpers` are the two
-// fields a workflow owns; everything else on a contract — what the stage is handed, what it
-// leaves behind, when it is over — is the kernel's and the same whoever runs it.
-const baseContracts = (): StageContract[] => (solution() === 'marketing' ? MARKETING_STAGES : PRODUCT_STAGES)
 
 /** The four stage contracts one card runs under, in the order it goes through them.
  *
@@ -197,10 +141,9 @@ const baseContracts = (): StageContract[] => (solution() === 'marketing' ? MARKE
  *  used — what every flow that names no card reads, and what a board with no workflows at
  *  all has always had. */
 export function stageContracts(workflow?: string): StageContract[] {
-  const contracts = baseContracts()
-  const flow = workflowsHere() ? workflowFor(workflow) : undefined
-  if (!flow) return contracts
-  return contracts.map((contract) => {
+  const flow = workflowFor(workflow)
+  if (!flow) return BOARD_STAGES
+  return BOARD_STAGES.map((contract) => {
     const stage = CONFIGURED[contract.stage]
     if (!stage) return contract
     const setup = flow.stages[stage]
@@ -217,12 +160,12 @@ export const stageContract = (stage: Stage, workflow?: string): StageContract =>
   stageContracts(workflow).find((c) => c.stage === stage)!
 
 /** This board's shared nodes — everything it can start that is no stage's. */
-export const flowNodes = (): FlowNode[] => (solution() === 'marketing' ? MARKETING_NODES : PRODUCT_NODES)
+export const flowNodes = (): FlowNode[] => BOARD_NODES
 
 /** The stage a flow belongs to, or undefined when it is a shared node or this board has no
  *  such flow at all. */
 export const stageOfFlow = (flow: string): Stage | undefined =>
-  flow ? baseContracts().find((c) => c.flows.includes(flow))?.stage : undefined
+  flow ? BOARD_STAGES.find((c) => c.flows.includes(flow))?.stage : undefined
 
 /** The shared node a flow is, or undefined when it belongs to a stage or to this board not
  *  at all. */
@@ -243,8 +186,8 @@ export const flowsOfAgent = (name: string, workflow?: string): string[] => [
     // Across every workflow this board has, unless one is named: the same agent leads `plan`
     // in one workflow and nothing in another, and a rule written for it has to reach every
     // flow it runs anywhere. A caller that names a workflow is asking about that one alone.
-    ...(workflow !== undefined ? [workflow] : workflowsHere() ? workflows().map((w) => w.id) : [undefined]).flatMap(
-      (id) => stageContracts(id).filter((c) => c.lead === name).flatMap((c) => c.flows),
+    ...(workflow !== undefined ? [workflow] : workflows().map((w) => w.id)).flatMap((id) =>
+      stageContracts(id).filter((c) => c.lead === name).flatMap((c) => c.flows),
     ),
     ...flowNodes().filter((n) => n.agent === name).map((n) => n.flow),
   ]),
@@ -255,7 +198,7 @@ export const flowsOfAgent = (name: string, workflow?: string): string[] => [
 export function contractProblems(roster: readonly string[]): string[] {
   const problems: string[] = []
   const has = (name: string): boolean => roster.includes(name)
-  for (const contract of baseContracts()) {
+  for (const contract of BOARD_STAGES) {
     if (!has(contract.lead)) {
       problems.push(
         `the ${contract.stage} stage is led by \`${contract.lead}\`, and no agent on this board answers to that name.`,

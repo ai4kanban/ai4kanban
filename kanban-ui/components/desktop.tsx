@@ -29,7 +29,6 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { FaBullhorn, FaCode } from "react-icons/fa";
 import { FiAlertTriangle, FiDownload, FiFolder, FiFolderPlus, FiTerminal, FiX } from "react-icons/fi";
 import { Rich } from "@/i18n/rich";
 import { useCopy } from "@/i18n/use-copy";
@@ -374,11 +373,6 @@ const PRESSABLE = "cursor-pointer hover:bg-nb-wash hover:text-nb-ink";
 // reads two controls, not one path with a suffix.
 const BOARD_PART = `${PART} bg-nb-accent-wash text-nb-ink`;
 const BOARD_PRESSABLE = "cursor-pointer hover:bg-nb-accent-soft hover:text-nb-accent-deep";
-// The marketing board is not finished: a hairline tag, quiet enough to be a note
-// on the name rather than a second word in the chip.
-const ALPHA =
-  "shrink-0 rounded-[6px] bg-nb-peach-soft px-[5px] py-[1.5px] text-[10px] font-[700] uppercase leading-none tracking-[0.04em] text-nb-peach-ink";
-
 /** Which repo this board is, in the header, and which of its boards is open.
  *
  *  In the app the path is the button that opens the projects list — the app has
@@ -386,11 +380,9 @@ const ALPHA =
  *  different folder. Only the folder's name is shown; the whole path is the
  *  tooltip, which leaves the board switcher its room.
  *
- *  Beside it, the board's own word in this window's language — "Engineering" on a
- *  product board, "Marketing" on a marketing one — in the ember wash so it reads
- *  as its own control. A project
- *  holding one board gets a label; one holding two gets a switcher, and picking
- *  the other opens it in a window of its own (#495). */
+ *  Beside it, on a project holding more than one board, that board's folder in the ember
+ *  wash so it reads as its own control. Picking another opens it in a window of its own
+ *  (#495). */
 export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; desktop: boolean }) {
   const path = (
     <>
@@ -413,13 +405,6 @@ export function ProjectPath({ projectRoot, desktop }: { projectRoot: string; des
 }
 
 // --- the board badge, and the boards behind it -------------------------------
-
-// What a board's work IS, as a glyph: code on a product board, a bullhorn on a
-// marketing one, so two boards of one project are told apart at a glance.
-function BoardIcon({ solution }: { solution: string }) {
-  const Icon = solution === "marketing" ? FaBullhorn : FaCode;
-  return <Icon className="shrink-0 text-nb-accent" size={12} aria-hidden />;
-}
 
 /** Pick another board: it opens in a window of its own and this one stays where it is
  *  (#495). A new window every time, in both directions and with no modifier, so ordinary
@@ -446,8 +431,8 @@ function openProjectFrom(dir: string): void {
   else void app?.openProject(dir);
 }
 
-/** Which board of this project is open, and — in the app, when the project holds
- *  more than one — the switcher onto the others (#407).
+/** Which board of this project is open, and — in the app — the switcher onto the others
+ *  (#407). Drawn only where there IS another: one board needs no name of its own.
  *
  *  Read after the page paints rather than handed down as a prop: it is one word
  *  in the chrome, the same on every screen, and threading it through every page
@@ -469,29 +454,21 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
   }, []);
 
   const open = here?.boards.find((b) => b.path === here.board);
-  if (!open) return null;
+  // A project holding one board has nothing to say here (#718): the folder chip beside this
+  // already names the project, and there is no second board to tell it apart from.
+  const others = here?.boards.filter((b) => b.path !== here.board) ?? [];
+  if (!open || others.length === 0) return null;
 
-  // The rules answer in English; the word on screen is this window's language, by
-  // solution. A board whose solution this copy has no word for keeps theirs.
-  const named = (b: BoardEntry) => c.work[b.solution as keyof typeof c.work] ?? b.work;
-  const alpha = (b: BoardEntry) =>
-    b.solution === "marketing" ? (
-      <span title={c.alphaHint} className={ALPHA}>
-        {c.alpha}
-      </span>
-    ) : null;
-
+  // A board is named by its folder from the project root — `docs/kanban` — which is the one
+  // thing that tells two boards of one project apart: every board folder is called `kanban`.
   const word = (
     <>
-      <BoardIcon solution={open.solution} />
-      <span className="truncate">{named(open)}</span>
-      {alpha(open)}
+      <FiFolder className="shrink-0 text-nb-accent opacity-70" size={12} aria-hidden />
+      <span className="truncate">{open.name}</span>
     </>
   );
-  // One board is a label with nothing to press, and so is a browser either way:
-  // opening a window is something only the app can do.
-  const others = here!.boards.filter((b) => b.path !== here!.board);
-  if (!desktop || others.length === 0 || !bridge()?.openBoard) {
+  // A browser cannot open a window, so it gets the label the app makes a switcher of.
+  if (!desktop || !bridge()?.openBoard) {
     return (
       <span title={here!.board} className={BOARD_PART}>
         {word}
@@ -520,8 +497,7 @@ function BoardBadge({ desktop }: { desktop: boolean }) {
           >
             <span className="flex items-center gap-1.5">
               {b.path === here!.board && <Dot tone="var(--color-nb-accent)" title={c.openHere} />}
-              <span className="truncate font-[700] text-nb-ink">{named(b)}</span>
-              {alpha(b)}
+              <span className="truncate font-[700] text-nb-ink">{b.name}</span>
             </span>
             <span className="mt-0.5 block truncate font-mono text-[11px] text-nb-ink-soft">{b.path}</span>
           </DropdownMenuItem>

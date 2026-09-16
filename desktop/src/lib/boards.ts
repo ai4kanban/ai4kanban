@@ -11,15 +11,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { copy } from "./copy";
 import { bundledResource } from "./resources";
 
 /** One board a project holds — the rules' own `listBoards` entry. */
 interface BoardEntry {
   path: string;
-  /** What its work is called, in the rules' English. */
-  work: string;
-  solution: string;
+  /** The board folder from the project root — `docs/kanban`. */
+  name: string;
 }
 
 interface BoardRules {
@@ -49,20 +47,18 @@ export async function listBoards(project: string): Promise<BoardEntry[]> {
   }
 }
 
-/** What the board at `board` calls its work — "Engineering", "Marketing" — in the language
- *  everything outside the page is drawn in. Null when the rules don't list that folder,
- *  which is every board on a build too old to know about boards.
+/** Which board of this project the window at `board` is on — its folder from the project
+ *  root, and only where the project holds more than one (#718). Null otherwise: with one
+ *  board the project's own name is the whole title, and every board folder is called
+ *  `kanban`, so the folder alone would say nothing.
  *
  *  `board` is what the window was opened on, which is a PROJECT when the board is that
  *  project's own `docs/kanban` and the board folder itself otherwise — so both spellings
  *  are looked for. */
 export async function boardWord(project: string, board: string): Promise<string | null> {
   const boards = await listBoards(project);
+  if (boards.length < 2) return null;
   const standard = path.join(board, "docs", "kanban");
   const found = boards.find((b) => b.path === board) ?? boards.find((b) => b.path === standard);
-  if (!found) return null;
-  // The rules answer in English; the word in the title is this machine's language, by
-  // solution. A board whose solution this copy has no word for keeps the rules' own.
-  const words = copy().boards.work;
-  return words[found.solution as keyof typeof words] ?? found.work;
+  return found?.name ?? null;
 }

@@ -91,7 +91,7 @@ function onScreen(named: string): boolean {
   if (at === path.resolve(boardSearchStart())) return true;
   // …except that a project may hold a second board (#407), and then its path is
   // no longer proof of anything: the app writes the project when `docs/kanban`
-  // is on screen, and `marketing/kanban` would read that as its own turn. Only
+  // is on screen, and `design/kanban` would read that as its own turn. Only
   // the project's own board may answer to the project's name.
   const root = findRepoRoot();
   return root !== null && at === root && kanbanDir() === path.join(root, "docs", "kanban");

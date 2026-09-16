@@ -28,7 +28,6 @@ import type { CloudEventState } from '../cloud/events'
 import { recordCloudDeliveryState } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
 import { DELIVERIES, rel } from '../paths'
-import { solution } from '../solution'
 import { answerOutcome } from './answers'
 import { candidateBase } from './candidate'
 import { decideRunAfter, decidingOn } from './decide'
@@ -862,9 +861,7 @@ export function adoptDirectCard(sessionId: string, cardId: number): boolean {
     // Where the card rests when the job ends without archiving it. `raw create` writes every
     // card at `todo` and the caller takes this one straight to `implementing`; nothing plans
     // it, so a cancel or a discard hands back a settled card rather than one to refine.
-    // `ready` is the stage a refine takes a card to, and a board with no refine has no such
-    // stage (#435) — the same rule `releaseCard` follows.
-    const idle = solution() === 'marketing' ? 'todo' : 'ready'
+    const idle = 'ready'
     run.cardId = cardId
     run.priorStatus = idle
     if (!delivery) return true

@@ -64,13 +64,10 @@ import type {
   Board,
   Card,
   CardDeliveryState,
-  CardDrafts,
   CardPatch,
-  ChannelStatus,
   ClosePlan,
   DeliveryDiff,
   DeliveryPlan,
-  DraftComment,
   DropPlan,
   FillPlan,
   InboxAddResult,
@@ -169,13 +166,11 @@ export type OpenBoard =
   | { ok: true; kind: "cloud"; state: { workspaceId: string; workspaceName: string; offline: boolean; readAt: string } }
   | { ok: false; kind: "cloud"; reason: string; error: string };
 
-/** One board a project holds (#407). `work` is what its work is called — "Engineering",
- *  "Marketing" — and `short` is that word on a window too narrow for the whole path. */
+/** One board a project holds (#407). `name` is the board folder from the project root —
+ *  `docs/kanban` — which is what tells two boards of one project apart. */
 export interface BoardEntry {
   path: string;
-  work: string;
-  short: string;
-  solution: string;
+  name: string;
 }
 
 /** How the board stands: a folder here, or a copy of a workspace and how old it is. */
@@ -295,7 +290,6 @@ export interface BoardRules {
   // the workflows a card runs through (#715). Optional: a project on older rules has no
   // workflows at all, and the pane says so rather than drawing an empty list.
   workflowViews?(): WorkflowView[];
-  workflowsHere?(): boolean;
   createWorkflow?(name: string): WriteResult & { id?: string; name?: string };
   duplicateWorkflow?(id: string, called?: string): WriteResult & { id?: string; name?: string };
   renameWorkflow?(id: string, name: string): WriteResult;
@@ -305,71 +299,6 @@ export interface BoardRules {
   addWorkflowHelper?(id: string, stage: WorkflowStage, agent: string): WriteResult;
   removeWorkflowHelper?(id: string, stage: WorkflowStage, agent: string): WriteResult;
   setWorkflowHelperExtra?(id: string, stage: WorkflowStage, agent: string, extra: string): WriteResult;
-
-  // a marketing card's drafts and its channels (#411) — what the card page's drafts block
-  // draws and acts through. Optional the way the flow rules are: a board running rules older
-  // than the release that added them draws the block with the reason in it rather than
-  // failing, and a product board never draws it at all.
-  //
-  // `repurposeChannel` is the `channel` COMMAND, so the button gets the checks a terminal
-  // gets — the channel is chosen, `source.md` is there, an existing draft needs `again`. It
-  // hands the refusal's own `kind` back, which is what turns `draft-exists` into a
-  // confirmation rather than a dead end.
-  //
-  // `ask` is one more optional argument, the way `again` already is (#457): rules older than
-  // the release that added it repurpose without the note and the language rather than
-  // refusing.
-  readDrafts?(id: number): CardDrafts;
-  saveDraft?(id: number, name: string, text: string): CardDrafts;
-  repurposeChannel?(
-    id: number,
-    channel: string,
-    again?: boolean,
-    ask?: { note?: string; language?: string },
-  ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }>;
-  setChannelStatus?(
-    id: number,
-    channel: string,
-    status: ChannelStatus,
-    url?: string,
-  ): Promise<{ ok: boolean; error?: string }>;
-  /** Choose the channels this topic goes to (#434) — `update --channels`, so a
-   *  channel that stays keeps its status and its URL. Optional on its own: rules with the
-   *  drafts above but not this one draw the page without its `+`. */
-  setChannels?(id: number, names: string[]): Promise<{ ok: boolean; error?: string }>;
-
-  // the two ends of a topic (#507): New topic writing a blank one for the editor to open on,
-  // and Discard taking one off the board again. Neither starts an agent. Optional together:
-  // rules older than the release that added them leave the board's Create task where it is,
-  // so a marketing board there is exactly what it was.
-  /** Write one blank topic — `raw create --title Untitled` — and answer with its id. */
-  newTopic?(): Promise<{ ok: boolean; id?: number; error?: string }>;
-  /** Take one topic off the board — `raw reject`, with every reference it fixes. */
-  discardTopic?(id: number): Promise<{ ok: boolean; id?: number; error?: string }>;
-
-  // the comments left on one draft, and the polish they go to (#458). Optional together and
-  // separately from the drafts above: rules with the editor but not these draw it with
-  // nothing to comment with, which is what `CardDrafts.canComment` says. Each write answers
-  // with that draft's batch as it now reads.
-  commentOnDraft?(
-    id: number,
-    draft: string,
-    passage: { quote: string; context: string; at: number; words: string },
-  ): DraftComment[];
-  editDraftComment?(id: number, draft: string, commentId: string, words: string): DraftComment[];
-  dropDraftComment?(id: number, draft: string, commentId: string): DraftComment[];
-  /** Submit the batch — one `polish` run over that one draft. The board clears the comments
-   *  when it ends `done`, so nothing here does. `note` is what was typed about the whole
-   *  batch (#573); rules older than it take the argument and ignore it. */
-  polishDraft?(
-    id: number,
-    draft: string,
-    note?: string,
-  ): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }>;
-
-  /** What this board's work IS (#407) — `product` or `marketing`. Optional: a copy of the
-   *  rules older than the release that added solutions has only ever run product boards. */
-  solution?(): string;
 
   // may the board commit? (#303) The one repository-level setting behind worktrees,
   // parallel deliveries and landing reviewed code.
@@ -974,7 +903,7 @@ export function boardRules(): Promise<BoardRules> {
       }
       // Every command points the rules at one board before it runs; here it is one board
       // for the life of the server, so it is set once. `setBoardDir` names the board folder
-      // outright, which is the only way to say `marketing/kanban` (#407) — but only for a
+      // outright, which is the only way to say a board beside `docs/` (#407) — but only for a
       // board that IS one. `<root>/docs/kanban` still goes through `setBoardRoot`, which is
       // handed the project instead of working it back out of the board folder: a project
       // that is not itself a git repo, or one nested inside a bigger one, would otherwise

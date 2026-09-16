@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url'
 import { BoardError, warn as sayWarning, type BoardErrorOptions } from './io'
 import {
   CHATS_FOLDER,
-  COMMENTS_FOLDER,
   INDEX_LOCK as INDEX_LOCK_NAME,
   MOCKUPS_FOLDER,
   SESSIONS_FILE,
@@ -70,10 +69,6 @@ export let LEGACY_AGENTS = ''
 // Machine state: a mockup is a working drawing, redrawn from the card whenever the question
 // comes back, so it is never something the repo carries or a teammate pulls.
 export let MOCKUPS = ''
-// The comments left on a topic's drafts, waiting to be polished (#458) — one markdown file
-// per draft, under a folder per card (#572).
-// Machine state like the chats: a batch is consumed by the next polish and then gone.
-export let COMMENTS = ''
 // All memory lives under docs/kanban/memory/: the project-wide set sits in this folder
 // itself, each module's set in a subfolder named after the module.
 export let MEMORY = ''
@@ -277,7 +272,6 @@ function setBoard(kanban: string, root: string, flag: string): string {
   // Local state stays in the checkout and is shared with sandboxed agents.
   const machine = projectStateDir(KANBAN, REPO_ROOT)
   MOCKUPS = path.join(machine, MOCKUPS_FOLDER)
-  COMMENTS = path.join(machine, COMMENTS_FOLDER)
   SESSIONS = path.join(machine, SESSIONS_FILE)
   SESSIONS_DIR = path.join(machine, SESSIONS_FOLDER)
   SESSIONS_LOCK = path.join(machine, SESSIONS_LOCK_NAME)

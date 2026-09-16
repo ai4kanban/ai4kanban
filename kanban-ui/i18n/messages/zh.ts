@@ -15,7 +15,6 @@ const zh: MessagesCopy = {
     tooOldForMemory: "这个看板所用的运行规则太旧，无法读取它的记忆。",
     tooOldForArchive: "这个看板所用的运行规则太旧，无法读取它的归档。",
     tooOldForSignals: "这个看板所用的运行规则太旧，无法使用待筛选。",
-    tooOldForDrafts: "这个看板所用的运行规则太旧，无法读取这个选题的稿件。",
     updateIt: "运行 `npm install -g ai4kanban` 升级它。",
   },
   tooOld: {

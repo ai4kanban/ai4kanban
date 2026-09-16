@@ -5,7 +5,7 @@ import path from "node:path";
 //
 // `KANBAN_BOARD_DIR` names it outright, and then it IS the answer. It takes either
 // shape (#407): a PROJECT folder, whose board is its `docs/kanban`, or a BOARD
-// folder itself — `marketing/kanban`, which has its own `todo/` and `config.md`.
+// folder itself — `design/kanban`, which has its own `todo/` and `config.md`.
 // Every launcher that passes a project keeps working unchanged; naming a board is
 // how a second one in the same repository is opened. Whoever set it knew which
 // folder they meant: the app passes the one you picked (desktop/src/lib/

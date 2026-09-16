@@ -63,10 +63,10 @@ implementation agent can run in `## Todo` instead.
 
 ### An agent's memory
 
-A spec agent that remembers is marked `remembers` in the roster of agents. It keeps two files
-in `docs/kanban/memory/agents/<agent>/`. When the user's answer or revision lands on that
-agent's section — its recommendation taken, sent back, or overruled — append one line to the
-file it belongs in:
+An agent that remembers keeps two files in `docs/kanban/memory/agents/<agent>/` — a spec
+agent marked `remembers` in the roster, and each of the three content agents. When the user's
+answer or revision lands on that agent's section — its recommendation taken, sent back, or
+overruled — append one line to the file it belongs in:
 
 - **`redesign.md`** — the agent was corrected: the mistake, then the design to use instead.
   Start the file with ``# What `<agent>` was corrected on`` when it isn't there.
@@ -82,4 +82,4 @@ One line, in the user's own terms, and no card id, date, or story of the run. No
 goes in those files; the rest of them is the agent's. Never add a third file, and never copy
 how the product looks into either — that is read from the app's own `design.md` and
 components. A product fact worth keeping goes into the lesson or the decision it supports.
-An agent the roster does not mark keeps no memory — write nothing.
+An agent with no memory folder of its own keeps none — write nothing.

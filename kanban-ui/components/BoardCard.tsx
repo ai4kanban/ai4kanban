@@ -10,9 +10,7 @@ import { parseQuestion } from "@/lib/questions";
 import { scheduleLabel } from "@/lib/schedule";
 import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
-import { ChannelRow } from "./channels";
 import { sessionsPanel } from "./sessions";
-import { useSolution } from "./solution";
 import { Button } from "./button";
 import {
   BlockedChip,
@@ -37,11 +35,6 @@ import {
 // The track is NOT on the card. Both views band their cards by track and head
 // each band with its name — the kanban column heading, the queue's rule — so a
 // chip repeating it on every card says nothing the reader can't already see.
-//
-// The channels ARE on the card, on a marketing board (#411) — a topic's whole state is
-// where each of its channels has got to, and that is what the column is scanned for. They
-// take the ranking's place there: a marketing card carries no priority and no ROI (#435),
-// because a topic is picked by hand rather than ranked.
 //
 // The release is NOT on the card. The release picker at the top of the board is
 // how you look at one version, and the card page is where a card says and
@@ -69,10 +62,6 @@ export function BoardCard({
   const c = t.board.card;
   const cardHref = useCardHref();
   const isGroup = card.isGroup;
-  // The marketing face (#411): the same card, plus the channels this topic goes to. The
-  // board's own solution decides it, not the card — a product card has no channels to draw
-  // either way, and a marketing topic whose channels question is unanswered draws no row.
-  const marketing = useSolution() === "marketing";
   // Not finished being created (#564): a different card entirely, and the branch is taken
   // before anything below reads a field the creator has not written yet.
   if (card.creation) {
@@ -205,15 +194,11 @@ export function BoardCard({
       <p className="mb-2.5 text-[13px] font-[700] leading-snug tracking-[-0.01em] break-words">
         {card.title}
       </p>
-      {/* The card's foot: the channels a topic goes to, or how a product card ranks. */}
-      {marketing ? (
-        <ChannelRow channels={card.channels} />
-      ) : (
-        <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <PriorityChip value={card.priority} />
-          <RoiTag value={card.roi} />
-        </div>
-      )}
+      {/* The card's foot: how it ranks. */}
+      <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <PriorityChip value={card.priority} />
+        <RoiTag value={card.roi} />
+      </div>
     </Link>
   );
 }

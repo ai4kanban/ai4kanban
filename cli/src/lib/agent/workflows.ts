@@ -1,9 +1,8 @@
 // The workflows a board runs, and the one place a card's own is read (#715).
 //
-// A board used to be ONE kind of work: `solution` in its `config.md` said whether its cards
-// were code or content, and every card on it got that answer. A workflow moves the choice
-// onto the card. One board plans a feature and a newsletter side by side, each through its
-// own `plan → execute → review`, and the card says which.
+// A board used to be ONE kind of work, and every card on it got that answer. A workflow
+// moves the choice onto the card. One board plans a feature and a newsletter side by side,
+// each through its own `plan → execute → review`, and the card says which.
 //
 // Three stages, always the same three. This is not a flow editor: a workflow says WHO runs
 // each of the three and who they may call in, and nothing about the order — a review that
@@ -42,7 +41,6 @@ import {
   type WorkflowStageView,
   type WorkflowView,
 } from './types'
-import { solution } from '../solution'
 
 // The three stages, the shape of one assignment, and the shape a screen draws are all in
 // ./types.ts — the one module the board UI keeps a copy of, so the pane names them without a
@@ -146,11 +144,6 @@ export const BUILTIN_WORKFLOW_IDS: string[] = BUILTINS.map((w) => w.id)
 /** Whether a workflow is one of the command's own — what refuses a rename, a delete, and a
  *  change of lead. */
 export const isBuiltinWorkflow = (id: string): boolean => BUILTIN_WORKFLOW_IDS.includes(id)
-
-/** Whether this board picks workflows at all. A marketing board keeps the path it has until
- *  its own card retires it (#718): its cards are topics, its flows are the writer's, and a
- *  workflow list there would offer work it cannot do. */
-export const workflowsHere = (): boolean => solution() !== 'marketing'
 
 // ---- reading ---------------------------------------------------------------
 
@@ -370,9 +363,8 @@ function dropBuiltinLeads(cfg: Record<string, unknown>): boolean {
 }
 
 /** Every workflow this board has, built-ins first and then its own in the order they were
- *  made. Empty where a board picks no workflows at all. */
+ *  made. */
 export function workflows(): Workflow[] {
-  if (!workflowsHere()) return []
   let cfg = safeConfig()
   if (dropBuiltinLeads(cfg)) cfg = safeConfig()
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
@@ -510,7 +502,6 @@ const nameTaken = (name: string, except = ''): boolean =>
 /** Add a workflow of this board's own, with all three stages empty. The name is the user's
  *  own words; an empty one is refused here rather than saved as a workflow with no name. */
 export function createWorkflow(name: string): Write & { id?: string; name?: string } {
-  if (!workflowsHere()) return { ok: false, error: 'this board does not pick workflows' }
   const wanted = trimmedName(name)
   if (!wanted) return { ok: false, error: 'a workflow needs a name' }
   if (nameTaken(wanted)) return { ok: false, error: `this board already has a workflow called "${wanted}"` }
@@ -732,8 +723,8 @@ export const cardWorkflow = (id: number | null | undefined): Workflow | undefine
  *  when the delivery opens, so every run in it works to the same answer however the board's
  *  settings move underneath.
  *
- *  Undefined where this board picks no workflows — a marketing board freezes nothing, and a
- *  record with nothing frozen reads as "the board's own", which is what it always was. */
+ *  Undefined for an id this board has no workflow for; a record with nothing frozen reads as
+ *  "the board's own", which is what it always was. */
 export function frozenWorkflow(id: string): FrozenWorkflow | undefined {
   const flow = workflowFor(id)
   if (!flow) return undefined
@@ -762,7 +753,6 @@ const candidateOf = (entry: RosterEntry): WorkflowCandidate => ({
 /** Every workflow this board has, with each stage's lead, helpers and candidates. One read
  *  for the whole pane: the roster is walked once rather than once per stage per workflow. */
 export function workflowViews(): WorkflowView[] {
-  if (!workflowsHere()) return []
   const roster = agentRoster()
   const byStage = new Map<WorkflowStage, WorkflowCandidate[]>(
     WORKFLOW_STAGES.map((stage) => [stage, roster.filter((e) => e.stage === stage).map(candidateOf)]),

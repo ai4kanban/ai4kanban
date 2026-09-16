@@ -14,11 +14,6 @@
 // and a shared node names its agent (./stages.ts), and that one table is read both ways —
 // `roleForFlow` off it, and a role's own flows off it too. Two lists of the same fact fall
 // out of step; one does not.
-//
-// The set is per solution. A `product` board builds code, so it has a Builder; a
-// `marketing` board writes drafts, so the same flows belong to a Writer, which also runs
-// the repurpose `akb channel` starts and the polish a batch of comments asks for. Discussion
-// helper, Planner and Reviewer are the same work either way.
 
 import path from 'node:path'
 
@@ -26,7 +21,6 @@ import { specAgentCatalog } from '../agents/catalog'
 import { agentLines } from '../agents'
 import { agentMemoryFiles } from '../memory'
 import { KANBAN, rel } from '../paths'
-import { solution } from '../solution'
 import { FLOWS } from './flows'
 import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
 import type { RoleSwitch } from './settings'
@@ -56,7 +50,7 @@ export interface AgentRole {
   confirm?: 'on' | 'off'
   /** What has to be open on this board for this role to be on its roster at all (#562).
    *  `triage` is `signalsAccess()` — the answer the Triage rail row and `akb triage fetch`
-   *  read. Absent on every role that works wherever its solution does. */
+   *  read. Absent on every role that works wherever its board does. */
   needs?: 'triage'
   /** The workflow stage this agent may be assigned to (#715). A role with one is a
    *  WORKFLOW agent: it can lead or help that stage of any workflow on the board. A role
@@ -65,9 +59,14 @@ export interface AgentRole {
   stage?: WorkflowStage
   /** One clause of plain words: what it does, for a roster. */
   gloss: string
-  /** The memory files it owns, board-relative. Nothing moves — these are the files its own
-   *  flows already write, listed so a roster can say what a role remembers. */
+  /** The memory files it owns, board-relative. The files its own flows already write, listed
+   *  so a roster can say what a role remembers. */
   memory: string[]
+  /** Whether this role keeps a memory FOLDER of its own under `memory/agents/<name>/`
+   *  (#718) — the two files a spec agent that remembers keeps. Set on the content roles,
+   *  whose writing taste is theirs rather than the board's; the rest write into the board's
+   *  own set, which `memory` above lists. */
+  ownMemory?: boolean
 }
 
 // The two roles the board ships switched OFF (#447, #493). Neither does a flow's work: each
@@ -214,31 +213,41 @@ const SWEEPER: AgentRole = {
 // feature and a newsletter through the same three stages, and which agent leads is the
 // workflow's answer rather than the board's.
 //
-// Their memory is the board's own planning and building memory, not a second set. A board
-// that remembered its content decisions somewhere else would be a board whose pruner could
-// only ever read half of what it decided.
+// Each keeps a memory FOLDER of its own, `memory/agents/<name>/` (#718). Writing taste — the
+// voice, what a claim has to carry, how a piece is put together — is the three of them
+// answering to the user, not a planning note about the product, so it does not belong in the
+// board's `decisions.md` beside what a feature settled. All three are HANDED all three
+// folders, because taste corrected on a review is taste the writer has to write by; each
+// writes only its own.
 const CONTENT_ROLES: AgentRole[] = [
   {
     name: 'content-planner',
     stage: 'plan',
     gloss: 'settles what a piece is for, who reads it and what it covers',
     memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/goal.md'],
+    ownMemory: true,
   },
   {
     name: 'content-writer',
     stage: 'execute',
     gloss: 'writes the piece into the repository',
-    memory: ['memory/readme.md', 'memory/redesign.md'],
+    memory: ['memory/readme.md'],
+    ownMemory: true,
   },
   {
     name: 'content-reviewer',
     stage: 'review',
     gloss: 'checks the piece against what was planned',
     memory: [],
+    ownMemory: true,
   },
 ]
 
-const PRODUCT_ROLES: AgentRole[] = [
+/** The three content roles, in the order the `content` workflow runs them — whose memory
+ *  every content run is handed (#718). */
+export const CONTENT_ROLE_NAMES: string[] = CONTENT_ROLES.map((r) => r.name)
+
+const BOARD_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
     name: 'planner',
@@ -258,29 +267,10 @@ const PRODUCT_ROLES: AgentRole[] = [
   MEMORY_REVIEWER,
   SWEEPER,
   FEEDBACK,
-  // Last, and only on a product board: it has no `gate` flow, a topic carries no questions
-  // to answer, and a published topic leaves no follow-up card to propose.
   GATER,
   DECIDER,
   PROPOSER,
   TRIAGER,
-]
-
-const MARKETING_ROLES: AgentRole[] = [
-  DISCUSSION_HELPER,
-  {
-    name: 'planner',
-    gloss: 'plans topics',
-    memory: ['memory/decisions.md', 'memory/rejected.md', 'memory/published.md'],
-  },
-  {
-    name: 'writer',
-    gloss: 'writes the drafts, repurposes them and polishes them',
-    memory: ['memory/writing.md', 'memory/writing/'],
-  },
-  REVIEWER,
-  MEMORY_PRUNER,
-  MEMORY_REVIEWER,
 ]
 
 /** The role every conversation is held by — whose runtime a chat runs on and whose rule it
@@ -296,13 +286,13 @@ export const FEEDBACK_ROLE = FEEDBACK.name
  *  build is reviewed is actually answered (#783). */
 export const REVIEW_ROLE = REVIEWER.name
 
-/** Every role name the board ships, on either solution. Reserved: a rule is keyed by the
- *  agent's name, so a project agent taking one would share that role's rule file
- *  (../agents/catalog.ts refuses it). */
-export const ROLE_NAMES: string[] = [...new Set([...PRODUCT_ROLES, ...MARKETING_ROLES].map((r) => r.name))]
+/** Every role name the board ships. Reserved: a rule is keyed by the agent's name, so a
+ *  project agent taking one would share that role's rule file (../agents/catalog.ts refuses
+ *  it). */
+export const ROLE_NAMES: string[] = BOARD_ROLES.map((r) => r.name)
 
 /** This board's roles, in the order a roster draws them. */
-export const roles = (): AgentRole[] => (solution() === 'marketing' ? MARKETING_ROLES : PRODUCT_ROLES)
+export const roles = (): AgentRole[] => BOARD_ROLES
 
 /** The role that runs one flow, by flow name — resolved through the contracts (./stages.ts),
  *  which is the one place a flow is joined to who does it. Every flow the board has belongs
@@ -355,9 +345,8 @@ export interface RosterEntry {
   builtIn: boolean
   /** Whether this entry can be switched off. A workflow agent cannot (#749): a stage of a
    *  workflow assigns it or does not, and a second switch beside that assignment is two
-   *  answers to one question. So: a specialist that declares no stage — the marketing
-   *  board's writers — and, of the roles, the gater, the decider (#447, #493), the reviewer
-   *  (#509), the proposer (#534) and the triager (#562). */
+   *  answers to one question. So: a specialist that declares no stage, and, of the roles,
+   *  the gater, the decider (#447, #493), the proposer (#534) and the triager (#562). */
   switchable: boolean
   /** The direction its switch asks in — the role's own `confirm`. Absent on every
    *  specialist: one fills a section of a card and starts nothing on its own. */
@@ -412,7 +401,10 @@ export function agentRoster(): RosterEntry[] {
       ...(role.switch ? { setting: role.switch } : {}),
       ...(role.needs ? { needs: role.needs } : {}),
       flows: flowsOfAgent(role.name),
-      memory: role.memory.map((file) => rel(path.join(KANBAN, file))),
+      memory: [
+        ...(role.ownMemory ? agentMemoryFiles(role.name).map(rel) : []),
+        ...role.memory.map((file) => rel(path.join(KANBAN, file))),
+      ],
     })),
     ...specialists.filter((a) => a.builtIn),
     ...specialists.filter((a) => !a.builtIn),

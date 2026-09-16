@@ -24,27 +24,15 @@ import {
 import {
   boardScreen,
   boardsHere,
-  commentOnDraft,
-  discardTopic,
-  readSolution,
   cardStillThere,
-  dropDraftComment,
-  newTopic,
-  editDraftComment,
-  polishDraft,
   refreshBoard,
-  readDrafts,
   readGoalText,
   readMetrics,
   readReleases,
   readSetupDraft,
   readSetupState,
   readSignals,
-  repurposeChannel,
-  saveDraft,
   searchCards,
-  setChannels,
-  setChannelStatus,
   signalsOpen,
   triageAfterAdding,
   addToInbox,
@@ -245,17 +233,14 @@ import type {
   AgentView,
   ArchivedCard,
   BoardScreen,
-  CardDrafts,
   CardPatch,
   CardRef,
-  ChannelStatus,
   ChatTarget,
   CloudAccount,
   CloudEventAnswer,
   CloudMove,
   ClosePlan,
   CommandState,
-  CommentBatch,
   ConnectionTest,
   CreateImageAgents,
   ConversationRow,
@@ -291,7 +276,6 @@ import type {
   SlackConversation,
   SlackState,
   SpecAgentView,
-  TopicResult,
   UsageReporting,
   VerifyResult,
   WorkflowStage,
@@ -388,10 +372,6 @@ const ACTIONS = new Set([
 // up.
 const CARDLESS = new Set(["create", "plan-release", "changelog", "setup"]);
 
-// Of those, the ones a marketing board has not (#435). Refused rather than left off the set
-// above, because which board this is is only known once it has been read.
-const GONE_ON_MARKETING = new Set(["refine", "resolve", "plan-release", "changelog", "implement"]);
-
 // Start an agent and return immediately with a sessionId (or a lock message). The request
 // never waits for the child — the client polls listSessionsAction() to see the session's
 // progress and outcome.
@@ -399,13 +379,6 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
   // A tab left open across the upgrade that made refine the loop still posts the old name.
   if (req && (req.action as string) === "auto-refine") req = { ...req, action: "refine" };
   if (!req || !ACTIONS.has(req.action)) throw new Error("unknown action");
-  // The five a marketing board has no place for (#435): its cards carry no questions to
-  // sharpen or answer, it plans no versions, and a topic's source is the user's own words
-  // rather than something an agent drafts. The CLI refuses them too — this is so a button
-  // that could never work never reaches one.
-  if (GONE_ON_MARKETING.has(req.action) && (await readSolution()) === "marketing") {
-    throw new Error(`a marketing board has no ${req.action}`);
-  }
   // A plan is never named from the browser (#427, #481): the file a run is pointed at is the
   // board's own to say, and `startPlanningAction` and `startPlanBuildAction` above read it
   // server-side. Anything sent here naming one is dropped rather than followed.
@@ -1143,147 +1116,6 @@ export async function unscheduleCardAction(id: number, expect = ""): Promise<Wri
   return clearSchedule(id, expect);
 }
 
-// ---- a marketing card's drafts (#411) ---------------------------------------
-//
-// The four the drafts block acts through. Each is a thin pass to the CLI, which owns every
-// rule about them: which names a draft may go by, whether this card chose that channel,
-// whether `source.md` is there to repurpose from.
-
-// Which drafts this topic has, each one whole. Asked on each open and on tab focus, so a
-// draft a repurpose has just written lands in the pane with nothing to poll.
-export async function readDraftsAction(id: number): Promise<CardDrafts> {
-  if (!Number.isInteger(id)) return { dir: "", drafts: [], error: "drafts are read by card number" };
-  return readDrafts(id);
-}
-
-// Save the draft on screen. Explicit — the pane has a Save — and last write wins: a draft
-// held open in an editor as well loses whichever save landed second, which is what the pane
-// says when it re-reads and finds the file moved.
-export async function saveDraftAction(id: number, name: string, text: string): Promise<CardDrafts> {
-  if (!Number.isInteger(id)) return { dir: "", drafts: [], error: "a draft is saved by card number" };
-  if (typeof name !== "string" || !name) return { dir: "", drafts: [], error: "a draft is named" };
-  if (typeof text !== "string") return { dir: "", drafts: [], error: "a draft is text" };
-  return saveDraft(id, name, text);
-}
-
-// Repurpose the topic's source into one channel's draft — the CLI's `channel` command, so
-// the button gets every check a terminal gets. `again` is the answer to a draft that is
-// already written, which the pane asks for rather than refusing. `ask` is the note and the
-// language typed with this one repurpose (#457); both are optional and neither is stored.
-export async function repurposeChannelAction(
-  id: number,
-  channel: string,
-  again = false,
-  ask: { note?: string; language?: string } = {},
-): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
-  if (!Number.isInteger(id)) return { ok: false, error: "a repurpose names the topic by number" };
-  if (typeof channel !== "string" || !channel) return { ok: false, error: "a repurpose names a channel" };
-  const note = typeof ask?.note === "string" ? ask.note.trim() : "";
-  const language = typeof ask?.language === "string" ? ask.language.trim() : "";
-  return repurposeChannel(id, channel, again === true, {
-    note: note || undefined,
-    language: language || undefined,
-  });
-}
-
-// Mark one channel published and record where the piece went up (#411). It posts nothing:
-// until #413 lands the piece is still posted by hand, and this is the board catching up
-// with what the user did. The URL is required, so every published channel has a link for
-// `memory/published.md` to key on.
-export async function setChannelStatusAction(
-  id: number,
-  channel: string,
-  status: ChannelStatus,
-  url = "",
-): Promise<{ ok: boolean; error?: string }> {
-  if (!Number.isInteger(id)) return { ok: false, error: "a channel is moved by card number" };
-  if (typeof channel !== "string" || !channel) return { ok: false, error: "a channel is named" };
-  if (typeof status !== "string" || !status) return { ok: false, error: "a channel moves to a status" };
-  return setChannelStatus(id, channel, status, typeof url === "string" ? url : "");
-}
-
-// New topic (#507) — the marketing board's Create. It writes one blank card and answers with
-// its id, which is the page the press lands on. No agent: a topic nobody has written yet has
-// nothing to ask one, so this is a board write like any other and it is over by the time the
-// router moves.
-export async function newTopicAction(): Promise<TopicResult> {
-  return newTopic();
-}
-
-// Discard the topic on screen (#507) — the `…` menu's own item, and the only thing that takes
-// a blank one off the board. It is a press and never a timer, so nothing here is automatic.
-export async function discardTopicAction(id: number): Promise<TopicResult> {
-  if (!Number.isInteger(id)) return { ok: false, error: "a topic is discarded by card number" };
-  return discardTopic(id);
-}
-
-// Choose the channels this topic goes to (#434) — the card page's `+`, which
-// appends one to the list the card already carries. Reused from `update --channels`, so a
-// channel that stays keeps its status and the URL it was published at.
-export async function setChannelsAction(id: number, names: string[]): Promise<{ ok: boolean; error?: string }> {
-  if (!Number.isInteger(id)) return { ok: false, error: "channels are chosen by card number" };
-  if (!Array.isArray(names) || names.some((n) => typeof n !== "string")) {
-    return { ok: false, error: "the channels are a list of names" };
-  }
-  return setChannels(id, names);
-}
-
-// The comments left on one draft (#458). A comment is saved on its passage rather than
-// sent, so a whole read-through goes to one polish instead of costing a rewrite per remark.
-// Each write answers with that draft's batch as it now reads.
-export async function commentOnDraftAction(
-  id: number,
-  draft: string,
-  passage: { quote: string; context: string; at: number; words: string },
-): Promise<CommentBatch> {
-  if (!Number.isInteger(id)) return { comments: [], error: "a comment is left by card number" };
-  if (typeof draft !== "string" || !draft) return { comments: [], error: "a comment is left on a named draft" };
-  const quote = typeof passage?.quote === "string" ? passage.quote : "";
-  const words = typeof passage?.words === "string" ? passage.words : "";
-  if (!quote) return { comments: [], error: "a comment is left on a passage" };
-  if (!words.trim()) return { comments: [], error: "a comment says what to do with the passage" };
-  // A context that does not hold its own passage says nothing about where it sat, so the
-  // passage stands alone rather than anchoring off a string it is not in.
-  const given = typeof passage?.context === "string" ? passage.context : "";
-  const at = Number.isInteger(passage?.at) ? passage.at : 0;
-  const held = given.slice(at, at + quote.length) === quote;
-  return commentOnDraft(id, draft, { quote, context: held ? given : quote, at: held ? at : 0, words });
-}
-
-export async function editDraftCommentAction(
-  id: number,
-  draft: string,
-  commentId: string,
-  words: string,
-): Promise<CommentBatch> {
-  if (!Number.isInteger(id)) return { comments: [], error: "a comment is edited by card number" };
-  if (typeof draft !== "string" || !draft) return { comments: [], error: "a comment is left on a named draft" };
-  if (typeof commentId !== "string" || !commentId) return { comments: [], error: "a comment is named" };
-  if (typeof words !== "string" || !words.trim()) {
-    return { comments: [], error: "a comment says what to do with the passage" };
-  }
-  return editDraftComment(id, draft, commentId, words);
-}
-
-export async function dropDraftCommentAction(id: number, draft: string, commentId: string): Promise<CommentBatch> {
-  if (!Number.isInteger(id)) return { comments: [], error: "a comment is dropped by card number" };
-  if (typeof draft !== "string" || !draft) return { comments: [], error: "a comment is left on a named draft" };
-  if (typeof commentId !== "string" || !commentId) return { comments: [], error: "a comment is named" };
-  return dropDraftComment(id, draft, commentId);
-}
-
-// Submit the batch — one `polish` run over that one draft. The board clears the comments
-// when the run ends `done`, so a run that failed leaves them to submit again.
-export async function polishDraftAction(
-  id: number,
-  draft: string,
-  note?: string,
-): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
-  if (!Number.isInteger(id)) return { ok: false, error: "a polish names the topic by number" };
-  if (typeof draft !== "string" || !draft) return { ok: false, error: "a polish names a draft" };
-  return polishDraft(id, draft, typeof note === "string" ? note.trim() || undefined : undefined);
-}
-
 // The daily progress view (#65) — the last 30 days of docs/kanban/metrics.csv. Read once
 // each time the view opens; the file changes a few times a day at most, so there's nothing
 // to poll. A file that can't be read comes back as { ok:false, error }, so the message
@@ -1906,9 +1738,8 @@ export async function workflowsAction(): Promise<{ workflows: WorkflowView[] | n
   }
 }
 
-/** Whether this board picks workflows at all. False on a board whose rules are too old and
- *  on one whose cards go through its solution's own flows — the sections are hidden rather
- *  than drawn empty. */
+/** Whether this board picks workflows at all. False on a board whose rules are too old — the
+ *  sections are hidden rather than drawn empty. */
 export async function workflowsOfferedAction(): Promise<boolean> {
   try {
     return await workflowsOffered();

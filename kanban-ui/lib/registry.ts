@@ -85,8 +85,6 @@ function toView(
     // archived card is off the board and answers nothing, and then the title its delivery
     // froze stands in — the last thing that still knows what the run was on.
     cardTitle: titleOf(run.cardId) ?? (cardless ? undefined : delivery?.title),
-    draft: run.draft,
-    channel: run.channel,
     action: run.action as SessionView["action"],
     status: run.status,
     startedAt: run.startedAt,

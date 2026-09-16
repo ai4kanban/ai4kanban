@@ -1,4 +1,4 @@
-// The production origin for the marketing site. Single source of truth — every
+// The production origin for the public site. Single source of truth — every
 // canonical URL, sitemap entry, and JSON-LD `url` derives from this.
 export const BASE_URL = "https://ai4kanban.dev";
 

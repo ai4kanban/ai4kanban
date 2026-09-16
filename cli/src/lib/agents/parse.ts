@@ -2,7 +2,6 @@
 
 import { isSpecOutput, SPEC_OUTPUTS, type SpecAgentChoice, type SpecAgentSetting, type SpecOutput } from '../agent/types'
 import { WORKFLOW_STAGES, type WorkflowStage } from '../agent/workflows'
-import { solution } from '../solution'
 import { parseYamlBlock, splitFrontmatter } from './yaml'
 import type { YamlValue } from './yaml'
 
@@ -65,10 +64,10 @@ export interface SettingLines {
   choices?: Record<string, { label?: string; cost?: string }>
 }
 
-/** The hooks an agent may plug into: `spec` fills one part of a card's spec, `write` joins
- *  the board's writer. Only the marketing board has a writer, so a `write` agent anywhere
- *  else is refused rather than registered as something that could never run. */
-export const AGENT_KINDS = ['spec', 'write'] as const
+/** The hooks an agent may plug into. One: `spec` fills one part of a card's spec. `write`
+ *  joined the retired marketing board's writer (#718) — a file still declaring it is listed
+ *  as a problem rather than registered as something nothing can call. */
+export const AGENT_KINDS = ['spec'] as const
 export type AgentKind = (typeof AGENT_KINDS)[number]
 
 /** The scopes an agent may remember in. One: the board it runs on, in a file its team
@@ -78,9 +77,8 @@ export const AGENT_MEMORIES = ['project'] as const
 export type AgentMemory = (typeof AGENT_MEMORIES)[number]
 
 /** What a `kind` means as a stage, for a file written before `akb.stage` existed. A `spec`
- *  agent fills part of a card's spec while it is being planned, which is the plan stage; a
- *  `write` agent is the marketing board's and belongs to no workflow (#718). */
-const STAGE_OF_KIND: Record<AgentKind, WorkflowStage | null> = { spec: 'plan', write: null }
+ *  agent fills part of a card's spec while it is being planned, which is the plan stage. */
+const STAGE_OF_KIND: Record<AgentKind, WorkflowStage | null> = { spec: 'plan' }
 
 /** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
  *  and the word every flow asks for it by. */
@@ -116,6 +114,9 @@ export function parseSpecAgent(
     return bad(`\`${name}\` declares \`akb.stage: ${declaredStage}\` — a stage is \`${WORKFLOW_STAGES.join('` or `')}\``)
   }
   const declaredKind = str(akb.kind)
+  if (declaredKind === 'write') {
+    return bad(`\`${name}\` is a \`write\` agent, and the marketing board it wrote for is retired — give it an \`akb.stage\` instead`)
+  }
   if (declaredKind && !isKind(declaredKind)) {
     return bad(
       `\`${name}\` declares \`akb.kind: ${declaredKind}\` — an agent is \`${AGENT_KINDS.join('\` or \`')}\``,
@@ -125,9 +126,6 @@ export function parseSpecAgent(
     return bad(`\`${name}\` declares neither \`akb.stage\` nor \`akb.kind\`, so the board can't tell where it is used`)
   }
   const kind: AgentKind = isKind(declaredKind) ? declaredKind : 'spec'
-  if (kind === 'write' && solution() !== 'marketing') {
-    return bad(`\`${name}\` is a \`write\` agent, and only a marketing board has a writer to join`)
-  }
   const stage = isStage(declaredStage) ? declaredStage : STAGE_OF_KIND[kind]
   const owns = str(akb.owns)
   if (!owns) return bad(`\`${name}\` has no \`akb.owns\`, which is the part of the spec it answers for`)

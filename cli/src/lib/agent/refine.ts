@@ -13,7 +13,6 @@ import { createHash } from 'node:crypto'
 import { allCards, findCard } from '../view/read'
 import { scheduleRefineOnBlock } from '../view/edit'
 import { decideRunAfter } from './decide'
-import { flowRefusal } from './flows'
 import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
@@ -113,9 +112,8 @@ export function claimChanges(before: BoardMarks, sessionId: string): number[] {
   try {
     return withStore((store) => {
       // A card another run is working on is that run's to account for when it closes. A
-      // specialist run holds nothing (`holdsCard`) — it fills one section, or writes one
-      // file in the draft folder, while the card's own loop carries on around it — which is
-      // the rule `heldByRun` follows too.
+      // specialist run holds nothing (`holdsCard`) — it fills one section while the card's
+      // own loop carries on around it — which is the rule `heldByRun` follows too.
       const held = new Set(
         store.runs
           .filter((r) => r.status === 'running' && r.sessionId !== sessionId && holdsCard(r.action))
@@ -143,9 +141,6 @@ export function claimChanges(before: BoardMarks, sessionId: string): number[] {
 }
 
 export function refinementStep(card: Card): RefinementStep {
-  // A board whose solution has no refine has nothing for one to do (#435) — so every way in
-  // reads 'done' here, and nothing asks for, schedules or follows up with a refine there.
-  if (flowRefusal('refine')) return 'done'
   if (!canRefine(card)) return 'done'
   return 'clarify'
 }
@@ -236,11 +231,6 @@ export function refinementAfter(
 // so a refine of a card one of them merely edited spends a run re-doing what has just
 // closed. A card one of them split off is another matter: it is as rough as any other
 // newborn card, and nothing else comes for it.
-//
-// A repurpose and a write agent are here for the opposite reason: neither touches the plan
-// at all. A repurpose's one write on the card is the channel's `draft` status and a write
-// agent's is nothing, and a refine started over either would re-plan a settled topic because
-// a file was written.
 const FOLLOWS_CREATED = new Set<AgentAction>([
   'implement',
   // A gate judges the card and writes at most one `[user]` question on it — which is already
@@ -258,9 +248,6 @@ const FOLLOWS_CREATED = new Set<AgentAction>([
   'unstick',
   'writing',
   'spec',
-  'channel',
-  'marketing-polish-loop',
-  'write',
 ])
 
 /** Cards this run left worth refining — its own claims and no one else's. `before` is the
@@ -327,7 +314,7 @@ export interface RefinementFollowUp {
 //
 // Null means there is nothing to check — the run was no planning run, its card is gone, or
 // the card is still moving. Everything the command ships requires no helper, so this is
-// `{ done: true }` on both solutions today.
+// `{ done: true }` today.
 function planStageEnd(run: RunRecord): ReturnType<typeof endOfStage> | null {
   if (run.cardId === null || stageOfAction(run.action) !== 'plan') return null
   const card = currentCard(run.cardId)

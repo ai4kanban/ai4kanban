@@ -7,7 +7,6 @@
 
 import { recordAnswer } from '../lib/agent/answers'
 import { activeDelivery, deliveryAcceptsAnswers, heldByDelivery, namedDelivery } from '../lib/agent/deliveries'
-import { flowRefusal } from '../lib/agent/flows'
 import { insideRun, printFlow } from '../lib/agent/flow'
 import { readLogTail, splitLog } from '../lib/agent/log'
 import { refinementRequest, startRefinement } from '../lib/agent/refine'
@@ -59,14 +58,8 @@ export async function cmdStartRun(
   opts: StartOptions,
   program = 'akb',
 ): Promise<MoveResult> {
-  // A flow this board's solution has no place for (#435). Refused before anything is read
-  // off the card: there is nothing behind the command, whatever it was pointed at. Every
-  // flow that can be refused is named the same as the action it starts.
-  const gone = flowRefusal(action, program)
-  if (gone) die(gone, { kind: 'run-refused', action })
-  // Sorting triage is refused by ADMISSION rather than by solution (#561), so it asks the
-  // one answer a fetch asks — a marketing board and a signed-out one are turned away in the
-  // same words, printing or starting.
+  // Sorting triage asks the one answer a fetch asks (#561), so a signed-out board is turned
+  // away in the same words, printing or starting.
   if (action === 'triage') {
     const access = await signalsAccess()
     if (!access.open) die(access.why, { kind: 'triage-closed' })

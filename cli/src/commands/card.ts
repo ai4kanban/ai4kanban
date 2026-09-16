@@ -10,10 +10,7 @@ import { die, warn, rel, readNextId, writeNextId, TODO } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
-import { CHANNEL_NAMES, CHANNEL_STATUSES, asChannelStatus, chooseChannels } from '../lib/channels'
-import { flowRefusal } from '../lib/agent/flows'
-import { DEFAULT_WORKFLOW, workflowById, workflows, workflowsHere } from '../lib/agent/workflows'
-import { carriesField, namedById, solution } from '../lib/solution'
+import { DEFAULT_WORKFLOW, workflowById, workflows } from '../lib/agent/workflows'
 import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { readDecidedOp, type DecidedInput } from '../lib/decided'
@@ -72,26 +69,6 @@ function recurringBody() {
   ].join('\n')
 }
 
-// A field this board's cards do not carry (../lib/solution.ts). The flag is refused rather
-// than dropped: a value the board silently ignores is a value the caller thinks it wrote.
-// `why` is the one clause saying what that solution does instead.
-function refuseGoneField(field: string, why: string, flag = `--${field}`): void {
-  if (carriesField(field)) return
-  die(`${flag} is not a \`${solution()}\` card's — ${why}.`, { kind: 'wrong-solution', solution: solution() })
-}
-
-// `--slug` on a board that names a card off its id alone (`namedById`, ../lib/solution.ts).
-// Refused rather than ignored: it would part the card from the draft folder derived from
-// its name. A recurring job keeps its slug on either board.
-function refuseTopicSlug(recurring: boolean): void {
-  if (recurring || !namedById()) return
-  die(
-    `--slug is not a \`${solution()}\` card's — a topic is \`todo/<id>.md\` and its drafts are \`content/<id>/\`, ` +
-      'so a slug would rename the card away from its own draft folder. The title is frontmatter; change that instead.',
-    { kind: 'wrong-solution', solution: solution() },
-  )
-}
-
 // How often a recurring card repeats, as `--cadence` gives it: one of the forms in
 // lib/cadence.ts, written back in that module's own spelling so every card reads the
 // same. An empty value is "no cadence" — the card goes back to running only when a
@@ -137,10 +114,6 @@ export interface CreateOptions {
 // Which words are actions is the command's own check; what is left here is the two ways a
 // perfectly-spelled one would still never fire.
 function createSchedule(action: ScheduledAction, recurring: boolean, questions: Question[]): ScheduledAction {
-  // A flow this board's solution has no place for (#435). Read here rather than left to
-  // `setCardSchedule`, which runs after the id is taken and would leave a card behind.
-  const gone = flowRefusal(action)
-  if (gone) die(gone, { kind: 'wrong-solution', solution: solution() })
   if (recurring) die('--schedule is not for a recurring card: its cadence is its schedule.')
   if (
     action === 'refine' &&
@@ -177,10 +150,6 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   const title = opts.title.trim()
   if (!title) die('--title must not be empty')
   const recurring = opts.recurring === true
-  if (opts.priority !== undefined) refuseGoneField('priority', 'its topics are picked by hand, not ranked')
-  if (opts.roi !== undefined) refuseGoneField('roi', 'its topics are picked by hand, not ranked')
-  if (opts.release !== undefined) refuseGoneField('release', 'a topic ships to channels, not to a version')
-  if ((opts.asked ?? []).length) refuseGoneField('questions', "a topic's open choices are talked through in its chat", '--question')
   const priority = opts.priority ?? 'med'
   const roi = opts.roi ?? 'med'
   // No --release means no release: the card is wanted, not promised to a version. Any
@@ -200,17 +169,9 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   const questions = collectQuestions(opts.asked ?? [])
   warnBadQuestionTags(questions)
   const wantedSchedule = opts.schedule ? createSchedule(opts.schedule, recurring, questions) : null
-  // A marketing topic is named off its id alone (#507) — `todo/<id>.md`, and `content/<id>/`
-  // derived from it — so the title lives in frontmatter only and a retitle moves nothing. A
-  // recurring job is the same job on either board, so it keeps its slug.
-  if (opts.slug !== undefined) refuseTopicSlug(recurring)
   const written = bodyFromFile(opts)
   const slug = slugify(opts.slug !== undefined ? opts.slug : title)
-  const fileRel = recurring
-    ? path.join(RECURRING, `${start}-${slug}.md`)
-    : namedById()
-      ? `${start}.md`
-      : `${start}-${slug}.md`
+  const fileRel = recurring ? path.join(RECURRING, `${start}-${slug}.md`) : `${start}-${slug}.md`
   const file = path.join(TODO, fileRel)
   if (fs.existsSync(file)) die(`${rel(file)} already exists — pick a different --slug`)
 
@@ -218,10 +179,7 @@ export function cmdCreate(opts: CreateOptions): MoveResult {
   writeNextId(start + 1)
   bumpMetric('created')
   const meta: Partial<Meta> = { title, priority, roi, status: 'todo', release, blocked_by, related, modules, workflow, cadence, questions }
-  // A marketing topic card carries no body: the piece is the deliverable, and it lives in
-  // `content/<id>/` (#435). A recurring job is the same job on either board, so it
-  // still gets its `## Process`.
-  const scaffolded = !written && opts.body !== false && (recurring || solution() !== 'marketing')
+  const scaffolded = !written && opts.body !== false
   const body = written ?? (!scaffolded ? '' : recurring ? recurringBody() : defaultBody())
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n\n' + body)
   // A recurring card is a job, not one of the open tasks — it never archives and the index
@@ -258,7 +216,6 @@ export interface UpdateOptions {
   blockedBy?: string[]
   related?: string[]
   modules?: string[]
-  channels?: string[]
   slug?: string
   cadence?: string
 }
@@ -271,12 +228,6 @@ function workflowFlag(asked: string | undefined): string {
   if (asked === undefined) return ''
   const wanted = asked.trim()
   if (!wanted || wanted === DEFAULT_WORKFLOW) return ''
-  if (!workflowsHere()) {
-    die(`--workflow is not a \`${solution()}\` board's — its cards go through that solution's own flows.`, {
-      kind: 'wrong-solution',
-      solution: solution(),
-    })
-  }
   const flow = workflowById(wanted)
   if (!flow) {
     die(`no workflow called "${wanted}" on this board. It has: ${workflows().map((w) => w.id).join(', ')}.`, {
@@ -287,21 +238,6 @@ function workflowFlag(asked: string | undefined): string {
   return flow!.id
 }
 
-// The channels a topic goes to, and the order it goes to them in — the first is the lead
-// channel. Marketing's field: a product card has no channels to name, and writing one would
-// put a field on it that nothing there reads or draws.
-function channelsFlag(names: string[], current: Meta['channels']): Meta['channels'] {
-  if (solution() !== 'marketing') {
-    die(`--channels is the marketing solution's — this board is \`${solution()}\`, and its cards go nowhere.`, {
-      kind: 'wrong-solution',
-      solution: solution(),
-    })
-  }
-  return chooseChannels(names, current)
-}
-
-// Rewrite a card's frontmatter fields. Also the sanctioned way to rename a card (--slug).
-// Body is untouched, and so is the question list — that's cmdUpdateQuestions' job.
 export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   // The terminal's spelling of the edit `patchCard` refuses (#564): one card, one answer,
   // whichever door the write comes through. The creator itself is let past — this is what it
@@ -322,30 +258,19 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
     changes.push('title')
   }
   if (flags.priority !== undefined) {
-    refuseGoneField('priority', 'its topics are picked by hand, not ranked')
     meta.priority = flags.priority
     changes.push('priority')
   }
   if (flags.roi !== undefined) {
-    refuseGoneField('roi', 'its topics are picked by hand, not ranked')
     meta.roi = flags.roi
     changes.push('roi')
   }
   if (flags.status !== undefined) {
-    // `ready` is the stage a refine takes a card to, and a marketing board has no refine
-    // (#435): a topic rests at `todo` until it is archived.
-    if (flags.status === 'ready' && solution() === 'marketing') {
-      die(`--status ready is not a \`marketing\` card's — a topic rests at todo until it is archived.`, {
-        kind: 'wrong-solution',
-        solution: solution(),
-      })
-    }
     meta.status = flags.status
     changes.push('status')
   }
   // `--release ""` — an empty value — takes the card back out of a version.
   if (flags.release !== undefined) {
-    refuseGoneField('release', 'a topic ships to channels, not to a version')
     meta.release = validRelease(normalizeRelease(flags.release))
     changes.push(`release→${meta.release || '(none)'}`)
   }
@@ -361,12 +286,6 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   if (flags.modules !== undefined) {
     meta.modules = validModules(flags.modules)
     changes.push('modules')
-  }
-  // The chosen channels and their order. A channel that stays keeps the status and URL it
-  // already had — a reorder must not throw away where a piece was published.
-  if (flags.channels !== undefined) {
-    meta.channels = channelsFlag(flags.channels, meta.channels)
-    changes.push(`channels→${meta.channels.map((c) => c.name).join(', ') || '(none)'}`)
   }
   // How often the card repeats, and so whether the local UI runs it in the
   // background at all. `--cadence ""` clears it and the card goes back to
@@ -389,7 +308,6 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   let base = path.basename(file)
   if (flags.slug !== undefined) {
     if (found.kind === 'group') die('renaming a group root by script is not supported')
-    refuseTopicSlug(isRecurringCard(found))
     base = `${id}-${slugify(flags.slug)}.md`
   }
   // A card never changes folders: --slug at most renames the file where it sits.
@@ -467,65 +385,12 @@ export function cmdSchedule(id: number, flags: ScheduleOptions): MoveResult {
   return { id, schedule: action, notes, was: was?.action ?? null }
 }
 
-/** `akb raw channel-status`, as its command declares it (lib/cli/board.ts). */
-export interface ChannelStatusOptions {
-  url?: string
-}
-
-// Move one channel along: `draft` once its file is written, `ready` once the user has read
-// it, then `scheduled` and `published`. The only other move that touches `channels:` is
-// `update --channels`, which chooses the list; this one never adds a channel, because a
-// channel nobody chose is a draft nobody asked for.
-export function cmdChannelStatus(
-  id: number,
-  channel: string,
-  status: string,
-  flags: ChannelStatusOptions,
-): MoveResult {
-  const name = channel.trim().toLowerCase()
-  if (!CHANNEL_NAMES.includes(name)) {
-    die(`unknown channel "${channel}". the channels are: ${CHANNEL_NAMES.join(', ')}.`, {
-      kind: 'unknown-channel',
-      channels: [channel],
-      known: CHANNEL_NAMES,
-    })
-  }
-  const wanted = asChannelStatus(status)
-  if (!wanted) die(`--status must be one of ${CHANNEL_STATUSES.join(' | ')} (got "${status}")`)
-  const found = locate(id)
-  if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
-  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-  const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
-  if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
-
-  const entry = meta.channels.find((c) => c.name === name)
-  if (!entry) {
-    die(
-      `#${id} does not go to ${name} — its channels are ${meta.channels.map((c) => c.name).join(', ') || '(none chosen)'}. ` +
-        `Choose it first with \`update ${id} --channels <names>\`.`,
-      { kind: 'channel-not-chosen', id, channel: name },
-    )
-  }
-  const was = entry.status || '(no draft yet)'
-  entry.status = wanted
-  if (flags.url !== undefined) entry.url = flags.url.trim()
-  fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
-  say(`#${id} ${name}: ${was} → ${wanted}${entry.url ? ` (${entry.url})` : ''}`)
-  return { id, channel: name, status: wanted, url: entry.url, was, file: rel(file) }
-}
-
 // Patch a card's open-question list. Every op edits in place — append one, rewrite
 // one by position, drop answered ones, clear the list — so handing a single question
 // to the user never means re-passing its siblings (wholesale rewrites silently lost
 // options that weren't re-typed). Ops apply in the order they were typed, and a
 // position is read against the list as it stands when its op runs.
 export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveResult {
-  if (!carriesField('questions')) {
-    die(
-      `\`update-questions\` is not a \`${solution()}\` move — a topic's open choices are talked through in its chat, not filed on the card.`,
-      { kind: 'wrong-solution', solution: solution() },
-    )
-  }
   const ops = readQuestionOps(input.ops ?? [])
   const found = locate(id)
   if (!found) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })

@@ -33,8 +33,8 @@ function pool() {
 
 test("every open window's board is named, one per line", () => {
   const { servers, lines } = pool();
-  servers.showing(["/p/docs/kanban", "/p/marketing/kanban"]);
-  assert.deepEqual(lines(), ["/p/docs/kanban", "/p/marketing/kanban"]);
+  servers.showing(["/p/docs/kanban", "/p/design/kanban"]);
+  assert.deepEqual(lines(), ["/p/docs/kanban", "/p/design/kanban"]);
 });
 
 test("two windows on one board name it once", () => {
@@ -46,15 +46,15 @@ test("two windows on one board name it once", () => {
 
 test("a window closing takes its board off, and leaves the others", () => {
   const { servers, lines } = pool();
-  servers.showing(["/p/docs/kanban", "/p/marketing/kanban"]);
+  servers.showing(["/p/docs/kanban", "/p/design/kanban"]);
   servers.showing(["/p/docs/kanban"]);
   assert.deepEqual(lines(), ["/p/docs/kanban"]);
 });
 
 test("the boards keep the order they were handed, oldest window first", () => {
   const { servers, lines } = pool();
-  servers.showing(["/p/marketing/kanban", "/p", "/p/marketing/kanban"]);
-  assert.deepEqual(lines(), ["/p/marketing/kanban", "/p"]);
+  servers.showing(["/p/design/kanban", "/p", "/p/design/kanban"]);
+  assert.deepEqual(lines(), ["/p/design/kanban", "/p"]);
   // The oldest window's board leaves, and the next one along takes the first line — and
   // with it the raising of the account's notifications.
   servers.showing(["/p"]);

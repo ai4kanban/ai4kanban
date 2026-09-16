@@ -4,7 +4,6 @@
 // starts with (`akb chat`). Both want the same `label   value` shape and the same one-line
 // summary of a card's fields, so the layout lives here rather than once per caller.
 
-import { carriesField } from '../solution'
 import type { CardSchedule } from '../view/types'
 
 const LABEL = 10
@@ -36,8 +35,8 @@ export interface MetaBits {
 export function metaLine(meta: MetaBits): string {
   // A field this board's cards do not carry has no empty slot here either (#435).
   const bits = [meta.status || 'todo']
-  if (carriesField('priority')) bits.push(`priority ${meta.priority}`)
-  if (carriesField('roi')) bits.push(`roi ${meta.roi}`)
+  bits.push(`priority ${meta.priority}`)
+  bits.push(`roi ${meta.roi}`)
   if (meta.release) bits.push(`release ${meta.release}`)
   if (meta.modules.length) bits.push(`modules ${meta.modules.join(', ')}`)
   if (meta.cadence) bits.push(`every ${meta.cadence}`)

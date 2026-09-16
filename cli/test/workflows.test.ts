@@ -500,11 +500,3 @@ describe('a card a delivery is already building', () => {
   })
 })
 
-describe('a board that picks no workflows', () => {
-  it('has none, and refuses to put one on a card', async () => {
-    solution('marketing')
-    assert.deepEqual(workflows(), [])
-    assert.equal(workflowById('coding'), undefined)
-    await refuses(root, ['create', '--title', 'A topic', '--workflow', 'content'], /not a `marketing` board's/)
-  })
-})

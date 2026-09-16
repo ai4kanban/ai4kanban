@@ -5,35 +5,24 @@
 
 import { STATUSES, normalizeRelease } from './validate'
 import { yamlScalar, unquote } from './yaml'
-import { normalizeChannels, parseChannelsBlock, serializeChannels } from './channels'
 import { hasOptions, normalizeQuestion, parseQuestionsBlock } from './questions'
 import { normalizeVerify } from './verify'
 import { normalizeDecided, parseDecidedBlock, serializeDecided } from './decided'
 import { normalizeSchedule, parseScheduleBlock, serializeSchedule } from './schedule'
-import { carriesField, solution, type Solution } from './solution'
 import type { Meta, Question } from './types'
 
 // Takes a partial meta on purpose: a card being written names only the fields it has,
 // the way the old JS did, and the missing ones fall to their empty forms below.
-//
-// `which` is the solution the card is being written FOR, and defaults to this board's. It
-// is passed only by `unpackBoard`, which writes a board into another folder: that board's
-// fields are the ones its own `config.md` names, not this process's (#435).
-export function serializeFrontmatter(m: Partial<Meta>, which: Solution = solution()): string {
-  const has = (field: string) => carriesField(field, which)
+export function serializeFrontmatter(m: Partial<Meta>): string {
   const out = ['---']
   out.push(`title: ${yamlScalar(m.title)}`)
-  if (has('priority')) out.push(`priority: ${m.priority}`)
-  if (has('roi')) out.push(`roi: ${m.roi}`)
+  out.push(`priority: ${m.priority}`)
+  out.push(`roi: ${m.roi}`)
   out.push(`status: ${STATUSES.includes(String(m.status)) ? m.status : 'todo'}`)
-  if (has('release')) out.push(`release: ${yamlScalar(normalizeRelease(m.release))}`)
+  out.push(`release: ${yamlScalar(normalizeRelease(m.release))}`)
   out.push(`blocked_by: [${(m.blocked_by || []).join(', ')}]`)
   out.push(`related: [${(m.related || []).join(', ')}]`)
   out.push(`modules: [${(m.modules || []).join(', ')}]`)
-  // The channels a topic goes to, in the order they were picked (./channels.ts). Written only when the card
-  // names some, so every product card — and every topic whose channels question is still
-  // open — keeps the frontmatter it always had.
-  out.push(...serializeChannels(m.channels))
   // The workflow this card runs on (#715) — its stable id. Written only when the card names
   // one, so a board that never picked a workflow keeps the frontmatter it always had, and
   // re-emitted whenever it is there, so no rewrite of a card can drop it.
@@ -54,22 +43,20 @@ export function serializeFrontmatter(m: Partial<Meta>, which: Solution = solutio
   // ./schedule.ts). Written only while the card carries one — and re-emitted whenever it is
   // there, so nothing that rewrites a card can quietly take a schedule off it.
   out.push(...serializeSchedule(m.schedule))
-  if (has('questions')) {
-    if (!m.questions || m.questions.length === 0) out.push('questions: []')
-    else {
-      out.push('questions:')
-      for (const raw of m.questions) {
-        const q = normalizeQuestion(raw)
-        if (!hasOptions(q)) {
-          out.push(`  - ${yamlScalar(q.text)}`)
-          continue
-        }
-        out.push(`  - question: ${yamlScalar(q.text)}`)
-        out.push(`    mode: ${q.mode}`)
-        out.push('    options:')
-        for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
-        out.push(`    recommend: [${q.recommend.join(', ')}]`)
+  if (!m.questions || m.questions.length === 0) out.push('questions: []')
+  else {
+    out.push('questions:')
+    for (const raw of m.questions) {
+      const q = normalizeQuestion(raw)
+      if (!hasOptions(q)) {
+        out.push(`  - ${yamlScalar(q.text)}`)
+        continue
       }
+      out.push(`  - question: ${yamlScalar(q.text)}`)
+      out.push(`    mode: ${q.mode}`)
+      out.push('    options:')
+      for (const o of q.options) out.push(`      - ${yamlScalar(o)}`)
+      out.push(`    recommend: [${q.recommend.join(', ')}]`)
     }
   }
   // What the user should check by hand before accepting the work (./verify.ts). Written only
@@ -115,21 +102,6 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
         meta.questions = parseQuestionsBlock(block)
       } else {
         meta.questions = val.trim() === '[]' ? [] : [normalizeQuestion(unquote(val))]
-      }
-      continue
-    }
-    // `channels:` holds two shapes at once the way `questions:` does — a bare name, and a
-    // block carrying that channel's status and URL — so it gets its own reader too.
-    if (key === 'channels') {
-      if (val === '') {
-        const block: string[] = []
-        while (j + 1 < fm.length && /^\s/.test(fm[j + 1]!) && fm[j + 1]!.trim() !== '') {
-          block.push(fm[j + 1]!)
-          j++
-        }
-        meta.channels = parseChannelsBlock(block)
-      } else {
-        meta.channels = normalizeChannels(val.trim() === '[]' ? [] : val.replace(/^\[|\]$/g, '').split(','))
       }
       continue
     }
@@ -198,16 +170,16 @@ export function parseFrontmatter(text: string): { meta: Meta | null; body: strin
   // The release the card ships in. Missing, empty or damaged reads as no release, so a
   // card written before this field — or one whose line was blanked by hand — still opens.
   meta.release = normalizeRelease(meta.release)
-  // How this card ranks. A marketing card carries neither (#435), so a missing one reads as
-  // empty rather than as a level nobody chose — the same shape `release` takes.
+  // How this card ranks. A missing one reads as empty rather than as a level nobody chose —
+  // the same shape `release` takes.
   for (const key of ['priority', 'roi']) {
     meta[key] = typeof meta[key] === 'string' && (meta[key] as string).trim() ? (meta[key] as string).trim() : ''
   }
   // modules is an optional string list; a card written before this field parses as [].
   if (!Array.isArray(meta.modules)) meta.modules = []
-  // The channels this topic goes to. A card written before the field, one on a product
-  // board, and one whose list was damaged by hand all read as no channels chosen.
-  meta.channels = normalizeChannels(meta.channels)
+  // `channels:` was a retired marketing board's field (#718). A card still carrying one is
+  // read as the ordinary card it now is, and the dead field drops out on the next rewrite.
+  delete meta.channels
   // The workflow this card runs on. Missing, empty or damaged reads as no workflow named,
   // which whoever asks resolves to the default (agent/workflows.ts).
   meta.workflow = typeof meta.workflow === 'string' && meta.workflow.trim() ? meta.workflow.trim() : ''

@@ -12,7 +12,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { locate, locateArchived } from '../cards'
-import { draftFile } from '../content'
 import type { CloudEventState } from '../cloud/events'
 import { reportCloudRunEnd, reportCloudRunStart } from '../cloud/publish'
 import { parseFrontmatter } from '../frontmatter'
@@ -42,7 +41,6 @@ import {
   tidyCheckout,
 } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
-import { deliversWithGit, solution } from '../solution'
 import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
 import { repairLanding, settleAlreadyLanded } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
@@ -68,7 +66,6 @@ import type {
   RunStatus,
   RunView,
   SpecAsk,
-  WriteAsk,
 } from './types'
 
 export { logPathOf, readAction, readRuns, withRuns } from './store'
@@ -123,10 +120,6 @@ const VERB: Record<AgentAction, string> = {
   triage: 'sorted',
   reflect: 'reflected on',
   spec: 'specified',
-  write: 'written for',
-  channel: 'repurposed',
-  polish: 'polished',
-  'marketing-polish-loop': 'verified',
   changelog: 'written up',
   review: 'reviewed',
   conflict: 'unblocked',
@@ -255,26 +248,6 @@ export async function finishWriting(cardId: number): Promise<void> {
   if (result.card?.status !== 'ready') throw new Error(`#${cardId} did not reach ready`)
 }
 
-/** A finished `akb channel` run: its draft is on disk, so the card says that channel is at
- *  `draft` (#409). The run is never asked to stamp its own state — an agent that crashed
- *  after writing the file would leave the card saying nothing was written.
- *
- *  Nothing is written when the file never arrived, or when the channel is already
- *  `scheduled` or `published`: it is out in the world, and a run re-done with `--again`
- *  must not take it back. A `ready` one does go back to `draft` — the draft the user read
- *  it for has just been replaced. */
-export async function markChannelDrafted(cardId: number, channel: string): Promise<void> {
-  const found = locate(cardId)
-  if (!found) return
-  const file = found.kind === 'group' ? path.join(found.target, 'root.md') : found.target
-  if (!fs.existsSync(draftFile(file, channel))) return
-  const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
-  const entry = meta?.channels.find((c) => c.name === channel)
-  if (!entry || (entry.status !== '' && entry.status !== 'ready')) return
-  const res = await runBoardMove('channel-status', [String(cardId), channel, 'draft'])
-  if (!res.ok) throw new Error(res.error)
-}
-
 /** The card's stage and whether it has open questions, or null when there is no such card.
  *  Read straight off the file: this is the same board every move writes. A group root is its
  *  folder's `root.md`, which is what `cardFile` resolves. */
@@ -340,10 +313,7 @@ async function releaseCard(delivery: DeliveryRecord): Promise<void> {
   if (delivery.cardId === null) return
   const card = cardNow(delivery.cardId)
   if (card?.status !== 'implementing') return
-  // `ready` is the stage a refine takes a card to, and a board with no refine has no such
-  // stage (#435) — a topic goes back to `todo`, which is where every topic waits.
-  const idle = solution() === 'marketing' ? 'todo' : delivery.priorStatus ?? 'ready'
-  await setCardStatus(delivery.cardId, card.questions > 0 ? 'todo' : idle)
+  await setCardStatus(delivery.cardId, card.questions > 0 ? 'todo' : delivery.priorStatus ?? 'ready')
 }
 
 // Recording a recurring run is the board's own bookkeeping, not part of the job the card
@@ -584,9 +554,9 @@ function lockedBy(
   /** This run is a delivery's own work being carried on. The discussion hold lets it by. */
   inDelivery = false,
 ): string | undefined {
-  // A specialist is out of that rule at both ends (`holdsCard`): it fills one section or
-  // writes one file in the draft folder, never the plan, so it neither takes the card nor
-  // waits for one. Two agents may work a card — they write different things — and a card
+  // A specialist is out of that rule at both ends (`holdsCard`): it fills one section, never
+  // the plan, so it neither takes the card nor waits for one. Two agents may work a card —
+  // they write different things — and a card
   // being refined can still have its screen drawn. Two runs writing one card file at the
   // same moment is the problem #156 owns, and it is that problem whether or not this rule
   // pretends otherwise.
@@ -630,9 +600,8 @@ function lockedBy(
  *  it — or nothing when it is free. The sentence names the card and what that run is doing,
  *  because "try again later" without either is a refusal nobody can act on.
  *
- *  A specialist run holds nothing (`holdsCard`): it fills one section of the card, or writes
- *  one file in its draft folder, and never the plan — the same rule `lockedBy` follows when
- *  it decides whether a run may start.
+ *  A specialist run holds nothing (`holdsCard`): it fills one section of the card and never
+ *  the plan — the same rule `lockedBy` follows when it decides whether a run may start.
  *
  *  Read through `listRuns`, so a run whose process died has already stopped counting as
  *  live. That read takes the record's lock and may reach for the board's, so this is asked
@@ -713,10 +682,6 @@ export function openRun(
   // Implement dialog's ticks, this one build's answers (#346, #416); without them the
   // repository settings decide.
   //
-  // …on a solution that delivers with git. On `marketing` a build is a file the user edits,
-  // so there is no worktree, no branch, nothing to review against a diff and nothing to land
-  // (#407): the run works in the project, and the flow's own close is what finishes the card.
-  //
   // A build with no card yet is the third way in (#428): **Build now** sends the typed
   // sentence straight here, so there is no card to look a delivery up by and one is always
   // opened. It is refused where a carded manual build would be, and nowhere else. The card
@@ -726,12 +691,11 @@ export function openRun(
   // here, and its title and its words are what the delivery is titled and bounded by — so a
   // plan with nothing written in it yet is refused, the way a missing one is, rather than
   // opening an untitled delivery with nothing to build.
-  const delivers = deliversWithGit()
   const direct = req.action === 'implement' && cardId === null ? approvedDirect(req) : undefined
   if (direct && 'error' in direct) return direct
   const cardless = !!direct
   let start: DeliveryStart | undefined
-  if (delivers && req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId)))) {
+  if (req.action === 'implement' && (cardless || (cardId !== null && !activeDelivery(cardId)))) {
     const prepared = prepareDelivery(cardId, req.commitMode, req.aiReview)
     // Whole, kind and paths included (#706): a screen that says this in its own language
     // reads the kind, and losing it here would leave every refusal generic.
@@ -740,14 +704,13 @@ export function openRun(
   }
   // Where this run works: its delivery's own worktree, or the project itself. A run of a
   // delivery names it outright when it has no card to be found by.
-  const joining =
-    delivers && DELIVERY_FLOWS.has(req.action)
-      ? req.deliveryId
-        ? findDelivery(req.deliveryId)
-        : cardId !== null
-          ? activeDelivery(cardId)
-          : undefined
-      : undefined
+  const joining = DELIVERY_FLOWS.has(req.action)
+    ? req.deliveryId
+      ? findDelivery(req.deliveryId)
+      : cardId !== null
+        ? activeDelivery(cardId)
+        : undefined
+    : undefined
   const cwd = deliveryCwd(start ?? joining ?? {})
   // The one settings read for this whole run. Everything it needs is worked out here, at
   // the start — not later, when the agent finally spawns (an index action waits its turn
@@ -785,15 +748,9 @@ export function openRun(
     // No `resumeId` here on purpose. A fresh run under an agent that takes our id needs
     // none, and one that mints its own has nothing to record yet.
     logPath: logPathOf(sessionId),
-    // Which agent this is, on the two actions that are one — so the run list can name it,
-    // and so a resume starts the same agent rather than a different one.
+    // Which agent this is, on the action that is one — so the run list can name it, and so
+    // a resume starts the same agent rather than a different one.
     specAgent: SPECIALIST_ACTIONS.has(req.action) ? req.specAgent : undefined,
-    // …and which channel, on the two actions that name one, so a repurpose's close knows
-    // whose status to move and a resume works the same draft.
-    channel: ['channel', 'marketing-polish-loop'].includes(req.action) ? req.channel : undefined,
-    // …and which draft, on the one that polishes one, so its close knows whose comments to
-    // clear and a resume works over the same file.
-    draft: req.action === 'polish' ? req.draft : undefined,
     // Internal refinement sessions name their position in the request. A standalone
     // resolve carries no round: it already applies the answers and runs QA in this session.
     refineRound: req.refineRound,
@@ -818,7 +775,7 @@ export function openRun(
     // belongs to, so a delivery can never be left holding a card with nothing working on
     // it. Review joins an existing delivery and never opens one: there is nothing to
     // review until something has been built.
-    if (delivers && DELIVERY_FLOWS.has(req.action) && (cardId !== null || cardless || req.deliveryId)) {
+    if (DELIVERY_FLOWS.has(req.action) && (cardId !== null || cardless || req.deliveryId)) {
       if (req.action === 'implement') {
         // A card-less delivery is titled and bounded by what it was handed (#428, #481): the
         // typed sentence, or the plan the ask was answered on.
@@ -920,7 +877,6 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
     retry: prev.retry,
     logPath: logPathOf(sessionId),
     specAgent: prev.specAgent,
-    channel: prev.channel,
     refineRound: prev.refineRound,
     refineEffort: prev.refineEffort,
     // The same refinement carried on, not a second one — the way a resume re-joins the
@@ -963,7 +919,7 @@ export async function openResume(id: string): Promise<{ run: RunRecord; spec: Ru
   // The asks the run being taken over collected come with it. It never got as far as
   // starting them — that is why it is being resumed — and the flow asked once.
   const inherited = readAsks(prev.sessionId)
-  if (inherited.asks.length || inherited.writes.length || inherited.refines.length) writeAsks(sessionId, inherited)
+  if (inherited.asks.length || inherited.refines.length) writeAsks(sessionId, inherited)
   clearAsks(prev.sessionId)
   try {
     fs.unlinkSync(prev.logPath)
@@ -998,21 +954,6 @@ export function askForSpec(sessionId: string, ask: SpecAsk): 'queued' | 'already
   return 'queued'
 }
 
-/** Ask for a `write` agent from inside a writing run (#424). The same handoff a spec ask
- *  takes, in the same file, started by the same watcher — and in a list of its own: an older
- *  copy of these rules reading `asks` would start a write agent as a `spec` run.
- *
- *  `already` means this run has asked for that agent on that card before; the writer names
- *  every file it wants in the one note. */
-export function askForWrite(sessionId: string, ask: WriteAsk): 'queued' | 'already' | 'no-run' {
-  if (!peekRun(sessionId)) return 'no-run'
-  const file = readAsks(sessionId)
-  if (file.writes.some((a) => a.specAgent === ask.specAgent && a.cardId === ask.cardId)) return 'already'
-  file.writes.push(ask)
-  writeAsks(sessionId, file)
-  return 'queued'
-}
-
 /** Hand a card to a refinement from inside a run (`akb card refine <id>`). Written down rather
  *  than started, exactly as a spec ask is, and started by this run's watcher at the close —
  *  in the same flow, so it reads as the next step of the job that handed the card over.
@@ -1029,9 +970,6 @@ export function askForRefine(sessionId: string, ask: RefineAsk): 'queued' | 'alr
 
 /** The spec agents this run has been asked for. */
 export const readSpecAsks = (sessionId: string): SpecAsk[] => readAsks(sessionId).asks
-
-/** The write agents this run has been asked for. */
-export const readWriteAsks = (sessionId: string): WriteAsk[] => readAsks(sessionId).writes
 
 /** The cards this run handed to a refinement. */
 export const readRefineAsks = (sessionId: string): RefineAsk[] => readAsks(sessionId).refines
@@ -1051,14 +989,14 @@ export function clearAsks(sessionId: string): void {
  *
  *  Empty rather than thrown when the file is damaged: a run's own ending must not fail on
  *  the follow-up it was going to start. A malformed entry is dropped rather than started. */
-function readAsks(sessionId: string): { asks: SpecAsk[]; writes: WriteAsk[]; refines: RefineAsk[] } {
+function readAsks(sessionId: string): { asks: SpecAsk[]; refines: RefineAsk[] } {
   let data: unknown
   try {
     data = JSON.parse(fs.readFileSync(asksPathOf(sessionId), 'utf8'))
   } catch {
-    return { asks: [], writes: [], refines: [] }
+    return { asks: [], refines: [] }
   }
-  const raw = (data ?? {}) as { asks?: unknown; writes?: unknown; refines?: unknown }
+  const raw = (data ?? {}) as { asks?: unknown; refines?: unknown }
   const asks = (Array.isArray(raw.asks) ? raw.asks : []).flatMap((entry) => {
     const a = entry as Partial<SpecAsk>
     if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
@@ -1068,15 +1006,6 @@ function readAsks(sessionId: string): { asks: SpecAsk[]; writes: WriteAsk[]; ref
       cardId: a.cardId as number,
       notes: typeof a.notes === 'string' ? a.notes : undefined,
       ...(refineEffort ? { refineEffort } : {}),
-    }]
-  })
-  const writes = (Array.isArray(raw.writes) ? raw.writes : []).flatMap((entry) => {
-    const a = entry as Partial<WriteAsk>
-    if (!a || typeof a.specAgent !== 'string' || !a.specAgent || !Number.isInteger(a.cardId)) return []
-    return [{
-      specAgent: a.specAgent,
-      cardId: a.cardId as number,
-      notes: typeof a.notes === 'string' ? a.notes : undefined,
     }]
   })
   const refines = (Array.isArray(raw.refines) ? raw.refines : []).flatMap((entry) => {
@@ -1089,13 +1018,13 @@ function readAsks(sessionId: string): { asks: SpecAsk[]; writes: WriteAsk[]; ref
       ...(effort ? { effort } : {}),
     }]
   })
-  return { asks, writes, refines }
+  return { asks, refines }
 }
 
 const validRefineEffort = (value: unknown): RefineEffort | undefined =>
   value === 'lightweight' || value === 'standard' ? value : undefined
 
-function writeAsks(sessionId: string, file: { asks: SpecAsk[]; writes: WriteAsk[]; refines: RefineAsk[] }): void {
+function writeAsks(sessionId: string, file: { asks: SpecAsk[]; refines: RefineAsk[] }): void {
   fs.mkdirSync(SESSIONS_DIR, { recursive: true })
   const tmp = `${asksPathOf(sessionId)}.tmp`
   fs.writeFileSync(tmp, JSON.stringify(file, null, 2) + '\n')

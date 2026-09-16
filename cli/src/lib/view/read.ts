@@ -89,7 +89,6 @@ function buildCard(id: number, file: string, relFromTodo: string): Card | null {
     decided: meta.decided,
     workflow: meta.workflow,
     modules: meta.modules,
-    channels: meta.channels,
     last_run: meta.last_run,
     cadence: meta.cadence,
     schedule: meta.schedule,

@@ -12,7 +12,6 @@ import { cmdInstall, cmdSkill, cmdUpdate } from '../../commands/install'
 import { BoardError, say } from '../io'
 import { rulesPath } from '../skill/install'
 import { SKILL_VERSION } from '../../version'
-import { SOLUTIONS, type Solution } from '../solution'
 import { ctxOf, oneOf, runAction, type Command } from './shared'
 import type { AkbCliOptions } from './akb'
 
@@ -51,7 +50,6 @@ export function declareSetup(program: Command, cli: SetupCliOptions): void {
 
   dirOption(program.command('install'))
     .option('--board <dir>', 'put the board here instead of docs/kanban/ (relative to this folder)')
-    .option('--solution <name>', `what this board's work is: ${SOLUTIONS.join(' | ')} (marketing is an invite-only alpha)`, oneOf(SOLUTIONS))
     .summary('scaffold docs/kanban/ — the board, and nothing else')
     .description(
       'Installing writes the board and nothing outside docs/kanban/. Driving that board from a coding ' +
@@ -60,9 +58,8 @@ export function declareSetup(program: Command, cli: SetupCliOptions): void {
     )
     .action(async function (this: Command) {
       const dir = where(this)
-      const solution = (this.optsWithGlobals() as { solution?: string }).solution as Solution | undefined
       await runAction(ctxOf(this, cli.program), {}, () =>
-        cmdInstall({ dir, program: cli.program, board: boardOf(this), solution }),
+        cmdInstall({ dir, program: cli.program, board: boardOf(this) }),
       )
     })
 

@@ -27,10 +27,6 @@ const zh: RunsCopy = {
     reflect: "回顾",
     triage: "筛选条目",
     spec: "补充规格",
-    write: "配套文件",
-    channel: "渠道改写",
-    polish: "润色",
-    "marketing-polish-loop": "校验修正",
   },
   verb: {
     implement: "开发",
@@ -56,10 +52,6 @@ const zh: RunsCopy = {
     reflect: "正在回顾已完成的任务",
     triage: "正在筛选待筛选条目",
     spec: "补充规格",
-    write: "撰写配套文件",
-    channel: "渠道改写",
-    polish: "正在润色",
-    "marketing-polish-loop": "正在校验修正",
   },
   step: {
     implement: "开发",
@@ -85,10 +77,6 @@ const zh: RunsCopy = {
     reflect: "回顾",
     triage: "筛选条目",
     spec: "补充规格",
-    write: "配套文件",
-    channel: "渠道改写",
-    polish: "润色",
-    "marketing-polish-loop": "校验修正",
   },
   flow: {
     edit: "修订",

@@ -31,23 +31,15 @@ export type BoardCopy = {
     /** The ready column's two numbers: work waiting on you, and work already going. */
     readyCount: (ready: number, implementing: number) => string;
     notReady: string;
-    /** The one card column a marketing board has (#435), and its two numbers: every topic
-     *  on it, and how many of them are being written. */
-    topics: string;
-    topicsCount: (total: number, writing: number) => string;
     recurring: string;
     /** A column with nothing on this side of the split. */
     empty: string;
     /** A board holding no card at all (#437) — the panel that stands in for the columns,
-     *  and the offer of the first card. A marketing board offers a topic instead, and the
-     *  offer opens the editor rather than a planning sheet (#507). */
+     *  and the offer of the first card. */
     emptyBoard: {
       title: string;
       blurb: string;
       create: string;
-      topicTitle: string;
-      topicBlurb: string;
-      topicCreate: string;
     };
     /** The columns as a swipe, at phone width (#357): what the row is, and the dot that
      *  jumps to one of them. */
@@ -83,11 +75,6 @@ export type BoardCopy = {
   };
   create: {
     button: string;
-    /** What the same control says on a marketing board (#507). It opens no sheet: one press
-     *  writes the topic and lands in its editor. */
-    topicButton: string;
-    /** Shown when the topic could not be written and the board said nothing about why. */
-    topicFailed: string;
     /** Shown when the agent wouldn't start and said nothing about why. */
     startFailed: string;
     /** The full-screen sheet the button opens (#426): what it asks, what sending does,

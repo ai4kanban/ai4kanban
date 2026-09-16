@@ -9,7 +9,7 @@ import { readChat } from '../src/lib/agent/chat.ts'
 import { logPathOf, readRuns, withStore } from '../src/lib/agent/store.ts'
 import { projectStateDir, legacyProjectStateDir, recordedBoard } from '../src/lib/machine/project.ts'
 import { mockupsDir } from '../src/lib/mockups.ts'
-import { CHATS_DIR, COMMENTS, MOCKUPS, SESSIONS, SESSIONS_DIR, setBoardDir, setBoardRoot, useProjectState } from '../src/lib/paths.ts'
+import { CHATS_DIR, MOCKUPS, SESSIONS, SESSIONS_DIR, setBoardDir, setBoardRoot, useProjectState } from '../src/lib/paths.ts'
 
 let home = ''
 let root = ''
@@ -160,7 +160,7 @@ describe('what the project folder is left holding', () => {
     assert.notEqual(projectStateDir(one), projectStateDir(two))
   })
 
-  it('reads and writes the new folder for runs, chats, drawings and comments alike', () => {
+  it('reads and writes the new folder for runs, chats and drawings alike', () => {
     const project = path.join(root, 'app')
     const board = makeBoard(path.join(project, 'docs', 'kanban'))
     setBoardDir(board, project)
@@ -170,15 +170,12 @@ describe('what the project folder is left holding', () => {
     record('r1')
     fs.mkdirSync(path.join(mockupsDir(), '12'), { recursive: true })
     fs.writeFileSync(path.join(mockupsDir(), '12', 'a.tsx'), 'export default () => null\n')
-    fs.mkdirSync(path.join(COMMENTS, '12'), { recursive: true })
-    fs.writeFileSync(path.join(COMMENTS, '12', 'post.md'), '# Comments\n')
 
     assert.deepEqual(readRuns().map((r) => r.sessionId), ['r1'])
     assert.equal(fs.readFileSync(logPathOf('r1'), 'utf8'), 'a log\n')
     assert.equal(CHATS_DIR, path.join(state, 'chats'))
     assert.equal(MOCKUPS, path.join(state, 'mockups'))
     assert.ok(fs.existsSync(path.join(state, 'mockups', '12', 'a.tsx')))
-    assert.ok(fs.existsSync(path.join(state, 'comments', '12', 'post.md')))
   })
 })
 
@@ -194,7 +191,6 @@ describe('a board that held it all in docs/kanban', () => {
     assert.deepEqual(readRuns(), [])
     assert.equal(readChat(null), null)
     assert.equal(fs.existsSync(path.join(mockupsDir(), '12', 'a.tsx')), false)
-    assert.equal(fs.existsSync(path.join(COMMENTS, '12', 'post.md')), false)
   })
 
   it('leaves every one of those files exactly where it was, unchanged', () => {

@@ -346,10 +346,9 @@ export type ConfigurationCopy = {
       /** A review the board refused to start. */
       startFailed: string;
     };
-    /** The same box for a specialist, by the hook it plugs into. */
+    /** The same box for a specialist. */
     specialistRule: {
       spec: (agent: string) => string;
-      write: (agent: string) => string;
     };
     saved: string;
     ruleFailed: (agent: string) => string;

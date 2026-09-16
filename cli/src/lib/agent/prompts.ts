@@ -6,25 +6,22 @@
 
 import path from 'node:path'
 import { locate, locateArchived } from '../cards'
-import { agentMemoryDir, boardMemoryFiles } from '../memory'
-import { channelLanguage } from '../channels'
-import { draftDir, draftFile, SOURCE } from '../content'
+import { agentMemoryDir, boardMemoryFiles, readAgentMemory } from '../memory'
 import { findGuide } from '../guide'
-import { ARCHIVE, COMMENTS, boardText, rel, GOAL, MEMORY, TRIAGE } from '../paths'
+import { ARCHIVE, boardText, rel, GOAL, MEMORY, TRIAGE } from '../paths'
 import {
   agentMemoryBlock,
   findSpecAgent,
   specAgentInstructions,
   specAgentOutput,
   specAgentSelector,
-  writeAgentSelector,
 } from '../agents'
-import { solution } from '../solution'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery, deliveryFor, findDelivery, withWorkflow } from './deliveries'
 import { owesFocusedReview } from './review'
 import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
+import { CONTENT_ROLE_NAMES } from './roles'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
 import { DEFAULT_WORKFLOW, liveStage, workflowById, workflowFor } from './workflows'
@@ -108,8 +105,6 @@ const RESTARTABLE: ReadonlySet<AgentAction> = new Set<AgentAction>([
   'writing',
   'archive',
   'spec',
-  'channel',
-  'polish',
   'review',
   'conflict',
 ])
@@ -167,7 +162,32 @@ export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
   // has no card to read one off — so the run is told to name the card when it asks.
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
-  return boardText([ask, workflowNote(req, command), languageNote(), roster(req)].filter(Boolean).join('\n\n'))
+  return boardText([ask, workflowNote(req, command), languageNote(), contentMemory(req), roster(req)].filter(Boolean).join('\n\n'))
+}
+
+// What the content agents remember between pieces (#718) — the voice the user asked for,
+// what a claim has to carry, how a piece is put together. It is taste rather than a planning
+// note about the product, so it lives in each agent's own `memory/agents/<name>/` and not in
+// the board's `decisions.md` beside what a feature settled.
+//
+// All three folders go to all three agents: taste corrected on a review is taste the writer
+// has to write by, and a planner that cannot see it plans a piece its writer will be pulled
+// up on. Each writes back only its own, which is what the closing line says.
+//
+// An agent that has written nothing yet is still handed the block — the empty file is the
+// invitation, the same reason a spec agent's memory is never left out.
+function contentMemory(req: AgentRequest): string {
+  const agent = agentForRun(req)
+  if (!agent || !CONTENT_ROLE_NAMES.includes(agent)) return ''
+  const blocks = CONTENT_ROLE_NAMES.flatMap((name) =>
+    readAgentMemory(name).map((file) => `${file.heading}\n\n${file.text || '_(empty — nothing has been written down yet.)_'}`),
+  )
+  return [
+    '——— what the content agents have learned on this board ———',
+    'The writing taste this board settled, in the words of the three agents that run its content workflow. Follow all of it here.',
+    ...blocks,
+    `Write back only your own two files, \`${rel(agentMemoryDir(agent))}/\`, and only what the user corrected you on or chose for you. Never another agent's.`,
+  ].join('\n\n')
 }
 
 // What one workflow asks of a helper it calls in, on top of the agent's own instructions
@@ -263,47 +283,14 @@ export function frozenRules(req: AgentRequest): Record<string, string> | undefin
 // Naming any of them in a flow instead would go stale the moment one is switched off or a
 // new one ships.
 //
-// Two rosters, on different flows (#424). The passes that rewrite a plan are the ones that
-// can tell what it still has no answer for, so they pick the `spec` agents — on a product
-// board only, where a card's spec is what a build is written from. The Writer's own flows
-// pick the `write` agents, because a draft is where a specialist's file is wanted.
+// The passes that rewrite a plan are the ones that can tell what it still has no answer for,
+// so they are the ones that pick the `spec` agents.
 //
 // A specialist run is given neither (#403): a roster belongs to the run doing the job, and
 // an agent handed the list of agents is an agent that can ask for itself.
 //
 // It goes after everything else because it is a block and the rest is prose.
 const SPEC_SELECTOR_FOR = new Set<AgentAction>(['clarify', 'resolve', 'edit'])
-const WRITE_SELECTOR_FOR = new Set<AgentAction>(['implement', 'channel'])
-
-// The two files a repurpose works between, as paths from the project root. Null when the
-// card has gone — the command that starts the run has already refused that, so this is only
-// the guard a restart needs.
-function draftPaths(cardId: number | undefined, channel: string): { source: string; target: string } | null {
-  const found = cardId === undefined ? null : locate(cardId)
-  if (!found || found.kind !== 'file') return null
-  return { source: rel(draftFile(found.target, SOURCE)), target: rel(draftFile(found.target, channel)) }
-}
-
-// The one file a polish works over, and the batch of comments it answers (#458). Named
-// outright rather than described: the run reads the comments off disk, the way a repurpose
-// reads `source.md`, and a run left to work its own paths out is a run that polishes a file
-// nobody is looking at. The draft is a path from the project root; the batch is this
-// machine's and sits outside it, so `rel` gives that one whole (#590).
-function polishPaths(cardId: number | undefined, draft: string): { file: string; comments: string } | null {
-  const found = cardId === undefined ? null : locate(cardId)
-  if (!found || found.kind !== 'file') return null
-  return {
-    file: rel(draftFile(found.target, draft)),
-    comments: rel(path.join(COMMENTS, String(cardId), `${draft}.md`)),
-  }
-}
-
-// The folder a `write` agent may write in, resolved here rather than described: `akb write`
-// has no `--print`, so the run is handed the path instead of the rule for building one.
-function draftFolder(cardId: number | undefined): string | null {
-  const found = cardId === undefined ? null : locate(cardId)
-  return found && found.kind === 'file' ? rel(draftDir(found.target)) : null
-}
 
 // What the gater and the decider are given on top of the card (#493). Both stand in for the
 // user rather than writing one card, so both read the whole board — the goal, and every
@@ -320,16 +307,12 @@ function archivedCardFile(id: number | undefined): string {
   return rel(found.kind === 'group' ? path.join(found.target, 'root.md') : found.target)
 }
 
-// `<spec-agents>` asks which solution this board is: `ui-designer` and `tech-stack-advisor`
-// answer nothing a marketing topic asks. `<write-agents>` does not — the roster is empty on
-// a product board by itself, since `kind: write` does not parse there.
 function roster(req: AgentRequest): string {
   if (req.id === undefined) return ''
   // The card's own workflow, not only the one the request carries (#749): the ask this block
   // invites is checked against the card's, and a list that offered a different team would be
   // a run told to ask for agents its card refuses.
-  if (SPEC_SELECTOR_FOR.has(req.action)) return solution() === 'product' ? specAgentSelector(req.id, workflowForRun(req)) : ''
-  if (WRITE_SELECTOR_FOR.has(req.action)) return writeAgentSelector(req.id)
+  if (SPEC_SELECTOR_FOR.has(req.action)) return specAgentSelector(req.id, workflowForRun(req))
   return ''
 }
 
@@ -449,9 +432,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
         `Don't ask me questions with human-in-the-loop. Leave any questions as open questions.`,
       ].join(' ')
     case 'create':
-      if (solution() === 'marketing') {
-        return `${kb}. Create the topic requested here: ${req.plan ? `Read the request at ${req.plan}` : req.description || ''}. Follow \`akb guide board\` and use \`akb raw create --title "..."\`. Write no card body or source draft; start no agent flow.`
-      }
       return [
         // A create off a plan (#427) names the file rather than carrying its words: the
         // plan is a file the user can open, and a copy pasted in here would go stale.
@@ -613,107 +593,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       ]
         .filter(Boolean)
         .join('\n\n')
-    }
-    // One `write` agent on one topic (#424) — the writer's specialist, assembled exactly as
-    // a spec run is: the contract it works to, its own instructions, the references its
-    // settings picked, and what it remembers. What differs is where its answer goes. A spec
-    // agent writes a section of the card through one move; this one writes files, so it is
-    // handed the one folder they may go in and nothing about the card is its to change.
-    //
-    // Nothing here says what the piece is about — that is the card and `source.md`, which the
-    // run reads. The note names the files the writer wants, and that is the whole of the ask.
-    case 'write': {
-      const agent = findSpecAgent(req.specAgent ?? '')
-      const own = agent ? specAgentInstructions(agent) : null
-      if (own) notes.push(...own.notes)
-      const contract = findGuide('repurpose')?.text.trim()
-      const folder = draftFolder(req.id)
-      const memory = agent ? agentMemoryBlock(agent) : ''
-      return [
-        [
-          `${kb}. You are the \`${req.specAgent}\` write agent on task ${req.id} ${named}.`,
-          `Read the card, do only what you were asked for, and write your files into ${folder ?? "that topic's `content/<id>/` folder"} — nothing outside it.`,
-          `Write only the requested files. Never \`source.md\`, the card or project code.`,
-          memory ? `You keep a memory of this board, below. Follow it — this run does not write it back.` : '',
-          req.notes ? `What the writing run that asked for you wants: ${req.notes}` : '',
-          `Don't ask me questions with human-in-the-loop — if the ask cannot be done, write no file and say why in your last message.`,
-        ]
-          .filter(Boolean)
-          .join(' '),
-        contract ? `——— how a write agent works ———\n\n${contract}` : '',
-        agent && own ? `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}` : '',
-        ...(own?.references ?? []).map((r) => `——— ${r.title} ———\n\n${r.text}`),
-        memory ? `——— what you remember ———\n\n${memory}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n\n')
-    }
-    // One channel's draft, repurposed from the topic's `source.md` (#409). The two paths
-    // are named outright: `akb channel` has no `--print`, so this message is the whole of
-    // what the run is handed, and a run left to work out its own filename is a run that
-    // writes the draft somewhere nobody looks.
-    //
-    // Nothing here says what the piece argues. That is `source.md`, which the run reads —
-    // a summary pasted in would be this file's reading of it, and the whole job is to carry
-    // the piece across rather than to write it again.
-    case 'channel': {
-      const name = req.channel ?? ''
-      const files = draftPaths(req.id, name)
-      // The language this one asks for beats the channel's own (#457). It is said once,
-      // here, rather than left to the flow: the run is handed the language the way it is
-      // handed the two paths, and an unset one reads exactly as it always did.
-      const language = req.language?.trim() || channelLanguage(name)
-      return [
-        `${kb}. Repurpose task ${req.id} ${named} for ${name} following \`akb guide repurpose\`.`,
-        files ? `Read ${files.source} and write ${files.target}, in ${language}.` : '',
-        `Adapt the presentation while preserving the source's meaning. Compare the result with the source before finishing.`,
-        `Write that one file and nothing else — not the card, not \`source.md\`, and not another channel's draft.`,
-        req.notes ? `Extra notes: ${req.notes}` : '',
-        `Don't ask me questions with human-in-the-loop — the review is me editing the draft.`,
-      ]
-        .filter(Boolean)
-        .join(' ')
-    }
-    // One capped polish loop over one channel draft (#520). The cap, the counter and the
-    // stop condition are spelled out here rather than left to the run's sense of "good
-    // enough" — and they are said again in the guide, so a run that reads only one of the
-    // two still loops the same number of times.
-    //
-    // The memory files are not listed: the run picks them itself from the folder, because
-    // which of them apply is a reading of the draft this message has not made.
-    case 'marketing-polish-loop': {
-      const files = draftPaths(req.id, req.channel ?? '')
-      return [
-        `${kb}. Polish the ${req.channel} draft of task ${req.id} following \`akb guide marketing-polish-loop\`.`,
-        files ? `Read ${files.source} and edit only ${files.target}. Keep its language and preserve the source's meaning unless the user requests a change.` : '',
-        'Check it against docs/kanban/memory/writing.md and the files under docs/kanban/memory/writing/ that apply to it, then fix what you found, and repeat.',
-        'Stop on the first check that finds nothing, or after 3 passes — whichever comes first. Never a 4th.',
-        'A fix is not its own verdict: every pass re-reads the draft off disk before it judges it.',
-        'Change no other file, including the card, the source draft and the writing memory. Start no other run.',
-        'Report which memory files you used and dropped, how many passes ran, why the loop stopped, and what each pass changed.',
-        req.notes,
-      ].filter(Boolean).join('\n')
-    }
-    // One pass over one draft, answering the comments left on it (#458). The batch is named
-    // rather than pasted in: a comment is edited and deleted right up to Submit. It also files
-    // what it learned in the writing memory (#459), so those paths are named here the same way.
-    case 'polish': {
-      const name = req.draft ?? ''
-      const files = polishPaths(req.id, name)
-      return [
-        `${kb}. Polish the \`${name}\` draft of task ${req.id} ${named} following \`akb guide polish\`.`,
-        files
-          ? `Read ${files.file} and the comments in ${files.comments}, then rewrite ${files.file}.`
-          : '',
-        `Work every comment in that batch into one pass over the draft, then record only reusable corrections in the board's writing memory following the guide.`,
-        `Write only that draft and the files those corrections need in \`docs/kanban/memory/writing.md\` or under \`docs/kanban/memory/writing/\`. Leave the card, other drafts and the comments file alone.`,
-        `Don't ask me questions with human-in-the-loop — the review is me reading the polished draft.`,
-        // What the user said about the batch as a whole, if anything (#573). It is not in the
-        // comments file: it belongs to this submission, not to a passage.
-        req.notes ? `Extra notes on this batch: ${req.notes}` : '',
-      ]
-        .filter(Boolean)
-        .join(' ')
     }
     // Judging a delivery's work (#302). Nothing here says what the card wants or what the
     // diff holds: both are on the board, the flow prints them, and a copy pasted in here

@@ -19,7 +19,6 @@ import { byPickOrder } from '../view/rules'
 import type {
   Board,
   Card,
-  CardChannel,
   CardDecision,
   CardSchedule,
   CardStatus,
@@ -57,9 +56,8 @@ export interface BoardRead {
 
 /** The number at the front of a card's filename, or of a group folder's name.
  *
- *  The slug after it is optional (#507): a marketing topic is named off its id alone —
- *  `507.md`, `507/` — so a title the user has not decided yet never reaches a path. A
- *  slugged name reads exactly as it always did. */
+ *  The slug after it is optional (#507): a card can be named off its id alone — `507.md`,
+ *  `507/`. A slugged name reads exactly as it always did. */
 export const idPrefix = (name: string): number | null => {
   const m = name.match(/^(\d+)(?:-|\.md$|$)/)
   return m ? Number(m[1]) : null
@@ -228,17 +226,6 @@ const ids = (value: unknown): number[] =>
   Array.isArray(value) ? value.filter((n): n is number => Number.isInteger(n)) : []
 const lines = (value: unknown): string[] =>
   Array.isArray(value) ? value.map((v) => text(v)).filter(Boolean) : []
-// The channels a topic goes to, in the order they were chosen — an entry with no name is
-// dropped, since nothing can be drawn or written for it. Read here rather than through
-// `lib/channels.ts`: this module is copied into the browser and imports only its siblings.
-const channels = (value: unknown): CardChannel[] =>
-  Array.isArray(value)
-    ? value.flatMap((v) => {
-        const held = (v ?? {}) as Record<string, unknown>
-        const name = text(held.name)
-        return name ? [{ name, status: text(held.status) as CardChannel['status'], url: text(held.url) }] : []
-      })
-    : []
 
 // What the decider answered for the user (#447) — half an entry is dropped, since a
 // question with no choice says nothing anyone can read. Read here rather than through
@@ -287,7 +274,6 @@ function cardFrom(read: ReadCard, now: number): Card | null {
     decided: decided(meta.decided),
     workflow: text(meta.workflow),
     modules: lines(meta.modules),
-    channels: channels(meta.channels),
     last_run: lastRun,
     cadence,
     schedule: (meta.schedule ?? null) as CardSchedule | null,
@@ -366,12 +352,9 @@ const standingOf = (name: string): BoardStanding => ({
   readWhen: '',
 })
 
-// A hosted board is `product` (#411): the drafts a marketing card is built from are files
-// beside the board, and this read carries cards alone.
 const screenBoardOf = (read: BoardRead): ScreenBoard => ({
   id: read.workspace.id,
   standing: standingOf(read.workspace.name),
-  solution: 'product',
 })
 
 const documentBody = (read: BoardRead, path: string): string =>

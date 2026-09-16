@@ -24,15 +24,11 @@ import type { MockupSet } from "./mockup-tag";
 import type {
   AgentInfo,
   BoardScreen,
-  CardDrafts,
   CardPatch,
-  ChannelStatus,
-  CommentBatch,
   CloudEventAnswer,
   CommandRequest,
   ScheduledAction,
   SessionView,
-  TopicResult,
   VerifyResult,
   WriteResult,
 } from "./types";
@@ -108,70 +104,6 @@ export interface ScreenActions {
   // ---- an approval taken elsewhere whose machine stopped (#318) ------------
   resumeCloudRequest(eventId: string): Promise<WriteResult>;
   cancelCloudRequest(taskId: number, eventId: string): Promise<WriteResult>;
-
-  // ---- a marketing card's drafts and channels (#411, #434) -----------------
-  // Only the marketing card page calls these, and only a marketing board draws it. A caller
-  // with no marketing board of its own still implements them; the page is never reached.
-  readDrafts(id: number): Promise<CardDrafts>;
-  saveDraft(id: number, name: string, text: string): Promise<CardDrafts>;
-  /** The CLI's `channel` command, with every check it makes. `again` answers a draft that
-   *  is already written; `kind` names the refusal, so `draft-exists` becomes a confirm.
-   *  `ask` is what was typed with this one repurpose, and is unset by default. */
-  repurpose(id: number, channel: string, again: boolean, ask?: RepurposeAsk): Promise<RepurposeAnswer>;
-  /** Move one channel along and record where the piece went up. It posts nothing. */
-  setChannelStatus(id: number, channel: string, status: ChannelStatus, url: string): Promise<WriteResult>;
-  /** Choose the channels this topic goes to — the page's `+` appends one. A
-   *  channel that stays keeps its status and the URL it went up at. */
-  setChannels(id: number, names: string[]): Promise<WriteResult>;
-
-  // ---- the two ends of a topic (#507) --------------------------------------
-  // New topic is the marketing board's Create — it writes the card and the page it opens is
-  // the editor — and Discard is the `…` menu's way back off the board. Neither starts an
-  // agent, so neither answers with a session: the write is done when the call returns.
-  /** Write one blank topic and answer with the id its page is at. */
-  newTopic(): Promise<TopicResult>;
-  /** Take one topic off the board. A press, never a timer. */
-  discardTopic(id: number): Promise<TopicResult>;
-
-  // ---- the comments on one draft, and the polish they go to (#458) ---------
-  // Only ever called where `CardDrafts.canComment` said yes: a board whose rules predate
-  // the move draws no comment control, so the page never reaches these.
-  /** Leave one comment on a passage. The passage carries its own context, so the file keeps
-   *  no offsets and the quote is re-found wherever it has moved to. */
-  commentOnDraft(id: number, draft: string, passage: DraftPassage): Promise<CommentBatch>;
-  /** Change what one comment asks for. Its passage stays. */
-  editDraftComment(id: number, draft: string, commentId: string, words: string): Promise<CommentBatch>;
-  dropDraftComment(id: number, draft: string, commentId: string): Promise<CommentBatch>;
-  /** Submit the batch: one `polish` run over that draft, with what was typed about the batch
-   *  as a whole (#573). The board clears the comments when it ends `done`, so a run that
-   *  failed leaves them to submit again. */
-  polishDraft(id: number, draft: string, note?: string): Promise<RepurposeAnswer>;
-}
-
-/** The passage a comment is left on: the words, enough of the draft around them to tell
- *  repeats apart, and where they start inside that (`lib/format/view/anchor.ts`). */
-export interface DraftPassage {
-  quote: string;
-  context: string;
-  at: number;
-  words: string;
-}
-
-/** What one repurpose is asked with, beside the channel (#457): the idea the user had while
- *  asking, and a language for this one piece instead of the channel's own. Both unset by
- *  default, and neither is kept anywhere — they are arguments to one action. */
-export interface RepurposeAsk {
-  note?: string;
-  language?: string;
-}
-
-/** A repurpose that started, or the reason it did not. */
-export interface RepurposeAnswer {
-  ok: boolean;
-  sessionId?: string;
-  error?: string;
-  /** The refusal's own name — `draft-exists` is the one the pane turns into a confirm. */
-  kind?: string;
 }
 
 /** What only the machine holding the board can answer. Everything here is read on the

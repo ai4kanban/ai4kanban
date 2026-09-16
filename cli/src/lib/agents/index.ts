@@ -18,7 +18,7 @@ import type { Language } from '../machine/types'
 import { readAgentMemory } from '../memory'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import { specAgentCatalog } from './catalog'
-import { stageHelpers, workflowFor, workflowsHere } from '../agent/workflows'
+import { stageHelpers, workflowFor } from '../agent/workflows'
 import { agentSettings, outputLines, OUTPUT_KEY } from './output'
 import type { AgentKind, SpecAgent } from './parse'
 
@@ -114,8 +114,8 @@ export const specHeading = (name: string): string => '## By `' + specAgentNames(
 // the board, so they are the same for everyone working on it and the same wherever the board
 // works — a flow run from a terminal reads them too.
 //
-// A switch is what an agent NO workflow can reach still has (#749): the marketing board's
-// writers. A workflow agent has none — its stage assignment is the whole answer, and a
+// A switch is what an agent NO workflow can reach still has (#749): one that declares no
+// stage. A workflow agent has none — its stage assignment is the whole answer, and a
 // second switch beside it was a second gate the workflow page could not see (./workflows.ts
 // `foldAgentSwitches` folds what a board saved before this).
 //
@@ -229,11 +229,6 @@ export function agentMemoryBlock(agent: SpecAgent): string {
  *  is filled by. */
 export const specHookAgents = (): SpecAgent[] => hookAgents('spec')
 
-/** The agents on the `write` hook — the ones `akb write` runs (#424). Empty on a product
- *  board by itself: `kind: write` does not parse there (../agents/parse.ts), so nothing here
- *  needs to ask which solution this is. */
-export const writeHookAgents = (): SpecAgent[] => hookAgents('write')
-
 // The `spec` hook IS the plan stage (#715): an agent fills part of a card's spec while the
 // card is being planned. An agent that declared a later stage is on this board and is
 // assignable to a workflow, but a card's spec is not what it writes.
@@ -254,30 +249,11 @@ export const specAgentAssigned = (name: string, workflow?: string): boolean => {
 // The ones one workflow's PLAN stage may call in (#715). An agent is assigned to a stage of
 // a workflow rather than switched on for the whole board, so a card planned under one
 // workflow never sees a helper another workflow assigned.
-//
-// A board that picks no workflows is left exactly as it was: every agent on the hook is
-// offered, which is what the selector always listed.
 function planHelpers(agents: SpecAgent[], workflow?: string): SpecAgent[] {
-  if (!workflowsHere()) return agents
   const flow = workflowFor(workflow)
   if (!flow) return agents
   const assigned = new Set(stageHelpers(flow, 'plan').map((h) => h.agent))
   return agents.filter((a) => assigned.has(a.name))
-}
-
-/** The `write` agents that are on. A write agent belongs to no workflow (#718), so its own
- *  switch is still what says whether it runs. */
-export const enabledWriteAgents = (): SpecAgent[] => {
-  const entries = specAgentEntries()
-  return hookAgents('write').filter((a) => specAgentEnabled(a.name, entries))
-}
-
-/** One agent on the `write` hook, by name. An agent on another hook is on this board but is
- *  not something the writer can call in, so it is turned away by the same door as a name
- *  nobody has. */
-export const findWriteAgent = (name: string): SpecAgent | null => {
-  const agent = findSpecAgent(name)
-  return agent?.kind === 'write' ? agent : null
 }
 
 /** The agents this card's workflow assigns to planning, and their triggers, without their
@@ -287,18 +263,6 @@ export const specAgentSelector = (id: number | string, workflow?: string): strin
     tag: 'spec-agents',
     lead: "Specialist agents this board has, each filling one part of a card's spec:",
     ask: `Command: \`akb spec <agent> ${id} <short note> [--print]\`.`,
-  })
-
-/** The same catalog, for the agents the writer can call in (#424) — the specialists a draft
- *  needs a file from, such as an image for a post. Worded as the `spec` one is, and empty
- *  the same way: on a product board there are no `write` agents to list.
- *
- *  One ask per agent per card, so the note names every file the writer wants. */
-export const writeAgentSelector = (id: number | string): string =>
-  selector(enabledWriteAgents(), {
-    tag: 'write-agents',
-    lead: "Specialist agents this board has, each writing part of a topic's draft folder in a run of its own:",
-    ask: `Use each agent’s description as its trigger. Check it against the current draft. Request each matching agent whose required output is missing or outdated, naming every file you want in the one note: \`akb write <agent> ${id} <short note>\`.`,
   })
 
 function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: string }): string {
@@ -407,9 +371,6 @@ export function setSpecAgentSetting(name: string, key: string, value: string): {
 
 export const notAnAgent = (name: string): string => notOnHook(name, 'spec')
 
-/** The same for the `write` hook (#424). */
-export const notAWriteAgent = (name: string): string => notOnHook(name, 'write')
-
 const notOnHook = (name: string, kind: AgentKind): string => {
   const there = hookAgents(kind).map((a) => a.name)
   return there.length
@@ -446,17 +407,6 @@ export const specAgentList = (program: string, forPerson = false): string =>
     guide: 'spec-agent',
   })
 
-/** The same for the `write` hook — what `akb write` with no agent named prints (#424). */
-export const writeAgentList = (program: string, forPerson = false): string =>
-  agentList('write', program, forPerson, {
-    lead: `${program} write <agent> <id> [note] — call a write agent in on a topic.`,
-    blurb: [
-      "A write agent writes part of a topic's draft folder. It runs on its own, in its own",
-      'context: it is given the card and your note, it writes the files that note names, and',
-      'it changes nothing else. Request each agent when its description matches the draft.',
-    ],
-    guide: 'repurpose',
-  })
 
 function agentList(
   kind: AgentKind,

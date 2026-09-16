@@ -24,12 +24,10 @@ import {
   workflowById,
   workflowProblems,
   workflows,
-  workflowsHere,
   WORKFLOW_STAGES,
   type WorkflowStage,
 } from '../lib/agent/workflows'
 import { removeWorkflow } from '../lib/agent/workflow-cards'
-import { solution } from '../lib/solution'
 import type { MoveResult } from '../lib/types'
 
 /** `akb workflow`, as its command declares it (lib/cli/agent.ts). */
@@ -40,15 +38,6 @@ export interface WorkflowOptions {
   addHelper?: string
   dropHelper?: string
   extra?: string
-}
-
-const onlyHere = (): void => {
-  if (!workflowsHere()) {
-    die(`workflows are not a \`${solution()}\` board's — its cards go through that solution's own flows.`, {
-      kind: 'wrong-solution',
-      solution: solution(),
-    })
-  }
 }
 
 const asStage = (asked: string | undefined): WorkflowStage => {
@@ -75,7 +64,6 @@ const done = (res: { ok: boolean; error?: string }): void => {
 }
 
 export function cmdWorkflowList(): MoveResult {
-  onlyHere()
   const rows = workflows()
   const titleOf = (name: string) => agentRoster().find((a) => a.name === name)?.name ?? name
   for (const flow of rows) {
@@ -91,7 +79,6 @@ export function cmdWorkflowList(): MoveResult {
 }
 
 export function cmdWorkflowNew(name: string): MoveResult {
-  onlyHere()
   const res = createWorkflow(name)
   done(res)
   say(`added the "${res.name}" workflow (${res.id}) — all three stages are empty`)
@@ -99,7 +86,6 @@ export function cmdWorkflowNew(name: string): MoveResult {
 }
 
 export function cmdWorkflowDuplicate(id: string): MoveResult {
-  onlyHere()
   const res = duplicateWorkflow(found(id).id)
   done(res)
   say(`copied it to "${res.name}" (${res.id}) — its assignments came with it`)
@@ -107,7 +93,6 @@ export function cmdWorkflowDuplicate(id: string): MoveResult {
 }
 
 export function cmdWorkflowRename(id: string, name: string): MoveResult {
-  onlyHere()
   const flow = found(id)
   done(renameWorkflow(flow.id, name))
   say(`renamed ${flow.id} to "${name.trim()}" — every card on it is unmoved`)
@@ -115,7 +100,6 @@ export function cmdWorkflowRename(id: string, name: string): MoveResult {
 }
 
 export function cmdWorkflowDelete(id: string): MoveResult {
-  onlyHere()
   const flow = found(id)
   // A workflow an open card still runs on is refused rather than left to strand the card:
   // the card would keep an id nothing resolves, and a run on it stops. The check is the
@@ -130,7 +114,6 @@ export function cmdWorkflowDelete(id: string): MoveResult {
 }
 
 export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult {
-  onlyHere()
   const flow = found(id)
   const stage = asStage(flags.stage)
   const changes: string[] = []

@@ -1,8 +1,8 @@
 // Settling a card that sat too long (#118).
 //
 // The verdict itself is an agent's and cannot be asserted here. What can, and what this
-// covers, is the machinery around it: the flow is the sweeper's alone and a marketing board
-// has none, the printed flow carries the two verdicts and the rules that keep it from being
+// covers, is the machinery around it: the flow is the sweeper's alone, the printed flow
+// carries the two verdicts and the rules that keep it from being
 // a refine, and the cards the run will not judge — a group root and a recurring job refused,
 // a build and an unfinished card ahead skipped, an unanswered question NOT a reason to stop —
 // and that a finished unstick hands the card it kept to nobody.
@@ -14,7 +14,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { printFlow } from '../src/lib/agent/flow.ts'
-import { flowByCommand, flowPath, flowRefusal } from '../src/lib/agent/flows.ts'
+import { flowByCommand, flowPath } from '../src/lib/agent/flows.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { markBoard, refinementRunsAfter } from '../src/lib/agent/refine.ts'
 import { roleForFlow, roleNamed } from '../src/lib/agent/roles.ts'
@@ -28,11 +28,6 @@ let root = ''
 
 const kanban = (): string => path.join(root, 'docs', 'kanban')
 const todo = (): string => path.join(kanban(), 'todo')
-
-/** Say what kind of board this is — `product` unless the line says otherwise. */
-const solution = (name: string): void => {
-  fs.writeFileSync(path.join(kanban(), 'config.md'), `- **Solution** — ${name}\n`)
-}
 
 /** One card on the board, with the frontmatter the test needs and a body a flow can read. */
 function card(file: string, id: number, meta: Record<string, string> = {}, body = ''): void {
@@ -105,13 +100,6 @@ describe('the flow', () => {
     assert.equal(roleForFlow('unstick')!.name, 'sweeper')
     // It owns no memory: what it judged is on the card it kept, or gone with the one it dropped.
     assert.deepEqual(roleNamed('sweeper')!.memory, [])
-    assert.equal(flowRefusal('unstick'), null)
-  })
-
-  it('is not a marketing flow — a topic nobody published is the user\'s to drop', () => {
-    solution('marketing')
-    assert.equal(roleForFlow('unstick'), undefined)
-    assert.match(flowRefusal('unstick')!, /is not a `marketing` flow/)
   })
 
   it('prints both verdicts, the note, and what separates it from a refine', () => {

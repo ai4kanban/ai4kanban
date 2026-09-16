@@ -18,9 +18,6 @@ const tooOld = async (): Promise<string> => (await machineCopy()).messages.tooOl
 export async function workflows(): Promise<WorkflowView[] | null> {
   const rules = await boardRules();
   if (!rules.workflowViews) return null;
-  // A board that picks no workflows has none to draw — its cards go through its solution's
-  // own flows, and the pane is not offered there at all.
-  if (rules.workflowsHere && !rules.workflowsHere()) return [];
   return rules.workflowViews();
 }
 
@@ -28,8 +25,7 @@ export async function workflows(): Promise<WorkflowView[] | null> {
  *  the section is hidden rather than drawn empty. */
 export async function workflowsOffered(): Promise<boolean> {
   const rules = await boardRules();
-  if (!rules.workflowViews) return false;
-  return rules.workflowsHere ? rules.workflowsHere() : true;
+  return !!rules.workflowViews;
 }
 
 /** Add a workflow of this board's own, with all three stages empty. */

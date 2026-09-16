@@ -895,11 +895,7 @@ function Page({
   const gloss = role?.gloss ?? sentence(agent.gloss);
   const placeholder =
     role?.rule ??
-    (agent.kind === "spec"
-      ? c.specialistRule.spec(title)
-      : agent.kind === "write"
-        ? c.specialistRule.write(title)
-        : c.rulePlaceholder(title));
+    (agent.kind === "spec" ? c.specialistRule.spec(title) : c.rulePlaceholder(title));
 
   // Which box this page writes through: an added agent owns its whole file, a bundled one
   // owns only the words appended to its runs.

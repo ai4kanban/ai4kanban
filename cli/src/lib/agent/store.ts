@@ -74,15 +74,25 @@ function logPathIn(held: unknown, sessionId: string): string {
 // readable.
 const WAS_CLARIFY = new Set(['auto-refine', 'refine', 'raise-questions'])
 
-// And the two the polish loop replaced (#520), for the same reason: a marketing board that
-// verified a draft before this version keeps up to KEEP_RUNS of them, and a record whose
-// action no longer exists holds a card it never held and has no word to be listed under.
-const WAS_POLISH_LOOP = new Set(['marketing-verify', 'marketing-fix'])
+// The actions the retired marketing board ran (#718). A board that repurposed or polished a
+// draft before this version keeps up to KEEP_RUNS of those records, and there is no word
+// left to list one under — so the record is dropped on the read rather than drawn as a run
+// with a blank verb. Its log goes with the next prune.
+const RETIRED_ACTIONS = new Set([
+  'channel',
+  'polish',
+  'write',
+  'marketing-polish-loop',
+  'marketing-verify',
+  'marketing-fix',
+])
+
+/** Whether this version still has the action a record was written with. */
+export const knownAction = (action: unknown): boolean => !RETIRED_ACTIONS.has(String(action))
 
 export const readAction = (action: unknown): AgentAction => {
   if (typeof action !== 'string') return action as AgentAction
   if (WAS_CLARIFY.has(action)) return 'clarify'
-  if (WAS_POLISH_LOOP.has(action)) return 'marketing-polish-loop'
   return action as AgentAction
 }
 
@@ -120,6 +130,7 @@ export function readStore(): Store {
   const runs: RunRecord[] = []
   for (const entry of raw as Partial<RunRecord>[]) {
     if (!entry || typeof entry.sessionId !== 'string' || !entry.sessionId) continue
+    if (!knownAction(entry.action)) continue
     runs.push({
       sessionId: entry.sessionId,
       cardId: typeof entry.cardId === 'number' ? entry.cardId : null,
@@ -174,8 +185,6 @@ export function readStore(): Store {
       pictures: readPictures(entry.pictures),
       stopping: entry.stopping === true ? true : undefined,
       specAgent: typeof entry.specAgent === 'string' && entry.specAgent ? entry.specAgent : undefined,
-      channel: typeof entry.channel === 'string' && entry.channel ? entry.channel : undefined,
-      draft: typeof entry.draft === 'string' && entry.draft ? entry.draft : undefined,
       refineRound:
         typeof entry.refineRound === 'number' && Number.isInteger(entry.refineRound) && entry.refineRound >= 0
           ? entry.refineRound

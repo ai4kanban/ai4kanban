@@ -27,10 +27,6 @@ const en: RunsCopy = {
     reflect: "reflect",
     triage: "triage",
     spec: "spec",
-    write: "write",
-    channel: "channel",
-    polish: "polish",
-    "marketing-polish-loop": "polish-loop",
   },
   verb: {
     implement: "implementing",
@@ -56,10 +52,6 @@ const en: RunsCopy = {
     reflect: "reflecting on what shipped",
     triage: "sorting triage",
     spec: "drafting a spec",
-    write: "writing a file",
-    channel: "repurposing",
-    polish: "polishing",
-    "marketing-polish-loop": "verifying and fixing",
   },
   step: {
     implement: "Implement",
@@ -85,10 +77,6 @@ const en: RunsCopy = {
     reflect: "Reflect",
     triage: "Triage",
     spec: "Spec",
-    write: "Write",
-    channel: "Channel",
-    polish: "Polish",
-    "marketing-polish-loop": "Polish loop",
   },
   flow: {
     edit: "Revise",

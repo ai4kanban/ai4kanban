@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 // The product mark, in this app's palette.
 //
-// Same geometry as the marketing site's (`web/components/ui/Logo.tsx`): a
+// Same geometry as the public site's (`web/components/ui/Logo.tsx`): a
 // square block carrying three board columns that share a top and step down as
 // work leaves the board. What changes is the fill. The site fills it with its
 // azure; here the accent is the ember, and a blue block would be the only blue

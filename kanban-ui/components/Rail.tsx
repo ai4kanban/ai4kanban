@@ -29,9 +29,6 @@
 // it in the Create task sheet; a card's row opens that card's page with its conversation up.
 // A search never takes either away. At phone width there is no rail at all, so there is no
 // list there either — see ChatRow and lib/discussion-list.ts.
-//
-// A marketing board has no such list (#507): every row here opens the create sheet, and that
-// sheet is the planning step a topic does not take. Nothing is polled for it either.
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -65,7 +62,6 @@ import { useDiscussions } from "@/lib/discussion-list";
 import { Button } from "./button";
 import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { configDialog, PRUNER } from "./Configuration";
-import { useSolution } from "./solution";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -109,8 +105,8 @@ export function Rail({
   const { query, setQuery, matches } = useCardSearch();
   const searching = query.trim().length > 0;
   // Every conversation this board is holding (#496, #633). What is typed in the box above
-  // never takes one away — it searches cards. A marketing board holds none to draw (#507).
-  const discussions = useDiscussions(useSolution() === "marketing");
+  // never takes one away — it searches cards.
+  const discussions = useDiscussions();
   // A discussion is drawn over the page rather than instead of it (#722), so while one is up
   // it is what the reader is in: its row is marked, and the page underneath — a card, the
   // board, the archive, a memory file — gives its mark up until the discussion is closed.

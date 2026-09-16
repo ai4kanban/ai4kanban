@@ -160,13 +160,20 @@ one holds up nothing. Never write the goal for the user. The agent changes only 
 The board sets `pending` when a goal is saved; replace it with an assessment the next time
 you read the goal, without interrupting the user.
 
-**`docs/kanban/memory/agents/` is not a module.** It holds one folder per spec agent that
-declares `memory: project`, with two files in it: `redesign.md` for the mistakes that agent
-was corrected on, `decisions.md` for the durable choices the user made. They are the agent's
-own, curated by it and appended to by the flow that hears the user's answer about its
-section (`akb guide update-questions`). No third file: how the product looks is read from
-the app's own `design.md` and components, and a product fact worth keeping is written into
-the lesson or the decision it supports.
+**`docs/kanban/memory/agents/` is not a module.** It holds one folder per agent that keeps a
+memory of its own — a spec agent that declares `memory: project`, and the three content
+agents (`content-planner`, `content-writer`, `content-reviewer`) — with two files in it:
+`redesign.md` for the mistakes that agent was corrected on, `decisions.md` for the durable
+choices the user made. They are the agent's own, curated by it and appended to by the flow
+that hears the user's answer about its section (`akb guide update-questions`). No third file:
+how the product looks is read from the app's own `design.md` and components, and a product
+fact worth keeping is written into the lesson or the decision it supports.
+
+**Writing taste is the content agents', not the board's.** The voice a piece is written in,
+what a claim has to carry, how a piece is put together — that goes in the three content
+agents' own folders and never in the board's `decisions.md`, which holds user-facing calls
+that guide future planning. All three agents are handed all three folders on every content
+run; each writes back only its own.
 
 ### What earns a note
 

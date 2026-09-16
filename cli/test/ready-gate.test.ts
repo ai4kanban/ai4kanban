@@ -98,14 +98,6 @@ describe('the switch', () => {
     assert.equal(gateRunAfter(before), null)
   })
 
-  it('gates nothing on a board whose solution has no gate, switch on or not', () => {
-    fs.writeFileSync(path.join(root, 'docs', 'kanban', 'config.md'), '- **Solution** — marketing\n')
-    setReadyGate(true)
-    card(1)
-    const before = cardStages()
-    setStatus(1, 'ready')
-    assert.equal(gateRunAfter(before), null)
-  })
 })
 
 describe('which card the gate takes', () => {

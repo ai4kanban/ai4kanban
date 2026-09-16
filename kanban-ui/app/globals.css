@@ -4,7 +4,7 @@
    Soft Neo-Brutalism — tokens + utilities ported from dist0/web/design.md.
    Warm cream canvas, near-black ink outlines, hard offset shadows, one ember
    accent, press-down interactions. Kept 1:1 with the source so the board reads
-   as the same design language as the marketing site.
+   as the same design language as the public site.
    ========================================================================== */
 @theme {
   --color-nb-ink: #24231f; /* charcoal — borders + body text */
@@ -72,15 +72,6 @@ body {
 .nb-outline {
   border: 1.5px solid var(--color-nb-ink);
   border-radius: 14px;
-}
-/* A row that scrolls sideways rather than squeezing what is in it — the marketing editor's
-   tab strip (#479). A full-height scrollbar under a 30px strip would be most of it, so the
-   bar is hidden and the fade at a cut edge is what says there is more. */
-.nb-scroll-x {
-  scrollbar-width: none;
-}
-.nb-scroll-x::-webkit-scrollbar {
-  display: none;
 }
 /* Quiet inset — the same frame at hairline weight, for a supporting band that
    annotates the work rather than being it. */
@@ -669,46 +660,6 @@ body.a4k-inset .a4k-nav-edge {
 }
 .nb-fold > summary::-webkit-details-marker {
   display: none;
-}
-
-/* A commented line in a marketing draft's editor (#458). OverType rewrites its preview's
-   HTML on every render, so the marks are classes and data attributes put back afterwards
-   rather than nodes kept around — and they are written `!important`, one class deeper than
-   the library's own `.overtype-preview div` reset, which pins every line `position: static`
-   and would otherwise leave the number with nothing to sit against.
-   The wash and the number only; the passage itself is not underlined, because a sub-line
-   mark would mean splitting generated markdown HTML on every keystroke. */
-.overtype-wrapper .overtype-preview .a4k-commented {
-  position: relative !important;
-  background: var(--color-nb-accent-wash) !important;
-  box-shadow: inset 2px 0 0 0 var(--color-nb-accent-soft) !important;
-}
-/* The passage the open comment box is on (#477). A textarea draws no selection once it is
-   not the focused element, and the box IS the focused element — so the same offsets are
-   painted on the preview, in the same ember the draft's own selection wears. A highlight
-   rather than a class: it covers characters rather than whole lines, and paints without
-   splitting the preview's generated HTML. */
-::highlight(a4k-picked) {
-  background-color: var(--color-nb-accent-soft);
-}
-
-/* The comment's number, in the margin beside the line it starts on. Absolutely placed, so
-   it never moves a character of the draft out of line with the textarea underneath. */
-.overtype-wrapper .overtype-preview .a4k-commented[data-comment]::before {
-  content: attr(data-comment);
-  position: absolute;
-  left: -26px;
-  top: 1px;
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  background: var(--color-nb-accent-soft);
-  color: var(--color-nb-accent-deep);
-  font-size: 10.5px;
-  font-weight: 800;
-  line-height: 1;
 }
 
 /* ============================================================================

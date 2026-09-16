@@ -21,14 +21,12 @@ import { takeLocalModels } from '../lib/agent/local'
 import { migrateRuntimes, repairEnvFile } from '../lib/agent/runtimes'
 import { agentNames } from '../lib/agent/roles'
 import { runBoard } from '../lib/board-cli'
-import { allowedSolution } from '../lib/cloud/admission'
 import { missingConfigKeys } from '../lib/config-template'
 import { BoardError, say } from '../lib/io'
 import { setBoardRoot } from '../lib/paths'
 import { installSkill, readCommandState, readSkillState } from '../lib/skill/install'
 import { readCommitHook, sayCommitHook } from '../lib/skill/hook'
 import type { SkillFolder } from '../lib/skill/types'
-import type { Solution } from '../lib/solution'
 import type { MoveResult } from '../lib/types'
 import { SKILL_VERSION } from '../version'
 
@@ -60,8 +58,6 @@ export interface SetupContext {
   /** `--board <dir>` — where the board goes, when it is not `<dir>/docs/kanban` (#407).
    *  Absolute by the time it gets here. */
   board?: string | null
-  /** `--solution <name>` — what this board's work is, on a fresh board only. */
-  solution?: Solution
 }
 
 // ---- what happened ---------------------------------------------------------
@@ -130,7 +126,6 @@ function boardAbove(root: string): string | null {
  *  written: driving the board from one is an extra, and `akb skill` is how it is asked for.
  *  That is what keeps a board made from the UI free of a folder nobody chose. */
 export async function cmdInstall(ctx: SetupContext): Promise<MoveResult> {
-  await allowedSolution(ctx.solution)
   const report = new Report()
   const board = ctx.board ?? null
   const where = board ? path.relative(ctx.dir, board) || board : 'docs/kanban'
@@ -142,7 +137,7 @@ export async function cmdInstall(ctx: SetupContext): Promise<MoveResult> {
   if (above) {
     report.notes.push(`there is already a board at ${above} — this makes a second one, and commands run here will find this one`)
   }
-  await boardMove(ctx.dir, ['init', ...(ctx.solution ? ['--solution', ctx.solution] : [])], board)
+  await boardMove(ctx.dir, ['init'], board)
   report.sayNotes()
   say('')
   // Say what landed, so nobody goes looking for the flows in the repo. They ship with the
@@ -162,7 +157,7 @@ export async function cmdInstall(ctx: SetupContext): Promise<MoveResult> {
   say('board UI (Configuration → Agent setup), or here:')
   say('')
   say(`    ${ctx.program} skill`)
-  return { installed: ctx.dir, board: board ?? path.join(ctx.dir, 'docs', 'kanban'), solution: ctx.solution ?? 'product' }
+  return { installed: ctx.dir, board: board ?? path.join(ctx.dir, 'docs', 'kanban') }
 }
 
 // ---- skill -----------------------------------------------------------------
@@ -388,7 +383,7 @@ function moveRuntimes(root: string, board: string, report: Report): void {
   try {
     // Point this process at the board being repaired before asking it who its agents are:
     // `akb update --dir X` repairs a board this process did not resolve on its own, and the
-    // roster follows the board's solution and its own `agents/` folder.
+    // roster follows the board's own `agents/` folder.
     setBoardRoot(root)
     const line = migrateRuntimes(board, agentNames(), takeLocalModels(board))
     if (line) report.did.push(line)

@@ -74,7 +74,6 @@ const CARD_MOVES = new Set([
   'update-verify',
   'update-decided',
   'schedule',
-  'channel-status',
   'tag',
   'archive',
   'reject',

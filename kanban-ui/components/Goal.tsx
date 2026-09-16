@@ -21,10 +21,6 @@
 // The offer belongs to the board's own top row (`offer`), the one screen the goal is read
 // off. Everywhere else — a card page, the archive, the guided run that is asking a screen
 // away — the star appears only when there is something to open, as it always did.
-//
-// A marketing board is offered nothing (#407): its install writes no `goal.md` at all,
-// positioning is a `decisions.md` line and the product board's goal is one of its planning
-// sources, so the empty state draws no entry there.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -38,7 +34,6 @@ import { PHONE_ROW, TOOL_BTN } from "./chrome";
 import { Dialog } from "./Dialog";
 import { GuideDrawer } from "./Guide";
 import { Markdown } from "./Markdown";
-import { useSolution } from "./solution";
 
 // Same input rules as the agent dialogs' textarea, taller: the goal is a few
 // paragraphs and a roadmap, not a note.
@@ -48,8 +43,8 @@ const INPUT =
 /** Whether the goal control is drawn at all — the header asks before it puts the segment in
  *  the cluster, since a tool that renders nothing would leave the cluster a hanging divider
  *  and a square corner. Same rule the component applies to itself. */
-export function goalShown(written: boolean, offer: boolean, marketing: boolean) {
-  return written || (offer && !marketing);
+export function goalShown(written: boolean, offer: boolean) {
+  return written || offer;
 }
 
 export function Goal({
@@ -70,8 +65,7 @@ export function Goal({
   const c = useCopy().rail.goal;
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const marketing = useSolution() === "marketing";
-  if (!goalShown(written, offer, marketing)) return null;
+  if (!goalShown(written, offer)) return null;
   const label = written ? c.open : c.write;
   const hint = written ? c.openHint : c.writeHint;
   return (

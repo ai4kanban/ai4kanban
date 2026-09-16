@@ -15,7 +15,6 @@ import type { Readable, Writable } from 'node:stream'
 import fs from 'node:fs'
 
 import { boardImage, carryRunEdits, holdRunCard, rereadRunCard } from '../board'
-import { clearComments } from '../comments'
 import { rel, TODO, REPO_ROOT, SESSIONS_DIR } from '../paths'
 import { boardComplaints } from '../reconcile'
 import { formatContractErrors, snapshotSpecs, validateRunSpecs } from '../spec-contract'
@@ -27,7 +26,7 @@ import { buildAfterGate, cardStages, gateRunAfter } from './gate'
 import { readyGateOn, silenceMinutes } from './settings'
 import { advanceLanding } from './landing'
 import { runEnv } from './flow'
-import { refineRunsAfter, specRunsAfter, writeRunsAfter } from './follow'
+import { refineRunsAfter, specRunsAfter } from './follow'
 import { reflectRunsAfter } from './propose'
 import { triageRunAfter, triageWaiting } from './auto-triage'
 import { costLine, durationLine, modelLine, RESULT_MARKER, usageLine } from './log'
@@ -50,14 +49,12 @@ import {
   closeRun,
   finishWriting,
   leftBoardOnLanding,
-  markChannelDrafted,
   needsIndexLock,
   patch,
   peekRun,
   readRefineAsks,
   readSpec,
   readSpecAsks,
-  readWriteAsks,
   reportRunEnded,
   resumeSessionId,
   setCardStatus,
@@ -507,26 +504,6 @@ export async function watchRun(sessionId: string, resume = startResume): Promise
           // The refinement state below reports the card still at todo.
         }
       }
-      // And a finished repurpose says so on the card (#409). The board stamps it, not the
-      // run: an agent that crashed after writing the draft would leave the card claiming
-      // nothing was written.
-      if (status === 'done' && record.action === 'channel' && record.cardId !== null && record.channel) {
-        try {
-          await markChannelDrafted(record.cardId, record.channel)
-        } catch {
-          // The draft is on disk either way; `akb raw channel-status` is one command away.
-        }
-      }
-      // A polish that finished takes its batch with it (#458). The board clears it, not the
-      // run: the polished draft is the answer, and a run that failed, was stopped or was cut
-      // off leaves the comments where they were, to submit again.
-      if (status === 'done' && record.action === 'polish' && record.cardId !== null && record.draft) {
-        try {
-          clearComments(record.cardId, record.draft)
-        } catch {
-          // The draft is written either way, and the batch is one Submit from being redone.
-        }
-      }
       // What this run changed, taken now and taken once (agent/refine.ts). Every ending
       // claims, a failure included: a half-written card is not a card to refine, but leaving
       // its edits unclaimed would hand them to whichever run closes next.
@@ -863,7 +840,6 @@ async function followUp(
     // worst, and never a section nobody ever writes.
     await startHelpersInTurn(specRunsAfter(readSpecAsks(sessionId)), join)
     const asked = [
-      ...writeRunsAfter(readWriteAsks(sessionId)),
       ...refineRunsAfter(readRefineAsks(sessionId)),
     ]
     for (const req of asked) await startRun(join(req))
@@ -959,8 +935,6 @@ function requestOf(record: RunRecord): AgentRequest {
     // the CLI actually spawned takes it.
     runtime: record.runtime,
     specAgent: record.specAgent,
-    channel: record.channel,
-    draft: record.draft,
     refineRound: record.refineRound,
     refineEffort: record.refineEffort,
     flowId: record.flowId,

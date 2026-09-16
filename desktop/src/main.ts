@@ -447,14 +447,13 @@ function openDialog(w: Win | null, options: OpenDialogOptions) {
   return w && !w.win.isDestroyed() ? dialog.showOpenDialog(w.win, options) : dialog.showOpenDialog(options);
 }
 
-/** What a window says it is showing: the project, and what its board's work is called
- *  (#495) — "Engineering", "Marketing" — never the board folder's name, which is `kanban`
- *  on every board there is. macOS shows this in the window bar and in the app switcher's
- *  window list; every other system shows it too.
+/** What a window says it is showing: the project, and — where the project holds more than
+ *  one board — which of them this is (#495). macOS shows this in the window bar and in the
+ *  app switcher's window list; every other system shows it too.
  *
- *  The project is set on the spot and the board's word is added when the rules answer:
- *  reading it is a walk of the project folder, and a window with no title until that
- *  finishes is worse than one that gains a word. */
+ *  The project is set on the spot and the board is added when the rules answer: reading it
+ *  is a walk of the project folder, and a window with no title until that finishes is worse
+ *  than one that gains a word. */
 function paintTitle(w: Win): void {
   const project = w.project;
   if (!project) return void w.win.setTitle("AI4Kanban");
@@ -757,7 +756,7 @@ async function createProject(w: Win | null, request: unknown): Promise<CreatePro
  *  what is true about each right now (gone from disk, a run going). */
 function listProjects(): ProjectInfo[] {
   // A project is open when ANY window is on a board of it — the windows may be showing
-  // its `docs/kanban` and its `marketing/kanban` side by side (#495).
+  // its `docs/kanban` and a second board beside it (#495).
   const open = new Set(everyWindow().map((w) => w.project).filter((p): p is string => p !== null));
   return store.projects().map((p) => projects.describe(p.path, { open: open.has(p.path) }));
 }

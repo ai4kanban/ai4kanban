@@ -21,7 +21,6 @@
 import { findCard } from '../view/read'
 import { parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
-import { flowRefusal } from './flows'
 import { deciderOn } from './settings'
 import { readStore } from './store'
 import type { AgentRequest } from './types'
@@ -44,9 +43,6 @@ export function decidable(card: Card): boolean {
  *  about to start, so the last change is the one that counts. */
 export function decideRunAfter(cardId: number | null): AgentRequest | null {
   if (cardId === null || !deciderOn()) return null
-  // A board whose solution has no `decide` never starts one by itself either (#435) — the
-  // switch may say on, but there is nothing behind it to run.
-  if (flowRefusal('decide')) return null
   let card: Card | null
   try {
     card = findCard(cardId)
@@ -64,7 +60,7 @@ export function decideRunAfter(cardId: number | null): AgentRequest | null {
  *  user's again from that moment and says so. A new `[user]` question on a later event still
  *  starts a fresh one: that is a new trigger, not a retry of the run that gave up. */
 export function decidingOn(cardId: number | null): boolean {
-  if (cardId === null || !deciderOn() || flowRefusal('decide')) return false
+  if (cardId === null || !deciderOn()) return false
   let last: { status: string; startedAt: number } | undefined
   try {
     for (const run of readStore().runs) {

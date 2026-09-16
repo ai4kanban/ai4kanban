@@ -19,11 +19,10 @@
 // What IS declared here are the shapes the CLI has no opinion about. `SessionView` is a run
 // as the browser reads it: the record the CLI keeps carries a couple of fields the UI has
 // no use for and holds its log under another name, and lib/registry.ts is where one becomes
-// the other. `CommentBatch` is what a comment write answers with — the CLI hands back the
-// list, and the wrapper adds the one line a board too old to carry the move can say.
+// the other.
 
 import type { AgentAction, ContextWindow, DeliveryStatus, ExecutionBlocker, ReviewTrigger, RunRetry, TokenUsage } from "./format/agent/types";
-import type { CardDeliveryState, DraftComment } from "./format/view/types";
+import type { CardDeliveryState } from "./format/view/types";
 
 export type {
   AgentAction,
@@ -85,14 +84,11 @@ export type {
   Board,
   Card,
   CardApproval,
-  CardChannel,
   CardCreation,
   CardDecision,
   CardDelivery,
   CardDeliveryStage,
   CardDeliveryState,
-  CardDraft,
-  CardDrafts,
   CardFinished,
   CardLanding,
   CardLandingRetry,
@@ -100,13 +96,11 @@ export type {
   CardRef,
   CardSchedule,
   CardStatus,
-  ChannelStatus,
   ClosePlan,
   ClosePlanCard,
   Column,
   DeliveryDiff,
   DeliveryPlan,
-  DraftComment,
   DropPlan,
   FillPlan,
   FillSkip,
@@ -136,12 +130,11 @@ export type {
   SignalInbox,
   SignalMeta,
   SignalsAccess,
-  Solution,
   Subtask,
   VerifyResult,
   WriteResult,
 } from "./format/view/types";
-export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE, SOLUTIONS, UNTITLED } from "./format/view/types";
+export { FIRST_RUN_DONE, GUIDED_STEPS, MEMORY_FILES, METRICS_WINDOW_DAYS, NO_RELEASE } from "./format/view/types";
 
 // The one read each screen makes (#374) — what the board screen draws, and what a card page
 // draws. The server fills them (lib/board.ts) and the screens take them as one prop.
@@ -203,23 +196,6 @@ export const ALL_RELEASES = "*";
 export type { Language, PartnerFeedback, UsageReporting } from "./format/machine/types";
 export { DEFAULT_LANGUAGE, isLanguage, LANGUAGE_NAMES, LANGUAGE_TAGS, LANGUAGES } from "./format/machine/types";
 
-/** What New topic or Discard did (#507): the topic's id, or the reason nothing was written.
- *  Both are direct board writes with no agent behind them, so there is no session to watch —
- *  the answer is the whole result. */
-export interface TopicResult {
-  ok: boolean;
-  id?: number;
-  error?: string;
-}
-
-/** One draft's comments after a write, or the reason there are none to show (#458) — a
- *  board whose rules predate the move, which is also the board that draws no comment
- *  control at all. */
-export interface CommentBatch {
-  comments: DraftComment[];
-  error?: string;
-}
-
 /** A running or finished agent run, as the UI sees it when it polls the server. One shared
  *  picture across every tab. */
 export interface SessionView {
@@ -243,14 +219,6 @@ export interface SessionView {
    *  delivery froze — which is what still names a card that has since been archived. Absent
    *  on a run naming no card, and on one whose card is gone with no delivery behind it. */
   cardTitle?: string;
-  /** Which draft a `polish` run is working over (#458), and nothing on any other run. The
-   *  card page's comment list reads it: every run locks the editor, but only the polish on
-   *  THIS tab is the one working through the batch on screen. */
-  draft?: string;
-  /** Which channel a `channel` run repurposes for (#479), and nothing on any other run. It
-   *  is what names the draft that run is writing — the marketing page says so while it runs
-   *  and again if it stops short. */
-  channel?: string;
   action: AgentAction;
   /** `interrupted` is its own terminal state: the run was cut off — the server died mid-run
    *  and the agent ended out of our sight — so it neither passed nor reported a failure. It

@@ -1,7 +1,7 @@
 import { machineCopy } from "./language";
 import { boardRules, NoRulesError, type BoardEntry, type BoardState } from "./cli";
 import { kanbanDir, repoRoot } from "./paths";
-import { LOCAL_STANDING, SOLUTIONS } from "./types";
+import { LOCAL_STANDING } from "./types";
 import type {
   ArchiveList,
   ArchivedCardFile,
@@ -9,14 +9,11 @@ import type {
   BoardScreen,
   BoardStanding,
   Card,
-  CardDrafts,
   CardHold,
   CardRef,
   CardScreen,
-  ChannelStatus,
   DeliveryDiff,
   DeliveryPlan,
-  DraftComment,
   InboxAddResult,
   InboxDrop,
   MemoryFile,
@@ -26,8 +23,6 @@ import type {
   SetupState,
   SignalInbox,
   SignalsAccess,
-  Solution,
-  TopicResult,
 } from "./types";
 
 // --- reading the board, through the CLI (#169) -------------------------------
@@ -74,26 +69,9 @@ export async function readBoardState(): Promise<BoardStanding> {
 // instruction, the skill state and a mockup on disk are read beside these, by the app shell
 // that draws the controls needing them.
 
-/** Which board this is, how it stands, and what its work IS (#411).
- *
- *  The solution is read HERE, on the server, and not fetched after the paint: a card page
- *  that asked afterwards would draw the product face on every marketing card first. A board
- *  with no rules to ask, and one whose `config.md` cannot be read, is `product` — which is
- *  what every board drew before there was a second solution. */
+/** Which board this is and how it stands. */
 async function screenBoard(): Promise<ScreenBoard> {
-  const [standing, solution] = await Promise.all([readBoardState(), readSolution()]);
-  return { id: repoRoot(), standing, solution };
-}
-
-/** What this board's work is. Anything unreadable — no rules, rules older than solutions, a
- *  board that names one nobody has — answers `product`. */
-export async function readSolution(): Promise<Solution> {
-  try {
-    const named = (await boardRules()).solution?.() ?? "";
-    return (SOLUTIONS as readonly string[]).includes(named) ? (named as Solution) : "product";
-  } catch {
-    return "product";
-  }
+  return { id: repoRoot(), standing: await readBoardState() };
 }
 
 /** Everything the board screen draws. A board whose rules are missing or too old comes back
@@ -378,7 +356,7 @@ export async function readArchivedCard(id: number): Promise<ArchivedCardFile | n
 // ignore what it does not want.
 //
 // A board whose rules predate them answers "closed" rather than throwing: the whole feature
-// is one rail row, and a row that isn't there is the same answer a Marketing board gets.
+// is one rail row, and a row that isn't there says the same thing.
 
 /** Whether this board and this account may use the inbox at all. Reaches Cloud, so it is
  *  asked once when a window opens rather than on the board's poll. */
@@ -435,183 +413,6 @@ export async function dismissSignal(sourceId: string): Promise<{ ok: boolean; er
   if (!rules.dismissSignal) return { ok: false, error: c.messages.rules.tooOldForSignals };
   const done = rules.dismissSignal(sourceId);
   return done.ok ? done : { ok: false, error: c.rail.signals.dismissFailed };
-}
-
-// --- a marketing card's drafts and its channels (#411) -----------------------
-// The card page's drafts block, on the server side of the boundary. Every one of these is
-// the CLI's own — a draft is `content/<id>/<name>.md`, a repurpose is the `channel`
-// command with all of its checks, and Publish is `raw channel-status`.
-//
-// A board whose rules predate them says so in the block rather than failing: `error` on the
-// read, and the same line back from a write. That is the one thing a board too old to draw
-// this can honestly show — reading as a topic nobody has written for would be a lie.
-
-/** Which drafts this card has, each one whole. Read on each open and on tab focus, so a
- *  draft a repurpose has just written is in the pane with nothing to poll. */
-export async function readDrafts(id: number): Promise<CardDrafts> {
-  try {
-    const rules = await boardRules();
-    if (!rules.readDrafts) return { dir: "", drafts: [], error: await tooOldForDrafts() };
-    return rules.readDrafts(id);
-  } catch (e) {
-    return { dir: "", drafts: [], error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** Write one draft and hand the set back as it now reads. Last write wins: the pane is
- *  explicit about saving, and a draft held open in an editor too loses whichever save
- *  landed second. */
-export async function saveDraft(id: number, name: string, text: string): Promise<CardDrafts> {
-  try {
-    const rules = await boardRules();
-    if (!rules.saveDraft) return { dir: "", drafts: [], error: await tooOldForDrafts() };
-    return rules.saveDraft(id, name, text);
-  } catch (e) {
-    return { dir: "", drafts: [], error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** Start the repurpose run for one channel. `kind` is the refusal's own name, which is how
- *  the pane tells a draft that is already written — where the answer is to confirm and run
- *  again — from a refusal there is nothing to do about. */
-export async function repurposeChannel(
-  id: number,
-  channel: string,
-  again: boolean,
-  ask: { note?: string; language?: string } = {},
-): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
-  try {
-    const rules = await boardRules();
-    if (!rules.repurposeChannel) return { ok: false, error: await tooOldForDrafts() };
-    return await rules.repurposeChannel(id, channel, again, ask);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** Choose the channels this topic goes to (#434). The `+` on the card page
- *  appends one; the whole list is rewritten, and a channel that stays keeps its status and
- *  URL. Rules without it draw no `+`, so this is only ever called where it exists. */
-export async function setChannels(id: number, names: string[]): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const rules = await boardRules();
-    if (!rules.setChannels) return { ok: false, error: await tooOldForDrafts() };
-    return await rules.setChannels(id, names);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** Move one channel along and record where the piece went up. It posts nothing. */
-export async function setChannelStatus(
-  id: number,
-  channel: string,
-  status: ChannelStatus,
-  url: string,
-): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const rules = await boardRules();
-    if (!rules.setChannelStatus) return { ok: false, error: await tooOldForDrafts() };
-    return await rules.setChannelStatus(id, channel, status, url);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-// --- the comments left on a draft, and the polish they go to (#458) ---------
-// A board whose rules predate them draws no comment control at all — `canComment` on the
-// read is absent, so the page offers nothing to comment with and none of these is reached.
-// They still answer, with the same line the drafts block says, for a page that asked anyway.
-
-export async function commentOnDraft(
-  id: number,
-  draft: string,
-  passage: { quote: string; context: string; at: number; words: string },
-): Promise<{ comments: DraftComment[]; error?: string }> {
-  try {
-    const rules = await boardRules();
-    if (!rules.commentOnDraft) return { comments: [], error: await tooOldForDrafts() };
-    return { comments: rules.commentOnDraft(id, draft, passage) };
-  } catch (e) {
-    return { comments: [], error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function editDraftComment(
-  id: number,
-  draft: string,
-  commentId: string,
-  words: string,
-): Promise<{ comments: DraftComment[]; error?: string }> {
-  try {
-    const rules = await boardRules();
-    if (!rules.editDraftComment) return { comments: [], error: await tooOldForDrafts() };
-    return { comments: rules.editDraftComment(id, draft, commentId, words) };
-  } catch (e) {
-    return { comments: [], error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-export async function dropDraftComment(
-  id: number,
-  draft: string,
-  commentId: string,
-): Promise<{ comments: DraftComment[]; error?: string }> {
-  try {
-    const rules = await boardRules();
-    if (!rules.dropDraftComment) return { comments: [], error: await tooOldForDrafts() };
-    return { comments: rules.dropDraftComment(id, draft, commentId) };
-  } catch (e) {
-    return { comments: [], error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** Submit the batch: one `polish` run over that draft. The board clears the comments when
- *  it ends `done`, so a run that failed leaves them to submit again. */
-export async function polishDraft(
-  id: number,
-  draft: string,
-  note?: string,
-): Promise<{ ok: boolean; sessionId?: string; error?: string; kind?: string }> {
-  try {
-    const rules = await boardRules();
-    if (!rules.polishDraft) return { ok: false, error: await tooOldForDrafts() };
-    return await rules.polishDraft(id, draft, note);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-// --- the two ends of a topic (#507) ------------------------------------------
-// New topic writes a blank card and its page opens on the editor; Discard takes one off the
-// board again. Rules older than either say so in the same line the drafts block says, so a
-// press on an old board reports why instead of appearing to do nothing.
-
-/** Write one blank topic and answer with the id its page is at. */
-export async function newTopic(): Promise<TopicResult> {
-  try {
-    const rules = await boardRules();
-    if (!rules.newTopic) return { ok: false, error: await tooOldForDrafts() };
-    return await rules.newTopic();
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-/** Take one topic off the board — the topic page's own Discard, and nothing automatic. */
-export async function discardTopic(id: number): Promise<TopicResult> {
-  try {
-    const rules = await boardRules();
-    if (!rules.discardTopic) return { ok: false, error: await tooOldForDrafts() };
-    return await rules.discardTopic(id);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-async function tooOldForDrafts(): Promise<string> {
-  const c = (await machineCopy()).messages.rules;
-  return `${c.tooOldForDrafts} ${c.updateIt}`;
 }
 
 /** What the guided first run opens with — the project, its tracks, and the goal as they

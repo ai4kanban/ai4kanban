@@ -34,8 +34,8 @@ export const reloadSignalsRow = (): void => void ask();
 /** Asked when a window opens and again when the window is looked at again, never on the
  *  board's poll: the answer reaches Cloud, and a row is not worth a request a second.
  *
- *  A board that may not use the inbox — a Marketing one, an account not in the preview, rules
- *  older than the feature — answers `false`, and the row is simply not drawn. */
+ *  A board that may not use the inbox — an account not in the preview, rules older than the
+ *  feature — answers `false`, and the row is simply not drawn. */
 export function useSignalsRow(): SignalsRow {
   const [row, setRow] = useState(held);
   useEffect(() => {

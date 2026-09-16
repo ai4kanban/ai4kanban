@@ -396,7 +396,6 @@ const en: ConfigurationCopy = {
     },
     specialistRule: {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,
-      write: (agent) => `Added to the end of every draft ${agent} joins — "keep every heading under six words".`,
     },
     saved: "Saved",
     ruleFailed: (agent) => `couldn't save ${agent}'s instructions`,

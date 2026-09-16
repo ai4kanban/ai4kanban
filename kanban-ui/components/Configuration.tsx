@@ -273,9 +273,8 @@ export function Configuration({
     if (!open) return;
     void hasWorkspaceAction().then(setCloudBoard);
   }, [open]);
-  // Whether this board picks workflows at all (#715). A marketing board's cards go through
-  // its solution's own flows, so neither workflow section is offered there — and its whole
-  // team stays on the one pane it has always had, under **Board**.
+  // Whether this board picks workflows at all (#715). Rules older than them offer neither
+  // workflow section, and the whole team stays on the one pane under **Board**.
   const [flows, setFlows] = useState(false);
   useEffect(() => {
     if (!open) return;

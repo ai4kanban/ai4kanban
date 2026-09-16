@@ -96,33 +96,6 @@ export { createAgent, deleteAgent, readAgents, saveAgentFile, setAgentRule } fro
 // runs list — so every screen in the app names one agent one way.
 export { agentTitles } from './lib/agents'
 
-// A marketing card's drafts and its channels (#411) — what the board UI's drafts block is
-// drawn from and acts through. Reading and writing a draft is a file under
-// `content/<id>/`; a repurpose is the `channel` command with every check it makes;
-// publishing is `raw channel-status`, which records where the piece went up and posts
-// nothing; choosing the channels is `update --channels`. A product board never draws the
-// page, so nothing here is ever called on one.
-//
-// New topic and Discard (#507) are the two ends of the same page: `raw create` writing a
-// blank topic the editor opens on, and `raw reject` taking one off again. Neither starts an
-// agent — a topic nobody has written yet has nothing to ask one.
-export {
-  discardTopic,
-  newTopic,
-  readDrafts,
-  repurposeChannel,
-  saveDraft,
-  setChannels,
-  setChannelStatus,
-} from './lib/view/drafts'
-export type { RepurposeAsk, RepurposeResult, TopicResult } from './lib/view/drafts'
-
-// The comments a reader leaves on one draft, and the polish they are submitted to (#458).
-// A comment is saved on its passage rather than sent, so a whole read-through costs one
-// pass over the file instead of one rewrite per remark. The batch lives beside the board
-// and out of git; the board clears it when the polish it went to ends `done`.
-export { commentOnDraft, dropDraftComment, editDraftComment, polishDraft } from './lib/view/drafts'
-
 // The chat (#240): the board's conversation with its agent, and each card's. A screen
 // drives it through these — `sendChatMessage` streams the reply back through `onText`, so
 // a chat in the app and a chat in a terminal are the same conversation, held by the same
@@ -255,7 +228,6 @@ export {
   setWorkflowHelperExtra,
   setWorkflowLead,
   workflowViews,
-  workflowsHere,
   WORKFLOW_STAGES,
 } from './lib/agent/workflows'
 export type { WorkflowCandidate, WorkflowStage, WorkflowStageView, WorkflowView } from './lib/agent/workflows'
@@ -267,12 +239,10 @@ export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
 // Initialize checkout-local state after the UI selects its board.
 export { useProjectState } from './lib/paths'
 export { mockupsDir } from './lib/mockups'
-// Which boards this project holds, and what each one's work is called (#407). The folder
-// chip's badge is drawn from these: one board gets a label, two get a switcher.
+// Which boards this project holds (#407). The folder chip's badge is drawn from these: a
+// project holding one board gets no badge, one holding two gets a switcher.
 export { listBoards } from './lib/boards'
 export type { BoardEntry } from './lib/boards'
-export { solution } from './lib/solution'
-export type { Solution } from './lib/solution'
 
 // The Cloud sign-in (#326): the account this MACHINE acts as, held in one file outside every
 // repository, so the board UI server and a terminal `akb` are the same account. The Cloud

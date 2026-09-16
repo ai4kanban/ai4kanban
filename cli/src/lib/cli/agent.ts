@@ -31,8 +31,6 @@ import type { DeliveryRecord } from '../agent/types'
 import { HELP_AFTER } from '../agent/manual'
 import { cmdAgent } from '../../commands/agent'
 import { cmdChat } from '../../commands/chat'
-import { cmdChannel } from '../../commands/channel'
-import { cmdMarketingVerify } from '../../commands/marketing'
 import { cmdCloud } from '../../commands/cloud'
 import { cmdGuide } from '../../commands/guide'
 import {
@@ -60,7 +58,6 @@ import {
 } from '../../commands/run'
 import { cmdTriageAdd, cmdTriageArchive, cmdTriageCheck, cmdTriageDismiss, cmdTriageFetch } from '../../commands/triage'
 import { cmdSpec } from '../../commands/spec'
-import { cmdWrite } from '../../commands/write'
 import { cmdTelemetry } from '../../commands/telemetry'
 import { cardId, ctxOf, intInRange, oneOf, runAction, withShared, type Command } from './shared'
 import type { AkbCliOptions } from './akb'
@@ -185,75 +182,6 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [agent, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
       await onBoard(this, cli, (p) => cmdSpec({ agent, id, note, ...this.opts() }, p))
-    })
-
-  // ---- a named agent the writer calls in on a topic --------------------------
-
-  withShared(program.command('write'))
-    .argument('[agent]', 'which write agent; left off, the agents this board has are listed')
-    .argument('[id]', 'the topic to call it in on', cardId)
-    .argument('[note...]', 'which files you want from it')
-    .summary("a named agent that writes part of a topic's draft folder")
-    .description(
-      'It is a run of its own: it starts clean, with the card and your note and nothing else, and it ' +
-        'writes files inside `content/<id>/` — never `source.md`, never a channel draft, never ' +
-        'the card. A project adds one under docs/kanban/agents/<name>/AGENT.md with `kind: write`. ' +
-        'Asked for from inside a run, it is written down rather than started, and the board starts it ' +
-        'the moment that run ends. Marketing boards only.',
-    )
-    .option('-f, --follow', 'watch its log instead of returning')
-    .option('--notes <text>', 'which files you want, for a caller building a command')
-    // Declared so the refusal can say WHY there is none, rather than "unknown option".
-    .addOption(new Option('--print', 'refused — see below').hideHelp())
-    .addHelpText(
-      'after',
-      '\nThere is no --print: making the file in the conversation that asked for it is the one thing a\n' +
-        'write agent exists not to be.\n',
-    )
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [agent, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
-      await onBoard(this, cli, (p) => cmdWrite({ agent, id, note, ...this.opts() }, p))
-    })
-
-  // ---- one channel's draft, repurposed from the topic's source --------------
-
-  withShared(program.command('channel'))
-    .argument('[name]', 'which channel; left off, the channels are listed')
-    .argument('[id]', "the topic to repurpose", cardId)
-    .argument('[note...]', 'anything the run should know, in your own words')
-    .summary("repurpose a topic's draft for one channel")
-    .description(
-      "It is a run of its own: it reads that topic's `source.md` and writes " +
-        '`content/<id>/<name>.md` in the channel\'s own language — or in `--language`, for this ' +
-        'one repurpose — and changes nothing else. Run it once `source.md` reads right — nothing ' +
-        'follows the write run on its own. A draft already there is never silently replaced. ' +
-        'Marketing boards only.',
-    )
-    .option('--again', 'replace the draft that is already there')
-    .option('--language <language>', "write this one in this language instead of the channel's own")
-    .option('-f, --follow', 'watch its log instead of returning')
-    .option('--notes <text>', 'what the run should know, for a caller building a command')
-    // Declared so the refusal can say WHY there is none, rather than "unknown option".
-    .addOption(new Option('--print', 'refused — see below').hideHelp())
-    .addHelpText(
-      'after',
-      '\nThere is no --print: a draft written in the conversation that asked for it is that\n' +
-        "conversation's opinion of the piece, not a pass over what `source.md` says.\n",
-    )
-    .action(async function (this: Command, ...vals: unknown[]) {
-      const [channel, id, note] = positional(vals) as [string | undefined, number | undefined, string[]]
-      await onBoard(this, cli, (p) => cmdChannel({ channel, id, note, ...this.opts() }, p))
-    })
-
-  const marketing = noun('marketing', 'work on marketing drafts')
-  withShared(marketing.command('verify'))
-    .argument('<channel>', 'which channel draft to verify')
-    .argument('<id>', 'the topic to verify', cardId)
-    .summary('verify and fix a repurpose against the writing memory')
-    .description('One run checks the draft and fixes it, stopping on a clean pass or after three. Marketing boards only.')
-    .addOption(new Option('--print', 'refused — the polish loop needs a fresh session').hideHelp())
-    .action(async function (this: Command, channel: string, id: number) {
-      await onBoard(this, cli, () => cmdMarketingVerify({ ...this.opts(), channel, id }))
     })
 
   // ---- talking to the agent -------------------------------------------------

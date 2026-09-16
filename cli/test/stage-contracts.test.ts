@@ -2,7 +2,7 @@
 //
 // What is asked here: the classification is a total one — every flow this board can start is
 // a stage's, a decision or an event and never two of them; the lead a contract names is the
-// agent that ran that flow before contracts existed, on both solutions; a contract that
+// agent that ran that flow before contracts existed; a contract that
 // names somebody the board hasn't says which stage and which name; and the completion check
 // reads `requires`, asks once for what is missing, and then stops for the user.
 
@@ -12,7 +12,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { FLOWS, flowRefusal } from '../src/lib/agent/flows.ts'
+import { FLOWS } from '../src/lib/agent/flows.ts'
 import { refinementRunsAfter, markBoard } from '../src/lib/agent/refine.ts'
 import { roleForFlow, stageContractProblems } from '../src/lib/agent/roles.ts'
 import { deliveryRules, ruleFor } from '../src/lib/agent/rules.ts'
@@ -38,10 +38,6 @@ import { forgetMachineState } from './helpers/board.ts'
 let root = ''
 
 const kanban = (): string => path.join(root, 'docs', 'kanban')
-
-const solution = (name: string): void => {
-  fs.writeFileSync(path.join(kanban(), 'config.md'), `- **Solution** — ${name}\n`)
-}
 
 /** One card on the board, with whatever body the case needs. */
 function writeCard(id: number, body = 'A card.', opts: { folder?: string; status?: string } = {}): void {
@@ -85,9 +81,6 @@ const recordRun = (run: Partial<RunRecord> & Pick<RunRecord, 'sessionId' | 'acti
   })
 }
 
-const closed = (flow: string, name: string): boolean =>
-  Boolean(flowRefusal(flow)) || (flow === 'triage' && name === 'marketing')
-
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-stages-'))
   fs.mkdirSync(path.join(kanban(), 'todo'), { recursive: true })
@@ -102,31 +95,22 @@ afterEach(() => {
 
 describe('the classification', () => {
   it('puts every flow the board can start in exactly one of the three', () => {
-    for (const name of ['product', 'marketing']) {
-      solution(name)
-      for (const flow of FLOWS) {
-        const stage = stageOfFlow(flow.command)
-        const node = flowNodes().find((n) => n.flow === flow.command)
-        const places = [stage, node].filter(Boolean).length
-        assert.equal(places, closed(flow.command, name) ? 0 : 1, `${name}: ${flow.command} is in ${places} places`)
-      }
+    for (const flow of FLOWS) {
+      const stage = stageOfFlow(flow.command)
+      const node = flowNodes().find((n) => n.flow === flow.command)
+      const places = [stage, node].filter(Boolean).length
+      assert.equal(places, 1, `${flow.command} is in ${places} places`)
     }
   })
 
   it('claims the flows nobody types, too', () => {
-    solution('product')
     // Not commands under `akb card`, and the board's work all the same.
     assert.equal(stageOfFlow('chat'), 'discuss')
     assert.equal(flowNodes().find((n) => n.flow === 'reflect')?.kind, 'event')
     assert.equal(flowNodes().find((n) => n.flow === 'feedback')?.kind, 'event')
-    solution('marketing')
-    assert.equal(stageOfFlow('channel'), 'build')
-    assert.equal(stageOfFlow('polish'), 'build')
-    assert.equal(stageOfFlow('marketing-polish-loop'), 'review')
   })
 
   it('calls the gate and the decider decisions, and the six entries events', () => {
-    solution('product')
     const kinds = Object.fromEntries(flowNodes().map((n) => [n.flow, n.kind]))
     assert.deepEqual(kinds, {
       gate: 'decision',
@@ -145,7 +129,6 @@ describe('the classification', () => {
   // The guard the todo asks for: a flow shipped later with no home fails here rather than
   // quietly becoming a flow nobody runs.
   it('fails when a flow is added and left unclassified', () => {
-    solution('product')
     const orphan = 'brand-new-flow'
     assert.equal(stageOfFlow(orphan), undefined)
     assert.equal(flowNodes().some((n) => n.flow === orphan), false)
@@ -154,9 +137,9 @@ describe('the classification', () => {
 })
 
 describe('the lead a contract names', () => {
-  // The whole point of this card: the two boards run exactly as they ran before. This is the
-  // old per-role table, flow by flow.
-  const PRODUCT: Record<string, string> = {
+  // The whole point of this card: the board runs exactly as it ran before. This is the old
+  // per-role table, flow by flow.
+  const BOARD: Record<string, string> = {
     chat: 'discussion-helper',
     create: 'planner',
     refine: 'planner',
@@ -181,80 +164,36 @@ describe('the lead a contract names', () => {
     triage: 'triage',
   }
 
-  const MARKETING: Record<string, string> = {
-    chat: 'discussion-helper',
-    create: 'planner',
-    revise: 'planner',
-    archive: 'planner',
-    reject: 'planner',
-    setup: 'planner',
-    conflict: 'writer',
-    run: 'writer',
-    channel: 'writer',
-    polish: 'writer',
-    review: 'reviewer',
-    'marketing-polish-loop': 'reviewer',
-    'prune-memory': 'memory-pruner',
-    'review-memory': 'memory-reviewer',
-  }
-
-  it('is the agent that ran that flow before, on a product board', () => {
-    solution('product')
-    for (const [flow, agent] of Object.entries(PRODUCT)) {
+  it('is the agent that ran that flow before', () => {
+    for (const [flow, agent] of Object.entries(BOARD)) {
       assert.equal(agentForFlow(flow), agent, flow)
       assert.equal(roleForFlow(flow)?.name, agent, flow)
     }
-  })
-
-  it('and on a marketing board, which keeps its own four fewer', () => {
-    solution('marketing')
-    for (const [flow, agent] of Object.entries(MARKETING)) {
-      assert.equal(agentForFlow(flow), agent, flow)
-      assert.equal(roleForFlow(flow)?.name, agent, flow)
-    }
-    // A refusal still wins: resolving a lead is not the same as having the flow (#435).
-    for (const flow of ['refine', 'resolve', 'decide', 'gate', 'implement', 'plan-release', 'changelog', 'unstick']) {
-      assert.equal(agentForFlow(flow), undefined, flow)
-      assert.equal(roleForFlow(flow), undefined, flow)
-      assert.match(flowRefusal(flow)!, /is not a `marketing` flow/)
-    }
-    // And the polish loop is still the reviewer's, not the writer's.
-    assert.equal(agentForFlow('marketing-polish-loop'), 'reviewer')
   })
 
   it('is what a role reads its own flows back off', () => {
-    solution('product')
     assert.deepEqual(flowsOfAgent('builder'), ['implement', 'conflict', 'run'])
     assert.deepEqual(flowsOfAgent('gater'), ['gate'])
-    solution('marketing')
-    assert.deepEqual(flowsOfAgent('writer'), ['conflict', 'run', 'channel', 'polish'])
-    assert.deepEqual(flowsOfAgent('reviewer'), ['review', 'marketing-polish-loop'])
+    assert.deepEqual(flowsOfAgent('reviewer'), ['review'])
   })
 })
 
 describe('a contract that names somebody the board has not', () => {
   it('says which stage and which name, and passes on what the command ships', () => {
-    for (const name of ['product', 'marketing']) {
-      solution(name)
-      assert.deepEqual(stageContractProblems(), [], name)
-      const said = contractProblems([]).join('\n')
-      for (const contract of stageContracts()) {
-        assert.match(said, new RegExp(`the ${contract.stage} stage is led by \`${contract.lead}\``))
-      }
+    assert.deepEqual(stageContractProblems(), [])
+    const said = contractProblems([]).join('\n')
+    for (const contract of stageContracts()) {
+      assert.match(said, new RegExp(`the ${contract.stage} stage is led by \`${contract.lead}\``))
     }
   })
 })
 
 describe('the completion check', () => {
   it('requires nothing but the lead on everything the command ships', () => {
-    for (const name of ['product', 'marketing']) {
-      solution(name)
-      for (const contract of stageContracts()) assert.deepEqual(contract.requires, [], `${name}/${contract.stage}`)
-    }
+    for (const contract of stageContracts()) assert.deepEqual(contract.requires, [], contract.stage)
   })
 
   it('holds the stage open while a required helper has written nothing', () => {
-    solution('product')
     writeCard(1)
     const card = findCard(1)!
     const contract: StageContract = { ...stageContract('plan'), requires: ['ui-designer'] }
@@ -268,7 +207,6 @@ describe('the completion check', () => {
   })
 
   it('stops for the user once it has asked and the section is still not there', () => {
-    solution('product')
     writeCard(1)
     recordRun({ sessionId: 's1', action: 'spec', cardId: 1, specAgent: 'ui-designer' })
     const contract: StageContract = { ...stageContract('plan'), requires: ['ui-designer'] }
@@ -279,7 +217,6 @@ describe('the completion check', () => {
   })
 
   it('is satisfied by the helper’s own section on the card', () => {
-    solution('product')
     writeCard(1, 'A card.\n\n## By `ui-designer` agent\n\nThe screens.')
     const contract: StageContract = { ...stageContract('plan'), requires: ['ui-designer'] }
     assert.deepEqual(missingRequired(contract, findCard(1)!), [])
@@ -287,7 +224,6 @@ describe('the completion check', () => {
   })
 
   it('puts a spec run in the planning stage, and a decision in no stage at all', () => {
-    solution('product')
     assert.equal(stageOfAction('spec'), 'plan')
     assert.equal(stageOfAction('clarify'), 'plan')
     assert.equal(stageOfAction('implement'), 'build')
@@ -299,7 +235,6 @@ describe('the completion check', () => {
   // A stage nothing on this board requires anything of can never hold a card up — whatever
   // shape that card is in.
   it('asks a run with no card, a group root and a recurring card for no stage they have not', () => {
-    solution('product')
     writeCard(1)
     writeCard(2, 'A group.', { folder: '2-group' })
     fs.mkdirSync(path.join(kanban(), 'todo', 'recurring'), { recursive: true })
@@ -320,7 +255,6 @@ describe('the helpers, one at a time', () => {
   // What the card asks for: helpers run in turn and the lead comes back once the LAST of
   // them is done, so one agent at a time is writing the conclusion.
   it('holds the lead back while another helper is still queued', () => {
-    solution('product')
     writeCard(1)
     const before = markBoard()
     const spec = aRun({ sessionId: 's1', action: 'spec', cardId: 1, specAgent: 'ui-designer' })
@@ -336,7 +270,6 @@ describe('the helpers, one at a time', () => {
 
 describe('the rules a delivery freezes', () => {
   it('keys them by the agent, and still reads one an older delivery keyed by flow', () => {
-    solution('product')
     fs.mkdirSync(RULES, { recursive: true })
     fs.writeFileSync(path.join(RULES, 'builder.md'), 'Install dependencies first.\n')
     fs.writeFileSync(path.join(RULES, 'reviewer.md'), 'Run the smoke tests.\n')

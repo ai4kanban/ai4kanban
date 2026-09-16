@@ -492,7 +492,6 @@ const zh: ConfigurationCopy = {
     },
     specialistRule: {
       spec: (agent) => `会附加到卡片打磨期间 ${agent} 每次运行的末尾——例如「遵循 app/globals.css 里的设计变量」。`,
-      write: (agent) => `会附加到 ${agent} 参与的每一篇稿件的末尾——例如「每个小标题不超过六个字」。`,
     },
     saved: "已保存",
     ruleFailed: (agent) => `${agent} 的要求保存失败`,

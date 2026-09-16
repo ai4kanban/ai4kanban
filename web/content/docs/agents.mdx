@@ -18,24 +18,24 @@ There are two kinds.
 of them can be switched off:
 
 - **Planner** — plans and refines cards. It runs create, refine, resolve, revise, the release
-  plan, the changelog, archive and reject. On a marketing board it runs four of those: a topic
-  carries no questions to refine or resolve, and ships to channels rather than to a version, so
-  refine, resolve, the release plan and the changelog are not on that board at all.
-- **Builder** — builds cards and lands them: implement, conflict, run. On a marketing board a
-  **Writer** takes its place, and also runs `akb channel`.
+  plan, the changelog, archive and reject.
+- **Builder** — builds cards and lands them: implement, conflict, run.
 - **Reviewer** — checks what was built.
+- **Content planner**, **Content writer**, **Content reviewer** — the three the Content creation
+  workflow is led by. They stand beside the three above in the same stage pickers, so one board
+  plans a feature and a newsletter through the same three stages, and each keeps a memory of its
+  own: the writing taste you settled, in its own words.
 - **Sweeper** — settles a card that has sat too long: it rewrites the card for the project as it
-  stands today, or discards it. `akb card unstick <id>` runs it on one card. Product boards only.
+  stands today, or discards it. `akb card unstick <id>` runs it on one card.
 - **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
-  default. Product boards only.
-- **Decider** — answers the questions on a card that are waiting on you. Off by default. Product
-  boards only: a topic carries no questions.
+  default.
+- **Decider** — answers the questions on a card that are waiting on you. Off by default.
 - **Proposer** — reads a card the board has just finished and proposes the work that should follow
-  it. Off by default. Product boards only.
+  it. Off by default.
 - **Triage** — sorts what is waiting in Triage into cards and ignores. Switched on, it sorts each
   batch of new items itself and keeps going until nothing is waiting; `akb triage run` sorts either
-  way. Off by default. Product boards with [Triage](/docs/triage) open only, and it is not on the
-  roster at all where Triage is closed.
+  way. Off by default. Boards with [Triage](/docs/triage) open only, and it is not on the roster at
+  all where Triage is closed.
 - **Memory pruner** — squeezes the memory back down to what helps planning. **Run now** on its page
   starts one; a recurring prune is opt-in there, with a cadence, and off by default.
 - **Review chat memory** — reads back over the conversations that said something new and writes
@@ -251,9 +251,8 @@ akb:
 ```
 
 Everything under the frontmatter is the agent's instructions. `kind: spec` is the hook it plugs
-into; `kind: write` joins the writer on a marketing board and is refused anywhere else. A
-`settings` entry becomes a control on that agent's page, and only the chosen choice's `reference`
-is loaded into the run — the instructions for the option nobody picked are never read. `akb spec`
+into. A `settings` entry becomes a control on that agent's page, and only the chosen
+choice's `reference` is loaded into the run — the instructions for the option nobody picked are never read. `akb spec`
 lists the agents this board can use and, under them, anything wrong with one it found.
 
 **Delete** on an agent's page removes it and everything the board kept for it — the folder, the

@@ -29,7 +29,6 @@ import { filterColumns, hasOwnCards, useReleasePick, type ReleasePick } from "@/
 import { useActions, type ReleaseClosed, type ReleaseMade, type StartAnswer, type StripPlace } from "@/lib/screen";
 import type { BoardScreen, SessionView, WriteResult } from "@/lib/types";
 import { OpenIdsProvider } from "./open-ids";
-import { SolutionProvider } from "./solution";
 import { EmptyBoard, QueueView } from "./Queue";
 import { stoppedShort } from "./agent-shared";
 import { runningCardIds, sessionsPanel, useAgentSessions, useOnTabFocus } from "./sessions";
@@ -364,9 +363,6 @@ export function Board({
 
   return (
     <OpenIdsProvider ids={board?.openIds ?? []}>
-      {/* What this board's work IS (#411) — the face its cards wear. It comes down with the
-          read, so the first paint is already the right one. */}
-      <SolutionProvider value={screen.solution}>
       <Shell {...chrome}>
         <div className="flex h-full flex-col overflow-hidden">
           {/* The app's own band about how this board is being run (#175). Above the error
@@ -462,8 +458,7 @@ export function Board({
 
           {board && noCards && !planSessionId ? (
             // The offer only where a card can actually be written: a read-only caller has
-            // nothing to open. The ask goes to the header's control either way — the create
-            // sheet on a product board, one New topic press on a marketing one (#507).
+            // nothing to open. The ask goes to the header's own create control.
             <EmptyBoard onCreate={actions ? () => createSheet.open() : undefined} />
           ) : board ? (
             <QueueView columns={columns} sessions={sessions} />
@@ -476,7 +471,6 @@ export function Board({
           {Strip && board?.setup && <Strip {...chrome} at="foot" />}
         </div>
       </Shell>
-      </SolutionProvider>
     </OpenIdsProvider>
   );
 }

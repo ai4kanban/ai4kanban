@@ -25,17 +25,12 @@ const zh: BoardCopy = {
     ready: "待开发",
     readyCount: (ready, implementing) => `${ready} 个待开发 · ${implementing} 个开发中`,
     notReady: "未就绪",
-    topics: "选题",
-    topicsCount: (total, writing) => `${total} · ${writing} 个开发中`,
     recurring: "周期任务",
     empty: "没有待办卡片",
     emptyBoard: {
       title: "看板还空着",
       blurb: "写下你接下来想做的事，剩下的交给 Agent。",
       create: "新建第一张卡片",
-      topicTitle: "还没有选题",
-      topicBlurb: "手上有什么就从什么开始——一个想法、一段笔记、一个链接、一段草稿。",
-      topicCreate: "新建选题",
     },
     columns: "列",
     goToColumn: (title) => `显示「${title}」`,
@@ -60,8 +55,6 @@ const zh: BoardCopy = {
   },
   create: {
     button: "新建任务",
-    topicButton: "新建选题",
-    topicFailed: "选题未能创建",
     startFailed: "Agent 未能启动",
     sheet: {
       headlines: ["你想实现什么目标？", "用户遇到了什么问题？", "哪些地方需要改进？", "你想跟进什么市场趋势？"],

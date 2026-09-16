@@ -9,7 +9,7 @@ test('finds checkout-local runs for the default and secondary board', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-desktop-project-'));
   try {
     fs.mkdirSync(path.join(root, '.git'));
-    for (const relative of ['docs/kanban', 'marketing/kanban']) {
+    for (const relative of ['docs/kanban', 'design/kanban']) {
       const board = path.join(root, relative);
       fs.mkdirSync(path.join(board, 'todo'), { recursive: true });
       fs.writeFileSync(path.join(board, 'config.md'), '# Board\n');

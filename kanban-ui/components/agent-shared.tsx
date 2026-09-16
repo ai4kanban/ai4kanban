@@ -299,8 +299,7 @@ export function SessionLog({
   collapsed?: boolean;
   onToggle?: () => void;
   // How tall the body well may grow before it scrolls. Half the viewport suits a page that
-  // scrolls as a whole; the marketing editor, which does not, gives the log less and keeps
-  // the draft.
+  // scrolls as a whole; a caller whose page does not scroll passes its own.
   cap?: string;
   // Drop the frame and title bar: the delivery block owns the frame, and folds the useful
   // run status into its tab strip so an embedded log does not grow a second toolbar.

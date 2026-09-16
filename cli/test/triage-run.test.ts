@@ -14,7 +14,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { printFlow } from '../src/lib/agent/flow.ts'
-import { flowByCommand, flowPath, flowRefusal } from '../src/lib/agent/flows.ts'
+import { flowByCommand, flowPath } from '../src/lib/agent/flows.ts'
 import { buildAsk } from '../src/lib/agent/prompts.ts'
 import { roleForFlow } from '../src/lib/agent/roles.ts'
 import { openRun } from '../src/lib/agent/sessions.ts'
@@ -72,8 +72,6 @@ describe('the flow', () => {
     assert.equal(flowPath(flow), 'triage run')
     assert.equal(flow.argument, '')
     assert.equal(roleForFlow('triage')!.name, 'triage')
-    // Refused by admission rather than by solution, so the GONE table says nothing about it.
-    assert.equal(flowRefusal('triage'), null)
   })
 
   it('prints the items themselves, and what each judgement lands through', async () => {

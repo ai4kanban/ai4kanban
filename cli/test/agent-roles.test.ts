@@ -11,7 +11,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
-import { FLOWS, flowRefusal } from '../src/lib/agent/flows.ts'
+import { FLOWS } from '../src/lib/agent/flows.ts'
 import { buildRun } from '../src/lib/agent/prompts.ts'
 import { agentNames, agentRoster, roleForFlow, roles } from '../src/lib/agent/roles.ts'
 import { agentForFlow } from '../src/lib/agent/stages.ts'
@@ -25,11 +25,6 @@ import { move, refuses } from './helpers/board.ts'
 let root = ''
 
 const kanban = (): string => path.join(root, 'docs', 'kanban')
-
-/** Say what kind of board this is — `product` unless the line says otherwise. */
-const solution = (name: string): void => {
-  fs.writeFileSync(path.join(kanban(), 'config.md'), `- **Solution** — ${name}\n`)
-}
 
 /** A rule file as a board written before #420 had it: named by the flow. */
 const rule = (name: string, text: string): void => {
@@ -51,37 +46,20 @@ afterEach(() => {
 })
 
 describe('the roles', () => {
-  it('gives every flow the board can start exactly one agent, and the rest none', () => {
-    for (const name of ['product', 'marketing']) {
-      solution(name)
-      for (const flow of FLOWS) {
-        const owners = roles().filter((role) => role.name === agentForFlow(flow.command))
-        // A flow this solution refuses is a flow nothing runs, so no role claims it (#435).
-        // `triage` is the one refused by ADMISSION instead (#561) — `signalsAccess()` turns a
-        // marketing board away — so the GONE table says nothing about it and the roster is
-        // where it is absent.
-        const closed = flowRefusal(flow.command) || (flow.command === 'triage' && name === 'marketing')
-        const wanted = closed ? 0 : 1
-        assert.equal(owners.length, wanted, `${name}: ${flow.command} is run by ${owners.length} agents`)
-      }
+  it('gives every flow the board can start exactly one agent', () => {
+    for (const flow of FLOWS) {
+      const owners = roles().filter((role) => role.name === agentForFlow(flow.command))
+      assert.equal(owners.length, 1, `${flow.command} is run by ${owners.length} agents`)
     }
   })
 
-  it('leaves the four flows a marketing board has not off its planner', () => {
-    solution('product')
-    for (const flow of ['refine', 'resolve', 'plan-release', 'changelog']) {
+  it('leaves the planner every flow that writes a card', () => {
+    for (const flow of ['refine', 'resolve', 'plan-release', 'changelog', 'create']) {
       assert.equal(roleForFlow(flow)!.name, 'planner')
     }
-    solution('marketing')
-    for (const flow of ['refine', 'resolve', 'plan-release', 'changelog']) {
-      assert.equal(roleForFlow(flow), undefined)
-      assert.match(flowRefusal(flow)!, /is not a `marketing` flow/)
-    }
-    assert.equal(roleForFlow('create')!.name, 'planner')
   })
 
-  it('names the writer on a marketing board and the builder on a product one', () => {
-    solution('product')
+  it('names the builder, and every board flow beside it', () => {
     assert.deepEqual(
       roles().map((r) => r.name),
       [
@@ -106,53 +84,39 @@ describe('the roles', () => {
     )
     assert.equal(roleForFlow('implement')!.name, 'builder')
     assert.equal(roleForFlow('prune-memory')!.name, 'memory-pruner')
-    // Reading back over the conversations is the memory reviewer's, on either board (#748):
-    // both hold conversations, and on neither does a chat write memory itself.
+    // Reading back over the conversations is the memory reviewer's (#748): a chat writes no
+    // memory itself.
     assert.equal(roleForFlow('review-memory')!.name, 'memory-reviewer')
-    // Settling a stale card is the sweeper's, and the product board's alone (#118).
+    // Settling a stale card is the sweeper's (#118).
     assert.equal(roleForFlow('unstick')!.name, 'sweeper')
     // Every conversation is the discussion helper's, and `chat` is no flow anyone types.
     assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
-    // The gater and the decider are the product board's alone: a topic is never gated, and
-    // it carries no questions to answer.
     assert.equal(roleForFlow('gate')!.name, 'gater')
     assert.equal(roleForFlow('decide')!.name, 'decider')
     // And a reflection is the proposer's — no flow a person types either (#534).
     assert.equal(roleForFlow('reflect')!.name, 'proposer')
-    // `akb channel` is the writer's and exists nowhere else.
-    assert.equal(roleForFlow('channel'), undefined)
-
-    solution('marketing')
-    assert.deepEqual(
-      roles().map((r) => r.name),
-      ['discussion-helper', 'planner', 'writer', 'reviewer', 'memory-pruner', 'memory-reviewer'],
-    )
-    assert.equal(roleForFlow('chat')!.name, 'discussion-helper')
-    assert.equal(roleForFlow('review-memory')!.name, 'memory-reviewer')
-    // The writer's work starts at the repurpose: a topic's source is the user's own words,
-    // so a marketing board has no `implement` for any role to run.
-    assert.equal(roleForFlow('implement'), undefined)
-    assert.equal(roleForFlow('channel')!.name, 'writer')
-    assert.equal(roleForFlow('gate'), undefined)
-    assert.equal(roleForFlow('decide'), undefined)
-    assert.equal(roleForFlow('reflect'), undefined)
-    // And sorting triage is the product board's alone (#561), as is settling a stale one.
-    assert.equal(roleForFlow('triage'), undefined)
-    assert.equal(roleForFlow('unstick'), undefined)
-    assert.match(flowRefusal('unstick')!, /is not a `marketing` flow/)
   })
 
   it('says what each role remembers, in files that are the board it is on', () => {
-    solution('product')
     assert.ok(roles().find((r) => r.name === 'planner')!.memory.includes('memory/goal.md'))
-    solution('marketing')
-    // No goal on a marketing board, so the planner cannot claim one.
-    assert.ok(!roles().find((r) => r.name === 'planner')!.memory.includes('memory/goal.md'))
-    assert.ok(roles().find((r) => r.name === 'writer')!.memory.includes('memory/writing.md'))
+  })
+
+  // Writing taste is the content three's own, not a planning note about the product (#718),
+  // so each of them keeps a folder under `memory/agents/` the way a spec agent that
+  // remembers does.
+  it('gives each content agent a memory folder of its own', () => {
+    const memoryOf = (name: string): string[] => agentRoster().find((a) => a.name === name)!.memory
+    for (const name of ['content-planner', 'content-writer', 'content-reviewer']) {
+      assert.ok(memoryOf(name).some((f) => f.endsWith(`memory/agents/${name}/redesign.md`)), `${name} redesign`)
+      assert.ok(memoryOf(name).some((f) => f.endsWith(`memory/agents/${name}/decisions.md`)), `${name} decisions`)
+    }
+    // The coding three keep writing into the board's own set, and own no folder.
+    for (const name of ['planner', 'builder', 'reviewer']) {
+      assert.ok(!memoryOf(name).some((f) => f.includes('memory/agents/')), name)
+    }
   })
 
   it("refuses a project agent that takes a role's name, so no two share a rule", () => {
-    solution('product')
     const home = path.join(kanban(), 'agents', 'builder')
     fs.mkdirSync(home, { recursive: true })
     fs.writeFileSync(
@@ -184,7 +148,6 @@ describe('the roles', () => {
   })
 
   it('rosters the roles first, then the specialists the command ships', () => {
-    solution('product')
     const names = agentNames()
     assert.deepEqual(names.slice(0, 15), [
       'discussion-helper',
@@ -248,7 +211,6 @@ describe('the roles that can be switched off', () => {
     (await readAgents()).agents.find((a) => a.name === name)!.enabled
 
   it('starts on the side its role ships, and every role that has no switch stays on', async () => {
-    solution('product')
     assert.equal(await on('gater'), false)
     assert.equal(await on('decider'), false)
     assert.equal(await on('proposer'), false)
@@ -263,7 +225,6 @@ describe('the roles that can be switched off', () => {
   })
 
   it('reads the key the board already wrote, so a switch survives the split', async () => {
-    solution('product')
     fs.writeFileSync(UI_CONFIG, JSON.stringify({ readyGate: true }))
     assert.equal(await on('gater'), true)
     assert.equal(await on('decider'), false)
@@ -279,7 +240,6 @@ describe('the roles that can be switched off', () => {
   })
 
   it('switches one without touching the other, each under its own key', async () => {
-    solution('product')
     assert.equal(setSpecAgentEnabled('gater', true).ok, true)
     assert.equal(readyGateOn(), true)
     assert.equal(deciderOn(), false)
@@ -294,7 +254,6 @@ describe('the roles that can be switched off', () => {
   // whether a build is reviewed at all is actually answered — a delivery setting, under
   // General → Delivery, which `aiReview` still reads.
   it('refuses to switch the reviewer, and points at the delivery setting', async () => {
-    solution('product')
     const refused = setSpecAgentEnabled('reviewer', false)
     assert.equal(refused.ok, false)
     assert.match(refused.error!, /has no switch/)
@@ -309,7 +268,6 @@ describe('the roles that can be switched off', () => {
   })
 
   it('refuses to switch off a role the board runs on', async () => {
-    solution('product')
     const refused = setSpecAgentEnabled('planner', false)
     assert.equal(refused.ok, false)
     assert.match(refused.error!, /can't be switched off/)
@@ -318,7 +276,6 @@ describe('the roles that can be switched off', () => {
 
 describe("the one-time move onto the agents", () => {
   it('folds a per-flow rule file into its agent, in flow order, and deletes it', () => {
-    solution('product')
     rule('implement', 'Install dependencies first.')
     rule('conflict', 'Keep the target branch.')
     rule('review', 'Run the smoke tests.')
@@ -336,7 +293,6 @@ describe("the one-time move onto the agents", () => {
   })
 
   it('runs once — the second read finds nothing to move and says nothing', () => {
-    solution('product')
     rule('implement', 'Install dependencies first.')
     assert.equal(readRule('builder'), 'Install dependencies first.')
     assert.deepEqual(migrateFlowRules(), [])
@@ -344,7 +300,6 @@ describe("the one-time move onto the agents", () => {
   })
 
   it("keeps a rule the agent already had in front of the flows'", () => {
-    solution('product')
     rule('builder', 'The board rule.')
     rule('run', 'The recurring rule.')
     migrateFlowRules()
@@ -352,7 +307,6 @@ describe("the one-time move onto the agents", () => {
   })
 
   it('reports the move in the run log the first time a run is built', () => {
-    solution('product')
     rule('review', 'Run the smoke tests.')
     const { notes, prompt } = buildRun({ action: 'review', id: 1, title: 'card one' })
     assert.match(notes.join('\n'), /a rule is one per agent now/)
@@ -360,7 +314,6 @@ describe("the one-time move onto the agents", () => {
   })
 
   it('leaves a board that never had a rule alone', () => {
-    solution('product')
     assert.deepEqual(migrateFlowRules(), [])
     assert.equal(fs.existsSync(RULES), false)
     assert.equal(readRule('builder'), '')
@@ -370,7 +323,6 @@ describe("the one-time move onto the agents", () => {
 
 describe('akb raw rule', () => {
   it('writes one agent\'s rule from a file, replaces it, and clears it', async () => {
-    solution('product')
     const file = path.join(root, 'rule.md')
     fs.writeFileSync(file, 'Install dependencies first.\n')
     const wrote = await move(root, ['rule', 'builder', '--file', file])
@@ -386,7 +338,6 @@ describe('akb raw rule', () => {
   })
 
   it('takes a spec agent by name too, and refuses a name no agent answers to', async () => {
-    solution('product')
     await move(root, ['rule', 'ui-designer', '--text', 'Keep to the existing palette.'])
     assert.equal(ruleText('ui-designer'), 'Keep to the existing palette.')
     await refuses(root, ['rule', 'designer', '--text', 'Anything.'], /planner, builder, reviewer/)
@@ -394,7 +345,6 @@ describe('akb raw rule', () => {
 
   // The agent was renamed, and a rule is saved under the agent's name.
   it('moves a spec agent’s rule off the name it had before, once', async () => {
-    solution('product')
     fs.mkdirSync(RULES, { recursive: true })
     fs.writeFileSync(path.join(RULES, 'ui-design.md'), 'Keep to the existing palette.\n')
     assert.equal(readRule('ui-designer'), 'Keep to the existing palette.')
@@ -403,7 +353,6 @@ describe('akb raw rule', () => {
   })
 
   it('refuses two sources, and no source at all', async () => {
-    solution('product')
     await refuses(root, ['rule', 'builder', '--file', 'a.md', '--text', 'b'], /not both/)
     await refuses(root, ['rule', 'builder'], /--file <path>/)
   })

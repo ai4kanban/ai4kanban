@@ -16,7 +16,7 @@ import { spawnWatcher } from './launch'
 import { claimRunPictures, returnRunPictures } from './pictures'
 import { deliveryFor } from './deliveries'
 import { buildRun } from './prompts'
-import { cardWorkflowId, workflowFor, workflowKnown, workflowProblems, workflowsHere } from './workflows'
+import { cardWorkflowId, workflowFor, workflowKnown, workflowProblems } from './workflows'
 import { closeRun, markSpawned, openResume, openRun } from './sessions'
 import type { AgentRequest, RunRecord, RunRefusal } from './types'
 
@@ -45,7 +45,7 @@ export async function startRun(req: AgentRequest): Promise<{ run: RunRecord; spa
 // froze its own answer, and re-reading the board would refuse a build in flight over a change
 // made after it started.
 function workflowRefusal(req: AgentRequest): string | null {
-  if (!workflowsHere() || !Number.isInteger(req.id)) return null
+  if (!Number.isInteger(req.id)) return null
   if (deliveryFor(req)) return null
   const id = cardWorkflowId(req.id as number)
   // A card naming a workflow this board no longer has RESOLVES to the default, so that the

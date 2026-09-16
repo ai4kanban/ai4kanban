@@ -39,7 +39,6 @@ import { die, rel, AGENT_MEMORY, ARCHIVE, CONFIG, BOARD_FLAG, GOAL, KANBAN, MEMO
 import { changelogRefusal, quoteId, readNewestClose, readReleaseEntries } from '../releases'
 import { findSetupQuestionsCard, readSetupChecklist } from '../setup'
 import type { Meta, MoveResult } from '../types'
-import { carriesField, namedById, solution } from '../solution'
 import { moduleNames } from '../validate'
 import { candidateFileStats, candidateOf, candidatePatch, candidateStat } from './candidate'
 import { readInbox } from '../signals/inbox'
@@ -201,15 +200,9 @@ const indent = (line: string): string =>
     .map((l) => (l.trim() ? `  ${l}` : ''))
     .join('\n')
 
-// Whether a card on this board carries a body at all. A marketing topic card does not: the
-// piece is the deliverable and it lives under `content/` (#435), so there is no plan on the
-// card to work through, tick or count.
-const cardCarriesBody = (): boolean => solution() !== 'marketing'
-
 // What is left of the plan. The remaining boxes are the job; the ticked ones are history and
 // are counted rather than listed, so nobody re-does them.
 function stepsField(card: CardFacts): string[] {
-  if (!cardCarriesBody()) return []
   if (!card.steps.length) {
     return field('steps', card.ticked ? `none left — all ${card.ticked} ticked` : 'the card has no ## Todo yet')
   }
@@ -222,7 +215,6 @@ function stepsField(card: CardFacts): string[] {
 // The same plan, counted rather than listed — for a job that isn't working through the
 // steps and only needs to know whether any are left.
 function stepsCount(card: CardFacts): string[] {
-  if (!cardCarriesBody()) return []
   if (!card.steps.length) return field('steps', `all ${card.ticked} ticked`)
   return field(
     'steps',
@@ -345,20 +337,12 @@ function workspaceField(delivery: DeliveryRecord | undefined): string[] {
   ])
 }
 
-// The `update` flags a card on this board takes — the four a marketing card has no field
-// for are left out rather than named and refused (#435).
-const editableFields = (): string =>
-  ['--title', '--priority', '--roi', '--release', '--modules', '--blocked-by', '--related']
-    .filter((flag) => carriesField(flag.replace(/^--/, '')))
-    .join('|')
+// The `update` flags a card takes.
+const EDITABLE_FIELDS = '--title|--priority|--roi|--release|--modules|--blocked-by|--related'
 
-// What to do with the body a card was created with. A marketing topic card is created with
-// none — the piece is the deliverable, under `content/` — so there is no scaffold to fill
-// and nothing to say about section titles.
+// What to do with the body a card was created with.
 const bodyScaffoldClose = (lead = 'fill the existing'): string[] =>
-  solution() === 'marketing'
-    ? []
-    : [`${lead} body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place`]
+  [`${lead} body scaffold; do not rename or translate its section titles, and leave empty scaffold sections in place`]
 
 // Where review stands on this delivery.
 function reviewField(delivery: DeliveryRecord | undefined): string[] {
@@ -564,20 +548,6 @@ const GUIDES_FOR: Record<StartableAction, string[]> = {
   unstick: ['board', 'unstick', 'writing', 'update-questions', 'add-task', 'reject'],
   // Specialist instructions apply to both printed flows and separate runs.
   spec: ['spec-agent'],
-  // A repurpose gets its own flow and NOT `board`: it writes one file under `content/` and
-  // never a card, so the card format and the memory set are a page about work it may not do.
-  // `akb channel` has no --print either, so this is only ever the run's.
-  channel: ['repurpose'],
-  // The polish loop gets its own flow too: one file under `content/` and the writing
-  // memory it checks against, never a card.
-  'marketing-polish-loop': ['marketing-polish-loop'],
-  // A polish gets its own flow, for the same reason: one file under `content/` and the
-  // writing memory its own guide files rules in (#459), never a card. Nothing prints it
-  // either — Submit on the card page is the only way in.
-  polish: ['polish'],
-  // A write agent gets its own flow, for the same reason a spec agent does: it writes files
-  // in one folder and never a card. `akb write` has no --print, so this is only the run's.
-  write: ['repurpose'],
 }
 
 const guidesFor = (req: AgentRequest): string[] => {
@@ -650,14 +620,14 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ...(settled
           ? ['honour the notes above as requirements — they are decisions already settled on this card, and nothing here reopens them']
           : []),
-        ...(cardCarriesBody() ? ['tick each box in ## Todo as you finish it — they are the record of what was built'] : []),
+        'tick each box in ## Todo as you finish it — they are the record of what was built',
         `${raw} update-verify ${req.id} --append ".." — add one short note for each manual check left to the user`,
         `write the shipped line in the memory file above — "Finish a task" in \`akb guide board\``,
         delivery
           ? reviewed
             ? `leave the card on the board — review comes next in this delivery, and the board archives the card itself once the delivery has landed`
             : `leave the card on the board — the board archives the card itself once the delivery has landed`
-          : `${raw} archive ${req.id} — once ${cardCarriesBody() ? "every box is ticked and the card's goal is met" : "the card's goal is met"}`,
+          : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
       if (card.meta.questions.length) {
         next.push(
@@ -831,7 +801,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         ]),
       )
       close.push(
-        `${raw} update ${req.id} [${editableFields()}] — the fields are the command's, never hand-written`,
+        `${raw} update ${req.id} [${EDITABLE_FIELDS}] — the fields are the command's, never hand-written`,
         ...bodyScaffoldClose(),
       )
       break
@@ -844,30 +814,21 @@ function buildFlow(req: AgentRequest, program: string): Flow {
         facts.push(
           ...field('release', entry ? `${entry.id} — ${entry.goal || '(no goal on its line)'}` : `${req.release} — not on the release list`),
         )
-      } else if (carriesField('release')) {
+      } else {
         const releases = readReleaseEntries().map((e) => e.id)
         facts.push(...field('releases', releases.join(', ') || '(none open)'))
       }
       close.push(
         // `--slug` only on a board that isn't English (#337): a non-English title slugifies
-        // to nothing, and every card would be named `<id>-task.md`. Never where a card is
-        // named off its id alone (#507) — there the flag is refused.
-        `${raw} create --title ".."${translating() && !namedById() ? ' --slug <short-english-slug>' : ''}${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
+        // to nothing, and every card would be named `<id>-task.md`.
+        `${raw} create --title ".."${translating() ? ' --slug <short-english-slug>' : ''}${req.release ? ` --release ${req.release}` : ''} — one call per card; it takes the id, writes the fields and indexes it`,
         ...bodyScaffoldClose('then fill only the existing'),
       )
       break
     }
     case 'archive': {
       facts.push(...stepsCount(card!))
-      // What a finished piece is recorded in. `readme.md` is the product solution's "what
-      // shipped"; a marketing board records one line per published piece instead, and that
-      // file is the board's, not a pillar's.
-      facts.push(
-        ...field(
-          'memory',
-          solution() === 'marketing' ? [rel(path.join(MEMORY, 'published.md'))] : memoryFiles(card!.meta.modules, 'readme.md'),
-        ),
-      )
+      facts.push(...field('memory', memoryFiles(card!.meta.modules, 'readme.md')))
       close.push(
         'write the shipped line first — one line for what a user can now see or do, nothing for an internal-only change',
         `${raw} archive ${req.id} — it files the card, drops it from the index, and prints what still mentions it`,

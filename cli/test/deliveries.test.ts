@@ -445,15 +445,14 @@ describe('a delivery with no card', () => {
       assert.equal(readStore().runs[1]!.cardId, null)
     })
 
-    // A board that does not deliver with git opened no delivery (#407), so the run itself is
-    // what holds the card — and it rests at `todo`, the one stage a board with no refine has.
-    it('hands the card to a run with no delivery, resting it at todo', () => {
-      fs.writeFileSync(path.join(root, 'docs', 'kanban', 'config.md'), '- **Solution** — marketing\n')
+    // A run that opened no delivery holds the card itself, and rests it where a cancel or a
+    // discard hands back a settled card.
+    it('hands the card to a run with no delivery, resting it at ready', () => {
       withStore((store) => store.runs.push(session({ cardId: null })))
       const sessionId = readStore().runs[0]!.sessionId
       assert.equal(adoptDirectCard(sessionId, 9), true)
       assert.equal(readStore().runs[0]!.cardId, 9)
-      assert.equal(readStore().runs[0]!.priorStatus, 'todo')
+      assert.equal(readStore().runs[0]!.priorStatus, 'ready')
     })
   })
 

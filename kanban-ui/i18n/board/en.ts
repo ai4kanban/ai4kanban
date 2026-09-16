@@ -29,17 +29,12 @@ const en: BoardCopy = {
     ready: "Ready to build",
     readyCount: (ready, implementing) => `${ready} ready · ${implementing} implementing`,
     notReady: "Not ready",
-    topics: "Topics",
-    topicsCount: (total, writing) => `${total} · ${writing} implementing`,
     recurring: "Recurring",
     empty: "no open cards",
     emptyBoard: {
       title: "The board is empty",
       blurb: "Write down what you want to do next. The agent takes it from there.",
       create: "Create the first card",
-      topicTitle: "No topics yet",
-      topicBlurb: "Start with whatever you have — an idea, a note, a link, some rough copy.",
-      topicCreate: "New topic",
     },
     columns: "Columns",
     goToColumn: (title) => `Show ${title}`,
@@ -64,8 +59,6 @@ const en: BoardCopy = {
   },
   create: {
     button: "Create task",
-    topicButton: "New topic",
-    topicFailed: "could not write the topic",
     startFailed: "could not start the agent",
     sheet: {
       headlines: [

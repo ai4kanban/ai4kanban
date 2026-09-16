@@ -11,7 +11,6 @@ import { isBoardDir, resolveBoard, useBoard } from '../src/lib/board-cli.ts'
 import { listBoards } from '../src/lib/boards.ts'
 import { findGuide } from '../src/lib/guide.ts'
 import { BOARD_FLAG, KANBAN, REPO_ROOT, boardText, setBoardRoot } from '../src/lib/paths.ts'
-import { solution } from '../src/lib/solution.ts'
 
 const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'akb-board-path-')))
 const product = path.join(root, 'docs', 'kanban')
@@ -132,28 +131,24 @@ describe('what the board prints', () => {
     assert.equal(boardText('write it in docs/kanban/memory/'), 'write it in docs/kanban/memory/')
   })
 
-  it('gives a board its solution flow text and inherits the rest', () => {
+  it('reads every flow the same on either board — a leftover `Solution` line changes nothing (#718)', () => {
     useBoard(find(root, { board: marketing }), false)
-    assert.equal(solution(), 'marketing')
-    assert.match(findGuide('board')!.text, /^# Marketing board context/)
-    // Gone rather than overridden: a marketing board has no `implement` at all.
-    assert.equal(findGuide('implement'), null)
-    assert.match(findGuide('reject')!.text, /^# /)
+    assert.match(findGuide('implement')!.text, /Implement a settled card/)
+    assert.match(findGuide('board')!.text, /^# How this board works/)
 
     useBoard(find(root), false)
-    assert.equal(solution(), 'product')
     assert.match(findGuide('implement')!.text, /Implement a settled card/)
   })
 })
 
 describe('which boards a project holds', () => {
-  it('lists every board two levels down, docs/kanban first, with what its work is called', () => {
+  it('lists every board two levels down, docs/kanban first, named by its folder', () => {
     const boards = listBoards(root)
     assert.deepEqual(
-      boards.map((b) => [b.path, b.work, b.short, b.solution]),
+      boards.map((b) => [b.path, b.name]),
       [
-        [product, 'Engineering', 'Eng', 'product'],
-        [marketing, 'Marketing', 'Mktg', 'marketing'],
+        [product, path.join('docs', 'kanban')],
+        [marketing, path.join('marketing', 'kanban')],
       ],
     )
   })

@@ -23,7 +23,6 @@ import { allCards, findCard } from '../view/read'
 import { byDispatchOrder } from '../view/rules'
 import type { Card } from '../view/types'
 import { activeDelivery } from './deliveries'
-import { flowRefusal } from './flows'
 import { readyGateOn } from './settings'
 import { startRun } from './start'
 import { withStore } from './store'
@@ -89,9 +88,6 @@ function heldByRuns(): Set<number> {
  *  cards spends one gate and the rest are picked up as that one ends. */
 export function gateRunAfter(before: CardStages): AgentRequest | null {
   if (!readyGateOn()) return null
-  // A board whose solution has no gate never starts one by itself either (#435) — the
-  // switch may say on, but there is nothing behind it to run.
-  if (flowRefusal('gate')) return null
   let cards: Card[]
   try {
     cards = allCards()

@@ -57,7 +57,7 @@ command, and fills in the config afterwards.
 `akb install --board <dir>` puts the board somewhere else — one repository, two boards:
 
 ```bash
-akb install --board marketing/kanban
+akb install --board design/kanban
 ```
 
 A board away from `docs/kanban` is **named, not found**: with no flag `akb` still walks up
@@ -67,14 +67,6 @@ beats the variable, and both beat `--dir`.
 
 The board app shows which one you are on in the folder chip, and switches between them
 there.
-
-## Verify a marketing draft
-
-After `akb channel <channel> <id>`, run `akb marketing verify <channel> <id>` to check that
-repurpose against the writing memory. One run checks the draft, fixes what it found and
-checks again, stopping on the first pass with nothing to fix or after three passes, and
-says what each pass changed. This is a separate step on marketing boards and has no
-`--print`. See `akb guide marketing-polish-loop`.
 
 ## Drive the board from your coding agent
 

@@ -278,7 +278,6 @@ const CARD: Card = {
   verify: ["open /design in the desktop app and check every specimen still draws"],
   decided: [],
   modules: ["board"],
-  channels: [],
   last_run: "",
   cadence: "",
   schedule: null,

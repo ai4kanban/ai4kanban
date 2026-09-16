@@ -43,7 +43,7 @@ function pidAlive(pid: unknown): boolean {
 
 /** The board folder itself, for a folder that is either a project or a board.
  *
- *  A window may be showing a project's second board — `marketing/kanban`, which
+ *  A window may be showing a project's second board — `design/kanban`, which
  *  has its own `todo/` and `config.md` and its own session registry (#407). Its
  *  runs are as real as the first board's, so they have to be findable under the
  *  folder the window was actually handed. */
