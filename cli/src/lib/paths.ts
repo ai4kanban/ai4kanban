@@ -8,6 +8,7 @@ import { BoardError, warn as sayWarning, type BoardErrorOptions } from './io'
 import {
   CHATS_FOLDER,
   INDEX_LOCK as INDEX_LOCK_NAME,
+  ASSETS_FOLDER,
   MOCKUPS_FOLDER,
   SESSIONS_FILE,
   SESSIONS_FOLDER,
@@ -64,10 +65,10 @@ export let AGENTS = ''
 // Where they used to sit, read for one release so a board that already has some keeps
 // working (#419). Every agent found here is reported, telling the user to move it.
 export let LEGACY_AGENTS = ''
-// Drawings of the screens cards change — one folder per card id (see the `ui-designer` spec
-// agent). Keyed by id, so a card leaving the board takes its folder.
-// Machine state: a mockup is a working drawing, redrawn from the card whenever the question
-// comes back, so it is never something the repo carries or a teammate pulls.
+// What cards show — screens and images, one folder per card id (#803). Keyed by id, so a
+// card leaving the board takes its folder. Machine state: never something the repo carries.
+export let ASSETS = ''
+// Where assets were kept before #803, still read and still cleaned up.
 export let MOCKUPS = ''
 // All memory lives under docs/kanban/memory/. This folder itself holds the board's own
 // record — `readme.md` and `goal.md` — and nothing else; everything a run learned is an
@@ -271,6 +272,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   ENV_FILE = path.join(KANBAN, '.env')
   // Local state stays in the checkout and is shared with sandboxed agents.
   const machine = projectStateDir(KANBAN, REPO_ROOT)
+  ASSETS = path.join(machine, ASSETS_FOLDER)
   MOCKUPS = path.join(machine, MOCKUPS_FOLDER)
   SESSIONS = path.join(machine, SESSIONS_FILE)
   SESSIONS_DIR = path.join(machine, SESSIONS_FOLDER)
@@ -347,14 +349,16 @@ export function boardPath(): string {
   return rel(KANBAN).split(path.sep).join('/')
 }
 
-/** Where the drawings used to sit, as a shipped reference still spells it. They are machine
- *  state now (#590), so the literal is swapped for the real folder alongside the board swap
- *  above — an agent told to write into a folder nothing reads draws nothing. The `src` a card
- *  writes is untouched: it is a name, not a path, and the board resolves it. */
+/** Asset folders as shipped text spells them. They are machine state (#590), so each literal
+ *  is swapped for the real folder — an agent told to write into a folder nothing reads draws
+ *  nothing. The `src` a card writes is untouched: it is a name, and the board resolves it. */
+const ASSETS_PATH_IN_TEXT = 'docs/kanban/.assets'
 const MOCKUPS_PATH_IN_TEXT = 'docs/kanban/.mockups'
 
 export function boardText(text: string): string {
-  const drawn = text.split(MOCKUPS_PATH_IN_TEXT).join(rel(MOCKUPS))
+  const drawn = text
+    .split(ASSETS_PATH_IN_TEXT).join(rel(ASSETS))
+    .split(MOCKUPS_PATH_IN_TEXT).join(rel(MOCKUPS))
   const here = boardPath()
   return here === BOARD_PATH_IN_TEXT ? drawn : drawn.split(BOARD_PATH_IN_TEXT).join(here)
 }

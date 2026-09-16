@@ -57,8 +57,8 @@ function remarkCardLinks(openIds: Set<number>) {
   };
 }
 
-// remark plugin: turn a `<Mockup src=".." label=".." />` on a line of its own into the
-// screen that file holds (#239) — but only where mockups belong, which is a card page. A
+// remark plugin: turn an `<Asset src=".." label=".." />` (or the older `<Mockup>`) on a line
+// of its own into what that file holds (#239, #803) — but only where mockups belong, which is a card page. A
 // tag inside backticks or a fenced block is an `inlineCode`/`code` node, so it is never
 // seen here; a tag anywhere mockups aren't drawn, and one written into a line of prose
 // rather than on a line of its own, stays plain text. Never nothing: a card quoted in a
@@ -68,7 +68,7 @@ function remarkMockups(mockups: MockupSet | null) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     visit(tree as any, "html", (node: any, index: number | undefined, parent: any) => {
       if (index == null || !parent) return;
-      if (!node.value.includes("<Mockup")) return;
+      if (!/<(?:Asset|Mockup)\b/.test(node.value)) return;
       const tags = mockups && parent.type === "root" ? mockupBlock(node.value) : null;
       if (!tags) {
         parent.children.splice(index, 1, { type: "text", value: node.value });

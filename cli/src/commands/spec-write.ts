@@ -155,7 +155,7 @@ function readSection(file: string | undefined, text: string | undefined): string
   // A tag the board would print as text is repaired rather than refused: the drawing is
   // the answer, and the spacing around it is not something to send an agent back for.
   const spaced = fixMockupBlocks(section)
-  if (spaced !== section) warn('a `<Mockup>` tag needs a paragraph of its own — moved the text off its line.')
+  if (spaced !== section) warn('an `<Asset>` tag needs a paragraph of its own — moved the text off its line.')
   return spaced
 }
 

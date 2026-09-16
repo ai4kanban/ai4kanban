@@ -192,10 +192,10 @@ const zh: CardCopy = {
     lineRemoved: "删除 ",
   },
   mockup: {
-    openFull: "单独全尺寸打开这张原型图",
+    openFull: "查看原尺寸",
     screen: "画面",
     code: "代码",
-    frame: (label) => `原型图 ${label}`,
+    frame: (label) => `素材 ${label}`,
     back: (id) => `返回 #${id}`,
   },
 };

@@ -14,6 +14,8 @@
 //
 // A `.txt` mockup opens here too (#256), in the same monospaced block the card page shows
 // it in and at the size a drawing is read at. It never re-wraps either.
+//
+// An image (#803) is shown at its own pixel size, with that size beside its name.
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -59,6 +61,13 @@ export function MockupPage({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [showCode, setShowCode] = useState(!!view.error);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const measure = useCallback((img: HTMLImageElement | null) => {
+    if (!img?.complete || !img.naturalWidth) return;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    setSize((prev) => (prev?.w === w && prev.h === h ? prev : { w, h }));
+  }, []);
   const refresh = useCallback(() => router.refresh(), [router]);
 
   // The same two triggers the memory page catches up on: a run finishing, and the window
@@ -123,6 +132,11 @@ export function MockupPage({
             <span className="min-w-0 truncate font-mono text-[12px] text-nb-ink-soft">
               {view.src}
             </span>
+            {size && (
+              <span className="shrink-0 font-mono text-[12px] text-nb-ink-soft">
+                {size.w} × {size.h} px
+              </span>
+            )}
             {view.code && (
               <button
                 type="button"
@@ -147,7 +161,17 @@ export function MockupPage({
           {/* Full size, so the panel is what scrolls — both ways, since the screen is wider
               than the body on most windows. */}
           <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
-            {view.text !== undefined ? (
+            {view.image !== undefined ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a file on this machine
+              <img
+                src={view.image}
+                alt={view.src}
+                // An image already loaded before hydration fires no load event.
+                ref={measure}
+                onLoad={(e) => measure(e.currentTarget)}
+                className="block max-w-none bg-nb-wash"
+              />
+            ) : view.text !== undefined ? (
               <pre className="w-max whitespace-pre bg-nb-wash p-4 font-mono text-[13px] leading-[19px]">
                 {view.text}
               </pre>

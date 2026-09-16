@@ -95,11 +95,11 @@ export function validateSpec(file: string, text: string): ContractError[] {
     const heading = line.match(/^ {0,3}(#{1,2})\s+(.+?)\s*#*\s*$/)
     if (heading?.[1] === '#') add(i + 1, 'heading', 'Do not repeat the card title as an H1. Remove this heading or use ### inside your section.')
     if (heading?.[1] === '##') headings.push({ title: heading[2]!, line: i + 1 })
-    if (/^\s*<Mockup\b/.test(line)) {
-      if (!/^\s*<Mockup\b[^<>]*\/>\s*$/.test(line) || (lines[i - 1]?.trim() && !/^\s*<Mockup\b/.test(lines[i - 1]!)) || (lines[i + 1]?.trim() && !/^\s*<Mockup\b/.test(lines[i + 1]!))) {
-        add(i + 1, 'mockup-block', 'Put the self-closing <Mockup ... /> tag on its own line, with blank lines separating it from prose.')
+    if (/^\s*<(?:Asset|Mockup)\b/.test(line)) {
+      if (!/^\s*<(?:Asset|Mockup)\b[^<>]*\/>\s*$/.test(line) || (lines[i - 1]?.trim() && !/^\s*<(?:Asset|Mockup)\b/.test(lines[i - 1]!)) || (lines[i + 1]?.trim() && !/^\s*<(?:Asset|Mockup)\b/.test(lines[i + 1]!))) {
+        add(i + 1, 'mockup-block', 'Put the self-closing <Asset ... /> tag on its own line, with blank lines separating it from prose.')
       }
-      if (!/\bsrc="[^"]+"/.test(line) || !/\blabel="[^"]+"/.test(line)) add(i + 1, 'mockup-attributes', 'Add non-empty src="..." and label="..." attributes to the Mockup tag.')
+      if (!/\bsrc="[^"]+"/.test(line) || !/\blabel="[^"]+"/.test(line)) add(i + 1, 'mockup-attributes', 'Add non-empty src="..." and label="..." attributes to the Asset tag.')
     }
   }
   if (fence) add(fence.line, 'code-fence', `Unclosed code block. Close it with ${fence.char.repeat(fence.length)} on its own line.`)

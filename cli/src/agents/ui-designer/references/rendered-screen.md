@@ -1,6 +1,6 @@
 ## Mockup format: a rendered screen
 
-A mockup is a folder of files under `docs/kanban/.mockups/<card id>/`, and it starts as a copy
+A mockup is a folder of files under `docs/kanban/.assets/<card id>/`, and it starts as a copy
 of the real screen's own source — never a lookalike written from scratch. Copy first, trim
 second, and design only what this card changes.
 
@@ -21,7 +21,7 @@ second, and design only what this card changes.
 
 ### What the board can run
 
-- **The entry file**: the `.tsx` the `<Mockup>` tag names, default-exporting the screen. Name it
+- **The entry file**: the `.tsx` the `<Asset>` tag names, default-exporting the screen. Name it
   in lowercase ASCII with dashes for the page or state it draws: `board-empty`,
   `card-run-failed`. Supporting copies keep their original names.
 - **Available unchanged**: React, `react-icons/fi`, `react-icons/fa`, `react-icons/si`,
@@ -35,16 +35,16 @@ second, and design only what this card changes.
 
 Draw terminals and command output as monospaced text inside the mockup too.
 
-Point at each screen from your section with one `<Mockup>` tag standing in a paragraph of its
+Point at each screen from your section with one `<Asset>` tag standing in a paragraph of its
 own — a blank line above it and a blank line below:
 
 ```
-<Mockup src=".mockups/<card id>/board-empty.tsx" label="Board, nothing on it" />
+<Asset src=".assets/<card id>/board-empty.tsx" label="Board, nothing on it" />
 
-<Mockup src=".mockups/<card id>/card-run-failed.tsx" label="Card page, run failed" />
+<Asset src=".assets/<card id>/card-run-failed.tsx" label="Card page, run failed" />
 ```
 
 A tag sharing a line or paragraph with prose is printed as text. `src` is the entry file's name,
 written exactly as above and resolved by the board; `label` is required and is the screen's name
-for a reader, in the board's language. `<Mockup>` is the only HTML tag allowed in a card body;
+for a reader, in the board's language. `<Asset>` is the only HTML tag allowed in a card body;
 inside backticks or a fenced block, it remains text.

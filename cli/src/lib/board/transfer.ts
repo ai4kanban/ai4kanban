@@ -106,6 +106,7 @@ const KEPT_LOCAL = new Set([
   '.lock',
   '.index.lock',
   '.chats',
+  '.assets',
   '.mockups',
   '.comments',
 ])

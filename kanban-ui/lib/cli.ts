@@ -202,6 +202,7 @@ export interface BoardRules {
   /** Where this board's drawings are kept. The `src` a card writes is unchanged; this is
    *  what resolves it, and it is asked for rather than built so there is one answer. */
   mockupsDir?(): string;
+  assetsDir?(): string;
   /** Every board this project holds, and what each one's work is called. Optional for the
    *  same reason — an older copy answers with nothing and the header draws a plain label. */
   listBoards?(root: string): BoardEntry[];
@@ -944,7 +945,14 @@ async function opened(rules: BoardRules): Promise<BoardRules> {
   return rules;
 }
 
-/** Where this board's drawings are kept (#590) — the rules' own answer, so the board and
+/** Where this board's assets are kept (#803). Rules older than that have no answer, and the
+ *  folder then sits beside the drawings one. */
+export async function assetsDir(): Promise<string> {
+  const rules = await boardRules();
+  return rules.assetsDir?.() ?? path.join(path.dirname(await mockupsDir()), "assets");
+}
+
+/** Where this board's drawings were kept (#590) — the rules' own answer, so the board and
  *  the page never disagree about which folder a `<Mockup src>` names. A copy of the rules
  *  older than the move still keeps them in the board folder, which is what the fallback is. */
 export async function mockupsDir(): Promise<string> {

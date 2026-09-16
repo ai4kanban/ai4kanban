@@ -441,13 +441,26 @@ rail's Archive row stays highlighted while you read. The list re-reads itself wh
 finishes and when you come back to the window, so a card an agent just archived is at the
 top of it. A board that has archived nothing says so.
 
-### Mockups on a card
+### Assets on a card
 
-A card that changes a screen can carry **mockups** of it — small files under
-`mockups/<card id>/` in this board's own folder on the machine (#590), each drawing one screen of
-the design the card takes. The card body points at each one with a tag on a line of its own, and
-the card page draws the screen that file holds where the tag sits, so you read the design by
-looking at it. The `ui-designer` agent writes one design, one file per page or state it changes,
+A card can carry **assets** — screens and images, small files under `assets/<card id>/` in this
+board's own folder on the machine (#590, #803). The card body points at each one with a tag on a
+line of its own, and the card page shows what that file holds where the tag sits:
+
+```
+<Asset src=".assets/803/hero.png" label="Hero image" />
+```
+
+Cards written before #803 say `<Mockup src=".mockups/…">`; those still read as before, from
+`mockups/<card id>/` or the board's `.mockups/`.
+
+**Images** — `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.svg` — fill the body's width, never taller
+than a screen of that width, in the same frame as a screen. Click one, or its file name, to see it
+at its real pixel size at `/assets/<card id>/<file>`. An SVG is shown as an image, so nothing in it
+runs.
+
+A card that changes a screen carries **mockups** of it, each drawing one screen of the design the
+card takes, so you read the design by looking at it. The `ui-designer` agent writes one design, one file per page or state it changes,
 each named for what it shows; only a card page shows them, and the card file is never written to.
 
 A mockup is written as one of two things:
@@ -478,7 +491,7 @@ does. Alongside its own files a mockup may keep React, `react-icons`, `next/link
 Nothing in a mockup runs, loads anything from the network, reads anything else in the board, or
 answers a click: it is drawn inside a sandbox, and the board's own fonts, colours and layout stop
 at the frame — what you look at is what the file holds. A tag pointing at a file that isn't there,
-at one outside the mockups folder, at one that is neither `.tsx` nor `.html`, or at a `.tsx` the
+at one outside the card's asset folder, at one in no supported format, or at a `.tsx` the
 board cannot draw, reads as one plain note naming the file, and the rest of the card draws as
 usual.
 

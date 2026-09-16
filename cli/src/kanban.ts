@@ -238,7 +238,7 @@ export { cardsOnWorkflow, removeWorkflow as deleteWorkflow } from './lib/agent/w
 export { ensureAkbDir, setBoardDir, setBoardRoot } from './lib/paths'
 // Initialize checkout-local state after the UI selects its board.
 export { useProjectState } from './lib/paths'
-export { mockupsDir } from './lib/mockups'
+export { assetsDir, mockupsDir } from './lib/mockups'
 // Which boards this project holds (#407). The folder chip's badge is drawn from these: a
 // project holding one board gets no badge, one holding two gets a switcher.
 export { listBoards } from './lib/boards'

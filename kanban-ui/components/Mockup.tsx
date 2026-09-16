@@ -15,6 +15,9 @@
 //
 // A `.txt` mockup is not a screen and gets none of that (#256): it is the file's own
 // characters in a monospaced block, at full size, scrolled rather than scaled.
+//
+// An image (#803) fills the width, never taller than a screen at that width, and links to its
+// own page at full size.
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -54,6 +57,30 @@ function Drawing({ text }: { text: string }) {
     >
       {text}
     </span>
+  );
+}
+
+/** An image, as wide as the body and no taller than a screen of that width would be. The
+ *  inline styles win over `.nb-md img`, whose border and corners are for prose images. */
+function Picture({ image, src, alt }: { image: string; src: string; alt: string }) {
+  return (
+    <Link href={mockupHref(src)} className="block bg-nb-wash" style={{ containerType: "inline-size" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a file on this machine */}
+      <img
+        src={image}
+        alt={alt}
+        style={{
+          display: "block",
+          width: "100%",
+          height: "auto",
+          maxWidth: "100%",
+          maxHeight: `min(${H}px, ${(H / W) * 100}cqw)`,
+          objectFit: "contain",
+          border: 0,
+          borderRadius: 0,
+        }}
+      />
+    </Link>
   );
 }
 
@@ -132,9 +159,8 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           <span className="truncate">{view.src}</span>
           <FiMaximize2 aria-hidden className="shrink-0" style={{ width: 11, height: 11 }} />
         </Link>
-        {/* No switch on a `.txt` mockup: the file IS the drawing, so there is nothing
-            behind the picture to show. */}
-        {view.text === undefined && (
+        {/* No switch on a `.txt` mockup or an image: there is nothing behind the picture. */}
+        {view.doc !== undefined && (
           <button
             type="button"
             onClick={() => setShowCode((v) => !v)}
@@ -144,7 +170,9 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           </button>
         )}
       </span>
-      {view.text !== undefined ? (
+      {view.image !== undefined ? (
+        <Picture image={view.image} src={view.src} alt={label || view.src} />
+      ) : view.text !== undefined ? (
         <Drawing text={view.text} />
       ) : showCode ? (
         <span
@@ -154,7 +182,7 @@ export function Mockup({ view, label }: { view: MockupView; label: string }) {
           {view.code}
         </span>
       ) : (
-        <Screen doc={view.doc} title={label ? c.frame(label) : view.src} />
+        view.doc !== undefined && <Screen doc={view.doc} title={label ? c.frame(label) : view.src} />
       )}
     </span>
   );

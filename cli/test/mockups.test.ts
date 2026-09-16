@@ -21,6 +21,13 @@ describe('fixMockupBlocks', () => {
     )
   })
 
+  it('spaces an <Asset> tag the same way', () => {
+    assert.equal(
+      fixMockupBlocks('<Asset src=".assets/803/a.png" label="A" /> Hero image.'),
+      ['<Asset src=".assets/803/a.png" label="A" />', '', 'Hero image.'].join('\n'),
+    )
+  })
+
   it('gives two tags on one line a paragraph each', () => {
     assert.equal(
       fixMockupBlocks('text\n<Mockup src="a.tsx" /><Mockup src="b.tsx" />\ntext'),

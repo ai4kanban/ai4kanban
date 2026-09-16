@@ -12,7 +12,7 @@ import { heldByDelivery } from '../lib/agent/deliveries'
 import { cardCreation } from '../lib/agent/store'
 import { creationRefusal } from '../lib/view/rules'
 import { formatDay } from '../lib/cadence'
-import { die, warn, rel, TODO, MEMORY, ARCHIVE, MOCKUPS } from '../lib/paths'
+import { die, warn, rel, TODO, MEMORY, ARCHIVE, ASSETS, MOCKUPS, KANBAN } from '../lib/paths'
 import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { walkMd, walkDirs, idPrefix, locate, enclosingGroupRoot, markSubtask, archiveDest } from '../lib/cards'
@@ -89,15 +89,18 @@ function leavingIds(id: number, found: Found): number[] {
   return [...ids]
 }
 
-// Only rejected cards lose their mockups; archived cards still display them.
+// Only rejected cards lose their assets; archived cards still display them. The two older
+// folders are cleaned up with the current one.
 function dropMockups(ids: number[]): { dir: string; files: number }[] {
   const dropped: { dir: string; files: number }[] = []
   for (const id of ids) {
-    const dir = path.join(MOCKUPS, String(id))
-    if (!fs.existsSync(dir)) continue
-    const files = fs.readdirSync(dir).length
-    fs.rmSync(dir, { recursive: true, force: true })
-    dropped.push({ dir: rel(dir), files })
+    for (const root of [ASSETS, MOCKUPS, path.join(KANBAN, '.mockups')]) {
+      const dir = path.join(root, String(id))
+      if (!fs.existsSync(dir)) continue
+      const files = fs.readdirSync(dir).length
+      fs.rmSync(dir, { recursive: true, force: true })
+      dropped.push({ dir: rel(dir), files })
+    }
   }
   return dropped
 }
@@ -268,7 +271,7 @@ export function cmdRemove(id: number, metric: Metric, options: RemoveOptions = {
   if (marked) say(`  ${marked === 'tick' ? 'ticked' : 'struck'} #${id} in ${rel(groupRoot!)}`)
   for (const card of unlinked) say(`  unlinked #${id} from ${card}`)
   for (const m of droppedMockups) {
-    say(`  deleted ${m.dir}/ — ${m.files} mockup file(s)`)
+    say(`  deleted ${m.dir}/ — ${m.files} asset file(s)`)
   }
   for (const chatId of droppedChats) say(`  forgot the conversation about #${chatId}`)
   // The group closes with its last subtask (#299). Taken before the mentions below, so a

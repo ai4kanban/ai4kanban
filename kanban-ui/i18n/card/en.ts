@@ -194,10 +194,10 @@ const en: CardCopy = {
     lineRemoved: "removed ",
   },
   mockup: {
-    openFull: "Open this mockup on its own, at full size",
+    openFull: "View at full size",
     screen: "Screen",
     code: "Code",
-    frame: (label) => `Mockup ${label}`,
+    frame: (label) => `Asset ${label}`,
     back: (id) => `Back to #${id}`,
   },
 };

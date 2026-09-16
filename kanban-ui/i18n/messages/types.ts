@@ -50,14 +50,15 @@ export type MessagesCopy = {
   };
   run: { noProcess: string };
   chat: { busy: string; sendFailed: string; clearFailed: string; pickFailed: string };
-  /** What a `<Mockup>` tag says when the file behind it can't be drawn. Each names
+  /** What an `<Asset>` tag says when the file behind it can't be shown. Each names
    *  the `src` the card gave. */
   mockup: {
-    notAMockup: (src: string) => string;
+    /** `exts` is every supported extension, already joined. */
+    notAMockup: (src: string, exts: string) => string;
     outside: (src: string) => string;
     missing: (src: string) => string;
     notDrawn: (src: string, why: string) => string;
-    /** The reasons a `.tsx` mockup wouldn't draw, which fill `why` above. */
+    /** The reasons a `.tsx` asset wouldn't draw, which fill `why` above. */
     cannotImport: (id: string) => string;
     noSuchFile: (id: string) => string;
     outsideFolder: (id: string) => string;

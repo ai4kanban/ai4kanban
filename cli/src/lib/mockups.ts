@@ -1,8 +1,9 @@
-// ---- the shape a `<Mockup>` tag has to be in --------------------------------
+// ---- the shape an `<Asset>` tag has to be in ---------------------------------
 //
-// A card body draws a mockup only where the tag stands alone in its own paragraph:
+// A card body draws an asset only where the tag stands alone in its own paragraph. The older
+// `<Mockup>` spelling (#239) is read the same way:
 //
-//   <Mockup src=".mockups/306/board-empty.tsx" label="Board, nothing on it" />
+//   <Asset src=".assets/306/board-empty.tsx" label="Board, nothing on it" />
 //
 //   Folded rows: fourteen one-line rows …
 //
@@ -11,16 +12,20 @@
 // A spec agent gets that wrong often enough that the shape is repaired here rather than
 // asked for — `spec-write` runs this over every section it takes.
 
-import { MOCKUPS } from './paths'
+import { ASSETS, MOCKUPS } from './paths'
 
-/** Where this board's drawings are kept — one folder per card id. Under the board's own
+/** Where this board's assets are kept (#803) — one folder per card id, machine state like
+ *  the older drawings below. A card's `src` reads `.assets/<id>/<file>`; only this resolves it. */
+export const assetsDir = (): string => ASSETS
+
+/** Where this board's drawings were kept — one folder per card id. Under the board's own
  *  folder on this machine (#590), not in the project: a mockup is redrawn from the card
  *  whenever the question comes back, so it is never something a teammate pulls. The `src` a
  *  card writes is unchanged and still reads `.mockups/<id>/<file>`; only this resolves it. */
 export const mockupsDir = (): string => MOCKUPS
 
 // A self-closing tag with no `<` or `>` inside it, the same one the reader matches.
-const TAG = /<Mockup\b[^<>]*?\/>/
+const TAG = /<(?:Asset|Mockup)\b[^<>]*?\/>/
 const FENCE = /^\s*(```|~~~)/
 
 /** The leading run of tags on a line, and whatever prose follows them — `null` when the

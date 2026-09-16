@@ -1,8 +1,8 @@
-// Turn a card's `<Mockup>` tag into a picture of the screen (#239).
+// Turn a card's `<Asset>` tag (`<Mockup>` before #803) into what the file holds (#239).
 //
-// A mockup is a folder in this board's own folder on the machine, under `mockups/<card id>/`
-// (#590), and the tag names one file in it. It is drawn here with nothing fetched and
-// nothing installed:
+// Assets sit in this board's own folder on the machine, under `assets/<card id>/` — or
+// `mockups/<card id>/` (#590) and the board's `.mockups/` for older cards — and the tag names
+// one file in it. It is drawn here with nothing fetched and nothing installed:
 //
 //   .tsx   a React component, styled with Tailwind. It may import the files beside it in
 //          its own folder (#661), so a mockup is a copy of the real screen's files with the
@@ -12,6 +12,8 @@
 //   .html  a whole page already — taken as it is.
 //   .txt   a drawing in plain text (#256). Nothing is run and nothing is styled: the frame
 //          shows the file's own characters in a monospaced block.
+//   image  .png .jpg .jpeg .webp .gif .svg (#803). Not read here: the page loads its bytes
+//          from app/asset-image, and an `<img>` never runs what an SVG holds.
 //
 // For the first two what comes back is one self-contained HTML document. The frame shows it
 // in a sandboxed iframe, so nothing in it runs, nothing reaches the network, and its styling
@@ -31,15 +33,40 @@ import { renderToStaticMarkup } from "react-dom/server.browser";
 import { transform } from "sucrase";
 import { compile } from "tailwindcss";
 import type { MockupSet, MockupView } from "./mockup-tag";
-import { mockupSources } from "./mockup-tag";
-import { mockupsDir } from "./cli";
+import { assetImageHref, mockupSources } from "./mockup-tag";
+import { assetsDir, mockupsDir } from "./cli";
 import { kanbanDir } from "./paths";
 
-/** `.mockups/<folder>/<file>.tsx|html|txt`, and nothing else — no `.`, no `..`, nothing that
- *  climbs. A mockup is read off the user's disk, so the only files we open are the drawings
- *  in the mockups folder. The leading dot is optional: cards written before the folder was
- *  dotted point at `mockups/...`, and they still name the same file. */
-const SRC = /^\.?mockups\/(?!\.{1,2}\/)([^/\\]+)\/(?!\.)([^/\\]+)\.(tsx|html|txt)$/;
+export const IMAGE_EXTS = ["png", "jpg", "jpeg", "webp", "gif", "svg"];
+const EXTS = ["tsx", "html", "txt", ...IMAGE_EXTS];
+
+/** `.assets/<folder>/<file>.<ext>`, or `.mockups/...` / `mockups/...` on older cards, and
+ *  nothing else — no `.`, no `..`, nothing that climbs. An asset is read off the user's disk,
+ *  so the only files we open are the ones in a card's asset folder. */
+const SRC = new RegExp(
+  `^(?:\\.assets|\\.?mockups)/(?!\\.{1,2}/)([^/\\\\]+)/(?!\\.)([^/\\\\]+)\\.(${EXTS.join("|")})$`,
+  "i",
+);
+
+/** One path segment that cannot climb or hide. */
+const SEGMENT = /^(?!\.)[^/\\]+$/;
+
+/** A file in a card's asset folder: this machine's `assets/`, then the older `mockups/`, then
+ *  the board's `.mockups/`. `null` when it is in none of them, or the names try to climb. */
+export async function assetFile(folder: string, name: string): Promise<string | null> {
+  if (!SEGMENT.test(folder) || !SEGMENT.test(name)) return null;
+  const roots = [...new Set([await assetsDir(), await mockupsDir(), path.join(kanbanDir(), ".mockups")])];
+  for (const root of roots) {
+    const file = path.join(root, folder, name);
+    if (!file.startsWith(root + path.sep)) return null;
+    try {
+      if (fs.statSync(file).isFile()) return file;
+    } catch {
+      // Not in this folder — try the next.
+    }
+  }
+  return null;
+}
 
 /** How long a mockup gets to load and to draw itself, all its files together. Generous for
  *  a drawing, short enough that a runaway one is a note rather than a hang. */
@@ -150,37 +177,30 @@ export async function readMockup(src: string, contain = true): Promise<MockupVie
   const c = (await machineCopy()).messages.mockup;
   const match = SRC.exec(src);
   if (!match) {
-    return {
-      src,
-      error: c.notAMockup(src),
-    };
+    return { src, error: c.notAMockup(src, EXTS.map((e) => `.${e}`).join(" ")) };
   }
-  const [, folder, name, ext] = match;
-  let root: string;
+  const [, folder, name, rawExt] = match;
+  const ext = rawExt!.toLowerCase();
+  const fileName = `${name}.${rawExt}`;
+  if (!SEGMENT.test(folder!) || !SEGMENT.test(fileName)) return { src, error: c.outside(src) };
+  let file: string | null;
   try {
-    root = await mockupsDir();
+    file = await assetFile(folder!, fileName);
   } catch {
-    // No rules to ask where the drawings are. A note, not a throw: this page has one job.
-    return { src, error: c.missing(src) };
+    // No rules to ask where the assets are. A note, not a throw: this page has one job.
+    file = null;
   }
-  let file = path.join(root, folder!, `${name}.${ext}`);
-  // The regex already refuses a path that climbs; this is the check that answers for it.
-  if (!file.startsWith(root + path.sep)) {
-    return { src, error: c.outside(src) };
+  if (!file) return { src, error: c.missing(src) };
+  if (IMAGE_EXTS.includes(ext)) {
+    // The mtime makes a redrawn image a new address, so the page never shows a stale one.
+    const version = Math.floor(fs.statSync(file).mtimeMs);
+    return { src, image: `${assetImageHref(folder!, fileName)}?v=${version}` };
   }
   let code: string;
   try {
     code = fs.readFileSync(file, "utf8");
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== "ENOENT") return { src, error: c.missing(src) };
-    // Older cards keep their drawings in the board's .mockups/ folder.
-    const legacy = path.join(kanbanDir(), ".mockups", folder!, `${name}.${ext}`);
-    try {
-      code = fs.readFileSync(legacy, "utf8");
-      file = legacy;
-    } catch {
-      return { src, error: c.missing(src) };
-    }
+  } catch {
+    return { src, error: c.missing(src) };
   }
   // A `.txt` mockup is the drawing itself (#256) — nothing to transpile, nothing to style,
   // and so nothing that can fail once the file has been read.
