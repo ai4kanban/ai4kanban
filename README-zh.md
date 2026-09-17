@@ -2,15 +2,13 @@
 
 # <img src="https://cdn.ai4kanban.dev/readme/logo-mark-v1.svg" width="40" align="top" alt=""> AI4Kanban
 
-**你掌舵，AI 带队。**<br>*从产品开发到内容营销，AI 项目经理替你带好 Agent 团队，让你一个人也能推进更大的项目。*
+**你掌舵，AI 带队。**<br>从产品开发到内容营销，<br>AI 项目经理替你带好 Agent 团队，让你一个人也能推进更大的项目。
 
-[![English](https://img.shields.io/badge/English-24231f?style=flat-square)](README.md) ![简体中文](https://img.shields.io/badge/简体中文-dd4f1e?style=flat-square)
+[![下载 macOS 版](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/zh/download) [![下载 Windows 版](https://img.shields.io/badge/Windows-24231f?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/zh/download) [![下载 Linux 版](https://img.shields.io/badge/Linux-24231f?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/zh/download)
 
-[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=2f6b46)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=2c5c86)](https://github.com/ai4kanban/ai4kanban/releases) [![installs](https://img.shields.io/endpoint?url=https%3A%2F%2Ft.ai4kanban.dev%2Fv1%2Finstalls&style=flat-square)](https://ai4kanban.dev/zh/download)
+[![release](https://img.shields.io/github/v/release/ai4kanban/ai4kanban?style=flat-square&color=dd4f1e)](https://github.com/ai4kanban/ai4kanban/releases/latest) [![license](https://img.shields.io/github/license/ai4kanban/ai4kanban?style=flat-square&color=57534e)](LICENSE) [![downloads](https://img.shields.io/github/downloads/ai4kanban/ai4kanban/total?style=flat-square&color=57534e)](https://github.com/ai4kanban/ai4kanban/releases) [![installs](https://img.shields.io/endpoint?url=https%3A%2F%2Ft.ai4kanban.dev%2Fv1%2Finstalls&style=flat-square&color=57534e)](https://ai4kanban.dev/zh/download)
 
-[![ai4kanban.dev](https://img.shields.io/badge/ai4kanban.dev-5a3f92?style=flat-square)](https://ai4kanban.dev/zh) [![博客](https://img.shields.io/badge/博客-b83a12?style=flat-square)](https://ai4kanban.dev/blog)
-
-[![下载 macOS 版](https://img.shields.io/badge/macOS-24231f?style=for-the-badge&logo=apple&logoColor=white)](https://ai4kanban.dev/zh/download) [![下载 Windows 版](https://img.shields.io/badge/Windows-2c5c86?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI%2BPHBhdGggZmlsbD0iI2ZmZiIgZD0iTTAgMy40IDkuNiAydjkuNEgwem0xMC44LTEuNUwyNCAwdjExLjRIMTAuOHpNMCAxMi42aDkuNlYyMkwwIDIwLjZ6bTEwLjggMEgyNFYyNGwtMTMuMi0xLjl6Ii8%2BPC9zdmc%2B)](https://ai4kanban.dev/zh/download) [![下载 Linux 版](https://img.shields.io/badge/Linux-2f6b46?style=for-the-badge&logo=linux&logoColor=white)](https://ai4kanban.dev/zh/download)
+[官网](https://ai4kanban.dev/zh) · [博客](https://ai4kanban.dev/blog) · [English](README.md) | 简体中文
 
 </div>
 
