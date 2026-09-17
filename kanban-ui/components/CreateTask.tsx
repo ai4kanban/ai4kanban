@@ -13,18 +13,10 @@
 // badge, a past session's tail) now lives in the shared Sessions component; this
 // component just starts the session and hands it to the panel.
 //
-// A create or a build that was refused goes back to the sheet rather than to a popover under
-// this button: the sheet is still up, so a message behind it is a message nobody reads — and
-// the sentence has to stay in the box to be sent again. The plan handoff's two answers work
-// the same way (#706): the sheet stays up until a run is actually going, and a refusal goes
-// back into it under the three answers. It only reaches this button when the reader is no
-// longer there to read it — at phone width, where there is no rail row to mark instead.
-//
-// Feedback on a landed task (#603) rides here rather than in the sheet, because the sheet
-// closes the moment a run starts: the block is drawn in the sheet and its state is held
-// here, so a submission that did not go is said under this button, where there is still
-// something on screen to say it on. The task is created either way — the feedback goes after
-// the run has started, and nothing about it can stop a card being written.
+// The sheet only discusses (#840); the plan handoff's two answers are what start a run. The
+// sheet stays up until that run is going (#706), and a refusal goes back into it under the
+// answers. It only reaches this button when the reader is no longer there to read it — at
+// phone width, where there is no rail row to mark instead.
 
 import { useRouter } from "next/navigation";
 import {
@@ -41,11 +33,9 @@ import { dropDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import type { DiscussionTarget, SessionView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
-import type { AgentReq } from "./agent-shared";
 import { Button } from "./button";
 import { useChatRailHere } from "./Chat";
 import { CreateSheet } from "./CreateSheet";
-import { useLandedFeedback, useTaskFailureLine } from "./Feedback";
 import { sessionsPanel, useAgentSessions } from "./sessions";
 
 // `release` is the version the board is showing (#104), or null for the whole
@@ -72,14 +62,9 @@ export function CreateTask({
   // over the one it is picking back up. Null while the board's rules are older than the list,
   // which still holds its one conversation.
   const [discussion, setDiscussion] = useState<DiscussionTarget | null>(null);
-  // A refusal with nothing left on screen to say it on: a feedback submission after the sheet
-  // has closed (#603), and — at phone width, where there is no rail row to mark — a plan
-  // answer whose run was refused after the reader closed the window (#706).
+  // A plan answer whose run was refused after the reader closed the window, at phone width
+  // where there is no rail row to mark (#706).
   const [error, setError] = useState<string | null>(null);
-  // A feedback submission that went (#603). The sheet is gone by then, so the only place
-  // left to say it is under this button — and it has to be said, because a send with no
-  // answer reads as a send that vanished.
-  const [notice, setNotice] = useState<string | null>(null);
   // The plan answer being asked for, keyed by the discussion it was pressed on (#706). Keyed
   // rather than single because the reader may pick another discussion up while the request is
   // out: only the one that pressed goes down, and the one picked up is live and startable.
@@ -90,11 +75,6 @@ export function CreateTask({
   // The same, readable in the same tick: the answers go down on the next render, and two
   // clicks inside one would otherwise both find nothing started and ask for two runs.
   const asking = useRef(new Set<string>());
-  // The Link-a-landed-task block on the sheet (#603) — held here so its outcome outlives the
-  // sheet, and reset only once a send has actually taken it.
-  const feedback = useLandedFeedback();
-  const failureLine = useTaskFailureLine();
-  const feedbackCopy = useCopy().board.feedback;
 
   // The discussion this screen is holding, readable after an await — a rail row may have
   // handed over another one while a run was starting (#610).
@@ -116,11 +96,9 @@ export function CreateTask({
     setOpen(false);
     setDiscussion(null);
     setError(null);
-    setNotice(null);
     setFailure(null);
-    feedback.reset();
     dropDraft("create");
-  }, [feedback]);
+  }, []);
 
   // The rail and this screen are never both up. Pressing Chat asks for the board's
   // conversation or a card's — and on the board the sheet is already showing the board's, so
@@ -147,7 +125,6 @@ export function CreateTask({
   const phone = usePhone();
   const openFresh = useCallback(async () => {
     setError(null);
-    setNotice(null);
     setFailure(null);
     if (phone && discussion) return setOpen(true);
     // Opened after the discussion is in hand, so the sheet never paints a frame of the last
@@ -204,7 +181,7 @@ export function CreateTask({
 
   // A session this tab started finished — re-open the sessions panel on it so the
   // result/errors are never lost, and re-read the server component so the new card shows up
-  // (on the board; harmless on a card page). A Build now writes one too (#470).
+  // (on the board; harmless on a card page).
   const onFinish = useCallback(
     (session: SessionView) => {
       sessionsPanel.open(session.sessionId);
@@ -213,33 +190,7 @@ export function CreateTask({
     [router],
   );
 
-  const { start, watch } = useAgentSessions(onFinish);
-
-  // Start a non-blocking session. Creates run side by side — the board lease makes
-  // each card's id and index entry atomic — so the button never locks.
-  //
-  // The sheet closes only once a run is actually going. A refusal — uncommitted changes, a
-  // build already working in this checkout, a workspace out of reach — is handed back to
-  // the sheet, which says it under the box with the sentence still there to send again.
-  const startSession = useCallback(
-    async (req: AgentReq, label: string) => {
-      const res = await start(req, label);
-      if (!res.ok) return { ok: false, error: res.error || c.startFailed };
-      setOpen(false);
-      // Pop the sessions panel open on the new session so it's visibly working
-      // from the first frame — it tails live there until the agent finishes.
-      if (res.sessionId) sessionsPanel.open(res.sessionId);
-      // The feedback goes after the run is going, and only if it was ticked (#603). Whatever
-      // comes of it the card is already being written; a refusal is said under this button
-      // rather than retried.
-      const sent = await feedback.submit(req.description ?? "");
-      feedback.reset();
-      if (sent?.ok) setNotice(feedbackCopy.taskSent);
-      else if (sent) setError(failureLine(sent));
-      return { ok: true };
-    },
-    [start, c, feedback, failureLine, feedbackCopy],
-  );
+  const { watch } = useAgentSessions(onFinish);
 
   // The two answers under the plan handoff that start a run (#427, #481). The screen stays up
   // until a run is actually going (#706): a start can be refused — uncommitted changes, a
@@ -254,7 +205,7 @@ export function CreateTask({
   // still is — this window, its row in the rail, or, at phone width where there is no rail,
   // under the button.
   const startFromPlan = useCallback(
-    async (answer: PlanAnswer) => {
+    async (answer: PlanAnswer, workflow?: string) => {
       const on = discussion;
       const key = askedOn(on);
       if (asking.current.has(key)) return;
@@ -263,7 +214,7 @@ export function CreateTask({
       setFailure(null);
       createSheet.startCleared(on);
       const start = answer === "build" ? startPlanBuildAction : startPlanningAction;
-      const res = await start(release ?? undefined, on, answer === "build" ? plan.build : plan.start);
+      const res = await start(release ?? undefined, on, answer === "build" ? plan.build : plan.start, workflow);
       asking.current.delete(key);
       setStarting((was) => Object.fromEntries(Object.entries(was).filter(([at]) => at !== key)));
       // A run needs an id to be watched and tailed, so a yes with none is a start that did not
@@ -319,51 +270,15 @@ export function CreateTask({
         </div>
       )}
 
-      {/* A feedback submission that went (#603), said where its failure would have been. It
-          carries the one-way sentence, because this path never showed it: the standing sheet
-          says it in place of its box, and here there is no box left. */}
-      {!error && notice && (
-        <div
-          className="nb-panel-sm absolute right-0 top-full z-30 mt-2 w-[min(420px,calc(100vw-32px))] cursor-pointer break-words p-3 text-[12px] leading-relaxed"
-          onClick={() => setNotice(null)}
-        >
-          {notice}
-        </div>
-      )}
-
       {open && (
         <CreateSheet
-          release={release}
           projectRoot={projectRoot}
           discussion={discussion}
-          feedback={feedback}
           onClose={() => setOpen(false)}
-          onSend={(description, mode, pictures, runtime, workflow) =>
-            startSession(
-              // Build now carries no card id (#428): the sentence is the requirement, and
-              // the run opens a delivery of its own. It carries the release all the same —
-              // the run writes a card from that sentence and it ships in the version on
-              // screen, like one Add task wrote (#470). Whatever was pasted into the box
-              // goes with it (#517) — the board renames that folder after the run and hands
-              // it the paths — and so does the runtime the sheet picked (#518), which is this
-              // one run's and is remembered nowhere.
-              {
-                action: mode === "build" ? "implement" : "create",
-                description,
-                release: release ?? undefined,
-                ...(pictures.shots.length ? { box: pictures.box, shots: pictures.shots } : {}),
-                ...(runtime ? { runtime } : {}),
-                // The workflow the sheet was on (#715). The run writes it onto the card it
-                // creates; with none, the card runs on the board's default.
-                ...(workflow ? { workflow } : {}),
-              },
-              mode === "build" ? "Build now" : "Create task",
-            )
-          }
           starting={starting[askedOn(discussion)] ?? null}
           failure={failure}
-          onPlan={() => void startFromPlan("plan")}
-          onBuildPlan={() => void startFromPlan("build")}
+          onPlan={(workflow) => void startFromPlan("plan", workflow)}
+          onBuildPlan={(workflow) => void startFromPlan("build", workflow)}
         />
       )}
     </div>

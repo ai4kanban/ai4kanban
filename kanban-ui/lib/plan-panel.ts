@@ -52,7 +52,7 @@ const READ_MS = 1200;
 export interface PlanPanel {
   /** The discussion as the server last read it — null until the first read lands. */
   read: DiscussRead | null;
-  /** These rules can hold a discussion at all. False puts the create screen on Add task. */
+  /** These rules can hold a discussion at all. False leaves the create screen unable to send. */
   supported: boolean;
   /** The plan's words: the last text read for this file, so a rewrite never blanks the
    *  card. Empty before the file is first written. */

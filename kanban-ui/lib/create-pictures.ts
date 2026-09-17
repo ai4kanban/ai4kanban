@@ -1,5 +1,4 @@
 import { boardRules, whyNoRules } from "./cli";
-import type { CreateImageAgents } from "./types";
 
 // --- the pictures pasted into the create sheet (#517) ------------------------
 //
@@ -54,17 +53,5 @@ export async function runPictureFile(box: string, name: string): Promise<string 
     return (await boardRules()).runPictureFile?.(box, name) ?? null;
   } catch {
     return null;
-  }
-}
-
-/** What the sheet's two run modes can do with a picture. A board with no rules to read, or
- *  rules older than the box, sees no pictures at all — so the sheet takes no paste rather
- *  than writing files nothing will ever open. */
-export async function createImageAgents(): Promise<CreateImageAgents> {
-  const none = { agent: "", seesImages: false, imagesAble: [] };
-  try {
-    return (await boardRules()).createImageAgents?.() ?? { card: none, build: none };
-  } catch {
-    return { card: none, build: none };
   }
 }

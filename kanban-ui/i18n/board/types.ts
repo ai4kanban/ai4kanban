@@ -77,59 +77,25 @@ export type BoardCopy = {
     button: string;
     /** Shown when the agent wouldn't start and said nothing about why. */
     startFailed: string;
-    /** The full-screen sheet the button opens (#426): what it asks, what sending does,
-     *  and the two short lines under the box. The headline holds across the whole mode
-     *  row — Discuss (#427), Add task, Build now (#428). */
+    /** The full-screen sheet the button opens (#426): a discussion (#427, #840). */
     sheet: {
       headlines: readonly string[];
       slogan: string;
       placeholder: string;
-      /** What the mode row is, read out. */
-      modes: string;
       /** The box once the discussion is going — it takes an answer, not a description. */
       answer: string;
-      /** The mode that talks the idea through first (#427) — what the screen opens on,
-       *  unless nothing on this board can hold a conversation. */
-      discuss: string;
-      /** The mode that writes a card. */
-      addTask: string;
-      /** The mode that builds what you typed, from a card the run writes itself (#470). */
-      buildNow: string;
-      /** Which workflow the card written here runs through (#715) — the label, and the way
-       *  from the list across to where workflows are made. Only drawn on a board that picks
-       *  workflows at all. */
+      /** The workflow the plan's card runs through (#715), picked beside the plan's answers. */
       workflow: { label: string; manage: string };
-      /** The corner button. Its own word, so a reader isn't told "Add task" twice. */
+      /** The corner button. */
       send: string;
-      keys: string;
       /** Esc keeps a discussion rather than throwing it away, so it says so. */
       keysDiscuss: string;
-      /** Which version a card written here ships in — in every mode, since Build now
-       *  writes one too (#470). Nothing is said with no release on screen. */
-      shipsIn: (release: string) => string;
-      /** And, in Build now, the one thing that mode gives up, beside the release. */
-      builds: string;
-      /** The runtime the run will spawn on (#518) — the picker beside Send, in Add task and
-       *  in Build now. */
-      runtime: {
-        /** The control, read out. */
-        label: string;
-        /** What it is running, on hover. */
-        hint: (runtime: string) => string;
-        /** The row that is the flow's own agent's runtime — the way back to it. */
-        agentsOwn: string;
-        /** A row whose CLI is not on this machine. Offered all the same. */
-        notInstalled: string;
-        /** The one line under the list: what a pick here does, and does not, change. */
-        cost: string;
-      };
-      /** The guard Send opens in Build now. Nothing starts until it is confirmed. */
+      /** The guard Build now opens under the plan. Nothing starts until it is confirmed. */
       guard: {
         title: string;
-        /** The card the run writes from what you typed — what this mode does, above what
-         *  it skips (#470). */
+        /** The card the run writes from the plan, above what it skips (#470). */
         writes: string;
-        /** One line per step this mode skips. */
+        /** One line per step it skips. */
         skips: readonly string[];
         cancel: string;
         confirm: string;
@@ -178,51 +144,6 @@ export type BoardCopy = {
           other: string;
         };
       };
-    };
-  };
-  /** Feedback on a landed task (#603): the block on New task that links the landed task a
-   *  fix is about. */
-  feedback: {
-    link: {
-      /** The collapsed button, and the heading it becomes when it is open. */
-      expand: string;
-      /** Folds it and forgets both ticks; what was typed stays in the box. */
-      cancel: string;
-      search: string;
-      /** No archived card matches what was typed — including on a board that has archived
-       *  nothing, which is the same answer to the same search. */
-      empty: string;
-      /** The archive could not be read — not the same answer as "nothing matches", and the
-       *  one worth offering again. Neither stops an ordinary task being created. */
-      failed: string;
-      retry: string;
-      /** Takes the linked card back off. */
-      clear: string;
-      /** The first authorisation, and what it costs. */
-      share: string;
-      shareNote: string;
-      /** The second, given separately. */
-      diagnostics: string;
-      diagnosticsNote: string;
-      /** Each attachment by name. */
-      parts: { card: string; chat: string; trace: string; environment: string };
-      /** How large one attachment is. */
-      size: (bytes: number) => string;
-      /** Marked on an attachment this machine held more of than could be sent. */
-      partCut: string;
-      /** Take one attachment out of this submission, and put it back. */
-      drop: string;
-      restore: string;
-    };
-    /** A submission that went, said on New task. */
-    taskSent: string;
-    /** A submission that did not go: what happened, then why. */
-    failed: {
-      /** On New task — the task was created all the same. */
-      task: string;
-      tooLarge: string;
-      refused: string;
-      unreachable: string;
     };
   };
   /** Team feedback (#628, #679) — the switch under the box, and the card a discussion says

@@ -25,7 +25,6 @@ import type {
   DiscussionTarget,
   DiscussRead,
   ConnectionTest,
-  CreateImageAgents,
   DeliveryRecord,
   HarnessSetting,
   LoggedOutAgent,
@@ -389,21 +388,16 @@ export interface BoardRules {
   dropChatImage?(cardId: ChatTarget, name: string): void;
   chatImageFile?(cardId: ChatTarget, name: string): string | null;
   /** The pictures pasted into the create sheet (#517), kept the same way but in a box of
-   *  their own: the run that starts takes the box as its folder beside its log. Optional —
-   *  rules from before them take no paste in Add task or Build now. */
+   *  their own. Optional — rules from before them take no paste. */
   addRunPicture?(box: string, data: Uint8Array, type: string): { name: string } | { error: string };
   dropRunPicture?(box: string, name: string): void;
   runPictureFile?(box: string, name: string): string | null;
   /** Everything in the box, for a sheet closed without sending. */
   emptyRunBox?(box: string): void;
-  /** The sheet's box handed to a Discuss send (#530): one box holds what was pasted in all
-   *  three modes, so sending in Discuss moves its files into the conversation's own folder
-   *  and answers with the names that landed. Optional — rules from before it take no paste
-   *  in Discuss at all. */
+  /** The sheet's box handed to a send (#530): its files move into the conversation's own
+   *  folder, and the answer is the names that landed. Optional — rules from before it take
+   *  no paste at all. */
   adoptChatPictures?(cardId: ChatTarget, box: string, names: string[]): string[];
-  /** What each of the sheet's two run modes can do with a picture — the planner's answer for
-   *  Add task, the builder's for Build now. */
-  createImageAgents?(): CreateImageAgents;
   /** What one conversation runs on (#272, #467) — one runtime, kept with the transcript and
    *  nowhere near the board's settings. Optional: rules from before it draw no picker, and
    *  every conversation runs the discussion helper's row as it always did. */
@@ -414,7 +408,7 @@ export interface BoardRules {
 
   // Discuss (#427) — one discussion's conversation, with the plan it is talking into shape.
   // Optional like the chat itself: a project running rules older than the release that added
-  // them opens the create screen on Add task, and nothing else is missing.
+  // them cannot discuss from the create screen, and nothing else is missing.
   //
   // Rules from before discussions (#496) take no target and answer for the board's one
   // conversation, which is exactly what such a board still holds.

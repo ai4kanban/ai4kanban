@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { runPictureFile } from "@/lib/create-pictures";
 
-// The bytes of one picture pasted into Add task or Build now (#517) — the create sheet's
+// The bytes of one picture pasted into the create sheet (#517) — its
 // answer to app/chat-image/, and the same one: a URL is fetched once and then the browser's
 // to cache, where an action would carry a screenshot back through the render payload.
 //

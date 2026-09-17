@@ -31,8 +31,7 @@ export async function readDiscuss(target: ChatTarget = null): Promise<DiscussRea
   }
 }
 
-/** Whether this board's rules can hold a discussion at all — what puts Discuss in the mode
- *  row, and what leaves the create screen opening on Add task when they can't. */
+/** Whether this board's rules can hold a discussion at all. */
 export async function canDiscuss(): Promise<boolean> {
   try {
     const rules = await boardRules();

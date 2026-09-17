@@ -1,23 +1,12 @@
 "use client";
 
 // Create task holds ONE discussion (#496) — the one the press opened, or the one a rail row
-// picked back up — and keeps its draft across modes.
+// picked back up. Sending always discusses (#840); the plan's answers are what start a run.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  FiChevronDown,
-  FiCopy,
-  FiCheck,
-  FiFileText,
-  FiMaximize2,
-  FiMessageSquare,
-  FiMinimize2,
-  FiPlus,
-  FiX,
-  FiZap,
-} from "react-icons/fi";
-import { createRuntimePicksAction, workflowsAction } from "@/app/actions";
+import { FiCheck, FiChevronDown, FiCopy, FiFileText, FiMaximize2, FiMinimize2, FiX } from "react-icons/fi";
+import { workflowsAction } from "@/app/actions";
 import { useBodySlot } from "@/lib/body-slot";
 import { useCopy } from "@/i18n/use-copy";
 import { useDraft } from "@/lib/draft";
@@ -26,7 +15,7 @@ import { useSwipeBack } from "@/lib/swipe-back";
 import { PLAN_INSET, PLAN_READ, usePlanPanel, type PlanPanel } from "@/lib/plan-panel";
 import { useChatRail, type ChatRail } from "@/lib/chat-rail";
 import { useCreatePictures, type CreatePictures } from "@/lib/picture-box";
-import type { DiscussionTarget, RunPick, WorkflowView } from "@/lib/types";
+import type { DiscussionTarget, WorkflowView } from "@/lib/types";
 import type { PlanAnswer } from "@/lib/format/agent/types";
 import type { StartFailure } from "@/lib/start-failure";
 import { Button } from "./button";
@@ -34,25 +23,11 @@ import { Transcript, Pasted, Pick } from "./Chat";
 import { HAIRLINE } from "./chrome";
 import { MessageBox } from "./composer";
 import { ConfirmationPopover } from "./confirm-popover";
-import { AgentMark, configDialog } from "./Configuration";
-import { useWorkflowName } from "./Workflows";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { configDialog } from "./Configuration";
 import { Copied, useCopyText } from "./copy";
-import {
-  DiscussFeedbackBlock,
-  LandedFeedbackBlock,
-  ShareRow,
-  useDiscussFeedback,
-  type DiscussFeedback,
-  type LandedFeedback,
-} from "./Feedback";
+import { DiscussFeedbackBlock, ShareRow, useDiscussFeedback, type DiscussFeedback } from "./Feedback";
 import { Markdown } from "./Markdown";
+import { useWorkflowName } from "./Workflows";
 
 /** How wide the conversation reads, whatever the window is. Standing the plan beside it
  *  narrows the room the column is centred in, so the transcript and the box below it move
@@ -68,13 +43,7 @@ const COLUMN = `w-full ${COLUMN_MAX}`;
 const GUTTER = "px-5";
 const GUTTER_HALF = "px-2.5";
 
-/** What sending does. `discuss` talks it through first (#427); `card` writes one and refines
- *  it; `build` writes one and builds it straight away, refining nothing (#470). */
-export type CreateMode = "discuss" | "card" | "build";
-
 interface Props {
-  /** The version the board is showing (#104), which a card written here ships in. */
-  release: string | null;
   /** Which board this is — what this discussion's conversation is read against. */
   projectRoot: string;
   /** The discussion this screen is holding (#496): a fresh one on every Create task press,
@@ -82,33 +51,12 @@ interface Props {
    *  list, which still holds its one conversation. */
   discussion: DiscussionTarget | null;
   onClose: () => void;
-  /** Start the run, and say whether it started. Never called in Discuss — that mode sends to
-   *  the conversation. A refusal — uncommitted changes, another build already working in this
-   *  checkout, a workspace out of reach — leaves the sheet up with the sentence still in the
-   *  box, so it can be sent again once the reason is fixed.
-   *
-   *  `pictures` is what was pasted into the box (#517): the folder they were written to and
-   *  their names in the order they went in. The run takes that folder as its own. */
-  onSend: (
-    description: string,
-    mode: CreateMode,
-    pictures: { box: string; shots: string[] },
-    /** The runtime picked for this one run (#518), or undefined for the agent's own. */
-    runtime?: string,
-    /** The workflow the new card runs through (#715), or undefined for the board's
-     *  default. The run is told to write it onto the card it creates. */
-    workflow?: string,
-  ) => Promise<{ ok: boolean; error?: string }>;
-  /** The Link-a-landed-task block (#603), held by Create task so its outcome outlives this
-   *  screen. Drawn under the box in the two modes that write a card — never in Discuss,
-   *  which writes none and has nothing for feedback to ride on. */
-  feedback: LandedFeedback;
   /** Start planning: start the run that writes the plan's cards. The screen stays up until
-   *  it is going (#706). */
-  onPlan: () => void;
+   *  it is going (#706). `workflow` is the one picked beside it, or undefined for the default. */
+  onPlan: (workflow?: string) => void;
   /** Build now off the plan (#481): start the run that writes one card from it and builds it.
    *  The guard has already been answered. */
-  onBuildPlan: () => void;
+  onBuildPlan: (workflow?: string) => void;
   /** The answer whose run is being asked for right now (#706), or null. All three answers go
    *  down while one is out, and so does the box's Send: the run archives this discussion the
    *  moment it starts, and a message sent into it after that is one nobody answers. */
@@ -125,7 +73,7 @@ interface Props {
 export function CreateSheet(props: Props) {
   const rail = useChatRail({ projectRoot: props.projectRoot, cardId: props.discussion });
   // The card this discussion is linked to (#628). Held beside the rail rather than inside
-  // the composer, so it outlives the mode switch — and seeded from the rail's own read,
+  // the composer — and seeded from the rail's own read,
   // because the link lives beside the transcript and comes back with it (#679).
   const partner = useDiscussFeedback(props.discussion, rail.read?.chat?.linkedCard ?? null);
   // Sharing is the only thing that ever asks for a card, so turning it off takes the card
@@ -148,11 +96,8 @@ export function CreateSheet(props: Props) {
 }
 
 function Sheet({
-  release,
   discussion,
-  feedback,
   onClose,
-  onSend,
   onPlan,
   onBuildPlan,
   starting,
@@ -161,80 +106,43 @@ function Sheet({
   partner,
 }: Props & { rail: ChatRail; partner: DiscussFeedback }) {
   const c = useCopy().board.create.sheet;
-  const startFailed = useCopy().board.create.startFailed;
   const close = useCopy().shared.close;
   const plan = usePlanPanel(discussion);
   // The same draft key the dialog used, so text typed and not sent is kept the way it
-  // always was — and a draft written before this screen existed is still here. One box for
-  // every mode: switching what sending does never takes away what has been typed.
+  // always was — and a draft written before this screen existed is still here.
   const [text, setText, clearDraft] = useDraft("create");
   const [headlineStopped, setHeadlineStopped] = useState(false);
   const [mounted, setMounted] = useState(false);
-  // Discuss is what a vague idea wants, so it is what the screen opens on. Build now never
-  // is: a build nothing plans or reviews is the deliberate one.
-  const [mode, setMode] = useState<CreateMode>("discuss");
-  // Whether the Build now guard is open. Esc answers it before it answers the screen.
-  const [guard, setGuard] = useState(false);
-  // What the two run modes would spawn on (#518), read once when the sheet opens: Add task's
-  // own agent's runtime and Build now's, and the list either can be pointed at instead. Null
-  // while it is still coming, and on rules with no picker behind them.
-  const [picks, setPicks] = useState<{ card: RunPick; build: RunPick } | null>(null);
-  // The runtime this send goes on, or null for the mode's own agent's. It is this sheet's
-  // and this mode's: switching mode clears it, and the sheet is unmounted when it closes, so
-  // the next one opens back on the agent's own.
-  const [runtime, setRuntime] = useState<string | null>(null);
-  // The workflow the card written here runs through (#715). Empty is the board's default,
-  // which is what a card carrying no workflow of its own runs on — so the sheet opens on it
-  // and nothing has to be picked to create a task.
+  // The pictures this screen was pasted into (#517, #530), judged by the conversation's agent.
+  const chatImages = rail.read
+    ? { agent: rail.read.agent, seesImages: rail.read.seesImages, imagesAble: rail.read.imagesAble }
+    : null;
+  const pictures = useCreatePictures(chatImages);
+  // The workflow the plan's card runs through (#715). Empty is the board's default.
   const [workflow, setWorkflow] = useState("");
   const [flows, setFlows] = useState<WorkflowView[] | null>(null);
   useEffect(() => {
     void workflowsAction().then((res) => setFlows(res.workflows));
   }, []);
-  useEffect(() => {
-    let live = true;
-    void createRuntimePicksAction()
-      .then((read) => live && setPicks(read))
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, []);
-  // What this mode's send would go on, and the row picked out of it — null while the read is
-  // still coming, and null again the moment the mode's own runtime is the answer.
-  const runPick = mode === "build" ? (picks?.build ?? null) : (picks?.card ?? null);
-  const pickedRow = runtime ? (runPick?.runtimes.find((r) => r.id === runtime) ?? null) : null;
-  // The pictures this screen was pasted into (#517, #530). ONE box across all three modes,
-  // so switching what sending does never loses what was pasted or shows it twice — and the
-  // mode that sends is handed exactly the thumbnails on screen. What may go in it is the
-  // picked runtime's answer in the two run modes (#518) — the CLI that row runs is the one
-  // the run hands them to — and the conversation's own agent in Discuss.
-  const chatImages = rail.read
-    ? { agent: rail.read.agent, seesImages: rail.read.seesImages, imagesAble: rail.read.imagesAble }
-    : null;
-  const pictures = useCreatePictures(mode, pickedRow, chatImages);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const sendRef = useRef<HTMLSpanElement>(null);
   // The window's body, when there is one — the sheet fills that rather than the viewport.
   const body = useBodySlot();
   useEffect(() => setMounted(true), []);
 
-  // While the sheet is up it is the layer Esc answers, and the rail is not (#267). The
-  // guard takes it back off the sheet while it is open, so Esc dismisses the guard first —
-  // and an enlarged plan is a layer of its own the same way, put down before the screen is.
+  // While the sheet is up it is the layer Esc answers, and the rail is not (#267). An enlarged
+  // plan is a layer of its own, put down before the screen is.
   useOverRail();
   const full = plan.full;
   const toggleFull = plan.toggleFull;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || guard) return;
+      if (e.key !== "Escape") return;
       if (full) toggleFull();
       else onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, guard, full, toggleFull]);
+  }, [onClose, full, toggleFull]);
 
   // The swipe back leaves the same two layers in the same order (#526): the enlarged plan
   // first, then the screen. What has been typed is kept either way — the box's draft
@@ -248,21 +156,10 @@ function Sheet({
     (words: string, images?: string[]) => say(words, { discuss: true, images }),
     [say],
   );
-  // Nothing on this board can hold a conversation at all — no agent that can, or rules older
-  // than Discuss. It is not offered then, and never opened on: a mode nothing can answer is
-  // worse than no mode.
-  const canDiscuss = plan.supported && read?.canChat !== false;
-  // "Cannot" is only an answer once BOTH reads have landed. Either one arriving alone says
-  // nothing yet, and demoting the screen on it would put every board on Add task for the
-  // beat the other read takes — and leave it there.
+  // Nothing on this board can hold a conversation — no agent that can, or rules older than
+  // Discuss. The box stays down then, with the rail's own reason above it.
   const settled = !!read && !!plan.read;
-  useEffect(() => {
-    if (settled && !canDiscuss) setMode((was) => (was === "discuss" ? "card" : was));
-  }, [settled, canDiscuss]);
-  const discussing = mode === "discuss" && canDiscuss;
-  // Discuss is lit before either read has landed, so until they have, sending would quietly
-  // start an Add task run under it. The box waits out that beat instead.
-  const waiting = mode === "discuss" && !settled;
+  const discussing = settled && plan.supported && read?.canChat !== false;
 
   if (!mounted) return null;
 
@@ -292,111 +189,54 @@ function Sheet({
       held={endHeld}
       starting={starting}
       failure={failure}
-      onPlan={onPlan}
-      onBuild={onBuildPlan}
+      flows={flows}
+      workflow={workflow}
+      onWorkflow={setWorkflow}
+      onPlan={() => onPlan(workflow || undefined)}
+      onBuild={() => onBuildPlan(workflow || undefined)}
     />
   );
-  // A discussion message is what is typed OR what was pasted (#441) — pictures on their own
-  // are a message. A run still needs a sentence, whatever is in the box.
+  // A discussion message is what is typed OR what was pasted (#441).
   const pasted = pictures.pasted.length;
 
-  const send = async (picked: CreateMode) => {
+  const send = async () => {
     const words = text.trim();
-    if (sending || waiting) return;
-    if (!words && !(picked === "discuss" && pasted > 0)) return;
-    setGuard(false);
-    setError(null);
-    if (pictures.refused) return;
-    if (picked === "discuss") {
-      if (!discussing) return;
-      setSending(true);
-      // The screen's own box goes with the words (#530): the send moves its pictures beside
-      // the conversation, and only a message that left empties it. A refusal leaves the
-      // sheet exactly as it was, with the rail's own sentence under the box.
-      const shots = pictures.pasted;
-      // The box is the send's from here, so a sheet closed while it is in flight does not
-      // empty the folder the message is being taken from.
-      pictures.handOver();
-      const went = await rail.say(words, {
-        discuss: true,
-        images: shots,
-        box: shots.length ? pictures.box : undefined,
-        // The card this discussion is about (#628), which hands the turn to the `feedback`
-        // agent. Sharing is the switch under the box, and the rail carries that itself.
-        feedback: partner.sending,
-      });
-      setSending(false);
-      if (!went) {
-        pictures.takeBack();
-        return;
-      }
-      clearDraft();
-      pictures.sent();
-      plan.refresh();
+    if (sending || !discussing || pictures.refused) return;
+    if (!words && pasted === 0) return;
+    setSending(true);
+    // The screen's own box goes with the words (#530): the send moves its pictures beside the
+    // conversation, and only a message that left empties it. A refusal leaves the sheet
+    // exactly as it was, with the rail's own sentence above the box.
+    const shots = pictures.pasted;
+    // The box is the send's from here, so a sheet closed while it is in flight does not empty
+    // the folder the message is being taken from.
+    pictures.handOver();
+    const went = await rail.say(words, {
+      discuss: true,
+      images: shots,
+      box: shots.length ? pictures.box : undefined,
+      // The card this discussion is about (#628), which hands the turn to the `feedback`
+      // agent. Sharing is the switch under the box, and the rail carries that itself.
+      feedback: partner.sending,
+    });
+    setSending(false);
+    if (!went) {
+      pictures.takeBack();
       return;
     }
-    setSending(true);
-    // The box is the run's from here, so the sheet closing behind a started run leaves its
-    // pictures where the run can read them.
-    pictures.handOver();
-    const res = await onSend(
-      words,
-      picked,
-      { box: pictures.box, shots: pictures.pasted },
-      runtime ?? undefined,
-      workflow || undefined,
-    );
-    setSending(false);
-    // Only a run that actually started takes the sentence with it. A refusal keeps the
-    // sheet and the words exactly as they were — pictures included — and says why under
-    // the box.
-    if (res.ok) {
-      clearDraft();
-      pictures.sent();
-    } else {
-      pictures.takeBack();
-      setError(res.error ?? startFailed);
-    }
-  };
-
-  // Send in Build now opens the guard rather than starting anything. Switching to another
-  // mode closes it: the guard belongs to the mode, not to the press.
-  const pressSend = () => {
-    if (waiting) return;
-    // Pictures on their own are a message in Discuss (#441); the two run modes still want a
-    // sentence, so a box with nothing typed beside it opens no guard and starts nothing.
-    if (!text.trim() && !(mode === "discuss" && pasted > 0)) return;
-    // The mode picked cannot see what is in the box; the box says so and nothing starts.
-    if (pictures.refused) return;
-    if (mode === "build") setGuard(true);
-    else void send(mode);
-  };
-
-  const pick = (picked: CreateMode) => {
-    setMode(picked);
-    setGuard(false);
-    setError(null);
-    // Each mode opens on its own agent's runtime (#518), so the pick does not follow the
-    // switch: what the planner runs is not an answer about what the builder runs.
-    setRuntime(null);
+    clearDraft();
+    pictures.sent();
+    plan.refresh();
   };
 
   const composer = (
     <Composer
-      mode={mode}
-      onPick={pick}
-      canDiscuss={canDiscuss}
-      discussBlocked={read?.canChat === false ? read.blocked : undefined}
-      waiting={waiting}
+      discussing={discussing}
       // A plan answer starting counts as a send in flight (#706): the run archives this
       // discussion the moment it is up, so a message typed behind it has nowhere to land.
       sending={sending || starting !== null}
-      rail={discussing ? rail : null}
+      rail={rail}
       pictures={pictures}
-      pick={discussing ? null : runPick}
-      runtime={runtime}
-      onRuntime={setRuntime}
-      release={release}
       text={text}
       onText={(value) => {
         setHeadlineStopped(true);
@@ -406,14 +246,8 @@ function Sheet({
         pictures.clearNote();
       }}
       talking={talking}
-      onSend={pressSend}
-      sendRef={sendRef}
-      guarding={guard}
-      onGuardDismiss={() => setGuard(false)}
-      onGuardConfirm={() => void send("build")}
-      error={error}
-      feedback={discussing ? null : feedback}
-      partner={discussing && rail.share.on ? partner : null}
+      onSend={() => void send()}
+      partner={rail.share.on ? partner : null}
     />
   );
 
@@ -527,12 +361,6 @@ function Sheet({
             <p className="mt-2 text-balance text-center text-[13.5px] text-nb-ink-soft max-md:text-[12.5px]">
               {c.slogan}
             </p>
-            {/* Which workflow the card this writes runs through (#715). Above the box, so
-                it is read before the sentence rather than after it. A board with one
-                workflow — or with rules older than them — draws nothing here. */}
-            {mode !== "discuss" && flows && flows.length > 1 && (
-              <WorkflowRow flows={flows} picked={workflow} onPick={setWorkflow} />
-            )}
             <div className="mt-6 w-full max-md:mt-5">{composer}</div>
           </div>
         </div>
@@ -586,79 +414,41 @@ function CreateHeadline({ phrases, paused }: { phrases: readonly string[]; pause
   );
 }
 
-/** The box, and the row under it that says what sending does. One box in every mode — what
- *  changes is the mode that is lit, what the corner button does with the words, and the one
- *  line of hint. */
+/** The box, with the conversation's agent and its share switch under it. */
 function Composer({
-  mode,
-  onPick,
-  canDiscuss,
-  discussBlocked,
-  waiting,
+  discussing,
   sending,
   rail,
   pictures,
-  pick,
-  runtime,
-  onRuntime,
-  release,
   text,
   onText,
   talking,
   onSend,
-  sendRef,
-  guarding,
-  onGuardDismiss,
-  onGuardConfirm,
-  error,
-  feedback,
   partner,
 }: {
-  mode: CreateMode;
-  onPick(mode: CreateMode): void;
-  canDiscuss: boolean;
-  /** Why Discuss cannot answer, in the board's own words — the chat rail's sentence. */
-  discussBlocked?: string;
-  /** Discuss is lit but what it does is not known yet — the reads are still landing. */
-  waiting: boolean;
-  /** A create or a build is starting; the corner button stays down until it says whether. */
+  /** The conversation can answer — both reads are in and this board can hold one. */
+  discussing: boolean;
+  /** A message, or a plan answer's run, is on its way; the corner button stays down. */
   sending: boolean;
-  /** The conversation, while Discuss is the mode and can answer. Null in the other modes. */
-  rail: ChatRail | null;
-  /** The screen's one box of pictures (#530), whichever mode is lit. */
+  rail: ChatRail;
+  /** The screen's one box of pictures (#530). */
   pictures: CreatePictures;
-  /** What this run mode would spawn on and what it could spawn instead (#518). Null in
-   *  Discuss, whose own picker is the conversation's, and while the read is still coming. */
-  pick: RunPick | null;
-  /** The runtime picked for this send, or null for the mode's own agent's. */
-  runtime: string | null;
-  onRuntime(runtime: string | null): void;
-  release: string | null;
   text: string;
   onText(value: string): void;
   talking: boolean;
   onSend(): void;
-  sendRef: React.RefObject<HTMLSpanElement | null>;
-  guarding: boolean;
-  onGuardDismiss(): void;
-  onGuardConfirm(): void;
-  /** A start that was refused, in the board's words. */
-  error: string | null;
-  /** The Link-a-landed-task block (#603), or null in Discuss. */
-  feedback: LandedFeedback | null;
-  /** The partner submission block (#628) — Discuss only, where the complaint is written. */
+  /** The partner submission block (#628), while sharing is on. */
   partner: DiscussFeedback | null;
 }) {
   const c = useCopy().board.create.sheet;
   const chat = useCopy().chat;
-  const read = rail?.read ?? null;
-  const answering = rail?.answering === true;
+  const read = rail.read;
+  const answering = rail.answering;
   // The reply coming is this server's, so the corner button can end it. A reply a terminal
   // is writing is followed just the same and ended in that terminal.
-  const ours = rail?.live != null;
-  const trouble = rail ? (rail.error ?? read?.failed ?? read?.blocked) : undefined;
+  const ours = rail.live != null;
+  const trouble = rail.error ?? read?.failed ?? read?.blocked;
   const chatPick = read?.pick ?? null;
-  // The pictures pasted in and not yet sent (#441, #530) — one box, whatever the mode.
   const pasted = pictures.pasted.length;
 
   return (
@@ -675,18 +465,16 @@ function Composer({
         value={text}
         onChange={onText}
         onSend={onSend}
-        // Pictures on their own are a message in Discuss (#441); a run still wants words
-        // (#517), and a mode that cannot see what is in the box sends nothing at all.
+        // Pictures on their own are a message (#441); a box the agent cannot see sends nothing.
         canSend={
-          (!!text.trim() || (!!rail && pasted > 0)) &&
+          (!!text.trim() || pasted > 0) &&
+          discussing &&
           !answering &&
-          !waiting &&
           !sending &&
           !pictures.refused
         }
         autoFocus
-        // One box takes the paste in every mode (#530): it becomes the folder the run reads
-        // its pictures from, or — in Discuss — the send moves them beside the conversation.
+        // The send moves pasted pictures beside the conversation (#530).
         onPasteImages={pictures.offered ? (files) => void pictures.paste(files) : undefined}
         // Dropping one in is the same path, so it is on wherever the paste is (#511).
         drop={
@@ -698,246 +486,30 @@ function Composer({
         placeholder={talking ? c.answer : c.placeholder}
         label={talking ? c.answer : c.placeholder}
         sendLabel={c.send}
-        sendRef={sendRef}
-        stop={ours ? { label: chat.stop, onStop: () => void rail?.stop() } : undefined}
-        // The guard hangs off Send — this app's one way to ask "are you sure?". It leads
-        // with the card the run writes (#470), then lists what the mode still skips.
-        guard={
-          <ConfirmationPopover
-            open={guarding}
-            anchorRef={sendRef}
-            align="right"
-            title={c.guard.title}
-            description={
-              <span className="flex flex-col gap-1">
-                {/* What it does, in a line of its own — the two below are what it skips. */}
-                <span>{c.guard.writes}</span>
-                {c.guard.skips.map((line) => (
-                  <span key={line} className="flex items-start gap-1.5">
-                    <FiX className="mt-[3px] shrink-0 text-[11px] text-nb-peach-ink" aria-hidden />
-                    <span>{line}</span>
-                  </span>
-                ))}
-              </span>
-            }
-            cancelLabel={c.guard.cancel}
-            confirmLabel={c.guard.confirm}
-            // Confirming closes the guard and leaves the box's own Send disabled
-            // while the run starts, so there is nothing here to sit busy.
-            busy={false}
-            onDismiss={onGuardDismiss}
-            onConfirm={onGuardConfirm}
-          />
-        }
-        // The foot row, read left to right as two answers to two different questions: what
-        // sending does, and — in Discuss — who answers it. So they sit at opposite ends,
-        // the modes at the box's own left margin and the agent hard against Send, rather
-        // than running together into one line of controls with a hole after it.
+        stop={ours ? { label: chat.stop, onStop: () => void rail.stop() } : undefined}
+        // Who answers, hard against Send (components/Chat.tsx).
         foot={
-          <>
-            {/* One segmented control with one answer, on a track of its own: three bare
-                labels beside a filled one read as a pill and two stray links. */}
-            <span
-              role="radiogroup"
-              aria-label={c.modes}
-              className="flex shrink-0 items-center gap-[3px] rounded-[9px] p-[3px]"
-              style={{ background: TRACK }}
-            >
-              <Mode
-                on={mode === "discuss"}
-                icon={<FiMessageSquare className="text-[12px]" aria-hidden />}
-                label={c.discuss}
-                disabled={!canDiscuss}
-                title={canDiscuss ? undefined : discussBlocked}
-                onPick={() => onPick("discuss")}
-              />
-              <Mode
-                on={mode === "card"}
-                icon={<FiPlus className="text-[12px]" aria-hidden />}
-                label={c.addTask}
-                onPick={() => onPick("card")}
-              />
-              <Mode
-                on={mode === "build"}
-                icon={<FiZap className="text-[12px]" aria-hidden />}
-                label={c.buildNow}
-                onPick={() => onPick("build")}
-              />
+          chatPick ? (
+            <span className="ml-auto flex min-w-0 items-center gap-1.5">
+              <Pick rail={rail} pick={chatPick} answering={answering} />
             </span>
-            {/* Opposite the modes, hard against Send: what the run will go on. In Discuss it
-                is the conversation's own agent (components/Chat.tsx); in the two run modes
-                it is the runtime this send spawns (#518). Never both — one slot, one answer
-                to "what answers this". */}
-            {rail && chatPick ? (
-              <span className="ml-auto flex min-w-0 items-center gap-1.5">
-                <Pick rail={rail} pick={chatPick} answering={answering} />
-              </span>
-            ) : (
-              pick && (
-                <span className="ml-auto flex min-w-0 items-center gap-1.5">
-                  <RuntimePick pick={pick} runtime={runtime} onPick={onRuntime} />
-                </span>
-              )
-            )}
-          </>
+          ) : undefined
         }
         hint={
-          // The keys on the left and, opposite them, what this mode leaves behind: that the
-          // conversation is still answering, and the release the card it writes ships in —
-          // Build now writes one too (#470), with the one warning that survives beside it. A
-          // board on no release says nothing there rather than saying so.
           <span className="flex items-center justify-between gap-4 max-md:flex-col max-md:items-start max-md:gap-0.5">
-            <span className="truncate">{rail ? c.keysDiscuss : c.keys}</span>
-            {rail ? (
-              answering && <span className="shrink-0">{chat.sendingWaits}</span>
-            ) : (
-              <span className="shrink-0">
-                {release && c.shipsIn(release)}
-                {release && mode === "build" && <span className="opacity-45"> · </span>}
-                {mode === "build" && <span className="text-nb-peach-ink">{c.builds}</span>}
-              </span>
-            )}
+            <span className="truncate">{c.keysDiscuss}</span>
+            {answering && <span className="shrink-0">{chat.sendingWaits}</span>}
           </span>
         }
         // Opposite it, on the same line: whether ending this discussion shares it with the
-        // AI4Kanban team (#679). Only in Discuss — the two run modes write a card and hold no
-        // conversation to share.
-        aside={rail ? <ShareRow share={rail.share} /> : undefined}
+        // AI4Kanban team (#679).
+        aside={<ShareRow share={rail.share} />}
       />
-      {/* One collapsed button under the box (#603). What it opens links the landed task this
-          one is about and offers to pass the description on, and it is drawn here — after the
-          box, before a refusal — because it is about what was just typed. */}
-      {feedback && <LandedFeedbackBlock feedback={feedback} />}
-      {/* And its counterpart in Discuss (#628): the card this complaint is about, and what
-          came of sharing it. Same place under the box, because it is about what was typed. */}
+      {/* The card this complaint is about (#628), and what came of sharing it. */}
       {partner && <DiscussFeedbackBlock feedback={partner} />}
-      {/* A start that was refused, said where the press was rather than behind the
-          sheet. The sentence is still in the box above it. */}
-      {error && (
-        <p className="nb-panel-sm mt-2.5 whitespace-pre-line break-words bg-nb-peach-soft p-2.5 text-[12px] leading-relaxed text-nb-peach-ink">
-          {error}
-        </p>
-      )}
     </>
   );
 }
-
-/** What the mode row sits on. A step of ink rather than the wash fill: the wash is a shade
- *  off paper, and a track you have to look for does not group the three chips on it. */
-const TRACK = "color-mix(in srgb, var(--color-nb-ink) 7%, transparent)";
-
-// One chip in the mode row. The picked one is filled and the rest are quiet text: the row
-// has to read as one control with one answer, not as a line of buttons. A mode nothing on
-// this board can answer is shown down, and says why.
-function Mode({
-  on,
-  icon,
-  label,
-  disabled,
-  title,
-  onPick,
-}: {
-  on: boolean;
-  icon: React.ReactNode;
-  label: string;
-  disabled?: boolean;
-  title?: string;
-  onPick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={on}
-      disabled={disabled}
-      title={title}
-      onClick={onPick}
-      className={`inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[7px] px-2 text-[12px] font-[700] leading-none transition-colors ${
-        disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"
-      } ${
-        on
-          ? "bg-nb-accent-soft text-nb-accent-deep"
-          : "text-nb-ink-soft hover:text-nb-ink"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-/** What this run will spawn on (#518), on the box's own bottom row: one runtime, as its
- *  CLI's mark and a caret — the same control Discuss draws for the conversation, in the same
- *  place, so the foot row always answers "what runs this" in one spot.
- *
- *  It is the run's alone. Nothing in Configuration → Agents moves, and the pick is forgotten
- *  the moment the sheet closes — every sheet opens back on the flow's own agent's runtime.
- *
- *  Everything offered comes from the board: every runtime it holds, in its own order, each
- *  carrying the model it runs. A row whose CLI is not installed is marked and still offered
- *  — nothing is probed, and the run's own refusal is what says a binary is missing. */
-function RuntimePick({
-  pick,
-  runtime,
-  onPick,
-}: {
-  pick: RunPick;
-  /** The row picked for this send, or null for the agent's own. */
-  runtime: string | null;
-  onPick(runtime: string | null): void;
-}) {
-  const c = useCopy().board.create.sheet.runtime;
-  const [open, setOpen] = useState(false);
-  const on = runtime ?? pick.runtime;
-  const running = pick.runtimes.find((r) => r.id === on);
-  const label = running?.name ?? on;
-
-  return (
-    <span className="flex h-[28px] min-w-0 items-center overflow-hidden rounded-[8px]">
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            title={c.hint(label)}
-            aria-label={c.label}
-            className="inline-flex h-full shrink-0 cursor-pointer items-center gap-1.5 pl-2 pr-1.5 hover:brightness-[0.97]"
-            style={{ background: RUNTIME_FILL }}
-          >
-            <AgentMark src={running?.icon ?? ""} size={16} name={label} />
-            <span className="max-w-[128px] truncate text-[12px] text-nb-ink">{label}</span>
-            <FiChevronDown size={12} className="text-nb-ink-soft" aria-hidden />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" className="min-w-[230px]">
-          {pick.runtimes.map((row) => (
-            <DropdownMenuItem
-              key={row.id}
-              className="gap-2"
-              // The agent's own row is picked by following the agent again rather than by
-              // pinning the same id, so the send carries a runtime only when one was chosen.
-              onSelect={() => onPick(row.id === pick.runtime ? null : row.id)}
-            >
-              <AgentMark src={row.icon} size={15} />
-              <span className="min-w-0 flex-1 truncate">{row.name}</span>
-              <span className="shrink-0 truncate text-[10.5px] font-[400] text-nb-ink-soft">
-                {!row.installed ? c.notInstalled : row.id === pick.runtime ? c.agentsOwn : row.model}
-              </span>
-              <span className="w-[13px] shrink-0">
-                {row.id === on && <FiCheck size={12} className="text-nb-accent" aria-hidden />}
-              </span>
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <p className="px-2.5 py-1 text-[10.5px] leading-[1.4] text-nb-ink-soft">{c.cost}</p>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </span>
-  );
-}
-
-/** The one control's fill, a shade off the box's paper — the same wash the conversation's
- *  own picker stands on (components/Chat.tsx). */
-const RUNTIME_FILL = "var(--color-nb-accent-wash)";
 
 /** The handoff (#427, #481), under the agent's own last message: the three answers whenever
  *  there is a plan and the reply is in, and while the run one of them started is going, the
@@ -959,6 +531,9 @@ function Handoff({
   held,
   starting,
   failure,
+  flows,
+  workflow,
+  onWorkflow,
   onPlan,
   onBuild,
 }: {
@@ -973,12 +548,15 @@ function Handoff({
   starting: PlanAnswer | null;
   /** Why the last one never came up (#706), said in the row's own space below. */
   failure: StartFailure | null;
+  /** The board's workflows, or null before they are read or on rules without them. */
+  flows: WorkflowView[] | null;
+  workflow: string;
+  onWorkflow(id: string): void;
   onPlan(): void;
   onBuild(): void;
 }) {
   const c = useCopy().board.create.sheet.plan;
-  // Which "are you sure?" Build now opened, if any — the same one Send hangs off in the
-  // sheet's own Build now (#470), anchored to the answer that was pressed.
+  // Whether Build now's "are you sure?" is open, anchored to the answer that was pressed.
   const [guard, setGuard] = useState(false);
   const anchor = useRef<HTMLSpanElement>(null);
   const read = plan.read;
@@ -1004,7 +582,7 @@ function Handoff({
         <Button size="xs" disabled={down} onClick={onPlan}>
           {starting === "plan" ? c.starting : c.start}
         </Button>
-        {/* The panel hangs off this, so it lives inside — the way the Send guard's does. */}
+        {/* The panel hangs off this, so it lives inside. */}
         <span ref={anchor} className="relative flex">
           <Button
             size="xs"
@@ -1030,6 +608,9 @@ function Handoff({
             }}
           />
         </span>
+        {flows && flows.length > 1 && (
+          <WorkflowPick flows={flows} picked={workflow} disabled={down} onPick={onWorkflow} />
+        )}
         <Button
           size="xs"
           variant="ghost"
@@ -1066,6 +647,95 @@ function Handoff({
   );
 }
 
+/** Which workflow the plan's card runs through (#715): shown only when the board has more
+ *  than one, and opening on the board's default. It opens upward — the row sits at the foot
+ *  of the transcript. */
+function WorkflowPick({
+  flows,
+  picked,
+  disabled,
+  onPick,
+}: {
+  flows: WorkflowView[];
+  picked: string;
+  disabled: boolean;
+  onPick: (id: string) => void;
+}) {
+  const c = useCopy().board.create.sheet.workflow;
+  const w = useCopy().configuration.workflows;
+  const nameOf = useWorkflowName();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", away);
+    return () => document.removeEventListener("mousedown", away);
+  }, [open]);
+  const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
+  return (
+    <span ref={box} className="relative flex">
+      <button
+        type="button"
+        aria-label={c.label}
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen((was) => !was)}
+        className={`flex h-[26px] cursor-pointer items-center gap-1.5 rounded-[7px] bg-nb-wash px-2.5 text-[12px] font-[700] disabled:cursor-not-allowed disabled:opacity-45 ${
+          open ? "outline-2 outline-nb-accent" : ""
+        }`}
+      >
+        <span className="font-[600] text-nb-ink-soft">{c.label}</span>
+        {nameOf(mine)}
+        <FiChevronDown className="text-[12px]" aria-hidden />
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 z-30 mb-1.5 w-[254px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]">
+          {flows.map((f) => {
+            // A workflow that cannot start would only write a card that stops on its first run.
+            const off = f.problems.length > 0;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                aria-disabled={off || undefined}
+                title={off ? w.notReadyHint : undefined}
+                onClick={() => {
+                  if (off) return;
+                  onPick(f.id);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between gap-2 rounded-[7px] px-3 py-2.5 text-left text-[12px] font-[700] ${
+                  off ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+                } ${f.id === mine.id ? "bg-nb-accent-soft" : ""}`}
+              >
+                <span className="min-w-0 truncate">{nameOf(f)}</span>
+                {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft">{w.notReady}</span>}
+                {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
+              </button>
+            );
+          })}
+          <div className="mt-1 border-t border-nb-ink/10 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                configDialog.open("agents");
+              }}
+              className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[600]"
+            >
+              {c.manage}
+              <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
+            </button>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+}
+
 /** The run one answer started, in the line the three answers stood on. The dot is what finds
  *  it: this line sits against the reply's own small grey text, and accent moving is what says
  *  "working" everywhere else in the app. */
@@ -1078,9 +748,8 @@ function Working({ label }: { label: string }) {
   );
 }
 
-/** The guard Build now opens, wherever it is pressed — the sheet's own words (#470), because
- *  this is the sheet's own Build now: one behavior, one guard. The plan those words are about
- *  is on screen beside it. */
+/** The guard Build now opens under the plan (#470, #840) — the one place a build starts from
+ *  this screen. */
 function BuildGuard({
   open,
   anchorRef,
@@ -1292,95 +961,6 @@ function PlanPath({ path }: { path: string }) {
         {copied ? <FiCheck size={12} aria-hidden /> : <FiCopy size={12} aria-hidden />}
       </button>
       <Copied on={copied} />
-    </div>
-  );
-}
-
-/** Which workflow the card written here runs through (#715). One label and one list: the
- *  workflows this board has, and the way across to where they are made. Nothing is picked to
- *  start with — the board's default is already the answer, and a card created without
- *  touching this runs on it. */
-function WorkflowRow({
-  flows,
-  picked,
-  onPick,
-}: {
-  flows: WorkflowView[];
-  picked: string;
-  onPick: (id: string) => void;
-}) {
-  const c = useCopy().board.create.sheet.workflow;
-  // The mark and its one line are the Workflows pane's own, so the two screens say one thing.
-  const w = useCopy().configuration.workflows;
-  const nameOf = useWorkflowName();
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", away);
-    return () => document.removeEventListener("mousedown", away);
-  }, [open]);
-  const mine = flows.find((f) => f.id === picked) ?? flows.find((f) => f.isDefault) ?? flows[0]!;
-  return (
-    <div ref={box} className="relative mt-6 flex w-full items-center gap-2 max-md:mt-5">
-      <span className="text-[12px] font-[600] text-nb-ink-soft">{c.label}</span>
-      <button
-        type="button"
-        onClick={() => setOpen((was) => !was)}
-        className={`flex h-[30px] cursor-pointer items-center gap-3 rounded-[8px] bg-nb-wash px-3 text-[12px] font-[700] ${
-          open ? "outline-2 outline-nb-accent" : ""
-        }`}
-      >
-        {nameOf(mine)}
-        <FiChevronDown className="text-[12px]" aria-hidden />
-      </button>
-      {open && (
-        <div className="absolute left-[64px] top-[37px] z-30 w-[254px] rounded-[10px] border-[1.5px] border-nb-ink bg-nb-paper p-1.5 shadow-[3px_3px_0_var(--color-nb-ink)]">
-          {flows.map((f) => {
-            // A workflow with a stage that cannot start is not a choice here: it would only
-            // write a card that stops on its first run.
-            const off = f.problems.length > 0;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                aria-disabled={off || undefined}
-                title={off ? w.notReadyHint : undefined}
-                onClick={() => {
-                  if (off) return;
-                  onPick(f.id);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center justify-between gap-2 rounded-[7px] px-3 py-2.5 text-left text-[12px] font-[700] ${
-                  off ? "cursor-not-allowed opacity-45" : "cursor-pointer"
-                } ${f.id === mine.id ? "bg-nb-accent-soft" : ""}`}
-              >
-                <span className="min-w-0 truncate">{nameOf(f)}</span>
-                {/* Not peach here: the row is already down, and a colour on a greyed row
-                    reads as something you can still press. */}
-                {off && <span className="shrink-0 text-[10.5px] font-[700] text-nb-ink-soft">{w.notReady}</span>}
-                {f.id === mine.id && <FiCheck className="shrink-0 text-[13px]" aria-hidden />}
-              </button>
-            );
-          })}
-          <div className="mt-1 border-t border-nb-ink/10 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                configDialog.open("agents");
-              }}
-              className="flex w-full cursor-pointer items-center justify-between rounded-[7px] px-3 py-2 text-left text-[12px] font-[600]"
-            >
-              {c.manage}
-              <FiChevronDown className="-rotate-90 text-[12px]" aria-hidden />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

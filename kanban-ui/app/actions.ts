@@ -14,7 +14,6 @@ import {
   agentInfo,
   loggedOutAgents,
   runnableAgents,
-  runRuntimePick,
   type AgentRequest,
   type CommandRequest,
   buildPrompt,
@@ -40,13 +39,9 @@ import {
 } from "@/lib/board";
 import {
   dropCase,
-  feedbackDiagnostics,
-  feedbackOffered,
   readCase,
   retryCase,
-  searchArchived,
   searchLinkable,
-  sendFeedback,
   sendTextOnlyCase,
   setChatCard,
   setChatShare,
@@ -65,7 +60,6 @@ import {
 } from "@/lib/chat";
 import {
   addRunPicture,
-  createImageAgents,
   dropRunPicture,
   emptyRunBox,
 } from "@/lib/create-pictures";
@@ -242,16 +236,12 @@ import type {
   ClosePlan,
   CommandState,
   ConnectionTest,
-  CreateImageAgents,
   ConversationRow,
   DiscussionTarget,
   DiscussRead,
   DropPlan,
   CaseRecord,
-  FeedbackDiagnostics,
   PartnerFeedback,
-  FeedbackSent,
-  FeedbackToSend,
   FillPlan,
   HarnessOption,
   Language,
@@ -267,7 +257,6 @@ import type {
   MetricsResult,
   NotificationGroup,
   PlanAnswer,
-  RunPick,
   SaveProjectResult,
   SessionView,
   SetupDraft,
@@ -433,17 +422,6 @@ export async function startAgentAction(req: CommandRequest & CloudDecision): Pro
     await reportCloudStartFailure(req.id as number, started.error ?? "");
   }
   return started;
-}
-
-/** What the create sheet's two runs would go on (#518): the runtime Add task's own agent
- *  and Build now's own agent are set to, and the whole list either can be pointed at
- *  instead. Read once when the sheet opens — the pick is never remembered, so there is
- *  nothing here to write back. Null on rules with no picker behind them.
- *
- *  Keyed by the sheet's own mode names, so the sheet reads the mode it is on. */
-export async function createRuntimePicksAction(): Promise<{ card: RunPick; build: RunPick } | null> {
-  const [card, build] = await Promise.all([runRuntimePick("create"), runRuntimePick("implement")]);
-  return card && build ? { card, build } : null;
 }
 
 /** What a card page adds to a start so the same decision reaches Cloud: the revision the
@@ -662,7 +640,7 @@ export async function dropChatImageAction(cardId: ChatTarget, name: string): Pro
 // the sheet minted when it opened — the command checks its shape, so nothing a browser sends
 // can name a folder outside the board's own.
 
-/** Save one picture pasted into Add task or Build now. */
+/** Save one picture pasted into the create sheet. */
 export async function addRunPictureAction(
   box: string,
   form: FormData,
@@ -686,12 +664,6 @@ export async function emptyRunBoxAction(box: string): Promise<{ ok: boolean }> {
   if (typeof box !== "string") return { ok: false };
   await emptyRunBox(box);
   return { ok: true };
-}
-
-/** What each of the sheet's two run modes can do with a picture — what a paste in Add task
- *  or Build now is turned away by, before any file is written. */
-export async function createImageAgentsAction(): Promise<CreateImageAgents> {
-  return createImageAgents();
 }
 
 /** End the reply being written, keeping what arrived. Quiet when there is none: a reply
@@ -795,15 +767,15 @@ export async function readDiscussAction(discussion: string | null = null): Promi
  *
  * The plan's path is read here rather than taken from the browser — the path reaches a
  * prompt, and the only file this may ever point at is the one the board's own conversation
- * says it is writing. `release` is what the board was showing, so the cards land in it like
- * a card written by Add task.
+ * says it is writing. `release` is what the board was showing, so the cards land in it.
  */
 export async function startPlanningAction(
   release?: string,
   discussion: string | null = null,
   answer?: string,
+  workflow?: string,
 ): Promise<StartResult> {
-  return startFromPlan("create", "plan", release, discussion, answer);
+  return startFromPlan("create", "plan", release, discussion, answer, workflow);
 }
 
 /**
@@ -819,8 +791,9 @@ export async function startPlanBuildAction(
   release?: string,
   discussion: string | null = null,
   answer?: string,
+  workflow?: string,
 ): Promise<StartResult> {
-  return startFromPlan("implement", "build", release, discussion, answer);
+  return startFromPlan("implement", "build", release, discussion, answer, workflow);
 }
 
 async function startFromPlan(
@@ -829,6 +802,7 @@ async function startFromPlan(
   release?: string,
   discussion: string | null = null,
   said?: string,
+  workflow?: string,
 ): Promise<StartResult> {
   // Which discussion's plan is the board's own to say: the browser names the discussion, and
   // the path is read here — so the only file a run may ever be pointed at is the one that
@@ -840,6 +814,8 @@ async function startFromPlan(
     action,
     plan,
     release: typeof release === "string" && release.trim() ? release.trim() : undefined,
+    // The workflow the new card runs through (#715); none is the board's default.
+    ...(typeof workflow === "string" && workflow.trim() ? { workflow: workflow.trim() } : {}),
   });
   const started = await startSession(request, await buildPrompt(request));
   if (!started.ok || !started.sessionId) return started;
@@ -2335,62 +2311,6 @@ export async function setPartnerFeedbackAction(on: boolean): Promise<WriteResult
     return await setPartnerFeedback(on === true);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
-
-// --- feedback on a landed task (#603) ----------------------------------------
-// Three asks, answered one at a time: which archived card this is about, what that card has
-// to attach, and the send itself. Nothing here decides anything — every authorisation is a
-// tick on the screen, and this layer only refuses a request whose shape is wrong.
-
-export async function feedbackOfferedAction(): Promise<boolean> {
-  try {
-    return await feedbackOffered();
-  } catch {
-    return false;
-  }
-}
-
-/** Archived cards matching what is typed — by number or by a word in the title. The search
- *  runs here for the reason the card search does: no page holds the archive to search.
- *
- *  An archive that would not read is answered as a failure, never as an empty one: "nothing
- *  matches" and "the board could not be read" are different things to tell a reader, and the
- *  second is worth a Try again. */
-export async function searchArchivedAction(
-  query: string,
-): Promise<{ ok: true; cards: ArchivedCard[] } | { ok: false }> {
-  if (typeof query !== "string") return { ok: true, cards: [] };
-  try {
-    return { ok: true, cards: await searchArchived(query) };
-  } catch {
-    return { ok: false };
-  }
-}
-
-/** What one archived card has to attach, listed before the second authorisation is given.
- *  Null is "nothing to offer" — an older board's rules, or a card with no diagnostics at
- *  all — and the screen leaves the attachment rows out rather than showing empty ones. */
-export async function feedbackDiagnosticsAction(cardId: number): Promise<FeedbackDiagnostics | null> {
-  if (!Number.isInteger(cardId)) return null;
-  try {
-    return await feedbackDiagnostics(cardId);
-  } catch {
-    return null;
-  }
-}
-
-/** Send one piece of feedback. Whatever comes back, the task it was written beside is
- *  already created — a failure here reaches nothing but the sentence itself. */
-export async function sendFeedbackAction(feedback: FeedbackToSend): Promise<FeedbackSent> {
-  if (!feedback || typeof feedback.text !== "string" || !feedback.text.trim()) {
-    return { ok: false, reason: "empty" };
-  }
-  if (feedback.source !== "task") return { ok: false, reason: "refused" };
-  try {
-    return await sendFeedback(feedback);
-  } catch {
-    return { ok: false, reason: "unreachable" };
   }
 }
 

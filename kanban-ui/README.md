@@ -89,24 +89,13 @@ The header carries seven things:
 - **The release dropdown** — which version the board is showing, and where a release is
   started, filled, or dropped; see **Releases**.
 - **Create task** — opens a full-screen sheet over the board: describe an idea in your own
-  words, and pick what sending does. **Discuss** — what it opens on, and what a vague idea
-  wants — has the agent ask back until an outcome is agreed, keeps it in one short plan
-  file, and offers to turn it into cards; see **Discuss**. **Add task** is the direct route:
-  the agent writes the card. **Build now** sends the sentence straight to a build: the run
-  writes a card from your words — a title read off them, your words as its whole summary —
-  and builds it in the same session. It asks before it starts, because nothing is planned,
-  no questions come back, and nothing reviews the work before it reaches your branch. Enter
-  starts a line and the send button sends; Esc or the ✕ hands the board back — a discussion
-  is left where it is. An unsent draft is kept for the next time you open it, and a start
-  that is refused keeps the sentence there to send again. A board with no agent that can
-  hold a conversation is not offered Discuss at all, and opens on Add task.
-  **Add task and Build now take a pasted or dropped picture** the way Discuss does — a
-  screenshot of the bug beats describing it. The two share one set, so switching between them
-  keeps what was pasted, and Discuss's belong to the conversation. Words are still what sends:
-  pictures on their own leave the button down. Each is saved as it goes in, the run reads them
-  as files beside its own log, and closing the sheet without sending leaves none behind. If the
-  agent that mode runs — the planner for Add task, the builder for Build now — can't see
-  pictures, the box says so and names the ones that can.
+  words and send it. Sending always starts a **Discuss** conversation: the agent asks back
+  until an outcome is agreed, keeps it in one short plan file, and offers **Start planning**
+  or **Build now** under it; see **Discuss**. A small, clear ask gets a plan ready to build in
+  the first reply. Enter starts a line and the send button sends; Esc or the ✕ hands the board
+  back — a discussion is left where it is. An unsent draft is kept for the next time you open
+  it. A board with no agent that can hold a conversation keeps the send button down and says
+  why above the box. Writing a card straight from a sentence is `akb create`.
 - **Runs** — every agent session, live or finished, drawn as an office. One pixel robot per
   job: at a desk while it works, on the sofa for the last two that passed, out of the door
   when it ends. Each wears its agent's name and the mark of the coding tool it runs on.
@@ -144,10 +133,11 @@ under the heading, copyable; the board never opens a plan itself.
 Once the outcome is settled the agent asks whether to start planning, and **Start planning**,
 **Build now** and **Not yet** stand under that message — or type any of them instead. Start
 planning closes the screen and starts the run that writes the cards, in the release the board
-is showing, each one naming the plan's path in its `## Source`. **Build now** is the Create
-sheet's own Build now pointed at the plan: it asks first, then one run writes a single card
-from the plan — the plan verbatim as its summary, its path in `## Source` — and builds it,
-refining nothing and reviewing nothing. A run that writes no card leaves the plan as it was and
+is showing, each one naming the plan's path in its `## Source`. **Build now** asks first, then
+one run writes a single card from the plan — the plan verbatim as its summary, its path in `## Source` — and builds it,
+refining nothing and reviewing nothing. On a board with more than one workflow, a **Workflow**
+picker stands beside them: the cards either answer writes run through the one picked, the
+board's default until you change it. A run that writes no card leaves the plan as it was and
 the offer comes back; once one has written its card the plan is finished, whatever that run did
 afterwards. Closing the screen mid-discussion loses nothing: reopening Discuss comes back to
 the same conversation and the same plan.
@@ -546,9 +536,7 @@ Each entry counts the open cards in it — "v1 (7)" — and carries what that ve
 its name; the same numbers `release list` prints in your terminal. A few more things it does:
 
 - A **group task** shows whenever the root or any subtask is in the release you picked.
-- **Create task** puts the new card in the release on screen, and the sheet says which one
-  under its box. So does **Start planning**: the cards a plan produces ship in it too.
-  **Build now** does too, from the box or from under the plan: the card its run writes ships in
+- **Start planning** and **Build now** under a discussion's plan put the cards they write in
   the release on screen.
 - A release with **nothing open in it says so**, with **No release** one click away. Blockers on
   screen don't count.
