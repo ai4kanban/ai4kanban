@@ -161,8 +161,8 @@ re-ask a settled call.
   blocks anything.
 - A card that is not finished being created does not open: it sits on the board muted and
   marked, so it can be neither inspected nor recovered from a page of its own.
-- Add-task takes one module at a time and picking one is optional; with none picked the agent
-  chooses the focus itself.
+- Card markdown highlights code with a real syntax highlighter and an off-the-shelf,
+  low-saturation theme; diffs keep the delivery diff's mint and peach.
 
 ## Mockups on a card page
 
@@ -188,7 +188,9 @@ re-ask a settled call.
 ## Chat in the UI
 
 - Create task is an action, not a place: a full-screen sheet over the board that Esc or ✕
-  closes, opening on **Discuss**, **Add task** or **Build now**.
+  closes. Its box is **Discuss** only; **Start planning** and **Build now** sit on the plan.
+- After **Start planning** or **Build now** the discussion window shows **Starting…** and
+  closes itself the moment the run really starts; a refused start stays put with its reason.
 - The chat is a full-height rail down the right, folded away by default so the board stays the
   centre, following what you are reading so only one conversation is ever on screen.
 - It changes the board itself rather than handing the change to the card's buttons, and
@@ -210,8 +212,7 @@ re-ask a settled call.
   finding new work is idea extraction from a named source.
 - An agent that cannot see images turns a pasted image away at the box, names the agents that
   can, and sends nothing.
-- Pictures never send alone in Add task and Build now — Send stays off until something is
-  typed — unlike Discuss, where a picture on its own is already a message.
+- **The input box only discusses**: no mode switch; a new card's workflow is picked beside the plan's Start planning / Build now.
 
 ## Notifications
 
@@ -232,6 +233,10 @@ re-ask a settled call.
   not landed, interrupted and waiting for a machine stay with the work that needs a person,
   because a problem is something to look at, not a record. The bell counts the first tab
   alone, and a new landed event is a dot that switching clears.
+- The bell stands on its own outside the tool cluster: a ghost button that lights up only
+  while something is unread. The goal star took its place in the tool group.
+- A run that failed or ended unfinished reaches the bell too, not only the Runs office: an
+  unfinished run is a problem to fix, not something to glance at.
 
 ## Moving around the app
 

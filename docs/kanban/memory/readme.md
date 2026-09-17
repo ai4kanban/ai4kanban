@@ -15,9 +15,8 @@ covers it, or a plain-words note.
   suppresses the write while the board action still finishes.
 - Triage sorting is an optional agent, off by default and asking once before it goes on:
   `web/content/docs/agents.mdx`, `web/content/docs/triage.mdx`.
-- Pictures pasted into Create task stay put when you switch between Discuss, Add task and
-  Build now, and the mode you send with gets exactly the thumbnails on screen. Clicking one
-  opens it whole, and its ✕ takes it out without opening it.
+- Pictures pasted into Create task go with the message you send. Clicking one opens it whole,
+  and its ✕ takes it out without opening it.
 - Submitting a batch of draft comments can carry one optional note about the whole draft; a
   comment on a passage wins where the two disagree.
 - Edit on a card opens that card's chat with the caret in the box and the first line — "修改
@@ -45,10 +44,17 @@ covers it, or a plain-words note.
 - Fenced code in cards, memory pages and chat replies is coloured by its language tag (common
   languages, GitHub's light colours); a ```diff block shows added and removed lines in the Diff
   tab's green and orange. An untagged block stays plain.
+- 卡片页和看板上的「讨论中」会在对话结束后自动消失，卡片页的按钮随之解冻，不必再切换标签页或按返回键刷新。
+- Create task has no mode switch any more: sending always starts a discussion, and
+  **Start planning** or **Build now** under its plan is where work begins, with a **Workflow**
+  picker beside them when the board has more than one. A small, clear ask
+  gets a plan ready to build in the first reply. Writing a card straight from a sentence is
+  `akb create`.
 
 ## site
 
 - The site has a contact page at `/contact` (all five languages, linked from the footer): one form for support and for custom agents at $15 per agent, answered by email.
+- 对外定位定稿为「你掌舵，AI 带队」：AI 项目经理替你管理 Agent 团队，只汇报需要知道的事；中英文案与表达边界见仓库根目录 `positioning.md`。
 
 ## skill
 
@@ -57,3 +63,9 @@ covers it, or a plain-words note.
 - The built-in Content creation workflow and its three content agents are gone; Coding is the only built-in workflow, and a card still marked `content` runs on it.
 - An agent's `AGENT.md` no longer takes `akb.owns`; its `description` is what the Agents and Workflows panes show, and an old `owns` line is ignored: `web/content/docs/agents.mdx`.
 - A workflow's review stage is a list of reviewers with no lead: the board picks the ones a build's diff needs, the built-in `code-reviewer` replaces the Reviewer role, and a workflow with no reviewers delivers a finished build unreviewed: `web/content/docs/agents.mdx`.
+- 一个 spec agent 的记忆由它自己的 `AGENT.md` 决定：`docs/kanban/memory/agents/<agent>/` 里的每个文件都会交给它的每次运行，`akb.memory` 键不再需要（旧文件里的会被忽略）；`copywriting` 改记一份 `writing.md`，记忆面板只列出写过文件的 agent：`web/content/docs/agents.mdx`。
+- 内置 `copywriting` agent 不再自带写作规则：语气、用词和长短只取自项目已发布的文案和 `writing.md`，它只负责写出最终文案并请你确认。
+- 内置 `copywriting` agent 的交付改为成稿在前：按页面与小节只给改动的部分，多语言分组，后附最多三条影响判断的说明。
+- 新增内置工作流「演示视频」（`hyperframes-video`）：脚本作者把分镜写进卡片，素材准备备齐素材，视频组装用 HyperFrames 在本地渲染出 mp4，素材和成片放在 `.akb/boards/docs/kanban/assets/<卡片号>/`；自建工作流也可以选用 `kind: lead` 的 agent 当负责人：`web/content/docs/agents.mdx`。
+- 待你决定的问题可以在卡片的“待澄清问题”里逐题“跳过”（或 `akb raw update-questions <id> --skip <n>`）：问题保留为带删除线的记录并可“撤销”，只剩已跳过的问题时，等待中的交付自动继续；手动删除问题效果相同：`web/content/docs/daily-loop.mdx`。
+- 自建工作流的「负责 Agent」下拉框只列出声明可担任负责人的 agent（`AGENT.md` 的 `akb:` 下写 `lead: true`；新建 agent 默认只当辅助，模板里留有这一行）；内置的 Planner、Builder、脚本作者和视频组装可担任负责人，其余只当辅助；之前已选了未声明 agent 的阶段照常运行，并在该阶段标出提示：`web/content/docs/agents.mdx`。

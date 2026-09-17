@@ -7,7 +7,6 @@ akb:
     zh:
       title: 提示词撰写
       description: 当卡片要新增或修改 skill、agent 提示词或 akb 指南时使用。计划写得详细不是跳过的理由。
-  memory: project
   output: human
 ---
 

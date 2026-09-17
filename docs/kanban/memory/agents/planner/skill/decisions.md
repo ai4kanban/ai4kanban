@@ -16,8 +16,13 @@ re-ask a settled call.
   to every other agent. The board holds no preferences of its own.
 - A user's answer or revision on a spec agent's section is written into that agent's memory
   right away by the planner flow, in the file that agent's AGENT.md names for it.
-- Neither the board nor a module keeps a memory folder — a module is a topic inside an
-  agent's file, and the shipped list and the cross-agent product calls hang off an agent too.
+- Planning memory keeps a folder per module under the planner: `agents/planner/<module>/`
+  holds that module's `decisions.md`, `rejected.md`, `redesign.md` and shipped `readme.md`,
+  beside the planner's board-wide three. Who owns a file and which module it covers are two
+  separate axes, and one is never folded into the other.
+- A spec agent remembers the way the planner does: it edits its own files directly. No
+  command flag writes memory, no opaque `memory: project` key switches it on, and the rules
+  for remembering are prose an agent can read, not text hard-coded in the command.
 
 ## The goal
 
@@ -195,9 +200,17 @@ re-ask a settled call.
 
 ## Spec agents
 
-- Two spec agents ship, and only two: `ui-design` and `technology-selection`. Adding one later
-  is writing a prompt, not changing the machinery. A spec agent may declare settings, and one
-  that declares none is unchanged.
+- A built-in agent is an ordinary `AGENT.md`, and a workflow loads the agents its
+  configuration names; no workflow's behaviour is a guide or override the command hard-codes
+  by workflow id. Adding an agent is writing a prompt, not changing the machinery. A spec agent
+  may declare settings, and one that declares none is unchanged.
+- An agent definition stays minimal: no field that restates the description or the body
+  (`owns` went for that reason).
+- An agent that writes text or files hands it over as final and never asks the user to confirm
+  it — the user edits its section when they disagree. Copywriting is the one that asks,
+  because a screen waits on its confirmed copy.
+- The built-in copywriting agent ships no house style: every style is the user's. Its job is
+  to put the copy in front of the user during planning, before any screen is drawn.
 - A card points at a mockup with one `<Mockup>` tag on a line of its own; a markdown link is
   never drawn as one.
 - Mockups are gitignored under `docs/kanban/.mockups/`, because a mockup is a working drawing
@@ -218,8 +231,8 @@ re-ask a settled call.
 
 ## Chat
 
-- The Create task chat offers **Discuss**, **Add task** and **Build now**: shape a vague idea,
-  put clear work on the board, or implement it without a task.
+- The chat box offers **Discuss** alone. **Start planning** and **Build now** sit on the plan a
+  discussion writes, so no task is created or built without talking first.
 - A chat does the board work itself, as soon as it is asked, through the board's own moves. It
   may take any action without asking, and git is where the user takes it back.
 - A chat adds no rule of its own: the session is an ordinary kanban-skill session, so `--print`
@@ -251,10 +264,18 @@ re-ask a settled call.
   discussion, decisions and maintenance remain board capabilities, with other hooks deferred.
   Built-in flows may be configured or copied but not renamed or deleted. No solution folder
   is copied into a board.
-- A helper's Extra is the user's own additional requirement and nothing else. An order two
-  agents must keep between them — the copy is confirmed before the screen is drawn — is built
-  into the board, invisible to the user and not overridable, and the board enforces it by
-  holding the second request back rather than by wording in a prompt.
+- A helper's Extra is the user's own additional requirement and nothing else.
+- Collaboration between agents is declared, never built in for a named pair: an agent lists
+  the agents it depends on, so a user's own agents collaborate with no change to the command.
+  The declaration is only a start guardrail — a run whose dependency on the same card has no
+  output yet, is still running, or still has its own open question is refused with the
+  reason. Ordering stays the planner's, and confirmation is an open question, not an approval
+  state.
+- The built-in workflows are Coding and a Remotion demo-video workflow: a scriptwriter leads
+  planning, `video-assets` prepares the assets — reusing what exists, recording what it can,
+  and listing only what a person must supply — a Remotion editor assembles the video, and
+  there is no review stage. The content workflow and its writer roles are gone. Only the
+  pieces bound to Remotion carry its name.
 - Custom agents keep one instruction body in the board's `agents/<id>/AGENT.md`;
   purpose, inputs and deliverables are not separate required fields. Preserve legacy
   metadata and use the same file for UI and manual edits.

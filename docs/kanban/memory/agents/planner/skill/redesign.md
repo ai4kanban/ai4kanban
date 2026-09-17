@@ -50,6 +50,20 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   their complaint and linked card, locates the evidence itself, and asks about the task only
   when the history is ambiguous.
 
+## Agents and workflows
+
+- ❌ **Hard-code one pair of agents' order into the command** → ✅ declare dependencies
+  generically, so agents a user writes collaborate with no change to the command.
+- ❌ **Grow a dependency declaration into scheduling, waiting queues and approval states** →
+  ✅ it is a start guardrail only, reusing open questions for confirmation.
+- ❌ **Write a workflow's stage behaviour as guides the command overrides by workflow id** →
+  ✅ make each role an agent that the workflow loads from its configuration.
+
+## Guides
+
+- ❌ **Describe in the board guide storage that no planning, review or build agent reads** →
+  ✅ the general guide carries only what those agents act on, each rule said once and short.
+
 ## The command
 
 - ❌ **Assume the command can find the board from where its own file sits** → ✅ it locates
@@ -125,6 +139,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
 - ❌ **Infer which cards became unblocked after every run** → ✅ a rough card saves a one-shot
   refine when it first becomes blocked; finishing the blocker only makes that schedule
   eligible.
+- ❌ **Fold a structure layer the user did not name into the call they did settle** → ✅ a
+  module layer is a separate axis from ownership; dropping or merging it is an open question
+  for the user, never a `Decided by the agent`.
 - ❌ **Scope a chain of runs by its happy path alone** → ✅ a card handing one run's report to
   the next also says what a stopped run, a failed run and an empty report do to the chain.
 

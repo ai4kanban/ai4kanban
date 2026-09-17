@@ -15,8 +15,12 @@ don't re-ask a settled call.
 
 ## The positioning statement
 
-- 定位只说面向独立创作者和小团队、一个看板统筹开发、设计与内容，不承诺「无需写代码」，也不写
-  「面向所有人」——零编码用户的开箱即用体验还不具备，说法要和今天的产品对得上。
+- 定位是「AI 项目经理替你管理 Agent 团队，只汇报你需要知道的事」，覆盖产品开发到内容营销；看板
+  是载体而非卖点，人群标签不作开头。中英文案、使用位置和主张依据以仓库根目录 `positioning.md` 为准，
+  入口文案（#771–#773）引用它，不再单独确认。不承诺「无需写代码」「面向所有人」或无人参与。
+- 10/20/100 个 Agent 与对应倍数是「一个人经营公司」的愿景，不写成容量或效果保证；自有 marketplace
+  是规划，不写成现有能力。
+- 目标建议（未生效）：「通过 AI 管理 Agent 团队，放大个人可承担的工作规模」，`goal.md` 由用户自己改。
 - The "3–6× faster" claim has no verifiable source and stays anyway: it is the one line that
   makes the size of the gain land. It is given a footing rather than a citation — this
   repository's own auditable figures sit beside it, so a reader works the order of magnitude
@@ -72,6 +76,8 @@ don't re-ask a settled call.
 - A card's assets have one lifecycle: nothing is dropped when the build starts, everything stays
   readable through it, and it is archived with the card and still shown on the archive page.
   Screen mockups follow the same path — "discarded at build time" is gone.
+- A card's files, rendered videos included, live in the board's one assets folder under the
+  card's id; no feature adds a folder of its own.
 
 ## Selling a service
 
@@ -81,3 +87,7 @@ don't re-ask a settled call.
 - A customized agent workflow is priced per agent, at $15 each — a five-agent workflow is $75.
   The figure is the same in every language; the quote and the payment are settled by email, and
   the site takes no payment.
+
+## site
+
+- **首页多语言同步**：首页定位类文案改动时，en / zh / es / fr / ja 五语同批更新，不留某种语言停在旧说法。

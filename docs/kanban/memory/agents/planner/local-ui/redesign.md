@@ -74,6 +74,9 @@ mistake, then the design we actually want. Read before writing or reviewing a ca
   time, and let one control do the whole thing with its confirmation naming what will be lost.
 - ❌ **A control is named after a noun the page never says anywhere else** → ✅ name the
   control after what it does; a caption added to hold up a name is a second thing to read.
+- ❌ **Close the discussion window on the click, ahead of the start** → ✅ keep **Starting…**
+  visible and close on the real start; every fix that only piled conditions on the reply
+  left the window open.
 - ❌ **Notify between agents while the same card still has follow-up work** → ✅ wait until the
   card's whole chain of work ends and needs a person.
 
