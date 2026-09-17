@@ -1644,10 +1644,9 @@ export interface WorkflowCandidate {
   gloss: string
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
-  /** Declared able to lead the stage (#846). Only these are offered to lead it. */
+  /** Able to lead the stage (#846). Only these are offered to lead it, and never to help
+   *  it (#858). */
   canLead?: boolean
-  /** A `lead` agent: offered to lead the stage, never to help it. */
-  leadOnly?: boolean
 }
 
 /** One stage of one workflow, as a screen draws it. */

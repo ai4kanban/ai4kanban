@@ -26,6 +26,7 @@ const en: RailCopy = {
     show: "What this board and its agents remember",
     hide: "Hide the memory",
     board: "Board",
+    planning: "Planning",
     empty: "Nothing remembered yet.",
     files: {
       readme: "What shipped",

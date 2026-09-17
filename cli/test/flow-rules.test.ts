@@ -137,9 +137,17 @@ describe('the files', () => {
     assert.equal(fs.existsSync(path.join(RULES, 'builder.md')), false)
   })
 
+  it('moves the old planner rule onto the Software planner, once (#858)', () => {
+    fs.mkdirSync(RULES, { recursive: true })
+    fs.writeFileSync(path.join(RULES, 'planner.md'), 'Keep it short.\n')
+    assert.equal(ruleFor({ action: 'create', id: 1 }), 'Keep it short.')
+    assert.equal(fs.existsSync(path.join(RULES, 'planner.md')), false)
+    assert.equal(fs.readFileSync(path.join(RULES, 'software-planner.md'), 'utf8').trim(), 'Keep it short.')
+  })
+
   it('is named by the agent, so every flow it runs reads one file (#420)', async () => {
-    setAgentRule('planner', 'Say what changed.')
-    assert.equal(fs.readFileSync(path.join(RULES, 'planner.md'), 'utf8').trim(), 'Say what changed.')
+    setAgentRule('software-planner', 'Say what changed.')
+    assert.equal(fs.readFileSync(path.join(RULES, 'software-planner.md'), 'utf8').trim(), 'Say what changed.')
     for (const action of ['edit', 'create', 'resolve'] as const) {
       assert.equal(ruleFor({ action, id: 1 }), 'Say what changed.', action)
       assert.equal(fs.existsSync(path.join(RULES, `${action}.md`)), false, action)
@@ -149,14 +157,14 @@ describe('the files', () => {
   it('refuses a name no agent on this board answers to', async () => {
     const agent = setAgentRule('deployer', 'Ship it.')
     assert.equal(agent.ok, false)
-    assert.match(agent.error!, /planner, builder, memory-pruner/)
+    assert.match(agent.error!, /software-planner, builder, memory-pruner/)
   })
 
   it("carries each agent's rule on the roster, and nothing for the ones without one", async () => {
     setAgentRule('builder', 'Install first.')
     const { agents } = await readAgents()
     assert.equal(agents.find((a) => a.name === 'builder')!.rule, 'Install first.')
-    assert.equal(agents.find((a) => a.name === 'planner')!.rule, '')
+    assert.equal(agents.find((a) => a.name === 'software-planner')!.rule, '')
     // One rule, every flow that agent runs.
     for (const action of ['implement', 'conflict', 'run'] as const) {
       assert.equal(ruleFor({ action, id: 1 }), 'Install first.', action)
@@ -489,7 +497,7 @@ describe('the prompt', () => {
   })
 
   it('reaches every flow its agent runs, the refinement passes included', async () => {
-    setAgentRule('planner', 'Ask about the data model.')
+    setAgentRule('software-planner', 'Ask about the data model.')
     setAgentRule('builder', 'Install dependencies first.')
     // One planner, so the composite refine and the standalone resolve read the same words.
     for (const req of [
@@ -506,7 +514,7 @@ describe('the prompt', () => {
   })
 
   it("puts a spec agent's own rule after its instructions, and no role's", async () => {
-    setAgentRule('planner', 'Ask about the data model.')
+    setAgentRule('software-planner', 'Ask about the data model.')
     setAgentRule('ui-designer', 'Keep to the existing palette.')
     const prompt = buildPrompt({ action: 'spec', id: 1, specAgent: 'ui-designer' })
     assert.ok(prompt.trimEnd().endsWith('Keep to the existing palette.'))
@@ -535,7 +543,7 @@ describe('a delivery', () => {
   it('freezes the rules of the agents it is built by, keyed by agent', async () => {
     setAgentRule('builder', 'Install dependencies first.')
     setAgentRule('code-reviewer', 'Run the smoke tests.')
-    setAgentRule('planner', 'Stay small.')
+    setAgentRule('software-planner', 'Stay small.')
     const built = run('implement', 1)
     const delivery = activeDelivery(1)!
     assert.deepEqual(delivery.rules, {
@@ -566,7 +574,7 @@ describe('a delivery', () => {
 
   it('leaves a flow that is not one of its own reading the file', async () => {
     const built = run('implement', 1)
-    setAgentRule('planner', 'Ask about the data model.')
+    setAgentRule('software-planner', 'Ask about the data model.')
     assert.match(buildPrompt({ action: 'clarify', id: 1, refineRound: 1 }), /data model/)
     await end(built)
   })

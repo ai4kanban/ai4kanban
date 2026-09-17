@@ -598,7 +598,7 @@ export function resumesUnder(harnessName: string | undefined): boolean {
 /** Whose settings the setup line is read under (#443). Setup writes a board's first cards
  *  and memory notes, so it follows the planner — the one role every board has, on either
  *  solution. A conversation follows `DISCUSSION_ROLE` instead (#502). */
-const PLANNER = 'planner'
+const PLANNER = 'software-planner'
 
 /** Which harness this board's conversations are held with, and whether it can hold one.
  *  `pin` is the runtime the conversation picked for itself, with none the discussion helper's.

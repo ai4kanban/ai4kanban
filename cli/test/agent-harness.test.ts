@@ -136,7 +136,7 @@ describe('an agent with a runtime of its own', () => {
 
   it('runs the passes a refine spawns as the planner, like refine itself', () => {
     for (const action of ['clarify', 'resolve', 'writing'] as const) {
-      assert.equal(agentForRun({ action, refineRound: 1 }), 'planner')
+      assert.equal(agentForRun({ action, refineRound: 1 }), 'software-planner')
     }
     assert.ok(plan({ action: 'clarify', refineRound: 1 }).argv.includes('claude-opus-5'))
   })

@@ -146,12 +146,16 @@ export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult
     const all = stageCandidates(stage)
     const candidates = all.map((a) => a.name)
     const leads = all.filter((a) => a.canLead).map((a) => a.name)
+    const helpers = all.filter((a) => !a.canLead).map((a) => a.name)
     say(`${flow.name} · ${stage} — agents that can take it: ${candidates.join(', ') || '(none on this board)'}`)
-    if (stage !== 'review') say(`  of those, can lead: ${leads.join(', ') || '(none)'}`)
+    if (stage !== 'review') {
+      say(`  can lead: ${leads.join(', ') || '(none)'}`)
+      say(`  can help: ${helpers.join(', ') || '(none)'} — an agent that can lead never helps`)
+    }
     // A built-in's lead is the command's, so only the helpers here are open to a change.
     if (stage === 'review') say('  the review stage has no lead — the agents added to it are its reviewers')
     else if (flow.builtIn) say(`  its lead is \`${flow.stages[stage].lead}\` and stays that way — duplicate it to pick another`)
-    return { id: flow.id, stage, candidates, leads }
+    return { id: flow.id, stage, candidates, leads, helpers }
   }
   say(`${flow.name} · ${stage}: ${changes.join(', ')}`)
   return { id: flow.id, stage, changes }

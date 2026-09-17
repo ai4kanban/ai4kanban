@@ -257,11 +257,11 @@ describe('the team, as a contract read and write', () => {
 
   it("hands a delivery the rules it freezes, keyed by agent, and only the agents it is built by", async () => {
     await onBoard((env) => board().saveAgentRule('builder', 'Install dependencies first.', env))
-    await onBoard((env) => board().saveAgentRule('planner', 'Stay small.', env))
+    await onBoard((env) => board().saveAgentRule('software-planner', 'Stay small.', env))
 
     const frozen = await board().deliveryRules()
     assert.equal(frozen.builder, 'Install dependencies first.')
-    assert.ok(!('planner' in frozen), 'an agent no delivery is built by was frozen into one')
+    assert.ok(!('software-planner' in frozen), 'an agent no delivery is built by was frozen into one')
   })
 })
 

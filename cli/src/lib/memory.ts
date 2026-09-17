@@ -194,7 +194,8 @@ function writeLegacyAgentMemory(agent: string, name: LegacyAgentMemoryName, text
 //
 // Never fatal: the read goes on with whatever is under the current name.
 function adoptRenamedMemory(agent: string): void {
-  for (const was of specAgentNames(agent).slice(1)) {
+  // Planning memory is the board's, whoever leads planning (#858).
+  for (const was of specAgentNames(agent).slice(1).filter((name) => name !== PLANNER)) {
     moveMemory(agentMemoryDir(was), agentMemoryDir(agent))
     moveMemory(legacyAgentMemoryFile(was), legacyAgentMemoryFile(agent))
   }

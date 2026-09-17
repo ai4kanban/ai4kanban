@@ -195,8 +195,8 @@ const en: ConfigurationCopy = {
         rule: 'Added to the end of every message you send it — "always end with the one question I have not thought about".',
         when: "you talk to it — Discuss, or the chat beside a card. It helps you decide what you want and whether an idea deserves work; a discussion that ends in nothing is a fine outcome.",
       },
-      planner: {
-        name: "Planner",
+      "software-planner": {
+        name: "Software planner",
         gloss: "Writes and refines your cards.",
         rule: 'Added to the end of every Create, Refine, Revise, Plan release, Changelog and Archive run — "always leave the open questions as a numbered list".',
       },

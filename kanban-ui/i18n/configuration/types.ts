@@ -8,7 +8,7 @@ import type { CadenceUnit } from "@/lib/cadence";
  *  words. */
 export type AgentRoleName =
   | "discussion-helper"
-  | "planner"
+  | "software-planner"
   | "builder"
   | "code-reviewer"
   | "gater"

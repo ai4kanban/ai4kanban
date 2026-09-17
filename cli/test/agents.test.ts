@@ -665,7 +665,7 @@ describe("who a spec agent's output is for", () => {
       (await readAgents()).agents.find((a) => a.name === name)!.settings.map((setting) => setting.key)
     assert.deepEqual(await rows('ui-designer'), ['output', 'mockupStyle'])
     assert.deepEqual(await rows('tech-stack-advisor'), ['output'])
-    assert.deepEqual(await rows('planner'), [])
+    assert.deepEqual(await rows('software-planner'), [])
   })
 
   it('starts `ui-designer` at human review and every other agent at agent use', () => {

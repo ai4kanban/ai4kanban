@@ -37,6 +37,8 @@ export type RailCopy = {
     /** The board's own group, which is what shipped and where the project is going — the
      *  two records that are nobody's taste, so they sit above the agents (#805). */
     board: string;
+    /** The planning memory folder, whoever leads planning (#858). */
+    planning: string;
     /** An agent that keeps memory and has written none yet. */
     empty: string;
     /** The memory files, keyed by the name the board's rules give each one. */

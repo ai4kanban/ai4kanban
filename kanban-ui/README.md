@@ -1637,7 +1637,7 @@ is where one names another, keyed by the agent's name and holding the runtime's 
 ```
 
 The roles the board ships and the specialists a card asks for are one table: `discussion-helper`,
-`builder`, `planner`, `reviewer`, `writer`, `gater`, `decider` and any agent name in
+`builder`, `software-planner`, `code-reviewer`, `writer`, `gater`, `decider` and any agent name in
 `docs/kanban/agents/`. It travels with the repository, so
 every checkout runs each agent as the same thing. An id this board no longer has falls back to
 **Global default** and the run's log says so; a tool whose CLI simply isn't installed here does
@@ -1645,11 +1645,11 @@ every checkout runs each agent as the same thing. An id this board no longer has
 
 Which agent does a run: a flow is run by the role that owns it, and a `spec` or `write` run by the
 specialist it names. A pass a flow spawns belongs to that flow's role — a refine's clarify, resolve
-and writing passes are the planner's, and so is an `akb card resolve` you type. Every conversation
+and writing passes are the software planner's, and so is an `akb card resolve` you type. Every conversation
 — Discuss, the chat beside a card, `akb chat` — is the discussion helper's, so what it runs on is
 set apart from what plans your cards.
 
-**The model is on the runtime**, so it travels with the repository too — which is why the planner
+**The model is on the runtime**, so it travels with the repository too — which is why the software planner
 can think on a stronger model than the builder writes with on every checkout. What stays on this
 computer is the **API key**, one line per runtime in `docs/kanban/.env`, named after that row's id.
 
@@ -1679,7 +1679,7 @@ ships, then the ones this project added.
   fine outcome; **Planner** plans and refines cards, **Builder** builds them and lands them,
   **Code reviewer** checks the code a build delivered; a marketing board has a **Writer** in
   place of the Builder.
-  A role is always on — a board without a planner plans nothing — except three, each with a switch
+  A role is always on — a board without its software planner plans nothing — except three, each with a switch
   of its own. Two stand in for you, both off by default and product boards only: **Auto-approve
   builds** judges whether a card that reached ready may build unwatched, and **Auto-answer
   questions** answers the questions waiting on you; each reads the goal and every module's

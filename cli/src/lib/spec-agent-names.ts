@@ -10,6 +10,8 @@ const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   'ui-design': 'ui-designer',
   // A board role until #820.
   reviewer: 'code-reviewer',
+  // Renamed in #858; its planning memory stays in `memory/agents/planner/`.
+  planner: 'software-planner',
 }
 
 /** The name a spec agent goes by now, for a name it may have gone by before. */

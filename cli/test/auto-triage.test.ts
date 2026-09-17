@@ -172,7 +172,7 @@ describe('the switch', () => {
     globalThis.fetch = (() => Promise.reject(new Error('offline'))) as typeof fetch
     const rest = await named()
     assert.ok(!rest.includes('triage'))
-    assert.ok(rest.includes('planner'))
+    assert.ok(rest.includes('software-planner'))
   })
 })
 

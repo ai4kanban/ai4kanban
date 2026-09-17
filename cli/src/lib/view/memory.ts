@@ -16,7 +16,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { agentRoster } from '../agent/roles'
-import { BOARD_MEMORY_FILES, memoryNamesOf, migrateMemory } from '../memory'
+import { BOARD_MEMORY_FILES, PLANNER, memoryNamesOf, migrateMemory } from '../memory'
 import { AGENT_MEMORY, MEMORY, rel } from '../paths'
 import { readGoalBody } from './goal'
 import { MEMORY_FILES, type MemoryFile, type MemoryName, type MemoryOwner } from './types'
@@ -34,12 +34,14 @@ const filesOf = (agent: string): MemoryName[] => {
   return [...known, ...held.filter((name) => !known.includes(name))]
 }
 
-/** Every agent on this board with a memory folder of its own, in the roster's order — the
- *  planner always, a spec agent once it has written a file. */
-const owners = (): Array<{ agent: string; title: string }> =>
-  agentRoster()
-    .filter((entry) => entry.ownMemory.length > 0)
-    .map((entry) => ({ agent: entry.name, title: entry.title }))
+/** Every memory folder on this board — planning's always, whoever leads it (#858), then each
+ *  agent's once it has written a file, in the roster's order. */
+const owners = (): Array<{ agent: string; title: string }> => [
+  { agent: PLANNER, title: '' },
+  ...agentRoster()
+    .filter((entry) => entry.name !== PLANNER && entry.ownMemory.length > 0)
+    .map((entry) => ({ agent: entry.name, title: entry.title })),
+]
 
 /** The board's own record, then each agent's folder (#805). The planner is listed before it
  *  has written anything, and the panel says so rather than drawing rows that lead nowhere.

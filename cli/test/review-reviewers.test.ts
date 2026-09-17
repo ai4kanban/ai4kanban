@@ -91,7 +91,7 @@ const uiChecker = (): void => {
 // A board workflow with plan and execute led, and no reviewers.
 const unreviewed = (): string => {
   const made = createWorkflow('Video')
-  setWorkflowLead(made.id!, 'plan', 'planner')
+  setWorkflowLead(made.id!, 'plan', 'software-planner')
   setWorkflowLead(made.id!, 'execute', 'builder')
   return made.id!
 }
@@ -148,7 +148,7 @@ describe('a workflow with no reviewers', () => {
     const id = unreviewed()
     assert.deepEqual(workflowProblems(id), [])
     const bare = createWorkflow('Bare')
-    setWorkflowLead(bare.id!, 'plan', 'planner')
+    setWorkflowLead(bare.id!, 'plan', 'software-planner')
     assert.match(workflowProblems(bare.id!).join('\n'), /no agent leading its execute stage/)
   })
 
@@ -255,7 +255,7 @@ describe('a board saved before reviewers', () => {
           added: [{ id: 'wf-2', name: 'Mine' }],
           stages: {
             'wf-2': {
-              plan: { lead: 'planner' },
+              plan: { lead: 'software-planner' },
               execute: { lead: 'builder' },
               review: { lead: 'reviewer', helpers: [{ agent: 'ui-checker', extra: 'x' }] },
             },

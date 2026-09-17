@@ -34,7 +34,7 @@ the whole difference, and it has to be readable at 48px.
 - **`discussion-helper.png`** — talks a question through before a card exists. Holding **two
   speech bubbles** in front of the body, a cream one with three mint dots and a lilac one
   with two black lines, the lilac one overlapping behind.
-- **`planner.png`** — plans and refines cards. Holding a **three-column board** across the
+- **`software-planner.png`** — plans and refines cards. Holding a **three-column board** across the
   chest, its columns mint, ember and sky, each with a couple of cards in it.
 - **`builder.png`** — builds cards and lands them. Holding an **ember hammer** upright on a
   wooden handle, head above the shoulder.

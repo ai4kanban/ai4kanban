@@ -12,6 +12,7 @@ import type { MemoryOwner } from "@/lib/types";
 export function useMemoryOwnerName(owner: Pick<MemoryOwner, "agent" | "title">): string {
   const c = useCopy();
   if (!owner.agent) return c.rail.memory.board;
+  if (owner.agent === "planner") return c.rail.memory.planning;
   const role = c.configuration.agents.roles[owner.agent as AgentRoleName];
   // A specialist says its own name; a role this copy has never heard of — one shipped after
   // the copy was written — is spelled out rather than drawn blank.

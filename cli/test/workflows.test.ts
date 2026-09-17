@@ -26,6 +26,7 @@ import {
   deleteWorkflow,
   duplicateWorkflow,
   frozenWorkflow,
+  liveStage,
   removeWorkflowHelper,
   renameWorkflow,
   setWorkflowHelperExtra,
@@ -81,7 +82,7 @@ const artifactWorkflow = (): string => {
     JSON.stringify({
       workflows: {
         added: [{ id: 'wf-9', name: 'Video', needsArtifact: true }],
-        stages: { 'wf-9': { plan: { lead: 'planner' }, execute: { lead: 'test-writer' }, review: { lead: 'test-checker' } } },
+        stages: { 'wf-9': { plan: { lead: 'software-planner' }, execute: { lead: 'test-writer' }, review: { lead: 'test-checker' } } },
       },
     }),
   )
@@ -141,15 +142,15 @@ describe('the workflows a board has', () => {
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'video-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['planner', 'copywriting', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-assets'])
+    assert.deepEqual(plan, ['software-planner', 'copywriting', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-assets'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
     const mine = createWorkflow('Mine')
-    assert.match(setWorkflowLead(mine.id!, 'execute', 'planner').error!, /is a plan agent/)
-    assert.equal(setWorkflowLead(mine.id!, 'plan', 'planner').ok, true)
-    assert.equal(workflowById(mine.id!)!.stages.plan.lead, 'planner')
-    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'planner').ok, false)
+    assert.match(setWorkflowLead(mine.id!, 'execute', 'software-planner').error!, /is a plan agent/)
+    assert.equal(setWorkflowLead(mine.id!, 'plan', 'software-planner').ok, true)
+    assert.equal(workflowById(mine.id!)!.stages.plan.lead, 'software-planner')
+    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'software-planner').ok, false)
   })
 
   it('keeps the specialists the coding plan stage offers until the board chooses for it', () => {
@@ -181,7 +182,7 @@ describe('the leads of a workflow the command ships', () => {
     const res = setWorkflowLead('coding', 'plan', 'ui-designer')
     assert.equal(res.ok, false)
     assert.match(res.error!, /built in .* fixed\. Duplicate it/)
-    assert.equal(workflowById('coding')!.stages.plan.lead, 'planner')
+    assert.equal(workflowById('coding')!.stages.plan.lead, 'software-planner')
     assert.equal(fs.existsSync(path.join(kanban(), 'ui.config.json')), false)
   })
 
@@ -202,7 +203,7 @@ describe('the leads of a workflow the command ships', () => {
         workflows: {
           stages: {
             coding: {
-              plan: { lead: 'ui-designer', helpers: [{ agent: 'planner', extra: 'x' }] },
+              plan: { lead: 'ui-designer', helpers: [{ agent: 'software-planner', extra: 'x' }] },
               execute: { lead: 'test-writer' },
             },
           },
@@ -210,19 +211,19 @@ describe('the leads of a workflow the command ships', () => {
       }),
     )
     const coding = workflowViews()[0]!
-    assert.equal(coding.stages[0]!.lead, 'planner')
+    assert.equal(coding.stages[0]!.lead, 'software-planner')
     assert.equal(coding.stages[1]!.lead, 'builder')
     // The lead is never also a helper, so the agent it had been moved aside for is gone.
     assert.deepEqual(coding.stages[0]!.helpers.map((h) => h.agent), [])
     // A stage that held nothing but a lead goes with it.
     assert.equal(config().workflows.stages.coding.execute, undefined)
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
-    assert.deepEqual(config().workflows.stages.coding.plan.helpers, [{ agent: 'planner', extra: 'x' }])
+    assert.deepEqual(config().workflows.stages.coding.plan.helpers, [{ agent: 'software-planner', extra: 'x' }])
   })
 
   it('leaves a copy of one free to pick its own', () => {
     const copy = duplicateWorkflow('coding')
-    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'planner')
+    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'software-planner')
     assert.equal(setWorkflowLead(copy.id!, 'execute', 'test-writer').ok, true)
     assert.equal(workflowById(copy.id!)!.stages.execute.lead, 'test-writer')
     assert.equal(workflowById('coding')!.stages.execute.lead, 'builder')
@@ -266,7 +267,7 @@ describe('a switch a board saved before the assignment was the answer', () => {
   it('takes the agent off a stage the board had already chosen for', () => {
     saveConfig({
       specAgents: { 'tech-stack-advisor': false },
-      workflows: { stages: { coding: { plan: { lead: 'planner', helpers: [{ agent: 'tech-stack-advisor', extra: 'x' }] } } } },
+      workflows: { stages: { coding: { plan: { lead: 'software-planner', helpers: [{ agent: 'tech-stack-advisor', extra: 'x' }] } } } },
     })
     assert.deepEqual(planHelpers(), [])
     assert.equal(config().specAgents, undefined)
@@ -422,7 +423,8 @@ describe('what a workflow changes about a run', () => {
     assert.equal(row.workflow!.stages.execute!.lead, 'test-writer')
 
     // Reassigning afterwards leaves the frozen copy alone — that is the whole point of it.
-    assert.equal(addWorkflowHelper('coding', 'execute', 'test-writer').ok, true)
+    stageAgent('test-fixer', 'execute')
+    assert.equal(addWorkflowHelper('coding', 'execute', 'test-fixer').ok, true)
     assert.deepEqual(frozen.stages.execute!.helpers, [])
   })
 })
@@ -440,7 +442,7 @@ describe('an agent a workflow no longer has', () => {
     // A LEAD nobody answers to is left exactly as assigned and reported, rather than quietly
     // running as somebody else.
     assert.equal(setWorkflowLead(copy.id!, 'plan', 'nobody-here').ok, false)
-    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'planner')
+    assert.equal(workflowById(copy.id!)!.stages.plan.lead, 'software-planner')
   })
 
   it('refuses to delete a workflow an open card still runs on, and says which', async () => {
@@ -516,7 +518,7 @@ describe('starting a run on an unfinished workflow', () => {
     const frozen = frozenWorkflow(cardWorkflowId(id))!
     assert.deepEqual(
       ['plan', 'execute', 'review'].map((stage) => frozen.stages[stage as 'plan']!.lead),
-      ['planner', 'builder', ''],
+      ['software-planner', 'builder', ''],
     )
     assert.deepEqual(frozen.stages.review!.helpers.map((h) => h.agent), ['code-reviewer'])
     assert.equal(agentForFlow('implement', 'content'), 'builder')
@@ -565,6 +567,59 @@ describe('a card a delivery is already building', () => {
   })
 })
 
+describe('an agent that can lead never helps (#858)', () => {
+  const config = (): Record<string, any> =>
+    JSON.parse(fs.readFileSync(path.join(kanban(), 'ui.config.json'), 'utf8'))
+  const planView = (id: string) => workflowViews().find((w) => w.id === id)!.stages[0]!
+
+  it('refuses it as a helper with a reason, and leaves it out of every inherited stage', () => {
+    stageAgent('outliner', 'plan', true)
+    const mine = createWorkflow('Mine')
+    for (const agent of ['outliner', 'software-planner', 'scriptwriter']) {
+      assert.match(addWorkflowHelper(mine.id!, 'plan', agent).error!, /can lead a stage, so it never helps/)
+    }
+    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'ui-designer').ok, true)
+    const helpers = liveStage(workflowById('coding')!, 'plan').helpers.map((h) => h.agent)
+    assert.ok(!helpers.includes('outliner'))
+    assert.ok(helpers.includes('ui-designer'))
+    assert.ok(planView(mine.id!).candidates.find((a) => a.name === 'outliner')!.canLead)
+  })
+
+  it('keeps a helper saved before the rule until it is removed', () => {
+    stageAgent('outliner', 'plan', true)
+    fs.writeFileSync(
+      path.join(kanban(), 'ui.config.json'),
+      JSON.stringify({
+        workflows: {
+          added: [{ id: 'wf-5', name: 'Old' }],
+          stages: { 'wf-5': { plan: { lead: 'ui-designer', helpers: [{ agent: 'outliner', extra: '' }] } } },
+        },
+      }),
+    )
+    assert.deepEqual(planView('wf-5').helpers.map((h) => h.agent), ['outliner'])
+    assert.equal(removeWorkflowHelper('wf-5', 'plan', 'outliner').ok, true)
+    assert.deepEqual(planView('wf-5').helpers, [])
+  })
+
+  it('moves a workflow saved under `planner` onto `software-planner`, once', () => {
+    fs.writeFileSync(
+      path.join(kanban(), 'ui.config.json'),
+      JSON.stringify({
+        workflows: {
+          added: [{ id: 'wf-5', name: 'Old' }],
+          stages: { 'wf-5': { plan: { lead: 'planner', helpers: [{ agent: 'ui-designer', extra: 'x' }] }, execute: { lead: 'builder' } } },
+        },
+      }),
+    )
+    assert.equal(workflowById('wf-5')!.stages.plan.lead, 'software-planner')
+    assert.deepEqual(config().workflows.stages['wf-5'].plan, {
+      lead: 'software-planner',
+      helpers: [{ agent: 'ui-designer', extra: 'x' }],
+    })
+    assert.deepEqual(workflowProblems('wf-5'), [])
+  })
+})
+
 describe('who may lead a stage (#846)', () => {
   const planView = (id: string) => workflowViews().find((w) => w.id === id)!.stages[0]!
 
@@ -572,15 +627,12 @@ describe('who may lead a stage (#846)', () => {
     stageAgent('outliner', 'plan', true)
     const mine = createWorkflow('Mine')
     const leads = planView(mine.id!).candidates.filter((a) => a.canLead).map((a) => a.name)
-    assert.deepEqual(leads, ['planner', 'scriptwriter', 'outliner'])
+    assert.deepEqual(leads, ['software-planner', 'scriptwriter', 'outliner'])
     assert.deepEqual(
       stageCandidates('execute').filter((a) => a.canLead).map((a) => a.name),
       ['builder', 'hyperframes-editor', 'test-writer'],
     )
     assert.match(setWorkflowLead(mine.id!, 'plan', 'ui-designer').error!, /can only help/)
-    // A declared lead still helps.
-    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'outliner').ok, true)
-    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'planner').ok, true)
   })
 
   it('keeps running a lead saved before the declaration, and says so', () => {

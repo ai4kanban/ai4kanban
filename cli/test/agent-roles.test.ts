@@ -63,7 +63,7 @@ describe('the roles', () => {
 
   it('leaves the planner every flow that writes a card', () => {
     for (const flow of ['refine', 'resolve', 'plan-release', 'changelog', 'create']) {
-      assert.equal(roleForFlow(flow)!.name, 'planner')
+      assert.equal(roleForFlow(flow)!.name, 'software-planner')
     }
   })
 
@@ -72,7 +72,7 @@ describe('the roles', () => {
       roles().map((r) => r.name),
       [
         'discussion-helper',
-        'planner',
+        'software-planner',
         'builder',
         'memory-pruner',
         'memory-reviewer',
@@ -102,7 +102,7 @@ describe('the roles', () => {
   // Memory belongs to whoever writes it (#805): all three planning files are the planner's,
   // and the builder — which never opened one — owns none.
   it('says what each role remembers, in files that are the board it is on', () => {
-    assert.deepEqual(roles().find((r) => r.name === 'planner')!.memory, [
+    assert.deepEqual(roles().find((r) => r.name === 'software-planner')!.memory, [
       'memory/agents/planner/decisions.md',
       'memory/agents/planner/rejected.md',
       'memory/agents/planner/redesign.md',
@@ -129,7 +129,7 @@ describe('the roles', () => {
     )
     assert.deepEqual(agentNames(), [
       'discussion-helper',
-      'planner',
+      'software-planner',
       'builder',
       'memory-pruner',
       'memory-reviewer',
@@ -155,7 +155,7 @@ describe('the roles', () => {
     const names = agentNames()
     assert.deepEqual(names.slice(0, 11), [
       'discussion-helper',
-      'planner',
+      'software-planner',
       'builder',
       'memory-pruner',
       'memory-reviewer',
@@ -228,7 +228,7 @@ describe('the roles that can be switched off', () => {
     assert.equal(await on('memory-reviewer'), true)
     // And a workflow agent is always on here: its stage assignment is the whole answer
     // (#749, #783).
-    for (const always of ['discussion-helper', 'planner', 'builder', 'code-reviewer']) {
+    for (const always of ['discussion-helper', 'software-planner', 'builder', 'code-reviewer']) {
       assert.equal(await on(always), true, always)
     }
   })
@@ -279,7 +279,7 @@ describe('the roles that can be switched off', () => {
   })
 
   it('refuses to switch off a role the board runs on', async () => {
-    const refused = setSpecAgentEnabled('planner', false)
+    const refused = setSpecAgentEnabled('software-planner', false)
     assert.equal(refused.ok, false)
     assert.match(refused.error!, /can't be switched off/)
   })
@@ -351,7 +351,7 @@ describe('akb raw rule', () => {
   it('takes a spec agent by name too, and refuses a name no agent answers to', async () => {
     await move(root, ['rule', 'ui-designer', '--text', 'Keep to the existing palette.'])
     assert.equal(ruleText('ui-designer'), 'Keep to the existing palette.')
-    await refuses(root, ['rule', 'designer', '--text', 'Anything.'], /planner, builder, memory-pruner/)
+    await refuses(root, ['rule', 'designer', '--text', 'Anything.'], /software-planner, builder, memory-pruner/)
   })
 
   // The agent was renamed, and a rule is saved under the agent's name.

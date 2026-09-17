@@ -18,7 +18,7 @@ export interface SpecAgent {
   /** The hook it plugs into. */
   kind: AgentKind
   /** Whether it may lead its stage of a workflow (#846): every `lead` agent, and a `spec`
-   *  agent whose file says `akb.lead: true`. Everything else only helps. */
+   *  agent whose file says `akb.lead: true`. Everything else only helps, and these never do (#858). */
   canLead: boolean
   /** The workflow stage it may be assigned to (#715), or null when it declares none and
    *  belongs to no workflow. `akb.stage` says it; a file written before that key reads as

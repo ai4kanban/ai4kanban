@@ -78,7 +78,7 @@ describe('a lead agent', () => {
 
   it('only leads: never a helper, never run by `akb spec`', async () => {
     const mine = createWorkflow('Mine').id!
-    assert.match(addWorkflowHelper(mine, 'plan', 'scriptwriter').error!, /only leads/)
+    assert.match(addWorkflowHelper(mine, 'plan', 'scriptwriter').error!, /can lead a stage, so it never helps/)
     assert.equal(setWorkflowLead(mine, 'plan', 'scriptwriter').ok, true)
     assert.match(setWorkflowLead(mine, 'execute', 'scriptwriter').error!, /is a plan agent/)
     const id = await videoCard()
@@ -137,7 +137,7 @@ describe('the hyperframes-video workflow', () => {
 
   it("prints the lead's instructions on a board's own workflow too", async () => {
     const mine = createWorkflow('Clips').id!
-    assert.equal(setWorkflowLead(mine, 'plan', 'planner').ok, true)
+    assert.equal(setWorkflowLead(mine, 'plan', 'software-planner').ok, true)
     assert.equal(setWorkflowLead(mine, 'execute', 'hyperframes-editor').ok, true)
     const id = (await move(root, ['create', '--title', 'A clip', '--workflow', mine])).id as number
     assert.match(printed('implement', id), /you, the `hyperframes-editor` agent/)

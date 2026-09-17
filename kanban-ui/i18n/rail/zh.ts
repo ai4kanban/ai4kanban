@@ -26,6 +26,7 @@ const zh: RailCopy = {
     show: "看板和它的 Agent 记住了什么",
     hide: "隐藏记忆",
     board: "看板",
+    planning: "规划",
     empty: "还没有记下任何内容。",
     files: {
       readme: "已交付的能力",

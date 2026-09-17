@@ -17,7 +17,8 @@ There are two kinds.
 **Roles** are the agents the board's own flows are run by. You do not add or remove one, and some
 of them can be switched off:
 
-- **Planner** — plans and refines cards. It runs create, refine, resolve, revise, the release
+- **Software planner** (`software-planner`, `planner` before) — plans and refines the Coding
+  workflow's cards. It runs create, refine, resolve, revise, the release
   plan, the changelog, archive and reject.
 - **Builder** — builds cards and lands them: implement, conflict, run.
 - **Scriptwriter**, **HyperFrames editor** — lead the Demo video workflow: the scriptwriter writes the
@@ -94,7 +95,7 @@ When you do want one: **"put the ui-designer agent on #4"**, or `akb spec ui-des
 what it produces is on its page in **Configuration → Agents**. Whether it joins a card's planning at
 all is its workflow's plan stage, under **Configuration → Workflows**: add it there and it is offered,
 remove it and nothing asks for it. A role is always on except the ones above, because a board without
-a planner plans nothing.
+nobody plans anything.
 
 ## Let the Decider answer for you
 
@@ -117,7 +118,7 @@ hands a card back.
 What it chose stays on the card, in a `decided:` list — the question, the option it took, and the
 file it went on. The board marks such a card and **What Decider chose for you** on the card page
 lists them one by one, with the ones it took blind called out. None of it becomes a lasting
-decision: the Planner's `decisions.md` holds answers *you* gave, and the Decider writes to none
+decision: planning's `decisions.md` holds answers *you* gave, and the Decider writes to none
 of it.
 
 Switching it off puts every card still carrying questions back to waiting on you. A card it
@@ -127,13 +128,13 @@ that is already stopped — those cards move on their next refine, or when you t
 
 ## Let the Proposer look back
 
-Nothing on the board looks at finished work. A follow-up surfaces only when a builder or a planner
+Nothing on the board looks at finished work. A follow-up surfaces only when a build or a plan
 notices one mid-task, and **Triage** reads outside sources — never your own history.
 
 **Proposer** is the switch that closes that gap. Switch it on in **Configuration → Agents**, in the
 **Optional** group. From then on, every card that reaches the archive starts one reflection over
 that card alone: it reads what shipped, judges what work follows from it against your goal and the
-Planner's memory, and puts each survivor in **Triage**.
+planning memory, and puts each survivor in **Triage**.
 
 - **Archiving is the only trigger.** A card completing is what starts a reflection. Nothing sweeps
   the cards you finished last week, and there is no command that asks for one.
@@ -184,7 +185,7 @@ through, and writes what the whole exchange earned.
   earlier review already wrote is deleted.
 - **Nothing said, nothing run.** It starts only when a conversation has new messages, so a quiet
   day costs nothing.
-- **It follows the conversation's card.** A note goes in the Planner's memory, under the
+- **It follows the conversation's card.** A note goes in the planning memory, under the
   `## <module>` topic that card's `modules:` names — the archive included. A discussion, or a card
   the board no longer has, goes under whatever topic already fits.
 
@@ -217,8 +218,8 @@ From a terminal: `akb raw rule <agent> --file <path>`, or `--text ""` to clear i
 Some agents **remember** — the taste they were corrected on, and the choices you made. The
 agent's page lists the files it has, read-only:
 
-- The **Planner** owns all three planning files, in `docs/kanban/memory/agents/planner/`:
-  `decisions.md`, `rejected.md` and `redesign.md`. Every flow that settles a card writes them;
+- **Planning** keeps three files in `docs/kanban/memory/agents/planner/`: `decisions.md`,
+  `rejected.md` and `redesign.md`. Whoever leads a plan stage writes them;
   the Gate, the Decider and the Proposer read them and write none. No other role owns a file.
 - A **specialist** owns `docs/kanban/memory/agents/<name>/`, and its own `AGENT.md` says which
   files it keeps there and what each holds — add a `## What you remember` section to yours.
@@ -277,11 +278,12 @@ into. A `settings` entry becomes a control on that agent's page, and only the ch
 choice's `reference` is loaded into the run — the instructions for the option nobody picked are never read. `akb spec`
 lists the agents this board can use and, under them, anything wrong with one it found.
 
-A new agent only **helps** a stage. Add `lead: true` under `akb:` to let it **lead** its plan or
-execute stage too; only agents that say so are offered as a workflow's lead. Of the ones the board
-ships, the Planner, the Builder, the Scriptwriter and the HyperFrames editor lead. A workflow that
-already has an undeclared agent leading keeps running, and Configuration → Workflows marks that
-stage.
+A new agent **helps** a stage. Add `lead: true` under `akb:` to make it **lead** its plan or
+execute stage instead: an agent that can lead is only offered as a workflow's lead, and never as a
+helper. Of the ones the board ships, the Software planner, the Builder, the Scriptwriter and the
+HyperFrames editor lead. A workflow that already has an undeclared agent leading, or a lead among
+its helpers, keeps running until you change it, and Configuration → Workflows marks an undeclared
+lead.
 
 **Delete** on an agent's page removes it and everything the board kept for it — the folder, the
 instructions you wrote for it, what it remembered, and its switch. Only an agent this project
@@ -356,7 +358,7 @@ akb:
 Say only what you want translated: anything you leave out keeps the English the agent declares.
 Whichever language your machine is set to is what the Agents pane draws. Every run is handed the
 English lines whatever you add here, so a translation can never change what an agent is asked to
-do. The roles the board ships — Planner, Builder, Gater, Decider, Proposer and
+do. The roles the board ships — Software planner, Builder, Gater, Decider, Proposer and
 Triage — are translated with the rest of the product and carry no block of their own.
 
 Agents used to live in `docs/kanban/skills/<name>/SKILL.md`. That folder still works for one

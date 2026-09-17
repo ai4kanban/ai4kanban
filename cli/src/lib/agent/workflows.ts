@@ -119,7 +119,7 @@ const BUILTINS: BuiltinWorkflow[] = [
     id: 'coding',
     name: 'Coding',
     stages: {
-      plan: { lead: 'planner', helpers: 'every' },
+      plan: { lead: 'software-planner', helpers: 'every' },
       execute: { lead: 'builder', helpers: [] },
       review: { lead: '', helpers: ['code-reviewer'] },
     },
@@ -202,7 +202,7 @@ const storedStages = (cfg: Record<string, unknown>, id: string): Record<string, 
 function readStage(raw: unknown): { lead?: string; helpers?: WorkflowHelper[] } {
   const box = configBlock(raw)
   const out: { lead?: string; helpers?: WorkflowHelper[] } = {}
-  if (typeof box.lead === 'string') out.lead = box.lead.trim()
+  if (typeof box.lead === 'string') out.lead = canonicalSpecAgent(box.lead)
   if (Array.isArray(box.helpers)) {
     const helpers: WorkflowHelper[] = []
     for (const entry of box.helpers) {
@@ -296,7 +296,7 @@ function foldAgentSwitches(cfg: Record<string, unknown>): boolean {
   // inside of. Only a specialist can carry one of these keys on a board with workflows —
   // `kind: write` does not parse here (../agents/parse.ts).
   const stageOf = new Map<string, WorkflowStage>()
-  for (const agent of specAgentCatalog().agents) if (agent.stage && agent.kind !== 'lead') stageOf.set(agent.name, agent.stage)
+  for (const agent of specAgentCatalog().agents) if (agent.stage && !agent.canLead) stageOf.set(agent.name, agent.stage)
   const { ok } = writeConfig((raw) => {
     const off = new Set(switchedOff(raw).map(canonicalSpecAgent))
     const block = configBlock(raw.workflows)
@@ -409,10 +409,54 @@ function foldReviewLeads(cfg: Record<string, unknown>): boolean {
   return ok
 }
 
+// ---- renaming a saved agent (#858) -------------------------------------------
+//
+// A workflow saved under an agent's old name (`planner`) is rewritten to its current one, once.
+
+const renamed = (name: unknown): boolean => typeof name === 'string' && canonicalSpecAgent(name) !== name.trim()
+
+const savedOldName = (cfg: Record<string, unknown>): boolean =>
+  Object.values(configBlock(workflowsBlock(cfg).stages)).some((flow) =>
+    Object.values(configBlock(flow)).some((raw) => {
+      const stage = configBlock(raw)
+      return (
+        renamed(stage.lead) ||
+        (Array.isArray(stage.helpers) && stage.helpers.some((h) => renamed(configBlock(h).agent)))
+      )
+    }),
+  )
+
+function renameSavedAgents(cfg: Record<string, unknown>): boolean {
+  if (!savedOldName(cfg)) return false
+  const { ok } = writeConfig((raw) => {
+    const block = configBlock(raw.workflows)
+    const all = configBlock(block.stages)
+    for (const [id, flow] of Object.entries(all)) {
+      const mine = configBlock(flow)
+      for (const [stage, value] of Object.entries(mine)) {
+        const one = { ...configBlock(value) }
+        if (typeof one.lead === 'string') one.lead = canonicalSpecAgent(one.lead)
+        if (Array.isArray(one.helpers)) {
+          one.helpers = one.helpers.map((h) => {
+            const row = configBlock(h)
+            return typeof row.agent === 'string' ? { ...row, agent: canonicalSpecAgent(row.agent) } : h
+          })
+        }
+        mine[stage] = one
+      }
+      all[id] = mine
+    }
+    block.stages = all
+    raw.workflows = block
+  })
+  return ok
+}
+
 /** Every workflow this board has, built-ins first and then its own in the order they were
  *  made. */
 export function workflows(): Workflow[] {
   let cfg = safeConfig()
+  if (renameSavedAgents(cfg)) cfg = safeConfig()
   if (dropBuiltinLeads(cfg)) cfg = safeConfig()
   if (foldReviewLeads(cfg)) cfg = safeConfig()
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
@@ -492,8 +536,7 @@ export function stageHelpers(flow: Workflow, stage: WorkflowStage): WorkflowHelp
       .filter(
         (entry) =>
           entry.stage === stage &&
-          entry.kind !== 'role' &&
-          entry.kind !== 'lead' &&
+          !entry.canLead &&
           entry.name !== setup.lead &&
           !others.has(entry.name),
       )
@@ -718,7 +761,9 @@ export function addWorkflowHelper(id: string, stage: WorkflowStage, agent: strin
   const found = agentRoster().find((entry) => entry.name === wanted)
   if (!found) return { ok: false, error: `this board has no \`${wanted}\` agent` }
   if (found.stage !== stage) return { ok: false, error: `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot help ${stage}` }
-  if (found.kind === 'lead') return { ok: false, error: `\`${wanted}\` only leads a stage and cannot help one` }
+  if (found.canLead) {
+    return { ok: false, error: `\`${wanted}\` can lead a stage, so it never helps one — it would run a second full ${stage}` }
+  }
   const flow = workflowById(id)
   if (flow?.stages[stage].lead === wanted) {
     return { ok: false, error: `\`${wanted}\` already leads this stage` }
@@ -833,7 +878,6 @@ const candidateOf = (entry: RosterEntry): WorkflowCandidate => ({
   gloss: entry.gloss,
   builtIn: entry.builtIn,
   ...(entry.canLead ? { canLead: true } : {}),
-  ...(entry.kind === 'lead' ? { leadOnly: true } : {}),
 })
 
 /** Every workflow this board has, with each stage's lead, helpers and candidates. One read

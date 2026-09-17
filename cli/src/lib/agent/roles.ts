@@ -212,7 +212,7 @@ const SWEEPER: AgentRole = {
 const BOARD_ROLES: AgentRole[] = [
   DISCUSSION_HELPER,
   {
-    name: 'planner',
+    name: 'software-planner',
     stage: 'plan',
     gloss: 'plans and refines cards',
     memory: [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN],
@@ -250,8 +250,8 @@ export const REVIEW_LEAD = REVIEW_LEAD_ROLE.name
 
 /** Every role name the board ships. Reserved: a rule is keyed by the agent's name, so a
  *  project agent taking one would share that role's rule file (../agents/catalog.ts refuses
- *  it). */
-export const ROLE_NAMES: string[] = [...BOARD_ROLES, REVIEW_LEAD_ROLE].map((r) => r.name)
+ *  it). `planner` too: the Software planner's old name, and planning memory's folder (#858). */
+export const ROLE_NAMES: string[] = [...[...BOARD_ROLES, REVIEW_LEAD_ROLE].map((r) => r.name), PLANNER]
 
 /** This board's roles, in the order a roster draws them. */
 export const roles = (): AgentRole[] => BOARD_ROLES
