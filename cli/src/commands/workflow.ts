@@ -65,7 +65,9 @@ const done = (res: { ok: boolean; error?: string }): void => {
 
 export function cmdWorkflowList(): MoveResult {
   const rows = workflows()
-  const titleOf = (name: string) => agentRoster().find((a) => a.name === name)?.name ?? name
+  const roster = agentRoster()
+  const titleOf = (name: string) => roster.find((a) => a.name === name)?.name ?? name
+  const undeclared = (name: string) => roster.some((a) => a.name === name && !a.canLead)
   for (const flow of rows) {
     say(`${flow.id}  ${flow.name}${flow.builtIn ? '  (built-in)' : ''}`)
     for (const stage of WORKFLOW_STAGES) {
@@ -75,7 +77,8 @@ export function cmdWorkflowList(): MoveResult {
         say(`  ${stage.padEnd(8)}${helpers ? `reviewers: ${helpers}` : 'no reviewers — delivered as built'}`)
         continue
       }
-      say(`  ${stage.padEnd(8)}${setup.lead ? titleOf(setup.lead) : '(nobody)'}${helpers ? `  + ${helpers}` : ''}`)
+      const lead = setup.lead ? `${titleOf(setup.lead)}${undeclared(setup.lead) ? ' (not declared to lead)' : ''}` : '(nobody)'
+      say(`  ${stage.padEnd(8)}${lead}${helpers ? `  + ${helpers}` : ''}`)
     }
     for (const problem of workflowProblems(flow.id)) say(`  ! ${problem}`)
   }
@@ -140,12 +143,15 @@ export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult
     changes.push(`${who}: extra requirements`)
   }
   if (!changes.length) {
-    const candidates = stageCandidates(stage).map((a) => a.name)
+    const all = stageCandidates(stage)
+    const candidates = all.map((a) => a.name)
+    const leads = all.filter((a) => a.canLead).map((a) => a.name)
     say(`${flow.name} · ${stage} — agents that can take it: ${candidates.join(', ') || '(none on this board)'}`)
+    if (stage !== 'review') say(`  of those, can lead: ${leads.join(', ') || '(none)'}`)
     // A built-in's lead is the command's, so only the helpers here are open to a change.
     if (stage === 'review') say('  the review stage has no lead — the agents added to it are its reviewers')
     else if (flow.builtIn) say(`  its lead is \`${flow.stages[stage].lead}\` and stays that way — duplicate it to pick another`)
-    return { id: flow.id, stage, candidates }
+    return { id: flow.id, stage, candidates, leads }
   }
   say(`${flow.name} · ${stage}: ${changes.join(', ')}`)
   return { id: flow.id, stage, changes }

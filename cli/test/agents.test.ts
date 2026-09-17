@@ -371,6 +371,20 @@ describe('an agent nobody can read', () => {
     )
   })
 
+  it('reads who may lead, and refuses a lead declaration it cannot honour (#846)', () => {
+    const lead = (extra: string[]) =>
+      ['---', 'name: outliner', 'description: d', 'akb:', ...extra, '---', '', 'Body.'].join('\n')
+    assert.match(problemFor({ 'AGENT.md': lead(['  stage: plan', '  lead: yes']) }), /`true` or `false`/)
+    assert.match(problemFor({ 'AGENT.md': lead(['  stage: review', '  lead: true']) }), /only a plan or execute agent/)
+    const canLead = (name: string) => specAgentCatalog().agents.find((a) => a.name === name)?.canLead
+    project('outliner', { 'AGENT.md': lead(['  stage: plan', '  lead: true']) })
+    assert.equal(canLead('outliner'), true)
+    assert.equal(canLead('scriptwriter'), true)
+    for (const helper of ['ui-designer', 'copywriting', 'tech-stack-advisor', 'video-assets', 'code-reviewer']) {
+      assert.equal(canLead(helper), false, helper)
+    }
+  })
+
   it('reports a choice whose reference is not there', () => {
     assert.match(
       problemFor({

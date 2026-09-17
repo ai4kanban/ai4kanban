@@ -33,6 +33,7 @@ const en: ConfigurationCopy = {
     lead: "Lead agent",
     pickLead: "Select agent",
     leadFixed: "Built-in leads are fixed. Duplicate this workflow to choose your own.",
+    leadUndeclared: "This agent isn't declared as a lead.",
     notReady: "Not ready",
     notReadyHint: "This stage cannot start yet",
     stageProblem: "This stage has no agent that can lead it. Assign one before it can start.",

@@ -440,8 +440,8 @@ export const workflowKnown = (id: string): boolean => !id || workflows().some((w
 // ---- who may take a stage --------------------------------------------------
 
 /** The agents that may lead or help one stage — every agent on the roster that declares this
- *  stage, in the roster's own order. What the pickers offer, and what an assignment is
- *  checked against. */
+ *  stage, in the roster's own order. What an assignment is checked against; only those with
+ *  `canLead` are offered to lead. */
 export const stageCandidates = (stage: WorkflowStage): RosterEntry[] =>
   agentRoster().filter((entry) => entry.stage === stage)
 
@@ -699,6 +699,10 @@ export function setWorkflowLead(id: string, stage: WorkflowStage, agent: string)
     const found = agentRoster().find((entry) => entry.name === wanted)
     if (!found) return { ok: false, error: `this board has no \`${wanted}\` agent` }
     if (found.stage !== stage) return { ok: false, error: `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot lead ${stage}` }
+    // A lead saved before #846 keeps running; only a new pick is held to the declaration.
+    if (!found.canLead && owner.stages[stage].lead !== wanted) {
+      return { ok: false, error: `\`${wanted}\` does not declare \`akb.lead: true\`, so it can only help` }
+    }
   }
   if (owner.stages[stage].helpers.some((h) => h.agent === wanted)) {
     return { ok: false, error: `\`${wanted}\` already helps this stage — remove it from the helpers first` }
@@ -828,6 +832,7 @@ const candidateOf = (entry: RosterEntry): WorkflowCandidate => ({
   title: entry.title,
   gloss: entry.gloss,
   builtIn: entry.builtIn,
+  ...(entry.canLead ? { canLead: true } : {}),
   ...(entry.kind === 'lead' ? { leadOnly: true } : {}),
 })
 

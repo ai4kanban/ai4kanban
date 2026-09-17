@@ -30,6 +30,7 @@ const zh: ConfigurationCopy = {
     lead: "负责 Agent",
     pickLead: "选择 Agent",
     leadFixed: "内置工作流的负责 Agent 固定。复制一份即可自行指定。",
+    leadUndeclared: "此 Agent 未声明可担任负责人。",
     notReady: "未就绪",
     notReadyHint: "这个环节还不能开始",
     stageProblem: "这个环节还没有可用的负责人，指定一个之后才能开始。",

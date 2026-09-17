@@ -62,6 +62,8 @@ export type ConfigurationCopy = {
     /** Under a built-in's lead, which the command fixes: the way to a workflow with leads
      *  of your own (#774). */
     leadFixed: string;
+    /** Under a lead picked before agents declared whether they may lead (#846). */
+    leadUndeclared: string;
     /** Beside a workflow that cannot start a card, and the one line that says what it
      *  means — on the dot marking the stage to fix, and on the row a picker greys out. */
     notReady: string;

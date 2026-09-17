@@ -30,6 +30,7 @@ import type { Stage } from './stages'
 import type { WorkflowStage } from './types'
 import { migrateFlowRules, ruleBlock } from './rules'
 import type { AgentAction, AgentRequest } from './types'
+import { SPECIALIST_ACTIONS } from './types'
 
 // What a resumed run says. The coding agent's own session is already there — the card, the
 // work done, the error it died on — so this is the "continue" you would type in the
@@ -210,12 +211,14 @@ export function buildPrompt(rawReq: AgentRequest, notes: string[] = []): string 
   return [buildAsk(req, notes), leadBlock(req), ruleBlock(req, frozenRules(req))].filter(Boolean).join('\n\n')
 }
 
-/** A `lead` agent's own instructions, for a run it leads (#822). Laid over the shared flow,
- *  never in place of it. */
+/** A leading agent's own instructions, for a run it leads (#822, #846). Laid over the shared
+ *  flow, never in place of it. */
 export function leadBlock(req: AgentRequest): string {
+  // Helping, it is handed its body by the spec flow instead.
+  if (SPECIALIST_ACTIONS.has(req.action)) return ''
   const name = agentForRun(req)
   const agent = name ? findSpecAgent(name) : null
-  if (agent?.kind !== 'lead') return ''
+  if (!agent?.canLead) return ''
   return boardText(
     `——— you, the \`${agent.name}\` agent — where this differs from the shared flow, follow this ———\n\n${agent.body}`,
   )

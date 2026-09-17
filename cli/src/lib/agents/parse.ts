@@ -17,6 +17,9 @@ export interface SpecAgent {
   i18n: Record<string, AgentLines>
   /** The hook it plugs into. */
   kind: AgentKind
+  /** Whether it may lead its stage of a workflow (#846): every `lead` agent, and a `spec`
+   *  agent whose file says `akb.lead: true`. Everything else only helps. */
+  canLead: boolean
   /** The workflow stage it may be assigned to (#715), or null when it declares none and
    *  belongs to no workflow. `akb.stage` says it; a file written before that key reads as
    *  the stage its `kind` always served — `spec` fills a card's spec, so it is `plan`. */
@@ -123,6 +126,13 @@ export function parseSpecAgent(
   if (kind === 'lead' && stage !== 'plan' && stage !== 'execute') {
     return bad(`\`${name}\` is a \`lead\` agent — give it \`akb.stage: plan\` or \`akb.stage: execute\``)
   }
+  const declaredLead = str(akb.lead)
+  if (declaredLead && declaredLead !== 'true' && declaredLead !== 'false') {
+    return bad(`\`${name}\` declares \`akb.lead: ${declaredLead}\` — it is \`true\` or \`false\``)
+  }
+  if (declaredLead === 'true' && stage !== 'plan' && stage !== 'execute') {
+    return bad(`\`${name}\` declares \`akb.lead: true\` — only a plan or execute agent can lead`)
+  }
 
   // Who its output is for, to start with. The setting itself is the board's — every spec
   // agent has it, declared or not — so a file that says nothing gets `agent`, which is where
@@ -157,6 +167,7 @@ export function parseSpecAgent(
       description,
       i18n: readTranslations(akb.i18n),
       kind,
+      canLead: kind === 'lead' || declaredLead === 'true',
       stage,
       output,
       dependencies: dependencies.agents,

@@ -269,10 +269,10 @@ export const roleForFlow = (flow: string, workflow?: string): AgentRole | undefi
   return name ? (roleNamed(name) ?? leadRole(name)) : undefined
 }
 
-// A `lead` agent runs a stage's flows as a role does (#822): its rule and runtime are keyed by
-// its name, and a plan lead keeps the planner's memory.
+// An agent that may lead runs a stage's flows as a role does (#822, #846): its rule and runtime
+// are keyed by its name, and a plan lead keeps the planner's memory.
 function leadRole(name: string): AgentRole | undefined {
-  const agent = specAgentCatalog().agents.find((a) => a.name === name && a.kind === 'lead')
+  const agent = specAgentCatalog().agents.find((a) => a.name === name && a.canLead)
   if (!agent?.stage) return undefined
   return {
     name,
@@ -314,6 +314,8 @@ export interface RosterEntry {
   stage?: WorkflowStage
   /** `role` for one of the board's own; otherwise the hook the specialist plugs into. */
   kind: 'role' | AgentKind
+  /** Whether it may lead its stage (#846) — a role with a stage always may. */
+  canLead: boolean
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
   /** Whether this entry can be switched off. A workflow agent cannot (#749): a stage of a
@@ -363,6 +365,7 @@ export function agentRoster(): RosterEntry[] {
       title: said.title,
       gloss: said.description,
       kind: agent.kind,
+      canLead: agent.canLead,
       ...(agent.stage ? { stage: agent.stage } : {}),
       builtIn: agent.builtIn,
       // A stage is the switch (#749): assign it to one in the Workflows pane, or leave it
@@ -379,6 +382,7 @@ export function agentRoster(): RosterEntry[] {
       title: '',
       gloss: role.gloss,
       kind: 'role' as const,
+      canLead: role.stage !== undefined,
       ...(role.stage ? { stage: role.stage } : {}),
       builtIn: true,
       switchable: role.switch !== undefined,

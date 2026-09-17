@@ -272,6 +272,12 @@ into. A `settings` entry becomes a control on that agent's page, and only the ch
 choice's `reference` is loaded into the run — the instructions for the option nobody picked are never read. `akb spec`
 lists the agents this board can use and, under them, anything wrong with one it found.
 
+A new agent only **helps** a stage. Add `lead: true` under `akb:` to let it **lead** its plan or
+execute stage too; only agents that say so are offered as a workflow's lead. Of the ones the board
+ships, the Planner, the Builder, the Scriptwriter and the HyperFrames editor lead. A workflow that
+already has an undeclared agent leading keeps running, and Configuration → Workflows marks that
+stage.
+
 **Delete** on an agent's page removes it and everything the board kept for it — the folder, the
 instructions you wrote for it, what it remembered, and its switch. Only an agent this project
 added: the roles and the three the command ships are not yours to remove, and have no Delete.

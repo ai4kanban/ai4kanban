@@ -203,6 +203,8 @@ describe('the team, as a contract read and write', () => {
     assert.ok(added.ok)
     const file = path.join(kanban, 'agents', 'api-contract', 'AGENT.md')
     assert.match(fs.readFileSync(file, 'utf8'), /kind: spec/)
+    // It only helps until the commented lead line is taken up (#846).
+    assert.match(fs.readFileSync(file, 'utf8'), /^  # lead: true/m)
 
     // It parses, so it is in the roster with its own box rather than in the problems list.
     const { agents } = await board().readAgents()

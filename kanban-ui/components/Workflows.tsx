@@ -62,6 +62,11 @@ export function useWorkflowName(): (flow: { id: string; name: string; builtIn: b
 export const stageBlocked = (setup: WorkflowStageView): boolean =>
   setup.stage !== "review" && (!setup.lead || !setup.candidates.some((a) => a.name === setup.lead));
 
+/** Whether a stage runs on a lead picked before agents declared whether they may lead (#846).
+ *  It still runs; the pane only says so. */
+const leadUndeclared = (setup: WorkflowStageView): boolean =>
+  setup.candidates.some((a) => a.name === setup.lead && !a.canLead);
+
 /** The one mark this card adds, in the shape of the `Built-in` chip beside it — peach is the
  *  palette's attention hue and is all that separates the two. A ready workflow gets none. */
 function NotReadyPill({ children }: { children: string }) {
@@ -390,24 +395,31 @@ export function WorkflowsPanel({
                         <p className="mt-1.5 text-[11.5px] text-nb-ink-soft">{c.leadFixed}</p>
                       </div>
                     ) : (
-                      <div className="relative inline-block">
-                        <LeadButton
-                          setup={setup}
-                          open={picking === "lead"}
-                          pickLead={c.pickLead}
-                          onOpen={() => setPicking((was) => (was === "lead" ? null : "lead"))}
-                        />
-                        {picking === "lead" && (
-                          <Picker
-                            candidates={setup.candidates.filter((a) => !setup.helpers.some((h) => h.agent === a.name))}
-                            chosen={setup.lead}
-                            onPick={async (name) => {
-                              setPicking(null);
-                              await move(stage, { kind: "lead", agent: name });
-                            }}
-                            onManage={() => onManage?.(stage)}
-                            onDismiss={() => setPicking(null)}
+                      <div>
+                        <div className="relative inline-block">
+                          <LeadButton
+                            setup={setup}
+                            open={picking === "lead"}
+                            pickLead={c.pickLead}
+                            onOpen={() => setPicking((was) => (was === "lead" ? null : "lead"))}
                           />
+                          {picking === "lead" && (
+                            <Picker
+                              candidates={setup.candidates.filter(
+                                (a) => a.canLead && !setup.helpers.some((h) => h.agent === a.name),
+                              )}
+                              chosen={setup.lead}
+                              onPick={async (name) => {
+                                setPicking(null);
+                                await move(stage, { kind: "lead", agent: name });
+                              }}
+                              onManage={() => onManage?.(stage)}
+                              onDismiss={() => setPicking(null)}
+                            />
+                          )}
+                        </div>
+                        {leadUndeclared(setup) && (
+                          <p className="mt-1.5 text-[11.5px] text-nb-peach-ink">{c.leadUndeclared}</p>
                         )}
                       </div>
                     )}

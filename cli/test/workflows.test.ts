@@ -12,7 +12,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { parseFrontmatter, serializeFrontmatter } from '../src/lib/frontmatter.ts'
-import { buildAsk } from '../src/lib/agent/prompts.ts'
+import { buildAsk, leadBlock } from '../src/lib/agent/prompts.ts'
 import { agentForFlow, stageContract } from '../src/lib/agent/stages.ts'
 import { readDeliveryRow, readStore, withStore } from '../src/lib/agent/store.ts'
 import { joinDelivery } from '../src/lib/agent/deliveries.ts'
@@ -54,12 +54,23 @@ const solution = (name: string): void => {
 }
 
 // Project agents for the two later stages — the command ships none but its own roles there.
-const stageAgent = (name: string, stage: string): void => {
+const stageAgent = (name: string, stage: string, lead = false): void => {
   const home = path.join(kanban(), 'agents', name)
   fs.mkdirSync(home, { recursive: true })
   fs.writeFileSync(
     path.join(home, 'AGENT.md'),
-    ['---', `name: ${name}`, 'description: Use when.', 'akb:', `  stage: ${stage}`, '---', '', 'You work.', ''].join('\n'),
+    [
+      '---',
+      `name: ${name}`,
+      'description: Use when.',
+      'akb:',
+      `  stage: ${stage}`,
+      ...(lead ? ['  lead: true'] : []),
+      '---',
+      '',
+      'You work.',
+      '',
+    ].join('\n'),
   )
 }
 
@@ -94,7 +105,7 @@ beforeEach(() => {
   fs.writeFileSync(path.join(kanban(), 'todo', 'README.md'), '# Tasks\n\n## Tasks\n')
   setBoardRoot(root)
   solution('product')
-  stageAgent('test-writer', 'execute')
+  stageAgent('test-writer', 'execute', true)
   stageAgent('test-checker', 'review')
 })
 
@@ -136,9 +147,9 @@ describe('the workflows a board has', () => {
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
     const mine = createWorkflow('Mine')
     assert.match(setWorkflowLead(mine.id!, 'execute', 'planner').error!, /is a plan agent/)
-    assert.equal(setWorkflowLead(mine.id!, 'plan', 'ui-designer').ok, true)
-    assert.equal(workflowById(mine.id!)!.stages.plan.lead, 'ui-designer')
-    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'ui-designer').ok, false)
+    assert.equal(setWorkflowLead(mine.id!, 'plan', 'planner').ok, true)
+    assert.equal(workflowById(mine.id!)!.stages.plan.lead, 'planner')
+    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'planner').ok, false)
   })
 
   it('keeps the specialists the coding plan stage offers until the board chooses for it', () => {
@@ -476,7 +487,7 @@ describe('starting a run on an unfinished workflow', () => {
     assert.deepEqual(readStore().runs, [])
 
     // With plan and execute led it starts like any other card — review needs nobody (#820).
-    for (const [stage, agent] of [['plan', 'ui-designer'], ['execute', 'test-writer']] as const) {
+    for (const [stage, agent] of [['plan', 'scriptwriter'], ['execute', 'test-writer']] as const) {
       assert.equal(setWorkflowLead(made.id!, stage, agent).ok, true)
     }
     assert.deepEqual(workflowProblems(made.id!), [])
@@ -554,3 +565,54 @@ describe('a card a delivery is already building', () => {
   })
 })
 
+describe('who may lead a stage (#846)', () => {
+  const planView = (id: string) => workflowViews().find((w) => w.id === id)!.stages[0]!
+
+  it('offers only the agents that declare it, and the helpers stay as they were', () => {
+    stageAgent('outliner', 'plan', true)
+    const mine = createWorkflow('Mine')
+    const leads = planView(mine.id!).candidates.filter((a) => a.canLead).map((a) => a.name)
+    assert.deepEqual(leads, ['planner', 'scriptwriter', 'outliner'])
+    assert.deepEqual(
+      stageCandidates('execute').filter((a) => a.canLead).map((a) => a.name),
+      ['builder', 'hyperframes-editor', 'test-writer'],
+    )
+    assert.match(setWorkflowLead(mine.id!, 'plan', 'ui-designer').error!, /can only help/)
+    // A declared lead still helps.
+    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'outliner').ok, true)
+    assert.equal(addWorkflowHelper(mine.id!, 'plan', 'planner').ok, true)
+  })
+
+  it('keeps running a lead saved before the declaration, and says so', () => {
+    fs.writeFileSync(
+      path.join(kanban(), 'ui.config.json'),
+      JSON.stringify({
+        workflows: {
+          added: [{ id: 'wf-5', name: 'Old' }],
+          stages: { 'wf-5': { plan: { lead: 'ui-designer' }, execute: { lead: 'builder' } } },
+        },
+      }),
+    )
+    assert.deepEqual(workflowProblems('wf-5'), [])
+    assert.equal(workflowById('wf-5')!.stages.plan.lead, 'ui-designer')
+    const lead = planView('wf-5').candidates.find((a) => a.name === 'ui-designer')!
+    assert.equal(lead.canLead, undefined)
+    // Saving it again is not a new pick.
+    assert.equal(setWorkflowLead('wf-5', 'plan', 'ui-designer').ok, true)
+  })
+
+  it('gives a declared lead its own instructions when leading, and never when helping', () => {
+    stageAgent('outliner', 'plan', true)
+    fs.writeFileSync(
+      path.join(kanban(), 'ui.config.json'),
+      JSON.stringify({
+        workflows: {
+          added: [{ id: 'wf-6', name: 'Outline' }],
+          stages: { 'wf-6': { plan: { lead: 'outliner' }, execute: { lead: 'builder' } } },
+        },
+      }),
+    )
+    assert.match(leadBlock({ action: 'clarify', id: 1, workflow: 'wf-6' }), /the `outliner` agent/)
+    assert.equal(leadBlock({ action: 'spec', id: 1, specAgent: 'outliner' }), '')
+  })
+})
