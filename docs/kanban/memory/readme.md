@@ -35,13 +35,16 @@ covers it, or a plain-words note.
 - Mentioning a piece of work a card does not cover, while talking on that card, now opens a
   new card for it: the board takes your own words and runs the full add-task flow on its own,
   and the conversation says so and stays on the card you were reading.
-- The lead agents of the two workflows the command ships — Coding and Content creation — are
-  now fixed and shown rather than picked, so the name of a built-in always says who runs it.
+- The lead agents of the Coding workflow the command ships are fixed and shown rather than
+  picked, so the name of a built-in always says who runs it.
   Duplicating one, or adding your own, gives you a workflow whose three leads are yours to
   choose; the helpers on a built-in are still yours to add and remove.
 - Coming back to a card page with Back or Forward (the browser's, or the app's swipe) now
   shows the card as it is on disk, not as it was when you left; a change that lands only in
   the folded agent analysis opens that fold.
+- Fenced code in cards, memory pages and chat replies is coloured by its language tag (common
+  languages, GitHub's light colours); a ```diff block shows added and removed lines in the Diff
+  tab's green and orange. An untagged block stays plain.
 
 ## site
 
@@ -51,3 +54,6 @@ covers it, or a plain-words note.
 
 - A specialist can wait for another one's section with `akb.dependencies`, and a new built-in `copywriting` agent writes promotional copy that `ui-designer` waits for until you confirm it: `web/content/docs/agents.mdx`.
 - A project agent, `prompt-writer`, shows the full proposed text of any skill, agent prompt or akb guide change on the card and waits for your confirmation.
+- The built-in Content creation workflow and its three content agents are gone; Coding is the only built-in workflow, and a card still marked `content` runs on it.
+- An agent's `AGENT.md` no longer takes `akb.owns`; its `description` is what the Agents and Workflows panes show, and an old `owns` line is ignored: `web/content/docs/agents.mdx`.
+- A workflow's review stage is a list of reviewers with no lead: the board picks the ones a build's diff needs, the built-in `code-reviewer` replaces the Reviewer role, and a workflow with no reviewers delivers a finished build unreviewed: `web/content/docs/agents.mdx`.

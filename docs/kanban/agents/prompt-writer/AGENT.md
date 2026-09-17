@@ -3,12 +3,10 @@ name: prompt-writer
 description: Use whenever a card adds or changes a skill, an agent prompt, or an akb guide. A detailed plan is not a reason to skip.
 akb:
   kind: spec
-  owns: the instruction text a card changes — every file's change as a unified diff, ready to apply
   i18n:
     zh:
       title: 提示词撰写
       description: 当卡片要新增或修改 skill、agent 提示词或 akb 指南时使用。计划写得详细不是跳过的理由。
-      owns: 卡片改动的指令文本——每个文件的改动以 unified diff 给出，可直接应用
   memory: project
   output: human
 ---

@@ -5,13 +5,10 @@ covers it, or a plain-words note.
 
 ## How marketing work is run
 
-- Marketing work is planned and written on the ordinary board, through the **Content
-  creation** workflow: a card is a piece, its delivery is the file in the repo, and review
-  reads that file. There is no second board, no topic page and no draft editor — the piece is
-  a file you open in your own editor, and rework goes back through review.
-- The writing taste the board learned is the three content agents' own, in
-  `docs/kanban/memory/agents/<agent>/`. All three are handed all three folders on every
-  content run; each writes back only its own.
+- Marketing work is planned and written on the ordinary board, as an ordinary card on the
+  default workflow: its delivery is the file in the repo, and review reads that file. There is
+  no second board, no topic page and no draft editor — the piece is a file you open in your
+  own editor, and rework goes back through review.
 
 ## Published elsewhere
 

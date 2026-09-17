@@ -15,11 +15,10 @@ Internal detail stays on the card.
 ## Retiring the marketing pack
 
 - **Content work runs on the ordinary board**: the marketing-only implementation is gone, and a
-  piece of writing is planned, delivered and reviewed through the content workflow like any
-  other card. There is no second board and no second set of flows to keep in step.
+  piece of writing is planned, delivered and reviewed like any other card, on the default
+  workflow. There is no second board and no second set of flows to keep in step.
 - **The marketing board's data was deleted, not migrated**: `marketing/kanban/` went with its
-  published record and its feedback, because the board's owner was its only user. Only the
-  writing taste was kept, and it lives in the content agents' own memory.
+  published record and its feedback, because the board's owner was its only user.
 
 ## awesome-agent-kanban
 

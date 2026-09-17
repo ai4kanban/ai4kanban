@@ -14,6 +14,8 @@ re-ask a settled call.
 - Every memory file belongs to the agent that owns it: `decisions.md` and `rejected.md` to the
   planner, `readme.md` and `redesign.md` to the builder, its own preferences and corrections
   to every other agent. The board holds no preferences of its own.
+- A user's answer or revision on a spec agent's section is written into that agent's memory
+  right away by the planner flow, in the file that agent's AGENT.md names for it.
 - Neither the board nor a module keeps a memory folder — a module is a topic inside an
   agent's file, and the shipped list and the cross-agent product calls hang off an agent too.
 
@@ -211,7 +213,7 @@ re-ask a settled call.
   `docs/kanban/design/<app>.md`, picked from the card's module.
 - Re-drawing a mockup is re-running the agent with the change said in words; selecting a single
   screen on the card page is not planned work.
-- A spec agent's `owns` names the kinds of work it covers, never repository paths; where those
+- A spec agent's `description` names the kinds of work it covers, never repository paths; where those
   files actually live is what its own memory accumulates.
 
 ## Chat

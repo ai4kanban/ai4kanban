@@ -78,10 +78,10 @@ covers it, or a plain-words note.
 ## Workflows
 
 - Every card runs through one workflow — `plan → execute → review`, each stage led by one
-  agent that may call helpers in. Two ship with the command: `coding`, what every board did
-  before, and `content`, whose three leads write into the repository. A board adds its own;
-  a built-in can be reassigned and copied but not renamed or deleted. `akb workflow list`
-  shows them, `akb workflow stage <id> --stage <stage> --lead <agent>` assigns one.
+  agent that may call helpers in. `coding` ships with the command; a card still naming the
+  retired `content` runs on it. A board adds its own; a built-in takes helpers and can be
+  copied, but not renamed or deleted. `akb workflow list` shows them,
+  `akb workflow stage <id> --stage <stage> --lead <agent>` assigns one.
 - A card names its workflow in its own frontmatter — `akb raw create --workflow <id>`, or
   the picker on the card page. A card that names none runs on `coding`. Moving a card to
   another workflow sends it back to `todo` to be planned again, and is refused while a
@@ -90,11 +90,7 @@ covers it, or a plain-words note.
   its `AGENT.md`; one written before that key reads as `plan`. A stage offers only the
   agents that declare it, and no agent a stage can assign carries a switch of its own — the
   assignment is the whole answer, the Code reviewer included: `web/content/docs/agents.mdx`.
-- A content card's execute and review are read in that workflow's own words: no tests, no
-  diff-size bar, and a delivery that wrote no file stops unfinished rather than passing as
-  one with nothing to land. Ask for the flow a card actually reads with
-  `akb guide <topic> --card <id>`.
-- Content work runs on the ordinary board, through the `content` workflow: the marketing
+- Content work runs on the ordinary board, on the default workflow: the marketing
   board and everything only it had — `akb channel`, `akb write`, `akb marketing verify`,
   `akb raw channel-status`, `--channels`, `--solution` and the `write` agent kind — are gone,
   and there is one kind of board again. A board still carrying a `Solution` line, cards with
