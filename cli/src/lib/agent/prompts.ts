@@ -157,12 +157,9 @@ export function buildAsk(rawReq: AgentRequest, notes: string[] = []): string {
   // spells the command the ordinary way.
   const command = DELIVERY_FLOWS.has(req.action) ? boardCommandFor(req.id) : boardCommand()
   const ask = [actionPrompt(req, command, notes), pictureNote(req), commandNote(command)].filter(Boolean).join(' ')
-  // Which workflow this card runs on, when it is not the board's default (#715). The flows
-  // this run is told to read are written differently per workflow, and `akb guide <topic>`
-  // has no card to read one off — so the run is told to name the card when it asks.
   // `docs/kanban` in these words is this board's real folder (#407) — the same swap the
   // flows get, so the ask and the flow it names never disagree about where the board is.
-  return boardText([ask, workflowNote(req, command), languageNote(), roster(req)].filter(Boolean).join('\n\n'))
+  return boardText([ask, languageNote(), roster(req)].filter(Boolean).join('\n\n'))
 }
 
 // What one workflow asks of a helper it calls in, on top of the agent's own instructions
@@ -206,25 +203,22 @@ function createWorkflowNote(req: AgentRequest): string {
   return `Put the new card(s) on the "${flow.name}" workflow: \`--workflow ${flow.id}\`.`
 }
 
-// A card on the board's default workflow gets nothing: that is what every flow already
-// reads, and a line saying so on every run would be a line nobody acts on.
-function workflowNote(req: AgentRequest, command: string): string {
-  if (req.id === undefined) return ''
-  const id = workflowForRun(req)
-  if (!id || id === DEFAULT_WORKFLOW) return ''
-  const flow = workflowById(id)
-  if (!flow) return ''
-  return (
-    `This card runs on the "${flow.name}" workflow, not the default one. Read every flow it names with ` +
-    `\`${command} guide <topic> --card ${req.id}\` — the same flow reads differently per workflow.`
-  )
-}
-
 /** The words one run is given, this board's own rule for the flow last (#306). It goes
  *  after everything else the board writes, so nothing of the board's follows the user's. */
 export function buildPrompt(rawReq: AgentRequest, notes: string[] = []): string {
   const req = withWorkflow(rawReq)
-  return [buildAsk(req, notes), ruleBlock(req, frozenRules(req))].filter(Boolean).join('\n\n')
+  return [buildAsk(req, notes), leadBlock(req), ruleBlock(req, frozenRules(req))].filter(Boolean).join('\n\n')
+}
+
+/** A `lead` agent's own instructions, for a run it leads (#822). Laid over the shared flow,
+ *  never in place of it. */
+export function leadBlock(req: AgentRequest): string {
+  const name = agentForRun(req)
+  const agent = name ? findSpecAgent(name) : null
+  if (agent?.kind !== 'lead') return ''
+  return boardText(
+    `——— you, the \`${agent.name}\` agent — where this differs from the shared flow, follow this ———\n\n${agent.body}`,
+  )
 }
 
 /** The pictures pasted into the create sheet (#517), as files to open — that is the only

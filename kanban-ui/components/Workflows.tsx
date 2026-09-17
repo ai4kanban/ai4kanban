@@ -437,7 +437,7 @@ export function WorkflowsPanel({
                             <Picker
                               right
                               candidates={setup.candidates.filter(
-                                (a) => a.name !== setup.lead && !setup.helpers.some((h) => h.agent === a.name),
+                                (a) => !a.leadOnly && a.name !== setup.lead && !setup.helpers.some((h) => h.agent === a.name),
                               )}
                               chosen=""
                               onPick={async (name) => {

@@ -894,6 +894,7 @@ function Page({
   const title = useAgentTitle()(agent);
   const placeholder =
     role?.rule ??
+    (agent.builtIn ? c.specialistRule.byAgent[agent.name]?.(title) : undefined) ??
     (agent.kind === "spec" ? c.specialistRule.spec(title) : c.rulePlaceholder(title));
 
   // Which box this page writes through: an added agent owns its whole file, a bundled one

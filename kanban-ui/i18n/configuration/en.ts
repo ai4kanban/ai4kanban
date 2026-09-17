@@ -28,7 +28,7 @@ const en: ConfigurationCopy = {
     add: "New workflow",
     builtIn: "Built-in",
     isDefault: "Default",
-    builtInNames: { coding: "Coding" },
+    builtInNames: { coding: "Coding", "hyperframes-video": "Demo video" },
     stages: { plan: "Plan", execute: "Execute", review: "Review" },
     lead: "Lead agent",
     pickLead: "Select agent",
@@ -379,6 +379,14 @@ const en: ConfigurationCopy = {
     },
     specialistRule: {
       spec: (agent) => `Added to the end of every run ${agent} does while a card is being refined — "follow the tokens in app/globals.css".`,
+      byAgent: {
+        scriptwriter: () =>
+          'Added to the end of every Create, Refine and Revise run on a demo video card — "keep the whole video under 60 seconds".',
+        "video-assets": (agent) =>
+          `Added to the end of every run ${agent} does while a card is being refined — "record every clip at 1920×1080, 30 fps".`,
+        "hyperframes-editor": () =>
+          'Added to the end of every Implement, Conflict and Run on a demo video card — "set every caption in Inter".',
+      },
     },
     saved: "Saved",
     ruleFailed: (agent) => `couldn't save ${agent}'s instructions`,

@@ -20,6 +20,9 @@ of them can be switched off:
 - **Planner** — plans and refines cards. It runs create, refine, resolve, revise, the release
   plan, the changelog, archive and reject.
 - **Builder** — builds cards and lands them: implement, conflict, run.
+- **Scriptwriter**, **HyperFrames editor** — lead the Demo video workflow: the scriptwriter writes the
+  video's script into the card, the editor assembles your recordings with HyperFrames and renders
+  the mp4 into the board's asset folder for that card.
 - **Sweeper** — settles a card that has sat too long: it rewrites the card for the project as it
   stands today, or discards it. `akb card unstick <id>` runs it on one card.
 - **Gater** — judges whether a card that reached ready is clear enough to build unwatched. Off by
@@ -44,7 +47,7 @@ rather than on.
 
 **Specialists** fill one part of a card's spec and fill only that part. Each one runs on its own,
 while a card is being planned — never while it is being built — writes one named section of that
-card, and changes nothing else. The board ships three, and `akb spec` lists them:
+card, and changes nothing else. The board ships four, and `akb spec` lists them:
 
 - **`copywriting`** — writes the promotional copy a card changes: website pages, the README,
   release notes, and store or Product Hunt listings. User documentation, text inside the product
@@ -60,6 +63,8 @@ card, and changes nothing else. The board ships three, and `akb spec` lists them
   one table — a row per candidate, with what it is, its pros and its cons — and one line naming
   the pick. Keeping what the project already uses and writing it yourself are rows too, so a card
   doesn't come back with something new to install by default.
+- **`video-assets`** — on a Demo video card only: prepares the files the video is built from. It
+  makes the ones it can, and lists the rest for you with the folder to put them in.
 
 A specialist's run is a run like any other, with three things that make it different: it starts
 clean, given the card and a short note but never the conversation that asked for it; it writes one

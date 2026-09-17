@@ -56,7 +56,6 @@ import updateQuestions from '../guide/update-questions.md'
 import writing from '../guide/writing.md'
 
 import { boardText } from './paths'
-import { workflowFor } from './agent/workflows'
 
 /** One flow: the name it is asked for by, the one line the list shows, and the text. */
 export interface Guide {
@@ -105,21 +104,8 @@ export const GUIDES: Guide[] = [
   { name: 'local-ui', when: 'run the board from buttons instead of the terminal', text: localUi },
 ]
 
-/** The flows one built-in workflow says differently (#715), keyed by its id. Everything a
- *  workflow does not name here is the shared text. */
-const WORKFLOW_OVERRIDES: Record<string, Record<string, string>> = {}
-
-/** Every flow THIS board reads: the shared list, in the card's workflow's words.
- *
- *  `workflow` is the card's own. Left off, no workflow's words are laid over the shared
- *  text — which is what a flow that names no card reads. */
-function guidesHere(workflow?: string): Guide[] {
-  const mine = WORKFLOW_OVERRIDES[workflowFor(workflow)?.id ?? ''] ?? {}
-  return GUIDES.map((g) => ({ ...g, text: mine[g.name] ?? g.text }))
-}
-
 /** The names this board answers to. */
-export const guideNames = (): string[] => guidesHere().map((g) => g.name)
+export const guideNames = (): string[] => GUIDES.map((g) => g.name)
 
 /** Names a flow answered to before it was renamed. Asked for by the old one, the flow still
  *  comes back — every board, card and habit that spells it the old way keeps working. */
@@ -127,17 +113,16 @@ const RENAMED: Record<string, string> = {
   'spec-skill': 'spec-agent',
 }
 
-/** One flow as this board reads it: the card's workflow over the shared text, spelling this
- *  board's own path. */
-export function findGuide(name: string, workflow?: string): Guide | null {
+/** One flow as this board reads it, spelling this board's own path. */
+export function findGuide(name: string): Guide | null {
   const wanted = RENAMED[name] ?? name
-  const guide = guidesHere(workflow).find((g) => g.name === wanted)
+  const guide = GUIDES.find((g) => g.name === wanted)
   return guide ? { ...guide, text: boardText(guide.text) } : null
 }
 
 /** The list of flows, one line each — what `akb guide` with no topic prints. */
 export function guideList(program: string): string {
-  const guides = guidesHere()
+  const guides = GUIDES
   // Wide enough for the longest name plus a gap, worked out rather than typed so adding a
   // longer one can't quietly run the two columns together.
   const col = Math.max(...guides.map((g) => g.name.length)) + 4

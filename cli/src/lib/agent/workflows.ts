@@ -112,9 +112,8 @@ interface BuiltinWorkflow {
 // helpers are the specialists the command ships — each joins only when its own applicability
 // says so, which is why neither is required.
 //
-// `content` is the same three stages led by the content agents (./roles.ts). It shares the
-// board's planning and building memory rather than starting a second set: a board that
-// remembers its decisions in two places is a board whose pruner can only read half of them.
+// `hyperframes-video` is one demo video per card (#822): its leads are `lead` agents the
+// command ships, and nothing reviews the render.
 const BUILTINS: BuiltinWorkflow[] = [
   {
     id: 'coding',
@@ -125,7 +124,28 @@ const BUILTINS: BuiltinWorkflow[] = [
       review: { lead: '', helpers: ['code-reviewer'] },
     },
   },
+  {
+    id: 'hyperframes-video',
+    name: 'Demo video',
+    needsArtifact: true,
+    stages: {
+      plan: { lead: 'scriptwriter', helpers: ['video-assets'] },
+      execute: { lead: 'hyperframes-editor', helpers: [] },
+      review: { lead: '', helpers: [] },
+    },
+  },
 ]
+
+// A helper another built-in names is that workflow's, so `every` leaves it out.
+const namedByBuiltins = (except: string): Set<string> =>
+  new Set(
+    BUILTINS.filter((w) => w.id !== except).flatMap((w) =>
+      WORKFLOW_STAGES.flatMap((stage) => {
+        const helpers = w.stages[stage].helpers
+        return Array.isArray(helpers) ? helpers : []
+      }),
+    ),
+  )
 
 /** The stage that has reviewers instead of a lead (#820). */
 const REVIEW: WorkflowStage = 'review'
@@ -257,10 +277,11 @@ function offeredBefore(
   if (saved.helpers !== undefined) return { lead, helpers: saved.helpers }
   const declared = base?.stages[stage].helpers
   if (declared === 'every') {
+    const others = namedByBuiltins(id)
     return {
       lead,
       helpers: [...stageOf]
-        .filter(([name, where]) => where === stage && name !== lead)
+        .filter(([name, where]) => where === stage && name !== lead && !others.has(name))
         .map(([name]) => ({ agent: name, extra: '' })),
     }
   }
@@ -275,7 +296,7 @@ function foldAgentSwitches(cfg: Record<string, unknown>): boolean {
   // inside of. Only a specialist can carry one of these keys on a board with workflows —
   // `kind: write` does not parse here (../agents/parse.ts).
   const stageOf = new Map<string, WorkflowStage>()
-  for (const agent of specAgentCatalog().agents) if (agent.stage) stageOf.set(agent.name, agent.stage)
+  for (const agent of specAgentCatalog().agents) if (agent.stage && agent.kind !== 'lead') stageOf.set(agent.name, agent.stage)
   const { ok } = writeConfig((raw) => {
     const off = new Set(switchedOff(raw).map(canonicalSpecAgent))
     const block = configBlock(raw.workflows)
@@ -466,11 +487,19 @@ export function stageHelpers(flow: Workflow, stage: WorkflowStage): WorkflowHelp
   const setup = flow.stages[stage]
   const inherits = !setup.helpersChosen && BUILTINS.find((w) => w.id === flow.id)?.stages[stage].helpers === 'every'
   if (inherits) {
+    const others = namedByBuiltins(flow.id)
     return roster
-      .filter((entry) => entry.stage === stage && entry.kind !== 'role' && entry.name !== setup.lead)
+      .filter(
+        (entry) =>
+          entry.stage === stage &&
+          entry.kind !== 'role' &&
+          entry.kind !== 'lead' &&
+          entry.name !== setup.lead &&
+          !others.has(entry.name),
+      )
       .map((entry) => ({ agent: entry.name, extra: '' }))
   }
-  const names = new Set(roster.map((entry) => entry.name))
+  const names = new Set(roster.filter((entry) => entry.kind !== 'lead').map((entry) => entry.name))
   // Never the lead as well: a board that had assigned a built-in's lead elsewhere gets its
   // own agent back (#774), and it may be sitting in the helpers it was moved aside for.
   return setup.helpers.filter((h) => names.has(h.agent) && h.agent !== setup.lead)
@@ -685,6 +714,7 @@ export function addWorkflowHelper(id: string, stage: WorkflowStage, agent: strin
   const found = agentRoster().find((entry) => entry.name === wanted)
   if (!found) return { ok: false, error: `this board has no \`${wanted}\` agent` }
   if (found.stage !== stage) return { ok: false, error: `\`${wanted}\` is a ${found.stage ?? 'board'} agent and cannot help ${stage}` }
+  if (found.kind === 'lead') return { ok: false, error: `\`${wanted}\` only leads a stage and cannot help one` }
   const flow = workflowById(id)
   if (flow?.stages[stage].lead === wanted) {
     return { ok: false, error: `\`${wanted}\` already leads this stage` }
@@ -798,6 +828,7 @@ const candidateOf = (entry: RosterEntry): WorkflowCandidate => ({
   title: entry.title,
   gloss: entry.gloss,
   builtIn: entry.builtIn,
+  ...(entry.kind === 'lead' ? { leadOnly: true } : {}),
 })
 
 /** Every workflow this board has, with each stage's lead, helpers and candidates. One read

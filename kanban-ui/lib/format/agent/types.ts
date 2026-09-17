@@ -1467,7 +1467,7 @@ export interface AgentView {
   /** `role` for one of the board's own; otherwise the hook the specialist plugs into. Spelled
    *  out rather than imported: this file is copied into the board UI and may reach only its
    *  siblings, and `AgentKind` lives beside the catalog that reads an `AGENT.md`. */
-  kind: 'role' | 'spec'
+  kind: 'role' | 'spec' | 'lead'
   /** The workflow stage this agent can be assigned to (#715), or absent on a BOARD agent —
    *  the discussion, the gate, the decider, the pruner — which no workflow assigns and every
    *  workflow gets. Spelled out for the same reason `kind` is. */
@@ -1644,6 +1644,8 @@ export interface WorkflowCandidate {
   gloss: string
   /** Whether the command ships it, as opposed to the project adding it. */
   builtIn: boolean
+  /** A `lead` agent: offered to lead the stage, never to help it. */
+  leadOnly?: boolean
 }
 
 /** One stage of one workflow, as a screen draws it. */

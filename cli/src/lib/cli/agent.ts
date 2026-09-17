@@ -370,8 +370,8 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .summary('the workflows this board runs, and who runs each of their stages')
     .description(
       'Every card runs through one workflow: `plan → execute → review`, each stage led by one agent and ' +
-        'able to call in helpers. `coding` and `content` ship with the command and can be reassigned and ' +
-        'copied but not renamed or deleted. A card names its workflow in its own frontmatter ' +
+        'able to call in helpers. `coding` and `hyperframes-video` ship with the command: their leads are ' +
+        'fixed, their helpers can be changed, and they can be copied but not renamed or deleted. A card names its workflow in its own frontmatter ' +
         '(`akb raw create --workflow`), and a delivery freezes the one it started with.',
     )
     .action(async function (this: Command) {
@@ -440,7 +440,6 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
 
   withShared(program.command('guide'))
     .argument('[topic]', 'one flow in full; left off, every flow is listed one line each')
-    .option('--card <id>', "read the flow in that card's workflow words, where its workflow has its own")
     .summary('the flows the board works by, shipped with this command')
     .description(
       'A printed flow already carries the flows its action is done by, so this is for the rest: how the ' +
@@ -450,13 +449,12 @@ export function declareRuns(program: Command, cli: AgentCliOptions): void {
     .action(async function (this: Command, ...vals: unknown[]) {
       const [topic] = positional(vals) as [string | undefined]
       const ctx = ctxOf(this, cli.program)
-      const card = Number((this.opts() as { card?: string }).card)
       try {
         useBoard(resolveBoard('guide', { board: ctx.board, dir: ctx.dir, cwd: cli.cwd, installHint: cli.installHint }), ctx.dir !== null)
       } catch {
         // No board here, or a half-made one. The shipped text still reads.
       }
-      await boardless(this, cli, (p) => cmdGuide(topic, p, Number.isInteger(card) ? card : undefined))
+      await boardless(this, cli, (p) => cmdGuide(topic, p))
     })
 
   // The watcher's own door. Not a command anyone types — `akb card implement 12` spawns it — and

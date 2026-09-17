@@ -53,7 +53,7 @@ export type ConfigurationCopy = {
     /** What the workflow the command ships is CALLED here. Closed, because the command
      *  ships them — a workflow this board adds is the user's own words and is drawn as
      *  written. Keyed by the workflow's own id, which never changes. */
-    builtInNames: Record<"coding", string>;
+    builtInNames: Record<"coding" | "hyperframes-video", string>;
     /** The three stages, in the order a card goes through them. */
     stages: { plan: string; execute: string; review: string };
     /** The one agent that runs the selected stage, and the picker when nobody does. */
@@ -350,6 +350,8 @@ export type ConfigurationCopy = {
     /** The same box for a specialist. */
     specialistRule: {
       spec: (agent: string) => string;
+      /** A built-in agent's own example, by name, in place of the shared one. */
+      byAgent: Record<string, (agent: string) => string>;
     };
     saved: string;
     ruleFailed: (agent: string) => string;

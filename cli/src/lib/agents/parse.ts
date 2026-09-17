@@ -62,15 +62,16 @@ export interface SettingLines {
   choices?: Record<string, { label?: string; cost?: string }>
 }
 
-/** The hooks an agent may plug into. One: `spec` fills one part of a card's spec. `write`
+/** The hooks an agent may plug into: `spec` fills one part of a card's spec; `lead` runs a
+ *  workflow's plan or execute stage, its body printed after the shared flow (#822). `write`
  *  joined the retired marketing board's writer (#718) — a file still declaring it is listed
  *  as a problem rather than registered as something nothing can call. */
-export const AGENT_KINDS = ['spec'] as const
+export const AGENT_KINDS = ['spec', 'lead'] as const
 export type AgentKind = (typeof AGENT_KINDS)[number]
 
 /** What a `kind` means as a stage, for a file written before `akb.stage` existed. A `spec`
  *  agent fills part of a card's spec while it is being planned, which is the plan stage. */
-const STAGE_OF_KIND: Record<AgentKind, WorkflowStage | null> = { spec: 'plan' }
+const STAGE_OF_KIND: Record<AgentKind, WorkflowStage | null> = { spec: 'plan', lead: null }
 
 /** What an agent may be called: lower-case words joined by "-". It is the folder's name too,
  *  and the word every flow asks for it by. */
@@ -119,11 +120,14 @@ export function parseSpecAgent(
   }
   const kind: AgentKind = isKind(declaredKind) ? declaredKind : 'spec'
   const stage = isStage(declaredStage) ? declaredStage : STAGE_OF_KIND[kind]
+  if (kind === 'lead' && stage !== 'plan' && stage !== 'execute') {
+    return bad(`\`${name}\` is a \`lead\` agent — give it \`akb.stage: plan\` or \`akb.stage: execute\``)
+  }
 
   // Who its output is for, to start with. The setting itself is the board's — every spec
   // agent has it, declared or not — so a file that says nothing gets `agent`, which is where
   // a section has always gone.
-  const declaredOutput = str(akb.output)
+  const declaredOutput = kind === 'lead' ? '' : str(akb.output)
   if (declaredOutput && !isSpecOutput(declaredOutput)) {
     return bad(`\`${name}\` declares \`akb.output: ${declaredOutput}\` — it is \`${SPEC_OUTPUTS.join('` or `')}\``)
   }

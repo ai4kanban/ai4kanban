@@ -141,8 +141,11 @@ describe('the roles', () => {
       'triage',
       'code-reviewer',
       'copywriting',
+      'hyperframes-editor',
+      'scriptwriter',
       'tech-stack-advisor',
       'ui-designer',
+      'video-assets',
     ])
     assert.match(specAgentProblems().join('\n'), /`builder` is one of the roles the board ships/)
   })
@@ -162,10 +165,18 @@ describe('the roles', () => {
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(11), ['code-reviewer', 'copywriting', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(names.slice(11), [
+      'code-reviewer',
+      'copywriting',
+      'hyperframes-editor',
+      'scriptwriter',
+      'tech-stack-advisor',
+      'ui-designer',
+      'video-assets',
+    ])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(11).fill('role'), 'spec', 'spec', 'spec', 'spec'],
+      [...Array(11).fill('role'), 'spec', 'spec', 'lead', 'lead', 'spec', 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)

@@ -103,8 +103,8 @@ afterEach(() => {
 })
 
 describe('the workflows a board has', () => {
-  it('ships one, configured by nobody, with all three stages led', () => {
-    assert.deepEqual(workflows().map((w) => w.id), ['coding'])
+  it('ships two, configured by nobody, with both leads set', () => {
+    assert.deepEqual(workflows().map((w) => w.id), ['coding', 'hyperframes-video'])
     assert.equal(workflowById('coding')!.name, 'Coding')
     assert.deepEqual(workflowProblems('coding'), [])
     // Nothing was written to make that true: a board that never opened the pane still runs.
@@ -126,11 +126,11 @@ describe('the workflows a board has', () => {
   })
 
   it('offers a stage only the agents that declare it', () => {
-    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
+    assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'hyperframes-editor', 'test-writer'])
     assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
-    assert.deepEqual(plan, ['planner', 'copywriting', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(plan, ['planner', 'copywriting', 'scriptwriter', 'tech-stack-advisor', 'ui-designer', 'video-assets'])
   })
 
   it('refuses a lead that belongs to another stage, and one that already helps here', () => {
@@ -391,13 +391,8 @@ describe('the workflow a card carries', () => {
 })
 
 describe('what a workflow changes about a run', () => {
-  it('reads the shared flows on a workflow that says nothing differently', () => {
-    const mine = artifactWorkflow()
-    assert.match(findGuide('implement', 'coding')!.text, /Build the approved card/)
-    for (const flow of ['implement', 'review', 'board']) {
-      assert.equal(findGuide(flow, mine)!.text, findGuide(flow, 'coding')!.text, flow)
-      assert.equal(findGuide(flow, 'content')!.text, findGuide(flow, 'coding')!.text, flow)
-    }
+  it('reads the shared flows whatever the workflow', () => {
+    assert.match(findGuide('implement')!.text, /Build the approved card/)
   })
 
   it('freezes the workflow onto the delivery, and reads every field of it back', () => {

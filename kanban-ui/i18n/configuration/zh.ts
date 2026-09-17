@@ -25,7 +25,7 @@ const zh: ConfigurationCopy = {
     add: "新建工作流",
     builtIn: "内置",
     isDefault: "默认",
-    builtInNames: { coding: "软件开发" },
+    builtInNames: { coding: "软件开发", "hyperframes-video": "演示视频" },
     stages: { plan: "规划", execute: "执行", review: "评审" },
     lead: "负责 Agent",
     pickLead: "选择 Agent",
@@ -475,6 +475,11 @@ const zh: ConfigurationCopy = {
     },
     specialistRule: {
       spec: (agent) => `会附加到卡片打磨期间 ${agent} 每次运行的末尾——例如「遵循 app/globals.css 里的设计变量」。`,
+      byAgent: {
+        scriptwriter: () => "会附加到演示视频卡片每一次新建、澄清和修订运行的末尾——例如「全片不超过 60 秒」。",
+        "video-assets": (agent) => `会附加到卡片打磨期间 ${agent} 每次运行的末尾——例如「录屏统一 1920×1080、30 帧」。`,
+        "hyperframes-editor": () => "会附加到演示视频卡片每一次开发、解冲突和执行运行的末尾——例如「字幕统一用思源黑体」。",
+      },
     },
     saved: "已保存",
     ruleFailed: (agent) => `${agent} 的要求保存失败`,

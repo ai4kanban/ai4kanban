@@ -68,6 +68,8 @@ export let LEGACY_AGENTS = ''
 // What cards show — screens and images, one folder per card id (#803). Keyed by id, so a
 // card leaving the board takes its folder. Machine state: never something the repo carries.
 export let ASSETS = ''
+// The board's machine-state folder, which shipped text spells `<board-state>` (#822).
+export let BOARD_STATE = ''
 // Where assets were kept before #803, still read and still cleaned up.
 export let MOCKUPS = ''
 // All memory lives under docs/kanban/memory/. This folder itself holds the board's own
@@ -272,6 +274,7 @@ function setBoard(kanban: string, root: string, flag: string): string {
   ENV_FILE = path.join(KANBAN, '.env')
   // Local state stays in the checkout and is shared with sandboxed agents.
   const machine = projectStateDir(KANBAN, REPO_ROOT)
+  BOARD_STATE = machine
   ASSETS = path.join(machine, ASSETS_FOLDER)
   MOCKUPS = path.join(machine, MOCKUPS_FOLDER)
   SESSIONS = path.join(machine, SESSIONS_FILE)
@@ -355,12 +358,21 @@ export function boardPath(): string {
 const ASSETS_PATH_IN_TEXT = 'docs/kanban/.assets'
 const MOCKUPS_PATH_IN_TEXT = 'docs/kanban/.mockups'
 
+export const BOARD_STATE_IN_TEXT = '<board-state>'
+
 export function boardText(text: string): string {
-  const drawn = text
-    .split(ASSETS_PATH_IN_TEXT).join(rel(ASSETS))
-    .split(MOCKUPS_PATH_IN_TEXT).join(rel(MOCKUPS))
-  const here = boardPath()
-  return here === BOARD_PATH_IN_TEXT ? drawn : drawn.split(BOARD_PATH_IN_TEXT).join(here)
+  const posix = (p: string): string => rel(p).split(path.sep).join('/')
+  // Longest first, and each swap applied only to text the earlier ones left, so a state
+  // folder that itself spells `docs/kanban` is never rewritten again.
+  const swaps: [string, string][] = [
+    [ASSETS_PATH_IN_TEXT, posix(ASSETS)],
+    [MOCKUPS_PATH_IN_TEXT, posix(MOCKUPS)],
+    [BOARD_STATE_IN_TEXT, posix(BOARD_STATE)],
+    [BOARD_PATH_IN_TEXT, boardPath()],
+  ]
+  const swap = (part: string, i: number): string =>
+    i === swaps.length ? part : part.split(swaps[i]![0]).map((p) => swap(p, i + 1)).join(swaps[i]![1])
+  return swap(text, 0)
 }
 
 export function readNextId(): number {

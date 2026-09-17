@@ -1,6 +1,6 @@
 ## Mockup format: a rendered screen
 
-A mockup is a folder of files under `docs/kanban/.assets/<card id>/`, and it starts as a copy
+A mockup is a folder of files under `<board-state>/assets/<card id>/`, and it starts as a copy
 of the real screen's own source — never a lookalike written from scratch. Copy first, trim
 second, and design only what this card changes.
 

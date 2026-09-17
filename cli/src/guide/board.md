@@ -118,10 +118,10 @@ move the files into the group's folder:
   them. Only update its `reviewed` field — `strong`, `good`, `pending`, or `weak` (missing,
   empty, or too vague). Replace `pending` with an assessment the next time you read it,
   without interrupting the user.
-- **`memory/agents/planner/`**: owned by `planner`. `decisions.md` holds user-facing answers
-  that guide future planning, `redesign.md` design mistakes to avoid, `rejected.md` turned-down
-  ideas and why. Flows that only judge — the gate, the decider, the sweep, triage, a
-  reflection — read them and write none.
+- **`memory/agents/planner/`**: owned by the plan lead — `planner`, or the agent a workflow
+  names in its place. `decisions.md` holds user-facing answers that guide future planning,
+  `redesign.md` design mistakes to avoid, `rejected.md` turned-down ideas and why. Flows that
+  only judge — the gate, the decider, the sweep, triage, a reflection — read them and write none.
 - **`memory/agents/<agent>/`**: a spec agent keeps the files its own AGENT.md names, and only
   those (`akb guide update-questions`). An agent whose instructions name none keeps none.
 

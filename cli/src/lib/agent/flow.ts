@@ -32,7 +32,6 @@ import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
 import { findSpecAgent } from '../agents'
-import { workflowForRun } from './runner'
 import { cardAges } from '../card-age'
 import { parseStamp } from '../cadence'
 import { PLANNER, agentMemoryDir, memoryFile, planningMemoryFiles } from '../memory'
@@ -53,7 +52,7 @@ import { field, metaLine, numbered } from './facts'
 import { chatsToReview } from './memory-review'
 import { memoryReview } from './settings'
 import { translating } from './language'
-import { buildAsk, frozenRules } from './prompts'
+import { buildAsk, frozenRules, leadBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
 import { setupInstruction } from './resolve'
 import type { AgentAction, AgentRequest, DeliveryRecord, StartableAction } from './types'
@@ -1149,11 +1148,8 @@ export function printFlow(rawReq: AgentRequest, program = 'akb'): MoveResult {
   // long, so they go after the short board-specific part rather than burying it — and they
   // are printed rather than named, because a pointer to a second command is a step that
   // gets skipped, and the job is then done from memory instead of from the flow.
-  // In the card's own workflow words (#715): a content card's execute and review stages read
-  // differently from a coding card's, on the same board.
-  const workflow = workflowForRun(req)
   const guides = flow.guides
-    .map((name) => findGuide(name, workflow))
+    .map((name) => findGuide(name))
     .filter((g): g is NonNullable<typeof g> => g !== null)
   if (guides.length) {
     say('')
@@ -1164,6 +1160,11 @@ export function printFlow(rawReq: AgentRequest, program = 'akb'): MoveResult {
       say('')
       say(guide.text.trimEnd())
     }
+  }
+  const lead = leadBlock(req)
+  if (lead) {
+    say('')
+    say(lead)
   }
   // Last of all: the rule of the agent this run is done by, in the user's words (#306,
   // #420). A started run is given one block of words and reads the rule wherever it sits; a

@@ -81,7 +81,7 @@ named for what it shows — none of that changes with the format.
 
 ## Run again on the same card
 
-Leave `docs/kanban/.assets/<card id>/` holding only the files your new answer needs. Delete
+Leave `<board-state>/assets/<card id>/` holding only the files your new answer needs. Delete
 screens the new design renamed or dropped, the copies they alone pulled in, and anything the
 other mockup format left there — a format that writes no file leaves the folder empty.
 

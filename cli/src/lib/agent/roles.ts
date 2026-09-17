@@ -266,7 +266,20 @@ export const roles = (): AgentRole[] => BOARD_ROLES
  *  that only wants the name should ask. */
 export const roleForFlow = (flow: string, workflow?: string): AgentRole | undefined => {
   const name = agentForFlow(flow, workflow)
-  return name ? roleNamed(name) : undefined
+  return name ? (roleNamed(name) ?? leadRole(name)) : undefined
+}
+
+// A `lead` agent runs a stage's flows as a role does (#822): its rule and runtime are keyed by
+// its name, and a plan lead keeps the planner's memory.
+function leadRole(name: string): AgentRole | undefined {
+  const agent = specAgentCatalog().agents.find((a) => a.name === name && a.kind === 'lead')
+  if (!agent?.stage) return undefined
+  return {
+    name,
+    stage: agent.stage,
+    gloss: agent.description,
+    memory: agent.stage === 'plan' ? [PLANNER_DECISIONS, PLANNER_REJECTED, PLANNER_REDESIGN] : [],
+  }
 }
 
 /** The role of a given name. */
