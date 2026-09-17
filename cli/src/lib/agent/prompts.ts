@@ -6,7 +6,7 @@
 
 import path from 'node:path'
 import { locate, locateArchived } from '../cards'
-import { PLANNER, agentMemoryDir, planningMemoryFiles } from '../memory'
+import { PLANNER, planningMemoryFiles } from '../memory'
 import { findGuide } from '../guide'
 import { ARCHIVE, boardText, rel, GOAL, MEMORY, TRIAGE } from '../paths'
 import {
@@ -314,6 +314,7 @@ function reviewerPrompt(req: AgentRequest, agent: SpecAgent, kb: string, named: 
     [
       `${kb}. You are the \`${agent.name}\` reviewer on the delivery in flight on task ${req.id} ${named}.`,
       `Review it by your instructions below, in the review run that picked you, and give your verdict before the next reviewer starts.`,
+      `Keep your memory as **Memory** in \`akb guide spec-agent\` says.`,
       req.notes ? `What the review wants looked at: ${req.notes}` : '',
       `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
     ]
@@ -569,8 +570,8 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
       // half rather than judging it. The one exception is in the contract below: a section
       // an unanswered `[user]` question points at is lifted until that question is answered.
       const half = agent ? specAgentOutput(agent) : 'agent'
-      // What this agent remembers, when it declares a memory at all (#421) — the last block,
-      // so the board's own words end before the agent's do.
+      // What this agent remembers (#421, #833) — after its instructions, so the board's own
+      // words end before the agent's do.
       const memory = agent ? agentMemoryBlock(agent) : ''
       return [
         [
@@ -579,9 +580,6 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           half === 'human'
             ? 'Your output is set to be reviewed by me: put your section above `<!-- agent -->`, and leave it there.'
             : 'Your output is set to be read by the agent that builds this: put your section below `<!-- agent -->`, before `## Decided by the agent`.',
-          memory
-            ? `Follow your memory below. It is two files in \`${rel(agentMemoryDir(req.specAgent!))}/\`: \`redesign.md\`, one line per lesson — the mistake, then the design to use instead — and \`decisions.md\`, one line per durable choice the user made. Edit either directly when you learn something lasting, creating it if missing; merge duplicates and drop rules already in your instructions. How the product looks is read from the app's own \`design.md\` and components, never copied into memory, and a product fact worth keeping goes into the lesson or the decision it supports. Omit task IDs and run history.`
-            : '',
           req.notes ? `What the flow that asked for you wants looked at: ${req.notes}` : '',
           `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
         ]

@@ -146,6 +146,27 @@ describe('memory, as a contract write (#805)', () => {
     await onBoard((env) => board().saveMemoryFile('rejected', '- No.', 'planner', env))
     assert.deepEqual((await board().readMemoryOwners()).find((o) => o.agent === 'planner')?.files, ['rejected'])
   })
+
+  // A spec agent's files are whatever its prompt keeps (#833): listed once written, any name.
+  it('lists a spec agent only once it has written a file, under that file’s own name', async () => {
+    const owners = async () => (await board().readMemoryOwners()).map((o) => o.agent)
+    const roster = async () => (await board().readAgents()).agents.find((a) => a.name === 'copywriting')?.memory
+    assert.ok(!(await owners()).includes('copywriting'))
+    assert.deepEqual(await roster(), [])
+    write('memory/agents/copywriting/writing.md', '- Short sentences.\n')
+    assert.deepEqual(await roster(), ['docs/kanban/memory/agents/copywriting/writing.md'])
+    const copy = (await board().readMemoryOwners()).find((o) => o.agent === 'copywriting')
+    assert.deepEqual(copy?.files, ['writing'])
+    const file = await board().readMemoryFile('writing', 'copywriting')
+    assert.equal(file?.label, 'writing')
+    assert.equal(file?.text, '- Short sentences.\n')
+    const saved = await onBoard((env) => board().saveMemoryFile('writing', '- Plain words.', 'copywriting', env))
+    assert.ok(saved.ok)
+    assert.equal(read('memory/agents/copywriting/writing.md'), '- Plain words.\n')
+    const other = await onBoard((env) => board().saveMemoryFile('notes', 'x', 'copywriting', env))
+    assert.equal(other.ok, false)
+    assert.equal(await board().readMemoryFile('../../readme', 'copywriting'), null)
+  })
 })
 
 describe('the team, as a contract read and write', () => {

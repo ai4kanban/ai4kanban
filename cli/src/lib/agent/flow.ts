@@ -933,7 +933,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       // Folders, not files: a prune covers everything in each of them, and what that is is
       // `akb guide board`'s to define rather than this flow's to list.
       facts.push(...field('memory', [`${rel(MEMORY)} — the board's own record`]))
-      facts.push(...field('agents', `${rel(AGENT_MEMORY)}/<agent>/ — one folder per agent that remembers, ${rel(agentMemoryDir(PLANNER))}/ among them`))
+      facts.push(...field('agents', `${rel(AGENT_MEMORY)}/<agent>/ — one folder per agent that keeps memory, ${rel(agentMemoryDir(PLANNER))}/ among them`))
       close.push(
         'rewrite the files above in place — that is the whole job',
         'raise nothing for anyone: there is no card to question, so what you cannot settle stays in the file',
@@ -969,7 +969,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
       facts.push(
         ...field('memory', [
           `${rel(agentMemoryDir(PLANNER))}/ — decisions.md, rejected.md, redesign.md: where a planning note goes`,
-          `${rel(AGENT_MEMORY)}/<agent>/ — where what a spec agent was corrected on goes`,
+          `${rel(AGENT_MEMORY)}/<agent>/ — a spec agent's own files, which its AGENT.md names`,
         ]),
       )
       close.push(

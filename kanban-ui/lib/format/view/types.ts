@@ -601,8 +601,9 @@ export interface FillPlan {
 // ---- the project's memory --------------------------------------------------
 
 /** Which memory file. The name is also the file's own, without `.md`, and the word an
- *  address carries — `/memory/planner/decisions`. */
-export type MemoryName = 'readme' | 'goal' | 'decisions' | 'redesign' | 'rejected'
+ *  address carries — `/memory/planner/decisions`. A spec agent's files are named by its own
+ *  prompt (#833), so any name is one. */
+export type MemoryName = string
 
 /** One file, named as a reader meets it. `label` is what a row and a heading say: the file
  *  is called `decisions.md`, but a page headed that reads as a different thing. */
@@ -622,8 +623,8 @@ export const MEMORY_FILES: readonly MemoryRef[] = [
 ]
 
 /** One group the memory panel draws (#805): the board's own record, or one agent's folder.
- *  The board comes first and is always there; an agent is listed because it KEEPS memory,
- *  written or not — which is why `files` can be empty. */
+ *  The board comes first and is always there; the planner is listed written or not — which
+ *  is why `files` can be empty — and a spec agent once it has written a file. */
 export interface MemoryOwner {
   /** The agent's name, or empty for the board's own record. */
   agent: string

@@ -21,8 +21,6 @@ export interface SpecAgent {
    *  belongs to no workflow. `akb.stage` says it; a file written before that key reads as
    *  the stage its `kind` always served — `spec` fills a card's spec, so it is `plan`. */
   stage: WorkflowStage | null
-  /** The scope it remembers in, or null when it declares none and starts every run fresh. */
-  memory: AgentMemory | null
   /** Where its section lands on a card until somebody sets it otherwise (#445) — the value
    *  the board's own `output` setting starts at. `agent` unless `akb.output` says so. */
   output: SpecOutput
@@ -69,12 +67,6 @@ export interface SettingLines {
  *  as a problem rather than registered as something nothing can call. */
 export const AGENT_KINDS = ['spec'] as const
 export type AgentKind = (typeof AGENT_KINDS)[number]
-
-/** The scopes an agent may remember in. One: the board it runs on, in a file its team
- *  shares. A memory of the machine or of the person reading it would be a memory nobody
- *  else could see, which is the opposite of what an agent on a board is for. */
-export const AGENT_MEMORIES = ['project'] as const
-export type AgentMemory = (typeof AGENT_MEMORIES)[number]
 
 /** What a `kind` means as a stage, for a file written before `akb.stage` existed. A `spec`
  *  agent fills part of a card's spec while it is being planned, which is the plan stage. */
@@ -128,14 +120,6 @@ export function parseSpecAgent(
   const kind: AgentKind = isKind(declaredKind) ? declaredKind : 'spec'
   const stage = isStage(declaredStage) ? declaredStage : STAGE_OF_KIND[kind]
 
-  // Declaring nothing is the common case: an agent without a memory starts every run fresh,
-  // which is what all of them did before this existed.
-  const declaredMemory = str(akb.memory)
-  if (declaredMemory && !isMemory(declaredMemory)) {
-    return bad(`\`${name}\` declares \`akb.memory: ${declaredMemory}\` — \`${AGENT_MEMORIES.join('` or `')}\` is the only scope`)
-  }
-  const memory = isMemory(declaredMemory) ? declaredMemory : null
-
   // Who its output is for, to start with. The setting itself is the board's — every spec
   // agent has it, declared or not — so a file that says nothing gets `agent`, which is where
   // a section has always gone.
@@ -170,7 +154,6 @@ export function parseSpecAgent(
       i18n: readTranslations(akb.i18n),
       kind,
       stage,
-      memory,
       output,
       dependencies: dependencies.agents,
       settings,
@@ -255,8 +238,6 @@ function readDependencies(raw: YamlValue | undefined, agent: string): { agents: 
 }
 
 const isKind = (value: string): value is AgentKind => (AGENT_KINDS as readonly string[]).includes(value)
-
-const isMemory = (value: string): value is AgentMemory => (AGENT_MEMORIES as readonly string[]).includes(value)
 
 const isStage = (value: string): value is WorkflowStage => (WORKFLOW_STAGES as readonly string[]).includes(value)
 

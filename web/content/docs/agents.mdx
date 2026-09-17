@@ -205,16 +205,15 @@ From a terminal: `akb raw rule <agent> --file <path>`, or `--text ""` to clear i
 ## Give an agent memory
 
 Some agents **remember** — the taste they were corrected on, and the choices you made. The
-agent's page lists the files it owns, read-only:
+agent's page lists the files it has, read-only:
 
 - The **Planner** owns all three planning files, in `docs/kanban/memory/agents/planner/`:
   `decisions.md`, `rejected.md` and `redesign.md`. Every flow that settles a card writes them;
-  the Gate, the Decider and the Proposer read them and write none.
-- The three **content** roles each own `docs/kanban/memory/agents/<name>/`: `redesign.md` and
-  `decisions.md`, the writing taste you settled. No other role owns a file.
-- A **specialist** that declares `memory: project` owns `docs/kanban/memory/agents/<name>/`, two
-  files: `redesign.md`, the mistakes it was corrected on, and `decisions.md`, the choices you made.
-  `ui-designer` and `copywriting` declare a memory; `tech-stack-advisor` does not.
+  the Gate, the Decider and the Proposer read them and write none. No other role owns a file.
+- A **specialist** owns `docs/kanban/memory/agents/<name>/`, and its own `AGENT.md` says which
+  files it keeps there and what each holds — add a `## What you remember` section to yours.
+  `ui-designer` keeps `redesign.md` and `decisions.md`, `copywriting` keeps `writing.md`, and
+  `tech-stack-advisor` keeps none. Every file in the folder is handed to each of its runs.
 - **The board's own record is nobody's memory.** `docs/kanban/memory/readme.md` — what shipped —
   and `goal.md` are facts rather than taste, so they sit outside every agent's folder.
 - **How the product looks is not memory.** Colours, dimensions and component detail are read from

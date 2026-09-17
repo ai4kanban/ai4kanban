@@ -15,7 +15,8 @@ import type { SpecAgentEntry } from '../agent/settings'
 import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
 import { readLanguage } from '../machine/settings'
 import type { Language } from '../machine/types'
-import { readAgentMemory } from '../memory'
+import { agentMemoryDir, readAgentMemory } from '../memory'
+import { rel } from '../paths'
 import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import { specAgentCatalog } from './catalog'
 import { stageHelpers, workflowFor } from '../agent/workflows'
@@ -221,22 +222,15 @@ export function specAgentInstructions(
   return { instructions: agent.body.trim(), references, notes }
 }
 
-/** What an agent that remembers is handed of its own files (#421, #473) — read as the run
- *  starts, like everything else it is given, so it has nothing to go and find. Both files,
- *  each under its own heading, so the agent writes back to the one a line belongs in.
- *
- *  An agent that has written nothing down yet is still handed the block. A memory it is
- *  never shown is a memory it never starts: the empty file is the invitation.
- *
- *  Empty for an agent that declares no memory, which is every agent that did not ask for
- *  one — those start each run fresh, as they always have. */
+/** An agent's memory folder, and every file in it (#421, #833) — read as the run starts. Its
+ *  own instructions say what those files are for; an empty folder is only named. */
 export function agentMemoryBlock(agent: SpecAgent): string {
-  if (!agent.memory) return ''
+  const dir = rel(agentMemoryDir(agent.name))
+  const files = readAgentMemory(agent.name)
+  if (!files.length) return `Your memory folder is \`${dir}/\`. Nothing is in it yet.`
   return [
-    'What you learned on this board, in your own words from earlier runs — the mistakes you were corrected on, and the choices the user made. Follow it here:',
-    ...readAgentMemory(agent.name).map(
-      (file) => `${file.heading}\n\n${file.text || '_(empty — nothing has been written down yet.)_'}`,
-    ),
+    `Your memory, from \`${dir}/\` — what you kept on this board in earlier runs. Follow it here:`,
+    ...files.map((file) => `### \`${file.name}\`\n\n${file.text || '_(empty)_'}`),
   ].join('\n\n')
 }
 
@@ -292,12 +286,6 @@ function selector(on: SpecAgent[], words: { tag: string; lead: string; ask: stri
     ...on.flatMap((a) => [
       `- \`${a.name}\``,
       `  ${a.description}`,
-      // Which of them remember (#421). These flows are the ones that hear the user's answer
-      // about an agent's section, and the line they append goes in that agent's memory
-      // file. The mark alone: only some agents declare a memory, and that is not derivable,
-      // while WHERE the file is always is — `akb guide update-questions` states it once
-      // rather than this block repeating a path per agent in every run.
-      ...(a.memory ? ['  remembers'] : []),
       // Declared dependencies (#782): the board refuses to start it while one of these is on
       // the card and not ready, so the caller asks for them first.
       ...(a.dependencies.length ? [`  starts only after ${a.dependencies.map((d) => `\`${d}\``).join(', ')}, when on this card, has its section written and no open question of its own`] : []),

@@ -9,9 +9,8 @@
 // own beside them. A module is a `## <module>` topic inside a file, so there is nothing here
 // that opens one.
 //
-// The rows are fixed per owner and a file that isn't there keeps its place, so an owner's
-// page reads the same on every board — an empty `text` with `written: false` is the answer
-// for a file nobody has written, not a missing entry.
+// The board's and the planner's rows are fixed, and a file that isn't there keeps its place.
+// A spec agent's rows are the files its folder actually holds (#833).
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -27,22 +26,24 @@ const memoryPath = (name: string, agent: string): string =>
 
 const nameOf = (file: string): MemoryName => file.replace(/\.md$/, '') as MemoryName
 
-/** The files one owner may hold, in the panel's order — the board's two, or the agent's own. */
+/** The files one owner may hold, in the panel's order — the board's two, or the agent's own,
+ *  the known names first and any other file its prompt keeps after them. */
 const filesOf = (agent: string): MemoryName[] => {
-  const held = new Set((agent ? memoryNamesOf(agent) : BOARD_MEMORY_FILES).map(nameOf))
-  return MEMORY_FILES.filter((ref) => held.has(ref.name)).map((ref) => ref.name)
+  const held = (agent ? memoryNamesOf(agent) : BOARD_MEMORY_FILES).map(nameOf)
+  const known = MEMORY_FILES.map((ref) => ref.name).filter((name) => held.includes(name))
+  return [...known, ...held.filter((name) => !known.includes(name))]
 }
 
-/** Every agent on this board that keeps a memory folder of its own, in the roster's order. */
+/** Every agent on this board with a memory folder of its own, in the roster's order — the
+ *  planner always, a spec agent once it has written a file. */
 const owners = (): Array<{ agent: string; title: string }> =>
   agentRoster()
     .filter((entry) => entry.ownMemory.length > 0)
     .map((entry) => ({ agent: entry.name, title: entry.title }))
 
-/** The board's own record, then each agent's folder (#805). An agent is listed because it
- *  KEEPS memory, not because it has written any: `files` is empty until it does, and the
- *  panel says so rather than drawing rows that lead nowhere. The board's own two are always
- *  listed — they are the board's record, and an empty one still has a page. */
+/** The board's own record, then each agent's folder (#805). The planner is listed before it
+ *  has written anything, and the panel says so rather than drawing rows that lead nowhere.
+ *  The board's own two are always listed — an empty one still has a page. */
 export function readMemoryOwners(): MemoryOwner[] {
   migrateMemory()
   return [
@@ -66,7 +67,7 @@ const openable = (name: string, agent: string): name is MemoryName =>
 export function readMemoryFile(name: string, agent = ''): MemoryFile | null {
   migrateMemory()
   if (!openable(name, agent)) return null
-  const ref = MEMORY_FILES.find((f) => f.name === name)!
+  const ref = MEMORY_FILES.find((f) => f.name === name) ?? { name, label: name }
   const file = memoryPath(name, agent)
   let text = ''
   try {

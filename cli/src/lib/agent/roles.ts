@@ -19,7 +19,7 @@ import path from 'node:path'
 
 import { specAgentCatalog } from '../agents/catalog'
 import { agentLines } from '../agents'
-import { AGENT_MEMORY_FILES, PLANNER, agentMemoryFile, agentMemoryFiles, memoryNamesOf } from '../memory'
+import { PLANNER, agentMemoryFile, agentMemoryFiles, memoryNamesOf } from '../memory'
 import { KANBAN, rel } from '../paths'
 import { FLOWS } from './flows'
 import { agentForFlow, contractProblems, flowsOfAgent } from './stages'
@@ -320,7 +320,7 @@ export interface RosterEntry {
   /** A role's flows. Empty on a specialist: it is asked for by name, never by a flow. */
   flows: string[]
   /** The memory files it owns, repo-relative — a role's are the files its own flows already
-   *  write, and a specialist that declares `memory: project` owns one of its own. */
+   *  write, and a specialist's are the files it has written in its own folder (#833). */
   memory: string[]
   /** Of those, the ones kept in this agent's OWN folder, by file name (#805). Empty on an
    *  agent whose declared memory is a file somebody else owns, and on one that keeps none.
@@ -356,8 +356,8 @@ export function agentRoster(): RosterEntry[] {
       // unassigned. Only an agent no workflow can reach keeps one of its own.
       switchable: !agent.stage,
       flows: [],
-      memory: agent.memory ? agentMemoryFiles(agent.name).map(rel) : [],
-      ownMemory: agent.memory ? [...AGENT_MEMORY_FILES] : [],
+      memory: agentMemoryFiles(agent.name).map(rel),
+      ownMemory: [...memoryNamesOf(agent.name)],
     }
   })
   return [

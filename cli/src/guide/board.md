@@ -15,7 +15,7 @@ docs/kanban/
 ├── memory/         all memory — see "Who owns a memory file"
 │   ├── readme.md   what shipped — the board's own record
 │   ├── goal.md     the long-term goal, horizon, and roadmap
-│   └── agents/     one folder per agent that remembers, named after it —
+│   └── agents/     one folder per agent that keeps memory, named after it —
 │                   `planner/` holds `decisions.md`, `rejected.md`, `redesign.md`
 ├── rules/          `<agent>.md` — the user's rule for one agent, appended to every run it
 │                   does; written from the board UI or `akb raw rule`
@@ -122,8 +122,8 @@ move the files into the group's folder:
   that guide future planning, `redesign.md` design mistakes to avoid, `rejected.md` turned-down
   ideas and why. Flows that only judge — the gate, the decider, the sweep, triage, a
   reflection — read them and write none.
-- **`memory/agents/<agent>/`**: a spec agent with `memory: project` keeps `redesign.md` and
-  `decisions.md` (`akb guide update-questions`). No third file.
+- **`memory/agents/<agent>/`**: a spec agent keeps the files its own AGENT.md names, and only
+  those (`akb guide update-questions`). An agent whose instructions name none keeps none.
 
 File a note under the `## <module>` heading its card's `modules:` names, creating it if
 missing. There are no per-module folders.

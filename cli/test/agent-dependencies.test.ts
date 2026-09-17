@@ -359,10 +359,10 @@ describe('every way a spec run starts', () => {
 })
 
 describe('the copy that comes before the screen', () => {
-  it('ships copywriting as a remembering, human-facing agent with a Chinese name', () => {
+  it('ships copywriting as a human-facing agent that keeps writing.md, with a Chinese name', () => {
     const copy = findSpecAgent('copywriting')!
     assert.equal(copy.builtIn, true)
-    assert.equal(copy.memory, 'project')
+    assert.match(copy.body, /## What you remember\n\n- \*\*`writing\.md`\*\*/)
     assert.equal(copy.output, 'human')
     assert.equal(copy.stage, 'plan')
     assert.equal(copy.i18n.zh?.title, '宣传文案')

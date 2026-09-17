@@ -67,23 +67,16 @@ implementation agent can run in `## Todo` instead.
 
 ### An agent's memory
 
-An agent that remembers keeps two files in `docs/kanban/memory/agents/<agent>/` — a spec
-agent marked `remembers` in the roster. When the user's answer or revision lands on that
-agent's section — its recommendation taken, sent back, or overruled — append one line to the
-file it belongs in:
-
-- **`redesign.md`** — the agent was corrected: the mistake, then the design to use instead.
-  Start the file with ``# What `<agent>` was corrected on`` when it isn't there.
-- **`decisions.md`** — the user made a durable choice or stated a preference that guides the
-  agent's next proposal. Start the file with ``# What the user chose for `<agent>` `` when it
-  isn't there.
+A spec agent keeps `docs/kanban/memory/agents/<agent>/`, and its own AGENT.md says which
+files are there and what each holds. When the user's answer or revision lands on that agent's
+section — its recommendation taken, sent back, or overruled — read its AGENT.md and append
+one line to the file it names for that kind of note, creating the file if missing. An agent
+whose instructions define no memory keeps none — write nothing.
 
 Append only what clears "What earns a note" in `akb guide board` — a correction or a choice
-that will change the agent's next proposal. Most answers change nothing lasting: leave both
+that will change the agent's next proposal. Most answers change nothing lasting: leave the
 files untouched then, and merge into an equivalent line rather than repeating it.
 
 One line, in the user's own terms, and no card id, date, or story of the run. Nothing else
-goes in those files; the rest of them is the agent's. Never add a third file, and never copy
-how the product looks into either — that is read from the app's own `design.md` and
-components. A product fact worth keeping goes into the lesson or the decision it supports.
-An agent with no memory folder of its own keeps none — write nothing.
+goes in those files; the rest of them is the agent's. Never add a file its instructions do
+not name.

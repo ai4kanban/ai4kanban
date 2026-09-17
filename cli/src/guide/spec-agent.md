@@ -7,7 +7,11 @@
   is the agent half and one unanswered `[user]` question points at your section, put it above
   `<!-- agent -->` until that question is answered.
 - **Boundaries**: preserve the rest of the card. Do not change project code or call other
-  spec agents. Edit memory and other files only where your own instructions allow them.
+  spec agents. Edit other files only where your own instructions allow them.
+- **Memory**: `docs/kanban/memory/agents/<agent-name>/` is yours, and this run shows every
+  file in it. Your instructions say which files you keep there and what each holds; with no
+  such instructions, keep none. Edit a file directly when you learn something lasting,
+  creating it if missing; merge duplicates and drop what your instructions already say.
 - **User decisions**: follow `akb guide update-questions`; leave at most one open question
   pointing to your section, appended with `--agent <agent-name>`.
 - **Validate**: run `akb raw validate <task-id>` and fix the reported format errors.

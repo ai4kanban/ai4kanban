@@ -29,13 +29,11 @@ On top of that, per file:
   Drop anything that fails its bar in `akb guide board` ("Who owns a memory file"): a call
   about code detail, or one the published docs now cover. Drop a decision once the question
   no longer arises or `redesign.md` states it as a rule.
-- `agents/<agent>/redesign.md` — one line per entry: the mistake that agent was corrected on,
-  then the design to use instead. Drop an entry once that agent's own instructions say it as
-  a rule.
-- `agents/<agent>/decisions.md` — one line per durable user choice or preference that still
-  guides that agent. Drop one the design docs or the agent's own instructions now cover.
+- `agents/<agent>/` — the files that agent's own AGENT.md defines, each pruned to what it says
+  the file holds. Drop an entry once that agent's instructions or the design docs say it, and
+  drop a file its instructions no longer name.
 
-Prune a spec agent's two together, and drop the whole folder when its agent is gone from `akb
-spec`. Drop anything either file says about how the product looks — colours, dimensions,
+Prune a spec agent's files together, and drop the whole folder when its agent is gone from `akb
+spec`. Drop anything a file says about how the product looks — colours, dimensions,
 component detail belong in the app's `design.md`, not here — and fold a product fact worth
 keeping into the lesson or the decision it supports.

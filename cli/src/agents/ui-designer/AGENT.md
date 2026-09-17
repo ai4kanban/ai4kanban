@@ -17,7 +17,6 @@ akb:
             ascii:
               label: 字符草图
               cost: 纯文本，写在卡片里，画得快
-  memory: project
   output: human
   dependencies:
     - agent: copywriting
@@ -94,3 +93,10 @@ drawing sits in the card and travels with it. Record the final design in the car
 
 Never. Your drawings are the proposed design, not a shortlist: leave no open question asking
 which one to take, and none asking to confirm it either.
+
+## What you remember
+
+- **`redesign.md`**: one line per correction — the mistake, then the design to use instead.
+- **`decisions.md`**: one line per durable choice the user made about your designs.
+- **Not the product's look**: colours, sizes and components are read from the app's own
+  `design.md`, never written here.
