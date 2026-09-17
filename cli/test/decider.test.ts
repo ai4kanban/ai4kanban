@@ -137,6 +137,14 @@ describe('which card it answers', () => {
     assert.equal(decidable(findCard(9)!), false)
   })
 
+  it('does not start on a card whose only questions were skipped', () => {
+    setDecider(true)
+    card(7, { questions: ['[user] Which one?'] })
+    const skipped = findCard(7)!
+    skipped.questions = [{ ...skipped.questions[0]!, skipped: true }]
+    assert.equal(decidable(skipped), false)
+  })
+
   it('starts nothing while the switch is off — read as the run would start, not when the card moved', () => {
     card(7, { questions: ['[user] Which one?'] })
     assert.equal(decideRunAfter(7), null)

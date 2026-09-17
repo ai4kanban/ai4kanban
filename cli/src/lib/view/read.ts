@@ -16,6 +16,7 @@ import { approvalCovers } from '../agent/approval'
 import { cardsDiscussing } from '../agent/chat'
 import { activeDelivery, isResumable, listDeliveries, manualSettled } from '../agent/deliveries'
 import { deliveryState } from '../agent/pause'
+import { openOf } from './rules'
 import { readRuns } from '../agent/sessions'
 import { cardsBeingCreated } from '../agent/store'
 import type { DeliveryLanding, DeliveryRecord } from '../agent/types'
@@ -237,7 +238,7 @@ function attachDelivery(card: Card): void {
   card.delivery = {
     id: live.deliveryId,
     startedAt: live.startedAt,
-    state: deliveryState(live, card.questions.length),
+    state: deliveryState(live, openOf(card.questions).length),
     commitMode: live.commitMode === 'auto' ? 'auto' : 'manual',
     aiReview: live.aiReview !== false,
     supersedes: supersededBy(card.id, live),

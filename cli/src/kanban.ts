@@ -493,6 +493,7 @@ export {
   saveProject,
   setReleaseGoal,
   setSchedule,
+  skipQuestion,
 } from './lib/view/api'
 export type * from './lib/view/types'
 

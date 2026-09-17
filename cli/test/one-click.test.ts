@@ -364,27 +364,34 @@ describe('an answer that changed the plan', () => {
     )
   })
 
-  it('holds, lands nothing and says what settles it when no run judged the answers', async () => {
+  // Answered by hand in the card file, so nothing recorded what it did: that is a skip (#831).
+  it('lands when no run judged the answers', async () => {
     fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
     const first = await reviewed(1, 'card one', 'one\n')
     await advanceLanding()
-
-    // Answered by hand in the card file, so nothing recorded what it did.
-    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
     assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
+  })
 
-    // Not landed, not cancelled: the board waits to be told rather than comparing text.
+  it('holds while a question is open, lands once every one is skipped, and holds again on undo', async () => {
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?', '[user] and which size?']))
+    const first = await reviewed(1, 'card one', 'one\n')
+    await advanceLanding()
+
+    await move(root, ['update-questions', '1', '--skip', '1'])
+    assert.equal(await advanceLanding(), null)
     assert.equal(landingOf(first.deliveryId)?.status, 'waiting')
-    assert.match(landingOf(first.deliveryId)?.why ?? '', /delivery answered/)
-    assert.equal(listDeliveries().find((d) => d.deliveryId === first.deliveryId)?.status, 'active')
-    assert.deepEqual(log(), ['start'])
-    const state = deliveryState(listDeliveries().find((d) => d.deliveryId === first.deliveryId)!, 0)
-    assert.equal(state.paused, true)
-    assert.match(state.line, /delivery answered/)
 
-    // And carries straight on once it is.
-    said(1, 'changed', 'the requirement it was approved to build is a different one now')
-    assert.deepEqual(await advanceLanding(), { action: 'implement', id: 1, title: 'card one' })
+    await move(root, ['update-questions', '1', '--skip', '2'])
+    await move(root, ['update-questions', '1', '--unskip', '2'])
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(first.deliveryId)?.status, 'waiting')
+    assert.equal(activeDelivery(1)!.answers?.some((a) => !a.actedAt), false)
+
+    await move(root, ['update-questions', '1', '--skip', '2'])
+    assert.equal(await advanceLanding(), null)
+    assert.equal(landingOf(first.deliveryId)?.status, 'landed')
   })
 
   it('keeps a real change from being answered away by the round after it', async () => {
@@ -476,20 +483,19 @@ describe('an answer that changed the plan', () => {
 
   it('does not let an earlier round answer for a later one', async () => {
     fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] which shade of blue?']))
-    const first = await reviewed(1, 'card one', 'one\n')
+    await reviewed(1, 'card one', 'one\n')
     await advanceLanding()
     fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
     said(1, 'unchanged')
 
-    // A second question opens before the board acted on the first round, and nothing judged
-    // this one. The old conclusion is spent, so the build waits rather than landing on it.
+    // A second question opens before the board acted on the first round: that conclusion is
+    // spent, and only what judges the new round counts.
     fs.writeFileSync(cardPath(1), cardText(1, 'card one', ['[user] and which size?']))
     assert.equal(await advanceLanding(), null)
-    fs.writeFileSync(cardPath(1), cardText(1, 'card one'))
-    assert.equal(await advanceLanding(), null)
-
-    assert.match(landingOf(first.deliveryId)?.why ?? '', /delivery answered/)
-    assert.deepEqual(log(), ['start'])
+    assert.equal(activeDelivery(1)!.answers?.some((a) => !a.actedAt), false)
+    said(1, 'changed', 'the size it was approved to build is a different one now')
+    fs.writeFileSync(cardPath(1), cardText(1, 'card one', [], 'a different requirement'))
+    assert.deepEqual(await advanceLanding(), { action: 'implement', id: 1, title: 'card one' })
   })
 
   it('is unmoved by the delivery writing its own card', async () => {

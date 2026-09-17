@@ -451,7 +451,7 @@ const QUESTION_TAG: Record<QuestionTag, { icon: IconType; ink: string }> = {
 
 const UNTAGGED = { icon: FiHelpCircle, ink: "var(--color-nb-ink-soft)" };
 
-export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
+export function QuestionTagBadge({ tag, muted }: { tag: QuestionTag | null; muted?: boolean }) {
   const copy = useCopy().chips.question;
   const c = tag ? QUESTION_TAG[tag] : UNTAGGED;
   const Icon = c.icon;
@@ -459,7 +459,7 @@ export function QuestionTagBadge({ tag }: { tag: QuestionTag | null }) {
   return (
     <span
       className="mr-1.5 inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-[700] uppercase leading-[18px] tracking-[0.04em]"
-      style={{ color: c.ink }}
+      style={{ color: muted ? "var(--color-nb-ink-soft)" : c.ink }}
     >
       <Icon aria-hidden style={{ width: 10, height: 10, flex: "0 0 auto" }} />
       {label}

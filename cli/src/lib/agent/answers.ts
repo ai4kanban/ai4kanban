@@ -17,29 +17,24 @@
 // A conclusion belongs to ONE delivery and one round. It never reaches the fresh delivery a
 // supersede opens — that one starts on the card as it then reads, with none — and `actedAt`
 // is what stops one from concluding twice.
+//
+// A round nothing judged — questions skipped, or dropped by hand in the card file — changed
+// nothing (#831): the card is what it was, so the delivery carries on.
 
-import { boardCommand } from './command'
 import { withStore } from './store'
 import type { AnswerOutcome, AnswerVerdict, DeliveryRecord } from './types'
-
-/** The fixed opening words landing writes while a round of answers has no conclusion. Same
- *  trick as the holds in `pause.ts`: it tells this wait from a refusal, and from the question
- *  hold it replaces, without a field of its own. */
-export const UNJUDGED = 'waiting on what your answer changed'
 
 /** The conclusions nothing has acted on yet, oldest first. */
 export const pendingAnswers = (delivery: DeliveryRecord): AnswerVerdict[] =>
   (delivery.answers ?? []).filter((a) => !a.actedAt)
 
-/** What the rounds this delivery has not acted on concluded, or `none` when no run judged
+/** What the rounds this delivery has not acted on concluded — `unchanged` when no run judged
  *  them.
  *
  *  `changed` wins: a later round that moved nothing does not undo an earlier one that did, so
  *  a real change can never be answered away by the answers that followed it. */
-export function answerOutcome(delivery: DeliveryRecord): AnswerOutcome | 'none' {
-  const pending = pendingAnswers(delivery)
-  if (!pending.length) return 'none'
-  return pending.some((a) => a.outcome === 'changed') ? 'changed' : 'unchanged'
+export function answerOutcome(delivery: DeliveryRecord): AnswerOutcome {
+  return pendingAnswers(delivery).some((a) => a.outcome === 'changed') ? 'changed' : 'unchanged'
 }
 
 /** Take the conclusions a fresh round of questions leaves spent — the rounds that said
@@ -76,11 +71,3 @@ export function recordAnswer(
     return { ok: true }
   })
 }
-
-/** Why a delivery whose questions are all answered is going nowhere: nothing recorded what
- *  the answers did, and the board does not guess — comparing the card's text is exactly the
- *  judgement this replaces. */
-export const unjudgedWhy = (delivery: DeliveryRecord): string =>
-  `${UNJUDGED}: #${delivery.cardId} has no open question left, but no run said whether the answers changed what ` +
-  `${delivery.deliveryId} is building — \`${boardCommand()} delivery answered ${delivery.deliveryId} ` +
-  `--changed|--unchanged "<why>"\` settles it`

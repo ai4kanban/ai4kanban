@@ -47,11 +47,12 @@ const bundles = tests.map((f) => path.join(OUT_DIR, f.replace(/\.ts$/, '.mjs')))
 // A board's run record, its logs, its chats and its drawings live under the machine home now
 // (src/lib/machine/project.ts), so a test that opens a board would write into the real
 // `~/.ai4kanban/`. One throwaway home for the whole run keeps that off the machine; a test
-// that wants its own still sets `AI4KANBAN_HOME` for itself.
+// that wants its own still sets `AI4KANBAN_HOME` for itself. Nor do the tests run inside
+// the board run that may have started this script: a test that wants one sets `KANBAN_RUN`.
 const HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-test-home-'))
 const run = spawnSync(process.execPath, ['--test', ...bundles], {
   stdio: 'inherit',
-  env: { ...process.env, AI4KANBAN_HOME: HOME },
+  env: { ...process.env, AI4KANBAN_HOME: HOME, KANBAN_RUN: '' },
 })
 fs.rmSync(OUT_DIR, { recursive: true, force: true })
 fs.rmSync(HOME, { recursive: true, force: true })

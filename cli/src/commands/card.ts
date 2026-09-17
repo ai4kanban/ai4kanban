@@ -11,7 +11,7 @@ import { say } from '../lib/io'
 import { bumpMetric } from '../lib/metrics'
 import { slugify, validModules, parseIdList, normalizeRelease } from '../lib/validate'
 import { DEFAULT_WORKFLOW, workflowById, workflows } from '../lib/agent/workflows'
-import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, type QuestionOpsInput } from '../lib/questions'
+import { QUESTION_TAGS, parseQuestion, formatQuestion, warnBadQuestionTags, collectQuestions, readQuestionOps, parseQuestionPositions, openOf, type QuestionOp, type QuestionOpsInput } from '../lib/questions'
 import { readVerifyOps, parseVerifyPositions, type VerifyOpsInput } from '../lib/verify'
 import { readDecidedOp, type DecidedInput } from '../lib/decided'
 import { serializeFrontmatter, parseFrontmatter } from '../lib/frontmatter'
@@ -22,6 +22,8 @@ import { validRelease, setSubtreeRelease } from '../lib/releases'
 import { asScheduledAction, SCHEDULED_ACTIONS } from '../lib/schedule'
 import { cardCreation, readStore } from '../lib/agent/store'
 import { insideRun } from '../lib/agent/env'
+import { activeDelivery } from '../lib/agent/deliveries'
+import { recordAnswer, takeUnchanged } from '../lib/agent/answers'
 import { findSpecAgent } from '../lib/agents'
 import { scheduleRefineOnBlock, setCardSchedule } from '../lib/view/edit'
 import { findCard } from '../lib/view/read'
@@ -119,8 +121,8 @@ function createSchedule(action: ScheduledAction, recurring: boolean, questions: 
   if (recurring) die('--schedule is not for a recurring card: its cadence is its schedule.')
   if (
     action === 'refine' &&
-    questions.length > 0 &&
-    questions.every((q) => parseQuestion(q.text).tag === 'user')
+    openOf(questions).length > 0 &&
+    openOf(questions).every((q) => parseQuestion(q.text).tag === 'user')
   ) {
     die('a refine would not move a card whose every question is a [user] call — leave --schedule off')
   }
@@ -300,7 +302,7 @@ export function cmdUpdate(id: number, flags: UpdateOptions): MoveResult {
   // A `ready` card has no open questions by definition (see STATUSES). Open questions
   // mean the plan is not settled, so a `--status ready` with them pending lands as
   // `todo`. This holds the invariant no matter who set the status.
-  if (meta.questions.length > 0 && meta.status === 'ready') {
+  if (openOf(meta.questions).length > 0 && meta.status === 'ready') {
     meta.status = 'todo'
     changes.push('status→todo (open questions)')
   }
@@ -400,9 +402,25 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
   const { meta, body } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
   if (!meta) die(`${rel(file)} has no frontmatter — run \`migrate\` first`)
 
+  // Skipping is the user's own call (#831): a run that skipped would be granting itself leave.
+  if (insideRun() && ops.some((op) => op.kind === 'skip' || op.kind === 'unskip')) {
+    die('only the user skips or reopens a question — a run leaves [user] questions for them to answer')
+  }
+
   const changes: string[] = []
   let moved = 0
+  let skipped = 0
+  let unskipped = 0
   const asker = specRunAgent()
+  // A skipped question is the user's record (#831): no run answers, rewrites or drops it.
+  const positions = (op: QuestionOp, flag: string): number[] => {
+    const ns = parseQuestionPositions(op.ns ?? String(op.n), meta.questions.length, flag)
+    const held = ns.find((n) => meta.questions[n - 1]!.skipped)
+    if (held !== undefined && flag !== 'unskip' && flag !== 'skip') {
+      die(`question ${held} on #${id} was skipped by the user — \`update-questions ${id} --unskip ${held}\` reopens it first`)
+    }
+    return ns
+  }
   for (const op of ops) {
     if (op.question?.agent) {
       const agent = findSpecAgent(op.question.agent)
@@ -410,16 +428,16 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       op.question.agent = agent.name
     }
     if (op.kind === 'clear') {
-      meta.questions = []
+      meta.questions = meta.questions.filter((q) => q.skipped)
       changes.push('cleared')
     } else if (op.kind === 'drop') {
-      const ns = parseQuestionPositions(op.ns, meta.questions.length, 'drop')
+      const ns = positions(op, 'drop')
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`dropped ${ns.join(',')}`)
     } else if (op.kind === 'to-verify') {
       // A hand-check filed as a question: it moves to `verify:` as it stands, minus the
       // `[user]` tag a note never carries, and counts as moved rather than as answered.
-      const ns = parseQuestionPositions(op.ns, meta.questions.length, 'to-verify')
+      const ns = positions(op, 'to-verify')
       for (const q of meta.questions.filter((_, i) => ns.includes(i + 1))) {
         const line = parseQuestion(q.text).text.trim()
         if (!line) die(`question ${ns.join(',')} on #${id} is empty — there is nothing to move to verify`)
@@ -428,12 +446,29 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
       }
       meta.questions = meta.questions.filter((_, i) => !ns.includes(i + 1))
       changes.push(`moved ${ns.join(',')} to verify`)
+    } else if (op.kind === 'skip') {
+      const ns = positions(op, 'skip')
+      const notUser = ns.find((n) => parseQuestion(meta.questions[n - 1]!.text).tag !== 'user')
+      if (notUser !== undefined) die(`question ${notUser} on #${id} is not a [user] question — only the user's own can be skipped`)
+      for (const n of ns) meta.questions[n - 1] = { ...meta.questions[n - 1]!, skipped: true }
+      skipped += ns.length
+      changes.push(`skipped ${ns.join(',')}`)
+    } else if (op.kind === 'unskip') {
+      const ns = positions(op, 'unskip')
+      const open = ns.find((n) => !meta.questions[n - 1]!.skipped)
+      if (open !== undefined) die(`question ${open} on #${id} is not skipped`)
+      for (const n of ns) {
+        const { skipped: _, ...q } = meta.questions[n - 1]!
+        meta.questions[n - 1] = q
+      }
+      unskipped += ns.length
+      changes.push(`reopened ${ns.join(',')}`)
     } else if (op.kind === 'append') {
       const agent = op.question!.agent ?? asker
       meta.questions.push(agent ? { ...op.question!, agent } : op.question!)
       changes.push('appended')
     } else {
-      const [n] = parseQuestionPositions(String(op.n), meta.questions.length, 'update')
+      const [n] = positions(op, 'update')
       // parseQuestionPositions refused anything out of range, so the slot is there.
       const agent = op.question!.agent ?? meta.questions[n! - 1]!.agent
       meta.questions[n! - 1] = agent ? { ...op.question!, agent } : op.question!
@@ -441,19 +476,33 @@ export function cmdUpdateQuestions(id: number, input: QuestionOpsInput): MoveRes
     }
   }
   warnBadQuestionTags(meta.questions)
+  const open = openOf(meta.questions).length
   // The same invariant cmdUpdate holds: a `ready` card has no open questions.
-  if (meta.questions.length > 0 && meta.status === 'ready') {
+  if (open > 0 && meta.status === 'ready') {
     meta.status = 'todo'
     changes.push('status→todo (open questions)')
   }
   fs.writeFileSync(file, serializeFrontmatter(meta) + '\n' + body)
   if (scheduleRefineOnBlock(id)) changes.push('schedule→refine when unblocked')
+  settleDelivery(id, skipped, unskipped)
   say(
-    `updated #${id} questions: ${changes.join(', ')} (${meta.questions.length} open` +
+    `updated #${id} questions: ${changes.join(', ')} (${open} open` +
+      (meta.questions.length > open ? `, ${meta.questions.length - open} skipped` : '') +
       (moved ? `, ${meta.verify.length} to check by hand` : '') +
       ')',
   )
-  return { id, changes, open: meta.questions.length, verify: meta.verify.length, file: rel(file) }
+  return { id, changes, open, verify: meta.verify.length, file: rel(file) }
+}
+
+// A skip is an answer that changed nothing (#831), so the delivery in flight carries on once
+// nothing else is open. A reopened question is a fresh round: what the last one concluded is
+// spent, the way a newly appended question spends it at landing.
+function settleDelivery(id: number, skipped: number, unskipped: number): void {
+  if (!skipped && !unskipped) return
+  const delivery = activeDelivery(id)
+  if (!delivery) return
+  if (unskipped) takeUnchanged(delivery)
+  else recordAnswer(delivery.deliveryId, 'unchanged', `the user skipped ${skipped === 1 ? 'a question' : `${skipped} questions`}, keeping the card as it is`)
 }
 
 // A question a spec agent's own run appends is about that agent's section (#782).

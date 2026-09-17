@@ -13,9 +13,11 @@
 //         - GitHub Projects — syncs with issues
 //       recommend: [1]
 //       agent: ui-designer
+//       skipped: true
 //
 // `agent` names the spec agent whose section the question is about (#782); a plain question
-// that carries one is written as a block too.
+// that carries one is written as a block too. `skipped: true` marks one the user chose not to
+// answer (#831) — it stays as a record and is no longer open.
 //
 // `mode: single` lets the user tick one option, `mode: multi` as many as they
 // want. `recommend` holds 1-based positions into `options` — the ones the resolve
@@ -40,7 +42,7 @@ const MODES = ['single', 'multi']
 // end does too, so those live with the rules a reader shares (./view/rules.ts) and are
 // re-exported here for the writers below.
 export type { OptionsQuestion } from './view/types'
-export { hasOptions, QUESTION_TAGS, parseQuestion, formatQuestion } from './view/rules'
+export { hasOptions, QUESTION_TAGS, parseQuestion, formatQuestion, openOf } from './view/rules'
 import { QUESTION_TAGS, parseQuestion } from './view/rules'
 
 // Read any accepted form — a plain string, or the mapping the block above parses
@@ -50,16 +52,19 @@ export function normalizeQuestion(raw: unknown): Question {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     const source = raw as Record<string, unknown>
     const text = String(source.question ?? source.text ?? '')
-    const agent = typeof source.agent === 'string' && source.agent.trim() ? { agent: source.agent.trim() } : {}
+    const extra = {
+      ...(typeof source.agent === 'string' && source.agent.trim() ? { agent: source.agent.trim() } : {}),
+      ...(source.skipped === true || source.skipped === 'true' ? { skipped: true } : {}),
+    }
     const options = (Array.isArray(source.options) ? source.options : [])
       .map((o) => String(o).trim())
       .filter(Boolean)
-    if (options.length === 0) return { text, ...agent }
+    if (options.length === 0) return { text, ...extra }
     const mode = (MODES.includes(String(source.mode)) ? String(source.mode) : 'single') as 'single' | 'multi'
     const recommend = (Array.isArray(source.recommend) ? source.recommend : [])
       .map(Number)
       .filter((n) => Number.isInteger(n) && n >= 1 && n <= options.length)
-    return { text, mode, options, recommend: mode === 'single' ? recommend.slice(0, 1) : recommend, ...agent }
+    return { text, mode, options, recommend: mode === 'single' ? recommend.slice(0, 1) : recommend, ...extra }
   }
   return { text: String(raw) }
 }
@@ -104,6 +109,8 @@ export function parseQuestionsBlock(lines: string[]): Question[] {
         q.mode = unquote(val)
       } else if (key === 'agent') {
         q.agent = unquote(val)
+      } else if (key === 'skipped') {
+        q.skipped = unquote(val) === 'true'
       }
     }
     out.push(normalizeQuestion(q))
@@ -225,7 +232,7 @@ function finalizeHandover(q: QuestionDraft): Question {
 // One op of `update-questions`, as read off argv. `--agent` claims the question for a spec
 // agent; left off an `--update`, the question keeps the agent it had.
 export interface QuestionOp {
-  kind: 'append' | 'update' | 'drop' | 'clear' | 'to-verify'
+  kind: 'append' | 'update' | 'drop' | 'clear' | 'to-verify' | 'skip' | 'unskip'
   ns?: string
   n?: number
   draft?: QuestionDraft
@@ -250,7 +257,7 @@ export function readQuestionOps(typed: Typed[]): QuestionOp[] {
     const [key, value] = typed[i]!
     if (key === 'clear') {
       ops.push({ kind: 'clear' })
-    } else if (key === 'drop' || key === 'to-verify') {
+    } else if (key === 'drop' || key === 'to-verify' || key === 'skip' || key === 'unskip') {
       ops.push({ kind: key, ns: value })
     } else if (key === 'append') {
       ops.push({ kind: 'append', draft: newDraft('append', value) })
@@ -268,7 +275,7 @@ export function readQuestionOps(typed: Typed[]): QuestionOp[] {
     }
   }
   if (!ops.length) {
-    die('update-questions needs at least one op: --append ".." | --update <n> ".." | --drop n[,n...] | --to-verify n[,n...] | --clear')
+    die('update-questions needs at least one op: --append ".." | --update <n> ".." | --drop n[,n...] | --to-verify n[,n...] | --skip n[,n...] | --unskip n[,n...] | --clear')
   }
   for (const op of ops) {
     if (op.draft) {

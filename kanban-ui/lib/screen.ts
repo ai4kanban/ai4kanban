@@ -73,6 +73,7 @@ export interface ScreenActions {
   // open page comes back as a conflict with nothing written.
   patchCard(id: number, patch: CardPatch, expect: string): Promise<WriteResult>;
   dropVerify(id: number, line: string, expect: string): Promise<VerifyResult>;
+  skipQuestion(id: number, question: string, skipped: boolean, expect: string): Promise<WriteResult>;
   scheduleCard(id: number, action: ScheduledAction, notes: string, expect: string): Promise<WriteResult>;
   unscheduleCard(id: number, expect: string): Promise<WriteResult>;
 

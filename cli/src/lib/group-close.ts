@@ -9,6 +9,7 @@ import fs from 'node:fs'
 
 import { subtaskLines } from './cards'
 import { parseFrontmatter } from './frontmatter'
+import { openOf } from './view/rules'
 
 /** Whether this root closes now. `held` carries a line for the receipt in the one case
  *  worth reporting: the group looks finished and a rule is keeping it on the board anyway.
@@ -38,7 +39,7 @@ export function groupCloseCall(rootFile: string): GroupCloseCall {
   // A rejection note is written from the card's own words, so a group that shipped nothing
   // is one a person closes.
   if (ticked === 0) return stay('they were all struck out by reject, so the group shipped nothing')
-  if (meta && meta.questions.length > 0) return stay('it carries an open question of its own')
+  if (meta && openOf(meta.questions).length > 0) return stay('it carries an open question of its own')
   const own = body.split('\n').some((line) => {
     const m = line.match(OWN_TODO)
     return !!m && !/#\d+/.test(m[1]!)

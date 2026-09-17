@@ -52,7 +52,7 @@ import { readRuntimes, runtimeById } from './runtimes'
 import { stampMemoryPrune, stampMemoryReview } from './settings'
 import { dependencyRefusal } from './dependencies'
 import { creationOf, logPathOf, readRuns, readStore, runIsLive, withRuns, withStore } from './store'
-import { creationRefusal, discussingRefusal } from '../view/rules'
+import { creationRefusal, discussingRefusal, openOf } from '../view/rules'
 import { cardsDiscussing } from './chat'
 import { holdsCard, SPECIALIST_ACTIONS } from './types'
 import type {
@@ -259,7 +259,7 @@ function cardNow(cardId: number): { status: string; questions: number; title: st
     if (!file) return null
     const { meta } = parseFrontmatter(fs.readFileSync(file, 'utf8'))
     if (!meta) return null
-    return { status: meta.status || 'todo', questions: meta.questions.length, title: meta.title }
+    return { status: meta.status || 'todo', questions: openOf(meta.questions).length, title: meta.title }
   } catch {
     return null
   }

@@ -200,7 +200,7 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
 
   move('update-questions')
     .argument('<id>', ID, cardId)
-    .summary("patch a card's open questions: append, rewrite, drop, move to verify, or clear")
+    .summary("patch a card's open questions: append, rewrite, drop, move to verify, skip, or clear")
     .description(
       'Patch the open-question list in place. Ops apply in the order they were typed, and a position is ' +
         'read against the list as it stands when its op runs. Positions are 1-based. A question handed to ' +
@@ -211,6 +211,8 @@ export function buildBoardProgram(cli: BoardCliOptions): Command {
     .option('--update <n> <text...>', 'rewrite question <n> whole', opInOrder('update'))
     .option('--drop <positions>', 'remove answered questions, e.g. 1 or 1,3', opInOrder('drop'))
     .option('--to-verify <positions>', 'move hand-checks into `verify:`', opInOrder('to-verify'))
+    .option('--skip <positions>', "mark [user] questions skipped: kept as a record, no longer open", opInOrder('skip'))
+    .option('--unskip <positions>', 'reopen skipped questions', opInOrder('unskip'))
     .option('--clear', 'remove every open question', opInOrder('clear'))
     .option('--option <text>', 'a choice for the op before it', opInOrder('option'))
     .option('--recommended-option <text>', 'a choice for the op before it, ticked to start', opInOrder('recommended-option'))

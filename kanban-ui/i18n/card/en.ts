@@ -164,6 +164,9 @@ const en: CardCopy = {
     resolve: "Resolve",
     pageTitle: (id) => `Resolve #${id}`,
     pageBlurb: "Answer what this card is waiting on. Anything you leave blank stays open.",
+    skip: "Skip",
+    undo: "Undo",
+    skipFailed: "Couldn't update this question",
   },
   decided: {
     heading: "what was chosen for you",

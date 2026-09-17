@@ -180,6 +180,7 @@ function refusing(error: string): import('./contract').BoardProvider {
     addVerify: refused,
     dropVerify: refused,
     appendQuestion: refused,
+    skipQuestion: refused,
     archiveCard: refused,
     rejectCard: refused,
     newRelease: refused,

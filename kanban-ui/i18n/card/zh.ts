@@ -162,6 +162,9 @@ const zh: CardCopy = {
     resolve: "答复",
     pageTitle: (id) => `答复 #${id}`,
     pageBlurb: "回答这张卡片正在等待的问题。留空的问题保持待澄清。",
+    skip: "跳过",
+    undo: "撤销",
+    skipFailed: "未能更新这个问题",
   },
   decided: {
     heading: "替你做的选择",

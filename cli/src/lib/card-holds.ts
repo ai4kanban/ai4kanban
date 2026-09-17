@@ -8,7 +8,7 @@
 // the list. `akb card unstick` (#118) skips the two that mean the card is not forgotten,
 // and judges everything else, an unanswered question included.
 
-import { parseQuestion } from './view/rules'
+import { openOf, parseQuestion } from './view/rules'
 import type { Question } from './types'
 
 /** The three things a card can be waiting on. */
@@ -33,8 +33,7 @@ export function heldBy(card: {
   if (card.blockers.length) {
     holds.push({ kind: 'blocked', text: `blocked by ${card.blockers.map((n) => `#${n}`).join(', ')}` })
   }
-  // Every question on a card is unanswered — answering takes it off the list.
-  if (card.questions.some((q) => parseQuestion(q.text).tag === 'user')) {
+  if (openOf(card.questions).some((q) => parseQuestion(q.text).tag === 'user')) {
     holds.push({ kind: 'user', text: 'waiting on you' })
   }
   if (card.status === 'implementing') holds.push({ kind: 'building', text: 'being built' })

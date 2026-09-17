@@ -15,7 +15,7 @@ import { useDraft } from "@/lib/draft";
 import { usePhone } from "@/lib/media";
 import { useOverRail } from "@/lib/over-rail";
 import { useActions, useMachine } from "@/lib/screen";
-import { parseQuestion } from "@/lib/questions";
+import { openOf, parseQuestion } from "@/lib/questions";
 import type { CloudEventAnswer } from "@/lib/types";
 import {
   type Card,
@@ -1026,8 +1026,8 @@ export function ActionDialog({
     // one the user can settle now, and the blocker box still names Schedule in words.
     const blockers = dialog.card.blocked_by;
     const notReady = dialog.card.status !== "ready";
-    const asked = dialog.card.questions.length;
-    const answerable = dialog.card.questions.some((q) => parseQuestion(q.text).tag === "user");
+    const asked = openOf(dialog.card.questions).length;
+    const answerable = openOf(dialog.card.questions).some((q) => parseQuestion(q.text).tag === "user");
     const warned = blockers.length > 0 || notReady || asked > 0;
     const canSchedule = onSchedule && dialog.card.openBlockers.length > 0;
     const ids = blockers.map((n) => `#${n}`).join(", ");

@@ -74,6 +74,17 @@ export async function dropVerify(id: number, line: string, expect = ""): Promise
   }
 }
 
+/** Skip one of the user's questions on a card, or reopen it (#831). Named by its text. */
+export async function skipQuestion(id: number, question: string, skipped: boolean, expect = ""): Promise<WriteResult> {
+  try {
+    const rules = await boardRules();
+    const opts = expect ? { expect } : undefined;
+    return rules.skipQuestion ? await rules.skipQuestion(id, question, skipped, opts) : OLD_RULES;
+  } catch (e) {
+    return refused(e);
+  }
+}
+
 /** Schedule an action on a blocked card, so the board runs it by itself once the last card
  *  in its way leaves the board. A card that isn't waiting on anything, or an action that
  *  wouldn't move it, refuses with the line saying why. */

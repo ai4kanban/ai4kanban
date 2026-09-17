@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto'
 import { allCards, findCard } from '../view/read'
 import { scheduleRefineOnBlock } from '../view/edit'
 import { decideRunAfter } from './decide'
-import { byDispatchOrder, canRefine, parseQuestion } from '../view/rules'
+import { byDispatchOrder, canRefine, openOf, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { startRun } from './start'
 import { endOfStage, shortLine, stageOfAction, type StageShort } from './stage-end'
@@ -174,10 +174,10 @@ function afterQa(
   refineEffort: RefineEffort = 'standard',
 ): AgentRequest | 'incomplete' | null {
   if (!card || card.openBlockers.length > 0) return null
-  if (card.questions.some((q) => parseQuestion(q.text).tag !== 'user')) return 'incomplete'
+  if (openOf(card.questions).some((q) => parseQuestion(q.text).tag !== 'user')) return 'incomplete'
   // QA converged and left only the user's calls. That is where the card stops — unless the
   // decider is on (#447), and then one run answers them instead of the user.
-  if (card.questions.length > 0) return decideRunAfter(card.id)
+  if (openOf(card.questions).length > 0) return decideRunAfter(card.id)
   if (refinementStep(card) === 'done') return null
   return {
     action: 'writing',
@@ -318,7 +318,7 @@ export interface RefinementFollowUp {
 function planStageEnd(run: RunRecord): ReturnType<typeof endOfStage> | null {
   if (run.cardId === null || stageOfAction(run.action) !== 'plan') return null
   const card = currentCard(run.cardId)
-  if (!card || card.openBlockers.length > 0 || card.questions.length > 0 || card.schedule) return null
+  if (!card || card.openBlockers.length > 0 || openOf(card.questions).length > 0 || card.schedule) return null
   if (refinementStep(card) !== 'done') return null
   return endOfStage(stageContract('plan'), card, run.refineEffort)
 }

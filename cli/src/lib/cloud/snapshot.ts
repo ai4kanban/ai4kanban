@@ -27,7 +27,7 @@
 
 import crypto from 'node:crypto'
 
-import { parseQuestion } from '../view/rules'
+import { openOf, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { ALL_RELEASES, type CloudBoard } from './boards'
 import { decisionFor, type CloudEventKind, type CloudEventQuestion } from './events'
@@ -77,10 +77,10 @@ export interface EventSnapshot {
   besides: string
 }
 
-/** The user-owned questions on this card, with the board's own tag taken off. */
+/** The user-owned questions still open on this card, with the board's own tag taken off. */
 export function userQuestions(card: Card): CloudEventQuestion[] {
   const out: CloudEventQuestion[] = []
-  for (const q of card.questions) {
+  for (const q of openOf(card.questions)) {
     const { tag, text } = parseQuestion(q.text)
     if (tag !== 'user') continue
     const options = Array.isArray(q.options) ? q.options.filter(Boolean) : []

@@ -19,6 +19,7 @@ import { parseFrontmatter } from '../lib/frontmatter'
 import { walkMd, idPrefix } from '../lib/cards'
 import { cardAges, staleAfter, type Age } from '../lib/card-age'
 import { heldBy, type Hold } from '../lib/card-holds'
+import { openOf } from '../lib/view/rules'
 import type { MoveResult, Question } from '../lib/types'
 
 // One open card as the list shows it — the frontmatter fields it prints, plus where the
@@ -178,7 +179,8 @@ export function cmdList(opts: ListOptions): MoveResult {
     if (r.release) meta.push(`release ${r.release}`)
     if (r.cadence) meta.push(`every ${r.cadence}`)
     if (r.blocked_by.length) meta.push(`blocked by ${r.blocked_by.map((n) => `#${n}`).join(', ')}`)
-    if (r.questions.length) meta.push(plural(r.questions.length, 'open question'))
+    const open = openOf(r.questions).length
+    if (open) meta.push(plural(open, 'open question'))
     if (r.verify.length) meta.push(`${r.verify.length} to check by hand`)
     if (r.decided) meta.push(`${r.decided} answered for you`)
     say('')

@@ -45,6 +45,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { answeredStop, deliveryState, type DeliveryStage, type DeliveryState } from './pause'
 import { reflectOnCompletion } from './propose'
 import { deliveryRules } from './rules'
+import { openOf } from '../view/rules'
 import { cardWorkflowId, frozenWorkflow } from './workflows'
 import {
   aiReviewOn,
@@ -679,7 +680,7 @@ export const cardStatus = (cardId: number): string => cardMeta(cardId)?.status |
 /** How many questions this card still has open — the count landing holds on (#307), and the
  *  one the Implement dialog and `akb card implement` warn about. A card nobody can read has
  *  none: a missing card holds nothing up. */
-export const openQuestions = (cardId: number): number => cardMeta(cardId)?.questions.length ?? 0
+export const openQuestions = (cardId: number): number => openOf(cardMeta(cardId)?.questions ?? []).length
 
 // ---- the live row -------------------------------------------------------------
 
@@ -1137,7 +1138,7 @@ export function cardsAwaitingAnswer(): Set<number> {
  *
  *  Owed only when the answers left the requirements alone (#637). Answers that CHANGED them
  *  are not something to review this build against — the landing pass ends the delivery and
- *  opens a fresh one — and a round nothing judged is not reviewed on a guess.
+ *  opens a fresh one. A round nothing judged changed nothing (#831).
  *
  *  Manual commit mode is the exception, and only because the supersede lives in the landing
  *  pass a manual delivery never enters (`wantsLanding`): there a change has nothing to act
@@ -1147,9 +1148,7 @@ export function answeredReview(cardId: number): AgentRequest | null {
   const delivery = activeDelivery(cardId)
   if (!delivery || delivery.next) return null
   if (!answeredStop(delivery, openQuestions(cardId))) return null
-  const outcome = answerOutcome(delivery)
-  if (outcome === 'none') return null
-  if (outcome === 'changed' && wantsLanding(delivery)) return null
+  if (answerOutcome(delivery) === 'changed' && wantsLanding(delivery)) return null
   return { action: 'review', id: cardId, deliveryId: delivery.deliveryId, title: delivery.title, trigger: 'answered' }
 }
 

@@ -17,7 +17,7 @@ import {
   joinDelivery,
   settleDelivery,
 } from '../src/lib/agent/deliveries.ts'
-import { answerOutcome, recordAnswer } from '../src/lib/agent/answers.ts'
+import { answerOutcome, pendingAnswers, recordAnswer } from '../src/lib/agent/answers.ts'
 import { deliveryState } from '../src/lib/agent/pause.ts'
 import { readStore, withStore } from '../src/lib/agent/store.ts'
 import type { AgentAction, RunRecord } from '../src/lib/agent/types.ts'
@@ -30,7 +30,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'akb-review-'))
 const ask = (argv: string[]): Promise<Record<string, unknown>> => move(root, ['update-questions', '5', ...argv])
 
 // What the run that applied the answers says about them (#637). The board reads this rather
-// than the card's text, so nothing carries on until it is written.
+// than the card's text; saying nothing reads as unchanged (#831).
 const said = (outcome: 'unchanged' | 'changed', why = 'the option it confirms was already built'): void => {
   recordAnswer(activeDelivery(5)!.deliveryId, outcome, why)
 }
@@ -360,13 +360,15 @@ describe('stopping for the user', () => {
       assert.equal(answeredWork().length, 1)
     })
 
-    it('guesses at nothing when no run said, and asks to be told', async () => {
+    // A question deleted by hand is one the user skipped (#831): the card is what it was.
+    it('carries on as unchanged when no run said', async () => {
       await stopped()
-      assert.equal(answerOutcome(activeDelivery(5)!), 'none')
-      assert.deepEqual(answeredWork(), [])
+      assert.equal(answerOutcome(activeDelivery(5)!), 'unchanged')
+      assert.equal(answeredWork().length, 1)
       const state = deliveryState(activeDelivery(5)!, 0)
-      assert.equal(state.paused, true)
-      assert.match(state.line, /delivery answered/)
+      assert.equal(state.stage, 'rereview')
+      assert.equal(state.paused, false)
+      assert.equal(state.line, '')
     })
 
     it('takes a conclusion once, so a second pass carries nothing on', async () => {
@@ -378,7 +380,7 @@ describe('stopping for the user', () => {
         joinActive(store, again, 'review')
       })
       // The run it asked for has started, so the conclusion has had its effect.
-      assert.equal(answerOutcome(activeDelivery(5)!), 'none')
+      assert.equal(pendingAnswers(activeDelivery(5)!).length, 0)
       assert.deepEqual(answeredWork(), [])
     })
 
@@ -394,7 +396,55 @@ describe('stopping for the user', () => {
       const id = activeDelivery(5)!.deliveryId
       assert.equal(recordAnswer(id, 'unchanged', '  ').ok, false)
       assert.equal(recordAnswer('nothing-here', 'unchanged', 'why').ok, false)
-      assert.equal(answerOutcome(activeDelivery(5)!), 'none')
+      assert.equal(pendingAnswers(activeDelivery(5)!).length, 0)
+    })
+  })
+
+  // Skipping is answering with "keep the card as it is" (#831).
+  describe('skipping a question', () => {
+    async function stoppedOn(n: number): Promise<void> {
+      const built = build()
+      await close(built)
+      const first = carryOn(built)
+      for (let i = 1; i <= n; i++) {
+        await ask(['--append', `[user] Question ${i}?`, '--recommended-option', 'A — the safe one', '--option', 'B — the other'])
+      }
+      await close(first)
+    }
+
+    it('reviews again once the last open question is skipped, and records it as unchanged', async () => {
+      await stoppedOn(1)
+      await ask(['--skip', '1'])
+      assert.equal(pendingAnswers(activeDelivery(5)!).map((a) => a.outcome).join(), 'unchanged')
+      assert.equal(answeredWork().length, 1)
+      assert.match(fs.readFileSync(file, 'utf8'), /question: "?\[user\] Question 1\?"?\n(.*\n)*?    skipped: true/)
+    })
+
+    it('goes on waiting while another question is still open', async () => {
+      await stoppedOn(2)
+      await ask(['--skip', '1'])
+      assert.match(deliveryWaiting(5) ?? '', /open decision/)
+      assert.deepEqual(answeredWork(), [])
+      // Answering the other one alongside the skip carries it on.
+      await ask(['--drop', '2'])
+      assert.equal(answeredWork().length, 1)
+    })
+
+    it('reopens the wait when the skip is undone, and spends the unchanged it recorded', async () => {
+      await stoppedOn(1)
+      await ask(['--skip', '1'])
+      await ask(['--unskip', '1'])
+      assert.match(deliveryWaiting(5) ?? '', /open decision/)
+      assert.deepEqual(answeredWork(), [])
+      assert.equal(pendingAnswers(activeDelivery(5)!).length, 0)
+    })
+
+    it('leaves a change recorded in the same round standing', async () => {
+      await stoppedOn(2)
+      said('changed', 'the retry policy is now a queue')
+      await ask(['--drop', '2'])
+      await ask(['--skip', '1'])
+      assert.equal(answerOutcome(activeDelivery(5)!), 'changed')
     })
   })
 

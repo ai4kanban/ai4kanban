@@ -20,7 +20,7 @@
 //     switching the gate off stops what it had lined up.
 
 import { allCards, findCard } from '../view/read'
-import { byDispatchOrder } from '../view/rules'
+import { byDispatchOrder, openOf } from '../view/rules'
 import type { Card } from '../view/types'
 import { activeDelivery } from './deliveries'
 import { readyGateOn } from './settings'
@@ -57,7 +57,7 @@ export function gateable(card: Card): boolean {
     card.status === 'ready' &&
     !card.isGroup &&
     !card.recurring &&
-    card.questions.length === 0 &&
+    openOf(card.questions).length === 0 &&
     card.openBlockers.length === 0 &&
     !activeDelivery(card.id)
   )

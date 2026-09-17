@@ -196,6 +196,9 @@ export interface BoardProvider {
   dropVerify(id: number, line: string, env: OpEnvelope): Promise<VerifyOp>
   /** `options` are the choices the user ticks — two or more, as every question carries. */
   appendQuestion(id: number, question: string, options: string[], env: OpEnvelope): Promise<CardOp>
+  /** Skip one of the user's questions, or reopen it (#831). Named by its text, since a run can
+   *  change the list while the page sits open. */
+  skipQuestion(id: number, question: string, skipped: boolean, env: OpEnvelope): Promise<CardOp>
   archiveCard(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
   rejectCard(id: number, env: OpEnvelope): Promise<OpResult<{ data: MoveOutput }>>
 

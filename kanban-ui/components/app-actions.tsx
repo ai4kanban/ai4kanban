@@ -34,6 +34,7 @@ import {
   resumeSessionAction,
   scheduleCardAction,
   setReleaseGoalAction,
+  skipQuestionAction,
   startAgentAction,
   stopSessionAction,
   unscheduleCardAction,
@@ -46,6 +47,7 @@ export const appActions: ScreenActions = {
 
   patchCard: patchCardAction,
   dropVerify: dropVerifyAction,
+  skipQuestion: skipQuestionAction,
   scheduleCard: scheduleCardAction,
   unscheduleCard: unscheduleCardAction,
 

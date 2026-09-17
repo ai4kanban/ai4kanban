@@ -54,6 +54,7 @@ import { memoryReview } from './settings'
 import { translating } from './language'
 import { buildAsk, frozenRules, leadBlock } from './prompts'
 import { ruleFor, ruleOwner, ruleOwnerSays } from './rules'
+import { openOf } from '../view/rules'
 import { setupInstruction } from './resolve'
 import type { AgentAction, AgentRequest, DeliveryRecord, StartableAction } from './types'
 
@@ -411,7 +412,7 @@ function answeringField(delivery: DeliveryRecord, self: string): string[] {
       `the card already carries and tidying prose are all --unchanged. Adding, dropping or changing a`,
       `requirement is --changed — and so is confirming an implementation that contradicts the copy below,`,
       `however finished it is.`,
-      `until you have said, the board neither reviews this build again nor lands it.`,
+      `say nothing and the board carries on as --unchanged.`,
     ]),
     ...field(
       'approved',
@@ -427,7 +428,7 @@ function answeringField(delivery: DeliveryRecord, self: string): string[] {
 // puts the board back in motion.
 const answeredClose = (delivery: DeliveryRecord, self: string): string =>
   `${self} delivery answered ${delivery.deliveryId} --changed|--unchanged "<why>" — before you drop the questions; ` +
-  `the build waits until you have said, and never on a guess`
+  `dropping the last one with nothing said carries the build on as --unchanged`
 
 // The card's post-implementation notes as they read right now — NOT part of the approved
 // copy, and the one place the user records an exception they have approved for this exact
@@ -457,11 +458,16 @@ function notesField(card: CardFacts): string[] {
 
 // The open questions, numbered as the board numbers them — the numbers are what
 // `update-questions` and `tag` take, so a flow that lists them differently is a flow that
-// gets the wrong question answered.
+// gets the wrong question answered. A skipped one keeps its number and says so (#831).
 function questionsField(meta: Meta): string[] {
+  const open = openOf(meta.questions).length
   if (!meta.questions.length) return field('questions', 'none open')
-  const lines = meta.questions.map((q, i) => `${i + 1}. ${q.text}${q.options?.length ? ` (${q.options.length} options)` : ''}`)
-  return field('questions', [`${meta.questions.length} open:`, ...lines.map((s) => `  ${s}`)])
+  const lines = meta.questions.map(
+    (q, i) =>
+      `${i + 1}. ${q.skipped ? '(skipped by the user — leave it) ' : ''}${q.text}` +
+      `${q.options?.length ? ` (${q.options.length} options)` : ''}`,
+  )
+  return field('questions', [`${open} open:`, ...lines.map((s) => `  ${s}`)])
 }
 
 // The hand-checks already on the card, numbered as `update-verify --drop` takes them. Only
@@ -645,7 +651,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
             : `leave the card on the board — the board archives the card itself once the delivery has landed`
           : `${raw} archive ${req.id} — once every box is ticked and the card's goal is met`,
       )
-      if (card.meta.questions.length) {
+      if (openOf(card.meta.questions).length) {
         next.push(
           `${self} card resolve ${req.id} --print — first: the card has open questions, and building on a guess is what they are there to stop`,
         )

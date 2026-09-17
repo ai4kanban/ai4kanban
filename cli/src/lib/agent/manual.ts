@@ -79,7 +79,7 @@ What a delivery is
   with open questions holds outside the landing queue until they are answered; an answer that
   changed what the card asks for ends that delivery and starts a fresh one. What the answer
   did is said by the run that applied it — \`${program} delivery answered\` — never worked out
-  from the card's text, and the build waits rather than guessing when nothing has said.
+  from the card's text; a skipped or deleted question changes nothing.
 
   Two switches in Configuration change this: **Allow automatic Git commits** off builds in
   your checkout, one at a time; **Approve diffs before landing** on holds every delivery after

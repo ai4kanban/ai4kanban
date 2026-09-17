@@ -66,7 +66,7 @@ import { HAIRLINE, PULSE_DOT } from "./chrome";
 import { usePhone } from "@/lib/media";
 import { useActions, useControls, useMachine, type CardControl, type StripPlace } from "@/lib/screen";
 import { cn } from "@/lib/utils";
-import { parseQuestion } from "@/lib/questions";
+import { openOf, parseQuestion } from "@/lib/questions";
 import { bandLabel, CARD_BAND_STATES, type CloudEventState } from "@/lib/types";
 import { useCardEvent } from "@/lib/card-event";
 import type { BoardChange } from "@/lib/chat-rail";
@@ -320,7 +320,7 @@ type CardButton = CardControl;
 // Edit is not a run (#633): it opens this card's conversation, which is where what the card
 // says is settled. It is here so the toolbar draws it in the place it has always had.
 function visibleActions(card: Card, offered: readonly CardControl[] | null): Set<CardButton> {
-  const hasUserQuestions = card.questions.some((q) => parseQuestion(q.text).tag === "user");
+  const hasUserQuestions = openOf(card.questions).some((q) => parseQuestion(q.text).tag === "user");
   const { total, done } = card.todos;
   const allDone = total > 0 && done === total; // zero-todo cards never count as done
   // A group root is implemented by finishing its subtasks, and it is done when
@@ -369,7 +369,7 @@ function visibleActions(card: Card, offered: readonly CardControl[] | null): Set
 // A native tooltip draws whatever it is given, so the line's backticks come off here.
 const heldNote = (delivery: CardDelivery, c: CardCopy): string => {
   const line = delivery.state.line.replace(/`/g, "");
-  return `${line} ${delivery.state.paused ? c.heldPaused : c.heldRunning}`;
+  return `${line} ${delivery.state.paused ? c.heldPaused : c.heldRunning}`.trim();
 };
 
 // Stop run (#49): ends the run in flight and nothing else. The delivery stands, its work
@@ -1460,7 +1460,7 @@ export function CardPage({
   const answerable = !!delivery?.state.paused || !!delivery?.state.deciding;
   // A delivery that is only building — waiting on nothing, holding nothing up. The one stage
   // with nothing to say beyond the pill already saying it.
-  const justBuilding = delivery?.state.stage === "working";
+  const justBuilding = delivery?.state.stage === "working" || !delivery?.state.line;
   // The one line under the title band — see where it renders for what it says.
   const deliveryLine = !!delivery && (!justBuilding || !!delivery.supersedes || !!delivery.lost);
   // This card's own chat is writing a reply (#633), so the requirement is about to move:
@@ -1489,7 +1489,7 @@ export function CardPage({
   const canResolve =
     buttons.has("resolve") &&
     !offUnlessAsked &&
-    card.questions.some((q) => parseQuestion(q.text).tag === "user");
+    openOf(card.questions).some((q) => parseQuestion(q.text).tag === "user");
   // The stack (#357): every action full width, and everything past the first three folded
   // behind More. `order-1` is what puts an unfolded one under the fold's own button without
   // moving it in the markup, so the window's row keeps the order it has always had.
@@ -2279,6 +2279,7 @@ export function CardPage({
               onClose={closeDeciding}
               canDecide={!!actions && buttons.has("resolve") && !offUnlessAsked}
               disabledWhy={frozen ? frozenWhy : busy && liveSession ? c.toolbar.alreadyRunning(t.runs.verb[liveSession.action]) : undefined}
+              canSkip={fieldWrites && !busy && !discussing}
               onRun={runAgent}
             />
 

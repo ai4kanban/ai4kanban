@@ -337,16 +337,16 @@ function deliveryAim(
 }
 
 /** What a pass applying answers is told when a delivery is already building the card (#637).
- *  It is the one thing that can tell a confirmation from a change, and the board waits for it
- *  rather than comparing the card's text. Empty when nothing is building the card. */
+ *  It is the one thing that can tell a confirmation from a change; the board never compares
+ *  the card's text, and reads silence as unchanged (#831). Empty when nothing is building the card. */
 function answeredNote(cardId: number | undefined, command: string): string {
   const delivery = cardId === undefined ? undefined : activeDelivery(cardId)
   if (!delivery) return ''
   return (
     `Delivery ${delivery.deliveryId} is already building this card. Once your answers are on it, say what they did ` +
     `to what it was approved to build: \`${command} delivery answered ${delivery.deliveryId} ` +
-    `--changed|--unchanged "<why>"\`, before you drop the questions. Judge the meaning, not the words — the board ` +
-    `neither reviews the build again nor lands it until you have said.`
+    `--changed|--unchanged "<why>"\`, before you drop the questions. Judge the meaning, not the words — say ` +
+    `nothing and the board carries the build on as unchanged.`
   )
 }
 

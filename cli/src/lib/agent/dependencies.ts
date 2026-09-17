@@ -6,6 +6,7 @@
 
 import { findSpecAgent, specAgents, specSection } from '../agents'
 import { findCard } from '../view/read'
+import { openOf } from '../view/rules'
 import type { Card } from '../view/types'
 import { readSpecAsks } from './sessions'
 import { readRuns, runIsLive } from './store'
@@ -70,7 +71,7 @@ function notReady(dep: string, card: Card, runs: RunRecord[], pending: Set<strin
     return `did not finish its last run (it ${how})`
   }
   if (!specSection(card.body, dep)) return 'has not written its section yet'
-  if (card.questions.some((q) => q.agent === dep)) return 'has an open question waiting for the user'
+  if (openOf(card.questions).some((q) => q.agent === dep)) return 'has an open question waiting for the user'
   return null
 }
 

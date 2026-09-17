@@ -6,7 +6,7 @@
 // that reads it can never disagree about what a question says. This file is the name the
 // UI imports them under — fix the rules in cli/src/lib/view/.
 
-export { hasOptions, parseQuestion } from "./format/view/rules";
+export { hasOptions, openOf, parseQuestion } from "./format/view/rules";
 export type { Question, Question as CardQuestion, QuestionMode, QuestionTag } from "./format/view/types";
 
 import type { Question } from "./format/view/types";

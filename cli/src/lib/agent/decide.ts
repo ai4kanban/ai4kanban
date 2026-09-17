@@ -19,7 +19,7 @@
 //     still carrying questions goes back to waiting on the user.
 
 import { findCard } from '../view/read'
-import { parseQuestion } from '../view/rules'
+import { openOf, parseQuestion } from '../view/rules'
 import type { Card } from '../view/types'
 import { deciderOn } from './settings'
 import { readStore } from './store'
@@ -32,8 +32,8 @@ import type { AgentRequest } from './types'
  *  Typing `akb card decide <id>` bypasses all of it, as every flow does. */
 export function decidable(card: Card): boolean {
   return (
-    card.questions.length > 0 &&
-    card.questions.every((q) => parseQuestion(q.text).tag === 'user') &&
+    openOf(card.questions).length > 0 &&
+    openOf(card.questions).every((q) => parseQuestion(q.text).tag === 'user') &&
     card.openBlockers.length === 0 &&
     !card.recurring
   )

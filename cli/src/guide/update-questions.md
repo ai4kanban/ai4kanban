@@ -24,6 +24,9 @@ An unanswered question that passes this test is user-owned. Prefix it with `[use
 open, and stop only the work that depends on its answer. Only `[user]` questions may survive a
 completed QA pass.
 
+A question marked `skipped: true` is one the user chose not to answer. It is not open: it
+takes no option, grants nothing, and is never asked again.
+
 ```text
 akb raw update-questions <id> \
   --append "[user] Which behavior should apply?" \

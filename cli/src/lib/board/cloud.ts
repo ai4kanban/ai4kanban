@@ -752,6 +752,8 @@ function cloudBoard(ctx: Context): BoardProvider {
     dropVerify: (id, line, env) => through({ card: id }, env, (e) => local.dropVerify(id, line, e)),
     appendQuestion: (id, question, options, env) =>
       through({ card: id }, env, (e) => local.appendQuestion(id, question, options, e)),
+    skipQuestion: (id, question, skipped, env) =>
+      through({ card: id }, env, (e) => local.skipQuestion(id, question, skipped, e)),
     archiveCard: (id, env) => through({ card: id }, env, (e) => local.archiveCard(id, e)),
     rejectCard: (id, env) => through({ card: id }, env, (e) => local.rejectCard(id, e)),
 

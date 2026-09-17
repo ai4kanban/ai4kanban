@@ -36,7 +36,7 @@ import { holdCloudClaims } from '../lib/cloud/requests'
 import { reconcileTriage, signalsAccess } from '../lib/signals'
 import { changelogRefusal } from '../lib/releases'
 import { findCard } from '../lib/view/read'
-import { creationRefusal } from '../lib/view/rules'
+import { creationRefusal, openOf } from '../lib/view/rules'
 import type { MoveResult } from '../lib/types'
 import { approveDelivery, cancelDelivery, discardDelivery, resumeDelivery } from '../lib/view/api'
 
@@ -190,7 +190,7 @@ function sayBeforeStart(req: CommandRequest, program: string): void {
   if (blockers.length) {
     say(`#${req.id} is blocked by ${blockers.map((b) => `#${b.id} ${b.title}`).join(', ')} — starting anyway.`)
   }
-  const asked = card?.questions.length ?? 0
+  const asked = openOf(card?.questions ?? []).length
   if (req.action === 'implement' && asked) {
     say(
       `#${req.id} has ${asked} open question${asked === 1 ? '' : 's'} — it is built and reviewed, then holds at landing ` +

@@ -17,6 +17,19 @@ export function dropDraft(key: string): void {
   } catch {}
 }
 
+/** Take one entry out of a list draft, or put one in, so the entries after it keep lining up
+ *  with their questions when one leaves the list or comes back (#831). */
+export function spliceDraft(key: string, at: number, remove: number, insert?: unknown): void {
+  try {
+    const saved = window.localStorage.getItem(PREFIX + key);
+    const arr = saved ? JSON.parse(saved) : null;
+    if (!Array.isArray(arr)) return;
+    if (insert === undefined) arr.splice(at, remove);
+    else arr.splice(at, remove, insert);
+    window.localStorage.setItem(PREFIX + key, JSON.stringify(arr));
+  } catch {}
+}
+
 // A single text draft (implement notes, a reject reason, the create description…).
 export function useDraft(key: string): [string, (v: string) => void, () => void] {
   const storageKey = PREFIX + key;

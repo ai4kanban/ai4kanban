@@ -216,6 +216,11 @@ export type CardCopy = {
      *  neither. */
     pageTitle: (id: number) => string;
     pageBlurb: string;
+    /** Leave one of your questions unanswered (#831); the card stays as it is. */
+    skip: string;
+    /** Take a skip back: the question is open again. */
+    undo: string;
+    skipFailed: string;
   };
   /** What the decider chose here in your place (#447) — a read-only record, folded shut
    *  beside the hand-checks. */

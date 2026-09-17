@@ -616,6 +616,8 @@ export interface BoardRules {
   // way it always did rather than the page failing to draw.
   addVerify?(id: number, line: string, opts?: WriteOptions): Promise<VerifyResult>;
   dropVerify?(id: number, line: string, opts?: WriteOptions): Promise<VerifyResult>;
+  // Skip one of the user's questions, or reopen it (#831). Optional for the same reason.
+  skipQuestion?(id: number, question: string, skipped: boolean, opts?: WriteOptions): Promise<WriteResult>;
   setSchedule(id: number, action: string, notes?: string, opts?: WriteOptions): Promise<WriteResult>;
   clearSchedule(id: number, opts?: WriteOptions): Promise<WriteResult>;
   newRelease(id: string, goal?: string, fill?: boolean): Promise<WriteResult & { fill?: "none" | "fill" | "agent" }>;

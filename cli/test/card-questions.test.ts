@@ -129,3 +129,53 @@ describe('a question handed to the user carries choices', () => {
     assert.match(card(), /questions: \[\]/)
   })
 })
+
+describe('a question the user skipped', () => {
+  const user = ['--append', '[user] Which region?', '--recommended-option', 'a — why', '--option', 'b — why']
+
+  it('stays on the card as a record, keeps its recommendation unpicked, and counts as not open', async () => {
+    await questions(user)
+    const res = await questions(['--skip', '1'])
+    assert.equal(res.open, 0)
+    assert.match(card(), /- question: "?\[user\] Which region\?"?\n    mode: single\n    options:\n      - a — why\n      - b — why\n    recommend: \[1\]\n    skipped: true/)
+    assert.doesNotMatch(card(), /^decided:/m)
+    await move(root, ['update', '1', '--status', 'ready'])
+    assert.match(card(), /status: ready/)
+  })
+
+  it('refuses rewriting, dropping or moving it until it is reopened', async () => {
+    await questions(user)
+    await questions(['--skip', '1'])
+    await refuses(root, ['update-questions', '1', '--drop', '1'], /--unskip 1/)
+    await refuses(root, ['update-questions', '1', '--to-verify', '1'], /--unskip 1/)
+    await refuses(root, ['update-questions', '1', '--update', '1', '[user] Other?', '--option', 'a', '--option', 'b'], /--unskip 1/)
+    await questions(['--clear'])
+    assert.match(card(), /skipped: true/)
+    await questions(['--unskip', '1'])
+    assert.doesNotMatch(card(), /skipped/)
+    await questions(['--drop', '1'])
+    assert.match(card(), /questions: \[\]/)
+  })
+
+  it('is the user\'s call alone: a run cannot skip or reopen one', async () => {
+    await questions(user)
+    process.env.KANBAN_RUN = 'a-run'
+    try {
+      await refuses(root, ['update-questions', '1', '--skip', '1'], /only the user skips/)
+    } finally {
+      delete process.env.KANBAN_RUN
+    }
+    await questions(['--skip', '1'])
+    const again = await questions(['--skip', '1'])
+    assert.equal(again.open, 0)
+  })
+
+  it('takes only the user\'s own questions, and sends a ready card back once reopened', async () => {
+    await questions(['--append', 'Which region?', '--option', 'a — why', '--option', 'b — why'])
+    await refuses(root, ['update-questions', '1', '--skip', '1'], /not a \[user\] question/)
+    await questions(['--drop', '1', ...user, '--skip', '1'])
+    await move(root, ['update', '1', '--status', 'ready'])
+    await questions(['--unskip', '1'])
+    assert.match(card(), /status: todo/)
+  })
+})

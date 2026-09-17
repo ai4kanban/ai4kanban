@@ -199,6 +199,12 @@ describe('what one event carries', () => {
     ])
   })
 
+  it('leaves out the questions the user skipped', () => {
+    const held = card({ questions: [asked('[user] Skipped?', { skipped: true }), asked('[user] Still open?')] })
+    assert.deepEqual(userQuestions(held), [{ text: 'Still open?' }])
+    assert.equal(actionableKind(card({ questions: [asked('[user] Skipped?', { skipped: true })] }), BOARD), null)
+  })
+
   it('leaves every other part of the card behind', () => {
     const snapshot = snapshotFor(card({ status: 'ready' }), BOARD)!
     const carried = JSON.stringify(snapshot)

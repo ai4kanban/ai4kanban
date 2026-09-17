@@ -114,6 +114,11 @@ export async function patchCard(id: number, patch: CardPatch, opts?: WriteOption
   return flat(await envelopeFor({ card: id }, opts, (env) => board().patchCard(id, patch, env)))
 }
 
+/** Skip one of the user's questions on a card, or reopen it (#831). */
+export async function skipQuestion(id: number, question: string, skipped: boolean, opts?: WriteOptions): Promise<WriteResult> {
+  return flat(await envelopeFor({ card: id }, opts, (env) => board().skipQuestion(id, question, skipped, env)))
+}
+
 /**
  * Add one hand-check to a card, or cross one off (#276) — the card page's two controls on
  * the **check by hand** panel.

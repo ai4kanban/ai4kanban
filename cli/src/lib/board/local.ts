@@ -361,6 +361,14 @@ export function localBoard(): BoardProvider {
         return { card: findCard(id) ?? undefined }
       }),
 
+    skipQuestion: (id, question, skipped, env) =>
+      mutate({ card: id }, env, () => {
+        const n = (findCard(id)?.questions ?? []).findIndex((q) => q.text === question) + 1
+        if (!n) throw new Error('that question is no longer on the card')
+        cmdUpdateQuestions(id, { ops: [[skipped ? 'skip' : 'unskip', String(n)]] })
+        return { card: findCard(id) ?? undefined }
+      }),
+
     archiveCard: (id, env) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'completed') || {} })),
     rejectCard: (id, env) => mutate({ card: id }, env, () => ({ data: cmdRemove(id, 'rejected') || {} })),
 

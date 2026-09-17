@@ -22,7 +22,7 @@ import { setCardStatusOn } from '../board'
 import { say } from '../io'
 import { tryLock } from '../lock'
 import { REPO_ROOT, SESSIONS_DIR } from '../paths'
-import { answerOutcome, takeUnchanged, UNJUDGED, unjudgedWhy } from './answers'
+import { answerOutcome, takeUnchanged } from './answers'
 import { approvalStands, cancelApproval } from './approval'
 import { boardCommand } from './command'
 import { deliveryMessage, deliveryName } from './commit-mode'
@@ -172,11 +172,9 @@ function giveUpSlot(delivery: DeliveryRecord, why: string): void {
 const questionWhy = (cardId: number, asked: number): string =>
   `${HELD_ON_QUESTIONS}: #${cardId} has ${asked} of them, and landing waits until ${asked === 1 ? 'it is' : 'they are'} answered`
 
-// Landing was waiting on this card's answers — on the questions themselves, or on what a
-// round of them concluded (#637). Both are the same wait: the delivery stands outside the
-// queue until the card's answers are in and something has said what they did.
-const wasHeldOnQuestions = (delivery: DeliveryRecord): boolean =>
-  !!delivery.landing?.why?.startsWith(HELD_ON_QUESTIONS) || !!delivery.landing?.why?.startsWith(UNJUDGED)
+// Landing was waiting on this card's answers: the delivery stands outside the queue until
+// they are in.
+const wasHeldOnQuestions = (delivery: DeliveryRecord): boolean => !!delivery.landing?.why?.startsWith(HELD_ON_QUESTIONS)
 
 /** The deliveries whose card still has an open question. They are built and reviewed, and
  *  landing is the step that waits for the answer — so one holding the slot gives it back
@@ -198,30 +196,6 @@ function holdForQuestions(): Set<string> {
     // it asks for has not happened yet.
     takeUnchanged(delivery)
     const why = questionWhy(delivery.cardId, asked)
-    if (delivery.landing.status === 'landing') giveUpSlot(delivery, why)
-    else if (delivery.landing.why !== why) patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
-  }
-  return held
-}
-
-/** The deliveries whose answers are all in and whose round nothing judged (#637).
- *
- *  There is no guessing here and no fallback: comparing the card's text against the copy the
- *  delivery froze is exactly the judgement this replaces, cancelling the delivery would throw
- *  away a build over a missing line, and landing it would ship work the answers may have
- *  changed. So it waits, outside the queue, saying the one command that settles it.
- *
- *  Normally unreachable: `resolve` and `decide` record the conclusion before they drop a
- *  question. What reaches it is a run cut off between the two, a question answered by hand in
- *  the card file, and a delivery recorded before any of this existed. */
-function holdForVerdict(already: Set<string>): Set<string> {
-  const held = new Set<string>()
-  for (const delivery of readStore().deliveries) {
-    if (delivery.status !== 'active' || !delivery.landing || delivery.landing.status === 'landed') continue
-    if (already.has(delivery.deliveryId) || delivery.cardId === null) continue
-    if (!answersAreIn(delivery) || answerOutcome(delivery) !== 'none') continue
-    held.add(delivery.deliveryId)
-    const why = unjudgedWhy(delivery)
     if (delivery.landing.status === 'landing') giveUpSlot(delivery, why)
     else if (delivery.landing.why !== why) patchLanding(delivery.deliveryId, (landing) => void (landing.why = why))
   }
@@ -286,9 +260,9 @@ const hasStep = (delivery: DeliveryRecord, step: string): boolean =>
  *  WHAT THE ANSWERS DID IS READ, NOT WORKED OUT (#637). The run that wrote them onto the card
  *  said so with `delivery answered`, and nothing here compares the card's text: a tidied
  *  sentence is not a changed requirement, and a card written from a plan never matched the
- *  plan it was written from. A round nothing judged is held by `holdForVerdict` rather than
- *  guessed at, and the conclusion is TAKEN as it is acted on, so one supersede is one
- *  supersede however many passes look at it.
+ *  plan it was written from. A round nothing judged changed nothing (#831), and the
+ *  conclusion is TAKEN as it is acted on, so one supersede is one supersede however many
+ *  passes look at it.
  *
  *  Both waits count: a review that stopped to ask, and a landing held on the card's
  *  questions. They are the same wait on the same answers.
@@ -438,10 +412,6 @@ export async function advanceLanding(): Promise<AgentRequest | null> {
     const held = holdForQuestions()
     const fresh = await supersededDelivery(held)
     if (fresh) return fresh
-    // And the ones whose answers are in but whose round nothing judged (#637). After the
-    // supersede, which is the conclusion this one is the absence of — and before the queue,
-    // because landing work the answers may have changed is the thing it exists to stop.
-    for (const id of holdForVerdict(held)) held.add(id)
     // Then the approval each delivery still owes (#308). After the superseded check, which
     // reads the `why` a question hold left behind.
     for (const id of holdForApproval(held)) held.add(id)

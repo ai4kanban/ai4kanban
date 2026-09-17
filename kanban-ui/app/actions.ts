@@ -171,6 +171,7 @@ import {
   saveProject,
   setReleaseGoal,
   setSchedule,
+  skipQuestion,
 } from "@/lib/edit";
 import {
   approveDelivery,
@@ -1065,6 +1066,17 @@ export async function dropVerifyAction(id: number, line: string, expect = ""): P
   if (!Number.isInteger(id)) return { ok: false, error: "a hand-check is crossed off by card number" };
   if (typeof line !== "string") return { ok: false, error: "a hand-check is named by its text" };
   return dropVerify(id, line, expect);
+}
+
+export async function skipQuestionAction(
+  id: number,
+  question: string,
+  skipped: boolean,
+  expect = "",
+): Promise<WriteResult> {
+  if (!Number.isInteger(id)) return { ok: false, error: "a question is skipped by card number" };
+  if (typeof question !== "string") return { ok: false, error: "a question is named by its text" };
+  return skipQuestion(id, question, skipped === true, expect);
 }
 
 // Schedule an action on a blocked card (#140) — the second way out of a card that is waiting

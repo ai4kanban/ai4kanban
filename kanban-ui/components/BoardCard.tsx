@@ -6,7 +6,7 @@ import { FiClipboard, FiHelpCircle, FiPlay, FiSkipForward } from "react-icons/fi
 import { useCopy } from "@/i18n/use-copy";
 import { useActions } from "@/lib/screen";
 import { type Card, type CardCreation, type SessionView } from "@/lib/types";
-import { parseQuestion } from "@/lib/questions";
+import { openOf, parseQuestion } from "@/lib/questions";
 import { scheduleLabel } from "@/lib/schedule";
 import { RunningBadge } from "./agent-shared";
 import { useCardHref } from "./board-links";
@@ -135,10 +135,10 @@ export function BoardCard({
           ) : (
             <StatusPill status={card.status} />
           )}
-          {card.questions.length > 0 &&
+          {openOf(card.questions).length > 0 &&
             (() => {
-              const total = card.questions.length;
-              const userCount = card.questions.filter(
+              const total = openOf(card.questions).length;
+              const userCount = openOf(card.questions).filter(
                 (q) => parseQuestion(q.text).tag === "user",
               ).length;
               // A `[user]` question waits on the human (accent); the rest a

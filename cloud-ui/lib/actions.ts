@@ -107,6 +107,7 @@ export function hostedActions(press: HostedPress): ScreenActions {
     readBoard: noSuchControl,
     patchCard: noSuchControl,
     dropVerify: noSuchControl,
+    skipQuestion: noSuchControl,
     scheduleCard: noSuchControl,
     unscheduleCard: noSuchControl,
     createRelease: noSuchControl,

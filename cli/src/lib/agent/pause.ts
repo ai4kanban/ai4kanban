@@ -8,7 +8,6 @@
 // One answer, read three ways: the card page's pill and the line under it, the sentence a
 // refused board move gives, and the hold that lets Resolve through while a delivery waits.
 
-import { answerOutcome } from './answers'
 import { boardCommand } from './command'
 import { aiReviewOn } from './review'
 import type { DeliveryRecord } from './types'
@@ -189,29 +188,9 @@ export function deliveryState(
   // The question is answered, so what happens next is the look it asked for: the board
   // hands that review back on the tick after the answer (`answeredWork`), and the run
   // clears the stop as it starts. Nothing is asked of the user in between, so this is not a
-  // pause — and without it an answered delivery would read as one that is building.
-  //
-  // …unless nothing recorded what the answers did (#637). Then the board is not judging
-  // anything: it is waiting to be told, and saying "reviewing again" would be a lie about a
-  // delivery that is going nowhere.
-  if (answered) {
-    if (answerOutcome(delivery) === 'none') {
-      return {
-        stage: 'stopped',
-        label: 'Waiting on you',
-        line:
-          `Your answers were applied, but nothing said whether they changed what this delivery is building — ` +
-          `\`${boardCommand()} delivery answered ${delivery.deliveryId} --changed|--unchanged "<why>"\` settles it.`,
-        paused: true,
-      }
-    }
-    return {
-      stage: 'rereview',
-      label: 'Reviewing again',
-      line: 'Answered — the board is judging this work again.',
-      paused: false,
-    }
-  }
+  // pause — and without it an answered delivery would read as one that is building. The
+  // label says it all, so there is no line (#831).
+  if (answered) return { stage: 'rereview', label: 'Reviewing again', line: '', paused: false }
   // A delivery only holds at landing once it has one: review has passed it and it has
   // queued. Before that the questions are a warning the user already answered for.
   if (questions > 0 && landing) {
