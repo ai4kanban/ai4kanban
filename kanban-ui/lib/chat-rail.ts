@@ -316,6 +316,9 @@ export function useChatRail({
   // belongs in the poll effect's dependencies — restarting the loop on a fresh closure
   // would reset its cadence on every render.
   const stampRef = useRef<string | null>(null);
+  // The card's "discussing" badge is read off the conversation's marker, which the
+  // fingerprint leaves out — so a reply starting or ending counts as a board change too.
+  const answeredRef = useRef<boolean | null>(null);
   const changedRef = useRef<typeof onBoardChanged>(onBoardChanged);
   changedRef.current = onBoardChanged;
 
@@ -325,6 +328,7 @@ export function useChatRail({
   // there would swallow the very change that started a reply.
   useEffect(() => {
     stampRef.current = null;
+    answeredRef.current = null;
   }, [cardId]);
 
   useEffect(() => {
@@ -342,11 +346,16 @@ export function useChatRail({
         setRead(next);
         // The first read only takes the fingerprint down — there is nothing to compare it
         // against yet, and firing on it would re-read a page that had only just rendered.
+        let moved = false;
         if (next.stamp !== null && next.stamp !== stampRef.current) {
-          const first = stampRef.current === null;
+          moved = stampRef.current !== null;
           stampRef.current = next.stamp;
-          if (!first) changedRef.current?.({ cardGone: next.cardGone });
         }
+        if (next.answering !== answeredRef.current) {
+          moved ||= answeredRef.current !== null;
+          answeredRef.current = next.answering;
+        }
+        if (moved) changedRef.current?.({ cardGone: next.cardGone });
       } catch {
         // transient — the next tick tries again
       } finally {
