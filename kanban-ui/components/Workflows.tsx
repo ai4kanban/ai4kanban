@@ -57,9 +57,10 @@ export function useWorkflowName(): (flow: { id: string; name: string; builtIn: b
 
 /** Whether one stage cannot start. No lead, a lead this board no longer has, and a lead that
  *  belongs to another stage all read the same to the user, and all three fall out of the
- *  candidates the board already sent: those are exactly the agents that may take this stage. */
+ *  candidates the board already sent: those are exactly the agents that may take this stage.
+ *  Review has no lead, only reviewers, and is never blocked (#820). */
 export const stageBlocked = (setup: WorkflowStageView): boolean =>
-  !setup.lead || !setup.candidates.some((a) => a.name === setup.lead);
+  setup.stage !== "review" && (!setup.lead || !setup.candidates.some((a) => a.name === setup.lead));
 
 /** The one mark this card adds, in the shape of the `Built-in` chip beside it — peach is the
  *  palette's attention hue and is all that separates the two. A ready workflow gets none. */
@@ -144,6 +145,8 @@ export function WorkflowsPanel({
 
   const flow = flows?.find((f) => f.id === picked);
   const setup = flow?.stages.find((s) => s.stage === stage);
+  // The review stage has reviewers and no lead (#820).
+  const reviewing = stage === "review";
   // Which of the three cannot start, so the tabs can say which one to fix.
   const blocked = new Set((flow?.stages ?? []).filter(stageBlocked).map((s) => s.stage));
 
@@ -378,10 +381,10 @@ export function WorkflowsPanel({
                 {setup && (
                   <div className="min-w-0">
                     {stageBlocked(setup) && <p className="mb-3 text-[12px] text-nb-peach-ink">{c.stageProblem}</p>}
-                    <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{c.lead}</h4>
+                    {!reviewing && <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{c.lead}</h4>}
                     {/* A built-in's lead is what its name promises, so it is shown and not
                         offered (#774). The line under it says the way to another one. */}
-                    {flow.builtIn ? (
+                    {reviewing ? null : flow.builtIn ? (
                       <div>
                         <LeadRow setup={setup} />
                         <p className="mt-1.5 text-[11.5px] text-nb-ink-soft">{c.leadFixed}</p>
@@ -409,8 +412,8 @@ export function WorkflowsPanel({
                       </div>
                     )}
 
-                    <section className="mt-5">
-                      <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{c.helpers}</h4>
+                    <section className={reviewing ? "" : "mt-5"}>
+                      <h4 className={`${CAPTION} mb-2 text-nb-ink-soft`}>{reviewing ? c.reviewers : c.helpers}</h4>
                       <div className="flex flex-wrap gap-2">
                         {setup.helpers.map((h) => (
                           <HelperTile
@@ -428,7 +431,7 @@ export function WorkflowsPanel({
                             onClick={() => setPicking((was) => (was === "helper" ? null : "helper"))}
                           >
                             <FiPlus aria-hidden />
-                            {c.addHelper}
+                            {reviewing ? c.addReviewer : c.addHelper}
                           </button>
                           {picking === "helper" && (
                             <Picker
@@ -447,6 +450,10 @@ export function WorkflowsPanel({
                           )}
                         </div>
                       </div>
+
+                      {reviewing && !setup.helpers.length && (
+                        <p className="mt-3 text-[12px] leading-[19px] text-nb-ink-soft">{c.noReviewers}</p>
+                      )}
 
                       {helper && setup.helpers.some((h) => h.agent === helper) && (
                         <div className="mt-2 max-w-[460px] border-t border-nb-ink/12 pt-3">

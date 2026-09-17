@@ -30,6 +30,7 @@ import {
 import { candidateOf, candidateDiff, candidateMark } from './candidate'
 import { aiReviewEnabled, autoCommitAllowed, diffApprovalRequired } from './settings'
 import { readStore } from './store'
+import { cardWorkflow, workflowReviewers, type WorkflowHelper } from './workflows'
 import type { DeliveryPlan } from '../view/types'
 import type { DeliveryCommitMode, DeliveryRecord, RunRefusal } from './types'
 import {
@@ -136,9 +137,9 @@ function noWorktreeWhy(): string | undefined {
  *  the dialog's tick at once (#346) — the branch a build with its own worktree would land on
  *  and whether it would wait for approval, and why one without has nothing to land. Read,
  *  never written. */
-export function deliveryPlan(): DeliveryPlan {
+export function deliveryPlan(cardId?: number): DeliveryPlan {
   const manualWhy = noWorktreeWhy()
-  const aiReview = aiReviewEnabled()
+  const aiReview = aiReviewEnabled() && (cardId === undefined || workflowReviewersOfCard(cardId).length > 0)
   if (manualWhy) return { commitMode: 'manual', manualWhy, canChooseWorktree: false, aiReview }
   return {
     commitMode: autoCommitAllowed() ? 'auto' : 'manual',
@@ -147,6 +148,11 @@ export function deliveryPlan(): DeliveryPlan {
     canChooseWorktree: true,
     aiReview,
   }
+}
+
+const workflowReviewersOfCard = (cardId: number): WorkflowHelper[] => {
+  const flow = cardWorkflow(cardId)
+  return flow ? workflowReviewers(flow) : []
 }
 
 /** Get a delivery ready to start on this card: decide the mode, refuse what can't start,
@@ -171,7 +177,9 @@ export function prepareDelivery(
   // card is never reviewed and never waits to be approved (#428): those are the checks it
   // exists to skip, so both are forced off here rather than left to a setting or a caller.
   const gated = cardId !== null
-  const aiReview = gated ? wantsReview ?? aiReviewEnabled() : false
+  // A workflow with no reviewers is never reviewed, whatever was asked (#820).
+  const reviewers = gated ? workflowReviewersOfCard(cardId) : []
+  const aiReview = gated && reviewers.length > 0 ? wantsReview ?? aiReviewEnabled() : false
   const base = inGitRepo() ? headCommit() : null
   // No git, no commit to branch from, or a detached HEAD: there is nothing to fork, so the
   // delivery works where it is however it was asked for. A board in an unversioned folder

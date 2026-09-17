@@ -485,7 +485,7 @@ export function localBoard(): BoardProvider {
 
     listDeliveries: () => Promise.resolve(listDeliveries()),
     activeDelivery: (cardId) => Promise.resolve(activeDelivery(cardId)),
-    deliveryPlan: () => Promise.resolve(deliveryPlan()),
+    deliveryPlan: (cardId) => Promise.resolve(deliveryPlan(cardId)),
     deliveryDiff: (deliveryId) => Promise.resolve(deliveryDiff(deliveryId)),
 
     // Ending a delivery is mostly the delivery record's own work; the one board write in it

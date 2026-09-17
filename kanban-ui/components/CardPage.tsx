@@ -1966,7 +1966,7 @@ export function CardPage({
                       ## Worth noting after implementation, and this judges the same work afresh.
                       A delivery that merely STOPPED is not this: Resume in the block below
                       carries it on, and the user never has to tell the two kinds of stop apart. */}
-                  {waiting && carryOn && (
+                  {waiting && carryOn && delivery.aiReview && (
                     <Button
                       variant="ghost"
                       size="sm"

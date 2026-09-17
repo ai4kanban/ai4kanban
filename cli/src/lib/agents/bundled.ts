@@ -9,6 +9,7 @@
 // project's own agent is read, so adding a built-in agent is adding files and the two lines
 // naming them here.
 
+import codeReviewer from '../../agents/code-reviewer/AGENT.md'
 import copywriting from '../../agents/copywriting/AGENT.md'
 import uiDesigner from '../../agents/ui-designer/AGENT.md'
 import uiDesignerAscii from '../../agents/ui-designer/references/ascii-drawing.md'
@@ -16,6 +17,7 @@ import uiDesignerRendered from '../../agents/ui-designer/references/rendered-scr
 import techStackAdvisor from '../../agents/tech-stack-advisor/AGENT.md'
 
 export const BUNDLED_AGENT_FILES: Record<string, string> = {
+  'code-reviewer/AGENT.md': codeReviewer,
   'copywriting/AGENT.md': copywriting,
   'ui-designer/AGENT.md': uiDesigner,
   'ui-designer/references/ascii-drawing.md': uiDesignerAscii,

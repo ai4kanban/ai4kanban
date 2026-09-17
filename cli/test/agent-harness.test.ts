@@ -128,7 +128,8 @@ describe('an agent with a runtime of its own', () => {
 
   it('leaves every other agent on Global default', () => {
     const run = plan({ action: 'review' })
-    assert.equal(run.agent, 'reviewer')
+    // A review runs as its first reviewer (#820).
+    assert.equal(run.agent, 'code-reviewer')
     assert.equal(run.runtime, 'global')
     assert.equal(run.harness, 'claude-code')
   })
@@ -163,7 +164,7 @@ describe('an agent with a runtime of its own', () => {
     const info = agentInfo()
     const flow = (command: string) => info.flows.find((f) => f.command === command)
     assert.deepEqual([flow('implement')?.agent, flow('implement')?.harness], ['builder', 'codex'])
-    assert.deepEqual([flow('review')?.agent, flow('review')?.harness], ['reviewer', 'claude-code'])
+    assert.deepEqual([flow('review')?.agent, flow('review')?.harness], ['code-reviewer', 'claude-code'])
   })
 
   it('falls back and says so when the pick is a row the board no longer has', () => {
@@ -389,7 +390,7 @@ describe('turning an older board into runtimes', () => {
     )
     assert.equal(agentRun('planner').model, 'claude-opus-5')
     assert.equal(agentRun('builder').model, 'gpt-5.1-codex')
-    assert.equal(agentRun('reviewer').runtime, 'global')
+    assert.equal(agentRun('code-reviewer').runtime, 'global')
     // …and the block it moved is cleared, so a second update finds nothing.
     assert.deepEqual(heldLocal(), {})
   })

@@ -30,6 +30,7 @@ import {
 import { readStore } from './store'
 import { FLOWS, flowPath } from './flows'
 import { DISCUSSION_ROLE, roleForFlow } from './roles'
+import { agentForRun } from './runner'
 import { binaryOnPath, commandBinary, pathLookup } from './installed'
 import { languageNote } from './language'
 import {
@@ -850,7 +851,8 @@ export function agentInfo(): AgentInfo {
     // Which agent runs each flow, and what that agent runs here — worked out once so no
     // screen and no second command keeps a list that could say something else.
     flows: FLOWS.map((flow) => {
-      const agent = roleForFlow(flow.command)?.name ?? ''
+      // A review spawns as its first reviewer; the lead that picks them is hidden (#820).
+      const agent = (flow.action === 'review' ? agentForRun({ action: 'review' }) : roleForFlow(flow.command)?.name) ?? ''
       return { command: flow.command, path: flowPath(flow), agent, harness: harnessOf(agent) }
     }),
     unknownName,

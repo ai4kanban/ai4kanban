@@ -23,12 +23,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { rel, RULES } from '../paths'
-import { canonicalSpecAgent } from '../spec-agent-names'
+import { canonicalSpecAgent, specAgentNames } from '../spec-agent-names'
 import type { WriteResult } from '../view/types'
 import { DELIVERY_FLOWS, FLOWS, flowByAction, flowByCommand, type Flow } from './flows'
 import { agentNames, roleForFlow, roleFlowsInOrder, roles, type AgentRole } from './roles'
 import { workflowForRun } from './runner'
-import { DEFAULT_WORKFLOW } from './workflows'
+import { DEFAULT_WORKFLOW, workflowFor, workflowReviewers } from './workflows'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentRequest } from './types'
 
@@ -89,6 +89,12 @@ export function deliveryRules(workflow?: string): Record<string, string> {
     const rule = ruleFile(role.name)
     if (rule) rules[role.name] = rule
   }
+  // And the reviewers', which review prints inside its own run (#820).
+  const flow = workflowFor(workflow)
+  for (const { agent } of flow ? workflowReviewers(flow) : []) {
+    const rule = ruleFile(agent)
+    if (rule) rules[agent] = rule
+  }
   return rules
 }
 
@@ -133,6 +139,10 @@ export function ruleFor(req: AgentRequest, frozen?: Record<string, string>): str
   // A delivery started before rules were keyed by agent froze them by flow (#420) — read
   // under both, so a build in flight keeps the rules it was approved with.
   if (frozen && DELIVERY_FLOWS.has(req.action)) return frozen[owner.name] ?? frozen[owner.flow ?? ''] ?? ''
+  // A reviewer printed inside a delivery reads what the delivery froze, under any name it had.
+  if (frozen && SPECIALIST_ACTIONS.has(req.action)) {
+    return specAgentNames(owner.name).map((name) => frozen[name]).find((rule) => rule !== undefined) ?? ''
+  }
   return readRule(owner.name)
 }
 
@@ -193,27 +203,30 @@ export function migrateFlowRules(): string[] {
     return []
   }
   const notes: string[] = []
-  for (const role of roles()) {
-    // The DEFAULT workflow's flows alone (#715). This is a one-time fold of rules a board
-    // wrote before #420, when it had one path through a card and the coding agents ran it —
-    // so `implement.md` belongs to the builder, and never also to whoever leads `execute` in
-    // a workflow that did not exist when the file was written.
-    const from = roleFlowsInOrder(role.name, DEFAULT_WORKFLOW).filter(
-      (flow) => flow !== role.name && here.has(`${flow}.md`),
-    )
+  // The DEFAULT workflow's flows alone (#715). This is a one-time fold of rules a board
+  // wrote before #420, when it had one path through a card and the coding agents ran it —
+  // so `implement.md` belongs to the builder, and never also to whoever leads `execute` in
+  // a workflow that did not exist when the file was written. `review.md` was the reviewer's,
+  // which is the `code-reviewer` agent now (#820).
+  const owners = [
+    ...roles().map((role) => ({ name: role.name, flows: roleFlowsInOrder(role.name, DEFAULT_WORKFLOW) })),
+    { name: canonicalSpecAgent('reviewer'), flows: ['review'] },
+  ]
+  for (const owner of owners) {
+    const from = owner.flows.filter((flow) => flow !== owner.name && here.has(`${flow}.md`))
     if (!from.length) continue
-    const parts = [ruleFile(role.name), ...from.map(ruleFile)].filter(Boolean)
+    const parts = [ruleFile(owner.name), ...from.map(ruleFile)].filter(Boolean)
     try {
-      if (parts.length) fs.writeFileSync(rulePath(role.name), `${parts.join('\n\n')}\n`)
+      if (parts.length) fs.writeFileSync(rulePath(owner.name), `${parts.join('\n\n')}\n`)
       for (const flow of from) fs.rmSync(rulePath(flow), { force: true })
     } catch (err) {
-      notes.push(`could not move the ${from.join(', ')} rule(s) onto \`${role.name}\`: ${String(err)}`)
+      notes.push(`could not move the ${from.join(', ')} rule(s) onto \`${owner.name}\`: ${String(err)}`)
       continue
     }
     notes.push(
       `a rule is one per agent now: ${from.map((f) => `${f}.md`).join(', ')} ` +
-        `${from.length === 1 ? 'is' : 'are'} ${rel(rulePath(role.name))}, which every flow the ` +
-        `\`${role.name}\` runs reads.`,
+        `${from.length === 1 ? 'is' : 'are'} ${rel(rulePath(owner.name))}, which every run of the ` +
+        `\`${owner.name}\` agent reads.`,
     )
   }
   return notes

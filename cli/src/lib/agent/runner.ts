@@ -11,7 +11,8 @@
 import { flowByAction } from './flows'
 import { agentImageView } from './resolve'
 import { roleForFlow } from './roles'
-import { cardWorkflowId } from './workflows'
+import { deliveryFor } from './deliveries'
+import { cardWorkflowId, frozenReviewers } from './workflows'
 import { REFINE_ACTIONS, SPECIALIST_ACTIONS } from './types'
 import type { AgentAction, CreateImageAgents } from './types'
 
@@ -30,6 +31,8 @@ export interface RunAsk {
   /** The workflow this run's card runs on (#715). Given by a caller that already knows it —
    *  a delivery hands its frozen one down — and read off the card otherwise. */
   workflow?: string
+  /** The delivery a review run belongs to, when it names one. */
+  deliveryId?: string
 }
 
 /** The workflow one run belongs to: the one it was handed, the one its card carries, or
@@ -44,6 +47,11 @@ export function agentForRun(ask: RunAsk = {}): string | undefined {
   if (!action) return undefined
   // A specialist runs as itself, whichever hook it is on.
   if (SPECIALIST_ACTIONS.has(action)) return specAgent
+  // A review runs on its first reviewer's runtime: the hidden lead has none (#820).
+  if (action === 'review') {
+    const first = frozenReviewers(deliveryFor({ action, id: ask.id, deliveryId: ask.deliveryId })?.workflow)[0]
+    if (first) return first.agent
+  }
   return roleForFlow(flowOf(ask, action), workflowForRun(ask))?.name
 }
 

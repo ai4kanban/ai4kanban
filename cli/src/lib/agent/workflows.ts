@@ -49,7 +49,10 @@ export type { WorkflowCandidate, WorkflowHelper, WorkflowStage, WorkflowStageVie
 
 /** Who runs one stage of one workflow. Exactly one lead, and any number of helpers the lead
  *  may call in when its own instructions say to. An empty `lead` is a stage nobody runs, and
- *  a delivery refuses to start on one. */
+ *  a delivery refuses to start on one.
+ *
+ *  The review stage has no lead (#820): its helpers are the reviewers, and an empty list means
+ *  a finished build is delivered unreviewed. */
 export interface WorkflowStageSetup {
   lead: string
   helpers: WorkflowHelper[]
@@ -119,10 +122,13 @@ const BUILTINS: BuiltinWorkflow[] = [
     stages: {
       plan: { lead: 'planner', helpers: 'every' },
       execute: { lead: 'builder', helpers: [] },
-      review: { lead: 'reviewer', helpers: [] },
+      review: { lead: '', helpers: ['code-reviewer'] },
     },
   },
 ]
+
+/** The stage that has reviewers instead of a lead (#820). */
+const REVIEW: WorkflowStage = 'review'
 
 /** The ids the command ships. */
 export const BUILTIN_WORKFLOW_IDS: string[] = BUILTINS.map((w) => w.id)
@@ -181,7 +187,7 @@ function readStage(raw: unknown): { lead?: string; helpers?: WorkflowHelper[] } 
     const helpers: WorkflowHelper[] = []
     for (const entry of box.helpers) {
       const row = configBlock(entry) as StoredHelper & Record<string, unknown>
-      const agent = typeof row.agent === 'string' ? row.agent.trim() : ''
+      const agent = typeof row.agent === 'string' ? canonicalSpecAgent(row.agent) : ''
       if (!agent || helpers.some((h) => h.agent === agent)) continue
       helpers.push({ agent, extra: typeof row.extra === 'string' ? row.extra : '' })
     }
@@ -210,7 +216,7 @@ function resolveOne(
       // A built-in's lead is read off the command, never off the file: a board that changed
       // one before it was fixed runs the built-in's own agent again, and `dropBuiltinLeads`
       // takes the key away.
-      lead: base ? fallback.lead : (saved.lead ?? ''),
+      lead: stage === REVIEW ? '' : base ? fallback.lead : (saved.lead ?? ''),
       helpers: saved.helpers !== undefined ? saved.helpers : fallback.helpers,
       helpersChosen: saved.helpers !== undefined,
     }
@@ -247,7 +253,7 @@ function offeredBefore(
 ): { lead: string; helpers: WorkflowHelper[] } {
   const base = BUILTINS.find((w) => w.id === id)
   const saved = readStage(storedStages(cfg, id)[stage])
-  const lead = base ? base.stages[stage].lead : (saved.lead ?? '')
+  const lead = stage === REVIEW ? '' : base ? base.stages[stage].lead : (saved.lead ?? '')
   if (saved.helpers !== undefined) return { lead, helpers: saved.helpers }
   const declared = base?.stages[stage].helpers
   if (declared === 'every') {
@@ -283,7 +289,7 @@ function foldAgentSwitches(cfg: Record<string, unknown>): boolean {
         stages[id] = {
           ...configBlock(stages[id]),
           [stage]: {
-            ...(isBuiltinWorkflow(id) ? {} : { lead: before.lead }),
+            ...(isBuiltinWorkflow(id) || stage === REVIEW ? {} : { lead: before.lead }),
             helpers: kept.map((h) => ({ agent: h.agent, extra: h.extra })),
           },
         }
@@ -348,11 +354,46 @@ function dropBuiltinLeads(cfg: Record<string, unknown>): boolean {
   return ok
 }
 
+// ---- folding a saved review lead into the reviewers (#820) ------------------
+//
+// The review stage has no lead now. A board's own workflow that saved one gets it back as its
+// first reviewer, once; the key goes. Built-ins are `dropBuiltinLeads`' job.
+
+const savedReviewLead = (cfg: Record<string, unknown>): boolean =>
+  addedRows(cfg).some((row) => 'lead' in configBlock(storedStages(cfg, row.id)[REVIEW]))
+
+function foldReviewLeads(cfg: Record<string, unknown>): boolean {
+  if (!savedReviewLead(cfg)) return false
+  const { ok } = writeConfig((raw) => {
+    const block = configBlock(raw.workflows)
+    const all = configBlock(block.stages)
+    for (const row of addedRows(raw)) {
+      const mine = configBlock(all[row.id])
+      const one = { ...configBlock(mine[REVIEW]) }
+      if (!('lead' in one)) continue
+      const saved = readStage(one)
+      const helpers = saved.helpers ?? []
+      const lead = canonicalSpecAgent(saved.lead ?? '')
+      delete one.lead
+      if (lead && !helpers.some((h) => canonicalSpecAgent(h.agent) === lead)) {
+        one.helpers = [{ agent: lead, extra: '' }, ...helpers.map((h) => ({ agent: h.agent, extra: h.extra }))]
+      }
+      if (Object.keys(one).length) mine[REVIEW] = one
+      else delete mine[REVIEW]
+      all[row.id] = mine
+    }
+    block.stages = all
+    raw.workflows = block
+  })
+  return ok
+}
+
 /** Every workflow this board has, built-ins first and then its own in the order they were
  *  made. */
 export function workflows(): Workflow[] {
   let cfg = safeConfig()
   if (dropBuiltinLeads(cfg)) cfg = safeConfig()
+  if (foldReviewLeads(cfg)) cfg = safeConfig()
   if (foldAgentSwitches(cfg)) cfg = safeConfig()
   return [
     ...BUILTINS.map((w) => resolveOne(cfg, w.id, w.name, true)),
@@ -383,8 +424,8 @@ export const workflowKnown = (id: string): boolean => !id || workflows().some((w
 export const stageCandidates = (stage: WorkflowStage): RosterEntry[] =>
   agentRoster().filter((entry) => entry.stage === stage)
 
-/** Every reason one workflow cannot start a card. Empty when all three stages have a lead
- *  this board answers to. A helper that no longer resolves is NOT a reason: it is dropped
+/** Every reason one workflow cannot start a card. Empty when the plan and execute stages
+ *  have a lead this board answers to — review has none (#820). A helper that no longer resolves is NOT a reason: it is dropped
  *  from the assignment instead, because a delivery that cannot start over an optional agent
  *  is a delivery held up by nothing. */
 export function workflowProblems(id: string): string[] {
@@ -393,6 +434,7 @@ export function workflowProblems(id: string): string[] {
   const roster = agentRoster()
   const problems: string[] = []
   for (const stage of WORKFLOW_STAGES) {
+    if (stage === REVIEW) continue
     const { lead } = flow.stages[stage]
     if (!lead) {
       problems.push(`\`${flow.name}\` has no agent leading its ${stage} stage — assign one before it can run.`)
@@ -442,6 +484,9 @@ export const liveStage = (flow: Workflow, stage: WorkflowStage): WorkflowStageSe
   helpers: stageHelpers(flow, stage),
   helpersChosen: flow.stages[stage].helpersChosen,
 })
+
+/** The reviewers one workflow offers, in order (#820). Empty means no review. */
+export const workflowReviewers = (flow: Workflow): WorkflowHelper[] => stageHelpers(flow, REVIEW)
 
 // ---- writing ---------------------------------------------------------------
 
@@ -522,7 +567,8 @@ export function duplicateWorkflow(id: string, called?: string): Write & { id?: s
     stages[copy] = Object.fromEntries(
       WORKFLOW_STAGES.map((stage) => {
         const setup = liveStage(flow, stage)
-        return [stage, { lead: setup.lead, helpers: setup.helpers.map((h) => ({ agent: h.agent, extra: h.extra })) }]
+        const helpers = setup.helpers.map((h) => ({ agent: h.agent, extra: h.extra }))
+        return [stage, stage === REVIEW ? { helpers } : { lead: setup.lead, helpers }]
       }),
     )
     block.stages = stages
@@ -592,7 +638,7 @@ function setStage(id: string, stage: WorkflowStage, change: (setup: WorkflowStag
     const stages = configBlock(block.stages)
     const mine = configBlock(stages[id])
     const written = {
-      ...(flow.builtIn ? {} : { lead: setup.lead }),
+      ...(flow.builtIn || stage === REVIEW ? {} : { lead: setup.lead }),
       ...(movedHelpers ? { helpers: setup.helpers.map((h) => ({ agent: h.agent, extra: h.extra })) } : {}),
     }
     if (Object.keys(written).length) mine[stage] = written
@@ -612,6 +658,7 @@ function setStage(id: string, stage: WorkflowStage, change: (setup: WorkflowStag
 export function setWorkflowLead(id: string, stage: WorkflowStage, agent: string): Write {
   const owner = workflowById(id)
   if (!owner) return { ok: false, error: `this board has no \`${id}\` workflow` }
+  if (stage === REVIEW) return { ok: false, error: 'the review stage has no lead, only reviewers' }
   if (owner.builtIn) {
     return {
       ok: false,
@@ -725,6 +772,23 @@ export function frozenWorkflow(id: string): FrozenWorkflow | undefined {
       }),
     ),
   }
+}
+
+/** Why a delivery with no reviewers is never reviewed, said the same way everywhere. */
+export const NO_REVIEWERS = "this delivery's workflow has no reviewers, so it is delivered as built and there is nothing to review"
+
+/** The reviewers a delivery froze, in order (#820). A record frozen before then named a
+ *  review lead instead, which reads as its first reviewer; one with nothing frozen reads the
+ *  board's default workflow. */
+export function frozenReviewers(frozen: FrozenWorkflow | undefined): WorkflowHelper[] {
+  if (!frozen) {
+    const flow = workflowFor('')
+    return flow ? workflowReviewers(flow) : []
+  }
+  const stage = frozen.stages[REVIEW]
+  const helpers = (stage?.helpers ?? []).map((h) => ({ agent: canonicalSpecAgent(h.agent), extra: h.extra }))
+  const lead = canonicalSpecAgent(stage?.lead ?? '')
+  return lead && !helpers.some((h) => h.agent === lead) ? [{ agent: lead, extra: '' }, ...helpers] : helpers
 }
 
 // ---- what a screen draws ---------------------------------------------------

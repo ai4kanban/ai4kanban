@@ -1,33 +1,22 @@
 # Review a delivery
 
-Review and fix in this run. A successful run with no new question passes; a question appended
-to the card waits for the user's answer.
+You lead the review stage. The workflow names its reviewers; you decide which of them this
+diff needs, then review as each of them in this run. A successful run with no new question
+passes; a question appended to the card waits for the user's answer.
 
-1. Choose the scope:
-   - When the flow marks a **focused post-rebase review**, judge only the named target delta
-     and shared paths, and rerun only the checks those paths affect. The delivery's own
-     design already passed; rely on that pass for everything the rebase did not touch.
-   - Otherwise, compare all delivery changes with the approved requirements, run the required
-     checks, and read `## Worth noting after implementation`. Do not reopen decisions the
-     card already answers or report a condition the user explicitly accepted.
-   - **Trace each requirement in scope back to the code**: a requirement nobody implemented
-     leaves no diff to notice it by, so read the approved requirements and, for every one of
-     them, name where it is implemented and what shows the behavior it asks for. A passing
-     lint or typecheck and a ticked todo are not that evidence. Judge from the code where the
-     code settles it; where it does not, run a focused test or the affected path.
-2. Fix plain mistakes in the delivery's worktree, update focused tests, and rerun the
-   affected checks. Route additional work through `akb guide follow-up`. Do not
-   exhaustively search unaffected code or invent hypothetical issues.
-3. Only when a finding needs a user decision, a human-only check, or a new material decision
-   note, read `akb guide update-questions`. Resolve technical details yourself. Before editing
-   the card, read `akb guide board`; read `akb guide writing` only for a body edit. Never edit
-   frontmatter by hand or change approved requirements to justify a defect.
-4. Append a remaining `[user]` question to this card and stop. Otherwise finish successfully;
-   no card edit is required to pass.
+1. Read the delivery's diff and the card it was approved to build. When the flow marks a
+   **focused post-rebase review**, only the named target delta and shared paths are in scope.
+2. Pick the reviewers. They are listed under `<reviewers>` with what each one checks. Choose
+   every reviewer whose description matches what the diff touches; when none matches, choose
+   the first on the list. Say in one line each which you chose and why.
+3. Review as each chosen reviewer, in list order: print its instructions with
+   `akb spec <reviewer> <id> --print` and follow them to the end — its checks, its fixes and
+   its verdict — before starting the next. A fix is made in the delivery's worktree, and the
+   next reviewer reads the fixed diff.
+4. The delivery passes when every chosen reviewer passed. A `[user]` question a reviewer
+   appended to the card is this run's answer: stop there.
 
-- **Check output**: run each check once and save its full output and exit status. Inspect that
-  output; never rerun a check just to change `grep` or `tail`. Rerun only after affected code
-  changes or when investigating a concrete failure that needs another execution.
-- **Known failures**: reuse verified baseline evidence when the relevant code, tests, and
-  configuration are unchanged. Investigate new or changed failures; do not rediscover an
-  already established unrelated failure.
+- **Nothing of your own**: judge only what the reviewers judge; what you add is the choice of
+  who looks.
+- **Never widen the list**: an agent the workflow did not name is not a reviewer here, however
+  well the diff would suit it.

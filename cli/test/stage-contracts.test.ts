@@ -153,7 +153,7 @@ describe('the lead a contract names', () => {
     implement: 'builder',
     conflict: 'builder',
     run: 'builder',
-    review: 'reviewer',
+    review: 'review-lead',
     'prune-memory': 'memory-pruner',
     'review-memory': 'memory-reviewer',
     unstick: 'sweeper',
@@ -174,7 +174,7 @@ describe('the lead a contract names', () => {
   it('is what a role reads its own flows back off', () => {
     assert.deepEqual(flowsOfAgent('builder'), ['implement', 'conflict', 'run'])
     assert.deepEqual(flowsOfAgent('gater'), ['gate'])
-    assert.deepEqual(flowsOfAgent('reviewer'), ['review'])
+    assert.deepEqual(flowsOfAgent('review-lead'), ['review'])
   })
 })
 
@@ -272,10 +272,10 @@ describe('the rules a delivery freezes', () => {
   it('keys them by the agent, and still reads one an older delivery keyed by flow', () => {
     fs.mkdirSync(RULES, { recursive: true })
     fs.writeFileSync(path.join(RULES, 'builder.md'), 'Install dependencies first.\n')
-    fs.writeFileSync(path.join(RULES, 'reviewer.md'), 'Run the smoke tests.\n')
+    fs.writeFileSync(path.join(RULES, 'code-reviewer.md'), 'Run the smoke tests.\n')
     assert.deepEqual(deliveryRules(), {
       builder: 'Install dependencies first.',
-      reviewer: 'Run the smoke tests.',
+      'code-reviewer': 'Run the smoke tests.',
     })
     // A delivery frozen before rules moved onto the agents holds them under the FLOW name,
     // and that key is untouched by the contracts (#420, #714).

@@ -22,6 +22,7 @@ import { setupInstruction } from '../src/lib/agent/resolve.ts'
 import { ruleFor, setAgentRule } from '../src/lib/agent/rules.ts'
 import { readAgents } from '../src/lib/agents/roster.ts'
 import { findGuide } from '../src/lib/guide.ts'
+import { findSpecAgent } from '../src/lib/agents/index.ts'
 import { setLanguage } from '../src/lib/machine/settings.ts'
 import { startCollecting, stopCollecting } from '../src/lib/io.ts'
 import { closeRun, openRun } from '../src/lib/agent/sessions.ts'
@@ -33,6 +34,8 @@ let root = ''
 // This machine, for the tests that read the language off it (#337). Pinned for every test
 // here, so the developer's own pick can never change what a prompt says.
 let home = ''
+
+const reviewerText = (): string => findSpecAgent('code-reviewer')!.body
 
 const card = (id: number, title: string): string =>
   [
@@ -146,7 +149,7 @@ describe('the files', () => {
   it('refuses a name no agent on this board answers to', async () => {
     const agent = setAgentRule('deployer', 'Ship it.')
     assert.equal(agent.ok, false)
-    assert.match(agent.error!, /planner, builder, reviewer/)
+    assert.match(agent.error!, /planner, builder, memory-pruner/)
   })
 
   it("carries each agent's rule on the roster, and nothing for the ones without one", async () => {
@@ -181,11 +184,14 @@ describe('the prompt', () => {
 
   it('keeps the question format in one guide', () => {
     assert.match(findGuide('update-questions')!.text, /--recommended-option[\s\S]*--option/)
-    for (const name of ['add-task', 'qa-lightweight', 'qa-loop', 'recurring-task', 'reject', 'review', 'setup', 'spec-agent']) {
+    for (const name of ['add-task', 'qa-lightweight', 'qa-loop', 'recurring-task', 'reject', 'setup', 'spec-agent']) {
       const guide = findGuide(name)!.text
       assert.match(guide, /akb guide\s+update-questions/, name)
       assert.doesNotMatch(guide, /--recommended-option|--mode multi/, name)
     }
+    // Review's own steps are the code reviewer's now (#820).
+    assert.match(reviewerText(), /akb guide\s+update-questions/)
+    assert.doesNotMatch(reviewerText(), /--recommended-option|--mode multi/)
   })
 
   it('keeps recurring state on the card and cadence opt-in', () => {
@@ -305,9 +311,10 @@ describe('the prompt', () => {
   })
 
   it('routes independent review follow-ups without a user placement decision', () => {
-    for (const name of ['review', 'implement', 'update-questions']) {
+    for (const name of ['implement', 'update-questions']) {
       assert.match(findGuide(name)!.text, /`akb guide follow-up`/)
     }
+    assert.match(reviewerText(), /`akb guide follow-up`/)
     assert.match(findGuide('update-questions')!.text, /Never ask whether to fix work here or create a card/)
     const followUp = findGuide('follow-up')!.text
     assert.match(followUp, /without asking permission or blocking the original/)
@@ -328,7 +335,7 @@ describe('the prompt', () => {
     const guide = findGuide('review')!.text
     assert.match(guide, /focused post-rebase review/)
     assert.match(guide, /only the named target delta[\s\S]*shared paths/)
-    assert.match(guide, /rerun only the checks those paths affect/)
+    assert.match(reviewerText(), /rerun only the checks those paths affect/)
   })
 
   // Applying answers is the one thing that moves a card under a build, so the pass that does
@@ -475,9 +482,10 @@ describe('the prompt', () => {
   })
 
   it("reads only its own agent's rule", async () => {
-    setAgentRule('reviewer', 'Run the smoke tests.')
+    setAgentRule('code-reviewer', 'Run the smoke tests.')
     assert.doesNotMatch(buildPrompt({ action: 'implement', id: 1 }), /smoke tests/)
-    assert.match(buildPrompt({ action: 'review', id: 1 }), /smoke tests/)
+    // The review lead has none of its own; the reviewer's rule is printed with the reviewer (#820).
+    assert.doesNotMatch(buildPrompt({ action: 'review', id: 1 }), /smoke tests/)
   })
 
   it('reaches every flow its agent runs, the refinement passes included', async () => {
@@ -526,23 +534,23 @@ describe('the prompt', () => {
 describe('a delivery', () => {
   it('freezes the rules of the agents it is built by, keyed by agent', async () => {
     setAgentRule('builder', 'Install dependencies first.')
-    setAgentRule('reviewer', 'Run the smoke tests.')
+    setAgentRule('code-reviewer', 'Run the smoke tests.')
     setAgentRule('planner', 'Stay small.')
     const built = run('implement', 1)
     const delivery = activeDelivery(1)!
     assert.deepEqual(delivery.rules, {
       builder: 'Install dependencies first.',
-      reviewer: 'Run the smoke tests.',
+      'code-reviewer': 'Run the smoke tests.',
     })
     await end(built)
   })
 
   it('gives its later sessions the rules it started with, not the files as they read now', async () => {
-    setAgentRule('reviewer', 'Run the smoke tests.')
+    setAgentRule('code-reviewer', 'Run the smoke tests.')
     const built = run('implement', 1)
     await end(built)
-    setAgentRule('reviewer', 'Something else entirely.')
-    const prompt = buildPrompt({ action: 'review', id: 1, title: 'card one' })
+    setAgentRule('code-reviewer', 'Something else entirely.')
+    const prompt = buildPrompt({ action: 'spec', id: 1, title: 'card one', specAgent: 'code-reviewer' })
     assert.match(prompt, /smoke tests/)
     assert.doesNotMatch(prompt, /Something else entirely/)
   })

@@ -38,6 +38,9 @@ const en: ConfigurationCopy = {
     stageProblem: "This stage has no agent that can lead it. Assign one before it can start.",
     helpers: "Helpers",
     addHelper: "Add helper",
+    reviewers: "Reviewers",
+    addReviewer: "Add reviewer",
+    noReviewers: "With no reviewers, a finished build is delivered as is.",
     dropHelper: "Remove helper",
     extra: "Extra requirements",
     extraPlaceholder: "For example: use the product's existing terminology.",
@@ -201,7 +204,7 @@ const en: ConfigurationCopy = {
         gloss: "Builds a card and lands it.",
         rule: 'Added to the end of every Implement, Conflict and Run — "install with pnpm, and run pnpm test before landing".',
       },
-      reviewer: {
+      "code-reviewer": {
         name: "Code reviewer",
         gloss: "Reviews the code a build delivered and fixes what it finds.",
         rule: 'Added to the end of every Review — "reject any dependency the card did not name".',

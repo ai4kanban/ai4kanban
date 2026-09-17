@@ -17,7 +17,8 @@ import {
   specAgentNamesOnBoard,
   SPEC_ASSIGN_HOME,
 } from '../lib/agents'
-import { cardWorkflowId } from '../lib/agent/workflows'
+import { activeDelivery } from '../lib/agent/deliveries'
+import { cardWorkflowId, frozenReviewers } from '../lib/agent/workflows'
 import type { MoveResult } from '../lib/types'
 import { followRun, short } from './run'
 
@@ -52,6 +53,21 @@ export async function cmdSpec(opts: SpecOptions, program = 'akb'): Promise<MoveR
     die(`say which card: ${program} spec ${name} <id> [note]`, { kind: 'needs-input' })
   }
   if (!locate(id)) die(`no task with id ${id} under ${rel(TODO)}`, { kind: 'card-not-found', id })
+
+  // A reviewer is printed inside the review of the delivery that froze it (#820).
+  if (agent.stage === 'review') {
+    const delivery = activeDelivery(id)
+    if (!delivery || !frozenReviewers(delivery.workflow).some((h) => h.agent === name)) {
+      die(`\`${name}\` is not a reviewer on a delivery in flight on #${id}, so it has nothing to review.`, {
+        kind: 'spec-agent-off',
+        specAgent: name,
+      })
+    }
+    if (opts.print !== true) {
+      die(`a reviewer works inside the review run: \`${program} spec ${name} ${id} --print\``, { kind: 'needs-input' })
+    }
+    return printFlow({ action: 'spec', id, title: titleOf(id), specAgent: name, notes: noteOf(opts.note ?? [], opts.notes) }, program)
+  }
 
   // Not on this card's workflow (#749). A flow naming an agent from memory would otherwise
   // walk round the assignment, so the ask is refused rather than quietly dropped — and the

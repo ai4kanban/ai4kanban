@@ -10,7 +10,7 @@
 
 import { agentRun } from '../agent/resolve'
 import { setSpecAgentOutput, specAgentEntries, setSpecAgentSwitch, setSpecAgentValue, setSwitch } from '../agent/settings'
-import { REVIEW_ROLE, roleNamed, stageContractProblems } from '../agent/roles'
+import { roleNamed, stageContractProblems } from '../agent/roles'
 import type { SpecAgentEntry } from '../agent/settings'
 import { isSpecOutput, type SpecAgentSettingView, type SpecAgentView, type SpecOutput } from '../agent/types'
 import { readLanguage } from '../machine/settings'
@@ -336,15 +336,14 @@ export function setSpecAgentEnabled(name: string, on: boolean): { ok: boolean; e
   const role = roleNamed(name)
   if (role) {
     if (role.switch) return setSwitch(role.switch, on)
-    // The reviewer had one until #783. It is the one role whose answer MOVED rather than
-    // never existing, so the refusal says where it went instead of only that it is gone.
-    if (role.name === REVIEW_ROLE) {
-      return { ok: false, error: `\`${name}\` has no switch — whether a build is reviewed at all is ${AI_REVIEW_HOME}.` }
-    }
     return { ok: false, error: `\`${name}\` is one of the roles the board runs on, so it can't be switched off.` }
   }
   const agent = findSpecAgent(name)
   if (!agent) return { ok: false, error: notAnAgent(name) }
+  // Its switch moved rather than never existing (#783), so the refusal says where it went.
+  if (agent.name === CODE_REVIEWER) {
+    return { ok: false, error: `\`${agent.name}\` has no switch — whether a build is reviewed at all is ${AI_REVIEW_HOME}.` }
+  }
   // A workflow agent has no switch (#749). Refused rather than written down: a key nothing
   // reads would leave the Workflows pane and this saying different things again.
   if (agent.stage) {
@@ -402,6 +401,9 @@ export const SPEC_SWITCH_HOME = 'the board UI, under Configuration → Board age
  *  agent runs (#749). Named the same way everywhere, like the switch above it. */
 export const SPEC_ASSIGN_HOME =
   'a workflow assigns it, in the board UI under Configuration → Workflows'
+
+/** The reviewer the built-in workflow ships with (#820). */
+export const CODE_REVIEWER = 'code-reviewer'
 
 /** Where whether a build is reviewed at all is answered (#783) — a delivery setting, beside
  *  automatic commits and diff approval, not the reviewer's own page. */

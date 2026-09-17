@@ -117,7 +117,9 @@ describe('the workflows a board has', () => {
     assert.equal(stageContract('build', mine).lead, 'test-writer')
     assert.equal(agentForFlow('implement', 'coding'), 'builder')
     assert.equal(agentForFlow('implement', mine), 'test-writer')
-    assert.equal(agentForFlow('review', mine), 'test-checker')
+    // Review is led by the hidden lead; the saved lead became the first reviewer (#820).
+    assert.equal(agentForFlow('review', mine), 'review-lead')
+    assert.deepEqual(workflowById(mine)!.stages.review.helpers.map((h) => h.agent), ['test-checker'])
     // A flow no workflow assigns is the board's whichever workflow asks.
     assert.equal(agentForFlow('chat', mine), 'discussion-helper')
     assert.equal(agentForFlow('decide', mine), 'decider')
@@ -125,7 +127,7 @@ describe('the workflows a board has', () => {
 
   it('offers a stage only the agents that declare it', () => {
     assert.deepEqual(stageCandidates('execute').map((a) => a.name), ['builder', 'test-writer'])
-    assert.deepEqual(stageCandidates('review').map((a) => a.name), ['reviewer', 'test-checker'])
+    assert.deepEqual(stageCandidates('review').map((a) => a.name), ['code-reviewer', 'test-checker'])
     // The two specialists the command ships fill part of a card's spec, which is planning.
     const plan = stageCandidates('plan').map((a) => a.name)
     assert.deepEqual(plan, ['planner', 'copywriting', 'tech-stack-advisor', 'ui-designer'])
@@ -175,7 +177,7 @@ describe('the leads of a workflow the command ships', () => {
   it('still takes helpers, and writes no lead beside them', () => {
     const helpers = (stage: number) => workflowViews()[0]!.stages[stage]!.helpers.map((h) => h.agent)
     assert.equal(addWorkflowHelper('coding', 'review', 'test-checker').ok, true)
-    assert.deepEqual(helpers(2), ['test-checker'])
+    assert.deepEqual(helpers(2), ['code-reviewer', 'test-checker'])
     assert.equal(removeWorkflowHelper('coding', 'plan', 'ui-designer').ok, true)
     assert.deepEqual(helpers(0), ['copywriting', 'tech-stack-advisor'])
     assert.equal(config().workflows.stages.coding.plan.lead, undefined)
@@ -282,7 +284,8 @@ describe('a workflow the board adds', () => {
     const mine = workflowById(made.id!)!
     assert.equal(mine.builtIn, false)
     assert.deepEqual(Object.values(mine.stages).map((s) => s.lead), ['', '', ''])
-    assert.equal(workflowProblems(mine.id).length, 3)
+    // Review has no lead to miss (#820).
+    assert.equal(workflowProblems(mine.id).length, 2)
     assert.match(workflowProblems(mine.id)[0]!, /no agent leading its plan stage/)
   })
 
@@ -477,11 +480,12 @@ describe('starting a run on an unfinished workflow', () => {
     // Nothing was written down: a refused run leaves no record and no card lock behind.
     assert.deepEqual(readStore().runs, [])
 
-    // With all three assigned it starts like any other card.
-    for (const [stage, agent] of [['plan', 'ui-designer'], ['execute', 'test-writer'], ['review', 'test-checker']] as const) {
+    // With plan and execute led it starts like any other card — review needs nobody (#820).
+    for (const [stage, agent] of [['plan', 'ui-designer'], ['execute', 'test-writer']] as const) {
       assert.equal(setWorkflowLead(made.id!, stage, agent).ok, true)
     }
     assert.deepEqual(workflowProblems(made.id!), [])
+    assert.match(setWorkflowLead(made.id!, 'review', 'test-checker').error!, /no lead, only reviewers/)
   })
 
   it('is refused outright on a card naming a workflow this board no longer has', async () => {
@@ -506,10 +510,11 @@ describe('starting a run on an unfinished workflow', () => {
     const frozen = frozenWorkflow(cardWorkflowId(id))!
     assert.deepEqual(
       ['plan', 'execute', 'review'].map((stage) => frozen.stages[stage as 'plan']!.lead),
-      ['planner', 'builder', 'reviewer'],
+      ['planner', 'builder', ''],
     )
+    assert.deepEqual(frozen.stages.review!.helpers.map((h) => h.agent), ['code-reviewer'])
     assert.equal(agentForFlow('implement', 'content'), 'builder')
-    assert.equal(agentForFlow('review', 'content'), 'reviewer')
+    assert.equal(agentForFlow('review', 'content'), 'review-lead')
   })
 })
 

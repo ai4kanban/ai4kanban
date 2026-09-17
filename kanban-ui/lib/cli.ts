@@ -593,7 +593,7 @@ export interface BoardRules {
   /** What an Implement click would do on this board right now (#307): the branch the change
    *  would land on, and whether it lands at all. Optional: a board can be running rules from
    *  before the one-click flow, and the dialog then says only what it always said. */
-  deliveryPlan?(): Promise<DeliveryPlan>;
+  deliveryPlan?(cardId?: number): Promise<DeliveryPlan>;
   /** What one delivery changed (#305), for the card page's **Diff** tab: its branch against
    *  its base while it builds, and the commit it landed once it has. Optional: an older
    *  board's rules have no diff to give, and the tab simply doesn't appear. */

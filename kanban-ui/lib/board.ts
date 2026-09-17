@@ -112,7 +112,7 @@ export async function cardScreen(id: number): Promise<CardScreen | null> {
   if (!card) return null;
   const board = await readBoard();
   const [plan, diff, head, hold] = await Promise.all([
-    deliveryPlan(),
+    deliveryPlan(id),
     deliveryDiff(card.delivery?.id ?? card.finished?.id),
     screenBoard(),
     cardHold(id),
@@ -198,9 +198,9 @@ export async function cardStillThere(id: number): Promise<boolean> {
  *
  *  A board whose rules predate the one-click flow answers `auto` with no branch: the dialog
  *  then says what the click does without naming a branch it cannot know. */
-export async function deliveryPlan(): Promise<DeliveryPlan> {
+export async function deliveryPlan(cardId?: number): Promise<DeliveryPlan> {
   try {
-    return (await (await boardRules()).deliveryPlan?.()) ?? { commitMode: "auto" };
+    return (await (await boardRules()).deliveryPlan?.(cardId)) ?? { commitMode: "auto" };
   } catch {
     return { commitMode: "auto" };
   }

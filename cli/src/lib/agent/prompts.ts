@@ -15,6 +15,7 @@ import {
   specAgentInstructions,
   specAgentOutput,
   specAgentSelector,
+  type SpecAgent,
 } from '../agents'
 import { boardCommand, boardCommandFor, commandNote } from './command'
 import { activeDelivery, deliveryFor, findDelivery, withWorkflow } from './deliveries'
@@ -23,7 +24,7 @@ import { DELIVERY_FLOWS } from './flows'
 import { languageNote } from './language'
 import { agentImages, skillCall } from './resolve'
 import { agentForRun, workflowForRun } from './runner'
-import { DEFAULT_WORKFLOW, liveStage, workflowById, workflowFor } from './workflows'
+import { DEFAULT_WORKFLOW, frozenReviewers, liveStage, workflowById, workflowFor } from './workflows'
 import { stageOfAction } from './stage-end'
 import type { Stage } from './stages'
 import type { WorkflowStage } from './types'
@@ -250,6 +251,9 @@ function pictureNote(req: AgentRequest): string {
  *  this run is not part of one. A delivery's runs work to the rules it started with, the
  *  way they build the card it started with. */
 export function frozenRules(req: AgentRequest): Record<string, string> | undefined {
+  if (req.action === 'spec' && req.id !== undefined && findSpecAgent(req.specAgent ?? '')?.stage === 'review') {
+    return activeDelivery(req.id)?.rules
+  }
   return deliveryFor(req)?.rules
 }
 
@@ -296,6 +300,32 @@ function roster(req: AgentRequest): string {
 export function buildRun(req: AgentRequest): { prompt: string; notes: string[] } {
   const notes: string[] = migrateFlowRules()
   return { prompt: buildPrompt(req, notes), notes }
+}
+
+// One reviewer, printed inside the review that picked it (#820): its instructions, and what
+// the delivery's workflow asks of it on top.
+function reviewerPrompt(req: AgentRequest, agent: SpecAgent, kb: string, named: string, notes: string[]): string {
+  const own = specAgentInstructions(agent)
+  notes.push(...own.notes)
+  const memory = agentMemoryBlock(agent)
+  const delivery = req.id === undefined ? undefined : activeDelivery(req.id)
+  const extra = frozenReviewers(delivery?.workflow).find((h) => h.agent === agent.name)?.extra.trim()
+  return [
+    [
+      `${kb}. You are the \`${agent.name}\` reviewer on the delivery in flight on task ${req.id} ${named}.`,
+      `Review it by your instructions below, in the review run that picked you, and give your verdict before the next reviewer starts.`,
+      req.notes ? `What the review wants looked at: ${req.notes}` : '',
+      `Don't ask me questions with human-in-the-loop — an open question on the card is how you defer to me.`,
+    ]
+      .filter(Boolean)
+      .join(' '),
+    `——— you, the \`${agent.name}\` agent ———\n\n${own.instructions}`,
+    ...own.references.map((r) => `——— ${r.title} ———\n\n${r.text}`),
+    memory ? `——— what you remember ———\n\n${memory}` : '',
+    extra ? `——— what this workflow asks of you here ———\n\n${extra}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 /** What a review or a conflict run is aimed at, and what its flow is typed with: the card
@@ -527,6 +557,7 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
     // Inject the shared contract, specialty instructions, and selected references.
     case 'spec': {
       const agent = findSpecAgent(req.specAgent ?? '')
+      if (agent?.stage === 'review') return reviewerPrompt(req, agent, kb, named, notes)
       const found = req.id === undefined ? null : locate(req.id)
       const cardFile = found ? rel(found.kind === 'group' ? path.join(found.target, 'root.md') : found.target) : `task #${req.id}`
       // The one read of what this agent is set to, taken as the run starts and frozen for
@@ -591,15 +622,15 @@ function actionPrompt(req: AgentRequest, command: string, notes: string[]): stri
           `${kb}. ${aim.subject} is landing, and an agent resolved a conflict between it and the target branch — a composed result nothing has judged, on a delivery that already passed review.`,
           `\`${command} delivery review ${aim.arg} --print\` names the target delta and the paths both changed.`,
           `You did not build this. Do not read the run that wrote it.`,
-          `Judge only how those changes interact, following \`akb guide review\` — not the delivery's own design, which stands. Fix plain mistakes and rerun the checks those paths affect. ${defer}`,
+          `Judge only how those changes interact, following \`akb guide review\` — not the delivery's own design, which stands. Pick the reviewers those paths need and review as each of them. ${defer}`,
           `Don't ask me questions with human-in-the-loop.`,
         ].join(' ')
       }
       return [
         `${kb}. Review ${aim.subject} — judge what the delivery in flight on it has built against what it was approved to build, following \`akb guide review\`.`,
-        `\`${command} delivery review ${aim.arg} --print\` supplies the approved requirements, changed-file summary and small diff.`,
+        `\`${command} delivery review ${aim.arg} --print\` supplies the approved requirements, changed-file summary, small diff and the reviewers.`,
         `You did not build this. Do not read the run that wrote it.`,
-        `Fix plain mistakes and rerun the affected checks. ${defer}`,
+        `Pick the reviewers this diff needs and review as each of them. ${defer}`,
         `Don't ask me questions with human-in-the-loop.`,
       ].join(' ')
     }

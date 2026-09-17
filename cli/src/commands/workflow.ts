@@ -71,6 +71,10 @@ export function cmdWorkflowList(): MoveResult {
     for (const stage of WORKFLOW_STAGES) {
       const setup = liveStage(flow, stage)
       const helpers = setup.helpers.map((h) => titleOf(h.agent)).join(', ')
+      if (stage === 'review') {
+        say(`  ${stage.padEnd(8)}${helpers ? `reviewers: ${helpers}` : 'no reviewers — delivered as built'}`)
+        continue
+      }
       say(`  ${stage.padEnd(8)}${setup.lead ? titleOf(setup.lead) : '(nobody)'}${helpers ? `  + ${helpers}` : ''}`)
     }
     for (const problem of workflowProblems(flow.id)) say(`  ! ${problem}`)
@@ -139,7 +143,8 @@ export function cmdWorkflowStage(id: string, flags: WorkflowOptions): MoveResult
     const candidates = stageCandidates(stage).map((a) => a.name)
     say(`${flow.name} · ${stage} — agents that can take it: ${candidates.join(', ') || '(none on this board)'}`)
     // A built-in's lead is the command's, so only the helpers here are open to a change.
-    if (flow.builtIn) say(`  its lead is \`${flow.stages[stage].lead}\` and stays that way — duplicate it to pick another`)
+    if (stage === 'review') say('  the review stage has no lead — the agents added to it are its reviewers')
+    else if (flow.builtIn) say(`  its lead is \`${flow.stages[stage].lead}\` and stays that way — duplicate it to pick another`)
     return { id: flow.id, stage, candidates }
   }
   say(`${flow.name} · ${stage}: ${changes.join(', ')}`)

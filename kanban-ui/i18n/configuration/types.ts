@@ -10,7 +10,7 @@ export type AgentRoleName =
   | "discussion-helper"
   | "planner"
   | "builder"
-  | "reviewer"
+  | "code-reviewer"
   | "gater"
   | "decider"
   | "proposer"
@@ -72,6 +72,11 @@ export type ConfigurationCopy = {
     /** The agents that stage's lead may call in, and the button that adds one. */
     helpers: string;
     addHelper: string;
+    /** The review stage's list, which has no lead (#820): its caption, its add button, and
+     *  the line drawn when it is empty. */
+    reviewers: string;
+    addReviewer: string;
+    noReviewers: string;
     dropHelper: string;
     /** What THIS assignment asks of the selected helper, on top of its own instructions. */
     extra: string;

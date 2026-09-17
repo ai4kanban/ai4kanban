@@ -99,7 +99,8 @@ const BOARD_STAGES: StageContract[] = [
     input: "the delivery's diff and the card it was approved to build",
     output: 'a verdict, with the plain mistakes fixed in the same session',
     done: 'the diff answers the card, or the user has been asked the one thing that stops it',
-    lead: 'reviewer',
+    // Hidden: it picks among the workflow's reviewers, which are this stage's helpers (#820).
+    lead: 'review-lead',
     helpers: [],
     requires: [],
   },

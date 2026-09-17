@@ -158,7 +158,7 @@ describe('the team, as a contract read and write', () => {
 
     const { agents } = await board().readAgents()
     assert.equal(agents.find((a) => a.name === 'builder')?.rule, 'Install dependencies first.')
-    assert.equal(agents.find((a) => a.name === 'reviewer')?.rule, '')
+    assert.equal(agents.find((a) => a.name === 'code-reviewer')?.rule, '')
     // A role runs the board's own flows, so it has no switch, and neither does a workflow
     // agent — its stage assignment is the answer (#749). A board agent with one still has it.
     assert.equal(agents.find((a) => a.name === 'builder')?.switchable, false)

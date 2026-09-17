@@ -814,7 +814,7 @@ function cloudBoard(ctx: Context): BoardProvider {
 
     listDeliveries: () => local.listDeliveries(),
     activeDelivery: (cardId) => local.activeDelivery(cardId),
-    deliveryPlan: () => local.deliveryPlan(),
+    deliveryPlan: (cardId) => local.deliveryPlan(cardId),
     deliveryDiff: (deliveryId) => local.deliveryDiff(deliveryId),
     cancelDelivery: (deliveryId, env) => through({ board: true }, env, (e) => local.cancelDelivery(deliveryId, e)),
     resumeDelivery: (deliveryId, env) => through({ board: true }, env, (e) => local.resumeDelivery(deliveryId, e)),

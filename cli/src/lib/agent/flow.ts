@@ -31,6 +31,7 @@ import { idPrefix, locate, locateArchived } from '../cards'
 import { parseFrontmatter } from '../frontmatter'
 import { say } from '../io'
 import { findGuide } from '../guide'
+import { findSpecAgent } from '../agents'
 import { workflowForRun } from './runner'
 import { cardAges } from '../card-age'
 import { parseStamp } from '../cadence'
@@ -47,6 +48,7 @@ import { changedPaths, conflictedPaths, worktreeDir } from './worktree'
 import { boardCommandFor } from './command'
 import { activeDelivery, deliveryFor, withWorkflow } from './deliveries'
 import { aiReviewOn, owesFocusedReview } from './review'
+import { frozenReviewers, NO_REVIEWERS } from './workflows'
 import { field, metaLine, numbered } from './facts'
 import { chatsToReview } from './memory-review'
 import { memoryReview } from './settings'
@@ -293,6 +295,20 @@ function candidateField(delivery: DeliveryRecord | undefined, includePatch = tru
     ...diff,
     ...(!delivery.worktree ? ['this is the shared working tree; report changes that do not belong to the delivery.'] : []),
   ])
+}
+
+// Who may review this delivery (#820): its frozen reviewers, with what each one checks.
+function reviewersField(delivery: DeliveryRecord | undefined): string[] {
+  const lines = frozenReviewers(delivery?.workflow).flatMap((h) => {
+    const agent = findSpecAgent(h.agent)
+    if (!agent) return []
+    return [
+      `- \`${agent.name}\``,
+      `  ${agent.description}`,
+      ...(h.extra.trim() ? [`  this workflow also asks: ${h.extra.trim().replace(/\s*\n\s*/g, ' ')}`] : []),
+    ]
+  })
+  return field('reviewers', ['<reviewers>', ...lines, '</reviewers>'])
 }
 
 // A conflict with the target branch that an agent resolved (#415). The delivery itself
@@ -554,6 +570,7 @@ const guidesFor = (req: AgentRequest): string[] => {
   // A retired action is only ever read back off an old record (#438) — nothing starts one,
   // and there is no flow left to print for it.
   if (req.action === 'propose') return []
+  if (req.action === 'spec' && findSpecAgent(req.specAgent ?? '')?.stage === 'review') return []
   if (req.action !== 'clarify') return GUIDES_FOR[req.action]
   const qa = req.refineEffort === 'lightweight' ? 'qa-lightweight' : 'qa-loop'
   return ['writing', 'update-questions', qa]
@@ -646,6 +663,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // run that wrote it, because a reviewer that reads the implementer's reasoning
     // agrees with it.
     case 'review': {
+      if (delivery && !frozenReviewers(delivery.workflow).length) die(NO_REVIEWERS, { kind: 'no-reviewers' })
       const focused = rebaseReviewField(delivery)
       if (focused.length) {
         facts.push(...workspaceField(delivery))
@@ -663,6 +681,7 @@ function buildFlow(req: AgentRequest, program: string): Flow {
           facts.push(...questionsField(card.meta))
         }
       }
+      facts.push(...reviewersField(delivery))
       close.push(`finish successfully with no new question when the work is ready — that passes review`)
       // A delivery without a card reports its blocking decision in the final message.
       close.push(
@@ -839,6 +858,10 @@ function buildFlow(req: AgentRequest, program: string): Flow {
     // left rather than a card's steps — and the flow's own last tick is what closes the
     // job, which is why nothing here names a command that finishes it.
     case 'spec': {
+      if (findSpecAgent(req.specAgent ?? '')?.stage === 'review') {
+        next.push('Return to the review that picked this reviewer and continue with the next one it chose.')
+        break
+      }
       next.push('Return to the workflow that requested this spec and continue it in this session. No background follow-up is scheduled.')
       break
     }

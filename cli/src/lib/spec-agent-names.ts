@@ -8,6 +8,8 @@ const LEGACY_SPEC_AGENT_NAMES: Record<string, string> = {
   'recommend-tech-stack': 'tech-stack-advisor',
   'technology-selection': 'tech-stack-advisor',
   'ui-design': 'ui-designer',
+  // A board role until #820.
+  reviewer: 'code-reviewer',
 }
 
 /** The name a spec agent goes by now, for a name it may have gone by before. */

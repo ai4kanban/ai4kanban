@@ -3,7 +3,7 @@ title: "Runs, and the tool behind them"
 title_tag: "AI4Kanban runs — watch one, stop it, resume it, and pick what it runs on"
 description: "A run is an agent working on its own: what to say to watch, stop or resume one, and how each agent picks the coding tool and model it runs."
 lead: "A run is an agent working on its own — it survives a closed terminal, keeps its own log, and can be stopped. Here's how you drive one, and how each agent picks what it runs on."
-last_updated: "September 4, 2026"
+last_updated: "September 17, 2026"
 nav_label: "Runs and agents"
 icon: "terminal"
 ---
@@ -79,8 +79,8 @@ done with that history; the lines in `docs/kanban/.gitignore` that cover it can 
 
 ## Which runtime each agent runs on
 
-Every run belongs to one agent: a flow is run by the role that owns it — planner, builder,
-reviewer — and a spec run by the specialist it names. Each of them names a **runtime**, which is
+Every run belongs to one agent: a flow is run by the role that owns it — planner, builder —
+a review by the workflow's first reviewer, and a spec run by the specialist it names. Each of them names a **runtime**, which is
 the whole answer to what that run runs as: the coding tool, the provider, the endpoint, the key,
 the model id, the reasoning level and any extra arguments. So the planner can think on a stronger
 model than the builder writes with, and two agents on the same tool can sit on two different

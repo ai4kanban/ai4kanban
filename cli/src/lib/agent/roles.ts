@@ -97,16 +97,12 @@ const DECIDER: AgentRole = {
   confirm: 'on',
 }
 
-// The role that leads the review stage. It carried a switch of its own until #783: review is
-// a paid run per delivery and a board may decline it, but the answer is a DELIVERY setting —
-// it is frozen onto each delivery beside automatic commits and diff approval, and it is
-// answered where those two are, in Configuration → General → Delivery. A workflow agent
-// carrying a second switch on its own page was the last place role configuration and stage
-// assignment were mixed (#749).
-const REVIEWER: AgentRole = {
-  name: 'reviewer',
-  stage: 'review',
-  gloss: 'checks the code a build delivered',
+// The review stage's hidden lead (#820). A workflow names its reviewers and nothing leads
+// them; this role reads the diff, picks the reviewers it needs and reviews as each of them.
+// Off the roster: no page, no runtime, no memory, no switch.
+const REVIEW_LEAD_ROLE: AgentRole = {
+  name: 'review-lead',
+  gloss: 'picks the reviewers a delivery needs',
   memory: [],
 }
 
@@ -230,7 +226,6 @@ const BOARD_ROLES: AgentRole[] = [
     gloss: 'builds them and lands them',
     memory: [],
   },
-  REVIEWER,
   MEMORY_PRUNER,
   MEMORY_REVIEWER,
   SWEEPER,
@@ -250,14 +245,13 @@ export const DISCUSSION_ROLE = DISCUSSION_HELPER.name
  *  conversation, answered by a different agent's rule and brief. */
 export const FEEDBACK_ROLE = FEEDBACK.name
 
-/** The role that leads the review stage. Named here so a refusal can say where whether a
- *  build is reviewed is actually answered (#783). */
-export const REVIEW_ROLE = REVIEWER.name
+/** The review stage's hidden lead (#820). */
+export const REVIEW_LEAD = REVIEW_LEAD_ROLE.name
 
 /** Every role name the board ships. Reserved: a rule is keyed by the agent's name, so a
  *  project agent taking one would share that role's rule file (../agents/catalog.ts refuses
  *  it). */
-export const ROLE_NAMES: string[] = BOARD_ROLES.map((r) => r.name)
+export const ROLE_NAMES: string[] = [...BOARD_ROLES, REVIEW_LEAD_ROLE].map((r) => r.name)
 
 /** This board's roles, in the order a roster draws them. */
 export const roles = (): AgentRole[] => BOARD_ROLES
@@ -276,7 +270,8 @@ export const roleForFlow = (flow: string, workflow?: string): AgentRole | undefi
 }
 
 /** The role of a given name. */
-export const roleNamed = (name: string): AgentRole | undefined => roles().find((role) => role.name === name)
+export const roleNamed = (name: string): AgentRole | undefined =>
+  name === REVIEW_LEAD ? REVIEW_LEAD_ROLE : roles().find((role) => role.name === name)
 
 /** The flows an agent runs, in the order the board declares them (./flows.ts). What the
  *  one-time rule migration concatenates in. */
@@ -288,7 +283,7 @@ export function roleFlowsInOrder(name: string, workflow?: string): string[] {
 /** Every reason one of this board's contracts names an agent it does not have (./stages.ts).
  *  Read beside the agents' own problems, so a lead nobody answers to is said out loud rather
  *  than found out as a flow with nobody to run it. */
-export const stageContractProblems = (): string[] => contractProblems(agentNames())
+export const stageContractProblems = (): string[] => contractProblems([...agentNames(), REVIEW_LEAD])
 
 // ---- the roster ------------------------------------------------------------
 

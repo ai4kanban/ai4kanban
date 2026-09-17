@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 
 import { FLOWS } from '../src/lib/agent/flows.ts'
 import { buildRun } from '../src/lib/agent/prompts.ts'
-import { agentNames, agentRoster, roleForFlow, roles } from '../src/lib/agent/roles.ts'
+import { agentNames, agentRoster, REVIEW_LEAD, roleForFlow, roleNamed, roles } from '../src/lib/agent/roles.ts'
 import { agentForFlow } from '../src/lib/agent/stages.ts'
 import { migrateFlowRules, readRule, ruleFor } from '../src/lib/agent/rules.ts'
 import { setSpecAgentEnabled, specAgentProblems } from '../src/lib/agents/index.ts'
@@ -49,8 +49,16 @@ describe('the roles', () => {
   it('gives every flow the board can start exactly one agent', () => {
     for (const flow of FLOWS) {
       const owners = roles().filter((role) => role.name === agentForFlow(flow.command))
-      assert.equal(owners.length, 1, `${flow.command} is run by ${owners.length} agents`)
+      const hidden = roleNamed(agentForFlow(flow.command) ?? '') && !owners.length ? 1 : 0
+      assert.equal(owners.length + hidden, 1, `${flow.command} is run by ${owners.length} agents`)
     }
+  })
+
+  // The review stage is led by a role no roster shows (#820).
+  it('leads review with a hidden role that is on no roster', () => {
+    assert.equal(roleForFlow('review')!.name, REVIEW_LEAD)
+    assert.equal(agentNames().includes(REVIEW_LEAD), false)
+    assert.equal(roles().some((r) => r.name === REVIEW_LEAD), false)
   })
 
   it('leaves the planner every flow that writes a card', () => {
@@ -66,7 +74,6 @@ describe('the roles', () => {
         'discussion-helper',
         'planner',
         'builder',
-        'reviewer',
         'memory-pruner',
         'memory-reviewer',
         'sweeper',
@@ -104,9 +111,9 @@ describe('the roles', () => {
   })
 
   // The two that write no memory at all own no folder either (#805).
-  it('gives the builder and the reviewer no memory', () => {
+  it('gives the builder and the code reviewer no memory', () => {
     const memoryOf = (name: string): string[] => agentRoster().find((a) => a.name === name)!.memory
-    for (const name of ['builder', 'reviewer']) {
+    for (const name of ['builder', 'code-reviewer']) {
       assert.deepEqual(memoryOf(name), [], name)
     }
   })
@@ -124,7 +131,6 @@ describe('the roles', () => {
       'discussion-helper',
       'planner',
       'builder',
-      'reviewer',
       'memory-pruner',
       'memory-reviewer',
       'sweeper',
@@ -133,6 +139,7 @@ describe('the roles', () => {
       'decider',
       'proposer',
       'triage',
+      'code-reviewer',
       'copywriting',
       'tech-stack-advisor',
       'ui-designer',
@@ -142,11 +149,10 @@ describe('the roles', () => {
 
   it('rosters the roles first, then the specialists the command ships', () => {
     const names = agentNames()
-    assert.deepEqual(names.slice(0, 12), [
+    assert.deepEqual(names.slice(0, 11), [
       'discussion-helper',
       'planner',
       'builder',
-      'reviewer',
       'memory-pruner',
       'memory-reviewer',
       'sweeper',
@@ -156,14 +162,14 @@ describe('the roles', () => {
       'proposer',
       'triage',
     ])
-    assert.deepEqual(names.slice(12), ['copywriting', 'tech-stack-advisor', 'ui-designer'])
+    assert.deepEqual(names.slice(11), ['code-reviewer', 'copywriting', 'tech-stack-advisor', 'ui-designer'])
     assert.deepEqual(
       agentRoster().map((a) => a.kind),
-      [...Array(12).fill('role'), 'spec', 'spec', 'spec'],
+      [...Array(11).fill('role'), 'spec', 'spec', 'spec', 'spec'],
     )
     // A role says which work it runs; a specialist is asked for by name and runs none.
     assert.ok(agentRoster()[0]!.flows.length > 0)
-    assert.deepEqual(agentRoster()[12]!.flows, [])
+    assert.deepEqual(agentRoster()[11]!.flows, [])
     // Five roles can be switched off, and each reads a key of its own (#447, #493, #534,
     // #562, #748). None of them belongs to a workflow: an agent a stage assigns has no
     // switch, the reviewer included (#749, #783).
@@ -209,7 +215,7 @@ describe('the roles that can be switched off', () => {
     assert.equal(await on('memory-reviewer'), true)
     // And a workflow agent is always on here: its stage assignment is the whole answer
     // (#749, #783).
-    for (const always of ['discussion-helper', 'planner', 'builder', 'reviewer']) {
+    for (const always of ['discussion-helper', 'planner', 'builder', 'code-reviewer']) {
       assert.equal(await on(always), true, always)
     }
   })
@@ -243,8 +249,8 @@ describe('the roles that can be switched off', () => {
   // The reviewer has no switch of its own (#783). Asking for one says so, and says where
   // whether a build is reviewed at all is actually answered — a delivery setting, under
   // General → Delivery, which `aiReview` still reads.
-  it('refuses to switch the reviewer, and points at the delivery setting', async () => {
-    const refused = setSpecAgentEnabled('reviewer', false)
+  it('refuses to switch the code reviewer, and points at the delivery setting', async () => {
+    const refused = setSpecAgentEnabled('code-reviewer', false)
     assert.equal(refused.ok, false)
     assert.match(refused.error!, /has no switch/)
     assert.match(refused.error!, /Configuration → General → Delivery/)
@@ -254,7 +260,9 @@ describe('the roles that can be switched off', () => {
     assert.equal(aiReviewEnabled(), true)
     setAiReview(false)
     assert.equal(aiReviewEnabled(), false)
-    assert.equal(await on('reviewer'), true)
+    assert.equal(await on('code-reviewer'), true)
+    // Its old name reaches the same refusal.
+    assert.match(setSpecAgentEnabled('reviewer', false).error!, /has no switch/)
   })
 
   it('refuses to switch off a role the board runs on', async () => {
@@ -272,7 +280,7 @@ describe("the one-time move onto the agents", () => {
 
     const notes = migrateFlowRules()
     assert.equal(ruleText('builder'), 'Install dependencies first.\n\nKeep the target branch.')
-    assert.equal(ruleText('reviewer'), 'Run the smoke tests.')
+    assert.equal(ruleText('code-reviewer'), 'Run the smoke tests.')
     for (const gone of ['implement', 'conflict', 'review']) {
       assert.equal(fs.existsSync(path.join(RULES, `${gone}.md`)), false, gone)
     }
@@ -297,8 +305,8 @@ describe("the one-time move onto the agents", () => {
   })
 
   it('reports the move in the run log the first time a run is built', () => {
-    rule('review', 'Run the smoke tests.')
-    const { notes, prompt } = buildRun({ action: 'review', id: 1, title: 'card one' })
+    rule('implement', 'Run the smoke tests.')
+    const { notes, prompt } = buildRun({ action: 'implement', id: 1, title: 'card one' })
     assert.match(notes.join('\n'), /a rule is one per agent now/)
     assert.match(prompt, /smoke tests/)
   })
@@ -330,7 +338,7 @@ describe('akb raw rule', () => {
   it('takes a spec agent by name too, and refuses a name no agent answers to', async () => {
     await move(root, ['rule', 'ui-designer', '--text', 'Keep to the existing palette.'])
     assert.equal(ruleText('ui-designer'), 'Keep to the existing palette.')
-    await refuses(root, ['rule', 'designer', '--text', 'Anything.'], /planner, builder, reviewer/)
+    await refuses(root, ['rule', 'designer', '--text', 'Anything.'], /planner, builder, memory-pruner/)
   })
 
   // The agent was renamed, and a rule is saved under the agent's name.

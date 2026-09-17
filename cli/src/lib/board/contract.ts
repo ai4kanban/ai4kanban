@@ -241,7 +241,8 @@ export interface BoardProvider {
   // ---- the delivery lifecycle ----------------------------------------------
   listDeliveries(): Promise<DeliveryRecord[]>
   activeDelivery(cardId: number): Promise<DeliveryRecord | undefined>
-  deliveryPlan(): Promise<DeliveryPlan>
+  /** `cardId` reads that card's workflow: one with no reviewers is never reviewed (#820). */
+  deliveryPlan(cardId?: number): Promise<DeliveryPlan>
   deliveryDiff(deliveryId: string): Promise<DeliveryDiff | null>
   cancelDelivery(deliveryId: string, env: OpEnvelope): Promise<OpResult<{ deliveryId?: string }>>
   /** Carry an ended delivery on from where it stopped (#639) — the one way back for a

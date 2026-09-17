@@ -35,6 +35,9 @@ const zh: ConfigurationCopy = {
     stageProblem: "这个环节还没有可用的负责人，指定一个之后才能开始。",
     helpers: "辅助 Agent",
     addHelper: "添加辅助",
+    reviewers: "评审员",
+    addReviewer: "添加评审员",
+    noReviewers: "没有评审员时，构建完成直接交付。",
     dropHelper: "移除辅助",
     extra: "额外要求",
     extraPlaceholder: "例如：沿用当前产品的术语。",
@@ -299,7 +302,7 @@ const zh: ConfigurationCopy = {
         gloss: "构建卡片并合入。",
         rule: "会附加到每一次开发、解冲突和执行运行的末尾——例如「用 pnpm 安装依赖，合入前先跑 pnpm test」。",
       },
-      reviewer: {
+      "code-reviewer": {
         name: "代码评审",
         gloss: "评审开发交付的代码改动，并修复发现的问题。",
         rule: "会附加到每一次评审的末尾——例如「卡片没写到的依赖一律打回」。",

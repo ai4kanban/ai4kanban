@@ -38,7 +38,7 @@ the whole difference, and it has to be readable at 48px.
   chest, its columns mint, ember and sky, each with a couple of cards in it.
 - **`builder.png`** — builds cards and lands them. Holding an **ember hammer** upright on a
   wooden handle, head above the shoulder.
-- **`reviewer.png`** — checks what was built. Holding a **peach-rimmed magnifying glass** up
+- **`code-reviewer.png`** — checks what was built. Holding a **peach-rimmed magnifying glass** up
   beside the head so the lens breaks the body's outline; a small sky mark inside the lens.
 - **`writer.png`** — writes the drafts and repurposes them (marketing boards). Holding a
   **yellow pencil** with a pink eraser, angled nib-down, over a ruled sheet of paper held

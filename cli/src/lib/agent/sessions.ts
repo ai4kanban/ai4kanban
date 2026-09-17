@@ -42,6 +42,7 @@ import {
 } from './deliveries'
 import { DELIVERY_FLOWS } from './flows'
 import { deliveryCwd, prepareDelivery, undoPrepared, type DeliveryStart } from './commit-mode'
+import { frozenReviewers, NO_REVIEWERS } from './workflows'
 import { repairLanding, settleAlreadyLanded } from './landing'
 import { branchExists, pruneWorktreeMetadata, removeWorktree, worktreeExists } from './worktree'
 import { durationLine, pruneLogs, readLogTail, splitLog } from './log'
@@ -715,6 +716,9 @@ export function openRun(
         ? activeDelivery(cardId)
         : undefined
     : undefined
+  if (req.action === 'review' && joining && !frozenReviewers(joining.workflow).length) {
+    return { error: NO_REVIEWERS }
+  }
   const cwd = deliveryCwd(start ?? joining ?? {})
   // The one settings read for this whole run. Everything it needs is worked out here, at
   // the start — not later, when the agent finally spawns (an index action waits its turn
